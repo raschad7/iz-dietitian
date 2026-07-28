@@ -11,3 +11,4 @@
  * `created_at` / `updated_at` on every table.
  */
 export * from './auth';
+export * from './clients';
