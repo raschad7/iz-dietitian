@@ -148,8 +148,19 @@ if (!url) {
   throw new Error('TEST_DATABASE_URL is not set. Add it to .env.test.local and run: createdb dietitian_test');
 }
 
-if (url === process.env.DATABASE_URL) {
-  throw new Error('TEST_DATABASE_URL must differ from DATABASE_URL — the tests truncate every table.');
+/**
+ * `resetDatabase()` truncates every table in `public`. Pointing this at a
+ * development database would destroy real work, so require the name to end in
+ * `_test` and refuse otherwise.
+ *
+ * Comparing against DATABASE_URL would NOT work as a guard: under NODE_ENV=test
+ * `.env.local` is never loaded, so DATABASE_URL is undefined here and any such
+ * comparison silently passes.
+ */
+if (!/_test$/.test(new URL(url).pathname.slice(1))) {
+  throw new Error(
+    `Refusing to run tests against "${new URL(url).pathname.slice(1)}": the database name must end in _test, because the tests truncate every table.`,
+  );
 }
 
 process.env.DATABASE_URL = url;
@@ -193,8 +204,13 @@ Add to the `scripts` block, after `"typecheck"`:
 
 ```json
     "test": "bun test",
-    "db:migrate:test": "bun run scripts/db-migrate-test.ts",
+    "db:migrate:test": "bun --env-file=.env.test.local run scripts/db-migrate-test.ts",
 ```
+
+The `--env-file` flag is required: this script runs under plain `bun run`, where
+`NODE_ENV` is not `test`, so Bun does not load `.env.test.local` automatically
+the way it does for `bun test`. Any future script that needs the test database
+must pass the same flag.
 
 - [ ] **Step 8: Write a smoke test**
 
