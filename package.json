@@ -11,7 +11,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
-    "db:migrate:test": "bun run scripts/db-migrate-test.ts",
+    "db:migrate:test": "bun --env-file=.env.test.local run scripts/db-migrate-test.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "bun run scripts/seed.ts",

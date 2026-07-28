@@ -13,7 +13,7 @@ import postgres from 'postgres';
 const url = process.env.TEST_DATABASE_URL;
 
 if (!url) {
-  throw new Error('TEST_DATABASE_URL is not set. Add it to .env.local and run: createdb dietitian_test');
+  throw new Error('TEST_DATABASE_URL is not set. Add it to .env.test.local and run: createdb dietitian_test');
 }
 
 const client = postgres(url, { max: 1 });
