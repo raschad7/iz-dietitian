@@ -22,6 +22,9 @@ yarn.lock
 # typescript
 *.tsbuildinfo
 
+# claude code — shared config is committed, personal overrides are not
+.claude/settings.local.json
+
 # misc
 .DS_Store
 *.pem
