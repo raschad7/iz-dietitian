@@ -1,6 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/params';
 
@@ -20,13 +20,19 @@ export default async function LandingPage({ params }: LandingPageProps) {
         <p className="text-pretty text-lg text-muted-foreground">{t('description')}</p>
       </div>
 
+      {/*
+        Links styled as buttons, not <Button render={<Link/>}>: Base UI's Button
+        defaults `nativeButton` to true and warns when it renders anything other
+        than a real <button>, because that silently drops native button
+        semantics. `buttonVariants` gives the same appearance on a real anchor.
+      */}
       <div className="flex flex-wrap gap-3">
-        <Button size="lg" render={<Link href="/app" />}>
+        <Link href="/login" className={buttonVariants({ size: 'lg' })}>
           {t('staffCta')}
-        </Button>
-        <Button size="lg" variant="outline" render={<Link href="/portal" />}>
+        </Link>
+        <Link href="/client-login" className={buttonVariants({ size: 'lg', variant: 'outline' })}>
           {t('clientCta')}
-        </Button>
+        </Link>
       </div>
 
       <p className="border-s-2 border-border ps-4 text-sm text-muted-foreground">{t('foundationNotice')}</p>

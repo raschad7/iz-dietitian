@@ -10,6 +10,7 @@ import { defaultLocale, locales, type Locale } from '@/i18n/routing';
 import {
   MAGIC_LINK_TTL_MINUTES,
   MAGIC_LINK_TTL_SECONDS,
+  MIN_PASSWORD_LENGTH,
   SESSION_REFRESH_AGE_SECONDS,
   SESSION_TTL_SECONDS,
 } from './auth-constants';
@@ -49,7 +50,7 @@ export const auth = betterAuth({
   /** Dietitian and staff accounts. Client accounts never get a password. */
   emailAndPassword: {
     enabled: true,
-    minPasswordLength: 10,
+    minPasswordLength: MIN_PASSWORD_LENGTH,
     requireEmailVerification: false,
     autoSignIn: true,
   },

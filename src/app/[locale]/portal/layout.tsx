@@ -20,7 +20,7 @@ export default async function PortalLayout({ children, params }: PortalLayoutPro
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <Header title={t('title')} userName={session.user.name} />
+      <Header title={t('title')} userName={session.user.name} locale={locale} />
       <main className="mx-auto w-full max-w-3xl flex-1 p-6">{children}</main>
     </div>
   );

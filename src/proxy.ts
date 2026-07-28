@@ -19,14 +19,23 @@ import { routing } from '@/i18n/routing';
  */
 const intlMiddleware = createIntlMiddleware(routing);
 
-/** Route areas that require a session, keyed by the first segment after the locale. */
-const PROTECTED_AREAS = new Set(['app', 'portal']);
+/**
+ * Route areas that require a session, mapped to the sign-in page that area's
+ * users belong on. Staff and clients authenticate differently — password versus
+ * magic link — so bouncing a client to the staff form would be a dead end.
+ */
+const PROTECTED_AREAS: Record<string, string> = {
+  app: 'login',
+  portal: 'client-login',
+};
 
 export default function proxy(request: NextRequest) {
   const segments = request.nextUrl.pathname.split('/').filter(Boolean);
   const [maybeLocale, maybeArea] = segments;
 
-  if (hasLocale(routing.locales, maybeLocale) && maybeArea !== undefined && PROTECTED_AREAS.has(maybeArea)) {
+  const loginPath = maybeArea === undefined ? undefined : PROTECTED_AREAS[maybeArea];
+
+  if (hasLocale(routing.locales, maybeLocale) && loginPath !== undefined) {
     /**
      * Optimistic check only: this reads the cookie without validating it, which
      * is all that is safe to do here. The real check — including `staff` vs
@@ -34,7 +43,7 @@ export default function proxy(request: NextRequest) {
      * `requireClientSession`.
      */
     if (!getSessionCookie(request)) {
-      const loginUrl = new URL(`/${maybeLocale}/login`, request.url);
+      const loginUrl = new URL(`/${maybeLocale}/${loginPath}`, request.url);
       loginUrl.searchParams.set('redirect', request.nextUrl.pathname);
       return NextResponse.redirect(loginUrl);
     }

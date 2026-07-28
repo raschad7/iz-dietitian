@@ -2,14 +2,18 @@ import { useTranslations } from 'next-intl';
 
 import { Link } from '@/i18n/navigation';
 
-type NavItem = {
-  href: '/app' | '/app/clients' | '/portal';
-  labelKey: 'dashboard' | 'clients' | 'portalHome';
+export type NavItem = {
+  href: '/app' | '/app/clients' | '/app/calendar' | '/app/meal-plans' | '/portal';
+  labelKey: 'dashboard' | 'clients' | 'calendar' | 'mealPlans' | 'portalHome';
 };
 
 /**
  * Navigation shell for a signed-in area. Deliberately thin: feature areas are
- * added here as `src/features/<feature>/` folders come online.
+ * added to the caller's `items` array as `src/features/<feature>/` folders come
+ * online.
+ *
+ * Sign-out lives in the header rather than here, because this sidebar is hidden
+ * below `md` and a sign-out button reachable only on desktop is a trap.
  */
 export function Sidebar({ items, title }: { items: readonly NavItem[]; title: string }) {
   const t = useTranslations('nav');

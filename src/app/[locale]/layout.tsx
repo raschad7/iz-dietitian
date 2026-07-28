@@ -49,7 +49,16 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
   return (
     // `lang` and `dir` are both derived from the route's locale — never hardcoded.
     <html lang={locale} dir={getLocaleDirection(locale)} suppressHydrationWarning>
-      <body className={`${ibmPlexSans.variable} ${ibmPlexSansArabic.variable} min-h-dvh antialiased`}>
+      {/*
+        `suppressHydrationWarning` is needed on <body> as well as <html>: it only
+        applies one level deep, and browser extensions (ColorZilla, Grammarly and
+        friends) inject attributes like `cz-shortcut-listen` onto the body before
+        React hydrates, which otherwise reports as a hydration mismatch.
+      */}
+      <body
+        suppressHydrationWarning
+        className={`${ibmPlexSans.variable} ${ibmPlexSansArabic.variable} min-h-dvh antialiased`}
+      >
         <NextIntlClientProvider>
           {children}
           <DevLocaleSwitcher />

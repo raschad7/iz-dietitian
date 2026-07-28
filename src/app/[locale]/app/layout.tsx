@@ -14,6 +14,8 @@ type AppLayoutProps = {
 const NAV_ITEMS = [
   { href: '/app', labelKey: 'dashboard' },
   { href: '/app/clients', labelKey: 'clients' },
+  { href: '/app/calendar', labelKey: 'calendar' },
+  { href: '/app/meal-plans', labelKey: 'mealPlans' },
 ] as const;
 
 export default async function AppLayout({ children, params }: AppLayoutProps) {
@@ -28,7 +30,7 @@ export default async function AppLayout({ children, params }: AppLayoutProps) {
     <div className="flex min-h-dvh">
       <Sidebar items={NAV_ITEMS} title={t('shortName')} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <Header title={t('shortName')} userName={session.user.name} />
+        <Header title={t('shortName')} userName={session.user.name} locale={locale} />
         <main className="flex-1 p-6">{children}</main>
       </div>
     </div>

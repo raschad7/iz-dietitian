@@ -15,12 +15,18 @@ export async function getSession(): Promise<Session | null> {
  * session cookie; this is the authoritative check — it hits the database and,
  * unlike the middleware, can compare roles.
  */
+/** Staff and clients sign in on different pages, so they are sent to different ones. */
+export const LOGIN_PATHS = {
+  staff: 'login',
+  client: 'client-login',
+} as const satisfies Record<UserRole, string>;
+
 async function requireRole(role: UserRole, locale: Locale): Promise<Session> {
   const session = await getSession();
 
   // `redirect` throws, so control never returns past these branches.
   if (!session) {
-    redirect(`/${locale}/login`);
+    redirect(`/${locale}/${LOGIN_PATHS[role]}`);
   }
 
   if (session.user.role !== role) {

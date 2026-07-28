@@ -224,6 +224,30 @@ Better Auth, mounted at `src/app/api/auth/[...all]/route.ts` — the only HTTP
 endpoint in the app. Everything the UI does goes through server actions
 (`src/components/auth/actions.ts`).
 
+Staff and clients have **separate sign-in pages**, because they authenticate in
+completely different ways:
+
+| Page                       | Who        | How                        |
+| -------------------------- | ---------- | -------------------------- |
+| `/[locale]/login`          | Staff      | Email + password           |
+| `/[locale]/signup`         | Staff      | Creates a staff account    |
+| `/[locale]/client-login`   | Clients    | Single-use magic link      |
+
+Both `src/proxy.ts` and `src/lib/session.ts` send an anonymous visitor to the
+page matching the area they asked for, so a client is never bounced to a
+password form they have no password for.
+
+> ### ⚠️ Staff sign-up is currently open to anyone
+>
+> `/[locale]/signup` has no invite code, no allow-list and no rate limit, and
+> `role` defaults to `staff`. Anyone who reaches that URL gets an account with
+> full access to every client's medical notes, allergies and contact details.
+>
+> This is fine on a development machine. **Gate it before deploying anywhere
+> reachable from the internet** — check an invite code inside `signUpStaff` in
+> `src/components/auth/actions.ts`, or allow sign-up only while zero staff
+> accounts exist.
+
 - **Dietitian and staff** sign in with email + password.
 - **Clients** sign in with a magic link: single use, 15-minute expiry, exchanged
   for a 60-day session cookie. Tokens live in the `verifications` table and are
