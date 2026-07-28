@@ -92,6 +92,41 @@ export function restoreClient(clinicId: string, id: string): Promise<boolean> {
   return setStatus(clinicId, id, 'active');
 }
 
+/**
+ * Permanently deletes a client.
+ *
+ * Archiving is the everyday action and what the UI leads with; this exists for
+ * the genuine cases — a duplicate, a test record, someone exercising their right
+ * to erasure.
+ *
+ * The client row and its portal account are removed in ONE transaction. Deleting
+ * only the client would leave the `users` row behind: `clients.user_id` is
+ * `on delete set null`, so nothing would point at it, and that person would keep
+ * a working portal login attached to no record at all.
+ *
+ * Returns false when this clinic has no client with that id.
+ */
+export async function deleteClient(clinicId: string, id: string): Promise<boolean> {
+  const [client] = await db
+    .select({ userId: clients.userId })
+    .from(clients)
+    .where(scopedToClinic(clinicId, id))
+    .limit(1);
+
+  if (!client) return false;
+
+  await db.transaction(async (tx) => {
+    await tx.delete(clients).where(scopedToClinic(clinicId, id));
+
+    if (client.userId) {
+      // Cascades to their sessions, so an open portal tab stops working too.
+      await tx.delete(user).where(eq(user.id, client.userId));
+    }
+  });
+
+  return true;
+}
+
 export type InviteFailureCode = 'not_found' | 'no_email' | 'email_taken' | 'already_invited';
 
 /**

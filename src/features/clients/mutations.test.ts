@@ -8,6 +8,7 @@ import { createTestClinic, resetDatabase } from '../../../tests/helpers';
 import {
   archiveClient,
   createClient,
+  deleteClient,
   invitePortalAccess,
   restoreClient,
   revokePortalAccess,
@@ -224,5 +225,42 @@ describe('clinic isolation', () => {
     expect((await invitePortalAccess(otherClinicId, id)).ok).toBe(true);
     expect(await revokePortalAccess(clinicId, id)).toBe(false);
     expect(await readUsers()).toHaveLength(1);
+  });
+});
+
+describe('deleteClient', () => {
+  test('removes the client', async () => {
+    const { id } = await createClient(clinicId, { fullName: 'سجل مكرر', preferredLocale: 'ar' });
+
+    expect(await deleteClient(clinicId, id)).toBe(true);
+    expect(await readClient(id)).toBeUndefined();
+  });
+
+  test('takes the portal account with it, leaving no orphan login', async () => {
+    const { id } = await createClient(clinicId, {
+      fullName: 'سارة',
+      preferredLocale: 'ar',
+      email: 'sara@clinic.ps',
+    });
+    await invitePortalAccess(clinicId, id);
+    expect(await readUsers()).toHaveLength(1);
+
+    await deleteClient(clinicId, id);
+
+    // The whole point: no users row survives to sign in against a record that
+    // no longer exists.
+    expect(await readUsers()).toHaveLength(0);
+  });
+
+  test('returns false for an unknown id', async () => {
+    expect(await deleteClient(clinicId, '00000000-0000-4000-8000-000000000000')).toBe(false);
+  });
+
+  test('cannot delete another clinic\u2019s client', async () => {
+    const otherClinicId = await createTestClinic('Other Clinic');
+    const { id } = await createClient(otherClinicId, { fullName: 'سارة', preferredLocale: 'ar' });
+
+    expect(await deleteClient(clinicId, id)).toBe(false);
+    expect(await readClient(id)).toBeDefined();
   });
 });

@@ -12,6 +12,7 @@ import { requireStaffClinic } from '@/lib/session';
 import {
   archiveClient,
   createClient,
+  deleteClient,
   invitePortalAccess,
   restoreClient,
   revokePortalAccess,
@@ -129,6 +130,24 @@ export async function setClientStatusAction(formData: FormData): Promise<void> {
 
   revalidatePath(`/${locale}/app/clients`);
   revalidatePath(`/${locale}/app/clients/${id}`);
+}
+
+/**
+ * Permanently deletes a client, then returns to the list — there is no detail
+ * page left to go back to. The UI asks for confirmation first; this does not,
+ * because a server action cannot.
+ */
+export async function deleteClientAction(formData: FormData): Promise<void> {
+  const locale = readLocale(formData);
+  const { clinicId } = await requireStaffClinic(locale);
+
+  const id = clientIdSchema.parse(formData.get('clientId'));
+
+  await deleteClient(clinicId, id);
+
+  revalidatePath(`/${locale}/app/clients`);
+
+  redirect(`/${locale}/app/clients`);
 }
 
 export async function invitePortalAccessAction(

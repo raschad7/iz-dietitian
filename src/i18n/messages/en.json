@@ -124,7 +124,8 @@
       "notes": "Notes",
       "status": "Status",
       "createdAt": "Registered",
-      "portalAccess": "Portal access"
+      "portalAccess": "Portal access",
+      "actions": "Actions"
     },
     "status": {
       "active": "Active",
@@ -152,8 +153,11 @@
     "actions": {
       "archive": "Archive",
       "restore": "Restore",
-      "filter": "Filter"
+      "filter": "Filter",
+      "delete": "Delete",
+      "confirmDelete": "This permanently deletes {name} and their portal account. It cannot be undone. Are you sure?"
     },
+    "clearFilters": "Clear filters",
     "pagination": {
       "previous": "Previous",
       "next": "Next",
@@ -167,6 +171,7 @@
       "revoke": "Revoke portal access",
       "invited": "Account created and a sign-in link sent.",
       "revoked": "Portal access revoked.",
+      "confirmRevoke": "This client will immediately lose access to the portal. Are you sure?",
       "devNotice": "In development the sign-in link is printed to the server console instead of emailed."
     },
     "errors": {

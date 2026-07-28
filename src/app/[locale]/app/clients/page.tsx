@@ -53,7 +53,11 @@ export default async function ClientsPage({ params, searchParams }: ClientsPageP
       </div>
 
       <ClientSearch input={input} />
-      <ClientTable result={result} filtered={Boolean(input.q) || input.status !== 'active'} />
+      <ClientTable
+        result={result}
+        filtered={Boolean(input.q) || input.status !== 'active'}
+        locale={locale}
+      />
       <ClientPagination result={result} input={input} />
     </div>
   );

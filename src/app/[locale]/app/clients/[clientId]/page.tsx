@@ -5,6 +5,7 @@ import type { Metadata } from 'next';
 import { buttonVariants } from '@/components/ui/button';
 import { ArchiveButton } from '@/features/clients/components/archive-button';
 import { ClientProfile } from '@/features/clients/components/client-profile';
+import { DeleteClientButton } from '@/features/clients/components/delete-client-button';
 import { PortalAccessCard } from '@/features/clients/components/portal-access-card';
 import { StatusBadge } from '@/features/clients/components/status-badge';
 import { getClient } from '@/features/clients/queries';
@@ -57,6 +58,7 @@ export default async function ClientPage({ params }: ClientPageProps) {
             {t('edit')}
           </Link>
           <ArchiveButton locale={locale} clientId={client.id} archived={client.status === 'archived'} />
+          <DeleteClientButton locale={locale} clientId={client.id} clientName={client.fullName} />
         </div>
       </div>
 

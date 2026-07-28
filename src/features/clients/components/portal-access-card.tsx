@@ -2,11 +2,10 @@
 
 import { useTranslations } from 'next-intl';
 import { useActionState } from 'react';
-import { useFormStatus } from 'react-dom';
 
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { invitePortalAccessAction, revokePortalAccessAction } from '@/features/clients/actions';
+import { ConfirmSubmitButton } from '@/features/clients/components/confirm-submit-button';
 import { initialPortalState, type PortalActionState } from '@/features/clients/form-state';
 import { type Locale } from '@/i18n/routing';
 
@@ -38,7 +37,12 @@ export function PortalAccessCard({ locale, clientId, hasPortalAccess }: PortalAc
 
           <Message state={state} />
 
-          <SubmitButton label={hasPortalAccess ? t('portal.revoke') : t('portal.invite')} destructive={hasPortalAccess} />
+          {/* Revoking ends their session immediately, so it asks first. */}
+          <ConfirmSubmitButton
+            label={hasPortalAccess ? t('portal.revoke') : t('portal.invite')}
+            confirmMessage={hasPortalAccess ? t('portal.confirmRevoke') : undefined}
+            variant={hasPortalAccess ? 'outline' : 'default'}
+          />
         </form>
 
         {!hasPortalAccess ? <p className="text-xs text-muted-foreground">{t('portal.devNotice')}</p> : null}
@@ -61,13 +65,3 @@ function Message({ state }: { state: PortalActionState }) {
   );
 }
 
-function SubmitButton({ label, destructive }: { label: string; destructive: boolean }) {
-  const tCommon = useTranslations('common');
-  const { pending } = useFormStatus();
-
-  return (
-    <Button type="submit" variant={destructive ? 'outline' : 'default'} disabled={pending}>
-      {pending ? tCommon('loading') : label}
-    </Button>
-  );
-}
