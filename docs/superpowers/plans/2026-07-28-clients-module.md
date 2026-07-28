@@ -770,7 +770,13 @@ export const localeSchema = z.enum(locales).catch(defaultLocale);
 export const clientFormSchema = z.object({
   fullName: z.string().trim().min(2).max(120),
   phone: optionalText(40),
-  email: z.preprocess(blankToUndefined, z.email().trim().toLowerCase().optional()),
+  /**
+   * `.pipe()`, not `z.email().trim()`. In Zod 4 `z.email()` bakes its format
+   * check in at construction, so a chained `.trim()` runs only AFTER validation
+   * — and "  a@b.co " is rejected before anything gets a chance to trim it.
+   * Normalise as a plain string first, then validate the result.
+   */
+  email: z.preprocess(blankToUndefined, z.string().trim().toLowerCase().pipe(z.email()).optional()),
   preferredLocale: localeSchema,
   dateOfBirth: z.preprocess(
     blankToUndefined,
