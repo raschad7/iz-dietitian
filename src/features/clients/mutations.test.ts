@@ -2,10 +2,17 @@ import { beforeEach, describe, expect, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { clients } from '@/db/schema';
+import { clients, user } from '@/db/schema';
 
 import { resetDatabase } from '../../../tests/helpers';
-import { archiveClient, createClient, restoreClient, updateClient } from './mutations';
+import {
+  archiveClient,
+  createClient,
+  invitePortalAccess,
+  restoreClient,
+  revokePortalAccess,
+  updateClient,
+} from './mutations';
 
 beforeEach(async () => {
   await resetDatabase();
@@ -91,5 +98,96 @@ describe('archiveClient / restoreClient', () => {
     const { id } = await createClient({ fullName: 'أحمد', preferredLocale: 'ar' });
     await archiveClient(id);
     expect(await readClient(id)).toBeDefined();
+  });
+});
+
+async function readUsers() {
+  return db.select().from(user);
+}
+
+describe('invitePortalAccess', () => {
+  test('creates a client-role user and links it', async () => {
+    const { id } = await createClient({ fullName: 'سارة', preferredLocale: 'en', email: 'sara@clinic.ps' });
+
+    const result = await invitePortalAccess(id);
+    expect(result.ok).toBe(true);
+
+    const users = await readUsers();
+    expect(users).toHaveLength(1);
+    expect(users[0]?.email).toBe('sara@clinic.ps');
+    expect(users[0]?.role).toBe('client');
+    expect(users[0]?.locale).toBe('en');
+
+    expect((await readClient(id))?.userId).toBe(users[0]?.id ?? '');
+  });
+
+  test('refuses a client with no email and writes nothing', async () => {
+    const { id } = await createClient({ fullName: 'أحمد', preferredLocale: 'ar' });
+
+    const result = await invitePortalAccess(id);
+    expect(result).toEqual({ ok: false, code: 'no_email' });
+    expect(await readUsers()).toHaveLength(0);
+  });
+
+  test('refuses when the email already belongs to a user, and writes nothing', async () => {
+    await db.insert(user).values({
+      id: 'existing-user',
+      name: 'Existing',
+      email: 'taken@clinic.ps',
+      role: 'staff',
+    });
+
+    const { id } = await createClient({ fullName: 'سارة', preferredLocale: 'ar', email: 'taken@clinic.ps' });
+
+    const result = await invitePortalAccess(id);
+    expect(result).toEqual({ ok: false, code: 'email_taken' });
+
+    // The pre-existing user is untouched and no second row appeared.
+    expect(await readUsers()).toHaveLength(1);
+    expect((await readClient(id))?.userId).toBeNull();
+  });
+
+  test('refuses a second invite for an already-linked client', async () => {
+    const { id } = await createClient({ fullName: 'سارة', preferredLocale: 'ar', email: 'sara@clinic.ps' });
+    await invitePortalAccess(id);
+
+    expect(await invitePortalAccess(id)).toEqual({ ok: false, code: 'already_invited' });
+    expect(await readUsers()).toHaveLength(1);
+  });
+
+  test('refuses an unknown client', async () => {
+    expect(await invitePortalAccess('00000000-0000-4000-8000-000000000000')).toEqual({
+      ok: false,
+      code: 'not_found',
+    });
+  });
+});
+
+describe('revokePortalAccess', () => {
+  test('deletes the user and leaves the client record intact', async () => {
+    const { id } = await createClient({ fullName: 'سارة', preferredLocale: 'ar', email: 'sara@clinic.ps' });
+    await invitePortalAccess(id);
+
+    expect(await revokePortalAccess(id)).toBe(true);
+    expect(await readUsers()).toHaveLength(0);
+
+    const row = await readClient(id);
+    expect(row).toBeDefined();
+    expect(row?.userId).toBeNull();
+    expect(row?.fullName).toBe('سارة');
+  });
+
+  test('returns false for a client with no portal access', async () => {
+    const { id } = await createClient({ fullName: 'أحمد', preferredLocale: 'ar' });
+    expect(await revokePortalAccess(id)).toBe(false);
+  });
+
+  test('a client can be re-invited after a revoke', async () => {
+    const { id } = await createClient({ fullName: 'سارة', preferredLocale: 'ar', email: 'sara@clinic.ps' });
+    await invitePortalAccess(id);
+    await revokePortalAccess(id);
+
+    expect((await invitePortalAccess(id)).ok).toBe(true);
+    expect(await readUsers()).toHaveLength(1);
   });
 });
