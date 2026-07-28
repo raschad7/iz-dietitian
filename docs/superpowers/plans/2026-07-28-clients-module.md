@@ -35,6 +35,7 @@ Read these before starting. Violating any of them fails `bun run lint` or `bun r
 | File | Responsibility |
 | --- | --- |
 | `bunfig.toml` | Points `bun test` at the preload that redirects the DB to the test database |
+| `.env.test.local` | Git-ignored; holds `TEST_DATABASE_URL`, loaded by Bun under `NODE_ENV=test` |
 | `tests/setup.ts` | Preload: sets `DATABASE_URL` from `TEST_DATABASE_URL` before any import of `@/db` |
 | `tests/helpers.ts` | `resetDatabase()` and client/user factories shared by integration tests |
 | `scripts/db-migrate-test.ts` | Applies `drizzle/` migrations to the test database |
@@ -70,9 +71,9 @@ createdb dietitian_test
 
 Expected: no output on success. If it already exists, that error is fine — continue.
 
-- [ ] **Step 2: Add `TEST_DATABASE_URL` to `.env.example` and `.env.local`**
+- [ ] **Step 2: Put `TEST_DATABASE_URL` in `.env.test.local`**
 
-Append to both files (`.env.local` is git-ignored and must be edited by hand):
+Create `.env.test.local` (git-ignored via the existing `.env.*.local` rule):
 
 ```bash
 # Integration tests truncate every table in this database between tests.
@@ -80,6 +81,21 @@ Append to both files (`.env.local` is git-ignored and must be edited by hand):
 #   createdb dietitian_test
 TEST_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dietitian_test
 ```
+
+**Not `.env.local`.** `bun test` sets `NODE_ENV=test`, and Bun deliberately skips
+`.env.local` when `NODE_ENV=test` so development secrets cannot leak into a test
+run. Verified in this environment:
+
+```
+NODE_ENV unset       → .env.local loaded
+NODE_ENV=test        → .env.local NOT loaded
+NODE_ENV=production  → .env.local loaded
+```
+
+`.env.test.local` *is* loaded under `NODE_ENV=test`, so the value arrives without
+any hand-rolled parsing. Document it in `.env.example` as a comment pointing at
+the separate file — `.env.example` is committed, so it must not contain a real
+credential.
 
 - [ ] **Step 3: Create the test-database migrator**
 
@@ -101,7 +117,7 @@ import postgres from 'postgres';
 const url = process.env.TEST_DATABASE_URL;
 
 if (!url) {
-  throw new Error('TEST_DATABASE_URL is not set. Add it to .env.local and run: createdb dietitian_test');
+  throw new Error('TEST_DATABASE_URL is not set. Add it to .env.test.local and run: createdb dietitian_test');
 }
 
 const client = postgres(url, { max: 1 });
@@ -122,11 +138,14 @@ Create `tests/setup.ts`:
  *
  * `src/db/index.ts` reads DATABASE_URL at module-evaluation time, so this must
  * run before anything imports `@/db` — that is exactly what a preload is for.
+ *
+ * TEST_DATABASE_URL comes from `.env.test.local`, which Bun loads automatically
+ * under NODE_ENV=test. See Step 2 for why it cannot live in `.env.local`.
  */
 const url = process.env.TEST_DATABASE_URL;
 
 if (!url) {
-  throw new Error('TEST_DATABASE_URL is not set. Add it to .env.local and run: createdb dietitian_test');
+  throw new Error('TEST_DATABASE_URL is not set. Add it to .env.test.local and run: createdb dietitian_test');
 }
 
 if (url === process.env.DATABASE_URL) {
@@ -3304,7 +3323,7 @@ Expected: clean. If not, review and commit what remains.
 
 ## Notes for the implementer
 
-**If `bun test` cannot connect:** `TEST_DATABASE_URL` is missing from `.env.local`, or `createdb dietitian_test` was never run. The preload fails loudly with the reason.
+**If `bun test` cannot connect:** `TEST_DATABASE_URL` is missing from `.env.test.local`, or `createdb dietitian_test` was never run. The preload fails loudly with the reason. Note that putting the variable in `.env.local` will *not* work — Bun skips that file when `NODE_ENV=test`.
 
 **After any schema change:** run `bun run db:generate`, then **both** `bun run db:migrate` and `bun run db:migrate:test`. Forgetting the second gives integration failures that look like logic bugs.
 
