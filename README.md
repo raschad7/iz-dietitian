@@ -267,7 +267,8 @@ For every table added from here on:
   ```ts
   id: uuid('id').primaryKey().defaultRandom(),
   ```
-  This needs `pgcrypto`; `bun run db:reset` creates the extension.
+  `gen_random_uuid()` is built into PostgreSQL core since v13, so no extension
+  is required.
 - **`created_at` and `updated_at` on every table**, as `timestamptz`:
   ```ts
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

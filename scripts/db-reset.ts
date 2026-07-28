@@ -36,8 +36,6 @@ async function reset(): Promise<void> {
     console.info('dropping schema public…');
     await client.unsafe('drop schema if exists public cascade');
     await client.unsafe('create schema public');
-    // Needed for the gen_random_uuid() primary keys domain tables will use.
-    await client.unsafe('create extension if not exists pgcrypto');
 
     console.info('running migrations…');
     await migrate(drizzle(client), { migrationsFolder: './drizzle' });
