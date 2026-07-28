@@ -3,8 +3,8 @@ import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 
 type NavItem = {
-  href: '/app' | '/portal';
-  labelKey: 'dashboard' | 'portalHome';
+  href: '/app' | '/app/clients' | '/portal';
+  labelKey: 'dashboard' | 'clients' | 'portalHome';
 };
 
 /**

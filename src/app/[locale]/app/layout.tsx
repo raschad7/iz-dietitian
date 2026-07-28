@@ -11,7 +11,10 @@ type AppLayoutProps = {
   params: Promise<{ locale: string }>;
 };
 
-const NAV_ITEMS = [{ href: '/app', labelKey: 'dashboard' }] as const;
+const NAV_ITEMS = [
+  { href: '/app', labelKey: 'dashboard' },
+  { href: '/app/clients', labelKey: 'clients' },
+] as const;
 
 export default async function AppLayout({ children, params }: AppLayoutProps) {
   const locale = await resolveLocale(params);
