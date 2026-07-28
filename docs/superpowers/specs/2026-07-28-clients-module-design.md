@@ -90,6 +90,9 @@ export const clients = pgTable(
 
     status: text('status').notNull().default('active'), // active | archived
 
+    // Locale for this client's portal account and magic-link emails
+    preferredLocale: text('preferred_locale').notNull().default('ar'), // ar | en
+
     // Intake profile
     dateOfBirth: date('date_of_birth'),
     sex: text('sex'), // female | male
@@ -181,9 +184,10 @@ Phone and email are matched raw, in the same `or(...)` as the normalised name.
 ```
 src/features/clients/
   schema.ts       # Zod enums + createClient / updateClient / listClients input
-  queries.ts      # server-only: listClients, getClient
-  actions.ts      # "use server": create, update, archive, restore, invite, revoke
   search.ts       # normalizeForSearch
+  queries.ts      # reads: listClients, getClient — no Next imports
+  mutations.ts    # writes: create, update, archive, restore, invite, revoke — no Next imports
+  actions.ts      # "use server": guard, parse, call mutations, revalidate, redirect
   components/
     client-table.tsx        # list + empty state
     client-search.tsx       # search and status filter, URL-driven
@@ -221,6 +225,13 @@ page size 20.
 `getClient` Zod-parses `clientId` as a UUID before querying, so a malformed id
 becomes a 404 rather than a driver error on the failed cast.
 
+**Why reads and writes sit outside `actions.ts`.** `queries.ts` and
+`mutations.ts` import no Next.js modules, so they can be called directly from
+`bun test`. A `"use server"` module that calls `revalidatePath` and `headers()`
+cannot — those throw outside a request scope. Keeping the database work in plain
+modules is what makes the integration tests below possible; `actions.ts` stays a
+thin, deliberately untested layer of glue.
+
 **Writes.** Every action re-verifies the session. A server action is a public
 endpoint; the layout guard protects the page render, not the mutation. Actions
 take the locale from a hidden form field validated against `locales`, which is
@@ -245,7 +256,7 @@ Both are checked before any write and reported as specific errors (`no_email`,
 `email_taken`).
 
 In a single transaction: insert a `users` row with `role: 'client'`, the client's
-email and name, and `locale` from the client's preference; then set
+email and name, and `locale` from `clients.preferred_locale`; then set
 `clients.user_id` to that row. The transaction is the reason this is a direct
 Drizzle insert rather than `auth.api.createUser` — the Better Auth call cannot
 enlist in our transaction, so a failure between the two steps would leave an
