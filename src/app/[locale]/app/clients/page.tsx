@@ -9,7 +9,7 @@ import { listClients } from '@/features/clients/queries';
 import { listClientsSchema } from '@/features/clients/schema';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/params';
-import { requireStaffSession } from '@/lib/session';
+import { requireStaffClinic } from '@/lib/session';
 
 type ClientsPageProps = {
   params: Promise<{ locale: string }>;
@@ -28,7 +28,7 @@ function single(value: string | string[] | undefined): string | undefined {
 
 export default async function ClientsPage({ params, searchParams }: ClientsPageProps) {
   const locale = await resolveLocale(params);
-  await requireStaffSession(locale);
+  const { clinicId } = await requireStaffClinic(locale);
 
   const raw = await searchParams;
   const input = listClientsSchema.parse({
@@ -37,7 +37,7 @@ export default async function ClientsPage({ params, searchParams }: ClientsPageP
     page: single(raw.page),
   });
 
-  const [result, t] = await Promise.all([listClients(input), getTranslations('clients')]);
+  const [result, t] = await Promise.all([listClients(clinicId, input), getTranslations('clients')]);
 
   return (
     <div className="space-y-6 text-start">

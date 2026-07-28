@@ -1,4 +1,6 @@
-import { boolean, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import { boolean, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+
+import { clinics } from './clinics';
 
 /**
  * Better Auth's required tables — the ONLY tables in this repository.
@@ -28,6 +30,16 @@ export const user = pgTable('users', {
 
   /** Preferred UI locale, used to pick a locale when a session is created. */
   locale: text('locale').notNull().default('ar'),
+
+  /**
+   * The clinic this account belongs to — the tenant boundary.
+   *
+   * Set for `staff` when the account is created (see the `user.create.before`
+   * hook in `src/lib/auth.ts`). Null for `client` accounts: a client reaches the
+   * portal, which shows only their own records, so it needs no clinic scope of
+   * its own — the `clients` row already carries one.
+   */
+  clinicId: uuid('clinic_id').references(() => clinics.id, { onDelete: 'set null' }),
 
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

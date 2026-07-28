@@ -31,8 +31,14 @@ export type ClientListResult = {
 
 export type ClientDetail = Client & { hasPortalAccess: boolean };
 
-function buildFilter(input: ListClientsInput): SQL | undefined {
-  const conditions: SQL[] = [];
+/**
+ * Every read is scoped to one clinic.
+ *
+ * `clinicId` is a required first argument rather than an optional filter so that
+ * forgetting it is a type error, not a silent cross-tenant leak.
+ */
+function buildFilter(clinicId: string, input: ListClientsInput): SQL | undefined {
+  const conditions: SQL[] = [eq(clients.clinicId, clinicId)];
 
   if (input.status !== 'all') {
     conditions.push(eq(clients.status, input.status));
@@ -48,13 +54,11 @@ function buildFilter(input: ListClientsInput): SQL | undefined {
     if (matches) conditions.push(matches);
   }
 
-  if (conditions.length === 0) return undefined;
-
   return and(...conditions);
 }
 
-export async function listClients(input: ListClientsInput): Promise<ClientListResult> {
-  const where = buildFilter(input);
+export async function listClients(clinicId: string, input: ListClientsInput): Promise<ClientListResult> {
+  const where = buildFilter(clinicId, input);
 
   const [totals] = await db.select({ value: count() }).from(clients).where(where);
   const total = totals?.value ?? 0;
@@ -85,12 +89,21 @@ export async function listClients(input: ListClientsInput): Promise<ClientListRe
 /**
  * Validates the id before querying, so a malformed route param becomes a 404
  * rather than a PostgreSQL error on the failed uuid cast.
+ *
+ * A client belonging to another clinic returns null — indistinguishable from a
+ * client that does not exist, which is deliberate: a different response would
+ * confirm the id is real to someone guessing.
  */
-export async function getClient(id: string): Promise<ClientDetail | null> {
+export async function getClient(clinicId: string, id: string): Promise<ClientDetail | null> {
   const parsed = clientIdSchema.safeParse(id);
   if (!parsed.success) return null;
 
-  const [row] = await db.select().from(clients).where(eq(clients.id, parsed.data)).limit(1);
+  const [row] = await db
+    .select()
+    .from(clients)
+    .where(and(eq(clients.id, parsed.data), eq(clients.clinicId, clinicId)))
+    .limit(1);
+
   if (!row) return null;
 
   return { ...row, hasPortalAccess: row.userId !== null };

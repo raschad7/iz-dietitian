@@ -1,6 +1,7 @@
 import { date, index, integer, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 
 import { user } from './auth';
+import { clinics } from './clinics';
 
 /**
  * A client of the clinic.
@@ -17,6 +18,15 @@ export const clients = pgTable(
   'clients',
   {
     id: uuid('id').primaryKey().defaultRandom(),
+
+    /**
+     * The owning clinic — the tenant boundary. Every query in
+     * `src/features/clients/` filters on this, so two dietitians who signed up
+     * independently never see each other's clients.
+     */
+    clinicId: uuid('clinic_id')
+      .notNull()
+      .references(() => clinics.id, { onDelete: 'cascade' }),
 
     fullName: text('full_name').notNull(),
 
@@ -77,7 +87,8 @@ export const clients = pgTable(
     // One portal login maps to at most one client. PostgreSQL permits many NULLs
     // in a unique index, so uninvited clients are unconstrained.
     uniqueIndex('clients_user_id_idx').on(table.userId),
-    index('clients_status_idx').on(table.status),
+    // Every list query filters by clinic first, so this is the index that matters.
+    index('clients_clinic_id_status_idx').on(table.clinicId, table.status),
     // No index on search_name: `ilike '%…%'` cannot use a btree. At one clinic's
     // scale a sequential scan is the right plan; pg_trgm is the upgrade path.
   ],

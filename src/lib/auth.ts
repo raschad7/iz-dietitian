@@ -5,6 +5,7 @@ import { magicLink } from 'better-auth/plugins';
 
 import { db } from '@/db';
 import { account, session, user, verification } from '@/db/schema/auth';
+import { clinics } from '@/db/schema/clinics';
 import { defaultLocale, locales, type Locale } from '@/i18n/routing';
 
 import {
@@ -70,6 +71,16 @@ export const auth = betterAuth({
         defaultValue: defaultLocale,
         input: false,
       },
+      /**
+       * Tenant boundary. Assigned by the `user.create.before` hook below, and
+       * never accepted from a sign-up payload — otherwise anyone could post a
+       * `clinicId` and join a clinic that is not theirs.
+       */
+      clinicId: {
+        type: 'string',
+        required: false,
+        input: false,
+      },
     },
   },
 
@@ -87,6 +98,35 @@ export const auth = betterAuth({
   },
 
   databaseHooks: {
+    user: {
+      create: {
+        /**
+         * Every staff sign-up creates its own clinic and joins it, which is what
+         * makes each account a separate tenant.
+         *
+         * Client accounts never reach this hook — they are provisioned by
+         * `invitePortalAccess`, which inserts directly through Drizzle — but the
+         * role is checked anyway so that enabling any other Better Auth sign-up
+         * path later cannot silently mint clinics.
+         */
+        before: async (newUser) => {
+          const role = 'role' in newUser ? newUser.role : undefined;
+          if (role !== undefined && role !== 'staff') return { data: newUser };
+
+          const [clinic] = await db
+            .insert(clinics)
+            .values({ name: newUser.name })
+            .returning({ id: clinics.id });
+
+          if (!clinic) {
+            throw new Error('could not create a clinic for the new staff account');
+          }
+
+          return { data: { ...newUser, clinicId: clinic.id } };
+        },
+      },
+    },
+
     session: {
       create: {
         before: async (newSession, context) => ({

@@ -6,12 +6,8 @@ import { useFormStatus } from 'react-dom';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  initialPortalState,
-  invitePortalAccessAction,
-  revokePortalAccessAction,
-  type PortalActionState,
-} from '@/features/clients/actions';
+import { invitePortalAccessAction, revokePortalAccessAction } from '@/features/clients/actions';
+import { initialPortalState, type PortalActionState } from '@/features/clients/form-state';
 import { type Locale } from '@/i18n/routing';
 
 type PortalAccessCardProps = {

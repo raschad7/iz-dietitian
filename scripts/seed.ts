@@ -9,7 +9,7 @@
 import { eq } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { account, clients, user } from '@/db/schema';
+import { account, clients, clinics, user } from '@/db/schema';
 import { createClient, invitePortalAccess } from '@/features/clients/mutations';
 import { auth } from '@/lib/auth';
 
@@ -22,14 +22,20 @@ const SEED_CLIENTS = [
   { fullName: 'إبراهيم نصّار', phone: '0597444555', preferredLocale: 'ar' as const, dateOfBirth: '1972-01-20', sex: 'male' as const, heightCm: 170, goal: 'medical' as const, activityLevel: 'sedentary' as const, medicalNotes: 'ارتفاع ضغط الدم' },
   { fullName: 'فاطمة درويش', preferredLocale: 'ar' as const, sex: 'female' as const, goal: 'weight_gain' as const },
   { fullName: 'Layla Haddad', email: 'layla@example.ps', preferredLocale: 'en' as const, dateOfBirth: '2000-07-09', sex: 'female' as const, heightCm: 160, goal: 'sports' as const, activityLevel: 'very_active' as const },
-] satisfies Parameters<typeof createClient>[0][];
+] satisfies Parameters<typeof createClient>[1][];
 
 async function seed(): Promise<void> {
   if (process.env.NODE_ENV === 'production') {
     throw new Error('refusing to seed a production database');
   }
 
-  const [existingStaff] = await db.select({ id: user.id }).from(user).where(eq(user.email, STAFF_EMAIL)).limit(1);
+  const [existingStaff] = await db
+    .select({ id: user.id, clinicId: user.clinicId })
+    .from(user)
+    .where(eq(user.email, STAFF_EMAIL))
+    .limit(1);
+
+  let clinicId = existingStaff?.clinicId ?? null;
 
   if (!existingStaff) {
     /**
@@ -44,6 +50,16 @@ async function seed(): Promise<void> {
     const ctx = await auth.$context;
     const userId = crypto.randomUUID();
 
+    // Each staff account is its own clinic — the tenant boundary. Created here
+    // directly for the same reason the user row is: no request scope.
+    const [clinic] = await db
+      .insert(clinics)
+      .values({ name: 'عيادة التغذية' })
+      .returning({ id: clinics.id });
+
+    if (!clinic) throw new Error('insert into clinics returned no row');
+    clinicId = clinic.id;
+
     await db.insert(user).values({
       id: userId,
       name: 'أخصائي التغذية',
@@ -51,6 +67,7 @@ async function seed(): Promise<void> {
       emailVerified: true,
       role: 'staff',
       locale: 'ar',
+      clinicId,
     });
 
     await db.insert(account).values({
@@ -70,15 +87,19 @@ async function seed(): Promise<void> {
   // accounts go too — `clients.user_id` is `set null`, so deleting only the
   // clients would leave client-role users behind and the next invite would then
   // fail with email_taken.
-  await db.delete(clients);
+  if (!clinicId) {
+    throw new Error(`staff account ${STAFF_EMAIL} has no clinic; delete it and re-run the seed`);
+  }
+
+  await db.delete(clients).where(eq(clients.clinicId, clinicId));
   await db.delete(user).where(eq(user.role, 'client'));
 
-  const created = await Promise.all(SEED_CLIENTS.map((input) => createClient(input)));
+  const created = await Promise.all(SEED_CLIENTS.map((input) => createClient(clinicId, input)));
 
   // One client gets portal access so the invited state is visible in the UI.
   const [, second] = created;
   if (second) {
-    await invitePortalAccess(second.id);
+    await invitePortalAccess(clinicId, second.id);
   }
 
   // One archived client so the status filter has something to filter.

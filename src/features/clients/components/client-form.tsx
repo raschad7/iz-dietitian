@@ -9,12 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  createClientAction,
-  initialFormState,
-  updateClientAction,
-  type ClientFormState,
-} from '@/features/clients/actions';
+import { createClientAction, updateClientAction } from '@/features/clients/actions';
+import { initialFormState, type ClientFormState } from '@/features/clients/form-state';
 import {
   CLIENT_ACTIVITY_LEVELS,
   CLIENT_GOALS,

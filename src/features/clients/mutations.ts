@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 import { db } from '@/db';
 import { clients, user } from '@/db/schema';
@@ -34,8 +34,22 @@ function toColumns(input: ClientFormInput) {
   };
 }
 
-export async function createClient(input: ClientFormInput): Promise<{ id: string }> {
-  const [row] = await db.insert(clients).values(toColumns(input)).returning({ id: clients.id });
+/**
+ * Matches one client within one clinic.
+ *
+ * Every write goes through this rather than `eq(clients.id, id)` alone, so a
+ * client id belonging to another clinic simply matches no rows — the update
+ * reports "not found" instead of quietly succeeding across the tenant boundary.
+ */
+function scopedToClinic(clinicId: string, id: string) {
+  return and(eq(clients.id, id), eq(clients.clinicId, clinicId));
+}
+
+export async function createClient(clinicId: string, input: ClientFormInput): Promise<{ id: string }> {
+  const [row] = await db
+    .insert(clients)
+    .values({ ...toColumns(input), clinicId })
+    .returning({ id: clients.id });
 
   if (!row) {
     throw new Error('insert into clients returned no row');
@@ -44,34 +58,38 @@ export async function createClient(input: ClientFormInput): Promise<{ id: string
   return row;
 }
 
-/** Returns false when no client has that id. */
-export async function updateClient(id: string, input: ClientFormInput): Promise<boolean> {
+/** Returns false when this clinic has no client with that id. */
+export async function updateClient(
+  clinicId: string,
+  id: string,
+  input: ClientFormInput,
+): Promise<boolean> {
   const rows = await db
     .update(clients)
     .set({ ...toColumns(input), updatedAt: new Date() })
-    .where(eq(clients.id, id))
+    .where(scopedToClinic(clinicId, id))
     .returning({ id: clients.id });
 
   return rows.length > 0;
 }
 
-async function setStatus(id: string, status: 'active' | 'archived'): Promise<boolean> {
+async function setStatus(clinicId: string, id: string, status: 'active' | 'archived'): Promise<boolean> {
   const rows = await db
     .update(clients)
     .set({ status, updatedAt: new Date() })
-    .where(eq(clients.id, id))
+    .where(scopedToClinic(clinicId, id))
     .returning({ id: clients.id });
 
   return rows.length > 0;
 }
 
 /** Hides a client from the default list. Never deletes — clients own history. */
-export function archiveClient(id: string): Promise<boolean> {
-  return setStatus(id, 'archived');
+export function archiveClient(clinicId: string, id: string): Promise<boolean> {
+  return setStatus(clinicId, id, 'archived');
 }
 
-export function restoreClient(id: string): Promise<boolean> {
-  return setStatus(id, 'active');
+export function restoreClient(clinicId: string, id: string): Promise<boolean> {
+  return setStatus(clinicId, id, 'active');
 }
 
 export type InviteFailureCode = 'not_found' | 'no_email' | 'email_taken' | 'already_invited';
@@ -105,8 +123,8 @@ function isUniqueViolation(error: unknown): boolean {
  * No `accounts` row is created: clients authenticate by magic link and never
  * hold a password.
  */
-export async function invitePortalAccess(clientId: string): Promise<InviteResult> {
-  const [client] = await db.select().from(clients).where(eq(clients.id, clientId)).limit(1);
+export async function invitePortalAccess(clinicId: string, clientId: string): Promise<InviteResult> {
+  const [client] = await db.select().from(clients).where(scopedToClinic(clinicId, clientId)).limit(1);
 
   if (!client) return { ok: false, code: 'not_found' };
   if (client.userId) return { ok: false, code: 'already_invited' };
@@ -130,7 +148,10 @@ export async function invitePortalAccess(clientId: string): Promise<InviteResult
         locale: client.preferredLocale,
       });
 
-      await tx.update(clients).set({ userId, updatedAt: new Date() }).where(eq(clients.id, clientId));
+      await tx
+        .update(clients)
+        .set({ userId, updatedAt: new Date() })
+        .where(scopedToClinic(clinicId, clientId));
     });
   } catch (error) {
     // The check above is a fast path, not a guarantee — two staff members can
@@ -148,8 +169,12 @@ export async function invitePortalAccess(clientId: string): Promise<InviteResult
  * accounts, and `clients.user_id` returns to null via `on delete set null`, so
  * the clinical record survives untouched.
  */
-export async function revokePortalAccess(clientId: string): Promise<boolean> {
-  const [client] = await db.select({ userId: clients.userId }).from(clients).where(eq(clients.id, clientId)).limit(1);
+export async function revokePortalAccess(clinicId: string, clientId: string): Promise<boolean> {
+  const [client] = await db
+    .select({ userId: clients.userId })
+    .from(clients)
+    .where(scopedToClinic(clinicId, clientId))
+    .limit(1);
 
   if (!client?.userId) return false;
 

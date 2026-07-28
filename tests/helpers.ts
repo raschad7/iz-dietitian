@@ -1,6 +1,21 @@
 import { sql } from 'drizzle-orm';
 
 import { db } from '@/db';
+import { clinics } from '@/db/schema';
+
+/**
+ * Creates a clinic and returns its id.
+ *
+ * Clients are scoped to a clinic, so every integration test needs at least one —
+ * and the isolation tests need two.
+ */
+export async function createTestClinic(name = 'Test Clinic'): Promise<string> {
+  const [clinic] = await db.insert(clinics).values({ name }).returning({ id: clinics.id });
+
+  if (!clinic) throw new Error('insert into clinics returned no row');
+
+  return clinic.id;
+}
 
 /**
  * Truncates every table in `public`, discovered at runtime rather than listed,

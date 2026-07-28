@@ -7,7 +7,7 @@ import { z } from 'zod';
 
 import { type Locale } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
-import { requireStaffSession } from '@/lib/session';
+import { requireStaffClinic } from '@/lib/session';
 
 import {
   archiveClient,
@@ -17,31 +17,17 @@ import {
   revokePortalAccess,
   updateClient,
 } from './mutations';
+import { type ClientFormState, type PortalActionState } from './form-state';
 import { clientFormSchema, clientIdSchema, localeSchema } from './schema';
 
 /**
  * A server action is a public endpoint. The layout guard protects the page
- * render, not the mutation, so every action below re-verifies the session.
+ * render, not the mutation, so every action below re-verifies the session and
+ * scopes every write to the caller's own clinic.
  *
- * `messageKey` is a key inside the `clients` namespace, following the pattern in
- * `src/components/auth/actions.ts`, so the UI stays translatable.
+ * State shapes and their initial values live in `./form-state` — this module is
+ * `"use server"`, and such a module may only export async functions.
  */
-export type ClientFormState =
-  | { status: 'idle' }
-  | {
-      status: 'error';
-      messageKey: 'errors.invalid' | 'errors.unexpected';
-      /** Shaped to match `z.flattenError`, so no cast is needed at either end. */
-      fieldErrors?: Record<string, string[] | undefined>;
-    };
-
-export type PortalActionState =
-  | { status: 'idle' }
-  | { status: 'error'; messageKey: 'errors.noEmail' | 'errors.emailTaken' | 'errors.unexpected' }
-  | { status: 'success'; messageKey: 'portal.invited' | 'portal.revoked' };
-
-export const initialFormState: ClientFormState = { status: 'idle' };
-export const initialPortalState: PortalActionState = { status: 'idle' };
 
 function readForm(formData: FormData) {
   return {
@@ -69,7 +55,7 @@ export async function createClientAction(
   formData: FormData,
 ): Promise<ClientFormState> {
   const locale = readLocale(formData);
-  await requireStaffSession(locale);
+  const { clinicId } = await requireStaffClinic(locale);
 
   const parsed = clientFormSchema.safeParse(readForm(formData));
 
@@ -84,7 +70,7 @@ export async function createClientAction(
   let id: string;
 
   try {
-    ({ id } = await createClient(parsed.data));
+    ({ id } = await createClient(clinicId, parsed.data));
   } catch (error) {
     console.error('[clients] create failed', error);
     return { status: 'error', messageKey: 'errors.unexpected' };
@@ -101,7 +87,7 @@ export async function updateClientAction(
   formData: FormData,
 ): Promise<ClientFormState> {
   const locale = readLocale(formData);
-  await requireStaffSession(locale);
+  const { clinicId } = await requireStaffClinic(locale);
 
   const id = clientIdSchema.parse(formData.get('clientId'));
   const parsed = clientFormSchema.safeParse(readForm(formData));
@@ -115,7 +101,7 @@ export async function updateClientAction(
   }
 
   try {
-    await updateClient(id, parsed.data);
+    await updateClient(clinicId, id, parsed.data);
   } catch (error) {
     console.error('[clients] update failed', error);
     return { status: 'error', messageKey: 'errors.unexpected' };
@@ -130,15 +116,15 @@ export async function updateClientAction(
 /** Archive and restore share a form; the intent arrives as a field. */
 export async function setClientStatusAction(formData: FormData): Promise<void> {
   const locale = readLocale(formData);
-  await requireStaffSession(locale);
+  const { clinicId } = await requireStaffClinic(locale);
 
   const id = clientIdSchema.parse(formData.get('clientId'));
   const intent = z.enum(['archive', 'restore']).parse(formData.get('intent'));
 
   if (intent === 'archive') {
-    await archiveClient(id);
+    await archiveClient(clinicId, id);
   } else {
-    await restoreClient(id);
+    await restoreClient(clinicId, id);
   }
 
   revalidatePath(`/${locale}/app/clients`);
@@ -150,14 +136,14 @@ export async function invitePortalAccessAction(
   formData: FormData,
 ): Promise<PortalActionState> {
   const locale = readLocale(formData);
-  await requireStaffSession(locale);
+  const { clinicId } = await requireStaffClinic(locale);
 
   const id = clientIdSchema.parse(formData.get('clientId'));
 
   let email: string;
 
   try {
-    const result = await invitePortalAccess(id);
+    const result = await invitePortalAccess(clinicId, id);
 
     if (!result.ok) {
       if (result.code === 'no_email') return { status: 'error', messageKey: 'errors.noEmail' };
@@ -198,12 +184,12 @@ export async function revokePortalAccessAction(
   formData: FormData,
 ): Promise<PortalActionState> {
   const locale = readLocale(formData);
-  await requireStaffSession(locale);
+  const { clinicId } = await requireStaffClinic(locale);
 
   const id = clientIdSchema.parse(formData.get('clientId'));
 
   try {
-    await revokePortalAccess(id);
+    await revokePortalAccess(clinicId, id);
   } catch (error) {
     console.error('[clients] revoke failed', error);
     return { status: 'error', messageKey: 'errors.unexpected' };

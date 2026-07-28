@@ -5,7 +5,7 @@ import type { Metadata } from 'next';
 import { ClientForm } from '@/features/clients/components/client-form';
 import { getClient } from '@/features/clients/queries';
 import { resolveLocale } from '@/i18n/params';
-import { requireStaffSession } from '@/lib/session';
+import { requireStaffClinic } from '@/lib/session';
 
 type EditClientPageProps = {
   params: Promise<{ locale: string; clientId: string }>;
@@ -19,10 +19,10 @@ export async function generateMetadata({ params }: EditClientPageProps): Promise
 
 export default async function EditClientPage({ params }: EditClientPageProps) {
   const locale = await resolveLocale(params);
-  await requireStaffSession(locale);
+  const { clinicId } = await requireStaffClinic(locale);
 
   const { clientId } = await params;
-  const client = await getClient(clientId);
+  const client = await getClient(clinicId, clientId);
 
   if (!client) {
     notFound();

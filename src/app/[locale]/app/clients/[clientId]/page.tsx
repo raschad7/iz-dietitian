@@ -10,29 +10,33 @@ import { StatusBadge } from '@/features/clients/components/status-badge';
 import { getClient } from '@/features/clients/queries';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/params';
-import { requireStaffSession } from '@/lib/session';
+import { requireStaffClinic } from '@/lib/session';
 
 type ClientPageProps = {
   params: Promise<{ locale: string; clientId: string }>;
 };
 
+/**
+ * Deliberately does not read the client to title the tab with their name.
+ *
+ * `generateMetadata` runs outside the layout's session guard, so it has no
+ * clinic to scope a lookup to — and a title is exactly the kind of thing that
+ * leaks quietly, putting one clinic's patient name in another's browser history.
+ * The page body below shows the name, after the guard has run.
+ */
 export async function generateMetadata({ params }: ClientPageProps): Promise<Metadata> {
   const locale = await resolveLocale(params);
-  const { clientId } = await params;
-
-  const client = await getClient(clientId);
-  if (client) return { title: client.fullName };
-
   const t = await getTranslations({ locale, namespace: 'clients' });
-  return { title: t('notFound') };
+
+  return { title: t('title') };
 }
 
 export default async function ClientPage({ params }: ClientPageProps) {
   const locale = await resolveLocale(params);
-  await requireStaffSession(locale);
+  const { clinicId } = await requireStaffClinic(locale);
 
   const { clientId } = await params;
-  const client = await getClient(clientId);
+  const client = await getClient(clinicId, clientId);
 
   if (!client) {
     notFound();
