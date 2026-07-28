@@ -10,11 +10,15 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import postgres from 'postgres';
 
+import { assertTestDatabaseUrl } from './database-safety';
+
 const url = process.env.TEST_DATABASE_URL;
 
 if (!url) {
   throw new Error('TEST_DATABASE_URL is not set. Add it to .env.test.local and run: createdb dietitian_test');
 }
+
+assertTestDatabaseUrl(url);
 
 const client = postgres(url, { max: 1 });
 
