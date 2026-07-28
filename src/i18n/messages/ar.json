@@ -53,6 +53,95 @@
     "welcome": "أهلًا {name}",
     "placeholder": "ستظهر هنا مؤشرات العيادة بعد بناء الوحدات الوظيفية."
   },
+  "clients": {
+    "title": "المتابعون",
+    "subtitle": "سجلّ متابعي العيادة.",
+    "new": "متابع جديد",
+    "createTitle": "إضافة متابع",
+    "editTitle": "تعديل بيانات المتابع",
+    "edit": "تعديل",
+    "empty": "لا يوجد متابعون بعد. ابدأ بإضافة أول متابع.",
+    "emptyFiltered": "لا نتائج مطابقة لبحثك.",
+    "searchPlaceholder": "ابحث بالاسم أو الهاتف أو البريد",
+    "resultCount": "{total, number, integer} متابع",
+    "notFound": "المتابع غير موجود",
+    "notFoundDescription": "قد يكون هذا المتابع قد حُذف، أو أنّ الرابط غير صحيح.",
+    "backToList": "العودة إلى قائمة المتابعين",
+    "notProvided": "غير مُدخل",
+    "yearsOld": "{count, number, integer} سنة",
+    "sections": {
+      "contact": "بيانات التواصل",
+      "intake": "بيانات الحالة",
+      "notes": "ملاحظات"
+    },
+    "fields": {
+      "fullName": "الاسم الكامل",
+      "phone": "رقم الهاتف",
+      "email": "البريد الإلكتروني",
+      "preferredLocale": "لغة المراسلة",
+      "dateOfBirth": "تاريخ الميلاد",
+      "age": "العمر",
+      "sex": "الجنس",
+      "heightCm": "الطول (سم)",
+      "goal": "الهدف",
+      "activityLevel": "مستوى النشاط",
+      "medicalNotes": "ملاحظات طبية",
+      "allergies": "الحساسية",
+      "notes": "ملاحظات",
+      "status": "الحالة",
+      "createdAt": "تاريخ التسجيل",
+      "portalAccess": "الدخول إلى البوابة"
+    },
+    "status": {
+      "active": "نشِط",
+      "archived": "مؤرشف",
+      "all": "الكل"
+    },
+    "sex": {
+      "female": "أنثى",
+      "male": "ذكر"
+    },
+    "goal": {
+      "weight_loss": "إنقاص الوزن",
+      "weight_gain": "زيادة الوزن",
+      "maintenance": "المحافظة على الوزن",
+      "medical": "حالة طبية",
+      "sports": "أداء رياضي"
+    },
+    "activity": {
+      "sedentary": "خامل",
+      "light": "نشاط خفيف",
+      "moderate": "نشاط متوسط",
+      "active": "نشِط",
+      "very_active": "نشِط جدًا"
+    },
+    "actions": {
+      "archive": "أرشفة",
+      "restore": "إلغاء الأرشفة",
+      "filter": "تصفية"
+    },
+    "pagination": {
+      "previous": "السابق",
+      "next": "التالي",
+      "position": "صفحة {page, number, integer} من {pageCount, number, integer}"
+    },
+    "portal": {
+      "title": "الدخول إلى البوابة",
+      "none": "لا يملك هذا المتابع حسابًا في بوابة المتابعين.",
+      "granted": "يستطيع هذا المتابع الدخول إلى البوابة عبر رابط يُرسل إلى بريده.",
+      "invite": "منح صلاحية الدخول",
+      "revoke": "سحب صلاحية الدخول",
+      "invited": "تم إنشاء الحساب وإرسال رابط الدخول.",
+      "revoked": "تم سحب صلاحية الدخول.",
+      "devNotice": "في بيئة التطوير يُطبع رابط الدخول في سجلّ الخادم بدل إرساله بالبريد."
+    },
+    "errors": {
+      "invalid": "تحقّق من الحقول المميّزة بالأحمر.",
+      "noEmail": "أضف بريدًا إلكترونيًا للمتابع قبل منحه صلاحية الدخول.",
+      "emailTaken": "هذا البريد مستخدم لحساب آخر.",
+      "unexpected": "حدث خطأ غير متوقع. حاول مجددًا."
+    }
+  },
   "portal": {
     "title": "بوابة المتابعين",
     "welcome": "أهلًا {name}",

@@ -53,6 +53,95 @@
     "welcome": "Welcome, {name}",
     "placeholder": "Clinic metrics will appear here once the feature modules are built."
   },
+  "clients": {
+    "title": "Clients",
+    "subtitle": "The clinic's client register.",
+    "new": "New client",
+    "createTitle": "Add a client",
+    "editTitle": "Edit client",
+    "edit": "Edit",
+    "empty": "No clients yet. Start by adding your first one.",
+    "emptyFiltered": "No clients match your search.",
+    "searchPlaceholder": "Search by name, phone or email",
+    "resultCount": "{total, number, integer} clients",
+    "notFound": "Client not found",
+    "notFoundDescription": "This client may have been removed, or the link is incorrect.",
+    "backToList": "Back to clients",
+    "notProvided": "Not provided",
+    "yearsOld": "{count, number, integer} years",
+    "sections": {
+      "contact": "Contact details",
+      "intake": "Intake profile",
+      "notes": "Notes"
+    },
+    "fields": {
+      "fullName": "Full name",
+      "phone": "Phone",
+      "email": "Email",
+      "preferredLocale": "Correspondence language",
+      "dateOfBirth": "Date of birth",
+      "age": "Age",
+      "sex": "Sex",
+      "heightCm": "Height (cm)",
+      "goal": "Goal",
+      "activityLevel": "Activity level",
+      "medicalNotes": "Medical notes",
+      "allergies": "Allergies",
+      "notes": "Notes",
+      "status": "Status",
+      "createdAt": "Registered",
+      "portalAccess": "Portal access"
+    },
+    "status": {
+      "active": "Active",
+      "archived": "Archived",
+      "all": "All"
+    },
+    "sex": {
+      "female": "Female",
+      "male": "Male"
+    },
+    "goal": {
+      "weight_loss": "Weight loss",
+      "weight_gain": "Weight gain",
+      "maintenance": "Weight maintenance",
+      "medical": "Medical condition",
+      "sports": "Sports performance"
+    },
+    "activity": {
+      "sedentary": "Sedentary",
+      "light": "Lightly active",
+      "moderate": "Moderately active",
+      "active": "Active",
+      "very_active": "Very active"
+    },
+    "actions": {
+      "archive": "Archive",
+      "restore": "Restore",
+      "filter": "Filter"
+    },
+    "pagination": {
+      "previous": "Previous",
+      "next": "Next",
+      "position": "Page {page, number, integer} of {pageCount, number, integer}"
+    },
+    "portal": {
+      "title": "Portal access",
+      "none": "This client does not have a portal account.",
+      "granted": "This client can sign in to the portal with a link emailed to them.",
+      "invite": "Grant portal access",
+      "revoke": "Revoke portal access",
+      "invited": "Account created and a sign-in link sent.",
+      "revoked": "Portal access revoked.",
+      "devNotice": "In development the sign-in link is printed to the server console instead of emailed."
+    },
+    "errors": {
+      "invalid": "Check the fields highlighted in red.",
+      "noEmail": "Add an email address for this client before granting portal access.",
+      "emailTaken": "That email already belongs to another account.",
+      "unexpected": "Something went wrong. Please try again."
+    }
+  },
   "portal": {
     "title": "Client portal",
     "welcome": "Welcome, {name}",
