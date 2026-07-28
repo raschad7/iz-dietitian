@@ -1,0 +1,72 @@
+{
+  "app": {
+    "name": "Dietitian Clinic Management",
+    "shortName": "Dietitian Clinic",
+    "tagline": "One platform for clients, nutrition plans and appointments."
+  },
+  "common": {
+    "loading": "Loading…",
+    "save": "Save",
+    "cancel": "Cancel",
+    "back": "Back",
+    "next": "Next",
+    "search": "Search",
+    "email": "Email",
+    "password": "Password",
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "comingSoon": "Coming soon"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "clients": "Clients",
+    "plans": "Nutrition plans",
+    "appointments": "Appointments",
+    "payments": "Payments",
+    "settings": "Settings",
+    "portalHome": "Home",
+    "myPlan": "My plan",
+    "myAppointments": "My appointments"
+  },
+  "landing": {
+    "title": "Run your dietitian practice in one place",
+    "description": "Follow up on clients, build nutrition plans, schedule appointments and record payments — in Arabic and English.",
+    "staffCta": "Clinic team sign in",
+    "clientCta": "Client portal",
+    "foundationNotice": "This is a foundation build: structure, auth and i18n are in place, no feature modules have been built yet."
+  },
+  "login": {
+    "title": "Sign in",
+    "subtitle": "Choose how you want to sign in.",
+    "staffHeading": "Clinic team",
+    "staffDescription": "Sign in with your email and password.",
+    "emailPlaceholder": "name@clinic.ps",
+    "submit": "Sign in",
+    "clientHeading": "Clients",
+    "clientDescription": "We will email you a single-use sign-in link, valid for {minutes, number, integer} minutes.",
+    "magicLinkSubmit": "Email me a sign-in link",
+    "magicLinkSent": "If that email is registered, a sign-in link is on its way.",
+    "genericError": "Could not sign you in. Check your details and try again."
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome, {name}",
+    "placeholder": "Clinic metrics will appear here once the feature modules are built."
+  },
+  "portal": {
+    "title": "Client portal",
+    "welcome": "Welcome, {name}",
+    "placeholder": "Your nutrition plan and appointments will appear here once the feature modules are built."
+  },
+  "localeSwitcher": {
+    "label": "Language",
+    "devOnly": "Locale switcher (development only)",
+    "ar": "العربية",
+    "en": "English"
+  },
+  "errors": {
+    "notFound": "Page not found",
+    "notFoundDescription": "The link you opened is incorrect or has moved.",
+    "unexpected": "Something went wrong"
+  }
+}

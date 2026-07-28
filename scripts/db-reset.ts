@@ -1,0 +1,51 @@
+/**
+ * Drops the `public` schema and replays every migration — run with
+ * `bun run db:reset`.
+ *
+ * DESTRUCTIVE. Guarded so it can only ever hit a local development database.
+ */
+
+import { drizzle } from 'drizzle-orm/postgres-js';
+import { migrate } from 'drizzle-orm/postgres-js/migrator';
+import postgres from 'postgres';
+
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
+
+function getLocalDatabaseUrl(): string {
+  const url = process.env.DATABASE_URL;
+  if (!url) {
+    throw new Error('DATABASE_URL is not set. Copy .env.example to .env.local first.');
+  }
+
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Refusing to reset the database with NODE_ENV=production.');
+  }
+
+  const host = new URL(url).hostname;
+  if (!LOCAL_HOSTS.has(host)) {
+    throw new Error(`Refusing to reset a non-local database (host: ${host}).`);
+  }
+
+  return url;
+}
+
+async function reset(): Promise<void> {
+  const client = postgres(getLocalDatabaseUrl(), { max: 1 });
+
+  try {
+    console.info('dropping schema public…');
+    await client.unsafe('drop schema if exists public cascade');
+    await client.unsafe('create schema public');
+    // Needed for the gen_random_uuid() primary keys domain tables will use.
+    await client.unsafe('create extension if not exists pgcrypto');
+
+    console.info('running migrations…');
+    await migrate(drizzle(client), { migrationsFolder: './drizzle' });
+
+    console.info('done. run `bun run db:seed` next.');
+  } finally {
+    await client.end();
+  }
+}
+
+await reset();
