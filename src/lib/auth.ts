@@ -68,7 +68,10 @@ export const auth = betterAuth({
   }),
 
   /**
-   * Dietitian and staff accounts. Client accounts never get a password.
+   * Dietitian and staff accounts sign up here. Client accounts never do — but
+   * they DO hold a password, issued by their dietitian and then replaced by one
+   * of their own, both written directly by
+   * `src/features/clients/portal-credentials.ts`.
    *
    * `autoSignIn` is OFF and `requireEmailVerification` is ON: signing up creates
    * the account but issues no session. That is the hard gate — an address must

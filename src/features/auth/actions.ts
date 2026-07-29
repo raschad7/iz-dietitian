@@ -6,10 +6,7 @@ import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 
-import { eq } from 'drizzle-orm';
-
-import { db } from '@/db';
-import { user } from '@/db/schema';
+import { replacePortalPassword } from '@/features/clients/portal-credentials';
 import { auth } from '@/lib/auth';
 import { requireClientSession, requireStaffSession } from '@/lib/session';
 
@@ -223,7 +220,7 @@ export async function signInToPortal(
 /**
  * The client replaces the temporary password they were handed. Clearing
  * `mustChangePassword` is what unlocks the rest of the portal — see the guard
- * in `src/app/[locale]/portal/layout.tsx`.
+ * in `src/app/[locale]/portal/(secured)/layout.tsx`.
  */
 export async function setPortalPassword(
   _previousState: AuthFormState,
@@ -252,8 +249,7 @@ export async function setPortalPassword(
   const session = await requireClientSession(locale);
 
   try {
-    await auth.api.setPassword({ body: { newPassword: password }, headers: await headers() });
-    await db.update(user).set({ mustChangePassword: false }).where(eq(user.id, session.user.id));
+    await replacePortalPassword(session.user.id, password);
   } catch (error) {
     console.error('[auth] portal password change failed', error);
     return { status: 'error', messageKey: 'genericError' };

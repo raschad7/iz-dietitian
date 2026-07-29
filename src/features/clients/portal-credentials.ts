@@ -155,6 +155,43 @@ export async function reissuePortalPassword(clinicId: string, clientId: string):
 }
 
 /**
+ * The client replaces the temporary password with one of their own, and is let
+ * into the rest of the portal.
+ *
+ * DO NOT reach for `auth.api.setPassword` here. That endpoint exists for
+ * accounts that hold no password at all — someone who signed up through Google
+ * and wants credentials as well — and it refuses an account that already has
+ * one with `PASSWORD_ALREADY_SET`. Every portal client has a password from the
+ * moment their dietitian issues one, so that path can never succeed for them.
+ * `auth.api.changePassword` is the other candidate and does not fit either: it
+ * demands the current password, which this form deliberately does not ask for.
+ *
+ * So the write goes straight through Drizzle with Better Auth's own hasher —
+ * exactly what `issuePortalCredentials` and `reissuePortalPassword` above do,
+ * and for the same reason.
+ *
+ * Throws if the account is missing, rather than clearing the flag and letting
+ * the client into a portal they can never sign back into.
+ */
+export async function replacePortalPassword(userId: string, newPassword: string): Promise<void> {
+  const hashed = await (await auth.$context).password.hash(newPassword);
+
+  await db.transaction(async (tx) => {
+    const updated = await tx
+      .update(account)
+      .set({ password: hashed, updatedAt: new Date() })
+      .where(and(eq(account.userId, userId), eq(account.providerId, 'credential')))
+      .returning({ id: account.id });
+
+    if (updated.length === 0) {
+      throw new Error(`No credential account for user ${userId}; refusing to clear the flag.`);
+    }
+
+    await tx.update(user).set({ mustChangePassword: false }).where(eq(user.id, userId));
+  });
+}
+
+/**
  * Removes portal access. Deleting the `users` row cascades to sessions and
  * accounts, and `clients.user_id` returns to null via `on delete set null`, so
  * the clinical record survives untouched.
