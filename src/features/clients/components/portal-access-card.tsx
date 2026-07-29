@@ -5,7 +5,7 @@ import { useActionState } from 'react';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { invitePortalAccessAction, revokePortalAccessAction } from '@/features/clients/actions';
-import { ConfirmSubmitButton } from '@/features/clients/components/confirm-submit-button';
+import { ConfirmSubmitButton } from '@/components/ui/confirm-submit-button';
 import { initialPortalState, type PortalActionState } from '@/features/clients/form-state';
 import { type Locale } from '@/i18n/routing';
 

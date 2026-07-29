@@ -15,7 +15,10 @@
     "password": "Password",
     "signIn": "Sign in",
     "signOut": "Sign out",
-    "comingSoon": "Coming soon"
+    "comingSoon": "Coming soon",
+    "edit": "Edit",
+    "delete": "Delete",
+    "remove": "Remove"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -80,7 +83,91 @@
   },
   "mealPlans": {
     "title": "Meal plans",
-    "placeholder": "Meal plans will appear here once the plans module is built."
+    "subtitle": "Full-day plans built from the USDA food composition database.",
+    "new": "New plan",
+    "createTitle": "New meal plan",
+    "editTitle": "Edit plan details",
+    "edit": "Edit details",
+    "empty": "No meal plans yet. Create one to start building a day.",
+    "notFound": "Meal plan not found",
+    "notFoundDescription": "This plan may have been deleted, or the link is incorrect.",
+    "backToList": "Back to meal plans",
+    "noClients": "You need an active client before you can build a plan.",
+    "addClient": "Add a client",
+    "foodsNotSeeded": "The food database is empty. Run `bun run db:seed:foods` to load it.",
+    "dataSource": "Nutrition data: USDA FoodData Central, SR Legacy (April 2018) — public domain. Values are per 100 g as described.",
+    "schedule": "Daily schedule",
+    "emptySchedule": "This plan has no meals. Add one to start.",
+    "emptyMeal": "Nothing in this meal yet.",
+    "per100g": "kcal / 100 g",
+    "fields": {
+      "title": "Plan title",
+      "titlePlaceholder": "e.g. Week 1 — 1,800 kcal",
+      "client": "Client",
+      "selectClient": "Choose a client",
+      "notes": "Notes",
+      "meals": "Meals",
+      "updatedAt": "Last edited",
+      "timeOfDay": "Time",
+      "mealLabel": "Meal name",
+      "food": "Food",
+      "quantityGrams": "Amount (g)",
+      "actions": "Actions"
+    },
+    "short": {
+      "protein": "P (g)",
+      "carbs": "C (g)",
+      "fat": "F (g)"
+    },
+    "nutrients": {
+      "kcal": "Energy",
+      "protein": "Protein",
+      "carbs": "Carbohydrate",
+      "fat": "Fat",
+      "fiber": "Fibre",
+      "sugar": "Sugars",
+      "saturatedFat": "Saturated fat",
+      "sodium": "Sodium",
+      "cholesterol": "Cholesterol",
+      "calcium": "Calcium",
+      "iron": "Iron",
+      "potassium": "Potassium"
+    },
+    "analysis": {
+      "title": "Analysis",
+      "wholeDay": "Whole day",
+      "showWholeDay": "Show whole day",
+      "dayHint": "Everything scheduled today. Select a meal to narrow this down.",
+      "mealHint": "This meal only. Select it again to go back to the whole day.",
+      "energy": "Total energy (kcal)",
+      "empty": "Add a food to see the analysis.",
+      "macroSplit": "Energy from macronutrients",
+      "macroSplitNote": "Percentages are of the energy the macronutrients account for (4/4/9 kcal per g), which can differ slightly from the total above.",
+      "allNutrients": "All nutrients",
+      "unmeasured": "{count, number, integer} of these foods have no published value for this nutrient, so the real total is higher.",
+      "unmeasuredNote": "* Not measured for every food — the total is a minimum."
+    },
+    "picker": {
+      "search": "Find a food",
+      "searchPlaceholder": "e.g. chicken breast",
+      "category": "Category",
+      "allCategories": "All categories",
+      "prompt": "Type at least two letters, or pick a category.",
+      "noResults": "No food matches that.",
+      "usePortion": "Use 1 {label} ({grams, number} g)",
+      "add": "Add to meal"
+    },
+    "actions": {
+      "addFood": "Add food",
+      "addMeal": "Add meal",
+      "confirmDeleteMeal": "Remove “{label}” and everything in it?",
+      "confirmDeletePlan": "This permanently deletes “{title}” and all of its meals. Are you sure?"
+    },
+    "errors": {
+      "invalid": "Check the fields highlighted in red.",
+      "clientNotFound": "That client is not in your clinic.",
+      "unexpected": "Something went wrong. Please try again."
+    }
   },
   "dashboard": {
     "title": "Dashboard",

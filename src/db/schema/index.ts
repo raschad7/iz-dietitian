@@ -13,3 +13,5 @@
 export * from './auth';
 export * from './clients';
 export * from './clinics';
+export * from './foods';
+export * from './meal-plans';

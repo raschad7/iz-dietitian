@@ -6,12 +6,15 @@
  * Idempotent: re-running replaces the seeded clients rather than duplicating
  * them. It is for local development only and refuses to run in production.
  */
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { account, clients, clinics, user } from '@/db/schema';
+import { account, clients, clinics, foods, user } from '@/db/schema';
 import { createClient, invitePortalAccess } from '@/features/clients/mutations';
+import { addItem, createPlan } from '@/features/meal-plans/mutations';
 import { auth } from '@/lib/auth';
+
+import { seedFoods } from './seed-foods';
 
 const STAFF_EMAIL = 'dietitian@clinic.ps';
 const STAFF_PASSWORD = 'clinic-dev-password';
@@ -109,6 +112,68 @@ async function seed(): Promise<void> {
   }
 
   console.info(`seeded ${created.length} clients`);
+
+  await seedSampleMealPlan(clinicId, second?.id);
+}
+
+/**
+ * The foods reference table, plus one worked example.
+ *
+ * `foods` is shared reference data, not a tenant's — so it is upserted rather
+ * than deleted and rewritten, and it survives re-seeding the clients above. The
+ * sample plan goes to whichever client is still active, so the meal-plans page
+ * has something real on it after a fresh `bun run db:seed`.
+ */
+async function seedSampleMealPlan(clinicId: string, clientId: string | undefined): Promise<void> {
+  const foodCount = await seedFoods();
+  console.info(`seeded ${foodCount} foods (USDA SR Legacy)`);
+
+  if (!clientId) return;
+
+  const plan = await createPlan(clinicId, {
+    clientId,
+    title: 'Sample day',
+    notes: 'Seeded example. Edit or delete it freely.',
+  });
+
+  if (!plan) return;
+
+  // Looked up by FoodData Central id, the stable natural key — a description
+  // match would break the seed the moment USDA reworded something.
+  const byFdcId = new Map(
+    (
+      await db
+        .select({ id: foods.id, fdcId: foods.fdcId })
+        .from(foods)
+        .where(inArray(foods.fdcId, [169705, 171287, 173944, 169704, 171477, 170886]))
+    ).map((food) => [food.fdcId, food.id]),
+  );
+
+  const meals = await db.query.mealPlanMeals.findMany({
+    where: (table, { eq: equals }) => equals(table.planId, plan.id),
+    orderBy: (table, { asc }) => asc(table.timeOfDay),
+  });
+
+  /** [meal index, FoodData Central id, grams] */
+  const SAMPLE_ITEMS: [number, number, number][] = [
+    [0, 169705, 80], // Oats
+    [0, 171287, 100], // Egg, whole, raw, fresh
+    [1, 173944, 120], // Bananas, raw
+    [2, 169704, 180], // Rice, brown, long-grain, cooked
+    [2, 171477, 150], // Chicken, broilers or fryers, breast, meat only, cooked, roasted
+    [4, 170886, 200], // Yogurt, plain, low fat
+  ];
+
+  for (const [mealIndex, fdcId, grams] of SAMPLE_ITEMS) {
+    const mealId = meals[mealIndex]?.id;
+    const foodId = byFdcId.get(fdcId);
+
+    if (mealId && foodId) {
+      await addItem(clinicId, mealId, { foodId, quantityGrams: grams });
+    }
+  }
+
+  console.info(`seeded 1 sample meal plan across ${meals.length} meals`);
 }
 
 await seed();

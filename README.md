@@ -3,10 +3,10 @@
 Foundation build of a bilingual (Arabic / English), RTL-first dietitian practice
 management app.
 
-**There are no features yet, and that is deliberate.** This repository contains
-the stack, internationalisation, authentication and folder structure only. There
-are no domain database tables — the only tables that exist are the four Better
-Auth requires.
+The stack, internationalisation, authentication and folder structure are in
+place, plus two feature modules: **clients** (`src/features/clients/`) and
+**meal plans** (`src/features/meal-plans/`). Everything else — appointments,
+payments — is still to be built.
 
 ---
 
@@ -68,17 +68,20 @@ The app is at <http://localhost:3000>, which redirects to `/ar`.
 
 ### Scripts
 
-| Command               | What it does                                                  |
-| --------------------- | ------------------------------------------------------------- |
-| `bun run dev`         | Next dev server (Next itself still runs on Node)               |
-| `bun run build`       | Production build                                               |
-| `bun run start`       | Serve the production build                                     |
-| `bun run lint`        | ESLint, including the RTL rule below                           |
-| `bun run typecheck`   | `tsc --noEmit`                                                 |
-| `bun run db:generate` | Generate a migration from the Drizzle schema into `drizzle/`   |
-| `bun run db:migrate`  | Apply pending migrations                                       |
-| `bun run db:seed`     | `scripts/seed.ts` — currently logs `nothing to seed yet`       |
-| `bun run db:reset`    | **Destructive.** Drop `public`, replay migrations. Local only. |
+| Command                       | What it does                                                          |
+| ----------------------------- | --------------------------------------------------------------------- |
+| `bun run dev`                 | Next dev server (Next itself still runs on Node)                       |
+| `bun run build`               | Production build                                                       |
+| `bun run start`               | Serve the production build                                             |
+| `bun run lint`                | ESLint, including the RTL rule below                                   |
+| `bun run typecheck`           | `tsc --noEmit`                                                         |
+| `bun run test`                | `bun test` — needs `.env.test.local`, see below                        |
+| `bun run db:generate`         | Generate a migration from the Drizzle schema into `drizzle/`           |
+| `bun run db:migrate`          | Apply pending migrations                                               |
+| `bun run db:seed`             | Staff account, sample clients, the food table and one sample meal plan |
+| `bun run db:seed:foods`       | Just the `foods` reference table                                       |
+| `bun run db:build-food-dataset` | Regenerate `data/usda-sr-legacy.ndjson` from USDA (rarely needed)     |
+| `bun run db:reset`            | **Destructive.** Drop `public`, replay migrations. Local only.         |
 
 Only `bun.lock` is committed; `package-lock.json`, `pnpm-lock.yaml` and
 `yarn.lock` are git-ignored so a stray `npm install` cannot fork the dependency
@@ -103,8 +106,20 @@ src/features/<feature>/
   components/     # UI, composed by route files
 ```
 
-`src/features/` is empty in this build. `clients/`, `plans/`, `payments/` and the
-rest get added there as they are built.
+`clients/` and `meal-plans/` follow this shape. `appointments/`, `payments/` and
+the rest get added alongside them as they are built.
+
+Two conventions worth copying from both:
+
+- `queries.ts` and `mutations.ts` import nothing from Next.js, so `bun test` can
+  call them directly — a `"use server"` module calling `revalidatePath` cannot
+  run outside a request scope. `actions.ts` is the thin layer that adds the
+  Next.js concerns on top.
+- A client component importing a type from `queries.ts` must use a top-level
+  `import type`, not an inline `import { type … }`. Both erase in TypeScript, but
+  only the former keeps the module out of the bundler's client graph — with the
+  inline form the bundler follows it to `@/db` and tries to bundle `postgres`
+  for the browser.
 
 ### Layout
 
@@ -310,3 +325,63 @@ been applied.
 
 Note: drizzle-kit runs its config under Node, and Bun only injects `.env.local`
 into its own runtime. `drizzle.config.ts` therefore loads the env file itself.
+
+---
+
+## Food composition data
+
+Meal plans are costed against **USDA FoodData Central, SR Legacy (April 2018)** —
+7,793 generic foods with energy, the three macros, and nine further nutrients.
+It is a work of the US federal government and therefore public domain
+(17 U.S.C. § 105).
+
+SR Legacy was chosen over the other FoodData Central datasets because it is the
+only one that is both broad and clean: Foundation Foods holds ~300 items, and
+Branded Foods holds ~1.9M packaged US supermarket SKUs with manufacturer-declared
+numbers. SR Legacy is generic whole foods — "Egg, whole, raw, fresh" — which is
+what a dietitian actually writes a plan in.
+
+The extract lives at **`data/usda-sr-legacy.ndjson`** and is committed, so
+`bun run db:seed` works offline and seeds identical rows on every machine. One
+food per line, so it stays reviewable in a diff.
+
+- Regenerate it with `bun run db:build-food-dataset` (downloads ~6 MB from USDA,
+  caches it under `node_modules/.cache/`, and should produce a no-op diff).
+- Load it with `bun run db:seed:foods`. Idempotent via `foods.fdc_id`, so a
+  re-seed updates rows in place and existing meal plan items keep pointing at
+  the same foods.
+
+Two rules the code depends on:
+
+- **Every nutrient column is per 100 g.** Portions are converted at the point of
+  use, in `scaleNutrients`. Nothing is ever stored per-serving.
+- **NULL means "not measured", never zero.** Only the macros are present on all
+  7,793 foods; fibre, sugars and the minerals are present on 77–99% of them.
+  Totals skip a NULL and count it in `unmeasured`, and the analysis panel marks
+  any such total as a floor rather than an answer.
+
+`foods` is the one domain table that is **not** scoped to a clinic — food
+composition is a physical fact, not a tenant's data.
+
+---
+
+## Tests
+
+`bun test` needs its own database, because the suite truncates every table
+between tests:
+
+```bash
+createdb dietitian_test
+```
+
+Then create `.env.test.local` (git-ignored) in the repo root:
+
+```
+TEST_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dietitian_test
+```
+
+It must **not** be the same database as `DATABASE_URL`, and its name must end in
+`_test` — `scripts/database-safety.ts` refuses otherwise, and `tests/helpers.ts`
+re-checks `current_database()` on the server immediately before the TRUNCATE.
+
+Apply migrations to it with `bun run db:migrate:test`.
