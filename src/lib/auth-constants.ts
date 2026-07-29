@@ -21,3 +21,22 @@ export const MIN_PASSWORD_LENGTH = 10;
 /** The long-lived session a magic link (or a password sign-in) is exchanged for. */
 export const SESSION_TTL_SECONDS = 60 * DAY_IN_SECONDS;
 export const SESSION_REFRESH_AGE_SECONDS = DAY_IN_SECONDS;
+
+const HOUR_IN_SECONDS = 60 * MINUTE_IN_SECONDS;
+
+/** How long a "verify your email" link stays valid. */
+export const EMAIL_VERIFICATION_TTL_SECONDS = HOUR_IN_SECONDS;
+
+/** How long a password-reset link stays valid. Shorter than a session by design: it is the more dangerous token. */
+export const PASSWORD_RESET_TTL_SECONDS = HOUR_IN_SECONDS;
+
+/**
+ * An account that never verified its address is deleted after this long.
+ *
+ * Deliberately short. Better Auth refuses to link a Google identity into an
+ * unverified local account, so an address squatted by an unverified sign-up
+ * blocks its real owner from signing in with Google until this expires. An
+ * unverified account has nothing to lose — under the hard verification gate it
+ * cannot sign in at all.
+ */
+export const UNVERIFIED_ACCOUNT_TTL_SECONDS = 24 * HOUR_IN_SECONDS;

@@ -1,7 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
-import { ClientLoginForm } from '@/components/auth/client-login-form';
+import { ClientLoginForm } from '@/features/auth/components/client-login-form';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/params';
 

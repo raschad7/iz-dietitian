@@ -3,27 +3,32 @@
 import { useTranslations } from 'next-intl';
 import { useActionState } from 'react';
 
-import { AuthFormMessage, AuthSubmitButton } from '@/components/auth/form-parts';
-import { PasswordInput } from '@/components/auth/password-input';
-import { signInWithPassword, type AuthFormState } from '@/components/auth/actions';
+import { requestMagicLink, type AuthFormState } from '@/features/auth/actions';
+import { AuthFormMessage, AuthSubmitButton } from '@/features/auth/components/form-parts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Link } from '@/i18n/navigation';
+import { MAGIC_LINK_TTL_MINUTES } from '@/lib/auth-constants';
 import { type Locale } from '@/i18n/routing';
 
 const initialState: AuthFormState = { status: 'idle' };
 
-export function StaffLoginForm({ locale }: { locale: Locale }) {
+/**
+ * Clients never hold a password — they receive a single-use link instead. That
+ * is why this form is on its own page and not beside the staff sign-in: the two
+ * audiences have nothing in common beyond an email field, and putting them side
+ * by side invited clients to try a password they never had.
+ */
+export function ClientLoginForm({ locale }: { locale: Locale }) {
   const t = useTranslations('login');
   const tCommon = useTranslations('common');
-  const [state, formAction] = useActionState(signInWithPassword, initialState);
+  const [state, formAction] = useActionState(requestMagicLink, initialState);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t('staffHeading')}</CardTitle>
-        <CardDescription>{t('staffDescription')}</CardDescription>
+        <CardTitle>{t('clientHeading')}</CardTitle>
+        <CardDescription>{t('clientDescription', { minutes: MAGIC_LINK_TTL_MINUTES })}</CardDescription>
       </CardHeader>
 
       <CardContent>
@@ -31,9 +36,9 @@ export function StaffLoginForm({ locale }: { locale: Locale }) {
           <input type="hidden" name="locale" value={locale} />
 
           <div className="space-y-2">
-            <Label htmlFor="staff-email">{tCommon('email')}</Label>
+            <Label htmlFor="client-email">{tCommon('email')}</Label>
             <Input
-              id="staff-email"
+              id="client-email"
               name="email"
               type="email"
               autoComplete="email"
@@ -43,19 +48,10 @@ export function StaffLoginForm({ locale }: { locale: Locale }) {
             />
           </div>
 
-          <PasswordInput name="password" label={tCommon('password')} autoComplete="current-password" />
-
           <AuthFormMessage state={state} />
 
-          <AuthSubmitButton label={t('submit')} />
+          <AuthSubmitButton label={t('magicLinkSubmit')} />
         </form>
-
-        <p className="mt-4 text-sm text-muted-foreground">
-          {t('noAccount')}{' '}
-          <Link href="/signup" className="font-medium text-foreground underline-offset-4 hover:underline">
-            {t('signUpLink')}
-          </Link>
-        </p>
       </CardContent>
     </Card>
   );

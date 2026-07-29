@@ -1,7 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
-import { StaffLoginForm } from '@/components/auth/staff-login-form';
+import { StaffLoginForm } from '@/features/auth/components/staff-login-form';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/params';
 

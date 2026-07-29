@@ -3,9 +3,9 @@
 import { useTranslations } from 'next-intl';
 import { useActionState } from 'react';
 
-import { signUpStaff, type AuthFormState } from '@/components/auth/actions';
-import { AuthFormMessage, AuthSubmitButton } from '@/components/auth/form-parts';
-import { PasswordInput } from '@/components/auth/password-input';
+import { signUpStaff, type AuthFormState } from '@/features/auth/actions';
+import { AuthFormMessage, AuthSubmitButton } from '@/features/auth/components/form-parts';
+import { PasswordInput } from '@/features/auth/components/password-input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

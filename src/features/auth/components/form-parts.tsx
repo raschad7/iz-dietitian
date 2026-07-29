@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { useFormStatus } from 'react-dom';
 
-import { type AuthFormState } from '@/components/auth/actions';
+import { type AuthFormState } from '@/features/auth/actions';
 import { Button } from '@/components/ui/button';
 
 /** Shared between the three auth forms so they report failures identically. */

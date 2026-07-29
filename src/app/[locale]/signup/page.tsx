@@ -1,7 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
-import { StaffSignUpForm } from '@/components/auth/staff-signup-form';
+import { StaffSignUpForm } from '@/features/auth/components/staff-signup-form';
 import { resolveLocale } from '@/i18n/params';
 
 type SignUpPageProps = {
