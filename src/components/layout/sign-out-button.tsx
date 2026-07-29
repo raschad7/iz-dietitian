@@ -4,7 +4,7 @@ import { LogOutIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useFormStatus } from 'react-dom';
 
-import { signOutAction } from '@/components/auth/actions';
+import { signOutAction } from '@/features/auth/actions';
 import { type Locale } from '@/i18n/routing';
 
 /**

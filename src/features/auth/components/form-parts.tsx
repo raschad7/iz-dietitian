@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { useFormStatus } from 'react-dom';
 
-import { type AuthFormState } from '@/components/auth/actions';
+import { type AuthFormState } from '@/features/auth/form-state';
 import { Button } from '@/components/ui/button';
 
 /** Shared between the three auth forms so they report failures identically. */
@@ -12,11 +12,18 @@ export function AuthFormMessage({ state }: { state: AuthFormState }) {
 
   if (state.status === 'idle') return null;
 
+  if (state.status === 'rateLimited') {
+    return (
+      <p role="alert" className="text-sm text-destructive">
+        {t('rateLimited', { minutes: state.minutes })}
+      </p>
+    );
+  }
+
+  const tone = state.status === 'error' ? 'text-destructive' : 'text-muted-foreground';
+
   return (
-    <p
-      role="status"
-      className={state.status === 'error' ? 'text-sm text-destructive' : 'text-sm text-muted-foreground'}
-    >
+    <p role={state.status === 'error' ? 'alert' : 'status'} className={`text-sm ${tone}`}>
       {t(state.messageKey)}
     </p>
   );

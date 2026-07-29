@@ -32,7 +32,7 @@ import { practitioners } from './practitioners';
  *    `NOT NULL` (nothing is written until a client is chosen), so it needs no
  *    `WHERE` clause to be correct.
  *  - **No overlapping appointments for one practitioner** — an `EXCLUDE USING
- *    gist` constraint, added by `drizzle/0004_booking_exclusion.sql`. Drizzle's
+ *    gist` constraint, added by `drizzle/0006_booking_overlap_exclusion.sql`. Drizzle's
  *    pg-core has no `EXCLUDE` builder, so that one migration is written by hand
  *    via `drizzle-kit generate --custom`. drizzle-kit compares against its own
  *    snapshots in `drizzle/meta/`, never the live database, so a constraint it

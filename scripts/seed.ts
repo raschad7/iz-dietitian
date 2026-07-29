@@ -12,7 +12,9 @@ import { db } from '@/db';
 import { account, appointments, clients, clinics, practitioners, user } from '@/db/schema';
 import { addDays, toIsoDate } from '@/features/booking/date';
 import { ensurePractitioner } from '@/features/booking/mutations';
-import { createClient, invitePortalAccess } from '@/features/clients/mutations';
+import { createClient } from '@/features/clients/mutations';
+import { issuePortalCredentials } from '@/features/clients/portal-credentials';
+import { suggestUsername } from '@/features/clients/transliterate';
 import { auth } from '@/lib/auth';
 import { paletteColorAt, pickAvatarColor } from '@/lib/avatar-color';
 
@@ -99,10 +101,15 @@ async function seed(): Promise<void> {
 
   const created = await Promise.all(SEED_CLIENTS.map((input) => createClient(clinicId, input)));
 
-  // One client gets portal access so the invited state is visible in the UI.
+  // One client gets portal credentials so the granted state — and a working
+  // sign-in — is visible in the UI without doing it by hand.
   const [, second] = created;
-  if (second) {
-    await invitePortalAccess(clinicId, second.id);
+  const secondInput = SEED_CLIENTS[1];
+  if (second && secondInput) {
+    const result = await issuePortalCredentials(clinicId, second.id, suggestUsername(secondInput.fullName));
+    if (result.ok) {
+      console.info(`portal credentials: ${result.username} / ${result.temporaryPassword}`);
+    }
   }
 
   // Give every seeded client a distinct avatar colour, the way

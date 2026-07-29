@@ -36,7 +36,7 @@ import { validateBooking, type ClinicHours, type ExistingAppointment } from './v
  *
  * Step 4 is not belt-and-braces. Two writes racing for the same slot both pass
  * step 3 against a clean read; only the database can arbitrate that, and it does
- * so with the constraints in `drizzle/0004`.
+ * so with the constraints in `drizzle/0006`.
  */
 
 type Tx = Parameters<Parameters<Database['transaction']>[0]>[0];
@@ -132,7 +132,7 @@ async function ownsClient(tx: Tx, clinicId: string, clientId: string): Promise<b
  *
  * Reading the constraint name means a race reports the *specific* reason — "that
  * slot was just taken" versus "they are already booked today" — rather than a
- * generic "try again". Both constraints are named in `drizzle/0004` and in
+ * generic "try again". Both constraints are named in `drizzle/0006` and in
  * `src/db/schema/appointments.ts`.
  */
 function conflictToError(error: unknown): ActionResult<never> {

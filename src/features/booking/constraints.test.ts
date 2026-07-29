@@ -91,7 +91,7 @@ describe('overlap exclusion constraint', () => {
     const error = await expectRejected(() => book({ clientId: other, startMinute: 10 * 60 + 30 }));
 
     expect(error.code).toBe(EXCLUSION_VIOLATION);
-    // Names the constraint from drizzle/0004, so losing that custom migration
+    // Names the constraint from drizzle/0006, so losing that custom migration
     // fails here rather than silently letting double-bookings through.
     expect(error.constraint).toBe('appointments_practitioner_no_overlap');
   });

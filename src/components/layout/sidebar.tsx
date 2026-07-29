@@ -6,8 +6,8 @@ import { Link, usePathname } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
 
 export type NavItem = {
-  href: '/app' | '/app/clients' | '/app/calendar' | '/app/meal-plans' | '/portal';
-  labelKey: 'dashboard' | 'clients' | 'calendar' | 'mealPlans' | 'portalHome';
+  href: '/app' | '/app/clients' | '/app/calendar' | '/app/meal-plans' | '/app/settings/security' | '/portal';
+  labelKey: 'dashboard' | 'clients' | 'calendar' | 'mealPlans' | 'security' | 'portalHome';
 };
 
 /**
