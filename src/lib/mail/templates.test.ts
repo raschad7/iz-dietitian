@@ -24,6 +24,17 @@ describe('renderMail', () => {
     expect(mail.text).toContain('https://example.test/r?token=xyz');
   });
 
+  test('escapes the url inside the href, but leaves the plain-text link usable', () => {
+    const url = 'https://example.test/v?token=abc&callbackURL=/ar/app';
+    const mail = renderMail('verifyEmail', 'en', { url, name: 'Sara' });
+
+    // Correct HTML for an attribute, and decoded back by every mail client.
+    expect(mail.html).toContain('href="https://example.test/v?token=abc&amp;callbackURL=/ar/app"');
+
+    // text/plain is not markup — escaping here would corrupt the link.
+    expect(mail.text).toContain(url);
+  });
+
   test('escapes a name containing HTML so it cannot inject markup', () => {
     const mail = renderMail('verifyEmail', 'en', { url: 'https://example.test/v', name: '<script>alert(1)</script>' });
 

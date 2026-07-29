@@ -83,8 +83,21 @@ export function renderMail(kind: MailKind, locale: Locale, variables: MailVariab
   const copy = COPY[kind][locale];
   const direction = getLocaleDirection(locale);
 
-  const safeName = escapeHtml(variables.name);
-  const heading = copy.heading.replace('{name}', safeName);
+  const heading = copy.heading.replace('{name}', escapeHtml(variables.name));
+
+  /**
+   * The URL is escaped for the HTML body but NOT for the plain-text one.
+   *
+   * Inside an `href` attribute this is simply correct HTML — a query string's
+   * `&` must be written `&amp;`, and every client decodes it back. It is also
+   * defence in depth: the URL is built by Better Auth from our own base URL and
+   * a generated token today, but an unescaped value in an attribute is one
+   * refactor away from being an injection point.
+   *
+   * The text/plain alternative is not markup, so escaping there would corrupt
+   * the link rather than protect it.
+   */
+  const safeUrl = escapeHtml(variables.url);
 
   // Inline styles only: every meaningful mail client strips <style> blocks.
   const html = `<!doctype html>
@@ -94,7 +107,7 @@ export function renderMail(kind: MailKind, locale: Locale, variables: MailVariab
       <h1 style="margin:0 0 16px;font-size:20px;color:#111827;">${heading}</h1>
       <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#374151;">${copy.body}</p>
       <p style="margin:0 0 24px;">
-        <a href="${variables.url}" style="display:inline-block;background:#111827;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-size:15px;">${copy.cta}</a>
+        <a href="${safeUrl}" style="display:inline-block;background:#111827;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-size:15px;">${copy.cta}</a>
       </p>
       <p style="margin:0;font-size:13px;line-height:1.6;color:#6b7280;">${copy.footer}</p>
     </div>
