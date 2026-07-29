@@ -122,6 +122,81 @@
     "title": "Calendar",
     "placeholder": "Clinic appointments will appear here once the appointments module is built."
   },
+  "booking": {
+    "title": "Calendar",
+    "completed": "Completed",
+    "now": "Now",
+    "empty": "Nothing booked in this range. Click any empty slot to add an appointment.",
+    "monthCount": "{count, number, integer}",
+    "monthReadOnly": "Month view is an overview. Click a day to book or edit.",
+    "nav": {
+      "today": "Today",
+      "previous": "Previous",
+      "next": "Next",
+      "view": "View",
+      "day": "Day",
+      "week": "Week",
+      "month": "Month"
+    },
+    "search": {
+      "placeholder": "Search clients"
+    },
+    "duration": {
+      "hours": "{count, number, integer} hr",
+      "minutes": "{count, number, integer} min"
+    },
+    "fields": {
+      "date": "Date",
+      "datePlaceholder": "YYYY-MM-DD",
+      "openDatePicker": "Open the date picker",
+      "start": "Start time",
+      "duration": "Duration",
+      "unavailable": "unavailable",
+      "client": "Client",
+      "editClient": "Edit",
+      "reason": "Reason",
+      "reasonPlaceholder": "Follow-up, first consultation…",
+      "optional": "(Optional)"
+    },
+    "picker": {
+      "title": "Choose a client",
+      "searchPlaceholder": "Search by name",
+      "clients": "Clients",
+      "noMatches": "No matching clients.",
+      "alreadyBookedAt": "Already booked that day at {time}.",
+      "newClient": "New client",
+      "newClientInDayView": "To add someone new, open the day view."
+    },
+    "newClient": {
+      "title": "Add a client and book",
+      "fullName": "Full name",
+      "phone": "Phone",
+      "saveAndBook": "Save and book"
+    },
+    "dialog": {
+      "title": "Appointment details"
+    },
+    "actions": {
+      "save": "Save",
+      "cancel": "Cancel",
+      "close": "Close",
+      "delete": "Delete appointment",
+      "confirmDeleteCompleted": "This appointment has already finished. Deleting it removes the record permanently. Are you sure?"
+    },
+    "errors": {
+      "tooShort": "The shortest appointment is 15 minutes.",
+      "invalidDate": "That date is not valid. Try a format like 2026-08-05 or 8/5/2026.",
+      "closedDay": "The clinic is closed that day.",
+      "outsideHours": "That falls outside the clinic's opening hours.",
+      "overlap": "That clashes with another appointment.",
+      "clientBooked": "This client already has an appointment that day.",
+      "unauthorized": "You do not have permission to do that.",
+      "invalid": "Check the details you entered.",
+      "notFound": "That appointment no longer exists.",
+      "completedLocked": "This appointment has already finished and can no longer be changed.",
+      "unexpected": "Something went wrong. Please try again."
+    }
+  },
   "mealPlans": {
     "title": "Meal plans",
     "placeholder": "Meal plans will appear here once the plans module is built."

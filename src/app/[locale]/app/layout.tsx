@@ -28,11 +28,17 @@ export default async function AppLayout({ children, params }: AppLayoutProps) {
   const t = await getTranslations('app');
 
   return (
-    <div className="flex min-h-dvh">
+    /*
+      A fixed-height shell rather than a growing one. The window itself never
+      scrolls, so the sidebar and header stay put; each page scrolls inside
+      `main`, and a page that manages its own scrolling — the calendar — can
+      claim the full height with `h-full` and keep its toolbar fixed.
+    */
+    <div className="flex h-dvh overflow-hidden">
       <Sidebar items={NAV_ITEMS} title={t('shortName')} />
       <div className="flex min-w-0 flex-1 flex-col">
         <Header title={t('shortName')} userName={session.user.name} locale={locale} />
-        <main className="flex-1 p-6">{children}</main>
+        <main className="min-h-0 flex-1 overflow-y-auto p-6">{children}</main>
       </div>
     </div>
   );

@@ -1,7 +1,8 @@
 import { sql } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { clinics } from '@/db/schema';
+import { clients, clinics, practitioners } from '@/db/schema';
+import { normalizeForSearch } from '@/features/clients/search';
 
 /**
  * Creates a clinic and returns its id.
@@ -15,6 +16,30 @@ export async function createTestClinic(name = 'Test Clinic'): Promise<string> {
   if (!clinic) throw new Error('insert into clinics returned no row');
 
   return clinic.id;
+}
+
+/** A bookable practitioner. Appointments need one, and overlap tests need two. */
+export async function createTestPractitioner(clinicId: string, name = 'Dr Test'): Promise<string> {
+  const [row] = await db.insert(practitioners).values({ clinicId, name }).returning({ id: practitioners.id });
+
+  if (!row) throw new Error('insert into practitioners returned no row');
+
+  return row.id;
+}
+
+/**
+ * A client, inserted directly rather than through `createClient` so that the
+ * booking tests do not fail for a reason belonging to the clients feature.
+ */
+export async function createTestClient(clinicId: string, fullName = 'Test Client'): Promise<string> {
+  const [row] = await db
+    .insert(clients)
+    .values({ clinicId, fullName, searchName: normalizeForSearch(fullName) })
+    .returning({ id: clients.id });
+
+  if (!row) throw new Error('insert into clients returned no row');
+
+  return row.id;
 }
 
 /**
