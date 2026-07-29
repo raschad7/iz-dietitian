@@ -98,15 +98,23 @@ export async function signInWithPassword(
 }
 
 /**
- * Creates a dietitian/staff account.
+ * Creates a dietitian/staff account, and the clinic it owns.
  *
- * ⚠️  THIS SIGN-UP IS OPEN TO ANYONE WHO CAN REACH THE PAGE. ⚠️
+ * Sign-up is open by design: this is a SaaS, and any dietitian may register.
+ * What makes that safe is not a gate on the door but what a new account can
+ * actually do:
  *
- * `role` defaults to `staff`, and the staff area exposes every client's medical
- * notes, allergies and contact details. That is acceptable while this runs on a
- * developer's machine; it is NOT acceptable on any host reachable from the
- * internet. Gate this before deploying — an invite code checked here, or a
- * bootstrap rule that only allows sign-up while zero staff accounts exist.
+ *  - It holds no session. `autoSignIn` is off and `requireEmailVerification` is
+ *    on, so this returns a "check your inbox" state and the account cannot sign
+ *    in until the address is proven real.
+ *  - Its clinic starts empty, and every query in the app is scoped by
+ *    `clinic_id`. A stranger who signs up sees their own empty clinic, never
+ *    anyone else's client records.
+ *  - Registration is rate limited per IP, so the flow cannot be used to
+ *    enumerate, flood, or mass-create.
+ *
+ * `role` is still forced to `staff` server-side and can never be posted — see
+ * `input: false` in `src/lib/auth.ts`.
  */
 export async function signUpStaff(
   _previousState: AuthFormState,

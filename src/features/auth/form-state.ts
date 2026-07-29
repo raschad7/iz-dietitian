@@ -19,10 +19,12 @@ export type AuthFormState =
         | 'nameRequired'
         | 'invalidEmail'
         | 'verifyEmailFirst'
-        | 'accountNotLinked';
+        | 'accountNotLinked'
+        /** Refusing to remove someone's only remaining way to sign in. */
+        | 'lastSignInMethod';
     }
   | { status: 'rateLimited'; messageKey: 'rateLimited'; minutes: number }
   | { status: 'sent'; messageKey: 'magicLinkSent' | 'verificationSent' | 'resetLinkSent' }
-  | { status: 'success'; messageKey: 'passwordChanged' };
+  | { status: 'success'; messageKey: 'passwordChanged' | 'passkeyRemoved' };
 
 export const initialAuthState: AuthFormState = { status: 'idle' };
