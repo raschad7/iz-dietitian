@@ -14,11 +14,10 @@ package-lock.json
 pnpm-lock.yaml
 yarn.lock
 
-# env
+# env — .env.example is the committed template, so it is deliberately not listed
 .env
 .env.local
 .env.*.local
-.env.example
 
 # typescript
 *.tsbuildinfo
