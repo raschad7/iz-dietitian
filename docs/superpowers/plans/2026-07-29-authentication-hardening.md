@@ -1336,12 +1336,16 @@ Replace the `emailAndPassword` block:
     /**
      * A reset is what someone does when they believe another person holds their
      * password. Leaving that person's sessions alive would defeat the point.
+     *
+     * Better Auth does this itself when the flag is set — see
+     * `dist/api/routes/password.mjs`, which calls
+     * `internalAdapter.deleteUserSessions(userId)` right after the reset. Do not
+     * hand-roll it: `auth.api.revokeUserSessions` does NOT exist in the base API
+     * (it ships with the admin plugin), and a custom `onPasswordReset` callback
+     * that reaches for `auth` would reference the binding during its own
+     * initialisation.
      */
-    onPasswordReset: async ({ user: subject }) => {
-      await auth.api.revokeUserSessions({ body: { userId: subject.id } }).catch((error: unknown) => {
-        console.error('[auth] could not revoke sessions after password reset', error);
-      });
-    },
+    revokeSessionsOnPasswordReset: true,
   },
 
   emailVerification: {
@@ -1389,8 +1393,6 @@ Replace the `emailAndPassword` block:
     },
   },
 ```
-
-If `onPasswordReset` cannot reference `auth` before initialisation, move the revocation into the reset server action instead (Task 11) and delete the callback — note which you chose in the commit message.
 
 Add the passkey plugin to the `plugins` array, **before** `nextCookies()`:
 
