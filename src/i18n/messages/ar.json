@@ -97,7 +97,18 @@
     "passwordChanged": "تم تغيير كلمة المرور.",
     "lastSignInMethod": "لا يمكن حذف طريقة الدخول الوحيدة لحسابك.",
     "passkeyRegistered": "تمت إضافة مفتاح المرور.",
-    "passkeyRemoved": "تم حذف مفتاح المرور."
+    "passkeyRemoved": "تم حذف مفتاح المرور.",
+    "passkeysTitle": "مفاتيح المرور",
+    "passkeysDescription": "ادخل ببصمتك أو بقفل جهازك، بدون كلمة مرور.",
+    "passkeysNone": "لا توجد مفاتيح مرور بعد.",
+    "passkeyUnnamed": "مفتاح مرور",
+    "passkeyAdd": "إضافة مفتاح مرور",
+    "passkeyRemove": "حذف",
+    "methodsTitle": "طرق الدخول",
+    "methodPasswordOn": "كلمة المرور مفعّلة.",
+    "methodPasswordOff": "لا توجد كلمة مرور لهذا الحساب.",
+    "methodGoogleOn": "حساب Google مرتبط.",
+    "methodGoogleOff": "لا يوجد حساب Google مرتبط."
   },
   "calendar": {
     "title": "التقويم",

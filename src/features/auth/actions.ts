@@ -1,11 +1,13 @@
 'use server';
 
 import { APIError } from 'better-auth/api';
+import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 
 import { auth } from '@/lib/auth';
+import { requireStaffSession } from '@/lib/session';
 
 import { purgeUnverifiedAccounts } from './cleanup';
 import { type AuthFormState } from './form-state';
@@ -332,6 +334,46 @@ export async function signInWithGoogle(formData: FormData): Promise<void> {
   if (!url) throw new Error('Google sign-in did not return a consent URL');
 
   redirect(url);
+}
+
+/**
+ * Removing a passkey is refused when it is the only way into the account.
+ *
+ * Without this the page offers a two-click path to permanent lockout: a
+ * passkey-only account whose passkey is deleted has no password, no linked
+ * provider, and — with no email flow able to prove ownership of an account that
+ * cannot be signed into — no way back.
+ */
+export async function removePasskeyAction(
+  _previousState: AuthFormState,
+  formData: FormData,
+): Promise<AuthFormState> {
+  const locale = localeSchema.parse(formData.get('locale'));
+
+  // A server action is a public endpoint: the page guard protected the render,
+  // never this call.
+  await requireStaffSession(locale);
+
+  const id = z.string().min(1).parse(formData.get('passkeyId'));
+
+  const requestHeaders = await headers();
+
+  const [passkeys, accounts] = await Promise.all([
+    auth.api.listPasskeys({ headers: requestHeaders }),
+    auth.api.listUserAccounts({ headers: requestHeaders }),
+  ]);
+
+  const otherMethods = accounts.length + passkeys.length - 1;
+
+  if (otherMethods < 1) {
+    return { status: 'error', messageKey: 'lastSignInMethod' };
+  }
+
+  await auth.api.deletePasskey({ body: { id }, headers: await headers() });
+
+  revalidatePath(`/${locale}/app/settings/security`);
+
+  return { status: 'success', messageKey: 'passkeyRemoved' };
 }
 
 /** Ends the session and returns to the public landing page. */

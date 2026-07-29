@@ -97,7 +97,18 @@
     "passwordChanged": "Your password has been changed.",
     "lastSignInMethod": "You cannot remove your only way to sign in.",
     "passkeyRegistered": "Passkey added.",
-    "passkeyRemoved": "Passkey removed."
+    "passkeyRemoved": "Passkey removed.",
+    "passkeysTitle": "Passkeys",
+    "passkeysDescription": "Sign in with your fingerprint or device unlock — no password.",
+    "passkeysNone": "No passkeys yet.",
+    "passkeyUnnamed": "Passkey",
+    "passkeyAdd": "Add a passkey",
+    "passkeyRemove": "Remove",
+    "methodsTitle": "Ways to sign in",
+    "methodPasswordOn": "Password is set.",
+    "methodPasswordOff": "No password on this account.",
+    "methodGoogleOn": "Google is connected.",
+    "methodGoogleOff": "Google is not connected."
   },
   "calendar": {
     "title": "Calendar",
