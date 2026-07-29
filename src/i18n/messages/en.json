@@ -70,6 +70,11 @@
     "portalUsername": "Username",
     "portalSubmit": "Sign in",
     "wrongCredentials": "Wrong username or password.",
+    "passwordTooCommon": "That password is too common. Choose another.",
+    "setPasswordHeading": "Choose a new password",
+    "setPasswordDescription": "The password you were given is temporary. Choose your own to continue.",
+    "setPasswordSubmit": "Save and continue",
+    "clientPasswordHint": "At least {count, number, integer} characters.",
     "genericError": "Could not sign you in. Check your details and try again.",
     "emailTaken": "That email address is already registered.",
     "passwordMismatch": "The two passwords do not match.",
@@ -205,18 +210,22 @@
     "portal": {
       "title": "Portal access",
       "none": "This client does not have a portal account.",
-      "granted": "This client can sign in to the portal with a link emailed to them.",
-      "invite": "Grant portal access",
+      "granted": "This client can sign in to the portal.",
+      "username": "Username",
+      "issue": "Create sign-in details",
+      "reissue": "Issue a new password",
+      "confirmReissue": "This ends the client's current sessions. Continue?",
       "revoke": "Revoke portal access",
-      "invited": "Account created and a sign-in link sent.",
       "revoked": "Portal access revoked.",
       "confirmRevoke": "This client will immediately lose access to the portal. Are you sure?",
-      "devNotice": "In development the sign-in link is printed to the server console instead of emailed."
+      "showOnce": "Write these down now — they will not be shown again.",
+      "temporaryPassword": "Temporary password",
+      "handOver": "Give these to the client. They will choose their own password the first time they sign in."
     },
     "errors": {
       "invalid": "Check the fields highlighted in red.",
-      "noEmail": "Add an email address for this client before granting portal access.",
-      "emailTaken": "That email already belongs to another account.",
+      "usernameTaken": "That username is already taken. Choose another.",
+      "usernameInvalid": "Use 3 to 60 letters, numbers or hyphens.",
       "unexpected": "Something went wrong. Please try again."
     }
   },
