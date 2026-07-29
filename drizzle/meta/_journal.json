@@ -22,6 +22,20 @@
       "when": 1785241825034,
       "tag": "0002_even_outlaw_kid",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1785312085413,
+      "tag": "0003_strange_edwin_jarvis",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1785312092998,
+      "tag": "0004_booking_overlap_exclusion",
+      "breakpoints": true
     }
   ]
 }

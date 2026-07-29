@@ -78,6 +78,78 @@
     "title": "التقويم",
     "placeholder": "ستظهر هنا مواعيد العيادة بعد بناء وحدة المواعيد."
   },
+  "booking": {
+    "title": "التقويم",
+    "completed": "منتهٍ",
+    "now": "الآن",
+    "empty": "لا مواعيد في هذه الفترة. انقر على أي خانة فارغة لحجز موعد.",
+    "monthCount": "{count, number, integer}",
+    "monthReadOnly": "عرض الشهر للاطّلاع فقط. انقر على أي يوم للحجز أو التعديل.",
+    "nav": {
+      "today": "اليوم",
+      "previous": "السابق",
+      "next": "التالي",
+      "view": "طريقة العرض",
+      "day": "يوم",
+      "week": "أسبوع",
+      "month": "شهر"
+    },
+    "search": {
+      "placeholder": "ابحث عن متابع"
+    },
+    "duration": {
+      "hours": "{count, number, integer} ساعة",
+      "minutes": "{count, number, integer} دقيقة"
+    },
+    "fields": {
+      "date": "التاريخ",
+      "datePlaceholder": "YYYY-MM-DD",
+      "openDatePicker": "اختيار التاريخ من التقويم",
+      "start": "وقت البدء",
+      "duration": "المدة",
+      "unavailable": "غير متاح",
+      "client": "المتابع",
+      "editClient": "تعديل",
+      "reason": "سبب الزيارة",
+      "reasonPlaceholder": "متابعة، استشارة أولى…",
+      "optional": "(اختياري)"
+    },
+    "picker": {
+      "title": "اختيار المتابع",
+      "searchPlaceholder": "ابحث بالاسم",
+      "clients": "المتابعون",
+      "noMatches": "لا نتائج مطابقة.",
+      "alreadyBookedAt": "لديه موعد في هذا اليوم الساعة {time}.",
+      "newClient": "متابع جديد",
+      "newClientInDayView": "لإضافة متابع جديد، افتح عرض اليوم."
+    },
+    "newClient": {
+      "title": "إضافة متابع وحجز الموعد",
+      "fullName": "الاسم الكامل",
+      "phone": "رقم الهاتف",
+      "saveAndBook": "حفظ وحجز"
+    },
+    "dialog": {
+      "title": "تفاصيل الموعد"
+    },
+    "actions": {
+      "save": "حفظ",
+      "cancel": "إلغاء",
+      "delete": "حذف الموعد"
+    },
+    "errors": {
+      "tooShort": "أقصر مدة للموعد ١٥ دقيقة.",
+      "invalidDate": "تاريخ غير صحيح. استخدم صيغة مثل 2026-08-05 أو 8/5/2026.",
+      "closedDay": "العيادة مغلقة في هذا اليوم.",
+      "outsideHours": "الموعد خارج ساعات عمل العيادة.",
+      "overlap": "يتعارض هذا الموعد مع موعد آخر.",
+      "clientBooked": "لدى هذا المتابع موعد آخر في اليوم نفسه.",
+      "unauthorized": "لا تملك صلاحية تنفيذ هذا الإجراء.",
+      "invalid": "تحقّق من البيانات المُدخلة.",
+      "notFound": "الموعد غير موجود.",
+      "unexpected": "حدث خطأ غير متوقع. حاول مجددًا."
+    }
+  },
   "mealPlans": {
     "title": "الخطط الغذائية",
     "placeholder": "ستظهر هنا الخطط الغذائية بعد بناء وحدة الخطط."
