@@ -28,7 +28,8 @@
     "settings": "Settings",
     "portalHome": "Home",
     "myPlan": "My plan",
-    "myAppointments": "My appointments"
+    "myAppointments": "My appointments",
+    "security": "Security"
   },
   "landing": {
     "title": "Run your dietitian practice in one place",
@@ -72,7 +73,31 @@
     "passwordMismatch": "The two passwords do not match.",
     "passwordTooShort": "That password is too short.",
     "nameRequired": "Enter your full name.",
-    "invalidEmail": "Enter a valid email address."
+    "invalidEmail": "Enter a valid email address.",
+    "continueWithGoogle": "Continue with Google",
+    "continueWithPasskey": "Continue with a passkey",
+    "passkeyFailed": "That passkey did not work. Try another method.",
+    "orUsePassword": "or",
+    "forgotLink": "Forgot your password?",
+    "forgotHeading": "Reset your password",
+    "forgotDescription": "Enter your email address and we will send you a link to set a new password.",
+    "forgotSubmit": "Send the link",
+    "resetHeading": "New password",
+    "resetDescription": "Choose a new password. Your other sessions will be signed out.",
+    "resetSubmit": "Save password",
+    "resetLinkSent": "If that address has an account, we have sent it a link.",
+    "verificationSent": "We have sent a confirmation message to your email address.",
+    "verifyEmailFirst": "Please confirm your email address before signing in.",
+    "accountNotLinked": "An unverified account already exists for this email address.",
+    "rateLimited": "Too many attempts. Try again in {minutes} minutes.",
+    "checkInboxHeading": "Check your inbox",
+    "checkInboxDescription": "We have sent a confirmation link to your email address.",
+    "checkInboxSpam": "If it has not arrived, check your spam folder.",
+    "checkInboxWrongAddress": "Entered the wrong address?",
+    "passwordChanged": "Your password has been changed.",
+    "lastSignInMethod": "You cannot remove your only way to sign in.",
+    "passkeyRegistered": "Passkey added.",
+    "passkeyRemoved": "Passkey removed."
   },
   "calendar": {
     "title": "Calendar",

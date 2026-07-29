@@ -28,7 +28,8 @@
     "settings": "الإعدادات",
     "portalHome": "الصفحة الرئيسية",
     "myPlan": "خطتي الغذائية",
-    "myAppointments": "مواعيدي"
+    "myAppointments": "مواعيدي",
+    "security": "الأمان"
   },
   "landing": {
     "title": "إدارة عيادتك الغذائية في مكان واحد",
@@ -72,7 +73,31 @@
     "passwordMismatch": "كلمتا المرور غير متطابقتين.",
     "passwordTooShort": "كلمة المرور قصيرة جدًا.",
     "nameRequired": "أدخل الاسم الكامل.",
-    "invalidEmail": "أدخل بريدًا إلكترونيًا صحيحًا."
+    "invalidEmail": "أدخل بريدًا إلكترونيًا صحيحًا.",
+    "continueWithGoogle": "المتابعة باستخدام Google",
+    "continueWithPasskey": "المتابعة باستخدام مفتاح المرور",
+    "passkeyFailed": "تعذّر الدخول بمفتاح المرور. جرّب طريقة أخرى.",
+    "orUsePassword": "أو",
+    "forgotLink": "نسيت كلمة المرور؟",
+    "forgotHeading": "إعادة تعيين كلمة المرور",
+    "forgotDescription": "أدخل بريدك الإلكتروني وسنرسل لك رابطاً لتعيين كلمة مرور جديدة.",
+    "forgotSubmit": "أرسل الرابط",
+    "resetHeading": "كلمة مرور جديدة",
+    "resetDescription": "اختر كلمة مرور جديدة. سيتم إنهاء جلساتك الأخرى.",
+    "resetSubmit": "حفظ كلمة المرور",
+    "resetLinkSent": "إذا كان هذا البريد مسجّلاً لدينا، فقد أرسلنا إليه رابطاً.",
+    "verificationSent": "أرسلنا رسالة تأكيد إلى بريدك الإلكتروني.",
+    "verifyEmailFirst": "يرجى تأكيد بريدك الإلكتروني قبل الدخول.",
+    "accountNotLinked": "يوجد حساب غير مؤكَّد بهذا البريد الإلكتروني.",
+    "rateLimited": "محاولات كثيرة. حاول مرة أخرى بعد {minutes} دقيقة.",
+    "checkInboxHeading": "تحقّق من بريدك",
+    "checkInboxDescription": "أرسلنا رابط تأكيد إلى بريدك الإلكتروني.",
+    "checkInboxSpam": "إن لم تجد الرسالة، تحقّق من مجلد البريد غير المرغوب فيه.",
+    "checkInboxWrongAddress": "أدخلت بريداً خاطئاً؟",
+    "passwordChanged": "تم تغيير كلمة المرور.",
+    "lastSignInMethod": "لا يمكن حذف طريقة الدخول الوحيدة لحسابك.",
+    "passkeyRegistered": "تمت إضافة مفتاح المرور.",
+    "passkeyRemoved": "تم حذف مفتاح المرور."
   },
   "calendar": {
     "title": "التقويم",
