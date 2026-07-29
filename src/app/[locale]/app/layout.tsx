@@ -16,6 +16,7 @@ const NAV_ITEMS = [
   { href: '/app/clients', labelKey: 'clients' },
   { href: '/app/calendar', labelKey: 'calendar' },
   { href: '/app/meal-plans', labelKey: 'mealPlans' },
+  { href: '/app/foods', labelKey: 'foods' },
 ] as const;
 
 export default async function AppLayout({ children, params }: AppLayoutProps) {

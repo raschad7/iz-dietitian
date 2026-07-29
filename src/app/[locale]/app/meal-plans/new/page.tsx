@@ -10,6 +10,7 @@ import { requireStaffClinic } from '@/lib/session';
 
 type NewMealPlanPageProps = {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export async function generateMetadata({ params }: NewMealPlanPageProps): Promise<Metadata> {
@@ -18,14 +19,24 @@ export async function generateMetadata({ params }: NewMealPlanPageProps): Promis
   return { title: t('createTitle') };
 }
 
-export default async function NewMealPlanPage({ params }: NewMealPlanPageProps) {
+export default async function NewMealPlanPage({ params, searchParams }: NewMealPlanPageProps) {
   const locale = await resolveLocale(params);
   const { clinicId } = await requireStaffClinic(locale);
 
-  const [clients, t] = await Promise.all([
+  const [clients, raw, t] = await Promise.all([
     listPlannableClients(clinicId),
+    searchParams,
     getTranslations('mealPlans'),
   ]);
+
+  /**
+   * `?clientId=` arrives from the clients page. It is only honoured if it names
+   * a client this clinic can actually plan for — the list is already scoped, so
+   * matching against it is the check. An unknown id falls back to "choose one"
+   * rather than pre-filling a value the action would reject anyway.
+   */
+  const requested = typeof raw.clientId === 'string' ? raw.clientId : undefined;
+  const defaultClientId = clients.some((client) => client.id === requested) ? requested : undefined;
 
   return (
     <div className="space-y-6 text-start">
@@ -40,7 +51,7 @@ export default async function NewMealPlanPage({ params }: NewMealPlanPageProps) 
           </Link>
         </div>
       ) : (
-        <PlanForm locale={locale} clients={clients} />
+        <PlanForm locale={locale} clients={clients} defaultClientId={defaultClientId} />
       )}
     </div>
   );

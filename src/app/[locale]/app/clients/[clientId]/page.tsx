@@ -9,6 +9,8 @@ import { DeleteClientButton } from '@/features/clients/components/delete-client-
 import { PortalAccessCard } from '@/features/clients/components/portal-access-card';
 import { StatusBadge } from '@/features/clients/components/status-badge';
 import { getClient } from '@/features/clients/queries';
+import { ClientPlansCard } from '@/features/meal-plans/components/client-plans-card';
+import { listPlans } from '@/features/meal-plans/queries';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/params';
 import { requireStaffClinic } from '@/lib/session';
@@ -43,7 +45,7 @@ export default async function ClientPage({ params }: ClientPageProps) {
     notFound();
   }
 
-  const t = await getTranslations('clients');
+  const [plans, t] = await Promise.all([listPlans(clinicId, client.id), getTranslations('clients')]);
 
   return (
     <div className="space-y-6 text-start">
@@ -63,6 +65,8 @@ export default async function ClientPage({ params }: ClientPageProps) {
       </div>
 
       <ClientProfile client={client} />
+
+      <ClientPlansCard clientId={client.id} plans={plans} />
 
       <PortalAccessCard locale={locale} clientId={client.id} hasPortalAccess={client.hasPortalAccess} />
 

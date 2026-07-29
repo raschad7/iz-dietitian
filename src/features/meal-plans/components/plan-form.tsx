@@ -25,11 +25,14 @@ export function PlanForm({
   locale,
   clients,
   plan,
+  defaultClientId,
 }: {
   locale: Locale;
   clients: { id: string; fullName: string }[];
   /** Absent when creating. */
   plan?: PlanFormValues;
+  /** Preselected when arriving from a client's page. Validated by the caller. */
+  defaultClientId?: string;
 }) {
   const t = useTranslations('mealPlans');
   const tCommon = useTranslations('common');
@@ -57,7 +60,7 @@ export function PlanForm({
         <Select
           id="clientId"
           name={plan ? undefined : 'clientId'}
-          defaultValue={plan?.clientId ?? ''}
+          defaultValue={plan?.clientId ?? defaultClientId ?? ''}
           disabled={Boolean(plan)}
           required
         >

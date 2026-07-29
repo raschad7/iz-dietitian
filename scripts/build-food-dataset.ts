@@ -259,8 +259,14 @@ async function build(): Promise<void> {
 
     const amount = Number(row[3]);
     const unit = units.get(row[4] ?? '') ?? '';
+
+    /**
+     * The label always leads with its own count — "1 large", "3 oz", "1 cup" —
+     * so it is self-contained. Callers render it as-is; a UI that prefixed its
+     * own "1 " would produce "1 3 oz" on the many portions whose amount is not 1.
+     */
     const label = [
-      Number.isFinite(amount) && amount !== 1 ? String(amount) : '',
+      Number.isFinite(amount) && amount > 0 ? String(amount) : '1',
       unit === 'undetermined' ? '' : unit,
       (row[6] ?? '').trim(),
     ]
@@ -268,7 +274,7 @@ async function build(): Promise<void> {
       .join(' ');
 
     food.portionGrams = round(grams, 1);
-    food.portionLabel = label || 'serving';
+    food.portionLabel = label;
   }
 
   // Energy is the one field the UI cannot render a row without. Every SR Legacy

@@ -65,9 +65,25 @@ export type ItemFormInput = z.infer<typeof itemFormSchema>;
 /** How many foods the picker returns for one query. */
 export const FOOD_SEARCH_LIMIT = 25;
 
+/** How many foods one page of the browsable food table shows. */
+export const FOODS_PAGE_SIZE = 25;
+
 export const foodSearchSchema = z.object({
   q: z.preprocess(blankToUndefined, z.string().trim().max(120).optional()),
   category: z.preprocess(blankToUndefined, z.string().trim().max(120).optional()),
 });
 
 export type FoodSearchInput = z.infer<typeof foodSearchSchema>;
+
+/**
+ * Filters for the food browser. Every field uses `.catch()` so a hand-edited
+ * query string degrades to the default view instead of throwing a 500, matching
+ * `listClientsSchema`.
+ */
+export const listFoodsSchema = foodSearchSchema.extend({
+  page: z.coerce.number().int().min(1).max(10_000).catch(1),
+});
+
+export type ListFoodsInput = z.infer<typeof listFoodsSchema>;
+
+export const foodIdParamSchema = z.uuid();

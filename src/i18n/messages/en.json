@@ -25,6 +25,7 @@
     "clients": "Clients",
     "calendar": "Calendar",
     "mealPlans": "Meal plans",
+    "foods": "Foods",
     "plans": "Nutrition plans",
     "appointments": "Appointments",
     "payments": "Payments",
@@ -89,6 +90,7 @@
     "editTitle": "Edit plan details",
     "edit": "Edit details",
     "empty": "No meal plans yet. Create one to start building a day.",
+    "emptyForClient": "No meal plans for this client yet.",
     "notFound": "Meal plan not found",
     "notFoundDescription": "This plan may have been deleted, or the link is incorrect.",
     "backToList": "Back to meal plans",
@@ -154,7 +156,7 @@
       "allCategories": "All categories",
       "prompt": "Type at least two letters, or pick a category.",
       "noResults": "No food matches that.",
-      "usePortion": "Use 1 {label} ({grams, number} g)",
+      "usePortion": "Use {label} ({grams, number} g)",
       "add": "Add to meal"
     },
     "actions": {
@@ -173,6 +175,58 @@
     "title": "Dashboard",
     "welcome": "Welcome, {name}",
     "placeholder": "Clinic metrics will appear here once the feature modules are built."
+  },
+  "foods": {
+    "title": "Foods",
+    "per100g": "All values are per 100 g",
+    "resultCount": "{total, number, integer} foods",
+    "searchPlaceholder": "Search by name, e.g. chicken breast",
+    "allCategories": "All categories",
+    "empty": "The food database is empty.",
+    "emptyFiltered": "No food matches your search.",
+    "clearFilters": "Clear filters",
+    "notSeeded": "The food database is empty. Run `bun run db:seed:foods` to load it.",
+    "notFound": "Food not found",
+    "notFoundDescription": "This food may have been removed, or the link is incorrect.",
+    "backToList": "Back to foods",
+    "notMeasured": "Not measured",
+    "noPortion": "No household measure published",
+    "dataSource": "Source: USDA FoodData Central, SR Legacy (April 2018) — public domain.",
+    "fields": {
+      "description": "Food",
+      "category": "Category",
+      "portion": "Household measure",
+      "fdcId": "FoodData Central ID"
+    },
+    "sections": {
+      "macros": "Energy and macronutrients",
+      "allNutrients": "All nutrients",
+      "source": "Portion and source"
+    },
+    "short": {
+      "protein": "P (g)",
+      "carbs": "C (g)",
+      "fat": "F (g)"
+    },
+    "nutrients": {
+      "kcal": "Energy",
+      "protein": "Protein",
+      "carbs": "Carbohydrate",
+      "fat": "Fat",
+      "fiber": "Fibre",
+      "sugar": "Sugars",
+      "saturatedFat": "Saturated fat",
+      "sodium": "Sodium",
+      "cholesterol": "Cholesterol",
+      "calcium": "Calcium",
+      "iron": "Iron",
+      "potassium": "Potassium"
+    },
+    "pagination": {
+      "previous": "Previous",
+      "next": "Next",
+      "position": "Page {page, number, integer} of {pageCount, number, integer}"
+    }
   },
   "clients": {
     "title": "Clients",

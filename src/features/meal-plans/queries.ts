@@ -9,7 +9,15 @@ import {
   type FoodNutrients,
   type NutrientTotals,
 } from './nutrition';
-import { FOOD_SEARCH_LIMIT, planIdSchema, toTimeInput, type FoodSearchInput } from './schema';
+import {
+  FOOD_SEARCH_LIMIT,
+  FOODS_PAGE_SIZE,
+  foodIdParamSchema,
+  planIdSchema,
+  toTimeInput,
+  type FoodSearchInput,
+  type ListFoodsInput,
+} from './schema';
 
 /**
  * Reads for the meal-plans feature. Like `src/features/clients/queries.ts`, this
@@ -94,8 +102,15 @@ const foodColumns = {
  *
  * The energy total is aggregated in SQL rather than by loading each plan's items
  * — one query for the whole list instead of one per row.
+ *
+ * `clientId` narrows it to one client's plans, for the card on their profile.
+ * It is an extra filter on top of the clinic scope, never a replacement for it.
  */
-export async function listPlans(clinicId: string): Promise<PlanListItem[]> {
+export async function listPlans(clinicId: string, clientId?: string): Promise<PlanListItem[]> {
+  const scope = clientId
+    ? and(eq(mealPlans.clinicId, clinicId), eq(mealPlans.clientId, clientId))
+    : eq(mealPlans.clinicId, clinicId);
+
   const rows = await db
     .select({
       id: mealPlans.id,
@@ -112,7 +127,7 @@ export async function listPlans(clinicId: string): Promise<PlanListItem[]> {
     .leftJoin(mealPlanMeals, eq(mealPlanMeals.planId, mealPlans.id))
     .leftJoin(mealPlanItems, eq(mealPlanItems.mealId, mealPlanMeals.id))
     .leftJoin(foods, eq(foods.id, mealPlanItems.foodId))
-    .where(eq(mealPlans.clinicId, clinicId))
+    .where(scope)
     .groupBy(mealPlans.id, clients.fullName)
     .orderBy(desc(mealPlans.updatedAt));
 
@@ -204,7 +219,7 @@ export async function getPlan(clinicId: string, id: string): Promise<PlanDetail 
 }
 
 /**
- * The food picker's backing search.
+ * Matches a food search.
  *
  * Each whitespace-separated term must appear somewhere in the description, so
  * "chicken breast" finds "Chicken, broilers or fryers, breast, meat only, raw" —
@@ -215,25 +230,84 @@ export async function getPlan(clinicId: string, id: string): Promise<PlanDetail 
  * in sync: the USDA descriptions are English, and the Arabic folding that
  * `clients.search_name` exists for does not apply.
  */
-export async function searchFoods(input: FoodSearchInput): Promise<FoodSummary[]> {
+function buildFoodFilter(input: FoodSearchInput): SQL | undefined {
   const conditions: SQL[] = [];
 
   if (input.category) conditions.push(eq(foods.category, input.category));
 
   for (const term of input.q?.split(/\s+/).filter(Boolean) ?? []) {
-    // `%` and `_` are wildcards inside LIKE; a client searching for "100%" must
+    // `%` and `_` are wildcards inside LIKE; someone searching for "100%" must
     // not silently match everything.
     conditions.push(ilike(foods.description, `%${term.replace(/[\\%_]/g, '\\$&')}%`));
   }
 
+  return conditions.length ? and(...conditions) : undefined;
+}
+
+/**
+ * Shortest description first: the plain ingredient ("Butter, salted") ranks
+ * above the elaborated variant ("Butter, salted, with added vitamin D").
+ */
+const foodOrder = [sql`length(${foods.description})`, asc(foods.description)] as const;
+
+/** The food picker's backing search. Capped, never paginated — it is a typeahead. */
+export async function searchFoods(input: FoodSearchInput): Promise<FoodSummary[]> {
   return db
     .select(foodColumns)
     .from(foods)
-    .where(conditions.length ? and(...conditions) : undefined)
-    // Shortest description first: the plain ingredient ("Butter, salted") ranks
-    // above the elaborated variant ("Butter, salted, with added vitamin D").
-    .orderBy(sql`length(${foods.description})`, asc(foods.description))
+    .where(buildFoodFilter(input))
+    .orderBy(...foodOrder)
     .limit(FOOD_SEARCH_LIMIT);
+}
+
+export type FoodListResult = {
+  items: FoodSummary[];
+  total: number;
+  page: number;
+  pageCount: number;
+};
+
+/**
+ * The browsable food table.
+ *
+ * Same matching as the picker, but paginated and with a total — this is the
+ * reference view, where "how many foods are there" is part of the answer.
+ */
+export async function listFoods(input: ListFoodsInput): Promise<FoodListResult> {
+  const where = buildFoodFilter(input);
+
+  const [totals] = await db.select({ value: count() }).from(foods).where(where);
+  const total = totals?.value ?? 0;
+
+  const items = await db
+    .select(foodColumns)
+    .from(foods)
+    .where(where)
+    .orderBy(...foodOrder)
+    .limit(FOODS_PAGE_SIZE)
+    .offset((input.page - 1) * FOODS_PAGE_SIZE);
+
+  return {
+    items,
+    total,
+    page: input.page,
+    pageCount: Math.max(1, Math.ceil(total / FOODS_PAGE_SIZE)),
+  };
+}
+
+/**
+ * One food, for its detail page.
+ *
+ * Not scoped to a clinic — `foods` is shared reference data. Validates the id
+ * first so a malformed route param is a 404 rather than a failed uuid cast.
+ */
+export async function getFood(id: string): Promise<FoodSummary | null> {
+  const parsed = foodIdParamSchema.safeParse(id);
+  if (!parsed.success) return null;
+
+  const [row] = await db.select(foodColumns).from(foods).where(eq(foods.id, parsed.data)).limit(1);
+
+  return row ?? null;
 }
 
 /** The category filter's options, read from the data rather than hardcoded. */

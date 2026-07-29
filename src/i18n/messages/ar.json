@@ -25,6 +25,7 @@
     "clients": "المتابعون",
     "calendar": "التقويم",
     "mealPlans": "الخطط الغذائية",
+    "foods": "الأطعمة",
     "plans": "الخطط الغذائية",
     "appointments": "المواعيد",
     "payments": "المدفوعات",
@@ -89,6 +90,7 @@
     "editTitle": "تعديل بيانات الخطة",
     "edit": "تعديل البيانات",
     "empty": "لا توجد خطط غذائية بعد. أنشئ واحدة لتبدأ ببناء اليوم.",
+    "emptyForClient": "لا توجد خطط غذائية لهذا المتابع بعد.",
     "notFound": "الخطة غير موجودة",
     "notFoundDescription": "قد تكون هذه الخطة قد حُذفت، أو أنّ الرابط غير صحيح.",
     "backToList": "العودة إلى الخطط الغذائية",
@@ -154,7 +156,7 @@
       "allCategories": "كل الفئات",
       "prompt": "اكتب حرفين على الأقل، أو اختر فئة.",
       "noResults": "لا يوجد طعام مطابق.",
-      "usePortion": "استخدم ١ {label} ({grams, number} غم)",
+      "usePortion": "استخدم {label} ({grams, number} غم)",
       "add": "إضافة إلى الوجبة"
     },
     "actions": {
@@ -173,6 +175,58 @@
     "title": "لوحة التحكم",
     "welcome": "أهلًا {name}",
     "placeholder": "ستظهر هنا مؤشرات العيادة بعد بناء الوحدات الوظيفية."
+  },
+  "foods": {
+    "title": "الأطعمة",
+    "per100g": "جميع القيم لكل ١٠٠ غرام",
+    "resultCount": "{total, number, integer} طعامًا",
+    "searchPlaceholder": "ابحث بالاسم، مثال: chicken breast",
+    "allCategories": "كل الفئات",
+    "empty": "قاعدة بيانات الأطعمة فارغة.",
+    "emptyFiltered": "لا يوجد طعام مطابق لبحثك.",
+    "clearFilters": "مسح عوامل التصفية",
+    "notSeeded": "قاعدة بيانات الأطعمة فارغة. شغّل الأمر `bun run db:seed:foods` لتحميلها.",
+    "notFound": "الطعام غير موجود",
+    "notFoundDescription": "قد يكون هذا الطعام قد حُذف، أو أنّ الرابط غير صحيح.",
+    "backToList": "العودة إلى الأطعمة",
+    "notMeasured": "غير مقاس",
+    "noPortion": "لا يوجد مقياس منزلي منشور",
+    "dataSource": "المصدر: USDA FoodData Central، إصدار SR Legacy (نيسان ٢٠١٨) — ملكية عامة.",
+    "fields": {
+      "description": "الطعام",
+      "category": "الفئة",
+      "portion": "المقياس المنزلي",
+      "fdcId": "معرّف FoodData Central"
+    },
+    "sections": {
+      "macros": "الطاقة والمغذيات الكبرى",
+      "allNutrients": "جميع العناصر الغذائية",
+      "source": "الحصة والمصدر"
+    },
+    "short": {
+      "protein": "بروتين (غم)",
+      "carbs": "كربوهيدرات (غم)",
+      "fat": "دهون (غم)"
+    },
+    "nutrients": {
+      "kcal": "الطاقة",
+      "protein": "البروتين",
+      "carbs": "الكربوهيدرات",
+      "fat": "الدهون",
+      "fiber": "الألياف",
+      "sugar": "السكريات",
+      "saturatedFat": "الدهون المشبعة",
+      "sodium": "الصوديوم",
+      "cholesterol": "الكوليسترول",
+      "calcium": "الكالسيوم",
+      "iron": "الحديد",
+      "potassium": "البوتاسيوم"
+    },
+    "pagination": {
+      "previous": "السابق",
+      "next": "التالي",
+      "position": "صفحة {page, number, integer} من {pageCount, number, integer}"
+    }
   },
   "clients": {
     "title": "المتابعون",

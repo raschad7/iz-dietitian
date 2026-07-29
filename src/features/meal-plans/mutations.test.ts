@@ -17,7 +17,7 @@ import {
   updateMeal,
   updatePlan,
 } from './mutations';
-import { getPlan, listPlans, searchFoods } from './queries';
+import { getFood, getPlan, listFoods, listPlans, searchFoods } from './queries';
 
 let clinicId: string;
 let clientId: string;
@@ -281,6 +281,30 @@ describe('listPlans', () => {
     const [row] = await listPlans(clinicId);
     expect(row?.kcal).toBe(0);
   });
+
+  test('narrows to one client when asked, for the card on their profile', async () => {
+    const { id: otherClient } = await createClient(clinicId, {
+      fullName: 'Someone else',
+      preferredLocale: 'en',
+    });
+
+    await createPlan(clinicId, { clientId, title: 'Hers' });
+    await createPlan(clinicId, { clientId: otherClient, title: 'Theirs' });
+
+    expect(await listPlans(clinicId)).toHaveLength(2);
+
+    const mine = await listPlans(clinicId, clientId);
+    expect(mine).toHaveLength(1);
+    expect(mine[0]?.title).toBe('Hers');
+  });
+
+  test('the client filter never widens the clinic scope', async () => {
+    const otherClinic = await createTestClinic('Other Clinic');
+    await createPlan(clinicId, { clientId, title: 'Hers' });
+
+    // The client id is real, but belongs to a different clinic than the caller.
+    expect(await listPlans(otherClinic, clientId)).toHaveLength(0);
+  });
 });
 
 describe('searchFoods', () => {
@@ -313,5 +337,53 @@ describe('searchFoods', () => {
   test('ranks the plainer description first', async () => {
     const results = await searchFoods({ q: 'butter' });
     expect(results[0]?.description).toBe('Butter, salted');
+  });
+});
+
+describe('listFoods', () => {
+  beforeEach(async () => {
+    await createTestFood('Chicken, broilers or fryers, breast, meat only, raw', 171077);
+    await createTestFood('Butter, salted', 173410);
+  });
+
+  test('reports the total alongside the page', async () => {
+    const result = await listFoods({ page: 1 });
+
+    expect(result.total).toBe(3);
+    expect(result.items).toHaveLength(3);
+    expect(result.pageCount).toBe(1);
+  });
+
+  test('counts the matches, not the table, when filtered', async () => {
+    const result = await listFoods({ q: 'butter', page: 1 });
+
+    expect(result.total).toBe(1);
+    expect(result.items[0]?.description).toBe('Butter, salted');
+  });
+
+  test('a page past the end is empty but does not throw', async () => {
+    const result = await listFoods({ page: 500 });
+
+    expect(result.items).toHaveLength(0);
+    expect(result.total).toBe(3);
+  });
+});
+
+describe('getFood', () => {
+  test('returns the food with its nutrients', async () => {
+    const food = await getFood(foodId);
+
+    expect(food?.description).toBe('Egg, whole, raw, fresh');
+    expect(food?.kcal).toBe(143);
+    // Null must survive the round trip as null, not become 0.
+    expect(food?.sugar).toBeNull();
+  });
+
+  test('returns null for a malformed id instead of throwing', async () => {
+    expect(await getFood('not-a-uuid')).toBeNull();
+  });
+
+  test('returns null for an id that does not exist', async () => {
+    expect(await getFood('00000000-0000-4000-8000-000000000000')).toBeNull();
   });
 });
