@@ -7,7 +7,11 @@ import { auth } from '@/lib/auth';
 
 import { createTestClinic, resetDatabase } from '../../../tests/helpers';
 import { createClient } from './mutations';
-import { issuePortalCredentials, revokePortalAccess } from './portal-credentials';
+import {
+  issuePortalCredentials,
+  replacePortalPassword,
+  revokePortalAccess,
+} from './portal-credentials';
 
 let clinicId: string;
 
@@ -103,6 +107,47 @@ describe('issuePortalCredentials', () => {
     const result = await issuePortalCredentials(otherClinic, client.id, 'crosstenant-0001');
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.code).toBe('not_found');
+  });
+});
+
+describe('replacePortalPassword', () => {
+  async function issueTo(username: string) {
+    const client = await makeClient();
+    const result = await issuePortalCredentials(clinicId, client.id, username);
+    if (!result.ok) throw new Error('issuing failed');
+    return result;
+  }
+
+  test('the chosen password authenticates and the temporary one stops working', async () => {
+    const issued = await issueTo('chosen-0001');
+    const [row] = await db.select().from(user).where(eq(user.username, 'chosen-0001'));
+
+    await replacePortalPassword(row!.id, 'chosen-password');
+
+    const signedIn = await auth.api.signInUsername({
+      body: { username: 'chosen-0001', password: 'chosen-password' },
+    });
+    expect(signedIn).toBeTruthy();
+
+    expect(
+      auth.api.signInUsername({
+        body: { username: 'chosen-0001', password: issued.temporaryPassword },
+      }),
+    ).rejects.toThrow();
+  });
+
+  test('clears the flag that pins the client to the set-password page', async () => {
+    await issueTo('cleared-0001');
+    const [row] = await db.select().from(user).where(eq(user.username, 'cleared-0001'));
+
+    await replacePortalPassword(row!.id, 'cleared-password');
+
+    const [after] = await db.select().from(user).where(eq(user.id, row!.id));
+    expect(after?.mustChangePassword).toBe(false);
+  });
+
+  test('refuses a user id with no credential account rather than reporting success', async () => {
+    expect(replacePortalPassword(crypto.randomUUID(), 'orphan-password')).rejects.toThrow();
   });
 });
 
