@@ -91,8 +91,14 @@ src/db/schema/auth.ts
 src/app/[locale]/
   forgot-password/page.tsx
   reset-password/page.tsx
-  verify-email/page.tsx
   app/settings/security/page.tsx
+```
+
+No `verify-email` route is needed: Better Auth serves verification at
+`/api/auth/verify-email` and redirects to `callbackURL` itself. Adding a page
+would only duplicate it.
+
+```
 ```
 
 `rate-limit.ts`, `redirect.ts` and `cleanup.ts` import nothing from Next.js, so
