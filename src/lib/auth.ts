@@ -21,6 +21,15 @@ import {
 
 export type UserRole = 'staff' | 'client';
 
+/**
+ * Whether Google sign-in is configured on this deployment.
+ *
+ * Read by the sign-in page to decide whether to offer the button, and by the
+ * config below to decide whether to register the provider — one source of truth,
+ * so the UI can never advertise a door that does not open.
+ */
+export const isGoogleEnabled = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+
 function requireEnv(name: string): string {
   const value = process.env[name];
   if (!value) {
@@ -112,12 +121,23 @@ export const auth = betterAuth({
     },
   },
 
-  socialProviders: {
-    google: {
-      clientId: process.env.GOOGLE_CLIENT_ID ?? '',
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
-    },
-  },
+  /**
+   * Google is registered only when it is actually configured.
+   *
+   * Passing empty strings would register a provider that cannot work: the button
+   * would render, and the failure would surface as an opaque error from Google's
+   * consent screen rather than anything this app could explain. `isGoogleEnabled`
+   * is what the sign-in page reads to decide whether to offer the button at all,
+   * so the two can never disagree.
+   */
+  socialProviders: isGoogleEnabled
+    ? {
+        google: {
+          clientId: process.env.GOOGLE_CLIENT_ID as string,
+          clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+        },
+      }
+    : {},
 
   account: {
     accountLinking: {
