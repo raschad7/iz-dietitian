@@ -66,8 +66,8 @@ export default async function MealPlansPage({ params }: MealPlansPageProps) {
               <tr>
                 <th className="px-3 py-2 text-start font-medium">{t('fields.title')}</th>
                 <th className="px-3 py-2 text-start font-medium">{t('fields.client')}</th>
-                <th className="px-3 py-2 text-end font-medium">{t('fields.meals')}</th>
-                <th className="px-3 py-2 text-end font-medium">{t('nutrients.kcal')}</th>
+                <th className="px-3 py-2 text-end font-medium">{t('fields.plannedDays')}</th>
+                <th className="px-3 py-2 text-end font-medium">{t('fields.kcalPerDay')}</th>
                 <th className="px-3 py-2 text-start font-medium">{t('fields.updatedAt')}</th>
               </tr>
             </thead>
@@ -91,10 +91,17 @@ export default async function MealPlansPage({ params }: MealPlansPageProps) {
                     </Link>
                   </td>
                   <td className="px-3 py-2 text-end tabular-nums" dir="ltr">
-                    {formatNumber(locale, plan.mealCount)}
+                    {t('fields.daysOfSeven', { count: plan.plannedDays })}
                   </td>
+                  {/*
+                   * The average across the days that actually have food on them,
+                   * not across seven — a half-built plan should not read as if
+                   * the client were being starved.
+                   */}
                   <td className="px-3 py-2 text-end tabular-nums" dir="ltr">
-                    {formatNumber(locale, roundForDisplay('kcal', plan.kcal))}
+                    {plan.plannedDays === 0
+                      ? '—'
+                      : formatNumber(locale, roundForDisplay('kcal', plan.kcal / plan.plannedDays))}
                   </td>
                   <td className="px-3 py-2 text-start">{formatDate(locale, plan.updatedAt)}</td>
                 </tr>

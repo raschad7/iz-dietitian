@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 import { db } from '@/db';
 import { foods, mealPlanItems, mealPlanMeals, mealPlans } from '@/db/schema';
@@ -9,6 +9,8 @@ import { createTestClinic, resetDatabase } from '../../../tests/helpers';
 import {
   addItem,
   addMeal,
+  clearDay,
+  copyDay,
   createPlan,
   deleteItem,
   deleteMeal,
@@ -53,17 +55,38 @@ beforeEach(async () => {
   foodId = await createTestFood();
 });
 
+/** One day's meals, in the order the UI shows them. */
+function dayMeals(planId: string, dayOfWeek: number) {
+  return db
+    .select()
+    .from(mealPlanMeals)
+    .where(and(eq(mealPlanMeals.planId, planId), eq(mealPlanMeals.dayOfWeek, dayOfWeek)))
+    .orderBy(mealPlanMeals.timeOfDay, mealPlanMeals.sortOrder);
+}
+
+/** 7 days × 5 default blocks — what `createPlan` lays down. */
+const MEALS_PER_PLAN = 35;
+
 describe('createPlan', () => {
-  test('creates the plan with a full default day', async () => {
+  test('creates the plan with a skeleton for all seven days', async () => {
     const plan = await createPlan(clinicId, { clientId, title: 'Week 1' });
     expect(plan).not.toBeNull();
 
     const meals = await db.select().from(mealPlanMeals).where(eq(mealPlanMeals.planId, plan!.id));
+    expect(meals).toHaveLength(MEALS_PER_PLAN);
 
-    expect(meals).toHaveLength(5);
-    expect(meals.map((meal) => meal.label).sort()).toEqual(
-      ['Afternoon snack', 'Breakfast', 'Dinner', 'Lunch', 'Morning snack'],
-    );
+    // Every day gets the same five blocks.
+    for (const dayOfWeek of [0, 1, 2, 3, 4, 5, 6]) {
+      const day = meals.filter((meal) => meal.dayOfWeek === dayOfWeek);
+
+      expect(day.map((meal) => meal.label).sort()).toEqual([
+        'Afternoon snack',
+        'Breakfast',
+        'Dinner',
+        'Lunch',
+        'Morning snack',
+      ]);
+    }
   });
 
   test('stores the clinic on the plan so queries need no join to scope', async () => {
@@ -94,8 +117,7 @@ describe('tenant isolation', () => {
     const plan = await createPlan(clinicId, { clientId, title: 'Week 1' });
     planId = plan!.id;
 
-    const meals = await db.select().from(mealPlanMeals).where(eq(mealPlanMeals.planId, planId));
-    mealId = meals[0]!.id;
+    mealId = (await dayMeals(planId, 0))[0]!.id;
 
     otherClinic = await createTestClinic('Other Clinic');
   });
@@ -114,13 +136,24 @@ describe('tenant isolation', () => {
   });
 
   test('another clinic cannot add, edit or delete a meal', async () => {
-    expect(await addMeal(otherClinic, planId, { label: 'Nope', timeOfDay: '23:00' })).toBe(false);
+    expect(await addMeal(otherClinic, planId, 0, { label: 'Nope', timeOfDay: '23:00' })).toBe(false);
     expect(await updateMeal(otherClinic, mealId, { label: 'Nope', timeOfDay: '23:00' })).toBe(false);
     expect(await deleteMeal(otherClinic, mealId)).toBe(false);
 
     const meals = await db.select().from(mealPlanMeals).where(eq(mealPlanMeals.planId, planId));
-    expect(meals).toHaveLength(5);
+    expect(meals).toHaveLength(MEALS_PER_PLAN);
     expect(meals.some((meal) => meal.label === 'Nope')).toBe(false);
+  });
+
+  test('another clinic cannot copy or clear a day', async () => {
+    await addItem(clinicId, mealId, { foodId, quantityGrams: 100 });
+
+    expect(await copyDay(otherClinic, planId, { fromDay: 0, toDay: 1 })).toBe(false);
+    expect(await clearDay(otherClinic, planId, 0)).toBe(false);
+
+    // Sunday still has its item, and Monday was not overwritten.
+    expect(await db.select().from(mealPlanItems)).toHaveLength(1);
+    expect(await dayMeals(planId, 1)).toHaveLength(5);
   });
 
   test('another clinic cannot add or remove an item', async () => {
@@ -144,15 +177,18 @@ describe('meals and items', () => {
   beforeEach(async () => {
     const plan = await createPlan(clinicId, { clientId, title: 'Week 1' });
     planId = plan!.id;
-    mealId = (await db.select().from(mealPlanMeals).where(eq(mealPlanMeals.planId, planId)))[0]!.id;
+    mealId = (await dayMeals(planId, 0))[0]!.id;
   });
 
-  test('adds a meal to the plan', async () => {
-    expect(await addMeal(clinicId, planId, { label: 'Supper', timeOfDay: '21:30' })).toBe(true);
+  test('adds a meal to the day it was asked for, and no other', async () => {
+    expect(await addMeal(clinicId, planId, 3, { label: 'Supper', timeOfDay: '21:30' })).toBe(true);
 
-    const meals = await db.select().from(mealPlanMeals).where(eq(mealPlanMeals.planId, planId));
-    expect(meals).toHaveLength(6);
-    expect(meals.find((meal) => meal.label === 'Supper')?.timeOfDay).toBe('21:30:00');
+    const wednesday = await dayMeals(planId, 3);
+    expect(wednesday).toHaveLength(6);
+    expect(wednesday.find((meal) => meal.label === 'Supper')?.timeOfDay).toBe('21:30:00');
+
+    // The other six days are untouched.
+    expect(await dayMeals(planId, 0)).toHaveLength(5);
   });
 
   test('renames and reschedules a meal', async () => {
@@ -192,29 +228,41 @@ describe('meals and items', () => {
 });
 
 describe('getPlan', () => {
-  test('computes per-meal and whole-day totals from the stored grams', async () => {
+  test('computes totals at all three levels from the stored grams', async () => {
     const plan = await createPlan(clinicId, { clientId, title: 'Week 1' });
-    const meals = await db
-      .select()
-      .from(mealPlanMeals)
-      .where(eq(mealPlanMeals.planId, plan!.id))
-      .orderBy(mealPlanMeals.timeOfDay);
+    const sunday = await dayMeals(plan!.id, 0);
+    const monday = await dayMeals(plan!.id, 1);
 
-    // 100 g at breakfast + 50 g at lunch = 1.5x the per-100 g figures.
-    await addItem(clinicId, meals[0]!.id, { foodId, quantityGrams: 100 });
-    await addItem(clinicId, meals[2]!.id, { foodId, quantityGrams: 50 });
+    // 100 g at Sunday breakfast, 50 g at Sunday lunch, 100 g at Monday breakfast.
+    await addItem(clinicId, sunday[0]!.id, { foodId, quantityGrams: 100 });
+    await addItem(clinicId, sunday[2]!.id, { foodId, quantityGrams: 50 });
+    await addItem(clinicId, monday[0]!.id, { foodId, quantityGrams: 100 });
 
     const detail = await getPlan(clinicId, plan!.id);
 
-    expect(detail?.meals[0]?.totals.kcal.value).toBeCloseTo(143, 5);
-    expect(detail?.meals[2]?.totals.kcal.value).toBeCloseTo(71.5, 5);
-    expect(detail?.totals.kcal.value).toBeCloseTo(214.5, 5);
-    expect(detail?.totals.protein.value).toBeCloseTo(18.84, 5);
+    // Meal.
+    expect(detail?.days[0]?.meals[0]?.totals.kcal.value).toBeCloseTo(143, 5);
+    expect(detail?.days[0]?.meals[2]?.totals.kcal.value).toBeCloseTo(71.5, 5);
+    // Day.
+    expect(detail?.days[0]?.totals.kcal.value).toBeCloseTo(214.5, 5);
+    expect(detail?.days[1]?.totals.kcal.value).toBeCloseTo(143, 5);
+    expect(detail?.days[2]?.totals.kcal.value).toBe(0);
+    // Week.
+    expect(detail?.totals.kcal.value).toBeCloseTo(357.5, 5);
+    expect(detail?.totals.protein.value).toBeCloseTo(31.4, 5);
+  });
+
+  test('always returns seven days, indexed by day, even when empty', async () => {
+    const plan = await createPlan(clinicId, { clientId, title: 'Week 1' });
+    const detail = await getPlan(clinicId, plan!.id);
+
+    expect(detail?.days).toHaveLength(7);
+    expect(detail?.days.map((day) => day.dayOfWeek)).toEqual([0, 1, 2, 3, 4, 5, 6]);
   });
 
   test('reports an unmeasured nutrient rather than counting it as zero', async () => {
     const plan = await createPlan(clinicId, { clientId, title: 'Week 1' });
-    const [meal] = await db.select().from(mealPlanMeals).where(eq(mealPlanMeals.planId, plan!.id));
+    const [meal] = await dayMeals(plan!.id, 0);
 
     await addItem(clinicId, meal!.id, { foodId, quantityGrams: 100 });
 
@@ -229,16 +277,16 @@ describe('getPlan', () => {
     const plan = await createPlan(clinicId, { clientId, title: 'Week 1' });
     const detail = await getPlan(clinicId, plan!.id);
 
-    expect(detail?.meals[0]?.timeOfDay).toBe('07:00');
+    expect(detail?.days[0]?.meals[0]?.timeOfDay).toBe('07:00');
   });
 
-  test('orders meals through the day', async () => {
+  test('orders meals through the day, within each day', async () => {
     const plan = await createPlan(clinicId, { clientId, title: 'Week 1' });
-    await addMeal(clinicId, plan!.id, { label: 'Supper', timeOfDay: '21:30' });
+    await addMeal(clinicId, plan!.id, 0, { label: 'Supper', timeOfDay: '21:30' });
 
     const detail = await getPlan(clinicId, plan!.id);
 
-    expect(detail?.meals.map((meal) => meal.timeOfDay)).toEqual([
+    expect(detail?.days[0]?.meals.map((meal) => meal.timeOfDay)).toEqual([
       '07:00',
       '10:00',
       '13:00',
@@ -246,6 +294,8 @@ describe('getPlan', () => {
       '19:00',
       '21:30',
     ]);
+    // The added meal landed on Sunday only.
+    expect(detail?.days[1]?.meals).toHaveLength(5);
   });
 
   test('returns null for a malformed id instead of throwing', async () => {
@@ -257,28 +307,146 @@ describe('getPlan', () => {
     const detail = await getPlan(clinicId, plan!.id);
 
     expect(detail?.totals.kcal.value).toBe(0);
-    expect(detail?.meals).toHaveLength(5);
+    expect(detail?.days[0]?.meals).toHaveLength(5);
+  });
+});
+
+describe('copyDay', () => {
+  let planId: string;
+
+  beforeEach(async () => {
+    const plan = await createPlan(clinicId, { clientId, title: 'Week 1' });
+    planId = plan!.id;
+  });
+
+  test('reproduces the source day, meals and items alike', async () => {
+    const sunday = await dayMeals(planId, 0);
+    await updateMeal(clinicId, sunday[0]!.id, { label: 'إفطار', timeOfDay: '06:30' });
+    await addItem(clinicId, sunday[0]!.id, { foodId, quantityGrams: 120 });
+    await addItem(clinicId, sunday[2]!.id, { foodId, quantityGrams: 80 });
+
+    expect(await copyDay(clinicId, planId, { fromDay: 0, toDay: 2 })).toBe(true);
+
+    const detail = await getPlan(clinicId, planId);
+    const source = detail!.days[0]!;
+    const copy = detail!.days[2]!;
+
+    expect(copy.meals.map((meal) => [meal.label, meal.timeOfDay])).toEqual(
+      source.meals.map((meal) => [meal.label, meal.timeOfDay]),
+    );
+    expect(copy.totals.kcal.value).toBeCloseTo(source.totals.kcal.value, 5);
+  });
+
+  test('pairs each copied item with the right meal, not the first one', async () => {
+    const sunday = await dayMeals(planId, 0);
+    // Different quantities in different blocks — a mis-paired copy would show up
+    // as the wrong grams against the wrong meal.
+    await addItem(clinicId, sunday[0]!.id, { foodId, quantityGrams: 100 });
+    await addItem(clinicId, sunday[4]!.id, { foodId, quantityGrams: 250 });
+
+    await copyDay(clinicId, planId, { fromDay: 0, toDay: 5 });
+
+    const copy = (await getPlan(clinicId, planId))!.days[5]!;
+
+    expect(copy.meals[0]?.items.map((item) => item.quantityGrams)).toEqual([100]);
+    expect(copy.meals[1]?.items).toHaveLength(0);
+    expect(copy.meals[4]?.items.map((item) => item.quantityGrams)).toEqual([250]);
+  });
+
+  test('replaces the target rather than merging into it', async () => {
+    const sunday = await dayMeals(planId, 0);
+    await addItem(clinicId, sunday[0]!.id, { foodId, quantityGrams: 100 });
+
+    const monday = await dayMeals(planId, 1);
+    await addMeal(clinicId, planId, 1, { label: 'Late supper', timeOfDay: '23:00' });
+    await addItem(clinicId, monday[0]!.id, { foodId, quantityGrams: 999 });
+
+    await copyDay(clinicId, planId, { fromDay: 0, toDay: 1 });
+
+    const copy = (await getPlan(clinicId, planId))!.days[1]!;
+
+    expect(copy.meals).toHaveLength(5);
+    expect(copy.meals.some((meal) => meal.label === 'Late supper')).toBe(false);
+    expect(copy.totals.kcal.value).toBeCloseTo(143, 5);
+  });
+
+  test('leaves the source day untouched', async () => {
+    const sunday = await dayMeals(planId, 0);
+    await addItem(clinicId, sunday[0]!.id, { foodId, quantityGrams: 100 });
+
+    await copyDay(clinicId, planId, { fromDay: 0, toDay: 1 });
+
+    const detail = await getPlan(clinicId, planId);
+    expect(detail?.days[0]?.totals.kcal.value).toBeCloseTo(143, 5);
+    expect(detail?.days[0]?.meals).toHaveLength(5);
+  });
+
+  test('copying an empty day clears the target', async () => {
+    const monday = await dayMeals(planId, 1);
+    await addItem(clinicId, monday[0]!.id, { foodId, quantityGrams: 100 });
+
+    // Saturday was never touched, so it still holds only the empty skeleton.
+    await clearDay(clinicId, planId, 6);
+    await copyDay(clinicId, planId, { fromDay: 6, toDay: 1 });
+
+    const detail = await getPlan(clinicId, planId);
+    expect(detail?.days[1]?.meals).toHaveLength(0);
+    expect(detail?.days[1]?.totals.kcal.value).toBe(0);
+  });
+
+  test('does not disturb the other five days', async () => {
+    const sunday = await dayMeals(planId, 0);
+    await addItem(clinicId, sunday[0]!.id, { foodId, quantityGrams: 100 });
+
+    await copyDay(clinicId, planId, { fromDay: 0, toDay: 1 });
+
+    const detail = await getPlan(clinicId, planId);
+    for (const dayOfWeek of [2, 3, 4, 5, 6]) {
+      expect(detail?.days[dayOfWeek]?.meals).toHaveLength(5);
+      expect(detail?.days[dayOfWeek]?.totals.kcal.value).toBe(0);
+    }
+  });
+});
+
+describe('clearDay', () => {
+  test('empties one day and leaves the rest of the week alone', async () => {
+    const plan = await createPlan(clinicId, { clientId, title: 'Week 1' });
+    const sunday = await dayMeals(plan!.id, 0);
+    await addItem(clinicId, sunday[0]!.id, { foodId, quantityGrams: 100 });
+
+    expect(await clearDay(clinicId, plan!.id, 0)).toBe(true);
+
+    const detail = await getPlan(clinicId, plan!.id);
+    expect(detail?.days[0]?.meals).toHaveLength(0);
+    expect(detail?.days[1]?.meals).toHaveLength(5);
+    // The cascade took the item with the meal.
+    expect(await db.select().from(mealPlanItems)).toHaveLength(0);
   });
 });
 
 describe('listPlans', () => {
-  test('aggregates the energy and meal count in SQL', async () => {
+  test('aggregates the week energy and the planned-day count in SQL', async () => {
     const plan = await createPlan(clinicId, { clientId, title: 'Week 1' });
-    const [meal] = await db.select().from(mealPlanMeals).where(eq(mealPlanMeals.planId, plan!.id));
+    const [sunday] = await dayMeals(plan!.id, 0);
+    const [wednesday] = await dayMeals(plan!.id, 3);
 
-    await addItem(clinicId, meal!.id, { foodId, quantityGrams: 200 });
+    await addItem(clinicId, sunday!.id, { foodId, quantityGrams: 200 });
+    await addItem(clinicId, wednesday!.id, { foodId, quantityGrams: 100 });
 
     const [row] = await listPlans(clinicId);
 
-    expect(row?.mealCount).toBe(5);
-    expect(row?.kcal).toBeCloseTo(286, 5);
+    expect(row?.plannedDays).toBe(2);
+    expect(row?.kcal).toBeCloseTo(429, 5);
     expect(row?.clientName).toBe('سارة');
   });
 
-  test('a plan with no items reports zero rather than null', async () => {
+  test('a day of empty blocks does not count as planned', async () => {
+    // Every plan starts with 35 empty blocks; none of them is a planned day.
     await createPlan(clinicId, { clientId, title: 'Week 1' });
 
     const [row] = await listPlans(clinicId);
+
+    expect(row?.plannedDays).toBe(0);
     expect(row?.kcal).toBe(0);
   });
 

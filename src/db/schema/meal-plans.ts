@@ -5,12 +5,17 @@ import { clinics } from './clinics';
 import { foods } from './foods';
 
 /**
- * A full-day meal plan for one client.
+ * A weekly meal plan for one client.
  *
- * Three tables, one hierarchy: a plan holds meals ("Breakfast, 07:00"), a meal
- * holds items ("120 g of Egg, whole, raw, fresh"). Nutrition is never stored —
- * it is derived from `foods` at read time by `src/features/meal-plans/nutrition.ts`.
- * Storing computed totals would let them drift the moment a quantity changes.
+ * Three tables, one hierarchy: a plan holds meals ("Sunday, Breakfast, 07:00"),
+ * a meal holds items ("120 g of Egg, whole, raw, fresh"). Nutrition is never
+ * stored — it is derived from `foods` at read time by
+ * `src/features/meal-plans/nutrition.ts`. Storing computed totals would let them
+ * drift the moment a quantity changes.
+ *
+ * There is deliberately no `meal_plan_days` table. A day carries no data of its
+ * own beyond which day it is, so it lives as a column on the meal; a table would
+ * add a join and a lifecycle to manage for nothing. See `meal_plan_meals.day_of_week`.
  */
 export const mealPlans = pgTable(
   'meal_plans',
@@ -56,6 +61,19 @@ export const mealPlanMeals = pgTable(
       .notNull()
       .references(() => mealPlans.id, { onDelete: 'cascade' }),
 
+    /**
+     * Which day of the week this meal belongs to: 0 = Sunday … 6 = Saturday,
+     * matching `Date.prototype.getDay()`. Sunday leads because the clinic's week
+     * does; the labels are translated, the numbering is not.
+     *
+     * It is a plain index, NOT a date — a plan is a repeating template ("this is
+     * your Monday"), not a diary of specific calendar days.
+     *
+     * Defaults to 0 so the migration that introduced weekly plans could land
+     * without inventing a day for meals that already existed.
+     */
+    dayOfWeek: integer('day_of_week').notNull().default(0),
+
     /** Free text, seeded from a template. Dietitians name meals their own way. */
     label: text('label').notNull(),
 
@@ -75,7 +93,9 @@ export const mealPlanMeals = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [index('meal_plan_meals_plan_id_idx').on(table.planId, table.timeOfDay)],
+  // Every read either loads a whole plan or one of its days, and both walk the
+  // week in order — so the day leads the index, ahead of the time.
+  (table) => [index('meal_plan_meals_plan_id_idx').on(table.planId, table.dayOfWeek, table.timeOfDay)],
 );
 
 /** One food, in one meal, at a quantity. */

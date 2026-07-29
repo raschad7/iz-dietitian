@@ -51,6 +51,7 @@ export function ClientPlansCard({ clientId, plans }: { clientId: string; plans: 
                 </Link>
 
                 <span className="text-xs text-muted-foreground">
+                  {t('fields.daysOfSeven', { count: plan.plannedDays })} ·{' '}
                   <span className="tabular-nums" dir="ltr">
                     {format.number(roundForDisplay('kcal', plan.kcal), 'integer')}
                   </span>{' '}

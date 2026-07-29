@@ -29,6 +29,13 @@
       "when": 1785306398734,
       "tag": "0003_zippy_the_anarchist",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1785310062577,
+      "tag": "0004_curious_slayback",
+      "breakpoints": true
     }
   ]
 }

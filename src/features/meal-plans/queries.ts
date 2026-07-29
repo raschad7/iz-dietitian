@@ -5,11 +5,13 @@ import { clients, foods, mealPlanItems, mealPlanMeals, mealPlans } from '@/db/sc
 
 import {
   combineTotals,
+  emptyTotals,
   sumNutrients,
   type FoodNutrients,
   type NutrientTotals,
 } from './nutrition';
 import {
+  DAYS_OF_WEEK,
   FOOD_SEARCH_LIMIT,
   FOODS_PAGE_SIZE,
   foodIdParamSchema,
@@ -54,14 +56,27 @@ export type PlanMeal = {
   totals: NutrientTotals;
 };
 
+export type PlanDay = {
+  /** 0 = Sunday … 6 = Saturday. Equal to this day's index in `PlanDetail.days`. */
+  dayOfWeek: number;
+  meals: PlanMeal[];
+  /** This day alone — what the analysis panel shows when a day is open. */
+  totals: NutrientTotals;
+};
+
 export type PlanDetail = {
   id: string;
   title: string;
   notes: string | null;
   clientId: string;
   clientName: string;
-  meals: PlanMeal[];
-  /** Every meal combined — the default view of the analysis panel. */
+  /**
+   * Always seven entries, indexed by day, whether or not a day has any meals.
+   * The UI needs a tab for every day regardless, and an absent day and an empty
+   * day mean the same thing here — so the query hands back the same shape for both.
+   */
+  days: PlanDay[];
+  /** The whole week — the default view of the analysis panel. */
   totals: NutrientTotals;
 };
 
@@ -70,7 +85,15 @@ export type PlanListItem = {
   title: string;
   clientId: string;
   clientName: string;
-  mealCount: number;
+  /**
+   * Days of the week with at least one food on them, 0-7.
+   *
+   * Reported instead of a meal count because a weekly plan always has 35 blocks
+   * whether or not anything is in them — "35 meals" says nothing, "4 of 7 days
+   * planned" is the thing worth knowing before opening it.
+   */
+  plannedDays: number;
+  /** The whole week. */
   kcal: number;
   updatedAt: Date;
 };
@@ -118,7 +141,10 @@ export async function listPlans(clinicId: string, clientId?: string): Promise<Pl
       clientId: mealPlans.clientId,
       clientName: clients.fullName,
       updatedAt: mealPlans.updatedAt,
-      mealCount: sql<number>`count(distinct ${mealPlanMeals.id})::int`,
+      // The CASE yields the day only for rows that survived the join to a real
+      // item, and `count(distinct …)` ignores the NULLs — so a day of empty
+      // blocks does not count as planned.
+      plannedDays: sql<number>`count(distinct case when ${mealPlanItems.id} is not null then ${mealPlanMeals.dayOfWeek} end)::int`,
       // Same per-100 g unwinding as `scaleNutrients`, expressed in SQL.
       kcal: sql<number>`coalesce(sum(${foods.kcal} * ${mealPlanItems.quantityGrams} / 100), 0)::float8`,
     })
@@ -166,12 +192,13 @@ export async function getPlan(clinicId: string, id: string): Promise<PlanDetail 
   const mealRows = await db
     .select({
       id: mealPlanMeals.id,
+      dayOfWeek: mealPlanMeals.dayOfWeek,
       label: mealPlanMeals.label,
       timeOfDay: mealPlanMeals.timeOfDay,
     })
     .from(mealPlanMeals)
     .where(eq(mealPlanMeals.planId, plan.id))
-    .orderBy(asc(mealPlanMeals.timeOfDay), asc(mealPlanMeals.sortOrder));
+    .orderBy(asc(mealPlanMeals.dayOfWeek), asc(mealPlanMeals.timeOfDay), asc(mealPlanMeals.sortOrder));
 
   const mealIds = mealRows.map((meal) => meal.id);
 
@@ -198,23 +225,37 @@ export async function getPlan(clinicId: string, id: string): Promise<PlanDetail 
     else itemsByMeal.set(mealId, [item]);
   }
 
-  const meals: PlanMeal[] = mealRows.map((meal) => {
+  // Seven buckets up front, so a day with no meals still gets an entry.
+  const days: PlanDay[] = DAYS_OF_WEEK.map((dayOfWeek) => ({
+    dayOfWeek,
+    meals: [],
+    totals: emptyTotals(),
+  }));
+
+  for (const { dayOfWeek, ...meal } of mealRows) {
     const items = itemsByMeal.get(meal.id) ?? [];
 
-    return {
+    // A day_of_week outside 0-6 should be impossible, but the column is a plain
+    // integer — dropping such a row beats indexing past the end of the week.
+    days[dayOfWeek]?.meals.push({
       ...meal,
       timeOfDay: toTimeInput(meal.timeOfDay),
       items,
       totals: sumNutrients(items),
-    };
-  });
+    });
+  }
+
+  // Each level is the sum of the one below it, computed from the same numbers
+  // those levels show — so the panel can never disagree with itself, whichever
+  // scope it is displaying.
+  for (const day of days) {
+    day.totals = combineTotals(day.meals.map((meal) => meal.totals));
+  }
 
   return {
     ...plan,
-    meals,
-    // The day is the sum of its blocks, computed from the same numbers the
-    // blocks show — so the panel can never disagree with itself.
-    totals: combineTotals(meals.map((meal) => meal.totals)),
+    days,
+    totals: combineTotals(days.map((day) => day.totals)),
   };
 }
 

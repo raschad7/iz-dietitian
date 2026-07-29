@@ -11,6 +11,8 @@ import { requireStaffClinic } from '@/lib/session';
 import {
   addItem,
   addMeal,
+  clearDay,
+  copyDay,
   createPlan,
   deleteItem,
   deleteMeal,
@@ -22,6 +24,8 @@ import {
 import { type PlanFormState } from './form-state';
 import { searchFoods, type FoodSummary } from './queries';
 import {
+  copyDaySchema,
+  dayOfWeekSchema,
   foodSearchSchema,
   itemFormSchema,
   itemIdSchema,
@@ -149,6 +153,7 @@ export async function addMealAction(formData: FormData): Promise<void> {
   const { clinicId } = await requireStaffClinic(locale);
 
   const planId = planIdSchema.parse(formData.get('planId'));
+  const dayOfWeek = dayOfWeekSchema.parse(formData.get('dayOfWeek'));
 
   const parsed = mealFormSchema.safeParse({
     label: formData.get('label'),
@@ -160,7 +165,45 @@ export async function addMealAction(formData: FormData): Promise<void> {
   // page. Drop it rather than crashing the route.
   if (!parsed.success) return;
 
-  await addMeal(clinicId, planId, parsed.data);
+  await addMeal(clinicId, planId, dayOfWeek, parsed.data);
+
+  revalidatePlan(locale, planId);
+}
+
+/**
+ * Replaces one day with a copy of another.
+ *
+ * Destructive to the target day, so the UI confirms first — this cannot, being
+ * a server action.
+ */
+export async function copyDayAction(formData: FormData): Promise<void> {
+  const locale = readLocale(formData);
+  const { clinicId } = await requireStaffClinic(locale);
+
+  const planId = planIdSchema.parse(formData.get('planId'));
+
+  const parsed = copyDaySchema.safeParse({
+    fromDay: formData.get('fromDay'),
+    toDay: formData.get('toDay'),
+  });
+
+  // Fails only on a same-day copy or an out-of-range day, neither of which the
+  // form can produce. Drop it rather than crashing the route.
+  if (!parsed.success) return;
+
+  await copyDay(clinicId, planId, parsed.data);
+
+  revalidatePlan(locale, planId);
+}
+
+export async function clearDayAction(formData: FormData): Promise<void> {
+  const locale = readLocale(formData);
+  const { clinicId } = await requireStaffClinic(locale);
+
+  const planId = planIdSchema.parse(formData.get('planId'));
+  const dayOfWeek = dayOfWeekSchema.parse(formData.get('dayOfWeek'));
+
+  await clearDay(clinicId, planId, dayOfWeek);
 
   revalidatePlan(locale, planId);
 }

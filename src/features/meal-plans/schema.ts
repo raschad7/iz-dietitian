@@ -39,12 +39,67 @@ export const planFormSchema = z.object({
 
 export type PlanFormInput = z.infer<typeof planFormSchema>;
 
+/**
+ * The seven days, as stored: 0 = Sunday … 6 = Saturday, matching
+ * `Date.prototype.getDay()`. The order here is the order the UI walks the week
+ * in; the labels come from the message catalogue.
+ */
+export const DAYS_OF_WEEK = [0, 1, 2, 3, 4, 5, 6] as const;
+
+export type DayOfWeek = (typeof DAYS_OF_WEEK)[number];
+
+/** Message-catalogue keys for the day names, indexed by `day_of_week`. */
+export const DAY_KEYS = [
+  'sunday',
+  'monday',
+  'tuesday',
+  'wednesday',
+  'thursday',
+  'friday',
+  'saturday',
+] as const;
+
+export type DayKey = (typeof DAY_KEYS)[number];
+
+/**
+ * The message key for a day.
+ *
+ * `DAY_KEYS[n]` on a plain number widens to `| undefined` under
+ * `noUncheckedIndexedAccess`, which would let `days.undefined` reach
+ * `useTranslations` and throw at render. Every caller goes through here instead,
+ * so an out-of-range day degrades to Sunday rather than to a missing message.
+ */
+export function dayKey(dayOfWeek: number): DayKey {
+  return DAY_KEYS[dayOfWeek] ?? DAY_KEYS[0];
+}
+
+export const dayOfWeekSchema = z.coerce.number().int().min(0).max(6);
+
 export const mealFormSchema = z.object({
   label: z.string().trim().min(1).max(60),
   timeOfDay: timeOfDaySchema,
 });
 
 export type MealFormInput = z.infer<typeof mealFormSchema>;
+
+/**
+ * Copying one day over another.
+ *
+ * `refine` rather than two independent fields: copying a day onto itself would
+ * delete the source and then have nothing left to copy from, so it is rejected
+ * here rather than guarded for downstream.
+ */
+export const copyDaySchema = z
+  .object({
+    fromDay: dayOfWeekSchema,
+    toDay: dayOfWeekSchema,
+  })
+  .refine((value) => value.fromDay !== value.toDay, {
+    message: 'cannot copy a day onto itself',
+    path: ['toDay'],
+  });
+
+export type CopyDayInput = z.infer<typeof copyDaySchema>;
 
 /**
  * A quantity in grams.

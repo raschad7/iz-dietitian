@@ -17,9 +17,9 @@ import { type Locale } from '@/i18n/routing';
 /**
  * The analysis half of the workspace.
  *
- * Shows the whole day by default, and one meal when a block is selected — the
- * same component either way, because the totals for a meal and for a day are the
- * same shape. `scope` only changes the heading.
+ * One component for all three scopes — week, day and meal — because the totals
+ * at every level are the same shape. Only the heading and the hint change; the
+ * caller decides which level is in focus and hands over the matching totals.
  */
 export function AnalysisPanel({
   locale,
@@ -29,7 +29,7 @@ export function AnalysisPanel({
 }: {
   locale: Locale;
   totals: NutrientTotals;
-  /** The selected meal's name, or null for the whole day. */
+  /** The open day's or selected meal's name; null for the whole week. */
   scope: string | null;
   itemCount: number;
 }) {
@@ -41,10 +41,10 @@ export function AnalysisPanel({
       <div className="space-y-1">
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-sm font-semibold">{t('analysis.title')}</h3>
-          <Badge variant={scope ? 'default' : 'muted'}>{scope ?? t('analysis.wholeDay')}</Badge>
+          <Badge variant={scope ? 'default' : 'muted'}>{scope ?? t('analysis.wholeWeek')}</Badge>
         </div>
         <p className="text-xs text-muted-foreground">
-          {scope ? t('analysis.mealHint') : t('analysis.dayHint')}
+          {scope ? t('analysis.scopedHint') : t('analysis.weekHint')}
         </p>
       </div>
 

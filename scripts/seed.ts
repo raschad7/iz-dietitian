@@ -11,7 +11,7 @@ import { eq, inArray } from 'drizzle-orm';
 import { db } from '@/db';
 import { account, clients, clinics, foods, user } from '@/db/schema';
 import { createClient, invitePortalAccess } from '@/features/clients/mutations';
-import { addItem, createPlan } from '@/features/meal-plans/mutations';
+import { addItem, copyDay, createPlan } from '@/features/meal-plans/mutations';
 import { auth } from '@/lib/auth';
 
 import { seedFoods } from './seed-foods';
@@ -132,7 +132,7 @@ async function seedSampleMealPlan(clinicId: string, clientId: string | undefined
 
   const plan = await createPlan(clinicId, {
     clientId,
-    title: 'Sample day',
+    title: 'Sample week',
     notes: 'Seeded example. Edit or delete it freely.',
   });
 
@@ -149,12 +149,17 @@ async function seedSampleMealPlan(clinicId: string, clientId: string | undefined
     ).map((food) => [food.fdcId, food.id]),
   );
 
+  // Sunday only — the other six days keep their empty skeleton, so the week
+  // overview shows both states and "copy this day to…" has something to copy.
+  const SEEDED_DAY = 0;
+
   const meals = await db.query.mealPlanMeals.findMany({
-    where: (table, { eq: equals }) => equals(table.planId, plan.id),
+    where: (table, { and: both, eq: equals }) =>
+      both(equals(table.planId, plan.id), equals(table.dayOfWeek, SEEDED_DAY)),
     orderBy: (table, { asc }) => asc(table.timeOfDay),
   });
 
-  /** [meal index, FoodData Central id, grams] */
+  /** [meal index within the day, FoodData Central id, grams] */
   const SAMPLE_ITEMS: [number, number, number][] = [
     [0, 169705, 80], // Oats
     [0, 171287, 100], // Egg, whole, raw, fresh
@@ -173,7 +178,10 @@ async function seedSampleMealPlan(clinicId: string, clientId: string | undefined
     }
   }
 
-  console.info(`seeded 1 sample meal plan across ${meals.length} meals`);
+  // A second filled day, so the week is not a single island.
+  await copyDay(clinicId, plan.id, { fromDay: SEEDED_DAY, toDay: 3 });
+
+  console.info(`seeded 1 sample weekly meal plan (2 of 7 days filled)`);
 }
 
 await seed();
