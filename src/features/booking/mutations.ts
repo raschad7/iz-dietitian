@@ -5,6 +5,9 @@ import { isBookingConflict, pgConstraintName } from '@/db/errors';
 import { appointments, clients, clinics, practitioners } from '@/db/schema';
 import { normalizeForSearch } from '@/features/clients/search';
 import { pickAvatarColor } from '@/lib/avatar-color';
+import { DISPLAY_TIME_ZONE } from '@/lib/format';
+
+import { hasEnded, wallClockIn } from './completed';
 
 import { type BookingInput, type CreateClientAndBookInput, type UpdateAppointmentInput } from './schema';
 import { type ActionResult, type CreatedAppointment } from './types';
@@ -200,12 +203,32 @@ export async function updateAppointment(
       if (!hours) return { ok: false, error: 'errors.unexpected' };
 
       const [current] = await tx
-        .select({ id: appointments.id, practitionerId: appointments.practitionerId })
+        .select({
+          id: appointments.id,
+          practitionerId: appointments.practitionerId,
+          date: appointments.date,
+          startMinute: appointments.startMinute,
+          durationMinutes: appointments.durationMinutes,
+        })
         .from(appointments)
         .where(scopedToClinic(clinicId, input.id))
         .limit(1);
 
       if (!current) return { ok: false, error: 'errors.notFound' };
+
+      /**
+       * A finished appointment is a record of what happened, not a plan, so it
+       * is not editable. Checked here and not only in the UI: a server action is
+       * a public endpoint, and the dialog being read-only stops an honest
+       * mistake, not a crafted request.
+       *
+       * Judged against the *clinic's* clock rather than the caller's. The stored
+       * row is what is tested, so this refuses to rewrite a past appointment
+       * while still allowing a future one to be moved anywhere.
+       */
+      if (hasEnded(current, wallClockIn(DISPLAY_TIME_ZONE))) {
+        return { ok: false, error: 'errors.completedLocked' };
+      }
 
       if (!(await ownsClient(tx, clinicId, input.clientId))) {
         return { ok: false, error: 'errors.notFound' };

@@ -281,6 +281,82 @@ describe('updateAppointment', () => {
       error: 'errors.notFound',
     });
   });
+
+  /**
+   * The UI never opens the editor for a finished appointment, but a server
+   * action is a public endpoint — the dialog being closed stops an honest
+   * mistake, not a crafted request. These write the row directly so the check
+   * is tested on its own terms.
+   */
+  describe('a finished appointment', () => {
+    /** Far enough in the past to be finished under any clinic clock. */
+    const LAST_YEAR = '2025-08-06'; // a Wednesday
+
+    async function seedPast(): Promise<string> {
+      const [row] = await db
+        .insert(appointments)
+        .values({
+          clinicId: context.clinicId,
+          practitionerId: await ensurePractitioner(context),
+          clientId,
+          date: LAST_YEAR,
+          startMinute: 10 * 60,
+          durationMinutes: 60,
+        })
+        .returning({ id: appointments.id });
+
+      if (!row) throw new Error('insert into appointments returned no row');
+      return row.id;
+    }
+
+    test('cannot be edited', async () => {
+      const id = await seedPast();
+
+      const result = await updateAppointment(context, { ...booking({ date: LAST_YEAR }), id });
+
+      expect(result).toEqual({ ok: false, error: 'errors.completedLocked' });
+    });
+
+    test('is left exactly as it was', async () => {
+      const id = await seedPast();
+
+      await updateAppointment(context, { ...booking({ date: WEDNESDAY, startMinute: 14 * 60 }), id });
+
+      const [row] = await db.select().from(appointments).where(eq(appointments.id, id));
+      expect(row?.date).toBe(LAST_YEAR);
+      expect(row?.startMinute).toBe(600);
+      expect(row?.durationMinutes).toBe(60);
+    });
+
+    test('cannot be dragged out of the past onto a future date either', async () => {
+      const id = await seedPast();
+
+      // The *stored* row is what is judged, so moving it forward is still barred.
+      const result = await updateAppointment(context, { ...booking({ date: '2027-08-04' }), id });
+
+      expect(result).toEqual({ ok: false, error: 'errors.completedLocked' });
+    });
+
+    test('can still be deleted, the one escape hatch for a mistaken record', async () => {
+      const id = await seedPast();
+
+      expect((await deleteAppointment(context.clinicId, id)).ok).toBe(true);
+      expect(await countAppointments()).toBe(0);
+    });
+
+    test('a future appointment is still editable, so the rule is not blanket', async () => {
+      const result = await createAppointment(context, booking({ date: '2027-08-04' }));
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+
+      const moved = await updateAppointment(context, {
+        ...booking({ date: '2027-08-04', startMinute: 14 * 60 }),
+        id: result.data.id,
+      });
+
+      expect(moved.ok).toBe(true);
+    });
+  });
 });
 
 describe('deleteAppointment', () => {

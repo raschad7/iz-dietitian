@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { isCompleted, nowLineMinute } from './completed';
+import { hasEnded, isCompleted, nowLineMinute, wallClockIn } from './completed';
 
 /** A 10:00–11:00 appointment on Wednesday 5 August 2026. */
 const APPOINTMENT = { date: '2026-08-05', startMinute: 10 * 60, durationMinutes: 60 };
@@ -60,6 +60,45 @@ describe('isCompleted', () => {
     const late = { date: '2026-08-05', startMinute: 23 * 60, durationMinutes: 60 };
     expect(isCompleted(late, at(2026, 8, 5, 23, 59))).toBe(false);
     expect(isCompleted(late, at(2026, 8, 6, 0, 0))).toBe(true);
+  });
+});
+
+describe('hasEnded', () => {
+  test('agrees with isCompleted, since it is the same comparison', () => {
+    expect(hasEnded(APPOINTMENT, { date: '2026-08-05', minute: 10 * 60 + 59 })).toBe(false);
+    expect(hasEnded(APPOINTMENT, { date: '2026-08-05', minute: 11 * 60 })).toBe(true);
+    expect(hasEnded(APPOINTMENT, { date: '2026-08-04', minute: 23 * 60 + 59 })).toBe(false);
+    expect(hasEnded(APPOINTMENT, { date: '2026-08-06', minute: 0 })).toBe(true);
+  });
+});
+
+describe('wallClockIn', () => {
+  /** 2026-08-05T06:30:00Z. Asia/Hebron is UTC+3 in August, so 09:30 locally. */
+  const INSTANT = new Date(Date.UTC(2026, 7, 5, 6, 30));
+
+  test('reads the clinic wall clock, not the machine one', () => {
+    expect(wallClockIn('Asia/Hebron', INSTANT)).toEqual({ date: '2026-08-05', minute: 9 * 60 + 30 });
+  });
+
+  test('is unaffected by the runtime zone, so CI agrees with a laptop', () => {
+    expect(wallClockIn('UTC', INSTANT)).toEqual({ date: '2026-08-05', minute: 6 * 60 + 30 });
+  });
+
+  test('rolls the date over when the zone is ahead', () => {
+    // 22:30Z is already the 6th in Asia/Hebron.
+    const late = new Date(Date.UTC(2026, 7, 5, 22, 30));
+    expect(wallClockIn('Asia/Hebron', late).date).toBe('2026-08-06');
+  });
+
+  test('renders midnight as minute 0, never as hour 24 on the wrong day', () => {
+    // 21:00Z is 00:00 on the 6th in Asia/Hebron — the `h23` cycle matters here.
+    const midnight = new Date(Date.UTC(2026, 7, 5, 21, 0));
+    expect(wallClockIn('Asia/Hebron', midnight)).toEqual({ date: '2026-08-06', minute: 0 });
+  });
+
+  test('zero-pads, so the date stays comparable as a string', () => {
+    const early = new Date(Date.UTC(2026, 0, 2, 5, 5));
+    expect(wallClockIn('Asia/Hebron', early).date).toBe('2026-01-02');
   });
 });
 

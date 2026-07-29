@@ -6,7 +6,7 @@ import { type Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 
 import { isSameMonth, monthGridDays } from '../date';
-import { formatDayNumber, formatLongDate, formatWeekday } from '../format';
+import { formatDayNumber, formatLongDate, formatMinuteRange, formatWeekday } from '../format';
 import { type CalendarAppointment } from '../types';
 import { isWorkingDay, type ClinicHours } from '../validation';
 
@@ -132,8 +132,22 @@ export function MonthView({
                       >
                         {/* A tick rather than a badge: a month chip has no room. */}
                         {completed && <span aria-label={t('completed')}>✓</span>}
-                        <span className="truncate" dir="auto">
+                        <span className="min-w-0 truncate" dir="auto">
                           {appointment.clientName}
+                        </span>
+                        {/*
+                          The times hold their space and the name gives way:
+                          the range is the shorter, more predictable string, and
+                          a chip that says only "Ahmad" answers half the question
+                          a calendar is for.
+                        */}
+                        <span className="ms-auto shrink-0 whitespace-nowrap tabular-nums opacity-80" dir="auto">
+                          {formatMinuteRange(
+                            locale,
+                            appointment.date,
+                            appointment.startMinute,
+                            appointment.startMinute + appointment.durationMinutes,
+                          )}
                         </span>
                       </span>
                     </li>

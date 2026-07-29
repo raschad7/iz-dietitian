@@ -18,6 +18,7 @@ yarn.lock
 .env
 .env.local
 .env.*.local
+.env.example
 
 # typescript
 *.tsbuildinfo

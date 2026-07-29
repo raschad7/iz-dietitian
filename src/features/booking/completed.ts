@@ -33,13 +33,57 @@ export type CompletableAppointment = {
 export function isCompleted(appointment: CompletableAppointment, now: Date | null): boolean {
   if (!now) return false;
 
-  // Both sides are zero-padded ISO, so string comparison is chronological.
-  const today = toIsoDate(now);
-  if (appointment.date < today) return true;
-  if (appointment.date > today) return false;
+  return hasEnded(appointment, { date: toIsoDate(now), minute: now.getHours() * 60 + now.getMinutes() });
+}
 
-  const nowMinute = now.getHours() * 60 + now.getMinutes();
-  return appointment.startMinute + appointment.durationMinutes <= nowMinute;
+/** A wall-clock instant: a calendar date and minutes from its midnight. */
+export type WallClock = { date: string; minute: number };
+
+/**
+ * The comparison itself, against a wall clock the caller supplies.
+ *
+ * Split out from {@link isCompleted} because the browser and the server read
+ * the clock differently — the browser uses the machine's local time, the server
+ * uses the clinic's zone — but they must reach the same verdict from the same
+ * instant. One implementation, two clocks.
+ */
+export function hasEnded(appointment: CompletableAppointment, now: WallClock): boolean {
+  // Both sides are zero-padded ISO, so string comparison is chronological.
+  if (appointment.date < now.date) return true;
+  if (appointment.date > now.date) return false;
+
+  return appointment.startMinute + appointment.durationMinutes <= now.minute;
+}
+
+/**
+ * The current wall clock in a named time zone.
+ *
+ * This is what lets the *server* decide whether an appointment is finished.
+ * Appointments are clinic-local, so "has it ended?" is a question about the
+ * clinic's zone — not about the server's, and not about whatever the caller's
+ * machine happens to think. Reading it through `Intl` means the answer is right
+ * on a CI box in UTC and on a laptop in another country alike.
+ */
+export function wallClockIn(timeZone: string, instant: Date = new Date()): WallClock {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    // `h23`, not `hour12: false` — the latter can still yield "24" for midnight
+    // in some implementations, which would read as the following day.
+    hourCycle: 'h23',
+  }).formatToParts(instant);
+
+  const read = (type: Intl.DateTimeFormatPartTypes): string =>
+    parts.find((part) => part.type === type)?.value ?? '00';
+
+  return {
+    date: `${read('year')}-${read('month')}-${read('day')}`,
+    minute: Number(read('hour')) * 60 + Number(read('minute')),
+  };
 }
 
 /**

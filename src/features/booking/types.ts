@@ -52,6 +52,7 @@ export type ActionErrorKey =
   | 'errors.unauthorized'
   | 'errors.invalid'
   | 'errors.notFound'
+  | 'errors.completedLocked'
   | 'errors.unexpected';
 
 /**

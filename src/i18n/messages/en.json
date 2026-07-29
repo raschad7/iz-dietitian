@@ -135,7 +135,9 @@
     "actions": {
       "save": "Save",
       "cancel": "Cancel",
-      "delete": "Delete appointment"
+      "close": "Close",
+      "delete": "Delete appointment",
+      "confirmDeleteCompleted": "This appointment has already finished. Deleting it removes the record permanently. Are you sure?"
     },
     "errors": {
       "tooShort": "The shortest appointment is 15 minutes.",
@@ -147,6 +149,7 @@
       "unauthorized": "You do not have permission to do that.",
       "invalid": "Check the details you entered.",
       "notFound": "That appointment no longer exists.",
+      "completedLocked": "This appointment has already finished and can no longer be changed.",
       "unexpected": "Something went wrong. Please try again."
     }
   },

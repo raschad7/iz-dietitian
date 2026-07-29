@@ -6,7 +6,7 @@ import { type CSSProperties, type PointerEvent as ReactPointerEvent } from 'reac
 import { type Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 
-import { formatDuration, formatMinute, formatMinuteRange } from '../format';
+import { formatDuration, formatMinuteRange } from '../format';
 import { blockTypeScale } from '../geometry';
 import { type CalendarAppointment } from '../types';
 
@@ -61,9 +61,14 @@ export function AppointmentBlock({
   const scale = blockTypeScale(height);
 
   const endMinute = appointment.startMinute + appointment.durationMinutes;
+  /**
+   * Start *and* end, at every block size.
+   *
+   * `formatRange` collapses whatever the two times share — "9:00 – 10:30 AM"
+   * rather than "9:00 AM – 10:30 AM" — which is what makes a full range fit on
+   * one row alongside a name even on a narrow week column.
+   */
   const timeRange = formatMinuteRange(locale, appointment.date, appointment.startMinute, endMinute);
-  /** On one row there is no room for a range, so the start time stands in. */
-  const startTime = formatMinute(locale, appointment.date, appointment.startMinute);
 
   /**
    * A finished appointment stays where it is.
@@ -136,7 +141,10 @@ export function AppointmentBlock({
         style={{ gap: `${scale.gapRem}rem` }}
       >
         <span
-          className="min-w-0 truncate font-semibold text-foreground"
+          // `min-w-0` is what lets this actually truncate inside a flex row —
+          // without it the name would refuse to shrink and push the time out of
+          // the block instead.
+          className="min-w-0 flex-1 truncate font-semibold text-foreground"
           style={{ fontSize: `${scale.nameRem}rem`, lineHeight: 1.25 }}
         >
           {appointment.clientName}
@@ -158,7 +166,7 @@ export function AppointmentBlock({
           style={{ fontSize: `${scale.timeRem}rem`, lineHeight: 1.25 }}
         >
           <span dir="auto" className="tabular-nums">
-            {scale.inline ? startTime : timeRange}
+            {timeRange}
           </span>
           {completed && !scale.inline && (
             <span className="shrink-0 rounded-sm bg-foreground/10 px-1 text-[0.625rem] font-semibold tracking-wide uppercase">

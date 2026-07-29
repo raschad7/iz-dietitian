@@ -224,6 +224,7 @@ export function AppointmentDialog({
           <div className="flex items-center gap-1.5">
             <Input
               id="appointment-date"
+              disabled={completed}
               value={dateText}
               dir="ltr"
               inputMode="numeric"
@@ -243,6 +244,7 @@ export function AppointmentDialog({
                 variant="outline"
                 size="icon"
                 aria-label={t('fields.openDatePicker')}
+                disabled={completed}
                 onClick={() => {
                   const input = nativeDateRef.current;
                   if (!input) return;
@@ -273,6 +275,7 @@ export function AppointmentDialog({
           <Label htmlFor="appointment-start">{t('fields.start')}</Label>
           <SelectField
             id="appointment-start"
+            disabled={completed}
             value={String(startMinute)}
             onChange={(event) => setStartMinute(Number(event.target.value))}
           >
@@ -290,6 +293,7 @@ export function AppointmentDialog({
           <Label htmlFor="appointment-duration">{t('fields.duration')}</Label>
           <SelectField
             id="appointment-duration"
+            disabled={completed}
             value={String(durationMinutes)}
             onChange={(event) => setDurationMinutes(Number(event.target.value))}
           >
@@ -318,6 +322,7 @@ export function AppointmentDialog({
           </div>
           <SelectField
             id="appointment-client"
+            disabled={completed}
             value={clientId}
             onChange={(event) => setClientId(event.target.value)}
           >
@@ -340,6 +345,7 @@ export function AppointmentDialog({
           </Label>
           <Textarea
             id="appointment-reason"
+            disabled={completed}
             rows={2}
             value={reason}
             placeholder={t('fields.reasonPlaceholder')}
@@ -347,18 +353,29 @@ export function AppointmentDialog({
           />
         </div>
 
-        {message && (
+        {message && !completed && (
           <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
             {t(message)}
           </p>
         )}
 
+        {completed && (
+          <p className="rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground">{t('errors.completedLocked')}</p>
+        )}
+
         <div className="mt-1 flex items-center justify-between gap-2">
+          {/*
+            Delete stays available on a finished appointment, and it is the only
+            thing that is. Editing one silently rewrites what happened; deleting
+            is explicit, asks first, and is the sole way to remove a record
+            entered by mistake.
+          */}
           <Button
             type="button"
             variant="destructive"
             size="sm"
             onClick={() => {
+              if (completed && !window.confirm(t('actions.confirmDeleteCompleted'))) return;
               onDelete(appointment.id);
               dialogRef.current?.close();
             }}
@@ -369,11 +386,18 @@ export function AppointmentDialog({
 
           <div className="flex items-center gap-2">
             <Button type="button" variant="outline" size="sm" onClick={() => dialogRef.current?.close()}>
-              {t('actions.cancel')}
+              {completed ? t('actions.close') : t('actions.cancel')}
             </Button>
-            <Button type="button" size="sm" disabled={liveError !== null} onClick={save}>
-              {t('actions.save')}
-            </Button>
+            {/*
+              No Save at all on a finished appointment — the capability is
+              absent, not merely disabled with a tooltip. The server refuses the
+              same edit independently, in `updateAppointment`.
+            */}
+            {!completed && (
+              <Button type="button" size="sm" disabled={liveError !== null} onClick={save}>
+                {t('actions.save')}
+              </Button>
+            )}
           </div>
         </div>
       </form>

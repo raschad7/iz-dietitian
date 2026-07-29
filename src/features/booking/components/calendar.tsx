@@ -351,6 +351,27 @@ export function Calendar({
     });
   }
 
+  /**
+   * Right-click opens the editor — unless the appointment has finished.
+   *
+   * A finished appointment is a record of what happened, so the editor does not
+   * open for one at all. It still selects and still says why, because a
+   * right-click that does nothing reads as a broken calendar rather than a rule.
+   *
+   * The policy lives here rather than in the block, because this is where
+   * `completedIds` is derived; the block would have to be told twice.
+   */
+  function openAppointment(appointment: CalendarAppointment): void {
+    if (completedIds.has(appointment.id)) {
+      setSelectedId(appointment.id);
+      setMessage('errors.completedLocked');
+      return;
+    }
+
+    setMessage(null);
+    setEditing(appointment);
+  }
+
   const today = now ? toIsoDate(now) : null;
 
   const rangeLabel =
@@ -516,7 +537,7 @@ export function Calendar({
                         isClosed={closed}
                         onCreateGesture={gestures.beginCreate}
                         onSelect={setSelectedId}
-                        onOpen={(appointment) => setEditing(appointment)}
+                        onOpen={openAppointment}
                         onMovePointerDown={gestures.beginMovePointerDown}
                         onResizePointerDown={gestures.beginResizePointerDown}
                         dragging={
