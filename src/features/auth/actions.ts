@@ -298,10 +298,31 @@ export async function resetPassword(
 /**
  * Starts the Google flow. Kept as a server action rather than a client-side
  * `signIn.social` call so the entry point sits in the same layer as everything
- * else and can be rate limited.
+ * else and is rate limited by the same mechanism.
+ *
+ * The limit is not decorative. `signInSocial` writes an OAuth state row per
+ * call, and because this reaches `auth.api` directly it bypasses Better Auth's
+ * own limiter exactly like every other action here — so without this guard it is
+ * an unbounded write endpoint.
+ *
+ * It shares the `sign_in` IP budget rather than having its own: both are the
+ * same person trying to get through the same door, and counting them separately
+ * would let an attacker spend twice.
+ *
+ * This action returns `void` because it is a plain form action, not a
+ * `useActionState` one — so a refusal reports itself through the URL, and the
+ * sign-in page renders `?error=rateLimited`.
  */
 export async function signInWithGoogle(formData: FormData): Promise<void> {
   const locale = localeSchema.parse(formData.get('locale'));
+
+  const ipAddress = readClientIp(await headers());
+  const limit = await checkRateLimit('sign_in', { email: null, ipAddress });
+
+  if (!limit.allowed) {
+    await recordAttempt('sign_in', { email: null, ipAddress });
+    redirect(`/${locale}/login?error=rateLimited`);
+  }
 
   const { url } = await auth.api.signInSocial({
     body: { provider: 'google', callbackURL: `/${locale}/app` },
