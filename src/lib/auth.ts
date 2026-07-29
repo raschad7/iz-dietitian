@@ -241,9 +241,10 @@ export const auth = betterAuth({
          * makes each account a separate tenant.
          *
          * Client accounts never reach this hook — they are provisioned by
-         * `invitePortalAccess`, which inserts directly through Drizzle — but the
-         * role is checked anyway so that enabling any other Better Auth sign-up
-         * path later cannot silently mint clinics.
+         * `issuePortalCredentials` in `src/features/clients/`, which inserts
+         * directly through Drizzle — but the role is checked anyway so that
+         * enabling any other Better Auth sign-up path later cannot silently
+         * mint a clinic for someone who should never own one.
          */
         before: async (newUser) => {
           const role = 'role' in newUser ? newUser.role : undefined;
