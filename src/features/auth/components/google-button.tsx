@@ -1,24 +1,65 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
-import { signInWithGoogle } from '@/features/auth/actions';
+import { authClient } from '@/lib/auth-client';
 import { type Locale } from '@/i18n/routing';
 
+type GoogleButtonProps = {
+  locale: Locale;
+  /**
+   * True only on the sign-up page. `disableImplicitSignUp` is set on the
+   * provider, so an unknown Google account is refused unless enrolment is asked
+   * for explicitly — which is what stops the sign-in page from quietly turning a
+   * stranger into staff with a clinic of their own.
+   */
+  requestSignUp?: boolean;
+  /** Where to land after success. Already validated by the caller. */
+  redirectTo?: string;
+};
+
 /**
- * Staff pages only. Patients sign in with a single-use emailed link; offering
- * them Google here would invite them to try a door that is not theirs.
+ * Google sign-in. Staff pages only — patients use a single-use emailed link, and
+ * offering them Google here would invite them to try a door that is not theirs.
+ *
+ * This calls Better Auth over HTTP through `authClient` rather than through a
+ * server action, for a specific reason: the flow depends on a `state` cookie
+ * being set in the browser BEFORE the redirect to Google and validated when
+ * Google sends the user back. Driving it from the client uses Better Auth's own
+ * endpoint, which sets that cookie on an ordinary HTTP response — the path the
+ * library is built and tested around. Routing it through a server action that
+ * then redirects put a Next.js action response in the middle of that handshake.
+ *
+ * The passkey button is client-side for the same family of reasons. It also
+ * means these two are the only auth paths Better Auth's own rate limiter
+ * actually covers, since that limiter runs in its router and never sees a
+ * server action.
  */
-export function GoogleButton({ locale }: { locale: Locale }) {
+export function GoogleButton({ locale, requestSignUp = false, redirectTo }: GoogleButtonProps) {
   const t = useTranslations('login');
+  const [pending, setPending] = useState(false);
+
+  async function start() {
+    setPending(true);
+
+    const { error } = await authClient.signIn.social({
+      provider: 'google',
+      callbackURL: redirectTo ?? `/${locale}/app`,
+      // Failures come back as a query parameter on our own sign-in page rather
+      // than Better Auth's bare error screen, so the message can be translated.
+      errorCallbackURL: `/${locale}/login`,
+      ...(requestSignUp ? { requestSignUp: true } : {}),
+    });
+
+    // Reached only when the redirect never happened; otherwise this page is gone.
+    if (error) setPending(false);
+  }
 
   return (
-    <form action={signInWithGoogle}>
-      <input type="hidden" name="locale" value={locale} />
-      <Button type="submit" variant="outline" className="w-full">
-        {t('continueWithGoogle')}
-      </Button>
-    </form>
+    <Button type="button" variant="outline" className="w-full" disabled={pending} onClick={start}>
+      {t('continueWithGoogle')}
+    </Button>
   );
 }

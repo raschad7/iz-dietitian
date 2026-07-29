@@ -89,6 +89,7 @@
     "verificationSent": "We have sent a confirmation message to your email address.",
     "verifyEmailFirst": "Please confirm your email address before signing in.",
     "accountNotLinked": "An unverified account already exists for this email address.",
+    "noGoogleAccount": "No account is linked to that Google account. Create one first.",
     "rateLimited": "Too many attempts. Try again in {minutes} minutes.",
     "checkInboxHeading": "Check your inbox",
     "checkInboxDescription": "We have sent a confirmation link to your email address.",

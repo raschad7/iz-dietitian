@@ -35,7 +35,7 @@ export default async function LoginPage({ params, searchParams }: LoginPageProps
         locale={locale}
         showGoogle={isGoogleEnabled}
         redirectTo={redirectTo}
-        rateLimitedFromUrl={error === 'rateLimited'}
+        oauthError={error}
       />
 
       <p className="text-center text-sm text-muted-foreground">

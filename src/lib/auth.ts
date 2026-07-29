@@ -135,6 +135,18 @@ export const auth = betterAuth({
         google: {
           clientId: process.env.GOOGLE_CLIENT_ID as string,
           clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+
+          /**
+           * Signing IN and signing UP are different intents, even though Google
+           * uses one button for both.
+           *
+           * Without this, any Google account that reached the sign-in page was
+           * silently enrolled as staff with a clinic of its own — a patient who
+           * clicked the wrong button became a practitioner. With it, the
+           * sign-in page only admits accounts that already exist, and only the
+           * sign-up page passes `requestSignUp: true` to create one.
+           */
+          disableImplicitSignUp: true,
         },
       }
     : {},

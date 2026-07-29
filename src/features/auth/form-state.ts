@@ -20,6 +20,8 @@ export type AuthFormState =
         | 'invalidEmail'
         | 'verifyEmailFirst'
         | 'accountNotLinked'
+        /** Google sign-in by an account that has never signed up here. */
+        | 'noGoogleAccount'
         /** Refusing to remove someone's only remaining way to sign in. */
         | 'lastSignInMethod';
     }

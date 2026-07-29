@@ -306,43 +306,18 @@ export async function resetPassword(
 }
 
 /**
- * Starts the Google flow. Kept as a server action rather than a client-side
- * `signIn.social` call so the entry point sits in the same layer as everything
- * else and is rate limited by the same mechanism.
+ * Google sign-in is deliberately NOT a server action.
  *
- * The limit is not decorative. `signInSocial` writes an OAuth state row per
- * call, and because this reaches `auth.api` directly it bypasses Better Auth's
- * own limiter exactly like every other action here — so without this guard it is
- * an unbounded write endpoint.
+ * It ran here once, calling `auth.api.signInSocial` and redirecting to the URL
+ * it returned. That put a Next.js server-action response in the middle of an
+ * OAuth handshake that depends on a `state` cookie reaching the browser before
+ * the redirect to Google and coming back with it — and the handshake failed with
+ * `state_mismatch`.
  *
- * It shares the `sign_in` IP budget rather than having its own: both are the
- * same person trying to get through the same door, and counting them separately
- * would let an attacker spend twice.
- *
- * This action returns `void` because it is a plain form action, not a
- * `useActionState` one — so a refusal reports itself through the URL, and the
- * sign-in page renders `?error=rateLimited`.
+ * It now runs from the browser through `authClient.signIn.social`, which is the
+ * path Better Auth is built around. See
+ * `src/features/auth/components/google-button.tsx`.
  */
-export async function signInWithGoogle(formData: FormData): Promise<void> {
-  const locale = localeSchema.parse(formData.get('locale'));
-
-  const ipAddress = readClientIp(await headers());
-  const limit = await checkRateLimit('sign_in', { email: null, ipAddress });
-
-  if (!limit.allowed) {
-    await recordAttempt('sign_in', { email: null, ipAddress });
-    redirect(`/${locale}/login?error=rateLimited`);
-  }
-
-  const { url } = await auth.api.signInSocial({
-    body: { provider: 'google', callbackURL: `/${locale}/app` },
-    headers: await headers(),
-  });
-
-  if (!url) throw new Error('Google sign-in did not return a consent URL');
-
-  redirect(url);
-}
 
 /**
  * Removing a passkey is refused when it is the only way into the account.

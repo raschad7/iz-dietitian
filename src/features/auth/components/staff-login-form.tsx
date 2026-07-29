@@ -24,21 +24,32 @@ type StaffLoginFormProps = {
    * which validates it against an allow-list — this form only relays it. */
   redirectTo?: string;
   /**
-   * `signInWithGoogle` is a plain form action that cannot return state, so a
-   * rate-limit refusal there redirects back here as `?error=rateLimited`
-   * instead. There is no minute count in the URL, so this shows the generic
-   * error message rather than guessing at a number.
+   * An error code from the OAuth round trip, which lands back here because the
+   * Google button passes this page as its `errorCallbackURL`. The browser is
+   * navigating in from Google, so there is no action state to carry it.
    */
-  rateLimitedFromUrl?: boolean;
+  oauthError?: string;
 };
 
-export function StaffLoginForm({ locale, showGoogle, redirectTo, rateLimitedFromUrl }: StaffLoginFormProps) {
+/**
+ * Maps Better Auth's OAuth error codes to message keys.
+ *
+ * `signup_disabled` is the expected one, not a fault: the provider has
+ * `disableImplicitSignUp`, so a Google account with no clinic here is turned
+ * away at sign-in and told to sign up instead. Anything else is genuinely
+ * unexpected and stays vague.
+ */
+function oauthMessageKey(code: string): 'noGoogleAccount' | 'genericError' {
+  return code === 'signup_disabled' ? 'noGoogleAccount' : 'genericError';
+}
+
+export function StaffLoginForm({ locale, showGoogle, redirectTo, oauthError }: StaffLoginFormProps) {
   const t = useTranslations('login');
   const tCommon = useTranslations('common');
   const [state, formAction] = useActionState(signInWithPassword, initialAuthState);
 
-  const urlErrorState: AuthFormState | null = rateLimitedFromUrl
-    ? { status: 'error', messageKey: 'genericError' }
+  const urlErrorState: AuthFormState | null = oauthError
+    ? { status: 'error', messageKey: oauthMessageKey(oauthError) }
     : null;
   const displayState = state.status !== 'idle' ? state : (urlErrorState ?? state);
 
@@ -53,7 +64,8 @@ export function StaffLoginForm({ locale, showGoogle, redirectTo, rateLimitedFrom
         {/* Passkey first: it is the fastest and the safest, and order drives adoption. */}
         <div className="space-y-3">
           <PasskeyButton locale={locale} />
-          {showGoogle ? <GoogleButton locale={locale} /> : null}
+          {/* No `requestSignUp`: this door admits existing accounts only. */}
+          {showGoogle ? <GoogleButton locale={locale} redirectTo={redirectTo} /> : null}
         </div>
 
         <div className="my-6 flex items-center gap-3 text-xs text-muted-foreground">

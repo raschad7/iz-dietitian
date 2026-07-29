@@ -67,7 +67,8 @@ export function StaffSignUpForm({ locale, showGoogle }: StaffSignUpFormProps) {
         */}
         {showGoogle ? (
           <>
-            <GoogleButton locale={locale} />
+            {/* The only place that passes `requestSignUp` — this is the enrolment door. */}
+            <GoogleButton locale={locale} requestSignUp />
 
             <div className="my-6 flex items-center gap-3 text-xs text-muted-foreground">
               <span className="h-px flex-1 bg-border" />
