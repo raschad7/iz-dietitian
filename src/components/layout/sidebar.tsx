@@ -3,8 +3,8 @@ import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 
 export type NavItem = {
-  href: '/app' | '/app/clients' | '/app/calendar' | '/app/meal-plans' | '/portal';
-  labelKey: 'dashboard' | 'clients' | 'calendar' | 'mealPlans' | 'portalHome';
+  href: '/app' | '/app/clients' | '/app/calendar' | '/app/meal-plans' | '/app/settings/security' | '/portal';
+  labelKey: 'dashboard' | 'clients' | 'calendar' | 'mealPlans' | 'security' | 'portalHome';
 };
 
 /**
