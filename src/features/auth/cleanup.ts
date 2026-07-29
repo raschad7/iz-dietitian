@@ -22,6 +22,12 @@ import { UNVERIFIED_ACCOUNT_TTL_SECONDS } from '@/lib/auth-constants';
  * to its clients, and a clinical record must never be collateral damage of a
  * housekeeping pass.
  *
+ * SCOPED TO STAFF ON PURPOSE. Both reasons above are about self-service sign-up,
+ * which only staff have. Client portal accounts are provisioned by a dietitian
+ * and never verify an address — nobody emails a patient a confirmation link — so
+ * an unscoped sweep would delete every portal account roughly a day after it was
+ * created, and the dietitian would find the access they granted had evaporated.
+ *
  * Imports nothing from Next.js so `bun test` can drive it directly.
  */
 export async function purgeUnverifiedAccounts(): Promise<number> {
@@ -30,7 +36,13 @@ export async function purgeUnverifiedAccounts(): Promise<number> {
   const expired = await db
     .select({ id: user.id, clinicId: user.clinicId })
     .from(user)
-    .where(and(eq(user.emailVerified, false), lt(user.createdAt, cutoff)));
+    .where(
+      and(
+        eq(user.role, 'staff'),
+        eq(user.emailVerified, false),
+        lt(user.createdAt, cutoff),
+      ),
+    );
 
   if (expired.length === 0) return 0;
 

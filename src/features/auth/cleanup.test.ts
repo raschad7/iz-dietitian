@@ -33,6 +33,39 @@ beforeEach(async () => {
 });
 
 describe('purgeUnverifiedAccounts', () => {
+  /**
+   * Regression test. This purge once filtered on `emailVerified` alone, and
+   * client portal accounts are provisioned by a dietitian without ever verifying
+   * an address — so every one of them was deleted about a day after it was
+   * granted, silently, and the clinical record was left pointing at nothing.
+   */
+  test('never touches a client portal account, however old and unverified', async () => {
+    const [clinic] = await db.insert(clinics).values({ name: 'Real Clinic' }).returning({ id: clinics.id });
+    if (!clinic) throw new Error('insert into clinics returned no row');
+
+    const portalUserId = crypto.randomUUID();
+    await db.insert(user).values({
+      id: portalUserId,
+      name: 'Patient With Portal Access',
+      email: 'ahmad-4821@portal.invalid',
+      emailVerified: false,
+      role: 'client',
+      createdAt: new Date(Date.now() - 30 * DAY_MS),
+    });
+
+    await db.insert(clients).values({
+      clinicId: clinic.id,
+      fullName: 'Patient With Portal Access',
+      searchName: 'patient with portal access',
+      userId: portalUserId,
+    });
+
+    const removed = await purgeUnverifiedAccounts();
+
+    expect(removed).toBe(0);
+    expect(await db.select().from(user).where(eq(user.id, portalUserId))).toHaveLength(1);
+  });
+
   test('deletes an unverified account older than the cutoff, and its empty clinic', async () => {
     const { userId, clinicId } = await makeUnverifiedStaff('stale@clinic.test', new Date(Date.now() - 2 * DAY_MS));
 
