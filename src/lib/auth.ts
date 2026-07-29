@@ -1,17 +1,20 @@
+import { passkey } from '@better-auth/passkey';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { nextCookies } from 'better-auth/next-js';
 import { magicLink } from 'better-auth/plugins';
 
 import { db } from '@/db';
-import { account, session, user, verification } from '@/db/schema/auth';
+import { account, passkey as passkeyTable, session, user, verification } from '@/db/schema/auth';
 import { clinics } from '@/db/schema/clinics';
 import { defaultLocale, locales, type Locale } from '@/i18n/routing';
+import { sendMail } from '@/lib/mail';
 
 import {
-  MAGIC_LINK_TTL_MINUTES,
+  EMAIL_VERIFICATION_TTL_SECONDS,
   MAGIC_LINK_TTL_SECONDS,
   MIN_PASSWORD_LENGTH,
+  PASSWORD_RESET_TTL_SECONDS,
   SESSION_REFRESH_AGE_SECONDS,
   SESSION_TTL_SECONDS,
 } from './auth-constants';
@@ -37,6 +40,14 @@ function resolveRequestLocale(headers: Headers | undefined): Locale {
   return locales.includes(candidate as Locale) ? (candidate as Locale) : defaultLocale;
 }
 
+/**
+ * The locale a mail should be written in. Better Auth hands us the user row, and
+ * `users.locale` is exactly the preference captured at sign-up.
+ */
+function userLocale(value: unknown): Locale {
+  return locales.includes(value as Locale) ? (value as Locale) : defaultLocale;
+}
+
 export const auth = betterAuth({
   appName: 'dietitian-software',
   baseURL: process.env.BETTER_AUTH_URL ?? 'http://localhost:3000',
@@ -45,15 +56,93 @@ export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: 'pg',
     // Better Auth's model names on the left, our Drizzle tables on the right.
-    schema: { user, session, account, verification },
+    schema: { user, session, account, verification, passkey: passkeyTable },
   }),
 
-  /** Dietitian and staff accounts. Client accounts never get a password. */
+  /**
+   * Dietitian and staff accounts. Client accounts never get a password.
+   *
+   * `autoSignIn` is OFF and `requireEmailVerification` is ON: signing up creates
+   * the account but issues no session. That is the hard gate — an address must
+   * be proven real before it can hold a clinic, and before a password reset
+   * would have anywhere to go.
+   */
   emailAndPassword: {
     enabled: true,
     minPasswordLength: MIN_PASSWORD_LENGTH,
-    requireEmailVerification: false,
-    autoSignIn: true,
+    requireEmailVerification: true,
+    autoSignIn: false,
+    resetPasswordTokenExpiresIn: PASSWORD_RESET_TTL_SECONDS,
+    sendResetPassword: async ({ user: recipient, url }) => {
+      // Better Auth types this callback's `user` against the base row, not this
+      // instance's `additionalFields`, so `locale` is invisible to TS even
+      // though it is always present on the row at runtime.
+      const locale = (recipient as { locale?: unknown }).locale;
+      await sendMail('resetPassword', recipient.email, userLocale(locale), {
+        url,
+        name: recipient.name,
+      });
+    },
+    /**
+     * A reset is what someone does when they believe another person holds their
+     * password. Leaving that person's sessions alive would defeat the point.
+     *
+     * Better Auth does this itself when the flag is set — see
+     * `dist/api/routes/password.mjs`, which calls
+     * `internalAdapter.deleteUserSessions(userId)` right after the reset. Do not
+     * hand-roll it: `auth.api.revokeUserSessions` does NOT exist in the base API
+     * (it ships with the admin plugin), and a custom `onPasswordReset` callback
+     * that reaches for `auth` would reference the binding during its own
+     * initialisation.
+     */
+    revokeSessionsOnPasswordReset: true,
+  },
+
+  emailVerification: {
+    sendOnSignUp: true,
+    autoSignInAfterVerification: true,
+    expiresIn: EMAIL_VERIFICATION_TTL_SECONDS,
+    sendVerificationEmail: async ({ user: recipient, url }) => {
+      // Same typing gap as `sendResetPassword` above.
+      const locale = (recipient as { locale?: unknown }).locale;
+      await sendMail('verifyEmail', recipient.email, userLocale(locale), {
+        url,
+        name: recipient.name,
+      });
+    },
+  },
+
+  socialProviders: {
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID ?? '',
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
+    },
+  },
+
+  account: {
+    accountLinking: {
+      enabled: true,
+      /**
+       * Google has verified the address it asserts, so an identity it vouches
+       * for may join an existing account.
+       */
+      trustedProviders: ['google'],
+
+      /**
+       * DO NOT SET `requireLocalEmailVerified: false`.
+       *
+       * It defaults to true, and that default is what blocks OAuth
+       * pre-hijacking: an attacker signs up with the victim's address and a
+       * password of their choosing, never verifies, then waits for the victim to
+       * sign in with Google — which would otherwise link the two and hand the
+       * attacker a working password on the victim's account. Better Auth refuses
+       * the link instead (`dist/oauth2/link-account.mjs`).
+       *
+       * The option is marked deprecated pending the gate becoming unconditional.
+       * When it is removed, nothing needs doing here; until then, leaving it
+       * unset is deliberate, not an oversight.
+       */
+    },
   },
 
   user: {
@@ -159,12 +248,22 @@ export const auth = betterAuth({
       expiresIn: MAGIC_LINK_TTL_SECONDS,
       disableSignUp: true,
       sendMagicLink: async ({ email, url }) => {
-        if (process.env.NODE_ENV === 'production') {
-          // Wire a real transactional email provider here before going live.
-          throw new Error('No email provider is configured for magic links.');
-        }
-        console.info(`[auth] magic link for ${email} (valid ${MAGIC_LINK_TTL_MINUTES} min):\n${url}`);
+        // The recipient may not exist as a user yet, so the locale comes from the
+        // client record where possible and falls back to the default.
+        await sendMail('magicLink', email, defaultLocale, { url, name: email });
       },
+    }),
+
+    /**
+     * WebAuthn. Registration and sign-in must run in the browser, so these are
+     * the only auth paths that go over HTTP rather than through a server action
+     * — which also means they are the only ones Better Auth's own rate limiter
+     * actually covers.
+     */
+    passkey({
+      rpID: new URL(process.env.BETTER_AUTH_URL ?? 'http://localhost:3000').hostname,
+      rpName: 'Dietitian Clinic',
+      origin: process.env.BETTER_AUTH_URL ?? 'http://localhost:3000',
     }),
 
     // Must stay last: lets server actions set the session cookie.
