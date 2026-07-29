@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
 
 import { createTestClinic, resetDatabase } from '../../../tests/helpers';
-import { archiveClient, createClient, invitePortalAccess } from './mutations';
+import { archiveClient, createClient } from './mutations';
+import { issuePortalCredentials } from './portal-credentials';
 import { getClient, listClients } from './queries';
 import { listClientsSchema } from './schema';
 
@@ -59,7 +60,7 @@ describe('listClients', () => {
 
   test('reports portal access on each row', async () => {
     const { id } = await createClient(clinicId, { fullName: 'سارة', preferredLocale: 'ar', email: 'sara@clinic.ps' });
-    await invitePortalAccess(clinicId, id);
+    await issuePortalCredentials(clinicId, id, 'sara-portal-0001');
     await createClient(clinicId, { fullName: 'أحمد', preferredLocale: 'ar' });
 
     const result = await listClients(clinicId, filters({ q: 'سارة' }));
