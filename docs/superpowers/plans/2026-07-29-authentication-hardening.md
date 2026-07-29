@@ -2263,13 +2263,18 @@ export async function removePasskeyAction(
   formData: FormData,
 ): Promise<AuthFormState> {
   const locale = localeSchema.parse(formData.get('locale'));
-  const session = await requireStaffSession(locale);
+
+  // A server action is a public endpoint: the page guard protected the render,
+  // never this call.
+  await requireStaffSession(locale);
 
   const id = z.string().min(1).parse(formData.get('passkeyId'));
 
+  const requestHeaders = await headers();
+
   const [passkeys, accounts] = await Promise.all([
-    auth.api.listPasskeys({ headers: await headers() }),
-    auth.api.listUserAccounts({ headers: await headers() }),
+    auth.api.listPasskeys({ headers: requestHeaders }),
+    auth.api.listUserAccounts({ headers: requestHeaders }),
   ]);
 
   const otherMethods = accounts.length + passkeys.length - 1;
@@ -2290,11 +2295,198 @@ export async function removePasskeyAction(
 
 - [ ] **Step 2: Build the page**
 
-`src/app/[locale]/app/settings/security/page.tsx` resolves the locale, calls `requireStaffSession`, fetches `listPasskeys` and `listUserAccounts`, and renders `SecuritySettings` with both. Follow the shape of `src/app/[locale]/app/clients/page.tsx`.
+Create `src/app/[locale]/app/settings/security/page.tsx`:
+
+```tsx
+import { getTranslations } from 'next-intl/server';
+import { headers } from 'next/headers';
+import type { Metadata } from 'next';
+
+import { SecuritySettings } from '@/features/auth/components/security-settings';
+import { resolveLocale } from '@/i18n/params';
+import { auth } from '@/lib/auth';
+import { requireStaffSession } from '@/lib/session';
+
+type SecurityPageProps = {
+  params: Promise<{ locale: string }>;
+};
+
+export async function generateMetadata({ params }: SecurityPageProps): Promise<Metadata> {
+  const locale = await resolveLocale(params);
+  const t = await getTranslations({ locale, namespace: 'nav' });
+  return { title: t('security') };
+}
+
+export default async function SecurityPage({ params }: SecurityPageProps) {
+  const locale = await resolveLocale(params);
+  await requireStaffSession(locale);
+
+  const requestHeaders = await headers();
+
+  const [passkeys, accounts, t] = await Promise.all([
+    auth.api.listPasskeys({ headers: requestHeaders }),
+    auth.api.listUserAccounts({ headers: requestHeaders }),
+    getTranslations('nav'),
+  ]);
+
+  return (
+    <div className="space-y-6 text-start">
+      <h2 className="text-2xl font-semibold tracking-tight">{t('security')}</h2>
+      <SecuritySettings
+        locale={locale}
+        passkeys={passkeys.map((entry) => ({
+          id: entry.id,
+          name: entry.name ?? null,
+          createdAt: entry.createdAt.toISOString(),
+        }))}
+        providers={accounts.map((entry) => entry.providerId)}
+      />
+    </div>
+  );
+}
+```
+
+Note the mapping: only plain data crosses to the client component, and `createdAt` becomes a string. Passing the raw rows would hand a client component objects shaped by a server-only module.
 
 - [ ] **Step 3: Build the component**
 
-`src/features/auth/components/security-settings.tsx` renders three cards: registered passkeys (each with a remove button, disabled when it is the last method, showing `lastSignInMethod` as the reason), an "add a passkey" button calling `authClient.passkey.addPasskey()`, and whether Google is connected.
+Create `src/features/auth/components/security-settings.tsx`:
+
+```tsx
+'use client';
+
+import { useTranslations } from 'next-intl';
+import { useActionState, useState } from 'react';
+
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { removePasskeyAction } from '@/features/auth/actions';
+import { initialAuthState } from '@/features/auth/form-state';
+import { authClient } from '@/lib/auth-client';
+import { type Locale } from '@/i18n/routing';
+
+export type PasskeySummary = { id: string; name: string | null; createdAt: string };
+
+type SecuritySettingsProps = {
+  locale: Locale;
+  passkeys: readonly PasskeySummary[];
+  /** Provider ids from `listUserAccounts` — 'credential' means a password. */
+  providers: readonly string[];
+};
+
+export function SecuritySettings({ locale, passkeys, providers }: SecuritySettingsProps) {
+  const t = useTranslations('login');
+  const [state, formAction] = useActionState(removePasskeyAction, initialAuthState);
+  const [adding, setAdding] = useState(false);
+
+  const hasPassword = providers.includes('credential');
+  const hasGoogle = providers.includes('google');
+
+  /**
+   * Total ways into this account. The remove button is disabled at 1, because
+   * otherwise the page offers a two-click path to permanent lockout: a
+   * passkey-only account whose passkey is deleted has no password, no linked
+   * provider, and no way to prove ownership of an account it cannot sign into.
+   *
+   * The server re-checks this. A disabled button is a courtesy, never a control.
+   */
+  const methodCount = providers.length + passkeys.length;
+
+  async function addPasskey() {
+    setAdding(true);
+    await authClient.passkey.addPasskey();
+    setAdding(false);
+    // The list is server-rendered, so reload rather than hand-patch local state.
+    window.location.reload();
+  }
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">{t('passkeysTitle')}</CardTitle>
+          <CardDescription>{t('passkeysDescription')}</CardDescription>
+        </CardHeader>
+
+        <CardContent className="space-y-4">
+          {passkeys.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{t('passkeysNone')}</p>
+          ) : (
+            <ul className="space-y-2">
+              {passkeys.map((entry) => (
+                <li
+                  key={entry.id}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-3 py-2 text-sm"
+                >
+                  <span className="font-medium">{entry.name ?? t('passkeyUnnamed')}</span>
+
+                  <form action={formAction}>
+                    <input type="hidden" name="locale" value={locale} />
+                    <input type="hidden" name="passkeyId" value={entry.id} />
+                    <Button
+                      type="submit"
+                      variant="outline"
+                      size="sm"
+                      disabled={methodCount <= 1}
+                      title={methodCount <= 1 ? t('lastSignInMethod') : undefined}
+                    >
+                      {t('passkeyRemove')}
+                    </Button>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {state.status === 'error' ? (
+            <p role="alert" className="text-sm text-destructive">
+              {t(state.messageKey)}
+            </p>
+          ) : null}
+
+          {state.status === 'success' ? (
+            <p role="status" className="text-sm text-muted-foreground">
+              {t(state.messageKey)}
+            </p>
+          ) : null}
+
+          <Button type="button" variant="outline" disabled={adding} onClick={addPasskey}>
+            {t('passkeyAdd')}
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">{t('methodsTitle')}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm">
+          <p>{hasPassword ? t('methodPasswordOn') : t('methodPasswordOff')}</p>
+          <p>{hasGoogle ? t('methodGoogleOn') : t('methodGoogleOff')}</p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+```
+
+- [ ] **Step 3b: Add the message keys this component needs**
+
+These are additional to Task 13. Add to `ar.json` first, then `en.json`, both inside `login`:
+
+| Key | Arabic | English |
+| --- | --- | --- |
+| `passkeysTitle` | مفاتيح المرور | Passkeys |
+| `passkeysDescription` | ادخل ببصمتك أو بقفل جهازك، بدون كلمة مرور. | Sign in with your fingerprint or device unlock — no password. |
+| `passkeysNone` | لا توجد مفاتيح مرور بعد. | No passkeys yet. |
+| `passkeyUnnamed` | مفتاح مرور | Passkey |
+| `passkeyAdd` | إضافة مفتاح مرور | Add a passkey |
+| `passkeyRemove` | حذف | Remove |
+| `methodsTitle` | طرق الدخول | Ways to sign in |
+| `methodPasswordOn` | كلمة المرور مفعّلة. | Password is set. |
+| `methodPasswordOff` | لا توجد كلمة مرور لهذا الحساب. | No password on this account. |
+| `methodGoogleOn` | حساب Google مرتبط. | Google is connected. |
+| `methodGoogleOff` | لا يوجد حساب Google مرتبط. | Google is not connected. |
 
 - [ ] **Step 4: Add it to the sidebar**
 
