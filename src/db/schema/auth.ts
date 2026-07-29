@@ -32,6 +32,22 @@ export const user = pgTable('users', {
   locale: text('locale').notNull().default('ar'),
 
   /**
+   * Portal sign-in identifier, issued by a dietitian. Null for staff, who sign
+   * in with an email address. Required by Better Auth's `username` plugin.
+   */
+  username: text('username').unique(),
+
+  /** The plugin stores the pre-normalisation form here for display. */
+  displayUsername: text('display_username'),
+
+  /**
+   * Forces a client to replace the temporary password they were handed before
+   * they can reach the portal. Cleared once they set their own — after which
+   * nobody at the clinic knows it.
+   */
+  mustChangePassword: boolean('must_change_password').notNull().default(false),
+
+  /**
    * The clinic this account belongs to — the tenant boundary.
    *
    * Set for `staff` when the account is created (see the `user.create.before`
