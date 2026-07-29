@@ -6,9 +6,11 @@ import { buttonVariants } from '@/components/ui/button';
 import { ArchiveButton } from '@/features/clients/components/archive-button';
 import { ClientProfile } from '@/features/clients/components/client-profile';
 import { DeleteClientButton } from '@/features/clients/components/delete-client-button';
-import { PortalAccessCard } from '@/features/clients/components/portal-access-card';
+import { PortalCredentialsCard } from '@/features/clients/components/portal-credentials-card';
 import { StatusBadge } from '@/features/clients/components/status-badge';
+import { getPortalUsername } from '@/features/clients/portal-credentials';
 import { getClient } from '@/features/clients/queries';
+import { suggestUsername } from '@/features/clients/transliterate';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/params';
 import { requireStaffClinic } from '@/lib/session';
@@ -45,6 +47,8 @@ export default async function ClientPage({ params }: ClientPageProps) {
 
   const t = await getTranslations('clients');
 
+  const portalUsername = client.hasPortalAccess ? await getPortalUsername(clinicId, client.id) : null;
+
   return (
     <div className="space-y-6 text-start">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -64,7 +68,13 @@ export default async function ClientPage({ params }: ClientPageProps) {
 
       <ClientProfile client={client} />
 
-      <PortalAccessCard locale={locale} clientId={client.id} hasPortalAccess={client.hasPortalAccess} />
+      <PortalCredentialsCard
+        locale={locale}
+        clientId={client.id}
+        hasPortalAccess={client.hasPortalAccess}
+        username={portalUsername}
+        suggestedUsername={suggestUsername(client.fullName)}
+      />
 
       <Link href="/app/clients" className="inline-block text-sm underline-offset-4 hover:underline">
         {t('backToList')}
