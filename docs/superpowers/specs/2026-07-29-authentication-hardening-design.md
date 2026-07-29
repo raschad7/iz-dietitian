@@ -80,10 +80,9 @@ src/features/auth/
   schema.ts         # Zod input schemas
   rate-limit.ts     # attempt recording, throttling, lockout — imports no Next
   redirect.ts       # safe post-login destination — pure
-  linking.ts        # OAuth account-linking safeguard
   cleanup.ts        # expiry of unverified accounts
   components/       # forms, moved from src/components/auth/
-  rate-limit.test.ts  redirect.test.ts  linking.test.ts  cleanup.test.ts
+  rate-limit.test.ts  redirect.test.ts  cleanup.test.ts
 
 src/db/schema/auth.ts
   + passkeys        # required by @better-auth/passkey
@@ -96,9 +95,9 @@ src/app/[locale]/
   app/settings/security/page.tsx
 ```
 
-`rate-limit.ts`, `redirect.ts`, `linking.ts` and `cleanup.ts` import nothing from
-Next.js, so `bun test` calls them directly — the same split the clients feature
-uses between `mutations.ts` and `actions.ts`.
+`rate-limit.ts`, `redirect.ts` and `cleanup.ts` import nothing from Next.js, so
+`bun test` calls them directly — the same split the clients feature uses between
+`mutations.ts` and `actions.ts`.
 
 ### Dependencies
 
@@ -218,8 +217,8 @@ assumes IPs are trustworthy.
 
 ### OAuth account-linking safeguard
 
-Account linking is enabled with `google` as a trusted provider. That introduces a
-known pre-hijacking attack:
+Account linking is enabled with `google` as a trusted provider. That would normally
+introduce a known pre-hijacking attack:
 
 1. An attacker signs up with the victim's address and a password of their choosing.
 2. They never verify, so they cannot sign in — the account sits dormant.
@@ -227,16 +226,32 @@ known pre-hijacking attack:
    are linked, and `emailVerified` becomes true.
 4. The attacker's password now works on the victim's account.
 
-**Mitigation:** when a Google sign-in links to an existing user whose email was not
-yet verified, the credential (password) account row is **deleted** in the same
-transaction. The user can set a new password from Settings → Security once inside.
-This is covered by a dedicated integration test.
+**Better Auth already blocks this, and we must not undo it.**
+`account.accountLinking.requireLocalEmailVerified` defaults to `true`
+(`node_modules/better-auth/dist/oauth2/link-account.mjs:22`). When the existing
+local user is unverified, linking is refused and the callback returns
+`"account not linked"`.
+
+So this codebase writes **no custom mitigation**. The design rule is narrower and
+stricter: `requireLocalEmailVerified` is never set to `false`, and a comment in
+`src/lib/auth.ts` records why, because the option is marked deprecated-pending-
+removal and a future reader might otherwise "clean it up".
+
+**The residual problem is usability, not security.** A squatted address locks the
+genuine owner out of Google sign-in behind an opaque error. Two things address it:
+
+- The callback error is translated to a real message rather than a raw code:
+  "An unverified account already exists for this email address."
+- Unverified accounts expire quickly (below), which releases the address.
 
 ### Expiry of unverified accounts
 
-Users with `emailVerified = false` and `created_at` older than 7 days are deleted,
-along with the clinic they created if it holds no clients. This prevents typo'd
-sign-ups accumulating and releases the address for a genuine attempt.
+Users with `emailVerified = false` and `created_at` older than **24 hours** are
+deleted, along with the clinic they created if it holds no clients.
+
+24 hours rather than a week specifically because of the case above: a squatted
+address should free up fast, and an unverified account has no value to lose — it
+cannot sign in at all under the hard gate.
 
 Implemented as an exported function in `cleanup.ts`, invoked opportunistically
 during sign-up. No scheduler is introduced.
@@ -308,7 +323,7 @@ of truth and types the catalogue, so a missing English key fails the build.
 
 Keys: `wrongCredentials`, `verifyEmailFirst`, `verificationSent`, `rateLimited`
 (takes `minutes`), `emailTaken`, `resetLinkSent`, `passwordChanged`,
-`lastSignInMethod`, `passkeyRegistered`, `passkeyRemoved`.
+`lastSignInMethod`, `passkeyRegistered`, `passkeyRemoved`, `accountNotLinked`.
 
 ---
 
@@ -326,11 +341,11 @@ Keys: `wrongCredentials`, `verifyEmailFirst`, `verificationSent`, `rateLimited`
 
 - A failed sign-in is recorded; a successful one clears the count
 - An unverified account cannot sign in; a verified one can
-- The linking safeguard deletes the leftover credential account
 - Sign-up creates exactly one clinic; a Google sign-in by an existing patient
   creates none
 - Removing the last sign-in method is refused
-- Unverified accounts older than 7 days are removed; recent ones are not
+- Unverified accounts older than 24 hours are removed; recent ones are not
+- A clinic with clients is never removed by the cleanup pass
 
 **Manual verification before completion:**
 
