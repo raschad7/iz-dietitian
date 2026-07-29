@@ -19,6 +19,31 @@ export function StaffSignUpForm({ locale }: { locale: Locale }) {
   const tCommon = useTranslations('common');
   const [state, formAction] = useActionState(signUpStaff, initialAuthState);
 
+  if (state.status === 'sent') {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('checkInboxHeading')}</CardTitle>
+          <CardDescription>{t('checkInboxDescription')}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4 text-sm text-muted-foreground">
+          <p>{t('checkInboxSpam')}</p>
+          {/*
+            A mistyped address cannot be corrected from here: there is no session
+            and the mail went elsewhere. Signing up again is the only way out, so
+            say so plainly rather than leaving a dead end.
+          */}
+          <p>
+            {t('checkInboxWrongAddress')}{' '}
+            <Link href="/signup" className="font-medium text-foreground underline-offset-4 hover:underline">
+              {t('signUpLink')}
+            </Link>
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>
