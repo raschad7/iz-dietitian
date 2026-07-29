@@ -145,3 +145,29 @@ describe('clearAttempts', () => {
     expect(untouched.allowed).toBe(false);
   });
 });
+
+describe('checkRateLimit for portal_sign_in', () => {
+  test('blocks a username after five failures, which is what makes six characters safe', async () => {
+    const username = 'ahmd-khlyl-1234';
+    const limit = AUTH_LIMITS.portal_sign_in.email.max;
+
+    for (let i = 0; i < limit; i += 1) {
+      await recordAttempt('portal_sign_in', { email: username, ipAddress: '5.5.5.5' });
+    }
+
+    const result = await checkRateLimit('portal_sign_in', { email: username, ipAddress: '5.5.5.5' });
+    expect(result.allowed).toBe(false);
+  });
+
+  test('does not share a budget with staff sign-in', async () => {
+    const limit = AUTH_LIMITS.portal_sign_in.email.max;
+
+    for (let i = 0; i < limit; i += 1) {
+      await recordAttempt('portal_sign_in', { email: 'someone-0001', ipAddress: '6.6.6.6' });
+    }
+
+    // Same identifier, different door: exhausting one must not lock the other.
+    const staff = await checkRateLimit('sign_in', { email: 'someone-0001', ipAddress: null });
+    expect(staff.allowed).toBe(true);
+  });
+});

@@ -20,7 +20,12 @@ import { authAttempt } from '@/db/schema';
  * This module imports nothing from Next.js so `bun test` can drive it directly.
  */
 
-export type AttemptKind = 'sign_in' | 'sign_up' | 'password_reset' | 'verification_resend' | 'magic_link';
+export type AttemptKind =
+  | 'sign_in'
+  | 'sign_up'
+  | 'password_reset'
+  | 'verification_resend'
+  | 'portal_sign_in';
 
 type Rule = { max: number; windowSeconds: number };
 
@@ -47,9 +52,19 @@ export const AUTH_LIMITS = {
     email: { max: 3, windowSeconds: HOUR },
     ip: { max: 10, windowSeconds: HOUR },
   },
-  magic_link: {
-    email: { max: 3, windowSeconds: 15 * MINUTE },
-    ip: { max: 10, windowSeconds: HOUR },
+  /**
+   * Portal sign-in. The `email` rule is keyed by USERNAME here — the column
+   * stores whichever identifier was submitted.
+   *
+   * This one is load-bearing rather than defensive. A client password may be as
+   * short as six characters, and throttling is precisely what makes that length
+   * defensible: it turns an offline-speed guessing problem into one that takes
+   * years. Loosening this without also raising CLIENT_MIN_PASSWORD_LENGTH would
+   * quietly make every portal account guessable.
+   */
+  portal_sign_in: {
+    email: { max: 5, windowSeconds: 15 * MINUTE },
+    ip: { max: 20, windowSeconds: 15 * MINUTE },
   },
 } as const satisfies Record<AttemptKind, { email?: Rule; ip?: Rule }>;
 
