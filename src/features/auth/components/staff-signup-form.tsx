@@ -5,6 +5,7 @@ import { useActionState } from 'react';
 
 import { signUpStaff } from '@/features/auth/actions';
 import { AuthFormMessage, AuthSubmitButton } from '@/features/auth/components/form-parts';
+import { GoogleButton } from '@/features/auth/components/google-button';
 import { PasswordInput } from '@/features/auth/components/password-input';
 import { initialAuthState } from '@/features/auth/form-state';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,7 +15,13 @@ import { Link } from '@/i18n/navigation';
 import { MIN_PASSWORD_LENGTH } from '@/lib/auth-constants';
 import { type Locale } from '@/i18n/routing';
 
-export function StaffSignUpForm({ locale }: { locale: Locale }) {
+type StaffSignUpFormProps = {
+  locale: Locale;
+  /** False when this deployment has no Google credentials — see `isGoogleEnabled`. */
+  showGoogle: boolean;
+};
+
+export function StaffSignUpForm({ locale, showGoogle }: StaffSignUpFormProps) {
   const t = useTranslations('login');
   const tCommon = useTranslations('common');
   const [state, formAction] = useActionState(signUpStaff, initialAuthState);
@@ -52,6 +59,24 @@ export function StaffSignUpForm({ locale }: { locale: Locale }) {
       </CardHeader>
 
       <CardContent>
+        {/*
+          The same button as on the sign-in page, and deliberately so: with OAuth
+          there is no separate "register" step — the first time through creates
+          the account. It also skips the verification gate entirely, because
+          Google has already proven the address belongs to them.
+        */}
+        {showGoogle ? (
+          <>
+            <GoogleButton locale={locale} />
+
+            <div className="my-6 flex items-center gap-3 text-xs text-muted-foreground">
+              <span className="h-px flex-1 bg-border" />
+              {t('orUsePassword')}
+              <span className="h-px flex-1 bg-border" />
+            </div>
+          </>
+        ) : null}
+
         <form action={formAction} className="space-y-4">
           <input type="hidden" name="locale" value={locale} />
 

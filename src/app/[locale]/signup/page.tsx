@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 
 import { StaffSignUpForm } from '@/features/auth/components/staff-signup-form';
 import { resolveLocale } from '@/i18n/params';
+import { isGoogleEnabled } from '@/lib/auth';
 
 type SignUpPageProps = {
   params: Promise<{ locale: string }>;
@@ -15,10 +16,8 @@ export async function generateMetadata({ params }: SignUpPageProps): Promise<Met
 }
 
 /**
- * Staff sign-up.
- *
- * ⚠️  Open to anyone who reaches this URL — see the warning on `signUpStaff` in
- * `src/components/auth/actions.ts`. Gate it before deploying anywhere public.
+ * Staff sign-up. Open by design — see `signUpStaff` in
+ * `src/features/auth/actions.ts` for what makes that safe.
  */
 export default async function SignUpPage({ params }: SignUpPageProps) {
   const locale = await resolveLocale(params);
@@ -32,7 +31,7 @@ export default async function SignUpPage({ params }: SignUpPageProps) {
         <p className="text-muted-foreground">{t('signUpSubtitle')}</p>
       </header>
 
-      <StaffSignUpForm locale={locale} />
+      <StaffSignUpForm locale={locale} showGoogle={isGoogleEnabled} />
     </main>
   );
 }
