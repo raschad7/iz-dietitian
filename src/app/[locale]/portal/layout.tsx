@@ -1,4 +1,5 @@
 import { getTranslations } from 'next-intl/server';
+import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 import { Header } from '@/components/layout/header';
@@ -15,6 +16,14 @@ export default async function PortalLayout({ children, params }: PortalLayoutPro
 
   // Authoritative guard for the whole client area.
   const session = await requireClientSession(locale);
+
+  // A client holding a dietitian-issued temporary password reaches exactly one
+  // page until they replace it. The flag rides on the session, so this costs no
+  // extra query. `set-password` has its own layout (not this one) precisely so
+  // this redirect cannot target the page it is already on.
+  if (session.user.mustChangePassword) {
+    redirect(`/${locale}/portal/set-password`);
+  }
 
   const t = await getTranslations('portal');
 

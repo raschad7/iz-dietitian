@@ -25,7 +25,9 @@ export type AuthFormState =
         /** Refusing to remove someone's only remaining way to sign in. */
         | 'lastSignInMethod'
         /** Vague on purpose — never reveals whether a portal username exists. */
-        | 'wrongCredentials';
+        | 'wrongCredentials'
+        /** The six-character client minimum is only defensible with this check. */
+        | 'passwordTooCommon';
     }
   | { status: 'rateLimited'; messageKey: 'rateLimited'; minutes: number }
   | { status: 'sent'; messageKey: 'verificationSent' | 'resetLinkSent' }

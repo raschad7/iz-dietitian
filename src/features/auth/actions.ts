@@ -6,11 +6,16 @@ import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 
+import { eq } from 'drizzle-orm';
+
+import { db } from '@/db';
+import { user } from '@/db/schema';
 import { auth } from '@/lib/auth';
-import { requireStaffSession } from '@/lib/session';
+import { requireClientSession, requireStaffSession } from '@/lib/session';
 
 import { purgeUnverifiedAccounts } from './cleanup';
 import { type AuthFormState } from './form-state';
+import { isCommonPassword } from './password-policy';
 import {
   checkRateLimit,
   clearAttempts,
@@ -25,6 +30,7 @@ import {
   localeSchema,
   portalSignInSchema,
   resetPasswordSchema,
+  setPasswordSchema,
   signUpSchema,
 } from './schema';
 
@@ -209,6 +215,49 @@ export async function signInToPortal(
   }
 
   await clearAttempts('portal_sign_in', username);
+
+  // Outside the try/catch — `redirect` signals by throwing.
+  redirect(`/${locale}/portal`);
+}
+
+/**
+ * The client replaces the temporary password they were handed. Clearing
+ * `mustChangePassword` is what unlocks the rest of the portal — see the guard
+ * in `src/app/[locale]/portal/layout.tsx`.
+ */
+export async function setPortalPassword(
+  _previousState: AuthFormState,
+  formData: FormData,
+): Promise<AuthFormState> {
+  const parsed = setPasswordSchema.safeParse({
+    password: formData.get('password'),
+    confirmPassword: formData.get('confirmPassword'),
+    locale: formData.get('locale'),
+  });
+
+  if (!parsed.success) {
+    const fieldErrors = z.flattenError(parsed.error).fieldErrors;
+    if (fieldErrors.confirmPassword) return { status: 'error', messageKey: 'passwordMismatch' };
+    return { status: 'error', messageKey: 'passwordTooShort' };
+  }
+
+  const { password, locale } = parsed.data;
+
+  // At six characters this check is load-bearing, not decoration — see
+  // `src/features/auth/password-policy.ts`.
+  if (isCommonPassword(password)) {
+    return { status: 'error', messageKey: 'passwordTooCommon' };
+  }
+
+  const session = await requireClientSession(locale);
+
+  try {
+    await auth.api.setPassword({ body: { newPassword: password }, headers: await headers() });
+    await db.update(user).set({ mustChangePassword: false }).where(eq(user.id, session.user.id));
+  } catch (error) {
+    console.error('[auth] portal password change failed', error);
+    return { status: 'error', messageKey: 'genericError' };
+  }
 
   // Outside the try/catch — `redirect` signals by throwing.
   redirect(`/${locale}/portal`);
