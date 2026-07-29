@@ -3,9 +3,10 @@
 import { useTranslations } from 'next-intl';
 import { useActionState } from 'react';
 
-import { signUpStaff, type AuthFormState } from '@/features/auth/actions';
+import { signUpStaff } from '@/features/auth/actions';
 import { AuthFormMessage, AuthSubmitButton } from '@/features/auth/components/form-parts';
 import { PasswordInput } from '@/features/auth/components/password-input';
+import { initialAuthState } from '@/features/auth/form-state';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,12 +14,10 @@ import { Link } from '@/i18n/navigation';
 import { MIN_PASSWORD_LENGTH } from '@/lib/auth-constants';
 import { type Locale } from '@/i18n/routing';
 
-const initialState: AuthFormState = { status: 'idle' };
-
 export function StaffSignUpForm({ locale }: { locale: Locale }) {
   const t = useTranslations('login');
   const tCommon = useTranslations('common');
-  const [state, formAction] = useActionState(signUpStaff, initialState);
+  const [state, formAction] = useActionState(signUpStaff, initialAuthState);
 
   return (
     <Card>

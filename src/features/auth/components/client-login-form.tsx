@@ -3,15 +3,14 @@
 import { useTranslations } from 'next-intl';
 import { useActionState } from 'react';
 
-import { requestMagicLink, type AuthFormState } from '@/features/auth/actions';
+import { requestMagicLink } from '@/features/auth/actions';
 import { AuthFormMessage, AuthSubmitButton } from '@/features/auth/components/form-parts';
+import { initialAuthState } from '@/features/auth/form-state';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MAGIC_LINK_TTL_MINUTES } from '@/lib/auth-constants';
 import { type Locale } from '@/i18n/routing';
-
-const initialState: AuthFormState = { status: 'idle' };
 
 /**
  * Clients never hold a password — they receive a single-use link instead. That
@@ -22,7 +21,7 @@ const initialState: AuthFormState = { status: 'idle' };
 export function ClientLoginForm({ locale }: { locale: Locale }) {
   const t = useTranslations('login');
   const tCommon = useTranslations('common');
-  const [state, formAction] = useActionState(requestMagicLink, initialState);
+  const [state, formAction] = useActionState(requestMagicLink, initialAuthState);
 
   return (
     <Card>
