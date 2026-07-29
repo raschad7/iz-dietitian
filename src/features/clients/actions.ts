@@ -1,12 +1,10 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 
 import { type Locale } from '@/i18n/routing';
-import { auth } from '@/lib/auth';
 import { requireStaffClinic } from '@/lib/session';
 
 import {
@@ -159,8 +157,10 @@ export async function invitePortalAccessAction(
 
   const id = clientIdSchema.parse(formData.get('clientId'));
 
-  let email: string;
-
+  // NOTE: the magic-link notification this action used to send after creating
+  // the account is gone along with the plugin. This whole action is superseded
+  // by credential issuing (`issuePortalCredentials` in a later wave) — it is
+  // left just well-formed enough to typecheck until that wave replaces it.
   try {
     const result = await invitePortalAccess(clinicId, id);
 
@@ -169,27 +169,9 @@ export async function invitePortalAccessAction(
       if (result.code === 'email_taken') return { status: 'error', messageKey: 'errors.emailTaken' };
       return { status: 'error', messageKey: 'errors.unexpected' };
     }
-
-    // Read back from the database, never from the submitted form: the form field
-    // is attacker-controlled and would let a caller aim the sign-in link
-    // somewhere else.
-    email = result.email;
   } catch (error) {
     console.error('[clients] invite failed', error);
     return { status: 'error', messageKey: 'errors.unexpected' };
-  }
-
-  try {
-    // In development this logs the sign-in URL to the server console; see
-    // `sendMagicLink` in src/lib/auth.ts. It throws in production until an email
-    // provider is configured — a pre-existing limitation, surfaced in the UI.
-    await auth.api.signInMagicLink({
-      body: { email, callbackURL: `/${locale}/portal` },
-      headers: await headers(),
-    });
-  } catch (error) {
-    // The account exists and is usable; only the notification failed.
-    console.error('[clients] magic link send failed', error);
   }
 
   revalidatePath(`/${locale}/app/clients`);

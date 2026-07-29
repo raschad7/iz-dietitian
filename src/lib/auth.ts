@@ -2,18 +2,17 @@ import { passkey } from '@better-auth/passkey';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { nextCookies } from 'better-auth/next-js';
-import { magicLink } from 'better-auth/plugins';
+import { username } from 'better-auth/plugins';
 
 import { db } from '@/db';
 import { account, passkey as passkeyTable, session, user, verification } from '@/db/schema/auth';
 import { clinics } from '@/db/schema/clinics';
+import { CLIENT_MIN_PASSWORD_LENGTH } from '@/features/auth/password-policy';
 import { defaultLocale, locales, type Locale } from '@/i18n/routing';
 import { sendMail } from '@/lib/mail';
 
 import {
   EMAIL_VERIFICATION_TTL_SECONDS,
-  MAGIC_LINK_TTL_SECONDS,
-  MIN_PASSWORD_LENGTH,
   PASSWORD_RESET_TTL_SECONDS,
   SESSION_REFRESH_AGE_SECONDS,
   SESSION_TTL_SECONDS,
@@ -78,7 +77,13 @@ export const auth = betterAuth({
    */
   emailAndPassword: {
     enabled: true,
-    minPasswordLength: MIN_PASSWORD_LENGTH,
+    /**
+     * The CLIENT minimum. Better Auth has one global value, so this is the floor
+     * for everyone; the staff minimum of 10 is enforced in the staff Zod schema
+     * (`src/features/auth/schema.ts`). Do not raise this back to 10 — it would
+     * lock every client out of setting their own password.
+     */
+    minPasswordLength: CLIENT_MIN_PASSWORD_LENGTH,
     requireEmailVerification: true,
     autoSignIn: false,
     resetPasswordTokenExpiresIn: PASSWORD_RESET_TTL_SECONDS,
@@ -202,6 +207,16 @@ export const auth = betterAuth({
         required: false,
         input: false,
       },
+      /**
+       * Set when a dietitian issues or re-issues credentials, cleared when the
+       * client chooses their own. Never accepted from a payload.
+       */
+      mustChangePassword: {
+        type: 'boolean',
+        required: false,
+        defaultValue: false,
+        input: false,
+      },
     },
   },
 
@@ -268,22 +283,13 @@ export const auth = betterAuth({
 
   plugins: [
     /**
-     * Scaffolding for the client portal. Tokens live in the `verifications`
-     * table, expire after 15 minutes and are deleted the first time they are
-     * redeemed, at which point Better Auth issues the long-lived session cookie
-     * configured above.
-     *
-     * `disableSignUp` keeps this from becoming a public self-registration door:
-     * a client row must already exist before a link can be requested.
+     * Portal sign-in for clients. They are issued a username and a temporary
+     * password by their dietitian and never hold an email address here — see
+     * `src/features/clients/portal-credentials.ts`.
      */
-    magicLink({
-      expiresIn: MAGIC_LINK_TTL_SECONDS,
-      disableSignUp: true,
-      sendMagicLink: async ({ email, url }) => {
-        // The recipient may not exist as a user yet, so the locale comes from the
-        // client record where possible and falls back to the default.
-        await sendMail('magicLink', email, defaultLocale, { url, name: email });
-      },
+    username({
+      minUsernameLength: 3,
+      maxUsernameLength: 60,
     }),
 
     /**

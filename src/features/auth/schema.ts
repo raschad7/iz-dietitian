@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { defaultLocale, locales } from '@/i18n/routing';
 import { MIN_PASSWORD_LENGTH } from '@/lib/auth-constants';
 
+import { CLIENT_MIN_PASSWORD_LENGTH } from './password-policy';
+
 export const localeSchema = z.enum(locales).catch(defaultLocale);
 
 /**
@@ -20,10 +22,19 @@ export const credentialsSchema = z.object({
   redirectTo: z.string().optional(),
 });
 
-export const magicLinkSchema = z.object({
-  email: emailSchema,
+export const portalSignInSchema = z.object({
+  username: z.string().trim().toLowerCase().min(3).max(60),
+  password: z.string().min(1),
   locale: localeSchema,
 });
+
+export const setPasswordSchema = z
+  .object({
+    password: z.string().min(CLIENT_MIN_PASSWORD_LENGTH),
+    confirmPassword: z.string(),
+    locale: localeSchema,
+  })
+  .refine((values) => values.password === values.confirmPassword, { path: ['confirmPassword'] });
 
 export const signUpSchema = z
   .object({

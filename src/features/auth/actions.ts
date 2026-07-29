@@ -23,7 +23,7 @@ import {
   credentialsSchema,
   forgotPasswordSchema,
   localeSchema,
-  magicLinkSchema,
+  portalSignInSchema,
   resetPasswordSchema,
   signUpSchema,
 } from './schema';
@@ -179,37 +179,39 @@ export async function signUpStaff(
   return { status: 'sent', messageKey: 'verificationSent' };
 }
 
-export async function requestMagicLink(
+/**
+ * Portal sign-in for clients. Credentials are issued by a dietitian — see
+ * `src/features/clients/portal-credentials.ts` — never signed up here.
+ */
+export async function signInToPortal(
   _previousState: AuthFormState,
   formData: FormData,
 ): Promise<AuthFormState> {
-  const parsed = magicLinkSchema.safeParse({
-    email: formData.get('email'),
+  const parsed = portalSignInSchema.safeParse({
+    username: formData.get('username'),
+    password: formData.get('password'),
     locale: formData.get('locale'),
   });
 
-  if (!parsed.success) {
-    return { status: 'error', messageKey: 'genericError' };
-  }
+  if (!parsed.success) return { status: 'error', messageKey: 'genericError' };
 
-  const { email, locale } = parsed.data;
+  const { username, password, locale } = parsed.data;
 
-  const limited = await guard('magic_link', email);
+  const limited = await guard('portal_sign_in', username);
   if (limited) return limited;
 
-  await penalise('magic_link', email);
-
   try {
-    await auth.api.signInMagicLink({
-      body: { email, callbackURL: `/${locale}/portal` },
-      headers: await headers(),
-    });
+    await auth.api.signInUsername({ body: { username, password }, headers: await headers() });
   } catch {
-    // Swallowed on purpose — the response must not depend on whether the
-    // address is registered.
+    await penalise('portal_sign_in', username);
+    // Vague on purpose: never reveal whether a portal username exists.
+    return { status: 'error', messageKey: 'wrongCredentials' };
   }
 
-  return { status: 'sent', messageKey: 'magicLinkSent' };
+  await clearAttempts('portal_sign_in', username);
+
+  // Outside the try/catch — `redirect` signals by throwing.
+  redirect(`/${locale}/portal`);
 }
 
 export async function resendVerification(

@@ -3,31 +3,32 @@
 import { useTranslations } from 'next-intl';
 import { useActionState } from 'react';
 
-import { requestMagicLink } from '@/features/auth/actions';
+import { signInToPortal } from '@/features/auth/actions';
 import { AuthFormMessage, AuthSubmitButton } from '@/features/auth/components/form-parts';
+import { PasswordInput } from '@/features/auth/components/password-input';
 import { initialAuthState } from '@/features/auth/form-state';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { MAGIC_LINK_TTL_MINUTES } from '@/lib/auth-constants';
 import { type Locale } from '@/i18n/routing';
 
 /**
- * Clients never hold a password — they receive a single-use link instead. That
- * is why this form is on its own page and not beside the staff sign-in: the two
- * audiences have nothing in common beyond an email field, and putting them side
- * by side invited clients to try a password they never had.
+ * Clients never sign themselves up. A dietitian issues a username and a
+ * temporary password, so this form is a plain credentials sign-in — the same
+ * shape as staff sign-in, but on its own page: the audiences share nothing
+ * beyond that shape, and a client typing a staff email here would be
+ * confusing rather than helpful.
  */
 export function ClientLoginForm({ locale }: { locale: Locale }) {
   const t = useTranslations('login');
   const tCommon = useTranslations('common');
-  const [state, formAction] = useActionState(requestMagicLink, initialAuthState);
+  const [state, formAction] = useActionState(signInToPortal, initialAuthState);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t('clientHeading')}</CardTitle>
-        <CardDescription>{t('clientDescription', { minutes: MAGIC_LINK_TTL_MINUTES })}</CardDescription>
+        <CardTitle>{t('portalHeading')}</CardTitle>
+        <CardDescription>{t('portalDescription')}</CardDescription>
       </CardHeader>
 
       <CardContent>
@@ -35,21 +36,15 @@ export function ClientLoginForm({ locale }: { locale: Locale }) {
           <input type="hidden" name="locale" value={locale} />
 
           <div className="space-y-2">
-            <Label htmlFor="client-email">{tCommon('email')}</Label>
-            <Input
-              id="client-email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              dir="ltr"
-              required
-              placeholder={t('emailPlaceholder')}
-            />
+            <Label htmlFor="client-username">{t('portalUsername')}</Label>
+            <Input id="client-username" name="username" type="text" autoComplete="username" dir="ltr" required />
           </div>
+
+          <PasswordInput name="password" label={tCommon('password')} autoComplete="current-password" />
 
           <AuthFormMessage state={state} />
 
-          <AuthSubmitButton label={t('magicLinkSubmit')} />
+          <AuthSubmitButton label={t('portalSubmit')} />
         </form>
       </CardContent>
     </Card>

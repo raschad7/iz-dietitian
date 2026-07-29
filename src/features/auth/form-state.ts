@@ -23,10 +23,12 @@ export type AuthFormState =
         /** Google sign-in by an account that has never signed up here. */
         | 'noGoogleAccount'
         /** Refusing to remove someone's only remaining way to sign in. */
-        | 'lastSignInMethod';
+        | 'lastSignInMethod'
+        /** Vague on purpose — never reveals whether a portal username exists. */
+        | 'wrongCredentials';
     }
   | { status: 'rateLimited'; messageKey: 'rateLimited'; minutes: number }
-  | { status: 'sent'; messageKey: 'magicLinkSent' | 'verificationSent' | 'resetLinkSent' }
+  | { status: 'sent'; messageKey: 'verificationSent' | 'resetLinkSent' }
   | { status: 'success'; messageKey: 'passwordChanged' | 'passkeyRemoved' };
 
 export const initialAuthState: AuthFormState = { status: 'idle' };

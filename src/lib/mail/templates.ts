@@ -9,7 +9,7 @@ import { getLocaleDirection, type Locale } from '@/i18n/routing';
  * catalogue about HTML.
  */
 
-export type MailKind = 'verifyEmail' | 'resetPassword' | 'magicLink';
+export type MailKind = 'verifyEmail' | 'resetPassword';
 
 export type MailVariables = { url: string; name: string };
 
@@ -46,22 +46,6 @@ const COPY = {
       body: 'We received a request to reset your password. Click the button below to choose a new one.',
       cta: 'Reset password',
       footer: 'If you did not request this, ignore this message and nothing will change.',
-    },
-  },
-  magicLink: {
-    ar: {
-      subject: 'رابط الدخول الخاص بك',
-      heading: 'أهلاً {name}',
-      body: 'اضغط الزر أدناه للدخول إلى حسابك. الرابط صالح لمرة واحدة فقط.',
-      cta: 'الدخول',
-      footer: 'إذا لم تطلب هذا الرابط، تجاهل هذه الرسالة.',
-    },
-    en: {
-      subject: 'Your sign-in link',
-      heading: 'Hello {name}',
-      body: 'Click the button below to sign in. The link works once and then expires.',
-      cta: 'Sign in',
-      footer: 'If you did not request this link, ignore this message.',
     },
   },
 } as const satisfies Record<MailKind, Record<Locale, Record<string, string>>>;
