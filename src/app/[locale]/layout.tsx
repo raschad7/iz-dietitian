@@ -1,7 +1,7 @@
 import { NextIntlClientProvider } from 'next-intl';
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
-import { IBM_Plex_Sans, IBM_Plex_Sans_Arabic } from 'next/font/google';
+import { IBM_Plex_Mono, IBM_Plex_Sans, IBM_Plex_Sans_Arabic, Readex_Pro } from 'next/font/google';
 import type { ReactNode } from 'react';
 
 import { DevLocaleSwitcher } from '@/components/layout/locale-switcher';
@@ -21,6 +21,22 @@ const ibmPlexSansArabic = IBM_Plex_Sans_Arabic({
   subsets: ['arabic', 'latin'],
   weight: ['400', '500', '600', '700'],
   variable: '--font-ibm-plex-sans-arabic',
+  display: 'swap',
+});
+
+/** font.display — headings only, both scripts (§04, §15). */
+const readexPro = Readex_Pro({
+  subsets: ['arabic', 'latin'],
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-readex-pro',
+  display: 'swap',
+});
+
+/** Token/ID display only — never client-facing copy (design-system.md). */
+const ibmPlexMono = IBM_Plex_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500'],
+  variable: '--font-ibm-plex-mono',
   display: 'swap',
 });
 
@@ -57,7 +73,7 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
       */}
       <body
         suppressHydrationWarning
-        className={`${ibmPlexSans.variable} ${ibmPlexSansArabic.variable} min-h-dvh antialiased`}
+        className={`${ibmPlexSans.variable} ${ibmPlexSansArabic.variable} ${readexPro.variable} ${ibmPlexMono.variable} min-h-dvh antialiased`}
       >
         <NextIntlClientProvider>
           {children}
