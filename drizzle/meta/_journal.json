@@ -64,6 +64,13 @@
       "when": 1785398003862,
       "tag": "0008_cold_sentinels",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1785412161026,
+      "tag": "0009_woozy_risque",
+      "breakpoints": true
     }
   ]
 }

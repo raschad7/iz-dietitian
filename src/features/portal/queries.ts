@@ -1,7 +1,7 @@
 import { and, asc, between, desc, eq, inArray } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { appointmentRequests, appointments, clients, mealPlans } from '@/db/schema';
+import { appointmentRequests, appointments, clients } from '@/db/schema';
 import { type ExistingAppointment } from '@/features/booking/validation';
 
 import { type PortalAppointment, type PortalProfile, type PortalRequest, type RequestKind, type RequestStatus } from './types';
@@ -194,21 +194,12 @@ export async function listClinicBookings(
     .orderBy(asc(appointments.date), asc(appointments.startMinute));
 }
 
-/**
- * The plan the client is on now, as an id for `getPlan` to load.
+/*
+ * `getCurrentPlanId` used to live here: the most recently edited V1 `meal_plans`
+ * row, which is what the portal showed before weekly plans existed.
  *
- * "Current" is the most recently edited plan. There is no `active` flag on
- * `meal_plans` and inventing one here would be a schema decision made from the
- * portal; the dietitian's own list already orders by `updated_at`, so this is
- * the same plan that sits at the top of their screen.
+ * It is gone because "most recently edited" is the wrong rule for a client-facing
+ * screen — it would show a plan mid-edit. Weekly plans carry an explicit
+ * `published` status, so the portal now reads
+ * `weekly-plans/queries.ts:getPublishedBoard`, and there is no guessing left to do.
  */
-export async function getCurrentPlanId(clientId: string): Promise<string | null> {
-  const [row] = await db
-    .select({ id: mealPlans.id })
-    .from(mealPlans)
-    .where(eq(mealPlans.clientId, clientId))
-    .orderBy(desc(mealPlans.updatedAt))
-    .limit(1);
-
-  return row?.id ?? null;
-}

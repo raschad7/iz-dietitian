@@ -2,7 +2,7 @@ import { useLocale, useTranslations } from 'next-intl';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { roundForDisplay } from '@/features/meal-plans/nutrition';
-import { type PlanDay } from '@/features/meal-plans/queries';
+import { type BoardDay } from '@/features/weekly-plans/queries';
 import { formatNumber } from '@/lib/format';
 import { type Locale } from '@/i18n/routing';
 
@@ -14,7 +14,7 @@ import { type Locale } from '@/i18n/routing';
  * meal-plan page, and reproducing them here would make the dashboard the second
  * copy of a screen that already exists.
  */
-export function TodayMeals({ day, planTitle }: { day: PlanDay | null; planTitle: string | null }) {
+export function TodayMeals({ day, planTitle }: { day: BoardDay | null; planTitle: string | null }) {
   const locale = useLocale() as Locale;
   const t = useTranslations('portal');
   const tPlans = useTranslations('mealPlans');

@@ -1,11 +1,10 @@
 import { addDays, weekdayOf } from '@/features/booking/date';
 import { getClinicHours } from '@/features/booking/queries';
 import { type ClinicHours } from '@/features/booking/validation';
-import { getPlan, type PlanDay, type PlanDetail } from '@/features/meal-plans/queries';
+import { getPublishedBoard, type Board, type BoardDay } from '@/features/weekly-plans/queries';
 
 import { nextAppointment, splitAppointments, type SplitAppointments } from './appointments';
 import {
-  getCurrentPlanId,
   getPortalAppointment,
   listClinicBookings,
   listPortalAppointments,
@@ -46,10 +45,14 @@ async function requireHours(clinicId: string): Promise<ClinicHours> {
 
 export type DashboardData = {
   next: PortalAppointment | null;
-  /** The current plan's title, or null when the dietitian has not built one yet. */
+  /**
+   * The week the published plan covers (`YYYY-MM-DD`), or null when nothing has been
+   * published yet. Weekly plans have no title of their own — the week they are for is
+   * the thing that identifies them to a client.
+   */
   planTitle: string | null;
   /** Today's meals from that plan. Null when there is no plan or today is unplanned. */
-  today: PlanDay | null;
+  today: BoardDay | null;
   /** Requests still waiting on the dietitian. */
   pending: PortalRequest[];
 };
@@ -65,7 +68,7 @@ export async function loadDashboard(context: PortalContext): Promise<DashboardDa
 
   return {
     next: nextAppointment(appointmentRows, context.now),
-    planTitle: plan?.title ?? null,
+    planTitle: plan?.weekStartDate ?? null,
     today: plan && weekday !== null ? (plan.days[weekday] ?? null) : null,
     pending: requests.filter((request) => request.status === 'pending'),
   };
@@ -85,15 +88,17 @@ export async function loadAppointments(context: PortalContext): Promise<Appointm
 /**
  * The plan the client is on, fully costed.
  *
- * Reuses `getPlan` from the meal-plans feature rather than reading the three
- * tables again: the nutrition a client reads must be the same numbers, from the
- * same code, as the ones their dietitian built the plan against.
+ * Reuses `getPublishedBoard` from the weekly-plans feature rather than reading the
+ * tables again: the nutrition a client reads must be the same numbers, from the same
+ * code, as the ones their dietitian built the plan against.
+ *
+ * Only a PUBLISHED plan is ever visible here. A draft is the dietitian's working
+ * copy, and a client following a plan that is still being edited is the failure this
+ * whole status column exists to prevent — so there is deliberately no fallback to
+ * the newest plan of any status.
  */
-export async function loadCurrentPlan(context: PortalContext): Promise<PlanDetail | null> {
-  const planId = await getCurrentPlanId(context.id);
-  if (!planId) return null;
-
-  return getPlan(context.clinicId, planId);
+export async function loadCurrentPlan(context: PortalContext): Promise<Board | null> {
+  return getPublishedBoard(context.id);
 }
 
 /**
