@@ -12,7 +12,7 @@ import {
   reissuePortalPasswordAction,
   revokePortalAccessAction,
 } from '@/features/clients/actions';
-import { ConfirmSubmitButton } from '@/features/clients/components/confirm-submit-button';
+import { ConfirmSubmitButton } from '@/components/ui/confirm-submit-button';
 import {
   initialPortalCredentialsState,
   initialRevokePortalAccessState,

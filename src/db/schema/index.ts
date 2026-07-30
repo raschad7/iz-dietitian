@@ -12,3 +12,5 @@ export * from './clients';
 export * from './clinics';
 export * from './practitioners';
 export * from './appointments';
+export * from './foods';
+export * from './meal-plans';

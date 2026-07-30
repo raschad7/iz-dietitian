@@ -18,6 +18,7 @@ export function ClientTable({
   locale: Locale;
 }) {
   const t = useTranslations('clients');
+  const tMealPlans = useTranslations('mealPlans');
 
   if (result.items.length === 0) {
     return (
@@ -74,9 +75,16 @@ export function ClientTable({
                 {client.hasPortalAccess ? <Badge variant="outline">{t('portal.title')}</Badge> : '—'}
               </td>
 
-              {/* Row actions: the two things worth doing without opening the record. */}
+              {/* Row actions: the things worth doing without opening the record. */}
               <td className="px-3 py-2">
                 <div className="flex items-center justify-end gap-2">
+                  {/* Carries the client through, so the plan form arrives with them chosen. */}
+                  <Link
+                    href={{ pathname: '/app/meal-plans/new', query: { clientId: client.id } }}
+                    className={buttonVariants({ variant: 'outline', size: 'sm' })}
+                  >
+                    {tMealPlans('new')}
+                  </Link>
                   <Link
                     href={`/app/clients/${client.id}/edit`}
                     className={buttonVariants({ variant: 'outline', size: 'sm' })}

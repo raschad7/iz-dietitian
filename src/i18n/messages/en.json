@@ -15,13 +15,17 @@
     "password": "Password",
     "signIn": "Sign in",
     "signOut": "Sign out",
-    "comingSoon": "Coming soon"
+    "comingSoon": "Coming soon",
+    "edit": "Edit",
+    "delete": "Delete",
+    "remove": "Remove"
   },
   "nav": {
     "dashboard": "Dashboard",
     "clients": "Clients",
     "calendar": "Calendar",
     "mealPlans": "Meal plans",
+    "foods": "Foods",
     "plans": "Nutrition plans",
     "appointments": "Appointments",
     "payments": "Payments",
@@ -199,12 +203,166 @@
   },
   "mealPlans": {
     "title": "Meal plans",
-    "placeholder": "Meal plans will appear here once the plans module is built."
+    "subtitle": "Weekly plans built from the USDA food composition database.",
+    "wholeWeek": "Whole week",
+    "emptyDay": "Nothing planned yet.",
+    "days": {
+      "sunday": "Sunday",
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday"
+    },
+    "new": "New plan",
+    "createTitle": "New meal plan",
+    "editTitle": "Edit plan details",
+    "edit": "Edit details",
+    "empty": "No meal plans yet. Create one to start building a day.",
+    "emptyForClient": "No meal plans for this client yet.",
+    "notFound": "Meal plan not found",
+    "notFoundDescription": "This plan may have been deleted, or the link is incorrect.",
+    "backToList": "Back to meal plans",
+    "noClients": "You need an active client before you can build a plan.",
+    "addClient": "Add a client",
+    "foodsNotSeeded": "The food database is empty. Run `bun run db:seed:foods` to load it.",
+    "dataSource": "Nutrition data: USDA FoodData Central, SR Legacy (April 2018) — public domain. Values are per 100 g as described.",
+    "schedule": "Daily schedule",
+    "emptySchedule": "This plan has no meals. Add one to start.",
+    "emptyMeal": "Nothing in this meal yet.",
+    "per100g": "kcal / 100 g",
+    "fields": {
+      "title": "Plan title",
+      "titlePlaceholder": "e.g. Week 1 — 1,800 kcal",
+      "client": "Client",
+      "selectClient": "Choose a client",
+      "notes": "Notes",
+      "plannedDays": "Days planned",
+      "kcalPerDay": "kcal / day",
+      "daysOfSeven": "{count, number, integer} / 7",
+      "updatedAt": "Last edited",
+      "timeOfDay": "Time",
+      "mealLabel": "Meal name",
+      "food": "Food",
+      "quantityGrams": "Amount (g)",
+      "actions": "Actions"
+    },
+    "short": {
+      "protein": "P (g)",
+      "carbs": "C (g)",
+      "fat": "F (g)"
+    },
+    "nutrients": {
+      "kcal": "Energy",
+      "protein": "Protein",
+      "carbs": "Carbohydrate",
+      "fat": "Fat",
+      "fiber": "Fibre",
+      "sugar": "Sugars",
+      "saturatedFat": "Saturated fat",
+      "sodium": "Sodium",
+      "cholesterol": "Cholesterol",
+      "calcium": "Calcium",
+      "iron": "Iron",
+      "potassium": "Potassium"
+    },
+    "analysis": {
+      "title": "Analysis",
+      "wholeWeek": "Whole week",
+      "weekHint": "All seven days combined. Open a day to narrow this down.",
+      "scopedHint": "This selection only. Go back to the whole week from the tabs above.",
+      "energy": "Total energy (kcal)",
+      "empty": "Add a food to see the analysis.",
+      "macroSplit": "Energy from macronutrients",
+      "macroSplitNote": "Percentages are of the energy the macronutrients account for (4/4/9 kcal per g), which can differ slightly from the total above.",
+      "allNutrients": "All nutrients",
+      "unmeasured": "{count, number, integer} of these foods have no published value for this nutrient, so the real total is higher.",
+      "unmeasuredNote": "* Not measured for every food — the total is a minimum."
+    },
+    "picker": {
+      "search": "Find a food",
+      "searchPlaceholder": "e.g. chicken breast",
+      "category": "Category",
+      "allCategories": "All categories",
+      "prompt": "Type at least two letters, or pick a category.",
+      "noResults": "No food matches that.",
+      "usePortion": "Use {label} ({grams, number} g)",
+      "add": "Add to meal"
+    },
+    "actions": {
+      "addFood": "Add food",
+      "addMeal": "Add meal",
+      "copy": "Copy",
+      "copyDayTo": "Copy {day} to",
+      "clearDay": "Clear this day",
+      "confirmCopyDay": "This replaces everything on {to} with a copy of {from}. Are you sure?",
+      "confirmClearDay": "This removes every meal on {day}. Are you sure?",
+      "confirmDeleteMeal": "Remove “{label}” and everything in it?",
+      "confirmDeletePlan": "This permanently deletes “{title}” and all of its meals. Are you sure?"
+    },
+    "errors": {
+      "invalid": "Check the fields highlighted in red.",
+      "clientNotFound": "That client is not in your clinic.",
+      "unexpected": "Something went wrong. Please try again."
+    }
   },
   "dashboard": {
     "title": "Dashboard",
     "welcome": "Welcome, {name}",
     "placeholder": "Clinic metrics will appear here once the feature modules are built."
+  },
+  "foods": {
+    "title": "Foods",
+    "per100g": "All values are per 100 g",
+    "resultCount": "{total, number, integer} foods",
+    "searchPlaceholder": "Search by name, e.g. chicken breast",
+    "allCategories": "All categories",
+    "empty": "The food database is empty.",
+    "emptyFiltered": "No food matches your search.",
+    "clearFilters": "Clear filters",
+    "notSeeded": "The food database is empty. Run `bun run db:seed:foods` to load it.",
+    "notFound": "Food not found",
+    "notFoundDescription": "This food may have been removed, or the link is incorrect.",
+    "backToList": "Back to foods",
+    "notMeasured": "Not measured",
+    "noPortion": "No household measure published",
+    "dataSource": "Source: USDA FoodData Central, SR Legacy (April 2018) — public domain.",
+    "fields": {
+      "description": "Food",
+      "category": "Category",
+      "portion": "Household measure",
+      "fdcId": "FoodData Central ID"
+    },
+    "sections": {
+      "macros": "Energy and macronutrients",
+      "allNutrients": "All nutrients",
+      "source": "Portion and source"
+    },
+    "short": {
+      "protein": "P (g)",
+      "carbs": "C (g)",
+      "fat": "F (g)"
+    },
+    "nutrients": {
+      "kcal": "Energy",
+      "protein": "Protein",
+      "carbs": "Carbohydrate",
+      "fat": "Fat",
+      "fiber": "Fibre",
+      "sugar": "Sugars",
+      "saturatedFat": "Saturated fat",
+      "sodium": "Sodium",
+      "cholesterol": "Cholesterol",
+      "calcium": "Calcium",
+      "iron": "Iron",
+      "potassium": "Potassium"
+    },
+    "pagination": {
+      "previous": "Previous",
+      "next": "Next",
+      "position": "Page {page, number, integer} of {pageCount, number, integer}"
+    }
   },
   "clients": {
     "title": "Clients",

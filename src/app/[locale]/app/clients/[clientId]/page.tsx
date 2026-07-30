@@ -11,6 +11,8 @@ import { StatusBadge } from '@/features/clients/components/status-badge';
 import { getPortalUsername } from '@/features/clients/portal-credentials';
 import { getClient } from '@/features/clients/queries';
 import { suggestUsername } from '@/features/clients/transliterate';
+import { ClientPlansCard } from '@/features/meal-plans/components/client-plans-card';
+import { listPlans } from '@/features/meal-plans/queries';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/params';
 import { requireStaffClinic } from '@/lib/session';
@@ -45,7 +47,7 @@ export default async function ClientPage({ params }: ClientPageProps) {
     notFound();
   }
 
-  const t = await getTranslations('clients');
+  const [plans, t] = await Promise.all([listPlans(clinicId, client.id), getTranslations('clients')]);
 
   const portalUsername = client.hasPortalAccess ? await getPortalUsername(clinicId, client.id) : null;
 
@@ -67,6 +69,8 @@ export default async function ClientPage({ params }: ClientPageProps) {
       </div>
 
       <ClientProfile client={client} />
+
+      <ClientPlansCard clientId={client.id} plans={plans} />
 
       <PortalCredentialsCard
         locale={locale}

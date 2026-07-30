@@ -77,17 +77,21 @@ The app is at <http://localhost:3000>, which redirects to `/ar`.
 
 ### Scripts
 
-| Command               | What it does                                                  |
-| --------------------- | ------------------------------------------------------------- |
-| `bun run dev`         | Next dev server (Next itself still runs on Node)               |
-| `bun run build`       | Production build                                               |
-| `bun run start`       | Serve the production build                                     |
-| `bun run lint`        | ESLint, including the RTL rule below                           |
-| `bun run typecheck`   | `tsc --noEmit`                                                 |
-| `bun run db:generate` | Generate a migration from the Drizzle schema into `drizzle/`   |
-| `bun run db:migrate`  | Apply pending migrations                                       |
-| `bun run db:seed`     | `scripts/seed.ts` — seeds a staff account and sample clients    |
-| `bun run db:reset`    | **Destructive.** Drop `public`, replay migrations. Local only. |
+| Command                         | What it does                                                            |
+| ------------------------------- | ----------------------------------------------------------------------- |
+| `bun run dev`                   | Next dev server (Next itself still runs on Node)                         |
+| `bun run build`                 | Production build                                                         |
+| `bun run start`                 | Serve the production build                                               |
+| `bun run lint`                  | ESLint, including the RTL rule below                                     |
+| `bun run typecheck`             | `tsc --noEmit`                                                           |
+| `bun run test`                  | `bun test` — needs `.env.test.local`, see below                          |
+| `bun run db:generate`           | Generate a migration from the Drizzle schema into `drizzle/`             |
+| `bun run db:migrate`            | Apply pending migrations                                                 |
+| `bun run db:migrate:test`       | Apply pending migrations to the test database                            |
+| `bun run db:seed`               | Staff account, sample clients, the calendar, the food table and one plan  |
+| `bun run db:seed:foods`         | Just the `foods` reference table                                         |
+| `bun run db:build-food-dataset` | Regenerate `data/usda-sr-legacy.ndjson` from USDA (rarely needed)        |
+| `bun run db:reset`              | **Destructive.** Drop `public`, replay migrations. Local only.           |
 
 Only `bun.lock` is committed; `package-lock.json`, `pnpm-lock.yaml` and
 `yarn.lock` are git-ignored so a stray `npm install` cannot fork the dependency
@@ -133,6 +137,8 @@ src/
         page.tsx              # dashboard
         settings/security/page.tsx  # passkeys, password, linked providers
         clients/               # the clients feature's routes
+        meal-plans/            # the meal-plans feature's routes
+        foods/                 # the food reference browser
       portal/                 # client area — client session required
         layout.tsx            # guard only
         set-password/page.tsx # forced password change, outside (secured)
@@ -151,9 +157,12 @@ src/
       auth.ts                 # Better Auth's four tables, plus passkeys and auth_attempts
       clinics.ts               # the tenant boundary
       clients.ts                # the clients feature's table
+      foods.ts                  # USDA reference data — the one un-scoped table
+      meal-plans.ts             # plans, their meals and their items
   features/
     auth/                     # forms, server actions, rate limiting, redirect safety, cleanup
     clients/                  # the roster feature
+    meal-plans/               # plan editing and the nutrition maths
   i18n/
     routing.ts                # locales, default, direction
     navigation.ts             # locale-aware Link / redirect / useRouter
@@ -170,10 +179,13 @@ src/
     utils.ts                  # cn()
   types/
   proxy.ts                    # request middleware (see note below)
+data/                         # committed USDA extract (see Food composition data)
 drizzle/                      # generated migrations
 eslint-rules/                 # the logical-properties lint rule
 scripts/
   seed.ts
+  seed-foods.ts               # loads data/usda-sr-legacy.ndjson
+  build-food-dataset.ts       # regenerates that extract from USDA
   db-reset.ts
 ```
 
@@ -487,3 +499,63 @@ been applied.
 
 Note: drizzle-kit runs its config under Node, and Bun only injects `.env.local`
 into its own runtime. `drizzle.config.ts` therefore loads the env file itself.
+
+---
+
+## Food composition data
+
+Meal plans are costed against **USDA FoodData Central, SR Legacy (April 2018)** —
+7,793 generic foods with energy, the three macros, and nine further nutrients.
+It is a work of the US federal government and therefore public domain
+(17 U.S.C. § 105).
+
+SR Legacy was chosen over the other FoodData Central datasets because it is the
+only one that is both broad and clean: Foundation Foods holds ~300 items, and
+Branded Foods holds ~1.9M packaged US supermarket SKUs with manufacturer-declared
+numbers. SR Legacy is generic whole foods — "Egg, whole, raw, fresh" — which is
+what a dietitian actually writes a plan in.
+
+The extract lives at **`data/usda-sr-legacy.ndjson`** and is committed, so
+`bun run db:seed` works offline and seeds identical rows on every machine. One
+food per line, so it stays reviewable in a diff.
+
+- Regenerate it with `bun run db:build-food-dataset` (downloads ~6 MB from USDA,
+  caches it under `node_modules/.cache/`, and should produce a no-op diff).
+- Load it with `bun run db:seed:foods`. Idempotent via `foods.fdc_id`, so a
+  re-seed updates rows in place and existing meal plan items keep pointing at
+  the same foods.
+
+Two rules the code depends on:
+
+- **Every nutrient column is per 100 g.** Portions are converted at the point of
+  use, in `scaleNutrients`. Nothing is ever stored per-serving.
+- **NULL means "not measured", never zero.** Only the macros are present on all
+  7,793 foods; fibre, sugars and the minerals are present on 77–99% of them.
+  Totals skip a NULL and count it in `unmeasured`, and the analysis panel marks
+  any such total as a floor rather than an answer.
+
+`foods` is the one domain table that is **not** scoped to a clinic — food
+composition is a physical fact, not a tenant's data.
+
+---
+
+## Tests
+
+`bun test` needs its own database, because the suite truncates every table
+between tests:
+
+```bash
+createdb dietitian_test
+```
+
+Then create `.env.test.local` (git-ignored) in the repo root:
+
+```
+TEST_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dietitian_test
+```
+
+It must **not** be the same database as `DATABASE_URL`, and its name must end in
+`_test` — `scripts/database-safety.ts` refuses otherwise, and `tests/helpers.ts`
+re-checks `current_database()` on the server immediately before the TRUNCATE.
+
+Apply migrations to it with `bun run db:migrate:test`.

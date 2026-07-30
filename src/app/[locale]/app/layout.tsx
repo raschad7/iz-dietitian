@@ -16,6 +16,7 @@ const NAV_ITEMS = [
   { href: '/app/clients', labelKey: 'clients' },
   { href: '/app/calendar', labelKey: 'calendar' },
   { href: '/app/meal-plans', labelKey: 'mealPlans' },
+  { href: '/app/foods', labelKey: 'foods' },
   { href: '/app/settings/security', labelKey: 'security' },
 ] as const;
 

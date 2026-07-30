@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl';
 
 import { deleteClientAction } from '@/features/clients/actions';
-import { ConfirmSubmitButton } from '@/features/clients/components/confirm-submit-button';
+import { ConfirmSubmitButton } from '@/components/ui/confirm-submit-button';
 import { type Locale } from '@/i18n/routing';
 
 /**

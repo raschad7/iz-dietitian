@@ -9,7 +9,7 @@ type ConfirmSubmitButtonProps = {
   label: string;
   /** Shown in the confirmation prompt. Omit for actions that are easily undone. */
   confirmMessage?: string;
-  variant?: 'default' | 'outline' | 'destructive';
+  variant?: 'default' | 'outline' | 'destructive' | 'ghost';
   size?: 'default' | 'sm';
 };
 
