@@ -1,0 +1,1 @@
+ALTER TABLE "weekly_plan_meals" ADD COLUMN "budget_kcal" integer NOT NULL;

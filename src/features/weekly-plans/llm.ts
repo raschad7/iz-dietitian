@@ -1,0 +1,282 @@
+/**
+ * The seam between this feature and OpenAI.
+ *
+ * Same shape as `src/lib/mail/`: an interface, two transports, and a factory that
+ * reads the environment. `console` plans locally and needs no key, which is what
+ * lets `generate.ts` be tested end to end with no network — the alternative is
+ * mocking the OpenAI SDK, which tests the mock.
+ *
+ * Nothing above this file knows that OpenAI exists.
+ */
+
+import type { PromptPayload } from './prompt';
+
+export type LlmUsage = {
+  promptTokens: number | null;
+  completionTokens: number | null;
+};
+
+export type LlmResult = {
+  /** The raw JSON text. Parsing and validation belong to `generate.ts`. */
+  content: string;
+  model: string;
+  usage: LlmUsage;
+};
+
+export interface LlmTransport {
+  readonly model: string;
+  complete(payload: PromptPayload, signal?: AbortSignal): Promise<LlmResult>;
+}
+
+/**
+ * Raised for anything that went wrong talking to the provider.
+ *
+ * A distinct type so `generate.ts` can tell "the provider is unreachable" — retry
+ * or surface, nothing written — from "the provider replied with something we
+ * cannot use", which is a validation problem with a different remedy.
+ */
+export class LlmTransportError extends Error {
+  constructor(
+    message: string,
+    override readonly cause?: unknown,
+  ) {
+    super(message);
+    this.name = 'LlmTransportError';
+  }
+}
+
+/** Raised when the environment cannot support generation at all. */
+export class LlmNotConfiguredError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'LlmNotConfiguredError';
+  }
+}
+
+/**
+ * How long to wait before giving up.
+ *
+ * A whole week is 35 meals with alternatives, which takes a cheap model a while.
+ * 110s sits under the 120s route-segment `maxDuration` the README documents, so
+ * the request aborts with a message we control rather than the platform killing
+ * the function.
+ */
+export const LLM_TIMEOUT_MS = 110_000;
+
+const DEFAULT_MODEL = 'gpt-4o-mini';
+
+/**
+ * The real transport, over `fetch`.
+ *
+ * Deliberately not the `openai` SDK: this calls exactly one endpoint with one
+ * response format, and a direct fetch is a dependency-free 40 lines that cannot
+ * drift out of step with a major version bump.
+ */
+function createOpenAiTransport(apiKey: string, model: string): LlmTransport {
+  return {
+    model,
+
+    async complete(payload, signal) {
+      // Combine the caller's signal with our own timeout, so a hung connection
+      // fails on our schedule rather than the platform's.
+      const timeout = AbortSignal.timeout(LLM_TIMEOUT_MS);
+      const combined = signal ? AbortSignal.any([signal, timeout]) : timeout;
+
+      let response: Response;
+
+      try {
+        response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            authorization: `Bearer ${apiKey}`,
+          },
+          signal: combined,
+          body: JSON.stringify({
+            model,
+            // Low but not zero: the plan should be reproducible in character
+            // without every client getting an identical week.
+            temperature: 0.4,
+            messages: [
+              { role: 'system', content: payload.system },
+              { role: 'user', content: payload.user },
+            ],
+            response_format: {
+              type: 'json_schema',
+              json_schema: {
+                name: 'weekly_plan',
+                // The whole point: the provider rejects a response that names a
+                // dish outside the enum, so a hallucinated dish never arrives.
+                strict: true,
+                schema: payload.jsonSchema,
+              },
+            },
+          }),
+        });
+      } catch (cause) {
+        const aborted = cause instanceof Error && cause.name === 'TimeoutError';
+        throw new LlmTransportError(
+          aborted ? `OpenAI did not respond within ${LLM_TIMEOUT_MS / 1000}s` : 'Could not reach OpenAI',
+          cause,
+        );
+      }
+
+      if (!response.ok) {
+        // The body carries the provider's own explanation, which is the only
+        // useful thing in the audit row when this shows up in a week's time.
+        const body = await response.text().catch(() => '');
+        throw new LlmTransportError(
+          `OpenAI returned ${response.status} ${response.statusText}: ${body.slice(0, 500)}`,
+        );
+      }
+
+      const json = (await response.json()) as {
+        model?: string;
+        choices?: { message?: { content?: string }; finish_reason?: string }[];
+        usage?: { prompt_tokens?: number; completion_tokens?: number };
+      };
+
+      const choice = json.choices?.[0];
+      const content = choice?.message?.content;
+
+      if (!content) {
+        throw new LlmTransportError('OpenAI returned no content');
+      }
+
+      // A truncated response is valid JSON's worst enemy: it parses as a
+      // syntax error rather than as a partial plan, and the reason why is only
+      // visible here.
+      if (choice?.finish_reason === 'length') {
+        throw new LlmTransportError(
+          'OpenAI hit the output token limit before finishing the plan. Generate one day at a time.',
+        );
+      }
+
+      return {
+        content,
+        model: json.model ?? model,
+        usage: {
+          promptTokens: json.usage?.prompt_tokens ?? null,
+          completionTokens: json.usage?.completion_tokens ?? null,
+        },
+      };
+    },
+  };
+}
+
+/**
+ * Builds a plan locally, with no network.
+ *
+ * Not a canned fixture but a deterministic planner: it reads the per-slot dish
+ * enums back out of the JSON schema the prompt just built and rotates through them,
+ * so every test — and every developer without a key — exercises the real
+ * validation and persistence path against a plan that is actually valid. A fixed
+ * JSON fixture would go stale the moment the catalog changed, and would stop
+ * exercising the interesting code.
+ *
+ * It is a stand-in, not a fallback: nothing selects it automatically.
+ */
+export function createConsoleTransport(): LlmTransport {
+  return {
+    model: 'console',
+
+    async complete(payload) {
+      const { days, slots } = describeSchema(payload.jsonSchema);
+
+      const content = JSON.stringify({
+        days: days.map((dayOfWeek, dayIndex) => {
+          const day: Record<string, unknown> = { dayOfWeek };
+
+          for (const [slotIndex, slot] of slots.entries()) {
+            if (!slot.dishes.length) continue;
+
+            // Rotate by day AND slot, so the week is not seven identical days —
+            // which would hide any variety bug the real path has.
+            const chosen = slot.dishes[(dayIndex + slotIndex) % slot.dishes.length]!;
+
+            day[slot.slotKey] = {
+              dish: chosen,
+              servings: 1,
+              rationaleAr: 'اختيار تجريبي من الناقل المحلي.',
+              alternatives: slot.dishes
+                .filter((slug) => slug !== chosen)
+                .slice(0, 2)
+                .map((slug) => ({ dish: slug, servings: 1 })),
+            };
+          }
+
+          return day;
+        }),
+      });
+
+      return { content, model: 'console', usage: { promptTokens: null, completionTokens: null } };
+    },
+  };
+}
+
+/**
+ * Reads the enums the prompt put in the schema, so the stand-in cannot drift out of
+ * step with the contract it is standing in for.
+ */
+function describeSchema(schema: Record<string, unknown>): {
+  days: number[];
+  slots: { slotKey: string; dishes: string[] }[];
+} {
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  const day = (schema as any).properties?.days?.items;
+  const properties: Record<string, any> = day?.properties ?? {};
+
+  const slots = Object.entries(properties)
+    .filter(([key]) => key !== 'dayOfWeek')
+    .map(([slotKey, value]) => ({ slotKey, dishes: (value?.properties?.dish?.enum ?? []) as string[] }));
+
+  return { days: day?.properties?.dayOfWeek?.enum ?? [0], slots };
+}
+
+/**
+ * Chooses a transport from the environment.
+ *
+ * Throws `LlmNotConfiguredError` rather than falling back to the stand-in when a
+ * key is missing: a dietitian publishing a plan that a fixture invented, believing
+ * a model produced it, is the worst outcome this feature has. The UI catches this
+ * and disables the button with a configuration message.
+ */
+function createTransport(): LlmTransport {
+  const transport = process.env.LLM_TRANSPORT ?? 'openai';
+
+  if (transport === 'console') return createConsoleTransport();
+
+  if (transport !== 'openai') {
+    throw new LlmNotConfiguredError(`Unknown LLM_TRANSPORT "${transport}". Use "console" or "openai".`);
+  }
+
+  const apiKey = process.env.OPENAI_API_KEY;
+
+  if (!apiKey) {
+    throw new LlmNotConfiguredError('LLM_TRANSPORT=openai but OPENAI_API_KEY is not set.');
+  }
+
+  return createOpenAiTransport(apiKey, process.env.OPENAI_MODEL ?? DEFAULT_MODEL);
+}
+
+let cached: LlmTransport | undefined;
+
+export function getLlmTransport(): LlmTransport {
+  cached ??= createTransport();
+  return cached;
+}
+
+/**
+ * Whether generation is possible at all, for the UI to check before offering it.
+ *
+ * Cheaper and clearer than letting the button throw: "OpenAI is not configured" is
+ * a state the page can render, not an error it should surface.
+ */
+export function isLlmConfigured(): boolean {
+  try {
+    getLlmTransport();
+    return true;
+  } catch {
+    return false;
+  }
+}
