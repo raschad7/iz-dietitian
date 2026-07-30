@@ -10,10 +10,22 @@ type PortalLayoutProps = {
   params: Promise<{ locale: string }>;
 };
 
+/**
+ * Shell for the whole client area: authenticates, and nothing more.
+ *
+ * The `mustChangePassword` redirect deliberately does NOT live here. It lives in
+ * `(secured)/layout.tsx`, a route group that wraps every portal page EXCEPT
+ * `set-password`. Route groups do not appear in the URL, so `/portal` still
+ * resolves to `(secured)/page.tsx` while `/portal/set-password` is reached
+ * through this layout alone.
+ *
+ * Putting the check here instead would lock every client out permanently: in the
+ * App Router a nested layout wraps its parent rather than replacing it, so
+ * `set-password` would inherit the redirect and bounce to itself forever.
+ */
 export default async function PortalLayout({ children, params }: PortalLayoutProps) {
   const locale = await resolveLocale(params);
 
-  // Authoritative guard for the whole client area.
   const session = await requireClientSession(locale);
 
   const t = await getTranslations('portal');

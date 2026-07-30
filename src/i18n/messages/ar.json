@@ -32,7 +32,8 @@
     "settings": "الإعدادات",
     "portalHome": "الصفحة الرئيسية",
     "myPlan": "خطتي الغذائية",
-    "myAppointments": "مواعيدي"
+    "myAppointments": "مواعيدي",
+    "security": "الأمان"
   },
   "landing": {
     "title": "إدارة عيادتك الغذائية في مكان واحد",
@@ -66,21 +67,139 @@
     "confirmPassword": "تأكيد كلمة المرور",
     "passwordHint": "{count, number, integer} أحرف على الأقل.",
     "clientTitle": "بوابة المتابعين",
-    "clientSubtitle": "ادخل عبر رابط يُرسل إلى بريدك الإلكتروني.",
+    "clientSubtitle": "ادخل ببيانات الدخول التي حصلت عليها من أخصائي التغذية.",
     "clientHeading": "المتابعون",
-    "clientDescription": "أرسل رابط دخول لمرة واحدة إلى بريدك الإلكتروني، صالح لمدة {minutes, number, integer} دقيقة.",
-    "magicLinkSubmit": "أرسل رابط الدخول",
-    "magicLinkSent": "إذا كان البريد مسجّلًا لدينا، فقد أُرسل إليه رابط الدخول.",
+    "portalHeading": "الدخول إلى بوابة المراجعين",
+    "portalDescription": "استخدم اسم المستخدم وكلمة المرور اللذين حصلت عليهما من أخصائي التغذية.",
+    "portalUsername": "اسم المستخدم",
+    "portalSubmit": "دخول",
+    "wrongCredentials": "اسم المستخدم أو كلمة المرور غير صحيحة.",
+    "passwordTooCommon": "كلمة المرور هذه شائعة جداً. اختر واحدة أخرى.",
+    "setPasswordHeading": "اختر كلمة مرور جديدة",
+    "setPasswordDescription": "كلمة المرور التي حصلت عليها مؤقتة. اختر واحدة خاصة بك للمتابعة.",
+    "setPasswordSubmit": "حفظ ومتابعة",
+    "clientPasswordHint": "{count, number, integer} أحرف على الأقل.",
     "genericError": "تعذّر تسجيل الدخول. تحقّق من البيانات وحاول مجددًا.",
     "emailTaken": "هذا البريد الإلكتروني مسجّل مسبقًا.",
     "passwordMismatch": "كلمتا المرور غير متطابقتين.",
     "passwordTooShort": "كلمة المرور قصيرة جدًا.",
     "nameRequired": "أدخل الاسم الكامل.",
-    "invalidEmail": "أدخل بريدًا إلكترونيًا صحيحًا."
+    "invalidEmail": "أدخل بريدًا إلكترونيًا صحيحًا.",
+    "continueWithGoogle": "المتابعة باستخدام Google",
+    "continueWithPasskey": "المتابعة باستخدام مفتاح المرور",
+    "passkeyFailed": "تعذّر الدخول بمفتاح المرور. جرّب طريقة أخرى.",
+    "orUsePassword": "أو",
+    "forgotLink": "نسيت كلمة المرور؟",
+    "forgotHeading": "إعادة تعيين كلمة المرور",
+    "forgotDescription": "أدخل بريدك الإلكتروني وسنرسل لك رابطاً لتعيين كلمة مرور جديدة.",
+    "forgotSubmit": "أرسل الرابط",
+    "resetHeading": "كلمة مرور جديدة",
+    "resetDescription": "اختر كلمة مرور جديدة. سيتم إنهاء جلساتك الأخرى.",
+    "resetSubmit": "حفظ كلمة المرور",
+    "resetLinkSent": "إذا كان هذا البريد مسجّلاً لدينا، فقد أرسلنا إليه رابطاً.",
+    "verificationSent": "أرسلنا رسالة تأكيد إلى بريدك الإلكتروني.",
+    "verifyEmailFirst": "يرجى تأكيد بريدك الإلكتروني قبل الدخول.",
+    "accountNotLinked": "يوجد حساب غير مؤكَّد بهذا البريد الإلكتروني.",
+    "noGoogleAccount": "لا يوجد حساب مرتبط بحساب Google هذا. أنشئ حساباً جديداً أولاً.",
+    "rateLimited": "محاولات كثيرة. حاول مرة أخرى بعد {minutes} دقيقة.",
+    "checkInboxHeading": "تحقّق من بريدك",
+    "checkInboxDescription": "أرسلنا رابط تأكيد إلى بريدك الإلكتروني.",
+    "checkInboxSpam": "إن لم تجد الرسالة، تحقّق من مجلد البريد غير المرغوب فيه.",
+    "checkInboxWrongAddress": "أدخلت بريداً خاطئاً؟",
+    "passwordChanged": "تم تغيير كلمة المرور.",
+    "lastSignInMethod": "لا يمكن حذف طريقة الدخول الوحيدة لحسابك.",
+    "passkeyRegistered": "تمت إضافة مفتاح المرور.",
+    "passkeyRemoved": "تم حذف مفتاح المرور.",
+    "passkeysTitle": "مفاتيح المرور",
+    "passkeysDescription": "ادخل ببصمتك أو بقفل جهازك، بدون كلمة مرور.",
+    "passkeysNone": "لا توجد مفاتيح مرور بعد.",
+    "passkeyUnnamed": "مفتاح مرور",
+    "passkeyAdd": "إضافة مفتاح مرور",
+    "passkeyRemove": "حذف",
+    "methodsTitle": "طرق الدخول",
+    "methodPasswordOn": "كلمة المرور مفعّلة.",
+    "methodPasswordOff": "لا توجد كلمة مرور لهذا الحساب.",
+    "methodGoogleOn": "حساب Google مرتبط.",
+    "methodGoogleOff": "لا يوجد حساب Google مرتبط."
   },
   "calendar": {
     "title": "التقويم",
     "placeholder": "ستظهر هنا مواعيد العيادة بعد بناء وحدة المواعيد."
+  },
+  "booking": {
+    "title": "التقويم",
+    "completed": "منتهٍ",
+    "now": "الآن",
+    "empty": "لا مواعيد في هذه الفترة. انقر على أي خانة فارغة لحجز موعد.",
+    "monthCount": "{count, number, integer}",
+    "monthReadOnly": "عرض الشهر للاطّلاع فقط. انقر على أي يوم للحجز أو التعديل.",
+    "nav": {
+      "today": "اليوم",
+      "previous": "السابق",
+      "next": "التالي",
+      "view": "طريقة العرض",
+      "day": "يوم",
+      "week": "أسبوع",
+      "month": "شهر"
+    },
+    "search": {
+      "placeholder": "ابحث عن متابع"
+    },
+    "duration": {
+      "hours": "{count, number, integer} ساعة",
+      "minutes": "{count, number, integer} دقيقة"
+    },
+    "fields": {
+      "date": "التاريخ",
+      "datePlaceholder": "YYYY-MM-DD",
+      "openDatePicker": "اختيار التاريخ من التقويم",
+      "start": "وقت البدء",
+      "duration": "المدة",
+      "unavailable": "غير متاح",
+      "client": "المتابع",
+      "editClient": "تعديل",
+      "reason": "سبب الزيارة",
+      "reasonPlaceholder": "متابعة، استشارة أولى…",
+      "optional": "(اختياري)"
+    },
+    "picker": {
+      "title": "اختيار المتابع",
+      "searchPlaceholder": "ابحث بالاسم",
+      "clients": "المتابعون",
+      "noMatches": "لا نتائج مطابقة.",
+      "alreadyBookedAt": "لديه موعد في هذا اليوم الساعة {time}.",
+      "newClient": "متابع جديد",
+      "newClientInDayView": "لإضافة متابع جديد، افتح عرض اليوم."
+    },
+    "newClient": {
+      "title": "إضافة متابع وحجز الموعد",
+      "fullName": "الاسم الكامل",
+      "phone": "رقم الهاتف",
+      "saveAndBook": "حفظ وحجز"
+    },
+    "dialog": {
+      "title": "تفاصيل الموعد"
+    },
+    "actions": {
+      "save": "حفظ",
+      "cancel": "إلغاء",
+      "close": "إغلاق",
+      "delete": "حذف الموعد",
+      "confirmDeleteCompleted": "انتهى هذا الموعد بالفعل، وحذفه يزيل السجل نهائيًا. هل أنت متأكد؟"
+    },
+    "errors": {
+      "tooShort": "أقصر مدة للموعد ١٥ دقيقة.",
+      "invalidDate": "تاريخ غير صحيح. استخدم صيغة مثل 2026-08-05 أو 8/5/2026.",
+      "closedDay": "العيادة مغلقة في هذا اليوم.",
+      "outsideHours": "الموعد خارج ساعات عمل العيادة.",
+      "overlap": "يتعارض هذا الموعد مع موعد آخر.",
+      "clientBooked": "لدى هذا المتابع موعد آخر في اليوم نفسه.",
+      "unauthorized": "لا تملك صلاحية تنفيذ هذا الإجراء.",
+      "invalid": "تحقّق من البيانات المُدخلة.",
+      "notFound": "الموعد غير موجود.",
+      "completedLocked": "انتهى هذا الموعد ولم يعد قابلًا للتعديل.",
+      "unexpected": "حدث خطأ غير متوقع. حاول مجددًا."
+    }
   },
   "mealPlans": {
     "title": "الخطط الغذائية",
@@ -324,18 +443,22 @@
     "portal": {
       "title": "الدخول إلى البوابة",
       "none": "لا يملك هذا المتابع حسابًا في بوابة المتابعين.",
-      "granted": "يستطيع هذا المتابع الدخول إلى البوابة عبر رابط يُرسل إلى بريده.",
-      "invite": "منح صلاحية الدخول",
+      "granted": "يستطيع هذا المتابع الدخول إلى البوابة.",
+      "username": "اسم المستخدم",
+      "issue": "إنشاء بيانات الدخول",
+      "reissue": "إصدار كلمة مرور جديدة",
+      "confirmReissue": "سيتم إنهاء جلسات المتابع الحالية. هل تريد المتابعة؟",
       "revoke": "سحب صلاحية الدخول",
-      "invited": "تم إنشاء الحساب وإرسال رابط الدخول.",
       "revoked": "تم سحب صلاحية الدخول.",
       "confirmRevoke": "سيفقد المتابع إمكانية الدخول إلى البوابة فورًا. هل أنت متأكد؟",
-      "devNotice": "في بيئة التطوير يُطبع رابط الدخول في سجلّ الخادم بدل إرساله بالبريد."
+      "showOnce": "اكتب هذه البيانات الآن — لن تظهر مرة أخرى.",
+      "temporaryPassword": "كلمة المرور المؤقتة",
+      "handOver": "سلّم هذه البيانات للمتابع. سيختار كلمة مرور خاصة به عند أول دخول."
     },
     "errors": {
       "invalid": "تحقّق من الحقول المميّزة بالأحمر.",
-      "noEmail": "أضف بريدًا إلكترونيًا للمتابع قبل منحه صلاحية الدخول.",
-      "emailTaken": "هذا البريد مستخدم لحساب آخر.",
+      "usernameTaken": "اسم المستخدم هذا مستخدم بالفعل. اختر غيره.",
+      "usernameInvalid": "استخدم من 3 إلى 60 حرفاً أو رقماً أو شرطة.",
       "unexpected": "حدث خطأ غير متوقع. حاول مجددًا."
     }
   },

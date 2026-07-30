@@ -1,24 +1,15 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 
 import { type Locale } from '@/i18n/routing';
-import { auth } from '@/lib/auth';
 import { requireStaffClinic } from '@/lib/session';
 
-import {
-  archiveClient,
-  createClient,
-  deleteClient,
-  invitePortalAccess,
-  restoreClient,
-  revokePortalAccess,
-  updateClient,
-} from './mutations';
-import { type ClientFormState, type PortalActionState } from './form-state';
+import { archiveClient, createClient, deleteClient, restoreClient, updateClient } from './mutations';
+import { type ClientFormState, type PortalCredentialsState, type RevokePortalAccessState } from './form-state';
+import { issuePortalCredentials, reissuePortalPassword, revokePortalAccess } from './portal-credentials';
 import { clientFormSchema, clientIdSchema, localeSchema } from './schema';
 
 /**
@@ -50,6 +41,20 @@ function readForm(formData: FormData) {
 function readLocale(formData: FormData): Locale {
   return localeSchema.parse(formData.get('locale'));
 }
+
+/**
+ * Mirrors the Better Auth username plugin's own rules (`src/lib/auth.ts`):
+ * 3-60 characters, letters, digits and hyphens. Kept local rather than in
+ * `./schema` — the dietitian-facing form is the only caller, and duplicating
+ * three lines here beats reaching into a file outside this slice.
+ */
+const usernameSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .regex(/^[a-z0-9-]+$/)
+  .min(3)
+  .max(60);
 
 export async function createClientAction(
   _previousState: ClientFormState,
@@ -150,58 +155,77 @@ export async function deleteClientAction(formData: FormData): Promise<void> {
   redirect(`/${locale}/app/clients`);
 }
 
-export async function invitePortalAccessAction(
-  _previousState: PortalActionState,
+/**
+ * Issues a client's first portal credentials. Returns the temporary password
+ * in the state so the card can display it once — it is never written to the
+ * database in plaintext, and this is the only place it is readable at all.
+ */
+export async function issuePortalCredentialsAction(
+  _previousState: PortalCredentialsState,
   formData: FormData,
-): Promise<PortalActionState> {
+): Promise<PortalCredentialsState> {
   const locale = readLocale(formData);
   const { clinicId } = await requireStaffClinic(locale);
 
   const id = clientIdSchema.parse(formData.get('clientId'));
 
-  let email: string;
+  const parsedUsername = usernameSchema.safeParse(formData.get('username'));
+  if (!parsedUsername.success) return { status: 'error', messageKey: 'errors.usernameInvalid' };
 
   try {
-    const result = await invitePortalAccess(clinicId, id);
+    const result = await issuePortalCredentials(clinicId, id, parsedUsername.data);
 
     if (!result.ok) {
-      if (result.code === 'no_email') return { status: 'error', messageKey: 'errors.noEmail' };
-      if (result.code === 'email_taken') return { status: 'error', messageKey: 'errors.emailTaken' };
+      if (result.code === 'username_taken') return { status: 'error', messageKey: 'errors.usernameTaken' };
       return { status: 'error', messageKey: 'errors.unexpected' };
     }
 
-    // Read back from the database, never from the submitted form: the form field
-    // is attacker-controlled and would let a caller aim the sign-in link
-    // somewhere else.
-    email = result.email;
+    revalidatePath(`/${locale}/app/clients`);
+    revalidatePath(`/${locale}/app/clients/${id}`);
+
+    return { status: 'issued', username: result.username, temporaryPassword: result.temporaryPassword };
   } catch (error) {
-    console.error('[clients] invite failed', error);
+    console.error('[clients] issuing portal credentials failed', error);
     return { status: 'error', messageKey: 'errors.unexpected' };
   }
+}
+
+/**
+ * Issues a fresh temporary password for a client who already has portal
+ * access. The username the card submits back is not trusted for anything but
+ * display — `reissuePortalPassword` looks the account up by `clientId`.
+ */
+export async function reissuePortalPasswordAction(
+  _previousState: PortalCredentialsState,
+  formData: FormData,
+): Promise<PortalCredentialsState> {
+  const locale = readLocale(formData);
+  const { clinicId } = await requireStaffClinic(locale);
+
+  const id = clientIdSchema.parse(formData.get('clientId'));
 
   try {
-    // In development this logs the sign-in URL to the server console; see
-    // `sendMagicLink` in src/lib/auth.ts. It throws in production until an email
-    // provider is configured — a pre-existing limitation, surfaced in the UI.
-    await auth.api.signInMagicLink({
-      body: { email, callbackURL: `/${locale}/portal` },
-      headers: await headers(),
-    });
+    const result = await reissuePortalPassword(clinicId, id);
+
+    if (!result.ok) {
+      if (result.code === 'username_taken') return { status: 'error', messageKey: 'errors.usernameTaken' };
+      return { status: 'error', messageKey: 'errors.unexpected' };
+    }
+
+    revalidatePath(`/${locale}/app/clients`);
+    revalidatePath(`/${locale}/app/clients/${id}`);
+
+    return { status: 'issued', username: result.username, temporaryPassword: result.temporaryPassword };
   } catch (error) {
-    // The account exists and is usable; only the notification failed.
-    console.error('[clients] magic link send failed', error);
+    console.error('[clients] reissuing portal password failed', error);
+    return { status: 'error', messageKey: 'errors.unexpected' };
   }
-
-  revalidatePath(`/${locale}/app/clients`);
-  revalidatePath(`/${locale}/app/clients/${id}`);
-
-  return { status: 'success', messageKey: 'portal.invited' };
 }
 
 export async function revokePortalAccessAction(
-  _previousState: PortalActionState,
+  _previousState: RevokePortalAccessState,
   formData: FormData,
-): Promise<PortalActionState> {
+): Promise<RevokePortalAccessState> {
   const locale = readLocale(formData);
   const { clinicId } = await requireStaffClinic(locale);
 

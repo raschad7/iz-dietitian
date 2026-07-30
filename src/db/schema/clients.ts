@@ -1,4 +1,5 @@
-import { date, index, integer, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import { check, date, index, integer, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 
 import { user } from './auth';
 import { clinics } from './clinics';
@@ -56,6 +57,17 @@ export const clients = pgTable(
     /** active | archived. Clients are archived, never deleted — they own history. */
     status: text('status').notNull().default('active'),
 
+    /**
+     * Backs the generated initials avatar in the calendar's client picker.
+     *
+     * Stored rather than hashed from the name at render time: renaming a client
+     * would otherwise change their colour, and the whole point of the colour is
+     * that staff learn to recognise it. Assigned on create from the palette in
+     * `src/lib/avatar-color.ts`; the default here only covers rows that predate
+     * this column.
+     */
+    color: text('color').notNull().default('#64748b'),
+
     /** Locale for this client's portal account and magic-link emails. ar | en */
     preferredLocale: text('preferred_locale').notNull().default('ar'),
 
@@ -91,6 +103,10 @@ export const clients = pgTable(
     index('clients_clinic_id_status_idx').on(table.clinicId, table.status),
     // No index on search_name: `ilike '%…%'` cannot use a btree. At one clinic's
     // scale a sequential scan is the right plan; pg_trgm is the upgrade path.
+
+    // Rendered straight into a style attribute, so the shape is enforced here
+    // and not only in Zod — see the same check on `practitioners.color`.
+    check('clients_color_hex', sql`${table.color} ~ '^#[0-9a-fA-F]{6}$'`),
   ],
 );
 

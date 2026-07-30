@@ -18,10 +18,21 @@ export type ClientFormState =
       fieldErrors?: Record<string, string[] | undefined>;
     };
 
-export type PortalActionState =
+/**
+ * Issuing and re-issuing both hand back a temporary password that is shown
+ * exactly once — the caller never gets a second chance to read it, so it rides
+ * in the state returned to the form rather than anywhere it could be re-fetched.
+ */
+export type PortalCredentialsState =
   | { status: 'idle' }
-  | { status: 'error'; messageKey: 'errors.noEmail' | 'errors.emailTaken' | 'errors.unexpected' }
-  | { status: 'success'; messageKey: 'portal.invited' | 'portal.revoked' };
+  | { status: 'error'; messageKey: 'errors.usernameTaken' | 'errors.usernameInvalid' | 'errors.unexpected' }
+  | { status: 'issued'; username: string; temporaryPassword: string };
+
+export type RevokePortalAccessState =
+  | { status: 'idle' }
+  | { status: 'error'; messageKey: 'errors.unexpected' }
+  | { status: 'success'; messageKey: 'portal.revoked' };
 
 export const initialFormState: ClientFormState = { status: 'idle' };
-export const initialPortalState: PortalActionState = { status: 'idle' };
+export const initialPortalCredentialsState: PortalCredentialsState = { status: 'idle' };
+export const initialRevokePortalAccessState: RevokePortalAccessState = { status: 'idle' };

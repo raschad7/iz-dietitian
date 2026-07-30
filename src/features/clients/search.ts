@@ -23,12 +23,19 @@ const ALEF_MAQSURA = /ى/gu;
 /** ة → ه */
 const TAA_MARBUTA = /ة/gu;
 
-export function normalizeForSearch(value: string): string {
+/**
+ * The Arabic-folding half of `normalizeForSearch`, split out so transliteration
+ * can reuse it without inheriting the lowercasing — Latin names need their
+ * casing preserved, so the two callers diverge only after this point.
+ */
+export function foldArabic(value: string): string {
   return value
-    .trim()
-    .toLowerCase()
     .replace(ARABIC_DIACRITICS, '')
     .replace(ALEF_VARIANTS, 'ا')
     .replace(ALEF_MAQSURA, 'ي')
     .replace(TAA_MARBUTA, 'ه');
+}
+
+export function normalizeForSearch(value: string): string {
+  return foldArabic(value.trim().toLowerCase());
 }

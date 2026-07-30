@@ -1,0 +1,131 @@
+'use client';
+
+import { useTranslations } from 'next-intl';
+import { useActionState } from 'react';
+
+import { signUpStaff } from '@/features/auth/actions';
+import { AuthFormMessage, AuthSubmitButton } from '@/features/auth/components/form-parts';
+import { GoogleButton } from '@/features/auth/components/google-button';
+import { PasswordInput } from '@/features/auth/components/password-input';
+import { initialAuthState } from '@/features/auth/form-state';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Link } from '@/i18n/navigation';
+import { MIN_PASSWORD_LENGTH } from '@/lib/auth-constants';
+import { type Locale } from '@/i18n/routing';
+
+type StaffSignUpFormProps = {
+  locale: Locale;
+  /** False when this deployment has no Google credentials — see `isGoogleEnabled`. */
+  showGoogle: boolean;
+};
+
+export function StaffSignUpForm({ locale, showGoogle }: StaffSignUpFormProps) {
+  const t = useTranslations('login');
+  const tCommon = useTranslations('common');
+  const [state, formAction] = useActionState(signUpStaff, initialAuthState);
+
+  if (state.status === 'sent') {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('checkInboxHeading')}</CardTitle>
+          <CardDescription>{t('checkInboxDescription')}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4 text-sm text-muted-foreground">
+          <p>{t('checkInboxSpam')}</p>
+          {/*
+            A mistyped address cannot be corrected from here: there is no session
+            and the mail went elsewhere. Signing up again is the only way out, so
+            say so plainly rather than leaving a dead end.
+          */}
+          <p>
+            {t('checkInboxWrongAddress')}{' '}
+            <Link href="/signup" className="font-medium text-foreground underline-offset-4 hover:underline">
+              {t('signUpLink')}
+            </Link>
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{t('signUpHeading')}</CardTitle>
+        <CardDescription>{t('signUpDescription')}</CardDescription>
+      </CardHeader>
+
+      <CardContent>
+        {/*
+          The same button as on the sign-in page, and deliberately so: with OAuth
+          there is no separate "register" step — the first time through creates
+          the account. It also skips the verification gate entirely, because
+          Google has already proven the address belongs to them.
+        */}
+        {showGoogle ? (
+          <>
+            {/* The only place that passes `requestSignUp` — this is the enrolment door. */}
+            <GoogleButton locale={locale} requestSignUp />
+
+            <div className="my-6 flex items-center gap-3 text-xs text-muted-foreground">
+              <span className="h-px flex-1 bg-border" />
+              {t('orUsePassword')}
+              <span className="h-px flex-1 bg-border" />
+            </div>
+          </>
+        ) : null}
+
+        <form action={formAction} className="space-y-4">
+          <input type="hidden" name="locale" value={locale} />
+
+          <div className="space-y-2">
+            <Label htmlFor="signup-name">{t('fullName')}</Label>
+            <Input id="signup-name" name="name" autoComplete="name" required minLength={2} />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="signup-email">{tCommon('email')}</Label>
+            <Input
+              id="signup-email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              dir="ltr"
+              required
+              placeholder={t('emailPlaceholder')}
+            />
+          </div>
+
+          <PasswordInput
+            name="password"
+            label={tCommon('password')}
+            autoComplete="new-password"
+            minLength={MIN_PASSWORD_LENGTH}
+            hint={t('passwordHint', { count: MIN_PASSWORD_LENGTH })}
+          />
+
+          <PasswordInput
+            name="confirmPassword"
+            label={t('confirmPassword')}
+            autoComplete="new-password"
+            minLength={MIN_PASSWORD_LENGTH}
+          />
+
+          <AuthFormMessage state={state} />
+
+          <AuthSubmitButton label={t('signUpSubmit')} />
+        </form>
+
+        <p className="mt-4 text-sm text-muted-foreground">
+          {t('haveAccount')}{' '}
+          <Link href="/login" className="font-medium text-foreground underline-offset-4 hover:underline">
+            {t('signInLink')}
+          </Link>
+        </p>
+      </CardContent>
+    </Card>
+  );
+}

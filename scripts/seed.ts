@@ -9,10 +9,15 @@
 import { eq, inArray } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { account, clients, clinics, foods, user } from '@/db/schema';
-import { createClient, invitePortalAccess } from '@/features/clients/mutations';
+import { account, appointments, clients, clinics, foods, practitioners, user } from '@/db/schema';
+import { addDays, toIsoDate } from '@/features/booking/date';
+import { ensurePractitioner } from '@/features/booking/mutations';
+import { createClient } from '@/features/clients/mutations';
+import { issuePortalCredentials } from '@/features/clients/portal-credentials';
+import { suggestUsername } from '@/features/clients/transliterate';
 import { addItem, copyDay, createPlan } from '@/features/meal-plans/mutations';
 import { auth } from '@/lib/auth';
+import { paletteColorAt, pickAvatarColor } from '@/lib/avatar-color';
 
 import { seedFoods } from './seed-foods';
 
@@ -99,10 +104,22 @@ async function seed(): Promise<void> {
 
   const created = await Promise.all(SEED_CLIENTS.map((input) => createClient(clinicId, input)));
 
-  // One client gets portal access so the invited state is visible in the UI.
+  // One client gets portal credentials so the granted state — and a working
+  // sign-in — is visible in the UI without doing it by hand.
   const [, second] = created;
-  if (second) {
-    await invitePortalAccess(clinicId, second.id);
+  const secondInput = SEED_CLIENTS[1];
+  if (second && secondInput) {
+    const result = await issuePortalCredentials(clinicId, second.id, suggestUsername(secondInput.fullName));
+    if (result.ok) {
+      console.info(`portal credentials: ${result.username} / ${result.temporaryPassword}`);
+    }
+  }
+
+  // Give every seeded client a distinct avatar colour, the way
+  // `createClientAndBook` does for clients added from the picker.
+  for (const [index, client] of created.entries()) {
+    const name = SEED_CLIENTS[index]?.fullName ?? client.id;
+    await db.update(clients).set({ color: pickAvatarColor(name) }).where(eq(clients.id, client.id));
   }
 
   // One archived client so the status filter has something to filter.
@@ -113,6 +130,7 @@ async function seed(): Promise<void> {
 
   console.info(`seeded ${created.length} clients`);
 
+  await seedCalendar(clinicId, 'أخصائي التغذية', created);
   await seedSampleMealPlan(clinicId, second?.id);
 }
 
@@ -182,6 +200,65 @@ async function seedSampleMealPlan(clinicId: string, clientId: string | undefined
   await copyDay(clinicId, plan.id, { fromDay: SEEDED_DAY, toDay: 3 });
 
   console.info(`seeded 1 sample weekly meal plan (2 of 7 days filled)`);
+}
+
+/**
+ * The clinic's single practitioner and a handful of appointments, so the
+ * calendar has something to draw on a fresh database.
+ *
+ * One practitioner, because the account holder *is* the doctor — the app never
+ * asks who an appointment is with. `ensurePractitioner` is the same function the
+ * app uses, so the seed cannot drift from the runtime behaviour.
+ *
+ * `reason` is deliberately left unset on every appointment: the field has no
+ * default anywhere, including here, so the popup opens on an empty box with only
+ * its placeholder showing.
+ */
+async function seedCalendar(
+  clinicId: string,
+  ownerName: string,
+  seededClients: { id: string }[],
+): Promise<void> {
+  // Appointments cascade from practitioners, so this clears both.
+  await db.delete(practitioners).where(eq(practitioners.clinicId, clinicId));
+
+  const practitionerId = await ensurePractitioner({ clinicId, ownerName });
+  await db.update(practitioners).set({ color: paletteColorAt(0) }).where(eq(practitioners.id, practitionerId));
+
+  const today = toIsoDate(new Date());
+
+  // One earlier today so the derived "completed" state is visible on load, one
+  // later today, and one tomorrow. Rule 5 means a different client each day.
+  const schedule = [
+    { date: today, startMinute: 8 * 60 + 30, durationMinutes: 45, client: 1 },
+    { date: today, startMinute: 11 * 60, durationMinutes: 60, client: 2 },
+    { date: addDays(today, 1), startMinute: 9 * 60, durationMinutes: 30, client: 3 },
+  ];
+
+  const rows = schedule
+    .map((entry) => {
+      const client = seededClients[entry.client];
+      if (!client) return null;
+
+      return {
+        clinicId,
+        practitionerId,
+        clientId: client.id,
+        date: entry.date,
+        startMinute: entry.startMinute,
+        durationMinutes: entry.durationMinutes,
+      };
+    })
+    .filter((row) => row !== null);
+
+  if (rows.length > 0) {
+    // The clinic is closed at weekends, so a seeded date can fall on a day the
+    // validator would reject. That is fine for a fixture — the constraints that
+    // matter (no overlap, one per client per day) still apply.
+    await db.insert(appointments).values(rows);
+  }
+
+  console.info(`seeded 1 practitioner and ${rows.length} appointments`);
 }
 
 await seed();

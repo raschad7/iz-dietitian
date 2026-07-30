@@ -1,12 +1,14 @@
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
-import { StaffLoginForm } from '@/components/auth/staff-login-form';
+import { StaffLoginForm } from '@/features/auth/components/staff-login-form';
+import { isGoogleEnabled } from '@/lib/auth';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/params';
 
 type LoginPageProps = {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<{ redirect?: string; error?: string }>;
 };
 
 export async function generateMetadata({ params }: LoginPageProps): Promise<Metadata> {
@@ -16,8 +18,9 @@ export async function generateMetadata({ params }: LoginPageProps): Promise<Meta
 }
 
 /** Clinic team only. Clients sign in at `/[locale]/client-login`. */
-export default async function LoginPage({ params }: LoginPageProps) {
+export default async function LoginPage({ params, searchParams }: LoginPageProps) {
   const locale = await resolveLocale(params);
+  const { redirect: redirectTo, error } = await searchParams;
 
   const t = await getTranslations('login');
 
@@ -28,7 +31,12 @@ export default async function LoginPage({ params }: LoginPageProps) {
         <p className="text-muted-foreground">{t('staffSubtitle')}</p>
       </header>
 
-      <StaffLoginForm locale={locale} />
+      <StaffLoginForm
+        locale={locale}
+        showGoogle={isGoogleEnabled}
+        redirectTo={redirectTo}
+        oauthError={error}
+      />
 
       <p className="text-center text-sm text-muted-foreground">
         {t('areYouAClient')}{' '}

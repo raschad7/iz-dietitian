@@ -1,34 +1,28 @@
-import { getTranslations } from 'next-intl/server';
-import type { Metadata } from 'next';
-
+import { redirect } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/params';
-import { requireStaffSession } from '@/lib/session';
 
 type CalendarPageProps = {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-export async function generateMetadata({ params }: CalendarPageProps): Promise<Metadata> {
+/**
+ * `/app/calendar` is not a view of its own — day, week and month each have their
+ * own address. This sends the bare path to the week, the view that answers "what
+ * does my clinic look like right now" best.
+ *
+ * Any query string is carried across, so a link to `/app/calendar?date=…` still
+ * lands on the right week.
+ */
+export default async function CalendarIndexPage({ params, searchParams }: CalendarPageProps) {
   const locale = await resolveLocale(params);
-  const t = await getTranslations({ locale, namespace: 'calendar' });
-  return { title: t('title') };
-}
 
-/** Placeholder. Navigation and the guarded route exist; the feature does not. */
-export default async function CalendarPage({ params }: CalendarPageProps) {
-  const locale = await resolveLocale(params);
-  await requireStaffSession(locale);
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(await searchParams)) {
+    if (typeof value === 'string') query.set(key, value);
+  }
 
-  const t = await getTranslations('calendar');
-  const tCommon = await getTranslations('common');
+  const suffix = query.size > 0 ? `?${query.toString()}` : '';
 
-  return (
-    <div className="space-y-2 text-start">
-      <h2 className="text-2xl font-semibold tracking-tight">{t('title')}</h2>
-      <p className="text-muted-foreground">{t('placeholder')}</p>
-      <p className="inline-block rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">
-        {tCommon('comingSoon')}
-      </p>
-    </div>
-  );
+  redirect({ href: `/app/calendar/week${suffix}`, locale });
 }

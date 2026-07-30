@@ -34,6 +34,7 @@ CREATE TABLE "meal_plan_items" (
 CREATE TABLE "meal_plan_meals" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"plan_id" uuid NOT NULL,
+	"day_of_week" integer DEFAULT 0 NOT NULL,
 	"label" text NOT NULL,
 	"time_of_day" time NOT NULL,
 	"sort_order" integer DEFAULT 0 NOT NULL,
@@ -59,6 +60,6 @@ ALTER TABLE "meal_plans" ADD CONSTRAINT "meal_plans_client_id_clients_id_fk" FOR
 CREATE UNIQUE INDEX "foods_fdc_id_idx" ON "foods" USING btree ("fdc_id");--> statement-breakpoint
 CREATE INDEX "foods_category_idx" ON "foods" USING btree ("category");--> statement-breakpoint
 CREATE INDEX "meal_plan_items_meal_id_idx" ON "meal_plan_items" USING btree ("meal_id","sort_order");--> statement-breakpoint
-CREATE INDEX "meal_plan_meals_plan_id_idx" ON "meal_plan_meals" USING btree ("plan_id","time_of_day");--> statement-breakpoint
+CREATE INDEX "meal_plan_meals_plan_id_idx" ON "meal_plan_meals" USING btree ("plan_id","day_of_week","time_of_day");--> statement-breakpoint
 CREATE INDEX "meal_plans_clinic_id_idx" ON "meal_plans" USING btree ("clinic_id");--> statement-breakpoint
 CREATE INDEX "meal_plans_client_id_idx" ON "meal_plans" USING btree ("client_id");

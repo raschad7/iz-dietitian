@@ -1,7 +1,9 @@
 # Features
 
-One folder per feature. This directory is intentionally empty in the foundation
-build.
+One folder per feature. Currently holds `auth/` (sign-in, sign-up, passkeys,
+password policy, rate limiting) and `clients/` (the clinic's patient roster,
+including portal credential issuing and username transliteration).
+`plans/`, `payments/` and the rest get added here as they are built.
 
 Each feature owns its slice end to end:
 

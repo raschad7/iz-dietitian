@@ -5,15 +5,8 @@ import { db } from '@/db';
 import { clients, user } from '@/db/schema';
 
 import { createTestClinic, resetDatabase } from '../../../tests/helpers';
-import {
-  archiveClient,
-  createClient,
-  deleteClient,
-  invitePortalAccess,
-  restoreClient,
-  revokePortalAccess,
-  updateClient,
-} from './mutations';
+import { archiveClient, createClient, deleteClient, restoreClient, updateClient } from './mutations';
+import { issuePortalCredentials, revokePortalAccess } from './portal-credentials';
 
 let clinicId: string;
 
@@ -109,92 +102,11 @@ async function readUsers() {
   return db.select().from(user);
 }
 
-describe('invitePortalAccess', () => {
-  test('creates a client-role user and links it', async () => {
-    const { id } = await createClient(clinicId, { fullName: 'سارة', preferredLocale: 'en', email: 'sara@clinic.ps' });
-
-    const result = await invitePortalAccess(clinicId, id);
-    expect(result.ok).toBe(true);
-
-    const users = await readUsers();
-    expect(users).toHaveLength(1);
-    expect(users[0]?.email).toBe('sara@clinic.ps');
-    expect(users[0]?.role).toBe('client');
-    expect(users[0]?.locale).toBe('en');
-
-    expect((await readClient(id))?.userId).toBe(users[0]?.id ?? '');
-  });
-
-  test('refuses a client with no email and writes nothing', async () => {
-    const { id } = await createClient(clinicId, { fullName: 'أحمد', preferredLocale: 'ar' });
-
-    const result = await invitePortalAccess(clinicId, id);
-    expect(result).toEqual({ ok: false, code: 'no_email' });
-    expect(await readUsers()).toHaveLength(0);
-  });
-
-  test('refuses when the email already belongs to a user, and writes nothing', async () => {
-    await db.insert(user).values({
-      id: 'existing-user',
-      name: 'Existing',
-      email: 'taken@clinic.ps',
-      role: 'staff',
-    });
-
-    const { id } = await createClient(clinicId, { fullName: 'سارة', preferredLocale: 'ar', email: 'taken@clinic.ps' });
-
-    const result = await invitePortalAccess(clinicId, id);
-    expect(result).toEqual({ ok: false, code: 'email_taken' });
-
-    // The pre-existing user is untouched and no second row appeared.
-    expect(await readUsers()).toHaveLength(1);
-    expect((await readClient(id))?.userId).toBeNull();
-  });
-
-  test('refuses a second invite for an already-linked client', async () => {
-    const { id } = await createClient(clinicId, { fullName: 'سارة', preferredLocale: 'ar', email: 'sara@clinic.ps' });
-    await invitePortalAccess(clinicId, id);
-
-    expect(await invitePortalAccess(clinicId, id)).toEqual({ ok: false, code: 'already_invited' });
-    expect(await readUsers()).toHaveLength(1);
-  });
-
-  test('refuses an unknown client', async () => {
-    expect(await invitePortalAccess(clinicId, '00000000-0000-4000-8000-000000000000')).toEqual({
-      ok: false,
-      code: 'not_found',
-    });
-  });
-});
-
-describe('revokePortalAccess', () => {
-  test('deletes the user and leaves the client record intact', async () => {
-    const { id } = await createClient(clinicId, { fullName: 'سارة', preferredLocale: 'ar', email: 'sara@clinic.ps' });
-    await invitePortalAccess(clinicId, id);
-
-    expect(await revokePortalAccess(clinicId, id)).toBe(true);
-    expect(await readUsers()).toHaveLength(0);
-
-    const row = await readClient(id);
-    expect(row).toBeDefined();
-    expect(row?.userId).toBeNull();
-    expect(row?.fullName).toBe('سارة');
-  });
-
-  test('returns false for a client with no portal access', async () => {
-    const { id } = await createClient(clinicId, { fullName: 'أحمد', preferredLocale: 'ar' });
-    expect(await revokePortalAccess(clinicId, id)).toBe(false);
-  });
-
-  test('a client can be re-invited after a revoke', async () => {
-    const { id } = await createClient(clinicId, { fullName: 'سارة', preferredLocale: 'ar', email: 'sara@clinic.ps' });
-    await invitePortalAccess(clinicId, id);
-    await revokePortalAccess(clinicId, id);
-
-    expect((await invitePortalAccess(clinicId, id)).ok).toBe(true);
-    expect(await readUsers()).toHaveLength(1);
-  });
-});
+// `issuePortalCredentials` and `revokePortalAccess` now live in
+// `./portal-credentials`, and their own coverage moved with them — see
+// `portal-credentials.test.ts`. What is left here is coverage for
+// `createClient` / `updateClient` / `archiveClient` / `deleteClient`
+// interacting correctly with a linked portal account.
 
 describe('clinic isolation', () => {
   test('a write aimed at another clinic\u2019s client changes nothing', async () => {
@@ -218,11 +130,14 @@ describe('clinic isolation', () => {
       email: 'sara@clinic.ps',
     });
 
-    expect(await invitePortalAccess(clinicId, id)).toEqual({ ok: false, code: 'not_found' });
+    expect(await issuePortalCredentials(clinicId, id, 'isolation-0001')).toEqual({
+      ok: false,
+      code: 'not_found',
+    });
     expect(await readUsers()).toHaveLength(0);
 
     // Grant it legitimately, then confirm the other clinic still cannot revoke.
-    expect((await invitePortalAccess(otherClinicId, id)).ok).toBe(true);
+    expect((await issuePortalCredentials(otherClinicId, id, 'isolation-0002')).ok).toBe(true);
     expect(await revokePortalAccess(clinicId, id)).toBe(false);
     expect(await readUsers()).toHaveLength(1);
   });
@@ -242,7 +157,7 @@ describe('deleteClient', () => {
       preferredLocale: 'ar',
       email: 'sara@clinic.ps',
     });
-    await invitePortalAccess(clinicId, id);
+    await issuePortalCredentials(clinicId, id, 'delete-with-portal-0001');
     expect(await readUsers()).toHaveLength(1);
 
     await deleteClient(clinicId, id);

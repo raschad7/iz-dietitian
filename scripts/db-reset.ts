@@ -37,6 +37,15 @@ async function reset(): Promise<void> {
     await client.unsafe('drop schema if exists public cascade');
     await client.unsafe('create schema public');
 
+    /**
+     * The migration journal does NOT live in `public` — drizzle-kit keeps
+     * `__drizzle_migrations` in its own `drizzle` schema. Dropping only `public`
+     * therefore left the journal intact, `migrate()` below concluded every
+     * migration was already applied, and the reset finished reporting success
+     * against a database with no tables in it at all.
+     */
+    await client.unsafe('drop schema if exists drizzle cascade');
+
     console.info('running migrations…');
     await migrate(drizzle(client), { migrationsFolder: './drizzle' });
 

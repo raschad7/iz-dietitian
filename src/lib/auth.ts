@@ -1,22 +1,33 @@
+import { passkey } from '@better-auth/passkey';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { nextCookies } from 'better-auth/next-js';
-import { magicLink } from 'better-auth/plugins';
+import { username } from 'better-auth/plugins';
 
 import { db } from '@/db';
-import { account, session, user, verification } from '@/db/schema/auth';
+import { account, passkey as passkeyTable, session, user, verification } from '@/db/schema/auth';
 import { clinics } from '@/db/schema/clinics';
+import { CLIENT_MIN_PASSWORD_LENGTH } from '@/features/auth/password-policy';
 import { defaultLocale, locales, type Locale } from '@/i18n/routing';
+import { sendMail } from '@/lib/mail';
 
 import {
-  MAGIC_LINK_TTL_MINUTES,
-  MAGIC_LINK_TTL_SECONDS,
-  MIN_PASSWORD_LENGTH,
+  EMAIL_VERIFICATION_TTL_SECONDS,
+  PASSWORD_RESET_TTL_SECONDS,
   SESSION_REFRESH_AGE_SECONDS,
   SESSION_TTL_SECONDS,
 } from './auth-constants';
 
 export type UserRole = 'staff' | 'client';
+
+/**
+ * Whether Google sign-in is configured on this deployment.
+ *
+ * Read by the sign-in page to decide whether to offer the button, and by the
+ * config below to decide whether to register the provider — one source of truth,
+ * so the UI can never advertise a door that does not open.
+ */
+export const isGoogleEnabled = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
 
 function requireEnv(name: string): string {
   const value = process.env[name];
@@ -37,6 +48,14 @@ function resolveRequestLocale(headers: Headers | undefined): Locale {
   return locales.includes(candidate as Locale) ? (candidate as Locale) : defaultLocale;
 }
 
+/**
+ * The locale a mail should be written in. Better Auth hands us the user row, and
+ * `users.locale` is exactly the preference captured at sign-up.
+ */
+function userLocale(value: unknown): Locale {
+  return locales.includes(value as Locale) ? (value as Locale) : defaultLocale;
+}
+
 export const auth = betterAuth({
   appName: 'dietitian-software',
   baseURL: process.env.BETTER_AUTH_URL ?? 'http://localhost:3000',
@@ -45,15 +64,125 @@ export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: 'pg',
     // Better Auth's model names on the left, our Drizzle tables on the right.
-    schema: { user, session, account, verification },
+    schema: { user, session, account, verification, passkey: passkeyTable },
   }),
 
-  /** Dietitian and staff accounts. Client accounts never get a password. */
+  /**
+   * Dietitian and staff accounts sign up here. Client accounts never do — but
+   * they DO hold a password, issued by their dietitian and then replaced by one
+   * of their own, both written directly by
+   * `src/features/clients/portal-credentials.ts`.
+   *
+   * `autoSignIn` is OFF and `requireEmailVerification` is ON: signing up creates
+   * the account but issues no session. That is the hard gate — an address must
+   * be proven real before it can hold a clinic, and before a password reset
+   * would have anywhere to go.
+   */
   emailAndPassword: {
     enabled: true,
-    minPasswordLength: MIN_PASSWORD_LENGTH,
-    requireEmailVerification: false,
-    autoSignIn: true,
+    /**
+     * The CLIENT minimum. Better Auth has one global value, so this is the floor
+     * for everyone; the staff minimum of 10 is enforced in the staff Zod schema
+     * (`src/features/auth/schema.ts`). Do not raise this back to 10 — it would
+     * lock every client out of setting their own password.
+     */
+    minPasswordLength: CLIENT_MIN_PASSWORD_LENGTH,
+    requireEmailVerification: true,
+    autoSignIn: false,
+    resetPasswordTokenExpiresIn: PASSWORD_RESET_TTL_SECONDS,
+    sendResetPassword: async ({ user: recipient, url }) => {
+      // Better Auth types this callback's `user` against the base row, not this
+      // instance's `additionalFields`, so `locale` is invisible to TS even
+      // though it is always present on the row at runtime.
+      const locale = (recipient as { locale?: unknown }).locale;
+      await sendMail('resetPassword', recipient.email, userLocale(locale), {
+        url,
+        name: recipient.name,
+      });
+    },
+    /**
+     * A reset is what someone does when they believe another person holds their
+     * password. Leaving that person's sessions alive would defeat the point.
+     *
+     * Better Auth does this itself when the flag is set — see
+     * `dist/api/routes/password.mjs`, which calls
+     * `internalAdapter.deleteUserSessions(userId)` right after the reset. Do not
+     * hand-roll it: `auth.api.revokeUserSessions` does NOT exist in the base API
+     * (it ships with the admin plugin), and a custom `onPasswordReset` callback
+     * that reaches for `auth` would reference the binding during its own
+     * initialisation.
+     */
+    revokeSessionsOnPasswordReset: true,
+  },
+
+  emailVerification: {
+    sendOnSignUp: true,
+    autoSignInAfterVerification: true,
+    expiresIn: EMAIL_VERIFICATION_TTL_SECONDS,
+    sendVerificationEmail: async ({ user: recipient, url }) => {
+      // Same typing gap as `sendResetPassword` above.
+      const locale = (recipient as { locale?: unknown }).locale;
+      await sendMail('verifyEmail', recipient.email, userLocale(locale), {
+        url,
+        name: recipient.name,
+      });
+    },
+  },
+
+  /**
+   * Google is registered only when it is actually configured.
+   *
+   * Passing empty strings would register a provider that cannot work: the button
+   * would render, and the failure would surface as an opaque error from Google's
+   * consent screen rather than anything this app could explain. `isGoogleEnabled`
+   * is what the sign-in page reads to decide whether to offer the button at all,
+   * so the two can never disagree.
+   */
+  socialProviders: isGoogleEnabled
+    ? {
+        google: {
+          clientId: process.env.GOOGLE_CLIENT_ID as string,
+          clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+
+          /**
+           * Signing IN and signing UP are different intents, even though Google
+           * uses one button for both.
+           *
+           * Without this, any Google account that reached the sign-in page was
+           * silently enrolled as staff with a clinic of its own — a patient who
+           * clicked the wrong button became a practitioner. With it, the
+           * sign-in page only admits accounts that already exist, and only the
+           * sign-up page passes `requestSignUp: true` to create one.
+           */
+          disableImplicitSignUp: true,
+        },
+      }
+    : {},
+
+  account: {
+    accountLinking: {
+      enabled: true,
+      /**
+       * Google has verified the address it asserts, so an identity it vouches
+       * for may join an existing account.
+       */
+      trustedProviders: ['google'],
+
+      /**
+       * DO NOT SET `requireLocalEmailVerified: false`.
+       *
+       * It defaults to true, and that default is what blocks OAuth
+       * pre-hijacking: an attacker signs up with the victim's address and a
+       * password of their choosing, never verifies, then waits for the victim to
+       * sign in with Google — which would otherwise link the two and hand the
+       * attacker a working password on the victim's account. Better Auth refuses
+       * the link instead (`dist/oauth2/link-account.mjs`).
+       *
+       * The option is marked deprecated pending the gate becoming unconditional.
+       * When it is removed, nothing needs doing here; until then, leaving it
+       * unset is deliberate, not an oversight.
+       */
+    },
   },
 
   user: {
@@ -81,6 +210,16 @@ export const auth = betterAuth({
         required: false,
         input: false,
       },
+      /**
+       * Set when a dietitian issues or re-issues credentials, cleared when the
+       * client chooses their own. Never accepted from a payload.
+       */
+      mustChangePassword: {
+        type: 'boolean',
+        required: false,
+        defaultValue: false,
+        input: false,
+      },
     },
   },
 
@@ -105,9 +244,10 @@ export const auth = betterAuth({
          * makes each account a separate tenant.
          *
          * Client accounts never reach this hook — they are provisioned by
-         * `invitePortalAccess`, which inserts directly through Drizzle — but the
-         * role is checked anyway so that enabling any other Better Auth sign-up
-         * path later cannot silently mint clinics.
+         * `issuePortalCredentials` in `src/features/clients/`, which inserts
+         * directly through Drizzle — but the role is checked anyway so that
+         * enabling any other Better Auth sign-up path later cannot silently
+         * mint a clinic for someone who should never own one.
          */
         before: async (newUser) => {
           const role = 'role' in newUser ? newUser.role : undefined;
@@ -147,24 +287,35 @@ export const auth = betterAuth({
 
   plugins: [
     /**
-     * Scaffolding for the client portal. Tokens live in the `verifications`
-     * table, expire after 15 minutes and are deleted the first time they are
-     * redeemed, at which point Better Auth issues the long-lived session cookie
-     * configured above.
-     *
-     * `disableSignUp` keeps this from becoming a public self-registration door:
-     * a client row must already exist before a link can be requested.
+     * Portal sign-in for clients. They are issued a username and a temporary
+     * password by their dietitian and never hold an email address here — see
+     * `src/features/clients/portal-credentials.ts`.
      */
-    magicLink({
-      expiresIn: MAGIC_LINK_TTL_SECONDS,
-      disableSignUp: true,
-      sendMagicLink: async ({ email, url }) => {
-        if (process.env.NODE_ENV === 'production') {
-          // Wire a real transactional email provider here before going live.
-          throw new Error('No email provider is configured for magic links.');
-        }
-        console.info(`[auth] magic link for ${email} (valid ${MAGIC_LINK_TTL_MINUTES} min):\n${url}`);
-      },
+    username({
+      minUsernameLength: 3,
+      maxUsernameLength: 60,
+      /**
+       * The plugin's own default (`/^[a-zA-Z0-9_.]+$/`) rejects hyphens — but
+       * `suggestUsername` (`src/features/clients/transliterate.ts`) joins
+       * transliterated name parts with hyphens, and that suggestion is exactly
+       * what a dietitian issues unedited most of the time. Without this override
+       * every hyphenated username fails at `signInUsername`, which is checked
+       * against the same validator, locking the client out of an account that
+       * was just created for them. Matches `clients.errors.usernameInvalid`.
+       */
+      usernameValidator: (value) => /^[a-zA-Z0-9-]+$/.test(value),
+    }),
+
+    /**
+     * WebAuthn. Registration and sign-in must run in the browser, so these are
+     * the only auth paths that go over HTTP rather than through a server action
+     * — which also means they are the only ones Better Auth's own rate limiter
+     * actually covers.
+     */
+    passkey({
+      rpID: new URL(process.env.BETTER_AUTH_URL ?? 'http://localhost:3000').hostname,
+      rpName: 'Dietitian Clinic',
+      origin: process.env.BETTER_AUTH_URL ?? 'http://localhost:3000',
     }),
 
     // Must stay last: lets server actions set the session cookie.
