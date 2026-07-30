@@ -31,7 +31,9 @@
     "payments": "المدفوعات",
     "settings": "الإعدادات",
     "portalHome": "الصفحة الرئيسية",
+    "myPlan": "خطتي الغذائية",
     "myAppointments": "مواعيدي",
+    "profile": "الملف الشخصي",
     "security": "الأمان",
     "weeklyPlans": "الخطط الأسبوعية",
     "dishes": "كتالوج الأطباق"
@@ -45,6 +47,11 @@
   },
   "login": {
     "title": "تسجيل الدخول",
+    "subtitle": "اختر طريقة الدخول المناسبة لك.",
+    "roleQuestion": "من يسجّل الدخول؟",
+    "roleStaff": "فريق العيادة",
+    "roleClient": "متابع",
+    "roleTemporaryNote": "خيار مؤقت: سيتعرّف النظام على نوع الحساب تلقائيًا لاحقًا.",
     "staffSubtitle": "خاص بفريق العيادة.",
     "staffHeading": "فريق العيادة",
     "staffDescription": "ادخل باستخدام البريد الإلكتروني وكلمة المرور.",
@@ -311,7 +318,46 @@
   "dashboard": {
     "title": "لوحة التحكم",
     "welcome": "أهلًا {name}",
-    "placeholder": "ستظهر هنا مؤشرات العيادة بعد بناء الوحدات الوظيفية."
+    "agenda": {
+      "title": "جدول اليوم",
+      "empty": "لا مواعيد اليوم",
+      "emptyCta": "عرض التقويم",
+      "reason": "السبب: {reason}"
+    },
+    "requests": {
+      "title": "طلبات بانتظار الرد",
+      "count": "{count, number, integer} بانتظار الرد",
+      "empty": "لا طلبات بانتظار الرد حاليًا",
+      "cta": "مراجعة الطلبات",
+      "kind": {
+        "new": "طلب حجز جديد",
+        "reschedule": "طلب تغيير الموعد",
+        "cancel": "طلب إلغاء الموعد"
+      }
+    },
+    "stats": {
+      "activeClients": "المتابعون النشطون",
+      "appointmentsThisWeek": "مواعيد هذا الأسبوع",
+      "clientsWithoutMealPlan": "بلا خطة غذائية",
+      "newClientsThisMonth": "متابعون جدد هذا الشهر"
+    },
+    "attention": {
+      "title": "بحاجة لمتابعة",
+      "badge": "بحاجة لمتابعة",
+      "empty": "لا يوجد متابعون بحاجة لمتابعة حاليًا",
+      "viewAll": "عرض جميع المتابعين",
+      "reason": {
+        "noUpcomingAppointment": "لا يوجد موعد قادم",
+        "noMealPlan": "لا توجد خطة غذائية",
+        "neverSignedIn": "لم يسجّل الدخول إلى البوابة بعد"
+      }
+    },
+    "quickActions": {
+      "title": "إجراءات سريعة",
+      "newAppointment": "موعد جديد",
+      "addClient": "إضافة متابع",
+      "newMealPlan": "خطة غذائية جديدة"
+    }
   },
   "foods": {
     "title": "الأطعمة",
@@ -466,7 +512,93 @@
   "portal": {
     "title": "بوابة المتابعين",
     "welcome": "أهلًا {name}",
-    "placeholder": "ستظهر هنا خطتك الغذائية ومواعيدك بعد بناء الوحدات الوظيفية."
+    "dashboard": {
+      "nextAppointment": "موعدك القادم",
+      "todaysMeals": "وجبات اليوم",
+      "dayEnergy": "إجمالي اليوم: {kcal, number, integer} سعرة",
+      "requestAppointment": "طلب موعد",
+      "viewMealPlan": "عرض الخطة الغذائية",
+      "pendingRequests": "بانتظار ردّ أخصائي التغذية: {count, number, integer}"
+    },
+    "appointments": {
+      "title": "المواعيد",
+      "upcoming": "المواعيد القادمة",
+      "history": "المواعيد السابقة",
+      "requests": "طلباتك",
+      "noneUpcoming": "لا توجد مواعيد محجوزة. اطلب موعدًا من أخصائي التغذية.",
+      "nonePast": "لا توجد مواعيد سابقة.",
+      "reschedule": "طلب تغيير الموعد",
+      "cancel": "طلب إلغاء الموعد",
+      "requestPending": "بانتظار ردّ أخصائي التغذية"
+    },
+    "request": {
+      "title": "طلب موعد",
+      "backToAppointments": "العودة إلى المواعيد",
+      "chooseDay": "اختر اليوم",
+      "chooseTime": "اختر الوقت",
+      "noSlots": "لا توجد أوقات متاحة في هذا اليوم. جرّب يومًا آخر.",
+      "note": "السبب",
+      "notePlaceholder": "متابعة، استفسار عن الخطة…",
+      "optional": "(اختياري)",
+      "currentSlot": "الموعد الحالي: {date} الساعة {time}",
+      "preferredSlot": "الوقت المطلوب: {date} الساعة {time}",
+      "withdraw": "سحب الطلب",
+      "confirmWithdraw": "سيتم سحب طلبك. هل أنت متأكد؟",
+      "heading": {
+        "new": "طلب موعد",
+        "reschedule": "طلب وقت آخر",
+        "cancel": "طلب إلغاء الموعد"
+      },
+      "description": {
+        "new": "اختر اليوم والوقت المناسبين لك، وسيؤكّد أخصائي التغذية الموعد.",
+        "reschedule": "اختر يومًا ووقتًا جديدين. يبقى موعدك كما هو حتى يوافق أخصائي التغذية.",
+        "cancel": "سيصل الطلب إلى أخصائي التغذية. يبقى الموعد محجوزًا حتى يلغيه."
+      },
+      "submit": {
+        "new": "إرسال الطلب",
+        "reschedule": "إرسال الطلب",
+        "cancel": "إرسال طلب الإلغاء"
+      },
+      "kind": {
+        "new": "موعد جديد",
+        "reschedule": "تغيير موعد",
+        "cancel": "إلغاء موعد"
+      },
+      "status": {
+        "pending": "قيد الانتظار",
+        "approved": "تمت الموافقة",
+        "declined": "مرفوض",
+        "withdrawn": "مسحوب"
+      }
+    },
+    "plan": {
+      "title": "الخطة الغذائية",
+      "none": "لم يُعدّ أخصائي التغذية خطة لك بعد.",
+      "grams": "{grams, number, plain} غرام",
+      "weekOf": "أسبوع {date}",
+      "dailyTarget": "الهدف اليومي: {value} kcal",
+      "kcalValue": "{value} kcal",
+      "portion": "{servings} × {label}",
+      "showIngredients": "عرض المكوّنات والكميات",
+      "orInstead": "يمكنك بدلاً منها:",
+      "noMeal": "لم تُحدد وجبة"
+    },
+    "profile": {
+      "title": "الملف الشخصي والإعدادات",
+      "personalInfo": "المعلومات الشخصية",
+      "readOnly": "يتولّى أخصائي التغذية تحديث هذه البيانات. أخبره إذا كان فيها ما يحتاج إلى تصحيح.",
+      "language": "اللغة",
+      "languageDescription": "لغة البوابة ولغة الرسائل التي ترسلها العيادة إليك.",
+      "saveLanguage": "حفظ"
+    },
+    "errors": {
+      "invalid": "تحقّق مما أدخلته وحاول مجددًا.",
+      "notFound": "هذا الموعد لم يعد موجودًا.",
+      "slotUnavailable": "هذا الوقت حُجز للتو. اختر وقتًا آخر.",
+      "alreadyRequested": "لديك طلب سابق بهذا الشأن، وسيردّ عليه أخصائي التغذية قريبًا.",
+      "pastAppointment": "هذا الموعد قد انتهى بالفعل.",
+      "unexpected": "حدث خطأ غير متوقع. حاول مجددًا."
+    }
   },
   "localeSwitcher": {
     "label": "اللغة",
@@ -642,17 +774,5 @@
       "fish": "سمك",
       "sesame": "سمسم"
     }
-  },
-  "portalPlan": {
-    "title": "خطتي الأسبوعية",
-    "empty": "لم يتم نشر خطة لك بعد. سيقوم أخصائي التغذية بنشرها قريباً.",
-    "weekOf": "أسبوع {date}",
-    "dailyTarget": "الهدف اليومي: {value} kcal",
-    "kcalValue": "{value} kcal",
-    "portion": "{servings} × {label}",
-    "showIngredients": "عرض المكوّنات والكميات",
-    "orInstead": "يمكنك بدلاً منها:",
-    "noMeal": "لم تُحدد وجبة",
-    "notLinked": "حسابك غير مرتبط بملف عميل. تواصل مع أخصائي التغذية."
   }
 }

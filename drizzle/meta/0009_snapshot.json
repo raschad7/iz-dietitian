@@ -1,6 +1,6 @@
 {
-  "id": "3056e868-8d56-4600-a0ab-20cb27df4829",
-  "prevId": "a729a730-ca59-452c-9964-26eaf3c3d110",
+  "id": "d9bdc524-8a81-4bd6-a05b-64396dbfac30",
+  "prevId": "16fd2fab-29e9-41c0-ba7e-ba22cf266f23",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1233,6 +1233,215 @@
       },
       "isRLSEnabled": false
     },
+    "public.appointment_requests": {
+      "name": "appointment_requests",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "clinic_id": {
+          "name": "clinic_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "client_id": {
+          "name": "client_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "appointment_id": {
+          "name": "appointment_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "preferred_date": {
+          "name": "preferred_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "preferred_start_minute": {
+          "name": "preferred_start_minute",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "appointment_requests_clinic_id_status_idx": {
+          "name": "appointment_requests_clinic_id_status_idx",
+          "columns": [
+            {
+              "expression": "clinic_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "appointment_requests_client_id_idx": {
+          "name": "appointment_requests_client_id_idx",
+          "columns": [
+            {
+              "expression": "client_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "appointment_requests_open_per_appointment_idx": {
+          "name": "appointment_requests_open_per_appointment_idx",
+          "columns": [
+            {
+              "expression": "appointment_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "status = 'pending' AND appointment_id IS NOT NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "appointment_requests_clinic_id_clinics_id_fk": {
+          "name": "appointment_requests_clinic_id_clinics_id_fk",
+          "tableFrom": "appointment_requests",
+          "tableTo": "clinics",
+          "columnsFrom": [
+            "clinic_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "appointment_requests_client_id_clients_id_fk": {
+          "name": "appointment_requests_client_id_clients_id_fk",
+          "tableFrom": "appointment_requests",
+          "tableTo": "clients",
+          "columnsFrom": [
+            "client_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "appointment_requests_appointment_id_appointments_id_fk": {
+          "name": "appointment_requests_appointment_id_appointments_id_fk",
+          "tableFrom": "appointment_requests",
+          "tableTo": "appointments",
+          "columnsFrom": [
+            "appointment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "appointment_requests_kind": {
+          "name": "appointment_requests_kind",
+          "value": "\"appointment_requests\".\"kind\" IN ('new', 'reschedule', 'cancel')"
+        },
+        "appointment_requests_status": {
+          "name": "appointment_requests_status",
+          "value": "\"appointment_requests\".\"status\" IN ('pending', 'approved', 'declined', 'withdrawn')"
+        },
+        "appointment_requests_appointment_matches_kind": {
+          "name": "appointment_requests_appointment_matches_kind",
+          "value": "(\"appointment_requests\".\"kind\" = 'new') = (\"appointment_requests\".\"appointment_id\" IS NULL)"
+        },
+        "appointment_requests_preferred_matches_kind": {
+          "name": "appointment_requests_preferred_matches_kind",
+          "value": "(\"appointment_requests\".\"kind\" = 'cancel') = (\"appointment_requests\".\"preferred_date\" IS NULL AND \"appointment_requests\".\"preferred_start_minute\" IS NULL)"
+        },
+        "appointment_requests_start_minute_in_day": {
+          "name": "appointment_requests_start_minute_in_day",
+          "value": "\"appointment_requests\".\"preferred_start_minute\" IS NULL OR (\"appointment_requests\".\"preferred_start_minute\" >= 0 AND \"appointment_requests\".\"preferred_start_minute\" < 1440)"
+        }
+      },
+      "isRLSEnabled": false
+    },
     "public.foods": {
       "name": "foods",
       "schema": "",
@@ -2411,6 +2620,12 @@
         "time_of_day": {
           "name": "time_of_day",
           "type": "time",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "budget_kcal": {
+          "name": "budget_kcal",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true
         },

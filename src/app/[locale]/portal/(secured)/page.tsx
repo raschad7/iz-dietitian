@@ -1,13 +1,14 @@
 import { getTranslations } from 'next-intl/server';
-import { eq } from 'drizzle-orm';
 import type { Metadata } from 'next';
 
-import { db } from '@/db';
-import { clients } from '@/db/schema';
-import { PortalPlan } from '@/features/weekly-plans/components/portal-plan';
-import { getPublishedBoard } from '@/features/weekly-plans/queries';
+import { buttonVariants } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { AppointmentCard } from '@/features/portal/components/appointment-card';
+import { TodayMeals } from '@/features/portal/components/today-meals';
+import { loadDashboard } from '@/features/portal/page-data';
+import { requirePortalClient } from '@/features/portal/session';
+import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/params';
-import { requireClientSession } from '@/lib/session';
 
 type PortalPageProps = {
   params: Promise<{ locale: string }>;
@@ -15,50 +16,65 @@ type PortalPageProps = {
 
 export async function generateMetadata({ params }: PortalPageProps): Promise<Metadata> {
   const locale = await resolveLocale(params);
-  const t = await getTranslations({ locale, namespace: 'portalPlan' });
+  const t = await getTranslations({ locale, namespace: 'portal' });
   return { title: t('title') };
 }
 
 /**
- * The portal landing page IS the client's plan.
+ * The portal's landing page: a quick glance, and two ways onward.
  *
- * It was briefly a separate `/portal/plan` route behind a greeting, which meant a
- * client had no way to reach it — the portal has no navigation, so the plan was
- * unreachable in practice. The portal does one thing today; when it does a second,
- * that is when it earns a nav and a landing page.
- *
- * Authorisation is by ownership, not by clinic: a portal session carries a user id,
- * and the plan is reachable because `clients.user_id` points at it. Reaching for a
- * clinic id here would mean trusting a value the client's session does not have.
+ * What is here is what someone opening the app on their phone wants to know
+ * without reading anything: when am I next seen, and what am I eating today.
+ * Everything else is a tap away — this page is deliberately not a summary of
+ * every screen behind it.
  */
 export default async function PortalPage({ params }: PortalPageProps) {
   const locale = await resolveLocale(params);
-  const session = await requireClientSession(locale);
 
-  const [client] = await db
-    .select({ id: clients.id })
-    .from(clients)
-    .where(eq(clients.userId, session.user.id))
-    .limit(1);
+  const context = await requirePortalClient(locale);
+  const { next, planTitle, today, pending } = await loadDashboard(context);
 
-  const board = client ? await getPublishedBoard(client.id) : null;
-
-  if (board) return <PortalPlan board={board} />;
-
-  const t = await getTranslations('portalPlan');
+  const t = await getTranslations('portal');
 
   return (
-    <div className="space-y-2 text-start">
-      <h1 className="text-xl font-semibold tracking-tight">{t('title')}</h1>
-      <p className="text-muted-foreground">
-        {/*
-          Two different problems, two different messages. "No plan yet" is the
-          ordinary state for a new client; an account with no client record behind it
-          is a setup mistake, and telling the client to wait for a plan that will
-          never arrive would send them to the wrong person.
-        */}
-        {client ? t('empty') : t('notLinked')}
-      </p>
+    <div className="space-y-5">
+      <header className="space-y-1">
+        <h2 className="text-2xl font-semibold tracking-tight">
+          {t('welcome', { name: context.profile.fullName })}
+        </h2>
+        {pending.length > 0 ? (
+          <p className="text-sm text-muted-foreground">
+            {t('dashboard.pendingRequests', { count: pending.length })}
+          </p>
+        ) : null}
+      </header>
+
+      <section className="space-y-3">
+        <h3 className="text-sm font-medium text-muted-foreground">{t('dashboard.nextAppointment')}</h3>
+
+        {next ? (
+          <AppointmentCard appointment={next} />
+        ) : (
+          <Card>
+            <CardContent className="text-sm text-muted-foreground">{t('appointments.noneUpcoming')}</CardContent>
+          </Card>
+        )}
+      </section>
+
+      <TodayMeals day={today} planTitle={planTitle} />
+
+      {/*
+        The two shortcuts, full width and stacked on a phone: they are the only
+        things on this page anyone taps deliberately.
+      */}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Link href="/portal/appointments/request" className={buttonVariants({ size: 'lg' })}>
+          {t('dashboard.requestAppointment')}
+        </Link>
+        <Link href="/portal/meal-plan" className={buttonVariants({ variant: 'outline', size: 'lg' })}>
+          {t('dashboard.viewMealPlan')}
+        </Link>
+      </div>
     </div>
   );
 }

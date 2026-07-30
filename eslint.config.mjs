@@ -2,6 +2,7 @@ import nextCoreWebVitals from 'eslint-config-next/core-web-vitals';
 import nextTypescript from 'eslint-config-next/typescript';
 
 import logicalProperties from './eslint-rules/logical-properties.mjs';
+import noRawHex from './eslint-rules/no-raw-hex.mjs';
 
 /** @type {import('eslint').Linter.Config[]} */
 const config = [
@@ -33,10 +34,22 @@ const config = [
   },
 
   {
-    // The rule definition itself contains the banned strings by necessity.
+    // §STEP 4 of the Qiwam rollout: hex literals belong only in globals.css.
+    files: ['**/*.{tsx,jsx}'],
+    plugins: {
+      qiwam: noRawHex,
+    },
+    rules: {
+      'qiwam/no-raw-hex': 'error',
+    },
+  },
+
+  {
+    // The rule definitions themselves contain the banned strings by necessity.
     files: ['eslint-rules/**'],
     rules: {
       'rtl/no-physical-properties': 'off',
+      'qiwam/no-raw-hex': 'off',
     },
   },
 ];

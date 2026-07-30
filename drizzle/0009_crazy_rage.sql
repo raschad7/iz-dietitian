@@ -1,1 +1,0 @@
-ALTER TABLE "client_nutrition_profiles" ADD COLUMN "allergen_tags" text[] DEFAULT '{}' NOT NULL;

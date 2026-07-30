@@ -17,5 +17,11 @@ export async function generateMetadata({ params }: SetPasswordPageProps): Promis
 export default async function SetPasswordPage({ params }: SetPasswordPageProps) {
   const locale = await resolveLocale(params);
 
-  return <SetPasswordForm locale={locale} />;
+  // Its own `main`: the portal layout above provides the header only, and the
+  // navigation shell lives in the `(secured)` group this page sits outside of.
+  return (
+    <main className="mx-auto w-full max-w-md flex-1 p-6">
+      <SetPasswordForm locale={locale} />
+    </main>
+  );
 }

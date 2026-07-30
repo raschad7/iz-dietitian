@@ -1,5 +1,5 @@
 {
-  "id": "a729a730-ca59-452c-9964-26eaf3c3d110",
+  "id": "16fd2fab-29e9-41c0-ba7e-ba22cf266f23",
   "prevId": "99514a43-5a16-4abd-aa76-a9b4456f7374",
   "version": "7",
   "dialect": "postgresql",
@@ -1233,6 +1233,215 @@
       },
       "isRLSEnabled": false
     },
+    "public.appointment_requests": {
+      "name": "appointment_requests",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "clinic_id": {
+          "name": "clinic_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "client_id": {
+          "name": "client_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "appointment_id": {
+          "name": "appointment_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "preferred_date": {
+          "name": "preferred_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "preferred_start_minute": {
+          "name": "preferred_start_minute",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "appointment_requests_clinic_id_status_idx": {
+          "name": "appointment_requests_clinic_id_status_idx",
+          "columns": [
+            {
+              "expression": "clinic_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "appointment_requests_client_id_idx": {
+          "name": "appointment_requests_client_id_idx",
+          "columns": [
+            {
+              "expression": "client_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "appointment_requests_open_per_appointment_idx": {
+          "name": "appointment_requests_open_per_appointment_idx",
+          "columns": [
+            {
+              "expression": "appointment_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "status = 'pending' AND appointment_id IS NOT NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "appointment_requests_clinic_id_clinics_id_fk": {
+          "name": "appointment_requests_clinic_id_clinics_id_fk",
+          "tableFrom": "appointment_requests",
+          "tableTo": "clinics",
+          "columnsFrom": [
+            "clinic_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "appointment_requests_client_id_clients_id_fk": {
+          "name": "appointment_requests_client_id_clients_id_fk",
+          "tableFrom": "appointment_requests",
+          "tableTo": "clients",
+          "columnsFrom": [
+            "client_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "appointment_requests_appointment_id_appointments_id_fk": {
+          "name": "appointment_requests_appointment_id_appointments_id_fk",
+          "tableFrom": "appointment_requests",
+          "tableTo": "appointments",
+          "columnsFrom": [
+            "appointment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "appointment_requests_kind": {
+          "name": "appointment_requests_kind",
+          "value": "\"appointment_requests\".\"kind\" IN ('new', 'reschedule', 'cancel')"
+        },
+        "appointment_requests_status": {
+          "name": "appointment_requests_status",
+          "value": "\"appointment_requests\".\"status\" IN ('pending', 'approved', 'declined', 'withdrawn')"
+        },
+        "appointment_requests_appointment_matches_kind": {
+          "name": "appointment_requests_appointment_matches_kind",
+          "value": "(\"appointment_requests\".\"kind\" = 'new') = (\"appointment_requests\".\"appointment_id\" IS NULL)"
+        },
+        "appointment_requests_preferred_matches_kind": {
+          "name": "appointment_requests_preferred_matches_kind",
+          "value": "(\"appointment_requests\".\"kind\" = 'cancel') = (\"appointment_requests\".\"preferred_date\" IS NULL AND \"appointment_requests\".\"preferred_start_minute\" IS NULL)"
+        },
+        "appointment_requests_start_minute_in_day": {
+          "name": "appointment_requests_start_minute_in_day",
+          "value": "\"appointment_requests\".\"preferred_start_minute\" IS NULL OR (\"appointment_requests\".\"preferred_start_minute\" >= 0 AND \"appointment_requests\".\"preferred_start_minute\" < 1440)"
+        }
+      },
+      "isRLSEnabled": false
+    },
     "public.foods": {
       "name": "foods",
       "schema": "",
@@ -1715,988 +1924,6 @@
         "meal_plans_client_id_clients_id_fk": {
           "name": "meal_plans_client_id_clients_id_fk",
           "tableFrom": "meal_plans",
-          "tableTo": "clients",
-          "columnsFrom": [
-            "client_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.dish_ingredients": {
-      "name": "dish_ingredients",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "dish_id": {
-          "name": "dish_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "food_id": {
-          "name": "food_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "quantity_grams": {
-          "name": "quantity_grams",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "sort_order": {
-          "name": "sort_order",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "dish_ingredients_dish_id_idx": {
-          "name": "dish_ingredients_dish_id_idx",
-          "columns": [
-            {
-              "expression": "dish_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "sort_order",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "dish_ingredients_dish_id_dishes_id_fk": {
-          "name": "dish_ingredients_dish_id_dishes_id_fk",
-          "tableFrom": "dish_ingredients",
-          "tableTo": "dishes",
-          "columnsFrom": [
-            "dish_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "dish_ingredients_food_id_foods_id_fk": {
-          "name": "dish_ingredients_food_id_foods_id_fk",
-          "tableFrom": "dish_ingredients",
-          "tableTo": "foods",
-          "columnsFrom": [
-            "food_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.dishes": {
-      "name": "dishes",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "slug": {
-          "name": "slug",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "name_ar": {
-          "name": "name_ar",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "name_en": {
-          "name": "name_en",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "meal_types": {
-          "name": "meal_types",
-          "type": "text[]",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "tags": {
-          "name": "tags",
-          "type": "text[]",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "allergen_tags": {
-          "name": "allergen_tags",
-          "type": "text[]",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "base_serving_label": {
-          "name": "base_serving_label",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "is_active": {
-          "name": "is_active",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "dishes_slug_idx": {
-          "name": "dishes_slug_idx",
-          "columns": [
-            {
-              "expression": "slug",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "dishes_is_active_idx": {
-          "name": "dishes_is_active_idx",
-          "columns": [
-            {
-              "expression": "is_active",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.client_nutrition_profiles": {
-      "name": "client_nutrition_profiles",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "clinic_id": {
-          "name": "clinic_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "client_id": {
-          "name": "client_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "weight_kg": {
-          "name": "weight_kg",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "daily_kcal_target": {
-          "name": "daily_kcal_target",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "protein_target_grams": {
-          "name": "protein_target_grams",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "preferences": {
-          "name": "preferences",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "dislikes": {
-          "name": "dislikes",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "permanent_instructions": {
-          "name": "permanent_instructions",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "meal_schedule": {
-          "name": "meal_schedule",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "client_nutrition_profiles_client_id_idx": {
-          "name": "client_nutrition_profiles_client_id_idx",
-          "columns": [
-            {
-              "expression": "client_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "client_nutrition_profiles_clinic_id_idx": {
-          "name": "client_nutrition_profiles_clinic_id_idx",
-          "columns": [
-            {
-              "expression": "clinic_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "client_nutrition_profiles_clinic_id_clinics_id_fk": {
-          "name": "client_nutrition_profiles_clinic_id_clinics_id_fk",
-          "tableFrom": "client_nutrition_profiles",
-          "tableTo": "clinics",
-          "columnsFrom": [
-            "clinic_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "client_nutrition_profiles_client_id_clients_id_fk": {
-          "name": "client_nutrition_profiles_client_id_clients_id_fk",
-          "tableFrom": "client_nutrition_profiles",
-          "tableTo": "clients",
-          "columnsFrom": [
-            "client_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.weekly_plan_generations": {
-      "name": "weekly_plan_generations",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "plan_id": {
-          "name": "plan_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "clinic_id": {
-          "name": "clinic_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "scope": {
-          "name": "scope",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "instruction": {
-          "name": "instruction",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "model": {
-          "name": "model",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "prompt_tokens": {
-          "name": "prompt_tokens",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "completion_tokens": {
-          "name": "completion_tokens",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "duration_ms": {
-          "name": "duration_ms",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "status": {
-          "name": "status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "error": {
-          "name": "error",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "weekly_plan_generations_clinic_id_idx": {
-          "name": "weekly_plan_generations_clinic_id_idx",
-          "columns": [
-            {
-              "expression": "clinic_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "weekly_plan_generations_plan_id_weekly_plans_id_fk": {
-          "name": "weekly_plan_generations_plan_id_weekly_plans_id_fk",
-          "tableFrom": "weekly_plan_generations",
-          "tableTo": "weekly_plans",
-          "columnsFrom": [
-            "plan_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "weekly_plan_generations_clinic_id_clinics_id_fk": {
-          "name": "weekly_plan_generations_clinic_id_clinics_id_fk",
-          "tableFrom": "weekly_plan_generations",
-          "tableTo": "clinics",
-          "columnsFrom": [
-            "clinic_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.weekly_plan_meal_options": {
-      "name": "weekly_plan_meal_options",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "meal_id": {
-          "name": "meal_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "dish_id": {
-          "name": "dish_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "servings": {
-          "name": "servings",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 1
-        },
-        "sort_order": {
-          "name": "sort_order",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "weekly_plan_meal_options_meal_id_idx": {
-          "name": "weekly_plan_meal_options_meal_id_idx",
-          "columns": [
-            {
-              "expression": "meal_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "sort_order",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "weekly_plan_meal_options_dish_idx": {
-          "name": "weekly_plan_meal_options_dish_idx",
-          "columns": [
-            {
-              "expression": "meal_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "dish_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "weekly_plan_meal_options_meal_id_weekly_plan_meals_id_fk": {
-          "name": "weekly_plan_meal_options_meal_id_weekly_plan_meals_id_fk",
-          "tableFrom": "weekly_plan_meal_options",
-          "tableTo": "weekly_plan_meals",
-          "columnsFrom": [
-            "meal_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "weekly_plan_meal_options_dish_id_dishes_id_fk": {
-          "name": "weekly_plan_meal_options_dish_id_dishes_id_fk",
-          "tableFrom": "weekly_plan_meal_options",
-          "tableTo": "dishes",
-          "columnsFrom": [
-            "dish_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.weekly_plan_meals": {
-      "name": "weekly_plan_meals",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "plan_id": {
-          "name": "plan_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "day_of_week": {
-          "name": "day_of_week",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "slot_key": {
-          "name": "slot_key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "label": {
-          "name": "label",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "time_of_day": {
-          "name": "time_of_day",
-          "type": "time",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "sort_order": {
-          "name": "sort_order",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "dish_id": {
-          "name": "dish_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "servings": {
-          "name": "servings",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 1
-        },
-        "rationale_ar": {
-          "name": "rationale_ar",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "weekly_plan_meals_slot_idx": {
-          "name": "weekly_plan_meals_slot_idx",
-          "columns": [
-            {
-              "expression": "plan_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "day_of_week",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "slot_key",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "weekly_plan_meals_plan_id_idx": {
-          "name": "weekly_plan_meals_plan_id_idx",
-          "columns": [
-            {
-              "expression": "plan_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "day_of_week",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "time_of_day",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "weekly_plan_meals_plan_id_weekly_plans_id_fk": {
-          "name": "weekly_plan_meals_plan_id_weekly_plans_id_fk",
-          "tableFrom": "weekly_plan_meals",
-          "tableTo": "weekly_plans",
-          "columnsFrom": [
-            "plan_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "weekly_plan_meals_dish_id_dishes_id_fk": {
-          "name": "weekly_plan_meals_dish_id_dishes_id_fk",
-          "tableFrom": "weekly_plan_meals",
-          "tableTo": "dishes",
-          "columnsFrom": [
-            "dish_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.weekly_plans": {
-      "name": "weekly_plans",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "clinic_id": {
-          "name": "clinic_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "client_id": {
-          "name": "client_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "week_start_date": {
-          "name": "week_start_date",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "status": {
-          "name": "status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'draft'"
-        },
-        "published_at": {
-          "name": "published_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "week_instructions": {
-          "name": "week_instructions",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "kcal_target_snapshot": {
-          "name": "kcal_target_snapshot",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "generated_by": {
-          "name": "generated_by",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'ai'"
-        },
-        "model": {
-          "name": "model",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "weekly_plans_published_week_idx": {
-          "name": "weekly_plans_published_week_idx",
-          "columns": [
-            {
-              "expression": "client_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "week_start_date",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "status = 'published'",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "weekly_plans_client_id_week_idx": {
-          "name": "weekly_plans_client_id_week_idx",
-          "columns": [
-            {
-              "expression": "client_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "week_start_date",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "weekly_plans_clinic_id_idx": {
-          "name": "weekly_plans_clinic_id_idx",
-          "columns": [
-            {
-              "expression": "clinic_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "weekly_plans_clinic_id_clinics_id_fk": {
-          "name": "weekly_plans_clinic_id_clinics_id_fk",
-          "tableFrom": "weekly_plans",
-          "tableTo": "clinics",
-          "columnsFrom": [
-            "clinic_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "weekly_plans_client_id_clients_id_fk": {
-          "name": "weekly_plans_client_id_clients_id_fk",
-          "tableFrom": "weekly_plans",
           "tableTo": "clients",
           "columnsFrom": [
             "client_id"

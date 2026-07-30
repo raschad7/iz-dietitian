@@ -31,7 +31,9 @@
     "payments": "Payments",
     "settings": "Settings",
     "portalHome": "Home",
+    "myPlan": "My plan",
     "myAppointments": "My appointments",
+    "profile": "Profile",
     "security": "Security",
     "weeklyPlans": "Weekly Plans",
     "dishes": "Dish catalog"
@@ -45,6 +47,11 @@
   },
   "login": {
     "title": "Sign in",
+    "subtitle": "Choose how you sign in.",
+    "roleQuestion": "Who is signing in?",
+    "roleStaff": "Clinic team",
+    "roleClient": "Client",
+    "roleTemporaryNote": "Temporary: sign-in will work this out on its own later.",
     "staffSubtitle": "For the clinic team.",
     "staffHeading": "Clinic team",
     "staffDescription": "Sign in with your email and password.",
@@ -311,7 +318,46 @@
   "dashboard": {
     "title": "Dashboard",
     "welcome": "Welcome, {name}",
-    "placeholder": "Clinic metrics will appear here once the feature modules are built."
+    "agenda": {
+      "title": "Today's agenda",
+      "empty": "No appointments today",
+      "emptyCta": "View calendar",
+      "reason": "Reason: {reason}"
+    },
+    "requests": {
+      "title": "Pending requests",
+      "count": "{count, number, integer} pending",
+      "empty": "No pending requests right now",
+      "cta": "Review requests",
+      "kind": {
+        "new": "New booking request",
+        "reschedule": "Reschedule request",
+        "cancel": "Cancellation request"
+      }
+    },
+    "stats": {
+      "activeClients": "Active clients",
+      "appointmentsThisWeek": "Appointments this week",
+      "clientsWithoutMealPlan": "Without a meal plan",
+      "newClientsThisMonth": "New clients this month"
+    },
+    "attention": {
+      "title": "Needs attention",
+      "badge": "Needs attention",
+      "empty": "No clients need attention right now",
+      "viewAll": "View all clients",
+      "reason": {
+        "noUpcomingAppointment": "No upcoming appointment",
+        "noMealPlan": "No meal plan",
+        "neverSignedIn": "Never signed in to the portal"
+      }
+    },
+    "quickActions": {
+      "title": "Quick actions",
+      "newAppointment": "New appointment",
+      "addClient": "Add client",
+      "newMealPlan": "New meal plan"
+    }
   },
   "foods": {
     "title": "Foods",
@@ -466,7 +512,93 @@
   "portal": {
     "title": "Client portal",
     "welcome": "Welcome, {name}",
-    "placeholder": "Your nutrition plan and appointments will appear here once the feature modules are built."
+    "dashboard": {
+      "nextAppointment": "Next appointment",
+      "todaysMeals": "Today's meals",
+      "dayEnergy": "{kcal, number, integer} kcal for the day",
+      "requestAppointment": "Request an appointment",
+      "viewMealPlan": "View meal plan",
+      "pendingRequests": "Waiting for your dietitian: {count, number, integer}"
+    },
+    "appointments": {
+      "title": "Appointments",
+      "upcoming": "Upcoming",
+      "history": "Past appointments",
+      "requests": "Your requests",
+      "noneUpcoming": "Nothing booked yet. Ask your dietitian for an appointment.",
+      "nonePast": "No past appointments.",
+      "reschedule": "Ask to reschedule",
+      "cancel": "Ask to cancel",
+      "requestPending": "Waiting for your dietitian"
+    },
+    "request": {
+      "title": "Request an appointment",
+      "backToAppointments": "Back to appointments",
+      "chooseDay": "Choose a day",
+      "chooseTime": "Choose a time",
+      "noSlots": "Nothing is free on this day. Try another one.",
+      "note": "Reason",
+      "notePlaceholder": "Follow-up, a question about my plan…",
+      "optional": "(Optional)",
+      "currentSlot": "Currently {date} at {time}",
+      "preferredSlot": "Asked for {date} at {time}",
+      "withdraw": "Withdraw",
+      "confirmWithdraw": "This takes your request back. Are you sure?",
+      "heading": {
+        "new": "Request an appointment",
+        "reschedule": "Ask for a different time",
+        "cancel": "Ask to cancel"
+      },
+      "description": {
+        "new": "Pick a day and a time that suit you. Your dietitian confirms it.",
+        "reschedule": "Pick a new day and time. Your appointment stays as it is until your dietitian agrees.",
+        "cancel": "Your dietitian will be told. The appointment stays booked until they cancel it."
+      },
+      "submit": {
+        "new": "Send the request",
+        "reschedule": "Send the request",
+        "cancel": "Send the cancellation request"
+      },
+      "kind": {
+        "new": "New appointment",
+        "reschedule": "Reschedule",
+        "cancel": "Cancellation"
+      },
+      "status": {
+        "pending": "Waiting",
+        "approved": "Approved",
+        "declined": "Declined",
+        "withdrawn": "Withdrawn"
+      }
+    },
+    "plan": {
+      "title": "Meal plan",
+      "none": "Your dietitian has not built a plan for you yet.",
+      "grams": "{grams, number, plain} g",
+      "weekOf": "Week of {date}",
+      "dailyTarget": "Daily target: {value} kcal",
+      "kcalValue": "{value} kcal",
+      "portion": "{servings} × {label}",
+      "showIngredients": "Show ingredients and amounts",
+      "orInstead": "You can eat this instead:",
+      "noMeal": "No meal set"
+    },
+    "profile": {
+      "title": "Profile and settings",
+      "personalInfo": "Personal information",
+      "readOnly": "Your dietitian keeps these up to date. Tell them if something is wrong.",
+      "language": "Language",
+      "languageDescription": "The language of the portal, and of what the clinic sends you.",
+      "saveLanguage": "Save"
+    },
+    "errors": {
+      "invalid": "Check what you entered and try again.",
+      "notFound": "That appointment no longer exists.",
+      "slotUnavailable": "That time has just been taken. Choose another one.",
+      "alreadyRequested": "You have already asked about this. Your dietitian will answer soon.",
+      "pastAppointment": "That appointment has already happened.",
+      "unexpected": "Something went wrong. Please try again."
+    }
   },
   "localeSwitcher": {
     "label": "Language",
@@ -642,17 +774,5 @@
       "fish": "Fish",
       "sesame": "Sesame"
     }
-  },
-  "portalPlan": {
-    "title": "My weekly plan",
-    "empty": "No plan has been published for you yet. Your dietitian will publish one soon.",
-    "weekOf": "Week of {date}",
-    "dailyTarget": "Daily target: {value} kcal",
-    "kcalValue": "{value} kcal",
-    "portion": "{servings} × {label}",
-    "showIngredients": "Show ingredients and amounts",
-    "orInstead": "You can eat this instead:",
-    "noMeal": "No meal set",
-    "notLinked": "Your account is not linked to a client record. Please contact your dietitian."
   }
 }

@@ -19,7 +19,7 @@ import { weekDates } from '../week';
  * the plan the dietitian published stays the plan of record.
  */
 export function PortalPlan({ board }: { board: Board }) {
-  const t = useTranslations('portalPlan');
+  const t = useTranslations('portal.plan');
   const tDays = useTranslations('mealPlans.days');
 
   const dates = weekDates(board.weekStartDate);
@@ -27,7 +27,7 @@ export function PortalPlan({ board }: { board: Board }) {
   return (
     <div className="space-y-6 text-start">
       <header className="space-y-1">
-        <h1 className="text-xl font-semibold tracking-tight">{t('title')}</h1>
+        <h2 className="text-2xl font-semibold tracking-tight">{t('title')}</h2>
         <p className="text-sm text-muted-foreground">
           {t('weekOf', { date: board.weekStartDate })}
         </p>
@@ -44,7 +44,7 @@ export function PortalPlan({ board }: { board: Board }) {
 
           return (
             <section key={day.dayOfWeek} className="space-y-2">
-              <h2 className="flex flex-wrap items-baseline gap-2 border-b border-border pb-1.5">
+              <h3 className="flex flex-wrap items-baseline gap-2 border-b border-border pb-1.5">
                 <span className="text-base font-semibold">{tDays(dayKey(day.dayOfWeek))}</span>
                 {dates[index] && (
                   <span className="text-xs text-muted-foreground">{dates[index]}</span>
@@ -52,7 +52,7 @@ export function PortalPlan({ board }: { board: Board }) {
                 <span className="ms-auto text-xs text-muted-foreground">
                   {t('kcalValue', { value: kcal })}
                 </span>
-              </h2>
+              </h3>
 
               <ul className="space-y-3">
                 {day.meals.map((meal) => (

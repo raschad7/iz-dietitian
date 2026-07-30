@@ -8,6 +8,9 @@ const nextConfig: NextConfig = {
     // Never ship a build that does not typecheck.
     ignoreBuildErrors: false,
   },
+  turbopack: {
+    root: __dirname,
+  },
 };
 
 export default withNextIntl(nextConfig);
