@@ -316,7 +316,46 @@
   "dashboard": {
     "title": "Dashboard",
     "welcome": "Welcome, {name}",
-    "placeholder": "Clinic metrics will appear here once the feature modules are built."
+    "agenda": {
+      "title": "Today's agenda",
+      "empty": "No appointments today",
+      "emptyCta": "View calendar",
+      "reason": "Reason: {reason}"
+    },
+    "requests": {
+      "title": "Pending requests",
+      "count": "{count, number, integer} pending",
+      "empty": "No pending requests right now",
+      "cta": "Review requests",
+      "kind": {
+        "new": "New booking request",
+        "reschedule": "Reschedule request",
+        "cancel": "Cancellation request"
+      }
+    },
+    "stats": {
+      "activeClients": "Active clients",
+      "appointmentsThisWeek": "Appointments this week",
+      "clientsWithoutMealPlan": "Without a meal plan",
+      "newClientsThisMonth": "New clients this month"
+    },
+    "attention": {
+      "title": "Needs attention",
+      "badge": "Needs attention",
+      "empty": "No clients need attention right now",
+      "viewAll": "View all clients",
+      "reason": {
+        "noUpcomingAppointment": "No upcoming appointment",
+        "noMealPlan": "No meal plan",
+        "neverSignedIn": "Never signed in to the portal"
+      }
+    },
+    "quickActions": {
+      "title": "Quick actions",
+      "newAppointment": "New appointment",
+      "addClient": "Add client",
+      "newMealPlan": "New meal plan"
+    }
   },
   "foods": {
     "title": "Foods",
