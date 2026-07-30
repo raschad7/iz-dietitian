@@ -13,8 +13,21 @@ export type NavItem = {
     | '/app/meal-plans'
     | '/app/foods'
     | '/app/settings/security'
-    | '/portal';
-  labelKey: 'dashboard' | 'clients' | 'calendar' | 'mealPlans' | 'foods' | 'security' | 'portalHome';
+    | '/portal'
+    | '/portal/appointments'
+    | '/portal/meal-plan'
+    | '/portal/profile';
+  labelKey:
+    | 'dashboard'
+    | 'clients'
+    | 'calendar'
+    | 'mealPlans'
+    | 'foods'
+    | 'security'
+    | 'portalHome'
+    | 'myAppointments'
+    | 'myPlan'
+    | 'profile';
 };
 
 /**
