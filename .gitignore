@@ -25,6 +25,9 @@ yarn.lock
 # claude code — shared config is committed, personal overrides are not
 .claude/settings.local.json
 
+# superpowers brainstorming scratch — mockups, not source
+.superpowers/
+
 # misc
 .DS_Store
 *.pem
