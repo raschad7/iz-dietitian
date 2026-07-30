@@ -38,6 +38,21 @@ import { slotBudgets, suggestProteinGrams, suggestTargets, type SlotBudget, type
  * a silent leak — the same rule V1 follows.
  */
 
+/**
+ * A `text[]` literal with each element bound as a parameter.
+ *
+ * Interpolating a JS array straight into a `sql` template hands PostgreSQL a
+ * comma-joined string, which `array_in` rejects with "Array value must start with
+ * {". Building `ARRAY[$1, $2]::text[]` keeps every value parameterised — so this is
+ * about correctness first and injection safety second.
+ */
+function textArray(values: readonly string[]): SQL {
+  return sql`ARRAY[${sql.join(
+    values.map((value) => sql`${value}`),
+    sql`, `,
+  )}]::text[]`;
+}
+
 /** The columns making up a food's composition, shared by the readers below. */
 const foodColumns = {
   id: foods.id,
@@ -77,7 +92,7 @@ export async function loadCatalog(allergens: readonly string[] = []): Promise<Di
   if (allergens.length) {
     // `&&` is the array-overlap operator: true when the dish carries ANY of the
     // client's allergens. Negated, so only clean dishes survive.
-    conditions.push(sql`not (${dishes.allergenTags} && ${allergens})`);
+    conditions.push(sql`not (${dishes.allergenTags} && ${textArray(allergens)})`);
   }
 
   const dishRows = await db
@@ -168,7 +183,7 @@ export async function listDishes(input: {
   }
 
   if (input.mealType) {
-    conditions.push(sql`${dishes.mealTypes} && ${[input.mealType]}`);
+    conditions.push(sql`${dishes.mealTypes} && ${textArray([input.mealType])}`);
   }
 
   const where = and(...conditions);
