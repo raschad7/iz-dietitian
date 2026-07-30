@@ -205,19 +205,31 @@ must not depend on the model reading its instructions.
 
 ### What comes back
 
-One call per generation, `response_format: json_schema` with `strict: true`. The
-`dish` field is an **enum of the slugs actually sent**, so a dish outside the
-catalog is not merely discouraged, it is unrepresentable.
+One call per generation, `response_format: json_schema` with `strict: true`.
+
+A day is an **object keyed by slot**, not a list of meals — narrowed from the
+original design during implementation, because it buys four guarantees from the
+provider instead of from the prompt: no slot can be missing (every slot is
+`required`), none can be duplicated (object keys), none can be invented
+(`additionalProperties: false`), and each slot's `dish` enum lists only dishes
+tagged for **that meal type**, so a breakfast dish at lunch is unrepresentable
+rather than merely discouraged.
 
 ```jsonc
-{ "days": [ { "dayOfWeek": 0, "meals": [ {
-      "slotKey": "breakfast",
-      "dish": "labaneh-zeit-bread",
-      "servings": 1.25,
-      "rationaleAr": "…",
-      "alternatives": [ { "dish": "…", "servings": 1 } ]
-} ] } ] }
+{ "days": [ {
+      "dayOfWeek": 0,
+      "breakfast": {
+        "dish": "labaneh-zeit-pita",   // enum: breakfast dishes only
+        "servings": 1.25,
+        "rationaleAr": "…",
+        "alternatives": [ { "dish": "…", "servings": 1 } ]
+      },
+      "lunch": { … }
+} ] }
 ```
+
+`parseGeneratedPlan` flattens this back to a canonical array so nothing downstream
+has to know about dynamic keys.
 
 ### What happens to it
 
@@ -228,11 +240,30 @@ catalog is not merely discouraged, it is unrepresentable.
 2. Re-check every slug against the filtered catalog **server-side**. Unknown or
    allergen-violating slugs are dropped, never stored.
 3. Reconcile against the client's real slots. Missing meals become empty slots.
-4. Compute all nutrition locally from `dish_ingredients`. Nothing the model says
+4. **Recompute every portion.** `servings` from the model is discarded in favour of
+   `bestServings(dish.baseKcal, slot.budgetKcal)` — see below.
+5. Compute all nutrition locally from `dish_ingredients`. Nothing the model says
    about calories is ever read; volunteered numbers are ignored.
-5. Insert plan, meals, and options in one transaction, plus the audit row.
+6. Insert plan, meals, and options in one transaction, plus the audit row.
 
 The model is treated as an untrusted source of *references*, not of facts.
+
+### The model picks the dish; arithmetic picks the portion
+
+Added after measuring the first real generations. `gpt-4o-mini` chose dishes well
+and portions badly: it under-portioned every lunch by 15-25%, turning a 1,577 kcal
+target into days of 1,292-1,538 kcal.
+
+The fix needs no model. Both inputs — the slot's calorie budget and the dish's
+energy per base serving — are ours, so the multiplier is computed, not accepted.
+Same treatment for alternatives: an alternative is only a substitute if its portion
+hits the same budget.
+
+Measured after the change, same client and prompt: day totals of 1,521-1,613
+against a 1,577 target, all seven days within ±2.3%.
+
+This is the same principle as the rest of the contract, applied one level further
+in — the model supplies references, the system supplies numbers.
 
 ## UI
 
@@ -296,13 +327,29 @@ history is free. The portal reads the published plan with the greatest
 - The `console` LLM transport replays a committed fixture, so `generate.ts` is
   testable end to end with no network and no key.
 
-## Known risk
+## Known risks
 
-A 30-90s generation as a server action exceeds the default function timeout on
-most serverless hosts. Locally it is fine. On Vercel this needs
-`export const maxDuration = 120` on the route segment; if that is not enough, the
-upgrade path is a route handler writing progress with the client polling — a
-meaningfully bigger build, deliberately not built now.
+**Generation time.** Measured on `gpt-4o-mini`: a seven-day plan is ~4,700 prompt
+and ~3,150 completion tokens, and takes 51-58s. A single day is ~865 completion
+tokens and ~12s. The cost is output tokens, not schema size — the JSON schema is
+byte-identical for one day and for seven, because a day is one `items` schema
+either way.
+
+`export const maxDuration = 120` is set on the board route segment, and the client
+timeout is 100s so a slow run aborts with a message we control rather than the
+platform killing the function mid-write. If that proves too tight, the upgrade path
+is a route handler writing progress with the client polling — a meaningfully bigger
+build, deliberately not built now. The per-day regenerate button is the practical
+escape hatch at a fifth of the output.
+
+**Cold grammar compilation.** The first request using a given schema *shape* pays
+for grammar compilation on OpenAI's side, which can add tens of seconds and did
+cause one timeout during development. It recurs whenever the catalog changes or a
+client's slot set changes.
+
+**A shell-level `OPENAI_API_KEY` shadows `.env.local`** in both Bun and Next.js.
+This cost real debugging time: a stale exported key produced a 401 while the correct
+key sat unused in the file. `.env.example` carries the warning and the check.
 
 ## Implementation order
 

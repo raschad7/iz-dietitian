@@ -56,12 +56,21 @@ export class LlmNotConfiguredError extends Error {
 /**
  * How long to wait before giving up.
  *
- * A whole week is 35 meals with alternatives, which takes a cheap model a while.
- * 110s sits under the 120s route-segment `maxDuration` the README documents, so
- * the request aborts with a message we control rather than the platform killing
- * the function.
+ * Measured against `gpt-4o-mini`: a seven-day plan is ~3,150 completion tokens and
+ * takes ~55s; a single day is ~865 tokens and ~12s. The cost is output tokens, not
+ * schema size — the JSON schema is byte-identical for one day and for seven, because
+ * a day is one `items` schema either way.
+ *
+ * 100s leaves headroom over the measured 55s while sitting under the 120s
+ * route-segment `maxDuration`, so a slow run aborts with a message we control rather
+ * than the platform killing the function mid-write.
+ *
+ * The exception to budget for: the FIRST request using a given schema shape pays for
+ * grammar compilation on OpenAI's side, which can add tens of seconds. That happens
+ * again whenever the catalog changes or a client's slot set changes. If it bites, the
+ * per-day regenerate button uses the same contract at a fifth of the output.
  */
-export const LLM_TIMEOUT_MS = 110_000;
+export const LLM_TIMEOUT_MS = 100_000;
 
 const DEFAULT_MODEL = 'gpt-4o-mini';
 

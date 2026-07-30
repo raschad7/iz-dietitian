@@ -21,7 +21,7 @@ import {
   type GeneratedPlan,
   type GenerationScope,
 } from './schema';
-import { isSimilar, snapServings } from './similar';
+import { bestServings, isSimilar, snapServings } from './similar';
 import type { SlotBudget } from './targets';
 
 /** A catalog dish, as reconciliation needs it. */
@@ -175,7 +175,17 @@ export function reconcile({
         continue;
       }
 
-      const servings = snapServings(returnedMeal.servings);
+      // The model chooses the dish; arithmetic chooses the portion.
+      //
+      // Its own `servings` is discarded whenever we can do better, because we have
+      // both numbers it would need — the slot budget and the dish's energy per base
+      // serving — and it does not have to be good at multiplication. Trusting it
+      // measurably was not good enough: gpt-4o-mini undershot every lunch by 15-25%,
+      // which turned a 1,577 kcal target into a 1,292 kcal day.
+      //
+      // Falls back to its value only for a dish with no energy, where no multiplier
+      // can hit a budget and there is nothing to compute.
+      const servings = bestServings(dish.baseKcal, budget.kcal) ?? snapServings(returnedMeal.servings);
       const seen = new Set([dish.slug]);
       const options: ReconciledOption[] = [];
 
@@ -193,7 +203,10 @@ export function reconcile({
         if (!alternativeDish) continue;
 
         seen.add(alternative.dish);
-        const alternativeServings = snapServings(alternative.servings);
+        // Same again: an alternative is only a substitute if its portion hits the
+        // same budget, so the portion is computed rather than accepted.
+        const alternativeServings =
+          bestServings(alternativeDish.baseKcal, budget.kcal) ?? snapServings(alternative.servings);
 
         options.push({
           dishId: alternativeDish.id,

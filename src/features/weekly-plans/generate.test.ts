@@ -133,16 +133,37 @@ describe('reconcile — the happy path', () => {
     const options = result.meals[0]!.options;
 
     expect(options.map((option) => option.slug)).toEqual(['fasolia', 'tiny-lunch']);
-    // 600 kcal against a 620 budget is within 15%.
+    // fasolia at its computed 1× is 600 against 620 — within 15%.
     expect(options[0]!.isSimilar).toBe(true);
-    // 120 kcal at one serving is not, so it is offered but flagged.
+    // tiny-lunch cannot reach 620 even at the 3× ceiling (360 kcal), so it is still
+    // offered but flagged as not a like-for-like swap.
     expect(options[1]!.isSimilar).toBe(false);
   });
 
-  test('snaps servings to a legal quarter step', () => {
-    const result = run([day(0, meal({ servings: 1.13 }))]);
+  test('computes the portion rather than trusting the model', () => {
+    // The dish is 620 kcal a serving against a 620 budget, so one serving is right —
+    // whatever the model asked for. gpt-4o-mini reliably under-portions lunch, which
+    // turned a 1,577 kcal target into a 1,292 kcal day before this.
+    const result = run([day(0, meal({ servings: 0.75 }))]);
 
-    expect(result.meals[0]!.servings).toBe(1.25);
+    expect(result.meals[0]!.servings).toBe(1);
+  });
+
+  test('scales a small dish up to reach the budget', () => {
+    // tiny-lunch is 120 kcal a serving; 620 / 120 = 5.17, clamped to the 3× ceiling.
+    const result = run([day(0, meal({ dish: 'tiny-lunch', servings: 1, alternatives: [] }))]);
+
+    expect(result.meals[0]!.servings).toBe(3);
+  });
+
+  test('computes alternative portions too, so an alternative is a real substitute', () => {
+    const result = run([
+      day(0, meal({ alternatives: [{ dish: 'fasolia', servings: 0.25 }] })),
+    ]);
+
+    // fasolia is 600 kcal; 620 / 600 = 1.03 → 1, not the 0.25 the model offered.
+    expect(result.meals[0]!.options[0]!.servings).toBe(1);
+    expect(result.meals[0]!.options[0]!.isSimilar).toBe(true);
   });
 });
 
