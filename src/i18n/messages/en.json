@@ -31,7 +31,6 @@
     "payments": "Payments",
     "settings": "Settings",
     "portalHome": "Home",
-    "myPlan": "My plan",
     "myAppointments": "My appointments",
     "security": "Security",
     "weeklyPlans": "Weekly Plans",
@@ -653,6 +652,7 @@
     "portion": "{servings} × {label}",
     "showIngredients": "Show ingredients and amounts",
     "orInstead": "You can eat this instead:",
-    "noMeal": "No meal set"
+    "noMeal": "No meal set",
+    "notLinked": "Your account is not linked to a client record. Please contact your dietitian."
   }
 }

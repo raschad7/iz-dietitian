@@ -18,6 +18,15 @@ import { ALLERGENS, DEFAULT_MEAL_SCHEDULE, type MealScheduleInput } from '../sch
 import { suggestProteinGrams } from '../targets';
 
 /**
+ * Base UI inputs keep their own state when used with `defaultValue` and warn if
+ * that default changes after mounting. A changed key remounts only the affected
+ * input when a saved profile comes back from the server.
+ */
+export function profileInputKey(value: number | null | undefined): string {
+  return value == null ? 'empty' : `value:${value}`;
+}
+
+/**
  * The nutrition profile: the six things `clients` does not hold, plus the schedule.
  *
  * The schedule is editable rows rather than a fixed five, because a client eating
@@ -58,6 +67,7 @@ export function NutritionProfileForm({
         <div className="grid gap-4 sm:grid-cols-3">
           <Field id="weightKg" label={t('fields.weightKg')} error={errorFor('weightKg')}>
             <Input
+              key={profileInputKey(context.profile?.weightKg)}
               id="weightKg"
               name="weightKg"
               type="number"
@@ -83,6 +93,7 @@ export function NutritionProfileForm({
             }
           >
             <Input
+              key={profileInputKey(context.profile?.dailyKcalTarget)}
               id="dailyKcalTarget"
               name="dailyKcalTarget"
               type="number"
@@ -105,6 +116,7 @@ export function NutritionProfileForm({
             }
           >
             <Input
+              key={profileInputKey(context.profile?.proteinTargetGrams)}
               id="proteinTargetGrams"
               name="proteinTargetGrams"
               type="number"

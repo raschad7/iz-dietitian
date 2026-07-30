@@ -31,7 +31,6 @@
     "payments": "المدفوعات",
     "settings": "الإعدادات",
     "portalHome": "الصفحة الرئيسية",
-    "myPlan": "خطتي الغذائية",
     "myAppointments": "مواعيدي",
     "security": "الأمان",
     "weeklyPlans": "الخطط الأسبوعية",
@@ -653,6 +652,7 @@
     "portion": "{servings} × {label}",
     "showIngredients": "عرض المكوّنات والكميات",
     "orInstead": "يمكنك بدلاً منها:",
-    "noMeal": "لم تُحدد وجبة"
+    "noMeal": "لم تُحدد وجبة",
+    "notLinked": "حسابك غير مرتبط بملف عميل. تواصل مع أخصائي التغذية."
   }
 }

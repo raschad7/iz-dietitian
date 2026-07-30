@@ -252,45 +252,58 @@ export type PlannableClient = {
  * on a Sunday morning actually wants to know.
  */
 export async function listPlannableClients(clinicId: string): Promise<PlannableClient[]> {
-  // The newest plan per client, via a lateral-style correlated subquery. One
-  // query for the whole rail rather than one per client.
-  const latest = db
-    .select({
-      clientId: weeklyPlans.clientId,
-      weekStartDate: sql<string>`max(${weeklyPlans.weekStartDate})`.as('week_start_date'),
-    })
-    .from(weeklyPlans)
-    .where(eq(weeklyPlans.clinicId, clinicId))
-    .groupBy(weeklyPlans.clientId)
-    .as('latest');
-
-  const rows = await db
+  const clientRows = await db
     .select({
       id: clients.id,
       fullName: clients.fullName,
       color: clients.color,
       profileId: clientNutritionProfiles.id,
-      latestWeekStartDate: latest.weekStartDate,
-      latestPlanStatus: weeklyPlans.status,
     })
     .from(clients)
     .leftJoin(clientNutritionProfiles, eq(clientNutritionProfiles.clientId, clients.id))
-    .leftJoin(latest, eq(latest.clientId, clients.id))
-    .leftJoin(
-      weeklyPlans,
-      and(eq(weeklyPlans.clientId, clients.id), eq(weeklyPlans.weekStartDate, latest.weekStartDate)),
-    )
     .where(and(eq(clients.clinicId, clinicId), eq(clients.status, 'active')))
     .orderBy(asc(clients.fullName));
 
-  return rows.map((row) => ({
-    id: row.id,
-    fullName: row.fullName,
-    color: row.color,
-    hasProfile: row.profileId !== null,
-    latestPlanStatus: row.latestPlanStatus ?? null,
-    latestWeekStartDate: row.latestWeekStartDate ?? null,
-  }));
+  /**
+   * The newest plan per client, via `DISTINCT ON` — PostgreSQL's own answer to
+   * "the first row of each group".
+   *
+   * Two queries merged in memory rather than one join. The obvious-looking version —
+   * a `group by` subquery yielding `max(week_start_date)`, joined back to
+   * `weekly_plans` to recover that row's status — does not survive contact with
+   * Drizzle: the aliased aggregate comes out unqualified in the join condition
+   * (`… and "weekly_plans"."week_start_date" = "week_start_date"`), which PostgreSQL
+   * rejects. `DISTINCT ON` needs no self-join at all, and the rail is a few dozen
+   * rows either way.
+   *
+   * The `ORDER BY` must lead with the `DISTINCT ON` expression; the rest of it is
+   * what decides which row wins — newest week, and the most recently touched plan
+   * within it.
+   */
+  const planRows = await db
+    .selectDistinctOn([weeklyPlans.clientId], {
+      clientId: weeklyPlans.clientId,
+      weekStartDate: weeklyPlans.weekStartDate,
+      status: weeklyPlans.status,
+    })
+    .from(weeklyPlans)
+    .where(eq(weeklyPlans.clinicId, clinicId))
+    .orderBy(asc(weeklyPlans.clientId), desc(weeklyPlans.weekStartDate), desc(weeklyPlans.updatedAt));
+
+  const latestByClient = new Map(planRows.map((row) => [row.clientId, row]));
+
+  return clientRows.map((row) => {
+    const latest = latestByClient.get(row.id);
+
+    return {
+      id: row.id,
+      fullName: row.fullName,
+      color: row.color,
+      hasProfile: row.profileId !== null,
+      latestPlanStatus: latest?.status ?? null,
+      latestWeekStartDate: latest?.weekStartDate ?? null,
+    };
+  });
 }
 
 export type ClientContext = {

@@ -3,7 +3,7 @@ import { and, eq } from 'drizzle-orm';
 
 import { db } from '@/db';
 import { pgConstraintName, pgErrorCode, UNIQUE_VIOLATION } from '@/db/errors';
-import { dishIngredients, dishes, foods, weeklyPlanMeals, weeklyPlans } from '@/db/schema';
+import { clients, dishIngredients, dishes, foods, weeklyPlanMeals, weeklyPlans } from '@/db/schema';
 import { createTestClient, createTestClinic, resetDatabase } from '../../../tests/helpers';
 
 import type { ReconciledMeal } from './generate';
@@ -15,7 +15,7 @@ import {
   swapMealDish,
   unpublishPlan,
 } from './mutations';
-import { getBoard, getPublishedBoard, loadCatalog } from './queries';
+import { getBoard, getPublishedBoard, listPlannableClients, loadCatalog } from './queries';
 import { DEFAULT_MEAL_SCHEDULE } from './schema';
 
 /**
@@ -262,6 +262,61 @@ describe('createPlanFromGeneration', () => {
 
     expect(board!.days[0]!.meals[0]!.dish).toBeNull();
     expect(board!.unfilled).toBe(1);
+  });
+});
+
+describe('listPlannableClients', () => {
+  /**
+   * These exist because the first version of this query shipped broken: a `group by`
+   * subquery joined back to `weekly_plans` emitted an unqualified column that
+   * PostgreSQL rejected, and the page crashed on load. Nothing here asserted the
+   * query ran at all, so nothing caught it.
+   */
+  test('runs, and lists active clients of this clinic only', async () => {
+    const otherClientId = await createTestClient(otherClinicId, 'عميل عيادة أخرى');
+
+    const rows = await listPlannableClients(clinicId);
+
+    expect(rows.map((row) => row.id)).toEqual([clientId]);
+    expect(rows.map((row) => row.id)).not.toContain(otherClientId);
+  });
+
+  test('reports whether a nutrition profile exists', async () => {
+    expect((await listPlannableClients(clinicId))[0]?.hasProfile).toBe(false);
+
+    await saveNutritionProfile(clinicId, {
+      clientId,
+      allergenTags: [],
+      mealSchedule: DEFAULT_MEAL_SCHEDULE,
+    });
+
+    expect((await listPlannableClients(clinicId))[0]?.hasProfile).toBe(true);
+  });
+
+  test('carries no plan status for a client with no plans', async () => {
+    const [row] = await listPlannableClients(clinicId);
+
+    expect(row?.latestPlanStatus).toBeNull();
+    expect(row?.latestWeekStartDate).toBeNull();
+  });
+
+  test('reports the newest week, not the newest row', async () => {
+    await createPlan([meal()], '2026-08-02');
+    const older = await createPlan([meal()], '2026-07-26');
+    // The older week was written most recently, so a query ordering by `updated_at`
+    // alone would pick the wrong one.
+    await publishPlan(clinicId, older);
+
+    const [row] = await listPlannableClients(clinicId);
+
+    expect(row?.latestWeekStartDate).toBe('2026-08-02');
+    expect(row?.latestPlanStatus).toBe('draft');
+  });
+
+  test('excludes an archived client', async () => {
+    await db.update(clients).set({ status: 'archived' }).where(eq(clients.id, clientId));
+
+    expect(await listPlannableClients(clinicId)).toEqual([]);
   });
 });
 

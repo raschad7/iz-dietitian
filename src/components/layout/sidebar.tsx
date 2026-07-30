@@ -15,8 +15,7 @@ export type NavItem = {
     | '/app/dishes'
     | '/app/foods'
     | '/app/settings/security'
-    | '/portal'
-    | '/portal/plan';
+    | '/portal';
   labelKey:
     | 'dashboard'
     | 'clients'
@@ -26,8 +25,7 @@ export type NavItem = {
     | 'dishes'
     | 'foods'
     | 'security'
-    | 'portalHome'
-    | 'myPlan';
+    | 'portalHome';
 };
 
 /**
