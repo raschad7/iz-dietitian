@@ -30,8 +30,9 @@ function SelectField({
       <select
         data-slot="select-field"
         className={cn(
-          'h-9 w-full appearance-none rounded-lg border border-input bg-transparent ps-3 pe-9 py-1 text-sm',
-          'transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50',
+          // Shape: "the Arc" (§9.3) — 10px base radius, 24px sweep on the block-end/inline-end corner.
+          'q-field-arc h-9 w-full appearance-none rounded-[10px] rounded-ee-xl border border-input bg-transparent ps-3 pe-9 py-1 text-sm',
+          'transition-all duration-220 ease-[cubic-bezier(.2,.6,.2,1)] outline-none focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-field-focus-halo',
           'disabled:cursor-not-allowed disabled:opacity-50',
           'aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20',
           'dark:bg-input/30',

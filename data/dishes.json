@@ -1,0 +1,1135 @@
+{
+  "$comment": [
+    "The approved dish catalog, seeded by scripts/seed-dishes.ts.",
+    "",
+    "Ingredients reference USDA FoodData Central by fdcId, NOT by description search:",
+    "a search that silently resolves 'cheese' to the wrong row would put wrong numbers",
+    "in front of a client. `note` is the description that fdcId had when this file was",
+    "written -- the seed asserts it still matches and fails loudly if a re-seed moved it.",
+    "",
+    "`grams` is for ONE base serving. weekly_plan_meals.servings scales it.",
+    "",
+    "allergenTags gate the catalog in SQL before anything reaches the model, so they must",
+    "be complete: gluten for pita/bulgur/flour/couscous, lactose for any dairy, sesame for",
+    "tahini and sesame seeds, nuts for tree nuts and peanuts, egg, fish."
+  ],
+  "dishes": [
+    {
+      "slug": "labaneh-zeit-pita",
+      "nameAr": "لبنة بزيت الزيتون مع خبز",
+      "nameEn": "Labaneh with olive oil and pita",
+      "mealTypes": ["breakfast", "dinner"],
+      "tags": ["cheap", "quick", "vegetarian", "high_protein"],
+      "allergenTags": ["lactose", "gluten"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 170903, "grams": 150, "note": "Yogurt, Greek, plain, lowfat" },
+        { "fdcId": 171413, "grams": 8, "note": "Oil, olive, salad or cooking" },
+        { "fdcId": 174916, "grams": 60, "note": "Bread, pita, whole-wheat" },
+        { "fdcId": 170938, "grams": 2, "note": "Spices, thyme, dried" }
+      ]
+    },
+    {
+      "slug": "hummus-tahini-breakfast",
+      "nameAr": "حمص بالطحينة مع خبز",
+      "nameEn": "Hummus with tahini and pita",
+      "mealTypes": ["breakfast", "dinner"],
+      "tags": ["cheap", "vegetarian", "high_protein", "portable"],
+      "allergenTags": ["sesame", "gluten"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 173800, "grams": 130, "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids" },
+        { "fdcId": 168604, "grams": 20, "note": "Seeds, sesame butter, tahini" },
+        { "fdcId": 167747, "grams": 10, "note": "Lemon juice, raw" },
+        { "fdcId": 171413, "grams": 6, "note": "Oil, olive, salad or cooking" },
+        { "fdcId": 174916, "grams": 60, "note": "Bread, pita, whole-wheat" }
+      ]
+    },
+    {
+      "slug": "foul-mudammas",
+      "nameAr": "فول مدمس",
+      "nameEn": "Foul mudammas",
+      "mealTypes": ["breakfast", "dinner"],
+      "tags": ["cheap", "vegetarian", "high_protein", "diabetic_friendly"],
+      "allergenTags": ["gluten"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 173754, "grams": 200, "note": "Broadbeans (fava beans), mature seeds, canned" },
+        { "fdcId": 171413, "grams": 10, "note": "Oil, olive, salad or cooking" },
+        { "fdcId": 167747, "grams": 10, "note": "Lemon juice, raw" },
+        { "fdcId": 169230, "grams": 3, "note": "Garlic, raw" },
+        { "fdcId": 170416, "grams": 8, "note": "Parsley, fresh" },
+        { "fdcId": 174915, "grams": 60, "note": "Bread, pita, white, enriched" }
+      ]
+    },
+    {
+      "slug": "eggs-zaatar",
+      "nameAr": "بيض مع زعتر وزيت",
+      "nameEn": "Eggs with za'atar and olive oil",
+      "mealTypes": ["breakfast"],
+      "tags": ["cheap", "quick", "high_protein", "diabetic_friendly"],
+      "allergenTags": ["egg", "gluten"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 171287, "grams": 100, "note": "Egg, whole, raw, fresh" },
+        { "fdcId": 171413, "grams": 8, "note": "Oil, olive, salad or cooking" },
+        { "fdcId": 170938, "grams": 3, "note": "Spices, thyme, dried" },
+        { "fdcId": 174916, "grams": 60, "note": "Bread, pita, whole-wheat" }
+      ]
+    },
+    {
+      "slug": "white-cheese-vegetables",
+      "nameAr": "جبنة بيضاء مع خيار وبندورة",
+      "nameEn": "White cheese with cucumber and tomato",
+      "mealTypes": ["breakfast", "dinner"],
+      "tags": ["quick", "vegetarian", "high_protein", "diabetic_friendly"],
+      "allergenTags": ["lactose", "gluten"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 173420, "grams": 60, "note": "Cheese, feta" },
+        { "fdcId": 168409, "grams": 80, "note": "Cucumber, with peel, raw" },
+        { "fdcId": 170457, "grams": 80, "note": "Tomatoes, red, ripe, raw, year round average" },
+        { "fdcId": 171413, "grams": 6, "note": "Oil, olive, salad or cooking" },
+        { "fdcId": 174916, "grams": 60, "note": "Bread, pita, whole-wheat" }
+      ]
+    },
+    {
+      "slug": "manaqish-zaatar",
+      "nameAr": "مناقيش زعتر",
+      "nameEn": "Za'atar manaqish",
+      "mealTypes": ["breakfast"],
+      "tags": ["cheap", "portable", "vegetarian"],
+      "allergenTags": ["gluten", "sesame"],
+      "baseServingLabel": "قرص واحد",
+      "ingredients": [
+        { "fdcId": 168894, "grams": 80, "note": "Wheat flour, white, all-purpose, enriched, bleached" },
+        { "fdcId": 171413, "grams": 15, "note": "Oil, olive, salad or cooking" },
+        { "fdcId": 170938, "grams": 6, "note": "Spices, thyme, dried" },
+        { "fdcId": 170150, "grams": 4, "note": "Seeds, sesame seeds, whole, dried" }
+      ]
+    },
+    {
+      "slug": "oats-milk-banana",
+      "nameAr": "شوفان بالحليب والموز",
+      "nameEn": "Oats with milk and banana",
+      "mealTypes": ["breakfast"],
+      "tags": ["quick", "cheap", "vegetarian"],
+      "allergenTags": ["lactose", "gluten"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 173904, "grams": 50, "note": "Cereals, oats, regular and quick, not fortified, dry" },
+        { "fdcId": 171265, "grams": 200, "note": "Milk, whole, 3.25% milkfat, with added vitamin D" },
+        { "fdcId": 173944, "grams": 100, "note": "Bananas, raw" }
+      ]
+    },
+    {
+      "slug": "oats-yogurt-dates",
+      "nameAr": "شوفان مع لبن وتمر",
+      "nameEn": "Oats with yogurt and dates",
+      "mealTypes": ["breakfast"],
+      "tags": ["quick", "vegetarian", "portable"],
+      "allergenTags": ["lactose", "gluten"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 173904, "grams": 40, "note": "Cereals, oats, regular and quick, not fortified, dry" },
+        { "fdcId": 171284, "grams": 150, "note": "Yogurt, plain, whole milk" },
+        { "fdcId": 168191, "grams": 30, "note": "Dates, medjool" }
+      ]
+    },
+    {
+      "slug": "shakshuka",
+      "nameAr": "شكشوكة",
+      "nameEn": "Shakshuka",
+      "mealTypes": ["breakfast", "dinner"],
+      "tags": ["cheap", "quick", "high_protein", "diabetic_friendly"],
+      "allergenTags": ["egg", "gluten"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 171287, "grams": 100, "note": "Egg, whole, raw, fresh" },
+        { "fdcId": 170457, "grams": 200, "note": "Tomatoes, red, ripe, raw, year round average" },
+        { "fdcId": 170000, "grams": 50, "note": "Onions, raw" },
+        { "fdcId": 170427, "grams": 50, "note": "Peppers, sweet, green, raw" },
+        { "fdcId": 171413, "grams": 10, "note": "Oil, olive, salad or cooking" },
+        { "fdcId": 174915, "grams": 40, "note": "Bread, pita, white, enriched" }
+      ]
+    },
+    {
+      "slug": "boiled-eggs-salad",
+      "nameAr": "بيض مسلوق مع سلطة",
+      "nameEn": "Boiled eggs with salad",
+      "mealTypes": ["breakfast", "dinner"],
+      "tags": ["quick", "high_protein", "diabetic_friendly", "portable"],
+      "allergenTags": ["egg"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 171287, "grams": 100, "note": "Egg, whole, raw, fresh" },
+        { "fdcId": 170457, "grams": 80, "note": "Tomatoes, red, ripe, raw, year round average" },
+        { "fdcId": 168409, "grams": 80, "note": "Cucumber, with peel, raw" },
+        { "fdcId": 171413, "grams": 6, "note": "Oil, olive, salad or cooking" }
+      ]
+    },
+    {
+      "slug": "labaneh-walnut-honey",
+      "nameAr": "لبنة مع جوز وعسل",
+      "nameEn": "Labaneh with walnuts and honey",
+      "mealTypes": ["breakfast"],
+      "tags": ["quick", "vegetarian", "high_protein"],
+      "allergenTags": ["lactose", "nuts", "gluten"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 170903, "grams": 120, "note": "Yogurt, Greek, plain, lowfat" },
+        { "fdcId": 170187, "grams": 15, "note": "Nuts, walnuts, english" },
+        { "fdcId": 169640, "grams": 8, "note": "Honey" },
+        { "fdcId": 174916, "grams": 60, "note": "Bread, pita, whole-wheat" }
+      ]
+    },
+    {
+      "slug": "fatteh-hummus",
+      "nameAr": "فتة حمص",
+      "nameEn": "Fatteh hummus",
+      "mealTypes": ["breakfast", "lunch"],
+      "tags": ["cheap", "vegetarian", "high_protein"],
+      "allergenTags": ["sesame", "lactose", "gluten", "nuts"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 173800, "grams": 150, "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids" },
+        { "fdcId": 171284, "grams": 120, "note": "Yogurt, plain, whole milk" },
+        { "fdcId": 174915, "grams": 40, "note": "Bread, pita, white, enriched" },
+        { "fdcId": 168604, "grams": 15, "note": "Seeds, sesame butter, tahini" },
+        { "fdcId": 170591, "grams": 8, "note": "Nuts, pine nuts, dried" }
+      ]
+    },
+    {
+      "slug": "mozzarella-tomato-pita",
+      "nameAr": "جبنة موزاريلا مع بندورة",
+      "nameEn": "Mozzarella with tomato and pita",
+      "mealTypes": ["breakfast"],
+      "tags": ["quick", "vegetarian", "high_protein"],
+      "allergenTags": ["lactose", "gluten"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 170845, "grams": 60, "note": "Cheese, mozzarella, whole milk" },
+        { "fdcId": 170457, "grams": 100, "note": "Tomatoes, red, ripe, raw, year round average" },
+        { "fdcId": 171413, "grams": 6, "note": "Oil, olive, salad or cooking" },
+        { "fdcId": 174916, "grams": 60, "note": "Bread, pita, whole-wheat" }
+      ]
+    },
+    {
+      "slug": "eggs-spinach-scramble",
+      "nameAr": "بيض مع سبانخ",
+      "nameEn": "Scrambled eggs with spinach",
+      "mealTypes": ["breakfast", "dinner"],
+      "tags": ["quick", "high_protein", "diabetic_friendly"],
+      "allergenTags": ["egg", "gluten"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 171287, "grams": 120, "note": "Egg, whole, raw, fresh" },
+        { "fdcId": 168462, "grams": 80, "note": "Spinach, raw" },
+        { "fdcId": 171413, "grams": 8, "note": "Oil, olive, salad or cooking" },
+        { "fdcId": 174916, "grams": 40, "note": "Bread, pita, whole-wheat" }
+      ]
+    },
+    {
+      "slug": "tahini-honey-pita",
+      "nameAr": "طحينة بالعسل مع خبز",
+      "nameEn": "Tahini with honey and pita",
+      "mealTypes": ["breakfast"],
+      "tags": ["quick", "cheap", "vegetarian", "portable"],
+      "allergenTags": ["sesame", "gluten"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 168604, "grams": 25, "note": "Seeds, sesame butter, tahini" },
+        { "fdcId": 169640, "grams": 15, "note": "Honey" },
+        { "fdcId": 174916, "grams": 60, "note": "Bread, pita, whole-wheat" }
+      ]
+    },
+    {
+      "slug": "sfeeha-lahm",
+      "nameAr": "صفيحة لحم",
+      "nameEn": "Sfeeha with minced beef",
+      "mealTypes": ["breakfast", "lunch"],
+      "tags": ["portable", "high_protein"],
+      "allergenTags": ["gluten"],
+      "baseServingLabel": "قطعتان",
+      "ingredients": [
+        { "fdcId": 168894, "grams": 70, "note": "Wheat flour, white, all-purpose, enriched, bleached" },
+        { "fdcId": 171790, "grams": 60, "note": "Beef, ground, 95% lean meat / 5% fat, raw" },
+        { "fdcId": 170000, "grams": 30, "note": "Onions, raw" },
+        { "fdcId": 170457, "grams": 40, "note": "Tomatoes, red, ripe, raw, year round average" },
+        { "fdcId": 171413, "grams": 8, "note": "Oil, olive, salad or cooking" }
+      ]
+    },
+
+    {
+      "slug": "apple-almonds",
+      "nameAr": "تفاح مع لوز",
+      "nameEn": "Apple with almonds",
+      "mealTypes": ["snack"],
+      "tags": ["quick", "portable", "vegetarian", "diabetic_friendly"],
+      "allergenTags": ["nuts"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 171688, "grams": 150, "note": "Apples, raw, with skin" },
+        { "fdcId": 170567, "grams": 20, "note": "Nuts, almonds" }
+      ]
+    },
+    {
+      "slug": "banana-peanuts",
+      "nameAr": "موز مع فستق",
+      "nameEn": "Banana with peanuts",
+      "mealTypes": ["snack"],
+      "tags": ["quick", "portable", "cheap", "vegetarian"],
+      "allergenTags": ["nuts"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 173944, "grams": 120, "note": "Bananas, raw" },
+        { "fdcId": 172430, "grams": 20, "note": "Peanuts, all types, raw" }
+      ]
+    },
+    {
+      "slug": "orange-plain",
+      "nameAr": "برتقال",
+      "nameEn": "Orange",
+      "mealTypes": ["snack"],
+      "tags": ["quick", "portable", "cheap", "vegetarian", "diabetic_friendly"],
+      "allergenTags": [],
+      "baseServingLabel": "حبة كبيرة",
+      "ingredients": [{ "fdcId": 169097, "grams": 180, "note": "Oranges, raw, all commercial varieties" }]
+    },
+    {
+      "slug": "grapes-plain",
+      "nameAr": "عنب",
+      "nameEn": "Grapes",
+      "mealTypes": ["snack"],
+      "tags": ["quick", "portable", "cheap", "vegetarian"],
+      "allergenTags": [],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [{ "fdcId": 174683, "grams": 150, "note": "Grapes, red or green (European type, such as Thompson seedless), raw" }]
+    },
+    {
+      "slug": "yogurt-cup",
+      "nameAr": "كوب لبن",
+      "nameEn": "Cup of plain yogurt",
+      "mealTypes": ["snack"],
+      "tags": ["quick", "cheap", "vegetarian", "high_protein", "diabetic_friendly"],
+      "allergenTags": ["lactose"],
+      "baseServingLabel": "كوب واحد",
+      "ingredients": [{ "fdcId": 171284, "grams": 200, "note": "Yogurt, plain, whole milk" }]
+    },
+    {
+      "slug": "carrot-hummus-sticks",
+      "nameAr": "جزر مع حمص",
+      "nameEn": "Carrot sticks with hummus",
+      "mealTypes": ["snack"],
+      "tags": ["portable", "cheap", "vegetarian", "diabetic_friendly"],
+      "allergenTags": ["sesame"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 170393, "grams": 100, "note": "Carrots, raw" },
+        { "fdcId": 173800, "grams": 80, "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids" },
+        { "fdcId": 168604, "grams": 10, "note": "Seeds, sesame butter, tahini" }
+      ]
+    },
+    {
+      "slug": "cucumber-radish-plate",
+      "nameAr": "خيار وفجل",
+      "nameEn": "Cucumber and radish plate",
+      "mealTypes": ["snack"],
+      "tags": ["quick", "cheap", "vegetarian", "diabetic_friendly"],
+      "allergenTags": [],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 168409, "grams": 120, "note": "Cucumber, with peel, raw" },
+        { "fdcId": 169276, "grams": 60, "note": "Radishes, raw" },
+        { "fdcId": 171413, "grams": 4, "note": "Oil, olive, salad or cooking" }
+      ]
+    },
+    {
+      "slug": "dates-walnuts",
+      "nameAr": "تمر مع جوز",
+      "nameEn": "Dates with walnuts",
+      "mealTypes": ["snack"],
+      "tags": ["quick", "portable", "vegetarian"],
+      "allergenTags": ["nuts"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 168191, "grams": 40, "note": "Dates, medjool" },
+        { "fdcId": 170187, "grams": 15, "note": "Nuts, walnuts, english" }
+      ]
+    },
+    {
+      "slug": "watermelon-plate",
+      "nameAr": "بطيخ",
+      "nameEn": "Watermelon",
+      "mealTypes": ["snack"],
+      "tags": ["quick", "cheap", "vegetarian"],
+      "allergenTags": [],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [{ "fdcId": 167765, "grams": 250, "note": "Watermelon, raw" }]
+    },
+    {
+      "slug": "figs-fresh",
+      "nameAr": "تين طازج",
+      "nameEn": "Fresh figs",
+      "mealTypes": ["snack"],
+      "tags": ["quick", "cheap", "vegetarian"],
+      "allergenTags": [],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [{ "fdcId": 173021, "grams": 150, "note": "Figs, raw" }]
+    },
+    {
+      "slug": "pear-plain",
+      "nameAr": "إجاص",
+      "nameEn": "Pear",
+      "mealTypes": ["snack"],
+      "tags": ["quick", "portable", "cheap", "vegetarian", "diabetic_friendly"],
+      "allergenTags": [],
+      "baseServingLabel": "حبة واحدة",
+      "ingredients": [{ "fdcId": 169118, "grams": 170, "note": "Pears, raw" }]
+    },
+    {
+      "slug": "pomegranate-bowl",
+      "nameAr": "رمان",
+      "nameEn": "Pomegranate",
+      "mealTypes": ["snack"],
+      "tags": ["quick", "vegetarian"],
+      "allergenTags": [],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [{ "fdcId": 169134, "grams": 150, "note": "Pomegranates, raw" }]
+    },
+    {
+      "slug": "guava-plain",
+      "nameAr": "جوافة",
+      "nameEn": "Guava",
+      "mealTypes": ["snack"],
+      "tags": ["quick", "portable", "vegetarian", "diabetic_friendly"],
+      "allergenTags": [],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [{ "fdcId": 173044, "grams": 150, "note": "Guavas, common, raw" }]
+    },
+    {
+      "slug": "strawberries-yogurt",
+      "nameAr": "فراولة مع لبن",
+      "nameEn": "Strawberries with yogurt",
+      "mealTypes": ["snack"],
+      "tags": ["quick", "vegetarian", "diabetic_friendly"],
+      "allergenTags": ["lactose"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 167762, "grams": 150, "note": "Strawberries, raw" },
+        { "fdcId": 171284, "grams": 120, "note": "Yogurt, plain, whole milk" }
+      ]
+    },
+    {
+      "slug": "sunflower-seeds-cup",
+      "nameAr": "بزر عباد الشمس",
+      "nameEn": "Sunflower seeds",
+      "mealTypes": ["snack"],
+      "tags": ["portable", "cheap", "vegetarian", "diabetic_friendly"],
+      "allergenTags": [],
+      "baseServingLabel": "حصة صغيرة",
+      "ingredients": [{ "fdcId": 170562, "grams": 25, "note": "Seeds, sunflower seed kernels, dried" }]
+    },
+    {
+      "slug": "plums-apricots",
+      "nameAr": "خوخ ومشمش",
+      "nameEn": "Plums and apricots",
+      "mealTypes": ["snack"],
+      "tags": ["quick", "cheap", "vegetarian", "diabetic_friendly"],
+      "allergenTags": [],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 169949, "grams": 100, "note": "Plums, raw" },
+        { "fdcId": 171697, "grams": 100, "note": "Apricots, raw" }
+      ]
+    },
+    {
+      "slug": "labaneh-cucumber-snack",
+      "nameAr": "لبنة مع خيار",
+      "nameEn": "Labaneh with cucumber",
+      "mealTypes": ["snack"],
+      "tags": ["quick", "vegetarian", "high_protein", "diabetic_friendly"],
+      "allergenTags": ["lactose"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 170903, "grams": 120, "note": "Yogurt, Greek, plain, lowfat" },
+        { "fdcId": 168409, "grams": 100, "note": "Cucumber, with peel, raw" }
+      ]
+    },
+    {
+      "slug": "boiled-egg-snack",
+      "nameAr": "بيضة مسلوقة",
+      "nameEn": "Boiled egg",
+      "mealTypes": ["snack"],
+      "tags": ["quick", "portable", "cheap", "high_protein", "diabetic_friendly"],
+      "allergenTags": ["egg"],
+      "baseServingLabel": "بيضة واحدة",
+      "ingredients": [{ "fdcId": 171287, "grams": 60, "note": "Egg, whole, raw, fresh" }]
+    },
+
+    {
+      "slug": "mujaddara-salad",
+      "nameAr": "مجدرة مع سلطة خضراء",
+      "nameEn": "Mujaddara with green salad",
+      "mealTypes": ["lunch", "dinner"],
+      "tags": ["cheap", "portable", "vegetarian", "high_protein"],
+      "allergenTags": [],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 172420, "grams": 70, "note": "Lentils, raw" },
+        { "fdcId": 168877, "grams": 50, "note": "Rice, white, long-grain, regular, raw, enriched" },
+        { "fdcId": 170000, "grams": 60, "note": "Onions, raw" },
+        { "fdcId": 171413, "grams": 12, "note": "Oil, olive, salad or cooking" },
+        { "fdcId": 169247, "grams": 60, "note": "Lettuce, cos or romaine, raw" },
+        { "fdcId": 170457, "grams": 60, "note": "Tomatoes, red, ripe, raw, year round average" },
+        { "fdcId": 167747, "grams": 8, "note": "Lemon juice, raw" }
+      ]
+    },
+    {
+      "slug": "maqluba-vegetables",
+      "nameAr": "مقلوبة خضار",
+      "nameEn": "Vegetable maqluba",
+      "mealTypes": ["lunch"],
+      "tags": ["cheap", "vegetarian"],
+      "allergenTags": ["nuts"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 168877, "grams": 70, "note": "Rice, white, long-grain, regular, raw, enriched" },
+        { "fdcId": 169228, "grams": 120, "note": "Eggplant, raw" },
+        { "fdcId": 169986, "grams": 80, "note": "Cauliflower, raw" },
+        { "fdcId": 171413, "grams": 15, "note": "Oil, olive, salad or cooking" },
+        { "fdcId": 170459, "grams": 15, "note": "Tomato products, canned, paste, without salt added" },
+        { "fdcId": 170591, "grams": 8, "note": "Nuts, pine nuts, dried" }
+      ]
+    },
+    {
+      "slug": "musakhan",
+      "nameAr": "مسخّن",
+      "nameEn": "Musakhan",
+      "mealTypes": ["lunch"],
+      "tags": ["high_protein"],
+      "allergenTags": ["gluten", "nuts"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 173627, "grams": 150, "note": "Chicken, broilers or fryers, dark meat, thigh, meat only, raw" },
+        { "fdcId": 174915, "grams": 80, "note": "Bread, pita, white, enriched" },
+        { "fdcId": 170000, "grams": 100, "note": "Onions, raw" },
+        { "fdcId": 171413, "grams": 20, "note": "Oil, olive, salad or cooking" },
+        { "fdcId": 170591, "grams": 10, "note": "Nuts, pine nuts, dried" }
+      ]
+    },
+    {
+      "slug": "molokhia-chicken-rice",
+      "nameAr": "ملوخية مع دجاج وأرز",
+      "nameEn": "Molokhia with chicken and rice",
+      "mealTypes": ["lunch"],
+      "tags": ["high_protein", "cheap"],
+      "allergenTags": [],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 168419, "grams": 150, "note": "Jute, potherb, raw" },
+        { "fdcId": 171077, "grams": 130, "note": "Chicken, broiler or fryers, breast, skinless, boneless, meat only, raw" },
+        { "fdcId": 168877, "grams": 60, "note": "Rice, white, long-grain, regular, raw, enriched" },
+        { "fdcId": 169230, "grams": 5, "note": "Garlic, raw" },
+        { "fdcId": 171413, "grams": 10, "note": "Oil, olive, salad or cooking" }
+      ]
+    },
+    {
+      "slug": "grilled-chicken-rice-salad",
+      "nameAr": "دجاج مشوي مع أرز وسلطة",
+      "nameEn": "Grilled chicken with rice and salad",
+      "mealTypes": ["lunch"],
+      "tags": ["high_protein", "portable", "diabetic_friendly"],
+      "allergenTags": [],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 171077, "grams": 150, "note": "Chicken, broiler or fryers, breast, skinless, boneless, meat only, raw" },
+        { "fdcId": 168877, "grams": 60, "note": "Rice, white, long-grain, regular, raw, enriched" },
+        { "fdcId": 170457, "grams": 60, "note": "Tomatoes, red, ripe, raw, year round average" },
+        { "fdcId": 168409, "grams": 60, "note": "Cucumber, with peel, raw" },
+        { "fdcId": 171413, "grams": 8, "note": "Oil, olive, salad or cooking" }
+      ]
+    },
+    {
+      "slug": "kofta-tahini-potato",
+      "nameAr": "كفتة بالطحينة مع بطاطا",
+      "nameEn": "Kofta with tahini and potato",
+      "mealTypes": ["lunch"],
+      "tags": ["high_protein"],
+      "allergenTags": ["sesame"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 171790, "grams": 140, "note": "Beef, ground, 95% lean meat / 5% fat, raw" },
+        { "fdcId": 168604, "grams": 25, "note": "Seeds, sesame butter, tahini" },
+        { "fdcId": 170000, "grams": 40, "note": "Onions, raw" },
+        { "fdcId": 170416, "grams": 10, "note": "Parsley, fresh" },
+        { "fdcId": 170026, "grams": 100, "note": "Potatoes, flesh and skin, raw" }
+      ]
+    },
+    {
+      "slug": "fasolia-white-rice",
+      "nameAr": "فاصولياء بيضاء مع أرز",
+      "nameEn": "White bean stew with rice",
+      "mealTypes": ["lunch", "dinner"],
+      "tags": ["cheap", "vegetarian", "high_protein"],
+      "allergenTags": [],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 175204, "grams": 200, "note": "Beans, white, mature seeds, canned" },
+        { "fdcId": 170459, "grams": 20, "note": "Tomato products, canned, paste, without salt added" },
+        { "fdcId": 168877, "grams": 55, "note": "Rice, white, long-grain, regular, raw, enriched" },
+        { "fdcId": 170000, "grams": 40, "note": "Onions, raw" },
+        { "fdcId": 171413, "grams": 10, "note": "Oil, olive, salad or cooking" }
+      ]
+    },
+    {
+      "slug": "bamia-lahm",
+      "nameAr": "بامية باللحم",
+      "nameEn": "Okra stew with beef",
+      "mealTypes": ["lunch"],
+      "tags": ["high_protein"],
+      "allergenTags": [],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 169260, "grams": 200, "note": "Okra, raw" },
+        { "fdcId": 171790, "grams": 100, "note": "Beef, ground, 95% lean meat / 5% fat, raw" },
+        { "fdcId": 170459, "grams": 20, "note": "Tomato products, canned, paste, without salt added" },
+        { "fdcId": 170000, "grams": 40, "note": "Onions, raw" },
+        { "fdcId": 171413, "grams": 10, "note": "Oil, olive, salad or cooking" },
+        { "fdcId": 168877, "grams": 50, "note": "Rice, white, long-grain, regular, raw, enriched" }
+      ]
+    },
+    {
+      "slug": "warak-enab",
+      "nameAr": "ورق عنب",
+      "nameEn": "Stuffed vine leaves",
+      "mealTypes": ["lunch"],
+      "tags": ["portable"],
+      "allergenTags": [],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 169393, "grams": 120, "note": "Grape leaves, canned" },
+        { "fdcId": 168877, "grams": 50, "note": "Rice, white, long-grain, regular, raw, enriched" },
+        { "fdcId": 171790, "grams": 80, "note": "Beef, ground, 95% lean meat / 5% fat, raw" },
+        { "fdcId": 167747, "grams": 10, "note": "Lemon juice, raw" },
+        { "fdcId": 171413, "grams": 8, "note": "Oil, olive, salad or cooking" }
+      ]
+    },
+    {
+      "slug": "mahshi-kousa",
+      "nameAr": "محشي كوسا",
+      "nameEn": "Stuffed zucchini",
+      "mealTypes": ["lunch"],
+      "tags": ["cheap"],
+      "allergenTags": [],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 169291, "grams": 250, "note": "Squash, summer, zucchini, includes skin, raw" },
+        { "fdcId": 168877, "grams": 50, "note": "Rice, white, long-grain, regular, raw, enriched" },
+        { "fdcId": 171790, "grams": 70, "note": "Beef, ground, 95% lean meat / 5% fat, raw" },
+        { "fdcId": 170459, "grams": 15, "note": "Tomato products, canned, paste, without salt added" },
+        { "fdcId": 171413, "grams": 8, "note": "Oil, olive, salad or cooking" }
+      ]
+    },
+    {
+      "slug": "shish-tawook-bulgur",
+      "nameAr": "شيش طاووق مع برغل",
+      "nameEn": "Shish tawook with bulgur",
+      "mealTypes": ["lunch"],
+      "tags": ["high_protein", "portable"],
+      "allergenTags": ["lactose", "gluten"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 171077, "grams": 150, "note": "Chicken, broiler or fryers, breast, skinless, boneless, meat only, raw" },
+        { "fdcId": 170688, "grams": 60, "note": "Bulgur, dry" },
+        { "fdcId": 171284, "grams": 40, "note": "Yogurt, plain, whole milk" },
+        { "fdcId": 171413, "grams": 8, "note": "Oil, olive, salad or cooking" },
+        { "fdcId": 167747, "grams": 8, "note": "Lemon juice, raw" }
+      ]
+    },
+    {
+      "slug": "sayadieh-fish-rice",
+      "nameAr": "صيادية سمك",
+      "nameEn": "Sayadieh fish with rice",
+      "mealTypes": ["lunch"],
+      "tags": ["high_protein"],
+      "allergenTags": ["fish"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 175176, "grams": 150, "note": "Fish, tilapia, raw" },
+        { "fdcId": 168877, "grams": 60, "note": "Rice, white, long-grain, regular, raw, enriched" },
+        { "fdcId": 170000, "grams": 60, "note": "Onions, raw" },
+        { "fdcId": 171413, "grams": 12, "note": "Oil, olive, salad or cooking" }
+      ]
+    },
+    {
+      "slug": "lentil-soup-bulgur",
+      "nameAr": "شوربة عدس مع برغل",
+      "nameEn": "Lentil soup with bulgur",
+      "mealTypes": ["lunch", "dinner"],
+      "tags": ["cheap", "quick", "vegetarian", "high_protein"],
+      "allergenTags": ["gluten"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 174284, "grams": 80, "note": "Lentils, pink or red, raw" },
+        { "fdcId": 170688, "grams": 30, "note": "Bulgur, dry" },
+        { "fdcId": 170000, "grams": 40, "note": "Onions, raw" },
+        { "fdcId": 170393, "grams": 50, "note": "Carrots, raw" },
+        { "fdcId": 171413, "grams": 10, "note": "Oil, olive, salad or cooking" }
+      ]
+    },
+    {
+      "slug": "bulgur-chicken",
+      "nameAr": "برغل مع دجاج",
+      "nameEn": "Bulgur with chicken",
+      "mealTypes": ["lunch"],
+      "tags": ["high_protein", "cheap", "diabetic_friendly"],
+      "allergenTags": ["gluten"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 170688, "grams": 70, "note": "Bulgur, dry" },
+        { "fdcId": 171077, "grams": 130, "note": "Chicken, broiler or fryers, breast, skinless, boneless, meat only, raw" },
+        { "fdcId": 171413, "grams": 10, "note": "Oil, olive, salad or cooking" },
+        { "fdcId": 170000, "grams": 40, "note": "Onions, raw" }
+      ]
+    },
+    {
+      "slug": "lamb-rice-yogurt",
+      "nameAr": "لحم غنم مع أرز ولبن",
+      "nameEn": "Lamb with rice and yogurt",
+      "mealTypes": ["lunch"],
+      "tags": ["high_protein"],
+      "allergenTags": ["lactose", "nuts"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 174370, "grams": 120, "note": "Lamb, ground, raw" },
+        { "fdcId": 168877, "grams": 60, "note": "Rice, white, long-grain, regular, raw, enriched" },
+        { "fdcId": 171284, "grams": 100, "note": "Yogurt, plain, whole milk" },
+        { "fdcId": 170591, "grams": 8, "note": "Nuts, pine nuts, dried" }
+      ]
+    },
+    {
+      "slug": "tuna-potato-salad",
+      "nameAr": "سلطة تونة مع بطاطا",
+      "nameEn": "Tuna and potato salad",
+      "mealTypes": ["lunch", "dinner"],
+      "tags": ["quick", "portable", "high_protein"],
+      "allergenTags": ["fish"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 171986, "grams": 120, "note": "Fish, tuna, light, canned in water, without salt, drained solids" },
+        { "fdcId": 170026, "grams": 150, "note": "Potatoes, flesh and skin, raw" },
+        { "fdcId": 171413, "grams": 10, "note": "Oil, olive, salad or cooking" },
+        { "fdcId": 170416, "grams": 8, "note": "Parsley, fresh" },
+        { "fdcId": 167747, "grams": 8, "note": "Lemon juice, raw" }
+      ]
+    },
+    {
+      "slug": "salmon-couscous-vegetables",
+      "nameAr": "سمك سلمون مع كسكس وخضار",
+      "nameEn": "Salmon with couscous and vegetables",
+      "mealTypes": ["lunch"],
+      "tags": ["high_protein"],
+      "allergenTags": ["fish", "gluten"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 175167, "grams": 140, "note": "Fish, salmon, Atlantic, farmed, raw" },
+        { "fdcId": 169699, "grams": 60, "note": "Couscous, dry" },
+        { "fdcId": 169291, "grams": 80, "note": "Squash, summer, zucchini, includes skin, raw" },
+        { "fdcId": 171413, "grams": 8, "note": "Oil, olive, salad or cooking" }
+      ]
+    },
+    {
+      "slug": "chickpea-spinach-stew",
+      "nameAr": "يخنة حمص وسبانخ",
+      "nameEn": "Chickpea and spinach stew",
+      "mealTypes": ["lunch", "dinner"],
+      "tags": ["cheap", "vegetarian", "high_protein", "diabetic_friendly"],
+      "allergenTags": [],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 173800, "grams": 200, "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids" },
+        { "fdcId": 168462, "grams": 120, "note": "Spinach, raw" },
+        { "fdcId": 170459, "grams": 15, "note": "Tomato products, canned, paste, without salt added" },
+        { "fdcId": 171413, "grams": 10, "note": "Oil, olive, salad or cooking" },
+        { "fdcId": 168877, "grams": 45, "note": "Rice, white, long-grain, regular, raw, enriched" }
+      ]
+    },
+    {
+      "slug": "cauliflower-tahini-rice",
+      "nameAr": "زهرة بالطحينة مع أرز",
+      "nameEn": "Cauliflower with tahini and rice",
+      "mealTypes": ["lunch", "dinner"],
+      "tags": ["cheap", "vegetarian"],
+      "allergenTags": ["sesame"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 169986, "grams": 200, "note": "Cauliflower, raw" },
+        { "fdcId": 168604, "grams": 25, "note": "Seeds, sesame butter, tahini" },
+        { "fdcId": 168877, "grams": 55, "note": "Rice, white, long-grain, regular, raw, enriched" },
+        { "fdcId": 171413, "grams": 10, "note": "Oil, olive, salad or cooking" }
+      ]
+    },
+    {
+      "slug": "green-beans-lahm",
+      "nameAr": "لوبياء باللحم",
+      "nameEn": "Green beans with beef",
+      "mealTypes": ["lunch"],
+      "tags": ["high_protein", "cheap"],
+      "allergenTags": [],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 169961, "grams": 200, "note": "Beans, snap, green, raw" },
+        { "fdcId": 171790, "grams": 100, "note": "Beef, ground, 95% lean meat / 5% fat, raw" },
+        { "fdcId": 170459, "grams": 15, "note": "Tomato products, canned, paste, without salt added" },
+        { "fdcId": 171413, "grams": 10, "note": "Oil, olive, salad or cooking" },
+        { "fdcId": 168877, "grams": 50, "note": "Rice, white, long-grain, regular, raw, enriched" }
+      ]
+    },
+    {
+      "slug": "blackeyed-peas-vegetables",
+      "nameAr": "لوبياء بيضاء مع خضار",
+      "nameEn": "Black-eyed peas with vegetables",
+      "mealTypes": ["lunch", "dinner"],
+      "tags": ["cheap", "vegetarian", "high_protein", "diabetic_friendly"],
+      "allergenTags": ["gluten"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 173760, "grams": 200, "note": "Cowpeas, common (blackeyes, crowder, southern), mature seeds, canned, plain" },
+        { "fdcId": 170457, "grams": 100, "note": "Tomatoes, red, ripe, raw, year round average" },
+        { "fdcId": 170000, "grams": 40, "note": "Onions, raw" },
+        { "fdcId": 171413, "grams": 10, "note": "Oil, olive, salad or cooking" },
+        { "fdcId": 174916, "grams": 50, "note": "Bread, pita, whole-wheat" }
+      ]
+    },
+    {
+      "slug": "kidney-bean-rice",
+      "nameAr": "فاصولياء حمراء مع أرز",
+      "nameEn": "Red kidney beans with rice",
+      "mealTypes": ["lunch"],
+      "tags": ["cheap", "vegetarian", "high_protein"],
+      "allergenTags": [],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 173741, "grams": 200, "note": "Beans, kidney, all types, mature seeds, canned" },
+        { "fdcId": 168877, "grams": 55, "note": "Rice, white, long-grain, regular, raw, enriched" },
+        { "fdcId": 170459, "grams": 15, "note": "Tomato products, canned, paste, without salt added" },
+        { "fdcId": 171413, "grams": 10, "note": "Oil, olive, salad or cooking" }
+      ]
+    },
+    {
+      "slug": "peas-carrot-rice",
+      "nameAr": "بازيلا وجزر مع أرز",
+      "nameEn": "Peas and carrots with rice",
+      "mealTypes": ["lunch"],
+      "tags": ["cheap", "quick", "vegetarian"],
+      "allergenTags": [],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 170419, "grams": 150, "note": "Peas, green, raw" },
+        { "fdcId": 170393, "grams": 80, "note": "Carrots, raw" },
+        { "fdcId": 168877, "grams": 55, "note": "Rice, white, long-grain, regular, raw, enriched" },
+        { "fdcId": 171413, "grams": 10, "note": "Oil, olive, salad or cooking" }
+      ]
+    },
+    {
+      "slug": "chicken-sweet-potato",
+      "nameAr": "دجاج مع بطاطا حلوة",
+      "nameEn": "Chicken with sweet potato",
+      "mealTypes": ["lunch"],
+      "tags": ["high_protein", "diabetic_friendly"],
+      "allergenTags": [],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 171077, "grams": 150, "note": "Chicken, broiler or fryers, breast, skinless, boneless, meat only, raw" },
+        { "fdcId": 168482, "grams": 180, "note": "Sweet potato, raw, unprepared" },
+        { "fdcId": 171413, "grams": 10, "note": "Oil, olive, salad or cooking" },
+        { "fdcId": 169247, "grams": 60, "note": "Lettuce, cos or romaine, raw" }
+      ]
+    },
+
+    {
+      "slug": "lentil-soup-simple",
+      "nameAr": "شوربة عدس",
+      "nameEn": "Lentil soup",
+      "mealTypes": ["dinner"],
+      "tags": ["cheap", "quick", "vegetarian", "high_protein", "diabetic_friendly"],
+      "allergenTags": [],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 174284, "grams": 70, "note": "Lentils, pink or red, raw" },
+        { "fdcId": 170393, "grams": 50, "note": "Carrots, raw" },
+        { "fdcId": 170000, "grams": 40, "note": "Onions, raw" },
+        { "fdcId": 171413, "grams": 8, "note": "Oil, olive, salad or cooking" }
+      ]
+    },
+    {
+      "slug": "fattoush",
+      "nameAr": "فتوش",
+      "nameEn": "Fattoush",
+      "mealTypes": ["dinner"],
+      "tags": ["cheap", "quick", "vegetarian"],
+      "allergenTags": ["gluten"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 169247, "grams": 100, "note": "Lettuce, cos or romaine, raw" },
+        { "fdcId": 170457, "grams": 100, "note": "Tomatoes, red, ripe, raw, year round average" },
+        { "fdcId": 168409, "grams": 80, "note": "Cucumber, with peel, raw" },
+        { "fdcId": 174915, "grams": 30, "note": "Bread, pita, white, enriched" },
+        { "fdcId": 171413, "grams": 12, "note": "Oil, olive, salad or cooking" },
+        { "fdcId": 167747, "grams": 10, "note": "Lemon juice, raw" },
+        { "fdcId": 173475, "grams": 5, "note": "Spearmint, fresh" }
+      ]
+    },
+    {
+      "slug": "tabbouleh",
+      "nameAr": "تبولة",
+      "nameEn": "Tabbouleh",
+      "mealTypes": ["dinner"],
+      "tags": ["cheap", "portable", "vegetarian", "diabetic_friendly"],
+      "allergenTags": ["gluten"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 170688, "grams": 30, "note": "Bulgur, dry" },
+        { "fdcId": 170416, "grams": 60, "note": "Parsley, fresh" },
+        { "fdcId": 170457, "grams": 100, "note": "Tomatoes, red, ripe, raw, year round average" },
+        { "fdcId": 170005, "grams": 30, "note": "Onions, spring or scallions, raw" },
+        { "fdcId": 171413, "grams": 12, "note": "Oil, olive, salad or cooking" },
+        { "fdcId": 167747, "grams": 12, "note": "Lemon juice, raw" },
+        { "fdcId": 173475, "grams": 8, "note": "Spearmint, fresh" }
+      ]
+    },
+    {
+      "slug": "labaneh-cucumber-dinner",
+      "nameAr": "لبنة مع خيار وخبز",
+      "nameEn": "Labaneh with cucumber and pita",
+      "mealTypes": ["dinner"],
+      "tags": ["quick", "cheap", "vegetarian", "high_protein", "diabetic_friendly"],
+      "allergenTags": ["lactose", "gluten"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 170903, "grams": 180, "note": "Yogurt, Greek, plain, lowfat" },
+        { "fdcId": 168409, "grams": 100, "note": "Cucumber, with peel, raw" },
+        { "fdcId": 171413, "grams": 6, "note": "Oil, olive, salad or cooking" },
+        { "fdcId": 174916, "grams": 40, "note": "Bread, pita, whole-wheat" }
+      ]
+    },
+    {
+      "slug": "grilled-fish-salad",
+      "nameAr": "سمك مشوي مع سلطة",
+      "nameEn": "Grilled fish with salad",
+      "mealTypes": ["dinner"],
+      "tags": ["high_protein", "diabetic_friendly"],
+      "allergenTags": ["fish"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 175176, "grams": 150, "note": "Fish, tilapia, raw" },
+        { "fdcId": 169247, "grams": 80, "note": "Lettuce, cos or romaine, raw" },
+        { "fdcId": 170457, "grams": 80, "note": "Tomatoes, red, ripe, raw, year round average" },
+        { "fdcId": 171413, "grams": 10, "note": "Oil, olive, salad or cooking" },
+        { "fdcId": 167747, "grams": 8, "note": "Lemon juice, raw" }
+      ]
+    },
+    {
+      "slug": "vegetable-soup",
+      "nameAr": "شوربة خضار",
+      "nameEn": "Vegetable soup",
+      "mealTypes": ["dinner"],
+      "tags": ["cheap", "quick", "vegetarian", "diabetic_friendly"],
+      "allergenTags": [],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 170393, "grams": 80, "note": "Carrots, raw" },
+        { "fdcId": 170026, "grams": 100, "note": "Potatoes, flesh and skin, raw" },
+        { "fdcId": 169291, "grams": 80, "note": "Squash, summer, zucchini, includes skin, raw" },
+        { "fdcId": 170000, "grams": 40, "note": "Onions, raw" },
+        { "fdcId": 171413, "grams": 8, "note": "Oil, olive, salad or cooking" }
+      ]
+    },
+    {
+      "slug": "omelette-vegetables",
+      "nameAr": "عجة خضار",
+      "nameEn": "Vegetable omelette",
+      "mealTypes": ["dinner", "breakfast"],
+      "tags": ["quick", "cheap", "high_protein", "diabetic_friendly"],
+      "allergenTags": ["egg"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 171287, "grams": 120, "note": "Egg, whole, raw, fresh" },
+        { "fdcId": 170457, "grams": 80, "note": "Tomatoes, red, ripe, raw, year round average" },
+        { "fdcId": 170427, "grams": 50, "note": "Peppers, sweet, green, raw" },
+        { "fdcId": 170000, "grams": 30, "note": "Onions, raw" },
+        { "fdcId": 171413, "grams": 8, "note": "Oil, olive, salad or cooking" }
+      ]
+    },
+    {
+      "slug": "tuna-green-salad",
+      "nameAr": "سلطة تونة خضراء",
+      "nameEn": "Tuna green salad",
+      "mealTypes": ["dinner"],
+      "tags": ["quick", "portable", "high_protein", "diabetic_friendly"],
+      "allergenTags": ["fish"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 171986, "grams": 120, "note": "Fish, tuna, light, canned in water, without salt, drained solids" },
+        { "fdcId": 169247, "grams": 80, "note": "Lettuce, cos or romaine, raw" },
+        { "fdcId": 168409, "grams": 80, "note": "Cucumber, with peel, raw" },
+        { "fdcId": 170457, "grams": 80, "note": "Tomatoes, red, ripe, raw, year round average" },
+        { "fdcId": 171413, "grams": 10, "note": "Oil, olive, salad or cooking" }
+      ]
+    },
+    {
+      "slug": "sardine-salad",
+      "nameAr": "سردين مع سلطة وخبز",
+      "nameEn": "Sardines with salad and pita",
+      "mealTypes": ["dinner"],
+      "tags": ["cheap", "quick", "high_protein"],
+      "allergenTags": ["fish", "gluten"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 175139, "grams": 100, "note": "Fish, sardine, Atlantic, canned in oil, drained solids with bone" },
+        { "fdcId": 170457, "grams": 100, "note": "Tomatoes, red, ripe, raw, year round average" },
+        { "fdcId": 170000, "grams": 40, "note": "Onions, raw" },
+        { "fdcId": 167747, "grams": 10, "note": "Lemon juice, raw" },
+        { "fdcId": 174916, "grams": 40, "note": "Bread, pita, whole-wheat" }
+      ]
+    },
+    {
+      "slug": "hummus-plate-dinner",
+      "nameAr": "طبق حمص",
+      "nameEn": "Hummus plate",
+      "mealTypes": ["dinner"],
+      "tags": ["cheap", "quick", "vegetarian", "high_protein"],
+      "allergenTags": ["sesame", "gluten"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 173800, "grams": 180, "note": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids" },
+        { "fdcId": 168604, "grams": 20, "note": "Seeds, sesame butter, tahini" },
+        { "fdcId": 171413, "grams": 8, "note": "Oil, olive, salad or cooking" },
+        { "fdcId": 167747, "grams": 8, "note": "Lemon juice, raw" },
+        { "fdcId": 174915, "grams": 50, "note": "Bread, pita, white, enriched" }
+      ]
+    },
+    {
+      "slug": "pumpkin-soup",
+      "nameAr": "شوربة قرع",
+      "nameEn": "Pumpkin soup",
+      "mealTypes": ["dinner"],
+      "tags": ["cheap", "vegetarian", "diabetic_friendly"],
+      "allergenTags": ["lactose"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 168448, "grams": 250, "note": "Pumpkin, raw" },
+        { "fdcId": 170000, "grams": 40, "note": "Onions, raw" },
+        { "fdcId": 171413, "grams": 8, "note": "Oil, olive, salad or cooking" },
+        { "fdcId": 171265, "grams": 80, "note": "Milk, whole, 3.25% milkfat, with added vitamin D" }
+      ]
+    },
+    {
+      "slug": "chicken-cabbage-salad",
+      "nameAr": "سلطة دجاج مع ملفوف",
+      "nameEn": "Chicken and cabbage salad",
+      "mealTypes": ["dinner"],
+      "tags": ["quick", "portable", "high_protein", "diabetic_friendly"],
+      "allergenTags": [],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 171077, "grams": 130, "note": "Chicken, broiler or fryers, breast, skinless, boneless, meat only, raw" },
+        { "fdcId": 169975, "grams": 120, "note": "Cabbage, raw" },
+        { "fdcId": 170393, "grams": 60, "note": "Carrots, raw" },
+        { "fdcId": 171413, "grams": 10, "note": "Oil, olive, salad or cooking" },
+        { "fdcId": 167747, "grams": 8, "note": "Lemon juice, raw" }
+      ]
+    },
+    {
+      "slug": "spinach-yogurt-borani",
+      "nameAr": "سبانخ باللبن",
+      "nameEn": "Spinach with yogurt",
+      "mealTypes": ["dinner"],
+      "tags": ["quick", "cheap", "vegetarian", "diabetic_friendly"],
+      "allergenTags": ["lactose"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 168462, "grams": 200, "note": "Spinach, raw" },
+        { "fdcId": 171284, "grams": 150, "note": "Yogurt, plain, whole milk" },
+        { "fdcId": 169230, "grams": 4, "note": "Garlic, raw" },
+        { "fdcId": 171413, "grams": 8, "note": "Oil, olive, salad or cooking" }
+      ]
+    },
+    {
+      "slug": "baked-potato-cheese",
+      "nameAr": "بطاطا بالفرن مع جبنة",
+      "nameEn": "Baked potato with cheese",
+      "mealTypes": ["dinner"],
+      "tags": ["cheap", "vegetarian"],
+      "allergenTags": ["lactose"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 170026, "grams": 200, "note": "Potatoes, flesh and skin, raw" },
+        { "fdcId": 173420, "grams": 50, "note": "Cheese, feta" },
+        { "fdcId": 171413, "grams": 8, "note": "Oil, olive, salad or cooking" }
+      ]
+    },
+    {
+      "slug": "moutabal-eggplant",
+      "nameAr": "متبل باذنجان",
+      "nameEn": "Eggplant moutabal",
+      "mealTypes": ["dinner"],
+      "tags": ["cheap", "vegetarian", "diabetic_friendly"],
+      "allergenTags": ["sesame", "lactose", "gluten"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 169228, "grams": 250, "note": "Eggplant, raw" },
+        { "fdcId": 168604, "grams": 25, "note": "Seeds, sesame butter, tahini" },
+        { "fdcId": 171284, "grams": 50, "note": "Yogurt, plain, whole milk" },
+        { "fdcId": 167747, "grams": 10, "note": "Lemon juice, raw" },
+        { "fdcId": 174916, "grams": 50, "note": "Bread, pita, whole-wheat" }
+      ]
+    },
+    {
+      "slug": "turnip-lentil-soup",
+      "nameAr": "شوربة لفت وعدس",
+      "nameEn": "Turnip and lentil soup",
+      "mealTypes": ["dinner"],
+      "tags": ["cheap", "vegetarian", "diabetic_friendly"],
+      "allergenTags": [],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 170465, "grams": 120, "note": "Turnips, raw" },
+        { "fdcId": 174284, "grams": 60, "note": "Lentils, pink or red, raw" },
+        { "fdcId": 170000, "grams": 40, "note": "Onions, raw" },
+        { "fdcId": 171413, "grams": 8, "note": "Oil, olive, salad or cooking" }
+      ]
+    },
+    {
+      "slug": "zucchini-yogurt-stew",
+      "nameAr": "كوسا باللبن",
+      "nameEn": "Zucchini in yogurt sauce",
+      "mealTypes": ["dinner", "lunch"],
+      "tags": ["cheap", "vegetarian", "diabetic_friendly"],
+      "allergenTags": ["lactose"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 169291, "grams": 220, "note": "Squash, summer, zucchini, includes skin, raw" },
+        { "fdcId": 171284, "grams": 150, "note": "Yogurt, plain, whole milk" },
+        { "fdcId": 168877, "grams": 45, "note": "Rice, white, long-grain, regular, raw, enriched" },
+        { "fdcId": 171413, "grams": 8, "note": "Oil, olive, salad or cooking" }
+      ]
+    },
+    {
+      "slug": "olives-cheese-plate",
+      "nameAr": "زيتون مع جبنة وخبز",
+      "nameEn": "Olives with cheese and pita",
+      "mealTypes": ["dinner", "breakfast"],
+      "tags": ["quick", "cheap", "vegetarian"],
+      "allergenTags": ["lactose", "gluten"],
+      "baseServingLabel": "حصة واحدة",
+      "ingredients": [
+        { "fdcId": 169094, "grams": 40, "note": "Olives, ripe, canned (small-extra large)" },
+        { "fdcId": 173420, "grams": 50, "note": "Cheese, feta" },
+        { "fdcId": 174916, "grams": 60, "note": "Bread, pita, whole-wheat" },
+        { "fdcId": 170457, "grams": 80, "note": "Tomatoes, red, ripe, raw, year round average" }
+      ]
+    }
+  ]
+}

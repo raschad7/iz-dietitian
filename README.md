@@ -119,8 +119,8 @@ src/features/<feature>/
   components/     # UI, composed by route files
 ```
 
-`src/features/` currently holds `auth/` and `clients/`. `plans/`, `payments/` and
-the rest get added there as they are built.
+`src/features/` currently holds `auth/`, `clients/`, `booking/`, `meal-plans/` and
+`weekly-plans/`. `payments/` and the rest get added there as they are built.
 
 ### Layout
 
@@ -140,15 +140,20 @@ src/
         page.tsx              # dashboard
         settings/security/page.tsx  # passkeys, password, linked providers
         clients/               # the clients feature's routes
-        meal-plans/            # the meal-plans feature's routes
+        weekly-plans/          # meal planning V2 — the AI-generated board
+        meal-plans/            # meal planning V1 — the manual editor
+        dishes/                # the approved dish catalog, read-only
         foods/                 # the food reference browser
       portal/                 # client area — client session required
         layout.tsx            # guard only
         set-password/page.tsx # forced password change, outside (secured)
         (secured)/            # everything except set-password
-          layout.tsx          # adds the must-change-password redirect
-          page.tsx            # placeholder
-    api/auth/[...all]/route.ts  # owned by Better Auth
+          layout.tsx          # nav shell + the must-change-password redirect
+          page.tsx            # dashboard: next appointment, today's meals
+          appointments/       # bookings, and requesting a change
+          meal-plan/page.tsx  # the client's published weekly plan
+          profile/page.tsx    # their own details and language
+    api/auth/[...all]/route.ts       # owned by Better Auth
     api/whatsapp/webhook/route.ts    # gateway events in (HMAC-signed)
     api/whatsapp/reminders/route.ts  # the reminder tick (bearer secret)
     globals.css
@@ -162,14 +167,20 @@ src/
       auth.ts                 # Better Auth's four tables, plus passkeys and auth_attempts
       clinics.ts               # the tenant boundary
       clients.ts                # the clients feature's table
-      foods.ts                  # USDA reference data — the one un-scoped table
-      meal-plans.ts             # plans, their meals and their items
+      foods.ts                  # USDA reference data — un-scoped
+      dishes.ts                 # the approved dish catalog — also un-scoped
+      client-nutrition-profiles.ts  # weight, targets, allergens, meal schedule
+      meal-plans.ts             # V1: plans, their meals and their items
+      weekly-plans.ts           # V2: plans, meals, alternatives, generation audit
+      appointment-requests.ts   # what a client asks the clinic to change
       whatsapp.ts               # the gateway link per clinic, plus the message log
   features/
     auth/                     # forms, server actions, rate limiting, redirect safety, cleanup
     booking/                  # the calendar and its validation rules
     clients/                  # the roster feature
-    meal-plans/               # plan editing and the nutrition maths
+    meal-plans/               # V1: manual plan editing and the nutrition maths
+    weekly-plans/             # V2: AI generation, the dish catalog, publishing
+    portal/                   # the client area's reads, writes and shell
     whatsapp/                 # gateway client, automations, webhook handling
   i18n/
     routing.ts                # locales, default, direction
@@ -179,6 +190,7 @@ src/
     messages/{ar,en}.json
   lib/
     auth.ts                   # Better Auth server config
+    enum.ts                   # narrowing for the enum-like text columns
     auth-client.ts            # browser client
     auth-constants.ts         # TTLs shared by server and client
     session.ts                # requireStaffSession / requireClientSession
@@ -193,6 +205,7 @@ eslint-rules/                 # the logical-properties lint rule
 scripts/
   seed.ts
   seed-foods.ts               # loads data/usda-sr-legacy.ndjson
+  seed-dishes.ts              # loads data/dishes.json
   build-food-dataset.ts       # regenerates that extract from USDA
   db-reset.ts
   whatsapp-reminders.ts       # the reminder tick, for cron
@@ -681,6 +694,53 @@ Two rules the code depends on:
   7,793 foods; fibre, sugars and the minerals are present on 77–99% of them.
   Totals skip a NULL and count it in `unmeasured`, and the analysis panel marks
   any such total as a floor rather than an answer.
+
+### The dish catalog
+
+USDA gives ingredients, not meals. `dishes` is the curated layer on top: 76
+Palestinian and Levantine dishes with an Arabic name, meal-type and dietary tags,
+allergen tags, and a recipe of `foods` rows in grams. Seeded from **`data/dishes.json`**
+by `bun run db:seed:dishes`, idempotent via `dishes.slug`.
+
+Un-scoped, like `foods`: a curated dish is closer to reference data than to a
+tenant's record, and one catalog beats every clinic seeding an identical copy.
+
+Each ingredient references a food by **`fdcId`**, never by a description search — a
+search that silently resolved "cheese" to the wrong row would put wrong numbers in
+front of a client. The `note` field carries the description that fdcId had when the
+file was written and the seed asserts it still matches, so a re-seed that moved an
+id fails loudly. It caught five stale descriptions on the first run.
+
+A dish stores no nutrition of its own. `weekly_plan_meals.servings` is a multiplier
+over the recipe, and every figure is derived at read time. That is what makes "the
+AI cannot invent a calorie count" a property of the data model rather than a line in
+a prompt: the only things a model emits are a dish slug and a scalar — and even the
+scalar is recomputed (see the spec).
+
+---
+
+## AI plan generation
+
+Meal planning V2 (`src/features/weekly-plans/`) generates a week with OpenAI. The
+design, the measurements and the failure modes are written up in
+`docs/superpowers/specs/2026-07-30-weekly-plans-v2-design.md`. The three rules worth
+knowing before touching it:
+
+- **The model returns references, never facts.** Its response is a dish slug plus a
+  serving multiplier, constrained by a strict JSON schema whose `dish` enum is built
+  per slot from the allergen-filtered catalog. Then `reconcile` re-checks every slug
+  server-side anyway, because a schema the provider enforces is still someone else's
+  promise.
+- **Allergens are filtered in SQL, before the payload exists.** They come from a
+  checkbox list on `client_nutrition_profiles`, not from keyword-matching the free
+  text in `clients.allergies`. Safety must not depend on a model reading its
+  instructions.
+- **No identity leaves the building.** `prompt.ts` is a pure function and
+  `prompt.test.ts` asserts the payload carries no name, email, phone or id, so a
+  privacy regression is a red test rather than a discovery.
+
+Set `LLM_TRANSPORT=console` to plan locally from the catalog with no key and no
+network — that is what lets the generation tests run in CI.
 
 `foods` is the one domain table that is **not** scoped to a clinic — food
 composition is a physical fact, not a tenant's data.

@@ -11,17 +11,21 @@ type PortalLayoutProps = {
 };
 
 /**
- * Shell for the whole client area: authenticates, and nothing more.
+ * Shell for the whole client area: authenticates, puts a header on top, and
+ * nothing more.
  *
- * The `mustChangePassword` redirect deliberately does NOT live here. It lives in
- * `(secured)/layout.tsx`, a route group that wraps every portal page EXCEPT
- * `set-password`. Route groups do not appear in the URL, so `/portal` still
- * resolves to `(secured)/page.tsx` while `/portal/set-password` is reached
- * through this layout alone.
+ * The navigation deliberately does NOT live here — it is in
+ * `(secured)/layout.tsx`, alongside the `mustChangePassword` guard. A client
+ * who has not yet replaced their temporary password can reach exactly one page,
+ * and offering them four tabs that all bounce back to it would be a shell with
+ * no floor.
  *
- * Putting the check here instead would lock every client out permanently: in the
- * App Router a nested layout wraps its parent rather than replacing it, so
- * `set-password` would inherit the redirect and bounce to itself forever.
+ * That guard is in the route group for the same reason: route groups do not
+ * appear in the URL, so `/portal` still resolves to `(secured)/page.tsx` while
+ * `/portal/set-password` is reached through this layout alone. Putting the check
+ * here instead would lock every client out permanently — in the App Router a
+ * nested layout wraps its parent rather than replacing it, so `set-password`
+ * would inherit the redirect and bounce to itself forever.
  */
 export default async function PortalLayout({ children, params }: PortalLayoutProps) {
   const locale = await resolveLocale(params);
@@ -33,7 +37,7 @@ export default async function PortalLayout({ children, params }: PortalLayoutPro
   return (
     <div className="flex min-h-dvh flex-col">
       <Header title={t('title')} userName={session.user.name} locale={locale} />
-      <main className="mx-auto w-full max-w-3xl flex-1 p-6">{children}</main>
+      {children}
     </div>
   );
 }

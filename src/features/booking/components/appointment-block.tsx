@@ -85,7 +85,12 @@ export function AppointmentBlock({
    * Drag feedback wins over the client colour: while dragging, "is this legal?"
    * is the only thing the block needs to say.
    */
-  const accent = dragState === 'valid' ? '#16a34a' : dragState === 'invalid' ? '#dc2626' : appointment.clientColor;
+  const accent =
+    dragState === 'valid'
+      ? 'var(--status-on-track-fg)'
+      : dragState === 'invalid'
+        ? 'var(--destructive)'
+        : appointment.clientColor;
 
   const style: CSSProperties = {
     top,

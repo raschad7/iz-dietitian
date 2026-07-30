@@ -33,7 +33,10 @@
     "portalHome": "Home",
     "myPlan": "My plan",
     "myAppointments": "My appointments",
+    "profile": "Profile",
     "security": "Security",
+    "weeklyPlans": "Weekly Plans",
+    "dishes": "Dish catalog",
     "whatsapp": "WhatsApp"
   },
   "landing": {
@@ -45,6 +48,11 @@
   },
   "login": {
     "title": "Sign in",
+    "subtitle": "Choose how you sign in.",
+    "roleQuestion": "Who is signing in?",
+    "roleStaff": "Clinic team",
+    "roleClient": "Client",
+    "roleTemporaryNote": "Temporary: sign-in will work this out on its own later.",
     "staffSubtitle": "For the clinic team.",
     "staffHeading": "Clinic team",
     "staffDescription": "Sign in with your email and password.",
@@ -311,7 +319,46 @@
   "dashboard": {
     "title": "Dashboard",
     "welcome": "Welcome, {name}",
-    "placeholder": "Clinic metrics will appear here once the feature modules are built."
+    "agenda": {
+      "title": "Today's agenda",
+      "empty": "No appointments today",
+      "emptyCta": "View calendar",
+      "reason": "Reason: {reason}"
+    },
+    "requests": {
+      "title": "Pending requests",
+      "count": "{count, number, integer} pending",
+      "empty": "No pending requests right now",
+      "cta": "Review requests",
+      "kind": {
+        "new": "New booking request",
+        "reschedule": "Reschedule request",
+        "cancel": "Cancellation request"
+      }
+    },
+    "stats": {
+      "activeClients": "Active clients",
+      "appointmentsThisWeek": "Appointments this week",
+      "clientsWithoutMealPlan": "Without a meal plan",
+      "newClientsThisMonth": "New clients this month"
+    },
+    "attention": {
+      "title": "Needs attention",
+      "badge": "Needs attention",
+      "empty": "No clients need attention right now",
+      "viewAll": "View all clients",
+      "reason": {
+        "noUpcomingAppointment": "No upcoming appointment",
+        "noMealPlan": "No meal plan",
+        "neverSignedIn": "Never signed in to the portal"
+      }
+    },
+    "quickActions": {
+      "title": "Quick actions",
+      "newAppointment": "New appointment",
+      "addClient": "Add client",
+      "newMealPlan": "New meal plan"
+    }
   },
   "foods": {
     "title": "Foods",
@@ -473,7 +520,268 @@
   "portal": {
     "title": "Client portal",
     "welcome": "Welcome, {name}",
-    "placeholder": "Your nutrition plan and appointments will appear here once the feature modules are built."
+    "dashboard": {
+      "nextAppointment": "Next appointment",
+      "todaysMeals": "Today's meals",
+      "dayEnergy": "{kcal, number, integer} kcal for the day",
+      "requestAppointment": "Request an appointment",
+      "viewMealPlan": "View meal plan",
+      "pendingRequests": "Waiting for your dietitian: {count, number, integer}"
+    },
+    "appointments": {
+      "title": "Appointments",
+      "upcoming": "Upcoming",
+      "history": "Past appointments",
+      "requests": "Your requests",
+      "noneUpcoming": "Nothing booked yet. Ask your dietitian for an appointment.",
+      "nonePast": "No past appointments.",
+      "reschedule": "Ask to reschedule",
+      "cancel": "Ask to cancel",
+      "requestPending": "Waiting for your dietitian"
+    },
+    "request": {
+      "title": "Request an appointment",
+      "backToAppointments": "Back to appointments",
+      "chooseDay": "Choose a day",
+      "chooseTime": "Choose a time",
+      "noSlots": "Nothing is free on this day. Try another one.",
+      "note": "Reason",
+      "notePlaceholder": "Follow-up, a question about my plan…",
+      "optional": "(Optional)",
+      "currentSlot": "Currently {date} at {time}",
+      "preferredSlot": "Asked for {date} at {time}",
+      "withdraw": "Withdraw",
+      "confirmWithdraw": "This takes your request back. Are you sure?",
+      "heading": {
+        "new": "Request an appointment",
+        "reschedule": "Ask for a different time",
+        "cancel": "Ask to cancel"
+      },
+      "description": {
+        "new": "Pick a day and a time that suit you. Your dietitian confirms it.",
+        "reschedule": "Pick a new day and time. Your appointment stays as it is until your dietitian agrees.",
+        "cancel": "Your dietitian will be told. The appointment stays booked until they cancel it."
+      },
+      "submit": {
+        "new": "Send the request",
+        "reschedule": "Send the request",
+        "cancel": "Send the cancellation request"
+      },
+      "kind": {
+        "new": "New appointment",
+        "reschedule": "Reschedule",
+        "cancel": "Cancellation"
+      },
+      "status": {
+        "pending": "Waiting",
+        "approved": "Approved",
+        "declined": "Declined",
+        "withdrawn": "Withdrawn"
+      }
+    },
+    "plan": {
+      "title": "Meal plan",
+      "none": "Your dietitian has not built a plan for you yet.",
+      "grams": "{grams, number, plain} g",
+      "weekOf": "Week of {date}",
+      "dailyTarget": "Daily target: {value} kcal",
+      "kcalValue": "{value} kcal",
+      "portion": "{servings} × {label}",
+      "showIngredients": "Show ingredients and amounts",
+      "orInstead": "You can eat this instead:",
+      "noMeal": "No meal set"
+    },
+    "profile": {
+      "title": "Profile and settings",
+      "personalInfo": "Personal information",
+      "readOnly": "Your dietitian keeps these up to date. Tell them if something is wrong.",
+      "language": "Language",
+      "languageDescription": "The language of the portal, and of what the clinic sends you.",
+      "saveLanguage": "Save"
+    },
+    "errors": {
+      "invalid": "Check what you entered and try again.",
+      "notFound": "That appointment no longer exists.",
+      "slotUnavailable": "That time has just been taken. Choose another one.",
+      "alreadyRequested": "You have already asked about this. Your dietitian will answer soon.",
+      "pastAppointment": "That appointment has already happened.",
+      "unexpected": "Something went wrong. Please try again."
+    }
+  },
+  "localeSwitcher": {
+    "label": "Language",
+    "devOnly": "Locale switcher (development only)",
+    "ar": "العربية",
+    "en": "English"
+  },
+  "errors": {
+    "notFound": "Page not found",
+    "notFoundDescription": "The link you opened is incorrect or has moved.",
+    "unexpected": "Something went wrong"
+  },
+  "weeklyPlans": {
+    "title": "Weekly Plans",
+    "subtitle": "AI-generated weekly plans, built from an approved dish catalog",
+    "clients": "Clients",
+    "selectClient": "Select a client to see their weekly plan",
+    "noClients": "No active clients",
+    "noPlanYet": "No plan for this client yet. Add instructions for the week, then generate.",
+    "history": "Earlier plans",
+    "weekOf": "Week of {date}",
+    "weekTotal": "Week total {value} kcal",
+    "generatedBy": "Model used",
+    "kcalValue": "{value} kcal",
+    "budget": "budget {value} kcal",
+    "kg": "{value} kg",
+    "cm": "{value} cm",
+    "years": "{value} years",
+    "grams": "{value} g",
+    "unset": "Not set",
+    "notComputable": "Cannot be computed",
+    "override": "Manual",
+    "close": "Close",
+    "save": "Save",
+    "saving": "Saving…",
+    "saved": "Saved",
+    "emptyDay": "No meals",
+    "emptySlot": "Not filled",
+    "unfilledWarning": "{count} meals could not be filled — fill them before publishing",
+    "dailyTarget": "Daily target",
+    "proteinTarget": "Protein {value} g",
+    "goal": "Goal",
+    "bmi": "BMI",
+    "measurements": "Measurements",
+    "allergies": "Allergies",
+    "preferences": "Preferences",
+    "dislikes": "Dislikes",
+    "permanentInstructions": "Standing instructions",
+    "medicalNotes": "Medical notes",
+    "schedule": "Meal schedule",
+    "missingFields": "To generate, add: {fields}",
+    "editProfile": "Edit nutrition profile",
+    "createProfile": "Create nutrition profile",
+    "backToBoard": "Back to the plan",
+    "profileTitle": "Nutrition profile",
+    "profileSubtitle": "The data {name}'s plan is built from",
+    "suggested": "Suggested: {value}",
+    "shareTotal": "Shares total {value}%",
+    "addSlot": "Add a meal",
+    "removeSlot": "Remove",
+    "allergenHint": "These filter the catalog before it reaches the AI, so a dish containing them cannot be suggested.",
+    "permanentInstructionsHint": "Sent with every generation, e.g. type 2 diabetes — avoid added sugar.",
+    "scheduleHint": "The share is this meal's portion of the day's calories. It does not have to total exactly 100.",
+    "weekInstructions": "Instructions for this week",
+    "instructionPlaceholder": "Easier preparation, lower cost, portable meals…",
+    "generate": "Generate plan with AI",
+    "generating": "Generating…",
+    "generatingHint": "A whole week takes about a minute. Do not close the page.",
+    "regenerate": "Regenerate",
+    "regenerateDay": "Regenerate this day",
+    "regenerateMeal": "Regenerate this meal",
+    "publish": "Publish to client",
+    "publishing": "Publishing…",
+    "unpublish": "Unpublish",
+    "unpublishing": "Unpublishing…",
+    "portion": "{servings} × {label}",
+    "portionShort": "{servings} servings",
+    "ingredients": "Ingredients",
+    "nutrition": "Nutrition",
+    "unmeasured": "Some ingredients were never measured for this nutrient, so the total is a floor",
+    "whyThisMeal": "Why this meal (AI suggestion)",
+    "aiAlternatives": "AI alternatives",
+    "similarDishes": "Similar dishes",
+    "offBudget": "Outside the calorie band",
+    "status": {
+      "draft": "Draft",
+      "published": "Published",
+      "archived": "Archived",
+      "noProfile": "No profile"
+    },
+    "sections": {
+      "targets": "Targets and measurements",
+      "preferences": "Preferences and instructions",
+      "schedule": "Meal schedule"
+    },
+    "fields": {
+      "weightKg": "Weight (kg)",
+      "heightCm": "Height (cm)",
+      "dateOfBirth": "Date of birth",
+      "sex": "Sex",
+      "dailyKcalTarget": "Daily calories",
+      "proteinTargetGrams": "Protein (g)",
+      "allergenTags": "Allergies",
+      "preferences": "Preferences",
+      "dislikes": "Dislikes",
+      "permanentInstructions": "Standing instructions",
+      "slotLabel": "Meal name",
+      "slotTime": "Time",
+      "slotShare": "Share %"
+    },
+    "bmiCategories": {
+      "underweight": "Underweight",
+      "normal": "Normal",
+      "overweight": "Overweight",
+      "obese": "Obese",
+      "severely_obese": "Severely obese"
+    },
+    "allergens": {
+      "nuts": "Nuts",
+      "lactose": "Lactose",
+      "gluten": "Gluten",
+      "egg": "Egg",
+      "fish": "Fish",
+      "sesame": "Sesame"
+    },
+    "errors": {
+      "notConfigured": "AI is not configured: add OPENAI_API_KEY to the environment file.",
+      "profileIncomplete": "Complete the nutrition profile (weight, height, sex, date of birth) before generating.",
+      "emptyCatalog": "No dishes are available once the allergy filter is applied.",
+      "modelUnusable": "We could not use the model's response. Try again.",
+      "planNotFound": "Plan not found.",
+      "notDraft": "A published plan cannot be edited. Unpublish it first.",
+      "unfilled": "Cannot publish while meals are unfilled.",
+      "invalid": "Invalid data.",
+      "clientNotFound": "Client not found.",
+      "unexpected": "Something went wrong."
+    }
+  },
+  "dishes": {
+    "title": "Dish catalog",
+    "subtitle": "{count} approved dishes — the only thing the AI may choose from",
+    "empty": "No matching dishes",
+    "search": "Search",
+    "apply": "Apply",
+    "allMealTypes": "All meal times",
+    "columns": {
+      "name": "Dish",
+      "mealTypes": "Meal time",
+      "tags": "Tags",
+      "kcal": "kcal / serving",
+      "protein": "Protein",
+      "ingredients": "Ingredients"
+    },
+    "mealTypes": {
+      "breakfast": "Breakfast",
+      "snack": "Snack",
+      "lunch": "Lunch",
+      "dinner": "Dinner"
+    },
+    "tags": {
+      "cheap": "Low cost",
+      "portable": "Portable",
+      "quick": "Quick",
+      "vegetarian": "Vegetarian",
+      "high_protein": "High protein",
+      "diabetic_friendly": "Diabetes friendly"
+    },
+    "allergens": {
+      "nuts": "Nuts",
+      "lactose": "Lactose",
+      "gluten": "Gluten",
+      "egg": "Egg",
+      "fish": "Fish",
+      "sesame": "Sesame"
+    }
   },
   "whatsapp": {
     "title": "WhatsApp",
@@ -560,16 +868,5 @@
       "sendFailed": "The message could not be sent. Check the message log.",
       "unexpected": "Something went wrong. Try again."
     }
-  },
-  "localeSwitcher": {
-    "label": "Language",
-    "devOnly": "Locale switcher (development only)",
-    "ar": "العربية",
-    "en": "English"
-  },
-  "errors": {
-    "notFound": "Page not found",
-    "notFoundDescription": "The link you opened is incorrect or has moved.",
-    "unexpected": "Something went wrong"
   }
 }

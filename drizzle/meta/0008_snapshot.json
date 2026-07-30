@@ -1,5 +1,5 @@
 {
-  "id": "43541f7b-fefa-4ca3-bcc4-3c96587d7c2a",
+  "id": "16fd2fab-29e9-41c0-ba7e-ba22cf266f23",
   "prevId": "99514a43-5a16-4abd-aa76-a9b4456f7374",
   "version": "7",
   "dialect": "postgresql",
@@ -1233,6 +1233,215 @@
       },
       "isRLSEnabled": false
     },
+    "public.appointment_requests": {
+      "name": "appointment_requests",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "clinic_id": {
+          "name": "clinic_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "client_id": {
+          "name": "client_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "appointment_id": {
+          "name": "appointment_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "preferred_date": {
+          "name": "preferred_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "preferred_start_minute": {
+          "name": "preferred_start_minute",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "appointment_requests_clinic_id_status_idx": {
+          "name": "appointment_requests_clinic_id_status_idx",
+          "columns": [
+            {
+              "expression": "clinic_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "appointment_requests_client_id_idx": {
+          "name": "appointment_requests_client_id_idx",
+          "columns": [
+            {
+              "expression": "client_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "appointment_requests_open_per_appointment_idx": {
+          "name": "appointment_requests_open_per_appointment_idx",
+          "columns": [
+            {
+              "expression": "appointment_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "status = 'pending' AND appointment_id IS NOT NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "appointment_requests_clinic_id_clinics_id_fk": {
+          "name": "appointment_requests_clinic_id_clinics_id_fk",
+          "tableFrom": "appointment_requests",
+          "tableTo": "clinics",
+          "columnsFrom": [
+            "clinic_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "appointment_requests_client_id_clients_id_fk": {
+          "name": "appointment_requests_client_id_clients_id_fk",
+          "tableFrom": "appointment_requests",
+          "tableTo": "clients",
+          "columnsFrom": [
+            "client_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "appointment_requests_appointment_id_appointments_id_fk": {
+          "name": "appointment_requests_appointment_id_appointments_id_fk",
+          "tableFrom": "appointment_requests",
+          "tableTo": "appointments",
+          "columnsFrom": [
+            "appointment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "appointment_requests_kind": {
+          "name": "appointment_requests_kind",
+          "value": "\"appointment_requests\".\"kind\" IN ('new', 'reschedule', 'cancel')"
+        },
+        "appointment_requests_status": {
+          "name": "appointment_requests_status",
+          "value": "\"appointment_requests\".\"status\" IN ('pending', 'approved', 'declined', 'withdrawn')"
+        },
+        "appointment_requests_appointment_matches_kind": {
+          "name": "appointment_requests_appointment_matches_kind",
+          "value": "(\"appointment_requests\".\"kind\" = 'new') = (\"appointment_requests\".\"appointment_id\" IS NULL)"
+        },
+        "appointment_requests_preferred_matches_kind": {
+          "name": "appointment_requests_preferred_matches_kind",
+          "value": "(\"appointment_requests\".\"kind\" = 'cancel') = (\"appointment_requests\".\"preferred_date\" IS NULL AND \"appointment_requests\".\"preferred_start_minute\" IS NULL)"
+        },
+        "appointment_requests_start_minute_in_day": {
+          "name": "appointment_requests_start_minute_in_day",
+          "value": "\"appointment_requests\".\"preferred_start_minute\" IS NULL OR (\"appointment_requests\".\"preferred_start_minute\" >= 0 AND \"appointment_requests\".\"preferred_start_minute\" < 1440)"
+        }
+      },
+      "isRLSEnabled": false
+    },
     "public.foods": {
       "name": "foods",
       "schema": "",
@@ -1730,413 +1939,6 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.whatsapp_messages": {
-      "name": "whatsapp_messages",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "clinic_id": {
-          "name": "clinic_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "client_id": {
-          "name": "client_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "appointment_id": {
-          "name": "appointment_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "direction": {
-          "name": "direction",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "kind": {
-          "name": "kind",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "chat_id": {
-          "name": "chat_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "phone": {
-          "name": "phone",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "body": {
-          "name": "body",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "status": {
-          "name": "status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'queued'"
-        },
-        "gateway_message_id": {
-          "name": "gateway_message_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "error": {
-          "name": "error",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "dedupe_key": {
-          "name": "dedupe_key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "sent_at": {
-          "name": "sent_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "whatsapp_messages_clinic_id_dedupe_key_idx": {
-          "name": "whatsapp_messages_clinic_id_dedupe_key_idx",
-          "columns": [
-            {
-              "expression": "clinic_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "dedupe_key",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "whatsapp_messages_clinic_id_created_at_idx": {
-          "name": "whatsapp_messages_clinic_id_created_at_idx",
-          "columns": [
-            {
-              "expression": "clinic_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "whatsapp_messages_client_id_created_at_idx": {
-          "name": "whatsapp_messages_client_id_created_at_idx",
-          "columns": [
-            {
-              "expression": "client_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "whatsapp_messages_gateway_message_id_idx": {
-          "name": "whatsapp_messages_gateway_message_id_idx",
-          "columns": [
-            {
-              "expression": "gateway_message_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "whatsapp_messages_clinic_id_clinics_id_fk": {
-          "name": "whatsapp_messages_clinic_id_clinics_id_fk",
-          "tableFrom": "whatsapp_messages",
-          "tableTo": "clinics",
-          "columnsFrom": [
-            "clinic_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "whatsapp_messages_client_id_clients_id_fk": {
-          "name": "whatsapp_messages_client_id_clients_id_fk",
-          "tableFrom": "whatsapp_messages",
-          "tableTo": "clients",
-          "columnsFrom": [
-            "client_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "whatsapp_messages_appointment_id_appointments_id_fk": {
-          "name": "whatsapp_messages_appointment_id_appointments_id_fk",
-          "tableFrom": "whatsapp_messages",
-          "tableTo": "appointments",
-          "columnsFrom": [
-            "appointment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.whatsapp_settings": {
-      "name": "whatsapp_settings",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "clinic_id": {
-          "name": "clinic_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "session_name": {
-          "name": "session_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "session_id": {
-          "name": "session_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "webhook_id": {
-          "name": "webhook_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "status": {
-          "name": "status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'not_connected'"
-        },
-        "phone": {
-          "name": "phone",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "last_error": {
-          "name": "last_error",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "reminders_enabled": {
-          "name": "reminders_enabled",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
-        },
-        "reminder_lead_minutes": {
-          "name": "reminder_lead_minutes",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 1440
-        },
-        "confirmations_enabled": {
-          "name": "confirmations_enabled",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
-        },
-        "connected_at": {
-          "name": "connected_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "synced_at": {
-          "name": "synced_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "whatsapp_settings_clinic_id_idx": {
-          "name": "whatsapp_settings_clinic_id_idx",
-          "columns": [
-            {
-              "expression": "clinic_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "whatsapp_settings_session_name_idx": {
-          "name": "whatsapp_settings_session_name_idx",
-          "columns": [
-            {
-              "expression": "session_name",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "whatsapp_settings_session_id_idx": {
-          "name": "whatsapp_settings_session_id_idx",
-          "columns": [
-            {
-              "expression": "session_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "whatsapp_settings_clinic_id_clinics_id_fk": {
-          "name": "whatsapp_settings_clinic_id_clinics_id_fk",
-          "tableFrom": "whatsapp_settings",
-          "tableTo": "clinics",
-          "columnsFrom": [
-            "clinic_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "whatsapp_settings_reminder_lead_minutes_range": {
-          "name": "whatsapp_settings_reminder_lead_minutes_range",
-          "value": "\"whatsapp_settings\".\"reminder_lead_minutes\" >= 15 AND \"whatsapp_settings\".\"reminder_lead_minutes\" <= 10080"
-        }
-      },
       "isRLSEnabled": false
     }
   },

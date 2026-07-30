@@ -14,13 +14,11 @@ package-lock.json
 pnpm-lock.yaml
 yarn.lock
 
-# env — every environment file stays local, templates included. `.env.example`
-# has no leading slash, so it matches at any depth (the root one and
-# infra/openwa/.env.example alike).
+# env — .env.example is the committed template, so it is deliberately not listed.
+# (It stays committed because the README's setup step is `cp .env.example .env.local`.)
 .env
 .env.local
 .env.*.local
-.env.example
 
 # WhatsApp gateway (infra/openwa) — its own env file and, more importantly, the
 # linked WhatsApp session data. Never commit either.
@@ -32,6 +30,9 @@ yarn.lock
 
 # claude code — shared config is committed, personal overrides are not
 .claude/settings.local.json
+
+# superpowers brainstorming scratch — mockups, not source
+.superpowers/
 
 # misc
 .DS_Store
