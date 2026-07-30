@@ -14,10 +14,13 @@ package-lock.json
 pnpm-lock.yaml
 yarn.lock
 
-# env — .env.example is the committed template, so it is deliberately not listed
+# env — every environment file stays local, templates included. `.env.example`
+# has no leading slash, so it matches at any depth (the root one and
+# infra/openwa/.env.example alike).
 .env
 .env.local
 .env.*.local
+.env.example
 
 # WhatsApp gateway (infra/openwa) — its own env file and, more importantly, the
 # linked WhatsApp session data. Never commit either.
