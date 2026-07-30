@@ -39,6 +39,16 @@ WhatsApp Web client, and WhatsApp's anti-abuse systems look for exactly that.
 
 ---
 
+## Two ways to run it
+
+The compose file below is the tidy option and the one to use in production. It
+needs Docker. If Docker is not available — as on the development machine this was
+first set up on — the gateway runs perfectly well as a plain Node process on the
+host; see [Running on the host](#running-on-the-host-no-docker) for the four
+things that differ. Everything above and below that section applies either way.
+
+---
+
 ## Setup
 
 ### 1. Start the gateway
@@ -123,13 +133,78 @@ there is nothing to co-ordinate.
    curl -H "X-API-Key: $WHATSAPP_API_KEY" http://localhost:2785/api/sessions
    ```
    A `401` here means the key is wrong; that is the single most common setup error.
-3. **The webhook round-trips:** in the gateway dashboard, open the session's
-   webhook and press **Test**. The app answers `{"ok":true,...}`. A `401` there
-   means `WHATSAPP_WEBHOOK_SECRET` differs between the two sides — press
-   **Reconnect** in the app, which rewrites the gateway's copy of the secret.
+3. **The webhook round-trips.** Ask the gateway to deliver a test event to the app
+   and report what came back — this is the one check that covers the URL, the
+   shared secret and the app's handler in a single call:
+   ```bash
+   curl -s -X POST "http://localhost:2785/api/sessions/$SESSION_ID/webhooks/$WEBHOOK_ID/test" -H "X-API-Key: $WHATSAPP_API_KEY"
+   ```
+   `{"success":true,"statusCode":200}` is what you want. `statusCode: 401` means
+   `WHATSAPP_WEBHOOK_SECRET` differs between the two sides — press **Reconnect** in
+   the app, which rewrites the gateway's copy of the secret. `"error":
+   "Destination address is not allowed"` is the SSRF guard; see the host section
+   below. (The gateway's dashboard has a **Test** button for the same thing, but
+   only when its UI has been built — `npm run build:all`.)
 4. **End to end:** book an appointment for a client whose phone number is your
    own, with confirmations enabled. The message arrives, and the send shows up in
    Settings → WhatsApp with its delivery state.
+
+## Running on the host (no Docker)
+
+Clone OpenWA somewhere outside this repo (`C:\Work\openwa` on the machine this was
+set up on), then:
+
+```bash
+npm ci
+```
+
+Four things differ from the container, and each one fails in a way that is not
+obvious, so they are worth knowing before you debug them:
+
+1. **npm 12 blocks package install scripts by default**, which means
+   `better-sqlite3` never fetches its prebuilt binary and the gateway cannot boot:
+   `Could not locate the bindings file`. Its auth/audit database is SQLite-only by
+   design, so this is not avoidable by switching `DATABASE_TYPE`. Fetch the
+   prebuild explicitly:
+   ```bash
+   cd node_modules/better-sqlite3 && npx prebuild-install
+   ```
+   A prebuild exists for current Node (verified on Node 26 / ABI 147), so no
+   compiler is needed. If one ever does not, that is when you need Docker or an
+   older Node — not a Visual Studio install.
+2. **No bundled Chromium**, for the same reason. Point the engine at the browser
+   that is already on the machine, rather than downloading another ~180 MB:
+   ```
+   PUPPETEER_EXECUTABLE_PATH=C:\Program Files\Google\Chrome\Application\chrome.exe
+   ```
+3. **The webhook target is `localhost`, and the SSRF guard blocks loopback** —
+   `Destination address is not allowed` on webhook registration, which loses inbound
+   replies and delivery receipts while outbound reminders keep working (the app
+   connects anyway on purpose). Allow the one host instead of disabling the guard
+   wholesale:
+   ```
+   SSRF_ALLOWED_HOSTS=localhost,127.0.0.1
+   ```
+4. **`WHATSAPP_PUBLIC_URL` is `http://localhost:3000`**, not
+   `host.docker.internal` — there is no container boundary to cross.
+
+Then build once and run:
+
+```bash
+npm run build
+```
+
+```bash
+node dist/main
+```
+
+Add `npm run build:all` instead of `npm run build` if you want the gateway's own
+dashboard UI; the app does not need it — everything it uses is the REST API.
+
+Nothing supervises that process, so it does not survive a reboot. Whatever the
+machine already uses for background services (a Task Scheduler entry on Windows, a
+systemd unit on Linux) is the right home for it; until then, the app reports the
+gateway as unreachable on the settings page rather than failing silently.
 
 ## Operating notes
 
