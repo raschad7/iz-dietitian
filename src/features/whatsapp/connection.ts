@@ -10,6 +10,7 @@ import {
 import { createHttpGateway, GatewayError, type GatewaySession, type WhatsappGateway } from './gateway';
 import { clearSessionLink, ensureSettings, saveSessionLink } from './mutations';
 import { getSettings } from './queries';
+import { REMINDER_LEAD_MINUTES } from './reminders';
 import { type ConnectionView } from './types';
 
 /**
@@ -245,7 +246,7 @@ function toView(
     connectedAt: settings?.connectedAt ?? null,
     remindersEnabled: settings?.remindersEnabled ?? true,
     confirmationsEnabled: settings?.confirmationsEnabled ?? true,
-    reminderLeadMinutes: settings?.reminderLeadMinutes ?? 24 * 60,
+    reminderLeadMinutes: settings?.reminderLeadMinutes ?? REMINDER_LEAD_MINUTES,
     qrCode: extra.qrCode,
     gatewayReachable: extra.gatewayReachable,
   };

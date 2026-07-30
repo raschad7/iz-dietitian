@@ -19,26 +19,17 @@ import { MAX_BODY_LENGTH } from './templates';
 /** A hand-edited locale in a form field degrades to the default, never a 500. */
 export const localeSchema = z.enum(locales).catch(defaultLocale);
 
-/** Lead times offered in the UI. Free-form minutes would invite typos. */
-export const REMINDER_LEAD_OPTIONS = [
-  { minutes: 120, key: 'twoHours' },
-  { minutes: 240, key: 'fourHours' },
-  { minutes: 720, key: 'twelveHours' },
-  { minutes: 1440, key: 'oneDay' },
-  { minutes: 2880, key: 'twoDays' },
-] as const;
-
-export type ReminderLeadOption = (typeof REMINDER_LEAD_OPTIONS)[number];
-
-const leadMinutesValues = REMINDER_LEAD_OPTIONS.map((option) => String(option.minutes)) as [string, ...string[]];
-
 /** FormData sends checkboxes as `'on'` or omits them entirely. */
 const checkbox = z.preprocess((value) => value === 'on' || value === 'true' || value === true, z.boolean());
 
+/**
+ * The automation form. Which messages go out, and nothing about when — the lead
+ * time is fixed at one day (see `REMINDER_LEAD_MINUTES` in `./reminders.ts`), so
+ * there is no field here to disagree with it.
+ */
 export const automationSettingsSchema = z.object({
   remindersEnabled: checkbox,
   confirmationsEnabled: checkbox,
-  reminderLeadMinutes: z.enum(leadMinutesValues).transform(Number),
 });
 
 export type AutomationSettingsInput = z.infer<typeof automationSettingsSchema>;

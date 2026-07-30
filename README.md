@@ -504,15 +504,29 @@ Next.js app  ──HTTP (X-API-Key)──▶  OpenWA gateway  ──▶  WhatsAp
 
 | Message | When | Gated by |
 | ------- | ---- | -------- |
-| Appointment reminder | A fixed lead time before the appointment (2 hours … 2 days, per clinic) | `reminders_enabled`, and the tick below actually running |
+| Appointment reminder | **One day before** the appointment, in clinic-local wall-clock terms | `reminders_enabled`, and the tick below actually running |
 | Booking confirmation | Immediately after an appointment is booked or moved | `confirmations_enabled` |
 | Portal credentials | Only when staff tick "also send over WhatsApp" while issuing them | Never automatic — see below |
 | A typed message | A dietitian writes it on the client's page | — |
 
-Each message is written **in the client's own language** (`clients.preferred_locale`),
-not the dietitian's. Copy lives in `src/features/whatsapp/templates.ts`, beside the
-mail templates' reasoning: a cron job has no next-intl request scope to resolve a
-catalogue in.
+**Every patient-facing message is in Arabic**, whatever a client's record says.
+`clients.preferred_locale` governs the *portal*, where the client picked it and is
+looking at a screen; it also defaults to `ar`, so a record created in a hurry
+carries no real signal about what the person reads. One language for every outgoing
+message also means staff can read back exactly what a patient was told without
+first checking which locale that record happened to hold. The switch is the single
+`PATIENT_MESSAGE_LOCALE` constant in `src/features/whatsapp/templates.ts`, and the
+English copy is kept complete and tested behind it.
+
+Copy lives in that same file rather than in the next-intl catalogue, for the mail
+templates' reason: a cron job has no request scope to resolve a catalogue in.
+
+**The reminder goes out one day ahead**, and only that. A 09:00 Tuesday appointment
+is reminded at 09:00 on Monday — wall-clock in the clinic's zone, so a DST change
+does not shift it. There is no lead-time picker: the settings page states the rule
+instead, `whatsapp_settings.reminder_lead_minutes` defaults to 1440 and nothing
+writes it, and the run reads that column, so a clinic that ever needs a different
+lead is one `UPDATE` rather than a deploy.
 
 ### Sending exactly once
 

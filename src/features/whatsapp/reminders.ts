@@ -7,6 +7,7 @@ import { getWhatsappConfig } from './config';
 import { createHttpGateway, type WhatsappGateway } from './gateway';
 import { listAppointmentsForReminders, listReminderReadyClinics } from './queries';
 import { reminderDedupeKey, sendWhatsappTemplate } from './send';
+import { PATIENT_MESSAGE_LOCALE } from './templates';
 import { type ReminderCandidate, type ReminderRunSummary } from './types';
 
 /**
@@ -37,6 +38,18 @@ import { type ReminderCandidate, type ReminderRunSummary } from './types';
  * costs nothing and removes the failure mode entirely.
  */
 const SEND_SPACING_MS = 1_200;
+
+/**
+ * One day before the appointment — the clinic's rule, and the only lead time in
+ * use.
+ *
+ * It is the default of `whatsapp_settings.reminder_lead_minutes` and nothing
+ * writes that column, so every clinic reminds a day ahead: a 09:00 appointment on
+ * Tuesday is reminded at 09:00 on Monday, in clinic-local wall-clock terms. This
+ * constant is what that default means; the run still reads the column, so
+ * changing one row changes that clinic without a deploy.
+ */
+export const REMINDER_LEAD_MINUTES = 24 * 60;
 
 /**
  * Upper bound on one run. A clinic with more due reminders than this has either
@@ -169,12 +182,13 @@ export async function sendDueAppointmentReminders(deps: ReminderRunDeps = {}): P
       const result = await sendWhatsappTemplate(
         {
           kind: 'appointmentReminder',
-          locale: candidate.preferredLocale,
+          // Arabic for every patient, whatever their record's portal locale says.
+          locale: PATIENT_MESSAGE_LOCALE,
           variables: {
             clientName: candidate.clientName,
             clinicName,
-            date: formatLongDate(candidate.preferredLocale, candidate.date),
-            time: formatMinute(candidate.preferredLocale, candidate.date, candidate.startMinute),
+            date: formatLongDate(PATIENT_MESSAGE_LOCALE, candidate.date),
+            time: formatMinute(PATIENT_MESSAGE_LOCALE, candidate.date, candidate.startMinute),
           },
         },
         {

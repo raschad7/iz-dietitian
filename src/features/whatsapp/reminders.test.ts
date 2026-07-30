@@ -17,6 +17,7 @@ import {
 import { listRecentMessages } from './queries';
 import {
   isReminderDue,
+  REMINDER_LEAD_MINUTES,
   reminderDateWindow,
   selectDueReminders,
   sendDueAppointmentReminders,
@@ -181,8 +182,8 @@ describe('sendDueAppointmentReminders', () => {
   const run = (gateway: ReturnType<typeof createFakeGateway>) =>
     sendDueAppointmentReminders({ gateway, now: HEBRON_08_00_ON_AUG_4, spacingMs: 0 });
 
-  test('reminds about tomorrow morning and says so in the client\'s language', async () => {
-    await createTestWhatsappSettings(clinicId, { reminderLeadMinutes: 24 * 60 });
+  test('reminds about tomorrow morning, in Arabic', async () => {
+    await createTestWhatsappSettings(clinicId);
     await book('2026-08-05', 7 * 60 + 30);
 
     const gateway = createFakeGateway();
@@ -191,13 +192,59 @@ describe('sendDueAppointmentReminders', () => {
     expect(summary).toMatchObject({ clinics: 1, sent: 1, failed: 0 });
     expect(gateway.sent).toHaveLength(1);
     expect(gateway.sent[0]?.chatId).toBe('970599123456@c.us');
-    // Arabic, because that is the client's `preferred_locale` — not the staff UI's.
     expect(gateway.sent[0]?.text).toContain('نذكّرك بموعدك');
+    // Western digits in Arabic, per the project's nu-latn rule.
     expect(gateway.sent[0]?.text).toContain('7:30');
   });
 
+  test('writes to a client whose record says English in Arabic anyway', async () => {
+    // `preferred_locale` governs the portal, where the client chose it. Every
+    // WhatsApp message is Arabic — see PATIENT_MESSAGE_LOCALE.
+    await db.update(clients).set({ preferredLocale: 'en' }).where(eq(clients.id, clientId));
+
+    await createTestWhatsappSettings(clinicId);
+    await book('2026-08-05', 8 * 60);
+
+    const gateway = createFakeGateway();
+    await run(gateway);
+
+    expect(gateway.sent[0]?.text).toContain('نذكّرك بموعدك');
+    expect(gateway.sent[0]?.text).not.toContain('A reminder of your appointment');
+  });
+
+  test('the lead time is one day: 23 hours out is due, 25 is not', async () => {
+    // The clinic's rule, and the only lead in use. `now` is 08:00 on the 4th.
+    await createTestWhatsappSettings(clinicId);
+    await book('2026-08-05', 7 * 60);
+
+    const gateway = createFakeGateway();
+    expect(await run(gateway)).toMatchObject({ sent: 1 });
+
+    const otherClientId = await createTestClient(clinicId, 'سارة');
+    await db.update(clients).set({ phone: '0598222333' }).where(eq(clients.id, otherClientId));
+    await db.insert(appointments).values({
+      clinicId,
+      practitionerId,
+      clientId: otherClientId,
+      date: '2026-08-05',
+      startMinute: 9 * 60,
+      durationMinutes: 30,
+    });
+
+    // 25 hours away: still nothing new to send.
+    expect(await run(gateway)).toMatchObject({ sent: 0 });
+    expect(gateway.sent).toHaveLength(1);
+  });
+
+  test('the stored lead is one day out of the box', async () => {
+    const settings = await createTestWhatsappSettings(clinicId);
+
+    expect(settings.reminderLeadMinutes).toBe(REMINDER_LEAD_MINUTES);
+    expect(REMINDER_LEAD_MINUTES).toBe(24 * 60);
+  });
+
   test('sends each reminder exactly once across repeated runs', async () => {
-    await createTestWhatsappSettings(clinicId, { reminderLeadMinutes: 24 * 60 });
+    await createTestWhatsappSettings(clinicId);
     await book('2026-08-05', 7 * 60 + 30);
 
     const gateway = createFakeGateway();
@@ -210,6 +257,8 @@ describe('sendDueAppointmentReminders', () => {
   });
 
   test('leaves an appointment outside the lead window alone', async () => {
+    // A hand-set lead on the row, to prove the run still reads the column rather
+     // than the constant — the only way a clinic can differ from one day.
     await createTestWhatsappSettings(clinicId, { reminderLeadMinutes: 120 });
     await book('2026-08-05', 9 * 60);
 

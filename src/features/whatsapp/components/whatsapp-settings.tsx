@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ConfirmSubmitButton } from '@/components/ui/confirm-submit-button';
 import { Label } from '@/components/ui/label';
-import { SelectField } from '@/components/ui/select-field';
 import { formatDateTime } from '@/lib/format';
 import { type Locale } from '@/i18n/routing';
 
@@ -26,7 +25,6 @@ import {
   type AutomationActionState,
   type ConnectionActionState,
 } from '../form-state';
-import { REMINDER_LEAD_OPTIONS } from '../schema';
 import { type ConnectionView, type MessageLogEntry } from '../types';
 
 /**
@@ -265,27 +263,19 @@ function AutomationCard({ locale, connection }: { locale: Locale; connection: Co
             defaultChecked={connection.remindersEnabled}
           />
 
+          {/*
+            Stated, not chosen. The lead time is one day for every clinic (see
+            REMINDER_LEAD_MINUTES), and a disabled-looking picker with one option
+            reads as something broken rather than as a decision.
+          */}
+          <p className="text-sm text-muted-foreground">{t('automation.leadFixed')}</p>
+
           <Toggle
             name="confirmationsEnabled"
             label={t('automation.confirmations')}
             help={t('automation.confirmationsHelp')}
             defaultChecked={connection.confirmationsEnabled}
           />
-
-          <div className="max-w-xs space-y-2">
-            <Label htmlFor="reminderLeadMinutes">{t('automation.lead')}</Label>
-            <SelectField
-              id="reminderLeadMinutes"
-              name="reminderLeadMinutes"
-              defaultValue={String(connection.reminderLeadMinutes)}
-            >
-              {REMINDER_LEAD_OPTIONS.map((option) => (
-                <option key={option.minutes} value={option.minutes}>
-                  {t(`automation.leadOptions.${option.key}`)}
-                </option>
-              ))}
-            </SelectField>
-          </div>
 
           <AutomationNotice state={state} />
 

@@ -90,6 +90,11 @@ export type ConnectionView = {
   connectedAt: Date | null;
   remindersEnabled: boolean;
   confirmationsEnabled: boolean;
+  /**
+   * The stored lead time. Displayed nowhere as a choice — the settings page states
+   * the rule instead — but carried here so a row holding a hand-set value is
+   * visible to whatever wants to show it.
+   */
   reminderLeadMinutes: number;
   /** A data URL, present only while the gateway is waiting to be paired. */
   qrCode: string | null;

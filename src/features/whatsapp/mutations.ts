@@ -82,7 +82,10 @@ export async function saveSessionLink(clinicId: string, patch: SessionLinkPatch)
   return row ?? null;
 }
 
-/** The automation toggles. Never touches the session link. */
+/**
+ * The automation toggles. Never touches the session link, and never the lead
+ * time: that is fixed at one day in `./reminders.ts`, so nothing writes it.
+ */
 export async function updateAutomationSettings(
   clinicId: string,
   input: AutomationSettingsInput,
@@ -92,7 +95,6 @@ export async function updateAutomationSettings(
     .set({
       remindersEnabled: input.remindersEnabled,
       confirmationsEnabled: input.confirmationsEnabled,
-      reminderLeadMinutes: input.reminderLeadMinutes,
       updatedAt: new Date(),
     })
     .where(eq(whatsappSettings.clinicId, clinicId))

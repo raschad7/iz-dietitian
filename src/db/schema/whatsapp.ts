@@ -101,10 +101,18 @@ export const whatsappSettings = pgTable(
     remindersEnabled: boolean('reminders_enabled').notNull().default(true),
 
     /**
-     * How long before an appointment its reminder goes out. Minutes, so a clinic
-     * can pick "the evening before" (a day) or "two hours before" without a
-     * schema change. The check constraint keeps it inside a quarter of an hour
-     * and a week — outside that range a "reminder" is something else.
+     * How long before an appointment its reminder goes out.
+     *
+     * **One day, for everybody.** The clinic asked for a single, predictable
+     * rule, so nothing writes this column — there is no picker in the UI and the
+     * automation form has no field for it. It stays a column rather than becoming
+     * a constant because the reminder run reads it (see `reminders.ts`), which
+     * means a clinic that ever wants a different lead is an `UPDATE`, not a
+     * deploy, and the value in force is visible in the row instead of buried in
+     * code.
+     *
+     * The check constraint keeps it inside a quarter of an hour and a week —
+     * outside that range a "reminder" is something else.
      */
     reminderLeadMinutes: integer('reminder_lead_minutes').notNull().default(24 * 60),
 

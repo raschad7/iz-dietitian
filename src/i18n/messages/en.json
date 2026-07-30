@@ -512,19 +512,12 @@
     "automation": {
       "title": "Automated messages",
       "reminders": "Appointment reminders",
-      "remindersHelp": "One message per appointment, sent exactly once.",
+      "remindersHelp": "One message per appointment, sent a day before and exactly once.",
       "confirmations": "Confirmation when an appointment is booked",
       "confirmationsHelp": "Sent on booking, and again if the appointment moves.",
-      "lead": "Send the reminder",
+      "leadFixed": "The reminder goes out one day before the appointment.",
       "save": "Save",
-      "saved": "Settings saved.",
-      "leadOptions": {
-        "twoHours": "2 hours before",
-        "fourHours": "4 hours before",
-        "twelveHours": "12 hours before",
-        "oneDay": "A day before",
-        "twoDays": "Two days before"
-      }
+      "saved": "Settings saved."
     },
     "log": {
       "title": "Recent messages",

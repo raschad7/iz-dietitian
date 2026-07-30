@@ -3,7 +3,7 @@ import { type Locale } from '@/i18n/routing';
 
 import { getAppointmentTarget, getClientTarget, getSettings } from './queries';
 import { confirmationDedupeKey, credentialsDedupeKey, manualDedupeKey, sendWhatsappMessage, sendWhatsappTemplate } from './send';
-import { clampMessageBody } from './templates';
+import { clampMessageBody, PATIENT_MESSAGE_LOCALE } from './templates';
 import { type SendResult } from './types';
 
 /**
@@ -46,12 +46,12 @@ export async function notifyAppointmentBooked(clinicId: string, appointmentId: s
   return sendWhatsappTemplate(
     {
       kind: 'appointmentConfirmation',
-      locale: target.preferredLocale,
+      locale: PATIENT_MESSAGE_LOCALE,
       variables: {
         clientName: target.clientName,
         clinicName: target.clinicName,
-        date: formatLongDate(target.preferredLocale, target.date),
-        time: formatMinute(target.preferredLocale, target.date, target.startMinute),
+        date: formatLongDate(PATIENT_MESSAGE_LOCALE, target.date),
+        time: formatMinute(PATIENT_MESSAGE_LOCALE, target.date, target.startMinute),
       },
     },
     {
@@ -92,7 +92,7 @@ export async function notifyPortalCredentials(
   return sendWhatsappTemplate(
     {
       kind: 'portalCredentials',
-      locale: target.preferredLocale,
+      locale: PATIENT_MESSAGE_LOCALE,
       variables: {
         clientName: target.clientName,
         clinicName: target.clinicName,
@@ -102,6 +102,9 @@ export async function notifyPortalCredentials(
         time: '-',
         username: credentials.username,
         password: credentials.temporaryPassword,
+        // The portal link keeps the client's own locale: they will be *reading a
+        // screen* there, which is exactly what `preferred_locale` is for, and an
+        // English-reading client should not land on an Arabic sign-in page.
         portalUrl: portalSignInUrl(target.preferredLocale),
       },
     },
