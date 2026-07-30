@@ -4,11 +4,89 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * Qiwam / قوام design system.
+ *
+ * Primitives below are the raw palette from docs/Qiwam Design System.html
+ * (§06 "Semantic design tokens", §15 "Figma-ready token table"). They are
+ * never referenced directly from a component — components consume the
+ * semantic tokens in the second :root block, which is what design-system.md
+ * documents. See CLAUDE.md for the "no raw hex" rule this file exists to
+ * make unnecessary everywhere else.
+ */
+:root {
+  /* ── Olive (primary) ── */
+  --olive-50: #F5F8EF;
+  --olive-100: #E8F0DA;
+  --olive-200: #D2E2B9;
+  --olive-300: #B2CE8D;
+  --olive-400: #8CB35C;
+  --olive-500: #6B9639;
+  --olive-600: #4D7428;
+  --olive-700: #3D5C21;
+  --olive-800: #2E461A;
+  --olive-900: #223414;
+  --olive-950: #16220D;
+
+  /* ── Lime (accent — fill/shape only, 1.37:1 on white, NEVER text/icon on a light surface) ── */
+  --lime-100: #F2FBC9;
+  --lime-200: #E6F79A;
+  --lime-300: #D9F25C;
+  --lime-400: #CBEA24;
+  --lime-500: #B0CE12;
+  --lime-600: #8CA60C;
+  --lime-700: #6B7F0A;
+
+  /* ── Warm neutrals (never pure gray) ── */
+  --n-0: #FFFFFF;
+  --n-25: #FCFBF7;
+  --n-50: #F7F5EF;
+  --n-100: #EFEDE4;
+  --n-200: #E2DFD3;
+  --n-300: #CDC9B9;
+  --n-400: #A8A493;
+  --n-500: #837F6E;
+  --n-600: #605D50;
+  --n-700: #46443B;
+  --n-800: #2F2E28;
+  --n-900: #1C1B17;
+
+  /* ── Support: amber = attention, clay = medical (the only true alarm) ── */
+  --amber-100: #FBF0D8;
+  --amber-300: #E8C46A;
+  --amber-600: #9B6A0C;
+  --amber-700: #7A5209;
+  --clay-100: #FAE9E4;
+  --clay-300: #E8A08F;
+  --clay-600: #A33422;
+  --clay-700: #82291B;
+
+  /* ── Radius — 8 / 12 / 16 / 24, never 0 ── */
+  --qiwam-radius-sm: 8px;
+  --qiwam-radius-md: 12px;
+  --qiwam-radius-lg: 16px;
+  --qiwam-radius-xl: 24px;
+
+  /* ── Elevation — olive-tinted, never neutral black ── */
+  --qiwam-shadow-1: 0 1px 2px rgba(34, 52, 20, .06), 0 1px 3px rgba(34, 52, 20, .05);
+  --qiwam-shadow-2: 0 2px 6px rgba(34, 52, 20, .07), 0 8px 20px rgba(34, 52, 20, .06);
+  --qiwam-shadow-3: 0 12px 32px rgba(34, 52, 20, .12);
+}
+
+/*
+ * Semantic tokens — the only thing components bind to. Names on the right of
+ * each comment are the §06/§15 token IDs so this file can be diffed against
+ * the design doc. next/font variables (--font-ibm-plex-sans-arabic etc.) are
+ * set on <body> in src/app/[locale]/layout.tsx.
+ */
 @theme inline {
-  /* next/font variables are set on <body> in src/app/[locale]/layout.tsx. */
-  --font-sans: var(--font-ibm-plex-sans), var(--font-ibm-plex-sans-arabic), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-ibm-plex-sans-arabic), var(--font-ibm-plex-sans), ui-sans-serif, system-ui, sans-serif;
   --font-arabic: var(--font-ibm-plex-sans-arabic), var(--font-ibm-plex-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-heading: var(--font-sans);
+  /* font.display — Readex Pro, headings only, both scripts. */
+  --font-heading: var(--font-readex-pro), var(--font-ibm-plex-sans-arabic), var(--font-ibm-plex-sans), ui-sans-serif, system-ui, sans-serif;
+  /* Token/ID display only — never client-facing copy. */
+  --font-mono: var(--font-ibm-plex-mono), ui-monospace, Menlo, monospace;
+
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -17,15 +95,51 @@
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
+
+  /*
+   * No named categorical series palette exists in the design doc — only the
+   * three-stop comfort-band trio (§15 color.viz.band.*). This reuses already
+   *-defined brand/status hues rather than inventing new ones; confirm with
+   * design before a real multi-series chart ships.
+   */
+  --color-chart-1: var(--olive-600);
+  --color-chart-2: var(--lime-600);
+  --color-chart-3: var(--amber-600);
+  --color-chart-4: var(--clay-600);
+  --color-chart-5: var(--n-600);
+
+  --color-viz-band-range: var(--viz-band-range);
+  --color-viz-band-edge: var(--viz-band-edge);
+  --color-viz-band-marker: var(--viz-band-marker);
+
   --color-ring: var(--ring);
+  --color-focus-halo: var(--focus-halo);
+  --color-field-focus-halo: var(--field-focus-halo);
   --color-input: var(--input);
   --color-border: var(--border);
+
+  /*
+   * color.bg.accent / color.text.onAccent — the one legal lime+text pairing.
+   * Reach for this only for the single accent element a screen is allowed
+   * (see design-system.md); it is not a general-purpose "accent" slot.
+   */
+  --color-accent-lime: var(--accent-lime);
+  --color-on-accent: var(--on-accent);
+
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-status-on-track-fg: var(--status-on-track-fg);
+  --color-status-on-track-bg: var(--status-on-track-bg);
+  --color-status-attention-fg: var(--status-attention-fg);
+  --color-status-attention-bg: var(--status-attention-bg);
+  --color-status-incomplete-fg: var(--status-incomplete-fg);
+  --color-status-incomplete-bg: var(--status-incomplete-bg);
+  --color-status-medical-fg: var(--status-medical-fg);
+  --color-status-medical-bg: var(--status-medical-bg);
+  --color-status-rest-fg: var(--status-rest-fg);
+  --color-status-rest-bg: var(--status-rest-bg);
+
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -40,82 +154,159 @@
   --color-card: var(--card);
   --color-foreground: var(--foreground);
   --color-background: var(--background);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* radius.* — sm 8 / md 12 / lg 16 / xl 24. Pill is Tailwind's built-in rounded-full. Never 0. */
+  --radius-sm: var(--qiwam-radius-sm);
+  --radius-md: var(--qiwam-radius-md);
+  --radius-lg: var(--qiwam-radius-lg);
+  --radius-xl: var(--qiwam-radius-xl);
+
+  /* elevation.* — olive-tinted shadows, never neutral black. */
+  --shadow-card: var(--qiwam-shadow-1);
+  --shadow-elevated: var(--qiwam-shadow-2);
+  --shadow-overlay: var(--qiwam-shadow-3);
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* Surface & text — §06 */
+  --background: var(--n-25);            /* color.bg.canvas */
+  --foreground: var(--n-900);           /* color.text.primary — 16.64:1 */
+
+  --card: var(--n-0);                   /* color.bg.surface */
+  --card-foreground: var(--n-900);
+
+  --popover: var(--n-0);
+  --popover-foreground: var(--n-900);
+
+  --primary: var(--olive-600);          /* color.action.primary.bg */
+  --primary-foreground: var(--n-25);    /* color.text.inverse — olive-600+ only */
+
+  --secondary: var(--olive-50);         /* color.bg.brand.subtle */
+  --secondary-foreground: var(--olive-700); /* color.text.brand — 7.37:1 */
+
+  --muted: var(--n-50);                 /* color.bg.sunken */
+  --muted-foreground: var(--n-600);     /* color.text.secondary — 6.38:1 floor */
+
+  /*
+   * Generic hover/highlight tint used ambiently by many primitives — this is
+   * NOT the brand accent. Lime is reserved for one deliberate element per
+   * screen (see design-system.md); it must never sit behind this token.
+   */
+  --accent: var(--n-100);
+  --accent-foreground: var(--n-900);
+
+  /* Destructive actions map to clay — the design system's only true alarm colour. */
+  --destructive: var(--clay-600);
+  --destructive-foreground: var(--n-25);
+
+  --accent-lime: var(--lime-400);       /* color.bg.accent */
+  --on-accent: var(--olive-950);        /* color.text.onAccent — only legal text-on-lime */
+
+  /* Border & focus — §06 */
+  --border: var(--n-200);               /* color.border.divider */
+  --input: var(--n-500);                /* color.border.interactive — meets 3:1 */
+  --ring: var(--lime-400);              /* color.focus.ring — inner ring, 2px */
+  --focus-halo: var(--olive-950);       /* color.focus.halo — outer ring, 2px */
+  /*
+   * §9.3 form fields deliberately do NOT use the lime ring above: a form has
+   * many fields, and lime tabbing through every one of them breaks "lime is
+   * one element per screen". Fields get an all-olive focus treatment instead
+   * (border.selected + an olive-100 halo).
+   */
+  --field-focus-halo: var(--olive-100);
+
+  /* Status — deliberately not a traffic light. §06 */
+  --status-on-track-fg: var(--olive-700);
+  --status-on-track-bg: var(--olive-100);
+  --status-attention-fg: var(--amber-700);
+  --status-attention-bg: var(--amber-100);
+  /* Missed/incomplete is neutral grey, never red — a missed day is information. */
+  --status-incomplete-fg: var(--n-700);
+  --status-incomplete-bg: var(--n-100);
+  --status-medical-fg: var(--clay-700);
+  --status-medical-bg: var(--clay-100);
+  --status-rest-fg: var(--olive-700);
+  --status-rest-bg: var(--olive-50);
+
+  /* Data visualisation comfort band — §15 */
+  --viz-band-range: var(--lime-300);
+  --viz-band-edge: var(--lime-600);
+  --viz-band-marker: var(--olive-900);
+
+  /*
+   * Sidebar — this app's sidebar (src/components/layout/sidebar.tsx) is a
+   * plain bordered rail, i.e. §08's "Light nav" row, not the solid dark
+   * "Rail" variant described for the mobile/marketing shell.
+   */
+  --sidebar: var(--card);
+  --sidebar-foreground: var(--n-600);           /* Light nav: idle n-600 */
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--n-0);
+  --sidebar-accent: var(--olive-50);            /* Light nav: active surface = bg.brand.subtle */
+  --sidebar-accent-foreground: var(--olive-700); /* Light nav: active = text.brand */
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /*
+   * §15: "Only bg, text, and border tokens remap ... Brand and status hues
+   * stay identical, which keeps the verified pairs intact." Nothing in this
+   * app currently switches to `.dark` (no theme toggle is wired up), but the
+   * class is kept correct rather than left on stale placeholder grays.
+   */
+  --background: var(--olive-950);       /* canvas → olive-950 */
+  --foreground: var(--n-25);            /* text.primary → neutral-25 */
+
+  --card: var(--olive-900);             /* surface → olive-900 */
+  --card-foreground: var(--n-25);
+
+  --popover: var(--olive-900);
+  --popover-foreground: var(--n-25);
+
+  --primary: var(--olive-600);
+  --primary-foreground: var(--n-25);
+
+  --secondary: var(--olive-800);
+  --secondary-foreground: var(--n-25);
+
+  --muted: var(--olive-900);
+  --muted-foreground: var(--olive-200);
+
+  --accent: var(--olive-800);
+  --accent-foreground: var(--n-25);
+
+  --destructive: var(--clay-600);
+  --destructive-foreground: var(--n-25);
+
+  --border: var(--olive-700);
+  --input: var(--n-400);                /* border.interactive → neutral-400 */
+  --ring: var(--lime-400);              /* lime-400 on olive-950 is 12.09:1 — no remap needed */
+  --focus-halo: var(--n-25);
+
+  --status-on-track-fg: var(--olive-700);
+  --status-on-track-bg: var(--olive-100);
+  --status-attention-fg: var(--amber-700);
+  --status-attention-bg: var(--amber-100);
+  --status-incomplete-fg: var(--n-700);
+  --status-incomplete-bg: var(--n-100);
+  --status-medical-fg: var(--clay-700);
+  --status-medical-bg: var(--clay-100);
+  --status-rest-fg: var(--olive-700);
+  --status-rest-bg: var(--olive-50);
+
+  --viz-band-range: var(--lime-300);
+  --viz-band-edge: var(--lime-600);
+  --viz-band-marker: var(--olive-900);
+
+  --sidebar: var(--olive-900);
+  --sidebar-foreground: var(--olive-200);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--n-0);
+  --sidebar-accent: var(--olive-800);
+  --sidebar-accent-foreground: var(--n-25);
+  --sidebar-border: var(--olive-700);
+  --sidebar-ring: var(--ring);
 }
 
 @layer base {
@@ -136,5 +327,40 @@
    */
   html[dir='rtl'] {
     @apply font-arabic;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-heading;
+  }
+
+  /* No letter-spacing on Arabic — it breaks cursive joining (§04). */
+  :lang(ar) {
+    letter-spacing: 0;
+  }
+}
+
+@layer components {
+  /*
+   * §9.3 text field focus line: "an olive line grows from the tail along the
+   * block-end edge to 58% of the width — the Q curve being drawn, once."
+   * Implemented as a background (not ::after) because ::after does not apply
+   * to replaced elements (input/select/textarea), so this works directly on
+   * the field with no wrapper element required. background-position has no
+   * logical keyword, so :dir() stands in for the inline-end anchor. The
+   * transition itself is left to each component's own `transition-all`
+   * utility class — Tailwind's utilities layer outranks this components
+   * layer, so a `transition` declared here would be silently dropped.
+   */
+  .q-field-arc {
+    background-image: linear-gradient(var(--olive-600), var(--olive-600));
+    background-repeat: no-repeat;
+    background-size: 0% 2px;
+    background-position: bottom left;
+  }
+  .q-field-arc:dir(rtl) {
+    background-position: bottom right;
+  }
+  .q-field-arc:focus {
+    background-size: 58% 2px;
   }
 }
