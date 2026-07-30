@@ -316,7 +316,46 @@
   "dashboard": {
     "title": "لوحة التحكم",
     "welcome": "أهلًا {name}",
-    "placeholder": "ستظهر هنا مؤشرات العيادة بعد بناء الوحدات الوظيفية."
+    "agenda": {
+      "title": "جدول اليوم",
+      "empty": "لا مواعيد اليوم",
+      "emptyCta": "عرض التقويم",
+      "reason": "السبب: {reason}"
+    },
+    "requests": {
+      "title": "طلبات بانتظار الرد",
+      "count": "{count, number, integer} بانتظار الرد",
+      "empty": "لا طلبات بانتظار الرد حاليًا",
+      "cta": "مراجعة الطلبات",
+      "kind": {
+        "new": "طلب حجز جديد",
+        "reschedule": "طلب تغيير الموعد",
+        "cancel": "طلب إلغاء الموعد"
+      }
+    },
+    "stats": {
+      "activeClients": "المتابعون النشطون",
+      "appointmentsThisWeek": "مواعيد هذا الأسبوع",
+      "clientsWithoutMealPlan": "بلا خطة غذائية",
+      "newClientsThisMonth": "متابعون جدد هذا الشهر"
+    },
+    "attention": {
+      "title": "بحاجة لمتابعة",
+      "badge": "بحاجة لمتابعة",
+      "empty": "لا يوجد متابعون بحاجة لمتابعة حاليًا",
+      "viewAll": "عرض جميع المتابعين",
+      "reason": {
+        "noUpcomingAppointment": "لا يوجد موعد قادم",
+        "noMealPlan": "لا توجد خطة غذائية",
+        "neverSignedIn": "لم يسجّل الدخول إلى البوابة بعد"
+      }
+    },
+    "quickActions": {
+      "title": "إجراءات سريعة",
+      "newAppointment": "موعد جديد",
+      "addClient": "إضافة متابع",
+      "newMealPlan": "خطة غذائية جديدة"
+    }
   },
   "foods": {
     "title": "الأطعمة",
