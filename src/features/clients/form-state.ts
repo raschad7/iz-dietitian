@@ -26,7 +26,20 @@ export type ClientFormState =
 export type PortalCredentialsState =
   | { status: 'idle' }
   | { status: 'error'; messageKey: 'errors.usernameTaken' | 'errors.usernameInvalid' | 'errors.unexpected' }
-  | { status: 'issued'; username: string; temporaryPassword: string };
+  | {
+      status: 'issued';
+      username: string;
+      temporaryPassword: string;
+      /**
+       * Whether the credentials also went out over WhatsApp, when staff asked for
+       * that. `undefined` means they did not ask.
+       *
+       * Reported separately from `status` on purpose: the account exists either
+       * way, and a WhatsApp send that failed must not read as "issuing failed" —
+       * the password on screen is real and still has to be handed over.
+       */
+      whatsapp?: 'sent' | 'skipped' | 'failed';
+    };
 
 export type RevokePortalAccessState =
   | { status: 'idle' }

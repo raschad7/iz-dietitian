@@ -18,3 +18,4 @@ export * from './meal-plans';
 export * from './dishes';
 export * from './client-nutrition-profiles';
 export * from './weekly-plans';
+export * from './whatsapp';

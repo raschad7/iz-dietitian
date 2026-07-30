@@ -19,6 +19,7 @@ const NAV_ITEMS = [
   { href: '/app/meal-plans', labelKey: 'mealPlans' },
   { href: '/app/dishes', labelKey: 'dishes' },
   { href: '/app/foods', labelKey: 'foods' },
+  { href: '/app/settings/whatsapp', labelKey: 'whatsapp' },
   { href: '/app/settings/security', labelKey: 'security' },
 ] as const;
 

@@ -14,10 +14,16 @@ package-lock.json
 pnpm-lock.yaml
 yarn.lock
 
-# env — .env.example is the committed template, so it is deliberately not listed
+# env — .env.example is the committed template, so it is deliberately not listed.
+# (It stays committed because the README's setup step is `cp .env.example .env.local`.)
 .env
 .env.local
 .env.*.local
+
+# WhatsApp gateway (infra/openwa) — its own env file and, more importantly, the
+# linked WhatsApp session data. Never commit either.
+/infra/openwa/.env
+/infra/openwa/data/
 
 # typescript
 *.tsbuildinfo

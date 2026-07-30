@@ -13,6 +13,8 @@ import { getClient } from '@/features/clients/queries';
 import { suggestUsername } from '@/features/clients/transliterate';
 import { ClientPlansCard } from '@/features/meal-plans/components/client-plans-card';
 import { listPlans } from '@/features/meal-plans/queries';
+import { SendMessageCard } from '@/features/whatsapp/components/send-message-card';
+import { getSettings, listClientThread } from '@/features/whatsapp/queries';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/params';
 import { requireStaffClinic } from '@/lib/session';
@@ -47,7 +49,12 @@ export default async function ClientPage({ params }: ClientPageProps) {
     notFound();
   }
 
-  const [plans, t] = await Promise.all([listPlans(clinicId, client.id), getTranslations('clients')]);
+  const [plans, whatsapp, thread, t] = await Promise.all([
+    listPlans(clinicId, client.id),
+    getSettings(clinicId),
+    listClientThread(clinicId, client.id),
+    getTranslations('clients'),
+  ]);
 
   const portalUsername = client.hasPortalAccess ? await getPortalUsername(clinicId, client.id) : null;
 
@@ -78,7 +85,22 @@ export default async function ClientPage({ params }: ClientPageProps) {
         hasPortalAccess={client.hasPortalAccess}
         username={portalUsername}
         suggestedUsername={suggestUsername(client.fullName)}
+        canSendWhatsapp={whatsapp?.status === 'ready' && Boolean(client.phone)}
       />
+
+      {/*
+        Only when WhatsApp is actually linked. A composer that silently does
+        nothing is worse than no composer, and a clinic that has not connected
+        WhatsApp should not see a WhatsApp box on every client.
+      */}
+      {whatsapp?.sessionId ? (
+        <SendMessageCard
+          locale={locale}
+          clientId={client.id}
+          thread={thread}
+          canSend={Boolean(client.phone) && whatsapp.status === 'ready'}
+        />
+      ) : null}
 
       <Link href="/app/clients" className="inline-block text-sm underline-offset-4 hover:underline">
         {t('backToList')}
