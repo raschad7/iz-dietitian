@@ -12,9 +12,10 @@ export type NavItem = {
     | '/app/calendar'
     | '/app/meal-plans'
     | '/app/foods'
+    | '/app/settings/whatsapp'
     | '/app/settings/security'
     | '/portal';
-  labelKey: 'dashboard' | 'clients' | 'calendar' | 'mealPlans' | 'foods' | 'security' | 'portalHome';
+  labelKey: 'dashboard' | 'clients' | 'calendar' | 'mealPlans' | 'foods' | 'whatsapp' | 'security' | 'portalHome';
 };
 
 /**

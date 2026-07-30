@@ -1,0 +1,98 @@
+import {
+  type WhatsappDirection,
+  type WhatsappMessageKind,
+  type WhatsappMessageStatus,
+  type WhatsappStatus,
+} from '@/db/schema';
+import { type Locale } from '@/i18n/routing';
+
+/** An appointment plus the client details a message about it needs. */
+export type ReminderCandidate = {
+  appointmentId: string;
+  clientId: string;
+  /** `YYYY-MM-DD`, clinic-local — appointments are wall-clock facts. */
+  date: string;
+  startMinute: number;
+  clientName: string;
+  phone: string;
+  /** The client's own locale decides the message language, not the staff UI's. */
+  preferredLocale: Locale;
+};
+
+/** Anyone a message can be addressed to. */
+export type WhatsappTarget = {
+  clientId: string;
+  clientName: string;
+  phone: string | null;
+  preferredLocale: Locale;
+  clinicName: string;
+};
+
+export type MessageLogEntry = {
+  id: string;
+  direction: WhatsappDirection;
+  kind: WhatsappMessageKind;
+  status: WhatsappMessageStatus;
+  body: string;
+  phone: string;
+  error: string | null;
+  createdAt: Date;
+  clientId: string | null;
+  clientName: string | null;
+};
+
+/**
+ * Why a send did not happen.
+ *
+ * Every one of these is an ordinary outcome, not an exception: WhatsApp is a
+ * best-effort channel bolted onto a clinic that worked without it, so nothing
+ * upstream — booking an appointment, issuing portal credentials — may fail
+ * because a message could not go out.
+ */
+export type SendSkipReason =
+  /** `WHATSAPP_ENABLED` is not set, or the clinic never connected. */
+  | 'not_configured'
+  /** The gateway session exists but is not paired with a phone right now. */
+  | 'not_connected'
+  /** The client has no phone number, or it cannot be read as one. */
+  | 'no_phone'
+  /** The body was empty once trimmed. Callers validate first, so this is a bug. */
+  | 'empty_body'
+  /** Already sent — the dedupe key was taken. This is the automation working. */
+  | 'duplicate';
+
+export type SendResult =
+  | { status: 'sent'; messageId: string; gatewayMessageId: string }
+  | { status: 'skipped'; reason: SendSkipReason }
+  /** The gateway refused or was unreachable. The row is stored as `failed`. */
+  | { status: 'failed'; messageId: string | null; error: string };
+
+/** What one reminder run did. Returned by the cron route and the CLI script. */
+export type ReminderRunSummary = {
+  clinics: number;
+  sent: number;
+  skipped: number;
+  failed: number;
+  /** Appointment ids that were reminded, for the log line. */
+  appointmentIds: string[];
+};
+
+/** The settings page's whole view of the connection. */
+export type ConnectionView = {
+  /** `WHATSAPP_ENABLED` and the gateway credentials are set on this deployment. */
+  enabled: boolean;
+  /** This clinic has a gateway session. Pairing may still be in progress. */
+  linked: boolean;
+  status: WhatsappStatus;
+  phone: string | null;
+  lastError: string | null;
+  syncedAt: Date | null;
+  connectedAt: Date | null;
+  remindersEnabled: boolean;
+  confirmationsEnabled: boolean;
+  reminderLeadMinutes: number;
+  /** A data URL, present only while the gateway is waiting to be paired. */
+  qrCode: string | null;
+  /** False when the gateway itself did not answer. */
+  gatewayReachable: boolean;
+};

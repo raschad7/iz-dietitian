@@ -22,7 +22,8 @@ Better Auth requires.
 | i18n             | next-intl                                          |
 | Auth             | Better Auth                                        |
 | Runtime / PM     | Bun (pinned via `packageManager`)                  |
-| Data access      | Server actions only — no REST, no tRPC             |
+| WhatsApp         | Self-hosted [OpenWA](https://github.com/rmyndharis/OpenWA) gateway, in Docker |
+| Data access      | Server actions, plus two webhook/cron endpoints — no REST or tRPC for the UI |
 
 ---
 
@@ -62,6 +63,7 @@ defaults or is optional:
 | `MAIL_TRANSPORT`                       | Defaults to `console`, which prints staff verification/reset links to the server console. Set to `resend` in production. Only staff email ever depends on this — the client portal sends no mail at all. |
 | `RESEND_API_KEY`, `EMAIL_FROM`         | Only read when `MAIL_TRANSPORT=resend`.                                     |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Google sign-in for staff. Leave both blank locally — the Google button simply does not render when either is missing. |
+| `WHATSAPP_*`                           | Appointment reminders and confirmations over WhatsApp. Off unless `WHATSAPP_ENABLED=true`; see [WhatsApp automation](#whatsapp-automation) and `infra/openwa/README.md`. |
 
 Apply the migrations, then start the dev server:
 
@@ -92,6 +94,7 @@ The app is at <http://localhost:3000>, which redirects to `/ar`.
 | `bun run db:seed:foods`         | Just the `foods` reference table                                         |
 | `bun run db:build-food-dataset` | Regenerate `data/usda-sr-legacy.ndjson` from USDA (rarely needed)        |
 | `bun run db:reset`              | **Destructive.** Drop `public`, replay migrations. Local only.           |
+| `bun run wa:reminders`          | Send every WhatsApp appointment reminder that is due, then exit. Safe to re-run. |
 
 Only `bun.lock` is committed; `package-lock.json`, `pnpm-lock.yaml` and
 `yarn.lock` are git-ignored so a stray `npm install` cannot fork the dependency
@@ -145,7 +148,9 @@ src/
         (secured)/            # everything except set-password
           layout.tsx          # adds the must-change-password redirect
           page.tsx            # placeholder
-    api/auth/[...all]/route.ts  # the only HTTP endpoint, owned by Better Auth
+    api/auth/[...all]/route.ts  # owned by Better Auth
+    api/whatsapp/webhook/route.ts    # gateway events in (HMAC-signed)
+    api/whatsapp/reminders/route.ts  # the reminder tick (bearer secret)
     globals.css
   components/
     ui/                       # shadcn primitives
@@ -159,10 +164,13 @@ src/
       clients.ts                # the clients feature's table
       foods.ts                  # USDA reference data — the one un-scoped table
       meal-plans.ts             # plans, their meals and their items
+      whatsapp.ts               # the gateway link per clinic, plus the message log
   features/
     auth/                     # forms, server actions, rate limiting, redirect safety, cleanup
+    booking/                  # the calendar and its validation rules
     clients/                  # the roster feature
     meal-plans/               # plan editing and the nutrition maths
+    whatsapp/                 # gateway client, automations, webhook handling
   i18n/
     routing.ts                # locales, default, direction
     navigation.ts             # locale-aware Link / redirect / useRouter
@@ -187,6 +195,8 @@ scripts/
   seed-foods.ts               # loads data/usda-sr-legacy.ndjson
   build-food-dataset.ts       # regenerates that extract from USDA
   db-reset.ts
+  whatsapp-reminders.ts       # the reminder tick, for cron
+infra/openwa/                 # the WhatsApp gateway: compose file, env template, runbook
 ```
 
 `src/proxy.ts` is the request middleware. Next.js 16 renamed the `middleware.ts`
@@ -463,6 +473,130 @@ Two layers, on purpose:
 Add a new protected area by adding its segment to `PROTECTED_AREAS` in
 `src/proxy.ts` *and* calling a guard in its layout. The guard is what enforces;
 the proxy is just a fast path.
+
+---
+
+## WhatsApp automation
+
+Appointment reminders, booking confirmations and a per-client message thread, sent
+through a **self-hosted [OpenWA](https://github.com/rmyndharis/OpenWA) gateway**
+that runs as one Docker container beside the app. The gateway owns the WhatsApp
+connection — pairing, session data, reconnects, delivery receipts — and this app
+speaks plain HTTP to it, so nothing in `src/features/whatsapp/` knows what a
+WhatsApp protocol frame looks like.
+
+Setup, the number-safety guidance, and the operational runbook are in
+[`infra/openwa/README.md`](infra/openwa/README.md). Read that before connecting a
+number: OpenWA is not Meta's official API, so it carries a real risk of account
+restriction and should be pointed at a dedicated clinic number.
+
+The whole feature is **off unless `WHATSAPP_ENABLED=true`**. Unset, the app behaves
+exactly as it did before it existed and Settings → WhatsApp explains what to
+configure.
+
+```
+Next.js app  ──HTTP (X-API-Key)──▶  OpenWA gateway  ──▶  WhatsApp
+     ▲                                    │
+     └──── webhook (HMAC-signed) ─────────┘
+```
+
+### What it sends
+
+| Message | When | Gated by |
+| ------- | ---- | -------- |
+| Appointment reminder | A fixed lead time before the appointment (2 hours … 2 days, per clinic) | `reminders_enabled`, and the tick below actually running |
+| Booking confirmation | Immediately after an appointment is booked or moved | `confirmations_enabled` |
+| Portal credentials | Only when staff tick "also send over WhatsApp" while issuing them | Never automatic — see below |
+| A typed message | A dietitian writes it on the client's page | — |
+
+Each message is written **in the client's own language** (`clients.preferred_locale`),
+not the dietitian's. Copy lives in `src/features/whatsapp/templates.ts`, beside the
+mail templates' reasoning: a cron job has no next-intl request scope to resolve a
+catalogue in.
+
+### Sending exactly once
+
+WhatsApp has no unsend, and the reminder job is *designed* to run repeatedly over
+an overlapping window so that a missed tick is not a missed reminder. Both facts
+are reconciled by one thing: every outgoing message claims a row in
+`whatsapp_messages` against a unique `(clinic_id, dedupe_key)` **before** the
+gateway is called.
+
+- Reminder: `reminder:<appointmentId>:<date>` — stable, so repeated runs send once.
+- Confirmation: `confirmation:<appointmentId>:<date>:<startMinute>` — a *moved*
+  appointment is new news; re-saving the same slot is not.
+- A typed message: random — repeating the same words on purpose is legitimate.
+
+So the reminder tick can be called every minute, by two schedulers at once, or by
+hand mid-run, and the patient still gets one message. The deliberate trade-off is
+the reverse case: a process killed between the claim and the send leaves a `queued`
+row that is never retried. For a reminder that is the right way to fail.
+
+### Running the reminder tick
+
+Something outside the app decides when "now" is. Either from the shell:
+
+```bash
+bun run wa:reminders
+```
+
+or over HTTP, which is what a hosted deployment usually wants:
+
+```bash
+curl -X POST -H "Authorization: Bearer $WHATSAPP_CRON_SECRET" http://localhost:3000/api/whatsapp/reminders
+```
+
+Every five minutes is a sensible schedule. Sends inside a run are sequential and
+spaced out, and capped per run — bursts are the single most reliable way to get a
+WhatsApp number restricted, and a clinic's real volume is a handful an hour.
+
+### The two HTTP endpoints
+
+This is the exception to the project's "server actions only" rule, and the reason
+is that neither caller is a browser holding a session cookie:
+
+- **`POST /api/whatsapp/webhook`** — inbound replies, delivery receipts and session
+  status from the gateway. Its only authentication is the HMAC signature over the
+  **raw** body (`X-OpenWA-Signature`, compared in constant time), so the body is
+  read as text and parsed only after the signature verifies. The clinic is resolved
+  from the event's `session_id`, never from anything the request claims, so a valid
+  signature still only ever reaches the tenant owning that session. Events it
+  ignores still answer `200`: a non-2xx would make the gateway retry five times and
+  then file a delivery failure.
+- **`POST|GET /api/whatsapp/reminders`** — the tick, behind
+  `WHATSAPP_CRON_SECRET` as a bearer token. Without that variable the route
+  answers `404`.
+
+### Inbound replies
+
+A client's reply is filed against them by matching the **last nine digits** of the
+sender's number against `clients.phone` — the roster holds `0599123456` while
+WhatsApp reports `970599123456`, and those are the same person. A reply from a
+number no client owns is still recorded, unattributed: somebody messaged the
+clinic, and staff should see that. Groups, broadcasts and WhatsApp privacy ids
+(`@lid`, whose digits are *not* a phone number) are dropped rather than guessed at.
+
+Delivery receipts only ever move a message forward — `sent → delivered → read` —
+because acks arrive out of order and a late `delivered` must not undo a `read`.
+
+### Portal credentials over WhatsApp
+
+Issuing portal credentials can also WhatsApp them to the client, but **only when
+staff tick the box**, per issue. A temporary password in a chat thread is readable
+by anyone holding the phone and cannot be recalled. It is offered because the
+alternative is worse for this clinic: `clients.email` is nullable and frequently
+empty (see [Client portal access](#client-portal-access)), so otherwise the
+credentials exist only on a screen the client is not standing in front of. The
+password must still be replaced at first sign-in.
+
+### Failure is always an ordinary outcome
+
+Nothing in the clinic fails because WhatsApp did. `sendWhatsappMessage` never
+throws: it returns `sent`, `skipped` (not configured, not paired, no phone number,
+already sent) or `failed`, and booking an appointment or issuing credentials
+proceeds regardless. Confirmations are scheduled with `after()` so a slow gateway
+cannot add latency to saving an appointment. Every failure is visible in
+Settings → WhatsApp with the gateway's own wording, rather than only in a log.
 
 ---
 

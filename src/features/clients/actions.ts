@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { z } from 'zod';
 
 import { type Locale } from '@/i18n/routing';
+import { notifyPortalCredentials } from '@/features/whatsapp/notify';
 import { requireStaffClinic } from '@/lib/session';
 
 import { archiveClient, createClient, deleteClient, restoreClient, updateClient } from './mutations';
@@ -55,6 +56,46 @@ const usernameSchema = z
   .regex(/^[a-z0-9-]+$/)
   .min(3)
   .max(60);
+
+/**
+ * Optionally WhatsApps a client the credentials that were just issued.
+ *
+ * **Opt-in per issue, never automatic.** A temporary password in a chat thread is
+ * readable by anyone holding the phone and cannot be recalled, so it happens only
+ * when staff tick the box — and it is offered at all because most of this clinic's
+ * clients have no email address (see the README's portal section), which otherwise
+ * leaves the credentials on a screen the client is not standing in front of.
+ *
+ * Awaited rather than deferred with `after()`: the dietitian is reading the
+ * one-time password off the screen right now and needs to know whether they must
+ * dictate it. Never throws — the account exists regardless of what WhatsApp did.
+ */
+async function deliverCredentials(
+  clinicId: string,
+  clientId: string,
+  credentials: { username: string; temporaryPassword: string },
+): Promise<'sent' | 'skipped' | 'failed'> {
+  try {
+    const result = await notifyPortalCredentials(clinicId, clientId, {
+      ...credentials,
+      // Part of the dedupe key, so a re-issue an hour later sends again while a
+      // double-clicked button does not.
+      issuedAt: Date.now(),
+    });
+
+    if (result.status === 'sent') return 'sent';
+
+    return result.status === 'failed' ? 'failed' : 'skipped';
+  } catch (error) {
+    console.error('[clients] WhatsApp credential delivery failed', error);
+    return 'failed';
+  }
+}
+
+/** The "also send over WhatsApp" checkbox. Absent from FormData when unticked. */
+function wantsWhatsapp(formData: FormData): boolean {
+  return formData.get('sendWhatsapp') === 'on';
+}
 
 export async function createClientAction(
   _previousState: ClientFormState,
@@ -180,10 +221,19 @@ export async function issuePortalCredentialsAction(
       return { status: 'error', messageKey: 'errors.unexpected' };
     }
 
+    const whatsapp = wantsWhatsapp(formData)
+      ? await deliverCredentials(clinicId, id, result)
+      : undefined;
+
     revalidatePath(`/${locale}/app/clients`);
     revalidatePath(`/${locale}/app/clients/${id}`);
 
-    return { status: 'issued', username: result.username, temporaryPassword: result.temporaryPassword };
+    return {
+      status: 'issued',
+      username: result.username,
+      temporaryPassword: result.temporaryPassword,
+      whatsapp,
+    };
   } catch (error) {
     console.error('[clients] issuing portal credentials failed', error);
     return { status: 'error', messageKey: 'errors.unexpected' };
@@ -212,10 +262,19 @@ export async function reissuePortalPasswordAction(
       return { status: 'error', messageKey: 'errors.unexpected' };
     }
 
+    const whatsapp = wantsWhatsapp(formData)
+      ? await deliverCredentials(clinicId, id, result)
+      : undefined;
+
     revalidatePath(`/${locale}/app/clients`);
     revalidatePath(`/${locale}/app/clients/${id}`);
 
-    return { status: 'issued', username: result.username, temporaryPassword: result.temporaryPassword };
+    return {
+      status: 'issued',
+      username: result.username,
+      temporaryPassword: result.temporaryPassword,
+      whatsapp,
+    };
   } catch (error) {
     console.error('[clients] reissuing portal password failed', error);
     return { status: 'error', messageKey: 'errors.unexpected' };

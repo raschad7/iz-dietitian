@@ -19,6 +19,11 @@ yarn.lock
 .env.local
 .env.*.local
 
+# WhatsApp gateway (infra/openwa) — its own env file and, more importantly, the
+# linked WhatsApp session data. Never commit either.
+/infra/openwa/.env
+/infra/openwa/data/
+
 # typescript
 *.tsbuildinfo
 

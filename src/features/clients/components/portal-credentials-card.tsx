@@ -28,6 +28,12 @@ type PortalCredentialsCardProps = {
   username: string | null;
   /** Server-computed suggestion, editable before the account is created. */
   suggestedUsername: string;
+  /**
+   * Whether to offer sending the credentials over WhatsApp: the clinic has a live
+   * WhatsApp connection *and* this client has a phone number. False hides the
+   * option rather than showing one that cannot work.
+   */
+  canSendWhatsapp: boolean;
 };
 
 export function PortalCredentialsCard({
@@ -36,6 +42,7 @@ export function PortalCredentialsCard({
   hasPortalAccess,
   username,
   suggestedUsername,
+  canSendWhatsapp,
 }: PortalCredentialsCardProps) {
   const t = useTranslations('clients');
 
@@ -48,9 +55,19 @@ export function PortalCredentialsCard({
 
       <CardContent className="space-y-4">
         {hasPortalAccess ? (
-          <ExistingAccess locale={locale} clientId={clientId} username={username} />
+          <ExistingAccess
+            locale={locale}
+            clientId={clientId}
+            username={username}
+            canSendWhatsapp={canSendWhatsapp}
+          />
         ) : (
-          <IssueForm locale={locale} clientId={clientId} suggestedUsername={suggestedUsername} />
+          <IssueForm
+            locale={locale}
+            clientId={clientId}
+            suggestedUsername={suggestedUsername}
+            canSendWhatsapp={canSendWhatsapp}
+          />
         )}
       </CardContent>
     </Card>
@@ -61,17 +78,25 @@ function IssueForm({
   locale,
   clientId,
   suggestedUsername,
+  canSendWhatsapp,
 }: {
   locale: Locale;
   clientId: string;
   suggestedUsername: string;
+  canSendWhatsapp: boolean;
 }) {
   const t = useTranslations('clients');
 
   const [state, formAction] = useActionState(issuePortalCredentialsAction, initialPortalCredentialsState);
 
   if (state.status === 'issued') {
-    return <IssuedCredentials username={state.username} temporaryPassword={state.temporaryPassword} />;
+    return (
+      <IssuedCredentials
+        username={state.username}
+        temporaryPassword={state.temporaryPassword}
+        whatsapp={state.whatsapp}
+      />
+    );
   }
 
   return (
@@ -84,6 +109,8 @@ function IssueForm({
         <Input id="username" name="username" dir="ltr" required defaultValue={suggestedUsername} />
       </div>
 
+      {canSendWhatsapp ? <WhatsappOptIn /> : null}
+
       <CredentialsMessage state={state} />
 
       <Button type="submit">{t('portal.issue')}</Button>
@@ -95,10 +122,12 @@ function ExistingAccess({
   locale,
   clientId,
   username,
+  canSendWhatsapp,
 }: {
   locale: Locale;
   clientId: string;
   username: string | null;
+  canSendWhatsapp: boolean;
 }) {
   const t = useTranslations('clients');
 
@@ -112,7 +141,13 @@ function ExistingAccess({
   );
 
   if (reissueState.status === 'issued') {
-    return <IssuedCredentials username={reissueState.username} temporaryPassword={reissueState.temporaryPassword} />;
+    return (
+      <IssuedCredentials
+        username={reissueState.username}
+        temporaryPassword={reissueState.temporaryPassword}
+        whatsapp={reissueState.whatsapp}
+      />
+    );
   }
 
   return (
@@ -125,9 +160,10 @@ function ExistingAccess({
       ) : null}
 
       <div className="flex flex-wrap items-center gap-2">
-        <form action={reissueAction}>
+        <form action={reissueAction} className="space-y-2">
           <input type="hidden" name="locale" value={locale} />
           <input type="hidden" name="clientId" value={clientId} />
+          {canSendWhatsapp ? <WhatsappOptIn /> : null}
           <ConfirmSubmitButton
             label={t('portal.reissue')}
             confirmMessage={t('portal.confirmReissue')}
@@ -164,11 +200,41 @@ function ExistingAccess({
 }
 
 /**
+ * The "send these over WhatsApp too" opt-in.
+ *
+ * Unchecked by default, and only rendered when it can actually work. Sending a
+ * temporary password through a chat is a considered trade-off — see
+ * `deliverCredentials` in `../actions.ts` — so it is always a decision somebody
+ * makes, never a default somebody forgets.
+ */
+function WhatsappOptIn() {
+  const t = useTranslations('clients');
+
+  return (
+    <label className="flex items-start gap-2 text-sm">
+      <input type="checkbox" name="sendWhatsapp" className="mt-0.5 size-4 rounded border-input accent-primary" />
+      <span>
+        {t('portal.sendWhatsapp')}
+        <span className="block text-xs text-muted-foreground">{t('portal.sendWhatsappHelp')}</span>
+      </span>
+    </label>
+  );
+}
+
+/**
  * Shown exactly once, right after issuing or re-issuing: the plaintext
  * temporary password never comes back from the server again after this
  * render, because nothing stores it in plaintext.
  */
-function IssuedCredentials({ username, temporaryPassword }: { username: string; temporaryPassword: string }) {
+function IssuedCredentials({
+  username,
+  temporaryPassword,
+  whatsapp,
+}: {
+  username: string;
+  temporaryPassword: string;
+  whatsapp?: 'sent' | 'skipped' | 'failed';
+}) {
   const t = useTranslations('clients');
 
   return (
@@ -191,6 +257,16 @@ function IssuedCredentials({ username, temporaryPassword }: { username: string; 
       </dl>
 
       <p className="text-sm text-muted-foreground">{t('portal.handOver')}</p>
+
+      {/*
+        A failed or skipped send is not an error about the account — the password
+        above is real either way — so it reads as information, not as a failure.
+      */}
+      {whatsapp ? (
+        <p role="status" className={whatsapp === 'sent' ? 'text-sm text-muted-foreground' : 'text-sm text-destructive'}>
+          {t(`portal.whatsapp.${whatsapp}`)}
+        </p>
+      ) : null}
     </div>
   );
 }

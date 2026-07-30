@@ -1,0 +1,105 @@
+# The WhatsApp gateway this app talks to.
+#
+# OpenWA (https://github.com/rmyndharis/OpenWA) is a self-hosted HTTP API in front
+# of WhatsApp. It owns the WhatsApp connection — the QR pairing, the session data,
+# the reconnects — and exposes it as REST plus webhooks. This app never speaks
+# WhatsApp's protocol; it speaks HTTP to this container.
+#
+#   docker compose -f infra/openwa/docker-compose.yml up -d
+#   docker compose -f infra/openwa/docker-compose.yml logs -f
+#   docker compose -f infra/openwa/docker-compose.yml down
+#
+# Dashboard and API: http://localhost:2785  (Swagger at /api/docs)
+# Read infra/openwa/README.md first — especially the note about which phone number
+# to connect.
+#
+# This is the only Docker in the project: PostgreSQL still runs locally (see the
+# root README). The gateway is containerised because it runs a headless Chromium
+# and keeps its own state, neither of which belongs in this repo's toolchain.
+
+services:
+  openwa:
+    # Pinned to a minor version rather than :latest. This container holds a
+    # WhatsApp session; an unattended pull that changes the engine can require
+    # re-pairing the clinic's phone, which is a visit to the clinic.
+    image: ghcr.io/rmyndharis/openwa:0.11
+    container_name: iz-dietitian-openwa
+    restart: unless-stopped
+
+    ports:
+      # Bound to loopback on purpose. The gateway's API key is the only thing
+      # between the internet and the clinic's WhatsApp account, so it must not be
+      # published to 0.0.0.0 without a reverse proxy and TLS in front of it.
+      - '127.0.0.1:2785:2785'
+
+    env_file:
+      # Copy .env.example next to this file and fill in API_MASTER_KEY.
+      - .env
+
+    environment:
+      - NODE_ENV=production
+      - PORT=2785
+      # Restart-resilience: re-start previously authenticated sessions on boot, so
+      # a `compose up` after a reboot does not need a new QR scan.
+      - AUTO_START_SESSIONS=true
+      # SQLite in the mounted volume. One clinic, one session: a separate
+      # PostgreSQL for the gateway would be infrastructure with no reader.
+      - DATABASE_TYPE=sqlite
+      - DATABASE_NAME=/app/data/openwa.sqlite
+      - DATABASE_SYNCHRONIZE=true
+      # whatsapp-web.js drives a real headless Chromium, which looks like genuine
+      # WhatsApp Web traffic and is the lower-ban-risk of the two engines. It costs
+      # ~300–500 MB of RAM per session; `baileys` is far lighter and easier for
+      # WhatsApp to fingerprint. For a clinic's own number, safety wins.
+      - ENGINE_TYPE=whatsapp-web.js
+      - SESSION_DATA_PATH=/app/data/sessions
+      - PUPPETEER_HEADLESS=true
+      - PUPPETEER_ARGS=--no-sandbox,--disable-setuid-sandbox,--disable-dev-shm-usage,--disable-gpu
+      - STORAGE_TYPE=local
+      - STORAGE_LOCAL_PATH=/app/data/media
+      - WEBHOOK_TIMEOUT=10000
+      - WEBHOOK_RETRY_DELAY=5000
+      # Chromium needs writable config/cache dirs, and the root filesystem is
+      # read-only below; these point at the tmpfs.
+      - HOME=/tmp
+      - XDG_CONFIG_HOME=/tmp/.config
+      - XDG_CACHE_HOME=/tmp/.cache
+      # Everything else stays off: no Redis, no queue, no S3. One clinic does not
+      # need them, and each one is another moving part to debug at 8am.
+      - REDIS_ENABLED=false
+      - QUEUE_ENABLED=false
+      - CACHE_ENABLED=false
+      - POSTGRES_BUILTIN=false
+      - MINIO_BUILTIN=false
+
+    volumes:
+      # The WhatsApp session lives here. Delete it and the clinic re-pairs by QR,
+      # so it is worth including in whatever backs up this machine.
+      - ./data:/app/data
+
+    # Container hardening, matching what OpenWA ships in its own production
+    # compose. Chromium needs a writable /tmp and these five capabilities; it gets
+    # nothing else.
+    security_opt:
+      - 'no-new-privileges:true'
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+    read_only: true
+    tmpfs:
+      - /tmp
+    # A fork-bomb guard, not an allocation. One Chromium session is many processes.
+    pids_limit: 2048
+    mem_limit: 2g
+
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:2785/api/health/ready']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

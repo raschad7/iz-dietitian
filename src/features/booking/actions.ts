@@ -1,7 +1,9 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { after } from 'next/server';
 
+import { notifyAppointmentBooked } from '@/features/whatsapp/notify';
 import { requireStaffClinic } from '@/lib/session';
 import { type Locale } from '@/i18n/routing';
 
@@ -59,6 +61,30 @@ function revalidateCalendar(locale: Locale): void {
   revalidatePath(`/${locale}/app/calendar`, 'layout');
 }
 
+/**
+ * Tells the client their appointment is booked, over WhatsApp, **after** the
+ * response has been sent.
+ *
+ * `after()` rather than an inline `await`: the message travels through an external
+ * gateway, and saving an appointment must not wait on a network call to a service
+ * that may be slow or down. It is also not fire-and-forget — Next keeps the work
+ * alive past the response, which a bare floating promise does not guarantee.
+ *
+ * Whether anything is actually sent is the WhatsApp feature's decision (the clinic
+ * may have confirmations switched off, no number linked, or the client may have no
+ * phone). Nothing here fails because of it; a booking is not less booked for
+ * lacking a WhatsApp message.
+ */
+function notifyBooked(clinicId: string, appointmentId: string): void {
+  after(async () => {
+    try {
+      await notifyAppointmentBooked(clinicId, appointmentId);
+    } catch (error) {
+      console.error('[booking] WhatsApp confirmation failed', error);
+    }
+  });
+}
+
 export async function createAppointmentAction(
   rawLocale: string,
   input: unknown,
@@ -71,7 +97,10 @@ export async function createAppointmentAction(
 
   const result = await createAppointment(context, parsed.data);
 
-  if (result.ok) revalidateCalendar(locale);
+  if (result.ok) {
+    revalidateCalendar(locale);
+    notifyBooked(context.clinicId, result.data.id);
+  }
 
   return result;
 }
@@ -85,7 +114,12 @@ export async function updateAppointmentAction(rawLocale: string, input: unknown)
 
   const result = await updateAppointment(context, parsed.data);
 
-  if (result.ok) revalidateCalendar(locale);
+  if (result.ok) {
+    revalidateCalendar(locale);
+    // A move is news the client needs; the confirmation's dedupe key carries the
+    // date and start minute, so re-saving an unchanged slot sends nothing.
+    notifyBooked(context.clinicId, parsed.data.id);
+  }
 
   return result;
 }
@@ -124,6 +158,7 @@ export async function createClientAndBookAction(
     revalidateCalendar(locale);
     // The register gained a client, so its list is stale too.
     revalidatePath(`/${locale}/app/clients`);
+    notifyBooked(context.clinicId, result.data.id);
   }
 
   return result;

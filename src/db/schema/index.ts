@@ -14,3 +14,4 @@ export * from './practitioners';
 export * from './appointments';
 export * from './foods';
 export * from './meal-plans';
+export * from './whatsapp';

@@ -17,7 +17,8 @@
     "db:seed": "bun run scripts/seed.ts",
     "db:seed:foods": "bun run scripts/seed-foods.ts",
     "db:build-food-dataset": "bun run scripts/build-food-dataset.ts",
-    "db:reset": "bun run scripts/db-reset.ts"
+    "db:reset": "bun run scripts/db-reset.ts",
+    "wa:reminders": "bun run scripts/whatsapp-reminders.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

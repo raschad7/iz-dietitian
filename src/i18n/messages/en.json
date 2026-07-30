@@ -33,7 +33,8 @@
     "portalHome": "Home",
     "myPlan": "My plan",
     "myAppointments": "My appointments",
-    "security": "Security"
+    "security": "Security",
+    "whatsapp": "WhatsApp"
   },
   "landing": {
     "title": "Run your dietitian practice in one place",
@@ -453,7 +454,14 @@
       "confirmRevoke": "This client will immediately lose access to the portal. Are you sure?",
       "showOnce": "Write these down now — they will not be shown again.",
       "temporaryPassword": "Temporary password",
-      "handOver": "Give these to the client. They will choose their own password the first time they sign in."
+      "handOver": "Give these to the client. They will choose their own password the first time they sign in.",
+      "sendWhatsapp": "Also send these over WhatsApp",
+      "sendWhatsappHelp": "The temporary password goes to the client's WhatsApp number. They must change it at first sign-in.",
+      "whatsapp": {
+        "sent": "Sent over WhatsApp.",
+        "skipped": "Not sent over WhatsApp — check the number and the connection status.",
+        "failed": "WhatsApp delivery failed. Hand the details over in person."
+      }
     },
     "errors": {
       "invalid": "Check the fields highlighted in red.",
@@ -466,6 +474,99 @@
     "title": "Client portal",
     "welcome": "Welcome, {name}",
     "placeholder": "Your nutrition plan and appointments will appear here once the feature modules are built."
+  },
+  "whatsapp": {
+    "title": "WhatsApp",
+    "description": "Link the clinic's WhatsApp number to send appointment reminders and confirmations automatically.",
+    "disabled": "WhatsApp is not enabled on this installation. Set WHATSAPP_ENABLED and the gateway variables in .env.local, then restart the server.",
+    "gatewayUnreachable": "The WhatsApp gateway did not answer. Make sure it is running, then try again.",
+    "connection": {
+      "title": "Connection",
+      "statusLabel": "Status",
+      "phoneLabel": "Linked number",
+      "connectedAt": "Connected since {when}",
+      "syncedAt": "Status last checked {when}",
+      "connect": "Connect WhatsApp",
+      "reconnect": "Reconnect",
+      "disconnect": "Disconnect",
+      "disconnectConfirm": "This unlinks the number and stops every automated message. Continue?",
+      "refresh": "Refresh status",
+      "started": "Pairing started. Scan the QR code from WhatsApp on the clinic phone.",
+      "disconnected": "The number has been unlinked.",
+      "qrTitle": "Scan this code",
+      "qrHelp": "WhatsApp on the phone → Settings → Linked devices → Link a device. The code changes every few seconds.",
+      "waiting": "Preparing the connection…",
+      "notLinked": "No number linked yet."
+    },
+    "status": {
+      "not_connected": "Not linked",
+      "created": "Created",
+      "initializing": "Starting up",
+      "qr_ready": "Waiting for scan",
+      "authenticating": "Authenticating",
+      "ready": "Connected",
+      "disconnected": "Disconnected",
+      "action_required": "Needs attention",
+      "failed": "Failed"
+    },
+    "automation": {
+      "title": "Automated messages",
+      "reminders": "Appointment reminders",
+      "remindersHelp": "One message per appointment, sent exactly once.",
+      "confirmations": "Confirmation when an appointment is booked",
+      "confirmationsHelp": "Sent on booking, and again if the appointment moves.",
+      "lead": "Send the reminder",
+      "save": "Save",
+      "saved": "Settings saved.",
+      "leadOptions": {
+        "twoHours": "2 hours before",
+        "fourHours": "4 hours before",
+        "twelveHours": "12 hours before",
+        "oneDay": "A day before",
+        "twoDays": "Two days before"
+      }
+    },
+    "log": {
+      "title": "Recent messages",
+      "empty": "No messages yet.",
+      "unknownClient": "Unknown number",
+      "direction": {
+        "outbound": "Sent",
+        "inbound": "Received"
+      },
+      "kind": {
+        "appointment_reminder": "Appointment reminder",
+        "appointment_confirmation": "Appointment confirmation",
+        "portal_credentials": "Portal credentials",
+        "manual": "Manual message",
+        "inbound": "Client reply"
+      },
+      "status": {
+        "queued": "Queued",
+        "sent": "Sent",
+        "delivered": "Delivered",
+        "read": "Read",
+        "failed": "Failed",
+        "received": "Received"
+      }
+    },
+    "send": {
+      "title": "Send a WhatsApp message",
+      "placeholder": "Write your message…",
+      "button": "Send",
+      "sent": "Message sent.",
+      "noPhone": "This client has no usable phone number.",
+      "notConnected": "WhatsApp is not connected right now.",
+      "notConfigured": "WhatsApp is not linked yet."
+    },
+    "errors": {
+      "disabled": "WhatsApp is not enabled on this installation.",
+      "gateway": "The WhatsApp gateway did not answer. Make sure it is running, then try again.",
+      "invalid": "Check the highlighted fields.",
+      "notLinked": "Connect WhatsApp first, then set the automations up.",
+      "sendFailed": "The message could not be sent. Check the message log.",
+      "unexpected": "Something went wrong. Try again."
+    }
   },
   "localeSwitcher": {
     "label": "Language",
