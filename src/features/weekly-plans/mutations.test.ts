@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, test } from 'bun:test';
 import { and, eq } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { pgConstraintName, pgErrorCode } from '@/db/errors';
+import { pgConstraintName, pgErrorCode, UNIQUE_VIOLATION } from '@/db/errors';
 import { dishIngredients, dishes, foods, weeklyPlanMeals, weeklyPlans } from '@/db/schema';
 import { createTestClient, createTestClinic, resetDatabase } from '../../../tests/helpers';
 
@@ -128,8 +128,18 @@ async function expectRejected(
   throw new Error('expected the database to reject this write, but it succeeded');
 }
 
-async function createPlan(meals: ReconciledMeal[] = [meal()], weekStartDate = '2026-08-02') {
-  return createPlanFromGeneration({
+/**
+ * Creates a plan, or fails the test.
+ *
+ * Throws rather than returning `string | null`: a null here means the fixture is
+ * broken, not that the case under test failed, and propagating it would put a `!` on
+ * every call site and hide the real problem behind a downstream assertion.
+ */
+async function createPlan(
+  meals: ReconciledMeal[] = [meal()],
+  weekStartDate = '2026-08-02',
+): Promise<string> {
+  const planId = await createPlanFromGeneration({
     clinicId,
     clientId,
     weekStartDate,
@@ -137,6 +147,10 @@ async function createPlan(meals: ReconciledMeal[] = [meal()], weekStartDate = '2
     weekInstructions: 'تكلفة أقل',
     outcome: outcome(meals),
   });
+
+  if (!planId) throw new Error('fixture failed: createPlanFromGeneration returned null');
+
+  return planId;
 }
 
 beforeEach(async () => {
@@ -184,9 +198,7 @@ describe('saveNutritionProfile', () => {
 describe('createPlanFromGeneration', () => {
   test('writes the plan, its meals and their options', async () => {
     const planId = await createPlan();
-    expect(planId).not.toBeNull();
-
-    const board = await getBoard(clinicId, planId!);
+    const board = await getBoard(clinicId, planId);
 
     expect(board?.status).toBe('draft');
     expect(board?.kcalTargetSnapshot).toBe(1800);
@@ -203,7 +215,7 @@ describe('createPlanFromGeneration', () => {
   test('derives nutrition from the recipe rather than storing it', async () => {
     // 200 g of a 300 kcal/100 g food at 1.5 servings = 900 kcal.
     const planId = await createPlan([meal({ servings: 1.5 })]);
-    const board = await getBoard(clinicId, planId!);
+    const board = await getBoard(clinicId, planId);
 
     expect(board!.days[0]!.meals[0]!.totals.kcal.value).toBeCloseTo(900, 6);
     expect(board!.totals.kcal.value).toBeCloseTo(900, 6);
@@ -246,7 +258,7 @@ describe('createPlanFromGeneration', () => {
 
   test('stores an unfillable slot as an empty meal', async () => {
     const planId = await createPlan([meal({ dishId: null, rationaleAr: null, options: [] })]);
-    const board = await getBoard(clinicId, planId!);
+    const board = await getBoard(clinicId, planId);
 
     expect(board!.days[0]!.meals[0]!.dish).toBeNull();
     expect(board!.unfilled).toBe(1);
@@ -257,7 +269,7 @@ describe('getBoard', () => {
   test('is invisible to another clinic, not forbidden', async () => {
     const planId = await createPlan();
 
-    expect(await getBoard(otherClinicId, planId!)).toBeNull();
+    expect(await getBoard(otherClinicId, planId)).toBeNull();
   });
 
   test('returns null for a malformed id rather than throwing', async () => {
@@ -266,7 +278,7 @@ describe('getBoard', () => {
 
   test('always returns seven days, even for a plan with one meal', async () => {
     const planId = await createPlan();
-    const board = await getBoard(clinicId, planId!);
+    const board = await getBoard(clinicId, planId);
 
     expect(board!.days).toHaveLength(7);
     expect(board!.days.map((day) => day.dayOfWeek)).toEqual([0, 1, 2, 3, 4, 5, 6]);
@@ -283,14 +295,14 @@ describe('replaceMeals', () => {
 
     const replaced = await replaceMeals(
       clinicId,
-      planId!,
+      planId,
       [meal({ dayOfWeek: 1, dishId: dishIds[1]!, rationaleAr: 'جديد', options: [] })],
       'test-model-2',
     );
 
     expect(replaced).toBe(true);
 
-    const board = await getBoard(clinicId, planId!);
+    const board = await getBoard(clinicId, planId);
 
     expect(board!.days[0]!.meals[0]!.dish?.slug).toBe('test-lunch-a');
     expect(board!.days[1]!.meals[0]!.dish?.slug).toBe('test-lunch-b');
@@ -301,26 +313,26 @@ describe('replaceMeals', () => {
   test('refuses a plan belonging to another clinic', async () => {
     const planId = await createPlan();
 
-    expect(await replaceMeals(otherClinicId, planId!, [meal()], 'x')).toBe(false);
+    expect(await replaceMeals(otherClinicId, planId, [meal()], 'x')).toBe(false);
   });
 
   test('refuses to touch a published plan', async () => {
     const planId = await createPlan();
-    await publishPlan(clinicId, planId!);
+    await publishPlan(clinicId, planId);
 
-    expect(await replaceMeals(clinicId, planId!, [meal()], 'x')).toBe(false);
+    expect(await replaceMeals(clinicId, planId, [meal()], 'x')).toBe(false);
   });
 });
 
 describe('swapMealDish', () => {
   test('swaps the dish and keeps the old one as an alternative', async () => {
     const planId = await createPlan();
-    const board = await getBoard(clinicId, planId!);
+    const board = await getBoard(clinicId, planId);
     const mealId = board!.days[0]!.meals[0]!.id;
 
-    expect(await swapMealDish(clinicId, planId!, mealId, dishIds[1]!, 1.5)).toBe(true);
+    expect(await swapMealDish(clinicId, planId, mealId, dishIds[1]!, 1.5)).toBe(true);
 
-    const after = await getBoard(clinicId, planId!);
+    const after = await getBoard(clinicId, planId);
     const swapped = after!.days[0]!.meals[0]!;
 
     expect(swapped.dish?.slug).toBe('test-lunch-b');
@@ -332,13 +344,13 @@ describe('swapMealDish', () => {
 
   test('never leaves the chosen dish in its own options', async () => {
     const planId = await createPlan();
-    const board = await getBoard(clinicId, planId!);
+    const board = await getBoard(clinicId, planId);
     const mealId = board!.days[0]!.meals[0]!.id;
 
     // Dish B starts as the alternative; swapping to it must remove it from there.
-    await swapMealDish(clinicId, planId!, mealId, dishIds[1]!, 1);
+    await swapMealDish(clinicId, planId, mealId, dishIds[1]!, 1);
 
-    const after = await getBoard(clinicId, planId!);
+    const after = await getBoard(clinicId, planId);
     const slugs = after!.days[0]!.meals[0]!.options.map((option) => option.slug);
 
     expect(slugs).not.toContain('test-lunch-b');
@@ -346,10 +358,10 @@ describe('swapMealDish', () => {
 
   test('refuses a meal belonging to another clinic plan', async () => {
     const planId = await createPlan();
-    const board = await getBoard(clinicId, planId!);
+    const board = await getBoard(clinicId, planId);
 
     expect(
-      await swapMealDish(otherClinicId, planId!, board!.days[0]!.meals[0]!.id, dishIds[1]!, 1),
+      await swapMealDish(otherClinicId, planId, board!.days[0]!.meals[0]!.id, dishIds[1]!, 1),
     ).toBe(false);
   });
 });
@@ -358,7 +370,7 @@ describe('publishPlan', () => {
   test('publishes a complete draft and makes it visible to the client', async () => {
     const planId = await createPlan();
 
-    expect(await publishPlan(clinicId, planId!)).toEqual({ ok: true });
+    expect(await publishPlan(clinicId, planId)).toEqual({ ok: true });
 
     const portal = await getPublishedBoard(clientId);
 
@@ -370,17 +382,17 @@ describe('publishPlan', () => {
   test('refuses a plan with an unfilled slot', async () => {
     const planId = await createPlan([meal(), meal({ dayOfWeek: 1, dishId: null, options: [] })]);
 
-    expect(await publishPlan(clinicId, planId!)).toEqual({ ok: false, reason: 'unfilled' });
+    expect(await publishPlan(clinicId, planId)).toEqual({ ok: false, reason: 'unfilled' });
     expect(await getPublishedBoard(clientId)).toBeNull();
   });
 
   test('archives the previous plan for the same week instead of colliding with it', async () => {
     const first = await createPlan();
-    await publishPlan(clinicId, first!);
+    await publishPlan(clinicId, first);
 
     // A second draft for the same week, then published over the first.
     const second = await createPlan([meal({ dishId: dishIds[1]!, options: [] })]);
-    expect(await publishPlan(clinicId, second!)).toEqual({ ok: true });
+    expect(await publishPlan(clinicId, second)).toEqual({ ok: true });
 
     const rows = await db
       .select({ id: weeklyPlans.id, status: weeklyPlans.status })
@@ -396,24 +408,24 @@ describe('publishPlan', () => {
 
   test('refuses to publish a plan twice', async () => {
     const planId = await createPlan();
-    await publishPlan(clinicId, planId!);
+    await publishPlan(clinicId, planId);
 
-    expect(await publishPlan(clinicId, planId!)).toEqual({ ok: false, reason: 'not_draft' });
+    expect(await publishPlan(clinicId, planId)).toEqual({ ok: false, reason: 'not_draft' });
   });
 
   test('is invisible to another clinic', async () => {
     const planId = await createPlan();
 
-    expect(await publishPlan(otherClinicId, planId!)).toEqual({ ok: false, reason: 'not_found' });
+    expect(await publishPlan(otherClinicId, planId)).toEqual({ ok: false, reason: 'not_found' });
   });
 });
 
 describe('unpublishPlan', () => {
   test('takes the plan away from the client immediately', async () => {
     const planId = await createPlan();
-    await publishPlan(clinicId, planId!);
+    await publishPlan(clinicId, planId);
 
-    expect(await unpublishPlan(clinicId, planId!)).toBe(true);
+    expect(await unpublishPlan(clinicId, planId)).toBe(true);
     expect(await getPublishedBoard(clientId)).toBeNull();
   });
 });
@@ -439,7 +451,7 @@ describe('loadCatalog', () => {
 describe('the published-week constraint', () => {
   test('the database itself rejects two published plans for one client and week', async () => {
     const first = await createPlan();
-    await publishPlan(clinicId, first!);
+    await publishPlan(clinicId, first);
 
     const second = await createPlan([meal({ options: [] })]);
 
@@ -449,11 +461,13 @@ describe('the published-week constraint', () => {
       await db
         .update(weeklyPlans)
         .set({ status: 'published', publishedAt: new Date() })
-        .where(eq(weeklyPlans.id, second!));
+        .where(eq(weeklyPlans.id, second));
     });
 
-    expect(rejection.code).toBe('23505');
-    expect(rejection.constraint).toBe('weekly_plans_published_week_idx');
+    expect(rejection).toEqual({
+      code: UNIQUE_VIOLATION,
+      constraint: 'weekly_plans_published_week_idx',
+    });
   });
 });
 
@@ -463,7 +477,7 @@ describe('the meal slot constraint', () => {
 
     const rejection = await expectRejected(async () => {
       await db.insert(weeklyPlanMeals).values({
-        planId: planId!,
+        planId: planId,
         dayOfWeek: 0,
         slotKey: 'lunch',
         label: 'غداء',
@@ -475,7 +489,9 @@ describe('the meal slot constraint', () => {
       });
     });
 
-    expect(rejection.code).toBe('23505');
-    expect(rejection.constraint).toBe('weekly_plan_meals_slot_idx');
+    expect(rejection).toEqual({
+      code: UNIQUE_VIOLATION,
+      constraint: 'weekly_plan_meals_slot_idx',
+    });
   });
 });

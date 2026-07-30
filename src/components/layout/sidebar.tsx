@@ -10,11 +10,24 @@ export type NavItem = {
     | '/app'
     | '/app/clients'
     | '/app/calendar'
+    | '/app/weekly-plans'
     | '/app/meal-plans'
+    | '/app/dishes'
     | '/app/foods'
     | '/app/settings/security'
-    | '/portal';
-  labelKey: 'dashboard' | 'clients' | 'calendar' | 'mealPlans' | 'foods' | 'security' | 'portalHome';
+    | '/portal'
+    | '/portal/plan';
+  labelKey:
+    | 'dashboard'
+    | 'clients'
+    | 'calendar'
+    | 'weeklyPlans'
+    | 'mealPlans'
+    | 'dishes'
+    | 'foods'
+    | 'security'
+    | 'portalHome'
+    | 'myPlan';
 };
 
 /**

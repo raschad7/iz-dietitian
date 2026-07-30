@@ -8,17 +8,8 @@ import {
   CLIENT_GOALS,
   CLIENT_SEXES,
 } from '@/features/clients/schema';
+import { isMember } from '@/lib/enum';
 
-/**
- * The enum-like columns are `text` in the database, so a value written by an
- * older version of the app — or by hand — may not be a known key. Narrowing here
- * means an unrecognised value renders as "not provided" instead of crashing the
- * page with a missing-message error or, worse, silently displaying the wrong
- * label.
- */
-function isMember<T extends string>(values: readonly T[], value: string | null): value is T {
-  return value !== null && (values as readonly string[]).includes(value);
-}
 
 export function ClientProfile({ client }: { client: ClientDetail }) {
   const t = useTranslations('clients');

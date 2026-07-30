@@ -724,6 +724,52 @@ export async function findSwapCandidates({
   });
 }
 
+/**
+ * Swap candidates for every meal on a board, keyed by meal id.
+ *
+ * Computed once for the whole board rather than per meal on demand: the catalog is
+ * loaded a single time and the ranking is a pure in-memory pass, so 35 meals cost
+ * one query. Doing it lazily would mean a round trip every time the dietitian opens
+ * a card.
+ */
+export async function swapCandidatesByMeal(
+  board: Board,
+  allergens: readonly string[],
+): Promise<Record<string, SwapCandidate[]>> {
+  const catalog = await loadCatalog(allergens);
+
+  const candidates = catalog.map((dish) => ({
+    id: dish.id,
+    slug: dish.slug,
+    nameAr: dish.nameAr,
+    nameEn: dish.nameEn,
+    mealTypes: dish.mealTypes,
+    allergenTags: dish.allergenTags,
+    baseKcal: baseServingKcal(dish.ingredients),
+  }));
+
+  const byMeal: Record<string, SwapCandidate[]> = {};
+
+  for (const day of board.days) {
+    for (const meal of day.meals) {
+      byMeal[meal.id] = findSimilar({
+        candidates,
+        mealType: mealTypeForSlot(meal.slotKey),
+        budgetKcal: meal.budgetKcal,
+        allergens,
+        // Neither the dish already in the slot nor anything already offered as an
+        // alternative — the list must never suggest what is on screen.
+        excludeSlugs: [
+          ...(meal.dish ? [meal.dish.slug] : []),
+          ...meal.options.map((option) => option.slug),
+        ],
+      });
+    }
+  }
+
+  return byMeal;
+}
+
 /** Dish slugs used in the client's most recent plan, fed to the prompt for variety. */
 export async function previousPlanSlugs(
   clinicId: string,
