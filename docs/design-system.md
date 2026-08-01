@@ -1,9 +1,9 @@
 # Design system — Qiwam / قوام
 
 This app's visual language is Qiwam. The full brand and design spec is
-[`docs/Qiwam Design System.html`](docs/Qiwam%20Design%20System.html) — open it
+[`Qiwam Design System.html`](Qiwam%20Design%20System.html) — open it
 in a browser, it's a rendered document, not markup to read raw. This file is
-the plain-language summary a Claude Code session or a new contributor needs
+the plain-language summary a coding agent or a new contributor needs
 to build UI correctly without re-reading the whole spec every time.
 
 **Before building or touching any UI, check `src/components/ui/` first.**

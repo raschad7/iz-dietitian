@@ -1,11 +1,10 @@
 # Features
 
-One folder per feature. Currently holds `auth/` (sign-in, sign-up, passkeys,
-password policy, rate limiting), `clients/` (the clinic's patient roster,
-including portal credential issuing and username transliteration), `booking/`
-(the calendar), `meal-plans/` and `whatsapp/` (appointment reminders and
-confirmations through a self-hosted gateway). `payments/` and the rest get added
-here as they are built.
+One folder per feature. The current areas are `auth`, `booking`, `clients`,
+`dashboard`, `meal-plans`, `portal`, `weekly-plans`, and `whatsapp`. See
+[`docs/architecture.md`](../../docs/architecture.md#major-feature-areas) for
+their responsibilities and [`docs/product-scope.md`](../../docs/product-scope.md)
+before adding another product area.
 
 Each feature owns its slice end to end:
 
