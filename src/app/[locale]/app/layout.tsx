@@ -41,6 +41,7 @@ const NAV_ICONS = {
   dashboard: 'dashboard',
   clients: 'clients',
   calendar: 'calendar',
+  profile: 'profile',
   weeklyPlans: 'weeklyPlans',
   mealPlans: 'mealPlans',
   dishes: 'dishes',
