@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { appointments, clients, clinics, practitioners } from '@/db/schema';
+import { appointments, clients, clinicWorkingHours, practitioners } from '@/db/schema';
 import { DISPLAY_TIME_ZONE } from '@/lib/format';
 
 import { createTestClient, createTestClinic, createTestPractitioner, resetDatabase } from '../../../tests/helpers';
@@ -235,10 +235,13 @@ describe('createAppointment', () => {
     expect(await countAppointments()).toBe(0);
   });
 
-  test('honours opening hours read from the clinic row, not a constant', async () => {
+  test('honours opening hours read from the weekday schedule, not a constant', async () => {
     const shortDay = await createTestClinic('Half Day');
     // A clinic open 09:00–13:00.
-    await db.update(clinics).set({ openMinute: 9 * 60, closeMinute: 13 * 60 }).where(eq(clinics.id, shortDay));
+    await db
+      .update(clinicWorkingHours)
+      .set({ openMinute: 9 * 60, closeMinute: 13 * 60 })
+      .where(and(eq(clinicWorkingHours.clinicId, shortDay), eq(clinicWorkingHours.isWorking, true)));
 
     const shortContext: BookingContext = { clinicId: shortDay, ownerName: 'Dr Short' };
     const client = await createTestClient(shortDay, 'Short Day Client');

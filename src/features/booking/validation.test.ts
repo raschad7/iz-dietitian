@@ -197,6 +197,28 @@ describe('moving into the past', () => {
 });
 
 describe('rule 3 — within working hours', () => {
+  test('uses the selected weekday range instead of the weekly envelope', () => {
+    const variableHours: ClinicHours = {
+      ...HOURS,
+      days: [
+        { weekday: 0, isWorking: true, openMinute: 9 * 60, closeMinute: 17 * 60 },
+        { weekday: 1, isWorking: true, openMinute: 10 * 60, closeMinute: 14 * 60 },
+        { weekday: 2, isWorking: false, openMinute: null, closeMinute: null },
+        { weekday: 3, isWorking: true, openMinute: 9 * 60, closeMinute: 17 * 60 },
+        { weekday: 4, isWorking: true, openMinute: 9 * 60, closeMinute: 17 * 60 },
+        { weekday: 5, isWorking: false, openMinute: null, closeMinute: null },
+        { weekday: 6, isWorking: false, openMinute: null, closeMinute: null },
+      ],
+    };
+
+    expect(validateBooking(candidate({ date: '2026-08-03', startMinute: 9 * 60 }), [], variableHours)).toBe(
+      'errors.outsideHours',
+    );
+    expect(validateBooking(candidate({ date: '2026-08-04', startMinute: 11 * 60 }), [], variableHours)).toBe(
+      'errors.closedDay',
+    );
+  });
+
   test('accepts an appointment starting exactly at opening time', () => {
     expect(validateBooking(candidate({ startMinute: HOURS.openMinute }), [], HOURS)).toBeNull();
   });

@@ -1,4 +1,4 @@
-import { type BookingErrorKey } from './validation';
+import { type BookingErrorKey, type ClinicHours } from './validation';
 
 /**
  * Plain data shapes shared with client components.
@@ -90,5 +90,5 @@ export type DeletedAppointment = { id: string; clientId: string; date: string; s
 export type CalendarData = {
   appointments: CalendarAppointment[];
   clients: CalendarClient[];
-  hours: { workingDays: number[]; openMinute: number; closeMinute: number };
+  hours: ClinicHours;
 };

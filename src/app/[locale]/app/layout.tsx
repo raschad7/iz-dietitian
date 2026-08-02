@@ -1,14 +1,16 @@
 import { getTranslations } from 'next-intl/server';
+import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 import { Header } from '@/components/layout/header';
 import { Sidebar } from '@/components/layout/sidebar';
 import { type IconName } from '@/components/ui/icon';
+import { isClinicOnboardingComplete } from '@/features/clinic-profile/queries';
 import { NotificationsList } from '@/features/notifications/components/notifications-list';
 import { NotificationsMenu } from '@/features/notifications/components/notifications-menu';
 import { loadNotifications } from '@/features/notifications/page-data';
 import { resolveLocale } from '@/i18n/params';
-import { requireStaffSession } from '@/lib/session';
+import { requireStaffClinic } from '@/lib/session';
 
 type AppLayoutProps = {
   children: ReactNode;
@@ -19,6 +21,7 @@ const NAV_ITEMS = [
   { href: '/app', labelKey: 'dashboard' },
   { href: '/app/clients', labelKey: 'clients' },
   { href: '/app/calendar', labelKey: 'calendar' },
+  { href: '/app/profile', labelKey: 'profile' },
   { href: '/app/weekly-plans', labelKey: 'weeklyPlans' },
   { href: '/app/meal-plans', labelKey: 'mealPlans' },
   { href: '/app/dishes', labelKey: 'dishes' },
@@ -50,18 +53,18 @@ export default async function AppLayout({ children, params }: AppLayoutProps) {
   const locale = await resolveLocale(params);
 
   // Authoritative guard for the whole dietitian area.
-  const session = await requireStaffSession(locale);
+  const { clinicId, session } = await requireStaffClinic(locale);
+  if (!(await isClinicOnboardingComplete(clinicId))) redirect(`/${locale}/onboarding`);
 
   const [t, tn] = await Promise.all([getTranslations('app'), getTranslations('notifications')]);
 
   /*
    * The bell is part of the shell, so it loads here rather than on a page.
-   * Guarded on `clinicId` rather than switched to `requireStaffClinic`: a staff
-   * account without a clinic can still read the shared food reference, and
-   * demanding one here would turn that into a crash.
+   * It reads the clinic the guard above already resolved: reaching this line
+   * means the account has a clinic and its onboarding is complete, so there is
+   * no clinic-less case left to fall back on.
    */
-  const clinicId = session.user.clinicId;
-  const notifications = clinicId ? await loadNotifications(clinicId) : null;
+  const notifications = await loadNotifications(clinicId);
 
   return (
     /*
@@ -82,20 +85,18 @@ export default async function AppLayout({ children, params }: AppLayoutProps) {
           userName={session.user.name}
           locale={locale}
           actions={
-            notifications ? (
-              <NotificationsMenu
-                count={notifications.pendingRequestCount}
-                label={tn('trigger', { count: notifications.pendingRequestCount })}
-                title={tn('title')}
-              >
-                <NotificationsList
-                  items={notifications.items}
-                  pendingRequestCount={notifications.pendingRequestCount}
-                  locale={locale}
-                  now={notifications.now}
-                />
-              </NotificationsMenu>
-            ) : null
+            <NotificationsMenu
+              count={notifications.pendingRequestCount}
+              label={tn('trigger', { count: notifications.pendingRequestCount })}
+              title={tn('title')}
+            >
+              <NotificationsList
+                items={notifications.items}
+                pendingRequestCount={notifications.pendingRequestCount}
+                locale={locale}
+                now={notifications.now}
+              />
+            </NotificationsMenu>
           }
         />
         <main className="min-h-0 flex-1 overflow-y-auto p-3 md:p-5">{children}</main>

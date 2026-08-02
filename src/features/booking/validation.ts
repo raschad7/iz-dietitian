@@ -1,4 +1,5 @@
 import { SLOT_MINUTES } from '@/lib/time-constants';
+import type { ClinicDayHours } from '@/features/clinic-profile/types';
 
 import { type WallClock } from './completed';
 import { weekdayOf } from './date';
@@ -39,7 +40,28 @@ export type ClinicHours = {
   /** Minutes from local midnight. */
   openMinute: number;
   closeMinute: number;
+  /** Present for clinics using independently editable per-day ranges. */
+  days?: readonly ClinicDayHours[];
 };
+
+export function hoursForDate(
+  date: string,
+  hours: ClinicHours,
+): { openMinute: number; closeMinute: number } | null {
+  const weekday = weekdayOf(date);
+  if (weekday === null) return null;
+
+  if (hours.days) {
+    const day = hours.days.find((candidate) => candidate.weekday === weekday);
+    return day?.isWorking
+      ? { openMinute: day.openMinute, closeMinute: day.closeMinute }
+      : null;
+  }
+
+  return hours.workingDays.includes(weekday)
+    ? { openMinute: hours.openMinute, closeMinute: hours.closeMinute }
+    : null;
+}
 
 /** The fields of an existing appointment the rules actually consult. */
 export type ExistingAppointment = {
@@ -146,13 +168,14 @@ export function validateBooking(
     return 'errors.pastDate';
   }
 
-  if (!hours.workingDays.includes(weekday)) {
+  const selectedHours = hoursForDate(date, hours);
+  if (!selectedHours) {
     return 'errors.closedDay';
   }
 
   // 3. Inside the clinic day — both ends of the appointment, not just the start.
   const endMinute = startMinute + durationMinutes;
-  if (startMinute < hours.openMinute || endMinute > hours.closeMinute) {
+  if (startMinute < selectedHours.openMinute || endMinute > selectedHours.closeMinute) {
     return 'errors.outsideHours';
   }
 
@@ -242,6 +265,5 @@ export function movesIntoThePast(
 
 /** True when the clinic opens on that date. Used to grey out closed days. */
 export function isWorkingDay(date: string, hours: ClinicHours): boolean {
-  const weekday = weekdayOf(date);
-  return weekday !== null && hours.workingDays.includes(weekday);
+  return hoursForDate(date, hours) !== null;
 }

@@ -95,6 +95,7 @@
     "nameRequired": "Enter your full name.",
     "invalidEmail": "Enter a valid email address.",
     "continueWithGoogle": "Continue with Google",
+    "googleUnavailable": "Google sign-in could not start. Check your connection and try again.",
     "continueWithPasskey": "Continue with a passkey",
     "passkeyFailed": "That passkey did not work. Try another method.",
     "orUsePassword": "or",
@@ -948,6 +949,55 @@
       "notLinked": "Connect WhatsApp first, then set the automations up.",
       "sendFailed": "The message could not be sent. Check the message log.",
       "unexpected": "Something went wrong. Try again."
+    }
+  },
+  "clinicProfile": {
+    "eyebrow": "Clinic setup",
+    "onboardingTitle": "Set up your clinic",
+    "onboardingDescription": "Add the essentials once so appointments and daily work match how your clinic actually operates.",
+    "profileTitle": "Clinic profile",
+    "profileDescription": "Keep clinic contact details, working hours and your professional information up to date.",
+    "progress": "Setup progress",
+    "profileSections": "Profile sections",
+    "sections": { "clinic": "Clinic details", "schedule": "Working hours", "professional": "Professional profile" },
+    "sectionDescriptions": {
+      "clinic": "The required contact information used across the clinic.",
+      "schedule": "Choose working days, off days and different hours for each day.",
+      "professional": "The practitioner details shown within the clinic workspace."
+    },
+    "clinicName": "Clinic name",
+    "clinicPhone": "Clinic phone",
+    "email": "Contact email",
+    "address": "Clinic address",
+    "fullName": "Full name",
+    "professionalTitle": "Professional title",
+    "specialty": "Specialty",
+    "professionalPhone": "Professional phone",
+    "licenseNumber": "License number",
+    "optional": "optional",
+    "opens": "Opens",
+    "closes": "Closes",
+    "offDay": "Off day",
+    "back": "Back",
+    "next": "Continue",
+    "finish": "Finish setup",
+    "saving": "Saving…",
+    "saveChanges": "Save changes",
+    "days": { "0": "Sunday", "1": "Monday", "2": "Tuesday", "3": "Wednesday", "4": "Thursday", "5": "Friday", "6": "Saturday" },
+    "validation": {
+      "required": "This field is required.",
+      "invalidEmail": "Enter a valid email address, such as name@clinic.com.",
+      "invalidPhone": "Enter a valid phone number using digits and an optional country code.",
+      "invalidTime": "Choose a valid time in 15-minute increments.",
+      "closingAfterOpening": "Closing time must be later than opening time.",
+      "workingDayRequired": "Choose at least one working day."
+    },
+    "messages": {
+      "saved": "Changes saved.",
+      "invalid": "Check the highlighted fields, then try again.",
+      "unexpected": "We could not save your changes. Try again.",
+      "incomplete": "Complete all three sections before continuing.",
+      "scheduleConflict": "Schedule saved. {count, plural, one {# future appointment is now outside these hours} other {# future appointments are now outside these hours}}."
     }
   }
 }
