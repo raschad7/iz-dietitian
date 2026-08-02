@@ -2,10 +2,11 @@ import { beforeEach, describe, expect, test } from 'bun:test';
 import { and, eq } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { weeklyPlanMeals, weeklyPlans } from '@/db/schema';
+import { dishIngredients, dishes, foods, weeklyPlanMeals, weeklyPlans } from '@/db/schema';
 import { createTestClient, createTestClinic, resetDatabase } from '../../../tests/helpers';
 
 import { createPlanFromSkeleton } from './editor-mutations';
+import { planDishesBySlot } from './queries';
 import type { MealScheduleInput } from './schema';
 import { planSkeleton } from './skeleton';
 
@@ -121,6 +122,99 @@ describe('createPlanFromSkeleton', () => {
 
     expect(published).toHaveLength(1);
     expect(published[0]?.kcalTargetSnapshot).toBe(1800);
+  });
+
+  /**
+   * The rule the copy door is built around: a copy takes its dishes from the
+   * source plan and its skeleton from the client's profile as it stands now.
+   *
+   * Exercised through `planDishesBySlot` + `planSkeleton` + this mutation, which is
+   * exactly what `startWeekFromPlanAction` composes — the action itself needs a
+   * session, and the composition is where the behaviour lives.
+   */
+  test('a copy follows the current schedule, not the copied plan\'s', async () => {
+    const [food] = await db
+      .insert(foods)
+      .values({
+        fdcId: 999201,
+        description: 'Staple',
+        category: 'Test',
+        kcal: 300,
+        protein: 12,
+        fat: 5,
+        carbs: 50,
+      })
+      .returning({ id: foods.id });
+
+    const [dish] = await db
+      .insert(dishes)
+      .values({
+        slug: 'copy-dish',
+        nameAr: 'طبق',
+        nameEn: 'Dish',
+        mealTypes: ['lunch'],
+        tags: [],
+        allergenTags: [],
+        baseServingLabel: 'حصة',
+      })
+      .returning({ id: dishes.id });
+
+    await db
+      .insert(dishIngredients)
+      .values({ dishId: dish!.id, foodId: food!.id, quantityGrams: 200, sortOrder: 0 });
+
+    // July's plan: three meals a day, all filled on Sunday.
+    const [source] = await db
+      .insert(weeklyPlans)
+      .values({
+        clinicId,
+        clientId,
+        weekStartDate: '2026-07-26',
+        status: 'published',
+        kcalTargetSnapshot: 1800,
+      })
+      .returning({ id: weeklyPlans.id });
+
+    await db.insert(weeklyPlanMeals).values(
+      ['breakfast', 'lunch', 'afternoon_snack'].map((slotKey, index) => ({
+        planId: source!.id,
+        dayOfWeek: 0,
+        slotKey,
+        label: slotKey,
+        timeOfDay: '12:00',
+        budgetKcal: 600,
+        sortOrder: index,
+        dishId: dish!.id,
+        servings: 1.5,
+      })),
+    );
+
+    // The client has since dropped the afternoon snack: two slots, not three.
+    const fill = await planDishesBySlot(clinicId, source!.id);
+
+    const planId = await createPlanFromSkeleton({
+      clinicId,
+      clientId,
+      weekStartDate: '2026-08-02',
+      kcalTarget: 1000,
+      meals: planSkeleton({ schedule, dailyKcal: 1000, fill }),
+    });
+
+    const meals = await db
+      .select()
+      .from(weeklyPlanMeals)
+      .where(and(eq(weeklyPlanMeals.planId, planId!), eq(weeklyPlanMeals.dayOfWeek, 0)));
+
+    // The retired slot is gone, and its dish with it.
+    expect(meals.map((entry) => entry.slotKey).sort()).toEqual(['breakfast', 'lunch']);
+
+    // The surviving slots kept the source plan's dishes and servings...
+    expect(meals.every((entry) => entry.dishId === dish!.id)).toBe(true);
+    expect(meals.every((entry) => entry.servings === 1.5)).toBe(true);
+
+    // ...but took their budgets from the current schedule and target, not July's.
+    expect(meals.find((entry) => entry.slotKey === 'breakfast')?.budgetKcal).toBe(300);
+    expect(meals.find((entry) => entry.slotKey === 'lunch')?.budgetKcal).toBe(700);
   });
 
   test('carries a fill map through to the stored meals', async () => {

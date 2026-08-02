@@ -13,7 +13,12 @@ import { PLAN_STATUSES } from '../schema';
 
 import { DayColumn } from './day-column';
 import { MealDetailPanel } from './meal-detail-panel';
+import { NewWeekMenu } from './new-week-menu';
 import { PublishButton } from './publish-button';
+import { RailTabs } from './rail-tabs';
+
+/** The rail's panels. `meal` is empty until a card is opened. */
+type RailTab = 'client' | 'meal' | 'past';
 
 /**
  * The board: seven day columns, and an end-side rail that shows the client's context
@@ -30,16 +35,31 @@ export function PlanBoard({
   board,
   candidates,
   locale,
+  history,
+  newWeek,
   children,
 }: {
   board: Board;
   candidates: Record<string, SwapCandidate[]>;
   locale: string;
+  /** The client's earlier weeks, rendered on the server. */
+  history: React.ReactNode;
+  /**
+   * What the New week menu needs. Passed as data rather than as rendered markup
+   * because its generate entry has to reach back into the rail, which is state
+   * only this component holds.
+   */
+  newWeek: {
+    weekStartDate: string;
+    previousPlan: { id: string; weekStartDate: string } | null;
+    blocked: boolean;
+  };
   /** The context panel, rendered on the server and shown when no meal is open. */
   children: React.ReactNode;
 }) {
   const t = useTranslations('weeklyPlans');
   const [selectedMealId, setSelectedMealId] = useState<string | null>(null);
+  const [tab, setTab] = useState<RailTab>('client');
 
   // A published plan is read-only. Editing what a client is already following would
   // be the worst kind of surprise; `unpublish` is the deliberate way back.
@@ -78,6 +98,16 @@ export function PlanBoard({
         )}
 
         <div className="ms-auto flex items-center gap-2">
+          <NewWeekMenu
+            clientId={board.clientId}
+            weekStartDate={newWeek.weekStartDate}
+            previousPlan={newWeek.previousPlan}
+            locale={locale}
+            blocked={newWeek.blocked}
+            // The generate form lives in the client tab, under the context panel.
+            // Switching to it is the whole of "open the generate panel".
+            onGenerate={() => setTab('client')}
+          />
           <PublishButton
             planId={board.id}
             status={board.status}
@@ -106,27 +136,56 @@ export function PlanBoard({
               locale={locale}
               editable={editable}
               selectedMealId={selectedMealId}
-              onSelectMeal={(mealId) =>
+              onSelectMeal={(mealId) => {
                 // Clicking the open card closes it, which is what a toggle should do.
-                setSelectedMealId((current) => (current === mealId ? null : mealId))
-              }
+                setSelectedMealId((current) => (current === mealId ? null : mealId));
+                // Opening a card is a request to read it, so the rail follows.
+                setTab('meal');
+              }}
             />
           ))}
         </div>
 
-        <aside className="w-72 shrink-0 overflow-y-auto border-s border-border ps-3">
-          {selectedMeal ? (
-            <MealDetailPanel
-              meal={selectedMeal}
-              candidates={candidates[selectedMeal.id] ?? []}
-              planId={board.id}
-              locale={locale}
-              editable={editable}
-              onClose={() => setSelectedMealId(null)}
-            />
-          ) : (
-            children
-          )}
+        <aside className="flex w-72 shrink-0 flex-col overflow-y-auto border-s border-border ps-3">
+          <RailTabs
+            label={t('title')}
+            active={tab}
+            onSelect={setTab}
+            tabs={[
+              { id: 'client', label: t('tabs.client') },
+              { id: 'meal', label: t('tabs.meal') },
+              { id: 'past', label: t('tabs.past') },
+            ]}
+          />
+
+          <div
+            role="tabpanel"
+            id={`rail-panel-${tab}`}
+            aria-labelledby={`rail-tab-${tab}`}
+            className="min-h-0 flex-1"
+          >
+            {tab === 'meal' ? (
+              selectedMeal ? (
+                <MealDetailPanel
+                  meal={selectedMeal}
+                  candidates={candidates[selectedMeal.id] ?? []}
+                  planId={board.id}
+                  locale={locale}
+                  editable={editable}
+                  onClose={() => {
+                    setSelectedMealId(null);
+                    setTab('client');
+                  }}
+                />
+              ) : (
+                <p className="text-xs text-muted-foreground">{t('selectMeal')}</p>
+              )
+            ) : tab === 'past' ? (
+              history
+            ) : (
+              children
+            )}
+          </div>
         </aside>
       </div>
     </div>

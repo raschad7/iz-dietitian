@@ -10,6 +10,7 @@ import { ClientRail } from '@/features/weekly-plans/components/client-rail';
 import { ContextPanel } from '@/features/weekly-plans/components/context-panel';
 import { GenerateForm } from '@/features/weekly-plans/components/generate-form';
 import { PlanBoard } from '@/features/weekly-plans/components/plan-board';
+import { PlanHistory } from '@/features/weekly-plans/components/plan-history';
 import { isLlmConfigured } from '@/features/weekly-plans/llm';
 import {
   getBoard,
@@ -72,6 +73,34 @@ export default async function ClientBoardPage({ params, searchParams }: PageProp
       ? ('profile_incomplete' as const)
       : null;
 
+  const weekStartDate = nextSunday();
+
+  // The newest plan that is not the one on screen — what "start from" offers. A
+  // plan cannot be copied into itself, and offering it would be the one entry in
+  // the menu that quietly does nothing.
+  const previousPlan = plans.find((plan) => plan.id !== board?.id) ?? null;
+
+  // The copy and empty doors do not call a model, so an unconfigured OpenAI key
+  // does not block them. Only a missing profile does, because all three build
+  // their slots from it.
+  const newWeek = {
+    weekStartDate,
+    previousPlan: previousPlan
+      ? { id: previousPlan.id, weekStartDate: previousPlan.weekStartDate }
+      : null,
+    blocked: context.effectiveKcal === null || !context.profile,
+  };
+
+  const history = (
+    <PlanHistory
+      plans={plans}
+      clientId={clientId}
+      currentPlanId={board?.id ?? null}
+      nextWeekStartDate={weekStartDate}
+      locale={locale}
+    />
+  );
+
   return (
     <div className="flex h-full min-h-0 flex-col gap-4 text-start">
       <div className="flex flex-wrap items-baseline gap-3">
@@ -101,7 +130,13 @@ export default async function ClientBoardPage({ params, searchParams }: PageProp
         <ClientRail clients={clients} selectedClientId={clientId} />
 
         {board ? (
-          <PlanBoard board={board} candidates={candidates} locale={locale}>
+          <PlanBoard
+            board={board}
+            candidates={candidates}
+            locale={locale}
+            history={history}
+            newWeek={newWeek}
+          >
             <div className="flex flex-col gap-5">
               <ContextPanel context={context} />
 
@@ -109,9 +144,10 @@ export default async function ClientBoardPage({ params, searchParams }: PageProp
                 <div className="border-t border-border pt-4">
                   <GenerateForm
                     clientId={clientId}
-                    weekStartDate={nextSunday()}
+                    weekStartDate={weekStartDate}
                     locale={locale}
                     blocked={blocked}
+                    context={context}
                     defaultInstruction={board.weekInstructions}
                   />
                 </div>
@@ -133,9 +169,10 @@ export default async function ClientBoardPage({ params, searchParams }: PageProp
                 <div className="border-t border-border pt-4">
                   <GenerateForm
                     clientId={clientId}
-                    weekStartDate={nextSunday()}
+                    weekStartDate={weekStartDate}
                     locale={locale}
                     blocked={blocked}
+                    context={context}
                   />
                 </div>
               </div>

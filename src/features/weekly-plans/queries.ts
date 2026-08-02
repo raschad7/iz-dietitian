@@ -549,20 +549,35 @@ export type Board = {
   unfilled: number;
 };
 
-/** One client's plans, newest week first, for the history dropdown. */
-export async function listPlans(
-  clinicId: string,
-  clientId: string,
-): Promise<{ id: string; weekStartDate: string; status: string; updatedAt: Date }[]> {
+export type PlanListEntry = {
+  id: string;
+  weekStartDate: string;
+  status: string;
+  updatedAt: Date;
+  kcalTargetSnapshot: number;
+  mealCount: number;
+};
+
+/** One client's plans, newest week first, for the header pills and the Past tab. */
+export async function listPlans(clinicId: string, clientId: string): Promise<PlanListEntry[]> {
   return db
     .select({
       id: weeklyPlans.id,
       weekStartDate: weeklyPlans.weekStartDate,
       status: weeklyPlans.status,
       updatedAt: weeklyPlans.updatedAt,
+      kcalTargetSnapshot: weeklyPlans.kcalTargetSnapshot,
+      // Counted in SQL rather than by loading the meals: the panel shows a number,
+      // and fetching 35 rows per plan to take their length would make this the
+      // page's largest read by a wide margin.
+      mealCount: sql<number>`cast(count(${weeklyPlanMeals.id}) as int)`,
     })
     .from(weeklyPlans)
+    // Left, not inner: a plan with no meals is a plan, and an inner join would drop
+    // it from the history entirely rather than showing it as empty.
+    .leftJoin(weeklyPlanMeals, eq(weeklyPlanMeals.planId, weeklyPlans.id))
     .where(and(eq(weeklyPlans.clinicId, clinicId), eq(weeklyPlans.clientId, clientId)))
+    .groupBy(weeklyPlans.id)
     .orderBy(desc(weeklyPlans.weekStartDate), desc(weeklyPlans.updatedAt));
 }
 
