@@ -184,6 +184,7 @@
       "title": "إضافة متابع وحجز الموعد",
       "fullName": "الاسم الكامل",
       "phone": "رقم الهاتف",
+      "phoneCountry": "رمز الدولة",
       "saveAndBook": "حفظ وحجز"
     },
     "dialog": {
@@ -193,12 +194,24 @@
       "save": "حفظ",
       "cancel": "إلغاء",
       "close": "إغلاق",
-      "delete": "حذف الموعد",
-      "confirmDeleteCompleted": "انتهى هذا الموعد بالفعل، وحذفه يزيل السجل نهائيًا. هل أنت متأكد؟"
+      "delete": "حذف الموعد"
+    },
+    "confirmMove": {
+      "title": "تغيير هذا الموعد؟",
+      "body": "نقل {name} من {from} إلى {to}؟",
+      "confirm": "تغيير الموعد"
+    },
+    "confirmDelete": {
+      "title": "حذف هذا الموعد؟",
+      "body": "سيُحذف موعد {name} في {when} من التقويم.",
+      "bodyCompleted": "انتهى هذا الموعد بالفعل، وحذف موعد {name} في {when} يزيل السجل نهائيًا.",
+      "confirm": "حذف الموعد"
     },
     "errors": {
       "tooShort": "أقصر مدة للموعد ١٥ دقيقة.",
       "invalidDate": "تاريخ غير صحيح. استخدم صيغة مثل 2026-08-05 أو 8/5/2026.",
+      "pastDate": "هذا التاريخ مضى. أقرب موعد يمكن حجزه هو اليوم.",
+      "pastTime": "هذا الوقت مضى. انقل الموعد إلى وقت لاحق.",
       "closedDay": "العيادة مغلقة في هذا اليوم.",
       "outsideHours": "الموعد خارج ساعات عمل العيادة.",
       "overlap": "يتعارض هذا الموعد مع موعد آخر.",
@@ -436,6 +449,7 @@
     "fields": {
       "fullName": "الاسم الكامل",
       "phone": "رقم الهاتف",
+      "phoneCountry": "رمز الدولة",
       "email": "البريد الإلكتروني",
       "preferredLocale": "لغة المراسلة",
       "dateOfBirth": "تاريخ الميلاد",
@@ -838,6 +852,8 @@
       "kind": {
         "appointment_reminder": "تذكير بموعد",
         "appointment_confirmation": "تأكيد موعد",
+        "appointment_rescheduled": "تغيير موعد",
+        "appointment_cancelled": "إلغاء موعد",
         "portal_credentials": "بيانات دخول البوابة",
         "manual": "رسالة يدوية",
         "inbound": "رد المتابع"

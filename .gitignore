@@ -14,15 +14,24 @@ package-lock.json
 pnpm-lock.yaml
 yarn.lock
 
-# env — .env.example is the committed template, so it is deliberately not listed.
-# (It stays committed because the README's setup step is `cp .env.example .env.local`.)
-.env
-.env.local
-.env.*.local
-
-# WhatsApp gateway (infra/openwa) — its own env file and, more importantly, the
-# linked WhatsApp session data. Never commit either.
-/infra/openwa/.env
+# env — ignore every one, then re-include the committed templates.
+#
+# Deny by default rather than naming them one at a time. The list this replaced
+# covered .env, .env.local and .env.*.local, which left .env.production,
+# .env.test and anything else someone might reach for outside the net — a new
+# secrets file would have been committable by accident, and that is the one
+# mistake here that cannot be taken back once pushed.
+#
+# Inverting it means a file has to be *named* a template to be committed, which
+# is a deliberate act. The templates stay tracked because the README's setup step
+# is `cp .env.example .env.local`; this covers infra/openwa's pair too.
+.env*
+!.env*.example
+.env.test.example
+.env.test.local
+# WhatsApp gateway — the linked WhatsApp session. Its own .env is covered above.
+# Never commit this: it is the paired account itself, and re-pairing means
+# standing in the clinic with the phone.
 /infra/openwa/data/
 
 # typescript

@@ -27,14 +27,27 @@ export function useFittedSlotHeight(ref: RefObject<HTMLElement | null>, hours: C
     if (!element) return;
 
     const observer = new ResizeObserver(([entry]) => {
-      const height = entry?.contentRect.height ?? 0;
+      /*
+        Floored, and that is what keeps the grid inside its container.
+
+        The slot height is this divided by the number of slots, and the columns
+        are drawn at slot height × slots — so measuring 900.4 and drawing 900.4
+        is half a pixel of overflow, and a scrollbar. Flooring first means the
+        grid is at most the container's height and never more.
+
+        It also removes the need for a sub-pixel tolerance. That tolerance used
+        to be the bigger version of the same bug: allowing the slot height to lag
+        by up to 0.5px let the grid stand up to 0.5px × slots — twenty pixels on
+        a ten-hour day — taller than the space it was fitted to. A whole-pixel
+        measurement only changes when the panel really changes, so there is no
+        churn left to absorb.
+      */
+      const height = Math.floor(entry?.contentRect.height ?? 0);
       if (height <= 0) return;
 
       const next = fitPxPerSlot(height, hours.openMinute, hours.closeMinute);
 
-      // Ignore sub-pixel churn: a resize observer fires on fractional changes,
-      // and re-rendering the whole grid for a tenth of a pixel is pure waste.
-      setPxPerSlot((current) => (Math.abs(current - next) < 0.5 ? current : next));
+      setPxPerSlot((current) => (current === next ? current : next));
     });
 
     observer.observe(element);

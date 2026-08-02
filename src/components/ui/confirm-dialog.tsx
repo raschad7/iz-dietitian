@@ -1,0 +1,126 @@
+'use client';
+
+import { useEffect, useId, useRef } from 'react';
+
+import { Button } from '@/components/ui/button';
+import { getLocaleDirection, type Locale } from '@/i18n/routing';
+
+/**
+ * Asks before an action that is awkward to undo.
+ *
+ * Built on the native `<dialog>` with `showModal()`, the same way
+ * `AppointmentDialog` is: focus trapping, Escape-to-close and the backdrop come
+ * from the platform rather than from code here, and all three are easy to get
+ * subtly wrong by hand.
+ *
+ * Every string arrives as a prop. A shared control carries no feature
+ * vocabulary, so the caller translates and this stays reusable.
+ *
+ * This does not replace `ConfirmSubmitButton`. That one guards a form submit and
+ * has its own `useFormStatus` behaviour; this one guards an arbitrary callback.
+ */
+
+export type ConfirmDialogProps = {
+  locale: Locale;
+  title: string;
+  /** The consequence, in one sentence. Omit when the title already says it. */
+  description?: string;
+  confirmLabel: string;
+  cancelLabel: string;
+  /** `destructive` colours the confirm button red. Use it for deletions. */
+  tone?: 'default' | 'destructive';
+  onConfirm: () => void;
+  onCancel: () => void;
+};
+
+export function ConfirmDialog({
+  locale,
+  title,
+  description,
+  confirmLabel,
+  cancelLabel,
+  tone = 'default',
+  onConfirm,
+  onCancel,
+}: ConfirmDialogProps) {
+  const direction = getLocaleDirection(locale);
+  /** Generated, so two of these on one page cannot collide on the same id. */
+  const titleId = useId();
+
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  /**
+   * Whether an answer has already been given.
+   *
+   * Closing the dialog fires `onClose` however it happened — Escape, the
+   * backdrop, or the confirm button. Without this the confirm path would report
+   * the answer and then immediately report a cancellation on top of it.
+   */
+  const settled = useRef(false);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog?.open) dialog?.showModal();
+  }, []);
+
+  function settle(confirmed: boolean): void {
+    if (settled.current) return;
+    settled.current = true;
+
+    if (confirmed) onConfirm();
+    else onCancel();
+  }
+
+  return (
+    <dialog
+      ref={dialogRef}
+      dir={direction}
+      aria-labelledby={titleId}
+      className={[
+        // Bottom sheet on small screens, centred card from `sm` up — the same
+        // shape the appointment dialog takes, so the two read as one system.
+        'w-full max-w-none rounded-t-2xl p-0 backdrop:bg-black/40',
+        'mt-auto mb-0 sm:m-auto sm:w-[min(24rem,calc(100vw-2rem))] sm:rounded-2xl',
+        'bg-popover text-popover-foreground border border-border shadow-xl',
+      ].join(' ')}
+      // Escape and the backdrop both land here, and both mean "no".
+      onClose={() => settle(false)}
+      onClick={(event) => {
+        // A click on the backdrop targets the dialog element itself.
+        if (event.target === dialogRef.current) dialogRef.current?.close();
+      }}
+    >
+      <div className="flex flex-col gap-3 p-4 text-start">
+        <h2 id={titleId} className="text-base font-semibold" dir="auto">
+          {title}
+        </h2>
+
+        {description && (
+          <p className="text-sm text-muted-foreground" dir="auto">
+            {description}
+          </p>
+        )}
+
+        {/*
+          Cancel first in the DOM, so the native dialog's own autofocus lands on
+          it: pressing Enter the moment this appears must not delete anything.
+        */}
+        <div className="mt-1 flex items-center justify-end gap-2">
+          <Button type="button" variant="outline" size="sm" onClick={() => dialogRef.current?.close()}>
+            {cancelLabel}
+          </Button>
+          <Button
+            type="button"
+            variant={tone === 'destructive' ? 'destructive' : 'default'}
+            size="sm"
+            onClick={() => {
+              settle(true);
+              dialogRef.current?.close();
+            }}
+          >
+            {confirmLabel}
+          </Button>
+        </div>
+      </div>
+    </dialog>
+  );
+}

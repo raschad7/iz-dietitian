@@ -16,7 +16,14 @@ import { SLOT_MINUTES } from '@/lib/time-constants';
 import { minuteToClock, parseDateInput } from '../date';
 import { formatDuration, formatLongDate, formatMinute } from '../format';
 import { type CalendarAppointment, type CalendarClient } from '../types';
-import { validateBooking, type BookingErrorKey, type ClinicHours, type ExistingAppointment } from '../validation';
+import { type WallClock } from '../completed';
+import {
+  movesIntoThePast,
+  validateBooking,
+  type BookingErrorKey,
+  type ClinicHours,
+  type ExistingAppointment,
+} from '../validation';
 
 /**
  * The appointment's details, opened by right-clicking its block.
@@ -37,6 +44,14 @@ export type AppointmentDialogProps = {
   clients: CalendarClient[];
   /** Every appointment on the currently selected date, for the overlap checks. */
   existingByDate: (date: string) => readonly ExistingAppointment[];
+  /**
+   * The clinic's today, or null before the shared clock has ticked. Bounds the
+   * date picker and drives the past-date rule. Passed in rather than read from
+   * a clock of its own, so the whole calendar judges itself against one instant.
+   */
+  today: string | null;
+  /** The same instant to the minute, for the rule that a move may not go back. */
+  now: WallClock | null;
   completed: boolean;
   onSave: (next: {
     id: string;
@@ -97,6 +112,8 @@ export function AppointmentDialog({
   hours,
   clients,
   existingByDate,
+  today,
+  now,
   completed,
   onSave,
   onDelete,
@@ -129,8 +146,23 @@ export function AppointmentDialog({
 
   const existing = existingByDate(date);
 
-  const candidate = { practitionerId, clientId, date, startMinute, durationMinutes, excludeId: appointment.id };
-  const liveError = validateBooking(candidate, existing, hours);
+  const candidate = {
+    practitionerId,
+    clientId,
+    date,
+    startMinute,
+    durationMinutes,
+    excludeId: appointment.id,
+    today,
+  };
+  /**
+   * The past-time rule first, because it is the one failure the generic rules
+   * cannot see: they judge the candidate alone, and this one needs to know the
+   * slot the appointment is being moved *from*.
+   */
+  const liveError: BookingErrorKey | null = movesIntoThePast({ date, startMinute }, appointment, now)
+    ? 'errors.pastTime'
+    : validateBooking(candidate, existing, hours);
 
   /** Which whole-hour starts would collide, so they can be marked unavailable. */
   const unavailableStarts = useMemo(() => {
@@ -138,17 +170,21 @@ export function AppointmentDialog({
 
     for (const minute of startChoices(hours, startMinute)) {
       const failure = validateBooking(
-        { practitionerId, clientId, date, startMinute: minute, durationMinutes, excludeId: appointment.id },
+        { practitionerId, clientId, date, startMinute: minute, durationMinutes, excludeId: appointment.id, today },
         existing,
         hours,
       );
       // Only overlap and closing time make a *start* unavailable; a closed day
       // disables every option and is reported once, on the date field.
       if (failure === 'errors.overlap' || failure === 'errors.outsideHours') blocked.add(minute);
+
+      // An hour that has already gone is unavailable for the same reason: it is
+      // this one option that cannot be chosen, not the whole day.
+      if (movesIntoThePast({ date, startMinute: minute }, appointment, now)) blocked.add(minute);
     }
 
     return blocked;
-  }, [appointment.id, clientId, date, durationMinutes, existing, hours, practitionerId, startMinute]);
+  }, [appointment, clientId, date, durationMinutes, existing, hours, now, practitionerId, startMinute, today]);
 
   function commitDateText(raw: string): void {
     const parsed = parseDateInput(raw);
@@ -263,6 +299,11 @@ export function AppointmentDialog({
                 tabIndex={-1}
                 aria-hidden
                 value={date}
+                // Greys out every day before today in the browser's own picker,
+                // so a past date cannot be chosen there at all. Typing one into
+                // the field beside it is still possible, and is caught by the
+                // past-date rule below like any other rule failure.
+                min={today ?? undefined}
                 onChange={(event) => commitDateText(event.target.value)}
                 className="pointer-events-none absolute inset-0 size-full opacity-0"
               />
@@ -367,15 +408,18 @@ export function AppointmentDialog({
           {/*
             Delete stays available on a finished appointment, and it is the only
             thing that is. Editing one silently rewrites what happened; deleting
-            is explicit, asks first, and is the sole way to remove a record
-            entered by mistake.
+            is the sole way to remove a record entered by mistake.
+
+            The confirmation is the calendar's, not this dialog's: a modal
+            `<dialog>` opened inside another one stacks in the top layer but
+            makes focus and the backdrop fiddly, and the calendar is where every
+            other write already lives. This closes and hands the decision up.
           */}
           <Button
             type="button"
             variant="destructive"
             size="sm"
             onClick={() => {
-              if (completed && !window.confirm(t('actions.confirmDeleteCompleted'))) return;
               onDelete(appointment.id);
               dialogRef.current?.close();
             }}
