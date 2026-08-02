@@ -193,6 +193,9 @@ export async function createPlanFromGeneration(input: {
   clientId: string;
   weekStartDate: string;
   kcalTarget: number;
+  /** Null when the week used the client's own figures. */
+  proteinTarget: number | null;
+  goal: string | null;
   weekInstructions: string | null;
   outcome: GenerationOutcome;
 }): Promise<string | null> {
@@ -218,6 +221,8 @@ export async function createPlanFromGeneration(input: {
         status: 'draft',
         weekInstructions: input.weekInstructions,
         kcalTargetSnapshot: input.kcalTarget,
+        proteinTargetSnapshot: input.proteinTarget,
+        goalSnapshot: input.goal,
         generatedBy: 'ai',
         model: input.outcome.model,
       })

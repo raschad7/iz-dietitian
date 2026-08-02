@@ -537,6 +537,9 @@ export type Board = {
   publishedAt: Date | null;
   weekInstructions: string | null;
   kcalTargetSnapshot: number;
+  /** Null when the week used the client's own figures. */
+  proteinTargetSnapshot: number | null;
+  goalSnapshot: string | null;
   generatedBy: string;
   model: string | null;
   updatedAt: Date;
@@ -622,6 +625,8 @@ export async function getBoard(clinicId: string, planId: string): Promise<Board 
       publishedAt: weeklyPlans.publishedAt,
       weekInstructions: weeklyPlans.weekInstructions,
       kcalTargetSnapshot: weeklyPlans.kcalTargetSnapshot,
+      proteinTargetSnapshot: weeklyPlans.proteinTargetSnapshot,
+      goalSnapshot: weeklyPlans.goalSnapshot,
       generatedBy: weeklyPlans.generatedBy,
       model: weeklyPlans.model,
       updatedAt: weeklyPlans.updatedAt,
@@ -667,6 +672,8 @@ export async function getPublishedBoard(clientId: string): Promise<Board | null>
       publishedAt: weeklyPlans.publishedAt,
       weekInstructions: weeklyPlans.weekInstructions,
       kcalTargetSnapshot: weeklyPlans.kcalTargetSnapshot,
+      proteinTargetSnapshot: weeklyPlans.proteinTargetSnapshot,
+      goalSnapshot: weeklyPlans.goalSnapshot,
       generatedBy: weeklyPlans.generatedBy,
       model: weeklyPlans.model,
       updatedAt: weeklyPlans.updatedAt,

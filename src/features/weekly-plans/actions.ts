@@ -43,6 +43,7 @@ import {
   swapMealSchema,
   type GenerationScope,
 } from './schema';
+import { slotBudgets } from './targets';
 import type { GenerateState, PlanActionState, ProfileFormState } from './form-state';
 
 /**
@@ -134,9 +135,26 @@ export async function saveProfileAction(
 type ReadyContext = {
   context: ClientContext;
   kcalTarget: number;
+  /** The goal and protein target in force, after any per-plan override. */
+  goal: string | null;
+  proteinTargetGrams: number | null;
+  /** Slot budgets against `kcalTarget`, which is not always the profile's. */
+  budgets: ClientContext['budgets'];
   allergens: string[];
   profile: NonNullable<ClientContext['profile']>;
   catalog: DishDetail[];
+};
+
+/**
+ * Figures belonging to one plan rather than to the client.
+ *
+ * Every field optional and nullable: absent means "use the profile", which is what
+ * a plan generated before these existed, or without touching them, records.
+ */
+type PlanTargets = {
+  kcalTarget?: number | null;
+  proteinTarget?: number | null;
+  goal?: string | null;
 };
 
 /**
@@ -145,10 +163,16 @@ type ReadyContext = {
  * Gathered before the model is called so a missing weight costs nothing, and so
  * each blocking condition maps to a message the page can render rather than an
  * error it has to interpret.
+ *
+ * `targets` is how a week gets its own calorie, protein or goal figure without the
+ * client's profile moving. Regeneration passes the plan's stored snapshots for the
+ * same reason: regenerating Tuesday inside a 1,700 kcal week must not quietly
+ * rebuild it against the profile's 1,850.
  */
 async function prepare(
   clinicId: string,
   clientId: string,
+  targets: PlanTargets = {},
 ): Promise<{ ok: true; ready: ReadyContext } | { ok: false; state: GenerateState }> {
   const context = await getClientContext(clinicId, clientId);
 
@@ -166,11 +190,21 @@ async function prepare(
     return { ok: false, state: { status: 'error', messageKey: 'errors.emptyCatalog' } };
   }
 
+  const kcalTarget = targets.kcalTarget ?? context.effectiveKcal;
+
   return {
     ok: true,
     ready: {
       context,
-      kcalTarget: context.effectiveKcal,
+      kcalTarget,
+      goal: targets.goal ?? context.goal,
+      proteinTargetGrams: targets.proteinTarget ?? context.effectiveProteinGrams,
+      // Recomputed only when the target actually moved, so the untouched path keeps
+      // returning the identical array the context already built.
+      budgets:
+        kcalTarget === context.effectiveKcal
+          ? context.budgets
+          : slotBudgets(kcalTarget, context.profile.mealSchedule),
       allergens: context.profile.allergenTags,
       profile: context.profile,
       catalog,
@@ -205,9 +239,9 @@ function promptInput({
       bmi: context.targets.bmi,
       bmiCategory: context.targets.bmiCategory,
       activityLevel: context.activityLevel,
-      goal: context.goal,
+      goal: ready.goal,
       dailyKcalTarget: kcalTarget,
-      proteinTargetGrams: context.effectiveProteinGrams,
+      proteinTargetGrams: ready.proteinTargetGrams,
       allergies: context.allergies,
       preferences: profile.preferences,
       dislikes: profile.dislikes,
@@ -261,11 +295,18 @@ export async function generateWeekAction(
     clientId: formData.get('clientId'),
     weekStartDate: formData.get('weekStartDate'),
     instruction: formData.get('instruction'),
+    kcalTarget: formData.get('kcalTarget'),
+    proteinTarget: formData.get('proteinTarget'),
+    goal: formData.get('goal'),
   });
 
   if (!parsed.success) return { status: 'error', messageKey: 'errors.unexpected' };
 
-  const prepared = await prepare(clinicId, parsed.data.clientId);
+  const prepared = await prepare(clinicId, parsed.data.clientId, {
+    kcalTarget: parsed.data.kcalTarget,
+    proteinTarget: parsed.data.proteinTarget,
+    goal: parsed.data.goal,
+  });
   if (!prepared.ok) return prepared.state;
 
   const { ready } = prepared;
@@ -280,7 +321,7 @@ export async function generateWeekAction(
         previous: await previousPlanSlugs(clinicId, parsed.data.clientId),
         days: [...DAYS_OF_WEEK],
         scope: 'week',
-        budgets: ready.context.budgets,
+        budgets: ready.budgets,
       }),
       toPromptCatalog(ready.catalog),
       ready.allergens,
@@ -306,6 +347,10 @@ export async function generateWeekAction(
       clientId: parsed.data.clientId,
       weekStartDate: parsed.data.weekStartDate,
       kcalTarget: ready.kcalTarget,
+      // Stored only when the dietitian actually overrode them, so a plan built
+      // from the profile keeps deferring to it.
+      proteinTarget: parsed.data.proteinTarget ?? null,
+      goal: parsed.data.goal ?? null,
       weekInstructions: instruction,
       outcome,
     });
@@ -360,7 +405,14 @@ async function regenerate({
 
   if (!board) return { status: 'error', messageKey: 'errors.planNotFound' };
 
-  const prepared = await prepare(clinicId, board.clientId);
+  // The plan's own figures, not the profile's. Regenerating Tuesday inside a
+  // 1,700 kcal week must not quietly rebuild it against a profile that has since
+  // moved to 1,850 — the rest of the week would still be budgeted for 1,700.
+  const prepared = await prepare(clinicId, board.clientId, {
+    kcalTarget: board.kcalTargetSnapshot,
+    proteinTarget: board.proteinTargetSnapshot,
+    goal: board.goalSnapshot,
+  });
   if (!prepared.ok) return prepared.state;
 
   const { ready } = prepared;
@@ -368,8 +420,8 @@ async function regenerate({
   // Only the slots being replaced are requested, so the model is not asked to
   // reproduce meals that are staying.
   const budgets = slotKeys
-    ? ready.context.budgets.filter((slot) => slotKeys.includes(slot.slotKey))
-    : ready.context.budgets;
+    ? ready.budgets.filter((slot) => slotKeys.includes(slot.slotKey))
+    : ready.budgets;
 
   if (!budgets.length) return { status: 'error', messageKey: 'errors.planNotFound' };
 

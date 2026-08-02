@@ -74,6 +74,23 @@ export const weeklyPlans = pgTable(
      */
     kcalTargetSnapshot: integer('kcal_target_snapshot').notNull(),
 
+    /**
+     * The protein target and goal this plan was built against, when they differ
+     * from the client's profile.
+     *
+     * Null means "whatever the profile says". Nullable rather than copied from the
+     * profile at write time, so a plan built without touching these keeps deferring
+     * to the profile exactly as every plan did before the columns existed — and so
+     * "was this week deliberately different" stays an answerable question.
+     *
+     * Never written back to `client_nutrition_profiles`. A one-week experiment must
+     * not silently become the client's standing target.
+     */
+    proteinTargetSnapshot: integer('protein_target_snapshot'),
+
+    /** One of `CLIENT_GOALS`. Constrained in Zod, as `clients.goal` is. */
+    goalSnapshot: text('goal_snapshot'),
+
     /** `ai` | `manual`. A plan can be started by hand and never generated. */
     generatedBy: text('generated_by').notNull().default('ai'),
 

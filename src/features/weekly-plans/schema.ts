@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { CLIENT_GOALS } from '@/features/clients/schema';
+
 import { MAX_SERVINGS, MIN_SERVINGS } from './similar';
 
 /**
@@ -212,6 +214,19 @@ export const generateWeekSchema = z.object({
   clientId: clientIdSchema,
   weekStartDate: weekStartDateSchema,
   instruction: instructionSchema,
+  /**
+   * This week's figures, when the dietitian overrode them.
+   *
+   * The same bounds the nutrition profile uses, because they are the same
+   * quantities — a target that would be a typo on the profile is a typo here too.
+   * Blank means "use the profile", which is why these are optional rather than
+   * defaulted: the difference is recorded on the plan, and a plan that stored a
+   * copy of the profile's number could never say whether the week was deliberately
+   * different.
+   */
+  kcalTarget: z.preprocess(blankToUndefined, z.coerce.number().int().min(800).max(6000).optional()),
+  proteinTarget: z.preprocess(blankToUndefined, z.coerce.number().int().min(20).max(400).optional()),
+  goal: z.preprocess(blankToUndefined, z.enum(CLIENT_GOALS).optional()),
 });
 
 export const regenerateDaySchema = z.object({
