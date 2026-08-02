@@ -346,6 +346,29 @@ logical direction properties.
 
 ## Testing and verification
 
+### Field-level validation and recovery
+
+The onboarding wizard must never collapse validation into an unexplained
+generic error. Every required clinic and professional label carries a visible
+`*`; the optional licence number is labelled optional. Pressing Continue
+validates only the visible step and keeps focus within that step when it is
+invalid. Final submission keeps server-side Zod validation authoritative and
+returns structured field errors plus the first invalid section.
+
+Invalid controls use `aria-invalid`, an error border, and a localized inline
+message connected with `aria-describedby`. Clinic errors identify the exact
+field. Schedule errors identify the weekday and distinguish a missing time,
+times outside 15-minute increments, closing before opening, and a week with no
+working day. When the server rejects final submission, the wizard opens the
+first invalid section and focuses its first invalid control. A short summary
+announces that the highlighted fields need attention without replacing the
+specific inline messages.
+
+The same field components and structured server errors are used on the Profile
+page, so editing after onboarding has the same validation behavior. Native
+input constraints provide immediate feedback, but never replace server
+validation or tenant-scoped actions.
+
 Pure/schema tests:
 
 - Required clinic and professional fields.
