@@ -218,6 +218,8 @@ export type DishDetail = {
   tags: string[];
   allergenTags: string[];
   baseServingLabel: string;
+  /** False for a retired dish. It stays readable on the plans that already use it. */
+  isActive: boolean;
   ingredients: DishIngredientDetail[];
 };
 

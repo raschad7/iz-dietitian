@@ -111,9 +111,67 @@ export async function loadCatalog(allergens: readonly string[] = []): Promise<Di
       tags: dishes.tags,
       allergenTags: dishes.allergenTags,
       baseServingLabel: dishes.baseServingLabel,
+      isActive: dishes.isActive,
     })
     .from(dishes)
     .where(and(...conditions))
+    .orderBy(asc(dishes.slug));
+
+  if (!dishRows.length) return [];
+
+  const ingredientRows = await db
+    .select({
+      dishId: dishIngredients.dishId,
+      quantityGrams: dishIngredients.quantityGrams,
+      food: foodColumns,
+    })
+    .from(dishIngredients)
+    .innerJoin(foods, eq(foods.id, dishIngredients.foodId))
+    .where(
+      inArray(
+        dishIngredients.dishId,
+        dishRows.map((dish) => dish.id),
+      ),
+    )
+    .orderBy(asc(dishIngredients.sortOrder));
+
+  const byDish = new Map<string, DishDetail['ingredients']>();
+  for (const { dishId, ...ingredient } of ingredientRows) {
+    const bucket = byDish.get(dishId);
+    if (bucket) bucket.push(ingredient);
+    else byDish.set(dishId, [ingredient]);
+  }
+
+  return dishRows.map((dish) => ({ ...dish, ingredients: byDish.get(dish.id) ?? [] }));
+}
+
+/**
+ * Dishes by id, regardless of `is_active`.
+ *
+ * The board must render a plan as it was written. `loadCatalog` filters retired
+ * dishes because nothing new should be built from one, but a plan that already
+ * holds one would otherwise show a blank card and count it toward the unfilled
+ * total that gates publishing — punishing the dietitian for a catalog change they
+ * did not make. `dishes.is_active` says as much itself: retired dishes stay for the
+ * plans that reference them.
+ */
+export async function loadDishesByIds(ids: readonly string[]): Promise<DishDetail[]> {
+  if (!ids.length) return [];
+
+  const dishRows = await db
+    .select({
+      id: dishes.id,
+      slug: dishes.slug,
+      nameAr: dishes.nameAr,
+      nameEn: dishes.nameEn,
+      mealTypes: dishes.mealTypes,
+      tags: dishes.tags,
+      allergenTags: dishes.allergenTags,
+      baseServingLabel: dishes.baseServingLabel,
+      isActive: dishes.isActive,
+    })
+    .from(dishes)
+    .where(inArray(dishes.id, [...ids]))
     .orderBy(asc(dishes.slug));
 
   if (!dishRows.length) return [];
@@ -618,10 +676,15 @@ async function assembleBoard(plan: PlanRow): Promise<Board> {
         .orderBy(asc(weeklyPlanMealOptions.sortOrder))
     : [];
 
-  // The full catalog, unfiltered: a plan may reference a dish the client has since
-  // become allergic to, and hiding it would leave a blank card with no explanation.
-  const catalog = await loadCatalog();
-  const dishById = new Map(catalog.map((dish) => [dish.id, dish]));
+  // Only the dishes this plan references, and by id rather than through the catalog:
+  // a plan may hold a dish the client has since become allergic to, or one that has
+  // since been retired, and either way the card must show what is actually planned
+  // rather than a blank the dietitian cannot explain.
+  const referenced = new Set<string>();
+  for (const meal of mealRows) if (meal.dishId) referenced.add(meal.dishId);
+  for (const option of optionRows) referenced.add(option.dishId);
+
+  const dishById = new Map((await loadDishesByIds([...referenced])).map((dish) => [dish.id, dish]));
 
   // Each meal carries the budget it was generated against, so the board shows the
   // same figure the model was given even after the client's profile has moved on.
