@@ -1,19 +1,17 @@
-import { addDays, startOfWeek, toIsoDate } from '@/features/booking/date';
+import { addDays, addMonths, endOfMonth, startOfMonth, startOfWeek, toIsoDate } from '@/features/booking/date';
 import { listAppointments } from '@/features/booking/queries';
 import { type CalendarAppointment } from '@/features/booking/types';
 
+import { summariseDemographics, type Demographics } from './demographics';
 import {
-  countActiveClients,
-  countActiveClientsWithoutMealPlan,
+  countAppointmentsAfter,
   countAppointmentsInRange,
   countNewClientsSince,
-  countPendingRequests,
-  listClientsNeverSignedIn,
-  listClientsWithNoUpcomingAppointment,
-  listClientsWithoutMealPlan,
-  listPendingRequestsPreview,
-  type AttentionItem,
-  type PendingRequestPreview,
+  findNextAppointmentAfter,
+  listClientDemographics,
+  listMonthlyVisits,
+  type MonthlyVisits,
+  type NextAppointment,
 } from './queries';
 
 /**
@@ -27,68 +25,93 @@ import {
  * rather than a waterfall.
  */
 
-const PENDING_PREVIEW_LIMIT = 3;
-const ATTENTION_LIMIT = 5;
-const ATTENTION_CATEGORY_LIMIT = 5;
+const HISTORY_MONTHS = 6;
 
-export type DashboardStats = {
-  activeClients: number;
-  appointmentsThisWeek: number;
-  /** See {@link import('./queries').countActiveClientsWithoutMealPlan} for why this isn't "ending soon". */
-  clientsWithoutMealPlan: number;
+export type DashboardSummary = {
+  todayAppointments: number;
+  /** Everything booked after today — see {@link countAppointmentsAfter}. */
+  upcomingAppointments: number;
   newClientsThisMonth: number;
+  appointmentsThisWeek: number;
 };
 
 export type DashboardData = {
   /** Clinic-local `YYYY-MM-DD`, the day the agenda and "this week" are anchored to. */
   today: string;
+  /** Minutes from local midnight at render time — what marks an appointment as past, live or next. */
+  nowMinute: number;
+  week: { start: string; end: string };
+  month: { start: string; end: string };
   agenda: CalendarAppointment[];
-  pendingRequests: { items: PendingRequestPreview[]; total: number };
-  stats: DashboardStats;
-  /** Capped at {@link ATTENTION_LIMIT}; prioritises whichever category is listed first when trimming. */
-  attention: AttentionItem[];
+  summary: DashboardSummary;
+  nextAppointment: NextAppointment | null;
+  /** Exactly {@link HISTORY_MONTHS} entries, oldest first, empty months included. */
+  visitHistory: MonthlyVisits[];
+  demographics: Demographics;
 };
 
-function monthStart(today: string): string {
-  return `${today.slice(0, 7)}-01`;
+/**
+ * The last `HISTORY_MONTHS` months ending with the current one, with the
+ * query's sparse rows dropped into place.
+ *
+ * The calendar is built here rather than in SQL because a month with no
+ * appointments has no row to return, and a histogram that silently skips
+ * February would misstate the trend as much as a wrong number would.
+ */
+function toMonthlySeries(rows: MonthlyVisits[], today: string, months: number): MonthlyVisits[] {
+  const counts = new Map(rows.map((row) => [row.month, row.visits]));
+
+  return Array.from({ length: months }, (_, index) => {
+    const month = startOfMonth(addMonths(today, index - (months - 1)));
+    return { month, visits: counts.get(month) ?? 0 };
+  });
 }
 
 export async function loadDashboard(clinicId: string): Promise<DashboardData> {
   // Same "today" derivation as `loadCalendarPage` (`src/features/booking/page-data.ts`) —
   // the server clock's own local day, for consistency with the rest of the app.
-  const today = toIsoDate(new Date());
+  const now = new Date();
+  const today = toIsoDate(now);
+  const nowMinute = now.getHours() * 60 + now.getMinutes();
+
   const weekStart = startOfWeek(today);
   const weekEnd = addDays(weekStart, 6);
+  const monthStart = startOfMonth(today);
+  const monthEnd = endOfMonth(today);
+  const historyStart = startOfMonth(addMonths(today, -(HISTORY_MONTHS - 1)));
 
   const [
     agenda,
-    pendingItems,
-    pendingTotal,
-    activeClients,
     appointmentsThisWeek,
-    clientsWithoutMealPlan,
+    upcomingAppointments,
+    nextAppointment,
     newClientsThisMonth,
-    noUpcomingAppointment,
-    noMealPlan,
-    neverSignedIn,
+    visitRows,
+    demographicRows,
   ] = await Promise.all([
     listAppointments(clinicId, today, today),
-    listPendingRequestsPreview(clinicId, PENDING_PREVIEW_LIMIT),
-    countPendingRequests(clinicId),
-    countActiveClients(clinicId),
     countAppointmentsInRange(clinicId, weekStart, weekEnd),
-    countActiveClientsWithoutMealPlan(clinicId),
-    countNewClientsSince(clinicId, monthStart(today)),
-    listClientsWithNoUpcomingAppointment(clinicId, today, ATTENTION_CATEGORY_LIMIT),
-    listClientsWithoutMealPlan(clinicId, ATTENTION_CATEGORY_LIMIT),
-    listClientsNeverSignedIn(clinicId, ATTENTION_CATEGORY_LIMIT),
+    countAppointmentsAfter(clinicId, today),
+    findNextAppointmentAfter(clinicId, today),
+    countNewClientsSince(clinicId, monthStart),
+    listMonthlyVisits(clinicId, historyStart, monthEnd),
+    listClientDemographics(clinicId),
   ]);
 
   return {
     today,
+    nowMinute,
+    week: { start: weekStart, end: weekEnd },
+    month: { start: monthStart, end: monthEnd },
     agenda,
-    pendingRequests: { items: pendingItems, total: pendingTotal },
-    stats: { activeClients, appointmentsThisWeek, clientsWithoutMealPlan, newClientsThisMonth },
-    attention: [...noUpcomingAppointment, ...noMealPlan, ...neverSignedIn].slice(0, ATTENTION_LIMIT),
+    summary: {
+      todayAppointments: agenda.length,
+      upcomingAppointments,
+      newClientsThisMonth,
+      appointmentsThisWeek,
+    },
+    nextAppointment,
+    visitHistory: toMonthlySeries(visitRows, today, HISTORY_MONTHS),
+    demographics: summariseDemographics(demographicRows, now),
   };
 }

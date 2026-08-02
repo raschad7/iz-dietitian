@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Plus, Search } from 'lucide-react';
+import { Icon } from '@/components/ui/icon';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -215,7 +215,7 @@ export function ClientPicker({
       </header>
 
       <div className="relative">
-        <Search aria-hidden className="pointer-events-none absolute start-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Icon name="search" className="pointer-events-none absolute start-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
         <Input
           autoFocus
           type="search"
@@ -271,7 +271,7 @@ export function ClientPicker({
               >
                 <span
                   aria-hidden
-                  className="flex size-7 shrink-0 items-center justify-center rounded-full text-[0.6875rem] font-semibold text-white"
+                  className="flex size-7 shrink-0 items-center justify-center rounded-full text-label font-semibold text-white"
                   style={{ background: client.color }}
                 >
                   {initialsOf(client.name)}
@@ -282,7 +282,7 @@ export function ClientPicker({
                 </span>
 
                 {booking && (
-                  <span className="shrink-0 text-[0.6875rem] text-muted-foreground" dir="auto">
+                  <span className="shrink-0 text-label text-muted-foreground" dir="auto">
                     {formatMinute(locale, booking.date, booking.startMinute)}
                   </span>
                 )}
@@ -294,13 +294,13 @@ export function ClientPicker({
 
       {allowNewClient ? (
         <Button type="button" variant="outline" size="sm" onClick={onNewClient} className="justify-start">
-          <Plus data-icon="inline-start" />
+          <Icon name="add" data-icon="inline-start" />
           {t('picker.newClient')}
         </Button>
       ) : (
         // Says where to go rather than leaving a dead end, for the case that
         // matters: the person in front of you is not on the register yet.
-        <p className="text-[0.6875rem] text-muted-foreground">{t('picker.newClientInDayView')}</p>
+        <p className="text-label text-muted-foreground">{t('picker.newClientInDayView')}</p>
       )}
     </div>
   );

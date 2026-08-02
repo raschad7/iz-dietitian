@@ -68,10 +68,10 @@ export default async function PortalPage({ params }: PortalPageProps) {
         things on this page anyone taps deliberately.
       */}
       <div className="grid gap-3 sm:grid-cols-2">
-        <Link href="/portal/appointments/request" className={buttonVariants({ size: 'lg' })}>
+        <Link href="/portal/appointments/request" className={buttonVariants()}>
           {t('dashboard.requestAppointment')}
         </Link>
-        <Link href="/portal/meal-plan" className={buttonVariants({ variant: 'outline', size: 'lg' })}>
+        <Link href="/portal/meal-plan" className={buttonVariants({ variant: 'outline' })}>
           {t('dashboard.viewMealPlan')}
         </Link>
       </div>

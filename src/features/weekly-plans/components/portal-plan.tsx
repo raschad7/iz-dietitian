@@ -58,7 +58,7 @@ export function PortalPlan({ board }: { board: Board }) {
                 {day.meals.map((meal) => (
                   <li key={meal.id} className="rounded-lg p-3 ring-1 ring-foreground/10">
                     <div className="flex flex-wrap items-baseline gap-2">
-                      <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                      <span className="text-xs text-muted-foreground">
                         {meal.label} · {meal.timeOfDay}
                       </span>
                       <span className="ms-auto text-xs text-muted-foreground">

@@ -455,7 +455,6 @@ export function Calendar({
     // rather than to the page.
     <div className="flex h-full min-h-0 flex-col gap-3">
       <CalendarToolbar
-        locale={locale}
         view={view}
         rangeLabel={rangeLabel}
         query={query}

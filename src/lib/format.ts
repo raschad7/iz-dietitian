@@ -109,6 +109,27 @@ export function formatRelativeTime(
   }).format(value, unit);
 }
 
+/**
+ * `3 hours ago` / `قبل ٣ ساعات` — the coarsest unit that still describes the
+ * gap, so a two-day-old request does not read as "2880 minutes ago".
+ *
+ * `now` is a parameter rather than a `new Date()` inside, so a caller that
+ * renders several of these stamps them all against one instant, and a test can
+ * pin it.
+ */
+export function formatTimeAgo(locale: Locale, value: Date | string | number, now: Date): string {
+  const minutes = Math.round((toDate(value).getTime() - now.getTime()) / 60_000);
+  if (Math.abs(minutes) < 60) return formatRelativeTime(locale, minutes, 'minute');
+
+  const hours = Math.round(minutes / 60);
+  if (Math.abs(hours) < 24) return formatRelativeTime(locale, hours, 'hour');
+
+  const days = Math.round(hours / 24);
+  if (Math.abs(days) < 30) return formatRelativeTime(locale, days, 'day');
+
+  return formatRelativeTime(locale, Math.round(days / 30), 'month');
+}
+
 export function formatList(locale: Locale, values: readonly string[], options?: Intl.ListFormatOptions): string {
   return new Intl.ListFormat(toIntlLocale(locale), { style: 'long', type: 'conjunction', ...options }).format(values);
 }

@@ -49,7 +49,7 @@ export function MealDetailPanel({
     <div className="flex h-full flex-col gap-4 overflow-y-auto">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             {meal.label} · {meal.timeOfDay}
           </p>
           <h3 className="mt-0.5 text-base font-semibold leading-tight">
@@ -79,7 +79,7 @@ export function MealDetailPanel({
           <SimilarDishes meal={meal} candidates={candidates} planId={planId} locale={locale} />
 
           <section className="border-t border-border pt-3">
-            <h4 className="pb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <h4 className="pb-1.5 text-xs font-semibold text-muted-foreground">
               {t('regenerateMeal')}
             </h4>
             <RegenerateMealButton planId={planId} mealId={meal.id} locale={locale} />
@@ -114,7 +114,7 @@ function Ingredients({ meal }: { meal: BoardMeal }) {
 
   return (
     <section>
-      <h4 className="pb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <h4 className="pb-1.5 text-xs font-semibold text-muted-foreground">
         {t('ingredients')}
       </h4>
 
@@ -140,7 +140,7 @@ function Nutrients({ meal }: { meal: BoardMeal }) {
 
   return (
     <section>
-      <h4 className="pb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <h4 className="pb-1.5 text-xs font-semibold text-muted-foreground">
         {t('nutrition')}
       </h4>
 
@@ -182,7 +182,7 @@ function Rationale({ text }: { text: string }) {
 
   return (
     <section className="border-s-2 border-primary/40 ps-2.5">
-      <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <h4 className="text-xs font-semibold text-muted-foreground">
         {t('whyThisMeal')}
       </h4>
       <p className="mt-1 text-xs leading-relaxed">{text}</p>
@@ -230,7 +230,7 @@ function SwapSubmit({ children, flagged }: { children: React.ReactNode; flagged?
       disabled={pending}
       className={cn(
         'w-full rounded-md border border-border p-2 text-start text-xs transition-colors hover:bg-accent/60 disabled:opacity-50',
-        flagged && 'border-amber-500/50',
+        flagged && 'border-status-attention-fg/40',
       )}
     >
       {children}
@@ -246,7 +246,7 @@ function Alternatives({ meal, planId, locale }: { meal: BoardMeal; planId: strin
 
   return (
     <section>
-      <h4 className="pb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <h4 className="pb-1.5 text-xs font-semibold text-muted-foreground">
         {t('aiAlternatives')}
       </h4>
 
@@ -265,7 +265,7 @@ function Alternatives({ meal, planId, locale }: { meal: BoardMeal; planId: strin
             <span className="mt-0.5 block text-muted-foreground">
               {t('kcalValue', { value: roundForDisplay('kcal', option.kcal) })}
               {!option.isSimilar && (
-                <span className="text-amber-600 dark:text-amber-500"> · {t('offBudget')}</span>
+                <span className="text-status-attention-fg"> · {t('offBudget')}</span>
               )}
             </span>
           </SwapButton>
@@ -299,7 +299,7 @@ function SimilarDishes({
 
   return (
     <section>
-      <h4 className="pb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <h4 className="pb-1.5 text-xs font-semibold text-muted-foreground">
         {t('similarDishes')}
       </h4>
 

@@ -1,13 +1,15 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { CalendarDays, Trash2 } from 'lucide-react';
+import { useMemo, useRef, useState } from 'react';
 
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/dialog';
+import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { SelectField } from '@/components/ui/select-field';
+import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Link } from '@/i18n/navigation';
 import { getLocaleDirection, type Locale } from '@/i18n/routing';
@@ -122,7 +124,6 @@ export function AppointmentDialog({
   const t = useTranslations('booking');
   const direction = getLocaleDirection(locale);
 
-  const dialogRef = useRef<HTMLDialogElement>(null);
   const nativeDateRef = useRef<HTMLInputElement>(null);
 
   const [date, setDate] = useState(appointment.date);
@@ -138,11 +139,6 @@ export function AppointmentDialog({
   const [clientId, setClientId] = useState(appointment.clientId);
   const [reason, setReason] = useState(appointment.reason ?? '');
   const [error, setError] = useState<BookingErrorKey | 'errors.invalidDate' | null>(null);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog?.open) dialog?.showModal();
-  }, []);
 
   const existing = existingByDate(date);
 
@@ -220,40 +216,23 @@ export function AppointmentDialog({
   const message = error ?? liveError;
 
   return (
-    <dialog
-      ref={dialogRef}
-      dir={direction}
-      aria-label={t('dialog.title')}
-      className={[
-        // Bottom sheet on small screens, centred card from `sm` up.
-        'w-full max-w-none rounded-t-2xl p-0 backdrop:bg-black/40',
-        'mt-auto mb-0 sm:m-auto sm:w-[min(28rem,calc(100vw-2rem))] sm:rounded-2xl',
-        'bg-popover text-popover-foreground border border-border shadow-xl',
-      ].join(' ')}
-      onClose={onClose}
-      onClick={(event) => {
-        // A click on the backdrop targets the dialog element itself.
-        if (event.target === dialogRef.current) dialogRef.current?.close();
-      }}
-    >
-      <form method="dialog" className="flex flex-col gap-3 p-4 text-start" onSubmit={(event) => event.preventDefault()}>
-        <header className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <h2 className="truncate text-base font-semibold" dir="auto">
-              {appointment.clientName}
-            </h2>
-            <p className="text-xs text-muted-foreground" dir="auto">
-              {formatLongDate(locale, date)} · {formatMinute(locale, date, startMinute)}
-            </p>
-          </div>
+    <Dialog open onClose={onClose} label={t('dialog.title')} dir={direction}>
+      <form method="dialog" onSubmit={(event) => event.preventDefault()}>
+        <DialogHeader
+          title={appointment.clientName}
+          description={`${formatLongDate(locale, date)} · ${formatMinute(locale, date, startMinute)}`}
+          onClose={onClose}
+          closeLabel={t('actions.close')}
+        >
+          {/*
+            No `uppercase` here or anywhere client-facing: Arabic has no letter
+            case for it to act on, so it changes the Latin build only and the
+            two stop matching.
+          */}
+          {completed ? <Badge variant="muted">{t('completed')}</Badge> : null}
+        </DialogHeader>
 
-          {completed && (
-            <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[0.625rem] font-semibold tracking-wide uppercase text-muted-foreground">
-              {t('completed')}
-            </span>
-          )}
-        </header>
-
+        <DialogBody>
         {/* 1. Date — typed, or picked from the browser's own calendar. */}
         <div className="space-y-1">
           <Label htmlFor="appointment-date">{t('fields.date')}</Label>
@@ -290,7 +269,7 @@ export function AppointmentDialog({
                   input.showPicker();
                 }}
               >
-                <CalendarDays />
+                <Icon name="calendar" />
               </Button>
 
               <input
@@ -314,7 +293,7 @@ export function AppointmentDialog({
         {/* 2. Start — whole hours only. */}
         <div className="space-y-1">
           <Label htmlFor="appointment-start">{t('fields.start')}</Label>
-          <SelectField
+          <Select
             id="appointment-start"
             disabled={completed}
             value={String(startMinute)}
@@ -326,13 +305,13 @@ export function AppointmentDialog({
                 {unavailableStarts.has(minute) ? ` — ${t('fields.unavailable')}` : ''}
               </option>
             ))}
-          </SelectField>
+          </Select>
         </div>
 
         {/* 3. Duration — half-hour steps. */}
         <div className="space-y-1">
           <Label htmlFor="appointment-duration">{t('fields.duration')}</Label>
-          <SelectField
+          <Select
             id="appointment-duration"
             disabled={completed}
             value={String(durationMinutes)}
@@ -347,7 +326,7 @@ export function AppointmentDialog({
                 {minutes % DURATION_STEP_MINUTES !== 0 ? ` (${minutes / SLOT_MINUTES}×${SLOT_MINUTES})` : ''}
               </option>
             ))}
-          </SelectField>
+          </Select>
         </div>
 
         {/* 4. Client, with a way through to the full record. */}
@@ -361,7 +340,7 @@ export function AppointmentDialog({
               {t('fields.editClient')}
             </Link>
           </div>
-          <SelectField
+          <Select
             id="appointment-client"
             disabled={completed}
             value={clientId}
@@ -376,7 +355,7 @@ export function AppointmentDialog({
             {!clients.some((client) => client.id === appointment.clientId) && (
               <option value={appointment.clientId}>{appointment.clientName}</option>
             )}
-          </SelectField>
+          </Select>
         </div>
 
         {/* 5. Reason — optional, and empty unless someone types something. */}
@@ -395,16 +374,17 @@ export function AppointmentDialog({
         </div>
 
         {message && !completed && (
-          <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <p role="alert" className="rounded-md bg-destructive-subtle px-3 py-2 text-body-md text-destructive">
             {t(message)}
           </p>
         )}
 
         {completed && (
-          <p className="rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground">{t('errors.completedLocked')}</p>
+          <p className="rounded-md bg-muted px-3 py-2 text-body-md text-muted-foreground">{t('errors.completedLocked')}</p>
         )}
+        </DialogBody>
 
-        <div className="mt-1 flex items-center justify-between gap-2">
+        <DialogFooter className="justify-between">
           {/*
             Delete stays available on a finished appointment, and it is the only
             thing that is. Editing one silently rewrites what happened; deleting
@@ -421,15 +401,15 @@ export function AppointmentDialog({
             size="sm"
             onClick={() => {
               onDelete(appointment.id);
-              dialogRef.current?.close();
+              onClose();
             }}
           >
-            <Trash2 data-icon="inline-start" />
+            <Icon name="trash" data-icon="inline-start" />
             {t('actions.delete')}
           </Button>
 
           <div className="flex items-center gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={() => dialogRef.current?.close()}>
+            <Button type="button" variant="ghost" size="sm" onClick={onClose}>
               {completed ? t('actions.close') : t('actions.cancel')}
             </Button>
             {/*
@@ -443,8 +423,8 @@ export function AppointmentDialog({
               </Button>
             )}
           </div>
-        </div>
+        </DialogFooter>
       </form>
-    </dialog>
+    </Dialog>
   );
 }

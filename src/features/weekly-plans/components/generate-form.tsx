@@ -90,7 +90,7 @@ function Result({ state }: { state: GenerateState }) {
 
   if (state.status === 'partial') {
     return (
-      <p className="text-xs text-amber-600 dark:text-amber-500">
+      <p className="text-xs text-status-attention-fg">
         {t('unfilledWarning', { count: state.unfilled })}
       </p>
     );
