@@ -2,21 +2,6 @@ import { Resend } from 'resend';
 
 import type { Mail, Mailer } from './index';
 
-type ResendPayload = {
-  from: string;
-  to: string;
-  subject: string;
-  html: string;
-  text: string;
-};
-
-type ResendResult = {
-  data: { id: string } | null;
-  error: { name: string; message: string } | null;
-};
-
-type SendWithResend = (payload: ResendPayload) => Promise<ResendResult>;
-
 /**
  * Production transport.
  *
@@ -27,13 +12,9 @@ type SendWithResend = (payload: ResendPayload) => Promise<ResendResult>;
 export function createResendMailer(apiKey: string, from: string): Mailer {
   const resend = new Resend(apiKey);
 
-  return createResendMailerWithSender(from, (payload) => resend.emails.send(payload));
-}
-
-export function createResendMailerWithSender(from: string, send: SendWithResend): Mailer {
   return {
     async send(mail: Mail): Promise<void> {
-      const { error } = await send({
+      const { error } = await resend.emails.send({
         from,
         to: mail.to,
         subject: mail.subject,
