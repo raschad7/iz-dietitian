@@ -65,18 +65,47 @@ what the board starts with.
 | Entry | Produces |
 | --- | --- |
 | Generate with AI | The existing flow, plus the per-week override fields below. |
-| Start from `<week>` | Every meal of the chosen plan, copied. No model call. |
-| Empty week | One meal per slot in the client's schedule, all with `dish_id` null. |
+| Start from `<week>` | The client's current schedule, filled with that plan's dishes. No model call. |
+| Empty week | The client's current schedule, all slots with `dish_id` null. |
 
 Generation stops being the only way a plan comes into existence. `generated_by`
 is `'ai'` for the first and `'manual'` for the other two — the column already
 carries exactly this distinction and needs no new value.
 
+Because all three now build their slots from the client's profile, all three
+require one: a client with no nutrition profile, or no effective calorie target,
+gets the same `profile_incomplete` explanation the generate button already shows
+(`[clientId]/page.tsx:69`), on the whole menu rather than on one entry. There is
+no longer a door that works without a profile, and there should not be — a week
+whose slots have no budgets cannot be checked against anything.
+
 ### What "start from" copies
 
-Verbatim from the source plan: `kcal_target_snapshot`, and for every meal its
-`day_of_week`, `slot_key`, `label`, `time_of_day`, `budget_kcal`, `dish_id` and
-`servings`.
+**The copy takes its dishes from the source plan and its skeleton from the
+client's current profile.** These are two different things and the distinction is
+the whole rule.
+
+The skeleton — which slots exist, their labels, their times, their budgets — is
+built exactly as `startEmptyWeek` builds it: from the client's current
+`meal_schedule`, with budgets from `slotBudgets` against their current effective
+calorie target. The copy then fills those slots with the source plan's dishes,
+matched on `slot_key`.
+
+It follows that:
+
+- A slot in the current schedule that the source plan has no dish for is **empty**,
+  and shows as a gap to fill.
+- A dish in the source plan whose slot is no longer in the schedule is **dropped**.
+  If Sara's afternoon snack was removed from her profile in August, copying her
+  July plan produces four meals a day, not five.
+- The new plan's `kcal_target_snapshot` is her **current** target, not July's.
+
+Copied per meal: `dish_id` and `servings`. Servings are copied verbatim and are
+*not* refitted to the new budget. If the calorie target has moved, the copied
+portions will read off-budget on the board — which is the correct signal. A
+silent refit would change what the client eats without anyone choosing it, and
+seeing a week that no longer fits is exactly the prompt to use the generate door
+instead.
 
 Not copied:
 
@@ -88,10 +117,9 @@ Not copied:
   generated, and labelling it with the model that produced its ancestor would be
   a lie in the audit trail.
 
-The copy takes the source plan's slots rather than rebuilding them from the
-client's current `meal_schedule`. "Start from 27 July" should produce the week of
-27 July; if the schedule has moved on, the dietitian adds or removes slots by
-hand, which is now possible. Adjusting targets is what the generate door is for.
+This means `startWeekFromPlan` and `startEmptyWeek` share their skeleton-building
+step and differ only in whether dishes are then filled in. They are written that
+way — one builder, two callers — so the two doors cannot drift apart.
 
 ## Board layout
 
@@ -212,8 +240,8 @@ collapse into one: dropping a dish on a filled slot is exactly what
 | `removeMeal(mealId)` | Deletes the row. The slot is gone from that day. |
 | `addMeal(dayOfWeek, label, timeOfDay)` | Inserts a row with `budget_kcal` 0. |
 | `moveMeal(fromMealId, toMealId, mode)` | Copies `dish_id` and `servings` into the target slot. `mode: 'move'` then clears the source. |
-| `startWeekFromPlan(sourcePlanId, weekStartDate)` | As specified above. |
-| `startEmptyWeek(clientId, weekStartDate)` | Slots from `meal_schedule`, budgets from `slotBudgets`. |
+| `startEmptyWeek(clientId, weekStartDate)` | Slots from the client's current `meal_schedule`, budgets from `slotBudgets`, no dishes. |
+| `startWeekFromPlan(sourcePlanId, weekStartDate)` | The same skeleton, then filled from the source plan's dishes by `slot_key`. |
 
 Three details that decide behaviour and must not be left to implementation
 taste:
@@ -399,8 +427,11 @@ Pure, no database:
 
 Against the test database, following `mutations.test.ts`:
 
-- Copy fidelity: meals, budgets and servings copied; rationales, options and
-  model metadata not.
+- Copy fidelity: dishes and servings copied; rationales, options and model
+  metadata not.
+- Copy against a changed schedule: a slot removed from the profile since the
+  source plan drops its dishes; a slot added since arrives empty; labels, times
+  and budgets come from the profile, not the source plan.
 - Every new mutation refuses a plan belonging to another clinic.
 - Every new mutation refuses an `archived` plan, and refuses a `published` plan
   unless the acknowledged flag is set.
@@ -424,13 +455,19 @@ stage leaves the feature working and shippable on its own.
    prompt fallback.
 4. **The editor.** The remaining six actions, the optimistic reducer, dnd-kit,
    the Dishes tab, and the header restructure.
-5. **Compare and recent use.** The comparison read, the ghost lines, `usage.ts`
+5. **Published-plan editing.** The mode toggle and the guard change.
+6. **Compare and recent use.** The comparison read, the ghost lines, `usage.ts`
    and the badges.
-6. **Published-plan editing.** The mode toggle and the guard change.
 
 Stage 4 is the largest and does not divide cleanly further: the reducer, the drag
 implementation and the header rearrangement land together or the board is broken
 in between.
+
+Stage 5 sits immediately after the editor because mid-week corrections happen
+often enough to matter — roughly monthly — and because it is nearly free once the
+editor exists: the toggle, one guard clause, and the warning strip. Putting it
+before stage 4 would mean building it twice, since there is little to unlock
+until the edit actions exist.
 
 ## Known risks
 
