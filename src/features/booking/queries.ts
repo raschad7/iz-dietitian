@@ -1,7 +1,8 @@
 import { and, asc, between, eq } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { appointments, clients, clinics } from '@/db/schema';
+import { appointments, clients, clinicWorkingHours } from '@/db/schema';
+import { toClinicSchedule } from '@/features/clinic-profile/schedule';
 
 import { type CalendarAppointment, type CalendarClient, type CalendarData } from './types';
 import { type ClinicHours } from './validation';
@@ -17,17 +18,19 @@ import { type ClinicHours } from './validation';
 
 /** Opening hours, or null when the clinic id does not exist. */
 export async function getClinicHours(clinicId: string): Promise<ClinicHours | null> {
-  const [row] = await db
-    .select({
-      workingDays: clinics.workingDays,
-      openMinute: clinics.openMinute,
-      closeMinute: clinics.closeMinute,
-    })
-    .from(clinics)
-    .where(eq(clinics.id, clinicId))
-    .limit(1);
+  const rows = await db
+    .select()
+    .from(clinicWorkingHours)
+    .where(eq(clinicWorkingHours.clinicId, clinicId))
+    .orderBy(asc(clinicWorkingHours.weekday));
 
-  return row ?? null;
+  if (rows.length !== 7) return null;
+  const schedule = toClinicSchedule(rows);
+  return {
+    days: schedule.days,
+    workingDays: schedule.days.filter((day) => day.isWorking).map((day) => day.weekday),
+    ...schedule.envelope,
+  };
 }
 
 /**
@@ -100,6 +103,10 @@ export async function getCalendarData(clinicId: string, fromDate: string, toDate
   return {
     appointments: appointmentRows,
     clients: clientRows,
-    hours: { workingDays: [...hours.workingDays], openMinute: hours.openMinute, closeMinute: hours.closeMinute },
+    hours: {
+      ...hours,
+      workingDays: [...hours.workingDays],
+      days: hours.days ? [...hours.days] : undefined,
+    },
   };
 }

@@ -10,6 +10,7 @@ export type NavItem = {
     | '/app'
     | '/app/clients'
     | '/app/calendar'
+    | '/app/profile'
     | '/app/weekly-plans'
     | '/app/meal-plans'
     | '/app/dishes'

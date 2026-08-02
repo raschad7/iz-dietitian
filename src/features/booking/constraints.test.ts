@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
+import { eq } from 'drizzle-orm';
 
 import { db } from '@/db';
 import { CHECK_VIOLATION, EXCLUSION_VIOLATION, UNIQUE_VIOLATION, pgConstraintName, pgErrorCode } from '@/db/errors';
@@ -216,15 +217,20 @@ describe('column check constraints', () => {
 
 describe('clinic defaults', () => {
   test('a new clinic opens Sunday to Thursday, 08:00 to 18:00', async () => {
-    const [clinic] = await db.select().from(clinics).limit(1);
+    const schedule = await db.select().from(clinicWorkingHours);
 
-    expect(clinic?.workingDays).toEqual([0, 1, 2, 3, 4]);
-    expect(clinic?.openMinute).toBe(480);
-    expect(clinic?.closeMinute).toBe(1080);
+    expect(schedule).toHaveLength(7);
+    expect(schedule.filter((day) => day.isWorking).map((day) => day.weekday)).toEqual([0, 1, 2, 3, 4]);
+    expect(schedule.filter((day) => day.isWorking).every((day) => day.openMinute === 480)).toBe(true);
+    expect(schedule.filter((day) => day.isWorking).every((day) => day.closeMinute === 1080)).toBe(true);
   });
 });
 
 describe('clinic working-hours constraints', () => {
+  beforeEach(async () => {
+    await db.delete(clinicWorkingHours).where(eq(clinicWorkingHours.clinicId, clinicId));
+  });
+
   test('stores one valid working day', async () => {
     await insertWorkingDay();
 

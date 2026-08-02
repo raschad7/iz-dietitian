@@ -5,7 +5,6 @@ import { db } from '@/db';
 import { appointments, clinics, clinicWorkingHours, practitioners, user } from '@/db/schema';
 import { createTestClient, createTestClinic, createTestPractitioner, resetDatabase } from '../../../tests/helpers';
 
-import { defaultClinicScheduleRows } from './default-schedule';
 import {
   completeOnboarding,
   saveClinicInformation,
@@ -61,7 +60,6 @@ beforeEach(async () => {
   await resetDatabase();
   clinicId = await createTestClinic();
   userId = await createStaff(clinicId, 'owner');
-  await db.insert(clinicWorkingHours).values(defaultClinicScheduleRows(clinicId));
 });
 
 describe('clinic-scoped profile writes', () => {

@@ -2,8 +2,9 @@ import { and, asc, eq } from 'drizzle-orm';
 
 import { db, type Database } from '@/db';
 import { isBookingConflict, pgConstraintName } from '@/db/errors';
-import { appointments, clients, clinics, practitioners } from '@/db/schema';
+import { appointments, clients, clinicWorkingHours, practitioners } from '@/db/schema';
 import { normalizeForSearch } from '@/features/clients/search';
+import { toClinicSchedule } from '@/features/clinic-profile/schedule';
 import { pickAvatarColor } from '@/lib/avatar-color';
 import { DISPLAY_TIME_ZONE } from '@/lib/format';
 
@@ -89,13 +90,19 @@ export async function resolvePractitioner(tx: Tx, context: BookingContext): Prom
 }
 
 async function readHours(tx: Tx, clinicId: string): Promise<ClinicHours | null> {
-  const [row] = await tx
-    .select({ workingDays: clinics.workingDays, openMinute: clinics.openMinute, closeMinute: clinics.closeMinute })
-    .from(clinics)
-    .where(eq(clinics.id, clinicId))
-    .limit(1);
+  const rows = await tx
+    .select()
+    .from(clinicWorkingHours)
+    .where(eq(clinicWorkingHours.clinicId, clinicId))
+    .orderBy(asc(clinicWorkingHours.weekday));
 
-  return row ?? null;
+  if (rows.length !== 7) return null;
+  const schedule = toClinicSchedule(rows);
+  return {
+    days: schedule.days,
+    workingDays: schedule.days.filter((day) => day.isWorking).map((day) => day.weekday),
+    ...schedule.envelope,
+  };
 }
 
 /**

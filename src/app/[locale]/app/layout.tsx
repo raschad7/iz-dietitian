@@ -1,10 +1,12 @@
 import { getTranslations } from 'next-intl/server';
+import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 import { Header } from '@/components/layout/header';
 import { Sidebar } from '@/components/layout/sidebar';
+import { isClinicOnboardingComplete } from '@/features/clinic-profile/queries';
 import { resolveLocale } from '@/i18n/params';
-import { requireStaffSession } from '@/lib/session';
+import { requireStaffClinic } from '@/lib/session';
 
 type AppLayoutProps = {
   children: ReactNode;
@@ -15,6 +17,7 @@ const NAV_ITEMS = [
   { href: '/app', labelKey: 'dashboard' },
   { href: '/app/clients', labelKey: 'clients' },
   { href: '/app/calendar', labelKey: 'calendar' },
+  { href: '/app/profile', labelKey: 'profile' },
   { href: '/app/weekly-plans', labelKey: 'weeklyPlans' },
   { href: '/app/meal-plans', labelKey: 'mealPlans' },
   { href: '/app/dishes', labelKey: 'dishes' },
@@ -27,7 +30,8 @@ export default async function AppLayout({ children, params }: AppLayoutProps) {
   const locale = await resolveLocale(params);
 
   // Authoritative guard for the whole dietitian area.
-  const session = await requireStaffSession(locale);
+  const { clinicId, session } = await requireStaffClinic(locale);
+  if (!(await isClinicOnboardingComplete(clinicId))) redirect(`/${locale}/onboarding`);
 
   const t = await getTranslations('app');
 
