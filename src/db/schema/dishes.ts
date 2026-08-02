@@ -17,7 +17,7 @@ import { foods } from './foods';
  *
  * A dish carries no nutrition of its own. Its composition is `dish_ingredients`
  * pointing at `foods`, and every number the UI shows is derived from those at read
- * time by `src/features/weekly-plans/dish-nutrition.ts`. This is the whole reason
+ * time by `src/features/weekly-plans/nutrition.ts`. This is the whole reason
  * the AI cannot invent a calorie count: the only things it emits are a dish slug
  * and a serving multiplier.
  */
@@ -96,7 +96,7 @@ export const dishIngredients = pgTable(
       .references(() => dishes.id, { onDelete: 'cascade' }),
 
     /**
-     * `restrict`, matching `meal_plan_items.food_id`: `foods` is reference data,
+     * `restrict`, not `cascade`: `foods` is reference data,
      * and a re-seed that silently emptied a recipe would put wrong numbers in
      * front of a client. Deleting a food that is in use fails loudly instead.
      */

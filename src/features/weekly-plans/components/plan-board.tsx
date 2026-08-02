@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 
 import { Badge } from '@/components/ui/badge';
-import { roundForDisplay } from '@/features/meal-plans/nutrition';
+import { roundForDisplay } from '@/features/weekly-plans/nutrition';
 
 import { isMember } from '@/lib/enum';
 

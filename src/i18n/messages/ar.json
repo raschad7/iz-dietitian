@@ -24,8 +24,6 @@
     "dashboard": "لوحة التحكم",
     "clients": "المتابعون",
     "calendar": "التقويم",
-    "mealPlans": "الخطط الغذائية",
-    "foods": "الأطعمة",
     "plans": "الخطط الغذائية",
     "appointments": "المواعيد",
     "payments": "المدفوعات",
@@ -210,112 +208,6 @@
       "unexpected": "حدث خطأ غير متوقع. حاول مجددًا."
     }
   },
-  "mealPlans": {
-    "title": "الخطط الغذائية",
-    "subtitle": "خطط أسبوعية مبنية على قاعدة بيانات التركيب الغذائي من وزارة الزراعة الأمريكية.",
-    "wholeWeek": "الأسبوع كامل",
-    "emptyDay": "لا يوجد شيء مخطّط بعد.",
-    "days": {
-      "sunday": "الأحد",
-      "monday": "الاثنين",
-      "tuesday": "الثلاثاء",
-      "wednesday": "الأربعاء",
-      "thursday": "الخميس",
-      "friday": "الجمعة",
-      "saturday": "السبت"
-    },
-    "new": "خطة جديدة",
-    "createTitle": "خطة غذائية جديدة",
-    "editTitle": "تعديل بيانات الخطة",
-    "edit": "تعديل البيانات",
-    "empty": "لا توجد خطط غذائية بعد. أنشئ واحدة لتبدأ ببناء اليوم.",
-    "emptyForClient": "لا توجد خطط غذائية لهذا المتابع بعد.",
-    "notFound": "الخطة غير موجودة",
-    "notFoundDescription": "قد تكون هذه الخطة قد حُذفت، أو أنّ الرابط غير صحيح.",
-    "backToList": "العودة إلى الخطط الغذائية",
-    "noClients": "تحتاج إلى متابع نشِط قبل أن تتمكن من بناء خطة.",
-    "addClient": "إضافة متابع",
-    "foodsNotSeeded": "قاعدة بيانات الأطعمة فارغة. شغّل الأمر `bun run db:seed:foods` لتحميلها.",
-    "dataSource": "بيانات التغذية: USDA FoodData Central، إصدار SR Legacy (نيسان ٢٠١٨) — ملكية عامة. القيم لكل ١٠٠ غرام حسب الوصف.",
-    "schedule": "جدول اليوم",
-    "emptySchedule": "لا توجد وجبات في هذه الخطة. أضف وجبة لتبدأ.",
-    "emptyMeal": "لا يوجد شيء في هذه الوجبة بعد.",
-    "per100g": "سعرة / ١٠٠ غم",
-    "fields": {
-      "title": "عنوان الخطة",
-      "titlePlaceholder": "مثال: الأسبوع الأول — ١٨٠٠ سعرة",
-      "client": "المتابع",
-      "selectClient": "اختر متابعًا",
-      "notes": "ملاحظات",
-      "plannedDays": "أيام مخطّطة",
-      "kcalPerDay": "سعرة / يوم",
-      "daysOfSeven": "{count, number, integer} / ٧",
-      "updatedAt": "آخر تعديل",
-      "timeOfDay": "الوقت",
-      "mealLabel": "اسم الوجبة",
-      "food": "الطعام",
-      "quantityGrams": "الكمية (غم)",
-      "actions": "إجراءات"
-    },
-    "short": {
-      "protein": "بروتين (غم)",
-      "carbs": "كربوهيدرات (غم)",
-      "fat": "دهون (غم)"
-    },
-    "nutrients": {
-      "kcal": "الطاقة",
-      "protein": "البروتين",
-      "carbs": "الكربوهيدرات",
-      "fat": "الدهون",
-      "fiber": "الألياف",
-      "sugar": "السكريات",
-      "saturatedFat": "الدهون المشبعة",
-      "sodium": "الصوديوم",
-      "cholesterol": "الكوليسترول",
-      "calcium": "الكالسيوم",
-      "iron": "الحديد",
-      "potassium": "البوتاسيوم"
-    },
-    "analysis": {
-      "title": "التحليل",
-      "wholeWeek": "الأسبوع كامل",
-      "weekHint": "الأيام السبعة مجتمعة. افتح يومًا لعرض تحليله وحده.",
-      "scopedHint": "هذا التحديد فقط. عُد إلى الأسبوع كامل من التبويبات أعلاه.",
-      "energy": "إجمالي الطاقة (سعرة)",
-      "empty": "أضف طعامًا لعرض التحليل.",
-      "macroSplit": "توزّع الطاقة على المغذيات الكبرى",
-      "macroSplitNote": "النسب محسوبة من الطاقة التي تمثّلها المغذيات الكبرى (٤/٤/٩ سعرة لكل غرام)، وقد تختلف قليلًا عن الإجمالي أعلاه.",
-      "allNutrients": "جميع العناصر الغذائية",
-      "unmeasured": "{count, number, integer} من هذه الأطعمة ليس لها قيمة منشورة لهذا العنصر، لذا فالإجمالي الحقيقي أعلى.",
-      "unmeasuredNote": "* غير مقاس لكل الأطعمة — الإجمالي يمثّل الحد الأدنى."
-    },
-    "picker": {
-      "search": "ابحث عن طعام",
-      "searchPlaceholder": "مثال: chicken breast",
-      "category": "الفئة",
-      "allCategories": "كل الفئات",
-      "prompt": "اكتب حرفين على الأقل، أو اختر فئة.",
-      "noResults": "لا يوجد طعام مطابق.",
-      "usePortion": "استخدم {label} ({grams, number} غم)",
-      "add": "إضافة إلى الوجبة"
-    },
-    "actions": {
-      "addFood": "إضافة طعام",
-      "addMeal": "إضافة وجبة",
-      "copy": "نسخ",
-      "copyDayTo": "انسخ {day} إلى",
-      "clearDay": "إفراغ هذا اليوم",
-      "confirmCopyDay": "سيُستبدل كل ما في {to} بنسخة من {from}. هل أنت متأكد؟",
-      "confirmClearDay": "ستُحذف كل وجبات {day}. هل أنت متأكد؟",
-      "confirmDeleteMeal": "هل تريد حذف «{label}» وكل ما فيها؟",
-      "confirmDeletePlan": "سيُحذف «{title}» وكل وجباته نهائيًا. هل أنت متأكد؟"
-    },
-    "errors": {
-      "invalid": "راجع الحقول المظللة بالأحمر.",
-      "clientNotFound": "هذا المتابع ليس ضمن عيادتك.",
-      "unexpected": "حدث خطأ ما. حاول مرة أخرى."
-    }
-  },
   "dashboard": {
     "title": "لوحة التحكم",
     "welcome": "أهلًا {name}",
@@ -339,7 +231,7 @@
     "stats": {
       "activeClients": "المتابعون النشطون",
       "appointmentsThisWeek": "مواعيد هذا الأسبوع",
-      "clientsWithoutMealPlan": "بلا خطة غذائية",
+      "clientsWithoutWeeklyPlan": "بلا خطة لهذا الأسبوع",
       "newClientsThisMonth": "متابعون جدد هذا الشهر"
     },
     "attention": {
@@ -349,7 +241,7 @@
       "viewAll": "عرض جميع المتابعين",
       "reason": {
         "noUpcomingAppointment": "لا يوجد موعد قادم",
-        "noMealPlan": "لا توجد خطة غذائية",
+        "noWeeklyPlan": "لا توجد خطة لهذا الأسبوع",
         "neverSignedIn": "لم يسجّل الدخول إلى البوابة بعد"
       }
     },
@@ -357,59 +249,7 @@
       "title": "إجراءات سريعة",
       "newAppointment": "موعد جديد",
       "addClient": "إضافة متابع",
-      "newMealPlan": "خطة غذائية جديدة"
-    }
-  },
-  "foods": {
-    "title": "الأطعمة",
-    "per100g": "جميع القيم لكل ١٠٠ غرام",
-    "resultCount": "{total, number, integer} طعامًا",
-    "searchPlaceholder": "ابحث بالاسم، مثال: chicken breast",
-    "allCategories": "كل الفئات",
-    "empty": "قاعدة بيانات الأطعمة فارغة.",
-    "emptyFiltered": "لا يوجد طعام مطابق لبحثك.",
-    "clearFilters": "مسح عوامل التصفية",
-    "notSeeded": "قاعدة بيانات الأطعمة فارغة. شغّل الأمر `bun run db:seed:foods` لتحميلها.",
-    "notFound": "الطعام غير موجود",
-    "notFoundDescription": "قد يكون هذا الطعام قد حُذف، أو أنّ الرابط غير صحيح.",
-    "backToList": "العودة إلى الأطعمة",
-    "notMeasured": "غير مقاس",
-    "noPortion": "لا يوجد مقياس منزلي منشور",
-    "dataSource": "المصدر: USDA FoodData Central، إصدار SR Legacy (نيسان ٢٠١٨) — ملكية عامة.",
-    "fields": {
-      "description": "الطعام",
-      "category": "الفئة",
-      "portion": "المقياس المنزلي",
-      "fdcId": "معرّف FoodData Central"
-    },
-    "sections": {
-      "macros": "الطاقة والمغذيات الكبرى",
-      "allNutrients": "جميع العناصر الغذائية",
-      "source": "الحصة والمصدر"
-    },
-    "short": {
-      "protein": "بروتين (غم)",
-      "carbs": "كربوهيدرات (غم)",
-      "fat": "دهون (غم)"
-    },
-    "nutrients": {
-      "kcal": "الطاقة",
-      "protein": "البروتين",
-      "carbs": "الكربوهيدرات",
-      "fat": "الدهون",
-      "fiber": "الألياف",
-      "sugar": "السكريات",
-      "saturatedFat": "الدهون المشبعة",
-      "sodium": "الصوديوم",
-      "cholesterol": "الكوليسترول",
-      "calcium": "الكالسيوم",
-      "iron": "الحديد",
-      "potassium": "البوتاسيوم"
-    },
-    "pagination": {
-      "previous": "السابق",
-      "next": "التالي",
-      "position": "صفحة {page, number, integer} من {pageCount, number, integer}"
+      "weeklyPlans": "الخطط الأسبوعية"
     }
   },
   "clients": {
@@ -606,7 +446,8 @@
       "alreadyRequested": "لديك طلب سابق بهذا الشأن، وسيردّ عليه أخصائي التغذية قريبًا.",
       "pastAppointment": "هذا الموعد قد انتهى بالفعل.",
       "unexpected": "حدث خطأ غير متوقع. حاول مجددًا."
-    }
+    },
+    "emptyToday": "لا يوجد شيء مخطّط بعد."
   },
   "localeSwitcher": {
     "label": "اللغة",
@@ -743,6 +584,29 @@
       "invalid": "بيانات غير صحيحة.",
       "clientNotFound": "العميل غير موجود.",
       "unexpected": "حدث خطأ غير متوقع."
+    },
+    "days": {
+      "sunday": "الأحد",
+      "monday": "الاثنين",
+      "tuesday": "الثلاثاء",
+      "wednesday": "الأربعاء",
+      "thursday": "الخميس",
+      "friday": "الجمعة",
+      "saturday": "السبت"
+    },
+    "nutrients": {
+      "kcal": "الطاقة",
+      "protein": "البروتين",
+      "carbs": "الكربوهيدرات",
+      "fat": "الدهون",
+      "fiber": "الألياف",
+      "sugar": "السكريات",
+      "saturatedFat": "الدهون المشبعة",
+      "sodium": "الصوديوم",
+      "cholesterol": "الكوليسترول",
+      "calcium": "الكالسيوم",
+      "iron": "الحديد",
+      "potassium": "البوتاسيوم"
     }
   },
   "dishes": {

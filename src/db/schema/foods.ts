@@ -7,13 +7,18 @@ import { index, integer, pgTable, real, text, timestamp, uniqueIndex, uuid } fro
  * April 2018 — public domain). Read-only in the application: nothing in the UI
  * writes here, and `bun run db:seed` re-syncs it.
  *
+ * No screen reads this table any more — the foods browser was retired with meal
+ * plans V1. It survives because `dish_ingredients` points at it, which makes it
+ * the source of every calorie a weekly plan displays. A dish stores no nutrition
+ * of its own, so dropping this would silently zero the whole catalog.
+ *
  * Unlike every other domain table this one is NOT scoped to a clinic. Food
  * composition is a physical fact, not a tenant's data, so all clinics share one
  * copy rather than each seeding 7,793 near-identical rows.
  *
  * EVERY nutrient column is "amount per 100 g of the food as described", which is
  * the basis USDA publishes on. Portions are converted at the point of use — see
- * `scaleNutrients` in `src/features/meal-plans/nutrition.ts`. Storing anything
+ * `scaleNutrients` in `src/features/weekly-plans/nutrition.ts`. Storing anything
  * per-serving here would make the numbers impossible to sum.
  */
 export const foods = pgTable(

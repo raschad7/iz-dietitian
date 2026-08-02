@@ -4,7 +4,7 @@ Qiwam is a bilingual Arabic/English, RTL-first application for dietitian
 clinics. It brings the staff workflow and client experience into one product.
 
 The current MVP includes client management, appointment booking, dashboards,
-manual and AI-assisted meal planning, a client portal, and optional WhatsApp
+AI-assisted weekly meal planning, a client portal, and optional WhatsApp
 automation. See [MVP product scope](docs/product-scope.md) for the exact boundary.
 
 ## Stack

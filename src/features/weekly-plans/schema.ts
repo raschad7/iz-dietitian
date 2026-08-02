@@ -5,7 +5,7 @@ import { MAX_SERVINGS, MIN_SERVINGS } from './similar';
 /**
  * Validation for every weekly-plan input, and for everything the model returns.
  *
- * Mirrors `src/features/meal-plans/schema.ts`: the rules live here, not in the
+ * The rules live here, not in the
  * database, so extending them is a code change rather than a migration.
  *
  * The response schemas at the bottom are the load-bearing ones. Everything a

@@ -1,5 +1,12 @@
 /**
- * Every number the meal-plan UI shows is computed here.
+ * Every number the weekly-plan UI shows is computed here.
+ *
+ * Two layers, one file. The lower half is the arithmetic over `foods` rows —
+ * unwinding the per-100 g basis, summing, splitting energy by macro. The upper
+ * half ({@link dishTotals}) applies that to a dish's recipe at a serving
+ * multiplier. They were separate files while meal plans V1 also needed the
+ * arithmetic; weekly plans is now the only consumer, so the split bought a hop
+ * and nothing else.
  *
  * Pure functions over plain objects: no database, no React, no Next.js. That is
  * what lets `nutrition.test.ts` assert the arithmetic directly, and it is the
@@ -10,7 +17,7 @@
 /**
  * The nutrients carried through the whole feature, in the order they are
  * displayed. Adding one here and to the `foods` table is all it takes to surface
- * it in the analysis panel.
+ * it in the meal detail panel.
  */
 export const NUTRIENT_KEYS = [
   'kcal',
@@ -193,4 +200,54 @@ export function roundForDisplay(key: NutrientKey, value: number): number {
   const places = NUTRIENT_UNITS[key] === 'g' ? 1 : 0;
   const factor = 10 ** places;
   return Math.round(value * factor) / factor;
+}
+
+/** A recipe line, as the queries hand it over. */
+export type DishIngredientDetail = {
+  /** Grams for ONE base serving. */
+  quantityGrams: number;
+  food: { id: string; description: string } & FoodNutrients;
+};
+
+export type DishDetail = {
+  id: string;
+  slug: string;
+  nameAr: string;
+  nameEn: string;
+  mealTypes: string[];
+  tags: string[];
+  allergenTags: string[];
+  baseServingLabel: string;
+  ingredients: DishIngredientDetail[];
+};
+
+/**
+ * Scales a recipe to `servings` and sums it.
+ *
+ * The multiplier is applied to the grams, not to the totals: multiplying a total
+ * would give the same answer for the macros but would also multiply
+ * `unmeasured`, turning "one ingredient's fibre is unknown" into "one and a half
+ * ingredients' fibre is unknown".
+ */
+export function dishTotals(
+  ingredients: readonly DishIngredientDetail[],
+  servings: number,
+): NutrientTotals {
+  const sources: NutrientSource[] = ingredients.map((ingredient) => ({
+    quantityGrams: ingredient.quantityGrams * servings,
+    food: ingredient.food,
+  }));
+
+  return sumNutrients(sources);
+}
+
+/**
+ * Energy for one base serving of a dish.
+ *
+ * Used to size a dish against a slot budget before any plan exists — which is how
+ * `similar.ts` ranks candidates and how the prompt tells the model what it is
+ * choosing between.
+ */
+export function baseServingKcal(ingredients: readonly DishIngredientDetail[]): number {
+  return dishTotals(ingredients, 1).kcal.value;
 }

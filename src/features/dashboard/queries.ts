@@ -1,8 +1,9 @@
 import { and, asc, between, count, desc, eq, gte, isNotNull, notExists } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { appointmentRequests, appointments, clients, mealPlans, session } from '@/db/schema';
+import { appointmentRequests, appointments, clients, session, weeklyPlans } from '@/db/schema';
 import { type RequestKind } from '@/features/portal/types';
+import { currentSunday } from '@/features/weekly-plans/week';
 
 /**
  * Reads for the staff dashboard. Like `src/features/clients/queries.ts`, this
@@ -86,32 +87,60 @@ export async function countNewClientsSince(clinicId: string, sinceIso: string): 
 }
 
 /**
- * Active clients with no meal plan at all.
+ * Matches clients with NO published plan covering the week we are in now.
  *
- * The dashboard spec asked for "meal plans ending within 7 days", but
- * `meal_plans` has no end date — it is a repeating weekly template, not a
- * dated programme (see the comment on that table). Rather than invent a
- * lifecycle the schema doesn't have, this counts the honestly-derivable
- * proxy: a client with zero plans has clearly fallen further through the
- * cracks than one whose plan might lapse soon. See design-system.md's
- * sibling note in the dashboard PR description for the full explanation.
+ * Both callers want the absence, so the predicate is written as the absence
+ * rather than negated at each call site.
+ *
+ * The `status`/`week_start_date` pair, not merely "has any plan": a draft is not
+ * something a client can eat from, and last month's published week is not either.
+ * `weekly_plans_published_week_idx` covers exactly this shape.
+ *
+ * Shared by the count and the list below so the tile and the rows beneath it can
+ * never disagree about who is missing a plan.
  */
-export async function countActiveClientsWithoutMealPlan(clinicId: string): Promise<number> {
+function lacksPlanForCurrentWeek(weekStartDate: string) {
+  return notExists(
+    db
+      .select({ id: weeklyPlans.id })
+      .from(weeklyPlans)
+      .where(
+        and(
+          eq(weeklyPlans.clientId, clients.id),
+          eq(weeklyPlans.status, 'published'),
+          eq(weeklyPlans.weekStartDate, weekStartDate),
+        ),
+      ),
+  );
+}
+
+/**
+ * Active clients with no published plan for the current week.
+ *
+ * The dashboard spec asked for "plans ending within 7 days", which meal plans V1
+ * could not answer — it was a repeating template with no end date, so the tile
+ * settled for "has never had a plan at all". A weekly plan is generated *for* a
+ * named week, so the question is finally the real one: is there something on this
+ * client's board right now?
+ *
+ * This counts more people than the old proxy did, and it recurs every week
+ * instead of clearing once at onboarding. That is the point — a client whose plan
+ * ran out last Saturday is exactly who needs surfacing on a Sunday morning.
+ */
+export async function countActiveClientsWithoutWeeklyPlan(clinicId: string): Promise<number> {
+  const weekStartDate = currentSunday();
+
   const [row] = await db
     .select({ value: count() })
     .from(clients)
     .where(
-      and(
-        eq(clients.clinicId, clinicId),
-        eq(clients.status, 'active'),
-        notExists(db.select({ id: mealPlans.id }).from(mealPlans).where(eq(mealPlans.clientId, clients.id))),
-      ),
+      and(eq(clients.clinicId, clinicId), eq(clients.status, 'active'), lacksPlanForCurrentWeek(weekStartDate)),
     );
 
   return row?.value ?? 0;
 }
 
-export type AttentionReason = 'noUpcomingAppointment' | 'noMealPlan' | 'neverSignedIn';
+export type AttentionReason = 'noUpcomingAppointment' | 'noWeeklyPlan' | 'neverSignedIn';
 
 export type AttentionItem = {
   clientId: string;
@@ -146,22 +175,20 @@ export async function listClientsWithNoUpcomingAppointment(
   return rows.map((row) => ({ ...row, reason: 'noUpcomingAppointment' as const }));
 }
 
-/** Active clients with zero meal plans — see {@link countActiveClientsWithoutMealPlan}. */
-export async function listClientsWithoutMealPlan(clinicId: string, limit: number): Promise<AttentionItem[]> {
+/** Active clients with no published plan this week — see {@link countActiveClientsWithoutWeeklyPlan}. */
+export async function listClientsWithoutWeeklyPlan(clinicId: string, limit: number): Promise<AttentionItem[]> {
+  const weekStartDate = currentSunday();
+
   const rows = await db
     .select({ clientId: clients.id, clientName: clients.fullName })
     .from(clients)
     .where(
-      and(
-        eq(clients.clinicId, clinicId),
-        eq(clients.status, 'active'),
-        notExists(db.select({ id: mealPlans.id }).from(mealPlans).where(eq(mealPlans.clientId, clients.id))),
-      ),
+      and(eq(clients.clinicId, clinicId), eq(clients.status, 'active'), lacksPlanForCurrentWeek(weekStartDate)),
     )
     .orderBy(asc(clients.fullName))
     .limit(limit);
 
-  return rows.map((row) => ({ ...row, reason: 'noMealPlan' as const }));
+  return rows.map((row) => ({ ...row, reason: 'noWeeklyPlan' as const }));
 }
 
 /**

@@ -13,10 +13,16 @@ import {
   type MealSlot,
 } from '@/db/schema';
 import { calculateAge } from '@/features/clients/age';
-import type { NutrientTotals } from '@/features/meal-plans/nutrition';
 
-import { baseServingKcal, combineTotals, dishTotals, emptyTotals, type DishDetail } from './dish-nutrition';
 import type { CatalogDish } from './generate';
+import {
+  baseServingKcal,
+  combineTotals,
+  dishTotals,
+  emptyTotals,
+  type DishDetail,
+  type NutrientTotals,
+} from './nutrition';
 import { findSimilar, type SimilarMatch } from './similar';
 import {
   DAYS_OF_WEEK,

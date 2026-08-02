@@ -1,7 +1,7 @@
 import { useLocale, useTranslations } from 'next-intl';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { roundForDisplay } from '@/features/meal-plans/nutrition';
+import { roundForDisplay } from '@/features/weekly-plans/nutrition';
 import { type BoardDay } from '@/features/weekly-plans/queries';
 import { formatNumber } from '@/lib/format';
 import { type Locale } from '@/i18n/routing';
@@ -17,7 +17,6 @@ import { type Locale } from '@/i18n/routing';
 export function TodayMeals({ day, planTitle }: { day: BoardDay | null; planTitle: string | null }) {
   const locale = useLocale() as Locale;
   const t = useTranslations('portal');
-  const tPlans = useTranslations('mealPlans');
 
   const meals = day?.meals ?? [];
 
@@ -32,7 +31,7 @@ export function TodayMeals({ day, planTitle }: { day: BoardDay | null; planTitle
         {planTitle === null ? (
           <p className="text-sm text-muted-foreground">{t('plan.none')}</p>
         ) : meals.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{tPlans('emptyDay')}</p>
+          <p className="text-sm text-muted-foreground">{t('emptyToday')}</p>
         ) : (
           <>
             <ul className="space-y-2">

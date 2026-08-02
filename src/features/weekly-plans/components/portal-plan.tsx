@@ -1,7 +1,7 @@
 import { useTranslations } from 'next-intl';
 
 import { Badge } from '@/components/ui/badge';
-import { roundForDisplay } from '@/features/meal-plans/nutrition';
+import { roundForDisplay } from '@/features/weekly-plans/nutrition';
 
 import type { Board } from '../queries';
 import { dayKey } from '../schema';
@@ -20,7 +20,7 @@ import { weekDates } from '../week';
  */
 export function PortalPlan({ board }: { board: Board }) {
   const t = useTranslations('portal.plan');
-  const tDays = useTranslations('mealPlans.days');
+  const tDays = useTranslations('weeklyPlans.days');
 
   const dates = weekDates(board.weekStartDate);
 

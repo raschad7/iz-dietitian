@@ -4,7 +4,7 @@ import { useTranslations } from 'next-intl';
 
 import { cn } from '@/lib/utils';
 
-import { roundForDisplay } from '@/features/meal-plans/nutrition';
+import { roundForDisplay } from '@/features/weekly-plans/nutrition';
 import type { BoardDay } from '../queries';
 import { dayKey } from '../schema';
 
@@ -36,7 +36,7 @@ export function DayColumn({
   onSelectMeal: (mealId: string) => void;
 }) {
   const t = useTranslations('weeklyPlans');
-  const tDays = useTranslations('mealPlans.days');
+  const tDays = useTranslations('weeklyPlans.days');
 
   const kcal = roundForDisplay('kcal', day.totals.kcal.value);
   const drift = dailyTarget > 0 ? (kcal - dailyTarget) / dailyTarget : 0;

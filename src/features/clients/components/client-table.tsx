@@ -18,7 +18,7 @@ export function ClientTable({
   locale: Locale;
 }) {
   const t = useTranslations('clients');
-  const tMealPlans = useTranslations('mealPlans');
+  const tNav = useTranslations('nav');
 
   if (result.items.length === 0) {
     return (
@@ -78,12 +78,12 @@ export function ClientTable({
               {/* Row actions: the things worth doing without opening the record. */}
               <td className="px-3 py-2">
                 <div className="flex items-center justify-end gap-2">
-                  {/* Carries the client through, so the plan form arrives with them chosen. */}
+                  {/* Straight to this client's board — the client is the route, not a query param. */}
                   <Link
-                    href={{ pathname: '/app/meal-plans/new', query: { clientId: client.id } }}
+                    href={`/app/weekly-plans/${client.id}`}
                     className={buttonVariants({ variant: 'outline', size: 'sm' })}
                   >
-                    {tMealPlans('new')}
+                    {tNav('weeklyPlans')}
                   </Link>
                   <Link
                     href={`/app/clients/${client.id}/edit`}

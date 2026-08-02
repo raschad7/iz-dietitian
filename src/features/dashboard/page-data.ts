@@ -4,13 +4,13 @@ import { type CalendarAppointment } from '@/features/booking/types';
 
 import {
   countActiveClients,
-  countActiveClientsWithoutMealPlan,
+  countActiveClientsWithoutWeeklyPlan,
   countAppointmentsInRange,
   countNewClientsSince,
   countPendingRequests,
   listClientsNeverSignedIn,
   listClientsWithNoUpcomingAppointment,
-  listClientsWithoutMealPlan,
+  listClientsWithoutWeeklyPlan,
   listPendingRequestsPreview,
   type AttentionItem,
   type PendingRequestPreview,
@@ -34,8 +34,8 @@ const ATTENTION_CATEGORY_LIMIT = 5;
 export type DashboardStats = {
   activeClients: number;
   appointmentsThisWeek: number;
-  /** See {@link import('./queries').countActiveClientsWithoutMealPlan} for why this isn't "ending soon". */
-  clientsWithoutMealPlan: number;
+  /** Active clients with no published plan for the week in progress. Recurs weekly, by design. */
+  clientsWithoutWeeklyPlan: number;
   newClientsThisMonth: number;
 };
 
@@ -66,10 +66,10 @@ export async function loadDashboard(clinicId: string): Promise<DashboardData> {
     pendingTotal,
     activeClients,
     appointmentsThisWeek,
-    clientsWithoutMealPlan,
+    clientsWithoutWeeklyPlan,
     newClientsThisMonth,
     noUpcomingAppointment,
-    noMealPlan,
+    noWeeklyPlan,
     neverSignedIn,
   ] = await Promise.all([
     listAppointments(clinicId, today, today),
@@ -77,10 +77,10 @@ export async function loadDashboard(clinicId: string): Promise<DashboardData> {
     countPendingRequests(clinicId),
     countActiveClients(clinicId),
     countAppointmentsInRange(clinicId, weekStart, weekEnd),
-    countActiveClientsWithoutMealPlan(clinicId),
+    countActiveClientsWithoutWeeklyPlan(clinicId),
     countNewClientsSince(clinicId, monthStart(today)),
     listClientsWithNoUpcomingAppointment(clinicId, today, ATTENTION_CATEGORY_LIMIT),
-    listClientsWithoutMealPlan(clinicId, ATTENTION_CATEGORY_LIMIT),
+    listClientsWithoutWeeklyPlan(clinicId, ATTENTION_CATEGORY_LIMIT),
     listClientsNeverSignedIn(clinicId, ATTENTION_CATEGORY_LIMIT),
   ]);
 
@@ -88,7 +88,7 @@ export async function loadDashboard(clinicId: string): Promise<DashboardData> {
     today,
     agenda,
     pendingRequests: { items: pendingItems, total: pendingTotal },
-    stats: { activeClients, appointmentsThisWeek, clientsWithoutMealPlan, newClientsThisMonth },
-    attention: [...noUpcomingAppointment, ...noMealPlan, ...neverSignedIn].slice(0, ATTENTION_LIMIT),
+    stats: { activeClients, appointmentsThisWeek, clientsWithoutWeeklyPlan, newClientsThisMonth },
+    attention: [...noUpcomingAppointment, ...noWeeklyPlan, ...neverSignedIn].slice(0, ATTENTION_LIMIT),
   };
 }

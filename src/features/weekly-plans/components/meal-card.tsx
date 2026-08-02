@@ -4,7 +4,7 @@ import { useTranslations } from 'next-intl';
 
 import { cn } from '@/lib/utils';
 
-import { roundForDisplay } from '@/features/meal-plans/nutrition';
+import { roundForDisplay } from '@/features/weekly-plans/nutrition';
 import type { BoardMeal } from '../queries';
 
 /**

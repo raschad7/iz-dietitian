@@ -19,8 +19,7 @@ import { getBoard, getPublishedBoard, listPlannableClients, loadCatalog } from '
 import { DEFAULT_MEAL_SCHEDULE } from './schema';
 
 /**
- * Integration tests against `TEST_DATABASE_URL`, following the shape of
- * `src/features/meal-plans/mutations.test.ts`.
+ * Integration tests against `TEST_DATABASE_URL`.
  *
  * What these are for: the tenant scope, the publish transaction and the constraint
  * behind it, and the guarantee that replacing one meal touches only that meal. All

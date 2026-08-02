@@ -12,7 +12,7 @@ import {
   NUTRIENT_UNITS,
   roundForDisplay,
   type NutrientKey,
-} from '@/features/meal-plans/nutrition';
+} from '@/features/weekly-plans/nutrition';
 
 import { swapMealAction } from '../actions';
 import { initialPlanActionState } from '../form-state';
@@ -136,7 +136,7 @@ function Ingredients({ meal }: { meal: BoardMeal }) {
 
 function Nutrients({ meal }: { meal: BoardMeal }) {
   const t = useTranslations('weeklyPlans');
-  const tNutrients = useTranslations('mealPlans.nutrients');
+  const tNutrients = useTranslations('weeklyPlans.nutrients');
 
   return (
     <section>

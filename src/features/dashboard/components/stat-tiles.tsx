@@ -21,7 +21,7 @@ type StatTilesProps = {
 const TILES = [
   { key: 'activeClients', href: '/app/clients' },
   { key: 'appointmentsThisWeek', href: '/app/calendar/week' },
-  { key: 'clientsWithoutMealPlan', href: '/app/clients' },
+  { key: 'clientsWithoutWeeklyPlan', href: '/app/clients' },
   { key: 'newClientsThisMonth', href: '/app/clients' },
 ] as const satisfies ReadonlyArray<{ key: keyof DashboardStats; href: '/app/clients' | '/app/calendar/week' }>;
 

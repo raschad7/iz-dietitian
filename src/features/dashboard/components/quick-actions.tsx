@@ -11,6 +11,10 @@ import { Link } from '@/i18n/navigation';
  * "New appointment" has no dedicated route — booking happens through a
  * dialog inside the calendar itself — so it opens today's day view, where
  * that dialog lives.
+ *
+ * "Weekly plans" is navigation rather than a create action, for the same kind
+ * of reason: a plan is generated against one client's profile and schedule from
+ * their own board, so there is no standalone form to send anyone to.
  */
 export async function QuickActions() {
   const t = await getTranslations('dashboard.quickActions');
@@ -25,8 +29,8 @@ export async function QuickActions() {
         <Link href="/app/clients/new" className={buttonVariants({ variant: 'outline' })}>
           {t('addClient')}
         </Link>
-        <Link href="/app/meal-plans/new" className={buttonVariants({ variant: 'outline' })}>
-          {t('newMealPlan')}
+        <Link href="/app/weekly-plans" className={buttonVariants({ variant: 'outline' })}>
+          {t('weeklyPlans')}
         </Link>
       </div>
     </div>

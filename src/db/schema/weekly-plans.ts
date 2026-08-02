@@ -17,16 +17,15 @@ import { clinics } from './clinics';
 import { dishes } from './dishes';
 
 /**
- * An AI-generated weekly plan — the storage behind meal planning V2.
+ * An AI-generated weekly plan — the only kind of plan there is.
  *
- * Deliberately separate from `meal_plans`. V2 needs a dish reference, a serving
- * multiplier, a rationale, ranked alternatives, and a publish lifecycle; none of
- * those mean anything to the manual editor, and adding them there would make every
- * one of its columns nullable-and-ignored. The two features share `foods` and the
- * nutrition arithmetic, which is the part worth sharing.
+ * It began as V2 beside a hand-built `meal_plans`; that table is gone, and this
+ * one carries what it never could: a dish reference, a serving multiplier, a
+ * rationale, ranked alternatives, and a publish lifecycle.
  *
- * Same day numbering as V1: 0 = Sunday … 6 = Saturday, matching
- * `Date.prototype.getDay()`.
+ * Day numbering is 0 = Sunday … 6 = Saturday, matching `Date.prototype.getDay()`.
+ * Sunday leads because the clinic's week does; the labels are translated, the
+ * numbering is not.
  */
 export const weeklyPlans = pgTable(
   'weekly_plans',

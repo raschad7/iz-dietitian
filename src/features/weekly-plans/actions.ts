@@ -23,7 +23,7 @@ import {
   unpublishPlan,
   deletePlan,
 } from './mutations';
-import type { DishDetail } from './dish-nutrition';
+import type { DishDetail } from './nutrition';
 import {
   getBoard,
   getClientContext,

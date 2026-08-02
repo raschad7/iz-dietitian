@@ -94,6 +94,12 @@ Conventions:
 records. Their nutrition values are derived from the committed datasets and
 must not be replaced by model-generated facts.
 
+No screen reads `foods` directly — it is reached only through
+`dish_ingredients`. A dish stores no nutrition of its own, so every calorie the
+board, the generation prompt, and the client portal display is derived from this
+join at read time. Do not remove the table on the grounds that nothing in the UI
+references it.
+
 ## Localization and RTL
 
 Arabic is the default locale and English is also supported. Locale routing and
@@ -111,9 +117,9 @@ lint rule. See [Design system](design-system.md) for the complete UI contract.
 - `booking`: calendar, appointments, and appointment requests
 - `clients`: clinic roster, client details, and portal credential issuing
 - `dashboard`: staff overview and attention items
-- `meal-plans`: manual meal-plan editing
 - `portal`: client dashboard, appointments, profile, and published plan access
-- `weekly-plans`: nutrition profiles, dish-based generation, review, and publish
+- `weekly-plans`: nutrition profiles, dish-based generation, review, publish, and
+  the shared nutrition arithmetic over the `foods` reference table
 - `whatsapp`: gateway configuration, messages, reminders, and inbound replies
 
 ## External services
