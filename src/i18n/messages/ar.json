@@ -95,6 +95,7 @@
     "nameRequired": "أدخل الاسم الكامل.",
     "invalidEmail": "أدخل بريدًا إلكترونيًا صحيحًا.",
     "continueWithGoogle": "المتابعة باستخدام Google",
+    "googleUnavailable": "تعذّر بدء تسجيل الدخول باستخدام Google. تحقق من الاتصال وحاول مرة أخرى.",
     "continueWithPasskey": "المتابعة باستخدام مفتاح المرور",
     "passkeyFailed": "تعذّر الدخول بمفتاح المرور. جرّب طريقة أخرى.",
     "orUsePassword": "أو",

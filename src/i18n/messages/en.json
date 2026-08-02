@@ -95,6 +95,7 @@
     "nameRequired": "Enter your full name.",
     "invalidEmail": "Enter a valid email address.",
     "continueWithGoogle": "Continue with Google",
+    "googleUnavailable": "Google sign-in could not start. Check your connection and try again.",
     "continueWithPasskey": "Continue with a passkey",
     "passkeyFailed": "That passkey did not work. Try another method.",
     "orUsePassword": "or",
