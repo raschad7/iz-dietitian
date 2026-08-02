@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, test } from 'bun:test';
 
 import { db } from '@/db';
 import { CHECK_VIOLATION, EXCLUSION_VIOLATION, UNIQUE_VIOLATION, pgConstraintName, pgErrorCode } from '@/db/errors';
-import { appointments, clinics, practitioners } from '@/db/schema';
+import { appointments, clinics, clinicWorkingHours, practitioners } from '@/db/schema';
 
 import { createTestClient, createTestClinic, createTestPractitioner, resetDatabase } from '../../../tests/helpers';
 
@@ -75,6 +75,19 @@ async function insertPractitioner(color: string): Promise<void> {
 
 async function insertClinicHours(openMinute: number, closeMinute: number): Promise<void> {
   await db.insert(clinics).values({ name: 'Backwards', openMinute, closeMinute });
+}
+
+async function insertWorkingDay(
+  overrides: Partial<typeof clinicWorkingHours.$inferInsert> = {},
+): Promise<void> {
+  await db.insert(clinicWorkingHours).values({
+    clinicId,
+    weekday: 0,
+    isWorking: true,
+    openMinute: 9 * 60,
+    closeMinute: 17 * 60,
+    ...overrides,
+  });
 }
 
 describe('overlap exclusion constraint', () => {
@@ -208,5 +221,68 @@ describe('clinic defaults', () => {
     expect(clinic?.workingDays).toEqual([0, 1, 2, 3, 4]);
     expect(clinic?.openMinute).toBe(480);
     expect(clinic?.closeMinute).toBe(1080);
+  });
+});
+
+describe('clinic working-hours constraints', () => {
+  test('stores one valid working day', async () => {
+    await insertWorkingDay();
+
+    expect(await db.select().from(clinicWorkingHours)).toHaveLength(1);
+  });
+
+  test('rejects duplicate weekdays inside one clinic', async () => {
+    await insertWorkingDay();
+
+    const error = await expectRejected(() => insertWorkingDay());
+
+    expect(error.code).toBe(UNIQUE_VIOLATION);
+    expect(error.constraint).toBe('clinic_working_hours_clinic_id_weekday_idx');
+  });
+
+  test('rejects a weekday outside Sunday through Saturday', async () => {
+    const error = await expectRejected(() => insertWorkingDay({ weekday: 7 }));
+
+    expect(error.code).toBe(CHECK_VIOLATION);
+    expect(error.constraint).toBe('clinic_working_hours_weekday_range');
+  });
+
+  test('rejects a working day without both times', async () => {
+    const error = await expectRejected(() => insertWorkingDay({ openMinute: null }));
+
+    expect(error.code).toBe(CHECK_VIOLATION);
+    expect(error.constraint).toBe('clinic_working_hours_valid_state');
+  });
+
+  test('rejects an off day that still has active times', async () => {
+    const error = await expectRejected(() => insertWorkingDay({ isWorking: false }));
+
+    expect(error.code).toBe(CHECK_VIOLATION);
+    expect(error.constraint).toBe('clinic_working_hours_valid_state');
+  });
+
+  test('rejects times that are not on a 15-minute boundary', async () => {
+    const error = await expectRejected(() => insertWorkingDay({ openMinute: 9 * 60 + 1 }));
+
+    expect(error.code).toBe(CHECK_VIOLATION);
+    expect(error.constraint).toBe('clinic_working_hours_valid_state');
+  });
+
+  test('rejects a closing time before the opening time', async () => {
+    const error = await expectRejected(() =>
+      insertWorkingDay({ openMinute: 18 * 60, closeMinute: 8 * 60 }),
+    );
+
+    expect(error.code).toBe(CHECK_VIOLATION);
+    expect(error.constraint).toBe('clinic_working_hours_valid_state');
+  });
+
+  test('stores an off day with null times', async () => {
+    await insertWorkingDay({ isWorking: false, openMinute: null, closeMinute: null });
+
+    const [row] = await db.select().from(clinicWorkingHours);
+    expect(row?.isWorking).toBe(false);
+    expect(row?.openMinute).toBeNull();
+    expect(row?.closeMinute).toBeNull();
   });
 });
