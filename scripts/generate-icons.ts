@@ -76,6 +76,14 @@ const ICONS = {
   attention: 'danger-triangle-bold',
   medical: 'danger-circle-bold',
   info: 'info-circle-bold',
+
+  // Dashboard
+  notifications: 'bell-bing-bold',
+  topClients: 'cup-star-bold',
+  clock: 'clock-circle-bold',
+  addClient: 'user-plus-bold',
+  bookAppointment: 'calendar-add-bold',
+  trend: 'graph-up-bold',
 } as const satisfies Record<string, string>;
 
 type SolarIcon = { body: string; width?: number; height?: number };

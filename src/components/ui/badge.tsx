@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils"
  * badge to mean "bad", reach for the status that actually describes it.
  */
 const badgeVariants = cva(
-  "inline-flex w-fit shrink-0 items-center gap-1 rounded-full border px-2.5 py-0.5 text-micro font-medium whitespace-nowrap transition-colors [&_svg]:pointer-events-none [&_svg]:size-3",
+  "inline-flex w-fit shrink-0 items-center gap-1 rounded-full border px-2.5 py-0.5 text-label font-medium whitespace-nowrap transition-colors [&_svg]:pointer-events-none [&_svg]:size-3",
   {
     variants: {
       variant: {
@@ -34,8 +34,8 @@ const badgeVariants = cva(
         rest: "border-transparent bg-status-rest-bg text-status-rest-fg",
       },
       size: {
-        default: "px-2.5 py-0.5 text-micro",
-        sm: "px-2 py-0 text-micro",
+        default: "px-2.5 py-0.5 text-label",
+        sm: "px-2 py-0 text-label",
       },
     },
     defaultVariants: {

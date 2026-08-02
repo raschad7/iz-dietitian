@@ -76,7 +76,7 @@ function Segmented<T extends string>({
             className={cn(
               'rounded-md font-medium transition-colors duration-180',
               'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-focus-halo focus-visible:outline-none',
-              size === 'sm' ? 'px-2.5 py-1 text-caption' : 'px-3 py-2 text-body',
+              size === 'sm' ? 'px-2.5 py-1 text-caption' : 'px-3 py-2 text-body-md',
               active
                 ? 'bg-primary text-primary-foreground'
                 : 'text-muted-foreground hover:bg-secondary hover:text-secondary-foreground',

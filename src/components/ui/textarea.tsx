@@ -8,7 +8,7 @@ function Textarea({ className, ...props }: React.ComponentProps<"textarea">) {
     <textarea
       data-slot="textarea"
       className={cn(
-        "q-field field-sizing-content min-h-20 px-3 py-2",
+        "q-field field-sizing-content min-h-24 px-5 py-3",
         "placeholder:text-muted-foreground",
         className
       )}

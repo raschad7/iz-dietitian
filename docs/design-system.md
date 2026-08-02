@@ -111,24 +111,45 @@ Form controls are fine either way — Tailwind's preflight gives
 
 ### Scale
 
-| Token | Size | Use |
-|---|---|---|
-| `text-display` | 36px | Page hero, one per screen |
-| `text-h1` | 28px | |
-| `text-h2` | 22px | |
-| `text-h3` | 18px | |
-| `text-h4` | 16px | Card titles, dialog titles |
-| `text-body` | 14px | The app default |
-| `text-caption` | 13px | Metadata, helper text |
-| `text-micro` | 12px, weight 500 | Nav labels, chips. **Floor — nothing smaller.** |
+Nine steps. Each one owns its size, its leading **and** its weight, so a step
+is one class and not three.
 
-Tailwind's `text-xs` is remapped to 13px so it can't disagree with
-`text-caption`; `text-sm` already equals `text-body`. **Never use an arbitrary
-size** (`text-[10px]`, `text-[0.7rem]`) — see below for why.
+| Token | Size | Leading (ar / en) | Weight | Use |
+|---|---|---|---|---|
+| `text-display-lg` | 40px | 1.35 / 1.25 | 500 | Report covers, onboarding |
+| `text-display-sm` | 32px | 1.4 / 1.3 | 500 | Screen titles |
+| `text-heading-lg` | 24px | 1.45 / 1.35 | 600 | Section headings |
+| `text-heading-sm` | 20px | 1.5 / 1.4 | 600 | Card titles, dialog titles |
+| `text-body-lg` | 18px | 1.75 / 1.6 | 400 | Nutritionist notes, long reads |
+| `text-body-md` | 16px | 1.75 / 1.6 | 400 | **Default body — mobile minimum** |
+| `text-body-sm` | 14px | 1.7 / 1.55 | 400 | Dense dashboard tables |
+| `text-label` | 13px | 1.5 / 1.4 | 600 | Form labels, chips |
+| `text-caption` | 12px | 1.5 / 1.45 | 400 | Timestamps, helper text — **never for essential information** |
 
-Line heights are looser than a Latin-only scale would be. Arabic has taller
-ascenders and descenders, and cramped leading makes it illegible well before
-it does the same to Latin.
+**Every step ships two line heights**, and the looser one is Arabic. Arabic has
+taller ascenders and descenders and no letter case to fall back on, so leading
+that reads as generous in Latin reads as cramped — and then illegible — in
+Arabic well before it does the same in English. The pairs live in `--lh-*` on
+`:root` (Latin) and `:lang(ar)` (Arabic); the scale references them, so a step
+is declared once and resolves per document language with no component override.
+`:lang(ar)` rather than `html[lang]`, so an Arabic name inside an English page
+gets the right leading too.
+
+`text-caption` is 12px and that is the floor: nothing a reader *needs* may live
+there. Anything essential is `text-label` or larger.
+
+Tailwind's own steps are remapped onto this ladder — `text-xs` → 12, `text-sm`
+→ 14, `text-base` → 16, `text-lg` → 18, `text-xl` → 20, `text-2xl` → 24,
+`text-3xl` → 32, `text-4xl` → 40 — because several hundred call sites predate
+the named scale and remapping re-scales them all at once instead of leaving two
+competing ladders in the app. **Never use an arbitrary size** (`text-[10px]`,
+`text-[0.7rem]`) — see below for why.
+
+`cn` ([`src/lib/utils.ts`](../src/lib/utils.ts)) registers this scale with
+tailwind-merge. It has to: tailwind-merge only knows Tailwind's stock sizes and
+files anything else called `text-*` as a *colour*, so `cn('text-caption',
+'text-muted-foreground')` used to drop the size silently. Add any new step to
+that list as well as to `globals.css`.
 
 Hierarchy is carried by size **and** weight together, because Readex Pro and
 IBM Plex Sans Arabic sit at similar optical weights.
@@ -230,7 +251,36 @@ dense surfaces off ad-hoc classes.
 Disabled keeps the resting tail and drops to the sunken fill with n-500 text
 (4.0:1) — a control that still animates reads as available.
 
-Sizes: `xs` `sm` `default` `lg`, and `icon-xs` `icon-sm` `icon` `icon-lg`.
+### Dimensions
+
+| Size | Height | Use |
+|---|---|---|
+| `default` | **48px** | Everything. The mobile touch-target minimum, and a control that is comfortable on a phone is not uncomfortable on a desktop. |
+| `sm` | **40px** | The compact size, **pointer-only**: toolbars and table rows, where the dense row is itself the target. |
+| `icon` | **48×48** | |
+| `icon-sm` | **40×40** | Pointer-only, same rule as `sm`. |
+
+There is no size above 48 and none below 40. Reaching for a smaller control to
+fit more onto a screen is a layout problem, not a button problem.
+
+**Max width 320px, and labels never wrap** — both are on the base class
+(`max-w-80`, `whitespace-nowrap`). A label that needs two lines is a label that
+needs rewriting.
+
+### Spacing
+
+- **Padding: 0 20px.** Tertiary (`ghost`, `link`) takes 0 12px instead — a ghost
+  button has no box at rest, so the wider padding reads as a gap someone forgot
+  rather than as part of the control.
+- **Icon-to-label gap: 8px** (`gap-2`), every size.
+- **Sibling buttons sit 12px apart** (`gap-3` on the group).
+- **The primary sits at the inline-start of the group, in both locales.** Use
+  logical ordering — source order plus `flex`, never `flex-row-reverse` or a
+  hardcoded side — so Arabic mirrors it for free.
+
+Fields match the same geometry (48px tall, 20px padding, `min-h-24` on
+`Textarea`): a field and the button that submits it share a row, and a 36px
+input beside a 48px button is the tell that one of them was resized alone.
 
 ## Fields and forms
 
@@ -275,6 +325,17 @@ corner — never a red card).
 
 `CardSkeleton` is the loading state: same shape, same footprint, nothing jumps.
 
+## Avatar
+
+`Avatar` draws a person's initials on their stored colour — the calendar's
+client picker, the dashboard agenda and the top-clients list all use it, so
+one person looks the same everywhere. Sizes `sm` · `default` · `lg`.
+
+It is a **circle with no sweep**: the Arc marks surfaces you can act on, and a
+person is not a control. The `color` prop is per-record data, not a token (see
+"Arbitrary colour" below), which is why it arrives as an inline style. It
+renders `aria-hidden` — the name it stands for is always beside it.
+
 ## Navigation
 
 Matching [Navigation.png](design-images/Navigation.png).
@@ -294,6 +355,12 @@ rather than snapping.
 **App bar** (`Header`) — deliberately **unfilled**: no background, no border,
 no elevation. The rail is the shell's only heavy surface, so the eye has one
 place to go; the bar carries itself on type and spacing.
+
+Two slots: `children` sits beside the title for page-level controls, `actions`
+sits beside sign-out for shell-level ones. The notification bell lives in
+`actions` — it belongs to every staff screen, not to the dashboard, and its
+badge counts pending *requests* only. A number on a bell promises someone is
+waiting; "no meal plan yet" is a nudge, and it stays inside the popover.
 
 **Bottom bar** (`PortalTabBar`) — five-across on a phone, labels always
 visible, lime node **above** the active icon rather than beside it: the bar is
@@ -355,6 +422,57 @@ token; don't add it to this exemption.
 The one deliberate exception in markup is the WhatsApp QR code, which needs
 true white (`--n-0`) for scanner contrast rather than the warm canvas tint.
 
+## Charts
+
+Three scales, each doing one job. All of them are tokens — a hex in a chart
+component is the same bug it is anywhere else.
+
+| Scale | Tokens | Job |
+|---|---|---|
+| Sequential | `viz-seq-1`…`5` | **magnitude** — one hue, five monotone steps, light → dark |
+| Categorical | `viz-cat-1`, `viz-cat-2` | **identity** — which segment |
+| Neutral | `viz-cat-none` | "not recorded" — an absence, never a third category |
+| Comfort band | `viz-band-range` / `-edge` / `-marker` | the three-stop band the brand defines |
+
+The steps were picked by running the palette validator, not by eye:
+
+- **Sequential is olive-400…800, not 200…600.** The light end has to stay
+  visible on the card, and olive-200 measures 1.28:1 on white, olive-300
+  1.73:1 — both under the 2:1 floor a filled mark needs. `.dark` re-anchors the
+  ramp (olive-600 → olive-200) rather than flipping it automatically.
+- **Categorical is olive-600 + lime-600, and that pairing is not a taste call.**
+  It is the only one in this brand that survives colour-vision simulation:
+  olive against amber-600 collapses to ΔE 1.5 under protanopia and against
+  clay-600 to 1.9 under deuteranopia — invisible in practice. Lime-600 sits at
+  2.77:1 on white, just under the 3:1 mark floor, so **any chart using slot 2
+  must carry visible labels**; the legend is the required relief, not decoration.
+- **Colour follows the entity, never its rank.** Female is always slot 1,
+  male always slot 2, so a shifting balance never repaints the chart.
+- Ordered categories — age bands, tiers, funnel stages — are **ordinal**: they
+  take the sequential ramp read in order, never one hue each. Reordering them
+  would change the meaning, and colour should show that.
+- Marks are chunky rather than hairline — the dashboard reads at a glance from
+  a desk, not from a spreadsheet. Columns cap at 56px wide with an 8px rounded
+  data-end and a square baseline; horizontal bars are 16px in a track of the
+  same radius; the donut ring is 9 of its 42 viewBox units. Axes and rules stay
+  hairline and solid, never dashed.
+- **Every mark answers the pointer.** A column lifts 4%, a bar's track
+  thickens to 20px, a donut segment scales 6% and its stroke grows — all on the
+  system's one easing curve, so `prefers-reduced-motion` collapses them with
+  everything else. `ChartTip` (`src/components/ui/chart-tip.tsx`) is the bubble
+  they show; positioning belongs to the chart, since a column, a bar and a ring
+  segment anchor it in three different places.
+- The hover state is pure CSS — no chart is a client component. A donut segment
+  and its tip cannot be parent and child, so they are linked with `:has()` on
+  their common ancestor; the selectors have to be literal strings for Tailwind
+  to compile them.
+- Every value is readable **without** hovering — an axis label, a direct label
+  or the legend. A tip may add to that; it may never be the only way, which is
+  why `ChartTip` is `aria-hidden` rather than announced twice.
+
+`--color-chart-1`..`5` predate these and remain for anything that needs a
+fifth and sixth hue; prefer the `viz-*` scales, which are validated.
+
 ## Not built yet
 
 These are described by the brand but have no caller in the app, so they were
@@ -365,8 +483,3 @@ components, and toast.
 
 When a feature needs one, build it against the rules above rather than
 approximating it with a generic library component.
-
-Chart series colours (`--color-chart-1`..`5`) reuse existing brand and status
-hues. The brand only defines the three-stop comfort-band trio (`viz-band-*`),
-not a categorical series palette — confirm with design before a real
-multi-series chart ships.

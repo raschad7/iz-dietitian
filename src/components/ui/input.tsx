@@ -15,7 +15,10 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">) {
       type={type}
       data-slot="input"
       className={cn(
-        "q-field h-9 px-3 py-1",
+        // 48px and 20px of padding, matching the default button: a field and
+        // the button that submits it sit in the same row and must be the same
+        // height, and the touch-target floor applies to both.
+        "q-field h-12 px-5 py-1",
         "placeholder:text-muted-foreground",
         "file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-caption file:font-medium file:text-foreground",
         className

@@ -271,7 +271,7 @@ export function ClientPicker({
               >
                 <span
                   aria-hidden
-                  className="flex size-7 shrink-0 items-center justify-center rounded-full text-micro font-semibold text-white"
+                  className="flex size-7 shrink-0 items-center justify-center rounded-full text-label font-semibold text-white"
                   style={{ background: client.color }}
                 >
                   {initialsOf(client.name)}
@@ -282,7 +282,7 @@ export function ClientPicker({
                 </span>
 
                 {booking && (
-                  <span className="shrink-0 text-micro text-muted-foreground" dir="auto">
+                  <span className="shrink-0 text-label text-muted-foreground" dir="auto">
                     {formatMinute(locale, booking.date, booking.startMinute)}
                   </span>
                 )}
@@ -300,7 +300,7 @@ export function ClientPicker({
       ) : (
         // Says where to go rather than leaving a dead end, for the case that
         // matters: the person in front of you is not on the register yet.
-        <p className="text-micro text-muted-foreground">{t('picker.newClientInDayView')}</p>
+        <p className="text-label text-muted-foreground">{t('picker.newClientInDayView')}</p>
       )}
     </div>
   );

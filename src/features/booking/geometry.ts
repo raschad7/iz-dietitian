@@ -170,7 +170,7 @@ export type BlockTypeScale = {
 
 /**
  * The smallest type this calendar will render: 12px, the same floor as
- * `--text-micro` in the design system. Below that, Arabic loses the dots that
+ * `--text-label` in the design system. Below that, Arabic loses the dots that
  * separate ب ت ث before Latin loses anything.
  */
 const MIN_TYPE_PX = 12;

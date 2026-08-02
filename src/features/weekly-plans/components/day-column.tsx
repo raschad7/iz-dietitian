@@ -51,7 +51,7 @@ export function DayColumn({
           {editable && <RegenerateDayButton planId={planId} dayOfWeek={day.dayOfWeek} locale={locale} />}
         </div>
 
-        <span className="mt-0.5 block text-micro text-muted-foreground">
+        <span className="mt-0.5 block text-label text-muted-foreground">
           <span className={cn(offTarget && 'font-medium text-status-attention-fg')}>
             {t('kcalValue', { value: kcal })}
           </span>
@@ -60,7 +60,7 @@ export function DayColumn({
       </div>
 
       {day.meals.length === 0 ? (
-        <p className="rounded-md border border-dashed border-border p-2 text-micro text-muted-foreground">
+        <p className="rounded-md border border-dashed border-border p-2 text-label text-muted-foreground">
           {t('emptyDay')}
         </p>
       ) : (

@@ -34,7 +34,7 @@ function Table({ className, ...props }: React.ComponentProps<'table'>) {
   return (
     <table
       data-slot="table"
-      className={cn('w-full border-collapse text-body', className)}
+      className={cn('w-full border-collapse text-body-md', className)}
       {...props}
     />
   );

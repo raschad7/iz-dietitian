@@ -91,7 +91,7 @@ export function Sidebar({
       */}
       <div className="flex h-full flex-col rounded-lg rounded-ee-[28px] bg-sidebar text-sidebar-foreground shadow-elevated">
         <div className="flex h-14 items-center px-5">
-          <span className="truncate font-heading text-h4 font-semibold text-sidebar-primary-foreground">
+          <span className="truncate font-heading text-heading-sm font-semibold text-sidebar-primary-foreground">
             {title}
           </span>
         </div>
@@ -109,7 +109,7 @@ export function Sidebar({
                 // alone does not.
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'flex items-center gap-3 rounded-md px-4 py-2.5 text-start text-body',
+                  'flex items-center gap-3 rounded-md px-4 py-2.5 text-start text-body-md',
                   'transition-[background-color,color] duration-200 ease-[cubic-bezier(.2,.6,.2,1)]',
                   'focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:outline-none',
                   active

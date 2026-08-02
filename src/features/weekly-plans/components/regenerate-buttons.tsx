@@ -72,7 +72,7 @@ export function RegenerateDayButton({
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
         title={t('regenerateDay')}
-        className="shrink-0 rounded px-1 text-micro text-muted-foreground hover:text-foreground"
+        className="shrink-0 rounded px-1 text-label text-muted-foreground hover:text-foreground"
       >
         {/* A glyph rather than a word: seven of these sit in a row of narrow columns. */}
         ⟳
@@ -88,7 +88,7 @@ export function RegenerateDayButton({
             name="instruction"
             placeholder={t('instructionPlaceholder')}
             maxLength={600}
-            className="h-7 text-micro"
+            className="h-7 text-label"
           />
 
           <Pending label={t('regenerate')} pendingLabel={t('generating')} />

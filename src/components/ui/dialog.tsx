@@ -86,7 +86,7 @@ function DialogHeader({
   return (
     <header className={cn('flex items-start gap-2 px-4 pt-4', className)}>
       <div className="min-w-0 flex-1">
-        <h2 className="truncate text-h4 font-semibold" dir="auto">
+        <h2 className="truncate text-heading-sm font-semibold" dir="auto">
           {title}
         </h2>
         {description ? (

@@ -180,7 +180,7 @@ export function AppointmentBlock({
             the worst possible treatment at the smallest size in the scale.
           */}
           {completed && !scale.inline && (
-            <span className="shrink-0 rounded-sm bg-foreground/10 px-1 text-micro font-semibold">
+            <span className="shrink-0 rounded-sm bg-foreground/10 px-1 text-label font-semibold">
               {t('completed')}
             </span>
           )}

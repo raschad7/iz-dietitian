@@ -50,7 +50,7 @@ export function PortalTabBar() {
                 href={item.href}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'flex flex-col items-center gap-1 rounded-md px-1 pt-3 pb-1.5 text-micro transition-colors',
+                  'flex flex-col items-center gap-1 rounded-md px-1 pt-3 pb-1.5 text-label transition-colors',
                   active ? 'font-semibold text-foreground' : 'text-muted-foreground',
                 )}
               >

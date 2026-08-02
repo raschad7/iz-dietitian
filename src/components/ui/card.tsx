@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils"
  * variant rather than as a Card inside a Card.
  */
 const cardVariants = cva(
-  "group/card relative flex flex-col gap-(--card-spacing) rounded-lg rounded-ee-4xl text-body [--card-spacing:--spacing(4)] sm:[--card-spacing:--spacing(5)]",
+  "group/card relative flex flex-col gap-(--card-spacing) rounded-lg rounded-ee-4xl text-body-md [--card-spacing:--spacing(4)] sm:[--card-spacing:--spacing(5)]",
   {
     variants: {
       variant: {
@@ -138,7 +138,7 @@ function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card-title"
       className={cn(
-        "font-heading text-h4 leading-snug font-semibold group-data-[size=sm]/card:text-body",
+        "font-heading text-heading-sm leading-snug font-semibold group-data-[size=sm]/card:text-body-md",
         className
       )}
       {...props}

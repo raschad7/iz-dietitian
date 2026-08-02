@@ -24,7 +24,7 @@ function Select({ className, children, ...props }: React.ComponentProps<"select"
     <div className="relative w-full">
       <select
         data-slot="select"
-        className={cn("q-field h-9 appearance-none py-1 ps-3 pe-9", className)}
+        className={cn("q-field h-12 appearance-none py-1 ps-5 pe-11", className)}
         {...props}
       >
         {children}
@@ -36,7 +36,7 @@ function Select({ className, children, ...props }: React.ComponentProps<"select"
       */}
       <Icon
         name="chevronDown"
-        className="pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+        className="pointer-events-none absolute inset-e-5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
       />
     </div>
   )

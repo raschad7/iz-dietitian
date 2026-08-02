@@ -50,7 +50,7 @@ export function MealCard({
         meal.dish === null && 'border-dashed bg-muted/40',
       )}
     >
-      <span className="block truncate text-micro text-muted-foreground">
+      <span className="block truncate text-label text-muted-foreground">
         {meal.label}
       </span>
 
@@ -58,7 +58,7 @@ export function MealCard({
         <>
           <span className="mt-0.5 block font-medium leading-snug">{meal.dish.nameAr}</span>
 
-          <span className="mt-0.5 flex items-baseline gap-1 text-micro text-muted-foreground">
+          <span className="mt-0.5 flex items-baseline gap-1 text-label text-muted-foreground">
             <span className={cn(offTarget && 'font-medium text-status-attention-fg')}>
               {t('kcalValue', { value: kcal })}
             </span>

@@ -333,13 +333,13 @@ export function AppointmentDialog({
         </div>
 
         {message && !completed && (
-          <p role="alert" className="rounded-md bg-destructive-subtle px-3 py-2 text-body text-destructive">
+          <p role="alert" className="rounded-md bg-destructive-subtle px-3 py-2 text-body-md text-destructive">
             {t(message)}
           </p>
         )}
 
         {completed && (
-          <p className="rounded-md bg-muted px-3 py-2 text-body text-muted-foreground">{t('errors.completedLocked')}</p>
+          <p className="rounded-md bg-muted px-3 py-2 text-body-md text-muted-foreground">{t('errors.completedLocked')}</p>
         )}
         </DialogBody>
 

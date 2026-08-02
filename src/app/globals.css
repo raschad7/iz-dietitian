@@ -66,6 +66,29 @@
   --clay-600: #A33422;
   --clay-700: #82291B;
 
+  /*
+   * ── Leading, per script ──
+   *
+   * Every step of the type scale ships two line heights: the looser one for
+   * Arabic, the tighter one for Latin. Arabic has taller ascenders and
+   * descenders and no case to fall back on, so leading that reads as generous
+   * in Latin reads as cramped — and illegible — in Arabic well before it does
+   * the same in English.
+   *
+   * The values below are the Latin ones; `:lang(ar)` further down swaps in the
+   * Arabic pair. The scale itself references these, so a step is declared once
+   * and resolves per document language with no per-component override.
+   */
+  --lh-display-lg: 1.25;
+  --lh-display-sm: 1.3;
+  --lh-heading-lg: 1.35;
+  --lh-heading-sm: 1.4;
+  --lh-body-lg: 1.6;
+  --lh-body-md: 1.6;
+  --lh-body-sm: 1.55;
+  --lh-label: 1.4;
+  --lh-caption: 1.45;
+
   /* ── Radius — 8 / 12 / 16 / 24, never 0 ── */
   --qiwam-radius-sm: 8px;
   --qiwam-radius-md: 12px;
@@ -124,42 +147,68 @@
    * ascenders and descenders, and cramped leading makes it illegible long
    * before it does the same to Latin.
    */
-  --text-display: 2.25rem;      /* 36px — page hero, one per screen */
-  --text-display--line-height: 1.25;
-  --text-h1: 1.75rem;           /* 28px */
-  --text-h1--line-height: 1.3;
-  --text-h2: 1.375rem;          /* 22px */
-  --text-h2--line-height: 1.35;
-  --text-h3: 1.125rem;          /* 18px */
-  --text-h3--line-height: 1.45;
-  --text-h4: 1rem;              /* 16px */
-  --text-h4--line-height: 1.5;
-  --text-body: 0.875rem;        /* 14px — the app's default */
-  --text-body--line-height: 1.6;
-  --text-caption: 0.8125rem;    /* 13px — metadata, helper text */
-  --text-caption--line-height: 1.55;
+  --text-display-lg: 2.5rem;       /* 40px — report covers, onboarding */
+  --text-display-lg--line-height: var(--lh-display-lg);
+  --text-display-lg--font-weight: 500;
+  --text-display-sm: 2rem;         /* 32px — screen titles */
+  --text-display-sm--line-height: var(--lh-display-sm);
+  --text-display-sm--font-weight: 500;
+  --text-heading-lg: 1.5rem;       /* 24px — section headings */
+  --text-heading-lg--line-height: var(--lh-heading-lg);
+  --text-heading-lg--font-weight: 600;
+  --text-heading-sm: 1.25rem;      /* 20px — card titles */
+  --text-heading-sm--line-height: var(--lh-heading-sm);
+  --text-heading-sm--font-weight: 600;
+  --text-body-lg: 1.125rem;        /* 18px — nutritionist notes, long reads */
+  --text-body-lg--line-height: var(--lh-body-lg);
+  --text-body-lg--font-weight: 400;
+  --text-body-md: 1rem;            /* 16px — default body, mobile minimum */
+  --text-body-md--line-height: var(--lh-body-md);
+  --text-body-md--font-weight: 400;
+  --text-body-sm: 0.875rem;        /* 14px — dense dashboard tables */
+  --text-body-sm--line-height: var(--lh-body-sm);
+  --text-body-sm--font-weight: 400;
   /*
-   * 12px is the floor, and it carries medium weight rather than regular.
-   * Below this, Arabic stops being readable before Latin does — the i'jam
-   * (the dots that separate ب ت ث) collapse into the letterform, and
-   * DirectWrite has too few pixels left to hint the joins cleanly, which is
-   * what reads as "pixelated". Extra weight buys back the ink that the
-   * smaller size gives up.
+   * The label step carries 600 rather than regular. Below ~14px Arabic stops
+   * being readable before Latin does — the i'jam (the dots that separate
+   * ب ت ث) collapse into the letterform, and there are too few pixels left to
+   * hint the joins cleanly, which is what reads as "pixelated". Extra weight
+   * buys back the ink the smaller size gives up.
    */
-  --text-micro: 0.75rem;        /* 12px — nav labels, chip text. Floor. */
-  --text-micro--line-height: 1.4;
-  --text-micro--font-weight: 500;
+  --text-label: 0.8125rem;         /* 13px — form labels, chips */
+  --text-label--line-height: var(--lh-label);
+  --text-label--font-weight: 600;
+  /*
+   * 12px is the floor, and it is for timestamps and helper text only. Nothing
+   * a reader *needs* may live at this size.
+   */
+  --text-caption: 0.75rem;         /* 12px — timestamps, helper text */
+  --text-caption--line-height: var(--lh-caption);
+  --text-caption--font-weight: 400;
 
   /*
-   * Tailwind's own small step is remapped onto ours so the two cannot
-   * disagree: `text-xs` is 13px here, not 12px. It is used in ~100 places
-   * that predate this scale, and remapping is what fixes them all at once
-   * instead of leaving two different "small" sizes in the app.
-   *
-   * `text-sm` already equals `text-body` at 14px, so it is left alone.
+   * Tailwind's own steps are remapped onto ours so the two cannot disagree.
+   * Several hundred call sites predate this scale, and remapping is what
+   * re-scales them all at once instead of leaving two competing ladders in the
+   * app. Anything outside this list is not part of the scale and must not be
+   * used.
    */
-  --text-xs: 0.8125rem;
-  --text-xs--line-height: 1.55;
+  --text-xs: 0.75rem;              /* → caption */
+  --text-xs--line-height: var(--lh-caption);
+  --text-sm: 0.875rem;             /* → body.sm */
+  --text-sm--line-height: var(--lh-body-sm);
+  --text-base: 1rem;               /* → body.md */
+  --text-base--line-height: var(--lh-body-md);
+  --text-lg: 1.125rem;             /* → body.lg */
+  --text-lg--line-height: var(--lh-body-lg);
+  --text-xl: 1.25rem;              /* → heading.sm */
+  --text-xl--line-height: var(--lh-heading-sm);
+  --text-2xl: 1.5rem;              /* → heading.lg */
+  --text-2xl--line-height: var(--lh-heading-lg);
+  --text-3xl: 2rem;                /* → display.sm */
+  --text-3xl--line-height: var(--lh-display-sm);
+  --text-4xl: 2.5rem;              /* → display.lg */
+  --text-4xl--line-height: var(--lh-display-lg);
 
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -186,6 +235,34 @@
   --color-viz-band-range: var(--viz-band-range);
   --color-viz-band-edge: var(--viz-band-edge);
   --color-viz-band-marker: var(--viz-band-marker);
+
+  /*
+   * ── Data-visualisation scales ──
+   *
+   * `viz-seq-*` is the SEQUENTIAL ramp: one hue, five monotone lightness
+   * steps, light → dark, for "how much" (visit density, band sizes). The steps
+   * are olive-400…800 rather than 200…600 because the light end has to stay
+   * visible on the card: olive-200 measures 1.28:1 on white and olive-300
+   * 1.73:1, both under the 2:1 floor a filled mark needs. `.dark` re-anchors
+   * the ramp rather than flipping it automatically.
+   *
+   * `viz-cat-*` is the two-slot CATEGORICAL palette, for identity (which
+   * segment). Olive-600 + lime-600 is the only pairing in this brand that
+   * survives colour-vision simulation — olive against amber-600 collapses to
+   * ΔE 1.5 under protanopia, and against clay-600 to 1.9 under deuteranopia,
+   * both invisible-in-practice. Lime-600 sits at 2.77:1 on white, just under
+   * the 3:1 mark floor, so **every chart using it must carry visible labels**;
+   * that relief is not optional. `viz-cat-none` is the deliberate neutral for
+   * "not recorded" — an absence is not a third category.
+   */
+  --color-viz-seq-1: var(--viz-seq-1);
+  --color-viz-seq-2: var(--viz-seq-2);
+  --color-viz-seq-3: var(--viz-seq-3);
+  --color-viz-seq-4: var(--viz-seq-4);
+  --color-viz-seq-5: var(--viz-seq-5);
+  --color-viz-cat-1: var(--viz-cat-1);
+  --color-viz-cat-2: var(--viz-cat-2);
+  --color-viz-cat-none: var(--viz-cat-none);
 
   --color-ring: var(--ring);
   --color-focus-halo: var(--focus-halo);
@@ -318,6 +395,21 @@
   --viz-band-marker: var(--olive-900);
 
   /*
+   * Chart scales on the light surface. Validated against #FFFFFF: the
+   * sequential ramp is monotone with every adjacent step ≥ 0.06 L apart and a
+   * light end of 2.41:1, and the categorical pair clears colour-vision
+   * simulation at ΔE 16.9 (protanopia) / 17.7 (normal vision).
+   */
+  --viz-seq-1: var(--olive-400);
+  --viz-seq-2: var(--olive-500);
+  --viz-seq-3: var(--olive-600);
+  --viz-seq-4: var(--olive-700);
+  --viz-seq-5: var(--olive-800);
+  --viz-cat-1: var(--olive-600);
+  --viz-cat-2: var(--lime-600);
+  --viz-cat-none: var(--n-300);
+
+  /*
    * Sidebar — a solid dark olive rail. The active item is marked twice: an
    * olive surface that grows around it, and a lime node that travels between
    * items. Idle labels are olive-200 on olive-900 (9.1:1); the active surface
@@ -390,6 +482,27 @@
   --viz-band-edge: var(--lime-600);
   --viz-band-marker: var(--olive-900);
 
+  /*
+   * The sequential ramp is re-anchored, not flipped: on the olive-900 card
+   * more-is-*lighter*, and olive-600 is the darkest step that still clears the
+   * surface (2.45:1). Validated as an ordinal ramp against #223414.
+   *
+   * The categorical pair moves one step brighter so it clears the dark card;
+   * that puts both slots above the dark-mode lightness band, which is the
+   * honest cost of a brand with one strong hue and one accent. They stay
+   * separable (ΔE 17.9 protanopia) and the labels these charts already carry
+   * do the rest. Dark mode has no switch in the app today — if one ships,
+   * re-run the palette validator against the real dark surface first.
+   */
+  --viz-seq-1: var(--olive-600);
+  --viz-seq-2: var(--olive-500);
+  --viz-seq-3: var(--olive-400);
+  --viz-seq-4: var(--olive-300);
+  --viz-seq-5: var(--olive-200);
+  --viz-cat-1: var(--olive-400);
+  --viz-cat-2: var(--lime-400);
+  --viz-cat-none: var(--olive-700);
+
   --sidebar: var(--olive-950);
   --sidebar-foreground: var(--olive-200);
   --sidebar-primary: var(--primary);
@@ -407,8 +520,8 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-size: var(--text-body);
-    line-height: var(--text-body--line-height);
+    font-size: var(--text-body-md);
+    line-height: var(--text-body-md--line-height);
   }
   html {
     @apply font-sans;
@@ -432,10 +545,11 @@
     @apply font-heading;
     font-weight: 600;
   }
-  h1 { font-size: var(--text-h1); line-height: var(--text-h1--line-height); }
-  h2 { font-size: var(--text-h2); line-height: var(--text-h2--line-height); }
-  h3 { font-size: var(--text-h3); line-height: var(--text-h3--line-height); }
-  h4 { font-size: var(--text-h4); line-height: var(--text-h4--line-height); }
+  /* Display steps carry 500, heading steps 600 — the weight belongs to the step. */
+  h1 { font-weight: 500; font-size: var(--text-display-sm); line-height: var(--text-display-sm--line-height); }
+  h2 { font-size: var(--text-heading-lg); line-height: var(--text-heading-lg--line-height); }
+  h3 { font-size: var(--text-heading-sm); line-height: var(--text-heading-sm--line-height); }
+  h4 { font-size: var(--text-heading-sm); line-height: var(--text-heading-sm--line-height); }
 
   /*
    * No letter-spacing and no case transforms on Arabic — Arabic is cursive,
@@ -445,6 +559,21 @@
   :lang(ar) {
     letter-spacing: 0;
     text-transform: none;
+
+    /*
+     * The Arabic half of every step's leading pair. Declared here rather than
+     * on `html[lang]` so a single Arabic block inside an English page — a
+     * client's name, a note — gets the right leading too.
+     */
+    --lh-display-lg: 1.35;
+    --lh-display-sm: 1.4;
+    --lh-heading-lg: 1.45;
+    --lh-heading-sm: 1.5;
+    --lh-body-lg: 1.75;
+    --lh-body-md: 1.75;
+    --lh-body-sm: 1.7;
+    --lh-label: 1.5;
+    --lh-caption: 1.5;
   }
 
   /* Numbers, times, IDs and units keep LTR internal order inside RTL text. */
@@ -471,7 +600,7 @@
    * Width only — no colour flash.
    */
   .q-field {
-    @apply w-full min-w-0 border bg-transparent text-body outline-none;
+    @apply w-full min-w-0 border bg-transparent text-body-md outline-none;
     border-color: var(--input);
     border-radius: var(--radius-control);
     border-end-end-radius: var(--sweep-control);

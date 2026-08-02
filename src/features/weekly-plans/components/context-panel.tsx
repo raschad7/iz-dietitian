@@ -155,7 +155,7 @@ export function ContextPanel({ context }: { context: ClientContext }) {
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <section>
-      <h4 className="pb-0.5 text-micro font-semibold text-muted-foreground">
+      <h4 className="pb-0.5 text-label font-semibold text-muted-foreground">
         {label}
       </h4>
       <div>{children}</div>

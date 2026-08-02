@@ -17,8 +17,10 @@ import { cn } from "@/lib/utils"
  */
 const buttonVariants = cva(
   [
-    "group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap select-none",
-    "rounded-[10px] rounded-ee-[24px] border bg-clip-padding text-body font-medium",
+    // `max-w-80` + `whitespace-nowrap`: a label never wraps, so a button that
+    // would need two lines is a label that needs rewriting.
+    "group/button inline-flex max-w-80 shrink-0 items-center justify-center whitespace-nowrap select-none",
+    "rounded-[10px] rounded-ee-[24px] border bg-clip-padding text-body-md font-medium",
     "transition-all duration-200 ease-[cubic-bezier(.2,.6,.2,1)] outline-none",
     "hover:rounded-ee-[30px]",
     // `not-aria-[haspopup]` exempts menu triggers: a control that opens a
@@ -76,36 +78,53 @@ const buttonVariants = cva(
          */
         link: "rounded-none border-transparent text-secondary-foreground underline-offset-4 hover:rounded-none hover:underline",
       },
+      /*
+       * Two heights, and only two.
+       *
+       * `default` is 48px because that is the floor for a touch target, and a
+       * control that is comfortable on a phone is not uncomfortable on a
+       * desktop. `sm` is the 40px compact size and is **pointer-only** — it is
+       * for toolbars and table rows, where a control sits inside a dense row
+       * that is itself the target. Never reach for it to fit more onto a
+       * screen; that is a layout problem, not a button problem.
+       *
+       * Icon buttons match: 48×48, or 40×40 under the same pointer-only rule.
+       */
       size: {
-        default: "h-9 gap-1.5 px-3.5",
-        xs: "h-6 gap-1 rounded-[6px] rounded-ee-[14px] px-2 text-micro hover:rounded-ee-[18px] active:not-aria-[haspopup]:rounded-ee-[10px] disabled:hover:rounded-ee-[14px] [&_svg:not([class*='size-'])]:size-3",
-        sm: "h-8 gap-1 rounded-[8px] rounded-ee-[18px] px-3 text-caption hover:rounded-ee-[22px] active:not-aria-[haspopup]:rounded-ee-[13px] disabled:hover:rounded-ee-[18px] [&_svg:not([class*='size-'])]:size-3.5",
-        lg: "h-11 gap-2 px-5 text-h4",
+        default: "h-12 gap-2 px-5",
+        sm: "h-10 gap-2 px-5",
         /*
-         * Icon sizes: a circle with one corner opened to ~29% of the button,
-         * the same proportion the 24px tail has on a rectangular button. That
-         * ratio is what makes both shapes read as one family.
+         * A circle with one corner opened to ~29% of the button, the same
+         * proportion the 24px tail has on a rectangular button. That ratio is
+         * what makes both shapes read as one family.
          */
-        icon: "size-9 rounded-full rounded-ee-[11px] hover:rounded-ee-[14px] active:not-aria-[haspopup]:rounded-ee-[7px] disabled:hover:rounded-ee-[11px]",
-        "icon-xs":
-          "size-6 rounded-full rounded-ee-[7px] hover:rounded-ee-[9px] active:not-aria-[haspopup]:rounded-ee-[5px] disabled:hover:rounded-ee-[7px] [&_svg:not([class*='size-'])]:size-3",
+        icon: "size-12 rounded-full rounded-ee-[14px] hover:rounded-ee-[17px] active:not-aria-[haspopup]:rounded-ee-[11px] disabled:hover:rounded-ee-[14px] [&_svg:not([class*='size-'])]:size-5",
         "icon-sm":
-          "size-8 rounded-full rounded-ee-[9px] hover:rounded-ee-[12px] active:not-aria-[haspopup]:rounded-ee-[6px] disabled:hover:rounded-ee-[9px] [&_svg:not([class*='size-'])]:size-3.5",
-        "icon-lg":
-          "size-11 rounded-full rounded-ee-[13px] hover:rounded-ee-[17px] active:not-aria-[haspopup]:rounded-ee-[9px] disabled:hover:rounded-ee-[13px] [&_svg:not([class*='size-'])]:size-5",
+          "size-10 rounded-full rounded-ee-[12px] hover:rounded-ee-[15px] active:not-aria-[haspopup]:rounded-ee-[9px] disabled:hover:rounded-ee-[12px]",
       },
     },
-    /*
-     * The icon button is a size *and* a skin — pale olive chip, olive-200
-     * border, olive glyph — and CVA cannot express "this fill only when
-     * round". A compound variant can.
-     */
-    compoundVariants: (["icon", "icon-xs", "icon-sm", "icon-lg"] as const).map((size) => ({
-      variant: "default" as const,
-      size,
-      class:
-        "border-[var(--olive-200)] bg-[var(--olive-50)] text-primary hover:bg-[var(--olive-100)]",
-    })),
+    compoundVariants: [
+      /*
+       * The icon button is a size *and* a skin — pale olive chip, olive-200
+       * border, olive glyph — and CVA cannot express "this fill only when
+       * round". A compound variant can.
+       */
+      ...(["icon", "icon-sm"] as const).map((size) => ({
+        variant: "default" as const,
+        size,
+        class: "border-[var(--olive-200)] bg-[var(--olive-50)] text-primary hover:bg-[var(--olive-100)]",
+      })),
+      /*
+       * Tertiary controls carry 12px of padding rather than 20px. A ghost
+       * button has no box at rest, so the wider padding reads as a gap someone
+       * forgot rather than as part of the control.
+       */
+      ...(["default", "sm"] as const).map((size) => ({
+        variant: "ghost" as const,
+        size,
+        class: "px-3",
+      })),
+    ],
     defaultVariants: {
       variant: "default",
       size: "default",
