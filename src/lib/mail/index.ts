@@ -10,6 +10,20 @@ export interface Mailer {
   send(mail: Mail): Promise<void>;
 }
 
+export type MailEnvironment = {
+  MAIL_TRANSPORT?: string;
+  RESEND_API_KEY?: string;
+  EMAIL_FROM?: string;
+};
+
+export function resolveMailTransport(env: MailEnvironment): 'console' | 'resend' {
+  const transport = env.MAIL_TRANSPORT ?? 'console';
+
+  if (transport === 'console' || transport === 'resend') return transport;
+
+  throw new Error(`Unknown MAIL_TRANSPORT "${transport}". Use "console" or "resend".`);
+}
+
 /**
  * Chooses a transport from the environment.
  *
@@ -18,17 +32,13 @@ export interface Mailer {
  * drops password resets is worse than one that refuses to run: the failure is
  * invisible until a locked-out dietitian calls to ask why no email arrived.
  */
-function createMailer(): Mailer {
-  const transport = process.env.MAIL_TRANSPORT ?? 'console';
+export function createMailer(env: MailEnvironment): Mailer {
+  const transport = resolveMailTransport(env);
 
   if (transport === 'console') return consoleMailer;
 
-  if (transport !== 'resend') {
-    throw new Error(`Unknown MAIL_TRANSPORT "${transport}". Use "console" or "resend".`);
-  }
-
-  const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.EMAIL_FROM;
+  const apiKey = env.RESEND_API_KEY;
+  const from = env.EMAIL_FROM;
 
   if (!apiKey) throw new Error('MAIL_TRANSPORT=resend but RESEND_API_KEY is not set.');
   if (!from) throw new Error('MAIL_TRANSPORT=resend but EMAIL_FROM is not set.');
@@ -39,7 +49,11 @@ function createMailer(): Mailer {
 let cached: Mailer | undefined;
 
 export function getMailer(): Mailer {
-  cached ??= createMailer();
+  cached ??= createMailer({
+    MAIL_TRANSPORT: process.env.MAIL_TRANSPORT,
+    RESEND_API_KEY: process.env.RESEND_API_KEY,
+    EMAIL_FROM: process.env.EMAIL_FROM,
+  });
   return cached;
 }
 
