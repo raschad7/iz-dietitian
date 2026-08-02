@@ -525,19 +525,27 @@
       "todaysMeals": "وجبات اليوم",
       "dayEnergy": "إجمالي اليوم: {kcal, number, integer} سعرة",
       "requestAppointment": "طلب موعد",
+      "viewAppointments": "عرض المواعيد",
       "viewMealPlan": "عرض الخطة الغذائية",
       "pendingRequests": "بانتظار ردّ أخصائي التغذية: {count, number, integer}"
     },
     "appointments": {
       "title": "المواعيد",
+      "subtitle": "كل ما حجزه لك أخصائي التغذية.",
       "upcoming": "المواعيد القادمة",
       "history": "المواعيد السابقة",
       "requests": "طلباتك",
+      "noneUpcomingTitle": "لا مواعيد قادمة",
       "noneUpcoming": "لا توجد مواعيد محجوزة. اطلب موعدًا من أخصائي التغذية.",
-      "nonePast": "لا توجد مواعيد سابقة.",
+      "nonePast": "لا توجد مواعيد سابقة بعد.",
       "reschedule": "طلب تغيير الموعد",
       "cancel": "طلب إلغاء الموعد",
-      "requestPending": "بانتظار ردّ أخصائي التغذية"
+      "requestPending": "بانتظار ردّ أخصائي التغذية",
+      "marker": {
+        "today": "اليوم",
+        "tomorrow": "غدًا",
+        "next": "القادم"
+      }
     },
     "request": {
       "title": "طلب موعد",
@@ -581,13 +589,19 @@
     },
     "plan": {
       "title": "الخطة الغذائية",
-      "none": "لم يُعدّ أخصائي التغذية خطة لك بعد.",
+      "noneTitle": "لا توجد خطة بعد",
+      "none": "لم يُعدّ أخصائي التغذية خطة لك بعد. ستظهر هنا فور نشرها.",
       "grams": "{grams, number, plain} غرام",
       "weekOf": "أسبوع {date}",
       "dailyTarget": "الهدف اليومي: {value} kcal",
+      "chooseDay": "اختر اليوم",
+      "today": "اليوم",
+      "dayEnergyLabel": "طاقة هذا اليوم",
+      "emptyDayTitle": "لا توجد وجبات لهذا اليوم",
+      "emptyDayHint": "ترك أخصائي التغذية هذا اليوم مفتوحًا. اختر يومًا آخر من الأعلى.",
       "kcalValue": "{value} kcal",
       "portion": "{servings} × {label}",
-      "showIngredients": "عرض المكوّنات والكميات",
+      "ingredientsTitle": "المكوّنات والكميات",
       "orInstead": "يمكنك بدلاً منها:",
       "noMeal": "لم تُحدد وجبة"
     },

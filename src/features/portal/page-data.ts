@@ -2,6 +2,7 @@ import { addDays, weekdayOf } from '@/features/booking/date';
 import { getClinicHours } from '@/features/booking/queries';
 import { type ClinicHours } from '@/features/booking/validation';
 import { getPublishedBoard, type Board, type BoardDay } from '@/features/weekly-plans/queries';
+import { weekDates, type PlanDaySummary } from '@/features/weekly-plans/week';
 
 import { nextAppointment, splitAppointments, type SplitAppointments } from './appointments';
 import {
@@ -99,6 +100,68 @@ export async function loadAppointments(context: PortalContext): Promise<Appointm
  */
 export async function loadCurrentPlan(context: PortalContext): Promise<Board | null> {
   return getPublishedBoard(context.id);
+}
+
+export type PlanPageData = {
+  board: Board;
+  days: PlanDaySummary[];
+  /** The day being read, 0–6. Always a day that exists in `days`. */
+  selectedDay: number;
+};
+
+/**
+ * The plan page: the published week, plus which day of it is open.
+ *
+ * A whole week of dishes and ingredients is more than a phone screen can hold,
+ * so the page shows the week and one day of it. Which day that is comes from the
+ * URL, which means the choice survives a refresh and a shared link — and means
+ * only the chosen day's meals are ever rendered, rather than all seven.
+ *
+ * Returns null when nothing has been published. That is not an error: it is the
+ * normal state of a client whose dietitian has not written their plan yet, and
+ * the page has a screen for it.
+ */
+export async function loadPlanPage(
+  context: PortalContext,
+  requestedDay: number | null,
+): Promise<PlanPageData | null> {
+  const board = await loadCurrentPlan(context);
+
+  if (!board) return null;
+
+  const dates = weekDates(board.weekStartDate);
+
+  // `getPublishedBoard` builds one entry per weekday, in order, so the index is
+  // the day of week and every day is present even when it holds no meals.
+  const days: PlanDaySummary[] = board.days.map((day, index) => ({
+    dayOfWeek: day.dayOfWeek,
+    date: dates[index] ?? null,
+    mealCount: day.meals.length,
+    isToday: dates[index] === context.now.date,
+  }));
+
+  return { board, days, selectedDay: pickPlanDay(days, requestedDay, weekdayOf(context.now.date)) };
+}
+
+/**
+ * Which day the page opens on.
+ *
+ * The URL wins, so a chosen day survives a reload. Failing that, today — but
+ * only if today has meals, because opening on an empty state when six other days
+ * are full reads as a broken plan. Otherwise the first day with anything in it,
+ * and only then the start of the week.
+ */
+export function pickPlanDay(
+  days: readonly PlanDaySummary[],
+  requested: number | null,
+  todayWeekday: number | null,
+): number {
+  if (requested !== null && days.some((day) => day.dayOfWeek === requested)) return requested;
+
+  const today = days.find((day) => day.dayOfWeek === todayWeekday);
+  if (today && today.mealCount > 0) return today.dayOfWeek;
+
+  return days.find((day) => day.mealCount > 0)?.dayOfWeek ?? days[0]?.dayOfWeek ?? 0;
 }
 
 /**

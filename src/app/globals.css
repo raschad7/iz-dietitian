@@ -140,6 +140,9 @@
   --color-status-rest-fg: var(--status-rest-fg);
   --color-status-rest-bg: var(--status-rest-bg);
 
+  --color-meal-bg: var(--meal-bg);
+  --color-meal-fg: var(--meal-fg);
+
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -227,6 +230,27 @@
   --status-medical-bg: var(--clay-100);
   --status-rest-fg: var(--olive-700);
   --status-rest-bg: var(--olive-50);
+
+  /*
+   * The meal card's surface — one tone for every meal.
+   *
+   * This deliberately does not vary by meal. Colour here would have to come from
+   * somewhere, and every categorical palette in this system is spoken for: amber
+   * means "needs follow-up", clay is the only true alarm colour, and lime marks
+   * exactly one element per screen. Tinting meals from those would say things
+   * about the food nobody meant. A tonal ramp down the olive scale avoided that,
+   * but read as five weights of importance on five meals that are equally
+   * important — so the meals are one surface, and the icon tells them apart.
+   *
+   * Measured, not eyeballed: 8.92:1, comfortably AA, which it must be because the
+   * meal name sits on the tint. Inverted for the icon disc, where it is the same
+   * pair the other way round and therefore the same ratio.
+   *
+   * Not remapped for dark mode, matching §15's rule for status: only bg, text
+   * and border tokens remap, so the verified pair stays intact.
+   */
+  --meal-bg: var(--olive-100);
+  --meal-fg: var(--olive-800);
 
   /* Data visualisation comfort band — §15 */
   --viz-band-range: var(--lime-300);
@@ -362,5 +386,118 @@
   }
   .q-field-arc:focus {
     background-size: 58% 2px;
+  }
+
+  /*
+   * §9.7 loading skeleton: an olive-tinted sweep across a sunken fill, 1600ms.
+   *
+   * The spec's own `.q-sk` carries a swept block-end/inline-end corner, because
+   * there it stands in for a whole card. These bars stand in for the *contents*
+   * of a real `Card`, which already carries the one tail that surface is allowed
+   * (§9.4), so they keep the plain control radius instead. A caller that needs a
+   * card-shaped skeleton should sweep the card, not the bar.
+   *
+   * The gradient is symmetric, so it mirrors for free; only the direction of
+   * travel has to flip, and `translateX` has no logical form.
+   *
+   * That flip is keyed off `[dir='rtl']` — set on `<html>` by the locale layout —
+   * and deliberately NOT off `:dir(rtl)`, which reads better but does not
+   * survive: Lightning CSS drops every `:dir()` rule from the production build.
+   * `.q-field-arc:dir(rtl)` above is currently lost the same way, so its focus
+   * line anchors to the wrong edge in Arabic once built. Worth fixing there too.
+   */
+  .q-skeleton {
+    position: relative;
+    overflow: hidden;
+    background: var(--accent);
+    border-radius: var(--qiwam-radius-sm);
+  }
+
+  .q-skeleton::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to right,
+      transparent,
+      color-mix(in oklch, var(--olive-100) 90%, transparent),
+      transparent
+    );
+    transform: translateX(-100%);
+    animation: q-skeleton-sweep 1600ms ease-in-out infinite;
+  }
+
+  .dark .q-skeleton::after {
+    /* olive-100 on an olive-800 fill would strobe; §15 keeps brand hues but the
+       sweep is a surface effect, so it follows the surface. */
+    background: linear-gradient(
+      to right,
+      transparent,
+      color-mix(in oklch, var(--olive-700) 90%, transparent),
+      transparent
+    );
+  }
+
+  [dir='rtl'] .q-skeleton::after {
+    transform: translateX(100%);
+    animation-name: q-skeleton-sweep-rtl;
+  }
+
+  /* A sweep is decoration, not information: it is the whole animation, so it
+     stops rather than being slowed down. */
+  @media (prefers-reduced-motion: reduce) {
+    .q-skeleton::after {
+      animation: none;
+    }
+  }
+
+  /*
+   * Disclosure: a <details> that opens by growing rather than by jumping.
+   *
+   * Applied to the element itself, not to :root, because `interpolate-size` is
+   * inherited and turning it on globally would change how every `auto` in the app
+   * animates. Here it does one thing: let `block-size: auto` be interpolated, so
+   * the panel can expand to its own height without that height being measured in
+   * JavaScript.
+   *
+   * `::details-content` is recent. A browser that does not know it drops these
+   * rules and the disclosure simply opens instantly, which is the behaviour the
+   * element has always had — so this is polish that cannot break the control.
+   *
+   * `block-size` rather than `height`, and the transition rides the sweep easing
+   * from §9 at the same 220ms as every other corner and draw in the system.
+   */
+  .q-disclosure {
+    interpolate-size: allow-keywords;
+  }
+
+  .q-disclosure::details-content {
+    block-size: 0;
+    overflow: hidden;
+    transition:
+      block-size 220ms cubic-bezier(0.2, 0.6, 0.2, 1),
+      content-visibility 220ms cubic-bezier(0.2, 0.6, 0.2, 1) allow-discrete;
+  }
+
+  .q-disclosure[open]::details-content {
+    block-size: auto;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .q-disclosure::details-content {
+      transition: none;
+    }
+  }
+}
+
+@keyframes q-skeleton-sweep {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes q-skeleton-sweep-rtl {
+  to {
+    transform: translateX(-100%);
   }
 }

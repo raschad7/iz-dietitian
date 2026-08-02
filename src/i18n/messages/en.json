@@ -525,19 +525,27 @@
       "todaysMeals": "Today's meals",
       "dayEnergy": "{kcal, number, integer} kcal for the day",
       "requestAppointment": "Request an appointment",
+      "viewAppointments": "View appointments",
       "viewMealPlan": "View meal plan",
       "pendingRequests": "Waiting for your dietitian: {count, number, integer}"
     },
     "appointments": {
       "title": "Appointments",
+      "subtitle": "Everything your dietitian has booked for you.",
       "upcoming": "Upcoming",
       "history": "Past appointments",
       "requests": "Your requests",
+      "noneUpcomingTitle": "No upcoming appointments",
       "noneUpcoming": "Nothing booked yet. Ask your dietitian for an appointment.",
-      "nonePast": "No past appointments.",
+      "nonePast": "No past appointments yet.",
       "reschedule": "Ask to reschedule",
       "cancel": "Ask to cancel",
-      "requestPending": "Waiting for your dietitian"
+      "requestPending": "Waiting for your dietitian",
+      "marker": {
+        "today": "Today",
+        "tomorrow": "Tomorrow",
+        "next": "Next"
+      }
     },
     "request": {
       "title": "Request an appointment",
@@ -581,13 +589,19 @@
     },
     "plan": {
       "title": "Meal plan",
-      "none": "Your dietitian has not built a plan for you yet.",
+      "noneTitle": "No plan yet",
+      "none": "Your dietitian has not built a plan for you yet. It will appear here as soon as they publish it.",
       "grams": "{grams, number, plain} g",
       "weekOf": "Week of {date}",
       "dailyTarget": "Daily target: {value} kcal",
+      "chooseDay": "Choose a day",
+      "today": "Today",
+      "dayEnergyLabel": "Energy for this day",
+      "emptyDayTitle": "Nothing planned for this day",
+      "emptyDayHint": "Your dietitian left this day open. Pick another day above.",
       "kcalValue": "{value} kcal",
       "portion": "{servings} × {label}",
-      "showIngredients": "Show ingredients and amounts",
+      "ingredientsTitle": "Ingredients and amounts",
       "orInstead": "You can eat this instead:",
       "noMeal": "No meal set"
     },

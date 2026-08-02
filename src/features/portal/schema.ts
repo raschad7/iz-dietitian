@@ -67,3 +67,17 @@ export const requestSearchSchema = z.object({
 });
 
 export type RequestSearchInput = z.infer<typeof requestSearchSchema>;
+
+/**
+ * `?day=` on the meal-plan page: which day of the published week is open.
+ *
+ * Nullable rather than defaulted, because "not asked for" and "asked for Sunday"
+ * are different — the page falls back to today, and a schema has no clock to
+ * know which day that is. Anything unparseable is treated as not asked for
+ * rather than rejected: a mistyped URL should open the plan, not a 500.
+ */
+export const planSearchSchema = z.object({
+  day: z.coerce.number().int().min(0).max(6).nullable().catch(null),
+});
+
+export type PlanSearchInput = z.infer<typeof planSearchSchema>;
