@@ -235,6 +235,24 @@ export const swapMealSchema = z.object({
 
 export const publishPlanSchema = z.object({ planId: planIdSchema });
 
+/**
+ * Starting a week without generating one.
+ *
+ * Two schemas rather than one with an optional source: a copy that lost its
+ * `sourcePlanId` to a typo would silently become an empty week, which is the one
+ * mistake a dietitian would not notice until the board loaded blank.
+ */
+export const startEmptyWeekSchema = z.object({
+  clientId: clientIdSchema,
+  weekStartDate: weekStartDateSchema,
+});
+
+export const startWeekFromPlanSchema = z.object({
+  clientId: clientIdSchema,
+  weekStartDate: weekStartDateSchema,
+  sourcePlanId: planIdSchema,
+});
+
 // ---------------------------------------------------------------------------
 // The model's response
 // ---------------------------------------------------------------------------
