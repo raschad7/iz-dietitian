@@ -100,6 +100,11 @@ export function availableSlots({
         startMinute,
         durationMinutes: REQUEST_DURATION_MINUTES,
         excludeId: excludeAppointmentId,
+        // Already covered by the `hasEnded` guard above, which drops every past
+        // time before the rules run. Passed anyway so the portal states its
+        // clock like every other caller rather than relying on that guard
+        // staying where it is.
+        today: now.date,
       },
       sameDay,
       hours,

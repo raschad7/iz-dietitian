@@ -184,6 +184,7 @@
       "title": "Add a client and book",
       "fullName": "Full name",
       "phone": "Phone",
+      "phoneCountry": "Country code",
       "saveAndBook": "Save and book"
     },
     "dialog": {
@@ -193,12 +194,24 @@
       "save": "Save",
       "cancel": "Cancel",
       "close": "Close",
-      "delete": "Delete appointment",
-      "confirmDeleteCompleted": "This appointment has already finished. Deleting it removes the record permanently. Are you sure?"
+      "delete": "Delete appointment"
+    },
+    "confirmMove": {
+      "title": "Change this appointment?",
+      "body": "Move {name} from {from} to {to}?",
+      "confirm": "Change appointment"
+    },
+    "confirmDelete": {
+      "title": "Delete this appointment?",
+      "body": "{name} on {when} will be removed from the calendar.",
+      "bodyCompleted": "This appointment has already finished. Deleting {name} on {when} removes the record permanently.",
+      "confirm": "Delete appointment"
     },
     "errors": {
       "tooShort": "The shortest appointment is 15 minutes.",
       "invalidDate": "That date is not valid. Try a format like 2026-08-05 or 8/5/2026.",
+      "pastDate": "That date has already passed. The earliest you can book is today.",
+      "pastTime": "That time has already passed. Move the appointment to a later time.",
       "closedDay": "The clinic is closed that day.",
       "outsideHours": "That falls outside the clinic's opening hours.",
       "overlap": "That clashes with another appointment.",
@@ -487,6 +500,7 @@
     "fields": {
       "fullName": "Full name",
       "phone": "Phone",
+      "phoneCountry": "Country code",
       "email": "Email",
       "preferredLocale": "Correspondence language",
       "dateOfBirth": "Date of birth",
@@ -889,6 +903,8 @@
       "kind": {
         "appointment_reminder": "Appointment reminder",
         "appointment_confirmation": "Appointment confirmation",
+        "appointment_rescheduled": "Appointment changed",
+        "appointment_cancelled": "Appointment cancelled",
         "portal_credentials": "Portal credentials",
         "manual": "Manual message",
         "inbound": "Client reply"
