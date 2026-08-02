@@ -3,10 +3,10 @@
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
+import { Segmented } from '@/components/ui/segmented';
 import { ClientLoginForm } from '@/features/auth/components/client-login-form';
 import { StaffLoginForm } from '@/features/auth/components/staff-login-form';
 import { type Locale } from '@/i18n/routing';
-import { cn } from '@/lib/utils';
 
 /**
  * TEMPORARY — remove once sign-in is unified.
@@ -45,35 +45,23 @@ export function LoginRoleSwitch({ locale, showGoogle, redirectTo, oauthError }: 
       <div className="space-y-2">
         <p className="text-sm font-medium">{t('roleQuestion')}</p>
 
-        <div
+        {/*
+          A radiogroup, not a tablist: this picks which form to fill in, not
+          which view of the same content to show.
+        */}
+        <Segmented
           role="radiogroup"
-          aria-label={t('roleQuestion')}
-          className="grid grid-cols-2 gap-1 rounded-lg border border-border p-1"
-        >
-          {ROLES.map((option) => {
-            const active = option.value === role;
+          label={t('roleQuestion')}
+          value={role}
+          onChange={setRole}
+          className="grid w-full grid-cols-2"
+          options={ROLES.map((option) => ({
+            value: option.value,
+            label: t(option.labelKey),
+          }))}
+        />
 
-            return (
-              <button
-                key={option.value}
-                type="button"
-                role="radio"
-                aria-checked={active}
-                onClick={() => setRole(option.value)}
-                className={cn(
-                  'rounded-md px-3 py-2 text-sm font-medium transition-colors',
-                  active
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                )}
-              >
-                {t(option.labelKey)}
-              </button>
-            );
-          })}
-        </div>
-
-        <p className="text-xs text-muted-foreground">{t('roleTemporaryNote')}</p>
+        <p className="text-caption text-muted-foreground">{t('roleTemporaryNote')}</p>
       </div>
 
       {role === 'staff' ? (

@@ -33,7 +33,19 @@ export type CompletableAppointment = {
 export function isCompleted(appointment: CompletableAppointment, now: Date | null): boolean {
   if (!now) return false;
 
-  return hasEnded(appointment, { date: toIsoDate(now), minute: now.getHours() * 60 + now.getMinutes() });
+  return hasEnded(appointment, localWallClock(now));
+}
+
+/**
+ * A `Date` read as the machine's **local** wall clock.
+ *
+ * The browser's counterpart to {@link wallClockIn}: same shape, same meaning,
+ * different clock. Extracted because the rules now ask two questions of it — has
+ * this appointment ended, and is this moment already past — and both must be
+ * answered against the same instant.
+ */
+export function localWallClock(now: Date): WallClock {
+  return { date: toIsoDate(now), minute: now.getHours() * 60 + now.getMinutes() };
 }
 
 /** A wall-clock instant: a calendar date and minutes from its midnight. */

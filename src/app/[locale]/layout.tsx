@@ -33,9 +33,18 @@ const readexPro = Readex_Pro({
 });
 
 /** Token/ID display only — never client-facing copy (design-system.md). */
+/**
+ * Numeric / code display only — never client-facing prose.
+ *
+ * 600 is loaded because the dashboard stat tiles use `font-semibold` on it.
+ * Without the real weight the browser synthesizes bold by smearing the 400
+ * outlines, which at any size reads as a blurry, badly-rendered glyph — the
+ * single most common cause of "the font looks pixelated". Every weight used
+ * with a family must actually be loaded for that family.
+ */
 const ibmPlexMono = IBM_Plex_Mono({
   subsets: ['latin'],
-  weight: ['400', '500'],
+  weight: ['400', '500', '600'],
   variable: '--font-ibm-plex-mono',
   display: 'swap',
 });
@@ -63,18 +72,40 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
   const locale = await resolveLocale(params);
 
   return (
-    // `lang` and `dir` are both derived from the route's locale — never hardcoded.
-    <html lang={locale} dir={getLocaleDirection(locale)} suppressHydrationWarning>
+    /*
+      `lang` and `dir` are both derived from the route's locale — never hardcoded.
+
+      The next/font variables belong on <html>, not <body>: globals.css sets
+      `font-family` on the html element, and a custom property is only visible
+      to the element that declares it and its descendants. With the variables
+      on <body>, html resolved `var(--font-ibm-plex-sans-arabic)` to nothing,
+      fell through to the `ui-sans-serif, system-ui` fallback, and <body>
+      inherited that already-computed value — so every piece of body text
+      silently rendered in the system font. Headings looked correct only
+      because `font-heading` re-declares the family further down the tree,
+      where the variables do exist.
+    */
+    <html
+      lang={locale}
+      dir={getLocaleDirection(locale)}
+      suppressHydrationWarning
+      className={`${ibmPlexSans.variable} ${ibmPlexSansArabic.variable} ${readexPro.variable} ${ibmPlexMono.variable}`}
+    >
       {/*
         `suppressHydrationWarning` is needed on <body> as well as <html>: it only
         applies one level deep, and browser extensions (ColorZilla, Grammarly and
         friends) inject attributes like `cz-shortcut-listen` onto the body before
         React hydrates, which otherwise reports as a hydration mismatch.
       */}
-      <body
-        suppressHydrationWarning
-        className={`${ibmPlexSans.variable} ${ibmPlexSansArabic.variable} ${readexPro.variable} ${ibmPlexMono.variable} min-h-dvh antialiased`}
-      >
+      {/*
+        No `antialiased`. It maps to `-webkit-font-smoothing: antialiased`,
+        which forces grayscale antialiasing in place of the subpixel rendering
+        the OS would otherwise use — that thins every stroke, and thin strokes
+        are exactly what falls apart at 12–13px. It is a no-op on Windows
+        (DirectWrite ignores it) but actively costs legibility on macOS, so
+        there is nothing to trade off.
+      */}
+      <body suppressHydrationWarning className="min-h-dvh">
         <NextIntlClientProvider>
           {children}
           <DevLocaleSwitcher />

@@ -185,6 +185,7 @@
       "title": "إضافة متابع وحجز الموعد",
       "fullName": "الاسم الكامل",
       "phone": "رقم الهاتف",
+      "phoneCountry": "رمز الدولة",
       "saveAndBook": "حفظ وحجز"
     },
     "dialog": {
@@ -194,12 +195,24 @@
       "save": "حفظ",
       "cancel": "إلغاء",
       "close": "إغلاق",
-      "delete": "حذف الموعد",
-      "confirmDeleteCompleted": "انتهى هذا الموعد بالفعل، وحذفه يزيل السجل نهائيًا. هل أنت متأكد؟"
+      "delete": "حذف الموعد"
+    },
+    "confirmMove": {
+      "title": "تغيير هذا الموعد؟",
+      "body": "نقل {name} من {from} إلى {to}؟",
+      "confirm": "تغيير الموعد"
+    },
+    "confirmDelete": {
+      "title": "حذف هذا الموعد؟",
+      "body": "سيُحذف موعد {name} في {when} من التقويم.",
+      "bodyCompleted": "انتهى هذا الموعد بالفعل، وحذف موعد {name} في {when} يزيل السجل نهائيًا.",
+      "confirm": "حذف الموعد"
     },
     "errors": {
       "tooShort": "أقصر مدة للموعد ١٥ دقيقة.",
       "invalidDate": "تاريخ غير صحيح. استخدم صيغة مثل 2026-08-05 أو 8/5/2026.",
+      "pastDate": "هذا التاريخ مضى. أقرب موعد يمكن حجزه هو اليوم.",
+      "pastTime": "هذا الوقت مضى. انقل الموعد إلى وقت لاحق.",
       "closedDay": "العيادة مغلقة في هذا اليوم.",
       "outsideHours": "الموعد خارج ساعات عمل العيادة.",
       "overlap": "يتعارض هذا الموعد مع موعد آخر.",
@@ -321,44 +334,95 @@
     "title": "لوحة التحكم",
     "welcome": "أهلًا {name}",
     "agenda": {
-      "title": "جدول اليوم",
-      "empty": "لا مواعيد اليوم",
-      "emptyCta": "عرض التقويم",
+      "title": "اليوم",
+      "dateLabel": "جدولك",
+      "count": "{count, plural, =0 {لا مواعيد} one {موعد واحد} two {موعدان} few {# مواعيد} many {# موعدًا} other {# موعد}}",
+      "next": "التالي",
+      "live": "الآن",
+      "empty": "لا مواعيد محجوزة اليوم",
+      "emptyCta": "حجز موعد",
+      "viewDay": "فتح عرض اليوم",
       "reason": "السبب: {reason}"
     },
-    "requests": {
-      "title": "طلبات بانتظار الرد",
-      "count": "{count, number, integer} بانتظار الرد",
-      "empty": "لا طلبات بانتظار الرد حاليًا",
-      "cta": "مراجعة الطلبات",
-      "kind": {
-        "new": "طلب حجز جديد",
-        "reschedule": "طلب تغيير الموعد",
-        "cancel": "طلب إلغاء الموعد"
-      }
-    },
-    "stats": {
-      "activeClients": "المتابعون النشطون",
+    "summary": {
+      "todayAppointments": "مواعيد اليوم",
+      "upcomingAppointments": "المواعيد القادمة",
+      "newClientsThisMonth": "متابعون جدد هذا الشهر",
       "appointmentsThisWeek": "مواعيد هذا الأسبوع",
-      "clientsWithoutMealPlan": "بلا خطة غذائية",
-      "newClientsThisMonth": "متابعون جدد هذا الشهر"
-    },
-    "attention": {
-      "title": "بحاجة لمتابعة",
-      "badge": "بحاجة لمتابعة",
-      "empty": "لا يوجد متابعون بحاجة لمتابعة حاليًا",
-      "viewAll": "عرض جميع المتابعين",
-      "reason": {
-        "noUpcomingAppointment": "لا يوجد موعد قادم",
-        "noMealPlan": "لا توجد خطة غذائية",
-        "neverSignedIn": "لم يسجّل الدخول إلى البوابة بعد"
-      }
+      "nextIs": "التالي: {when}",
+      "nothingScheduled": "لا مواعيد قادمة"
     },
     "quickActions": {
       "title": "إجراءات سريعة",
-      "newAppointment": "موعد جديد",
-      "addClient": "إضافة متابع",
-      "newMealPlan": "خطة غذائية جديدة"
+      "addClient": {
+        "title": "متابع جديد",
+        "hint": "أضف شخصًا إلى سجلك"
+      },
+      "bookAppointment": {
+        "title": "حجز موعد",
+        "hint": "يفتح اليوم في التقويم"
+      },
+      "newMealPlan": {
+        "title": "إنشاء خطة غذائية",
+        "hint": "ابنِ خطة أسبوعية"
+      },
+      "addFood": {
+        "title": "إضافة صنف غذائي",
+        "hint": "يفتح مرجع الأطعمة"
+      }
+    },
+    "visitHistory": {
+      "title": "سجل الزيارات",
+      "subtitle": "{count, plural, =0 {آخر 6 أشهر} one {زيارة واحدة خلال 6 أشهر} two {زيارتان خلال 6 أشهر} few {# زيارات خلال 6 أشهر} many {# زيارة خلال 6 أشهر} other {# زيارة خلال 6 أشهر}}",
+      "empty": "لا زيارات خلال آخر 6 أشهر",
+      "tooltip": "{count, plural, =0 {لا زيارات} one {زيارة واحدة} two {زيارتان} few {# زيارات} many {# زيارة} other {# زيارة}} في {month}",
+      "busiest": "الأعلى: {month} ({count, number, integer})",
+      "fewer": "أقل",
+      "more": "أكثر"
+    },
+    "ageDistribution": {
+      "title": "توزّع الأعمار",
+      "subtitle": "{count, plural, =0 {لا متابعين بعد} one {متابع واحد} two {متابعان} few {# متابعين} many {# متابعًا} other {# متابع}}",
+      "empty": "لا متابعين في السجل بعد",
+      "tooltip": "{count, plural, =0 {لا متابعين} one {متابع واحد} two {متابعان} few {# متابعين} many {# متابعًا} other {# متابع}} في الفئة {band}",
+      "bands": {
+        "under18": "أقل من 18",
+        "age18to29": "18–29",
+        "age30to44": "30–44",
+        "age45to59": "45–59",
+        "age60plus": "60 فأكثر",
+        "unknown": "غير مسجّل"
+      }
+    },
+    "sexDistribution": {
+      "title": "توزّع الجنس",
+      "subtitle": "{count, plural, =0 {لا متابعين بعد} one {متابع واحد} two {متابعان} few {# متابعين} many {# متابعًا} other {# متابع}}",
+      "empty": "لا متابعين في السجل بعد",
+      "centerLabel": "متابع",
+      "tooltip": "{count, plural, =0 {لا متابعين} one {متابع واحد} two {متابعان} few {# متابعين} many {# متابعًا} other {# متابع}} — {group}",
+      "groups": {
+        "female": "إناث",
+        "male": "ذكور",
+        "unknown": "غير مسجّل"
+      }
+    }
+  },
+  "notifications": {
+    "title": "الإشعارات",
+    "trigger": "الإشعارات، {count, plural, =0 {لا طلبات معلّقة} one {طلب واحد معلّق} two {طلبان معلّقان} few {# طلبات معلّقة} many {# طلبًا معلّقًا} other {# طلب معلّق}}",
+    "empty": "لا شيء يحتاج انتباهك الآن",
+    "preferred": "طلب موعد {when}",
+    "reviewRequests": "مراجعة {count, plural, one {طلب واحد} two {طلبين} few {# طلبات} many {# طلبًا} other {# طلب}}",
+    "viewClients": "كل المتابعين",
+    "request": {
+      "new": "طلب حجز جديد",
+      "reschedule": "طلب تغيير الموعد",
+      "cancel": "طلب إلغاء الموعد"
+    },
+    "attention": {
+      "noUpcomingAppointment": "لا يوجد موعد قادم",
+      "noMealPlan": "لا توجد خطة غذائية بعد",
+      "neverSignedIn": "لم يسجّل الدخول إلى البوابة بعد"
     }
   },
   "foods": {
@@ -437,6 +501,7 @@
     "fields": {
       "fullName": "الاسم الكامل",
       "phone": "رقم الهاتف",
+      "phoneCountry": "رمز الدولة",
       "email": "البريد الإلكتروني",
       "preferredLocale": "لغة المراسلة",
       "dateOfBirth": "تاريخ الميلاد",
@@ -526,19 +591,27 @@
       "todaysMeals": "وجبات اليوم",
       "dayEnergy": "إجمالي اليوم: {kcal, number, integer} سعرة",
       "requestAppointment": "طلب موعد",
+      "viewAppointments": "عرض المواعيد",
       "viewMealPlan": "عرض الخطة الغذائية",
       "pendingRequests": "بانتظار ردّ أخصائي التغذية: {count, number, integer}"
     },
     "appointments": {
       "title": "المواعيد",
+      "subtitle": "كل ما حجزه لك أخصائي التغذية.",
       "upcoming": "المواعيد القادمة",
       "history": "المواعيد السابقة",
       "requests": "طلباتك",
+      "noneUpcomingTitle": "لا مواعيد قادمة",
       "noneUpcoming": "لا توجد مواعيد محجوزة. اطلب موعدًا من أخصائي التغذية.",
-      "nonePast": "لا توجد مواعيد سابقة.",
+      "nonePast": "لا توجد مواعيد سابقة بعد.",
       "reschedule": "طلب تغيير الموعد",
       "cancel": "طلب إلغاء الموعد",
-      "requestPending": "بانتظار ردّ أخصائي التغذية"
+      "requestPending": "بانتظار ردّ أخصائي التغذية",
+      "marker": {
+        "today": "اليوم",
+        "tomorrow": "غدًا",
+        "next": "القادم"
+      }
     },
     "request": {
       "title": "طلب موعد",
@@ -582,13 +655,19 @@
     },
     "plan": {
       "title": "الخطة الغذائية",
-      "none": "لم يُعدّ أخصائي التغذية خطة لك بعد.",
+      "noneTitle": "لا توجد خطة بعد",
+      "none": "لم يُعدّ أخصائي التغذية خطة لك بعد. ستظهر هنا فور نشرها.",
       "grams": "{grams, number, plain} غرام",
       "weekOf": "أسبوع {date}",
       "dailyTarget": "الهدف اليومي: {value} kcal",
+      "chooseDay": "اختر اليوم",
+      "today": "اليوم",
+      "dayEnergyLabel": "طاقة هذا اليوم",
+      "emptyDayTitle": "لا توجد وجبات لهذا اليوم",
+      "emptyDayHint": "ترك أخصائي التغذية هذا اليوم مفتوحًا. اختر يومًا آخر من الأعلى.",
       "kcalValue": "{value} kcal",
       "portion": "{servings} × {label}",
-      "showIngredients": "عرض المكوّنات والكميات",
+      "ingredientsTitle": "المكوّنات والكميات",
       "orInstead": "يمكنك بدلاً منها:",
       "noMeal": "لم تُحدد وجبة"
     },
@@ -839,6 +918,8 @@
       "kind": {
         "appointment_reminder": "تذكير بموعد",
         "appointment_confirmation": "تأكيد موعد",
+        "appointment_rescheduled": "تغيير موعد",
+        "appointment_cancelled": "إلغاء موعد",
         "portal_credentials": "بيانات دخول البوابة",
         "manual": "رسالة يدوية",
         "inbound": "رد المتابع"

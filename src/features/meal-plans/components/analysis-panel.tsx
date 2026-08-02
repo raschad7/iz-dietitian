@@ -96,7 +96,7 @@ export function AnalysisPanel({
               </div>
             ))}
 
-            <p className="text-[0.7rem] leading-snug text-muted-foreground">{t('analysis.macroSplitNote')}</p>
+            <p className="text-caption leading-snug text-muted-foreground">{t('analysis.macroSplitNote')}</p>
           </div>
 
           <div className="space-y-2">
@@ -128,7 +128,7 @@ export function AnalysisPanel({
               </tbody>
             </table>
 
-            <p className="text-[0.7rem] leading-snug text-muted-foreground">{t('analysis.unmeasuredNote')}</p>
+            <p className="text-caption leading-snug text-muted-foreground">{t('analysis.unmeasuredNote')}</p>
           </div>
         </>
       )}

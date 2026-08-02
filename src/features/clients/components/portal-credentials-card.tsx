@@ -238,8 +238,8 @@ function IssuedCredentials({
   const t = useTranslations('clients');
 
   return (
-    <div className="space-y-3 rounded-md border border-amber-500/50 bg-amber-500/10 p-4 text-start">
-      <p className="text-sm font-medium text-amber-700 dark:text-amber-400">{t('portal.showOnce')}</p>
+    <div className="space-y-3 rounded-md border border-status-attention-fg/40 bg-status-attention-bg p-4 text-start">
+      <p className="text-sm font-medium text-status-attention-fg">{t('portal.showOnce')}</p>
 
       <dl className="space-y-1 text-sm">
         <div className="flex flex-wrap gap-2">

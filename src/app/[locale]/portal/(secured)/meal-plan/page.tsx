@@ -1,14 +1,16 @@
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
-import { Card, CardContent } from '@/components/ui/card';
-import { loadCurrentPlan } from '@/features/portal/page-data';
+import { EmptyState } from '@/components/ui/empty-state';
+import { loadPlanPage } from '@/features/portal/page-data';
+import { planSearchSchema } from '@/features/portal/schema';
 import { requirePortalClient } from '@/features/portal/session';
 import { PortalPlan } from '@/features/weekly-plans/components/portal-plan';
 import { resolveLocale } from '@/i18n/params';
 
 type MealPlanPageProps = {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export async function generateMetadata({ params }: MealPlanPageProps): Promise<Metadata> {
@@ -18,29 +20,34 @@ export async function generateMetadata({ params }: MealPlanPageProps): Promise<M
 }
 
 /**
- * The client's plan: the published weekly plan, in full.
+ * The client's plan: the published week, one day of it at a time.
  *
- * There is no `?day=` selector any more. The V1 view showed one day at a time
- * because a V1 plan is a repeating template — no dates, no alternatives. A weekly
- * plan has both, so the whole week is worth reading at once, and the day a client
- * wants is the one with today's date beside it.
+ * The week comes first — which days the dietitian planned, and what the daily
+ * target is — and `?day=` chooses the one whose meals are shown. Keeping the
+ * choice in the URL means the server renders a single day rather than seven, and
+ * that a refresh or a shared link lands back on the same one. `loadPlanPage`
+ * decides which day opens when the URL names none.
+ *
+ * Only a published plan is ever visible here; see `loadCurrentPlan`.
  */
-export default async function MealPlanPage({ params }: MealPlanPageProps) {
+export default async function MealPlanPage({ params, searchParams }: MealPlanPageProps) {
   const locale = await resolveLocale(params);
 
   const context = await requirePortalClient(locale);
-  const board = await loadCurrentPlan(context);
 
-  if (board) return <PortalPlan board={board} />;
+  const { day } = planSearchSchema.parse(await searchParams);
+  const plan = await loadPlanPage(context, day);
 
   const t = await getTranslations('portal');
 
-  return (
-    <div className="space-y-5">
-      <h2 className="text-2xl font-semibold tracking-tight">{t('plan.title')}</h2>
-      <Card>
-        <CardContent className="text-sm text-muted-foreground">{t('plan.none')}</CardContent>
-      </Card>
-    </div>
-  );
+  if (!plan) {
+    return (
+      <div className="space-y-6">
+        <h2 className="font-heading text-2xl font-semibold tracking-tight">{t('plan.title')}</h2>
+        <EmptyState icon="myPlan" title={t('plan.noneTitle')} description={t('plan.none')} />
+      </div>
+    );
+  }
+
+  return <PortalPlan board={plan.board} days={plan.days} selectedDay={plan.selectedDay} />;
 }

@@ -3,7 +3,11 @@
 import { revalidatePath } from 'next/cache';
 import { after } from 'next/server';
 
-import { notifyAppointmentBooked } from '@/features/whatsapp/notify';
+import {
+  notifyAppointmentBooked,
+  notifyAppointmentCancelled,
+  notifyAppointmentRescheduled,
+} from '@/features/whatsapp/notify';
 import { requireStaffClinic } from '@/lib/session';
 import { type Locale } from '@/i18n/routing';
 
@@ -21,7 +25,7 @@ import {
   localeSchema,
   updateAppointmentSchema,
 } from './schema';
-import { type ActionResult, type CreatedAppointment } from './types';
+import { type ActionResult, type CreatedAppointment, type DeletedAppointment } from './types';
 
 /**
  * The booking feature's mutations.
@@ -85,6 +89,41 @@ function notifyBooked(clinicId: string, appointmentId: string): void {
   });
 }
 
+/**
+ * Tells the client their appointment moved. Same `after()` reasoning as
+ * {@link notifyBooked}, and the same indifference to failure: a booking is not
+ * less moved for a message that did not go out.
+ */
+function notifyRescheduled(
+  clinicId: string,
+  appointmentId: string,
+  previous: { date: string; startMinute: number },
+): void {
+  after(async () => {
+    try {
+      await notifyAppointmentRescheduled(clinicId, appointmentId, previous);
+    } catch (error) {
+      console.error('[booking] WhatsApp reschedule notice failed', error);
+    }
+  });
+}
+
+/** Tells the client their appointment is cancelled, after the row is gone. */
+function notifyCancelled(clinicId: string, cancelled: DeletedAppointment): void {
+  after(async () => {
+    try {
+      await notifyAppointmentCancelled(clinicId, {
+        appointmentId: cancelled.id,
+        clientId: cancelled.clientId,
+        date: cancelled.date,
+        startMinute: cancelled.startMinute,
+      });
+    } catch (error) {
+      console.error('[booking] WhatsApp cancellation notice failed', error);
+    }
+  });
+}
+
 export async function createAppointmentAction(
   rawLocale: string,
   input: unknown,
@@ -114,14 +153,25 @@ export async function updateAppointmentAction(rawLocale: string, input: unknown)
 
   const result = await updateAppointment(context, parsed.data);
 
-  if (result.ok) {
-    revalidateCalendar(locale);
-    // A move is news the client needs; the confirmation's dedupe key carries the
-    // date and start minute, so re-saving an unchanged slot sends nothing.
-    notifyBooked(context.clinicId, parsed.data.id);
-  }
+  // `previous` is for the notification below and nothing else. The action's own
+  // contract stays `ActionResult`, so it does not travel to the browser.
+  if (!result.ok) return result;
 
-  return result;
+  revalidateCalendar(locale);
+
+  // A move and an edit are different news. Only the slot moving is worth telling
+  // the client about, and it deserves its own message naming both times rather
+  // than a second copy of "your appointment is confirmed". Anything else — the
+  // reason, the duration, who it is with — is the clinic's own bookkeeping, and
+  // the confirmation's dedupe key already makes re-saving an unchanged slot send
+  // nothing.
+  const { previous } = result.data;
+  const moved = previous.date !== parsed.data.date || previous.startMinute !== parsed.data.startMinute;
+
+  if (moved) notifyRescheduled(context.clinicId, parsed.data.id, previous);
+  else notifyBooked(context.clinicId, parsed.data.id);
+
+  return { ok: true, data: undefined };
 }
 
 export async function deleteAppointmentAction(rawLocale: string, input: unknown): Promise<ActionResult> {
@@ -133,9 +183,14 @@ export async function deleteAppointmentAction(rawLocale: string, input: unknown)
 
   const result = await deleteAppointment(context.clinicId, parsed.data.id);
 
-  if (result.ok) revalidateCalendar(locale);
+  // Same as the update: the deleted row's details serve the notification, and
+  // the browser goes on seeing a plain ok/error.
+  if (!result.ok) return result;
 
-  return result;
+  revalidateCalendar(locale);
+  notifyCancelled(context.clinicId, result.data);
+
+  return { ok: true, data: undefined };
 }
 
 /**

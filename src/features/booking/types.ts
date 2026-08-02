@@ -69,6 +69,23 @@ export type ActionResult<TData = undefined> =
 
 export type CreatedAppointment = { id: string };
 
+/**
+ * What an update reports back: where the appointment used to be.
+ *
+ * Only the WhatsApp notification uses it, and only to answer two questions the
+ * request itself cannot — did the slot actually move, and what should the
+ * patient be told it moved *from*.
+ */
+export type UpdatedAppointment = { previous: { date: string; startMinute: number } };
+
+/**
+ * What a delete reports back: enough to tell the client it is cancelled.
+ *
+ * Read out of the deleted row itself, because once the transaction commits there
+ * is nothing left to join against.
+ */
+export type DeletedAppointment = { id: string; clientId: string; date: string; startMinute: number };
+
 /** Everything one calendar page render needs. */
 export type CalendarData = {
   appointments: CalendarAppointment[];

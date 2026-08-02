@@ -27,10 +27,10 @@ export default async function LandingPage({ params }: LandingPageProps) {
         semantics. `buttonVariants` gives the same appearance on a real anchor.
       */}
       <div className="flex flex-wrap gap-3">
-        <Link href="/login" className={buttonVariants({ size: 'lg' })}>
+        <Link href="/login" className={buttonVariants()}>
           {t('staffCta')}
         </Link>
-        <Link href="/client-login" className={buttonVariants({ size: 'lg', variant: 'outline' })}>
+        <Link href="/client-login" className={buttonVariants({ variant: 'outline' })}>
           {t('clientCta')}
         </Link>
       </div>

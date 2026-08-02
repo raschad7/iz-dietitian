@@ -154,6 +154,8 @@ export const WHATSAPP_DIRECTIONS = ['outbound', 'inbound'] as const;
 export const WHATSAPP_MESSAGE_KINDS = [
   'appointment_reminder',
   'appointment_confirmation',
+  'appointment_rescheduled',
+  'appointment_cancelled',
   'portal_credentials',
   'manual',
   'inbound',

@@ -88,7 +88,7 @@ export function PlanBoard({
       </header>
 
       {board.unfilled > 0 && (
-        <p className="rounded-md bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+        <p className="rounded-md bg-status-attention-bg px-3 py-2 text-xs text-status-attention-fg">
           {t('unfilledWarning', { count: board.unfilled })}
         </p>
       )}
