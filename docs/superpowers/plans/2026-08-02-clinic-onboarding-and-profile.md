@@ -2,9 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Require newly created staff clinics to enter complete clinic, per-day schedule, and professional-profile data before using the app, keep that data editable from Profile, and repair or precisely diagnose the password-sign-up verification-email path.
+**Goal:** Require newly created staff clinics to enter complete clinic, per-day schedule, and professional-profile data before using the app, and keep that data editable from Profile.
 
-**Architecture:** Add a normalized seven-row clinic schedule and completion/contact fields, then expose them through a clinic-scoped `clinic-profile` feature. A focused `/[locale]/onboarding` route and `/[locale]/app/profile` reuse the same field groups; booking resolves the schedule row for the candidate date while week rendering uses a shared envelope. Email work begins with systematic reproduction and transport-level tests so configuration is not mistaken for a code defect.
+**Architecture:** Add a normalized seven-row clinic schedule and completion/contact fields, then expose them through a clinic-scoped `clinic-profile` feature. A focused `/[locale]/onboarding` route and `/[locale]/app/profile` reuse the same field groups; booking resolves the schedule row for the candidate date while week rendering uses a shared envelope.
+
+> Scope update: the verification-email task below was postponed by the user and was not included in the final branch.
 
 **Tech Stack:** Next.js 16 App Router, React 19 server actions, TypeScript 5, Drizzle ORM/PostgreSQL, Zod 4, next-intl, Better Auth, Resend, Bun tests, Tailwind/Qiwam semantic tokens.
 
@@ -118,7 +120,7 @@ export type ClinicProfileSnapshot = {
 
 ---
 
-### Task 1: Reproduce and harden verification-email delivery
+### Deferred Task 1: Reproduce and harden verification-email delivery
 
 **Files:**
 - Create: `src/lib/mail/index.test.ts`
