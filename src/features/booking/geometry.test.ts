@@ -50,6 +50,31 @@ describe('fitPxPerSlot', () => {
     expect(gridHeight(OPEN, CLOSE, fitted)).toBeCloseTo(1000, 6);
   });
 
+  /**
+   * The invariant behind "no scrollbar": for any whole-pixel panel tall enough
+   * to hold the day, the drawn grid is never taller than the panel. A fraction
+   * over is a scrollbar, and the fitted height is multiplied by the slot count,
+   * so a rounding error at this end arrives magnified forty times.
+   *
+   * `useFittedSlotHeight` floors its measurement, which is what makes whole
+   * pixels the only input this has to survive.
+   */
+  test('never draws a grid taller than the panel it was fitted to', () => {
+    const slots = (CLOSE - OPEN) / SLOT_MINUTES;
+
+    // From the shortest panel that still fits at the readable minimum, upwards.
+    for (let height = slots * MIN_PX_PER_SLOT; height <= 1400; height += 1) {
+      expect(gridHeight(OPEN, CLOSE, fitPxPerSlot(height, OPEN, CLOSE))).toBeLessThanOrEqual(height);
+    }
+  });
+
+  test('leaves no visible gap either — it fills the panel to the pixel', () => {
+    for (let height = 800; height <= 1400; height += 1) {
+      const drawn = gridHeight(OPEN, CLOSE, fitPxPerSlot(height, OPEN, CLOSE));
+      expect(height - drawn).toBeLessThan(1);
+    }
+  });
+
   test('refuses to shrink past the readable minimum, and scrolls instead', () => {
     expect(fitPxPerSlot(100, OPEN, CLOSE)).toBe(MIN_PX_PER_SLOT);
 

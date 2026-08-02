@@ -3,6 +3,7 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 
 import { Card, CardContent } from "./card"
+import { Icon, type IconName } from "./icon"
 
 /**
  * What a screen shows when there is genuinely nothing on it yet.
@@ -17,13 +18,13 @@ import { Card, CardContent } from "./card"
  * tail this block is allowed (design-system.md, "one tail per surface").
  */
 function EmptyState({
-  icon: Icon,
+  icon,
   title,
   description,
   className,
   children,
 }: {
-  icon: React.ComponentType<{ className?: string }>
+  icon: IconName
   title: string
   description?: string
   className?: string
@@ -33,11 +34,9 @@ function EmptyState({
   return (
     <Card className={cn("bg-muted/40 shadow-none", className)}>
       <CardContent className="flex flex-col items-center gap-4 py-6 text-center">
-        <span
-          aria-hidden
-          className="flex size-12 items-center justify-center rounded-full bg-secondary text-secondary-foreground"
-        >
-          <Icon className="size-5" />
+        <span className="flex size-12 items-center justify-center rounded-full bg-secondary text-secondary-foreground">
+          {/* `Icon` is aria-hidden unless given a label; the title says it. */}
+          <Icon name={icon} className="size-5" />
         </span>
 
         <div className="space-y-1.5">

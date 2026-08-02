@@ -7,6 +7,7 @@ import { useFormStatus } from 'react-dom';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PhoneField } from '@/components/ui/phone-field';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { createClientAction, updateClientAction } from '@/features/clients/actions';
@@ -51,7 +52,13 @@ export function ClientForm({ locale, client }: ClientFormProps) {
         </Field>
 
         <Field id="phone" label={t('fields.phone')} error={errorFor('phone')}>
-          <Input id="phone" name="phone" type="tel" dir="ltr" defaultValue={client?.phone ?? ''} />
+          <PhoneField
+            id="phone"
+            name="phone"
+            locale={locale}
+            defaultValue={client?.phone}
+            countryLabel={t('fields.phoneCountry')}
+          />
         </Field>
 
         <Field id="email" label={t('fields.email')} error={errorFor('email')}>

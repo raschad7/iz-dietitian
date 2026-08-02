@@ -2,6 +2,16 @@ import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
 import { buttonVariants } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRoot,
+  TableRow,
+} from '@/components/ui/table';
 import { countFoods, listPlans } from '@/features/meal-plans/queries';
 import { roundForDisplay } from '@/features/meal-plans/nutrition';
 import { Link } from '@/i18n/navigation';
@@ -47,71 +57,75 @@ export default async function MealPlansPage({ params }: MealPlansPageProps) {
        * silent otherwise — an empty food picker looks like a broken search.
        */}
       {foodCount === 0 ? (
-        <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+        <p className="rounded-md border border-destructive/40 bg-destructive-subtle p-3 text-destructive">
           {t('foodsNotSeeded')}
         </p>
       ) : null}
 
       {plans.length === 0 ? (
-        <div className="space-y-4 rounded-lg border border-dashed border-border p-8 text-center">
-          <p className="text-sm text-muted-foreground">{t('empty')}</p>
+        <Card variant="empty" className="items-center gap-4 p-8 text-center">
+          <p>{t('empty')}</p>
           <Link href="/app/meal-plans/new" className={buttonVariants({ size: 'sm' })}>
             {t('new')}
           </Link>
-        </div>
+        </Card>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-border">
-          <table className="w-full border-collapse text-sm">
-            <thead className="bg-muted/50">
-              <tr>
-                <th className="px-3 py-2 text-start font-medium">{t('fields.title')}</th>
-                <th className="px-3 py-2 text-start font-medium">{t('fields.client')}</th>
-                <th className="px-3 py-2 text-end font-medium">{t('fields.plannedDays')}</th>
-                <th className="px-3 py-2 text-end font-medium">{t('fields.kcalPerDay')}</th>
-                <th className="px-3 py-2 text-start font-medium">{t('fields.updatedAt')}</th>
-              </tr>
-            </thead>
-            <tbody>
+        <TableRoot>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t('fields.title')}</TableHead>
+                <TableHead>{t('fields.client')}</TableHead>
+                <TableHead numeric className="text-end">
+                  {t('fields.plannedDays')}
+                </TableHead>
+                <TableHead numeric className="text-end">
+                  {t('fields.kcalPerDay')}
+                </TableHead>
+                <TableHead>{t('fields.updatedAt')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {plans.map((plan) => (
-                <tr key={plan.id} className="border-t border-border hover:bg-muted/40">
-                  <td className="px-3 py-2 text-start">
+                <TableRow key={plan.id}>
+                  <TableCell>
                     <Link
                       href={`/app/meal-plans/${plan.id}`}
                       className="font-medium underline-offset-4 hover:underline"
                     >
                       {plan.title}
                     </Link>
-                  </td>
-                  <td className="px-3 py-2 text-start">
+                  </TableCell>
+                  <TableCell>
                     <Link
                       href={`/app/clients/${plan.clientId}`}
                       className="underline-offset-4 hover:underline"
                     >
                       {plan.clientName}
                     </Link>
-                  </td>
-                  <td className="px-3 py-2 text-end tabular-nums" dir="ltr">
+                  </TableCell>
+                  <TableCell numeric className="text-end">
                     {t('fields.daysOfSeven', { count: plan.plannedDays })}
-                  </td>
+                  </TableCell>
                   {/*
                    * The average across the days that actually have food on them,
                    * not across seven — a half-built plan should not read as if
                    * the client were being starved.
                    */}
-                  <td className="px-3 py-2 text-end tabular-nums" dir="ltr">
+                  <TableCell numeric className="text-end">
                     {plan.plannedDays === 0
                       ? '—'
                       : formatNumber(locale, roundForDisplay('kcal', plan.kcal / plan.plannedDays))}
-                  </td>
-                  <td className="px-3 py-2 text-start">{formatDate(locale, plan.updatedAt)}</td>
-                </tr>
+                  </TableCell>
+                  <TableCell>{formatDate(locale, plan.updatedAt)}</TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </TableBody>
+          </Table>
+        </TableRoot>
       )}
 
-      <p className="text-xs text-muted-foreground">{t('dataSource')}</p>
+      <p className="text-caption text-muted-foreground">{t('dataSource')}</p>
     </div>
   );
 }

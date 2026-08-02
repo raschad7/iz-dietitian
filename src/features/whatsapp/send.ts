@@ -170,6 +170,29 @@ export function confirmationDedupeKey(appointmentId: string, date: string, start
   return `confirmation:${appointmentId}:${date}:${startMinute}`;
 }
 
+/**
+ * The "your appointment moved" message, keyed on where it moved *to*.
+ *
+ * So a booking dragged 09:00 → 10:00 → 11:00 tells the patient twice, which is
+ * right — each move is a different fact — while a retry of the same move, or the
+ * same save arriving twice, sends once.
+ */
+export function rescheduleDedupeKey(appointmentId: string, date: string, startMinute: number): string {
+  return `rescheduled:${appointmentId}:${date}:${startMinute}`;
+}
+
+/**
+ * The cancellation, keyed on the appointment alone.
+ *
+ * Nothing else is needed: the row is gone by the time this is sent, so there is
+ * no second cancellation of the same appointment to distinguish. Note the
+ * message itself stores no `appointmentId` — that column is a foreign key, and
+ * the appointment it would point at no longer exists.
+ */
+export function cancellationDedupeKey(appointmentId: string): string {
+  return `cancelled:${appointmentId}`;
+}
+
 /** Portal credentials, keyed so a re-issued password sends a new message. */
 export function credentialsDedupeKey(clientId: string, username: string, issuedAt: number): string {
   return `credentials:${clientId}:${username}:${issuedAt}`;

@@ -1,4 +1,3 @@
-import { Salad } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
@@ -45,7 +44,7 @@ export default async function MealPlanPage({ params, searchParams }: MealPlanPag
     return (
       <div className="space-y-6">
         <h2 className="font-heading text-2xl font-semibold tracking-tight">{t('plan.title')}</h2>
-        <EmptyState icon={Salad} title={t('plan.noneTitle')} description={t('plan.none')} />
+        <EmptyState icon="myPlan" title={t('plan.noneTitle')} description={t('plan.none')} />
       </div>
     );
   }

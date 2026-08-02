@@ -184,6 +184,7 @@
       "title": "Add a client and book",
       "fullName": "Full name",
       "phone": "Phone",
+      "phoneCountry": "Country code",
       "saveAndBook": "Save and book"
     },
     "dialog": {
@@ -193,12 +194,24 @@
       "save": "Save",
       "cancel": "Cancel",
       "close": "Close",
-      "delete": "Delete appointment",
-      "confirmDeleteCompleted": "This appointment has already finished. Deleting it removes the record permanently. Are you sure?"
+      "delete": "Delete appointment"
+    },
+    "confirmMove": {
+      "title": "Change this appointment?",
+      "body": "Move {name} from {from} to {to}?",
+      "confirm": "Change appointment"
+    },
+    "confirmDelete": {
+      "title": "Delete this appointment?",
+      "body": "{name} on {when} will be removed from the calendar.",
+      "bodyCompleted": "This appointment has already finished. Deleting {name} on {when} removes the record permanently.",
+      "confirm": "Delete appointment"
     },
     "errors": {
       "tooShort": "The shortest appointment is 15 minutes.",
       "invalidDate": "That date is not valid. Try a format like 2026-08-05 or 8/5/2026.",
+      "pastDate": "That date has already passed. The earliest you can book is today.",
+      "pastTime": "That time has already passed. Move the appointment to a later time.",
       "closedDay": "The clinic is closed that day.",
       "outsideHours": "That falls outside the clinic's opening hours.",
       "overlap": "That clashes with another appointment.",
@@ -320,44 +333,95 @@
     "title": "Dashboard",
     "welcome": "Welcome, {name}",
     "agenda": {
-      "title": "Today's agenda",
-      "empty": "No appointments today",
-      "emptyCta": "View calendar",
+      "title": "Today",
+      "dateLabel": "Your agenda",
+      "count": "{count, plural, =0 {No appointments} one {# appointment} other {# appointments}}",
+      "next": "Next",
+      "live": "Now",
+      "empty": "Nothing booked today",
+      "emptyCta": "Book an appointment",
+      "viewDay": "Open the day view",
       "reason": "Reason: {reason}"
     },
-    "requests": {
-      "title": "Pending requests",
-      "count": "{count, number, integer} pending",
-      "empty": "No pending requests right now",
-      "cta": "Review requests",
-      "kind": {
-        "new": "New booking request",
-        "reschedule": "Reschedule request",
-        "cancel": "Cancellation request"
-      }
-    },
-    "stats": {
-      "activeClients": "Active clients",
+    "summary": {
+      "todayAppointments": "Today's appointments",
+      "upcomingAppointments": "Upcoming",
+      "newClientsThisMonth": "New clients this month",
       "appointmentsThisWeek": "Appointments this week",
-      "clientsWithoutMealPlan": "Without a meal plan",
-      "newClientsThisMonth": "New clients this month"
-    },
-    "attention": {
-      "title": "Needs attention",
-      "badge": "Needs attention",
-      "empty": "No clients need attention right now",
-      "viewAll": "View all clients",
-      "reason": {
-        "noUpcomingAppointment": "No upcoming appointment",
-        "noMealPlan": "No meal plan",
-        "neverSignedIn": "Never signed in to the portal"
-      }
+      "nextIs": "Next: {when}",
+      "nothingScheduled": "Nothing scheduled ahead"
     },
     "quickActions": {
       "title": "Quick actions",
-      "newAppointment": "New appointment",
-      "addClient": "Add client",
-      "newMealPlan": "New meal plan"
+      "addClient": {
+        "title": "New patient",
+        "hint": "Add someone to your register"
+      },
+      "bookAppointment": {
+        "title": "Book appointment",
+        "hint": "Opens today in the calendar"
+      },
+      "newMealPlan": {
+        "title": "Create meal plan",
+        "hint": "Build a weekly plan"
+      },
+      "addFood": {
+        "title": "Add a food",
+        "hint": "Opens the food reference"
+      }
+    },
+    "visitHistory": {
+      "title": "Visit history",
+      "subtitle": "{count, plural, =0 {Last 6 months} one {# visit over 6 months} other {# visits over 6 months}}",
+      "empty": "No visits in the last 6 months",
+      "tooltip": "{count, plural, =0 {No visits} one {# visit} other {# visits}} in {month}",
+      "busiest": "Busiest: {month} ({count, number, integer})",
+      "fewer": "Fewer",
+      "more": "More"
+    },
+    "ageDistribution": {
+      "title": "Age distribution",
+      "subtitle": "{count, plural, =0 {No clients yet} one {# client} other {# clients}}",
+      "empty": "No clients on the register yet",
+      "tooltip": "{count, plural, =0 {No clients} one {# client} other {# clients}} aged {band}",
+      "bands": {
+        "under18": "Under 18",
+        "age18to29": "18–29",
+        "age30to44": "30–44",
+        "age45to59": "45–59",
+        "age60plus": "60 and over",
+        "unknown": "Not recorded"
+      }
+    },
+    "sexDistribution": {
+      "title": "Sex distribution",
+      "subtitle": "{count, plural, =0 {No clients yet} one {# client} other {# clients}}",
+      "empty": "No clients on the register yet",
+      "centerLabel": "clients",
+      "tooltip": "{count, plural, =0 {No clients} one {# client} other {# clients}} — {group}",
+      "groups": {
+        "female": "Female",
+        "male": "Male",
+        "unknown": "Not recorded"
+      }
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "trigger": "Notifications, {count, plural, =0 {nothing pending} one {# pending request} other {# pending requests}}",
+    "empty": "Nothing needs you right now",
+    "preferred": "Asked for {when}",
+    "reviewRequests": "Review {count, plural, one {# request} other {# requests}}",
+    "viewClients": "All clients",
+    "request": {
+      "new": "New booking request",
+      "reschedule": "Reschedule request",
+      "cancel": "Cancellation request"
+    },
+    "attention": {
+      "noUpcomingAppointment": "No upcoming appointment",
+      "noMealPlan": "No meal plan yet",
+      "neverSignedIn": "Never signed in to the portal"
     }
   },
   "foods": {
@@ -436,6 +500,7 @@
     "fields": {
       "fullName": "Full name",
       "phone": "Phone",
+      "phoneCountry": "Country code",
       "email": "Email",
       "preferredLocale": "Correspondence language",
       "dateOfBirth": "Date of birth",
@@ -852,6 +917,8 @@
       "kind": {
         "appointment_reminder": "Appointment reminder",
         "appointment_confirmation": "Appointment confirmation",
+        "appointment_rescheduled": "Appointment changed",
+        "appointment_cancelled": "Appointment cancelled",
         "portal_credentials": "Portal credentials",
         "manual": "Manual message",
         "inbound": "Client reply"

@@ -1,10 +1,9 @@
-import { Apple, ChevronDown, CookingPot, Moon, Sunrise, UtensilsCrossed } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import type { ComponentType } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Icon, type IconName } from '@/components/ui/icon';
 import { formatLongDate } from '@/features/booking/format';
 import { MACRO_KEYS, NUTRIENT_UNITS, roundForDisplay } from '@/features/meal-plans/nutrition';
 import { type Locale } from '@/i18n/routing';
@@ -80,7 +79,7 @@ export function PortalPlan({
 
         {meals.length === 0 ? (
           <EmptyState
-            icon={UtensilsCrossed}
+            icon="dish"
             title={t('emptyDayTitle')}
             description={t('emptyDayHint')}
           />
@@ -123,11 +122,11 @@ export function PortalPlan({
  * what breakfast looks like here.
  */
 const MEAL_ICONS = {
-  breakfast: Sunrise,
-  snack: Apple,
-  lunch: UtensilsCrossed,
-  dinner: Moon,
-} as const satisfies Record<MealType, ComponentType<{ className?: string }>>;
+  breakfast: 'mealBreakfast',
+  snack: 'mealSnack',
+  lunch: 'mealLunch',
+  dinner: 'mealDinner',
+} as const satisfies Record<MealType, IconName>;
 
 /**
  * The meal card's surface, and the same pair inverted for the icon disc — see the
@@ -160,7 +159,7 @@ function MealCard({ meal }: { meal: BoardMeal }) {
   const tAnalysis = useTranslations('mealPlans.analysis');
 
   const mealType = mealTypeForSlot(meal.slotKey);
-  const Icon = MEAL_ICONS[mealType];
+  const mealIcon = MEAL_ICONS[mealType];
   const dish = meal.dish;
 
   return (
@@ -194,7 +193,7 @@ function MealCard({ meal }: { meal: BoardMeal }) {
               MEAL_BADGE,
             )}
           >
-            <Icon className="size-4.5" />
+            <Icon name={mealIcon} className="size-4.5" />
           </span>
 
           {/*
@@ -222,9 +221,14 @@ function MealCard({ meal }: { meal: BoardMeal }) {
             {t('kcalValue', { value: roundForDisplay('kcal', meal.totals.kcal.value) })}
           </span>
 
-          <ChevronDown
-            aria-hidden
-            className="size-4 shrink-0 transition-transform duration-200 ease-[cubic-bezier(.2,.6,.2,1)] group-open:rotate-180"
+          {/*
+            `chevronDown` is not in `DIRECTIONAL`, and correctly so: it points
+            down in both scripts, and mirroring it would be mirroring nothing.
+            The rotation rides the system's sweep tokens rather than a literal.
+          */}
+          <Icon
+            name="chevronDown"
+            className="size-4 shrink-0 transition-transform duration-(--duration-sweep) ease-(--ease-sweep) group-open:rotate-180"
           />
         </summary>
 
@@ -257,7 +261,7 @@ function MealCard({ meal }: { meal: BoardMeal }) {
                     MEAL_SHELL,
                   )}
                 >
-                  <CookingPot className="size-7" />
+                  <Icon name="dish" className="size-7" />
                 </span>
               </div>
 

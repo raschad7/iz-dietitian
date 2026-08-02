@@ -1,6 +1,7 @@
-import type { ComponentType, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 import { Badge } from '@/components/ui/badge';
+import { Icon, type IconName } from '@/components/ui/icon';
 
 /**
  * A titled block on a portal page.
@@ -14,12 +15,12 @@ import { Badge } from '@/components/ui/badge';
  * heading, above an empty state that already says the same thing, is noise.
  */
 export function PortalSection({
-  icon: Icon,
+  icon,
   title,
   count,
   children,
 }: {
-  icon: ComponentType<{ className?: string }>;
+  icon: IconName;
   title: string;
   count?: number;
   children: ReactNode;
@@ -27,7 +28,7 @@ export function PortalSection({
   return (
     <section className="space-y-3">
       <h3 className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-        <Icon className="size-4 shrink-0" aria-hidden />
+        <Icon name={icon} className="size-4 shrink-0" />
         <span>{title}</span>
         {count !== undefined && count > 0 ? (
           <Badge variant="muted" className="ms-auto tabular-nums">

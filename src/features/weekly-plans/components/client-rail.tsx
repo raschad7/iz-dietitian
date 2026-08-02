@@ -36,7 +36,7 @@ export function ClientRail({
 
   return (
     <div className="w-56 shrink-0 overflow-y-auto border-e border-border pe-3">
-      <h2 className="px-3 pb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <h2 className="px-3 pb-2 text-xs font-semibold text-muted-foreground">
         {t('clients')}
       </h2>
 

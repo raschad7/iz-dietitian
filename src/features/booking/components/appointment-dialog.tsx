@@ -1,13 +1,15 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { CalendarDays, Trash2 } from 'lucide-react';
+import { useMemo, useRef, useState } from 'react';
 
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/dialog';
+import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { SelectField } from '@/components/ui/select-field';
+import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Link } from '@/i18n/navigation';
 import { getLocaleDirection, type Locale } from '@/i18n/routing';
@@ -16,7 +18,14 @@ import { SLOT_MINUTES } from '@/lib/time-constants';
 import { minuteToClock, parseDateInput } from '../date';
 import { formatDuration, formatLongDate, formatMinute } from '../format';
 import { type CalendarAppointment, type CalendarClient } from '../types';
-import { validateBooking, type BookingErrorKey, type ClinicHours, type ExistingAppointment } from '../validation';
+import { type WallClock } from '../completed';
+import {
+  movesIntoThePast,
+  validateBooking,
+  type BookingErrorKey,
+  type ClinicHours,
+  type ExistingAppointment,
+} from '../validation';
 
 /**
  * The appointment's details, opened by right-clicking its block.
@@ -37,6 +46,14 @@ export type AppointmentDialogProps = {
   clients: CalendarClient[];
   /** Every appointment on the currently selected date, for the overlap checks. */
   existingByDate: (date: string) => readonly ExistingAppointment[];
+  /**
+   * The clinic's today, or null before the shared clock has ticked. Bounds the
+   * date picker and drives the past-date rule. Passed in rather than read from
+   * a clock of its own, so the whole calendar judges itself against one instant.
+   */
+  today: string | null;
+  /** The same instant to the minute, for the rule that a move may not go back. */
+  now: WallClock | null;
   completed: boolean;
   onSave: (next: {
     id: string;
@@ -97,6 +114,8 @@ export function AppointmentDialog({
   hours,
   clients,
   existingByDate,
+  today,
+  now,
   completed,
   onSave,
   onDelete,
@@ -105,7 +124,6 @@ export function AppointmentDialog({
   const t = useTranslations('booking');
   const direction = getLocaleDirection(locale);
 
-  const dialogRef = useRef<HTMLDialogElement>(null);
   const nativeDateRef = useRef<HTMLInputElement>(null);
 
   const [date, setDate] = useState(appointment.date);
@@ -122,15 +140,25 @@ export function AppointmentDialog({
   const [reason, setReason] = useState(appointment.reason ?? '');
   const [error, setError] = useState<BookingErrorKey | 'errors.invalidDate' | null>(null);
 
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog?.open) dialog?.showModal();
-  }, []);
-
   const existing = existingByDate(date);
 
-  const candidate = { practitionerId, clientId, date, startMinute, durationMinutes, excludeId: appointment.id };
-  const liveError = validateBooking(candidate, existing, hours);
+  const candidate = {
+    practitionerId,
+    clientId,
+    date,
+    startMinute,
+    durationMinutes,
+    excludeId: appointment.id,
+    today,
+  };
+  /**
+   * The past-time rule first, because it is the one failure the generic rules
+   * cannot see: they judge the candidate alone, and this one needs to know the
+   * slot the appointment is being moved *from*.
+   */
+  const liveError: BookingErrorKey | null = movesIntoThePast({ date, startMinute }, appointment, now)
+    ? 'errors.pastTime'
+    : validateBooking(candidate, existing, hours);
 
   /** Which whole-hour starts would collide, so they can be marked unavailable. */
   const unavailableStarts = useMemo(() => {
@@ -138,17 +166,21 @@ export function AppointmentDialog({
 
     for (const minute of startChoices(hours, startMinute)) {
       const failure = validateBooking(
-        { practitionerId, clientId, date, startMinute: minute, durationMinutes, excludeId: appointment.id },
+        { practitionerId, clientId, date, startMinute: minute, durationMinutes, excludeId: appointment.id, today },
         existing,
         hours,
       );
       // Only overlap and closing time make a *start* unavailable; a closed day
       // disables every option and is reported once, on the date field.
       if (failure === 'errors.overlap' || failure === 'errors.outsideHours') blocked.add(minute);
+
+      // An hour that has already gone is unavailable for the same reason: it is
+      // this one option that cannot be chosen, not the whole day.
+      if (movesIntoThePast({ date, startMinute: minute }, appointment, now)) blocked.add(minute);
     }
 
     return blocked;
-  }, [appointment.id, clientId, date, durationMinutes, existing, hours, practitionerId, startMinute]);
+  }, [appointment, clientId, date, durationMinutes, existing, hours, now, practitionerId, startMinute, today]);
 
   function commitDateText(raw: string): void {
     const parsed = parseDateInput(raw);
@@ -184,40 +216,23 @@ export function AppointmentDialog({
   const message = error ?? liveError;
 
   return (
-    <dialog
-      ref={dialogRef}
-      dir={direction}
-      aria-label={t('dialog.title')}
-      className={[
-        // Bottom sheet on small screens, centred card from `sm` up.
-        'w-full max-w-none rounded-t-2xl p-0 backdrop:bg-black/40',
-        'mt-auto mb-0 sm:m-auto sm:w-[min(28rem,calc(100vw-2rem))] sm:rounded-2xl',
-        'bg-popover text-popover-foreground border border-border shadow-xl',
-      ].join(' ')}
-      onClose={onClose}
-      onClick={(event) => {
-        // A click on the backdrop targets the dialog element itself.
-        if (event.target === dialogRef.current) dialogRef.current?.close();
-      }}
-    >
-      <form method="dialog" className="flex flex-col gap-3 p-4 text-start" onSubmit={(event) => event.preventDefault()}>
-        <header className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <h2 className="truncate text-base font-semibold" dir="auto">
-              {appointment.clientName}
-            </h2>
-            <p className="text-xs text-muted-foreground" dir="auto">
-              {formatLongDate(locale, date)} · {formatMinute(locale, date, startMinute)}
-            </p>
-          </div>
+    <Dialog open onClose={onClose} label={t('dialog.title')} dir={direction}>
+      <form method="dialog" onSubmit={(event) => event.preventDefault()}>
+        <DialogHeader
+          title={appointment.clientName}
+          description={`${formatLongDate(locale, date)} · ${formatMinute(locale, date, startMinute)}`}
+          onClose={onClose}
+          closeLabel={t('actions.close')}
+        >
+          {/*
+            No `uppercase` here or anywhere client-facing: Arabic has no letter
+            case for it to act on, so it changes the Latin build only and the
+            two stop matching.
+          */}
+          {completed ? <Badge variant="muted">{t('completed')}</Badge> : null}
+        </DialogHeader>
 
-          {completed && (
-            <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[0.625rem] font-semibold tracking-wide uppercase text-muted-foreground">
-              {t('completed')}
-            </span>
-          )}
-        </header>
-
+        <DialogBody>
         {/* 1. Date — typed, or picked from the browser's own calendar. */}
         <div className="space-y-1">
           <Label htmlFor="appointment-date">{t('fields.date')}</Label>
@@ -254,7 +269,7 @@ export function AppointmentDialog({
                   input.showPicker();
                 }}
               >
-                <CalendarDays />
+                <Icon name="calendar" />
               </Button>
 
               <input
@@ -263,6 +278,11 @@ export function AppointmentDialog({
                 tabIndex={-1}
                 aria-hidden
                 value={date}
+                // Greys out every day before today in the browser's own picker,
+                // so a past date cannot be chosen there at all. Typing one into
+                // the field beside it is still possible, and is caught by the
+                // past-date rule below like any other rule failure.
+                min={today ?? undefined}
                 onChange={(event) => commitDateText(event.target.value)}
                 className="pointer-events-none absolute inset-0 size-full opacity-0"
               />
@@ -273,7 +293,7 @@ export function AppointmentDialog({
         {/* 2. Start — whole hours only. */}
         <div className="space-y-1">
           <Label htmlFor="appointment-start">{t('fields.start')}</Label>
-          <SelectField
+          <Select
             id="appointment-start"
             disabled={completed}
             value={String(startMinute)}
@@ -285,13 +305,13 @@ export function AppointmentDialog({
                 {unavailableStarts.has(minute) ? ` — ${t('fields.unavailable')}` : ''}
               </option>
             ))}
-          </SelectField>
+          </Select>
         </div>
 
         {/* 3. Duration — half-hour steps. */}
         <div className="space-y-1">
           <Label htmlFor="appointment-duration">{t('fields.duration')}</Label>
-          <SelectField
+          <Select
             id="appointment-duration"
             disabled={completed}
             value={String(durationMinutes)}
@@ -306,7 +326,7 @@ export function AppointmentDialog({
                 {minutes % DURATION_STEP_MINUTES !== 0 ? ` (${minutes / SLOT_MINUTES}×${SLOT_MINUTES})` : ''}
               </option>
             ))}
-          </SelectField>
+          </Select>
         </div>
 
         {/* 4. Client, with a way through to the full record. */}
@@ -320,7 +340,7 @@ export function AppointmentDialog({
               {t('fields.editClient')}
             </Link>
           </div>
-          <SelectField
+          <Select
             id="appointment-client"
             disabled={completed}
             value={clientId}
@@ -335,7 +355,7 @@ export function AppointmentDialog({
             {!clients.some((client) => client.id === appointment.clientId) && (
               <option value={appointment.clientId}>{appointment.clientName}</option>
             )}
-          </SelectField>
+          </Select>
         </div>
 
         {/* 5. Reason — optional, and empty unless someone types something. */}
@@ -354,38 +374,42 @@ export function AppointmentDialog({
         </div>
 
         {message && !completed && (
-          <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <p role="alert" className="rounded-md bg-destructive-subtle px-3 py-2 text-body-md text-destructive">
             {t(message)}
           </p>
         )}
 
         {completed && (
-          <p className="rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground">{t('errors.completedLocked')}</p>
+          <p className="rounded-md bg-muted px-3 py-2 text-body-md text-muted-foreground">{t('errors.completedLocked')}</p>
         )}
+        </DialogBody>
 
-        <div className="mt-1 flex items-center justify-between gap-2">
+        <DialogFooter className="justify-between">
           {/*
             Delete stays available on a finished appointment, and it is the only
             thing that is. Editing one silently rewrites what happened; deleting
-            is explicit, asks first, and is the sole way to remove a record
-            entered by mistake.
+            is the sole way to remove a record entered by mistake.
+
+            The confirmation is the calendar's, not this dialog's: a modal
+            `<dialog>` opened inside another one stacks in the top layer but
+            makes focus and the backdrop fiddly, and the calendar is where every
+            other write already lives. This closes and hands the decision up.
           */}
           <Button
             type="button"
             variant="destructive"
             size="sm"
             onClick={() => {
-              if (completed && !window.confirm(t('actions.confirmDeleteCompleted'))) return;
               onDelete(appointment.id);
-              dialogRef.current?.close();
+              onClose();
             }}
           >
-            <Trash2 data-icon="inline-start" />
+            <Icon name="trash" data-icon="inline-start" />
             {t('actions.delete')}
           </Button>
 
           <div className="flex items-center gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={() => dialogRef.current?.close()}>
+            <Button type="button" variant="ghost" size="sm" onClick={onClose}>
               {completed ? t('actions.close') : t('actions.cancel')}
             </Button>
             {/*
@@ -399,8 +423,8 @@ export function AppointmentDialog({
               </Button>
             )}
           </div>
-        </div>
+        </DialogFooter>
       </form>
-    </dialog>
+    </Dialog>
   );
 }

@@ -1,8 +1,8 @@
-import { Clock } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { Icon } from '@/components/ui/icon';
 import {
   formatDayNumber,
   formatDuration,
@@ -116,7 +116,7 @@ export function AppointmentCard({
               </p>
 
               <p className="flex flex-wrap items-center gap-x-1.5 text-sm text-muted-foreground">
-                <Clock className="size-3.5 shrink-0" aria-hidden />
+                <Icon name="clock" className="size-3.5 shrink-0" />
                 {/*
                   No `dir="ltr"` here, deliberately.
 

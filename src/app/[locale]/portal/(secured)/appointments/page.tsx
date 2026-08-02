@@ -1,4 +1,3 @@
-import { CalendarCheck, CalendarClock, CalendarOff, MessageSquareDot } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
@@ -55,13 +54,13 @@ export default async function AppointmentsPage({ params }: AppointmentsPageProps
       </header>
 
       <PortalSection
-        icon={CalendarClock}
+        icon="calendar"
         title={t('appointments.upcoming')}
         count={upcoming.length}
       >
         {upcoming.length === 0 ? (
           <EmptyState
-            icon={CalendarOff}
+            icon="calendar"
             title={t('appointments.noneUpcomingTitle')}
             description={t('appointments.noneUpcoming')}
           />
@@ -82,7 +81,7 @@ export default async function AppointmentsPage({ params }: AppointmentsPageProps
 
       {visibleRequests.length > 0 ? (
         <PortalSection
-          icon={MessageSquareDot}
+          icon="chat"
           title={t('appointments.requests')}
           count={visibleRequests.length}
         >
@@ -90,9 +89,9 @@ export default async function AppointmentsPage({ params }: AppointmentsPageProps
         </PortalSection>
       ) : null}
 
-      <PortalSection icon={CalendarCheck} title={t('appointments.history')} count={past.length}>
+      <PortalSection icon="clock" title={t('appointments.history')} count={past.length}>
         {past.length === 0 ? (
-          <EmptyState icon={CalendarCheck} title={t('appointments.nonePast')} />
+          <EmptyState icon="clock" title={t('appointments.nonePast')} />
         ) : (
           <ul className="space-y-3">
             {past.map((appointment) => (

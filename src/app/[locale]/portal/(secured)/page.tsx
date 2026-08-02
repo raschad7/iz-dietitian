@@ -71,10 +71,10 @@ export default async function PortalPage({ params }: PortalPageProps) {
         page offers a way to read them, not a way to ask for one.
       */}
       <div className="grid gap-3 sm:grid-cols-2">
-        <Link href="/portal/appointments" className={buttonVariants({ size: 'lg' })}>
+        <Link href="/portal/appointments" className={buttonVariants()}>
           {t('dashboard.viewAppointments')}
         </Link>
-        <Link href="/portal/meal-plan" className={buttonVariants({ variant: 'outline', size: 'lg' })}>
+        <Link href="/portal/meal-plan" className={buttonVariants({ variant: 'outline' })}>
           {t('dashboard.viewMealPlan')}
         </Link>
       </div>

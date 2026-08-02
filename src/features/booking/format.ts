@@ -37,6 +37,11 @@ export function formatMinuteRange(locale: Locale, date: IsoDate, startMinute: nu
   );
 }
 
+/** `5 – 11 August 2026`, collapsed by the locale's own range rules. */
+export function formatMediumDateRange(locale: Locale, from: IsoDate, to: IsoDate): string {
+  return formatter(locale, { dateStyle: 'medium' }).formatRange(toUtcInstant(from), toUtcInstant(to));
+}
+
 /** `5 August 2026` — the long form the appointment popup header shows. */
 export function formatLongDate(locale: Locale, date: IsoDate): string {
   return formatter(locale, { dateStyle: 'long' }).format(toUtcInstant(date));
@@ -54,6 +59,11 @@ export function formatWeekday(locale: Locale, date: IsoDate, weekday: 'short' | 
 /** `5` — the day number in a month cell. */
 export function formatDayNumber(locale: Locale, date: IsoDate): string {
   return formatter(locale, { day: 'numeric' }).format(toUtcInstant(date));
+}
+
+/** `Aug` — the column label under a monthly chart, where the year is in the heading. */
+export function formatMonthShort(locale: Locale, date: IsoDate): string {
+  return formatter(locale, { month: 'short' }).format(toUtcInstant(date));
 }
 
 /** `August 2026` — the calendar's current-range heading. */
@@ -78,17 +88,8 @@ export function formatDuration(
 }
 
 /**
- * Initials for the generated avatar.
- *
- * Takes the first character of the first two words. Works for Arabic and Latin
- * alike; `Array.from` rather than `charAt` so an astral-plane character is not
- * split into half a surrogate pair.
+ * Re-exported so the calendar's existing call sites keep importing it from
+ * here; the implementation moved to `@/lib/initials` when the dashboard's
+ * shared `Avatar` needed it too.
  */
-export function initialsOf(name: string): string {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((word) => Array.from(word)[0] ?? '')
-    .join('');
-}
+export { initialsOf } from '@/lib/initials';

@@ -231,7 +231,14 @@ function QrPanel({ qrCode }: { qrCode: string | null }) {
           width={240}
           height={240}
           unoptimized
-          className="rounded-md bg-white p-2"
+          /*
+            True white, not the warm `card` surface: a QR reader needs maximum
+            contrast against the black modules, and the canvas tint is enough
+            to make some scanners hesitate. This is the one place in the app
+            where the surface is a functional requirement rather than a
+            brand choice.
+          */
+          className="rounded-md bg-[var(--n-0)] p-2"
         />
       ) : (
         <p className="text-sm text-muted-foreground">{t('connection.waiting')}</p>
