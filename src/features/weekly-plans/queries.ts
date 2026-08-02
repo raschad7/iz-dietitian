@@ -24,6 +24,7 @@ import {
   type NutrientTotals,
 } from './nutrition';
 import { findSimilar, type SimilarMatch } from './similar';
+import { slotFillKey, type SlotFill } from './skeleton';
 import {
   DAYS_OF_WEEK,
   DEFAULT_MEAL_SCHEDULE,
@@ -560,6 +561,45 @@ export async function listPlans(
     .from(weeklyPlans)
     .where(and(eq(weeklyPlans.clinicId, clinicId), eq(weeklyPlans.clientId, clientId)))
     .orderBy(desc(weeklyPlans.weekStartDate), desc(weeklyPlans.updatedAt));
+}
+
+/**
+ * One plan's dishes, keyed the way `planSkeleton` fills slots.
+ *
+ * Clinic-scoped in the same query rather than after it: the plan id arrives from a
+ * form, and a copy that read another clinic's plan would leak its menu one dish at
+ * a time. An unfilled slot contributes no entry — copying a gap forward as a gap is
+ * what leaving it out already achieves.
+ */
+export async function planDishesBySlot(
+  clinicId: string,
+  planId: string,
+): Promise<Map<string, SlotFill>> {
+  const parsed = planIdSchema.safeParse(planId);
+  if (!parsed.success) return new Map();
+
+  const rows = await db
+    .select({
+      dayOfWeek: weeklyPlanMeals.dayOfWeek,
+      slotKey: weeklyPlanMeals.slotKey,
+      dishId: weeklyPlanMeals.dishId,
+      servings: weeklyPlanMeals.servings,
+    })
+    .from(weeklyPlanMeals)
+    .innerJoin(weeklyPlans, eq(weeklyPlans.id, weeklyPlanMeals.planId))
+    .where(and(eq(weeklyPlans.id, parsed.data), eq(weeklyPlans.clinicId, clinicId)));
+
+  const fill = new Map<string, SlotFill>();
+
+  for (const row of rows) {
+    if (!row.dishId) continue;
+    fill.set(slotFillKey(row.dayOfWeek, row.slotKey), {
+      dishId: row.dishId,
+      servings: row.servings,
+    });
+  }
+
+  return fill;
 }
 
 /**
