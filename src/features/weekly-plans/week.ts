@@ -25,6 +25,25 @@ export function nextSunday(today: Date = new Date()): string {
   return formatDateParts(target);
 }
 
+/**
+ * `YYYY-MM-DD` for the Sunday that starts the week `today` falls in.
+ *
+ * Looks backwards where {@link nextSunday} looks forwards, and the two are only
+ * the same answer on a Sunday. Asking "does this client have a plan?" needs the
+ * week already running — on a Wednesday, `nextSunday` names a week nobody is
+ * eating from yet, and every client would look neglected for six days out of
+ * seven.
+ *
+ * Same local-parts reckoning as its sibling, for the same reason.
+ */
+export function currentSunday(today: Date = new Date()): string {
+  const daysBehind = (today.getDay() - SUNDAY + 7) % 7;
+
+  const target = new Date(today.getFullYear(), today.getMonth(), today.getDate() - daysBehind);
+
+  return formatDateParts(target);
+}
+
 /** `YYYY-MM-DD` from a Date's local parts. */
 export function formatDateParts(date: Date): string {
   const year = date.getFullYear();

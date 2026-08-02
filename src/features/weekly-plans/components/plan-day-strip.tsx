@@ -34,7 +34,7 @@ export function PlanDayStrip({
   locale: Locale;
 }) {
   const t = useTranslations('portal.plan');
-  const tDays = useTranslations('mealPlans.days');
+  const tDays = useTranslations('weeklyPlans.days');
 
   const router = useRouter();
   const pathname = usePathname();

@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { formatLongDate } from '@/features/booking/format';
-import { MACRO_KEYS, NUTRIENT_UNITS, roundForDisplay } from '@/features/meal-plans/nutrition';
+import { MACRO_KEYS, NUTRIENT_UNITS, roundForDisplay } from '@/features/weekly-plans/nutrition';
 import { type Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 
@@ -46,7 +46,7 @@ export function PortalPlan({
 }) {
   const locale = useLocale() as Locale;
   const t = useTranslations('portal.plan');
-  const tDays = useTranslations('mealPlans.days');
+  const tDays = useTranslations('weeklyPlans.days');
 
   const day = board.days[selectedDay];
   const summary = days.find((entry) => entry.dayOfWeek === selectedDay);
@@ -155,8 +155,8 @@ const MEAL_BADGE = 'bg-meal-fg text-meal-bg';
  */
 function MealCard({ meal }: { meal: BoardMeal }) {
   const t = useTranslations('portal.plan');
-  const tNutrients = useTranslations('mealPlans.nutrients');
-  const tAnalysis = useTranslations('mealPlans.analysis');
+  const tNutrients = useTranslations('weeklyPlans.nutrients');
+  const tPlans = useTranslations('weeklyPlans');
 
   const mealType = mealTypeForSlot(meal.slotKey);
   const mealIcon = MEAL_ICONS[mealType];
@@ -283,7 +283,7 @@ function MealCard({ meal }: { meal: BoardMeal }) {
                         {total.unmeasured > 0 ? (
                           <span
                             className="text-muted-foreground"
-                            title={tAnalysis('unmeasured', { count: total.unmeasured })}
+                            title={tPlans('unmeasuredCount', { count: total.unmeasured })}
                           >
                             {' '}
                             +

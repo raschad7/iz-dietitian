@@ -10,15 +10,19 @@ import { ClientRail } from '@/features/weekly-plans/components/client-rail';
 import { ContextPanel } from '@/features/weekly-plans/components/context-panel';
 import { GenerateForm } from '@/features/weekly-plans/components/generate-form';
 import { PlanBoard } from '@/features/weekly-plans/components/plan-board';
+import { PlanHistory } from '@/features/weekly-plans/components/plan-history';
 import { isLlmConfigured } from '@/features/weekly-plans/llm';
 import {
   getBoard,
   getClientContext,
   getLatestBoard,
+  listCatalogForBoard,
   listPlannableClients,
   listPlans,
+  previousPlanSlots,
   swapCandidatesByMeal,
 } from '@/features/weekly-plans/queries';
+import { recentDishUse } from '@/features/weekly-plans/usage';
 import { nextSunday } from '@/features/weekly-plans/week';
 
 /**
@@ -60,17 +64,54 @@ export default async function ClientBoardPage({ params, searchParams }: PageProp
     listPlans(clinicId, clientId),
   ]);
 
+  const allergens = context.profile?.allergenTags ?? [];
+
   // Computed once for the whole board rather than per card, so opening a meal costs
   // no round trip. Empty when there is no plan yet.
-  const candidates = board
-    ? await swapCandidatesByMeal(board, context.profile?.allergenTags ?? [])
-    : {};
+  const candidates = board ? await swapCandidatesByMeal(board, allergens) : {};
+
+  // The catalog ships with its recipes so the board can recompute totals for a
+  // dropped dish itself, and the previous week's slots so a repeat is visible
+  // without leaving the page.
+  const [catalog, usage, previous] = await Promise.all([
+    listCatalogForBoard(allergens),
+    recentDishUse(clinicId, clientId),
+    board ? previousPlanSlots(clinicId, clientId, board.weekStartDate) : Promise.resolve(null),
+  ]);
 
   const blocked = !isLlmConfigured()
     ? ('not_configured' as const)
     : context.effectiveKcal === null || !context.profile
       ? ('profile_incomplete' as const)
       : null;
+
+  const weekStartDate = nextSunday();
+
+  // The newest plan that is not the one on screen — what "start from" offers. A
+  // plan cannot be copied into itself, and offering it would be the one entry in
+  // the menu that quietly does nothing.
+  const previousPlan = plans.find((plan) => plan.id !== board?.id) ?? null;
+
+  // The copy and empty doors do not call a model, so an unconfigured OpenAI key
+  // does not block them. Only a missing profile does, because all three build
+  // their slots from it.
+  const newWeek = {
+    weekStartDate,
+    previousPlan: previousPlan
+      ? { id: previousPlan.id, weekStartDate: previousPlan.weekStartDate }
+      : null,
+    blocked: context.effectiveKcal === null || !context.profile,
+  };
+
+  const history = (
+    <PlanHistory
+      plans={plans}
+      clientId={clientId}
+      currentPlanId={board?.id ?? null}
+      nextWeekStartDate={weekStartDate}
+      locale={locale}
+    />
+  );
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-4 text-start">
@@ -101,7 +142,16 @@ export default async function ClientBoardPage({ params, searchParams }: PageProp
         <ClientRail clients={clients} selectedClientId={clientId} />
 
         {board ? (
-          <PlanBoard board={board} candidates={candidates} locale={locale}>
+          <PlanBoard
+            board={board}
+            candidates={candidates}
+            catalog={catalog}
+            usage={usage}
+            previous={previous}
+            locale={locale}
+            history={history}
+            newWeek={newWeek}
+          >
             <div className="flex flex-col gap-5">
               <ContextPanel context={context} />
 
@@ -109,9 +159,10 @@ export default async function ClientBoardPage({ params, searchParams }: PageProp
                 <div className="border-t border-border pt-4">
                   <GenerateForm
                     clientId={clientId}
-                    weekStartDate={nextSunday()}
+                    weekStartDate={weekStartDate}
                     locale={locale}
                     blocked={blocked}
+                    context={context}
                     defaultInstruction={board.weekInstructions}
                   />
                 </div>
@@ -133,9 +184,10 @@ export default async function ClientBoardPage({ params, searchParams }: PageProp
                 <div className="border-t border-border pt-4">
                   <GenerateForm
                     clientId={clientId}
-                    weekStartDate={nextSunday()}
+                    weekStartDate={weekStartDate}
                     locale={locale}
                     blocked={blocked}
+                    context={context}
                   />
                 </div>
               </div>

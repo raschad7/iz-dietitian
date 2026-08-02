@@ -15,7 +15,6 @@ export * from './practitioners';
 export * from './appointments';
 export * from './appointment-requests';
 export * from './foods';
-export * from './meal-plans';
 export * from './dishes';
 export * from './client-nutrition-profiles';
 export * from './weekly-plans';

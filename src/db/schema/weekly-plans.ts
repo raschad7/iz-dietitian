@@ -17,16 +17,15 @@ import { clinics } from './clinics';
 import { dishes } from './dishes';
 
 /**
- * An AI-generated weekly plan — the storage behind meal planning V2.
+ * An AI-generated weekly plan — the only kind of plan there is.
  *
- * Deliberately separate from `meal_plans`. V2 needs a dish reference, a serving
- * multiplier, a rationale, ranked alternatives, and a publish lifecycle; none of
- * those mean anything to the manual editor, and adding them there would make every
- * one of its columns nullable-and-ignored. The two features share `foods` and the
- * nutrition arithmetic, which is the part worth sharing.
+ * It began as V2 beside a hand-built `meal_plans`; that table is gone, and this
+ * one carries what it never could: a dish reference, a serving multiplier, a
+ * rationale, ranked alternatives, and a publish lifecycle.
  *
- * Same day numbering as V1: 0 = Sunday … 6 = Saturday, matching
- * `Date.prototype.getDay()`.
+ * Day numbering is 0 = Sunday … 6 = Saturday, matching `Date.prototype.getDay()`.
+ * Sunday leads because the clinic's week does; the labels are translated, the
+ * numbering is not.
  */
 export const weeklyPlans = pgTable(
   'weekly_plans',
@@ -74,6 +73,23 @@ export const weeklyPlans = pgTable(
      * numbers it was actually built for.
      */
     kcalTargetSnapshot: integer('kcal_target_snapshot').notNull(),
+
+    /**
+     * The protein target and goal this plan was built against, when they differ
+     * from the client's profile.
+     *
+     * Null means "whatever the profile says". Nullable rather than copied from the
+     * profile at write time, so a plan built without touching these keeps deferring
+     * to the profile exactly as every plan did before the columns existed — and so
+     * "was this week deliberately different" stays an answerable question.
+     *
+     * Never written back to `client_nutrition_profiles`. A one-week experiment must
+     * not silently become the client's standing target.
+     */
+    proteinTargetSnapshot: integer('protein_target_snapshot'),
+
+    /** One of `CLIENT_GOALS`. Constrained in Zod, as `clients.goal` is. */
+    goalSnapshot: text('goal_snapshot'),
 
     /** `ai` | `manual`. A plan can be started by hand and never generated. */
     generatedBy: text('generated_by').notNull().default('ai'),

@@ -2,7 +2,7 @@
  * The numbers a weekly plan is generated against, none of which are stored.
  *
  * Pure functions over plain values: no database, no React, no Next.js — the same
- * discipline as `src/features/meal-plans/nutrition.ts`, and for the same reason.
+ * discipline as `src/features/weekly-plans/nutrition.ts`, and for the same reason.
  * A calorie target that could only be checked by rendering a page is a calorie
  * target nobody checks.
  *

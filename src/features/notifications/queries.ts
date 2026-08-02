@@ -1,8 +1,9 @@
 import { and, asc, count, desc, eq, gte, isNotNull, notExists } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { appointmentRequests, appointments, clients, mealPlans, session } from '@/db/schema';
+import { appointmentRequests, appointments, clients, session, weeklyPlans } from '@/db/schema';
 import { type RequestKind } from '@/features/portal/types';
+import { currentSunday } from '@/features/weekly-plans/week';
 
 import { type AttentionReason } from './types';
 
@@ -98,16 +99,18 @@ export async function listClientsWithNoUpcomingAppointment(
 }
 
 /**
- * Active clients with zero meal plans.
+ * Active clients with no published plan covering the week we are in now.
  *
- * The dashboard spec asked for "meal plans ending within 7 days", but
- * `meal_plans` has no end date — it is a repeating weekly template, not a
- * dated programme (see the comment on that table). Rather than invent a
- * lifecycle the schema doesn't have, this lists the honestly-derivable proxy:
- * a client with zero plans has clearly fallen further through the cracks than
- * one whose plan might lapse soon.
+ * The `status`/`week_start_date` pair, not merely "has any plan": a draft is not
+ * something a client can eat from, and last month's published week is not
+ * either. `weekly_plans_published_week_idx` covers exactly this shape.
+ *
+ * Written as the absence rather than negated at the call site, since that is
+ * the question the bell is asking.
  */
-export async function listClientsWithoutMealPlan(clinicId: string, limit: number): Promise<AttentionItem[]> {
+export async function listClientsWithoutWeeklyPlan(clinicId: string, limit: number): Promise<AttentionItem[]> {
+  const weekStartDate = currentSunday();
+
   const rows = await db
     .select({ clientId: clients.id, clientName: clients.fullName })
     .from(clients)
@@ -115,13 +118,24 @@ export async function listClientsWithoutMealPlan(clinicId: string, limit: number
       and(
         eq(clients.clinicId, clinicId),
         eq(clients.status, 'active'),
-        notExists(db.select({ id: mealPlans.id }).from(mealPlans).where(eq(mealPlans.clientId, clients.id))),
+        notExists(
+          db
+            .select({ id: weeklyPlans.id })
+            .from(weeklyPlans)
+            .where(
+              and(
+                eq(weeklyPlans.clientId, clients.id),
+                eq(weeklyPlans.status, 'published'),
+                eq(weeklyPlans.weekStartDate, weekStartDate),
+              ),
+            ),
+        ),
       ),
     )
     .orderBy(asc(clients.fullName))
     .limit(limit);
 
-  return rows.map((row) => ({ ...row, reason: 'noMealPlan' as const }));
+  return rows.map((row) => ({ ...row, reason: 'noWeeklyPlan' as const }));
 }
 
 /**

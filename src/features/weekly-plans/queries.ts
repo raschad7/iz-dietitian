@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, ilike, inArray, ne, or, sql, type SQL } from 'drizzle-orm';
+import { and, asc, count, desc, eq, ilike, inArray, lt, ne, or, sql, type SQL } from 'drizzle-orm';
 
 import { db } from '@/db';
 import {
@@ -13,11 +13,18 @@ import {
   type MealSlot,
 } from '@/db/schema';
 import { calculateAge } from '@/features/clients/age';
-import type { NutrientTotals } from '@/features/meal-plans/nutrition';
 
-import { baseServingKcal, combineTotals, dishTotals, emptyTotals, type DishDetail } from './dish-nutrition';
 import type { CatalogDish } from './generate';
+import {
+  baseServingKcal,
+  combineTotals,
+  dishTotals,
+  emptyTotals,
+  type DishDetail,
+  type NutrientTotals,
+} from './nutrition';
 import { findSimilar, type SimilarMatch } from './similar';
+import { slotFillKey, type SlotFill } from './skeleton';
 import {
   DAYS_OF_WEEK,
   DEFAULT_MEAL_SCHEDULE,
@@ -105,9 +112,67 @@ export async function loadCatalog(allergens: readonly string[] = []): Promise<Di
       tags: dishes.tags,
       allergenTags: dishes.allergenTags,
       baseServingLabel: dishes.baseServingLabel,
+      isActive: dishes.isActive,
     })
     .from(dishes)
     .where(and(...conditions))
+    .orderBy(asc(dishes.slug));
+
+  if (!dishRows.length) return [];
+
+  const ingredientRows = await db
+    .select({
+      dishId: dishIngredients.dishId,
+      quantityGrams: dishIngredients.quantityGrams,
+      food: foodColumns,
+    })
+    .from(dishIngredients)
+    .innerJoin(foods, eq(foods.id, dishIngredients.foodId))
+    .where(
+      inArray(
+        dishIngredients.dishId,
+        dishRows.map((dish) => dish.id),
+      ),
+    )
+    .orderBy(asc(dishIngredients.sortOrder));
+
+  const byDish = new Map<string, DishDetail['ingredients']>();
+  for (const { dishId, ...ingredient } of ingredientRows) {
+    const bucket = byDish.get(dishId);
+    if (bucket) bucket.push(ingredient);
+    else byDish.set(dishId, [ingredient]);
+  }
+
+  return dishRows.map((dish) => ({ ...dish, ingredients: byDish.get(dish.id) ?? [] }));
+}
+
+/**
+ * Dishes by id, regardless of `is_active`.
+ *
+ * The board must render a plan as it was written. `loadCatalog` filters retired
+ * dishes because nothing new should be built from one, but a plan that already
+ * holds one would otherwise show a blank card and count it toward the unfilled
+ * total that gates publishing — punishing the dietitian for a catalog change they
+ * did not make. `dishes.is_active` says as much itself: retired dishes stay for the
+ * plans that reference them.
+ */
+export async function loadDishesByIds(ids: readonly string[]): Promise<DishDetail[]> {
+  if (!ids.length) return [];
+
+  const dishRows = await db
+    .select({
+      id: dishes.id,
+      slug: dishes.slug,
+      nameAr: dishes.nameAr,
+      nameEn: dishes.nameEn,
+      mealTypes: dishes.mealTypes,
+      tags: dishes.tags,
+      allergenTags: dishes.allergenTags,
+      baseServingLabel: dishes.baseServingLabel,
+      isActive: dishes.isActive,
+    })
+    .from(dishes)
+    .where(inArray(dishes.id, [...ids]))
     .orderBy(asc(dishes.slug));
 
   if (!dishRows.length) return [];
@@ -150,6 +215,40 @@ export function toPromptCatalog(catalog: readonly DishDetail[]): CatalogDish[] {
     baseKcal: baseServingKcal(dish.ingredients),
     baseProtein: dishTotals(dish.ingredients, 1).protein.value,
   }));
+}
+
+export type CatalogEntry = DishDetail & {
+  /** Energy for one base serving, so the panel can rank by fit. */
+  baseKcal: number;
+  /**
+   * The client's allergens this dish carries. Empty for a dish they can eat.
+   *
+   * Carried rather than filtered out: a dietitian searching for a dish they know
+   * exists and finding nothing concludes the catalog is broken. Shown, disabled,
+   * and labelled with the reason is the honest presentation — and the write path
+   * refuses it regardless, because `loadCatalog(allergens)` never offered it.
+   */
+  blockedBy: string[];
+};
+
+/**
+ * The whole active catalog, costed, marked against one client's allergens.
+ *
+ * Ingredients travel with it because the board recomputes totals optimistically
+ * from the same arithmetic the server uses — without them, dropping a dish would
+ * have to guess at the numbers or wait for a round trip.
+ */
+export async function listCatalogForBoard(allergens: readonly string[]): Promise<CatalogEntry[]> {
+  const catalog = await loadCatalog();
+  const blocked = new Set(allergens);
+
+  return catalog
+    .map((dish) => ({
+      ...dish,
+      baseKcal: baseServingKcal(dish.ingredients),
+      blockedBy: dish.allergenTags.filter((tag) => blocked.has(tag)),
+    }))
+    .sort((a, b) => a.nameAr.localeCompare(b.nameAr, 'ar'));
 }
 
 export type DishListResult = {
@@ -472,6 +571,9 @@ export type Board = {
   publishedAt: Date | null;
   weekInstructions: string | null;
   kcalTargetSnapshot: number;
+  /** Null when the week used the client's own figures. */
+  proteinTargetSnapshot: number | null;
+  goalSnapshot: string | null;
   generatedBy: string;
   model: string | null;
   updatedAt: Date;
@@ -481,21 +583,133 @@ export type Board = {
   unfilled: number;
 };
 
-/** One client's plans, newest week first, for the history dropdown. */
-export async function listPlans(
-  clinicId: string,
-  clientId: string,
-): Promise<{ id: string; weekStartDate: string; status: string; updatedAt: Date }[]> {
+export type PlanListEntry = {
+  id: string;
+  weekStartDate: string;
+  status: string;
+  updatedAt: Date;
+  kcalTargetSnapshot: number;
+  mealCount: number;
+};
+
+/** One client's plans, newest week first, for the header pills and the Past tab. */
+export async function listPlans(clinicId: string, clientId: string): Promise<PlanListEntry[]> {
   return db
     .select({
       id: weeklyPlans.id,
       weekStartDate: weeklyPlans.weekStartDate,
       status: weeklyPlans.status,
       updatedAt: weeklyPlans.updatedAt,
+      kcalTargetSnapshot: weeklyPlans.kcalTargetSnapshot,
+      // Counted in SQL rather than by loading the meals: the panel shows a number,
+      // and fetching 35 rows per plan to take their length would make this the
+      // page's largest read by a wide margin.
+      mealCount: sql<number>`cast(count(${weeklyPlanMeals.id}) as int)`,
     })
     .from(weeklyPlans)
+    // Left, not inner: a plan with no meals is a plan, and an inner join would drop
+    // it from the history entirely rather than showing it as empty.
+    .leftJoin(weeklyPlanMeals, eq(weeklyPlanMeals.planId, weeklyPlans.id))
     .where(and(eq(weeklyPlans.clinicId, clinicId), eq(weeklyPlans.clientId, clientId)))
+    .groupBy(weeklyPlans.id)
     .orderBy(desc(weeklyPlans.weekStartDate), desc(weeklyPlans.updatedAt));
+}
+
+/**
+ * One plan's dishes, keyed the way `planSkeleton` fills slots.
+ *
+ * Clinic-scoped in the same query rather than after it: the plan id arrives from a
+ * form, and a copy that read another clinic's plan would leak its menu one dish at
+ * a time. An unfilled slot contributes no entry — copying a gap forward as a gap is
+ * what leaving it out already achieves.
+ */
+export async function planDishesBySlot(
+  clinicId: string,
+  planId: string,
+): Promise<Map<string, SlotFill>> {
+  const parsed = planIdSchema.safeParse(planId);
+  if (!parsed.success) return new Map();
+
+  const rows = await db
+    .select({
+      dayOfWeek: weeklyPlanMeals.dayOfWeek,
+      slotKey: weeklyPlanMeals.slotKey,
+      dishId: weeklyPlanMeals.dishId,
+      servings: weeklyPlanMeals.servings,
+    })
+    .from(weeklyPlanMeals)
+    .innerJoin(weeklyPlans, eq(weeklyPlans.id, weeklyPlanMeals.planId))
+    .where(and(eq(weeklyPlans.id, parsed.data), eq(weeklyPlans.clinicId, clinicId)));
+
+  const fill = new Map<string, SlotFill>();
+
+  for (const row of rows) {
+    if (!row.dishId) continue;
+    fill.set(slotFillKey(row.dayOfWeek, row.slotKey), {
+      dishId: row.dishId,
+      servings: row.servings,
+    });
+  }
+
+  return fill;
+}
+
+export type ComparisonPlan = {
+  planId: string;
+  weekStartDate: string;
+  /** Dish name per `dayOfWeek:slotKey`, for the ghost line under each card. */
+  slots: Record<string, { dishId: string; nameAr: string }>;
+};
+
+/**
+ * The plan immediately before this one, reduced to what a ghost line needs.
+ *
+ * A dedicated read rather than a second `getBoard`: the board wants a dish name
+ * per slot, and assembling a fully costed week to render one muted line per card
+ * would double the page's query cost for nothing.
+ *
+ * "Before" is by week, then by recency within the week — the same ordering
+ * `getLatestBoard` uses, so "previous" means the same thing everywhere.
+ */
+export async function previousPlanSlots(
+  clinicId: string,
+  clientId: string,
+  weekStartDate: string,
+): Promise<ComparisonPlan | null> {
+  const [previous] = await db
+    .select({ id: weeklyPlans.id, weekStartDate: weeklyPlans.weekStartDate })
+    .from(weeklyPlans)
+    .where(
+      and(
+        eq(weeklyPlans.clinicId, clinicId),
+        eq(weeklyPlans.clientId, clientId),
+        lt(weeklyPlans.weekStartDate, weekStartDate),
+      ),
+    )
+    .orderBy(desc(weeklyPlans.weekStartDate), desc(weeklyPlans.updatedAt))
+    .limit(1);
+
+  if (!previous) return null;
+
+  const rows = await db
+    .select({
+      dayOfWeek: weeklyPlanMeals.dayOfWeek,
+      slotKey: weeklyPlanMeals.slotKey,
+      dishId: weeklyPlanMeals.dishId,
+      nameAr: dishes.nameAr,
+    })
+    .from(weeklyPlanMeals)
+    .innerJoin(dishes, eq(dishes.id, weeklyPlanMeals.dishId))
+    .where(eq(weeklyPlanMeals.planId, previous.id));
+
+  const slots: ComparisonPlan['slots'] = {};
+
+  for (const row of rows) {
+    if (!row.dishId) continue;
+    slots[slotFillKey(row.dayOfWeek, row.slotKey)] = { dishId: row.dishId, nameAr: row.nameAr };
+  }
+
+  return { planId: previous.id, weekStartDate: previous.weekStartDate, slots };
 }
 
 /**
@@ -518,6 +732,8 @@ export async function getBoard(clinicId: string, planId: string): Promise<Board 
       publishedAt: weeklyPlans.publishedAt,
       weekInstructions: weeklyPlans.weekInstructions,
       kcalTargetSnapshot: weeklyPlans.kcalTargetSnapshot,
+      proteinTargetSnapshot: weeklyPlans.proteinTargetSnapshot,
+      goalSnapshot: weeklyPlans.goalSnapshot,
       generatedBy: weeklyPlans.generatedBy,
       model: weeklyPlans.model,
       updatedAt: weeklyPlans.updatedAt,
@@ -563,6 +779,8 @@ export async function getPublishedBoard(clientId: string): Promise<Board | null>
       publishedAt: weeklyPlans.publishedAt,
       weekInstructions: weeklyPlans.weekInstructions,
       kcalTargetSnapshot: weeklyPlans.kcalTargetSnapshot,
+      proteinTargetSnapshot: weeklyPlans.proteinTargetSnapshot,
+      goalSnapshot: weeklyPlans.goalSnapshot,
       generatedBy: weeklyPlans.generatedBy,
       model: weeklyPlans.model,
       updatedAt: weeklyPlans.updatedAt,
@@ -612,10 +830,15 @@ async function assembleBoard(plan: PlanRow): Promise<Board> {
         .orderBy(asc(weeklyPlanMealOptions.sortOrder))
     : [];
 
-  // The full catalog, unfiltered: a plan may reference a dish the client has since
-  // become allergic to, and hiding it would leave a blank card with no explanation.
-  const catalog = await loadCatalog();
-  const dishById = new Map(catalog.map((dish) => [dish.id, dish]));
+  // Only the dishes this plan references, and by id rather than through the catalog:
+  // a plan may hold a dish the client has since become allergic to, or one that has
+  // since been retired, and either way the card must show what is actually planned
+  // rather than a blank the dietitian cannot explain.
+  const referenced = new Set<string>();
+  for (const meal of mealRows) if (meal.dishId) referenced.add(meal.dishId);
+  for (const option of optionRows) referenced.add(option.dishId);
+
+  const dishById = new Map((await loadDishesByIds([...referenced])).map((dish) => [dish.id, dish]));
 
   // Each meal carries the budget it was generated against, so the board shows the
   // same figure the model was given even after the client's profile has moved on.

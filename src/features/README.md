@@ -1,7 +1,7 @@
 # Features
 
 One folder per feature. The current areas are `auth`, `booking`, `clients`,
-`dashboard`, `meal-plans`, `portal`, `weekly-plans`, and `whatsapp`. See
+`dashboard`, `portal`, `weekly-plans`, and `whatsapp`. See
 [`docs/architecture.md`](../../docs/architecture.md#major-feature-areas) for
 their responsibilities and [`docs/product-scope.md`](../../docs/product-scope.md)
 before adding another product area.

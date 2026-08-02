@@ -20,6 +20,27 @@ beforeEach(async () => {
   clinicId = await createTestClinic();
 });
 
+/**
+ * Asserts a promise rejects, without `expect(…).rejects`.
+ *
+ * Same helper and same reasoning as `src/features/booking/constraints.test.ts`
+ * and `src/features/weekly-plans/mutations.test.ts`: under Bun 1.3.14
+ * `expect(promise).rejects.toThrow()` never settles for a rejected postgres.js
+ * query. The file hangs, the connection keeps its lock, every later `beforeEach`
+ * blocks on this suite's `TRUNCATE` — and the run dies of timeouts in a *different*
+ * file, reporting foreign-key violations that have nothing to do with the real
+ * problem. A plain try/catch has no such problem.
+ */
+async function expectRejected(work: () => Promise<unknown>): Promise<unknown> {
+  try {
+    await work();
+  } catch (error) {
+    return error;
+  }
+
+  throw new Error('expected this call to reject, but it resolved');
+}
+
 async function makeClient(fullName = 'أحمد خليل') {
   return createClient(clinicId, { fullName, preferredLocale: 'ar' });
 }
@@ -129,11 +150,11 @@ describe('replacePortalPassword', () => {
     });
     expect(signedIn).toBeTruthy();
 
-    expect(
+    await expectRejected(() =>
       auth.api.signInUsername({
         body: { username: 'chosen-0001', password: issued.temporaryPassword },
       }),
-    ).rejects.toThrow();
+    );
   });
 
   test('clears the flag that pins the client to the set-password page', async () => {
@@ -147,7 +168,9 @@ describe('replacePortalPassword', () => {
   });
 
   test('refuses a user id with no credential account rather than reporting success', async () => {
-    expect(replacePortalPassword(crypto.randomUUID(), 'orphan-password')).rejects.toThrow();
+    // Was unawaited, so it asserted nothing at all — the promise settled after the
+    // test had already passed, and its rejection leaked into the next file.
+    await expectRejected(() => replacePortalPassword(crypto.randomUUID(), 'orphan-password'));
   });
 });
 

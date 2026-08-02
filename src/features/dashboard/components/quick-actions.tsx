@@ -5,7 +5,7 @@ import { Icon, type IconName } from '@/components/ui/icon';
 import { Link } from '@/i18n/navigation';
 
 /**
- * The four things a dietitian starts a session by doing.
+ * The three things a dietitian starts a session by doing.
  *
  * Links styled as surfaces, not `<Button render={<Link/>}>`: Base UI's Button
  * warns when it renders anything other than a real `<button>` (see the same
@@ -13,24 +13,23 @@ import { Link } from '@/i18n/navigation';
  * of outline buttons because these are destinations, and a target the size of a
  * card is easier to hit on a phone than a 36px control.
  *
- * Each carries a subline, because "New meal plan" and "Add a food" both sound
- * like they might open the same screen otherwise.
+ * Each carries a subline, because the titles alone sound like they might open
+ * the same screen otherwise.
  *
  * — "Book an appointment" has no route of its own: booking happens in a dialog
  *   inside the calendar, so this opens today's day view where that dialog lives.
- * — "Add a food" opens the food reference. `foods` is shared public-domain data
- *   with no create screen in the app today; this is the closest real
- *   destination, and the subline says so rather than promising a form.
+ * — "Weekly plans" is navigation rather than a create action, for a similar
+ *   reason: a plan is generated against one client's profile and schedule from
+ *   their own board, so there is no standalone form to send anyone to.
  */
 const ACTIONS = [
   { key: 'addClient', icon: 'addClient', href: '/app/clients/new' },
   { key: 'bookAppointment', icon: 'bookAppointment', href: '/app/calendar/day' },
-  { key: 'newMealPlan', icon: 'mealPlans', href: '/app/meal-plans/new' },
-  { key: 'addFood', icon: 'foods', href: '/app/foods' },
+  { key: 'weeklyPlans', icon: 'weeklyPlans', href: '/app/weekly-plans' },
 ] as const satisfies ReadonlyArray<{
   key: string;
   icon: IconName;
-  href: '/app/clients/new' | '/app/calendar/day' | '/app/meal-plans/new' | '/app/foods';
+  href: '/app/clients/new' | '/app/calendar/day' | '/app/weekly-plans';
 }>;
 
 export async function QuickActions() {
@@ -42,7 +41,7 @@ export async function QuickActions() {
         {t('title')}
       </h3>
 
-      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {ACTIONS.map((action) => (
           <li key={action.key}>
             <Link href={action.href} className="block h-full">

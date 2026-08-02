@@ -10,7 +10,7 @@ import { type RequestKind } from '@/features/portal/types';
  * as `src/features/booking/types.ts`.
  */
 
-export type AttentionReason = 'noUpcomingAppointment' | 'noMealPlan' | 'neverSignedIn';
+export type AttentionReason = 'noUpcomingAppointment' | 'noWeeklyPlan' | 'neverSignedIn';
 
 /**
  * One row of the feed.

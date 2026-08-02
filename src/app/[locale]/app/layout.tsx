@@ -23,16 +23,14 @@ const NAV_ITEMS = [
   { href: '/app/calendar', labelKey: 'calendar' },
   { href: '/app/profile', labelKey: 'profile' },
   { href: '/app/weekly-plans', labelKey: 'weeklyPlans' },
-  { href: '/app/meal-plans', labelKey: 'mealPlans' },
   { href: '/app/dishes', labelKey: 'dishes' },
-  { href: '/app/foods', labelKey: 'foods' },
   { href: '/app/settings/whatsapp', labelKey: 'whatsapp' },
   { href: '/app/settings/security', labelKey: 'security' },
 ] as const;
 
 /**
- * One glyph per destination. Nine text-only rows are hard to scan at a glance;
- * the icon is what lets someone find "Foods" without reading all nine.
+ * One glyph per destination. Text-only rows are hard to scan at a glance; the
+ * icon is what lets someone find "Dishes" without reading the whole rail.
  *
  * `satisfies` ties this to the nav list, so adding a destination without an
  * icon is a compile error rather than a row that quietly sits misaligned.
@@ -43,9 +41,7 @@ const NAV_ICONS = {
   calendar: 'calendar',
   profile: 'profile',
   weeklyPlans: 'weeklyPlans',
-  mealPlans: 'mealPlans',
   dishes: 'dishes',
-  foods: 'foods',
   whatsapp: 'whatsapp',
   security: 'security',
 } as const satisfies Record<(typeof NAV_ITEMS)[number]['labelKey'], IconName>;
