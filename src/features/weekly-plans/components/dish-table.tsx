@@ -1,6 +1,15 @@
 import { useTranslations } from 'next-intl';
 
 import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRoot,
+  TableRow,
+} from '@/components/ui/table';
 import { roundForDisplay } from '@/features/weekly-plans/nutrition';
 import { membersOf } from '@/lib/enum';
 
@@ -21,73 +30,72 @@ export function DishTable({ result }: { result: DishListResult }) {
   const t = useTranslations('dishes');
 
   if (!result.items.length) {
-    return <p className="py-8 text-center text-sm text-muted-foreground">{t('empty')}</p>;
+    return <p className="py-8 text-center text-muted-foreground">{t('empty')}</p>;
   }
 
   return (
     /* The table scrolls inside its own container: at this column count a phone
        would otherwise scroll the whole page sideways. */
-    <div className="overflow-x-auto rounded-lg ring-1 ring-foreground/10">
-      <table className="w-full min-w-3xl text-sm">
-        <thead className="bg-muted/60 text-xs uppercase tracking-wide text-muted-foreground">
-          <tr>
-            <th scope="col" className="p-3 text-start font-medium">
-              {t('columns.name')}
-            </th>
-            <th scope="col" className="p-3 text-start font-medium">
-              {t('columns.mealTypes')}
-            </th>
-            <th scope="col" className="p-3 text-start font-medium">
-              {t('columns.tags')}
-            </th>
-            <th scope="col" className="p-3 text-end font-medium">
+    <TableRoot>
+      <Table className="min-w-3xl">
+        <TableHeader>
+          <TableRow>
+            <TableHead>{t('columns.name')}</TableHead>
+            <TableHead>{t('columns.mealTypes')}</TableHead>
+            <TableHead>{t('columns.tags')}</TableHead>
+            <TableHead numeric className="text-end">
               {t('columns.kcal')}
-            </th>
-            <th scope="col" className="p-3 text-end font-medium">
+            </TableHead>
+            <TableHead numeric className="text-end">
               {t('columns.protein')}
-            </th>
-            <th scope="col" className="p-3 text-start font-medium">
-              {t('columns.ingredients')}
-            </th>
-          </tr>
-        </thead>
+            </TableHead>
+            <TableHead>{t('columns.ingredients')}</TableHead>
+          </TableRow>
+        </TableHeader>
 
-        <tbody>
+        <TableBody>
           {result.items.map((dish) => (
-            <tr key={dish.id} className="border-t border-border align-top">
-              <td className="p-3">
+            <TableRow key={dish.id} className="align-top">
+              <TableCell>
                 <span className="block font-medium">{dish.nameAr}</span>
-                <span className="block text-xs text-muted-foreground">{dish.nameEn}</span>
+                <span className="block text-caption text-muted-foreground">{dish.nameEn}</span>
                 {dish.allergenTags.length > 0 && (
                   <span className="mt-1 flex flex-wrap gap-1">
+                    {/*
+                      Allergens are the one thing on this row that is a medical
+                      fact rather than a label, so they take the medical status
+                      rather than a plain outline chip.
+                    */}
                     {membersOf(ALLERGENS, dish.allergenTags).map((tag) => (
-                      <Badge key={tag} variant="outline" className="border-destructive/40">
+                      <Badge key={tag} variant="medical">
                         {t(`allergens.${tag}`)}
                       </Badge>
                     ))}
                   </span>
                 )}
-              </td>
+              </TableCell>
 
-              <td className="p-3 text-xs text-muted-foreground">
+              <TableCell className="text-caption text-muted-foreground">
                 {membersOf(MEAL_TYPES, dish.mealTypes)
                   .map((type) => t(`mealTypes.${type}`))
                   .join('، ')}
-              </td>
+              </TableCell>
 
-              <td className="p-3 text-xs text-muted-foreground">
+              <TableCell className="text-caption text-muted-foreground">
                 {membersOf(DISH_TAGS, dish.tags)
                   .map((tag) => t(`tags.${tag}`))
                   .join('، ')}
-              </td>
+              </TableCell>
 
-              <td className="p-3 text-end tabular-nums">{roundForDisplay('kcal', dish.baseKcal)}</td>
+              <TableCell numeric className="text-end">
+                {roundForDisplay('kcal', dish.baseKcal)}
+              </TableCell>
 
-              <td className="p-3 text-end tabular-nums">
+              <TableCell numeric className="text-end">
                 {roundForDisplay('protein', dish.totals.protein.value)}
-              </td>
+              </TableCell>
 
-              <td className="p-3 text-xs text-muted-foreground">
+              <TableCell className="text-caption text-muted-foreground">
                 <ul className="flex flex-col gap-0.5">
                   {dish.ingredients.map((ingredient) => (
                     <li key={ingredient.food.id}>
@@ -96,11 +104,11 @@ export function DishTable({ result }: { result: DishListResult }) {
                     </li>
                   ))}
                 </ul>
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
-    </div>
+        </TableBody>
+      </Table>
+    </TableRoot>
   );
 }

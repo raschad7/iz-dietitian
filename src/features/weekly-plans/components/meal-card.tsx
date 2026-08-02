@@ -97,10 +97,8 @@ export function MealCard({
         )}
       >
         <span className="flex items-baseline gap-1">
-          <span className="min-w-0 flex-1 truncate text-[10px] uppercase tracking-wide text-muted-foreground">
-            {meal.label}
-          </span>
-          <span className="shrink-0 text-[10px] text-muted-foreground">{meal.timeOfDay}</span>
+          <span className="min-w-0 flex-1 truncate text-label text-muted-foreground">{meal.label}</span>
+          <span className="shrink-0 text-label text-muted-foreground">{meal.timeOfDay}</span>
         </span>
 
         {meal.dish ? (
@@ -113,7 +111,7 @@ export function MealCard({
               </span>
             )}
 
-            <span className="mt-0.5 flex items-baseline gap-1 text-[10px] text-muted-foreground">
+            <span className="mt-0.5 flex items-baseline gap-1 text-label text-muted-foreground">
               <span className={cn(offTarget && 'font-medium text-status-attention-fg')}>
                 {t('kcalValue', { value: kcal })}
               </span>

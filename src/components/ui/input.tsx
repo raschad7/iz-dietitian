@@ -3,14 +3,24 @@ import { Input as InputPrimitive } from "@base-ui/react/input"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * The box, the Arc, the focus treatment and every state live in `.q-field`
+ * (globals.css) — shared with Textarea, Select and SelectField so the four
+ * cannot drift and a change to the shape language is one edit. Only what is
+ * specific to a text input belongs here.
+ */
 function Input({ className, type, ...props }: React.ComponentProps<"input">) {
   return (
     <InputPrimitive
       type={type}
       data-slot="input"
       className={cn(
-        // Shape: "the Arc" (§9.3) — 10px base radius, 24px sweep on the block-end/inline-end corner.
-        "q-field-arc h-8 w-full min-w-0 rounded-[10px] rounded-ee-xl border border-input bg-transparent px-2.5 py-1 text-base transition-all duration-220 ease-[cubic-bezier(.2,.6,.2,1)] outline-none file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-field-focus-halo disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm dark:bg-input/30 dark:disabled:bg-input/80 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40",
+        // 48px and 20px of padding, matching the default button: a field and
+        // the button that submits it sit in the same row and must be the same
+        // height, and the touch-target floor applies to both.
+        "q-field h-12 px-5 py-1",
+        "placeholder:text-muted-foreground",
+        "file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-caption file:font-medium file:text-foreground",
         className
       )}
       {...props}

@@ -48,6 +48,14 @@ export type DayColumnProps = {
   /** The range currently being dragged out on *this* date, if any. */
   pending: PendingRange | null;
   isClosed: boolean;
+  /**
+   * The date has already gone, so nothing can be booked on it.
+   *
+   * Kept separate from `isClosed` even though the two look alike: a past
+   * *working* day is not a day the clinic is shut, and conflating them would
+   * make the column claim something untrue about the clinic's hours.
+   */
+  isPast: boolean;
   onCreateGesture: (date: string, event: ReactPointerEvent<HTMLDivElement>) => void;
   onSelect: (id: string) => void;
   onOpen: (appointment: CalendarAppointment, pointer: { x: number; y: number }) => void;
@@ -70,6 +78,7 @@ export function DayColumn({
   completedIds,
   pending,
   isClosed,
+  isPast,
   onCreateGesture,
   onSelect,
   onOpen,
@@ -87,6 +96,13 @@ export function DayColumn({
    */
   const [hoverMinute, setHoverMinute] = useState<number | null>(null);
   const isDragging = pending !== null || dragging !== null;
+
+  /**
+   * Nothing new can be created here — the clinic is shut, or the day has gone.
+   * Existing appointments still render and still open, because a past day is a
+   * record worth reading even when it cannot be added to.
+   */
+  const unbookable = isClosed || isPast;
 
   const height = gridHeight(hours.openMinute, hours.closeMinute, pxPerSlot);
   const nowMinute = nowLineMinute(date, now);
@@ -131,17 +147,19 @@ export function DayColumn({
     <div
       ref={canvasRef}
       data-day={date}
-      className={cn('relative flex-1 select-none border-s border-border', isClosed && 'bg-muted/40')}
+      className={cn('relative flex-1 select-none border-s border-border', unbookable && 'bg-muted/40')}
       style={{ height }}
       onPointerDown={(event) => {
         // Only a press on empty canvas creates. A press that started on a block
         // has already been stopped by the block's own handler.
-        if (event.button !== 0 || isClosed) return;
+        if (event.button !== 0 || unbookable) return;
         if ((event.target as HTMLElement).closest('[data-appointment-id]')) return;
         onCreateGesture(date, event);
       }}
       onPointerMove={(event) => {
-        if (isDragging) {
+        // Nothing to advertise on a day that cannot be booked, and tracking the
+        // pointer across one would re-render on every move to draw nothing.
+        if (isDragging || unbookable) {
           setHoverMinute(null);
           return;
         }
@@ -176,7 +194,7 @@ export function DayColumn({
       })}
 
       {/* Hover affordance: the time a click here would book. */}
-      {hoverMinute !== null && !isClosed && (
+      {hoverMinute !== null && !unbookable && (
         <div
           aria-hidden
           className="pointer-events-none absolute start-1 z-10 flex items-center gap-1 text-xs font-medium text-muted-foreground"
@@ -218,11 +236,17 @@ export function DayColumn({
       */}
       {pending && pending.date === date && (
         <>
+          {/*
+            Olive for a valid drop, clay for an invalid one — not green/red.
+            The brand has no green-means-go colour: olive is its affirmative
+            and clay is its only alarm, and a traffic light here would be the
+            one place in the app that contradicts every status chip.
+          */}
           <div
             aria-hidden
             className={cn(
               'pointer-events-none absolute start-0.5 end-0.5 z-20 rounded-md border-2 border-dashed',
-              pending.valid ? 'border-emerald-500 bg-emerald-500/15' : 'border-destructive bg-destructive/15',
+              pending.valid ? 'border-primary bg-primary/15' : 'border-destructive bg-destructive/15',
             )}
             style={{
               top: minuteToY(pending.startMinute, hours.openMinute, pxPerSlot),
@@ -246,7 +270,7 @@ export function DayColumn({
             className={cn(
               'pointer-events-none absolute start-1/2 z-30 -translate-x-1/2 -translate-y-1/2 rounded-md border px-2 py-1',
               'bg-popover text-xs font-semibold whitespace-nowrap shadow-md tabular-nums',
-              pending.valid ? 'border-emerald-500/60 text-foreground' : 'border-destructive/60 text-destructive',
+              pending.valid ? 'border-primary/60 text-foreground' : 'border-destructive/60 text-destructive',
             )}
             style={{
               top:
@@ -267,14 +291,20 @@ export function DayColumn({
         </>
       )}
 
-      {/* Now-line, drawn only on today. */}
+      {/*
+        Now-line, drawn only on today. Lime-600 (`viz.band.edge`), not red:
+        "now" is the one thing on a calendar worth spotlighting, which is what
+        the accent is for, and it is not an alarm. The 400 is too pale to hold
+        a 2px line on white — 1.37:1 — so this uses the darker edge stop the
+        palette already defines for exactly this job, marking a boundary.
+      */}
       {nowMinute !== null && nowMinute >= hours.openMinute && nowMinute <= hours.closeMinute && (
         <div
           aria-label={t('now')}
-          className="pointer-events-none absolute start-0 end-0 z-20 border-t-2 border-red-500"
+          className="pointer-events-none absolute start-0 end-0 z-20 border-t-2 border-viz-band-edge"
           style={{ top: minuteToY(nowMinute, hours.openMinute, pxPerSlot) }}
         >
-          <span className="absolute -top-1 start-0 size-2 rounded-full bg-red-500" />
+          <span className="absolute -top-1 start-0 size-2 rounded-full bg-viz-band-edge" />
         </div>
       )}
     </div>

@@ -3,7 +3,7 @@ import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ConfirmSubmitButton } from '@/components/ui/confirm-submit-button';
 import { Label } from '@/components/ui/label';
-import { SelectField } from '@/components/ui/select-field';
+import { Select } from '@/components/ui/select';
 import { updateLanguageAction } from '@/features/portal/actions';
 import { locales, type Locale } from '@/i18n/routing';
 
@@ -36,13 +36,13 @@ export function LanguageForm({ locale }: { locale: Locale }) {
 
           <div className="space-y-2">
             <Label htmlFor="preferred-locale">{tSwitcher('label')}</Label>
-            <SelectField id="preferred-locale" name="preferredLocale" defaultValue={locale}>
+            <Select id="preferred-locale" name="preferredLocale" defaultValue={locale}>
               {locales.map((option) => (
                 <option key={option} value={option}>
                   {tSwitcher(option)}
                 </option>
               ))}
-            </SelectField>
+            </Select>
           </div>
 
           <ConfirmSubmitButton label={t('profile.saveLanguage')} variant="default" />

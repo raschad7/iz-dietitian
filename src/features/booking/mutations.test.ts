@@ -1,10 +1,13 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { appointments, clients, clinics, practitioners } from '@/db/schema';
+import { appointments, clients, clinicWorkingHours, practitioners } from '@/db/schema';
+import { DISPLAY_TIME_ZONE } from '@/lib/format';
 
 import { createTestClient, createTestClinic, createTestPractitioner, resetDatabase } from '../../../tests/helpers';
+import { wallClockIn } from './completed';
+import { addDays, weekdayOf } from './date';
 import {
   createAppointment,
   createClientAndBook,
@@ -23,10 +26,34 @@ import {
  * session rather than accepted from the request.
  */
 
-/** 2026-08-05 is a Wednesday; 2026-08-07 a Friday, which the clinic is closed on. */
-const WEDNESDAY = '2026-08-05';
-const THURSDAY = '2026-08-06';
-const FRIDAY = '2026-08-07';
+const CLINIC_TODAY = wallClockIn(DISPLAY_TIME_ZONE).date;
+
+/**
+ * The next such weekday, strictly after today.
+ *
+ * These used to be fixed dates. They cannot be any more: a booking before today
+ * is now refused, so a hardcoded 2026-08-05 would quietly start failing every
+ * test in this file the day it passed. Strictly after today rather than on or
+ * after, because a fixture landing on today would also trip the completed-lock
+ * once the clinic's clock passed the appointment's time — a suite that passed
+ * in the morning and failed in the afternoon.
+ */
+function upcoming(weekday: number): string {
+  for (let offset = 1; offset <= 7; offset += 1) {
+    const date = addDays(CLINIC_TODAY, offset);
+    if (weekdayOf(date) === weekday) return date;
+  }
+
+  throw new Error(`no date with weekday ${weekday} in the coming week`);
+}
+
+/** The clinic works Sunday–Thursday, so Friday is its weekend. */
+const WEDNESDAY = upcoming(3);
+const THURSDAY = upcoming(4);
+const FRIDAY = upcoming(5);
+
+/** Yesterday. Whatever weekday it lands on, the past-date rule fires first. */
+const YESTERDAY = addDays(CLINIC_TODAY, -1);
 
 let context: BookingContext;
 let clientId: string;
@@ -122,6 +149,34 @@ describe('createAppointment', () => {
     expect(await countAppointments()).toBe(0);
   });
 
+  /**
+   * The browser greys past days out and refuses the gesture, but a server
+   * action is a public endpoint — these go straight to the mutation, which is
+   * exactly the request the UI cannot prevent.
+   */
+  test('rejects a date before today, whatever the request says', async () => {
+    const result = await createAppointment(context, booking({ date: YESTERDAY }));
+
+    expect(result).toEqual({ ok: false, error: 'errors.pastDate' });
+    expect(await countAppointments()).toBe(0);
+  });
+
+  test('rejects a date years in the past', async () => {
+    const result = await createAppointment(context, booking({ date: '2020-01-06' }));
+
+    expect(result).toEqual({ ok: false, error: 'errors.pastDate' });
+    expect(await countAppointments()).toBe(0);
+  });
+
+  test('accepts today, since the rule is about dates and not about the hour', async () => {
+    const result = await createAppointment(context, booking({ date: CLINIC_TODAY }));
+
+    // Today may be the clinic's weekend, in which case a different rule refuses
+    // it — the point being asserted is only that it is never `pastDate`.
+    if (!result.ok) expect(result.error).toBe('errors.closedDay');
+    else expect(await countAppointments()).toBe(1);
+  });
+
   test('rejects an appointment running past closing time', async () => {
     const result = await createAppointment(context, booking({ startMinute: 17 * 60 + 45, durationMinutes: 60 }));
 
@@ -180,10 +235,13 @@ describe('createAppointment', () => {
     expect(await countAppointments()).toBe(0);
   });
 
-  test('honours opening hours read from the clinic row, not a constant', async () => {
+  test('honours opening hours read from the weekday schedule, not a constant', async () => {
     const shortDay = await createTestClinic('Half Day');
     // A clinic open 09:00–13:00.
-    await db.update(clinics).set({ openMinute: 9 * 60, closeMinute: 13 * 60 }).where(eq(clinics.id, shortDay));
+    await db
+      .update(clinicWorkingHours)
+      .set({ openMinute: 9 * 60, closeMinute: 13 * 60 })
+      .where(and(eq(clinicWorkingHours.clinicId, shortDay), eq(clinicWorkingHours.isWorking, true)));
 
     const shortContext: BookingContext = { clinicId: shortDay, ownerName: 'Dr Short' };
     const client = await createTestClient(shortDay, 'Short Day Client');
@@ -206,6 +264,29 @@ describe('updateAppointment', () => {
     if (!result.ok) throw new Error('seed booking failed');
     return result.data.id;
   }
+
+  /**
+   * The action tells a reschedule from an ordinary edit by comparing these to
+   * what was submitted, and names the old slot in the message. This transaction
+   * is the last place the previous values exist.
+   */
+  test('reports where the appointment was before the move', async () => {
+    const id = await seed();
+
+    const result = await updateAppointment(context, { ...booking({ startMinute: 14 * 60 }), id });
+
+    expect(result).toEqual({ ok: true, data: { previous: { date: WEDNESDAY, startMinute: 10 * 60 } } });
+  });
+
+  test('reports the previous slot even when nothing about it changed', async () => {
+    const id = await seed();
+
+    // An edit that leaves date and time alone: the caller compares and sends the
+    // confirmation rather than a "your appointment moved" message.
+    const result = await updateAppointment(context, { ...booking({ reason: 'متابعة' }), id });
+
+    expect(result).toEqual({ ok: true, data: { previous: { date: WEDNESDAY, startMinute: 10 * 60 } } });
+  });
 
   test('moves an appointment', async () => {
     const id = await seed();
@@ -261,6 +342,23 @@ describe('updateAppointment', () => {
       ok: false,
       error: 'errors.closedDay',
     });
+  });
+
+  /**
+   * The rule would be worth very little on create alone: book today, move it to
+   * last Monday, and the calendar has a past appointment either way.
+   */
+  test('rejects a move onto a date that has already passed', async () => {
+    const id = await seed();
+
+    expect(await updateAppointment(context, { ...booking({ date: YESTERDAY }), id })).toEqual({
+      ok: false,
+      error: 'errors.pastDate',
+    });
+
+    // The original is untouched.
+    const [row] = await db.select().from(appointments).where(eq(appointments.id, id));
+    expect(row?.date).toBe(WEDNESDAY);
   });
 
   test('rejects an appointment id from another clinic', async () => {
@@ -383,6 +481,23 @@ describe('deleteAppointment', () => {
       error: 'errors.notFound',
     });
   });
+
+  /**
+   * The cancellation message is sent after the row is gone, so the delete has to
+   * hand back who it was for and when. Without this there is nothing left to
+   * join against and the patient is never told.
+   */
+  test('returns who the appointment was for and when, so it can be cancelled by message', async () => {
+    const created = await createAppointment(context, booking({ startMinute: 11 * 60 }));
+    if (!created.ok) throw new Error('seed booking failed');
+
+    const result = await deleteAppointment(context.clinicId, created.data.id);
+
+    expect(result).toEqual({
+      ok: true,
+      data: { id: created.data.id, clientId, date: WEDNESDAY, startMinute: 11 * 60 },
+    });
+  });
 });
 
 describe('createClientAndBook', () => {
@@ -442,6 +557,16 @@ describe('createClientAndBook', () => {
       error: 'errors.closedDay',
     });
     expect((await db.select().from(clients).where(eq(clients.fullName, newClient.fullName))).length).toBe(0);
+  });
+
+  test('rolls the client back when the date has already passed', async () => {
+    expect(await createClientAndBook(context, pending({ date: YESTERDAY }))).toEqual({
+      ok: false,
+      error: 'errors.pastDate',
+    });
+
+    expect((await db.select().from(clients).where(eq(clients.fullName, newClient.fullName))).length).toBe(0);
+    expect(await countAppointments()).toBe(0);
   });
 
   test('books with the clinic\'s own practitioner', async () => {

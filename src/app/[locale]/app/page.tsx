@@ -1,15 +1,16 @@
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
-import { AgendaCard } from '@/features/dashboard/components/agenda-card';
-import { AttentionCard } from '@/features/dashboard/components/attention-card';
+import { AgeDistributionCard } from '@/features/dashboard/components/age-distribution-card';
+import { AgendaTimeline } from '@/features/dashboard/components/agenda-timeline';
 import { QuickActions } from '@/features/dashboard/components/quick-actions';
-import { RequestsCard } from '@/features/dashboard/components/requests-card';
-import { StatTiles } from '@/features/dashboard/components/stat-tiles';
+import { SexDistributionCard } from '@/features/dashboard/components/sex-distribution-card';
+import { SummaryTiles } from '@/features/dashboard/components/summary-tiles';
+import { VisitHistogram } from '@/features/dashboard/components/visit-histogram';
 import { loadDashboard } from '@/features/dashboard/page-data';
+import { formatLongDate } from '@/features/booking/format';
 import { resolveLocale } from '@/i18n/params';
 import { requireStaffClinic } from '@/lib/session';
-import { formatDate } from '@/lib/format';
 
 type DashboardPageProps = {
   params: Promise<{ locale: string }>;
@@ -21,7 +22,24 @@ export async function generateMetadata({ params }: DashboardPageProps): Promise<
   return { title: t('title') };
 }
 
-/** Resolves params, guards the route, and composes the feature's own components — nothing more. */
+/**
+ * Resolves params, guards the route, and composes the feature's own components
+ * — nothing more.
+ *
+ * **The whole dashboard fits one screen from `xl` up, and does not scroll.**
+ * That is the constraint everything else on this page answers to: it is the
+ * screen a dietitian leaves open all day, and a number you have to scroll to
+ * find is a number you stop checking. The page claims the shell's full height
+ * (`xl:h-full`), every row is sized or flexible rather than intrinsic, and the
+ * one list that can grow without limit — today's appointments — scrolls inside
+ * its own card instead of pushing the page taller.
+ *
+ * Below `xl` the columns stack and the page scrolls normally: one screen is a
+ * desktop promise, and honouring it on a phone would mean four nested scrolls.
+ *
+ * Reading order down the working column: the numbers, the four things you start
+ * a session by doing, then the two charts you consult rather than act on.
+ */
 export default async function DashboardPage({ params }: DashboardPageProps) {
   const locale = await resolveLocale(params);
   const { session, clinicId } = await requireStaffClinic(locale);
@@ -29,28 +47,54 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
   const [t, data] = await Promise.all([getTranslations('dashboard'), loadDashboard(clinicId)]);
 
   return (
-    <div className="space-y-6 text-start">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-2xl font-semibold tracking-tight">{t('welcome', { name: session.user.name })}</h2>
-        <p className="text-sm text-muted-foreground">{formatDate(locale, new Date())}</p>
+    <div className="flex flex-col gap-4 text-start xl:h-full xl:min-h-0">
+      <div className="flex flex-wrap items-baseline justify-between gap-2 xl:shrink-0">
+        <h2 className="font-heading text-heading-lg font-semibold tracking-tight" dir="auto">
+          {t('welcome', { name: session.user.name })}
+        </h2>
+        <p className="text-caption text-muted-foreground">{formatLongDate(locale, data.today)}</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <AgendaCard appointments={data.agenda} locale={locale} today={data.today} />
-        </div>
+      <div className="grid gap-4 xl:min-h-0 xl:flex-1 xl:grid-cols-[21rem_minmax(0,1fr)] 2xl:grid-cols-[23rem_minmax(0,1fr)]">
+        <AgendaTimeline
+          appointments={data.agenda}
+          locale={locale}
+          today={data.today}
+          nowMinute={data.nowMinute}
+        />
 
-        <div className="flex flex-col gap-6 lg:col-span-1">
-          <RequestsCard items={data.pendingRequests.items} total={data.pendingRequests.total} locale={locale} />
-          <AttentionCard items={data.attention} />
-        </div>
+        <div className="flex min-w-0 flex-col gap-4 xl:min-h-0">
+          <SummaryTiles
+            summary={data.summary}
+            nextAppointment={data.nextAppointment}
+            week={data.week}
+            today={data.today}
+            locale={locale}
+          />
 
-        <div className="lg:col-span-3">
-          <StatTiles stats={data.stats} locale={locale} />
-        </div>
-
-        <div className="lg:col-span-3">
           <QuickActions />
+
+          {/*
+            The histogram takes whatever height the two demographic cards add
+            up to, which is why they share a row rather than stacking down the
+            page: one row that ends where the screen does.
+          */}
+          <div className="grid gap-4 xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+            <VisitHistogram months={data.visitHistory} locale={locale} />
+
+            <div className="grid gap-4 sm:grid-cols-2 xl:min-h-0 xl:grid-cols-1 xl:grid-rows-2">
+              <AgeDistributionCard
+                age={data.demographics.age}
+                total={data.demographics.total}
+                locale={locale}
+              />
+              <SexDistributionCard
+                sex={data.demographics.sex}
+                total={data.demographics.total}
+                locale={locale}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>

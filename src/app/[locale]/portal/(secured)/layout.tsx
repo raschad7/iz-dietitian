@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 import { Sidebar } from '@/components/layout/sidebar';
-import { PORTAL_NAV } from '@/features/portal/nav';
+import { PORTAL_NAV, PORTAL_NAV_ICONS } from '@/features/portal/nav';
 import { PortalTabBar } from '@/features/portal/components/portal-tab-bar';
 import { resolveLocale } from '@/i18n/params';
 import { requireClientSession } from '@/lib/session';
@@ -51,9 +51,15 @@ export default async function SecuredPortalLayout({ children, params }: SecuredP
 
   return (
     <div className="flex flex-1">
-      <Sidebar items={PORTAL_NAV} title={t('title')} />
+      {/*
+        The portal rail carries icons where the staff rail does not: clients
+        move between four destinations, and the same four glyphs appear in the
+        bottom bar below `md`. Matching them is what makes the two shells read
+        as one product on a phone and a laptop.
+      */}
+      <Sidebar items={PORTAL_NAV} title={t('title')} icons={PORTAL_NAV_ICONS} />
 
-      <main className="min-w-0 flex-1 px-4 pt-5 pb-24 md:px-6 md:pt-6 md:pb-8">
+      <main className="min-w-0 flex-1 px-3 pt-3 pb-28 md:px-5 md:pt-5 md:pb-8">
         <div className="mx-auto w-full max-w-3xl">{children}</div>
       </main>
 

@@ -1,9 +1,7 @@
-import { and, asc, between, count, desc, eq, gte, isNotNull, notExists } from 'drizzle-orm';
+import { and, asc, between, count, eq, gt, gte, sql } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { appointmentRequests, appointments, clients, session, weeklyPlans } from '@/db/schema';
-import { type RequestKind } from '@/features/portal/types';
-import { currentSunday } from '@/features/weekly-plans/week';
+import { appointments, clients } from '@/db/schema';
 
 /**
  * Reads for the staff dashboard. Like `src/features/clients/queries.ts`, this
@@ -12,61 +10,11 @@ import { currentSunday } from '@/features/weekly-plans/week';
  *
  * `clinicId` is a required first argument on everything, so forgetting the
  * tenant scope is a type error rather than a silent cross-clinic leak.
+ *
+ * The notification feed's reads used to live here; they moved to
+ * `src/features/notifications/queries.ts` when the bell became part of the
+ * shell rather than a card on this page.
  */
-
-export type PendingRequestPreview = {
-  id: string;
-  clientId: string;
-  clientName: string;
-  kind: RequestKind;
-  preferredDate: string | null;
-  preferredStartMinute: number | null;
-  note: string | null;
-  createdAt: Date;
-};
-
-/** The newest `limit` pending requests, oldest-first work aside — this is a preview, not the inbox. */
-export async function listPendingRequestsPreview(clinicId: string, limit: number): Promise<PendingRequestPreview[]> {
-  const rows = await db
-    .select({
-      id: appointmentRequests.id,
-      clientId: appointmentRequests.clientId,
-      clientName: clients.fullName,
-      kind: appointmentRequests.kind,
-      preferredDate: appointmentRequests.preferredDate,
-      preferredStartMinute: appointmentRequests.preferredStartMinute,
-      note: appointmentRequests.note,
-      createdAt: appointmentRequests.createdAt,
-    })
-    .from(appointmentRequests)
-    .innerJoin(clients, eq(clients.id, appointmentRequests.clientId))
-    .where(and(eq(appointmentRequests.clinicId, clinicId), eq(appointmentRequests.status, 'pending')))
-    .orderBy(desc(appointmentRequests.createdAt))
-    .limit(limit);
-
-  // The column is plain `text` guarded by a check constraint, so the union is
-  // reasserted on the way out rather than trusted from the driver's `string`
-  // — same precedent as `src/features/portal/queries.ts`.
-  return rows.map((row) => ({ ...row, kind: row.kind as RequestKind }));
-}
-
-export async function countPendingRequests(clinicId: string): Promise<number> {
-  const [row] = await db
-    .select({ value: count() })
-    .from(appointmentRequests)
-    .where(and(eq(appointmentRequests.clinicId, clinicId), eq(appointmentRequests.status, 'pending')));
-
-  return row?.value ?? 0;
-}
-
-export async function countActiveClients(clinicId: string): Promise<number> {
-  const [row] = await db
-    .select({ value: count() })
-    .from(clients)
-    .where(and(eq(clients.clinicId, clinicId), eq(clients.status, 'active')));
-
-  return row?.value ?? 0;
-}
 
 export async function countAppointmentsInRange(clinicId: string, fromDate: string, toDate: string): Promise<number> {
   const [row] = await db
@@ -75,6 +23,40 @@ export async function countAppointmentsInRange(clinicId: string, fromDate: strin
     .where(and(eq(appointments.clinicId, clinicId), between(appointments.date, fromDate, toDate)));
 
   return row?.value ?? 0;
+}
+
+/**
+ * Everything booked after `afterDate` — the "upcoming" tile.
+ *
+ * Strictly after, not on or after: today has its own tile and its own agenda,
+ * and counting it twice would make the two disagree.
+ */
+export async function countAppointmentsAfter(clinicId: string, afterDate: string): Promise<number> {
+  const [row] = await db
+    .select({ value: count() })
+    .from(appointments)
+    .where(and(eq(appointments.clinicId, clinicId), gt(appointments.date, afterDate)));
+
+  return row?.value ?? 0;
+}
+
+export type NextAppointment = { date: string; startMinute: number; clientName: string };
+
+/** The first booking after `afterDate` — what the upcoming tile names. */
+export async function findNextAppointmentAfter(clinicId: string, afterDate: string): Promise<NextAppointment | null> {
+  const [row] = await db
+    .select({
+      date: appointments.date,
+      startMinute: appointments.startMinute,
+      clientName: clients.fullName,
+    })
+    .from(appointments)
+    .innerJoin(clients, eq(clients.id, appointments.clientId))
+    .where(and(eq(appointments.clinicId, clinicId), gt(appointments.date, afterDate)))
+    .orderBy(asc(appointments.date), asc(appointments.startMinute))
+    .limit(1);
+
+  return row ?? null;
 }
 
 export async function countNewClientsSince(clinicId: string, sinceIso: string): Promise<number> {
@@ -86,132 +68,53 @@ export async function countNewClientsSince(clinicId: string, sinceIso: string): 
   return row?.value ?? 0;
 }
 
-/**
- * Matches clients with NO published plan covering the week we are in now.
- *
- * Both callers want the absence, so the predicate is written as the absence
- * rather than negated at each call site.
- *
- * The `status`/`week_start_date` pair, not merely "has any plan": a draft is not
- * something a client can eat from, and last month's published week is not either.
- * `weekly_plans_published_week_idx` covers exactly this shape.
- *
- * Shared by the count and the list below so the tile and the rows beneath it can
- * never disagree about who is missing a plan.
- */
-function lacksPlanForCurrentWeek(weekStartDate: string) {
-  return notExists(
-    db
-      .select({ id: weeklyPlans.id })
-      .from(weeklyPlans)
-      .where(
-        and(
-          eq(weeklyPlans.clientId, clients.id),
-          eq(weeklyPlans.status, 'published'),
-          eq(weeklyPlans.weekStartDate, weekStartDate),
-        ),
-      ),
-  );
-}
-
-/**
- * Active clients with no published plan for the current week.
- *
- * The dashboard spec asked for "plans ending within 7 days", which meal plans V1
- * could not answer — it was a repeating template with no end date, so the tile
- * settled for "has never had a plan at all". A weekly plan is generated *for* a
- * named week, so the question is finally the real one: is there something on this
- * client's board right now?
- *
- * This counts more people than the old proxy did, and it recurs every week
- * instead of clearing once at onboarding. That is the point — a client whose plan
- * ran out last Saturday is exactly who needs surfacing on a Sunday morning.
- */
-export async function countActiveClientsWithoutWeeklyPlan(clinicId: string): Promise<number> {
-  const weekStartDate = currentSunday();
-
-  const [row] = await db
-    .select({ value: count() })
-    .from(clients)
-    .where(
-      and(eq(clients.clinicId, clinicId), eq(clients.status, 'active'), lacksPlanForCurrentWeek(weekStartDate)),
-    );
-
-  return row?.value ?? 0;
-}
-
-export type AttentionReason = 'noUpcomingAppointment' | 'noWeeklyPlan' | 'neverSignedIn';
-
-export type AttentionItem = {
-  clientId: string;
-  clientName: string;
-  reason: AttentionReason;
+export type MonthlyVisits = {
+  /** `YYYY-MM-01` — the month's first day, so it sorts and formats like any other date. */
+  month: string;
+  visits: number;
 };
 
-/** Active clients with no appointment on or after `today`. */
-export async function listClientsWithNoUpcomingAppointment(
-  clinicId: string,
-  today: string,
-  limit: number,
-): Promise<AttentionItem[]> {
-  const rows = await db
-    .select({ clientId: clients.id, clientName: clients.fullName })
-    .from(clients)
-    .where(
-      and(
-        eq(clients.clinicId, clinicId),
-        eq(clients.status, 'active'),
-        notExists(
-          db
-            .select({ id: appointments.id })
-            .from(appointments)
-            .where(and(eq(appointments.clientId, clients.id), gte(appointments.date, today))),
-        ),
-      ),
-    )
-    .orderBy(asc(clients.fullName))
-    .limit(limit);
-
-  return rows.map((row) => ({ ...row, reason: 'noUpcomingAppointment' as const }));
-}
-
-/** Active clients with no published plan this week — see {@link countActiveClientsWithoutWeeklyPlan}. */
-export async function listClientsWithoutWeeklyPlan(clinicId: string, limit: number): Promise<AttentionItem[]> {
-  const weekStartDate = currentSunday();
+/**
+ * Appointments per calendar month across a date range.
+ *
+ * Grouped in SQL with `date_trunc` rather than by pulling every row and
+ * bucketing in JS: this is the one read on the page whose row count grows with
+ * the clinic's whole history rather than with one day.
+ *
+ * Months with no appointments are simply absent — the caller owns the calendar
+ * and fills the gaps, because a histogram must show an empty month, and a query
+ * cannot invent rows that aren't there.
+ */
+export async function listMonthlyVisits(clinicId: string, fromDate: string, toDate: string): Promise<MonthlyVisits[]> {
+  const month = sql<string>`to_char(date_trunc('month', ${appointments.date}), 'YYYY-MM-DD')`;
 
   const rows = await db
-    .select({ clientId: clients.id, clientName: clients.fullName })
-    .from(clients)
-    .where(
-      and(eq(clients.clinicId, clinicId), eq(clients.status, 'active'), lacksPlanForCurrentWeek(weekStartDate)),
-    )
-    .orderBy(asc(clients.fullName))
-    .limit(limit);
+    .select({ month, visits: count() })
+    .from(appointments)
+    .where(and(eq(appointments.clinicId, clinicId), between(appointments.date, fromDate, toDate)))
+    .groupBy(month)
+    .orderBy(asc(month));
 
-  return rows.map((row) => ({ ...row, reason: 'noWeeklyPlan' as const }));
+  return rows;
 }
+
+export type ClientDemographic = { dateOfBirth: string | null; sex: string | null };
 
 /**
- * Active clients with a portal account who have never signed in.
+ * Birth date and sex for everyone on the clinic's register.
  *
- * "Never signed in" is read off `sessions`, not a `lastLoginAt` column — one
- * does not exist, and a session row is only ever written by a successful
- * sign-in, so its absence is the honest signal.
+ * Returned as rows rather than aggregated in SQL because the age has to be
+ * computed by `calculateAge`, which deliberately does *not* build a `Date` from
+ * the stored value — `new Date('1990-06-15')` is UTC midnight and can render as
+ * the previous day in Asia/Hebron. Bucketing with `age()` in Postgres would be
+ * a second, subtly different implementation of the same rule.
+ *
+ * Two narrow columns for one clinic's register; the whole point of the table's
+ * `clinic_id` index.
  */
-export async function listClientsNeverSignedIn(clinicId: string, limit: number): Promise<AttentionItem[]> {
-  const rows = await db
-    .select({ clientId: clients.id, clientName: clients.fullName })
+export function listClientDemographics(clinicId: string): Promise<ClientDemographic[]> {
+  return db
+    .select({ dateOfBirth: clients.dateOfBirth, sex: clients.sex })
     .from(clients)
-    .where(
-      and(
-        eq(clients.clinicId, clinicId),
-        eq(clients.status, 'active'),
-        isNotNull(clients.userId),
-        notExists(db.select({ id: session.id }).from(session).where(eq(session.userId, clients.userId))),
-      ),
-    )
-    .orderBy(asc(clients.fullName))
-    .limit(limit);
-
-  return rows.map((row) => ({ ...row, reason: 'neverSignedIn' as const }));
+    .where(eq(clients.clinicId, clinicId));
 }

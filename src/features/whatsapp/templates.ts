@@ -18,7 +18,12 @@ import { type Locale } from '@/i18n/routing';
  * `<b>` arrives looking exactly as it was typed.
  */
 
-export type WhatsappTemplateKind = 'appointmentReminder' | 'appointmentConfirmation' | 'portalCredentials';
+export type WhatsappTemplateKind =
+  | 'appointmentReminder'
+  | 'appointmentConfirmation'
+  | 'appointmentRescheduled'
+  | 'appointmentCancelled'
+  | 'portalCredentials';
 
 /**
  * The language every WhatsApp message to a patient is written in.
@@ -54,6 +59,9 @@ export type WhatsappTemplateVariables = {
   date: string;
   /** Already formatted — `formatMinute`. */
   time: string;
+  /** Where a rescheduled appointment used to be. Only the reschedule uses these. */
+  previousDate?: string;
+  previousTime?: string;
   username?: string;
   password?: string;
   portalUrl?: string;
@@ -98,6 +106,63 @@ const COPY = {
       '🕐 {time}',
       '',
       'See you then. To change it, reply to this message.',
+    ],
+  },
+  /**
+   * A moved appointment. Both slots are named: "your appointment changed" with
+   * only the new time makes a patient go hunting for the old message to work out
+   * what actually moved, and one of the two is the one already in their diary.
+   */
+  appointmentRescheduled: {
+    ar: [
+      'مرحباً {clientName} 👋',
+      '',
+      'تم تغيير موعدك في {clinicName}.',
+      '',
+      'الموعد السابق:',
+      '📅 {previousDate}',
+      '🕐 {previousTime}',
+      '',
+      'الموعد الجديد:',
+      '📅 {date}',
+      '🕐 {time}',
+      '',
+      'نراك حينها. لأي تعديل، ردّ على هذه الرسالة.',
+    ],
+    en: [
+      'Hello {clientName} 👋',
+      '',
+      'Your appointment at {clinicName} has been changed.',
+      '',
+      'Previously:',
+      '📅 {previousDate}',
+      '🕐 {previousTime}',
+      '',
+      'Now:',
+      '📅 {date}',
+      '🕐 {time}',
+      '',
+      'See you then. To change it, reply to this message.',
+    ],
+  },
+  appointmentCancelled: {
+    ar: [
+      'مرحباً {clientName} 👋',
+      '',
+      'تم إلغاء موعدك في {clinicName}:',
+      '📅 {date}',
+      '🕐 {time}',
+      '',
+      'لحجز موعد جديد، ردّ على هذه الرسالة.',
+    ],
+    en: [
+      'Hello {clientName} 👋',
+      '',
+      'Your appointment at {clinicName} has been cancelled:',
+      '📅 {date}',
+      '🕐 {time}',
+      '',
+      'To book a new one, reply to this message.',
     ],
   },
   portalCredentials: {

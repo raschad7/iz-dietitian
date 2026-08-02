@@ -12,9 +12,9 @@ verified dietitian can therefore enter an operational dashboard without having
 provided the contact information or per-day availability the clinic needs.
 
 This design adds a required, resumable first-run setup and a permanent Profile
-area where the same information remains editable. It also diagnoses and fixes
-the reported password-sign-up verification-email failure. Google OAuth is
-already working and remains unchanged.
+area where the same information remains editable. The verification-email work
+discussed during planning was explicitly postponed and is not part of this
+branch; Google OAuth remains unchanged.
 
 The intended outcome is deliberately narrow: after setup, the clinic has valid
 identity, contact, weekly-schedule, and owner-practitioner data. This work does
@@ -36,12 +36,12 @@ In:
 - Calendar and booking support for different hours on different days.
 - Warning, but no cancellation, when a schedule edit conflicts with existing
   future appointments.
-- Diagnosis and correction of the password-sign-up verification-email path.
 - Arabic/English, RTL/LTR, mobile/desktop, accessibility, and tenant-isolation
   coverage.
 
 Out:
 
+- Password sign-up and verification-email changes, postponed to a later branch.
 - Client-portal screen or copy changes. Existing portal availability reads must
   continue to work through the shared schedule model, but the portal UI is not
   redesigned in this branch.
@@ -345,6 +345,29 @@ reuse Qiwam cards, buttons, inputs, labels, select fields, semantic tokens, and
 logical direction properties.
 
 ## Testing and verification
+
+### Field-level validation and recovery
+
+The onboarding wizard must never collapse validation into an unexplained
+generic error. Every required clinic and professional label carries a visible
+`*`; the optional licence number is labelled optional. Pressing Continue
+validates only the visible step and keeps focus within that step when it is
+invalid. Final submission keeps server-side Zod validation authoritative and
+returns structured field errors plus the first invalid section.
+
+Invalid controls use `aria-invalid`, an error border, and a localized inline
+message connected with `aria-describedby`. Clinic errors identify the exact
+field. Schedule errors identify the weekday and distinguish a missing time,
+times outside 15-minute increments, closing before opening, and a week with no
+working day. When the server rejects final submission, the wizard opens the
+first invalid section and focuses its first invalid control. A short summary
+announces that the highlighted fields need attention without replacing the
+specific inline messages.
+
+The same field components and structured server errors are used on the Profile
+page, so editing after onboarding has the same validation behavior. Native
+input constraints provide immediate feedback, but never replace server
+validation or tenant-scoped actions.
 
 Pure/schema tests:
 

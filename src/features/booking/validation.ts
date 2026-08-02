@@ -1,5 +1,7 @@
 import { SLOT_MINUTES } from '@/lib/time-constants';
+import type { ClinicDayHours } from '@/features/clinic-profile/types';
 
+import { type WallClock } from './completed';
 import { weekdayOf } from './date';
 
 /**
@@ -38,7 +40,28 @@ export type ClinicHours = {
   /** Minutes from local midnight. */
   openMinute: number;
   closeMinute: number;
+  /** Present for clinics using independently editable per-day ranges. */
+  days?: readonly ClinicDayHours[];
 };
+
+export function hoursForDate(
+  date: string,
+  hours: ClinicHours,
+): { openMinute: number; closeMinute: number } | null {
+  const weekday = weekdayOf(date);
+  if (weekday === null) return null;
+
+  if (hours.days) {
+    const day = hours.days.find((candidate) => candidate.weekday === weekday);
+    return day?.isWorking
+      ? { openMinute: day.openMinute, closeMinute: day.closeMinute }
+      : null;
+  }
+
+  return hours.workingDays.includes(weekday)
+    ? { openMinute: hours.openMinute, closeMinute: hours.closeMinute }
+    : null;
+}
 
 /** The fields of an existing appointment the rules actually consult. */
 export type ExistingAppointment = {
@@ -68,6 +91,17 @@ export type BookingCandidate = {
    * so an appointment never conflicts with itself.
    */
   excludeId?: string | null;
+  /**
+   * The clinic's today, `YYYY-MM-DD`. Rule 2 refuses any date before it.
+   *
+   * Null when there is no clock to read — the server render, before
+   * `useCalendarClock` has ticked — and the rule is then skipped rather than
+   * guessed at, the same convention `isCompleted` uses for the same reason.
+   * Required rather than optional so that every candidate has to say which
+   * clock it was judged against; forgetting one is a compile error, not a rule
+   * that silently does not run.
+   */
+  today: string | null;
 };
 
 /**
@@ -77,6 +111,8 @@ export type BookingCandidate = {
 export type BookingErrorKey =
   | 'errors.tooShort'
   | 'errors.invalidDate'
+  | 'errors.pastDate'
+  | 'errors.pastTime'
   | 'errors.closedDay'
   | 'errors.outsideHours'
   | 'errors.overlap'
@@ -101,7 +137,7 @@ export function validateBooking(
   existing: readonly ExistingAppointment[],
   hours: ClinicHours,
 ): BookingErrorKey | null {
-  const { date, startMinute, durationMinutes, practitionerId, clientId, excludeId } = candidate;
+  const { date, startMinute, durationMinutes, practitionerId, clientId, excludeId, today } = candidate;
 
   // Guard before the rules: a non-integer start or duration would slip past
   // every comparison below (`NaN < x` is false) and reach the database.
@@ -114,19 +150,32 @@ export function validateBooking(
     return 'errors.tooShort';
   }
 
-  // 2. Working days only. An unparseable date fails here rather than being
+  // 2. A usable date: one that existed, one that has not already gone, and one
+  //    the clinic opens on. An unparseable date fails first rather than being
   //    quietly treated as a closed day, which would be a confusing message.
   const weekday = weekdayOf(date);
   if (weekday === null) {
     return 'errors.invalidDate';
   }
-  if (!hours.workingDays.includes(weekday)) {
+
+  // Whole dates, not instants: today is bookable at any hour, so the 09:00 slot
+  // can still be filled in at 15:00 — writing up the morning is bookkeeping,
+  // not time travel. Both sides are zero-padded ISO, so `<` is chronological.
+  //
+  // Checked before the working-day rule so that a date which is both past and a
+  // closed day reports the more useful of the two: that the day has gone.
+  if (today !== null && date < today) {
+    return 'errors.pastDate';
+  }
+
+  const selectedHours = hoursForDate(date, hours);
+  if (!selectedHours) {
     return 'errors.closedDay';
   }
 
   // 3. Inside the clinic day — both ends of the appointment, not just the start.
   const endMinute = startMinute + durationMinutes;
-  if (startMinute < hours.openMinute || endMinute > hours.closeMinute) {
+  if (startMinute < selectedHours.openMinute || endMinute > selectedHours.closeMinute) {
     return 'errors.outsideHours';
   }
 
@@ -169,8 +218,52 @@ export function findClientBooking(
   return existing.find((row) => row.date === date && row.clientId === clientId && row.id !== excludeId) ?? null;
 }
 
+/**
+ * Whether a move would put an appointment at a moment that has already passed.
+ *
+ * Separate from {@link validateBooking}, and deliberately so: this is the one
+ * rule that needs to know where the appointment *was*, and a candidate has no
+ * business carrying its own history. Keeping it here still means the rules live
+ * in one file, and the client and the server call the same function.
+ *
+ * ## Why moving is stricter than creating
+ *
+ * Creating is bounded by the date only — the clinic can write up this morning's
+ * walk-in at three in the afternoon, which is bookkeeping. Moving a patient to a
+ * time that has gone is not bookkeeping; it is telling someone to attend an
+ * appointment they cannot attend, and it now sends them a WhatsApp message
+ * naming that time.
+ *
+ * ## The two exemptions
+ *
+ * An appointment that has *ended* is refused earlier and by something else — the
+ * completed-lock in `updateAppointment` — so the only appointments reaching here
+ * are in progress or still to come.
+ *
+ * An appointment in progress must stay editable. Its start is behind the clock by
+ * definition, so a naive "start must be in the future" would make a 14:30
+ * appointment uneditable at 15:00 — its reason could never be corrected. Hence
+ * the first check: a candidate that did not move is not moving into the past.
+ */
+export function movesIntoThePast(
+  next: { date: string; startMinute: number },
+  previous: { date: string; startMinute: number },
+  now: WallClock | null,
+): boolean {
+  // No clock — the server render, before `useCalendarClock` ticks. Skipped
+  // rather than guessed at, the same convention the past-date rule uses.
+  if (!now) return false;
+
+  // Nothing moved: an edit to the reason, the duration or the client. Whether
+  // the start is behind the clock is not this rule's business.
+  if (next.date === previous.date && next.startMinute === previous.startMinute) return false;
+
+  if (next.date < now.date) return true;
+
+  return next.date === now.date && next.startMinute < now.minute;
+}
+
 /** True when the clinic opens on that date. Used to grey out closed days. */
 export function isWorkingDay(date: string, hours: ClinicHours): boolean {
-  const weekday = weekdayOf(date);
-  return weekday !== null && hours.workingDays.includes(weekday);
+  return hoursForDate(date, hours) !== null;
 }

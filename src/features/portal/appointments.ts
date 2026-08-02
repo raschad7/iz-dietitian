@@ -1,4 +1,5 @@
 import { hasEnded, type WallClock } from '@/features/booking/completed';
+import { addDays } from '@/features/booking/date';
 
 import { type PortalAppointment } from './types';
 
@@ -42,6 +43,31 @@ export function nextAppointment(
   now: WallClock,
 ): PortalAppointment | null {
   return splitAppointments(rows, now).upcoming[0] ?? null;
+}
+
+/** The one-word relative marker an upcoming appointment carries, if any. */
+export type AppointmentMarker = 'today' | 'tomorrow' | 'next';
+
+/**
+ * How soon this one is, in the only terms worth a badge.
+ *
+ * "Today" and "tomorrow" are what someone opening the portal is actually
+ * checking for, and a date alone makes them work it out. Everything further off
+ * gets nothing — except the first of the list, which is marked as next so the
+ * card that matters is obvious without counting down the page.
+ *
+ * `index` is the position within `upcoming`, so this is only meaningful for that
+ * list. Past appointments take no marker: how long ago something was is not a
+ * thing anyone acts on.
+ */
+export function appointmentMarker(
+  appointment: PortalAppointment,
+  index: number,
+  now: WallClock,
+): AppointmentMarker | null {
+  if (appointment.date === now.date) return 'today';
+  if (appointment.date === addDays(now.date, 1)) return 'tomorrow';
+  return index === 0 ? 'next' : null;
 }
 
 /** Both dates are zero-padded ISO, so a string comparison is chronological. */

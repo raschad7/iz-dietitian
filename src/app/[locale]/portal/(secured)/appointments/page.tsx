@@ -1,12 +1,13 @@
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
-import { buttonVariants } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
+import { appointmentMarker } from '@/features/portal/appointments';
 import { AppointmentCard } from '@/features/portal/components/appointment-card';
+import { PortalSection } from '@/features/portal/components/portal-section';
 import { RequestList } from '@/features/portal/components/request-list';
 import { loadAppointments } from '@/features/portal/page-data';
 import { requirePortalClient } from '@/features/portal/session';
-import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/params';
 
 type AppointmentsPageProps = {
@@ -20,12 +21,16 @@ export async function generateMetadata({ params }: AppointmentsPageProps): Promi
 }
 
 /**
- * Everything about this client's appointments on one page: what is coming, what
- * they have asked for, and what has been.
+ * This client's appointments: what is coming, and what has been.
  *
- * Three sections rather than three routes. They are read in that order and they
- * answer one question between them; splitting history onto its own page would
- * mean navigating to find out whether a request was ever answered.
+ * **The page is read-only.** Booking, rescheduling and cancelling are all the
+ * dietitian's, so there is nothing here to press — which is what lets the layout
+ * be as quiet as it is. The client's questions are "when am I next seen?" and
+ * "has that one happened yet?", and the page answers them in that order.
+ *
+ * The first upcoming appointment is rendered at a heavier weight than the rest.
+ * It is the one thing on this page anyone opens it for, and a list where every
+ * row looks identical makes them find it by reading dates.
  */
 export default async function AppointmentsPage({ params }: AppointmentsPageProps) {
   const locale = await resolveLocale(params);
@@ -40,52 +45,63 @@ export default async function AppointmentsPage({ params }: AppointmentsPageProps
   const visibleRequests = requests.filter((request) => request.status !== 'withdrawn');
 
   return (
-    <div className="space-y-6">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-2xl font-semibold tracking-tight">{t('appointments.title')}</h2>
-        <Link href="/portal/appointments/request" className={buttonVariants()}>
-          {t('dashboard.requestAppointment')}
-        </Link>
+    <div className="space-y-7">
+      <header className="space-y-1">
+        <h2 className="font-heading text-2xl font-semibold tracking-tight">
+          {t('appointments.title')}
+        </h2>
+        <p className="text-sm text-muted-foreground">{t('appointments.subtitle')}</p>
       </header>
 
-      <section className="space-y-3">
-        <h3 className="text-sm font-medium text-muted-foreground">{t('appointments.upcoming')}</h3>
-
+      <PortalSection
+        icon="calendar"
+        title={t('appointments.upcoming')}
+        count={upcoming.length}
+      >
         {upcoming.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{t('appointments.noneUpcoming')}</p>
+          <EmptyState
+            icon="calendar"
+            title={t('appointments.noneUpcomingTitle')}
+            description={t('appointments.noneUpcoming')}
+          />
         ) : (
           <ul className="space-y-3">
-            {upcoming.map((appointment) => (
+            {upcoming.map((appointment, index) => (
               <li key={appointment.id}>
-                <AppointmentCard appointment={appointment} />
+                <AppointmentCard
+                  appointment={appointment}
+                  tone={index === 0 ? 'featured' : 'default'}
+                  marker={appointmentMarker(appointment, index, context.now)}
+                />
               </li>
             ))}
           </ul>
         )}
-      </section>
+      </PortalSection>
 
       {visibleRequests.length > 0 ? (
-        <section className="space-y-3">
-          <h3 className="text-sm font-medium text-muted-foreground">{t('appointments.requests')}</h3>
+        <PortalSection
+          icon="chat"
+          title={t('appointments.requests')}
+          count={visibleRequests.length}
+        >
           <RequestList requests={visibleRequests} />
-        </section>
+        </PortalSection>
       ) : null}
 
-      <section className="space-y-3">
-        <h3 className="text-sm font-medium text-muted-foreground">{t('appointments.history')}</h3>
-
+      <PortalSection icon="clock" title={t('appointments.history')} count={past.length}>
         {past.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{t('appointments.nonePast')}</p>
+          <EmptyState icon="clock" title={t('appointments.nonePast')} />
         ) : (
           <ul className="space-y-3">
             {past.map((appointment) => (
               <li key={appointment.id}>
-                <AppointmentCard appointment={appointment} past />
+                <AppointmentCard appointment={appointment} tone="past" />
               </li>
             ))}
           </ul>
         )}
-      </section>
+      </PortalSection>
     </div>
   );
 }

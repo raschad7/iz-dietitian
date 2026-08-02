@@ -20,6 +20,12 @@ export const clinics = pgTable(
     /** Seeded from the first staff member's name; there is no rename UI yet. */
     name: text('name').notNull(),
 
+    /** Nullable until the required onboarding flow is completed. */
+    phone: text('phone'),
+    contactEmail: text('contact_email'),
+    address: text('address'),
+    onboardingCompletedAt: timestamp('onboarding_completed_at', { withTimezone: true }),
+
     /**
      * When the clinic is open. The booking validator reads these three columns
      * and nothing else, so opening hours are per-clinic data — not a constant

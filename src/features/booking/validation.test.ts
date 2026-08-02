@@ -5,6 +5,7 @@ import {
   MIN_DURATION_MINUTES,
   findClientBooking,
   isWorkingDay,
+  movesIntoThePast,
   validateBooking,
   type BookingCandidate,
   type ClinicHours,
@@ -15,6 +16,7 @@ import {
  * 2026-08-05 is a Wednesday; 2026-08-07 a Friday and 2026-08-08 a Saturday —
  * the clinic's weekend under the default Sunday–Thursday week.
  */
+const TUESDAY = '2026-08-04';
 const WEDNESDAY = '2026-08-05';
 const FRIDAY = '2026-08-07';
 const SATURDAY = '2026-08-08';
@@ -38,6 +40,9 @@ function candidate(overrides: Partial<BookingCandidate> = {}): BookingCandidate 
     date: WEDNESDAY,
     startMinute: 9 * 60,
     durationMinutes: DEFAULT_DURATION_MINUTES,
+    // No clock unless a test asks for one, so every case below goes on asking
+    // exactly what it asked before the past-date rule existed.
+    today: null,
     ...overrides,
   };
 }
@@ -100,7 +105,120 @@ describe('rule 2 — working days only', () => {
   });
 });
 
+describe('rule 2 — not in the past', () => {
+  test('rejects any date before today', () => {
+    expect(validateBooking(candidate({ date: TUESDAY, today: WEDNESDAY }), [], HOURS)).toBe('errors.pastDate');
+    expect(validateBooking(candidate({ date: '2020-01-06', today: WEDNESDAY }), [], HOURS)).toBe('errors.pastDate');
+  });
+
+  test('accepts today itself', () => {
+    expect(validateBooking(candidate({ date: WEDNESDAY, today: WEDNESDAY }), [], HOURS)).toBeNull();
+  });
+
+  test('accepts today at a time that has already gone — the rule is about dates, not clocks', () => {
+    // 08:00 on a day whose afternoon has arrived is still bookable: writing up
+    // the morning is bookkeeping, not a booking in the past.
+    expect(
+      validateBooking(candidate({ date: WEDNESDAY, startMinute: HOURS.openMinute, today: WEDNESDAY }), [], HOURS),
+    ).toBeNull();
+  });
+
+  test('accepts a future date', () => {
+    expect(validateBooking(candidate({ date: THURSDAY, today: WEDNESDAY }), [], HOURS)).toBeNull();
+  });
+
+  test('is skipped when there is no clock, so the server render matches the first paint', () => {
+    expect(validateBooking(candidate({ date: TUESDAY, today: null }), [], HOURS)).toBeNull();
+  });
+
+  test('a past closed day reports that it has gone, not that the clinic is shut', () => {
+    // Friday the 7th judged from the following Wednesday: both rules would
+    // reject it, and the more useful answer is the one about the date.
+    expect(validateBooking(candidate({ date: FRIDAY, today: '2026-08-12' }), [], HOURS)).toBe('errors.pastDate');
+  });
+
+  test('still rejects a date that never existed, even against a clock', () => {
+    expect(validateBooking(candidate({ date: '2026-02-30', today: WEDNESDAY }), [], HOURS)).toBe('errors.invalidDate');
+  });
+});
+
+describe('moving into the past', () => {
+  /** Wednesday the 5th, 15:00 — "today is Wednesday and the hour is 3 PM". */
+  const NOW = { date: WEDNESDAY, minute: 15 * 60 };
+
+  /** Where the appointment currently sits: later the same day, 17:00. */
+  const at = (date: string, startMinute: number) => ({ date, startMinute });
+
+  test('refuses a drag to earlier today', () => {
+    expect(movesIntoThePast(at(WEDNESDAY, 9 * 60), at(WEDNESDAY, 17 * 60), NOW)).toBe(true);
+  });
+
+  test('refuses a drag to an earlier day', () => {
+    expect(movesIntoThePast(at(TUESDAY, 17 * 60), at(WEDNESDAY, 17 * 60), NOW)).toBe(true);
+  });
+
+  test('allows a drag to later today', () => {
+    expect(movesIntoThePast(at(WEDNESDAY, 16 * 60), at(WEDNESDAY, 17 * 60), NOW)).toBe(false);
+  });
+
+  test('allows a drag to a later day, however early in that day', () => {
+    expect(movesIntoThePast(at(THURSDAY, 8 * 60), at(WEDNESDAY, 17 * 60), NOW)).toBe(false);
+  });
+
+  test('allows the current minute exactly — now is not yet past', () => {
+    expect(movesIntoThePast(at(WEDNESDAY, 15 * 60), at(WEDNESDAY, 17 * 60), NOW)).toBe(false);
+  });
+
+  test('refuses the minute before now', () => {
+    expect(movesIntoThePast(at(WEDNESDAY, 15 * 60 - 1), at(WEDNESDAY, 17 * 60), NOW)).toBe(true);
+  });
+
+  /**
+   * The exemption that keeps an appointment in progress editable. A 14:30
+   * booking at 15:00 has a start behind the clock by definition; without this
+   * its reason could never be corrected.
+   */
+  test('allows an edit that does not move the appointment at all', () => {
+    expect(movesIntoThePast(at(WEDNESDAY, 14 * 60 + 30), at(WEDNESDAY, 14 * 60 + 30), NOW)).toBe(false);
+  });
+
+  test('still refuses moving an in-progress appointment further back', () => {
+    expect(movesIntoThePast(at(WEDNESDAY, 14 * 60), at(WEDNESDAY, 14 * 60 + 30), NOW)).toBe(true);
+  });
+
+  test('is skipped when there is no clock, so the server render matches the first paint', () => {
+    expect(movesIntoThePast(at(TUESDAY, 9 * 60), at(WEDNESDAY, 17 * 60), null)).toBe(false);
+  });
+
+  test('creating is unaffected — it is bounded by the date, not the hour', () => {
+    // The same 09:00 slot the move above was refused, judged as a *new* booking.
+    expect(validateBooking(candidate({ date: WEDNESDAY, startMinute: 9 * 60, today: WEDNESDAY }), [], HOURS)).toBeNull();
+  });
+});
+
 describe('rule 3 — within working hours', () => {
+  test('uses the selected weekday range instead of the weekly envelope', () => {
+    const variableHours: ClinicHours = {
+      ...HOURS,
+      days: [
+        { weekday: 0, isWorking: true, openMinute: 9 * 60, closeMinute: 17 * 60 },
+        { weekday: 1, isWorking: true, openMinute: 10 * 60, closeMinute: 14 * 60 },
+        { weekday: 2, isWorking: false, openMinute: null, closeMinute: null },
+        { weekday: 3, isWorking: true, openMinute: 9 * 60, closeMinute: 17 * 60 },
+        { weekday: 4, isWorking: true, openMinute: 9 * 60, closeMinute: 17 * 60 },
+        { weekday: 5, isWorking: false, openMinute: null, closeMinute: null },
+        { weekday: 6, isWorking: false, openMinute: null, closeMinute: null },
+      ],
+    };
+
+    expect(validateBooking(candidate({ date: '2026-08-03', startMinute: 9 * 60 }), [], variableHours)).toBe(
+      'errors.outsideHours',
+    );
+    expect(validateBooking(candidate({ date: '2026-08-04', startMinute: 11 * 60 }), [], variableHours)).toBe(
+      'errors.closedDay',
+    );
+  });
+
   test('accepts an appointment starting exactly at opening time', () => {
     expect(validateBooking(candidate({ startMinute: HOURS.openMinute }), [], HOURS)).toBeNull();
   });

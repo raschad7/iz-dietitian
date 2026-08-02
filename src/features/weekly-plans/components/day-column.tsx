@@ -63,7 +63,7 @@ export function DayColumn({
           )}
         </div>
 
-        <span className="mt-0.5 block text-[10px] text-muted-foreground">
+        <span className="mt-0.5 block text-label text-muted-foreground">
           <span className={cn(offTarget && 'font-medium text-status-attention-fg')}>
             {t('kcalValue', { value: kcal })}
           </span>
@@ -72,7 +72,7 @@ export function DayColumn({
       </div>
 
       {day.meals.length === 0 && !editable ? (
-        <p className="rounded-md border border-dashed border-border p-2 text-[10px] text-muted-foreground">
+        <p className="rounded-md border border-dashed border-border p-2 text-label text-muted-foreground">
           {t('emptyDay')}
         </p>
       ) : (

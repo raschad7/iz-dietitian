@@ -7,7 +7,9 @@ import { username } from 'better-auth/plugins';
 import { db } from '@/db';
 import { account, passkey as passkeyTable, session, user, verification } from '@/db/schema/auth';
 import { clinics } from '@/db/schema/clinics';
+import { clinicWorkingHours } from '@/db/schema/clinic-working-hours';
 import { CLIENT_MIN_PASSWORD_LENGTH } from '@/features/auth/password-policy';
+import { defaultClinicScheduleRows } from '@/features/clinic-profile/default-schedule';
 import { defaultLocale, locales, type Locale } from '@/i18n/routing';
 import { sendMail } from '@/lib/mail';
 
@@ -253,16 +255,21 @@ export const auth = betterAuth({
           const role = 'role' in newUser ? newUser.role : undefined;
           if (role !== undefined && role !== 'staff') return { data: newUser };
 
-          const [clinic] = await db
-            .insert(clinics)
-            .values({ name: newUser.name })
-            .returning({ id: clinics.id });
+          const clinicId = await db.transaction(async (tx) => {
+            const [clinic] = await tx
+              .insert(clinics)
+              .values({ name: newUser.name })
+              .returning({ id: clinics.id });
 
-          if (!clinic) {
-            throw new Error('could not create a clinic for the new staff account');
-          }
+            if (!clinic) {
+              throw new Error('could not create a clinic for the new staff account');
+            }
 
-          return { data: { ...newUser, clinicId: clinic.id } };
+            await tx.insert(clinicWorkingHours).values(defaultClinicScheduleRows(clinic.id));
+            return clinic.id;
+          });
+
+          return { data: { ...newUser, clinicId } };
         },
       },
     },

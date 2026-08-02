@@ -93,6 +93,7 @@
     "nameRequired": "Enter your full name.",
     "invalidEmail": "Enter a valid email address.",
     "continueWithGoogle": "Continue with Google",
+    "googleUnavailable": "Google sign-in could not start. Check your connection and try again.",
     "continueWithPasskey": "Continue with a passkey",
     "passkeyFailed": "That passkey did not work. Try another method.",
     "orUsePassword": "or",
@@ -182,6 +183,7 @@
       "title": "Add a client and book",
       "fullName": "Full name",
       "phone": "Phone",
+      "phoneCountry": "Country code",
       "saveAndBook": "Save and book"
     },
     "dialog": {
@@ -191,12 +193,24 @@
       "save": "Save",
       "cancel": "Cancel",
       "close": "Close",
-      "delete": "Delete appointment",
-      "confirmDeleteCompleted": "This appointment has already finished. Deleting it removes the record permanently. Are you sure?"
+      "delete": "Delete appointment"
+    },
+    "confirmMove": {
+      "title": "Change this appointment?",
+      "body": "Move {name} from {from} to {to}?",
+      "confirm": "Change appointment"
+    },
+    "confirmDelete": {
+      "title": "Delete this appointment?",
+      "body": "{name} on {when} will be removed from the calendar.",
+      "bodyCompleted": "This appointment has already finished. Deleting {name} on {when} removes the record permanently.",
+      "confirm": "Delete appointment"
     },
     "errors": {
       "tooShort": "The shortest appointment is 15 minutes.",
       "invalidDate": "That date is not valid. Try a format like 2026-08-05 or 8/5/2026.",
+      "pastDate": "That date has already passed. The earliest you can book is today.",
+      "pastTime": "That time has already passed. Move the appointment to a later time.",
       "closedDay": "The clinic is closed that day.",
       "outsideHours": "That falls outside the clinic's opening hours.",
       "overlap": "That clashes with another appointment.",
@@ -212,44 +226,91 @@
     "title": "Dashboard",
     "welcome": "Welcome, {name}",
     "agenda": {
-      "title": "Today's agenda",
-      "empty": "No appointments today",
-      "emptyCta": "View calendar",
+      "title": "Today",
+      "dateLabel": "Your agenda",
+      "count": "{count, plural, =0 {No appointments} one {# appointment} other {# appointments}}",
+      "next": "Next",
+      "live": "Now",
+      "empty": "Nothing booked today",
+      "emptyCta": "Book an appointment",
+      "viewDay": "Open the day view",
       "reason": "Reason: {reason}"
     },
-    "requests": {
-      "title": "Pending requests",
-      "count": "{count, number, integer} pending",
-      "empty": "No pending requests right now",
-      "cta": "Review requests",
-      "kind": {
-        "new": "New booking request",
-        "reschedule": "Reschedule request",
-        "cancel": "Cancellation request"
-      }
-    },
-    "stats": {
-      "activeClients": "Active clients",
+    "summary": {
+      "todayAppointments": "Today's appointments",
+      "upcomingAppointments": "Upcoming",
+      "newClientsThisMonth": "New clients this month",
       "appointmentsThisWeek": "Appointments this week",
-      "clientsWithoutWeeklyPlan": "Without a plan this week",
-      "newClientsThisMonth": "New clients this month"
-    },
-    "attention": {
-      "title": "Needs attention",
-      "badge": "Needs attention",
-      "empty": "No clients need attention right now",
-      "viewAll": "View all clients",
-      "reason": {
-        "noUpcomingAppointment": "No upcoming appointment",
-        "noWeeklyPlan": "No plan this week",
-        "neverSignedIn": "Never signed in to the portal"
-      }
+      "nextIs": "Next: {when}",
+      "nothingScheduled": "Nothing scheduled ahead"
     },
     "quickActions": {
       "title": "Quick actions",
-      "newAppointment": "New appointment",
-      "addClient": "Add client",
-      "weeklyPlans": "Weekly plans"
+      "addClient": {
+        "title": "New patient",
+        "hint": "Add someone to your register"
+      },
+      "bookAppointment": {
+        "title": "Book appointment",
+        "hint": "Opens today in the calendar"
+      },
+      "weeklyPlans": {
+        "title": "Weekly plans",
+        "hint": "Opens the plan board"
+      }
+    },
+    "visitHistory": {
+      "title": "Visit history",
+      "subtitle": "{count, plural, =0 {Last 6 months} one {# visit over 6 months} other {# visits over 6 months}}",
+      "empty": "No visits in the last 6 months",
+      "tooltip": "{count, plural, =0 {No visits} one {# visit} other {# visits}} in {month}",
+      "busiest": "Busiest: {month} ({count, number, integer})",
+      "fewer": "Fewer",
+      "more": "More"
+    },
+    "ageDistribution": {
+      "title": "Age distribution",
+      "subtitle": "{count, plural, =0 {No clients yet} one {# client} other {# clients}}",
+      "empty": "No clients on the register yet",
+      "tooltip": "{count, plural, =0 {No clients} one {# client} other {# clients}} aged {band}",
+      "bands": {
+        "under18": "Under 18",
+        "age18to29": "18–29",
+        "age30to44": "30–44",
+        "age45to59": "45–59",
+        "age60plus": "60 and over",
+        "unknown": "Not recorded"
+      }
+    },
+    "sexDistribution": {
+      "title": "Sex distribution",
+      "subtitle": "{count, plural, =0 {No clients yet} one {# client} other {# clients}}",
+      "empty": "No clients on the register yet",
+      "centerLabel": "clients",
+      "tooltip": "{count, plural, =0 {No clients} one {# client} other {# clients}} — {group}",
+      "groups": {
+        "female": "Female",
+        "male": "Male",
+        "unknown": "Not recorded"
+      }
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "trigger": "Notifications, {count, plural, =0 {nothing pending} one {# pending request} other {# pending requests}}",
+    "empty": "Nothing needs you right now",
+    "preferred": "Asked for {when}",
+    "reviewRequests": "Review {count, plural, one {# request} other {# requests}}",
+    "viewClients": "All clients",
+    "request": {
+      "new": "New booking request",
+      "reschedule": "Reschedule request",
+      "cancel": "Cancellation request"
+    },
+    "attention": {
+      "noUpcomingAppointment": "No upcoming appointment",
+      "noWeeklyPlan": "No plan this week",
+      "neverSignedIn": "Never signed in to the portal"
     }
   },
   "clients": {
@@ -276,6 +337,7 @@
     "fields": {
       "fullName": "Full name",
       "phone": "Phone",
+      "phoneCountry": "Country code",
       "email": "Email",
       "preferredLocale": "Correspondence language",
       "dateOfBirth": "Date of birth",
@@ -365,19 +427,27 @@
       "todaysMeals": "Today's meals",
       "dayEnergy": "{kcal, number, integer} kcal for the day",
       "requestAppointment": "Request an appointment",
+      "viewAppointments": "View appointments",
       "viewMealPlan": "View meal plan",
       "pendingRequests": "Waiting for your dietitian: {count, number, integer}"
     },
     "appointments": {
       "title": "Appointments",
+      "subtitle": "Everything your dietitian has booked for you.",
       "upcoming": "Upcoming",
       "history": "Past appointments",
       "requests": "Your requests",
+      "noneUpcomingTitle": "No upcoming appointments",
       "noneUpcoming": "Nothing booked yet. Ask your dietitian for an appointment.",
-      "nonePast": "No past appointments.",
+      "nonePast": "No past appointments yet.",
       "reschedule": "Ask to reschedule",
       "cancel": "Ask to cancel",
-      "requestPending": "Waiting for your dietitian"
+      "requestPending": "Waiting for your dietitian",
+      "marker": {
+        "today": "Today",
+        "tomorrow": "Tomorrow",
+        "next": "Next"
+      }
     },
     "request": {
       "title": "Request an appointment",
@@ -421,13 +491,19 @@
     },
     "plan": {
       "title": "Meal plan",
-      "none": "Your dietitian has not built a plan for you yet.",
+      "noneTitle": "No plan yet",
+      "none": "Your dietitian has not built a plan for you yet. It will appear here as soon as they publish it.",
       "grams": "{grams, number, plain} g",
       "weekOf": "Week of {date}",
       "dailyTarget": "Daily target: {value} kcal",
+      "chooseDay": "Choose a day",
+      "today": "Today",
+      "dayEnergyLabel": "Energy for this day",
+      "emptyDayTitle": "Nothing planned for this day",
+      "emptyDayHint": "Your dietitian left this day open. Pick another day above.",
       "kcalValue": "{value} kcal",
       "portion": "{servings} × {label}",
-      "showIngredients": "Show ingredients and amounts",
+      "ingredientsTitle": "Ingredients and amounts",
       "orInstead": "You can eat this instead:",
       "noMeal": "No meal set"
     },
@@ -468,63 +544,6 @@
     "noClients": "No active clients",
     "noPlanYet": "No plan for this client yet. Add instructions for the week, then generate.",
     "history": "Earlier plans",
-    "tabs": {
-      "client": "Client",
-      "dishes": "Dishes",
-      "meal": "Meal",
-      "past": "Past"
-    },
-    "newWeek": "New week",
-    "newWeekGenerate": "Generate with AI",
-    "newWeekGenerateHint": "Opens the generate panel, with this week's targets.",
-    "newWeekFrom": "Start from {date}",
-    "newWeekFromHint": "Copies that week's dishes into the client's current meal schedule.",
-    "newWeekEmpty": "Empty week",
-    "newWeekEmptyHint": "One empty slot per meal in the client's schedule.",
-    "selectMeal": "Open a meal on the board to see it here",
-    "searchDishes": "Search dishes",
-    "noDishes": "No dishes match",
-    "fitsSlot": "Portions sized for {value} kcal",
-    "usedThisWeek": "this week",
-    "usedWeeksAgo": "{count, plural, one {last week} other {# weeks ago}}",
-    "blockedByAllergen": "Contains {allergens}",
-    "mealTypes": {
-      "breakfast": "Breakfast",
-      "snack": "Snack",
-      "lunch": "Lunch",
-      "dinner": "Dinner"
-    },
-    "tags": {
-      "cheap": "Low cost",
-      "portable": "Portable",
-      "quick": "Quick",
-      "vegetarian": "Vegetarian",
-      "high_protein": "High protein",
-      "diabetic_friendly": "Diabetic friendly"
-    },
-    "dropHere": "Drop here",
-    "addMeal": "Add a meal",
-    "removeMeal": "Remove this meal",
-    "clearMeal": "Empty this slot",
-    "morePortion": "Larger portion",
-    "lessPortion": "Smaller portion",
-    "compareWith": "Compare with {date}",
-    "repeatedFromLastWeek": "Same as {date}",
-    "editPublished": "Edit the published plan",
-    "editPublishedWarning": "This plan is published. Changes are visible to the client immediately.",
-    "editPublishedConfirm": "This plan is published and the client is following it. Edits appear for them straight away. Continue?",
-    "retiredDish": "Retired from the catalog",
-    "savedIndicator": "Saved",
-    "savingIndicator": "Saving…",
-    "noEarlierPlans": "No earlier plans",
-    "planMeals": "{count} meals",
-    "copyIntoWeek": "Copy into {date}",
-    "weekTargets": "This week's targets",
-    "kcalTargetLabel": "Daily calories",
-    "proteinTargetLabel": "Daily protein (g)",
-    "goalLabel": "Goal for this week",
-    "targetsHint": "Applies to this plan only. The client's nutrition profile is not changed.",
-    "useProfile": "Use the profile",
     "weekOf": "Week of {date}",
     "weekTotal": "Week total {value} kcal",
     "generatedBy": "Model used",
@@ -642,6 +661,63 @@
       "clientNotFound": "Client not found.",
       "unexpected": "Something went wrong."
     },
+    "tabs": {
+      "client": "Client",
+      "dishes": "Dishes",
+      "meal": "Meal",
+      "past": "Past"
+    },
+    "newWeek": "New week",
+    "newWeekGenerate": "Generate with AI",
+    "newWeekGenerateHint": "Opens the generate panel, with this week's targets.",
+    "newWeekFrom": "Start from {date}",
+    "newWeekFromHint": "Copies that week's dishes into the client's current meal schedule.",
+    "newWeekEmpty": "Empty week",
+    "newWeekEmptyHint": "One empty slot per meal in the client's schedule.",
+    "selectMeal": "Open a meal on the board to see it here",
+    "searchDishes": "Search dishes",
+    "noDishes": "No dishes match",
+    "fitsSlot": "Portions sized for {value} kcal",
+    "usedThisWeek": "this week",
+    "usedWeeksAgo": "{count, plural, one {last week} other {# weeks ago}}",
+    "blockedByAllergen": "Contains {allergens}",
+    "mealTypes": {
+      "breakfast": "Breakfast",
+      "snack": "Snack",
+      "lunch": "Lunch",
+      "dinner": "Dinner"
+    },
+    "tags": {
+      "cheap": "Low cost",
+      "portable": "Portable",
+      "quick": "Quick",
+      "vegetarian": "Vegetarian",
+      "high_protein": "High protein",
+      "diabetic_friendly": "Diabetic friendly"
+    },
+    "dropHere": "Drop here",
+    "addMeal": "Add a meal",
+    "removeMeal": "Remove this meal",
+    "clearMeal": "Empty this slot",
+    "morePortion": "Larger portion",
+    "lessPortion": "Smaller portion",
+    "compareWith": "Compare with {date}",
+    "repeatedFromLastWeek": "Same as {date}",
+    "editPublished": "Edit the published plan",
+    "editPublishedWarning": "This plan is published. Changes are visible to the client immediately.",
+    "editPublishedConfirm": "This plan is published and the client is following it. Edits appear for them straight away. Continue?",
+    "retiredDish": "Retired from the catalog",
+    "savedIndicator": "Saved",
+    "savingIndicator": "Saving…",
+    "noEarlierPlans": "No earlier plans",
+    "planMeals": "{count} meals",
+    "copyIntoWeek": "Copy into {date}",
+    "weekTargets": "This week's targets",
+    "kcalTargetLabel": "Daily calories",
+    "proteinTargetLabel": "Daily protein (g)",
+    "goalLabel": "Goal for this week",
+    "targetsHint": "Applies to this plan only. The client's nutrition profile is not changed.",
+    "useProfile": "Use the profile",
     "days": {
       "sunday": "Sunday",
       "monday": "Monday",
@@ -664,7 +740,8 @@
       "calcium": "Calcium",
       "iron": "Iron",
       "potassium": "Potassium"
-    }
+    },
+    "unmeasuredCount": "{count, number, integer} of these foods have no published value for this nutrient, so the real total is higher."
   },
   "dishes": {
     "title": "Dish catalog",
@@ -759,6 +836,8 @@
       "kind": {
         "appointment_reminder": "Appointment reminder",
         "appointment_confirmation": "Appointment confirmation",
+        "appointment_rescheduled": "Appointment changed",
+        "appointment_cancelled": "Appointment cancelled",
         "portal_credentials": "Portal credentials",
         "manual": "Manual message",
         "inbound": "Client reply"
@@ -788,6 +867,67 @@
       "notLinked": "Connect WhatsApp first, then set the automations up.",
       "sendFailed": "The message could not be sent. Check the message log.",
       "unexpected": "Something went wrong. Try again."
+    }
+  },
+  "clinicProfile": {
+    "eyebrow": "Clinic setup",
+    "onboardingTitle": "Set up your clinic",
+    "onboardingDescription": "Add the essentials once so appointments and daily work match how your clinic actually operates.",
+    "profileTitle": "Clinic profile",
+    "profileDescription": "Keep clinic contact details, working hours and your professional information up to date.",
+    "progress": "Setup progress",
+    "profileSections": "Profile sections",
+    "sections": {
+      "clinic": "Clinic details",
+      "schedule": "Working hours",
+      "professional": "Professional profile"
+    },
+    "sectionDescriptions": {
+      "clinic": "The required contact information used across the clinic.",
+      "schedule": "Choose working days, off days and different hours for each day.",
+      "professional": "The practitioner details shown within the clinic workspace."
+    },
+    "clinicName": "Clinic name",
+    "clinicPhone": "Clinic phone",
+    "email": "Contact email",
+    "address": "Clinic address",
+    "fullName": "Full name",
+    "professionalTitle": "Professional title",
+    "specialty": "Specialty",
+    "professionalPhone": "Professional phone",
+    "licenseNumber": "License number",
+    "optional": "optional",
+    "opens": "Opens",
+    "closes": "Closes",
+    "offDay": "Off day",
+    "back": "Back",
+    "next": "Continue",
+    "finish": "Finish setup",
+    "saving": "Saving…",
+    "saveChanges": "Save changes",
+    "days": {
+      "0": "Sunday",
+      "1": "Monday",
+      "2": "Tuesday",
+      "3": "Wednesday",
+      "4": "Thursday",
+      "5": "Friday",
+      "6": "Saturday"
+    },
+    "validation": {
+      "required": "This field is required.",
+      "invalidEmail": "Enter a valid email address, such as name@clinic.com.",
+      "invalidPhone": "Enter a valid phone number using digits and an optional country code.",
+      "invalidTime": "Choose a valid time in 15-minute increments.",
+      "closingAfterOpening": "Closing time must be later than opening time.",
+      "workingDayRequired": "Choose at least one working day."
+    },
+    "messages": {
+      "saved": "Changes saved.",
+      "invalid": "Check the highlighted fields, then try again.",
+      "unexpected": "We could not save your changes. Try again.",
+      "incomplete": "Complete all three sections before continuing.",
+      "scheduleConflict": "Schedule saved. {count, plural, one {# future appointment is now outside these hours} other {# future appointments are now outside these hours}}."
     }
   }
 }
