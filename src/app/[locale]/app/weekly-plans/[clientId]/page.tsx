@@ -16,10 +16,13 @@ import {
   getBoard,
   getClientContext,
   getLatestBoard,
+  listCatalogForBoard,
   listPlannableClients,
   listPlans,
+  previousPlanSlots,
   swapCandidatesByMeal,
 } from '@/features/weekly-plans/queries';
+import { recentDishUse } from '@/features/weekly-plans/usage';
 import { nextSunday } from '@/features/weekly-plans/week';
 
 /**
@@ -61,11 +64,20 @@ export default async function ClientBoardPage({ params, searchParams }: PageProp
     listPlans(clinicId, clientId),
   ]);
 
+  const allergens = context.profile?.allergenTags ?? [];
+
   // Computed once for the whole board rather than per card, so opening a meal costs
   // no round trip. Empty when there is no plan yet.
-  const candidates = board
-    ? await swapCandidatesByMeal(board, context.profile?.allergenTags ?? [])
-    : {};
+  const candidates = board ? await swapCandidatesByMeal(board, allergens) : {};
+
+  // The catalog ships with its recipes so the board can recompute totals for a
+  // dropped dish itself, and the previous week's slots so a repeat is visible
+  // without leaving the page.
+  const [catalog, usage, previous] = await Promise.all([
+    listCatalogForBoard(allergens),
+    recentDishUse(clinicId, clientId),
+    board ? previousPlanSlots(clinicId, clientId, board.weekStartDate) : Promise.resolve(null),
+  ]);
 
   const blocked = !isLlmConfigured()
     ? ('not_configured' as const)
@@ -133,6 +145,9 @@ export default async function ClientBoardPage({ params, searchParams }: PageProp
           <PlanBoard
             board={board}
             candidates={candidates}
+            catalog={catalog}
+            usage={usage}
+            previous={previous}
             locale={locale}
             history={history}
             newWeek={newWeek}

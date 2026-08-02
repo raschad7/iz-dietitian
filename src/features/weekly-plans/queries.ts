@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, ilike, inArray, ne, or, sql, type SQL } from 'drizzle-orm';
+import { and, asc, count, desc, eq, ilike, inArray, lt, ne, or, sql, type SQL } from 'drizzle-orm';
 
 import { db } from '@/db';
 import {
@@ -215,6 +215,40 @@ export function toPromptCatalog(catalog: readonly DishDetail[]): CatalogDish[] {
     baseKcal: baseServingKcal(dish.ingredients),
     baseProtein: dishTotals(dish.ingredients, 1).protein.value,
   }));
+}
+
+export type CatalogEntry = DishDetail & {
+  /** Energy for one base serving, so the panel can rank by fit. */
+  baseKcal: number;
+  /**
+   * The client's allergens this dish carries. Empty for a dish they can eat.
+   *
+   * Carried rather than filtered out: a dietitian searching for a dish they know
+   * exists and finding nothing concludes the catalog is broken. Shown, disabled,
+   * and labelled with the reason is the honest presentation — and the write path
+   * refuses it regardless, because `loadCatalog(allergens)` never offered it.
+   */
+  blockedBy: string[];
+};
+
+/**
+ * The whole active catalog, costed, marked against one client's allergens.
+ *
+ * Ingredients travel with it because the board recomputes totals optimistically
+ * from the same arithmetic the server uses — without them, dropping a dish would
+ * have to guess at the numbers or wait for a round trip.
+ */
+export async function listCatalogForBoard(allergens: readonly string[]): Promise<CatalogEntry[]> {
+  const catalog = await loadCatalog();
+  const blocked = new Set(allergens);
+
+  return catalog
+    .map((dish) => ({
+      ...dish,
+      baseKcal: baseServingKcal(dish.ingredients),
+      blockedBy: dish.allergenTags.filter((tag) => blocked.has(tag)),
+    }))
+    .sort((a, b) => a.nameAr.localeCompare(b.nameAr, 'ar'));
 }
 
 export type DishListResult = {
@@ -618,6 +652,64 @@ export async function planDishesBySlot(
   }
 
   return fill;
+}
+
+export type ComparisonPlan = {
+  planId: string;
+  weekStartDate: string;
+  /** Dish name per `dayOfWeek:slotKey`, for the ghost line under each card. */
+  slots: Record<string, { dishId: string; nameAr: string }>;
+};
+
+/**
+ * The plan immediately before this one, reduced to what a ghost line needs.
+ *
+ * A dedicated read rather than a second `getBoard`: the board wants a dish name
+ * per slot, and assembling a fully costed week to render one muted line per card
+ * would double the page's query cost for nothing.
+ *
+ * "Before" is by week, then by recency within the week — the same ordering
+ * `getLatestBoard` uses, so "previous" means the same thing everywhere.
+ */
+export async function previousPlanSlots(
+  clinicId: string,
+  clientId: string,
+  weekStartDate: string,
+): Promise<ComparisonPlan | null> {
+  const [previous] = await db
+    .select({ id: weeklyPlans.id, weekStartDate: weeklyPlans.weekStartDate })
+    .from(weeklyPlans)
+    .where(
+      and(
+        eq(weeklyPlans.clinicId, clinicId),
+        eq(weeklyPlans.clientId, clientId),
+        lt(weeklyPlans.weekStartDate, weekStartDate),
+      ),
+    )
+    .orderBy(desc(weeklyPlans.weekStartDate), desc(weeklyPlans.updatedAt))
+    .limit(1);
+
+  if (!previous) return null;
+
+  const rows = await db
+    .select({
+      dayOfWeek: weeklyPlanMeals.dayOfWeek,
+      slotKey: weeklyPlanMeals.slotKey,
+      dishId: weeklyPlanMeals.dishId,
+      nameAr: dishes.nameAr,
+    })
+    .from(weeklyPlanMeals)
+    .innerJoin(dishes, eq(dishes.id, weeklyPlanMeals.dishId))
+    .where(eq(weeklyPlanMeals.planId, previous.id));
+
+  const slots: ComparisonPlan['slots'] = {};
+
+  for (const row of rows) {
+    if (!row.dishId) continue;
+    slots[slotFillKey(row.dayOfWeek, row.slotKey)] = { dishId: row.dishId, nameAr: row.nameAr };
+  }
+
+  return { planId: previous.id, weekStartDate: previous.weekStartDate, slots };
 }
 
 /**

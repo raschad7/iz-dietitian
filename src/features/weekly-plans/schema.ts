@@ -269,6 +269,51 @@ export const startWeekFromPlanSchema = z.object({
 });
 
 // ---------------------------------------------------------------------------
+// Editing a plan
+// ---------------------------------------------------------------------------
+
+/**
+ * Whether the caller means to edit a plan the client is already following.
+ *
+ * A checkbox value, so it arrives as `'on'` or not at all. Absent means no, which
+ * is the safe reading of a field that failed to submit.
+ */
+const allowPublishedSchema = z.preprocess((value) => value === 'on' || value === 'true', z.boolean());
+
+/** Shared by every edit: which plan, and whether a live one may be touched. */
+const editBase = { planId: planIdSchema, allowPublished: allowPublishedSchema };
+
+export const placeDishSchema = z.object({
+  ...editBase,
+  mealId: mealIdSchema,
+  dishId: dishIdSchema,
+  servings: z.coerce.number().min(MIN_SERVINGS).max(MAX_SERVINGS),
+});
+
+export const setServingsSchema = z.object({
+  ...editBase,
+  mealId: mealIdSchema,
+  servings: z.coerce.number().min(MIN_SERVINGS).max(MAX_SERVINGS),
+});
+
+export const mealEditSchema = z.object({ ...editBase, mealId: mealIdSchema });
+
+export const addMealSchema = z.object({
+  ...editBase,
+  dayOfWeek: dayOfWeekSchema,
+  slotKey: mealSlotSchema.shape.slotKey,
+  label: mealSlotSchema.shape.label,
+  timeOfDay: timeOfDaySchema,
+});
+
+export const moveMealSchema = z.object({
+  ...editBase,
+  fromMealId: mealIdSchema,
+  toMealId: mealIdSchema,
+  mode: z.enum(['move', 'copy']),
+});
+
+// ---------------------------------------------------------------------------
 // The model's response
 // ---------------------------------------------------------------------------
 

@@ -1,16 +1,35 @@
 'use server';
 
+import { and, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
+import { db } from '@/db';
+import { weeklyPlans } from '@/db/schema';
 import { localeSchema } from '@/features/clients/schema';
 import { type Locale } from '@/i18n/routing';
 import { requireStaffClinic } from '@/lib/session';
 
-import { createPlanFromSkeleton } from './editor-mutations';
-import type { NewWeekState } from './form-state';
+import {
+  addMeal,
+  clearMeal,
+  createPlanFromSkeleton,
+  moveMealDish,
+  placeDish,
+  removeMeal,
+  setMealServings,
+} from './editor-mutations';
+import type { NewWeekState, PlanActionState } from './form-state';
 import { getClientContext, planDishesBySlot } from './queries';
-import { startEmptyWeekSchema, startWeekFromPlanSchema } from './schema';
+import {
+  addMealSchema,
+  mealEditSchema,
+  moveMealSchema,
+  placeDishSchema,
+  setServingsSchema,
+  startEmptyWeekSchema,
+  startWeekFromPlanSchema,
+} from './schema';
 import { planSkeleton, type SlotFill } from './skeleton';
 
 /**
@@ -151,4 +170,226 @@ export async function startWeekFromPlanAction(
 
   revalidateBoard(locale, parsed.data.clientId);
   redirect(`/${locale}/app/weekly-plans/${parsed.data.clientId}?planId=${planId}`);
+}
+
+// ---------------------------------------------------------------------------
+// Editing a plan
+// ---------------------------------------------------------------------------
+
+/**
+ * Runs one edit and turns its outcome into a state the board can render.
+ *
+ * Every edit below is the same three lines — parse, write, revalidate — so they
+ * are written once here. `false` from a mutation means the plan was not editable
+ * or the id did not resolve inside this clinic; both are "not found" to the
+ * caller, because distinguishing them would tell an attacker which ids exist.
+ *
+ * `clientId` comes back from the mutation rather than from the form: the board
+ * revalidates a client's page, and taking that id from submitted data would let a
+ * forged field bust an unrelated client's cache.
+ */
+async function runEdit(
+  locale: Locale,
+  clientId: string,
+  write: () => Promise<boolean>,
+): Promise<PlanActionState> {
+  try {
+    if (!(await write())) return { status: 'error', messageKey: 'errors.planNotFound' };
+  } catch (error) {
+    console.error('[weekly-plans] edit failed', error);
+    return { status: 'error', messageKey: 'errors.unexpected' };
+  }
+
+  revalidateBoard(locale, clientId);
+
+  return { status: 'done' };
+}
+
+/** The client whose board this plan belongs to, scoped to the caller's clinic. */
+async function planClientId(clinicId: string, planId: string): Promise<string | null> {
+  const [row] = await db
+    .select({ clientId: weeklyPlans.clientId })
+    .from(weeklyPlans)
+    .where(and(eq(weeklyPlans.id, planId), eq(weeklyPlans.clinicId, clinicId)))
+    .limit(1);
+
+  return row?.clientId ?? null;
+}
+
+export async function placeDishAction(
+  _previousState: PlanActionState,
+  formData: FormData,
+): Promise<PlanActionState> {
+  const locale = readLocale(formData);
+  const { clinicId } = await requireStaffClinic(locale);
+
+  const parsed = placeDishSchema.safeParse({
+    planId: formData.get('planId'),
+    mealId: formData.get('mealId'),
+    dishId: formData.get('dishId'),
+    servings: formData.get('servings'),
+    allowPublished: formData.get('allowPublished'),
+  });
+
+  if (!parsed.success) return { status: 'error', messageKey: 'errors.invalid' };
+
+  const clientId = await planClientId(clinicId, parsed.data.planId);
+  if (!clientId) return { status: 'error', messageKey: 'errors.planNotFound' };
+
+  return runEdit(locale, clientId, () =>
+    placeDish(
+      clinicId,
+      parsed.data.planId,
+      parsed.data.mealId,
+      parsed.data.dishId,
+      parsed.data.servings,
+      parsed.data.allowPublished,
+    ),
+  );
+}
+
+export async function setServingsAction(
+  _previousState: PlanActionState,
+  formData: FormData,
+): Promise<PlanActionState> {
+  const locale = readLocale(formData);
+  const { clinicId } = await requireStaffClinic(locale);
+
+  const parsed = setServingsSchema.safeParse({
+    planId: formData.get('planId'),
+    mealId: formData.get('mealId'),
+    servings: formData.get('servings'),
+    allowPublished: formData.get('allowPublished'),
+  });
+
+  if (!parsed.success) return { status: 'error', messageKey: 'errors.invalid' };
+
+  const clientId = await planClientId(clinicId, parsed.data.planId);
+  if (!clientId) return { status: 'error', messageKey: 'errors.planNotFound' };
+
+  return runEdit(locale, clientId, () =>
+    setMealServings(
+      clinicId,
+      parsed.data.planId,
+      parsed.data.mealId,
+      parsed.data.servings,
+      parsed.data.allowPublished,
+    ),
+  );
+}
+
+export async function clearMealAction(
+  _previousState: PlanActionState,
+  formData: FormData,
+): Promise<PlanActionState> {
+  const locale = readLocale(formData);
+  const { clinicId } = await requireStaffClinic(locale);
+
+  const parsed = mealEditSchema.safeParse({
+    planId: formData.get('planId'),
+    mealId: formData.get('mealId'),
+    allowPublished: formData.get('allowPublished'),
+  });
+
+  if (!parsed.success) return { status: 'error', messageKey: 'errors.invalid' };
+
+  const clientId = await planClientId(clinicId, parsed.data.planId);
+  if (!clientId) return { status: 'error', messageKey: 'errors.planNotFound' };
+
+  return runEdit(locale, clientId, () =>
+    clearMeal(clinicId, parsed.data.planId, parsed.data.mealId, parsed.data.allowPublished),
+  );
+}
+
+export async function removeMealAction(
+  _previousState: PlanActionState,
+  formData: FormData,
+): Promise<PlanActionState> {
+  const locale = readLocale(formData);
+  const { clinicId } = await requireStaffClinic(locale);
+
+  const parsed = mealEditSchema.safeParse({
+    planId: formData.get('planId'),
+    mealId: formData.get('mealId'),
+    allowPublished: formData.get('allowPublished'),
+  });
+
+  if (!parsed.success) return { status: 'error', messageKey: 'errors.invalid' };
+
+  const clientId = await planClientId(clinicId, parsed.data.planId);
+  if (!clientId) return { status: 'error', messageKey: 'errors.planNotFound' };
+
+  return runEdit(locale, clientId, () =>
+    removeMeal(clinicId, parsed.data.planId, parsed.data.mealId, parsed.data.allowPublished),
+  );
+}
+
+export async function addMealAction(
+  _previousState: PlanActionState,
+  formData: FormData,
+): Promise<PlanActionState> {
+  const locale = readLocale(formData);
+  const { clinicId } = await requireStaffClinic(locale);
+
+  const parsed = addMealSchema.safeParse({
+    planId: formData.get('planId'),
+    dayOfWeek: formData.get('dayOfWeek'),
+    slotKey: formData.get('slotKey'),
+    label: formData.get('label'),
+    timeOfDay: formData.get('timeOfDay'),
+    allowPublished: formData.get('allowPublished'),
+  });
+
+  if (!parsed.success) return { status: 'error', messageKey: 'errors.invalid' };
+
+  const clientId = await planClientId(clinicId, parsed.data.planId);
+  if (!clientId) return { status: 'error', messageKey: 'errors.planNotFound' };
+
+  return runEdit(locale, clientId, async () => {
+    const added = await addMeal(
+      clinicId,
+      parsed.data.planId,
+      {
+        dayOfWeek: parsed.data.dayOfWeek,
+        slotKey: parsed.data.slotKey,
+        label: parsed.data.label,
+        timeOfDay: parsed.data.timeOfDay,
+      },
+      parsed.data.allowPublished,
+    );
+
+    return added !== null;
+  });
+}
+
+export async function moveMealAction(
+  _previousState: PlanActionState,
+  formData: FormData,
+): Promise<PlanActionState> {
+  const locale = readLocale(formData);
+  const { clinicId } = await requireStaffClinic(locale);
+
+  const parsed = moveMealSchema.safeParse({
+    planId: formData.get('planId'),
+    fromMealId: formData.get('fromMealId'),
+    toMealId: formData.get('toMealId'),
+    mode: formData.get('mode'),
+    allowPublished: formData.get('allowPublished'),
+  });
+
+  if (!parsed.success) return { status: 'error', messageKey: 'errors.invalid' };
+
+  const clientId = await planClientId(clinicId, parsed.data.planId);
+  if (!clientId) return { status: 'error', messageKey: 'errors.planNotFound' };
+
+  return runEdit(locale, clientId, () =>
+    moveMealDish(
+      clinicId,
+      parsed.data.planId,
+      parsed.data.fromMealId,
+      parsed.data.toMealId,
+      parsed.data.mode,
+      parsed.data.allowPublished,
+    ),
+  );
 }
