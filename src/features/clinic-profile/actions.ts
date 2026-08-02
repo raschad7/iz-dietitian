@@ -16,7 +16,7 @@ import {
   saveWeeklySchedule,
 } from './mutations';
 import { countFutureScheduleConflicts } from './queries';
-import { clinicInformationSchema, professionalProfileSchema, weeklyScheduleSchema } from './schema';
+import { validateClinicProfile } from './validation';
 
 const localeSchema = z.enum(locales);
 
@@ -34,11 +34,11 @@ export async function saveClinicInformationAction(
 ): Promise<ClinicProfileFormState> {
   const locale = localeFrom(formData);
   const { clinicId } = await requireStaffClinic(locale);
-  const parsed = clinicInformationSchema.safeParse(readClinicProfileForm(formData).clinic);
-  if (!parsed.success) return { status: 'error', messageKey: 'invalid' };
+  const parsed = validateClinicProfile(readClinicProfileForm(formData), ['clinic']);
+  if (!parsed.success) return { status: 'error', messageKey: 'invalid', ...parsed };
 
   try {
-    if (!(await saveClinicInformation(clinicId, parsed.data))) return { status: 'error', messageKey: 'unexpected' };
+    if (!(await saveClinicInformation(clinicId, parsed.data.clinic!))) return { status: 'error', messageKey: 'unexpected' };
     revalidatePath(`/${locale}/app/profile`);
     return { status: 'success', messageKey: 'saved' };
   } catch (error) {
@@ -53,12 +53,13 @@ export async function saveWeeklyScheduleAction(
 ): Promise<ClinicProfileFormState> {
   const locale = localeFrom(formData);
   const { clinicId } = await requireStaffClinic(locale);
-  const parsed = weeklyScheduleSchema.safeParse(readClinicProfileForm(formData).schedule);
-  if (!parsed.success) return { status: 'error', messageKey: 'invalid' };
+  const parsed = validateClinicProfile(readClinicProfileForm(formData), ['schedule']);
+  if (!parsed.success) return { status: 'error', messageKey: 'invalid', ...parsed };
 
   try {
-    const conflictCount = await countFutureScheduleConflicts(clinicId, parsed.data.days, today());
-    await saveWeeklySchedule(clinicId, parsed.data);
+    const schedule = parsed.data.schedule!;
+    const conflictCount = await countFutureScheduleConflicts(clinicId, schedule.days, today());
+    await saveWeeklySchedule(clinicId, schedule);
     revalidatePath(`/${locale}/app/profile`);
     revalidatePath(`/${locale}/app/calendar`);
     return conflictCount > 0
@@ -76,11 +77,11 @@ export async function saveProfessionalProfileAction(
 ): Promise<ClinicProfileFormState> {
   const locale = localeFrom(formData);
   const { clinicId, session } = await requireStaffClinic(locale);
-  const parsed = professionalProfileSchema.safeParse(readClinicProfileForm(formData).professional);
-  if (!parsed.success) return { status: 'error', messageKey: 'invalid' };
+  const parsed = validateClinicProfile(readClinicProfileForm(formData), ['professional']);
+  if (!parsed.success) return { status: 'error', messageKey: 'invalid', ...parsed };
 
   try {
-    if (!(await saveProfessionalProfile(clinicId, session.user.id, parsed.data))) {
+    if (!(await saveProfessionalProfile(clinicId, session.user.id, parsed.data.professional!))) {
       return { status: 'error', messageKey: 'unexpected' };
     }
     revalidatePath(`/${locale}/app/profile`);
@@ -98,17 +99,13 @@ export async function completeClinicOnboardingAction(
   const locale = localeFrom(formData);
   const { clinicId, session } = await requireStaffClinic(locale);
   const raw = readClinicProfileForm(formData);
-  const clinic = clinicInformationSchema.safeParse(raw.clinic);
-  const schedule = weeklyScheduleSchema.safeParse(raw.schedule);
-  const professional = professionalProfileSchema.safeParse(raw.professional);
-  if (!clinic.success || !schedule.success || !professional.success) {
-    return { status: 'error', messageKey: 'invalid' };
-  }
+  const parsed = validateClinicProfile(raw);
+  if (!parsed.success) return { status: 'error', messageKey: 'invalid', ...parsed };
 
   try {
-    await saveClinicInformation(clinicId, clinic.data);
-    await saveWeeklySchedule(clinicId, schedule.data);
-    await saveProfessionalProfile(clinicId, session.user.id, professional.data);
+    await saveClinicInformation(clinicId, parsed.data.clinic!);
+    await saveWeeklySchedule(clinicId, parsed.data.schedule!);
+    await saveProfessionalProfile(clinicId, session.user.id, parsed.data.professional!);
     if (!(await completeOnboarding(clinicId, session.user.id))) {
       return { status: 'error', messageKey: 'incomplete' };
     }
@@ -120,4 +117,3 @@ export async function completeClinicOnboardingAction(
   revalidatePath(`/${locale}/app`, 'layout');
   redirect(`/${locale}/app`);
 }
-

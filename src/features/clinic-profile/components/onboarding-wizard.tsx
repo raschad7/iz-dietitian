@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useActionState, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
@@ -9,8 +9,10 @@ import type { Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 
 import { completeClinicOnboardingAction } from '../actions';
+import { readClinicProfileForm } from '../form-data';
 import { initialClinicProfileFormState } from '../form-state';
 import type { ClinicProfileSnapshot } from '../types';
+import { validateClinicProfile, type ClinicProfileFieldErrors, type ProfileSection } from '../validation';
 import { ClinicInformationFields, ProfessionalFields, ScheduleFields } from './profile-fields';
 
 const SECTIONS = ['clinic', 'schedule', 'professional'] as const;
@@ -18,8 +20,44 @@ const SECTIONS = ['clinic', 'schedule', 'professional'] as const;
 export function OnboardingWizard({ locale, profile }: { locale: Locale; profile: ClinicProfileSnapshot }) {
   const t = useTranslations('clinicProfile');
   const [step, setStep] = useState(0);
-  const [state, action, pending] = useActionState(completeClinicOnboardingAction, initialClinicProfileFormState);
+  const [clientError, setClientError] = useState<{ section: ProfileSection; fieldErrors: ClinicProfileFieldErrors } | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  async function submitWithRecovery(previous: typeof initialClinicProfileFormState, formData: FormData) {
+    const result = await completeClinicOnboardingAction(previous, formData);
+    if (result.status === 'error' && result.messageKey === 'invalid') {
+      const invalidStep = SECTIONS.indexOf(result.section);
+      setStep(invalidStep < 0 ? 0 : invalidStep);
+      setClientError({ section: result.section, fieldErrors: result.fieldErrors });
+      window.setTimeout(() => {
+        formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+      }, 0);
+    }
+    return result;
+  }
+
+  const [state, action, pending] = useActionState(submitWithRecovery, initialClinicProfileFormState);
   const currentSection = SECTIONS[step] ?? 'clinic';
+  const serverError = state.status === 'error' && state.messageKey === 'invalid' ? state : null;
+  const activeError = clientError?.section === currentSection
+    ? clientError
+    : serverError?.section === currentSection
+      ? serverError
+      : null;
+
+  function continueToNextStep() {
+    if (!formRef.current) return;
+    const result = validateClinicProfile(readClinicProfileForm(new FormData(formRef.current)), [currentSection]);
+    if (!result.success) {
+      setClientError({ section: result.section, fieldErrors: result.fieldErrors });
+      window.setTimeout(() => {
+        formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+      }, 0);
+      return;
+    }
+    setClientError(null);
+    setStep((value) => Math.min(value + 1, SECTIONS.length - 1));
+  }
 
   return (
     <div className="mx-auto w-full max-w-3xl py-8 sm:py-12">
@@ -37,7 +75,7 @@ export function OnboardingWizard({ locale, profile }: { locale: Locale; profile:
         ))}
       </ol>
 
-      <form action={action}>
+      <form ref={formRef} action={action} noValidate onSubmit={() => setClientError(null)}>
         <input type="hidden" name="locale" value={locale} />
         <Card>
           <CardHeader>
@@ -45,15 +83,16 @@ export function OnboardingWizard({ locale, profile }: { locale: Locale; profile:
             <CardDescription>{t(`sectionDescriptions.${currentSection}`)}</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className={step === 0 ? 'block' : 'hidden'}><ClinicInformationFields profile={profile} /></div>
-            <div className={step === 1 ? 'block' : 'hidden'}><ScheduleFields profile={profile} /></div>
-            <div className={step === 2 ? 'block' : 'hidden'}><ProfessionalFields profile={profile} /></div>
-            {state.status === 'error' ? <p role="alert" className="mt-4 text-sm text-destructive">{t(`messages.${state.messageKey}`)}</p> : null}
+            <div className={step === 0 ? 'block' : 'hidden'}><ClinicInformationFields profile={profile} fieldErrors={activeError?.fieldErrors} /></div>
+            <div className={step === 1 ? 'block' : 'hidden'}><ScheduleFields profile={profile} fieldErrors={activeError?.fieldErrors} /></div>
+            <div className={step === 2 ? 'block' : 'hidden'}><ProfessionalFields profile={profile} fieldErrors={activeError?.fieldErrors} /></div>
+            {activeError ? <p role="alert" className="mt-4 text-sm font-medium text-destructive">{t('messages.invalid')}</p> : null}
+            {state.status === 'error' && state.messageKey !== 'invalid' ? <p role="alert" className="mt-4 text-sm text-destructive">{t(`messages.${state.messageKey}`)}</p> : null}
           </CardContent>
           <CardFooter className="justify-between gap-3">
             <Button type="button" variant="ghost" disabled={step === 0 || pending} onClick={() => setStep((value) => value - 1)}>{t('back')}</Button>
             {step < 2
-              ? <Button type="button" onClick={() => setStep((value) => value + 1)}>{t('next')}</Button>
+              ? <Button type="button" onClick={continueToNextStep}>{t('next')}</Button>
               : <Button type="submit" variant="accent" disabled={pending}>{pending ? t('saving') : t('finish')}</Button>}
           </CardFooter>
         </Card>

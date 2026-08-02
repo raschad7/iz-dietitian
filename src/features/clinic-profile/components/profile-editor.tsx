@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { saveClinicInformationAction, saveProfessionalProfileAction, saveWeeklyScheduleAction } from '../actions';
 import { initialClinicProfileFormState, type ClinicProfileFormState } from '../form-state';
 import type { ClinicProfileSnapshot } from '../types';
+import type { ClinicProfileFieldErrors } from '../validation';
 import { ClinicInformationFields, ProfessionalFields, ScheduleFields } from './profile-fields';
 
 type Section = 'clinic' | 'schedule' | 'professional';
@@ -35,24 +36,24 @@ export function ProfileEditor({ locale, profile }: { locale: Locale; profile: Cl
             </Button>
           ))}
         </nav>
-        {section === 'clinic' ? <SectionForm locale={locale} title={t('sections.clinic')} description={t('sectionDescriptions.clinic')} action={saveClinicInformationAction}><ClinicInformationFields profile={profile} /></SectionForm> : null}
-        {section === 'schedule' ? <SectionForm locale={locale} title={t('sections.schedule')} description={t('sectionDescriptions.schedule')} action={saveWeeklyScheduleAction}><ScheduleFields profile={profile} /></SectionForm> : null}
-        {section === 'professional' ? <SectionForm locale={locale} title={t('sections.professional')} description={t('sectionDescriptions.professional')} action={saveProfessionalProfileAction}><ProfessionalFields profile={profile} /></SectionForm> : null}
+        {section === 'clinic' ? <SectionForm locale={locale} title={t('sections.clinic')} description={t('sectionDescriptions.clinic')} action={saveClinicInformationAction}>{(errors) => <ClinicInformationFields profile={profile} fieldErrors={errors} />}</SectionForm> : null}
+        {section === 'schedule' ? <SectionForm locale={locale} title={t('sections.schedule')} description={t('sectionDescriptions.schedule')} action={saveWeeklyScheduleAction}>{(errors) => <ScheduleFields profile={profile} fieldErrors={errors} />}</SectionForm> : null}
+        {section === 'professional' ? <SectionForm locale={locale} title={t('sections.professional')} description={t('sectionDescriptions.professional')} action={saveProfessionalProfileAction}>{(errors) => <ProfessionalFields profile={profile} fieldErrors={errors} />}</SectionForm> : null}
       </div>
     </div>
   );
 }
 
-function SectionForm({ locale, title, description, action, children }: { locale: Locale; title: string; description: string; action: (state: ClinicProfileFormState, data: FormData) => Promise<ClinicProfileFormState>; children: React.ReactNode }) {
+function SectionForm({ locale, title, description, action, children }: { locale: Locale; title: string; description: string; action: (state: ClinicProfileFormState, data: FormData) => Promise<ClinicProfileFormState>; children: (fieldErrors?: ClinicProfileFieldErrors) => React.ReactNode }) {
   const t = useTranslations('clinicProfile');
   const [state, formAction, pending] = useActionState(action, initialClinicProfileFormState);
   return (
-    <form action={formAction}>
+    <form action={formAction} noValidate>
       <input type="hidden" name="locale" value={locale} />
       <Card>
         <CardHeader><CardTitle>{title}</CardTitle><CardDescription>{description}</CardDescription></CardHeader>
         <CardContent>
-          {children}
+          {children(state.status === 'error' && state.messageKey === 'invalid' ? state.fieldErrors : undefined)}
           {state.status !== 'idle' ? <p role="status" className={cn('mt-4 text-sm', state.status === 'error' ? 'text-destructive' : state.status === 'warning' ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-700 dark:text-emerald-400')}>{state.status === 'warning' ? t('messages.scheduleConflict', { count: state.conflictCount }) : t(`messages.${state.messageKey}`)}</p> : null}
         </CardContent>
         <CardFooter className="justify-end"><Button type="submit" disabled={pending}>{pending ? t('saving') : t('saveChanges')}</Button></CardFooter>
@@ -60,4 +61,3 @@ function SectionForm({ locale, title, description, action, children }: { locale:
     </form>
   );
 }
-
