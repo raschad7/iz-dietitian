@@ -167,7 +167,20 @@ export function BoardEditor({
 
   return (
     <EditorContext.Provider value={value}>
-      <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
+      {/*
+        `id` is not decoration. Without it dnd-kit builds the drag handles'
+        `aria-describedby` from a module-level counter (`useUniqueId` in
+        @dnd-kit/utilities), which starts at zero on the server and continues from
+        wherever the client happens to be — so every handle hydrates with a
+        mismatched attribute and React warns. A fixed id makes the value
+        deterministic on both sides.
+      */}
+      <DndContext
+        id="weekly-plan-board"
+        sensors={sensors}
+        onDragStart={onDragStart}
+        onDragEnd={onDragEnd}
+      >
         <EditorActionsContext.Provider
           value={{
             setServings: (mealId, servings) =>
