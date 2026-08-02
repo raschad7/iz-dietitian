@@ -1,6 +1,6 @@
 'use client';
 
-import { EyeIcon, EyeOffIcon } from 'lucide-react';
+import { Icon } from '@/components/ui/icon';
 import { useTranslations } from 'next-intl';
 import { useId, useState } from 'react';
 
@@ -51,7 +51,7 @@ export function PasswordInput({ name, label, autoComplete, hint, minLength }: Pa
           aria-label={revealed ? t('hidePassword') : t('showPassword')}
           className="absolute inset-y-0 end-0 flex w-9 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
         >
-          {revealed ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
+          {revealed ? <Icon name="eyeOff" /> : <Icon name="eye" />}
         </button>
       </div>
 

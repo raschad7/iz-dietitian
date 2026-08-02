@@ -37,7 +37,7 @@ export function ContextPanel({ context }: { context: ClientContext }) {
       </div>
 
       {targets.missing.length > 0 && (
-        <p className="rounded-md bg-amber-500/10 px-2.5 py-2 text-amber-700 dark:text-amber-400">
+        <p className="rounded-md bg-status-attention-bg px-2.5 py-2 text-status-attention-fg">
           {t('missingFields', {
             fields: targets.missing.map((field) => t(`fields.${field}`)).join('، '),
           })}
@@ -155,7 +155,7 @@ export function ContextPanel({ context }: { context: ClientContext }) {
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <section>
-      <h4 className="pb-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+      <h4 className="pb-0.5 text-micro font-semibold text-muted-foreground">
         {label}
       </h4>
       <div>{children}</div>

@@ -1,6 +1,16 @@
 import { useFormatter, useTranslations } from 'next-intl';
 
 import { buttonVariants } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRoot,
+  TableRow,
+} from '@/components/ui/table';
 import { roundForDisplay } from '@/features/meal-plans/nutrition';
 import type { FoodListResult } from '@/features/meal-plans/queries';
 import type { ListFoodsInput } from '@/features/meal-plans/schema';
@@ -13,56 +23,64 @@ export function FoodTable({ result, filtered }: { result: FoodListResult; filter
 
   if (result.items.length === 0) {
     return (
-      <div className="space-y-4 rounded-lg border border-dashed border-border p-8 text-center">
-        <p className="text-sm text-muted-foreground">{filtered ? t('emptyFiltered') : t('empty')}</p>
+      <Card variant="empty" className="items-center gap-4 p-8 text-center">
+        <p>{filtered ? t('emptyFiltered') : t('empty')}</p>
         {filtered ? (
           <Link href="/app/foods" className={buttonVariants({ variant: 'outline', size: 'sm' })}>
             {t('clearFilters')}
           </Link>
         ) : null}
-      </div>
+      </Card>
     );
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-border">
-      <table className="w-full border-collapse text-sm">
-        <thead className="bg-muted/50">
-          <tr>
-            <th className="px-3 py-2 text-start font-medium">{t('fields.description')}</th>
-            <th className="px-3 py-2 text-start font-medium">{t('fields.category')}</th>
-            <th className="px-3 py-2 text-end font-medium">{t('nutrients.kcal')}</th>
-            <th className="px-3 py-2 text-end font-medium">{t('short.protein')}</th>
-            <th className="px-3 py-2 text-end font-medium">{t('short.carbs')}</th>
-            <th className="px-3 py-2 text-end font-medium">{t('short.fat')}</th>
-            <th className="px-3 py-2 text-start font-medium">{t('fields.portion')}</th>
-          </tr>
-        </thead>
-        <tbody>
+    <TableRoot>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>{t('fields.description')}</TableHead>
+            <TableHead>{t('fields.category')}</TableHead>
+            <TableHead numeric className="text-end">
+              {t('nutrients.kcal')}
+            </TableHead>
+            <TableHead numeric className="text-end">
+              {t('short.protein')}
+            </TableHead>
+            <TableHead numeric className="text-end">
+              {t('short.carbs')}
+            </TableHead>
+            <TableHead numeric className="text-end">
+              {t('short.fat')}
+            </TableHead>
+            <TableHead>{t('fields.portion')}</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {result.items.map((food) => (
-            <tr key={food.id} className="border-t border-border hover:bg-muted/40">
-              <td className="px-3 py-2 text-start">
+            <TableRow key={food.id}>
+              <TableCell>
                 <Link
                   href={`/app/foods/${food.id}`}
                   className="font-medium underline-offset-4 hover:underline"
                 >
                   {food.description}
                 </Link>
-              </td>
-              <td className="px-3 py-2 text-start text-muted-foreground">{food.category}</td>
-              <td className="px-3 py-2 text-end tabular-nums" dir="ltr">
+              </TableCell>
+              <TableCell className="text-muted-foreground">{food.category}</TableCell>
+              <TableCell numeric className="text-end">
                 {format.number(roundForDisplay('kcal', food.kcal), 'integer')}
-              </td>
-              <td className="px-3 py-2 text-end tabular-nums" dir="ltr">
+              </TableCell>
+              <TableCell numeric className="text-end">
                 {format.number(roundForDisplay('protein', food.protein), 'plain')}
-              </td>
-              <td className="px-3 py-2 text-end tabular-nums" dir="ltr">
+              </TableCell>
+              <TableCell numeric className="text-end">
                 {format.number(roundForDisplay('carbs', food.carbs), 'plain')}
-              </td>
-              <td className="px-3 py-2 text-end tabular-nums" dir="ltr">
+              </TableCell>
+              <TableCell numeric className="text-end">
                 {format.number(roundForDisplay('fat', food.fat), 'plain')}
-              </td>
-              <td className="px-3 py-2 text-start text-muted-foreground">
+              </TableCell>
+              <TableCell className="text-muted-foreground">
                 {food.portionGrams === null ? (
                   '—'
                 ) : (
@@ -70,12 +88,12 @@ export function FoodTable({ result, filtered }: { result: FoodListResult; filter
                     {food.portionLabel} ({format.number(food.portionGrams, 'plain')} g)
                   </span>
                 )}
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
-    </div>
+        </TableBody>
+      </Table>
+    </TableRoot>
   );
 }
 

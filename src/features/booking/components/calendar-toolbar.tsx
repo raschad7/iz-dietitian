@@ -1,12 +1,11 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
-import { getLocaleDirection, type Locale } from '@/i18n/routing';
-import { cn } from '@/lib/utils';
+import { Segmented } from '@/components/ui/segmented';
 
 import { CALENDAR_VIEWS, type CalendarView } from '../schema';
 
@@ -14,13 +13,12 @@ import { CALENDAR_VIEWS, type CalendarView } from '../schema';
  * View switch, date navigation and search.
  *
  * The previous/next chevrons point along the *reading* direction: in Arabic
- * "previous" points right. `ChevronLeft`/`ChevronRight` are physical icons, so
- * which component renders in which slot is chosen from the locale here — the
- * one place in the feature where an icon has to know about direction.
+ * "previous" points right. `chevronStart`/`chevronEnd` are logical names and
+ * `Icon` mirrors them in RTL, so this no longer has to branch on the locale —
+ * the direction is expressed once, in the icon's name.
  */
 
 export type CalendarToolbarProps = {
-  locale: Locale;
   view: CalendarView;
   /** Already formatted for the current view — "August 2026", "5 August 2026". */
   rangeLabel: string;
@@ -33,7 +31,6 @@ export type CalendarToolbarProps = {
 };
 
 export function CalendarToolbar({
-  locale,
   view,
   rangeLabel,
   query,
@@ -45,10 +42,6 @@ export function CalendarToolbar({
 }: CalendarToolbarProps) {
   const t = useTranslations('booking');
 
-  const isRtl = getLocaleDirection(locale) === 'rtl';
-  const PreviousIcon = isRtl ? ChevronRight : ChevronLeft;
-  const NextIcon = isRtl ? ChevronLeft : ChevronRight;
-
   return (
     <div className="flex flex-wrap items-center gap-2">
       <div className="flex items-center gap-1">
@@ -56,10 +49,10 @@ export function CalendarToolbar({
           {t('nav.today')}
         </Button>
         <Button type="button" variant="ghost" size="icon-sm" aria-label={t('nav.previous')} onClick={onPrevious}>
-          <PreviousIcon />
+          <Icon name="chevronStart" />
         </Button>
         <Button type="button" variant="ghost" size="icon-sm" aria-label={t('nav.next')} onClick={onNext}>
-          <NextIcon />
+          <Icon name="chevronEnd" />
         </Button>
       </div>
 
@@ -69,9 +62,9 @@ export function CalendarToolbar({
 
       <div className="ms-auto flex items-center gap-2">
         <div className="relative w-48">
-          <Search
-            aria-hidden
-            className="pointer-events-none absolute start-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+          <Icon
+            name="search"
+            className="pointer-events-none absolute start-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
           />
           <Input
             type="search"
@@ -83,23 +76,16 @@ export function CalendarToolbar({
           />
         </div>
 
-        <div role="tablist" aria-label={t('nav.view')} className="flex rounded-lg border border-border p-0.5">
-          {CALENDAR_VIEWS.map((candidate) => (
-            <button
-              key={candidate}
-              type="button"
-              role="tab"
-              aria-selected={view === candidate}
-              className={cn(
-                'rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
-                view === candidate ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted',
-              )}
-              onClick={() => onViewChange(candidate)}
-            >
-              {t(`nav.${candidate}`)}
-            </button>
-          ))}
-        </div>
+        <Segmented
+          label={t('nav.view')}
+          size="sm"
+          value={view}
+          onChange={onViewChange}
+          options={CALENDAR_VIEWS.map((candidate) => ({
+            value: candidate,
+            label: t(`nav.${candidate}`),
+          }))}
+        />
       </div>
     </div>
   );

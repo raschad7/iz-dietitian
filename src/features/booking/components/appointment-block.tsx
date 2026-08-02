@@ -173,8 +173,14 @@ export function AppointmentBlock({
           <span dir="auto" className="tabular-nums">
             {timeRange}
           </span>
+          {/*
+            No `uppercase tracking-wide` on the label below: it is translated,
+            and both are neutralised under `:lang(ar)` anyway, so they only
+            ever applied to the English build — and tracked-out capitals are
+            the worst possible treatment at the smallest size in the scale.
+          */}
           {completed && !scale.inline && (
-            <span className="shrink-0 rounded-sm bg-foreground/10 px-1 text-[0.625rem] font-semibold tracking-wide uppercase">
+            <span className="shrink-0 rounded-sm bg-foreground/10 px-1 text-micro font-semibold">
               {t('completed')}
             </span>
           )}
@@ -200,7 +206,7 @@ export function AppointmentBlock({
           className={cn(
             'pointer-events-none absolute start-1/2 top-1/2 z-40 -translate-x-1/2 -translate-y-1/2 rounded-md border px-2 py-1',
             'bg-popover text-xs font-semibold whitespace-nowrap shadow-md tabular-nums',
-            dragState === 'valid' ? 'border-emerald-500/60 text-foreground' : 'border-destructive/60 text-destructive',
+            dragState === 'valid' ? 'border-primary/60 text-foreground' : 'border-destructive/60 text-destructive',
           )}
         >
           <span dir="auto">{timeRange}</span>

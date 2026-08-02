@@ -7,12 +7,11 @@
 /*
  * Qiwam / قوام design system.
  *
- * Primitives below are the raw palette from docs/Qiwam Design System.html
- * (§06 "Semantic design tokens", §15 "Figma-ready token table"). They are
- * never referenced directly from a component — components consume the
- * semantic tokens in the second :root block, which is what design-system.md
- * documents. See CLAUDE.md for the "no raw hex" rule this file exists to
- * make unnecessary everywhere else.
+ * Primitives below are the raw palette. They are never referenced directly
+ * from a component — components consume the semantic tokens in the second
+ * :root block, which is what docs/design-system.md documents. See CLAUDE.md
+ * for the "no raw hex" rule this file exists to make unnecessary everywhere
+ * else.
  */
 :root {
   /* ── Olive (primary) ── */
@@ -28,7 +27,13 @@
   --olive-900: #223414;
   --olive-950: #16220D;
 
-  /* ── Lime (accent — fill/shape only, 1.37:1 on white, NEVER text/icon on a light surface) ── */
+  /*
+   * ── Lime (accent) ──
+   * Fill and shape only. lime-400 is 1.37:1 on white, so it can never be a
+   * text or icon colour on a light surface. Text ON lime must be olive-950
+   * (12.04:1); olive-600 measures 3.98:1 and fails the 4.5:1 floor, which is
+   * why --on-accent below is not the primary token.
+   */
   --lime-100: #F2FBC9;
   --lime-200: #E6F79A;
   --lime-300: #D9F25C;
@@ -51,7 +56,7 @@
   --n-800: #2F2E28;
   --n-900: #1C1B17;
 
-  /* ── Support: amber = attention, clay = medical (the only true alarm) ── */
+  /* ── Support: amber = attention, clay = medical/destructive (the only alarm) ── */
   --amber-100: #FBF0D8;
   --amber-300: #E8C46A;
   --amber-600: #9B6A0C;
@@ -67,28 +72,98 @@
   --qiwam-radius-lg: 16px;
   --qiwam-radius-xl: 24px;
 
+  /*
+   * ── The Arc ──
+   * Three corners hold the system radius; the block-end/inline-end corner
+   * opens into a sweep. Parameterised here so a future change to the shape
+   * language is a token edit rather than a sweep through every component.
+   */
+  --sweep-control: 24px;        /* button, field — rest */
+  --sweep-control-hover: 30px;  /* leans into the pointer */
+  --sweep-control-press: 18px;  /* pulls in as it sinks */
+  --sweep-card: 32px;
+  --sweep-card-hover: 36px;
+  --sweep-surface: 28px;        /* app bar, sidebar rail, bottom nav */
+  --radius-control: 10px;       /* the three corners that do not sweep */
+
   /* ── Elevation — olive-tinted, never neutral black ── */
   --qiwam-shadow-1: 0 1px 2px rgba(34, 52, 20, .06), 0 1px 3px rgba(34, 52, 20, .05);
   --qiwam-shadow-2: 0 2px 6px rgba(34, 52, 20, .07), 0 8px 20px rgba(34, 52, 20, .06);
   --qiwam-shadow-3: 0 12px 32px rgba(34, 52, 20, .12);
+
+  /*
+   * ── Motion ──
+   * One easing curve for every sweep and "drawing" animation. Durations are
+   * named by what they belong to so a component never invents its own.
+   */
+  --ease-sweep: cubic-bezier(.2, .6, .2, 1);
+  --duration-arc: 220ms;    /* field arc, switch knob, nav node travel */
+  --duration-sweep: 200ms;  /* corner growth */
+  --duration-label: 180ms;  /* label colour shift, segmented thumb */
+  --duration-reverse: 140ms;/* everything reversing on blur */
 }
 
 /*
- * Semantic tokens — the only thing components bind to. Names on the right of
- * each comment are the §06/§15 token IDs so this file can be diffed against
- * the design doc. next/font variables (--font-ibm-plex-sans-arabic etc.) are
- * set on <body> in src/app/[locale]/layout.tsx.
+ * Semantic tokens — the only thing components bind to. next/font variables
+ * (--font-ibm-plex-sans-arabic etc.) are set on <body> in
+ * src/app/[locale]/layout.tsx.
  */
 @theme inline {
   --font-sans: var(--font-ibm-plex-sans-arabic), var(--font-ibm-plex-sans), ui-sans-serif, system-ui, sans-serif;
   --font-arabic: var(--font-ibm-plex-sans-arabic), var(--font-ibm-plex-sans), ui-sans-serif, system-ui, sans-serif;
-  /* font.display — Readex Pro, headings only, both scripts. */
+  /* Display — Readex Pro, headings only, both scripts. */
   --font-heading: var(--font-readex-pro), var(--font-ibm-plex-sans-arabic), var(--font-ibm-plex-sans), ui-sans-serif, system-ui, sans-serif;
-  /* Token/ID display only — never client-facing copy. */
+  /* Numeric / code only — never client-facing prose. */
   --font-mono: var(--font-ibm-plex-mono), ui-monospace, Menlo, monospace;
+
+  /*
+   * ── Type scale ──
+   * Hierarchy is carried by size AND weight together, because Readex Pro and
+   * IBM Plex Sans Arabic sit at similar optical weights. Line heights are
+   * deliberately looser than a Latin-only scale would be: Arabic has taller
+   * ascenders and descenders, and cramped leading makes it illegible long
+   * before it does the same to Latin.
+   */
+  --text-display: 2.25rem;      /* 36px — page hero, one per screen */
+  --text-display--line-height: 1.25;
+  --text-h1: 1.75rem;           /* 28px */
+  --text-h1--line-height: 1.3;
+  --text-h2: 1.375rem;          /* 22px */
+  --text-h2--line-height: 1.35;
+  --text-h3: 1.125rem;          /* 18px */
+  --text-h3--line-height: 1.45;
+  --text-h4: 1rem;              /* 16px */
+  --text-h4--line-height: 1.5;
+  --text-body: 0.875rem;        /* 14px — the app's default */
+  --text-body--line-height: 1.6;
+  --text-caption: 0.8125rem;    /* 13px — metadata, helper text */
+  --text-caption--line-height: 1.55;
+  /*
+   * 12px is the floor, and it carries medium weight rather than regular.
+   * Below this, Arabic stops being readable before Latin does — the i'jam
+   * (the dots that separate ب ت ث) collapse into the letterform, and
+   * DirectWrite has too few pixels left to hint the joins cleanly, which is
+   * what reads as "pixelated". Extra weight buys back the ink that the
+   * smaller size gives up.
+   */
+  --text-micro: 0.75rem;        /* 12px — nav labels, chip text. Floor. */
+  --text-micro--line-height: 1.4;
+  --text-micro--font-weight: 500;
+
+  /*
+   * Tailwind's own small step is remapped onto ours so the two cannot
+   * disagree: `text-xs` is 13px here, not 12px. It is used in ~100 places
+   * that predate this scale, and remapping is what fixes them all at once
+   * instead of leaving two different "small" sizes in the app.
+   *
+   * `text-sm` already equals `text-body` at 14px, so it is left alone.
+   */
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.55;
 
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-node: var(--sidebar-node);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-accent: var(--sidebar-accent);
   --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
@@ -97,10 +172,10 @@
   --color-sidebar: var(--sidebar);
 
   /*
-   * No named categorical series palette exists in the design doc — only the
-   * three-stop comfort-band trio (§15 color.viz.band.*). This reuses already
-   *-defined brand/status hues rather than inventing new ones; confirm with
-   * design before a real multi-series chart ships.
+   * No named categorical series palette exists in the brand spec — only the
+   * three-stop comfort-band trio. This reuses already-defined brand/status
+   * hues rather than inventing new ones; confirm with design before a real
+   * multi-series chart ships.
    */
   --color-chart-1: var(--olive-600);
   --color-chart-2: var(--lime-600);
@@ -116,18 +191,20 @@
   --color-focus-halo: var(--focus-halo);
   --color-field-focus-halo: var(--field-focus-halo);
   --color-input: var(--input);
+  --color-input-hover: var(--input-hover);
   --color-border: var(--border);
 
   /*
-   * color.bg.accent / color.text.onAccent — the one legal lime+text pairing.
-   * Reach for this only for the single accent element a screen is allowed
-   * (see design-system.md); it is not a general-purpose "accent" slot.
+   * The one legal lime + text pairing: olive-950 on lime-400, 12.04:1.
+   * `--on-accent` is deliberately not the primary olive — see the note on the
+   * lime ramp above.
    */
   --color-accent-lime: var(--accent-lime);
   --color-on-accent: var(--on-accent);
 
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-subtle: var(--destructive-subtle);
 
   --color-status-on-track-fg: var(--status-on-track-fg);
   --color-status-on-track-bg: var(--status-on-track-bg);
@@ -148,14 +225,16 @@
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
   --color-foreground: var(--foreground);
   --color-background: var(--background);
+  --color-overlay: var(--overlay);
 
-  /* radius.* — sm 8 / md 12 / lg 16 / xl 24. Pill is Tailwind's built-in rounded-full. Never 0. */
+  /* radius.* — sm 8 / md 12 / lg 16 / xl 24. Pill is rounded-full. Never 0. */
   --radius-sm: var(--qiwam-radius-sm);
   --radius-md: var(--qiwam-radius-md);
   --radius-lg: var(--qiwam-radius-lg);
@@ -165,62 +244,67 @@
   --shadow-card: var(--qiwam-shadow-1);
   --shadow-elevated: var(--qiwam-shadow-2);
   --shadow-overlay: var(--qiwam-shadow-3);
+
+  /* motion.* — exposed so components use `ease-sweep` / `duration-arc`. */
+  --ease-sweep: var(--ease-sweep);
 }
 
 :root {
-  /* Surface & text — §06 */
-  --background: var(--n-25);            /* color.bg.canvas */
-  --foreground: var(--n-900);           /* color.text.primary — 16.64:1 */
+  /* Surface & text */
+  --background: var(--n-25);            /* bg.canvas */
+  --foreground: var(--n-900);           /* text.primary — 16.64:1 */
 
-  --card: var(--n-0);                   /* color.bg.surface */
+  --card: var(--n-0);                   /* bg.surface */
   --card-foreground: var(--n-900);
 
   --popover: var(--n-0);
   --popover-foreground: var(--n-900);
+  --overlay: rgba(22, 34, 13, .45);     /* scrim — olive-950, never black */
 
-  --primary: var(--olive-600);          /* color.action.primary.bg */
-  --primary-foreground: var(--n-25);    /* color.text.inverse — olive-600+ only */
+  --primary: var(--olive-600);          /* action.primary.bg — white on it is 5.46:1 */
+  --primary-hover: var(--olive-700);
+  --primary-foreground: var(--n-0);
 
-  --secondary: var(--olive-50);         /* color.bg.brand.subtle */
-  --secondary-foreground: var(--olive-700); /* color.text.brand — 7.37:1 */
+  --secondary: var(--olive-50);         /* bg.brand.subtle */
+  --secondary-foreground: var(--olive-700); /* text.brand — 7.37:1 */
 
-  --muted: var(--n-50);                 /* color.bg.sunken */
-  --muted-foreground: var(--n-600);     /* color.text.secondary — 6.38:1 floor */
+  --muted: var(--n-50);                 /* bg.sunken */
+  --muted-foreground: var(--n-600);     /* text.secondary — 6.38:1 floor */
 
   /*
-   * Generic hover/highlight tint used ambiently by many primitives — this is
-   * NOT the brand accent. Lime is reserved for one deliberate element per
-   * screen (see design-system.md); it must never sit behind this token.
+   * Ambient hover/highlight tint used by many primitives. This is NOT the
+   * brand accent — lime is, and it must never sit behind this token.
    */
   --accent: var(--n-100);
   --accent-foreground: var(--n-900);
 
-  /* Destructive actions map to clay — the design system's only true alarm colour. */
-  --destructive: var(--clay-600);
-  --destructive-foreground: var(--n-25);
+  /* Destructive maps to clay — the system's only true alarm colour. */
+  --destructive: var(--clay-600);           /* 6.84:1 on white */
+  --destructive-subtle: var(--clay-100);    /* 5.81:1 against clay-600 */
+  --destructive-foreground: var(--n-0);
 
-  --accent-lime: var(--lime-400);       /* color.bg.accent */
-  --on-accent: var(--olive-950);        /* color.text.onAccent — only legal text-on-lime */
+  --accent-lime: var(--lime-400);       /* bg.accent */
+  --on-accent: var(--olive-950);        /* text.onAccent — the only legal text-on-lime */
 
-  /* Border & focus — §06 */
-  --border: var(--n-200);               /* color.border.divider */
-  --input: var(--n-500);                /* color.border.interactive — meets 3:1 */
-  --ring: var(--lime-400);              /* color.focus.ring — inner ring, 2px */
-  --focus-halo: var(--olive-950);       /* color.focus.halo — outer ring, 2px */
+  /* Border & focus */
+  --border: var(--n-200);               /* border.divider */
+  --input: var(--n-500);                /* border.interactive — meets 3:1 */
+  --input-hover: var(--n-600);          /* field hover per the field spec */
+  --ring: var(--lime-400);              /* focus.ring — inner ring, 2px */
+  --focus-halo: var(--olive-950);       /* focus.halo — outer ring, 2px */
   /*
-   * §9.3 form fields deliberately do NOT use the lime ring above: a form has
-   * many fields, and lime tabbing through every one of them breaks "lime is
-   * one element per screen". Fields get an all-olive focus treatment instead
-   * (border.selected + an olive-100 halo).
+   * Fields deliberately do NOT use the lime ring buttons use: a form has many
+   * fields, and lime firing on every tabbed-to field turns the accent into
+   * noise. Fields get an all-olive treatment plus the drawn arc instead.
    */
   --field-focus-halo: var(--olive-100);
 
-  /* Status — deliberately not a traffic light. §06 */
+  /* Status — deliberately not a traffic light. */
   --status-on-track-fg: var(--olive-700);
   --status-on-track-bg: var(--olive-100);
   --status-attention-fg: var(--amber-700);
   --status-attention-bg: var(--amber-100);
-  /* Missed/incomplete is neutral grey, never red — a missed day is information. */
+  /* Missed/incomplete is neutral, never red — a missed day is information. */
   --status-incomplete-fg: var(--n-700);
   --status-incomplete-bg: var(--n-100);
   --status-medical-fg: var(--clay-700);
@@ -228,44 +312,48 @@
   --status-rest-fg: var(--olive-700);
   --status-rest-bg: var(--olive-50);
 
-  /* Data visualisation comfort band — §15 */
+  /* Data visualisation comfort band */
   --viz-band-range: var(--lime-300);
   --viz-band-edge: var(--lime-600);
   --viz-band-marker: var(--olive-900);
 
   /*
-   * Sidebar — this app's sidebar (src/components/layout/sidebar.tsx) is a
-   * plain bordered rail, i.e. §08's "Light nav" row, not the solid dark
-   * "Rail" variant described for the mobile/marketing shell.
+   * Sidebar — a solid dark olive rail. The active item is marked twice: an
+   * olive surface that grows around it, and a lime node that travels between
+   * items. Idle labels are olive-200 on olive-900 (9.1:1); the active surface
+   * is olive-700 with n-0 text (7.6:1).
    */
-  --sidebar: var(--card);
-  --sidebar-foreground: var(--n-600);           /* Light nav: idle n-600 */
+  --sidebar: var(--olive-900);
+  --sidebar-foreground: var(--olive-200);
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: var(--n-0);
-  --sidebar-accent: var(--olive-50);            /* Light nav: active surface = bg.brand.subtle */
-  --sidebar-accent-foreground: var(--olive-700); /* Light nav: active = text.brand */
-  --sidebar-border: var(--border);
+  --sidebar-accent: var(--olive-700);
+  --sidebar-accent-foreground: var(--n-0);
+  --sidebar-node: var(--lime-400);
+  --sidebar-border: var(--olive-800);
   --sidebar-ring: var(--ring);
 }
 
 .dark {
   /*
-   * §15: "Only bg, text, and border tokens remap ... Brand and status hues
-   * stay identical, which keeps the verified pairs intact." Nothing in this
-   * app currently switches to `.dark` (no theme toggle is wired up), but the
-   * class is kept correct rather than left on stale placeholder grays.
+   * Only bg, text, and border tokens remap. Brand and status hues stay
+   * identical, which keeps the verified pairs intact. Nothing in this app
+   * currently switches to `.dark` (no theme toggle is wired up), but the class
+   * is kept correct rather than left on stale placeholder grays.
    */
-  --background: var(--olive-950);       /* canvas → olive-950 */
-  --foreground: var(--n-25);            /* text.primary → neutral-25 */
+  --background: var(--olive-950);
+  --foreground: var(--n-25);
 
-  --card: var(--olive-900);             /* surface → olive-900 */
+  --card: var(--olive-900);
   --card-foreground: var(--n-25);
 
   --popover: var(--olive-900);
   --popover-foreground: var(--n-25);
+  --overlay: rgba(10, 16, 6, .6);
 
-  --primary: var(--olive-600);
-  --primary-foreground: var(--n-25);
+  --primary: var(--olive-500);
+  --primary-hover: var(--olive-400);
+  --primary-foreground: var(--olive-950);
 
   --secondary: var(--olive-800);
   --secondary-foreground: var(--n-25);
@@ -276,13 +364,16 @@
   --accent: var(--olive-800);
   --accent-foreground: var(--n-25);
 
-  --destructive: var(--clay-600);
-  --destructive-foreground: var(--n-25);
+  --destructive: var(--clay-300);
+  --destructive-subtle: var(--olive-800);
+  --destructive-foreground: var(--olive-950);
 
   --border: var(--olive-700);
-  --input: var(--n-400);                /* border.interactive → neutral-400 */
-  --ring: var(--lime-400);              /* lime-400 on olive-950 is 12.09:1 — no remap needed */
+  --input: var(--n-400);
+  --input-hover: var(--n-300);
+  --ring: var(--lime-400);              /* lime-400 on olive-950 is 12.09:1 */
   --focus-halo: var(--n-25);
+  --field-focus-halo: var(--olive-700);
 
   --status-on-track-fg: var(--olive-700);
   --status-on-track-bg: var(--olive-100);
@@ -299,13 +390,14 @@
   --viz-band-edge: var(--lime-600);
   --viz-band-marker: var(--olive-900);
 
-  --sidebar: var(--olive-900);
+  --sidebar: var(--olive-950);
   --sidebar-foreground: var(--olive-200);
   --sidebar-primary: var(--primary);
-  --sidebar-primary-foreground: var(--n-0);
-  --sidebar-accent: var(--olive-800);
+  --sidebar-primary-foreground: var(--olive-950);
+  --sidebar-accent: var(--olive-700);
   --sidebar-accent-foreground: var(--n-25);
-  --sidebar-border: var(--olive-700);
+  --sidebar-node: var(--lime-400);
+  --sidebar-border: var(--olive-800);
   --sidebar-ring: var(--ring);
 }
 
@@ -315,6 +407,8 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
   }
   html {
     @apply font-sans;
@@ -329,38 +423,132 @@
     @apply font-arabic;
   }
 
+  /*
+   * Headings take the display face and the scale automatically, so a page
+   * gets correct hierarchy from semantic markup alone. Anything needing a
+   * different size overrides with a `text-*` utility, which wins on cascade.
+   */
   h1, h2, h3, h4 {
     @apply font-heading;
+    font-weight: 600;
   }
+  h1 { font-size: var(--text-h1); line-height: var(--text-h1--line-height); }
+  h2 { font-size: var(--text-h2); line-height: var(--text-h2--line-height); }
+  h3 { font-size: var(--text-h3); line-height: var(--text-h3--line-height); }
+  h4 { font-size: var(--text-h4); line-height: var(--text-h4--line-height); }
 
-  /* No letter-spacing on Arabic — it breaks cursive joining (§04). */
+  /*
+   * No letter-spacing and no case transforms on Arabic — Arabic is cursive,
+   * so tracking breaks glyph joining, and the script has no letter case for
+   * `uppercase` to act on.
+   */
   :lang(ar) {
     letter-spacing: 0;
+    text-transform: none;
+  }
+
+  /* Numbers, times, IDs and units keep LTR internal order inside RTL text. */
+  [dir='rtl'] .tabular,
+  .tabular {
+    font-variant-numeric: tabular-nums;
   }
 }
 
 @layer components {
   /*
-   * §9.3 text field focus line: "an olive line grows from the tail along the
-   * block-end edge to 58% of the width — the Q curve being drawn, once."
-   * Implemented as a background (not ::after) because ::after does not apply
-   * to replaced elements (input/select/textarea), so this works directly on
-   * the field with no wrapper element required. background-position has no
-   * logical keyword, so :dir() stands in for the inline-end anchor. The
-   * transition itself is left to each component's own `transition-all`
-   * utility class — Tailwind's utilities layer outranks this components
-   * layer, so a `transition` declared here would be silently dropped.
+   * ── The shared field box ──
+   * Input, Textarea and Select are the same control with different content
+   * models. Defining the box once here means a change to the shape language is
+   * one edit, and the three components cannot drift apart.
+   *
+   * The focus cue is an olive line growing from the tail along the block-end
+   * edge to 58% of the width — the Q curve being drawn, once. It is painted as
+   * a background rather than an ::after because ::after does not apply to
+   * replaced elements (input/select/textarea), so this works directly on the
+   * field with no wrapper element. `background-position` has no logical
+   * keyword, so :dir() stands in for the inline-end anchor.
+   *
+   * Width only — no colour flash.
    */
-  .q-field-arc {
+  .q-field {
+    @apply w-full min-w-0 border bg-transparent text-body outline-none;
+    border-color: var(--input);
+    border-radius: var(--radius-control);
+    border-end-end-radius: var(--sweep-control);
+
     background-image: linear-gradient(var(--olive-600), var(--olive-600));
     background-repeat: no-repeat;
     background-size: 0% 2px;
     background-position: bottom left;
+
+    transition:
+      background-size var(--duration-arc) var(--ease-sweep),
+      border-color var(--duration-label) ease-out,
+      box-shadow var(--duration-label) ease-out,
+      border-end-end-radius var(--duration-sweep) var(--ease-sweep);
   }
-  .q-field-arc:dir(rtl) {
+  .q-field:dir(rtl) {
     background-position: bottom right;
   }
-  .q-field-arc:focus {
+  .q-field:focus,
+  .q-field:focus-visible {
     background-size: 58% 2px;
+  }
+  /* Reversing on blur is faster than drawing — the cue has served its purpose. */
+  .q-field:not(:focus) {
+    transition-duration: var(--duration-reverse);
+  }
+  .q-field:hover:not(:disabled):not(:focus) {
+    border-color: var(--input-hover);
+  }
+  .q-field:focus-visible {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--field-focus-halo);
+  }
+  .q-field[aria-invalid='true'] {
+    border-color: var(--destructive);
+    box-shadow: 0 0 0 3px color-mix(in oklch, var(--destructive), transparent 80%);
+  }
+  .q-field:disabled {
+    @apply cursor-not-allowed opacity-50;
+    background-color: var(--muted);
+  }
+  /*
+   * Read-only is a sunken fill with no border and no sweep: the control is
+   * still a value to read, but it no longer advertises itself as editable.
+   */
+  .q-field[readonly] {
+    background-color: var(--muted);
+    border-color: transparent;
+    border-end-end-radius: var(--radius-control);
+    background-image: none;
+  }
+
+  /*
+   * ── The label ──
+   * Shifts to the brand colour while its field has focus, and reverses on
+   * blur. Driven by :has() on the wrapping field group so it works for any
+   * control without a JS focus listener.
+   */
+  .q-label {
+    transition: color var(--duration-label) ease-out;
+  }
+  .q-field-group:focus-within .q-label {
+    color: var(--secondary-foreground);
+  }
+}
+
+/*
+ * Everything that moves does so to communicate state. When the OS says the
+ * user does not want that, the state still changes — only the travel does not.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

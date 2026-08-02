@@ -103,7 +103,7 @@ export function MonthView({
                 </span>
 
                 {dayAppointments.length > 0 && (
-                  <span className="text-[0.625rem] text-muted-foreground">
+                  <span className="text-micro text-muted-foreground">
                     {t('monthCount', { count: dayAppointments.length })}
                   </span>
                 )}
@@ -121,7 +121,7 @@ export function MonthView({
                     <li key={appointment.id}>
                       <span
                         className={cn(
-                          'flex w-full items-center gap-1 truncate rounded px-1 py-0.5 text-start text-[0.6875rem]',
+                          'flex w-full items-center gap-1 truncate rounded px-1 py-0.5 text-start text-micro',
                           (selectedId === appointment.id || highlightId === appointment.id) && 'ring-1 ring-ring',
                         )}
                         style={{

@@ -218,11 +218,17 @@ export function DayColumn({
       */}
       {pending && pending.date === date && (
         <>
+          {/*
+            Olive for a valid drop, clay for an invalid one — not green/red.
+            The brand has no green-means-go colour: olive is its affirmative
+            and clay is its only alarm, and a traffic light here would be the
+            one place in the app that contradicts every status chip.
+          */}
           <div
             aria-hidden
             className={cn(
               'pointer-events-none absolute start-0.5 end-0.5 z-20 rounded-md border-2 border-dashed',
-              pending.valid ? 'border-emerald-500 bg-emerald-500/15' : 'border-destructive bg-destructive/15',
+              pending.valid ? 'border-primary bg-primary/15' : 'border-destructive bg-destructive/15',
             )}
             style={{
               top: minuteToY(pending.startMinute, hours.openMinute, pxPerSlot),
@@ -246,7 +252,7 @@ export function DayColumn({
             className={cn(
               'pointer-events-none absolute start-1/2 z-30 -translate-x-1/2 -translate-y-1/2 rounded-md border px-2 py-1',
               'bg-popover text-xs font-semibold whitespace-nowrap shadow-md tabular-nums',
-              pending.valid ? 'border-emerald-500/60 text-foreground' : 'border-destructive/60 text-destructive',
+              pending.valid ? 'border-primary/60 text-foreground' : 'border-destructive/60 text-destructive',
             )}
             style={{
               top:
@@ -267,14 +273,20 @@ export function DayColumn({
         </>
       )}
 
-      {/* Now-line, drawn only on today. */}
+      {/*
+        Now-line, drawn only on today. Lime-600 (`viz.band.edge`), not red:
+        "now" is the one thing on a calendar worth spotlighting, which is what
+        the accent is for, and it is not an alarm. The 400 is too pale to hold
+        a 2px line on white — 1.37:1 — so this uses the darker edge stop the
+        palette already defines for exactly this job, marking a boundary.
+      */}
       {nowMinute !== null && nowMinute >= hours.openMinute && nowMinute <= hours.closeMinute && (
         <div
           aria-label={t('now')}
-          className="pointer-events-none absolute start-0 end-0 z-20 border-t-2 border-red-500"
+          className="pointer-events-none absolute start-0 end-0 z-20 border-t-2 border-viz-band-edge"
           style={{ top: minuteToY(nowMinute, hours.openMinute, pxPerSlot) }}
         >
-          <span className="absolute -top-1 start-0 size-2 rounded-full bg-red-500" />
+          <span className="absolute -top-1 start-0 size-2 rounded-full bg-viz-band-edge" />
         </div>
       )}
     </div>

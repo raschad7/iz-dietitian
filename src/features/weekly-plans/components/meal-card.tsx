@@ -50,7 +50,7 @@ export function MealCard({
         meal.dish === null && 'border-dashed bg-muted/40',
       )}
     >
-      <span className="block truncate text-[10px] uppercase tracking-wide text-muted-foreground">
+      <span className="block truncate text-micro text-muted-foreground">
         {meal.label}
       </span>
 
@@ -58,8 +58,8 @@ export function MealCard({
         <>
           <span className="mt-0.5 block font-medium leading-snug">{meal.dish.nameAr}</span>
 
-          <span className="mt-0.5 flex items-baseline gap-1 text-[10px] text-muted-foreground">
-            <span className={cn(offTarget && 'font-medium text-amber-600 dark:text-amber-500')}>
+          <span className="mt-0.5 flex items-baseline gap-1 text-micro text-muted-foreground">
+            <span className={cn(offTarget && 'font-medium text-status-attention-fg')}>
               {t('kcalValue', { value: kcal })}
             </span>
             {meal.budgetKcal > 0 && <span>/ {meal.budgetKcal}</span>}

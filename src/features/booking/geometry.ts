@@ -168,11 +168,35 @@ export type BlockTypeScale = {
   inline: boolean;
 };
 
-/** The smallest type this calendar will render. Roughly 10px at the default root size. */
-const MIN_TYPE_REM = 0.625;
+/**
+ * The smallest type this calendar will render: 12px, the same floor as
+ * `--text-micro` in the design system. Below that, Arabic loses the dots that
+ * separate ب ت ث before Latin loses anything.
+ */
+const MIN_TYPE_PX = 12;
+
+/** Root font size the px steps below are expressed against. */
+const ROOT_PX = 16;
 
 function clamp01(value: number): number {
   return Math.min(Math.max(value, 0), 1);
+}
+
+/**
+ * Sizes are chosen in **whole pixels** and converted, rather than interpolated
+ * continuously.
+ *
+ * Interpolating gave every block its own fractional size — 10.37px, 11.6px —
+ * and a font rasterised at a fractional size cannot land its stems on the
+ * pixel grid, which is what reads as blurry or "pixelated" text. Snapping to
+ * integers means the calendar renders type at the same handful of sizes the
+ * rest of the app does.
+ *
+ * The steps are still monotonic in the block's height, so a taller booking
+ * never shows smaller type than a shorter one.
+ */
+function px(value: number): number {
+  return value / ROOT_PX;
 }
 
 export function blockTypeScale(height: number): BlockTypeScale {
@@ -182,21 +206,21 @@ export function blockTypeScale(height: number): BlockTypeScale {
     const growth = clamp01((height - PX_PER_SLOT) / (INLINE_HEIGHT_PX - PX_PER_SLOT));
 
     return {
-      nameRem: MIN_TYPE_REM + 0.125 + growth * 0.125,
-      timeRem: MIN_TYPE_REM + growth * 0.125,
-      gapRem: 0.375,
+      nameRem: px(MIN_TYPE_PX + Math.round(growth)),
+      timeRem: px(MIN_TYPE_PX),
+      gapRem: px(6),
       inline: true,
     };
   }
 
-  // Grows from 0.875rem at 46px to 1.25rem at ~256px (a two-hour booking), then
+  // Grows from 14px at 46px tall to 20px at ~256px (a two-hour booking), then
   // stops — past that the block is large enough and more type would just shout.
   const growth = clamp01((height - INLINE_HEIGHT_PX) / (256 - INLINE_HEIGHT_PX));
 
   return {
-    nameRem: 0.875 + growth * 0.375,
-    timeRem: 0.8125 + growth * 0.25,
-    gapRem: 0.125 + growth * 0.25,
+    nameRem: px(14 + Math.round(growth * 6)),
+    timeRem: px(13 + Math.round(growth * 4)),
+    gapRem: px(2 + Math.round(growth * 4)),
     inline: false,
   };
 }

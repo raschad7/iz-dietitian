@@ -1,26 +1,44 @@
 import * as React from "react"
 
+import { Icon } from "@/components/ui/icon"
 import { cn } from "@/lib/utils"
 
 /**
- * A native <select>. Deliberately not a JavaScript combobox: it is keyboard and
- * screen-reader correct for free, mirrors automatically in RTL, and ships no
- * client bundle. `bg-position` is left to the browser so the arrow follows the
- * document direction.
+ * A native `<select>` with a chevron this app draws itself.
+ *
+ * Deliberately not a JavaScript combobox: keyboard behaviour, screen-reader
+ * semantics and the mobile native picker all come for free, it mirrors in RTL
+ * without a direction prop, and it ships no client bundle.
+ *
+ * The browser's own arrow is suppressed because Chrome pins it to the border
+ * and ignores `padding-inline-end` on a `<select>` — any attempt to give long
+ * option text room to breathe is silently dropped and the value runs into the
+ * arrow. `appearance: none` plus our own Solar chevron fixes it once, here.
+ *
+ * The chevron is positioned with `end-*` and the padding with `pe-*`, so both
+ * follow the document direction. The box itself is `.q-field` — shared with
+ * Input and Textarea, see globals.css.
  */
 function Select({ className, children, ...props }: React.ComponentProps<"select">) {
   return (
-    <select
-      data-slot="select"
-      className={cn(
-        // Shape: "the Arc" (§9.3) — 10px base radius, 24px sweep on the block-end/inline-end corner.
-        "q-field-arc h-8 w-full rounded-[10px] rounded-ee-xl border border-input bg-transparent px-2.5 py-1 text-base transition-all duration-220 ease-[cubic-bezier(.2,.6,.2,1)] outline-none focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-field-focus-halo disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm dark:bg-input/30",
-        className
-      )}
-      {...props}
-    >
-      {children}
-    </select>
+    <div className="relative w-full">
+      <select
+        data-slot="select"
+        className={cn("q-field h-9 appearance-none py-1 ps-3 pe-9", className)}
+        {...props}
+      >
+        {children}
+      </select>
+
+      {/*
+        `pointer-events-none` so clicking the chevron still opens the select —
+        the icon sits on top of the control that owns the interaction.
+      */}
+      <Icon
+        name="chevronDown"
+        className="pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+      />
+    </div>
   )
 }
 
