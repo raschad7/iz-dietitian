@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useRef, useState } from 'react';
+import { useActionState, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ import { readClinicProfileForm } from '../form-data';
 import { initialClinicProfileFormState } from '../form-state';
 import type { ClinicProfileSnapshot } from '../types';
 import { validateClinicProfile, type ClinicProfileFieldErrors, type ProfileSection } from '../validation';
+import { clearFieldError, validateWizardSubmission } from '../wizard-validation';
 import { ClinicInformationFields, ProfessionalFields, ScheduleFields } from './profile-fields';
 
 const SECTIONS = ['clinic', 'schedule', 'professional'] as const;
@@ -38,25 +39,47 @@ export function OnboardingWizard({ locale, profile }: { locale: Locale; profile:
 
   const [state, action, pending] = useActionState(submitWithRecovery, initialClinicProfileFormState);
   const currentSection = SECTIONS[step] ?? 'clinic';
-  const serverError = state.status === 'error' && state.messageKey === 'invalid' ? state : null;
-  const activeError = clientError?.section === currentSection
-    ? clientError
-    : serverError?.section === currentSection
-      ? serverError
-      : null;
+  const activeError = clientError?.section === currentSection ? clientError : null;
+
+  function showValidationError(error: { section: ProfileSection; fieldErrors: ClinicProfileFieldErrors }) {
+    const invalidStep = SECTIONS.indexOf(error.section);
+    setStep(invalidStep < 0 ? 0 : invalidStep);
+    setClientError(error);
+    window.setTimeout(() => {
+      formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+    }, 0);
+  }
 
   function continueToNextStep() {
     if (!formRef.current) return;
     const result = validateClinicProfile(readClinicProfileForm(new FormData(formRef.current)), [currentSection]);
     if (!result.success) {
-      setClientError({ section: result.section, fieldErrors: result.fieldErrors });
-      window.setTimeout(() => {
-        formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
-      }, 0);
+      showValidationError({ section: result.section, fieldErrors: result.fieldErrors });
       return;
     }
     setClientError(null);
     setStep((value) => Math.min(value + 1, SECTIONS.length - 1));
+  }
+
+  function validateBeforeSubmit(event: FormEvent<HTMLFormElement>) {
+    const decision = validateWizardSubmission(new FormData(event.currentTarget));
+    if (!decision.submit) {
+      event.preventDefault();
+      showValidationError(decision);
+      return;
+    }
+    setClientError(null);
+  }
+
+  function clearCorrectedField(event: ChangeEvent<HTMLFormElement>) {
+    if (!(event.target instanceof HTMLInputElement)) return;
+    const fieldName = event.target.name;
+    if (!fieldName) return;
+    setClientError((current) => {
+      if (!current) return null;
+      const fieldErrors = clearFieldError(current.fieldErrors, fieldName);
+      return Object.keys(fieldErrors).length > 0 ? { ...current, fieldErrors } : null;
+    });
   }
 
   return (
@@ -75,7 +98,7 @@ export function OnboardingWizard({ locale, profile }: { locale: Locale; profile:
         ))}
       </ol>
 
-      <form ref={formRef} action={action} noValidate onSubmit={() => setClientError(null)}>
+      <form ref={formRef} action={action} noValidate onSubmit={validateBeforeSubmit} onChange={clearCorrectedField}>
         <input type="hidden" name="locale" value={locale} />
         <Card>
           <CardHeader>
