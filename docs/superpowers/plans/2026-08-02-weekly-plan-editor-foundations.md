@@ -46,7 +46,7 @@
 - Modify: `src/features/weekly-plans/queries.ts`
 - Test: `src/features/weekly-plans/queries.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `src/features/weekly-plans/queries.test.ts`, and add the imports it needs at the top of the file (`dishes`, `dishIngredients`, `foods`, `weeklyPlanMeals`, `eq` from `drizzle-orm`, and `getBoard` from `./queries`):
 
@@ -103,7 +103,7 @@ describe('getBoard', () => {
 });
 ```
 
-- [ ] **Step 2: Run the test and verify it fails**
+- [x] **Step 2: Run the test and verify it fails**
 
 ```bash
 bun test src/features/weekly-plans/queries.test.ts
@@ -111,7 +111,7 @@ bun test src/features/weekly-plans/queries.test.ts
 
 Expected: FAIL. `board?.unfilled` is `1` and the dish is `null`, because `assembleBoard` could not find the retired dish. A type error on `.isActive` is also expected — `DishDetail` has no such field yet.
 
-- [ ] **Step 3: Add `isActive` to `DishDetail`**
+- [x] **Step 3: Add `isActive` to `DishDetail`**
 
 In `src/features/weekly-plans/nutrition.ts`, add the field to the type (after `baseServingLabel`):
 
@@ -131,11 +131,11 @@ export type DishDetail = {
 };
 ```
 
-- [ ] **Step 4: Select `isActive` in the catalog reader**
+- [x] **Step 4: Select `isActive` in the catalog reader**
 
 In `src/features/weekly-plans/queries.ts`, inside `loadCatalog`, add `isActive: dishes.isActive,` to the `.select({...})` object for `dishRows`, immediately after `baseServingLabel`.
 
-- [ ] **Step 5: Add the id-based reader**
+- [x] **Step 5: Add the id-based reader**
 
 In `src/features/weekly-plans/queries.ts`, directly below `loadCatalog`, add:
 
@@ -197,7 +197,7 @@ export async function loadDishesByIds(ids: readonly string[]): Promise<DishDetai
 }
 ```
 
-- [ ] **Step 6: Use it in `assembleBoard`**
+- [x] **Step 6: Use it in `assembleBoard`**
 
 In `src/features/weekly-plans/queries.ts`, inside `assembleBoard`, replace the catalog load. Find:
 
@@ -222,7 +222,7 @@ Replace with:
   const dishById = new Map((await loadDishesByIds([...referenced])).map((dish) => [dish.id, dish]));
 ```
 
-- [ ] **Step 7: Run the test and verify it passes**
+- [x] **Step 7: Run the test and verify it passes**
 
 ```bash
 bun test src/features/weekly-plans/queries.test.ts
@@ -230,7 +230,7 @@ bun test src/features/weekly-plans/queries.test.ts
 
 Expected: PASS, both tests.
 
-- [ ] **Step 8: Run the whole suite and the checks**
+- [x] **Step 8: Run the whole suite and the checks**
 
 ```bash
 bun run typecheck
@@ -243,7 +243,7 @@ bun test
 bun run lint
 ```
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add src/features/weekly-plans/nutrition.ts src/features/weekly-plans/queries.ts src/features/weekly-plans/queries.test.ts
@@ -260,7 +260,7 @@ Every door into a plan needs the same thing: seven days of slots taken from the 
 - Create: `src/features/weekly-plans/skeleton.ts`
 - Test: `src/features/weekly-plans/skeleton.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `src/features/weekly-plans/skeleton.test.ts`:
 
@@ -330,7 +330,7 @@ describe('planSkeleton', () => {
 });
 ```
 
-- [ ] **Step 2: Run the test and verify it fails**
+- [x] **Step 2: Run the test and verify it fails**
 
 ```bash
 bun test src/features/weekly-plans/skeleton.test.ts
@@ -338,7 +338,7 @@ bun test src/features/weekly-plans/skeleton.test.ts
 
 Expected: FAIL — `Cannot find module './skeleton'`.
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 Create `src/features/weekly-plans/skeleton.ts`:
 
@@ -419,7 +419,7 @@ export function planSkeleton(input: {
 }
 ```
 
-- [ ] **Step 4: Run the test and verify it passes**
+- [x] **Step 4: Run the test and verify it passes**
 
 ```bash
 bun test src/features/weekly-plans/skeleton.test.ts
@@ -427,7 +427,7 @@ bun test src/features/weekly-plans/skeleton.test.ts
 
 Expected: PASS, 6 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/features/weekly-plans/skeleton.ts src/features/weekly-plans/skeleton.test.ts
@@ -444,7 +444,7 @@ The copy door needs the source plan's dishes addressed the way `planSkeleton` fi
 - Modify: `src/features/weekly-plans/queries.ts`
 - Test: `src/features/weekly-plans/queries.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `src/features/weekly-plans/queries.test.ts` (add `planDishesBySlot` to the `./queries` import and `slotFillKey` from `./skeleton`):
 
@@ -520,7 +520,7 @@ describe('planDishesBySlot', () => {
 });
 ```
 
-- [ ] **Step 2: Run the test and verify it fails**
+- [x] **Step 2: Run the test and verify it fails**
 
 ```bash
 bun test src/features/weekly-plans/queries.test.ts
@@ -528,7 +528,7 @@ bun test src/features/weekly-plans/queries.test.ts
 
 Expected: FAIL — `planDishesBySlot is not a function`.
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 In `src/features/weekly-plans/queries.ts`, below `listPlans`, add (and import `slotFillKey` and `type SlotFill` from `./skeleton`):
 
@@ -573,7 +573,7 @@ export async function planDishesBySlot(
 }
 ```
 
-- [ ] **Step 4: Run the test and verify it passes**
+- [x] **Step 4: Run the test and verify it passes**
 
 ```bash
 bun test src/features/weekly-plans/queries.test.ts
@@ -581,7 +581,7 @@ bun test src/features/weekly-plans/queries.test.ts
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/features/weekly-plans/queries.ts src/features/weekly-plans/queries.test.ts
@@ -596,7 +596,7 @@ git commit -m "feat: read an earlier plan's dishes keyed by slot"
 - Create: `src/features/weekly-plans/editor-mutations.ts`
 - Test: `src/features/weekly-plans/editor-mutations.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `src/features/weekly-plans/editor-mutations.test.ts`:
 
@@ -720,7 +720,7 @@ describe('createPlanFromSkeleton', () => {
 });
 ```
 
-- [ ] **Step 2: Run the test and verify it fails**
+- [x] **Step 2: Run the test and verify it fails**
 
 ```bash
 bun test src/features/weekly-plans/editor-mutations.test.ts
@@ -728,7 +728,7 @@ bun test src/features/weekly-plans/editor-mutations.test.ts
 
 Expected: FAIL — `Cannot find module './editor-mutations'`.
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 Create `src/features/weekly-plans/editor-mutations.ts`:
 
@@ -828,7 +828,7 @@ export async function createPlanFromSkeleton(input: {
 }
 ```
 
-- [ ] **Step 4: Run the test and verify it passes**
+- [x] **Step 4: Run the test and verify it passes**
 
 ```bash
 bun test src/features/weekly-plans/editor-mutations.test.ts
@@ -836,7 +836,7 @@ bun test src/features/weekly-plans/editor-mutations.test.ts
 
 Expected: PASS, 4 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/features/weekly-plans/editor-mutations.ts src/features/weekly-plans/editor-mutations.test.ts
@@ -852,7 +852,7 @@ git commit -m "feat: persist a plan built by hand rather than generated"
 - Modify: `src/features/weekly-plans/form-state.ts`
 - Create: `src/features/weekly-plans/editor-actions.ts`
 
-- [ ] **Step 1: Add the input schemas**
+- [x] **Step 1: Add the input schemas**
 
 In `src/features/weekly-plans/schema.ts`, below `swapMealSchema`, add:
 
@@ -869,7 +869,7 @@ export const startWeekFromPlanSchema = z.object({
 });
 ```
 
-- [ ] **Step 2: Add the action state**
+- [x] **Step 2: Add the action state**
 
 In `src/features/weekly-plans/form-state.ts`, below `initialPlanActionState`, add:
 
@@ -888,7 +888,7 @@ export type NewWeekState =
 export const initialNewWeekState: NewWeekState = { status: 'idle' };
 ```
 
-- [ ] **Step 3: Write the actions**
+- [x] **Step 3: Write the actions**
 
 Create `src/features/weekly-plans/editor-actions.ts`:
 
@@ -1041,7 +1041,7 @@ export async function startWeekFromPlanAction(
 }
 ```
 
-- [ ] **Step 4: Verify it compiles**
+- [x] **Step 4: Verify it compiles**
 
 ```bash
 bun run typecheck
@@ -1049,7 +1049,7 @@ bun run typecheck
 
 Expected: no errors.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/features/weekly-plans/editor-actions.ts src/features/weekly-plans/schema.ts src/features/weekly-plans/form-state.ts
@@ -1069,7 +1069,7 @@ git commit -m "feat: add the copy-a-week and empty-week actions"
 - Modify: `src/features/weekly-plans/actions.ts`
 - Modify: `src/features/weekly-plans/mutations.ts`
 
-- [ ] **Step 1: Add the columns**
+- [x] **Step 1: Add the columns**
 
 In `src/db/schema/weekly-plans.ts`, immediately after `kcalTargetSnapshot`, add:
 
@@ -1092,7 +1092,7 @@ In `src/db/schema/weekly-plans.ts`, immediately after `kcalTargetSnapshot`, add:
     goalSnapshot: text('goal_snapshot'),
 ```
 
-- [ ] **Step 2: Generate the migration**
+- [x] **Step 2: Generate the migration**
 
 ```bash
 bun run db:generate
@@ -1100,14 +1100,14 @@ bun run db:generate
 
 Expected: a new file in `drizzle/` adding two nullable columns. Do not hand-edit it or the snapshot in `drizzle/meta/`.
 
-- [ ] **Step 3: Apply it**
+- [x] **Step 3: Apply it**
 
 ```bash
 bun run db:migrate
 bun run db:migrate:test
 ```
 
-- [ ] **Step 4: Extend the generation input schema**
+- [x] **Step 4: Extend the generation input schema**
 
 In `src/features/weekly-plans/schema.ts`, add the import `import { CLIENT_GOALS } from '@/features/clients/schema';` at the top, then replace `generateWeekSchema` with:
 
@@ -1130,7 +1130,7 @@ export const generateWeekSchema = z.object({
 });
 ```
 
-- [ ] **Step 5: Store them on the plan**
+- [x] **Step 5: Store them on the plan**
 
 In `src/features/weekly-plans/mutations.ts`, extend `createPlanFromGeneration`'s input type with:
 
@@ -1146,7 +1146,7 @@ and add to the `.values({...})` for `weeklyPlans`:
         goalSnapshot: input.goal,
 ```
 
-- [ ] **Step 6: Read them back on the board**
+- [x] **Step 6: Read them back on the board**
 
 In `src/features/weekly-plans/queries.ts`, add to the `Board` type:
 
@@ -1157,7 +1157,7 @@ In `src/features/weekly-plans/queries.ts`, add to the `Board` type:
 
 and add `proteinTargetSnapshot: weeklyPlans.proteinTargetSnapshot,` and `goalSnapshot: weeklyPlans.goalSnapshot,` to the `.select({...})` in all three plan readers: `getBoard`, `getPublishedBoard`, and the one inside `getLatestBoard`'s call path (`getBoard` covers it — only `getBoard` and `getPublishedBoard` select plan columns).
 
-- [ ] **Step 7: Make the prompt prefer the plan's figures**
+- [x] **Step 7: Make the prompt prefer the plan's figures**
 
 In `src/features/weekly-plans/actions.ts`, find where `generateWeekAction` builds its `PromptInput` from the client context, and apply the overrides. The client block passed to the prompt gets:
 
@@ -1175,7 +1175,7 @@ Pass the overrides through to `createPlanFromGeneration`:
       goal: parsed.data.goal ?? null,
 ```
 
-- [ ] **Step 8: Verify**
+- [x] **Step 8: Verify**
 
 ```bash
 bun run typecheck
@@ -1183,7 +1183,7 @@ bun test
 bun run lint
 ```
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add -A src/db src/features/weekly-plans drizzle
@@ -1202,7 +1202,7 @@ The rail currently shows the client context or the open meal. It needs a third p
 - Modify: `src/features/weekly-plans/components/plan-board.tsx`
 - Modify: `src/i18n/messages/ar.json`, `src/i18n/messages/en.json`
 
-- [ ] **Step 1: Add the strings**
+- [x] **Step 1: Add the strings**
 
 Add to the `weeklyPlans` object in `src/i18n/messages/en.json`:
 
@@ -1244,7 +1244,7 @@ and the Arabic equivalents in `src/i18n/messages/ar.json`:
 "targetsHint": "تنطبق على هذه الخطة فقط. الملف الغذائي للعميل لا يتغير."
 ```
 
-- [ ] **Step 2: Write the tab bar**
+- [x] **Step 2: Write the tab bar**
 
 Create `src/features/weekly-plans/components/rail-tabs.tsx`:
 
@@ -1300,7 +1300,7 @@ export function RailTabs<T extends string>({
 }
 ```
 
-- [ ] **Step 3: Write the Past panel**
+- [x] **Step 3: Write the Past panel**
 
 Create `src/features/weekly-plans/components/plan-history.tsx`:
 
@@ -1438,7 +1438,7 @@ function CopySubmit({ label }: { label: string }) {
 }
 ```
 
-- [ ] **Step 4: Host the tabs in the board**
+- [x] **Step 4: Host the tabs in the board**
 
 In `src/features/weekly-plans/components/plan-board.tsx`:
 
@@ -1502,14 +1502,14 @@ Replace the `<aside>` body with:
         </aside>
 ```
 
-- [ ] **Step 5: Verify**
+- [x] **Step 5: Verify**
 
 ```bash
 bun run typecheck
 bun run lint
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/features/weekly-plans/components src/i18n/messages
@@ -1525,7 +1525,7 @@ git commit -m "feat: give the plan rail tabs and a history panel"
 - Modify: `src/features/weekly-plans/queries.ts` (`listPlans` returns the target and meal count)
 - Modify: `src/app/[locale]/app/weekly-plans/[clientId]/page.tsx`
 
-- [ ] **Step 1: Extend `listPlans`**
+- [x] **Step 1: Extend `listPlans`**
 
 In `src/features/weekly-plans/queries.ts`, replace `listPlans` with:
 
@@ -1557,7 +1557,7 @@ export async function listPlans(
 }
 ```
 
-- [ ] **Step 2: Write the menu**
+- [x] **Step 2: Write the menu**
 
 Create `src/features/weekly-plans/components/new-week-menu.tsx`:
 
@@ -1715,7 +1715,7 @@ function Entry({ title, hint }: { title: string; hint: string }) {
 }
 ```
 
-- [ ] **Step 3: Compose it on the page**
+- [x] **Step 3: Compose it on the page**
 
 In `src/app/[locale]/app/weekly-plans/[clientId]/page.tsx`, import `NewWeekMenu` and `PlanHistory`, and pass `history` into `PlanBoard`:
 
@@ -1733,7 +1733,7 @@ In `src/app/[locale]/app/weekly-plans/[clientId]/page.tsx`, import `NewWeekMenu`
 
 The `NewWeekMenu` needs `onGenerate`, a client callback, so it is rendered inside `PlanBoard`'s header rather than on the server page. Pass the data it needs down as props: `previousPlan` is the first entry of `plans` whose id is not `board?.id`.
 
-- [ ] **Step 4: Verify in the browser**
+- [x] **Step 4: Verify in the browser**
 
 ```bash
 bun run dev
@@ -1741,7 +1741,7 @@ bun run dev
 
 Open a client's board, confirm: the New week menu lists three entries, "Start from …" creates a draft for next Sunday carrying the earlier week's dishes, and the Past tab lists every plan.
 
-- [ ] **Step 5: Run every check**
+- [x] **Step 5: Run every check**
 
 ```bash
 bun run lint
@@ -1749,7 +1749,7 @@ bun run typecheck
 bun test
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add -A src/features/weekly-plans src/app/\[locale\]/app/weekly-plans
