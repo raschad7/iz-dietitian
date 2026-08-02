@@ -364,3 +364,24 @@
     background-size: 58% 2px;
   }
 }
+
+/*
+ * A scroller with no visible scrollbar.
+ *
+ * The content still scrolls — by wheel, trackpad, touch and keyboard — only the
+ * bar itself is gone. Used by the calendar grid, which is sized to fit its panel
+ * and shows a bar only in the cases it cannot: a window too short for the
+ * clinic day at a readable slot height, or a week too narrow for seven columns.
+ *
+ * The trade is real and worth stating: hiding the bar also hides the *signal*
+ * that there is more to see. It is acceptable here because the calendar is
+ * fitted to the panel in normal use, so the hidden overflow is the exception
+ * rather than the resting state. Do not reach for this on an ordinary long page.
+ */
+@utility no-scrollbar {
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}

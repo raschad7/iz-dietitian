@@ -62,6 +62,54 @@ describe('renderWhatsappMessage', () => {
     expect(body).toContain('https://clinic.ps/ar/client-login');
   });
 
+  test('the reschedule names both the old slot and the new one', () => {
+    const body = renderWhatsappMessage('appointmentRescheduled', 'ar', {
+      ...variables,
+      previousDate: '3 August 2026',
+      previousTime: '10:00 AM',
+    });
+
+    // Both, or the patient cannot tell which of the two is now in their diary.
+    expect(body).toContain('3 August 2026');
+    expect(body).toContain('10:00 AM');
+    expect(body).toContain('5 August 2026');
+    expect(body).toContain('9:15 AM');
+    expect(body).toContain('تم تغيير موعدك');
+    expect(body).not.toContain('{');
+  });
+
+  test('the reschedule renders in English too', () => {
+    const body = renderWhatsappMessage('appointmentRescheduled', 'en', {
+      ...variables,
+      previousDate: '3 August 2026',
+      previousTime: '10:00 AM',
+    });
+
+    expect(body).toContain('has been changed');
+    expect(body).not.toContain('{');
+  });
+
+  test('a reschedule with no previous slot throws rather than sending half a sentence', () => {
+    expect(() => renderWhatsappMessage('appointmentRescheduled', 'ar', variables)).toThrow(/\{previousDate\}/);
+  });
+
+  test('the cancellation names the appointment being cancelled', () => {
+    const body = renderWhatsappMessage('appointmentCancelled', 'ar', variables);
+
+    expect(body).toContain('تم إلغاء موعدك');
+    expect(body).toContain('5 August 2026');
+    expect(body).toContain('9:15 AM');
+    expect(body).not.toContain('{');
+  });
+
+  test('the cancellation renders in English too', () => {
+    expect(renderWhatsappMessage('appointmentCancelled', 'en', variables)).toContain('has been cancelled');
+  });
+
+  test('the cancellation needs no previous slot', () => {
+    expect(() => renderWhatsappMessage('appointmentCancelled', 'en', variables)).not.toThrow();
+  });
+
   test('truncates a pathological value instead of producing a body the gateway rejects', () => {
     const body = renderWhatsappMessage('appointmentReminder', 'en', {
       ...variables,

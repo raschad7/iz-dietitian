@@ -2,7 +2,15 @@ import { formatLongDate, formatMinute } from '@/features/booking/format';
 import { type Locale } from '@/i18n/routing';
 
 import { getAppointmentTarget, getClientTarget, getSettings } from './queries';
-import { confirmationDedupeKey, credentialsDedupeKey, manualDedupeKey, sendWhatsappMessage, sendWhatsappTemplate } from './send';
+import {
+  cancellationDedupeKey,
+  confirmationDedupeKey,
+  credentialsDedupeKey,
+  manualDedupeKey,
+  rescheduleDedupeKey,
+  sendWhatsappMessage,
+  sendWhatsappTemplate,
+} from './send';
 import { clampMessageBody, PATIENT_MESSAGE_LOCALE } from './templates';
 import { type SendResult } from './types';
 
@@ -11,8 +19,9 @@ import { type SendResult } from './types';
  * hear about.
  *
  * This is the feature's public surface for other features: `booking` calls
- * {@link notifyAppointmentBooked} and knows nothing about sessions, chat ids or
- * gateways. Everything here:
+ * {@link notifyAppointmentBooked}, {@link notifyAppointmentRescheduled} and
+ * {@link notifyAppointmentCancelled}, and knows nothing about sessions, chat ids
+ * or gateways. Everything here:
  *
  *  - **is gated on the clinic's own preference** (`confirmations_enabled`), so
  *    turning an automation off in Settings actually turns it off, rather than
@@ -61,6 +70,109 @@ export async function notifyAppointmentBooked(clinicId: string, appointmentId: s
       kind: 'appointment_confirmation',
       phone: target.phone,
       dedupeKey: confirmationDedupeKey(target.appointmentId, target.date, target.startMinute),
+    },
+    { settings },
+  );
+}
+
+/**
+ * Tells a client their appointment moved.
+ *
+ * Distinct from {@link notifyAppointmentBooked}, which a move used to reuse: "your
+ * appointment is confirmed" arriving a second time reads as a duplicate, not as
+ * news, and leaves the patient to work out for themselves which of the two
+ * messages is current. This one names both slots and says plainly that it changed.
+ *
+ * `previous` comes from the row as it was read inside the update transaction —
+ * the only place it still exists — so the caller passes it in rather than this
+ * trying to reconstruct it.
+ *
+ * Gated on `confirmations_enabled`, like the confirmation: a clinic that has
+ * turned appointment messages off has turned this off too.
+ */
+export async function notifyAppointmentRescheduled(
+  clinicId: string,
+  appointmentId: string,
+  previous: { date: string; startMinute: number },
+): Promise<SendResult> {
+  const settings = await getSettings(clinicId);
+
+  if (!settings?.confirmationsEnabled) return { status: 'skipped', reason: 'not_configured' };
+
+  const target = await getAppointmentTarget(clinicId, appointmentId);
+
+  if (!target) return { status: 'skipped', reason: 'no_phone' };
+
+  return sendWhatsappTemplate(
+    {
+      kind: 'appointmentRescheduled',
+      locale: PATIENT_MESSAGE_LOCALE,
+      variables: {
+        clientName: target.clientName,
+        clinicName: target.clinicName,
+        date: formatLongDate(PATIENT_MESSAGE_LOCALE, target.date),
+        time: formatMinute(PATIENT_MESSAGE_LOCALE, target.date, target.startMinute),
+        previousDate: formatLongDate(PATIENT_MESSAGE_LOCALE, previous.date),
+        previousTime: formatMinute(PATIENT_MESSAGE_LOCALE, previous.date, previous.startMinute),
+      },
+    },
+    {
+      clinicId,
+      clientId: target.clientId,
+      appointmentId: target.appointmentId,
+      kind: 'appointment_rescheduled',
+      phone: target.phone,
+      dedupeKey: rescheduleDedupeKey(target.appointmentId, target.date, target.startMinute),
+    },
+    { settings },
+  );
+}
+
+/**
+ * Tells a client their appointment was cancelled.
+ *
+ * Takes the appointment's details rather than its id, because by the time this
+ * runs the row has been deleted and there is nothing left to read. The client
+ * still exists, so the name, phone and clinic name are looked up from there.
+ *
+ * For the same reason no `appointmentId` is recorded on the message:
+ * `whatsapp_messages.appointment_id` is a foreign key, and it would point at a
+ * row that is gone. The id lives in the dedupe key instead, which is plain text.
+ *
+ * Every deletion notifies, including one for an appointment already in the past.
+ * Deleting a finished visit is usually records cleanup rather than a
+ * cancellation, so that is worth knowing about — but it is the clinic's call, and
+ * suppressing it silently would be worse than an occasional odd message.
+ */
+export async function notifyAppointmentCancelled(
+  clinicId: string,
+  cancelled: { appointmentId: string; clientId: string; date: string; startMinute: number },
+): Promise<SendResult> {
+  const settings = await getSettings(clinicId);
+
+  if (!settings?.confirmationsEnabled) return { status: 'skipped', reason: 'not_configured' };
+
+  const target = await getClientTarget(clinicId, cancelled.clientId);
+
+  if (!target?.phone) return { status: 'skipped', reason: 'no_phone' };
+
+  return sendWhatsappTemplate(
+    {
+      kind: 'appointmentCancelled',
+      locale: PATIENT_MESSAGE_LOCALE,
+      variables: {
+        clientName: target.clientName,
+        clinicName: target.clinicName,
+        date: formatLongDate(PATIENT_MESSAGE_LOCALE, cancelled.date),
+        time: formatMinute(PATIENT_MESSAGE_LOCALE, cancelled.date, cancelled.startMinute),
+      },
+    },
+    {
+      clinicId,
+      clientId: target.clientId,
+      kind: 'appointment_cancelled',
+      phone: target.phone,
+      dedupeKey: cancellationDedupeKey(cancelled.appointmentId),
     },
     { settings },
   );
