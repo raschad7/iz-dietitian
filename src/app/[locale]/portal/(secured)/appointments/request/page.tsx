@@ -1,58 +1,31 @@
-import { getTranslations } from 'next-intl/server';
-import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
 
-import { RequestForm } from '@/features/portal/components/request-form';
-import { loadRequestPage } from '@/features/portal/page-data';
-import { requestSearchSchema } from '@/features/portal/schema';
 import { requirePortalClient } from '@/features/portal/session';
-import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/params';
 
 type RequestPageProps = {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-export async function generateMetadata({ params }: RequestPageProps): Promise<Metadata> {
-  const locale = await resolveLocale(params);
-  const t = await getTranslations({ locale, namespace: 'portal' });
-  return { title: t('request.title') };
-}
-
 /**
- * Asking for an appointment — a new one, a different time for one, or its
- * cancellation.
+ * Closed. Every visit lands back on the appointments list.
  *
- * One route for all three, distinguished by `?kind=`. They share a form, a
- * validator and an action; giving each its own page would triple that for the
- * sake of a heading. `?appointmentId=` names the appointment for the latter
- * two, and is checked against this client's own record before it is honoured —
- * see `loadRequestPage`.
+ * This route used to serve all three asks a client could make — book, move,
+ * cancel — behind one `?kind=`. None of them are the client's any more:
+ * appointments are made and changed by the dietitian, so nothing in the portal
+ * links here and `requestAppointmentAction` refuses whatever reaches it.
+ *
+ * The route is kept as a redirect rather than deleted so that an old link, a
+ * bookmark or a WhatsApp message from before the change lands somewhere useful
+ * instead of on a 404. `RequestForm` and `loadRequestPage` are untouched beneath
+ * it: the capability is switched off, not dismantled.
  */
-export default async function RequestAppointmentPage({ params, searchParams }: RequestPageProps) {
+export default async function RequestAppointmentPage({ params }: RequestPageProps) {
   const locale = await resolveLocale(params);
 
-  const context = await requirePortalClient(locale);
+  // The guard still runs first: a signed-out visitor belongs at the sign-in
+  // page, not redirected into a portal they cannot open.
+  await requirePortalClient(locale);
 
-  const search = requestSearchSchema.parse(await searchParams);
-  const data = await loadRequestPage(context, search);
-
-  const t = await getTranslations('portal');
-
-  return (
-    <div className="space-y-5">
-      <header className="space-y-1">
-        <h2 className="text-2xl font-semibold tracking-tight">{t(`request.heading.${data.kind}`)}</h2>
-        <p className="text-sm text-muted-foreground">{t(`request.description.${data.kind}`)}</p>
-      </header>
-
-      <RequestForm {...data} locale={locale} />
-
-      <p className="text-center text-sm">
-        <Link href="/portal/appointments" className="text-muted-foreground underline-offset-4 hover:underline">
-          {t('request.backToAppointments')}
-        </Link>
-      </p>
-    </div>
-  );
+  redirect(`/${locale}/portal/appointments`);
 }

@@ -84,6 +84,25 @@ const ICONS = {
   addClient: 'user-plus-bold',
   bookAppointment: 'calendar-add-bold',
   trend: 'graph-up-bold',
+
+  /**
+   * The client's plan — one mark per meal slot, keyed by `mealTypeForSlot`.
+   *
+   * Time of day rather than specific foods: the plan's dishes are Palestinian,
+   * and a plate of pasta on every lunch would be telling the client something
+   * about the food that the plan does not say. Solar has no fruit or cutlery
+   * glyph, so `donut` and `plate` stand in for the snack and the main meal —
+   * `donut` is already the staff `foods` mark, which is fine, because the two
+   * never appear on the same screen as each other.
+   */
+  mealBreakfast: 'sunrise-bold',
+  mealSnack: 'donut-bold',
+  mealLunch: 'plate-bold',
+  mealDinner: 'moon-bold',
+  /** The dish itself, on a meal card. Constant — no dish carries its own icon. */
+  dish: 'chef-hat-bold',
+  /** A client's requests about an appointment, which are a conversation. */
+  chat: 'chat-round-line-bold',
 } as const satisfies Record<string, string>;
 
 type SolarIcon = { body: string; width?: number; height?: number };
