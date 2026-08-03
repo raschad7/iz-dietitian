@@ -10,8 +10,13 @@ import { DISPLAY_TIME_ZONE } from '@/lib/format';
 import { hasEnded, wallClockIn } from './completed';
 
 import { type BookingInput, type CreateClientAndBookInput, type UpdateAppointmentInput } from './schema';
-import { type ActionResult, type CreatedAppointment } from './types';
-import { validateBooking, type ClinicHours, type ExistingAppointment } from './validation';
+import {
+  type ActionResult,
+  type CreatedAppointment,
+  type DeletedAppointment,
+  type UpdatedAppointment,
+} from './types';
+import { movesIntoThePast, validateBooking, type ClinicHours, type ExistingAppointment } from './validation';
 
 /**
  * Every write to the appointments table.
@@ -54,6 +59,19 @@ export type BookingContext = { clinicId: string; ownerName: string };
 /** Matches one appointment within one clinic, so a foreign id matches no rows. */
 function scopedToClinic(clinicId: string, id: string) {
   return and(eq(appointments.id, id), eq(appointments.clinicId, clinicId));
+}
+
+/**
+ * Today, in the clinic's own time zone — the earliest date a booking may fall
+ * on.
+ *
+ * The clinic's clock, not the caller's and not the server's: appointments are
+ * clinic-local, so "has that date gone?" is a question about where the clinic
+ * is. Read here rather than accepted from the request, which is the whole point
+ * of enforcing this server side — a browser can post any date it likes.
+ */
+function clinicToday(): string {
+  return wallClockIn(DISPLAY_TIME_ZONE).date;
 }
 
 /**
@@ -164,7 +182,7 @@ export async function createAppointment(
       const practitionerId = await resolvePractitioner(tx, context);
       const existing = await readDay(tx, clinicId, input.date);
 
-      const failure = validateBooking({ ...input, practitionerId }, existing, hours);
+      const failure = validateBooking({ ...input, practitionerId, today: clinicToday() }, existing, hours);
       if (failure) return { ok: false, error: failure };
 
       const [row] = await tx
@@ -194,7 +212,7 @@ export async function createAppointment(
 export async function updateAppointment(
   context: BookingContext,
   input: UpdateAppointmentInput,
-): Promise<ActionResult> {
+): Promise<ActionResult<UpdatedAppointment>> {
   const { clinicId } = context;
 
   try {
@@ -226,7 +244,9 @@ export async function updateAppointment(
        * row is what is tested, so this refuses to rewrite a past appointment
        * while still allowing a future one to be moved anywhere.
        */
-      if (hasEnded(current, wallClockIn(DISPLAY_TIME_ZONE))) {
+      const clinicNow = wallClockIn(DISPLAY_TIME_ZONE);
+
+      if (hasEnded(current, clinicNow)) {
         return { ok: false, error: 'errors.completedLocked' };
       }
 
@@ -243,8 +263,30 @@ export async function updateAppointment(
 
       // `excludeId` is what stops a move from colliding with the appointment
       // being moved.
-      const failure = validateBooking({ ...input, practitionerId, excludeId: input.id }, existing, hours);
+      const failure = validateBooking(
+        { ...input, practitionerId, excludeId: input.id, today: clinicToday() },
+        existing,
+        hours,
+      );
       if (failure) return { ok: false, error: failure };
+
+      /**
+       * A move may not land in the past — checked against the clinic's clock and
+       * against the row as it stands, which is the only place the previous slot
+       * exists. The browser refuses the same drag, but a server action is a
+       * public endpoint and the drag is only the polite half of the rule.
+       *
+       * After `validateBooking`, not before, so the *specific* answer wins: a
+       * move to last Tuesday is reported as a date that has gone, and only a
+       * move to an earlier hour of today — which every other rule accepts — falls
+       * through to here.
+       *
+       * An edit that leaves the slot alone passes, which is what keeps an
+       * appointment currently in progress editable.
+       */
+      if (movesIntoThePast(input, current, clinicNow)) {
+        return { ok: false, error: 'errors.pastTime' };
+      }
 
       await tx
         .update(appointments)
@@ -258,7 +300,10 @@ export async function updateAppointment(
         })
         .where(scopedToClinic(clinicId, input.id));
 
-      return { ok: true, data: undefined };
+      // Where it was. The caller needs this to tell a reschedule from an edit
+      // that left the slot alone, and to name the old time in the message; this
+      // transaction is the last place the previous values exist.
+      return { ok: true, data: { previous: { date: current.date, startMinute: current.startMinute } } };
     });
   } catch (error) {
     if (isBookingConflict(error)) return conflictToError(error);
@@ -267,13 +312,23 @@ export async function updateAppointment(
   }
 }
 
-export async function deleteAppointment(clinicId: string, id: string): Promise<ActionResult> {
+export async function deleteAppointment(clinicId: string, id: string): Promise<ActionResult<DeletedAppointment>> {
   try {
-    const rows = await db.delete(appointments).where(scopedToClinic(clinicId, id)).returning({ id: appointments.id });
+    // Returns who it was for and when, because the caller has to tell that
+    // client it is cancelled and there will be no row left to read.
+    const [row] = await db
+      .delete(appointments)
+      .where(scopedToClinic(clinicId, id))
+      .returning({
+        id: appointments.id,
+        clientId: appointments.clientId,
+        date: appointments.date,
+        startMinute: appointments.startMinute,
+      });
 
-    // No rows means either "no such appointment" or "not this clinic's". The
+    // No row means either "no such appointment" or "not this clinic's". The
     // caller cannot tell the two apart, which is deliberate.
-    return rows.length > 0 ? { ok: true, data: undefined } : { ok: false, error: 'errors.notFound' };
+    return row ? { ok: true, data: row } : { ok: false, error: 'errors.notFound' };
   } catch (error) {
     console.error('[booking] delete failed', error);
     return { ok: false, error: 'errors.unexpected' };
@@ -305,7 +360,7 @@ export async function createClientAndBook(
       // Validated before the client row is written: a rejected slot should not
       // leave a new person in the register. `clientId` is absent, so rule 5 is
       // skipped — a brand-new client cannot already be booked.
-      const failure = validateBooking({ ...input.booking, practitionerId }, existing, hours);
+      const failure = validateBooking({ ...input.booking, practitionerId, today: clinicToday() }, existing, hours);
       if (failure) return { ok: false, error: failure };
 
       const [client] = await tx
