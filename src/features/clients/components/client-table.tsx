@@ -135,7 +135,7 @@ export function ClientTable({
         </TableHeader>
         <TableBody>
           {result.items.map((client) => (
-            <TableRow key={client.id} zebra linked>
+            <TableRow key={client.id} linked>
               <TableCell>
                 {/*
                   `after:absolute after:inset-0` is what stretches this link
