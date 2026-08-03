@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { LocaleSwitcher } from '@/components/layout/locale-switcher';
 import { SignOutButton } from '@/components/layout/sign-out-button';
 import { type Locale } from '@/i18n/routing';
+import { cn } from '@/lib/utils';
 
 /**
  * Top app bar for both signed-in areas.
@@ -17,12 +18,19 @@ import { type Locale } from '@/i18n/routing';
  */
 export function Header({
   title,
+  titleShownInSidebar = false,
   userName,
   locale,
   actions,
   children,
 }: {
   title: string;
+  /**
+   * Set when the rail beside this header already carries the same words. The
+   * title then only *shows* from `md` down, where the rail is hidden — it stays
+   * in the accessibility tree at every width, so the page keeps its `h1`.
+   */
+  titleShownInSidebar?: boolean;
   userName?: string;
   locale: Locale;
   /**
@@ -36,7 +44,13 @@ export function Header({
 }) {
   return (
     <header className="flex h-14 shrink-0 items-center gap-3 px-3 md:px-5">
-      <h1 className="truncate font-heading text-heading-sm font-semibold text-foreground" dir="auto">
+      <h1
+        className={cn(
+          'truncate font-heading text-heading-sm font-semibold text-foreground',
+          titleShownInSidebar && 'md:sr-only',
+        )}
+        dir="auto"
+      >
         {title}
       </h1>
 

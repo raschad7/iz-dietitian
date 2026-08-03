@@ -37,6 +37,10 @@ const ICONS = {
   whatsapp: 'chat-round-dots-bold',
   security: 'shield-keyhole-bold',
 
+  // Client profile card headers
+  contact: 'phone-bold',
+  notes: 'notes-bold',
+
   // Navigation — client portal
   portalHome: 'home-2-bold',
   myAppointments: 'calendar-bold',

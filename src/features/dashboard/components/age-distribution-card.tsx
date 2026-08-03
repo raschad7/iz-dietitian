@@ -1,11 +1,11 @@
 import { getTranslations } from 'next-intl/server';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartTip } from '@/components/ui/chart-tip';
 import { Icon } from '@/components/ui/icon';
 import { type Demographics } from '@/features/dashboard/demographics';
 import { type Locale } from '@/i18n/routing';
-import { formatNumber, formatPercent } from '@/lib/format';
+import { formatPercent } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 type AgeDistributionCardProps = {
@@ -43,14 +43,13 @@ export async function AgeDistributionCard({ age, total, locale }: AgeDistributio
   return (
     <Card className="min-h-0 xl:h-full">
       <CardHeader className="shrink-0 grid-cols-[auto_1fr] items-center gap-2">
-        {/* Neutral: a chart is read, not clicked, and olive is this page's action colour. */}
-        <span className="flex size-8 items-center justify-center rounded-full bg-muted text-muted-foreground">
+        {/* Neutral at rest; the disc fills olive and the glyph goes white
+            under the pointer. That is the card's whole hover response — see
+            the `interactive` variant in ui/card.tsx. */}
+        <span className="flex size-8 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors group-hover/card:bg-primary group-hover/card:text-primary-foreground">
           <Icon name="clients" className="size-4" />
         </span>
-        <span>
-          <CardTitle>{t('title')}</CardTitle>
-          <CardDescription>{t('subtitle', { count: total })}</CardDescription>
-        </span>
+        <CardTitle>{t('title')}</CardTitle>
       </CardHeader>
 
       {/* Scrolls only if the bands ever outgrow the card; six never do. */}
@@ -93,9 +92,14 @@ export async function AgeDistributionCard({ age, total, locale }: AgeDistributio
                   />
                 </span>
 
-                <span className="flex items-baseline gap-1.5 font-mono text-caption tabular-nums">
-                  <span className="text-foreground">{formatNumber(locale, band.count)}</span>
-                  <span className="text-muted-foreground">{formatPercent(locale, band.share)}</span>
+                {/*
+                  The share alone, rounded to whole percent. The count is on
+                  the bar's own tooltip, and printing both put two numbers of
+                  different kinds side by side on every row of a chart whose
+                  whole job is comparison.
+                */}
+                <span className="font-mono text-caption tabular-nums text-muted-foreground">
+                  {formatPercent(locale, band.share, { maximumFractionDigits: 0 })}
                 </span>
               </li>
             ))}

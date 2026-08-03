@@ -151,7 +151,7 @@ export function ClientTable({
                   */
                   className={cn(
                     'rounded-sm font-medium underline-offset-4 after:absolute after:inset-0 after:content-[""]',
-                    'hover:underline focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-2',
+                    'focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-2',
                   )}
                 >
                   {client.fullName}
@@ -178,7 +178,7 @@ export function ClientTable({
                     <Link
                       href={`/app/weekly-plans/${client.id}`}
                       aria-label={tNav('weeklyPlans')}
-                      className={buttonVariants({ variant: 'outline', size: 'icon-sm' })}
+                      className={buttonVariants({ variant: 'ghost', size: 'icon-sm' })}
                     >
                       <Icon name="weeklyPlans" />
                     </Link>
@@ -189,7 +189,7 @@ export function ClientTable({
                       locale={locale}
                       clientId={client.id}
                       aria-label={t('edit')}
-                      className={buttonVariants({ variant: 'outline', size: 'icon-sm' })}
+                      className={buttonVariants({ variant: 'ghost', size: 'icon-sm' })}
                     >
                       <Icon name="edit" />
                     </ClientFormTrigger>

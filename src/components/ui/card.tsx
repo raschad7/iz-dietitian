@@ -1,6 +1,7 @@
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 
+import { Icon, type IconName } from "@/components/ui/icon"
 import { cn } from "@/lib/utils"
 
 /**
@@ -54,16 +55,23 @@ const cardVariants = cva(
        * Opt-in interactivity. A card that answers the pointer is promising it
        * does something when clicked, so this is a prop rather than a default.
        *
-       * The answer is the **edge thickening**, not a lift: `ring-2` in the
-       * brand colour, with the tail growing on the system's one curve. A raised
-       * shadow reads as the card leaving the page, which on a grid of four
-       * peers makes the hovered one look like it belongs to a different layer;
-       * a thicker edge says "this one" while the card stays where it is. It is
-       * also the same language `selected` already speaks — the edge, never the
-       * fill.
+       * **The edge thickens, and the icon fills.** `ring-2` in the brand
+       * colour, with the icon disc going olive and its glyph inverting to
+       * white. Not a lift: a raised shadow reads as the card leaving the page,
+       * which on a grid of peers makes the hovered one look like it belongs to
+       * a different layer. A thicker edge says "this one" while the card stays
+       * where it is, and it is the same language `selected` already speaks —
+       * the edge, never the fill.
+       *
+       * The tail does **not** grow with it. Geometry that changes under the
+       * pointer moves the card's own corner while you are reading it; the ring
+       * says the same thing without the shape shifting.
+       *
+       * A card that is *not* interactive answers with its icon alone — see
+       * `CardTitle` below. Only a card you can click gets the edge.
        */
       interactive: {
-        true: "cursor-pointer transition-all duration-200 ease-[cubic-bezier(.2,.6,.2,1)] hover:rounded-ee-[2.25rem] hover:ring-2 hover:ring-primary active:scale-[.995]",
+        true: "cursor-pointer transition-all duration-200 ease-[cubic-bezier(.2,.6,.2,1)] hover:ring-2 hover:ring-primary active:scale-[.995]",
         false: "",
       },
       /** Selected — the olive edge thickens rather than the card changing colour. */
@@ -141,16 +149,44 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
-function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
+/**
+ * `icon` is a plain glyph beside the title — never a badge or a filled
+ * circle. A card's own tail and ring already say "this is a surface"; a
+ * second contained shape on top of that would be a badge competing with the
+ * Arc for the same job. The icon just labels the section, the way a heading
+ * would in a document.
+ *
+ * **It is also the card's hover response.** Pointing at a card turns this one
+ * glyph olive; on a card that draws its icon on a disc, the disc fills olive
+ * and the glyph inverts to white instead. On a plain card that is the whole
+ * response — the edge belongs to `interactive` above, and a card you cannot
+ * click has no business promising otherwise. Any icon a card puts in its own
+ * header should follow the same rule.
+ */
+function CardTitle({
+  className,
+  icon,
+  children,
+  ...props
+}: React.ComponentProps<"div"> & { icon?: IconName }) {
   return (
     <div
       data-slot="card-title"
       className={cn(
         "font-heading text-heading-sm leading-snug font-semibold group-data-[size=sm]/card:text-body-md",
+        icon && "flex items-center gap-2",
         className
       )}
       {...props}
-    />
+    >
+      {icon ? (
+        <Icon
+          name={icon}
+          className="size-4 shrink-0 text-muted-foreground transition-colors group-hover/card:text-primary"
+        />
+      ) : null}
+      {children}
+    </div>
   )
 }
 
@@ -172,6 +208,36 @@ function CardAction({ className, ...props }: React.ComponentProps<"div">) {
       className={cn("col-start-2 row-span-2 row-start-1 self-start justify-self-end", className)}
       {...props}
     />
+  )
+}
+
+/**
+ * One labelled value, stacked rather than in a row: the label is a small,
+ * muted caption above; the value is full-strength text below it. This is the
+ * shape a form's own label/field pairing already has, so a card that is
+ * reading a record back keeps the same rhythm as the form that wrote it —
+ * a `justify-between` row with the label on one side and the value flushed
+ * to the other reads as a receipt, not a record.
+ */
+function CardField({
+  label,
+  value,
+  dir,
+  className,
+}: {
+  label: React.ReactNode
+  value: React.ReactNode
+  /** For a value whose script is fixed regardless of locale — a phone number, an email. */
+  dir?: "ltr" | "rtl" | "auto"
+  className?: string
+}) {
+  return (
+    <div data-slot="card-field" className={cn("space-y-0.5", className)}>
+      <p className="text-caption text-muted-foreground">{label}</p>
+      <p className="text-body-md font-medium text-foreground" dir={dir}>
+        {value}
+      </p>
+    </div>
   )
 }
 
@@ -249,6 +315,7 @@ export {
   CardAction,
   CardDescription,
   CardContent,
+  CardField,
   CardDivider,
   CardSkeleton,
   cardVariants,

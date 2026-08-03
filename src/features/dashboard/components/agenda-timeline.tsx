@@ -1,12 +1,11 @@
 import { getTranslations } from 'next-intl/server';
 
-import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
 import { addDays, startOfWeek } from '@/features/booking/date';
-import { formatDayNumber, formatDuration, formatMinuteRange, formatWeekday } from '@/features/booking/format';
+import { formatDayNumber, formatMinuteRange, formatWeekday } from '@/features/booking/format';
 import { type CalendarAppointment } from '@/features/booking/types';
 import { Link } from '@/i18n/navigation';
 import { type Locale } from '@/i18n/routing';
@@ -58,19 +57,12 @@ function findFocusIndex(appointments: CalendarAppointment[], nowMinute: number):
 
 export async function AgendaTimeline({ appointments, locale, today, nowMinute }: AgendaTimelineProps) {
   const t = await getTranslations('dashboard.agenda');
-  const td = await getTranslations('booking.duration');
 
   const ordered = [...appointments].sort((a, b) => a.startMinute - b.startMinute);
   const focusIndex = findFocusIndex(ordered, nowMinute);
   const weekStart = startOfWeek(today);
 
   const dayHref = (date: string) => ({ pathname: '/app/calendar/day' as const, query: { date } });
-
-  const duration = (minutes: number) =>
-    formatDuration(minutes, {
-      hour: (count) => td('hours', { count }),
-      minute: (count) => td('minutes', { count }),
-    });
 
   return (
     /*
@@ -82,18 +74,14 @@ export async function AgendaTimeline({ appointments, locale, today, nowMinute }:
     <Card className="xl:h-full xl:min-h-0">
       <CardContent className="flex flex-col gap-4 xl:min-h-0 xl:flex-1">
         <header className="flex shrink-0 flex-col gap-3">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-caption text-muted-foreground">{t('dateLabel')}</p>
-              <h3 className="font-heading text-heading-lg font-semibold">{t('title')}</h3>
-            </div>
+          <div className="flex items-baseline justify-between gap-3">
+            <h3 className="font-heading text-heading-lg font-semibold">{t('title')}</h3>
             {/*
-              Neutral whatever the count. `onTrack` is a status, and a day with
-              appointments in it is not an achievement — it is a fact. It also
-              put a second olive chip a few pixels from the one element on this
-              page that is meant to be the emphasis.
+              Plain muted text, not a chip. A day with appointments in it is not
+              a status — it is a fact, and a filled badge gave that fact more
+              weight than the one row on this card that is meant to carry any.
             */}
-            <Badge variant="muted">{t('count', { count: ordered.length })}</Badge>
+            <span className="text-caption text-muted-foreground">{t('count', { count: ordered.length })}</span>
           </div>
 
           {/* The week strip: the agenda doubles as a jump to any other day of the week. */}
@@ -208,18 +196,23 @@ export async function AgendaTimeline({ appointments, locale, today, nowMinute }:
                         )}
                       </span>
 
-                      {isFocused ? (
-                        /*
-                          The chip inverts with the card it sits on. Lime is
-                          1.17:1 against the resting olive-100 fill — it would
-                          be invisible at exactly the moment it has a job to
-                          do — so it rests as a solid primary chip (4.66:1 on
-                          the fill) and becomes the lime one on hover, where
-                          the card has gone dark and lime is 3.99:1.
+                      {/*
+                        The chip inverts with the card it sits on. Lime is
+                        1.17:1 against the resting olive-100 fill — it would
+                        be invisible at exactly the moment it has a job to
+                        do — so it rests as a solid primary chip (4.66:1 on
+                        the fill) and becomes the lime one on hover, where
+                        the card has gone dark and lime is 3.99:1.
 
-                          Still the page's one lime element. Do not add a
-                          second accent anywhere else on it.
-                        */
+                        Still the page's one lime element. Do not add a
+                        second accent anywhere else on it.
+
+                        Nothing sits here on the other rows: the length of a
+                        session is already in the time range beside it, and
+                        "45 min" on every row was a column of noise that made
+                        the one row carrying the chip harder to find.
+                      */}
+                      {isFocused ? (
                         <Badge
                           variant="accent"
                           className={cn(
@@ -229,17 +222,16 @@ export async function AgendaTimeline({ appointments, locale, today, nowMinute }:
                         >
                           {isLive ? t('live') : t('next')}
                         </Badge>
-                      ) : (
-                        <span className="text-label text-muted-foreground">
-                          {duration(appointment.durationMinutes)}
-                        </span>
-                      )}
+                      ) : null}
                     </div>
 
+                    {/*
+                      No avatar. The rail to the inline-start already gives
+                      every row a mark at its start, and a coloured initial an
+                      inch away from it made two badges per row competing to be
+                      the thing the eye lands on.
+                    */}
                     <div className="mt-2 flex items-center gap-2">
-                      {/* The client's own colour — row data, not a design token; see design-system.md. */}
-                      <Avatar size="sm" name={appointment.clientName} color={appointment.clientColor} />
-
                       <span className="min-w-0 flex-1">
                         <span
                           className={cn('block truncate font-medium', isFocused ? 'text-heading-sm' : 'text-body-md')}
@@ -263,13 +255,6 @@ export async function AgendaTimeline({ appointments, locale, today, nowMinute }:
                         ) : null}
                       </span>
                     </div>
-
-                    {isFocused ? (
-                      <p className="mt-2 flex items-center gap-1.5 text-caption text-muted-foreground group-hover/session:text-primary-foreground/85">
-                        <Icon name="clock" className="size-3.5" />
-                        {duration(appointment.durationMinutes)}
-                      </p>
-                    ) : null}
                   </Link>
                 </li>
               );

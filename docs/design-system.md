@@ -253,7 +253,7 @@ on a child of an already-swept parent.
 | Surface | Base | Sweep | Hover | Press |
 |---|---|---|---|---|
 | Button, field | 10px | 24px | 30px | 18px + 1px sink |
-| Card | 16px | 32px | 36px (interactive only) + 2px ring | scale .995 |
+| Card | 16px | 32px | 32px — 2px ring (interactive only); the header icon fills olive | scale .995 |
 | Icon button | `rounded-full` | ~29% of size | +3px | −3px |
 | Bottom nav | 16px | 28px | — | — |
 | Rail | **none** | **none** | — | — |
@@ -390,16 +390,26 @@ Variants: `default` · `tinted` · `empty` (dashed olive-300, for empty states) 
 
 Props: `size="sm"`, `interactive`, `selected` (the olive ring thickens; the card
 does not change colour), `flagged` (a clay dot in the corner — never a red
-card).
+card). `CardTitle` takes an `icon` — a plain glyph beside the title, never a
+badge.
+
+**Every card answers the pointer with its icon; only a clickable one also gets
+an edge.** A header icon drawn on a disc fills olive with its glyph inverting
+to white (`group-hover/card:bg-primary group-hover/card:text-primary-foreground`);
+a bare `CardTitle` glyph, which has no disc to fill, goes olive instead
+(`group-hover/card:text-primary`). On a card that is not `interactive` that is
+the whole response — a surface you cannot click has no business promising
+otherwise.
 
 **`interactive` thickens the edge, it does not lift the card.** On hover the
-ring goes to 2px olive and the tail grows; there is no shadow change. A raised
-shadow reads as the card leaving the page, and on a grid of four peers — the
-dashboard's quick actions — that makes the hovered one look like it belongs to
-a different layer. A thicker edge says "this one" while the card stays put, and
-it is the same language `selected` already speaks: the edge, never the fill.
-It stays opt-in, because a card that answers the pointer is promising it does
-something when clicked.
+ring goes to 2px olive; there is no shadow change. A raised shadow reads as the
+card leaving the page, and on a grid of peers — the dashboard's quick actions —
+that makes the hovered one look like it belongs to a different layer. A thicker
+edge says "this one" while the card stays put, and it is the same language
+`selected` already speaks: the edge, never the fill. The **tail does not grow**
+with it: geometry that changes under the pointer moves the card's own corner
+while you are reading it. It stays opt-in, because a card that answers the
+pointer is promising it does something when clicked.
 
 `CardSkeleton` is the loading state: same shape, same footprint, nothing jumps.
 
@@ -607,16 +617,19 @@ The steps were picked by running the palette validator, not by eye:
   on the card, and n-200 measures 1.34:1 on white, n-300 1.66:1 — both under
   the 2:1 floor a filled mark needs. n-400 is 2.50:1. `.dark` re-anchors the
   ramp (n-600 → n-200) rather than flipping it automatically.
-- **Categorical is clay-600 + amber-600.** The only categorical split the app
-  draws is sex, and with the sequential ramp neutral neither slot may be the
-  brand colour. The pair separates on **lightness** as well as hue — 6.84:1 and
-  4.71:1 on white, a 1.45:1 ratio between the two fills — which is what carries
-  it through colour-vision simulation, where two warm hues collapse towards
-  each other. Both clear the 3:1 mark floor unaided.
-- **Inside a chart, clay and amber carry no status meaning.** Clay is the
-  medical colour and amber is attention *everywhere else*; a donut segment is
-  neither. That is why a categorical chart's legend is mandatory, and why no
-  other surface may borrow the `viz-cat-*` tokens.
+- **Categorical is olive-800 + olive-500.** The only categorical split the app
+  draws is the sex donut, and nothing on that card is clickable — so olive
+  there cannot be mistaken for an action, and the warm support hues it used to
+  take (clay + amber) read as an alarm about the register rather than a
+  description of it. Separation is by **lightness**, not hue — 10.4:1 and
+  3.47:1 on white, a 3.0:1 ratio between the two fills — which is exactly what
+  carries a one-hue pair through colour-vision simulation. Both clear the 3:1
+  mark floor unaided.
+- **This is the one place olive is data, and it does not generalise.** Olive
+  marks what you can act on; the exception holds only because that card has
+  nothing to act on. A categorical chart's legend stays mandatory — the fills
+  name nothing on their own — and no other surface may borrow the `viz-cat-*`
+  tokens.
 - **Colour follows the entity, never its rank.** Female is always slot 1,
   male always slot 2, so a shifting balance never repaints the chart.
 - Ordered categories — age bands, tiers, funnel stages — are **ordinal**: they

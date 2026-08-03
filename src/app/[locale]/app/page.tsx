@@ -74,7 +74,7 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
             the page: one row that ends where the screen does.
           */}
           <div className="grid gap-4 xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-            <ClientsCard clients={data.recentClients} total={data.activeClients} locale={locale} />
+            <ClientsCard clients={data.recentClients} locale={locale} />
 
             <div className="grid gap-4 sm:grid-cols-2 xl:min-h-0 xl:grid-cols-1 xl:grid-rows-2">
               <AgeDistributionCard

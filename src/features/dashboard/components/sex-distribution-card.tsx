@@ -1,6 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartTip } from '@/components/ui/chart-tip';
 import { Icon } from '@/components/ui/icon';
 import { type Demographics, type SexKey } from '@/features/dashboard/demographics';
@@ -19,21 +19,23 @@ type SexDistributionCardProps = {
  *
  * Two or three segments is the only size a ring is honest at — it answers
  * "roughly half?" at a glance and nothing more, which is exactly the question
- * here. Anything finer is read off the legend, which carries every count and
- * share in text, so no value is locked behind the colour or a hover.
+ * here. Anything finer is read off the legend, which names every group and its
+ * share in text, so no group is identified by colour alone.
  *
  * **The colour is fixed to the category, never to its size.** Female is always
  * slot 1 and male always slot 2, so a clinic whose balance shifts does not see
  * the chart repaint itself.
  *
- * The slots are the two support hues — clay and amber (`--viz-cat-*`) — rather
- * than the brand olive: this is a chart, and olive on the dashboard means
- * "you can act on this". They are separated by lightness as well as by hue,
- * which is what carries them through colour-vision simulation, where two warm
- * hues collapse towards each other. Both clear 3:1 on the card unaided, but
- * neither carries a *meaning* — clay is the medical colour elsewhere and amber
- * is attention — so the legend beside the ring is not decoration; do not strip
- * it back to swatches.
+ * The slots are two olive stops far apart (`--viz-cat-*`), which makes this
+ * the one chart in the app drawn in the brand colour. It is allowed here
+ * because nothing on this card is clickable, so an olive fill cannot be
+ * mistaken for something to press; the warm support hues it used to take read
+ * as a warning about the register rather than a description of it. Separation
+ * is by **lightness**, not hue — a one-hue pair is exactly what survives
+ * colour-vision simulation, where two warm hues collapse towards each other —
+ * and both clear 3:1 on the card unaided. Neither fill carries a meaning on
+ * its own, so the legend beside the ring is not decoration; do not strip it
+ * back to swatches.
  */
 
 /** Fixed slot per category. `unknown` is a neutral: an absence, not a third identity. */
@@ -138,14 +140,13 @@ export async function SexDistributionCard({ sex, total, locale }: SexDistributio
   return (
     <Card className="min-h-0 xl:h-full">
       <CardHeader className="shrink-0 grid-cols-[auto_1fr] items-center gap-2">
-        {/* Neutral: a chart is read, not clicked, and olive is this page's action colour. */}
-        <span className="flex size-8 items-center justify-center rounded-full bg-muted text-muted-foreground">
+        {/* Neutral at rest; the disc fills olive and the glyph goes white
+            under the pointer. That is the card's whole hover response — see
+            the `interactive` variant in ui/card.tsx. */}
+        <span className="flex size-8 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors group-hover/card:bg-primary group-hover/card:text-primary-foreground">
           <Icon name="topClients" className="size-4" />
         </span>
-        <span>
-          <CardTitle>{t('title')}</CardTitle>
-          <CardDescription>{t('subtitle', { count: total })}</CardDescription>
-        </span>
+        <CardTitle>{t('title')}</CardTitle>
       </CardHeader>
 
       <CardContent className="flex min-h-0 flex-1 items-center">
@@ -235,9 +236,10 @@ export async function SexDistributionCard({ sex, total, locale }: SexDistributio
                 <li key={slice.key} className="flex items-center gap-2">
                   <span aria-hidden className={cn('size-2.5 shrink-0 rounded-full', SWATCH[slice.key])} />
                   <span className="min-w-0 flex-1 truncate text-caption">{t(`groups.${slice.key}`)}</span>
-                  <span className="flex shrink-0 items-baseline gap-1.5 font-mono text-caption tabular-nums">
-                    <span>{formatNumber(locale, slice.count)}</span>
-                    <span className="text-muted-foreground">{formatPercent(locale, slice.share)}</span>
+                  {/* The share alone, rounded to whole percent — the count is
+                      on the segment's tooltip and in the ring's centre. */}
+                  <span className="shrink-0 font-mono text-caption tabular-nums text-muted-foreground">
+                    {formatPercent(locale, slice.share, { maximumFractionDigits: 0 })}
                   </span>
                 </li>
               ))}

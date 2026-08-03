@@ -60,6 +60,14 @@ export function MonthView({
     else byDate.set(appointment.date, [appointment]);
   }
 
+  /**
+   * A cell only has room for a handful of chips before the row itself starts
+   * pushing into the next week. Past this, the count left off is worth more
+   * than a fourth sliver of a chip — it says there is more without spending
+   * the space to half-show it.
+   */
+  const MAX_VISIBLE = 3;
+
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-border">
       <div className="grid grid-cols-7 border-b border-border bg-muted/50">
@@ -75,6 +83,12 @@ export function MonthView({
           const inMonth = isSameMonth(date, anchorDate);
           const closed = !isWorkingDay(date, hours);
           const dayAppointments = byDate.get(date) ?? [];
+          const visibleAppointments = dayAppointments.slice(0, MAX_VISIBLE);
+          const hiddenCount = dayAppointments.length - visibleAppointments.length;
+          // A day already gone reads the same muted way a day outside this
+          // month does — neither can be booked from here, so neither earns
+          // full-strength text.
+          const isPast = today !== null && date < today;
 
           return (
             /*
@@ -91,30 +105,23 @@ export function MonthView({
               className={cn(
                 'min-h-24 overflow-hidden border-b border-s border-border p-1 text-start transition-colors',
                 'hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
-                !inMonth && 'bg-muted/30 text-muted-foreground',
+                (!inMonth || isPast) && 'text-muted-foreground',
+                !inMonth && 'bg-muted/30',
                 closed && 'bg-muted/50',
                 date === today && 'ring-1 ring-inset ring-primary/40',
               )}
               onClick={() => onOpenDay(date)}
             >
-              <div className="flex items-center justify-between gap-1">
-                <span className={cn('text-xs font-medium', date === today && 'text-primary')}>
-                  {formatDayNumber(locale, date)}
-                </span>
-
-                {dayAppointments.length > 0 && (
-                  <span className="text-label text-muted-foreground">
-                    {t('monthCount', { count: dayAppointments.length })}
-                  </span>
-                )}
-              </div>
+              <span className={cn('text-base font-semibold', date === today && 'text-primary')}>
+                {formatDayNumber(locale, date)}
+              </span>
 
               {/*
                 Plain list items, not buttons. A month chip is read, never
                 acted on — the day view is where an appointment can be changed.
               */}
               <ul className="mt-1 space-y-0.5">
-                {dayAppointments.map((appointment) => {
+                {visibleAppointments.map((appointment) => {
                   const completed = completedIds.has(appointment.id);
 
                   return (
@@ -154,6 +161,11 @@ export function MonthView({
                   );
                 })}
               </ul>
+
+              {/* What the three chips above left off — a count, not a fourth sliver of a chip. */}
+              {hiddenCount > 0 && (
+                <p className="mt-0.5 px-1 text-label text-muted-foreground">{t('monthMore', { count: hiddenCount })}</p>
+              )}
             </button>
           );
         })}

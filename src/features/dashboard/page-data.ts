@@ -3,12 +3,7 @@ import { listAppointments } from '@/features/booking/queries';
 import { type CalendarAppointment } from '@/features/booking/types';
 
 import { summariseDemographics, type Demographics } from './demographics';
-import {
-  countActiveClients,
-  listClientDemographics,
-  listRecentClients,
-  type DashboardClient,
-} from './queries';
+import { listClientDemographics, listRecentClients, type DashboardClient } from './queries';
 
 /**
  * The server-side work behind `/app` — the dietitian's morning page.
@@ -38,8 +33,6 @@ export type DashboardData = {
   agenda: CalendarAppointment[];
   /** Newest first, active only, at most {@link RECENT_CLIENTS}. */
   recentClients: DashboardClient[];
-  /** Everyone active on the register, not just the ones listed above. */
-  activeClients: number;
   demographics: Demographics;
 };
 
@@ -50,10 +43,9 @@ export async function loadDashboard(clinicId: string): Promise<DashboardData> {
   const today = toIsoDate(now);
   const nowMinute = now.getHours() * 60 + now.getMinutes();
 
-  const [agenda, recentClients, activeClients, demographicRows] = await Promise.all([
+  const [agenda, recentClients, demographicRows] = await Promise.all([
     listAppointments(clinicId, today, today),
     listRecentClients(clinicId, today, RECENT_CLIENTS),
-    countActiveClients(clinicId),
     listClientDemographics(clinicId),
   ]);
 
@@ -62,7 +54,6 @@ export async function loadDashboard(clinicId: string): Promise<DashboardData> {
     nowMinute,
     agenda,
     recentClients,
-    activeClients,
     demographics: summariseDemographics(demographicRows, now),
   };
 }

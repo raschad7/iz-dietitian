@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
-import { useCallback, useMemo, useOptimistic, useRef, useState, useTransition } from 'react';
+import { useCallback, useMemo, useOptimistic, useState, useTransition } from 'react';
 
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useRouter } from '@/i18n/navigation';
@@ -19,12 +19,11 @@ import {
 import { addDays, addMonths, eachDay, startOfWeek, toIsoDate } from '../date';
 import { formatDayNumber, formatLongDate, formatMinute, formatMonthYear, formatWeekday } from '../format';
 import { isCompleted, localWallClock } from '../completed';
-import { minuteToY } from '../geometry';
+import { PX_PER_SLOT, minuteToY } from '../geometry';
 import { type CalendarView } from '../schema';
 import { type ActionErrorKey, type CalendarAppointment, type CalendarClient } from '../types';
 import { useCalendarClock } from '../use-calendar-clock';
 import { useCalendarGestures, type BookingRequest } from '../use-calendar-gestures';
-import { useFittedSlotHeight } from '../use-fitted-grid';
 import { isWorkingDay, movesIntoThePast, type ClinicHours, type ExistingAppointment } from '../validation';
 import { AppointmentDialog } from './appointment-dialog';
 import { CalendarToolbar } from './calendar-toolbar';
@@ -71,6 +70,23 @@ export type CalendarProps = {
   hours: ClinicHours;
   appointments: CalendarAppointment[];
   clients: CalendarClient[];
+  /**
+   * The route family `day`/`week`/`month` hang off. Defaults to the main
+   * calendar's own address; a client's Visit History tab mounts this same
+   * component under `/app/clients/{id}/visits` instead, so its view switch
+   * and date navigation stay inside that client's page rather than jumping
+   * to the clinic-wide calendar.
+   */
+  basePath?: string;
+  /**
+   * Whether the day view's booking picker offers "add a new client". Defaults
+   * to the ordinary day-view rule. A client-scoped calendar passes `false`:
+   * every booking made there is already for the one person the page is
+   * about, so an "add someone else" button would be a false offer.
+   */
+  allowNewClient?: boolean;
+  /** Hides the toolbar's search field — see the note on `CalendarToolbarProps`. */
+  hideSearch?: boolean;
 };
 
 type OptimisticAction =
@@ -88,6 +104,9 @@ export function Calendar({
   hours,
   appointments,
   clients,
+  basePath = '/app/calendar',
+  allowNewClient: allowNewClientProp,
+  hideSearch = false,
 }: CalendarProps) {
   const t = useTranslations('booking');
   const router = useRouter();
@@ -115,11 +134,12 @@ export function Calendar({
   const nowClock = now ? localWallClock(now) : null;
 
   /**
-   * The measured timeline body. Its height decides the slot height, which is
-   * what makes the whole clinic day fit without a scrollbar.
+   * The timeline draws every slot at this fixed height regardless of how much
+   * vertical space the panel has — a working day usually needs more room than
+   * that to stay readable, and the body scrolls to it instead of the grid
+   * shrinking to avoid a scrollbar.
    */
-  const gridAreaRef = useRef<HTMLDivElement>(null);
-  const pxPerSlot = useFittedSlotHeight(gridAreaRef, hours);
+  const pxPerSlot = PX_PER_SLOT;
 
   const [optimisticAppointments, applyOptimistic] = useOptimistic(
     appointments,
@@ -208,7 +228,7 @@ export function Calendar({
   function navigate(next: { view?: CalendarView; date?: string }): void {
     const params = new URLSearchParams(searchParams.toString());
     params.set('date', next.date ?? anchorDate);
-    router.push(`/app/calendar/${next.view ?? view}?${params.toString()}`);
+    router.push(`${basePath}/${next.view ?? view}?${params.toString()}`);
   }
 
   const step = view === 'month' ? 'month' : view === 'week' ? 7 : 1;
@@ -459,6 +479,7 @@ export function Calendar({
         rangeLabel={rangeLabel}
         query={query}
         onQueryChange={setQuery}
+        hideSearch={hideSearch}
         onViewChange={(next) => navigate({ view: next })}
         onToday={() => navigate({ date: today ?? anchorDate })}
         onPrevious={() => shift(-1)}
@@ -500,16 +521,17 @@ export function Calendar({
         />
       ) : (
         /*
-          The whole clinic day fits the panel — no vertical scrollbar, and every
-          hour label on screen at once. `gridAreaRef` is measured, the slot
-          height is divided out of that height, and the columns are drawn to
-          exactly it. `overflow-y-auto` is a safety net for a viewport so short
-          that a slot would fall under `MIN_PX_PER_SLOT`; in normal use nothing
-          overflows, so no bar appears.
+          The clinic day is drawn at a fixed, readable slot height rather than
+          squeezed to fit whatever the panel measures — a working day is
+          usually taller than that, and shrinking it to avoid a scrollbar is
+          what used to make every hour cramped. The body scrolls instead, and
+          the bar is left visible: with scrolling as the normal case here
+          rather than the exception, hiding the signal that there is more
+          below would just cost someone a missed afternoon slot.
 
-          The day headers are a separate, non-scrolling row above the measured
-          area rather than sticky inside it — with nothing scrolling, sticky had
-          no work left to do.
+          The day headers are a separate, non-scrolling row above the
+          scrolling area rather than sticky inside it — they never move, so
+          sticky positioning has no work left to do.
         */
         <div
           className={cn(
@@ -564,23 +586,12 @@ export function Calendar({
               </div>
 
               {/*
-                `overflow-y-auto` is kept as the safety net it always was — a
-                window too short for the clinic day at a readable slot height
-                still scrolls rather than clipping the afternoon away — but the
-                bar itself is hidden. In normal use the grid is fitted to this
-                panel exactly and there is nothing to scroll.
-
                 `py-3` is what gives the opening and closing hours room to
                 breathe. Without it the first label sits hard against the day
                 headers and the last against the panel's bottom edge, both of
                 them touching a border and neither easy to read.
-
-                It costs nothing to keep in step: this is the element the
-                `ResizeObserver` measures, and `contentRect` reports the *content*
-                box — so the fitted slot height already excludes this padding and
-                the grid still ends exactly where the padding begins.
               */}
-              <div ref={gridAreaRef} className="no-scrollbar flex min-h-0 flex-1 overflow-y-auto py-3">
+              <div className="flex min-h-0 flex-1 overflow-y-auto py-3">
                 {/* Hour gutter. Its labels use the same geometry as the blocks. */}
                 <div className="sticky start-0 z-30 w-16 shrink-0 bg-background">
                   {Array.from(
@@ -670,8 +681,9 @@ export function Calendar({
           clients={clients}
           existing={existingByDate(pendingBooking.date)}
           // Only the day view takes someone's details; the week books people
-          // already on the register.
-          allowNewClient={view === 'day'}
+          // already on the register. A client-scoped calendar overrides this
+          // to false outright — see `allowNewClient` on `CalendarProps`.
+          allowNewClient={allowNewClientProp ?? view === 'day'}
           onPick={book}
           onNewClient={() => {
             setNewClientFor(pendingBooking);

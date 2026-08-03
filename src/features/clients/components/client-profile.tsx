@@ -1,6 +1,6 @@
 import { useFormatter, useTranslations } from 'next-intl';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardField, CardHeader, CardTitle } from '@/components/ui/card';
 import { calculateAge } from '@/features/clients/age';
 import { type ClientDetail } from '@/features/clients/queries';
 import {
@@ -9,7 +9,6 @@ import {
   CLIENT_SEXES,
 } from '@/features/clients/schema';
 import { isMember } from '@/lib/enum';
-
 
 export function ClientProfile({ client }: { client: ClientDetail }) {
   const t = useTranslations('clients');
@@ -27,66 +26,82 @@ export function ClientProfile({ client }: { client: ClientDetail }) {
     <div className="grid gap-4 md:grid-cols-2">
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">{t('sections.contact')}</CardTitle>
+          <CardTitle icon="contact" className="text-base">
+            {t('sections.contact')}
+          </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <Row label={t('fields.phone')} value={client.phone} ltr />
-          <Row label={t('fields.email')} value={client.email} ltr />
-          <Row
+        <CardContent className="grid grid-cols-2 gap-4">
+          <Value label={t('fields.phone')} value={client.phone} dir="ltr" />
+          <Value label={t('fields.email')} value={client.email} dir="ltr" />
+          <Value
             label={t('fields.preferredLocale')}
             value={client.preferredLocale === 'ar' ? 'العربية' : 'English'}
           />
-          <Row
-            label={t('fields.createdAt')}
-            value={format.dateTime(client.createdAt, 'date')}
-          />
+          <Value label={t('fields.createdAt')} value={format.dateTime(client.createdAt, 'date')} />
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">{t('sections.intake')}</CardTitle>
+          <CardTitle icon="profile" className="text-base">
+            {t('sections.intake')}
+          </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <Row label={t('fields.dateOfBirth')} value={client.dateOfBirth} ltr />
-          <Row label={t('fields.age')} value={age === null ? null : t('yearsOld', { count: age })} />
-          <Row label={t('fields.sex')} value={sexLabel} />
-          <Row
+        <CardContent className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+          <Value label={t('fields.dateOfBirth')} value={client.dateOfBirth} dir="ltr" />
+          <Value label={t('fields.age')} value={age === null ? null : t('yearsOld', { count: age })} />
+          <Value label={t('fields.sex')} value={sexLabel} />
+          <Value
             label={t('fields.heightCm')}
             value={client.heightCm === null ? null : format.number(client.heightCm, 'integer')}
           />
-          <Row label={t('fields.goal')} value={goalLabel} />
-          <Row label={t('fields.activityLevel')} value={activityLabel} />
+          <Value label={t('fields.goal')} value={goalLabel} />
+          <Value label={t('fields.activityLevel')} value={activityLabel} />
         </CardContent>
       </Card>
 
       <Card className="md:col-span-2">
         <CardHeader>
-          <CardTitle className="text-base">{t('sections.notes')}</CardTitle>
+          <CardTitle icon="notes" className="text-base">
+            {t('sections.notes')}
+          </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <Row label={t('fields.medicalNotes')} value={client.medicalNotes} />
-          <Row label={t('fields.allergies')} value={client.allergies} />
-          <Row label={t('fields.notes')} value={client.notes} />
+        <CardContent className="grid gap-4 sm:grid-cols-3">
+          <Value label={t('fields.medicalNotes')} value={client.medicalNotes} multiline />
+          <Value label={t('fields.allergies')} value={client.allergies} multiline />
+          <Value label={t('fields.notes')} value={client.notes} multiline />
         </CardContent>
       </Card>
     </div>
   );
 }
 
-function Row({ label, value, ltr = false }: { label: string; value: string | null; ltr?: boolean }) {
+function Value({
+  label,
+  value,
+  dir,
+  multiline = false,
+}: {
+  label: string;
+  value: string | null;
+  dir?: 'ltr' | 'auto';
+  multiline?: boolean;
+}) {
   const t = useTranslations('clients');
 
   return (
-    <div className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="font-medium whitespace-pre-line" dir={ltr ? 'ltr' : undefined}>
-        {value === null || value === '' ? (
+    <CardField
+      label={label}
+      dir={dir}
+      value={
+        value === null || value === '' ? (
           <span className="font-normal text-muted-foreground">{t('notProvided')}</span>
+        ) : multiline ? (
+          <span className="whitespace-pre-line">{value}</span>
         ) : (
           value
-        )}
-      </span>
-    </div>
+        )
+      }
+    />
   );
 }

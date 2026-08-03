@@ -199,19 +199,25 @@ export function ClientPicker({
         }
       }}
     >
-      <header className="space-y-0.5 text-start">
-        <p className="text-sm font-semibold" dir="auto">
-          {formatMinuteRange(locale, pending.date, pending.startMinute, endMinute)}
-          <span className="ms-2 font-normal text-muted-foreground">
-            {formatDuration(pending.durationMinutes, {
-              hour: (n) => t('duration.hours', { count: n }),
-              minute: (n) => t('duration.minutes', { count: n }),
-            })}
-          </span>
-        </p>
-        <p className="text-xs text-muted-foreground" dir="auto">
-          {formatLongDate(locale, pending.date)}
-        </p>
+      <header className="flex items-start gap-2">
+        <div className="min-w-0 flex-1 space-y-0.5 text-start">
+          <p className="text-sm font-semibold" dir="auto">
+            {formatMinuteRange(locale, pending.date, pending.startMinute, endMinute)}
+            <span className="ms-2 font-normal text-muted-foreground">
+              {formatDuration(pending.durationMinutes, {
+                hour: (n) => t('duration.hours', { count: n }),
+                minute: (n) => t('duration.minutes', { count: n }),
+              })}
+            </span>
+          </p>
+          <p className="text-xs text-muted-foreground" dir="auto">
+            {formatLongDate(locale, pending.date)}
+          </p>
+        </div>
+
+        <Button type="button" variant="ghost" size="icon-sm" onClick={onCancel} aria-label={t('actions.close')}>
+          <Icon name="close" />
+        </Button>
       </header>
 
       <div className="relative">

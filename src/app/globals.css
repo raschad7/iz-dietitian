@@ -259,19 +259,21 @@
    * rather than flipping it automatically.
    *
    * `viz-cat-*` is the two-slot CATEGORICAL palette, for identity (which
-   * segment). Clay-600 + amber-600 — the two support hues — because the only
-   * categorical split the app draws is sex, and neither slot may be the brand
-   * colour once the ramp beside it is neutral. They are separated by lightness
-   * as well as hue (6.84:1 vs 4.71:1 on white, a 1.45:1 ratio between the two
-   * fills), which is what carries them through colour-vision simulation, where
-   * both collapse towards the same warm hue. Both clear the 3:1 mark floor on
-   * white unaided. `viz-cat-none` is the deliberate neutral for "not recorded"
-   * — an absence is not a third category.
+   * segment). Two olive stops far apart — olive-800 + olive-500 on the light
+   * surface — because the only categorical split the app draws is the sex
+   * donut, nothing on that card is clickable, and the warm support hues it
+   * used to take read as an alarm about the register rather than a
+   * description of it. Separation is by LIGHTNESS, not hue (10.4:1 vs 3.47:1
+   * on white, a 3.0:1 ratio between the two fills), which is what carries a
+   * one-hue pair through colour-vision simulation. Both clear the 3:1 mark
+   * floor on white unaided. `viz-cat-none` is the deliberate neutral for "not
+   * recorded" — an absence is not a third category.
    *
-   * Clay is the medical/destructive colour elsewhere and amber is attention;
-   * inside a chart they carry no such meaning, which is why a chart legend is
-   * mandatory (see docs/design-system.md) and why no other surface may borrow
-   * these tokens.
+   * The exception proves the rule: this is the one place olive appears as
+   * data, and it is allowed only because the surface it sits on has no action
+   * on it at all. A chart legend is still mandatory (see
+   * docs/design-system.md) — the fills name nothing on their own — and no
+   * other surface may borrow these tokens.
    */
   --color-viz-seq-1: var(--viz-seq-1);
   --color-viz-seq-2: var(--viz-seq-2);
@@ -448,8 +450,20 @@
   /*
    * Chart scales on the light surface. Validated against #FFFFFF: the
    * sequential ramp is monotone with a light end of 2.50:1 and a dark end of
-   * 13.6:1, and the categorical pair separates on lightness (6.84:1 / 4.71:1)
-   * as well as hue, which is what survives colour-vision simulation.
+   * 13.6:1.
+   *
+   * The categorical pair is **olive**, two stops apart. It was clay-600 +
+   * amber-600, on the rule that olive marks what you can act on and data is
+   * drawn in support hues — but the only categorical chart the app draws is
+   * the sex donut, and two warm alarm-adjacent hues on it read as a warning
+   * about the register rather than a description of it. Since nothing on that
+   * card is clickable, the ring cannot be mistaken for an action.
+   *
+   * Separation still comes from lightness, not hue, which is what survives
+   * colour-vision simulation — and it is now wider than the pair it replaced:
+   * olive-800 is 10.4:1 on white and olive-500 is 3.47:1, a 3.0:1 ratio
+   * between the two fills against the old pair's 1.45:1. Both clear the 3:1
+   * mark floor unaided.
    */
   --viz-seq-1: var(--n-400);
   --viz-seq-2: var(--n-500);
@@ -457,8 +471,8 @@
   --viz-seq-4: var(--n-700);
   --viz-seq-5: var(--n-800);
   /* Colour follows the entity, never its rank: female is always slot 1. */
-  --viz-cat-1: var(--clay-600);
-  --viz-cat-2: var(--amber-600);
+  --viz-cat-1: var(--olive-800);
+  --viz-cat-2: var(--olive-500);
   --viz-cat-none: var(--n-300);
 
   /*
@@ -574,20 +588,22 @@
    * more-is-*lighter*, and n-600 is the darkest step that still clears the
    * surface (2.03:1). Validated as an ordinal ramp against #223414.
    *
-   * The categorical pair moves to the 300 stops so it clears the dark card.
-   * Clay-300 and amber-300 sit close in lightness there, which is the honest
-   * cost of two warm support hues on a dark surface; the legend these charts
-   * already carry does the rest. Dark mode has no switch in the app today —
-   * if one ships, re-run the palette validator against the real dark surface
-   * first.
+   * The categorical pair inverts with the surface: the light theme's dark
+   * olive would disappear into an olive-900 card, so slot 1 takes the lightest
+   * step that stays distinct and slot 2 sits two stops below it. Against
+   * #223414 that is 9.8:1 and 5.6:1 — a 1.76:1 separation, narrower than the
+   * light theme's 3.0:1, which is the honest cost of drawing one hue on its
+   * own family's dark end; the legend these charts already carry does the
+   * rest. Dark mode has no switch in the app today — if one ships, re-run the
+   * palette validator against the real dark surface first.
    */
   --viz-seq-1: var(--n-600);
   --viz-seq-2: var(--n-500);
   --viz-seq-3: var(--n-400);
   --viz-seq-4: var(--n-300);
   --viz-seq-5: var(--n-200);
-  --viz-cat-1: var(--clay-300);
-  --viz-cat-2: var(--amber-300);
+  --viz-cat-1: var(--olive-200);
+  --viz-cat-2: var(--olive-400);
   --viz-cat-none: var(--n-600);
 
   /*

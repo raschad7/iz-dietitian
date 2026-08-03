@@ -35,6 +35,7 @@ export function ArchiveButton({
       <input type="hidden" name="intent" value={archived ? 'restore' : 'archive'} />
       <ConfirmSubmitButton
         label={label}
+        variant={iconOnly ? 'ghost' : 'outline'}
         size={iconOnly ? 'icon-sm' : size}
         icon={iconOnly ? (archived ? 'restore' : 'archive') : undefined}
       />

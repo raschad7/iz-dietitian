@@ -28,6 +28,12 @@ export type CalendarToolbarProps = {
   onToday: () => void;
   onPrevious: () => void;
   onNext: () => void;
+  /**
+   * Hides the search field. A client's own Visit History tab already shows
+   * only that one person's appointments — searching within a list of one is
+   * nothing to filter, so the box has no job left to do there.
+   */
+  hideSearch?: boolean;
 };
 
 export function CalendarToolbar({
@@ -39,6 +45,7 @@ export function CalendarToolbar({
   onToday,
   onPrevious,
   onNext,
+  hideSearch = false,
 }: CalendarToolbarProps) {
   const t = useTranslations('booking');
 
@@ -61,20 +68,22 @@ export function CalendarToolbar({
       </h2>
 
       <div className="ms-auto flex items-center gap-2">
-        <div className="relative w-48">
-          <Icon
-            name="search"
-            className="pointer-events-none absolute start-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
-          />
-          <Input
-            type="search"
-            value={query}
-            onChange={(event) => onQueryChange(event.target.value)}
-            placeholder={t('search.placeholder')}
-            aria-label={t('search.placeholder')}
-            className="h-8 ps-8"
-          />
-        </div>
+        {!hideSearch && (
+          <div className="relative w-48">
+            <Icon
+              name="search"
+              className="pointer-events-none absolute start-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+            />
+            <Input
+              type="search"
+              value={query}
+              onChange={(event) => onQueryChange(event.target.value)}
+              placeholder={t('search.placeholder')}
+              aria-label={t('search.placeholder')}
+              className="h-8 ps-8"
+            />
+          </div>
+        )}
 
         <Segmented
           label={t('nav.view')}

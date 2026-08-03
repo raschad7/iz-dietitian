@@ -80,6 +80,8 @@ export default async function AppLayout({ children, params }: AppLayoutProps) {
       <div className="flex min-w-0 flex-1 flex-col">
         <Header
           title={t('shortName')}
+          // The rail already says it, an inch to the inline-start.
+          titleShownInSidebar
           userName={session.user.name}
           locale={locale}
           actions={
