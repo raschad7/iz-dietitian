@@ -4,10 +4,13 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
+import { ComfortBand } from '@/components/ui/comfort-band';
+import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
 import { roundForDisplay } from '@/features/weekly-plans/nutrition';
+import { bandGeometry } from '../band';
 import { nextSlotKey } from '../editor-state';
 import type { BoardDay } from '../queries';
 import { dayKey } from '../schema';
@@ -17,11 +20,22 @@ import { MealCard, type GhostMeal } from './meal-card';
 import { RegenerateDayButton } from './regenerate-buttons';
 
 /**
+ * Pins the add control to the last row of the week's grid.
+ *
+ * Everything else in the column is auto-placed, which is right for the header and
+ * the cards. The add control is not: a day holding fewer meals than the week's
+ * longest would place it one row early and end out of line with its neighbours.
+ * `-2 / -1` is the last row of whatever template the column inherited, so it does
+ * not need to know the slot count.
+ */
+const LAST_ROW = { gridRow: '-2 / -1' } as const;
+
+/**
  * One day of the week, as a column of meal cards.
  *
- * The header carries the day's total against the daily target, coloured only when
- * it drifts — a board where every column is amber teaches the dietitian to ignore
- * the colour.
+ * The header carries the day's total and a band drawn against the daily target,
+ * coloured only when it drifts — a board where every column is amber teaches the
+ * dietitian to ignore the colour.
  */
 export function DayColumn({
   day,
@@ -48,31 +62,85 @@ export function DayColumn({
   const t = useTranslations('weeklyPlans');
   const tDays = useTranslations('weeklyPlans.days');
 
+  const dayName = tDays(dayKey(day.dayOfWeek));
   const kcal = roundForDisplay('kcal', day.totals.kcal.value);
-  const drift = dailyTarget > 0 ? (kcal - dailyTarget) / dailyTarget : 0;
-  const offTarget = day.meals.length > 0 && Math.abs(drift) > 0.1;
+  // A day with no meals has not missed its target, it has nothing to measure —
+  // drawing a band hard against zero would claim otherwise.
+  const band = day.meals.length > 0 ? bandGeometry(kcal, dailyTarget) : null;
 
   return (
-    <div className="flex min-w-0 flex-col gap-1.5">
-      <div className="rounded-md bg-muted/60 px-2 py-1.5">
-        <div className="flex items-baseline justify-between gap-1">
-          <span className="truncate text-xs font-semibold">{tDays(dayKey(day.dayOfWeek))}</span>
+    /* A subgrid of the week's rows rather than seven days flattened into one
+       grid: the per-day grouping is what carries the drop targets, the day's
+       regenerate control, and the order a screen reader reads a column in.
+       `row-span-full` is `grid-row: 1 / -1` — a subgrid only inherits the tracks
+       it actually spans, so the span has to cover the whole template. No gap
+       here: the parent's row gutter is inherited, and restating it is how the
+       two come apart. `grid-cols-1` is `minmax(0,1fr)`, not the implicit `auto`
+       column a bare `grid` would generate — an auto column takes its width from
+       the widest card, which is the raggedness this whole change removes. */
+    <div className="row-span-full grid min-w-0 grid-cols-1 grid-rows-subgrid">
+      <div className="rounded-lg bg-muted/60 px-3 py-2.5">
+        <div className="flex items-baseline justify-between gap-1.5">
+          <span className="truncate text-body-sm font-semibold">{dayName}</span>
 
           {editable && (
             <RegenerateDayButton planId={planId} dayOfWeek={day.dayOfWeek} locale={locale} />
           )}
         </div>
 
-        <span className="mt-0.5 block text-label text-muted-foreground">
-          <span className={cn(offTarget && 'font-medium text-status-attention-fg')}>
-            {t('kcalValue', { value: kcal })}
-          </span>
-          {dailyTarget > 0 && <span> / {dailyTarget}</span>}
+        {/* The total alone. The target is what the band underneath is drawn
+            against, so printing it seven more times says the same thing twice.
+            The arrow is decorative — the amber figure beside it already carries
+            the meaning, and labelling both makes a screen reader say it twice. */}
+        <span
+          className={cn(
+            'mt-0.5 flex items-baseline gap-1 text-label',
+            band?.state ? 'font-semibold text-status-attention-fg' : 'text-muted-foreground',
+          )}
+        >
+          {band?.state && (
+            <Icon
+              name={band.state === 'over' ? 'driftUp' : 'driftDown'}
+              className="size-3.5 self-center"
+            />
+          )}
+          {t('kcalValue', { value: kcal })}
         </span>
+
+        {band ? (
+          <ComfortBand
+            rangeStart={band.rangeStart}
+            rangeWidth={band.rangeWidth}
+            marker={band.marker}
+            offTarget={band.state !== null}
+            label={t('dayBandLabel', { day: dayName })}
+            valueText={t('dayBandValue', { value: kcal, target: dailyTarget })}
+            className="mt-2"
+          />
+        ) : (
+          /* No band on a day with nothing in it — "under target" is not news
+             about a day nobody has planned yet. But the target is what the band
+             would have carried, and the dietitian looking at an unplanned day is
+             the one who most needs it, so print it. */
+          dailyTarget > 0 && (
+            <span className="mt-1 block text-caption text-muted-foreground">
+              {t('dailyTargetShort', { value: dailyTarget })}
+            </span>
+          )
+        )}
       </div>
 
       {day.meals.length === 0 && !editable ? (
-        <p className="rounded-md border border-dashed border-border p-2 text-label text-muted-foreground">
+        /* Spans every meal row rather than auto-placing into the first one. The
+           tracks are shared, so the lines would stay put either way — but the
+           column would read as a small dashed box followed by a void the height
+           of its neighbours' cards. This branch is `!editable`-only, so the
+           template has no trailing add row and `-1` is the last meal row's end
+           line; under `editable` the same span would swallow the add control. */
+        <p
+          style={{ gridRow: '2 / -1' }}
+          className="rounded-lg border border-dashed border-border p-3 text-label text-muted-foreground"
+        >
           {t('emptyDay')}
         </p>
       ) : (
@@ -113,7 +181,8 @@ function AddMeal({ day }: { day: BoardDay }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="rounded-md border border-dashed border-border p-1 text-[10px] text-muted-foreground hover:bg-accent"
+        style={LAST_ROW}
+        className="h-10 rounded-lg border border-dashed border-border text-label text-muted-foreground hover:bg-accent"
       >
         + {t('addMeal')}
       </button>
@@ -130,34 +199,22 @@ function AddMeal({ day }: { day: BoardDay }) {
   }
 
   return (
-    <div className="flex flex-col gap-1 rounded-md border border-border p-1.5">
+    <div style={LAST_ROW} className="flex flex-col gap-1.5 rounded-lg border border-border p-1.5">
       <Input
         value={label}
         onChange={(event) => setLabel(event.target.value)}
         placeholder={t('addMeal')}
         maxLength={60}
-        className="h-7 text-[11px]"
         autoFocus
       />
 
-      <Input
-        type="time"
-        value={time}
-        onChange={(event) => setTime(event.target.value)}
-        className="h-7 text-[11px]"
-      />
+      <Input type="time" value={time} onChange={(event) => setTime(event.target.value)} />
 
-      <div className="flex gap-1">
-        <Button type="button" size="sm" className="h-6 flex-1 text-[10px]" onClick={submit}>
+      <div className="flex gap-1.5">
+        <Button type="button" size="sm" className="flex-1" onClick={submit}>
           {t('save')}
         </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant="ghost"
-          className="h-6 text-[10px]"
-          onClick={() => setOpen(false)}
-        >
+        <Button type="button" size="sm" variant="ghost" onClick={() => setOpen(false)}>
           {t('close')}
         </Button>
       </div>

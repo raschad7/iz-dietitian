@@ -104,6 +104,25 @@ function BoardBody({
   const dailyTarget = Math.round(board.kcalTargetSnapshot);
   const weekKcal = roundForDisplay('kcal', board.totals.kcal.value);
 
+  // Every day carries the same slots, so one day's count sizes the whole grid.
+  // The floor of 1 covers a plan whose days are all still empty.
+  const slotRows = Math.max(...board.days.map((day) => day.meals.length), 1);
+
+  /*
+   * One row template for the week: a header row, a row per meal slot, and — only
+   * while the plan is editable, or the columns would end on a row nothing is ever
+   * placed in — a row for the add control.
+   *
+   * `minmax(auto, 1fr)` rather than a fixed floor such as `minmax(6rem, 1fr)`. A
+   * fixed minimum is not an intrinsic min track sizing function, so it switches
+   * off the grid item's automatic minimum size; and once the board is taller than
+   * the viewport there is no positive free space left for the `1fr` to grow the
+   * track with, so every row would pin at the floor and the taller cards would
+   * spill into the row below. `auto` floors each row at its own content and still
+   * stretches to fill a board with room to spare.
+   */
+  const rowTemplate = `auto repeat(${slotRows}, minmax(auto, 1fr))${editable ? ' auto' : ''}`;
+
   /**
    * The previous plan's dish for each slot, marked where it repeats.
    *
@@ -234,9 +253,18 @@ function BoardBody({
       )}
 
       <div className="flex min-h-0 flex-1 gap-3">
-        {/* Seven equal columns. `minmax(0,1fr)` rather than `1fr` so a long dish
-            name wraps instead of widening its column past the others. */}
-        <div className="grid min-w-0 flex-1 auto-rows-min grid-cols-7 gap-2 overflow-y-auto">
+        {/* One grid for the week, and each day a subgrid of it, so every card in
+            a row is the same height and the rows run straight across.
+            `grid-cols-7` is `repeat(7, minmax(0,1fr))` rather than `1fr`, so a
+            long dish name wraps instead of widening its column past the others.
+
+            The row gap is declared here and only here: a subgrid inherits its
+            parent's gutters, and repeating them on the day column would let the
+            two drift out of step. */}
+        <div
+          className="grid min-w-0 flex-1 grid-cols-7 gap-x-2.5 gap-y-1.5 overflow-y-auto"
+          style={{ gridTemplateRows: rowTemplate }}
+        >
           {board.days.map((day) => (
             <DayColumn
               key={day.dayOfWeek}
