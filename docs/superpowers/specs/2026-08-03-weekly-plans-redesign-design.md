@@ -101,8 +101,24 @@ becomes a `Button`.
 ## 2. The meal card
 
 At rest a card carries information only. It shows the meal label and time, the
-dish name, the calorie figure against its budget, and the serving multiplier as
-a chip when it is not 1.
+dish name, one calorie figure, and the serving multiplier as a chip when it is
+not 1.
+
+**One number, not two.** The card shows what the meal actually is — `506` — and
+not `506 / 500`. A slot's budget is the same five figures repeated down every
+column, so printing it 35 times spends a third of each card's text on a constant.
+It stays readable in the rail's schedule table, in the meal detail panel, and on
+the card's `title`.
+
+**Two signals when a meal misses.** Past the existing 15% tolerance the figure
+turns `status-attention` amber *and* takes a direction arrow — `↑ 870` when the
+meal overshoots its share, `↓ 520` when it undershoots. Colour alone would be
+the only mark that a meal is wrong, which fails any reader who cannot separate
+amber from body text; the arrow carries the same meaning in shape. Dropping the
+budget from the card is what makes the second signal necessary.
+
+Cards are equal-sized and their rows align across the week — see
+[The board grid](#the-board-grid).
 
 Everything pressable moves off it:
 
@@ -122,6 +138,30 @@ already the gesture for opening a meal, so the path is not new.
 
 The card keeps its `useDroppable` and `useDraggable` wiring unchanged — only the
 control chrome moves.
+
+### The board grid
+
+Cards are currently sized by their own content, so a column holding
+`دجاج مشوي مع أرز وسلطة` is taller than one holding `عنب`, and nothing lines up
+across the week. Seven ragged columns is most of why the board reads as
+disorganised even after the type is fixed.
+
+The week becomes **one grid** — seven columns and eight rows (day header, five
+meal rows, the add-meal row) — and each day column is a `subgrid` inheriting
+those rows rather than laying out its own. Three things follow:
+
+- Every card in a row is the same height.
+- The rows run straight across the week, so `فطور` aligns with `فطور`.
+- Meal rows are `minmax(96px, 1fr)`, which distributes free space equally, so a
+  short week does not leave the columns stubby at the top of an empty board.
+
+Inside a card, the dish name flexes and the calorie footer is pinned to the
+block-end edge, so every figure in a row shares a baseline. Dish names clamp to
+two lines — without it, one long name sets the height of all 35 cards.
+
+Subgrid is used rather than flattening the day columns into direct grid children
+because the per-day grouping is real: it carries the drop target, the day's
+regenerate control, and the reading order a screen reader needs.
 
 ## 3. Shell layout
 
@@ -213,24 +253,34 @@ dialog exists, so the panel stops being a launcher and becomes a viewer: a row
 switches the board to that week. This also removes the reason for the duplicate
 week-date navigation at the top of the page, which is deleted.
 
-## 6. Calorie meters
+## 6. The day meter
 
-A 4px meter sits under each day column's header, filling from the inline-start
-edge, showing the day's total against the daily target.
+A 6px comfort band sits under each day column's header. The track spans 0–125%
+of the daily target; a pale span marks the ±10% tolerance; a marker sits where
+the day actually landed.
 
-Colour follows the status rules, not a traffic light. Within ±10% of target the
-fill is neutral — a data surface, drawn in the warm neutral ramp, not olive,
-which is reserved for things you can act on. Beyond ±10% it becomes
-`status-attention` amber. There is no green: the design system has no
+A plain progress bar was the first proposal and it does not work here. Capped at
+the target, a 2133 day and a 2000 day both render full — the one number a
+dietitian is scanning for becomes the one the bar cannot show. The band was not
+invented for this: the design system already defines `viz-band-range`,
+`viz-band-edge` and `viz-band-marker` as "the three-stop band the brand
+defines", which is exactly this component.
+
+Colour follows the status rules, not a traffic light. Inside the tolerance the
+marker is neutral — a data surface, drawn in the warm neutral ramp, not olive,
+which is reserved for things you can act on. Outside it, the marker and the
+numeric total both go `status-attention` amber, and the total takes a direction
+arrow on the same rule as a meal card. There is no green: the system has no
 green-means-go colour, and a day on target is unremarkable rather than a
 success.
 
-The numeric total stays. The meter is redundant on purpose — a value must be
-readable without decoding a colour.
+The day header shows the total alone — `2133 سعرة`, not `2133 / 2000`. The
+target is what the band is drawn against, so printing it seven more times says
+the same thing twice. It stays in the header strip and in the rail's stat tile.
 
-**No meter on individual meal cards.** Thirty-five of them would be exactly the
-noise this redesign removes. A card's calorie figure already turns amber when it
-drifts more than 15% from its budget, and that stays.
+**No band on individual meal cards.** Thirty-five of them would be exactly the
+noise this redesign removes. The amber figure and its arrow carry a meal's
+drift.
 
 ## 7. The board header
 
@@ -285,9 +335,10 @@ Two, both in `src/components/ui/`:
 
 - **`Combobox`** — a searchable single-select. Justified by the client picker,
   and the design system already lists autocomplete as a known gap.
-- **`Meter`** — a labelled progress bar with an in-band / out-of-band state.
-  Justified by the day columns. Fills from the inline-start edge, per the RTL
-  rules.
+- **`ComfortBand`** — a track with a tolerance span and a value marker, in an
+  in-band / out-of-band state. Justified by the day columns, and the one
+  component the `viz-band-*` tokens were defined for. Origin and marker position
+  are inline-start relative, per the RTL rules.
 
 Anything else the redesign needs is an existing primitive or a `variant` added
 to one. No new component may be created inside `src/features/weekly-plans/` that
@@ -332,7 +383,10 @@ unchanged — that is the main guard that this redesign stayed presentational.
 New unit tests:
 
 - `Combobox` filtering and keyboard navigation.
-- `Meter`'s in-band / out-of-band threshold at exactly ±10%.
+- `ComfortBand`'s in-band / out-of-band threshold at exactly ±10%, and its
+  marker position at, below and above the track's 125% ceiling.
+- The drift arrow's direction and threshold: none at 15% off budget, `↓` below,
+  `↑` above.
 - The dialog's mode selection: draft open → regenerate, published open → new
   week, no plan → new week.
 
