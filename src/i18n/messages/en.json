@@ -541,7 +541,6 @@
     "noPlanYet": "No plan for this client yet. Add instructions for the week, then generate.",
     "history": "Earlier plans",
     "weekOf": "Week of {date}",
-    "weekTotal": "Week total {value} kcal",
     "generatedBy": "Model used",
     "kcalValue": "{value} kcal",
     "dayBandLabel": "{day} calories against target",

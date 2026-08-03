@@ -541,7 +541,6 @@
     "noPlanYet": "لا توجد خطة لهذا العميل بعد. أضف تعليمات الأسبوع ثم اضغط توليد.",
     "history": "الخطط السابقة",
     "weekOf": "أسبوع {date}",
-    "weekTotal": "إجمالي الأسبوع {value} kcal",
     "generatedBy": "النموذج المستخدم",
     "kcalValue": "{value} kcal",
     "dayBandLabel": "سعرات {day} مقابل الهدف",

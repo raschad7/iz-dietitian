@@ -5,7 +5,6 @@ import { useTranslations } from 'next-intl';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { roundForDisplay } from '@/features/weekly-plans/nutrition';
 
 import { isMember } from '@/lib/enum';
 
@@ -102,7 +101,6 @@ function BoardBody({
     .find((meal) => meal.id === selectedMealId);
 
   const dailyTarget = Math.round(board.kcalTargetSnapshot);
-  const weekKcal = roundForDisplay('kcal', board.totals.kcal.value);
 
   // Every day carries the same slots, so one day's count sizes the whole grid.
   // The floor of 1 covers a plan whose days are all still empty.
@@ -156,8 +154,8 @@ function BoardBody({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <header className="flex flex-wrap items-center gap-2">
-        <h2 className="text-sm font-semibold">{board.clientName}</h2>
+      <header className="flex items-center gap-3">
+        <h2 className="min-w-0 truncate text-heading-sm font-semibold">{board.clientName}</h2>
 
         {isMember(PLAN_STATUSES, board.status) && (
           <Badge variant={board.status === 'published' ? 'default' : 'muted'}>
@@ -165,28 +163,16 @@ function BoardBody({
           </Badge>
         )}
 
-        <span className="text-xs text-muted-foreground">
+        <span className="whitespace-nowrap text-label text-muted-foreground">
           {t('weekOf', { date: board.weekStartDate })}
         </span>
 
-        <span className="text-xs text-muted-foreground">{t('weekTotal', { value: weekKcal })}</span>
+        <span className="whitespace-nowrap text-label text-muted-foreground">
+          {t('dailyTargetShort', { value: dailyTarget })}
+        </span>
 
-        {previous && (
-          <Button
-            type="button"
-            size="sm"
-            variant={comparing ? 'default' : 'outline'}
-            aria-pressed={comparing}
-            onClick={() => setComparing((value) => !value)}
-          >
-            {t('compareWith', { date: previous.weekStartDate })}
-          </Button>
-        )}
-
-        {/* Quiet on success, explicit on failure, announced either way. There is no
-            toast primitive in the design system, and this is not a good reason to
-            invent one. */}
-        <span role="status" aria-live="polite" className="text-xs text-muted-foreground">
+        {/* Reserved width, so a save does not reflow the row it sits in. */}
+        <span role="status" aria-live="polite" className="min-w-24 shrink-0 text-label text-muted-foreground">
           {error ? (
             <span className="text-destructive">{t(error)}</span>
           ) : pending ? (
@@ -194,7 +180,23 @@ function BoardBody({
           ) : null}
         </span>
 
-        <div className="ms-auto flex items-center gap-2">
+        <div className="ms-auto flex shrink-0 items-center gap-3">
+          <PublishButton
+            planId={board.id}
+            status={board.status}
+            unfilled={board.unfilled}
+            locale={locale}
+          />
+
+          <NewWeekMenu
+            clientId={board.clientId}
+            weekStartDate={newWeek.weekStartDate}
+            previousPlan={newWeek.previousPlan}
+            locale={locale}
+            blocked={newWeek.blocked}
+            onGenerate={() => setTab('client')}
+          />
+
           {board.status === 'published' && (
             <Button
               type="button"
@@ -216,21 +218,17 @@ function BoardBody({
             </Button>
           )}
 
-          <NewWeekMenu
-            clientId={board.clientId}
-            weekStartDate={newWeek.weekStartDate}
-            previousPlan={newWeek.previousPlan}
-            locale={locale}
-            blocked={newWeek.blocked}
-            onGenerate={() => setTab('client')}
-          />
-
-          <PublishButton
-            planId={board.id}
-            status={board.status}
-            unfilled={board.unfilled}
-            locale={locale}
-          />
+          {previous && (
+            <Button
+              type="button"
+              size="sm"
+              variant={comparing ? 'default' : 'outline'}
+              aria-pressed={comparing}
+              onClick={() => setComparing((value) => !value)}
+            >
+              {t('compareWith', { date: previous.weekStartDate })}
+            </Button>
+          )}
         </div>
       </header>
 
