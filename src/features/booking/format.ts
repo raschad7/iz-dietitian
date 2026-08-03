@@ -61,11 +61,6 @@ export function formatDayNumber(locale: Locale, date: IsoDate): string {
   return formatter(locale, { day: 'numeric' }).format(toUtcInstant(date));
 }
 
-/** `Aug` — the column label under a monthly chart, where the year is in the heading. */
-export function formatMonthShort(locale: Locale, date: IsoDate): string {
-  return formatter(locale, { month: 'short' }).format(toUtcInstant(date));
-}
-
 /** `August 2026` — the calendar's current-range heading. */
 export function formatMonthYear(locale: Locale, date: IsoDate): string {
   return formatter(locale, { month: 'long', year: 'numeric' }).format(toUtcInstant(date));

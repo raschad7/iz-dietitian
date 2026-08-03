@@ -1,4 +1,4 @@
-import { and, count, desc, eq, ilike, or, type SQL } from 'drizzle-orm';
+import { and, asc, count, desc, eq, ilike, or, sql, type AnyColumn, type SQL } from 'drizzle-orm';
 
 import { db } from '@/db';
 import { clients, type Client } from '@/db/schema';
@@ -57,6 +57,51 @@ function buildFilter(clinicId: string, input: ListClientsInput): SQL | undefined
   return and(...conditions);
 }
 
+/**
+ * Sort key → the column it actually orders by.
+ *
+ * A lookup rather than a dynamic column reference: the key is validated by
+ * `listClientsSchema` before it gets here, and this keeps the set of orderable
+ * columns readable in one place.
+ *
+ * `fullName` sorts on `searchName`, the folded copy the search already matches
+ * against — sorting on the raw name would order "آدم" by its diacritics and put
+ * an unaccented duplicate somewhere else entirely.
+ *
+ * `portalAccess` is not a column; it is `userId IS NOT NULL`, which is exactly
+ * what the list renders.
+ */
+const SORT_COLUMNS: Record<ListClientsInput['sort'], AnyColumn | SQL> = {
+  fullName: clients.searchName,
+  phone: clients.phone,
+  email: clients.email,
+  status: clients.status,
+  portalAccess: sql`(${clients.userId} is not null)`,
+  createdAt: clients.createdAt,
+};
+
+/**
+ * Nullable columns — phone and email — are pushed to the end in **both**
+ * directions. A blank is not "smallest"; it is missing, and a reader flipping
+ * the direction to find the As is not asking to be shown eleven dashes first.
+ */
+const NULLABLE_SORTS = new Set<ListClientsInput['sort']>(['phone', 'email']);
+
+function buildOrder(input: ListClientsInput): SQL[] {
+  const column = SORT_COLUMNS[input.sort];
+  const direction = input.dir === 'asc' ? asc : desc;
+
+  const order: SQL[] = [];
+  if (NULLABLE_SORTS.has(input.sort)) order.push(sql`${column} is null`);
+  order.push(direction(column));
+
+  // A stable tiebreak, so two clients registered with the same status (or the
+  // same missing phone number) do not swap places between page loads.
+  if (input.sort !== 'createdAt') order.push(desc(clients.createdAt));
+
+  return order;
+}
+
 export async function listClients(clinicId: string, input: ListClientsInput): Promise<ClientListResult> {
   const where = buildFilter(clinicId, input);
 
@@ -74,7 +119,7 @@ export async function listClients(clinicId: string, input: ListClientsInput): Pr
     })
     .from(clients)
     .where(where)
-    .orderBy(desc(clients.createdAt))
+    .orderBy(...buildOrder(input))
     .limit(CLIENTS_PAGE_SIZE)
     .offset((input.page - 1) * CLIENTS_PAGE_SIZE);
 

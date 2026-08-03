@@ -59,6 +59,10 @@ const ICONS = {
   copy: 'copy-bold',
   refresh: 'refresh-bold',
   archive: 'archive-bold',
+  restore: 'restart-bold',
+  filter: 'filter-bold',
+  /** The "this column can be sorted" affordance, before a direction is chosen. */
+  sort: 'sort-vertical-bold',
 
   // Field affordances
   eye: 'eye-bold',

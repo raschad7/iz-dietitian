@@ -11,7 +11,9 @@ import { requireStaffClinic } from '@/lib/session';
 import { archiveClient, createClient, deleteClient, restoreClient, updateClient } from './mutations';
 import { type ClientFormState, type PortalCredentialsState, type RevokePortalAccessState } from './form-state';
 import { issuePortalCredentials, reissuePortalPassword, revokePortalAccess } from './portal-credentials';
+import { getClient } from './queries';
 import { clientFormSchema, clientIdSchema, localeSchema } from './schema';
+import { type ClientFormValues } from './types';
 
 /**
  * A server action is a public endpoint. The layout guard protects the page
@@ -157,7 +159,50 @@ export async function updateClientAction(
   revalidatePath(`/${locale}/app/clients`);
   revalidatePath(`/${locale}/app/clients/${id}`);
 
-  redirect(`/${locale}/app/clients/${id}`);
+  // No redirect: the form is a card over the register or the record, and the
+  // revalidation above is what the reader sees change behind it.
+  return { status: 'success' };
+}
+
+/**
+ * The record behind the edit card, read when the card opens rather than sent
+ * down with the screen that offers the button.
+ *
+ * The register renders 20 rows; prefilling from props would mean every visit
+ * to the list carrying 20 people's medical notes and allergies into the
+ * browser so that one of them might be edited. This costs a round trip on
+ * click and nothing at all on the other 19.
+ *
+ * A server action is a public endpoint, so the locale is re-parsed and the
+ * lookup is scoped to the caller's own clinic — `getClient` returns null for a
+ * client belonging to anyone else, which is indistinguishable from one that
+ * does not exist.
+ */
+export async function loadClientFormAction(
+  rawLocale: string,
+  clientId: string,
+): Promise<ClientFormValues | null> {
+  const locale = localeSchema.parse(rawLocale);
+  const { clinicId } = await requireStaffClinic(locale);
+
+  const client = await getClient(clinicId, clientId);
+  if (!client) return null;
+
+  return {
+    id: client.id,
+    fullName: client.fullName,
+    phone: client.phone,
+    email: client.email,
+    preferredLocale: client.preferredLocale,
+    dateOfBirth: client.dateOfBirth,
+    sex: client.sex,
+    heightCm: client.heightCm,
+    goal: client.goal,
+    activityLevel: client.activityLevel,
+    medicalNotes: client.medicalNotes,
+    allergies: client.allergies,
+    notes: client.notes,
+  };
 }
 
 /** Archive and restore share a form; the intent arrives as a field. */

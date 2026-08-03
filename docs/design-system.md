@@ -43,7 +43,13 @@ colour" below); `eslint-rules/no-raw-hex.mjs` enforces it.
 | 800 `#2E461A` | 900 `#223414` | 950 `#16220D` | |
 
 **Olive is ink.** It's the primary brand colour — buttons, links, active
-states, the rail, the app bar. Use it freely; it behaves like a neutral.
+states, the rail. Use it freely; it behaves like a neutral.
+
+**But olive marks what you can act on.** A screen where the charts, the stat
+tiles and the buttons are all olive is a screen with nothing left to say
+"click here" with — that is what the dashboard looked like before the charts
+moved to the neutral ramp. Data surfaces are drawn in warm neutrals and the
+support hues; olive stays on the controls. See "Charts" below.
 
 ### Lime — accent
 
@@ -67,10 +73,40 @@ marking boundaries.
 
 ### Supporting ramps
 
-Warm neutrals `--n-0` … `--n-900` (never pure grey), amber (attention) and
-clay (medical / destructive — the system's **only** true alarm colour).
+Warm neutrals — never pure grey, and the ramp the charts are drawn in.
+
+| | | | |
+|---|---|---|---|
+| 0 `#FFFFFF` | 25 `#FCFBF7` | 50 `#F7F5EF` | 100 `#EFEDE4` |
+| 200 `#E2DFD3` | 300 `#CDC9B9` | 400 `#A8A493` | 500 `#837F6E` |
+| 600 `#605D50` | 700 `#46443B` | 800 `#2F2E28` | 900 `#1C1B17` |
+
+Amber — attention.
+
+| | | | |
+|---|---|---|---|
+| 100 `#FBF0D8` | 300 `#E8C46A` | 600 `#9B6A0C` | 700 `#7A5209` |
+
+Clay — medical / destructive, the system's **only** true alarm colour.
+
+| | | | |
+|---|---|---|---|
+| 100 `#FAE9E4` | 300 `#E8A08F` | 600 `#A33422` | 700 `#82291B` |
 
 ### Status is not a traffic light
+
+`--primary-subtle` (olive-100) is the brand's quiet fill, mirroring
+`--destructive-subtle`: a surface that is *about* to be primary. The dashboard
+agenda's next session rests on it and fills in to solid `primary` on hover,
+rather than starting solid and having nowhere to go. It is not `--secondary`
+(olive-50), which is a tint — this is a fill you can read n-900 on at 14.7:1
+and still see as olive against a white card.
+
+**Anything lime sitting on it has to invert.** Lime-400 is 1.17:1 against
+olive-100, so a lime chip on a resting `primary-subtle` card is invisible at
+exactly the moment it has a job to do. Rest it as a solid primary chip (4.66:1
+on the fill) and swap to lime on hover, where the card has gone dark and lime
+measures 3.99:1.
 
 | Meaning | Token | Colour | Never |
 |---|---|---|---|
@@ -217,13 +253,15 @@ on a child of an already-swept parent.
 | Surface | Base | Sweep | Hover | Press |
 |---|---|---|---|---|
 | Button, field | 10px | 24px | 30px | 18px + 1px sink |
-| Card | 16px | 32px | 36px (interactive only) | scale .995 |
+| Card | 16px | 32px | 36px (interactive only) + 2px ring | scale .995 |
 | Icon button | `rounded-full` | ~29% of size | +3px | −3px |
-| Rail, bottom nav | 16px | 28px | — | — |
+| Bottom nav | 16px | 28px | — | — |
+| Rail | **none** | **none** | — | — |
 | Chips, badges | pill | **none** | — | — |
 
-Badges are the one shape that stays a plain pill. The Arc marks surfaces you
-can act on; a badge is a label.
+Badges are the one shape that stays a plain pill, and the rail is square on
+every corner. The Arc marks surfaces you can act on: a badge is a label, and
+the rail is the wall the app hangs on.
 
 Radius scale otherwise: `sm` 8 · `md` 12 · `lg` 16 · `xl` 24. **Never
 `rounded-none`** — except `Button variant="link"`, which is a run of text, not
@@ -250,6 +288,14 @@ dense surfaces off ad-hoc classes.
 
 Disabled keeps the resting tail and drops to the sunken fill with n-500 text
 (4.0:1) — a control that still animates reads as available.
+
+**Every enabled `<button>` shows the pointer cursor.** Tailwind's v4 preflight
+resets `button` to `cursor: default`, which makes a control feel inert next to
+a link; `globals.css` undoes it in `@layer base` for `button:not(:disabled)`.
+On the element rather than on `Button`, because Segmented, the locale switcher,
+the notification trigger and the calendar's own cells all render their own
+`<button>`. Being in the base layer means any `cursor-*` utility still wins, so
+the calendar's drag and resize cursors need no override.
 
 ### Dimensions
 
@@ -304,6 +350,30 @@ language is one edit.
   is describing a half-finished value. Error entrance is an opacity fade, never
   a shake.
 
+### The emphasised field
+
+`.q-field-primary` gives a field the **brand edge and the brand tint** —
+olive-600 border, olive-50 fill — while keeping the same box, the same height
+and the same states as every other field. It marks the answers a record cannot
+start without, so a long form can say "these ones" without reordering itself or
+resizing anything: the client card draws name, phone, email and date of birth
+this way and leaves the rest neutral.
+
+That card (`ClientFormTrigger`) is the **only** surface a client record is
+written on — creating and editing both open it over whatever screen asked, and
+neither has a page of its own. A record is edited from the register, from the
+record itself, and from inside the calendar's appointment card, and in none of
+those places is losing your place a reasonable price for fixing a phone number.
+The four core fields show first; the remaining eight sit behind a centred
+disclosure that grows the card in both directions. An existing record opens
+with the disclosure already open when it has anything in that half — hiding a
+goal and three lines of medical notes reads as the app having lost them.
+
+Edge and fill only. **Never a shadow and never a different size** — an
+emphasised field and a plain one sit in the same grid and have to line up to
+the pixel. Use it where a form is genuinely split into a core and a remainder;
+a form where everything is emphasised has emphasised nothing.
+
 `Select` is a real native `<select>` with `appearance: none` and our own
 chevron — Chrome pins its built-in arrow to the border and ignores
 `padding-inline-end`, so long option text collides with it. Keyboard
@@ -318,10 +388,18 @@ inline-end).
 Variants: `default` · `tinted` · `empty` (dashed olive-300, for empty states) ·
 `listRow` (no shadow, no sweep except on the last row of a group) · `archived`.
 
-Props: `size="sm"`, `interactive` (hover lift + tail growth — opt-in, because a
-card that lifts is promising it does something), `selected` (the olive ring
-thickens; the card does not change colour), `flagged` (a clay dot in the
-corner — never a red card).
+Props: `size="sm"`, `interactive`, `selected` (the olive ring thickens; the card
+does not change colour), `flagged` (a clay dot in the corner — never a red
+card).
+
+**`interactive` thickens the edge, it does not lift the card.** On hover the
+ring goes to 2px olive and the tail grows; there is no shadow change. A raised
+shadow reads as the card leaving the page, and on a grid of four peers — the
+dashboard's quick actions — that makes the hovered one look like it belongs to
+a different layer. A thicker edge says "this one" while the card stays put, and
+it is the same language `selected` already speaks: the edge, never the fill.
+It stays opt-in, because a card that answers the pointer is promising it does
+something when clicked.
 
 `CardSkeleton` is the loading state: same shape, same footprint, nothing jumps.
 
@@ -336,16 +414,83 @@ person is not a control. The `color` prop is per-record data, not a token (see
 "Arbitrary colour" below), which is why it arrives as an inline style. It
 renders `aria-hidden` — the name it stands for is always beside it.
 
+## Tables
+
+`TableRoot` owns the scroll container and the Arc; `Table`, `TableHeader`,
+`TableRow`, `TableHead`, `TableCell` and `TableEmpty` are the rest. Cells
+default to `text-start`; pass `numeric` for anything that must stay LTR inside
+Arabic — figures, times, phone numbers, IDs, units.
+
+- **`zebra`** on a row stripes the even ones with the sunken fill. It is a prop
+  on `TableRow` rather than an `[&_tr:nth-child(even)]` rule on the table
+  because a descendant selector outranks `hover:` on specificity and would kill
+  the hover state on every striped row.
+- **`linked`** marks a row that navigates as a whole. It only sets the
+  positioning context — the row is made clickable by a real `<Link>` in one of
+  its cells carrying `after:absolute after:inset-0`, which stretches that
+  link's hit area over the row. A link and not an `onClick`, so the row keeps
+  keyboard focus, middle-click, open-in-new-tab and a URL in the status bar,
+  and the table stays a server component. Anything else in the row that must
+  stay clickable needs `relative` to sit above the overlay.
+- **Sortable columns** pair `TableHead`'s `sorted` prop (which sets `aria-sort`)
+  with `TableSortLabel` (the chevron) inside whatever navigates. This app wraps
+  it in a typed `<Link>` and keeps the sort in the query string, so a sorted
+  table is a shareable URL and the table ships no client JavaScript. An
+  unsorted-but-sortable column still shows its glyph at low opacity: a column
+  that only reveals itself on hover is one nobody finds on a touch screen.
+
+## Tooltip
+
+`Tooltip` wraps a control and reveals the inverted `ChartTip` bubble on hover
+or focus. Pure CSS — a `group` on the wrapper — so it works inside a server
+component and adds nothing to the client bundle.
+
+**It is never the accessible name.** The bubble is `aria-hidden`, exactly like
+`ChartTip`; the control inside carries its own `aria-label`, and pass the same
+string to both. A control whose only label is a tooltip is unusable by keyboard
+and by touch. Use it for icon-only controls — the client table's row actions
+are the reference case.
+
 ## Navigation
 
 Matching [Navigation.png](design-images/Navigation.png).
 
-**Rail** (`Sidebar`) — a solid olive-900 panel, inset on the canvas so it
-carries the Arc. Every item has an icon; nine text-only rows are hard to scan.
-The active item is marked **three ways**: its icon, an olive-700 surface that
-grows around it, and a lime **leaf** node on the inline-end edge. More than one
-mark because colour alone fails for anyone who can't separate olive-700 from
-olive-900.
+**Rail** (`Sidebar`) — a pale **olive-50** column, full-bleed, separated from
+the page by a 1px olive-300 `border-e`. **It is not a card**: no radius, no
+Arc, no elevation. It was a solid olive-900 inset panel; that made the
+navigation the heaviest thing on every screen, which is a lot of weight to
+spend on furniture the reader stops seeing after a week.
+
+**The divider is load-bearing, so it is olive-300 and not the olive-200 that
+would match the rail.** olive-50 against the n-25 canvas measures 1.04:1 — the
+two fills are the same lightness, so the line is not reinforcing the boundary,
+it *is* the boundary. olive-200 measures 1.32:1 against the canvas and
+disappears; olive-300 measures 1.68:1 and reads. Don't "tidy" it back to the
+rail's own ramp.
+
+Every item has an icon; nine text-only rows are hard to scan. The active item
+is marked **three ways**: its icon, an olive-600 surface that grows around it,
+and a lime **leaf** node on the inline-end edge. More than one mark because
+colour alone fails for anyone who can't separate the active surface from the
+rail.
+
+A pale rail inverts two things. The active item is the **darkest** thing on the
+rail rather than the lightest — olive-600 with white text, the primary button's
+own 5.46:1 pairing — so the marked item still wins on contrast and not merely
+on tint. And hover needs its own token (`--sidebar-hover`, olive-100): the dark
+rail could use the active surface at 40%, but a translucent olive-600 over
+olive-50 lands in the mid-tones where neither white nor olive text is readable.
+
+The node stays lime-400, because it is only ever *visible* on the active item —
+lime-400 on olive-600 is 3.99:1, over the 3:1 floor a graphical mark needs. It
+could not sit on the rail itself, where lime is 1.37:1.
+
+**The rail's focus ring is olive-950, not the global lime `--ring`.** Lime
+measured 9.77:1 on the old dark rail and 1.28:1 on this one. Buttons get away
+with a lime ring because they pair it with an olive-950 halo; the rail has one
+ring and no halo, so the ring itself has to carry the contrast — 15.41:1 on the
+rail, and still 3.03:1 on the active item's olive-600 surface, which is the
+case that has to clear 3:1.
 
 The node is drawn per item and animated with `transform` — not moved as one
 shared element, because React would remount it on every navigation and the
@@ -353,14 +498,24 @@ travel would never play. It scales and rotates in together, so it settles
 rather than snapping.
 
 **App bar** (`Header`) — deliberately **unfilled**: no background, no border,
-no elevation. The rail is the shell's only heavy surface, so the eye has one
-place to go; the bar carries itself on type and spacing.
+no elevation. With the rail now pale too, the shell has no heavy surface at
+all; the page's own cards carry the weight, and the bar carries itself on type
+and spacing.
 
 Two slots: `children` sits beside the title for page-level controls, `actions`
 sits beside sign-out for shell-level ones. The notification bell lives in
 `actions` — it belongs to every staff screen, not to the dashboard, and its
 badge counts pending *requests* only. A number on a bell promises someone is
 waiting; "no meal plan yet" is a nudge, and it stays inside the popover.
+
+**Everything in the bar is 40px.** The app bar is a toolbar, which is the one
+place the pointer-only `sm` size is for: sign-out is `outline`/`sm`, the bell is
+`icon-sm`, and `LocaleSwitcher` is pinned to `h-10` to match. Sign-out is
+deliberately not `ghost` — the ghost compound variant drops padding to 12px,
+which would make it the one control in the row not built to the button spec.
+
+**The locale switcher appears once per screen**, in this bar (or on the login
+screens, which have no bar). There is no floating copy pinned to a corner.
 
 **Bottom bar** (`PortalTabBar`) — five-across on a phone, labels always
 visible, lime node **above** the active icon rather than beside it: the bar is
@@ -382,7 +537,14 @@ the same glyphs as its bottom bar); the staff rail is text-only.
   mobile / 20px desktop.
 - Shadows are **olive-tinted, never neutral black** — `shadow-card` /
   `shadow-elevated` / `shadow-overlay`. Scrims use `--overlay` (olive-950 at
-  45%), not `bg-black/40`.
+  45%), not `bg-black/40`, and **blur 4px** with it: the page behind a modal is
+  context, not something to read past. A surface that has the scrim behind it
+  needs no shadow of its own — `Dialog`'s `flat` prop swaps the overlay shadow
+  for a brand ring, the same "the edge, never a lift" language `Card` speaks.
+  The blur is written as a literal `backdrop-filter` declaration rather than
+  `backdrop:backdrop-blur-*`, because Tailwind's blur utilities resolve through
+  custom properties registered on `*` and `::backdrop` does not inherit them in
+  every engine — the utility compiles and then silently does nothing.
 - One easing curve for every sweep and drawing animation:
   `cubic-bezier(.2,.6,.2,1)`. Durations are named: `--duration-arc` 220ms
   (field arc, node travel) · `--duration-sweep` 200ms (corner growth) ·
@@ -424,6 +586,11 @@ true white (`--n-0`) for scanner contrast rather than the warm canvas tint.
 
 ## Charts
 
+**No chart is olive.** Olive is the action colour, and a dashboard whose bars,
+donut, tiles and buttons were all the same green had no way left to show which
+of those you could click. Charts are drawn in the warm neutral ramp and the two
+support hues; the brand shows up on the controls around them.
+
 Three scales, each doing one job. All of them are tokens — a hex in a chart
 component is the same bug it is anywhere else.
 
@@ -436,16 +603,20 @@ component is the same bug it is anywhere else.
 
 The steps were picked by running the palette validator, not by eye:
 
-- **Sequential is olive-400…800, not 200…600.** The light end has to stay
-  visible on the card, and olive-200 measures 1.28:1 on white, olive-300
-  1.73:1 — both under the 2:1 floor a filled mark needs. `.dark` re-anchors the
-  ramp (olive-600 → olive-200) rather than flipping it automatically.
-- **Categorical is olive-600 + lime-600, and that pairing is not a taste call.**
-  It is the only one in this brand that survives colour-vision simulation:
-  olive against amber-600 collapses to ΔE 1.5 under protanopia and against
-  clay-600 to 1.9 under deuteranopia — invisible in practice. Lime-600 sits at
-  2.77:1 on white, just under the 3:1 mark floor, so **any chart using slot 2
-  must carry visible labels**; the legend is the required relief, not decoration.
+- **Sequential is n-400…800, not 200…600.** The light end has to stay visible
+  on the card, and n-200 measures 1.34:1 on white, n-300 1.66:1 — both under
+  the 2:1 floor a filled mark needs. n-400 is 2.50:1. `.dark` re-anchors the
+  ramp (n-600 → n-200) rather than flipping it automatically.
+- **Categorical is clay-600 + amber-600.** The only categorical split the app
+  draws is sex, and with the sequential ramp neutral neither slot may be the
+  brand colour. The pair separates on **lightness** as well as hue — 6.84:1 and
+  4.71:1 on white, a 1.45:1 ratio between the two fills — which is what carries
+  it through colour-vision simulation, where two warm hues collapse towards
+  each other. Both clear the 3:1 mark floor unaided.
+- **Inside a chart, clay and amber carry no status meaning.** Clay is the
+  medical colour and amber is attention *everywhere else*; a donut segment is
+  neither. That is why a categorical chart's legend is mandatory, and why no
+  other surface may borrow the `viz-cat-*` tokens.
 - **Colour follows the entity, never its rank.** Female is always slot 1,
   male always slot 2, so a shifting balance never repaints the chart.
 - Ordered categories — age bands, tiers, funnel stages — are **ordinal**: they

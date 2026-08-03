@@ -1,10 +1,10 @@
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
+import { ClientFormTrigger } from '@/features/clients/components/client-form-trigger';
 import { PlanForm } from '@/features/meal-plans/components/plan-form';
 import { listPlannableClients } from '@/features/meal-plans/queries';
 import { buttonVariants } from '@/components/ui/button';
-import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/params';
 import { requireStaffClinic } from '@/lib/session';
 
@@ -46,9 +46,10 @@ export default async function NewMealPlanPage({ params, searchParams }: NewMealP
       {clients.length === 0 ? (
         <div className="space-y-4 rounded-lg border border-dashed border-border p-8 text-center">
           <p className="text-sm text-muted-foreground">{t('noClients')}</p>
-          <Link href="/app/clients/new" className={buttonVariants({ size: 'sm' })}>
+          {/* Adding one here opens the client card, then lands on the new record. */}
+          <ClientFormTrigger locale={locale} className={buttonVariants({ size: 'sm' })}>
             {t('addClient')}
-          </Link>
+          </ClientFormTrigger>
         </div>
       ) : (
         <PlanForm locale={locale} clients={clients} defaultClientId={defaultClientId} />

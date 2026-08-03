@@ -106,7 +106,12 @@
   --sweep-control-press: 18px;  /* pulls in as it sinks */
   --sweep-card: 32px;
   --sweep-card-hover: 36px;
-  --sweep-surface: 28px;        /* app bar, sidebar rail, bottom nav */
+  /*
+   * Bottom nav only. The staff/portal rail used to take this too, back when it
+   * was an inset panel; it is now a full-bleed column with a hairline and no
+   * shape of its own.
+   */
+  --sweep-surface: 28px;
   --radius-control: 10px;       /* the three corners that do not sweep */
 
   /* ── Elevation — olive-tinted, never neutral black ── */
@@ -215,6 +220,7 @@
   --color-sidebar-node: var(--sidebar-node);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-hover: var(--sidebar-hover);
   --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
@@ -239,21 +245,33 @@
   /*
    * ── Data-visualisation scales ──
    *
+   * **Charts are not brand surfaces.** Olive is the action colour — buttons,
+   * links, the rail, the one emphasised agenda row — and when the dashboard's
+   * charts were olive too, the screen read as one wash of green and nothing
+   * on it stood out as clickable. The rule the scales below encode: *olive
+   * marks what you can act on; data is drawn in neutrals and support hues.*
+   *
    * `viz-seq-*` is the SEQUENTIAL ramp: one hue, five monotone lightness
    * steps, light → dark, for "how much" (visit density, band sizes). The steps
-   * are olive-400…800 rather than 200…600 because the light end has to stay
-   * visible on the card: olive-200 measures 1.28:1 on white and olive-300
-   * 1.73:1, both under the 2:1 floor a filled mark needs. `.dark` re-anchors
-   * the ramp rather than flipping it automatically.
+   * are n-400…800 rather than 200…600 because the light end has to stay
+   * visible on the card: n-200 measures 1.34:1 on white and n-300 1.66:1, both
+   * under the 2:1 floor a filled mark needs. `.dark` re-anchors the ramp
+   * rather than flipping it automatically.
    *
    * `viz-cat-*` is the two-slot CATEGORICAL palette, for identity (which
-   * segment). Olive-600 + lime-600 is the only pairing in this brand that
-   * survives colour-vision simulation — olive against amber-600 collapses to
-   * ΔE 1.5 under protanopia, and against clay-600 to 1.9 under deuteranopia,
-   * both invisible-in-practice. Lime-600 sits at 2.77:1 on white, just under
-   * the 3:1 mark floor, so **every chart using it must carry visible labels**;
-   * that relief is not optional. `viz-cat-none` is the deliberate neutral for
-   * "not recorded" — an absence is not a third category.
+   * segment). Clay-600 + amber-600 — the two support hues — because the only
+   * categorical split the app draws is sex, and neither slot may be the brand
+   * colour once the ramp beside it is neutral. They are separated by lightness
+   * as well as hue (6.84:1 vs 4.71:1 on white, a 1.45:1 ratio between the two
+   * fills), which is what carries them through colour-vision simulation, where
+   * both collapse towards the same warm hue. Both clear the 3:1 mark floor on
+   * white unaided. `viz-cat-none` is the deliberate neutral for "not recorded"
+   * — an absence is not a third category.
+   *
+   * Clay is the medical/destructive colour elsewhere and amber is attention;
+   * inside a chart they carry no such meaning, which is why a chart legend is
+   * mandatory (see docs/design-system.md) and why no other surface may borrow
+   * these tokens.
    */
   --color-viz-seq-1: var(--viz-seq-1);
   --color-viz-seq-2: var(--viz-seq-2);
@@ -303,6 +321,7 @@
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
+  --color-primary-subtle: var(--primary-subtle);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
@@ -341,6 +360,14 @@
   --primary: var(--olive-600);          /* action.primary.bg — white on it is 5.46:1 */
   --primary-hover: var(--olive-700);
   --primary-foreground: var(--n-0);
+  /*
+   * The brand's quiet fill, mirroring `--destructive-subtle`. For a surface
+   * that is *about* to be primary — the agenda's next session at rest, before
+   * the pointer fills it in. Distinct from `--secondary` (olive-50), which is
+   * a tint; this is a fill you can read n-900 on at 14.7:1 and still see as
+   * olive against a white card.
+   */
+  --primary-subtle: var(--olive-100);
 
   --secondary: var(--olive-50);         /* bg.brand.subtle */
   --secondary-foreground: var(--olive-700); /* text.brand — 7.37:1 */
@@ -396,34 +423,69 @@
 
   /*
    * Chart scales on the light surface. Validated against #FFFFFF: the
-   * sequential ramp is monotone with every adjacent step ≥ 0.06 L apart and a
-   * light end of 2.41:1, and the categorical pair clears colour-vision
-   * simulation at ΔE 16.9 (protanopia) / 17.7 (normal vision).
+   * sequential ramp is monotone with a light end of 2.50:1 and a dark end of
+   * 13.6:1, and the categorical pair separates on lightness (6.84:1 / 4.71:1)
+   * as well as hue, which is what survives colour-vision simulation.
    */
-  --viz-seq-1: var(--olive-400);
-  --viz-seq-2: var(--olive-500);
-  --viz-seq-3: var(--olive-600);
-  --viz-seq-4: var(--olive-700);
-  --viz-seq-5: var(--olive-800);
-  --viz-cat-1: var(--olive-600);
-  --viz-cat-2: var(--lime-600);
+  --viz-seq-1: var(--n-400);
+  --viz-seq-2: var(--n-500);
+  --viz-seq-3: var(--n-600);
+  --viz-seq-4: var(--n-700);
+  --viz-seq-5: var(--n-800);
+  /* Colour follows the entity, never its rank: female is always slot 1. */
+  --viz-cat-1: var(--clay-600);
+  --viz-cat-2: var(--amber-600);
   --viz-cat-none: var(--n-300);
 
   /*
-   * Sidebar — a solid dark olive rail. The active item is marked twice: an
-   * olive surface that grows around it, and a lime node that travels between
-   * items. Idle labels are olive-200 on olive-900 (9.1:1); the active surface
-   * is olive-700 with n-0 text (7.6:1).
+   * ── Sidebar — a pale olive rail ──
+   *
+   * olive-50, full-bleed, separated from the canvas by a hairline rather than
+   * by elevation. The rail used to be a dark olive-900 panel inset on the
+   * canvas; that made it the heaviest thing on every screen, which is a lot of
+   * weight to spend on furniture the reader stops seeing after a week.
+   *
+   * The pale rail changes what each state has to do. On the dark rail the
+   * active item was a *lighter* olive surface; here it is the darkest thing on
+   * the rail — olive-600 with white text, the same 5.46:1 pairing the primary
+   * button uses — so the marked item still wins on contrast rather than merely
+   * differing in tint.
+   *
+   * `--sidebar-hover` is its own token because the dark rail could get away
+   * with the active surface at 40%; a translucent olive-600 over olive-50 lands
+   * in the mid-tones where neither white nor olive text works. The pale rail
+   * needs a real surface of its own, one step up from the rail.
+   *
+   * The node stays lime-400. It is only ever *visible* on the active item, and
+   * lime-400 on olive-600 is 3.99:1 — over the 3:1 floor a graphical mark
+   * needs. It could not sit on the rail itself: lime-400 is 1.37:1 on white.
    */
-  --sidebar: var(--olive-900);
-  --sidebar-foreground: var(--olive-200);
+  --sidebar: var(--olive-50);               /* #F5F8EF */
+  --sidebar-foreground: var(--olive-800);   /* idle label — 9.74:1 on the rail */
   --sidebar-primary: var(--primary);
-  --sidebar-primary-foreground: var(--n-0);
-  --sidebar-accent: var(--olive-700);
-  --sidebar-accent-foreground: var(--n-0);
+  --sidebar-primary-foreground: var(--olive-900); /* the wordmark, on a light rail */
+  --sidebar-accent: var(--olive-600);       /* the active surface */
+  --sidebar-accent-foreground: var(--n-0);  /* on it — 5.46:1 */
+  --sidebar-hover: var(--olive-100);        /* one step up — 8.92:1 with the idle label */
   --sidebar-node: var(--lime-400);
-  --sidebar-border: var(--olive-800);
-  --sidebar-ring: var(--ring);
+  /*
+   * The divider, and it is olive-300 rather than the olive-200 that would
+   * "match" the rail. olive-50 against the n-25 canvas measures 1.04:1 — the
+   * two fills are the same lightness, so the line is not reinforcing the
+   * separation, it *is* the separation. olive-200 gives 1.32:1 against the
+   * canvas and disappears; olive-300 gives 1.68:1 and reads as a boundary.
+   */
+  --sidebar-border: var(--olive-300);
+  /*
+   * NOT `--ring`. The global focus ring is lime-400, which measured 9.77:1 on
+   * the old olive-900 rail and measures 1.28:1 on this one — keeping it would
+   * have left the rail's keyboard focus invisible. Buttons get away with lime
+   * because they pair it with an olive-950 halo; the rail has one ring and no
+   * halo, so the ring itself has to be the dark one. olive-950 is 15.41:1 on
+   * the rail and still 3.03:1 on the active item's olive-600 surface, which is
+   * the case that has to clear the 3:1 floor.
+   */
+  --sidebar-ring: var(--olive-950);
 }
 
 .dark {
@@ -446,6 +508,7 @@
   --primary: var(--olive-500);
   --primary-hover: var(--olive-400);
   --primary-foreground: var(--olive-950);
+  --primary-subtle: var(--olive-800);
 
   --secondary: var(--olive-800);
   --secondary-foreground: var(--n-25);
@@ -484,31 +547,37 @@
 
   /*
    * The sequential ramp is re-anchored, not flipped: on the olive-900 card
-   * more-is-*lighter*, and olive-600 is the darkest step that still clears the
-   * surface (2.45:1). Validated as an ordinal ramp against #223414.
+   * more-is-*lighter*, and n-600 is the darkest step that still clears the
+   * surface (2.03:1). Validated as an ordinal ramp against #223414.
    *
-   * The categorical pair moves one step brighter so it clears the dark card;
-   * that puts both slots above the dark-mode lightness band, which is the
-   * honest cost of a brand with one strong hue and one accent. They stay
-   * separable (ΔE 17.9 protanopia) and the labels these charts already carry
-   * do the rest. Dark mode has no switch in the app today — if one ships,
-   * re-run the palette validator against the real dark surface first.
+   * The categorical pair moves to the 300 stops so it clears the dark card.
+   * Clay-300 and amber-300 sit close in lightness there, which is the honest
+   * cost of two warm support hues on a dark surface; the legend these charts
+   * already carry does the rest. Dark mode has no switch in the app today —
+   * if one ships, re-run the palette validator against the real dark surface
+   * first.
    */
-  --viz-seq-1: var(--olive-600);
-  --viz-seq-2: var(--olive-500);
-  --viz-seq-3: var(--olive-400);
-  --viz-seq-4: var(--olive-300);
-  --viz-seq-5: var(--olive-200);
-  --viz-cat-1: var(--olive-400);
-  --viz-cat-2: var(--lime-400);
-  --viz-cat-none: var(--olive-700);
+  --viz-seq-1: var(--n-600);
+  --viz-seq-2: var(--n-500);
+  --viz-seq-3: var(--n-400);
+  --viz-seq-4: var(--n-300);
+  --viz-seq-5: var(--n-200);
+  --viz-cat-1: var(--clay-300);
+  --viz-cat-2: var(--amber-300);
+  --viz-cat-none: var(--n-600);
 
-  --sidebar: var(--olive-950);
+  /*
+   * The dark rail keeps its dark treatment — a pale rail on an olive-950
+   * canvas would be the brightest surface on the screen, which is the same
+   * mistake the dark rail made in light mode, inverted.
+   */
+  --sidebar: var(--olive-900);
   --sidebar-foreground: var(--olive-200);
   --sidebar-primary: var(--primary);
-  --sidebar-primary-foreground: var(--olive-950);
-  --sidebar-accent: var(--olive-700);
-  --sidebar-accent-foreground: var(--n-25);
+  --sidebar-primary-foreground: var(--n-25);
+  --sidebar-accent: var(--olive-600);
+  --sidebar-accent-foreground: var(--n-0);
+  --sidebar-hover: var(--olive-800);
   --sidebar-node: var(--lime-400);
   --sidebar-border: var(--olive-800);
   --sidebar-ring: var(--ring);
@@ -517,6 +586,32 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+  }
+
+  /*
+   * ── The pointer cursor ──
+   *
+   * Tailwind's v4 preflight resets `button` to `cursor: default`. That is the
+   * spec-correct default, but it makes every control in the app feel inert
+   * next to a link, and it is the one preflight change worth undoing wholesale.
+   *
+   * Declared here rather than as `cursor-pointer` on `Button`, because `Button`
+   * is not the only thing that renders a `<button>`: Segmented, the locale
+   * switcher, the notification trigger, the calendar's slot and day cells, and
+   * the meal and food pickers all render their own, and a rule on the component
+   * would leave every one of them behaving differently from the rest.
+   *
+   * Two properties of `@layer base` make this safe. It loses to any utility, so
+   * a control that needs a different cursor — the calendar's `cursor-ns-resize`
+   * drag handle — keeps it with no `!important` anywhere. And `:not(:disabled)`
+   * means a disabled control still reads as unavailable rather than
+   * advertising a click that will not land.
+   *
+   * Elements only: nothing in the app carries `role="button"`, and a selector
+   * for a case with no caller is a selector nobody maintains.
+   */
+  button:not(:disabled) {
+    cursor: pointer;
   }
   body {
     @apply bg-background text-foreground;
@@ -651,6 +746,27 @@
     border-color: transparent;
     border-end-end-radius: var(--radius-control);
     background-image: none;
+  }
+
+  /*
+   * ── The emphasised field ──
+   * A form where every box looks identical has no way to say which answers it
+   * cannot do without. The core facts of a client record — name, phone, email,
+   * date of birth — take the brand edge and the brand tint; every other field
+   * keeps the neutral box.
+   *
+   * Edge and fill only, never a shadow and never a different size: an
+   * emphasised field and a plain one sit in the same grid and must still line
+   * up to the pixel.
+   *
+   * The hover selector is repeated at `.q-field`'s own specificity, so the
+   * olive edge survives the pointer instead of falling back to n-600 — a plain
+   * `.q-field-primary` would lose that cascade.
+   */
+  .q-field-primary,
+  .q-field-primary:hover:not(:disabled):not(:focus) {
+    border-color: var(--primary);
+    background-color: var(--secondary);
   }
 
   /*

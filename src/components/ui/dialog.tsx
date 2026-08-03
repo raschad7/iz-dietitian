@@ -26,11 +26,21 @@ type DialogProps = {
   label: string;
   /** Direction for the dialog's own subtree; `<dialog>` renders in the top layer. */
   dir?: 'rtl' | 'ltr';
+  /**
+   * Drops the overlay shadow for the brand edge — the same "the edge, never a
+   * lift" language `Card` speaks. The blurred scrim already separates the
+   * surface from the page, so the shadow is doing a job nobody asked it to do.
+   *
+   * A prop rather than a `shadow-none` in `className`: tailwind-merge files
+   * `shadow-overlay` as a shadow *colour*, so the two classes never collide and
+   * which one wins would come down to stylesheet order.
+   */
+  flat?: boolean;
   className?: string;
   children: React.ReactNode;
 };
 
-function Dialog({ open, onClose, label, dir, className, children }: DialogProps) {
+function Dialog({ open, onClose, label, dir, flat, className, children }: DialogProps) {
   const ref = React.useRef<HTMLDialogElement>(null);
 
   React.useEffect(() => {
@@ -56,8 +66,14 @@ function Dialog({ open, onClose, label, dir, className, children }: DialogProps)
         'w-full max-w-none p-0 text-start',
         'mt-auto mb-0 rounded-t-2xl',
         'sm:m-auto sm:w-[min(28rem,calc(100vw-2rem))] sm:rounded-lg sm:rounded-ee-4xl',
-        'bg-popover text-popover-foreground shadow-overlay ring-1 ring-foreground/10',
-        'backdrop:bg-[var(--overlay)]',
+        'bg-popover text-popover-foreground ring-1',
+        flat ? 'ring-primary/25' : 'shadow-overlay ring-foreground/10',
+        // The scrim dims *and* blurs: the page behind a modal is context, not
+        // something to read past. Written as a literal declaration rather than
+        // `backdrop:backdrop-blur-sm` — Tailwind's blur utilities resolve
+        // through custom properties registered on `*`, which `::backdrop` does
+        // not inherit in every engine, so the utility silently does nothing.
+        'backdrop:bg-[var(--overlay)] backdrop:[backdrop-filter:blur(4px)]',
         'motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 motion-safe:duration-200',
         className,
       )}

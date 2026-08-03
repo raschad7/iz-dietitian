@@ -18,7 +18,8 @@
     "comingSoon": "قيد الإنشاء",
     "edit": "تعديل",
     "delete": "حذف",
-    "remove": "إزالة"
+    "remove": "إزالة",
+    "close": "إغلاق"
   },
   "nav": {
     "dashboard": "لوحة التحكم",
@@ -330,13 +331,14 @@
       "viewDay": "فتح عرض اليوم",
       "reason": "السبب: {reason}"
     },
-    "summary": {
-      "todayAppointments": "مواعيد اليوم",
-      "upcomingAppointments": "المواعيد القادمة",
-      "newClientsThisMonth": "متابعون جدد هذا الشهر",
-      "appointmentsThisWeek": "مواعيد هذا الأسبوع",
-      "nextIs": "التالي: {when}",
-      "nothingScheduled": "لا مواعيد قادمة"
+    "clients": {
+      "title": "متابعوك",
+      "subtitle": "{count, plural, =0 {لا متابعين في السجل بعد} one {متابع نشِط واحد} two {متابعان نشِطان} few {# متابعين نشِطين} many {# متابعًا نشِطًا} other {# متابع نشِط}}",
+      "nextVisit": "التالي: {when}",
+      "nothingBooked": "لا موعد محجوز",
+      "empty": "لا متابعين في سجلك بعد.",
+      "emptyCta": "أضف أول متابع",
+      "viewAll": "عرض كل المتابعين"
     },
     "quickActions": {
       "title": "إجراءات سريعة",
@@ -356,15 +358,6 @@
         "title": "إضافة صنف غذائي",
         "hint": "يفتح مرجع الأطعمة"
       }
-    },
-    "visitHistory": {
-      "title": "سجل الزيارات",
-      "subtitle": "{count, plural, =0 {آخر 6 أشهر} one {زيارة واحدة خلال 6 أشهر} two {زيارتان خلال 6 أشهر} few {# زيارات خلال 6 أشهر} many {# زيارة خلال 6 أشهر} other {# زيارة خلال 6 أشهر}}",
-      "empty": "لا زيارات خلال آخر 6 أشهر",
-      "tooltip": "{count, plural, =0 {لا زيارات} one {زيارة واحدة} two {زيارتان} few {# زيارات} many {# زيارة} other {# زيارة}} في {month}",
-      "busiest": "الأعلى: {month} ({count, number, integer})",
-      "fewer": "أقل",
-      "more": "أكثر"
     },
     "ageDistribution": {
       "title": "توزّع الأعمار",
@@ -468,6 +461,9 @@
     "subtitle": "سجلّ متابعي العيادة.",
     "new": "متابع جديد",
     "createTitle": "إضافة متابع",
+    "createHint": "الاسم ورقم الهاتف والبريد وتاريخ الميلاد تكفي للبدء.",
+    "moreDetails": "تفاصيل أكثر",
+    "fewerDetails": "تفاصيل أقل",
     "editTitle": "تعديل بيانات المتابع",
     "edit": "تعديل",
     "empty": "لا يوجد متابعون بعد. ابدأ بإضافة أول متابع.",

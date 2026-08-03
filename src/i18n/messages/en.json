@@ -18,7 +18,8 @@
     "comingSoon": "Coming soon",
     "edit": "Edit",
     "delete": "Delete",
-    "remove": "Remove"
+    "remove": "Remove",
+    "close": "Close"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -330,13 +331,14 @@
       "viewDay": "Open the day view",
       "reason": "Reason: {reason}"
     },
-    "summary": {
-      "todayAppointments": "Today's appointments",
-      "upcomingAppointments": "Upcoming",
-      "newClientsThisMonth": "New clients this month",
-      "appointmentsThisWeek": "Appointments this week",
-      "nextIs": "Next: {when}",
-      "nothingScheduled": "Nothing scheduled ahead"
+    "clients": {
+      "title": "Your clients",
+      "subtitle": "{count, plural, =0 {No one on the register yet} one {# active client} other {# active clients}}",
+      "nextVisit": "Next: {when}",
+      "nothingBooked": "Nothing booked",
+      "empty": "No one on your register yet.",
+      "emptyCta": "Add your first client",
+      "viewAll": "See all clients"
     },
     "quickActions": {
       "title": "Quick actions",
@@ -356,15 +358,6 @@
         "title": "Add a food",
         "hint": "Opens the food reference"
       }
-    },
-    "visitHistory": {
-      "title": "Visit history",
-      "subtitle": "{count, plural, =0 {Last 6 months} one {# visit over 6 months} other {# visits over 6 months}}",
-      "empty": "No visits in the last 6 months",
-      "tooltip": "{count, plural, =0 {No visits} one {# visit} other {# visits}} in {month}",
-      "busiest": "Busiest: {month} ({count, number, integer})",
-      "fewer": "Fewer",
-      "more": "More"
     },
     "ageDistribution": {
       "title": "Age distribution",
@@ -468,6 +461,9 @@
     "subtitle": "The clinic's client register.",
     "new": "New client",
     "createTitle": "Add a client",
+    "createHint": "Name, phone, email and date of birth are enough to start.",
+    "moreDetails": "More details",
+    "fewerDetails": "Fewer details",
     "editTitle": "Edit client",
     "edit": "Edit",
     "empty": "No clients yet. Start by adding your first one.",

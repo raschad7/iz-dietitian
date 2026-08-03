@@ -9,9 +9,17 @@ export function ClientPagination({ result, input }: { result: ClientListResult; 
 
   if (result.pageCount <= 1) return null;
 
+  // Every filter rides along, the sort included — page 2 of a differently
+  // ordered list is not the page the reader was on.
   const query = (page: number) => ({
     pathname: '/app/clients' as const,
-    query: { ...(input.q ? { q: input.q } : {}), status: input.status, page: String(page) },
+    query: {
+      ...(input.q ? { q: input.q } : {}),
+      status: input.status,
+      sort: input.sort,
+      dir: input.dir,
+      page: String(page),
+    },
   });
 
   return (
