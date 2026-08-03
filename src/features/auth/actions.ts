@@ -7,7 +7,7 @@ import { redirect } from 'next/navigation';
 import { z } from 'zod';
 
 import { replacePortalPassword } from '@/features/clients/portal-credentials';
-import { auth } from '@/lib/auth';
+import { auth, REQUIRE_EMAIL_VERIFICATION } from '@/lib/auth';
 import { requireClientSession, requireStaffSession } from '@/lib/session';
 
 import { purgeUnverifiedAccounts } from './cleanup';
@@ -107,14 +107,17 @@ export async function signInWithPassword(
  * What makes that safe is not a gate on the door but what a new account can
  * actually do:
  *
- *  - It holds no session. `autoSignIn` is off and `requireEmailVerification` is
- *    on, so this returns a "check your inbox" state and the account cannot sign
- *    in until the address is proven real.
  *  - Its clinic starts empty, and every query in the app is scoped by
  *    `clinic_id`. A stranger who signs up sees their own empty clinic, never
  *    anyone else's client records.
  *  - Registration is rate limited per IP, so the flow cannot be used to
  *    enumerate, flood, or mass-create.
+ *
+ * Whether it also holds a session depends on `REQUIRE_EMAIL_VERIFICATION` in
+ * `src/lib/auth.ts`. With the gate on, sign-up issues none and this returns the
+ * "check your inbox" state; with it off, `autoSignIn` has already set the cookie
+ * by the time `signUpEmail` returns and the only sensible thing left to do is
+ * send the new dietitian to their clinic.
  *
  * `role` is still forced to `staff` server-side and can never be posted — see
  * `input: false` in `src/lib/auth.ts`.
@@ -146,7 +149,7 @@ export async function signUpStaff(
     return { status: 'error', messageKey: 'genericError' };
   }
 
-  const { name, email, password } = parsed.data;
+  const { name, email, password, locale } = parsed.data;
 
   const limited = await guard('sign_up', null);
   if (limited) return limited;
@@ -177,9 +180,16 @@ export async function signUpStaff(
     return { status: 'error', messageKey: 'genericError' };
   }
 
-  // No redirect and no session: `autoSignIn` is off and verification is
-  // required. The form shows a "check your inbox" screen from this state.
-  return { status: 'sent', messageKey: 'verificationSent' };
+  // With the gate on there is no session yet and nothing to redirect to — the
+  // form shows a "check your inbox" screen from this state.
+  if (REQUIRE_EMAIL_VERIFICATION) {
+    return { status: 'sent', messageKey: 'verificationSent' };
+  }
+
+  // Outside the try/catch — `redirect` signals by throwing. `/app` is where a
+  // signed-in dietitian belongs; its layout sends them on to onboarding, which
+  // a brand new clinic has not done yet.
+  redirect(`/${locale}/app`);
 }
 
 /**
