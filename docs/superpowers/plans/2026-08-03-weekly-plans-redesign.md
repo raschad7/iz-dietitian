@@ -853,16 +853,16 @@ export function MealCard({
 }
 ```
 
-- [ ] **Step 3: Expect the board to break**
+- [ ] **Step 3: Verify**
 
-Run: `bun run typecheck`
-Expected: **FAIL** — `day-column.tsx` and `plan-board.tsx` still reference the removed `Step` helper's siblings, and `meal-card.tsx` no longer imports `setServings`, `clear`, `remove`, `SERVING_STEP` or `snapServings`. That is the point: Task 9 gives those actions their new home. Do not patch around it here.
+Run: `bun run typecheck && bun run lint`
+Expected: **PASS.**
 
-Confirm the failure is confined to the two callers above and to the now-unused imports. If anything in `editor-mutations.ts` or `queries.ts` is implicated, stop — the change has exceeded the design.
+This plan originally predicted a failure here, and that prediction was wrong. `MealCard`'s exported surface does not change — same six props, same `GhostMeal`. The controls it loses were never props: they came from `useEditorActions()` *inside* the file, and `board-dnd.tsx` still exports all three for Task 9. The `Step` helper was file-local. Nothing crosses a module boundary, so nothing breaks across one.
 
-- [ ] **Step 4: Commit the card alone**
+If you DO get an error, it is real. In particular, if anything in `src/features/weekly-plans/*.ts` is implicated, stop — the change has exceeded the design.
 
-The tree does not typecheck between here and Task 9. Commit anyway so the card is reviewable on its own, and say so:
+- [ ] **Step 4: Commit**
 
 ```bash
 git add src/features/weekly-plans/components/meal-card.tsx src/i18n/messages/ar.json src/i18n/messages/en.json
@@ -996,7 +996,7 @@ Still in `day-column.tsx`, in the `AddMeal` component: change `className="h-7 te
 - [ ] **Step 6: Verify**
 
 Run: `bun run lint && bun run typecheck`
-Expected: still failing on the detail panel's missing actions (Task 9). Every *other* error must be gone. Grep to confirm no arbitrary sizes remain in this file:
+Expected: PASS. Grep to confirm no arbitrary sizes remain in this file:
 
 Run: `grep -n "text-\[" src/features/weekly-plans/components/day-column.tsx`
 Expected: no output.
@@ -1152,7 +1152,7 @@ Pass it from `plan-board.tsx`: `model={board.model}`.
 - [ ] **Step 5: The tree typechecks again**
 
 Run: `bun run lint && bun run typecheck`
-Expected: **PASS**. This is the first green typecheck since Task 7. If anything still fails, it is a real error, not the expected interim state.
+Expected: **PASS**. The tree has been green throughout Tasks 7–9; there is no interim red state to excuse a failure here. Anything that fails is real.
 
 Run: `bun test`
 Expected: PASS, all existing tests plus the 11 from Tasks 2 and 3.
@@ -1945,6 +1945,6 @@ Checked against the spec, section by section:
 
 **Known soft spots in this plan, flagged rather than hidden:**
 
-- **Tasks 7–9 are one atomic change split across three commits.** The tree does not typecheck at 7 or 8. That is called out in both, but if you are running tasks through separate agents, they must run in order and the reviewer must not treat the interim red as a failure.
+- **Tasks 7–9 are one atomic change split across three commits, but the tree stays green throughout.** This plan originally claimed 7 and 8 would fail to typecheck; that was wrong, and was corrected after Task 7 shipped green. The controls the card loses come from a context hook inside the file rather than from props, so removing them breaks no module boundary. The tasks must still run in order — the board is missing its portion controls entirely between 7 and 9 — but a red typecheck at any point is a real error, not an expected interim state.
 - **Task 13 does not give complete code for `CopyDoor` and `EmptyDoor`.** Step 3 describes them precisely and `EmptyDoor` is a lift of existing code, but this is the one task where an implementer writes markup from a description rather than copying it. It is also the task most likely to need a second pass.
 - **Task 5 may not compile first try.** The Base UI combobox API was read from its typings, not from a working call site — there is no existing combobox in this repo to copy. Step 3 exists for exactly that, and says to fix against the typings rather than cast past them.
