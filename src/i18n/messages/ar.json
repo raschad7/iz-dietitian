@@ -25,8 +25,6 @@
     "dashboard": "لوحة التحكم",
     "clients": "المتابعون",
     "calendar": "التقويم",
-    "mealPlans": "الخطط الغذائية",
-    "foods": "الأطعمة",
     "plans": "الخطط الغذائية",
     "appointments": "المواعيد",
     "payments": "المدفوعات",
@@ -96,6 +94,7 @@
     "nameRequired": "أدخل الاسم الكامل.",
     "invalidEmail": "أدخل بريدًا إلكترونيًا صحيحًا.",
     "continueWithGoogle": "المتابعة باستخدام Google",
+    "googleUnavailable": "تعذّر بدء تسجيل الدخول باستخدام Google. تحقق من الاتصال وحاول مرة أخرى.",
     "continueWithPasskey": "المتابعة باستخدام مفتاح المرور",
     "passkeyFailed": "تعذّر الدخول بمفتاح المرور. جرّب طريقة أخرى.",
     "orUsePassword": "أو",
@@ -224,112 +223,6 @@
       "unexpected": "حدث خطأ غير متوقع. حاول مجددًا."
     }
   },
-  "mealPlans": {
-    "title": "الخطط الغذائية",
-    "subtitle": "خطط أسبوعية مبنية على قاعدة بيانات التركيب الغذائي من وزارة الزراعة الأمريكية.",
-    "wholeWeek": "الأسبوع كامل",
-    "emptyDay": "لا يوجد شيء مخطّط بعد.",
-    "days": {
-      "sunday": "الأحد",
-      "monday": "الاثنين",
-      "tuesday": "الثلاثاء",
-      "wednesday": "الأربعاء",
-      "thursday": "الخميس",
-      "friday": "الجمعة",
-      "saturday": "السبت"
-    },
-    "new": "خطة جديدة",
-    "createTitle": "خطة غذائية جديدة",
-    "editTitle": "تعديل بيانات الخطة",
-    "edit": "تعديل البيانات",
-    "empty": "لا توجد خطط غذائية بعد. أنشئ واحدة لتبدأ ببناء اليوم.",
-    "emptyForClient": "لا توجد خطط غذائية لهذا المتابع بعد.",
-    "notFound": "الخطة غير موجودة",
-    "notFoundDescription": "قد تكون هذه الخطة قد حُذفت، أو أنّ الرابط غير صحيح.",
-    "backToList": "العودة إلى الخطط الغذائية",
-    "noClients": "تحتاج إلى متابع نشِط قبل أن تتمكن من بناء خطة.",
-    "addClient": "إضافة متابع",
-    "foodsNotSeeded": "قاعدة بيانات الأطعمة فارغة. شغّل الأمر `bun run db:seed:foods` لتحميلها.",
-    "dataSource": "بيانات التغذية: USDA FoodData Central، إصدار SR Legacy (نيسان ٢٠١٨) — ملكية عامة. القيم لكل ١٠٠ غرام حسب الوصف.",
-    "schedule": "جدول اليوم",
-    "emptySchedule": "لا توجد وجبات في هذه الخطة. أضف وجبة لتبدأ.",
-    "emptyMeal": "لا يوجد شيء في هذه الوجبة بعد.",
-    "per100g": "سعرة / ١٠٠ غم",
-    "fields": {
-      "title": "عنوان الخطة",
-      "titlePlaceholder": "مثال: الأسبوع الأول — ١٨٠٠ سعرة",
-      "client": "المتابع",
-      "selectClient": "اختر متابعًا",
-      "notes": "ملاحظات",
-      "plannedDays": "أيام مخطّطة",
-      "kcalPerDay": "سعرة / يوم",
-      "daysOfSeven": "{count, number, integer} / ٧",
-      "updatedAt": "آخر تعديل",
-      "timeOfDay": "الوقت",
-      "mealLabel": "اسم الوجبة",
-      "food": "الطعام",
-      "quantityGrams": "الكمية (غم)",
-      "actions": "إجراءات"
-    },
-    "short": {
-      "protein": "بروتين (غم)",
-      "carbs": "كربوهيدرات (غم)",
-      "fat": "دهون (غم)"
-    },
-    "nutrients": {
-      "kcal": "الطاقة",
-      "protein": "البروتين",
-      "carbs": "الكربوهيدرات",
-      "fat": "الدهون",
-      "fiber": "الألياف",
-      "sugar": "السكريات",
-      "saturatedFat": "الدهون المشبعة",
-      "sodium": "الصوديوم",
-      "cholesterol": "الكوليسترول",
-      "calcium": "الكالسيوم",
-      "iron": "الحديد",
-      "potassium": "البوتاسيوم"
-    },
-    "analysis": {
-      "title": "التحليل",
-      "wholeWeek": "الأسبوع كامل",
-      "weekHint": "الأيام السبعة مجتمعة. افتح يومًا لعرض تحليله وحده.",
-      "scopedHint": "هذا التحديد فقط. عُد إلى الأسبوع كامل من التبويبات أعلاه.",
-      "energy": "إجمالي الطاقة (سعرة)",
-      "empty": "أضف طعامًا لعرض التحليل.",
-      "macroSplit": "توزّع الطاقة على المغذيات الكبرى",
-      "macroSplitNote": "النسب محسوبة من الطاقة التي تمثّلها المغذيات الكبرى (٤/٤/٩ سعرة لكل غرام)، وقد تختلف قليلًا عن الإجمالي أعلاه.",
-      "allNutrients": "جميع العناصر الغذائية",
-      "unmeasured": "{count, number, integer} من هذه الأطعمة ليس لها قيمة منشورة لهذا العنصر، لذا فالإجمالي الحقيقي أعلى.",
-      "unmeasuredNote": "* غير مقاس لكل الأطعمة — الإجمالي يمثّل الحد الأدنى."
-    },
-    "picker": {
-      "search": "ابحث عن طعام",
-      "searchPlaceholder": "مثال: chicken breast",
-      "category": "الفئة",
-      "allCategories": "كل الفئات",
-      "prompt": "اكتب حرفين على الأقل، أو اختر فئة.",
-      "noResults": "لا يوجد طعام مطابق.",
-      "usePortion": "استخدم {label} ({grams, number} غم)",
-      "add": "إضافة إلى الوجبة"
-    },
-    "actions": {
-      "addFood": "إضافة طعام",
-      "addMeal": "إضافة وجبة",
-      "copy": "نسخ",
-      "copyDayTo": "انسخ {day} إلى",
-      "clearDay": "إفراغ هذا اليوم",
-      "confirmCopyDay": "سيُستبدل كل ما في {to} بنسخة من {from}. هل أنت متأكد؟",
-      "confirmClearDay": "ستُحذف كل وجبات {day}. هل أنت متأكد؟",
-      "confirmDeleteMeal": "هل تريد حذف «{label}» وكل ما فيها؟",
-      "confirmDeletePlan": "سيُحذف «{title}» وكل وجباته نهائيًا. هل أنت متأكد؟"
-    },
-    "errors": {
-      "invalid": "راجع الحقول المظللة بالأحمر.",
-      "clientNotFound": "هذا المتابع ليس ضمن عيادتك.",
-      "unexpected": "حدث خطأ ما. حاول مرة أخرى."
-    }
-  },
   "dashboard": {
     "title": "لوحة التحكم",
     "welcome": "أهلًا {name}",
@@ -363,13 +256,9 @@
         "title": "حجز موعد",
         "hint": "يفتح اليوم في التقويم"
       },
-      "newMealPlan": {
-        "title": "إنشاء خطة غذائية",
-        "hint": "ابنِ خطة أسبوعية"
-      },
-      "addFood": {
-        "title": "إضافة صنف غذائي",
-        "hint": "يفتح مرجع الأطعمة"
+      "weeklyPlans": {
+        "title": "الخطط الأسبوعية",
+        "hint": "يفتح لوحة الخطط"
       }
     },
     "ageDistribution": {
@@ -413,60 +302,8 @@
     },
     "attention": {
       "noUpcomingAppointment": "لا يوجد موعد قادم",
-      "noMealPlan": "لا توجد خطة غذائية بعد",
+      "noWeeklyPlan": "لا توجد خطة لهذا الأسبوع",
       "neverSignedIn": "لم يسجّل الدخول إلى البوابة بعد"
-    }
-  },
-  "foods": {
-    "title": "الأطعمة",
-    "per100g": "جميع القيم لكل ١٠٠ غرام",
-    "resultCount": "{total, number, integer} طعامًا",
-    "searchPlaceholder": "ابحث بالاسم، مثال: chicken breast",
-    "allCategories": "كل الفئات",
-    "empty": "قاعدة بيانات الأطعمة فارغة.",
-    "emptyFiltered": "لا يوجد طعام مطابق لبحثك.",
-    "clearFilters": "مسح عوامل التصفية",
-    "notSeeded": "قاعدة بيانات الأطعمة فارغة. شغّل الأمر `bun run db:seed:foods` لتحميلها.",
-    "notFound": "الطعام غير موجود",
-    "notFoundDescription": "قد يكون هذا الطعام قد حُذف، أو أنّ الرابط غير صحيح.",
-    "backToList": "العودة إلى الأطعمة",
-    "notMeasured": "غير مقاس",
-    "noPortion": "لا يوجد مقياس منزلي منشور",
-    "dataSource": "المصدر: USDA FoodData Central، إصدار SR Legacy (نيسان ٢٠١٨) — ملكية عامة.",
-    "fields": {
-      "description": "الطعام",
-      "category": "الفئة",
-      "portion": "المقياس المنزلي",
-      "fdcId": "معرّف FoodData Central"
-    },
-    "sections": {
-      "macros": "الطاقة والمغذيات الكبرى",
-      "allNutrients": "جميع العناصر الغذائية",
-      "source": "الحصة والمصدر"
-    },
-    "short": {
-      "protein": "بروتين (غم)",
-      "carbs": "كربوهيدرات (غم)",
-      "fat": "دهون (غم)"
-    },
-    "nutrients": {
-      "kcal": "الطاقة",
-      "protein": "البروتين",
-      "carbs": "الكربوهيدرات",
-      "fat": "الدهون",
-      "fiber": "الألياف",
-      "sugar": "السكريات",
-      "saturatedFat": "الدهون المشبعة",
-      "sodium": "الصوديوم",
-      "cholesterol": "الكوليسترول",
-      "calcium": "الكالسيوم",
-      "iron": "الحديد",
-      "potassium": "البوتاسيوم"
-    },
-    "pagination": {
-      "previous": "السابق",
-      "next": "التالي",
-      "position": "صفحة {page, number, integer} من {pageCount, number, integer}"
     }
   },
   "clients": {
@@ -586,19 +423,27 @@
       "todaysMeals": "وجبات اليوم",
       "dayEnergy": "إجمالي اليوم: {kcal, number, integer} سعرة",
       "requestAppointment": "طلب موعد",
+      "viewAppointments": "عرض المواعيد",
       "viewMealPlan": "عرض الخطة الغذائية",
       "pendingRequests": "بانتظار ردّ أخصائي التغذية: {count, number, integer}"
     },
     "appointments": {
       "title": "المواعيد",
+      "subtitle": "كل ما حجزه لك أخصائي التغذية.",
       "upcoming": "المواعيد القادمة",
       "history": "المواعيد السابقة",
       "requests": "طلباتك",
+      "noneUpcomingTitle": "لا مواعيد قادمة",
       "noneUpcoming": "لا توجد مواعيد محجوزة. اطلب موعدًا من أخصائي التغذية.",
-      "nonePast": "لا توجد مواعيد سابقة.",
+      "nonePast": "لا توجد مواعيد سابقة بعد.",
       "reschedule": "طلب تغيير الموعد",
       "cancel": "طلب إلغاء الموعد",
-      "requestPending": "بانتظار ردّ أخصائي التغذية"
+      "requestPending": "بانتظار ردّ أخصائي التغذية",
+      "marker": {
+        "today": "اليوم",
+        "tomorrow": "غدًا",
+        "next": "القادم"
+      }
     },
     "request": {
       "title": "طلب موعد",
@@ -642,13 +487,19 @@
     },
     "plan": {
       "title": "الخطة الغذائية",
-      "none": "لم يُعدّ أخصائي التغذية خطة لك بعد.",
+      "noneTitle": "لا توجد خطة بعد",
+      "none": "لم يُعدّ أخصائي التغذية خطة لك بعد. ستظهر هنا فور نشرها.",
       "grams": "{grams, number, plain} غرام",
       "weekOf": "أسبوع {date}",
       "dailyTarget": "الهدف اليومي: {value} kcal",
+      "chooseDay": "اختر اليوم",
+      "today": "اليوم",
+      "dayEnergyLabel": "طاقة هذا اليوم",
+      "emptyDayTitle": "لا توجد وجبات لهذا اليوم",
+      "emptyDayHint": "ترك أخصائي التغذية هذا اليوم مفتوحًا. اختر يومًا آخر من الأعلى.",
       "kcalValue": "{value} kcal",
       "portion": "{servings} × {label}",
-      "showIngredients": "عرض المكوّنات والكميات",
+      "ingredientsTitle": "المكوّنات والكميات",
       "orInstead": "يمكنك بدلاً منها:",
       "noMeal": "لم تُحدد وجبة"
     },
@@ -667,7 +518,8 @@
       "alreadyRequested": "لديك طلب سابق بهذا الشأن، وسيردّ عليه أخصائي التغذية قريبًا.",
       "pastAppointment": "هذا الموعد قد انتهى بالفعل.",
       "unexpected": "حدث خطأ غير متوقع. حاول مجددًا."
-    }
+    },
+    "emptyToday": "لا يوجد شيء مخطّط بعد."
   },
   "localeSwitcher": {
     "label": "اللغة",
@@ -804,7 +656,88 @@
       "invalid": "بيانات غير صحيحة.",
       "clientNotFound": "العميل غير موجود.",
       "unexpected": "حدث خطأ غير متوقع."
-    }
+    },
+    "tabs": {
+      "client": "العميل",
+      "dishes": "الأطباق",
+      "meal": "الوجبة",
+      "past": "السابق"
+    },
+    "newWeek": "أسبوع جديد",
+    "newWeekGenerate": "توليد بالذكاء الاصطناعي",
+    "newWeekGenerateHint": "يفتح لوحة التوليد مع أهداف هذا الأسبوع.",
+    "newWeekFrom": "ابدأ من خطة {date}",
+    "newWeekFromHint": "ينسخ أطباق ذلك الأسبوع إلى جدول وجبات العميل الحالي.",
+    "newWeekEmpty": "أسبوع فارغ",
+    "newWeekEmptyHint": "خانة فارغة لكل وجبة في جدول العميل.",
+    "selectMeal": "افتح وجبة من اللوح لعرضها هنا",
+    "searchDishes": "ابحث في الأطباق",
+    "noDishes": "لا أطباق مطابقة",
+    "fitsSlot": "الحصص محسوبة على {value} سعرة",
+    "usedThisWeek": "هذا الأسبوع",
+    "usedWeeksAgo": "{count, plural, one {الأسبوع الماضي} other {قبل # أسابيع}}",
+    "blockedByAllergen": "يحتوي على {allergens}",
+    "mealTypes": {
+      "breakfast": "فطور",
+      "snack": "سناك",
+      "lunch": "غداء",
+      "dinner": "عشاء"
+    },
+    "tags": {
+      "cheap": "اقتصادي",
+      "portable": "سهل الحمل",
+      "quick": "سريع التحضير",
+      "vegetarian": "نباتي",
+      "high_protein": "غني بالبروتين",
+      "diabetic_friendly": "مناسب لمرضى السكري"
+    },
+    "dropHere": "أفلت هنا",
+    "addMeal": "إضافة وجبة",
+    "removeMeal": "حذف هذه الوجبة",
+    "clearMeal": "إفراغ هذه الخانة",
+    "morePortion": "حصة أكبر",
+    "lessPortion": "حصة أصغر",
+    "compareWith": "مقارنة مع {date}",
+    "repeatedFromLastWeek": "نفس {date}",
+    "editPublished": "تعديل الخطة المنشورة",
+    "editPublishedWarning": "هذه الخطة منشورة. أي تعديل يظهر للعميل فوراً.",
+    "editPublishedConfirm": "هذه الخطة منشورة والعميل يتبعها. التعديلات ستظهر له مباشرة. هل تريد المتابعة؟",
+    "retiredDish": "طبق متقاعد من الكتالوج",
+    "savedIndicator": "محفوظ",
+    "savingIndicator": "جارٍ الحفظ…",
+    "noEarlierPlans": "لا توجد خطط سابقة",
+    "planMeals": "{count} وجبة",
+    "copyIntoWeek": "انسخ إلى {date}",
+    "weekTargets": "أهداف هذا الأسبوع",
+    "kcalTargetLabel": "السعرات اليومية",
+    "proteinTargetLabel": "البروتين اليومي (غ)",
+    "goalLabel": "هدف هذا الأسبوع",
+    "targetsHint": "تنطبق على هذه الخطة فقط. الملف الغذائي للعميل لا يتغير.",
+    "useProfile": "حسب الملف الغذائي",
+    "days": {
+      "sunday": "الأحد",
+      "monday": "الاثنين",
+      "tuesday": "الثلاثاء",
+      "wednesday": "الأربعاء",
+      "thursday": "الخميس",
+      "friday": "الجمعة",
+      "saturday": "السبت"
+    },
+    "nutrients": {
+      "kcal": "الطاقة",
+      "protein": "البروتين",
+      "carbs": "الكربوهيدرات",
+      "fat": "الدهون",
+      "fiber": "الألياف",
+      "sugar": "السكريات",
+      "saturatedFat": "الدهون المشبعة",
+      "sodium": "الصوديوم",
+      "cholesterol": "الكوليسترول",
+      "calcium": "الكالسيوم",
+      "iron": "الحديد",
+      "potassium": "البوتاسيوم"
+    },
+    "unmeasuredCount": "{count, number, integer} من هذه الأطعمة ليس لها قيمة منشورة لهذا العنصر، لذا فالإجمالي الحقيقي أعلى."
   },
   "dishes": {
     "title": "كتالوج الأطباق",
@@ -930,6 +863,67 @@
       "notLinked": "اربط واتساب أولاً ثم اضبط الرسائل التلقائية.",
       "sendFailed": "تعذّر إرسال الرسالة. راجع سجل الرسائل.",
       "unexpected": "حدث خطأ غير متوقع. حاول مجددًا."
+    }
+  },
+  "clinicProfile": {
+    "eyebrow": "إعداد العيادة",
+    "onboardingTitle": "لنجهّز عيادتك",
+    "onboardingDescription": "أدخل المعلومات الأساسية مرة واحدة لتتوافق المواعيد والعمل اليومي مع نظام عيادتك.",
+    "profileTitle": "ملف العيادة",
+    "profileDescription": "حدّث بيانات التواصل وساعات العمل ومعلوماتك المهنية في أي وقت.",
+    "progress": "تقدّم الإعداد",
+    "profileSections": "أقسام الملف",
+    "sections": {
+      "clinic": "بيانات العيادة",
+      "schedule": "ساعات العمل",
+      "professional": "الملف المهني"
+    },
+    "sectionDescriptions": {
+      "clinic": "بيانات التواصل الإلزامية المستخدمة في العيادة.",
+      "schedule": "اختر أيام العمل والإجازة وساعات مختلفة لكل يوم.",
+      "professional": "بيانات اختصاصي التغذية داخل مساحة عمل العيادة."
+    },
+    "clinicName": "اسم العيادة",
+    "clinicPhone": "هاتف العيادة",
+    "email": "البريد الإلكتروني للتواصل",
+    "address": "عنوان العيادة",
+    "fullName": "الاسم الكامل",
+    "professionalTitle": "المسمى المهني",
+    "specialty": "التخصص",
+    "professionalPhone": "الهاتف المهني",
+    "licenseNumber": "رقم الترخيص",
+    "optional": "اختياري",
+    "opens": "من",
+    "closes": "إلى",
+    "offDay": "يوم إجازة",
+    "back": "رجوع",
+    "next": "متابعة",
+    "finish": "إنهاء الإعداد",
+    "saving": "جارٍ الحفظ…",
+    "saveChanges": "حفظ التغييرات",
+    "days": {
+      "0": "الأحد",
+      "1": "الاثنين",
+      "2": "الثلاثاء",
+      "3": "الأربعاء",
+      "4": "الخميس",
+      "5": "الجمعة",
+      "6": "السبت"
+    },
+    "validation": {
+      "required": "هذا الحقل مطلوب.",
+      "invalidEmail": "أدخل بريدًا إلكترونيًا صحيحًا، مثل name@clinic.com.",
+      "invalidPhone": "أدخل رقم هاتف صحيحًا باستخدام الأرقام ورمز الدولة إن وجد.",
+      "invalidTime": "اختر وقتًا صحيحًا بفواصل 15 دقيقة.",
+      "closingAfterOpening": "يجب أن يكون وقت الإغلاق بعد وقت الافتتاح.",
+      "workingDayRequired": "اختر يوم عمل واحدًا على الأقل."
+    },
+    "messages": {
+      "saved": "تم حفظ التغييرات.",
+      "invalid": "تحقق من الحقول المحددة ثم حاول مرة أخرى.",
+      "unexpected": "تعذّر حفظ التغييرات. حاول مرة أخرى.",
+      "incomplete": "أكمل الأقسام الثلاثة قبل المتابعة.",
+      "scheduleConflict": "تم حفظ الساعات. يوجد {count, plural, one {موعد مستقبلي واحد خارج الساعات الجديدة} other {# مواعيد مستقبلية خارج الساعات الجديدة}}."
     }
   }
 }

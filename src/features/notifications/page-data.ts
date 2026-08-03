@@ -3,7 +3,7 @@ import { toIsoDate } from '@/features/booking/date';
 import {
   listClientsNeverSignedIn,
   listClientsWithNoUpcomingAppointment,
-  listClientsWithoutMealPlan,
+  listClientsWithoutWeeklyPlan,
   listPendingRequestsPreview,
   countPendingRequests,
 } from './queries';
@@ -29,11 +29,11 @@ export async function loadNotifications(clinicId: string): Promise<Notifications
   const now = new Date();
   const today = toIsoDate(now);
 
-  const [pendingItems, pendingRequestCount, noUpcomingAppointment, noMealPlan, neverSignedIn] = await Promise.all([
+  const [pendingItems, pendingRequestCount, noUpcomingAppointment, noWeeklyPlan, neverSignedIn] = await Promise.all([
     listPendingRequestsPreview(clinicId, REQUEST_PREVIEW_LIMIT),
     countPendingRequests(clinicId),
     listClientsWithNoUpcomingAppointment(clinicId, today, ATTENTION_CATEGORY_LIMIT),
-    listClientsWithoutMealPlan(clinicId, ATTENTION_CATEGORY_LIMIT),
+    listClientsWithoutWeeklyPlan(clinicId, ATTENTION_CATEGORY_LIMIT),
     listClientsNeverSignedIn(clinicId, ATTENTION_CATEGORY_LIMIT),
   ]);
 
@@ -60,7 +60,7 @@ export async function loadNotifications(clinicId: string): Promise<Notifications
   const seen = new Set<string>();
   const attention: StaffNotification[] = [];
 
-  for (const item of [...noUpcomingAppointment, ...noMealPlan, ...neverSignedIn]) {
+  for (const item of [...noUpcomingAppointment, ...noWeeklyPlan, ...neverSignedIn]) {
     if (seen.has(item.clientId)) continue;
     seen.add(item.clientId);
     attention.push({ kind: 'attention', id: `${item.clientId}-${item.reason}`, ...item });

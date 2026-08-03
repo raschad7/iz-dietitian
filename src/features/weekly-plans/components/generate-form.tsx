@@ -5,10 +5,13 @@ import { useFormStatus } from 'react-dom';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { CLIENT_GOALS } from '@/features/clients/schema';
 
 import { generateWeekAction } from '../actions';
 import { initialGenerateState, type GenerateState } from '../form-state';
+import type { ClientContext } from '../queries';
 
 /**
  * The generate control: this week's instructions, and the button.
@@ -22,12 +25,15 @@ export function GenerateForm({
   weekStartDate,
   locale,
   blocked,
+  context,
   defaultInstruction,
 }: {
   clientId: string;
   weekStartDate: string;
   locale: string;
   blocked: 'not_configured' | 'profile_incomplete' | null;
+  /** For the placeholders on the target fields — what the profile would give. */
+  context: ClientContext;
   defaultInstruction?: string | null;
 }) {
   const t = useTranslations('weeklyPlans');
@@ -38,6 +44,8 @@ export function GenerateForm({
       <input type="hidden" name="locale" value={locale} />
       <input type="hidden" name="clientId" value={clientId} />
       <input type="hidden" name="weekStartDate" value={weekStartDate} />
+
+      <WeekTargets context={context} />
 
       <label htmlFor="instruction" className="text-xs font-medium">
         {t('weekInstructions')}
@@ -63,6 +71,74 @@ export function GenerateForm({
 
       <Result state={state} />
     </form>
+  );
+}
+
+/**
+ * This week's targets, if they differ from the client's.
+ *
+ * Every field is left blank and shows the profile's figure as its placeholder,
+ * rather than being pre-filled with it. A pre-filled value would be submitted on
+ * every generation, so the plan could never distinguish "1,850 because that is her
+ * target" from "1,850 because someone chose it for this week" — and the point of
+ * these columns is exactly that distinction.
+ */
+function WeekTargets({ context }: { context: ClientContext }) {
+  const t = useTranslations('weeklyPlans');
+  const tGoals = useTranslations('clients.goal');
+
+  return (
+    <fieldset className="flex flex-col gap-1.5 rounded-md border border-border p-2.5">
+      <legend className="px-1 text-xs font-medium">{t('weekTargets')}</legend>
+
+      <div className="grid grid-cols-2 gap-2">
+        <label className="flex flex-col gap-1 text-xs">
+          <span className="text-muted-foreground">{t('kcalTargetLabel')}</span>
+          <Input
+            type="number"
+            name="kcalTarget"
+            min={800}
+            max={6000}
+            inputMode="numeric"
+            placeholder={context.effectiveKcal === null ? '' : String(context.effectiveKcal)}
+            className="h-8 text-xs"
+          />
+        </label>
+
+        <label className="flex flex-col gap-1 text-xs">
+          <span className="text-muted-foreground">{t('proteinTargetLabel')}</span>
+          <Input
+            type="number"
+            name="proteinTarget"
+            min={20}
+            max={400}
+            inputMode="numeric"
+            placeholder={
+              context.effectiveProteinGrams === null ? '' : String(context.effectiveProteinGrams)
+            }
+            className="h-8 text-xs"
+          />
+        </label>
+      </div>
+
+      <label className="flex flex-col gap-1 text-xs">
+        <span className="text-muted-foreground">{t('goalLabel')}</span>
+        <select
+          name="goal"
+          defaultValue=""
+          className="h-8 rounded-md border border-input bg-transparent px-2 text-xs"
+        >
+          <option value="">{t('useProfile')}</option>
+          {CLIENT_GOALS.map((goal) => (
+            <option key={goal} value={goal}>
+              {tGoals(goal)}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <p className="text-[11px] leading-relaxed text-muted-foreground">{t('targetsHint')}</p>
+    </fieldset>
   );
 }
 

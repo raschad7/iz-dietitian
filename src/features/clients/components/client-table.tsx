@@ -64,7 +64,7 @@ export function ClientTable({
   locale: Locale;
 }) {
   const t = useTranslations('clients');
-  const tMealPlans = useTranslations('mealPlans');
+  const tNav = useTranslations('nav');
 
   if (result.items.length === 0) {
     return (
@@ -173,14 +173,14 @@ export function ClientTable({
               */}
               <TableCell className="relative">
                 <div className="flex items-center justify-end gap-2">
-                  {/* Carries the client through, so the plan form arrives with them chosen. */}
-                  <Tooltip label={tMealPlans('new')}>
+                  {/* Straight to this client's board — the client is the route, not a query param. */}
+                  <Tooltip label={tNav('weeklyPlans')}>
                     <Link
-                      href={{ pathname: '/app/meal-plans/new', query: { clientId: client.id } }}
-                      aria-label={tMealPlans('new')}
+                      href={`/app/weekly-plans/${client.id}`}
+                      aria-label={tNav('weeklyPlans')}
                       className={buttonVariants({ variant: 'outline', size: 'icon-sm' })}
                     >
-                      <Icon name="mealPlans" />
+                      <Icon name="weeklyPlans" />
                     </Link>
                   </Tooltip>
 
@@ -194,6 +194,7 @@ export function ClientTable({
                       <Icon name="edit" />
                     </ClientFormTrigger>
                   </Tooltip>
+
 
                   <ArchiveButton
                     locale={locale}

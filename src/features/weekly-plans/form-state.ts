@@ -59,3 +59,27 @@ export type PlanActionState =
     };
 
 export const initialPlanActionState: PlanActionState = { status: 'idle' };
+
+/**
+ * Starting a week without generating one.
+ *
+ * `profileIncomplete` is the same refusal the generate button gives. All three
+ * doors into a plan build their slots from the client's schedule and target, so
+ * none of them can run without a profile — a week whose slots have no budgets
+ * cannot be checked against anything.
+ *
+ * There is no `done`: both actions redirect to the new plan, so the only states
+ * this ever reaches the client in are `idle` and `error`.
+ */
+export type NewWeekState =
+  | { status: 'idle' }
+  | {
+      status: 'error';
+      messageKey:
+        | 'errors.invalid'
+        | 'errors.profileIncomplete'
+        | 'errors.planNotFound'
+        | 'errors.unexpected';
+    };
+
+export const initialNewWeekState: NewWeekState = { status: 'idle' };

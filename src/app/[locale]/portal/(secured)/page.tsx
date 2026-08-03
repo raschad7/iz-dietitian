@@ -66,10 +66,13 @@ export default async function PortalPage({ params }: PortalPageProps) {
       {/*
         The two shortcuts, full width and stacked on a phone: they are the only
         things on this page anyone taps deliberately.
+
+        Neither books anything. Appointments are the dietitian's to make, so this
+        page offers a way to read them, not a way to ask for one.
       */}
       <div className="grid gap-3 sm:grid-cols-2">
-        <Link href="/portal/appointments/request" className={buttonVariants()}>
-          {t('dashboard.requestAppointment')}
+        <Link href="/portal/appointments" className={buttonVariants()}>
+          {t('dashboard.viewAppointments')}
         </Link>
         <Link href="/portal/meal-plan" className={buttonVariants({ variant: 'outline' })}>
           {t('dashboard.viewMealPlan')}

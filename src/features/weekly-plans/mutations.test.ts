@@ -19,8 +19,7 @@ import { getBoard, getPublishedBoard, listPlannableClients, loadCatalog } from '
 import { DEFAULT_MEAL_SCHEDULE } from './schema';
 
 /**
- * Integration tests against `TEST_DATABASE_URL`, following the shape of
- * `src/features/meal-plans/mutations.test.ts`.
+ * Integration tests against `TEST_DATABASE_URL`.
  *
  * What these are for: the tenant scope, the publish transaction and the constraint
  * behind it, and the guarantee that replacing one meal touches only that meal. All
@@ -144,6 +143,8 @@ async function createPlan(
     clientId,
     weekStartDate,
     kcalTarget: 1800,
+    proteinTarget: null,
+    goal: null,
     weekInstructions: 'تكلفة أقل',
     outcome: outcome(meals),
   });
@@ -227,6 +228,8 @@ describe('createPlanFromGeneration', () => {
       clientId,
       weekStartDate: '2026-08-02',
       kcalTarget: 1800,
+      proteinTarget: null,
+      goal: null,
       weekInstructions: null,
       outcome: outcome([meal()]),
     });
@@ -254,6 +257,32 @@ describe('createPlanFromGeneration', () => {
 
     const rows = await db.select({ status: weeklyPlans.status }).from(weeklyPlans);
     expect(rows.map((row) => row.status).sort()).toEqual(['draft', 'published']);
+  });
+
+  test('leaves the per-week snapshots null when the week used the profile', async () => {
+    const board = await getBoard(clinicId, await createPlan());
+
+    expect(board?.proteinTargetSnapshot).toBeNull();
+    expect(board?.goalSnapshot).toBeNull();
+  });
+
+  test('stores the per-week snapshots when the week overrode them', async () => {
+    const planId = await createPlanFromGeneration({
+      clinicId,
+      clientId,
+      weekStartDate: '2026-08-09',
+      kcalTarget: 1700,
+      proteinTarget: 120,
+      goal: 'weight_loss',
+      weekInstructions: null,
+      outcome: outcome([meal()]),
+    });
+
+    const board = await getBoard(clinicId, planId!);
+
+    expect(board?.kcalTargetSnapshot).toBe(1700);
+    expect(board?.proteinTargetSnapshot).toBe(120);
+    expect(board?.goalSnapshot).toBe('weight_loss');
   });
 
   test('stores an unfillable slot as an empty meal', async () => {

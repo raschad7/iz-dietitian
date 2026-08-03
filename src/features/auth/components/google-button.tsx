@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { authClient } from '@/lib/auth-client';
 import { type Locale } from '@/i18n/routing';
 
+import { attemptGoogleSignIn } from '../google-sign-in';
+
 type GoogleButtonProps = {
   locale: Locale;
   /**
@@ -40,26 +42,36 @@ type GoogleButtonProps = {
 export function GoogleButton({ locale, requestSignUp = false, redirectTo }: GoogleButtonProps) {
   const t = useTranslations('login');
   const [pending, setPending] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   async function start() {
     setPending(true);
+    setFailed(false);
 
-    const { error } = await authClient.signIn.social({
-      provider: 'google',
-      callbackURL: redirectTo ?? `/${locale}/app`,
-      // Failures come back as a query parameter on our own sign-in page rather
-      // than Better Auth's bare error screen, so the message can be translated.
-      errorCallbackURL: `/${locale}/login`,
-      ...(requestSignUp ? { requestSignUp: true } : {}),
-    });
+    const started = await attemptGoogleSignIn(() =>
+      authClient.signIn.social({
+        provider: 'google',
+        callbackURL: redirectTo ?? `/${locale}/app`,
+        // Failures come back as a query parameter on our own sign-in page rather
+        // than Better Auth's bare error screen, so the message can be translated.
+        errorCallbackURL: `/${locale}/login`,
+        ...(requestSignUp ? { requestSignUp: true } : {}),
+      }),
+    );
 
     // Reached only when the redirect never happened; otherwise this page is gone.
-    if (error) setPending(false);
+    if (!started) {
+      setPending(false);
+      setFailed(true);
+    }
   }
 
   return (
-    <Button type="button" variant="outline" className="w-full" disabled={pending} onClick={start}>
-      {t('continueWithGoogle')}
-    </Button>
+    <div className="space-y-2">
+      <Button type="button" variant="outline" className="w-full" disabled={pending} onClick={start}>
+        {t('continueWithGoogle')}
+      </Button>
+      {failed ? <p role="alert" className="text-sm text-destructive">{t('googleUnavailable')}</p> : null}
+    </div>
   );
 }

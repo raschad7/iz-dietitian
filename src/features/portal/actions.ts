@@ -4,17 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 import { requirePortalClient } from './session';
-import {
-  createAppointmentRequest,
-  updateLanguagePreference,
-  withdrawRequest,
-} from './mutations';
-import {
-  appointmentRequestSchema,
-  languagePreferenceSchema,
-  localeSchema,
-  withdrawRequestSchema,
-} from './schema';
+import { updateLanguagePreference } from './mutations';
+import { languagePreferenceSchema, localeSchema } from './schema';
 import { type RequestFormState } from './types';
 
 /**
@@ -43,51 +34,37 @@ function revalidatePortal(locale: string): void {
 }
 
 /**
- * Files a request: a new appointment, a different time, or a cancellation.
+ * Refuses every appointment request a client could file.
  *
- * `kind` decides which fields the schema demands, so one action serves all three
- * forms without any of them being able to submit a half-filled version of
- * another.
+ * Appointments are the dietitian's: clients do not book their own, ask to move
+ * them, or ask to cancel them from the portal. The forms and links that reached
+ * this are gone, but a server action is a public endpoint and a removed button
+ * is not a removed capability — so the refusal has to be on this side of the
+ * wire, and it is the whole body of the function.
+ *
+ * Kept rather than deleted because `RequestForm` still binds to it and the
+ * `appointment_requests` table still holds rows the dietitian answers. Deleting
+ * it would be a larger change to a feature that is dormant, not gone: if clients
+ * are ever given the ability back, it is the guard below that lifts, not this
+ * whole path that gets rebuilt. `createAppointmentRequest` in `./mutations.ts`
+ * is unchanged and still under test.
  */
 export async function requestAppointmentAction(
   _previousState: RequestFormState,
-  formData: FormData,
+  _formData: FormData,
 ): Promise<RequestFormState> {
-  const locale = readLocale(formData);
-  const { id: clientId, clinicId, now } = await requirePortalClient(locale);
-
-  const parsed = appointmentRequestSchema.safeParse({
-    kind: formData.get('kind'),
-    appointmentId: formData.get('appointmentId'),
-    preferredDate: formData.get('preferredDate'),
-    preferredStartMinute: formData.get('preferredStartMinute'),
-    note: formData.get('note'),
-  });
-
-  if (!parsed.success) return { status: 'error', messageKey: 'errors.invalid' };
-
-  const result = await createAppointmentRequest({ clientId, clinicId, now }, parsed.data);
-
-  if (!result.ok) return { status: 'error', messageKey: result.error };
-
-  revalidatePortal(locale);
-
-  // Outside any try/catch — `redirect` signals by throwing. The new request is
-  // waiting on that page, which confirms it better than a message would.
-  redirect(`/${locale}/portal/appointments`);
+  return { status: 'error', messageKey: 'errors.invalid' };
 }
 
-/** Takes back a request the dietitian has not answered yet. */
-export async function withdrawRequestAction(formData: FormData): Promise<void> {
-  const locale = readLocale(formData);
-  const { id: clientId } = await requirePortalClient(locale);
-
-  const parsed = withdrawRequestSchema.safeParse({ requestId: formData.get('requestId') });
-  if (!parsed.success) return;
-
-  await withdrawRequest(clientId, parsed.data.requestId);
-
-  revalidatePortal(locale);
+/**
+ * Withdrawing is likewise closed.
+ *
+ * With nothing able to open a request, taking one back is a button with no way
+ * to have got there — and `RequestList` no longer renders it. The rows stay
+ * readable; they are simply not the client's to change.
+ */
+export async function withdrawRequestAction(_formData: FormData): Promise<void> {
+  return;
 }
 
 /**

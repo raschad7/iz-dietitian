@@ -38,6 +38,10 @@ export const practitioners = pgTable(
     /** Free text, not an enum: "Clinical nutrition", "Sports nutrition", "Paediatrics". */
     specialty: text('specialty'),
 
+    professionalTitle: text('professional_title'),
+    phone: text('phone'),
+    licenseNumber: text('license_number'),
+
     /**
      * Colour-codes every appointment block for this practitioner. Stored rather
      * than derived so staff can change it without every historical block moving

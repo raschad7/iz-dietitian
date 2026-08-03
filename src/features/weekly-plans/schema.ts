@@ -1,11 +1,13 @@
 import { z } from 'zod';
 
+import { CLIENT_GOALS } from '@/features/clients/schema';
+
 import { MAX_SERVINGS, MIN_SERVINGS } from './similar';
 
 /**
  * Validation for every weekly-plan input, and for everything the model returns.
  *
- * Mirrors `src/features/meal-plans/schema.ts`: the rules live here, not in the
+ * The rules live here, not in the
  * database, so extending them is a code change rather than a migration.
  *
  * The response schemas at the bottom are the load-bearing ones. Everything a
@@ -212,6 +214,19 @@ export const generateWeekSchema = z.object({
   clientId: clientIdSchema,
   weekStartDate: weekStartDateSchema,
   instruction: instructionSchema,
+  /**
+   * This week's figures, when the dietitian overrode them.
+   *
+   * The same bounds the nutrition profile uses, because they are the same
+   * quantities — a target that would be a typo on the profile is a typo here too.
+   * Blank means "use the profile", which is why these are optional rather than
+   * defaulted: the difference is recorded on the plan, and a plan that stored a
+   * copy of the profile's number could never say whether the week was deliberately
+   * different.
+   */
+  kcalTarget: z.preprocess(blankToUndefined, z.coerce.number().int().min(800).max(6000).optional()),
+  proteinTarget: z.preprocess(blankToUndefined, z.coerce.number().int().min(20).max(400).optional()),
+  goal: z.preprocess(blankToUndefined, z.enum(CLIENT_GOALS).optional()),
 });
 
 export const regenerateDaySchema = z.object({
@@ -234,6 +249,69 @@ export const swapMealSchema = z.object({
 });
 
 export const publishPlanSchema = z.object({ planId: planIdSchema });
+
+/**
+ * Starting a week without generating one.
+ *
+ * Two schemas rather than one with an optional source: a copy that lost its
+ * `sourcePlanId` to a typo would silently become an empty week, which is the one
+ * mistake a dietitian would not notice until the board loaded blank.
+ */
+export const startEmptyWeekSchema = z.object({
+  clientId: clientIdSchema,
+  weekStartDate: weekStartDateSchema,
+});
+
+export const startWeekFromPlanSchema = z.object({
+  clientId: clientIdSchema,
+  weekStartDate: weekStartDateSchema,
+  sourcePlanId: planIdSchema,
+});
+
+// ---------------------------------------------------------------------------
+// Editing a plan
+// ---------------------------------------------------------------------------
+
+/**
+ * Whether the caller means to edit a plan the client is already following.
+ *
+ * A checkbox value, so it arrives as `'on'` or not at all. Absent means no, which
+ * is the safe reading of a field that failed to submit.
+ */
+const allowPublishedSchema = z.preprocess((value) => value === 'on' || value === 'true', z.boolean());
+
+/** Shared by every edit: which plan, and whether a live one may be touched. */
+const editBase = { planId: planIdSchema, allowPublished: allowPublishedSchema };
+
+export const placeDishSchema = z.object({
+  ...editBase,
+  mealId: mealIdSchema,
+  dishId: dishIdSchema,
+  servings: z.coerce.number().min(MIN_SERVINGS).max(MAX_SERVINGS),
+});
+
+export const setServingsSchema = z.object({
+  ...editBase,
+  mealId: mealIdSchema,
+  servings: z.coerce.number().min(MIN_SERVINGS).max(MAX_SERVINGS),
+});
+
+export const mealEditSchema = z.object({ ...editBase, mealId: mealIdSchema });
+
+export const addMealSchema = z.object({
+  ...editBase,
+  dayOfWeek: dayOfWeekSchema,
+  slotKey: mealSlotSchema.shape.slotKey,
+  label: mealSlotSchema.shape.label,
+  timeOfDay: timeOfDaySchema,
+});
+
+export const moveMealSchema = z.object({
+  ...editBase,
+  fromMealId: mealIdSchema,
+  toMealId: mealIdSchema,
+  mode: z.enum(['move', 'copy']),
+});
 
 // ---------------------------------------------------------------------------
 // The model's response

@@ -1,7 +1,8 @@
 import { eq, sql } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { clients, clinics, practitioners, whatsappSettings, type WhatsappSettings } from '@/db/schema';
+import { clients, clinics, clinicWorkingHours, practitioners, whatsappSettings, type WhatsappSettings } from '@/db/schema';
+import { defaultClinicScheduleRows } from '@/features/clinic-profile/default-schedule';
 import { normalizeForSearch } from '@/features/clients/search';
 import { sessionNameForClinic } from '@/features/whatsapp/config';
 import { type GatewaySentMessage, type WhatsappGateway } from '@/features/whatsapp/gateway';
@@ -16,6 +17,8 @@ export async function createTestClinic(name = 'Test Clinic'): Promise<string> {
   const [clinic] = await db.insert(clinics).values({ name }).returning({ id: clinics.id });
 
   if (!clinic) throw new Error('insert into clinics returned no row');
+
+  await db.insert(clinicWorkingHours).values(defaultClinicScheduleRows(clinic.id));
 
   return clinic.id;
 }

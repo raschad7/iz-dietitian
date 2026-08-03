@@ -12,7 +12,6 @@ The current repository includes:
 - A clinic client roster and client profiles
 - Appointment booking and calendar views
 - A staff dashboard
-- Manual meal plans
 - Nutrition profiles and AI-assisted weekly plans based on a controlled dish
   catalog
 - A client portal for appointments, profile details, and published plans

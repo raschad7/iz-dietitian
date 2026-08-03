@@ -7,7 +7,7 @@ import { Link } from '@/i18n/navigation';
 import { type Locale } from '@/i18n/routing';
 
 /**
- * The four things a dietitian starts a session by doing.
+ * The three things a dietitian starts a session by doing.
  *
  * Links styled as surfaces, not `<Button render={<Link/>}>`: Base UI's Button
  * warns when it renders anything other than a real `<button>` (see the same
@@ -15,34 +15,33 @@ import { type Locale } from '@/i18n/routing';
  * outline buttons because these are destinations, and a target the size of a
  * card is easier to hit on a phone than a 36px control.
  *
- * **They rest neutral and pick up the brand on hover.** Four solid olive tiles
+ * **They rest neutral and pick up the brand on hover.** Solid olive tiles
  * sitting above two neutral charts made the top of the page one block of green
  * with no internal hierarchy; resting white and colouring under the pointer
  * spends the brand on the one card you are actually reaching for. The `Card`
  * `interactive` prop supplies the rest — the edge thickens rather than the
  * card lifting.
  *
- * Each carries a subline, because "New meal plan" and "Add a food" both sound
- * like they might open the same screen otherwise.
+ * Each carries a subline, because the titles alone sound like they might open
+ * the same screen otherwise.
  *
  * — "Add a client" has no route of its own either: the client card is the only
  *   way into a record, so this opens it over the dashboard rather than sending
  *   the reader to a form and then to the new person's page.
  * — "Book an appointment" has no route of its own: booking happens in a dialog
  *   inside the calendar, so this opens today's day view where that dialog lives.
- * — "Add a food" opens the food reference. `foods` is shared public-domain data
- *   with no create screen in the app today; this is the closest real
- *   destination, and the subline says so rather than promising a form.
+ * — "Weekly plans" is navigation rather than a create action, for a similar
+ *   reason: a plan is generated against one client's profile and schedule from
+ *   their own board, so there is no standalone form to send anyone to.
  */
 const ACTIONS = [
   { key: 'addClient', icon: 'addClient', href: null },
   { key: 'bookAppointment', icon: 'bookAppointment', href: '/app/calendar/day' },
-  { key: 'newMealPlan', icon: 'mealPlans', href: '/app/meal-plans/new' },
-  { key: 'addFood', icon: 'foods', href: '/app/foods' },
+  { key: 'weeklyPlans', icon: 'weeklyPlans', href: '/app/weekly-plans' },
 ] as const satisfies ReadonlyArray<{
   key: string;
   icon: IconName;
-  href: '/app/calendar/day' | '/app/meal-plans/new' | '/app/foods' | null;
+  href: '/app/calendar/day' | '/app/weekly-plans' | null;
 }>;
 
 export async function QuickActions({ locale }: { locale: Locale }) {
@@ -54,7 +53,7 @@ export async function QuickActions({ locale }: { locale: Locale }) {
         {t('title')}
       </h3>
 
-      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {ACTIONS.map((action) => {
           const tile = (
             <Card size="sm" interactive className="h-full">
