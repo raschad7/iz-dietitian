@@ -6,7 +6,7 @@ import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/params';
 import { requireStaffClinic } from '@/lib/session';
 
-import { ClientRail } from '@/features/weekly-plans/components/client-rail';
+import { ClientPicker } from '@/features/weekly-plans/components/client-picker';
 import { ContextPanel } from '@/features/weekly-plans/components/context-panel';
 import { GenerateForm } from '@/features/weekly-plans/components/generate-form';
 import { PlanBoard } from '@/features/weekly-plans/components/plan-board';
@@ -139,11 +139,10 @@ export default async function ClientBoardPage({ params, searchParams }: PageProp
       </div>
 
       <div className="flex min-h-0 flex-1 gap-4">
-        <ClientRail clients={clients} selectedClientId={clientId} />
-
         {board ? (
           <PlanBoard
             board={board}
+            clients={clients}
             candidates={candidates}
             catalog={catalog}
             usage={usage}
@@ -171,10 +170,17 @@ export default async function ClientBoardPage({ params, searchParams }: PageProp
           </PlanBoard>
         ) : (
           <div className="flex min-w-0 flex-1 gap-4">
-            <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-border">
-              <p className="max-w-sm p-6 text-center text-sm text-muted-foreground">
-                {t('noPlanYet')}
-              </p>
+            {/* The picker rides this branch too. The rail it replaces was
+                outside the ternary, so without it a client with no plan yet
+                would be a screen you can only leave through the nav. */}
+            <div className="flex min-w-0 flex-1 flex-col gap-3">
+              <ClientPicker clients={clients} selectedClientId={clientId} />
+
+              <div className="flex min-h-0 flex-1 items-center justify-center rounded-lg border border-dashed border-border">
+                <p className="max-w-sm p-6 text-center text-sm text-muted-foreground">
+                  {t('noPlanYet')}
+                </p>
+              </div>
             </div>
 
             <aside className="w-72 shrink-0 overflow-y-auto border-s border-border ps-3">

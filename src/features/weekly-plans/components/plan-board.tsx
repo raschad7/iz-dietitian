@@ -8,12 +8,19 @@ import { Button } from '@/components/ui/button';
 
 import { isMember } from '@/lib/enum';
 
-import type { Board, CatalogEntry, ComparisonPlan, SwapCandidate } from '../queries';
+import type {
+  Board,
+  CatalogEntry,
+  ComparisonPlan,
+  PlannableClient,
+  SwapCandidate,
+} from '../queries';
 import { PLAN_STATUSES } from '../schema';
 import { slotFillKey } from '../skeleton';
 import type { RecentUse } from '../usage';
 
 import { BoardEditor, useEditor } from './board-dnd';
+import { ClientPicker } from './client-picker';
 import { DayColumn } from './day-column';
 import { DishCatalog } from './dish-catalog';
 import type { GhostMeal } from './meal-card';
@@ -27,6 +34,8 @@ type RailTab = 'client' | 'dishes' | 'meal' | 'past';
 
 type BoardProps = {
   board: Board;
+  /** Every client with a plannable record, for the header's picker. */
+  clients: readonly PlannableClient[];
   candidates: Record<string, SwapCandidate[]>;
   catalog: readonly CatalogEntry[];
   usage: Record<string, RecentUse>;
@@ -76,6 +85,7 @@ export function PlanBoard(props: BoardProps) {
 }
 
 function BoardBody({
+  clients,
   candidates,
   catalog,
   usage,
@@ -155,7 +165,7 @@ function BoardBody({
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       <header className="flex items-center gap-3">
-        <h2 className="min-w-0 truncate text-heading-sm font-semibold">{board.clientName}</h2>
+        <ClientPicker clients={clients} selectedClientId={board.clientId} />
 
         {isMember(PLAN_STATUSES, board.status) && (
           <Badge variant={board.status === 'published' ? 'default' : 'muted'}>

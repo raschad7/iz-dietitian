@@ -537,6 +537,7 @@
     "subtitle": "AI-generated weekly plans, built from an approved dish catalog",
     "clients": "Clients",
     "selectClient": "Select a client to see their weekly plan",
+    "searchClients": "Search clients",
     "noClients": "No active clients",
     "noPlanYet": "No plan for this client yet. Add instructions for the week, then generate.",
     "history": "Earlier plans",
