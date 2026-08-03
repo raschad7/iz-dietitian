@@ -23,6 +23,30 @@ import {
 export type UserRole = 'staff' | 'client';
 
 /**
+ * The email-verification gate, currently OFF.
+ *
+ * Turned off because no mail transport is configured to deliver the link — with
+ * `MAIL_TRANSPORT=console` the verification URL is printed to the server console
+ * and never sent, so the gate locked out every account it created. Nothing about
+ * the flow was removed: the templates, the `sendVerificationEmail` callback, the
+ * resend action and the `verifyEmailFirst` message are all still here and still
+ * wired up. Flipping this one constant back to `true` restores the gate exactly
+ * as it was.
+ *
+ * Understand what is being traded before leaving it off in production:
+ *
+ *  - Anyone may register with an address they do not own, which is how an
+ *    attacker squats on a real dietitian's email before that person signs up.
+ *  - Password reset sends a link to an address nobody proved they can read.
+ *  - `purgeUnverifiedAccounts` no longer has unverified accounts to clean up,
+ *    because sign-up now issues a session immediately.
+ *
+ * Turn it back on as soon as `MAIL_TRANSPORT=resend` is working — see
+ * `.env.example`.
+ */
+export const REQUIRE_EMAIL_VERIFICATION = false;
+
+/**
  * Whether Google sign-in is configured on this deployment.
  *
  * Read by the sign-in page to decide whether to offer the button, and by the
@@ -75,10 +99,12 @@ export const auth = betterAuth({
    * of their own, both written directly by
    * `src/features/clients/portal-credentials.ts`.
    *
-   * `autoSignIn` is OFF and `requireEmailVerification` is ON: signing up creates
-   * the account but issues no session. That is the hard gate — an address must
-   * be proven real before it can hold a clinic, and before a password reset
-   * would have anywhere to go.
+   * Both of these follow `REQUIRE_EMAIL_VERIFICATION` above, and are deliberately
+   * each other's inverse. With the gate ON, signing up creates the account but
+   * issues no session, so an address must be proven real before it can hold a
+   * clinic. With it OFF there is nothing to wait for, so sign-up signs in — an
+   * account that cannot be verified and cannot be signed into would just be
+   * unreachable.
    */
   emailAndPassword: {
     enabled: true,
@@ -89,8 +115,8 @@ export const auth = betterAuth({
      * lock every client out of setting their own password.
      */
     minPasswordLength: CLIENT_MIN_PASSWORD_LENGTH,
-    requireEmailVerification: true,
-    autoSignIn: false,
+    requireEmailVerification: REQUIRE_EMAIL_VERIFICATION,
+    autoSignIn: !REQUIRE_EMAIL_VERIFICATION,
     resetPasswordTokenExpiresIn: PASSWORD_RESET_TTL_SECONDS,
     sendResetPassword: async ({ user: recipient, url }) => {
       // Better Auth types this callback's `user` against the base row, not this
@@ -118,7 +144,11 @@ export const auth = betterAuth({
   },
 
   emailVerification: {
-    sendOnSignUp: true,
+    // Only on sign-up does this follow the gate — sending a link nobody is
+    // waiting for, over a transport that prints it to a console, is noise. The
+    // `resendVerification` action still calls `sendVerificationEmail` directly,
+    // so the path stays live and testable either way.
+    sendOnSignUp: REQUIRE_EMAIL_VERIFICATION,
     autoSignInAfterVerification: true,
     expiresIn: EMAIL_VERIFICATION_TTL_SECONDS,
     sendVerificationEmail: async ({ user: recipient, url }) => {

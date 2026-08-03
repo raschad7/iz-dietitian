@@ -6,7 +6,7 @@
  * Idempotent: re-running replaces the seeded clients rather than duplicating
  * them. It is for local development only and refuses to run in production.
  */
-import { eq } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull } from 'drizzle-orm';
 
 import { db } from '@/db';
 import { account, appointments, clients, clinics, clinicWorkingHours, practitioners, user } from '@/db/schema';
@@ -103,6 +103,12 @@ async function seed(): Promise<void> {
   // accounts go too — `clients.user_id` is `set null`, so deleting only the
   // clients would leave client-role users behind and the next invite would then
   // fail with email_taken.
+  //
+  // Both deletes are scoped to this clinic. `users.role = 'client'` alone would
+  // reach across every tenant in the database and delete the portal accounts of
+  // clinics the seed does not own — a developer signed up as a real dietitian
+  // would lose their clients' logins to a script that is only supposed to
+  // refresh its own fixtures.
   if (!clinicId) {
     throw new Error(`staff account ${STAFF_EMAIL} has no clinic; delete it and re-run the seed`);
   }
@@ -113,8 +119,24 @@ async function seed(): Promise<void> {
   // what should fix it — a `db:reset` should not be the price of a stale row.
   await ensureClinicSchedule(clinicId);
 
+  // Read first: `clients.user_id` is the only link from a clinic to its portal
+  // accounts, and `on delete set null` means it is gone the instant the client
+  // row is. Collecting the ids afterwards would find nothing.
+  const portalUserIds = (
+    await db
+      .select({ userId: clients.userId })
+      .from(clients)
+      .where(and(eq(clients.clinicId, clinicId), isNotNull(clients.userId)))
+  ).map((row) => row.userId as string);
+
   await db.delete(clients).where(eq(clients.clinicId, clinicId));
-  await db.delete(user).where(eq(user.role, 'client'));
+
+  if (portalUserIds.length > 0) {
+    // `role` is still checked: these ids come from `clients.user_id`, which
+    // nothing should ever point at a staff account, and a delete is the wrong
+    // place to find out that something did.
+    await db.delete(user).where(and(eq(user.role, 'client'), inArray(user.id, portalUserIds)));
+  }
 
   const created = await Promise.all(SEED_CLIENTS.map((input) => createClient(clinicId, input)));
 
