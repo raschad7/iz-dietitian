@@ -600,6 +600,7 @@
     "unpublishing": "Unpublishing…",
     "portion": "{servings} × {label}",
     "portionShort": "{servings} servings",
+    "portionLabel": "Portion",
     "ingredients": "Ingredients",
     "nutrition": "Nutrition",
     "unmeasured": "Some ingredients were never measured for this nutrient, so the total is a floor",

@@ -5,19 +5,23 @@ import { useFormStatus } from 'react-dom';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 
+import { MEAL_TOLERANCE, driftState } from '@/features/weekly-plans/drift';
 import {
   NUTRIENT_KEYS,
   NUTRIENT_UNITS,
   roundForDisplay,
   type NutrientKey,
 } from '@/features/weekly-plans/nutrition';
+import { SERVING_STEP, snapServings } from '../similar';
 
 import { swapMealAction } from '../actions';
 import { initialPlanActionState } from '../form-state';
 import type { BoardMeal, SwapCandidate } from '../queries';
 
+import { useEditorActions } from './board-dnd';
 import { RegenerateMealButton } from './regenerate-buttons';
 
 /**
@@ -34,6 +38,7 @@ export function MealDetailPanel({
   planId,
   locale,
   editable,
+  model,
   onClose,
 }: {
   meal: BoardMeal;
@@ -41,9 +46,11 @@ export function MealDetailPanel({
   planId: string;
   locale: string;
   editable: boolean;
+  model?: string | null;
   onClose: () => void;
 }) {
   const t = useTranslations('weeklyPlans');
+  const { clear, remove } = useEditorActions();
 
   return (
     <div className="flex h-full flex-col gap-4 overflow-y-auto">
@@ -65,13 +72,19 @@ export function MealDetailPanel({
 
       {meal.dish && (
         <>
-          <Portion meal={meal} />
+          <Portion meal={meal} editable={editable} />
           <Ingredients meal={meal} />
           <Nutrients meal={meal} />
         </>
       )}
 
       {meal.rationaleAr && <Rationale text={meal.rationaleAr} />}
+
+      {model && (
+        <p className="text-caption text-muted-foreground">
+          {t('generatedBy')} · {model}
+        </p>
+      )}
 
       {editable && (
         <>
@@ -84,22 +97,86 @@ export function MealDetailPanel({
             </h4>
             <RegenerateMealButton planId={planId} mealId={meal.id} locale={locale} />
           </section>
+
+          <section className="mt-auto flex gap-3 border-t border-border pt-3">
+            {meal.dish && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="flex-1"
+                onClick={() => clear(meal.id)}
+              >
+                <Icon name="clearSlot" />
+                {t('clearMeal')}
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              className="flex-1"
+              onClick={() => remove(meal.id)}
+            >
+              <Icon name="trash" />
+              {t('removeMeal')}
+            </Button>
+          </section>
         </>
       )}
     </div>
   );
 }
 
-function Portion({ meal }: { meal: BoardMeal }) {
+function Portion({ meal, editable }: { meal: BoardMeal; editable: boolean }) {
   const t = useTranslations('weeklyPlans');
+  const { setServings } = useEditorActions();
+  const dish = meal.dish!;
+
   const kcal = roundForDisplay('kcal', meal.totals.kcal.value);
+  const drift = driftState(kcal, meal.budgetKcal, MEAL_TOLERANCE);
 
   return (
-    <section className="rounded-md bg-muted/50 p-2.5 text-xs">
-      <p>
-        {t('portion', { servings: meal.dish!.servings, label: meal.dish!.baseServingLabel })}
-      </p>
-      <p className="mt-1 text-muted-foreground">
+    <section className="rounded-lg bg-muted/50 p-3">
+      <h4 className="pb-2 text-label font-semibold text-muted-foreground">{t('portionLabel')}</h4>
+
+      {editable ? (
+        <div className="flex items-center gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-sm"
+            aria-label={t('lessPortion')}
+            disabled={dish.servings <= 0.25}
+            onClick={() => setServings(meal.id, snapServings(dish.servings - SERVING_STEP))}
+          >
+            <Icon name="minus" />
+          </Button>
+
+          <span className="min-w-14 text-center text-heading-sm font-semibold tabular-nums" dir="ltr">
+            ×{dish.servings}
+          </span>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-sm"
+            aria-label={t('morePortion')}
+            disabled={dish.servings >= 3}
+            onClick={() => setServings(meal.id, snapServings(dish.servings + SERVING_STEP))}
+          >
+            <Icon name="add" />
+          </Button>
+
+          <span className="ms-auto text-body-sm text-muted-foreground">
+            {t('portion', { servings: dish.servings, label: dish.baseServingLabel })}
+          </span>
+        </div>
+      ) : (
+        <p className="text-body-sm">{t('portion', { servings: dish.servings, label: dish.baseServingLabel })}</p>
+      )}
+
+      <p className={cn('mt-2 text-body-sm', drift ? 'text-status-attention-fg' : 'text-muted-foreground')}>
         {t('kcalValue', { value: kcal })}
         {meal.budgetKcal > 0 && <> · {t('budget', { value: meal.budgetKcal })}</>}
       </p>

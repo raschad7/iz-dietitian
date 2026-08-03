@@ -183,12 +183,6 @@ function BoardBody({
           </Button>
         )}
 
-        {board.model && (
-          <span className="text-xs text-muted-foreground" title={t('generatedBy')}>
-            {board.model}
-          </span>
-        )}
-
         {/* Quiet on success, explicit on failure, announced either way. There is no
             toast primitive in the design system, and this is not a good reason to
             invent one. */}
@@ -322,6 +316,7 @@ function BoardBody({
                   planId={board.id}
                   locale={locale}
                   editable={editable}
+                  model={board.model}
                   onClose={() => {
                     setSelectedMealId(null);
                     setTab('client');

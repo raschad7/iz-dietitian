@@ -600,6 +600,7 @@
     "unpublishing": "جارٍ الإلغاء…",
     "portion": "{servings} × {label}",
     "portionShort": "{servings} حصة",
+    "portionLabel": "الحصة",
     "ingredients": "المكوّنات",
     "nutrition": "القيم الغذائية",
     "unmeasured": "بعض المكوّنات لم تُقس لهذا العنصر، فالمجموع حدّ أدنى",
