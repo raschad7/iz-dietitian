@@ -214,9 +214,13 @@ Expected: PASS, 5 tests.
 git add src/features/weekly-plans/drift.ts src/features/weekly-plans/drift.test.ts
 git commit -m "Extract the board's drift rule into one tested module
 
-The meal card and the day column each computed 'is this far enough from
-target to mark' inline, with different hardcoded thresholds and an
-exclusive boundary that flagged a day sitting exactly on 10%."
+The meal card and the day column each computed \"is this far enough from
+target to mark\" inline, against two separately hardcoded thresholds. This
+is a behaviour-preserving extraction: both sites used
+\`Math.abs(drift) > TOLERANCE\`, which is already inclusive at exactly the
+tolerance, and driftState keeps that. What the tests add is a boundary
+case nothing was pinning down before, and a direction the old boolean
+threw away."
 ```
 
 ---
