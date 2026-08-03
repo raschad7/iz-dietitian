@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 
 import { buttonVariants } from '@/components/ui/button';
 import { ArchiveButton } from '@/features/clients/components/archive-button';
+import { ClientFormTrigger } from '@/features/clients/components/client-form-trigger';
 import { ClientProfile } from '@/features/clients/components/client-profile';
 import { DeleteClientButton } from '@/features/clients/components/delete-client-button';
 import { PortalCredentialsCard } from '@/features/clients/components/portal-credentials-card';
@@ -67,9 +68,13 @@ export default async function ClientPage({ params }: ClientPageProps) {
         </div>
 
         <div className="flex items-center gap-2">
-          <Link href={`/app/clients/${client.id}/edit`} className={buttonVariants({ variant: 'outline' })}>
+          <ClientFormTrigger
+            locale={locale}
+            clientId={client.id}
+            className={buttonVariants({ variant: 'outline' })}
+          >
             {t('edit')}
-          </Link>
+          </ClientFormTrigger>
           <ArchiveButton locale={locale} clientId={client.id} archived={client.status === 'archived'} />
           <DeleteClientButton locale={locale} clientId={client.id} clientName={client.fullName} />
         </div>

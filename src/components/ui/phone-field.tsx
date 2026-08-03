@@ -7,6 +7,7 @@ import { Select } from '@/components/ui/select';
 import { type Locale } from '@/i18n/routing';
 import { COUNTRIES, COUNTRY_ORDER, type CountryCode } from '@/lib/phone-countries';
 import { countryForDial, joinPhone, splitPhone } from '@/lib/phone-format';
+import { cn } from '@/lib/utils';
 
 /**
  * A phone number as a country picker plus the rest of the digits.
@@ -38,9 +39,23 @@ export type PhoneFieldProps = {
   /** Translated. The select has no visible label of its own. */
   countryLabel: string;
   disabled?: boolean;
+  /**
+   * Applied to both halves — a compound field carries emphasis such as
+   * `.q-field-primary` across the whole row or it reads as two fields.
+   */
+  className?: string;
 };
 
-export function PhoneField({ id, name, locale, defaultValue, onChange, countryLabel, disabled }: PhoneFieldProps) {
+export function PhoneField({
+  id,
+  name,
+  locale,
+  defaultValue,
+  onChange,
+  countryLabel,
+  disabled,
+  className,
+}: PhoneFieldProps) {
   // Lazily, and only once: this reads whatever shape the number was stored in,
   // and from then on the two halves are what the user is editing.
   const [{ country, national }, setValue] = useState(() => {
@@ -68,7 +83,7 @@ export function PhoneField({ id, name, locale, defaultValue, onChange, countryLa
         disabled={disabled}
         // Bounded, or the widest country name in the list sets the width of the
         // whole row. A native select truncates its own label to fit.
-        className="w-32 shrink-0 sm:w-40"
+        className={cn('w-32 shrink-0 sm:w-40', className)}
         onChange={(event) => update({ country: event.target.value as CountryCode, national })}
       >
         {COUNTRY_ORDER[locale].map((iso) => (
@@ -89,6 +104,7 @@ export function PhoneField({ id, name, locale, defaultValue, onChange, countryLa
         // phone fields already do.
         dir="ltr"
         disabled={disabled}
+        className={className}
         value={national}
         onChange={(event) => update({ country, national: event.target.value })}
       />

@@ -26,9 +26,14 @@ type SexDistributionCardProps = {
  * slot 1 and male always slot 2, so a clinic whose balance shifts does not see
  * the chart repaint itself.
  *
- * Slot 2 (lime-600) sits at 2.77:1 on the card — under the 3:1 floor a mark
- * needs on its own. The legend beside it is not decoration, it is the required
- * relief; do not strip it back to swatches.
+ * The slots are the two support hues — clay and amber (`--viz-cat-*`) — rather
+ * than the brand olive: this is a chart, and olive on the dashboard means
+ * "you can act on this". They are separated by lightness as well as by hue,
+ * which is what carries them through colour-vision simulation, where two warm
+ * hues collapse towards each other. Both clear 3:1 on the card unaided, but
+ * neither carries a *meaning* — clay is the medical colour elsewhere and amber
+ * is attention — so the legend beside the ring is not decoration; do not strip
+ * it back to swatches.
  */
 
 /** Fixed slot per category. `unknown` is a neutral: an absence, not a third identity. */
@@ -133,7 +138,8 @@ export async function SexDistributionCard({ sex, total, locale }: SexDistributio
   return (
     <Card className="min-h-0 xl:h-full">
       <CardHeader className="shrink-0 grid-cols-[auto_1fr] items-center gap-2">
-        <span className="flex size-8 items-center justify-center rounded-full bg-secondary text-primary">
+        {/* Neutral: a chart is read, not clicked, and olive is this page's action colour. */}
+        <span className="flex size-8 items-center justify-center rounded-full bg-muted text-muted-foreground">
           <Icon name="topClients" className="size-4" />
         </span>
         <span>

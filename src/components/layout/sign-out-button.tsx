@@ -23,15 +23,22 @@ export function SignOutButton({ locale }: { locale: Locale }) {
 }
 
 /**
- * The app bar has no fill, so this is an ordinary tertiary button on the
+ * The app bar has no fill, so this is an ordinary secondary button on the
  * canvas — no inverted variant needed.
+ *
+ * `outline` rather than `ghost`, and that is a dimensions fix as much as a
+ * visual one: the ghost compound variant drops horizontal padding to 12px,
+ * so a ghost sign-out was the one control in the bar not built to the button
+ * spec's 20px. It now carries the standard box, the standard padding and the
+ * 40px toolbar height — the same height the notification bell beside it uses
+ * (`icon-sm`), so the whole row sits on one line.
  */
 function SignOutSubmit() {
   const t = useTranslations('common');
   const { pending } = useFormStatus();
 
   return (
-    <Button type="submit" variant="ghost" size="sm" disabled={pending}>
+    <Button type="submit" variant="outline" size="sm" disabled={pending}>
       <Icon name="signOut" />
       {pending ? t('loading') : t('signOut')}
     </Button>

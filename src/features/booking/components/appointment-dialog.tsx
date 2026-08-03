@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Link } from '@/i18n/navigation';
+import { ClientFormTrigger } from '@/features/clients/components/client-form-trigger';
 import { getLocaleDirection, type Locale } from '@/i18n/routing';
 import { SLOT_MINUTES } from '@/lib/time-constants';
 
@@ -333,12 +333,19 @@ export function AppointmentDialog({
         <div className="space-y-1">
           <div className="flex items-center justify-between gap-2">
             <Label htmlFor="appointment-client">{t('fields.client')}</Label>
-            <Link
-              href={`/app/clients/${clientId}/edit`}
+            {/*
+              The client card opens *over* this one rather than replacing it:
+              correcting a phone number mid-booking must not cost the booking.
+              Both are modal `<dialog>`s, so the newer one stacks in the top
+              layer and Escape closes it first.
+            */}
+            <ClientFormTrigger
+              locale={locale}
+              clientId={clientId}
               className="text-xs text-primary underline-offset-4 hover:underline"
             >
               {t('fields.editClient')}
-            </Link>
+            </ClientFormTrigger>
           </div>
           <Select
             id="appointment-client"

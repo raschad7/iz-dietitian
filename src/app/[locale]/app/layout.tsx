@@ -70,9 +70,10 @@ export default async function AppLayout({ children, params }: AppLayoutProps) {
       `main`, and a page that manages its own scrolling — the calendar — can
       claim the full height with `h-full` and keep its toolbar fixed.
 
-      The rail is an inset panel rather than a full-bleed column, so it can
-      carry the Arc. The app bar sits unfilled on the canvas beside it, which
-      leaves the rail as the shell's only heavy surface.
+      The rail is a full-bleed column separated by a hairline, not an inset
+      card — it is the wall the app hangs on, not a surface you act on. The app
+      bar sits unfilled on the canvas beside it, so the shell has no heavy
+      surface at all and the page's own cards carry the weight.
     */
     <div className="flex h-dvh overflow-hidden bg-background">
       <Sidebar items={NAV_ITEMS} title={t('shortName')} icons={NAV_ICONS} />

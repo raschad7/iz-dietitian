@@ -35,14 +35,24 @@ export type NavItem = {
 };
 
 /**
- * Navigation shell for a signed-in area: a solid dark olive rail.
+ * Navigation shell for a signed-in area: a pale olive rail.
  *
- * The active item is marked three ways — its own icon fills in, an olive
+ * **Full-bleed, and separated from the page by a hairline rather than by a
+ * shape.** It is not a card: no radius, no Arc, no elevation. The Arc marks
+ * surfaces you can act on, and the rail is not one — it is the wall the app
+ * hangs on. A 1px `border-e` is the whole separation, which is all a change of
+ * fill needs to read as a change of region.
+ *
+ * The active item is marked three ways — its own icon fills in, an olive-600
  * surface grows around it, and a lime leaf node appears on the inline-end
  * edge. More than one mark because colour alone fails for anyone who cannot
- * distinguish olive-700 from olive-900, and because the node is what makes
+ * separate the active surface from the rail, and because the node is what makes
  * movement legible: it scales and rotates into place in 220ms so the change
  * reads as a single object relocating rather than two states flickering.
+ *
+ * On a pale rail the active item is the *darkest* thing on it rather than the
+ * lightest — see the note on `--sidebar-*` in globals.css for why that inverts
+ * the hover surface too.
  *
  * The node is drawn per item and animated with `transform`, not by moving one
  * shared element — React would remount a shared node on every navigation and
@@ -81,12 +91,10 @@ export function Sidebar({
   }
 
   return (
-    <aside className="hidden w-64 shrink-0 p-3 md:block">
-      {/*
-        The rail is an inset panel rather than a full-bleed column, so it
-        carries the Arc like every other surface.
-      */}
-      <div className="flex h-full flex-col rounded-lg rounded-ee-[28px] bg-sidebar text-sidebar-foreground shadow-elevated">
+    <aside className="hidden w-64 shrink-0 border-e border-sidebar-border bg-sidebar text-sidebar-foreground md:block">
+      <div className="flex h-full flex-col">
+        {/* `h-14` matches the app bar beside it, so the wordmark and the page
+            title sit on one line across the divider. */}
         <div className="flex h-14 items-center px-5">
           <span className="truncate font-heading text-heading-sm font-semibold text-sidebar-primary-foreground">
             {title}
@@ -109,9 +117,14 @@ export function Sidebar({
                   'flex items-center gap-3 rounded-md px-4 py-2.5 text-start text-body-md',
                   'transition-[background-color,color] duration-200 ease-[cubic-bezier(.2,.6,.2,1)]',
                   'focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:outline-none',
+                  /*
+                    Hover is its own surface, not the active one at 40%: a
+                    translucent olive-600 over the pale rail lands in the
+                    mid-tones, where neither white nor olive text is readable.
+                  */
                   active
                     ? 'bg-sidebar-accent font-semibold text-sidebar-accent-foreground'
-                    : 'hover:bg-sidebar-accent/40 hover:text-sidebar-accent-foreground',
+                    : 'hover:bg-sidebar-hover',
                 )}
               >
                 {icon ? <Icon name={icon} className="size-4.5" /> : null}

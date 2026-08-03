@@ -8,6 +8,7 @@ import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PhoneField } from '@/components/ui/phone-field';
 import { getLocaleDirection, type Locale } from '@/i18n/routing';
 
 import { formatLongDate, formatMinuteRange } from '../format';
@@ -87,7 +88,12 @@ export function NewClientDialog({ pending, locale, onCreate, onCancel }: NewClie
             <Label htmlFor="new-client-phone">
               {t('newClient.phone')} <span className="text-muted-foreground">{t('fields.optional')}</span>
             </Label>
-            <Input id="new-client-phone" dir="ltr" value={phone} onChange={(event) => setPhone(event.target.value)} />
+            <PhoneField
+              id="new-client-phone"
+              locale={locale}
+              onChange={setPhone}
+              countryLabel={t('newClient.phoneCountry')}
+            />
           </Field>
         </DialogBody>
 

@@ -91,4 +91,24 @@ describe('listClientsSchema', () => {
     expect(result.page).toBe(3);
     expect(result.q).toBe('أحمد');
   });
+
+  test('defaults to newest first', () => {
+    const result = listClientsSchema.parse({});
+    expect(result.sort).toBe('createdAt');
+    expect(result.dir).toBe('desc');
+  });
+
+  test('accepts a sortable column and a direction', () => {
+    const result = listClientsSchema.parse({ sort: 'fullName', dir: 'asc' });
+    expect(result.sort).toBe('fullName');
+    expect(result.dir).toBe('asc');
+  });
+
+  /* The sort key picks an ORDER BY, so a column name off the allowlist must
+     never reach the query builder. */
+  test('rejects a sort column that is not on the allowlist', () => {
+    const result = listClientsSchema.parse({ sort: 'passwordHash', dir: 'sideways' });
+    expect(result.sort).toBe('createdAt');
+    expect(result.dir).toBe('desc');
+  });
 });

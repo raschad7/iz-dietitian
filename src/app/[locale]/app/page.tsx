@@ -3,10 +3,9 @@ import type { Metadata } from 'next';
 
 import { AgeDistributionCard } from '@/features/dashboard/components/age-distribution-card';
 import { AgendaTimeline } from '@/features/dashboard/components/agenda-timeline';
+import { ClientsCard } from '@/features/dashboard/components/clients-card';
 import { QuickActions } from '@/features/dashboard/components/quick-actions';
 import { SexDistributionCard } from '@/features/dashboard/components/sex-distribution-card';
-import { SummaryTiles } from '@/features/dashboard/components/summary-tiles';
-import { VisitHistogram } from '@/features/dashboard/components/visit-histogram';
 import { loadDashboard } from '@/features/dashboard/page-data';
 import { formatLongDate } from '@/features/booking/format';
 import { resolveLocale } from '@/i18n/params';
@@ -37,8 +36,11 @@ export async function generateMetadata({ params }: DashboardPageProps): Promise<
  * Below `xl` the columns stack and the page scrolls normally: one screen is a
  * desktop promise, and honouring it on a phone would mean four nested scrolls.
  *
- * Reading order down the working column: the numbers, the four things you start
- * a session by doing, then the two charts you consult rather than act on.
+ * Reading order down the working column: the four things you start a session by
+ * doing, then your register, then the two charts you consult rather than act
+ * on. The four summary counters that used to head this column are gone — every
+ * number on them was a count of something one click away in the calendar or
+ * the register, and they were costing the page its most valuable row.
  */
 export default async function DashboardPage({ params }: DashboardPageProps) {
   const locale = await resolveLocale(params);
@@ -64,23 +66,15 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
         />
 
         <div className="flex min-w-0 flex-col gap-4 xl:min-h-0">
-          <SummaryTiles
-            summary={data.summary}
-            nextAppointment={data.nextAppointment}
-            week={data.week}
-            today={data.today}
-            locale={locale}
-          />
-
-          <QuickActions />
+          <QuickActions locale={locale} />
 
           {/*
-            The histogram takes whatever height the two demographic cards add
-            up to, which is why they share a row rather than stacking down the
-            page: one row that ends where the screen does.
+            The register card takes whatever height the two demographic cards
+            add up to, which is why they share a row rather than stacking down
+            the page: one row that ends where the screen does.
           */}
           <div className="grid gap-4 xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-            <VisitHistogram months={data.visitHistory} locale={locale} />
+            <ClientsCard clients={data.recentClients} total={data.activeClients} locale={locale} />
 
             <div className="grid gap-4 sm:grid-cols-2 xl:min-h-0 xl:grid-cols-1 xl:grid-rows-2">
               <AgeDistributionCard

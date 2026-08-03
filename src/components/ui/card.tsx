@@ -51,11 +51,19 @@ const cardVariants = cva(
         sm: "[--card-spacing:--spacing(3)] sm:[--card-spacing:--spacing(4)]",
       },
       /**
-       * Opt-in interactivity. A card that lifts on hover is promising it does
-       * something when clicked, so this is a prop rather than a default.
+       * Opt-in interactivity. A card that answers the pointer is promising it
+       * does something when clicked, so this is a prop rather than a default.
+       *
+       * The answer is the **edge thickening**, not a lift: `ring-2` in the
+       * brand colour, with the tail growing on the system's one curve. A raised
+       * shadow reads as the card leaving the page, which on a grid of four
+       * peers makes the hovered one look like it belongs to a different layer;
+       * a thicker edge says "this one" while the card stays where it is. It is
+       * also the same language `selected` already speaks — the edge, never the
+       * fill.
        */
       interactive: {
-        true: "cursor-pointer transition-all duration-200 ease-[cubic-bezier(.2,.6,.2,1)] hover:rounded-ee-[2.25rem] hover:shadow-elevated active:scale-[.995] active:shadow-card",
+        true: "cursor-pointer transition-all duration-200 ease-[cubic-bezier(.2,.6,.2,1)] hover:rounded-ee-[2.25rem] hover:ring-2 hover:ring-primary active:scale-[.995]",
         false: "",
       },
       /** Selected — the olive edge thickens rather than the card changing colour. */

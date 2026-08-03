@@ -4,13 +4,21 @@ import { useTranslations } from 'next-intl';
 import { useFormStatus } from 'react-dom';
 
 import { Button } from '@/components/ui/button';
+import { Icon, type IconName } from '@/components/ui/icon';
+import { Tooltip } from '@/components/ui/tooltip';
 
 type ConfirmSubmitButtonProps = {
   label: string;
   /** Shown in the confirmation prompt. Omit for actions that are easily undone. */
   confirmMessage?: string;
   variant?: 'default' | 'outline' | 'destructive' | 'ghost';
-  size?: 'default' | 'sm';
+  size?: 'default' | 'sm' | 'icon' | 'icon-sm';
+  /**
+   * Renders the glyph instead of the words. `label` stays the accessible name
+   * and becomes the tooltip, so the button is never unlabelled — an icon-only
+   * control with no `aria-label` is a button that reads as "button".
+   */
+  icon?: IconName;
 };
 
 /**
@@ -29,23 +37,39 @@ export function ConfirmSubmitButton({
   confirmMessage,
   variant = 'outline',
   size = 'default',
+  icon,
 }: ConfirmSubmitButtonProps) {
   const tCommon = useTranslations('common');
   const { pending } = useFormStatus();
 
-  return (
+  const iconOnly = icon !== undefined && (size === 'icon' || size === 'icon-sm');
+
+  const button = (
     <Button
       type="submit"
       variant={variant}
       size={size}
       disabled={pending}
+      aria-label={iconOnly ? label : undefined}
       onClick={(event) => {
         if (confirmMessage && !window.confirm(confirmMessage)) {
           event.preventDefault();
         }
       }}
     >
-      {pending ? tCommon('loading') : label}
+      {iconOnly ? (
+        // The glyph does not change while pending — swapping it would move the
+        // reader's attention to the icon at the exact moment the row is about
+        // to be replaced. `disabled` already says the click landed.
+        <Icon name={icon} />
+      ) : (
+        <>
+          {icon ? <Icon name={icon} /> : null}
+          {pending ? tCommon('loading') : label}
+        </>
+      )}
     </Button>
   );
+
+  return iconOnly ? <Tooltip label={label}>{button}</Tooltip> : button;
 }

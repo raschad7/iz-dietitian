@@ -87,7 +87,13 @@ export async function AgendaTimeline({ appointments, locale, today, nowMinute }:
               <p className="text-caption text-muted-foreground">{t('dateLabel')}</p>
               <h3 className="font-heading text-heading-lg font-semibold">{t('title')}</h3>
             </div>
-            <Badge variant={ordered.length > 0 ? 'onTrack' : 'muted'}>{t('count', { count: ordered.length })}</Badge>
+            {/*
+              Neutral whatever the count. `onTrack` is a status, and a day with
+              appointments in it is not an achievement — it is a fact. It also
+              put a second olive chip a few pixels from the one element on this
+              page that is meant to be the emphasis.
+            */}
+            <Badge variant="muted">{t('count', { count: ordered.length })}</Badge>
           </div>
 
           {/* The week strip: the agenda doubles as a jump to any other day of the week. */}
@@ -172,10 +178,21 @@ export async function AgendaTimeline({ appointments, locale, today, nowMinute }:
                   <Link
                     href={dayHref(today)}
                     className={cn(
-                      'mb-3 block min-w-0 flex-1 rounded-lg transition-all duration-200 ease-[cubic-bezier(.2,.6,.2,1)]',
+                      'group/session mb-3 block min-w-0 flex-1 rounded-lg transition-all duration-200 ease-[cubic-bezier(.2,.6,.2,1)]',
                       isLast && 'mb-0',
+                      /*
+                        The next session rests in the brand's quiet fill and
+                        fills in to solid primary under the pointer — the same
+                        move the quick actions make. It was solid primary at
+                        rest, which made the one card you are meant to *read*
+                        the loudest thing on the page and left its hover with
+                        nowhere to go but a slightly darker olive.
+
+                        n-900 on olive-100 is 14.7:1; white on olive-600 is
+                        5.46:1. Both states carry the text.
+                      */
                       isFocused
-                        ? 'bg-primary p-4 text-primary-foreground shadow-card hover:bg-primary-hover'
+                        ? 'bg-primary-subtle p-4 text-foreground shadow-card hover:bg-primary hover:text-primary-foreground'
                         : 'p-3 hover:bg-muted',
                       phase === 'past' && 'bg-muted/60 text-muted-foreground',
                       phase === 'upcoming' && 'bg-muted/60',
@@ -192,8 +209,26 @@ export async function AgendaTimeline({ appointments, locale, today, nowMinute }:
                       </span>
 
                       {isFocused ? (
-                        /* The page's one lime element — do not add a second accent anywhere else on it. */
-                        <Badge variant="accent">{isLive ? t('live') : t('next')}</Badge>
+                        /*
+                          The chip inverts with the card it sits on. Lime is
+                          1.17:1 against the resting olive-100 fill — it would
+                          be invisible at exactly the moment it has a job to
+                          do — so it rests as a solid primary chip (4.66:1 on
+                          the fill) and becomes the lime one on hover, where
+                          the card has gone dark and lime is 3.99:1.
+
+                          Still the page's one lime element. Do not add a
+                          second accent anywhere else on it.
+                        */
+                        <Badge
+                          variant="accent"
+                          className={cn(
+                            'bg-primary text-primary-foreground transition-colors',
+                            'group-hover/session:bg-accent-lime group-hover/session:text-on-accent',
+                          )}
+                        >
+                          {isLive ? t('live') : t('next')}
+                        </Badge>
                       ) : (
                         <span className="text-label text-muted-foreground">
                           {duration(appointment.durationMinutes)}
@@ -215,8 +250,11 @@ export async function AgendaTimeline({ appointments, locale, today, nowMinute }:
                         {appointment.reason ? (
                           <span
                             className={cn(
-                              'block truncate text-caption',
-                              isFocused ? 'text-primary-foreground/85' : 'text-muted-foreground',
+                              'block truncate text-caption text-muted-foreground',
+                              // n-600 reads on the resting olive-100 fill
+                              // (5.63:1); once the card goes solid it has to
+                              // become the light half of the pair.
+                              isFocused && 'group-hover/session:text-primary-foreground/85',
                             )}
                             dir="auto"
                           >
@@ -227,7 +265,7 @@ export async function AgendaTimeline({ appointments, locale, today, nowMinute }:
                     </div>
 
                     {isFocused ? (
-                      <p className="mt-2 flex items-center gap-1.5 text-caption text-primary-foreground/85">
+                      <p className="mt-2 flex items-center gap-1.5 text-caption text-muted-foreground group-hover/session:text-primary-foreground/85">
                         <Icon name="clock" className="size-3.5" />
                         {duration(appointment.durationMinutes)}
                       </p>

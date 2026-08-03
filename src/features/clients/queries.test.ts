@@ -88,6 +88,53 @@ describe('listClients', () => {
     await createClient(clinicId, { fullName: 'أحمد', preferredLocale: 'ar' });
     expect((await listClients(clinicId, filters({ page: '9' }))).items).toEqual([]);
   });
+
+  test('orders by a chosen column in both directions', async () => {
+    await createClient(clinicId, { fullName: 'جميل', preferredLocale: 'ar' });
+    await createClient(clinicId, { fullName: 'أحمد', preferredLocale: 'ar' });
+    await createClient(clinicId, { fullName: 'سارة', preferredLocale: 'ar' });
+
+    const ascending = await listClients(clinicId, filters({ sort: 'fullName', dir: 'asc' }));
+    const descending = await listClients(clinicId, filters({ sort: 'fullName', dir: 'desc' }));
+
+    expect(ascending.items.map((client) => client.fullName)).toEqual(['أحمد', 'جميل', 'سارة']);
+    expect(descending.items.map((client) => client.fullName)).toEqual(['سارة', 'جميل', 'أحمد']);
+  });
+
+  test('sorts newest first when no column is chosen', async () => {
+    await createClient(clinicId, { fullName: 'الأول', preferredLocale: 'ar' });
+    await createClient(clinicId, { fullName: 'الثاني', preferredLocale: 'ar' });
+
+    const result = await listClients(clinicId, filters());
+    expect(result.items[0]?.fullName).toBe('الثاني');
+  });
+
+  /**
+   * A blank is missing, not "smallest". Flipping the direction to find the As
+   * must not put eleven dashes at the top of the page instead.
+   */
+  test('keeps clients with no phone number last in both directions', async () => {
+    await createClient(clinicId, { fullName: 'بلا رقم', preferredLocale: 'ar' });
+    await createClient(clinicId, { fullName: 'سارة', preferredLocale: 'ar', phone: '0599000001' });
+    await createClient(clinicId, { fullName: 'أحمد', preferredLocale: 'ar', phone: '0599000002' });
+
+    for (const dir of ['asc', 'desc'] as const) {
+      const result = await listClients(clinicId, filters({ sort: 'phone', dir }));
+      expect(result.items.at(-1)?.phone).toBeNull();
+    }
+  });
+
+  /**
+   * The sort key picks an ORDER BY, so anything outside the allowlist has to be
+   * impossible rather than merely unlikely.
+   */
+  test('falls back to the default order for an unknown sort column', async () => {
+    await createClient(clinicId, { fullName: 'الأول', preferredLocale: 'ar' });
+    await createClient(clinicId, { fullName: 'الثاني', preferredLocale: 'ar' });
+
+    const result = await listClients(clinicId, filters({ sort: 'password); drop table clients--' }));
+    expect(result.items.map((client) => client.fullName)).toEqual(['الثاني', 'الأول']);
+  });
 });
 
 describe('getClient', () => {

@@ -49,9 +49,9 @@ const buttonVariants = cva(
         outline:
           "border-primary bg-card text-secondary-foreground hover:border-accent-lime hover:bg-accent-lime hover:text-on-accent aria-expanded:border-accent-lime aria-expanded:bg-accent-lime aria-expanded:text-on-accent",
 
-        /** Tertiary — no box until you touch it, then the same lime flip. */
+        /** Tertiary — no box until you touch it, then a warm neutral flip. */
         ghost:
-          "border-transparent text-secondary-foreground hover:bg-accent-lime hover:text-on-accent aria-expanded:bg-accent-lime aria-expanded:text-on-accent",
+          "border-transparent text-secondary-foreground hover:bg-accent hover:text-accent-foreground aria-expanded:bg-accent aria-expanded:text-accent-foreground",
 
         /** Accent — the lime fill itself, for a completion action. */
         accent: "border-transparent bg-accent-lime text-on-accent hover:bg-[var(--lime-300)]",

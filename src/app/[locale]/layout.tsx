@@ -4,7 +4,6 @@ import type { Metadata } from 'next';
 import { IBM_Plex_Mono, IBM_Plex_Sans, IBM_Plex_Sans_Arabic, Readex_Pro } from 'next/font/google';
 import type { ReactNode } from 'react';
 
-import { DevLocaleSwitcher } from '@/components/layout/locale-switcher';
 import { resolveLocale } from '@/i18n/params';
 import { getLocaleDirection, routing } from '@/i18n/routing';
 
@@ -106,10 +105,13 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
         there is nothing to trade off.
       */}
       <body suppressHydrationWarning className="min-h-dvh">
-        <NextIntlClientProvider>
-          {children}
-          <DevLocaleSwitcher />
-        </NextIntlClientProvider>
+        {/*
+          No floating locale switcher here. The switcher lives in the app bar
+          (`Header`) and on the login screens, which is the only place it should
+          be — a second copy pinned to the corner shadowed the real one in dev
+          and sat on top of page content.
+        */}
+        <NextIntlClientProvider>{children}</NextIntlClientProvider>
       </body>
     </html>
   );

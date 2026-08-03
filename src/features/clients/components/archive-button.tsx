@@ -15,20 +15,29 @@ export function ArchiveButton({
   clientId,
   archived,
   size = 'default',
+  iconOnly = false,
 }: {
   locale: Locale;
   clientId: string;
   archived: boolean;
   size?: 'default' | 'sm';
+  /** Table rows use the glyph; the record page keeps the words. */
+  iconOnly?: boolean;
 }) {
   const t = useTranslations('clients');
 
+  const label = archived ? t('actions.restore') : t('actions.archive');
+
   return (
-    <form action={setClientStatusAction}>
+    <form action={setClientStatusAction} className="flex">
       <input type="hidden" name="locale" value={locale} />
       <input type="hidden" name="clientId" value={clientId} />
       <input type="hidden" name="intent" value={archived ? 'restore' : 'archive'} />
-      <ConfirmSubmitButton label={archived ? t('actions.restore') : t('actions.archive')} size={size} />
+      <ConfirmSubmitButton
+        label={label}
+        size={iconOnly ? 'icon-sm' : size}
+        icon={iconOnly ? (archived ? 'restore' : 'archive') : undefined}
+      />
     </form>
   );
 }

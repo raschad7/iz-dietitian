@@ -66,12 +66,26 @@ export const clientFormSchema = z.object({
 export type ClientFormInput = z.infer<typeof clientFormSchema>;
 
 /**
+ * Columns the client list may be ordered by.
+ *
+ * An allowlist, not a free-text column name: the value arrives from the query
+ * string and is used to pick an ORDER BY, so anything outside this set has to
+ * be impossible rather than merely unlikely. `createdAt` is the default and is
+ * not a visible column — newest first is what the register means with no
+ * explicit sort.
+ */
+export const CLIENT_SORTS = ['fullName', 'phone', 'email', 'status', 'portalAccess', 'createdAt'] as const;
+export type ClientSort = (typeof CLIENT_SORTS)[number];
+
+/**
  * List filters. Every field uses `.catch()` so a hand-edited query string
  * degrades to the default view instead of throwing a 500 at the user.
  */
 export const listClientsSchema = z.object({
   q: z.preprocess(blankToUndefined, z.string().trim().max(120).optional()),
   status: z.enum([...CLIENT_STATUSES, 'all']).catch('active'),
+  sort: z.enum(CLIENT_SORTS).catch('createdAt'),
+  dir: z.enum(['asc', 'desc']).catch('desc'),
   page: z.coerce.number().int().min(1).max(10_000).catch(1),
 });
 

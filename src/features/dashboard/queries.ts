@@ -1,4 +1,4 @@
-import { and, asc, between, count, eq, gt, gte, sql } from 'drizzle-orm';
+import { and, count, desc, eq, sql } from 'drizzle-orm';
 
 import { db } from '@/db';
 import { appointments, clients } from '@/db/schema';
@@ -13,89 +13,87 @@ import { appointments, clients } from '@/db/schema';
  *
  * The notification feed's reads used to live here; they moved to
  * `src/features/notifications/queries.ts` when the bell became part of the
- * shell rather than a card on this page.
+ * shell rather than a card on this page. The four counters behind the summary
+ * tiles and the monthly-visit histogram left with those cards — the numbers
+ * they served are all one click away in the calendar and the register.
  */
 
-export async function countAppointmentsInRange(clinicId: string, fromDate: string, toDate: string): Promise<number> {
-  const [row] = await db
-    .select({ value: count() })
-    .from(appointments)
-    .where(and(eq(appointments.clinicId, clinicId), between(appointments.date, fromDate, toDate)));
-
-  return row?.value ?? 0;
-}
-
-/**
- * Everything booked after `afterDate` — the "upcoming" tile.
- *
- * Strictly after, not on or after: today has its own tile and its own agenda,
- * and counting it twice would make the two disagree.
- */
-export async function countAppointmentsAfter(clinicId: string, afterDate: string): Promise<number> {
-  const [row] = await db
-    .select({ value: count() })
-    .from(appointments)
-    .where(and(eq(appointments.clinicId, clinicId), gt(appointments.date, afterDate)));
-
-  return row?.value ?? 0;
-}
-
-export type NextAppointment = { date: string; startMinute: number; clientName: string };
-
-/** The first booking after `afterDate` — what the upcoming tile names. */
-export async function findNextAppointmentAfter(clinicId: string, afterDate: string): Promise<NextAppointment | null> {
-  const [row] = await db
-    .select({
-      date: appointments.date,
-      startMinute: appointments.startMinute,
-      clientName: clients.fullName,
-    })
-    .from(appointments)
-    .innerJoin(clients, eq(clients.id, appointments.clientId))
-    .where(and(eq(appointments.clinicId, clinicId), gt(appointments.date, afterDate)))
-    .orderBy(asc(appointments.date), asc(appointments.startMinute))
-    .limit(1);
-
-  return row ?? null;
-}
-
-export async function countNewClientsSince(clinicId: string, sinceIso: string): Promise<number> {
-  const [row] = await db
-    .select({ value: count() })
-    .from(clients)
-    .where(and(eq(clients.clinicId, clinicId), gte(clients.createdAt, new Date(sinceIso))));
-
-  return row?.value ?? 0;
-}
-
-export type MonthlyVisits = {
-  /** `YYYY-MM-01` — the month's first day, so it sorts and formats like any other date. */
-  month: string;
-  visits: number;
+export type DashboardClient = {
+  id: string;
+  fullName: string;
+  /** The client's own stored hex, for `Avatar` — record data, not a token. */
+  color: string;
+  status: string;
+  createdAt: Date;
+  /**
+   * The client's next booking on or after today, if they have one. Null covers
+   * both "nothing booked" and "only past appointments" — the card says which.
+   */
+  nextVisit: { date: string; startMinute: number } | null;
 };
 
 /**
- * Appointments per calendar month across a date range.
+ * The register, newest first, for the dashboard's client card.
  *
- * Grouped in SQL with `date_trunc` rather than by pulling every row and
- * bucketing in JS: this is the one read on the page whose row count grows with
- * the clinic's whole history rather than with one day.
+ * The next visit is a correlated subquery rather than a join: a client with
+ * three future appointments would otherwise return three rows and the LIMIT
+ * would silently cut the list short. This way one client is always one row.
  *
- * Months with no appointments are simply absent — the caller owns the calendar
- * and fills the gaps, because a histogram must show an empty month, and a query
- * cannot invent rows that aren't there.
+ * Archived clients are excluded. The card is a way into someone's record to do
+ * something about them today, and an archived client is neither.
  */
-export async function listMonthlyVisits(clinicId: string, fromDate: string, toDate: string): Promise<MonthlyVisits[]> {
-  const month = sql<string>`to_char(date_trunc('month', ${appointments.date}), 'YYYY-MM-DD')`;
+export async function listRecentClients(
+  clinicId: string,
+  today: string,
+  limit: number,
+): Promise<DashboardClient[]> {
+  const nextVisitDate = sql<string | null>`(
+    select ${appointments.date}
+    from ${appointments}
+    where ${appointments.clientId} = ${clients.id}
+      and ${appointments.date} >= ${today}
+    order by ${appointments.date} asc, ${appointments.startMinute} asc
+    limit 1
+  )`;
+
+  const nextVisitStart = sql<number | null>`(
+    select ${appointments.startMinute}
+    from ${appointments}
+    where ${appointments.clientId} = ${clients.id}
+      and ${appointments.date} >= ${today}
+    order by ${appointments.date} asc, ${appointments.startMinute} asc
+    limit 1
+  )`;
 
   const rows = await db
-    .select({ month, visits: count() })
-    .from(appointments)
-    .where(and(eq(appointments.clinicId, clinicId), between(appointments.date, fromDate, toDate)))
-    .groupBy(month)
-    .orderBy(asc(month));
+    .select({
+      id: clients.id,
+      fullName: clients.fullName,
+      color: clients.color,
+      status: clients.status,
+      createdAt: clients.createdAt,
+      nextVisitDate,
+      nextVisitStart,
+    })
+    .from(clients)
+    .where(and(eq(clients.clinicId, clinicId), eq(clients.status, 'active')))
+    .orderBy(desc(clients.createdAt))
+    .limit(limit);
 
-  return rows;
+  return rows.map(({ nextVisitDate: date, nextVisitStart: startMinute, ...client }) => ({
+    ...client,
+    nextVisit: date !== null && startMinute !== null ? { date, startMinute } : null,
+  }));
+}
+
+/** How many active clients the register holds — the card's subtitle. */
+export async function countActiveClients(clinicId: string): Promise<number> {
+  const [row] = await db
+    .select({ value: count() })
+    .from(clients)
+    .where(and(eq(clients.clinicId, clinicId), eq(clients.status, 'active')));
+
+  return row?.value ?? 0;
 }
 
 export type ClientDemographic = { dateOfBirth: string | null; sex: string | null };

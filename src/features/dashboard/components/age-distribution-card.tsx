@@ -21,7 +21,9 @@ type AgeDistributionCardProps = {
  * pie throws that order away — a reader cannot tell 30–44 from 45–59 by arc
  * length, and the bands stop being a progression. For the same reason the fill
  * is the sequential ramp read in order (`--viz-seq-*`), so the colour walks
- * from young to old alongside the labels; it is not five identities.
+ * from young to old alongside the labels; it is not five identities. The ramp
+ * is warm neutral rather than the brand olive — see the note on the histogram
+ * and `--viz-seq-*` in globals.css.
  *
  * Bars grow from the inline-start edge, so the whole chart mirrors in Arabic
  * with no direction prop — the same rule progress fills follow.
@@ -41,7 +43,8 @@ export async function AgeDistributionCard({ age, total, locale }: AgeDistributio
   return (
     <Card className="min-h-0 xl:h-full">
       <CardHeader className="shrink-0 grid-cols-[auto_1fr] items-center gap-2">
-        <span className="flex size-8 items-center justify-center rounded-full bg-secondary text-primary">
+        {/* Neutral: a chart is read, not clicked, and olive is this page's action colour. */}
+        <span className="flex size-8 items-center justify-center rounded-full bg-muted text-muted-foreground">
           <Icon name="clients" className="size-4" />
         </span>
         <span>

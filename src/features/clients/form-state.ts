@@ -11,6 +11,13 @@
 
 export type ClientFormState =
   | { status: 'idle' }
+  /**
+   * Saved an existing client. Creating still redirects to the new record, but
+   * an edit happens in a card over the screen the reader is already on, and
+   * navigating them away from it to prove the save worked is a worse answer
+   * than closing the card and refreshing what is underneath.
+   */
+  | { status: 'success' }
   | {
       status: 'error';
       messageKey: 'errors.invalid' | 'errors.unexpected';
