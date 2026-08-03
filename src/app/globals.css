@@ -96,23 +96,11 @@
   --qiwam-radius-xl: 24px;
 
   /*
-   * ── The Arc ──
-   * Three corners hold the system radius; the block-end/inline-end corner
-   * opens into a sweep. Parameterised here so a future change to the shape
-   * language is a token edit rather than a sweep through every component.
+   * Every corner of a surface takes the same radius. There is no swept or
+   * otherwise singled-out corner: a shape that differs on one side reads as
+   * pointing at something, and none of these surfaces are.
    */
-  --sweep-control: 24px;        /* button, field — rest */
-  --sweep-control-hover: 30px;  /* leans into the pointer */
-  --sweep-control-press: 18px;  /* pulls in as it sinks */
-  --sweep-card: 32px;
-  --sweep-card-hover: 36px;
-  /*
-   * Bottom nav only. The staff/portal rail used to take this too, back when it
-   * was an inset panel; it is now a full-bleed column with a hairline and no
-   * shape of its own.
-   */
-  --sweep-surface: 28px;
-  --radius-control: 10px;       /* the three corners that do not sweep */
+  --radius-control: 10px;       /* button, field — all four corners */
 
   /* ── Elevation — olive-tinted, never neutral black ── */
   --qiwam-shadow-1: 0 1px 2px rgba(34, 52, 20, .06), 0 1px 3px rgba(34, 52, 20, .05);
@@ -725,12 +713,12 @@
    * models. Defining the box once here means a change to the shape language is
    * one edit, and the three components cannot drift apart.
    *
-   * The focus cue is an olive line growing from the tail along the block-end
-   * edge to 58% of the width — the Q curve being drawn, once. It is painted as
-   * a background rather than an ::after because ::after does not apply to
+   * The focus cue is an olive line growing along the block-end edge to 58% of
+   * the width, anchored at the inline-start corner. It is painted as a
+   * background rather than an ::after because ::after does not apply to
    * replaced elements (input/select/textarea), so this works directly on the
    * field with no wrapper element. `background-position` has no logical
-   * keyword, so :dir() stands in for the inline-end anchor.
+   * keyword, so :dir() stands in for the inline-start anchor.
    *
    * Width only — no colour flash.
    */
@@ -738,7 +726,6 @@
     @apply w-full min-w-0 border bg-transparent text-body-md outline-none;
     border-color: var(--input);
     border-radius: var(--radius-control);
-    border-end-end-radius: var(--sweep-control);
 
     background-image: linear-gradient(var(--olive-600), var(--olive-600));
     background-repeat: no-repeat;
@@ -748,8 +735,7 @@
     transition:
       background-size var(--duration-arc) var(--ease-sweep),
       border-color var(--duration-label) ease-out,
-      box-shadow var(--duration-label) ease-out,
-      border-end-end-radius var(--duration-sweep) var(--ease-sweep);
+      box-shadow var(--duration-label) ease-out;
   }
   .q-field:dir(rtl) {
     background-position: bottom right;
@@ -778,13 +764,12 @@
     background-color: var(--muted);
   }
   /*
-   * Read-only is a sunken fill with no border and no sweep: the control is
-   * still a value to read, but it no longer advertises itself as editable.
+   * Read-only is a sunken fill with no border: the control is still a value to
+   * read, but it no longer advertises itself as editable.
    */
   .q-field[readonly] {
     background-color: var(--muted);
     border-color: transparent;
-    border-end-end-radius: var(--radius-control);
     background-image: none;
   }
 
@@ -825,11 +810,9 @@
   /*
    * §9.7 loading skeleton: an olive-tinted sweep across a sunken fill, 1600ms.
    *
-   * The spec's own `.q-sk` carries a swept block-end/inline-end corner, because
-   * there it stands in for a whole card. These bars stand in for the *contents*
-   * of a real `Card`, which already carries the one tail that surface is allowed
-   * (§9.4), so they keep the plain control radius instead. A caller that needs a
-   * card-shaped skeleton should sweep the card, not the bar.
+   * These bars stand in for the *contents* of a real `Card`, not for the card
+   * itself, so they take the small radius rather than the card's. A caller that
+   * needs a card-shaped skeleton should shape the card, not the bar.
    *
    * The gradient is symmetric, so it mirrors for free; only the direction of
    * travel has to flip, and `translateX` has no logical form.

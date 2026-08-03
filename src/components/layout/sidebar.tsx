@@ -38,10 +38,10 @@ export type NavItem = {
  * Navigation shell for a signed-in area: a pale olive rail.
  *
  * **Full-bleed, and separated from the page by a hairline rather than by a
- * shape.** It is not a card: no radius, no Arc, no elevation. The Arc marks
- * surfaces you can act on, and the rail is not one — it is the wall the app
- * hangs on. A 1px `border-e` is the whole separation, which is all a change of
- * fill needs to read as a change of region.
+ * shape.** It is not a card: no radius, no elevation. A rounded box is what
+ * this system gives a surface sitting *on* the page, and the rail is not one —
+ * it is the wall the app hangs on. A 1px `border-e` is the whole separation,
+ * which is all a change of fill needs to read as a change of region.
  *
  * The active item is marked three ways — its own icon fills in, an olive-600
  * surface grows around it, and a lime leaf node appears on the inline-end

@@ -18,8 +18,8 @@ copy inside a feature folder. Something genuinely new and reusable belongs in
 [`src/app/globals.css`](../src/app/globals.css) has four layers:
 
 1. **Primitives** — the raw ramps (`--olive-600`, `--lime-400`, `--n-25`,
-   `--clay-600`), the radius and sweep scale, shadows, and motion. Never
-   referenced directly from a component.
+   `--clay-600`), the radius scale, shadows, and motion. Never referenced
+   directly from a component.
 2. **`@theme inline`** — maps primitives to semantic names and registers them
    with Tailwind, which is what makes `bg-primary`, `text-status-medical-fg`,
    `text-body` and `shadow-card` exist as utility classes.
@@ -241,34 +241,37 @@ a build error rather than a blank square.
   not, which is why `DIRECTIONAL` in `icon.tsx` is an allowlist.
 - `@iconify-json/solar` is a **devDependency**: a build input, never shipped.
 
-## Shape — "the Arc"
+## Shape
 
-Three corners hold the system radius; the **block-end / inline-end** corner
-opens into a sweep — the Q's tail. `rounded-ee-*` is logical, so it mirrors to
-bottom-left in Arabic with no override.
+**Every corner of a surface takes the same radius.** There is no swept or
+otherwise singled-out corner, and a component may not introduce one: a shape
+that differs on one side reads as pointing at something, and none of these
+surfaces are.
 
-**One tail per surface.** Never sweep two corners, and never repeat the sweep
-on a child of an already-swept parent.
+| Surface | Radius | Hover | Press |
+|---|---|---|---|
+| Button, field | 10px | — | 1px sink |
+| Card | 16px | 2px ring (interactive only); the header icon fills olive | scale .995 |
+| Icon button | `rounded-full` | — | — |
+| Bottom nav | 16px | — | — |
+| Rail | **none** | — | — |
+| Chips, badges | pill | — | — |
 
-| Surface | Base | Sweep | Hover | Press |
-|---|---|---|---|---|
-| Button, field | 10px | 24px | 30px | 18px + 1px sink |
-| Card | 16px | 32px | 32px — 2px ring (interactive only); the header icon fills olive | scale .995 |
-| Icon button | `rounded-full` | ~29% of size | +3px | −3px |
-| Bottom nav | 16px | 28px | — | — |
-| Rail | **none** | **none** | — | — |
-| Chips, badges | pill | **none** | — | — |
+**Geometry does not change under the pointer.** A corner that grows on hover
+moves the surface while someone is reading it; hover is carried by the ring and
+the fill instead.
 
-Badges are the one shape that stays a plain pill, and the rail is square on
-every corner. The Arc marks surfaces you can act on: a badge is a label, and
-the rail is the wall the app hangs on.
+Badges are a pill and the rail is square on every corner. A rounded box is what
+this system gives a control or a surface — a badge is a label, and the rail is
+the wall the app hangs on, so neither takes that shape.
 
-Radius scale otherwise: `sm` 8 · `md` 12 · `lg` 16 · `xl` 24. **Never
-`rounded-none`** — except `Button variant="link"`, which is a run of text, not
-a surface.
+Radius scale: `sm` 8 · `md` 12 · `lg` 16 · `xl` 24, plus `--radius-control`
+(10px) for buttons and fields. **Never `rounded-none`** on a surface — except
+`Button variant="link"`, which is a run of text, and a child that deliberately
+squares off against its container (`Card variant="listRow"`).
 
-The sweep sizes are tokens (`--sweep-control`, `--sweep-card`,
-`--sweep-surface`), so changing the shape language is a token edit.
+A panel nested inside a card takes a plain radius with no ring and no shadow of
+its own. It is part of that card, not a second one.
 
 ## Buttons
 
@@ -286,8 +289,7 @@ Six variants, matching [buttons.png](design-images/buttons.png):
 Plus `secondary` (olive-50 tint) and `link`, which aren't in the six but keep
 dense surfaces off ad-hoc classes.
 
-Disabled keeps the resting tail and drops to the sunken fill with n-500 text
-(4.0:1) — a control that still animates reads as available.
+Disabled drops to the sunken fill with n-500 text (4.0:1).
 
 **Every enabled `<button>` shows the pointer cursor.** Tailwind's v4 preflight
 resets `button` to `cursor: default`, which makes a control feel inert next to
@@ -334,15 +336,15 @@ Every field is `.q-field` — one class in `globals.css` shared by `Input`,
 `Textarea` and `Select`, so the three cannot drift and a change to the shape
 language is one edit.
 
-- **Focus** draws the arc: a 2px olive line grows from the tail along the
-  block-end edge to 58% of the width, in 220ms. Width only, no colour flash.
-  It reverses in 140ms on blur — faster, because the cue has served its
+- **Focus** draws a line: a 2px olive rule grows from the inline-start corner
+  along the block-end edge to 58% of the width, in 220ms. Width only, no colour
+  flash. It reverses in 140ms on blur — faster, because the cue has served its
   purpose.
 - Fields deliberately **do not** use the lime focus ring buttons use. A form
   has many fields, and lime firing on every tabbed-to field turns the accent
   into noise. Fields get `border-primary` plus a 3px olive-100 halo.
 - **Hover** darkens the border to n-600. **Read-only** is a sunken fill with no
-  border and no sweep. **Disabled** is the sunken fill at 50%.
+  border. **Disabled** is the sunken fill at 50%.
 - Wrap a label and its control in `Field` — that's what drives the label's
   colour shift on focus (`:focus-within`) and gives `FieldError` somewhere
   reliable to live.
@@ -386,7 +388,8 @@ optional `CardDivider` · `CardFooter` (metadata inline-start, action
 inline-end).
 
 Variants: `default` · `tinted` · `empty` (dashed olive-300, for empty states) ·
-`listRow` (no shadow, no sweep except on the last row of a group) · `archived`.
+`listRow` (square and unshadowed; the last row of a group rounds its block-end
+corners so the stack ends flush with its container) · `archived`.
 
 Props: `size="sm"`, `interactive`, `selected` (the olive ring thickens; the card
 does not change colour), `flagged` (a clay dot in the corner — never a red
@@ -406,10 +409,10 @@ ring goes to 2px olive; there is no shadow change. A raised shadow reads as the
 card leaving the page, and on a grid of peers — the dashboard's quick actions —
 that makes the hovered one look like it belongs to a different layer. A thicker
 edge says "this one" while the card stays put, and it is the same language
-`selected` already speaks: the edge, never the fill. The **tail does not grow**
-with it: geometry that changes under the pointer moves the card's own corner
-while you are reading it. It stays opt-in, because a card that answers the
-pointer is promising it does something when clicked.
+`selected` already speaks: the edge, never the fill. The **geometry does not
+change** with it: a corner that moves under the pointer shifts the card while
+you are reading it. It stays opt-in, because a card that answers the pointer is
+promising it does something when clicked.
 
 `CardSkeleton` is the loading state: same shape, same footprint, nothing jumps.
 
@@ -419,14 +422,14 @@ pointer is promising it does something when clicked.
 client picker, the dashboard agenda and the top-clients list all use it, so
 one person looks the same everywhere. Sizes `sm` · `default` · `lg`.
 
-It is a **circle with no sweep**: the Arc marks surfaces you can act on, and a
-person is not a control. The `color` prop is per-record data, not a token (see
+It is a **circle**: the rounded box is the shape this system gives controls and
+surfaces, and a person is neither. The `color` prop is per-record data, not a token (see
 "Arbitrary colour" below), which is why it arrives as an inline style. It
 renders `aria-hidden` — the name it stands for is always beside it.
 
 ## Tables
 
-`TableRoot` owns the scroll container and the Arc; `Table`, `TableHeader`,
+`TableRoot` owns the scroll container and the frame's radius; `Table`, `TableHeader`,
 `TableRow`, `TableHead`, `TableCell` and `TableEmpty` are the rest. Cells
 default to `text-start`; pass `numeric` for anything that must stay LTR inside
 Arabic — figures, times, phone numbers, IDs, units.
@@ -467,7 +470,7 @@ Matching [Navigation.png](design-images/Navigation.png).
 
 **Rail** (`Sidebar`) — a pale **olive-50** column, full-bleed, separated from
 the page by a 1px olive-300 `border-e`. **It is not a card**: no radius, no
-Arc, no elevation. It was a solid olive-900 inset panel; that made the
+elevation. It was a solid olive-900 inset panel; that made the
 navigation the heaviest thing on every screen, which is a lot of weight to
 spend on furniture the reader stops seeing after a week.
 
@@ -533,8 +536,9 @@ horizontal, and a node on the inline-end edge would read as belonging to the
 next item.
 
 **Segmented** (`Segmented`) — two to four mutually exclusive options, all
-visible. The track carries the Arc; the thumb does not, because one tail per
-surface. `role` is a prop: the calendar's day/week/month switch is a `tablist`
+visible. The track is `rounded-lg` and the thumb `rounded-md`, so the thumb
+reads as sitting inside the track rather than as a second track.
+`role` is a prop: the calendar's day/week/month switch is a `tablist`
 (same page, different view), the login role switch is a `radiogroup` (different
 form). Identical visually, different to a screen reader.
 
@@ -555,11 +559,12 @@ the same glyphs as its bottom bar); the staff rail is text-only.
   `backdrop:backdrop-blur-*`, because Tailwind's blur utilities resolve through
   custom properties registered on `*` and `::backdrop` does not inherit them in
   every engine — the utility compiles and then silently does nothing.
-- One easing curve for every sweep and drawing animation:
+- One easing curve for every drawing animation, `--ease-sweep`:
   `cubic-bezier(.2,.6,.2,1)`. Durations are named: `--duration-arc` 220ms
-  (field arc, node travel) · `--duration-sweep` 200ms (corner growth) ·
-  `--duration-label` 180ms · `--duration-reverse` 140ms (anything reversing on
-  blur). Don't invent a new curve.
+  (field focus line, node travel) · `--duration-sweep` 200ms (general reveal —
+  a disclosure chevron, a panel opening) · `--duration-label` 180ms ·
+  `--duration-reverse` 140ms (anything reversing on blur). Don't invent a new
+  curve.
 - `prefers-reduced-motion: reduce` collapses every transition globally. State
   still changes; only the travel stops.
 

@@ -12,8 +12,8 @@ import { cn } from "@/lib/utils"
  * (see "Arbitrary colour" in docs/design-system.md). The palette in
  * `src/lib/avatar-color.ts` was picked to carry white text at these sizes.
  *
- * A circle, deliberately: the Arc marks surfaces you can act on, and an avatar
- * is a person, not a control.
+ * A circle, deliberately: a rounded box is the shape this system gives controls
+ * and surfaces, and an avatar is a person, not either of those.
  */
 const avatarVariants = cva(
   "flex shrink-0 items-center justify-center rounded-full font-semibold text-white",

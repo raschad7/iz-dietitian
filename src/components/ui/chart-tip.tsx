@@ -11,9 +11,8 @@ import { cn } from "@/lib/utils"
  * drifting across three copies — is the shape, the fill and the type.
  *
  * Inverted (`--foreground` on `--background`, 16.6:1) so it reads as a layer
- * above the card rather than another card. It carries the Arc like any other
- * surface, and `pointer-events-none` so it can never eat the hover that
- * summoned it.
+ * above the card rather than another card, and `pointer-events-none` so it can
+ * never eat the hover that summoned it.
  *
  * **A tip never carries a value that is not already on the page.** Every chart
  * here prints its counts in text; the tip is a convenience, not the only way to
@@ -26,7 +25,7 @@ function ChartTip({ className, ...props }: React.ComponentProps<"span">) {
       data-slot="chart-tip"
       aria-hidden
       className={cn(
-        "pointer-events-none w-max max-w-44 rounded-md rounded-ee-xl bg-foreground px-2.5 py-1.5",
+        "pointer-events-none w-max max-w-44 rounded-md bg-foreground px-2.5 py-1.5",
         "text-center text-label leading-tight text-background shadow-elevated",
         className
       )}

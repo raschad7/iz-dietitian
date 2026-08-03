@@ -5,15 +5,14 @@ import { Icon, type IconName } from "@/components/ui/icon"
 import { cn } from "@/lib/utils"
 
 /**
- * Shape: "the Arc" — 16px base radius, 32px sweep on the block-end/inline-end
- * corner, growing to 36px when the card is interactive and hovered.
+ * Shape: a 16px radius on all four corners.
  *
- * **One tail per surface.** A card already carries the sweep, so nothing
- * nested inside it may sweep again — that is why `list-row` exists as a
- * variant rather than as a Card inside a Card.
+ * A card is still one surface, which is why `listRow` exists as a variant
+ * rather than as a Card inside a Card — nesting the real thing would stack two
+ * fills, two rings and two shadows on the same row.
  */
 const cardVariants = cva(
-  "group/card relative flex flex-col gap-(--card-spacing) rounded-lg rounded-ee-4xl text-body-md [--card-spacing:--spacing(4)] sm:[--card-spacing:--spacing(5)]",
+  "group/card relative flex flex-col gap-(--card-spacing) rounded-lg text-body-md [--card-spacing:--spacing(4)] sm:[--card-spacing:--spacing(5)]",
   {
     variants: {
       variant: {
@@ -32,13 +31,13 @@ const cardVariants = cva(
           "border border-dashed border-[var(--olive-300)] bg-transparent py-(--card-spacing) text-muted-foreground",
 
         /**
-         * A row inside a group. No shadow and no sweep — the group's container
-         * owns the tail, and 20 swept rows would be 20 competing tails.
-         * `group-*:last:` restores it on the final row so the stack still ends
-         * in the brand shape.
+         * A row inside a group. Square and unshadowed — the group's container
+         * owns the shape, and 20 rounded rows inside it would be 20 boxes
+         * fighting the one that contains them. The last row rounds its
+         * block-end corners so the stack ends flush with that container.
          */
         listRow:
-          "gap-2 rounded-none rounded-ee-none border-b border-border bg-transparent py-3 last:border-b-0 last:rounded-b-lg last:rounded-ee-4xl",
+          "gap-2 rounded-none border-b border-border bg-transparent py-3 last:border-b-0 last:rounded-b-lg",
 
         /**
          * Archived / disabled. Sunken fill, secondary text, no elevation —
@@ -63,9 +62,9 @@ const cardVariants = cva(
        * where it is, and it is the same language `selected` already speaks —
        * the edge, never the fill.
        *
-       * The tail does **not** grow with it. Geometry that changes under the
-       * pointer moves the card's own corner while you are reading it; the ring
-       * says the same thing without the shape shifting.
+       * The card's geometry does **not** change with it. A corner that moves
+       * under the pointer shifts the surface while you are reading it; the ring
+       * says the same thing and the card stays still.
        *
        * A card that is *not* interactive answers with its icon alone — see
        * `CardTitle` below. Only a card you can click gets the edge.
@@ -117,7 +116,7 @@ function Card({
       className={cn(
         cardVariants({ variant, size, interactive, selected }),
         "has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0",
-        "*:[img:first-child]:rounded-t-lg *:[img:last-child]:rounded-b-lg *:[img:last-child]:rounded-ee-4xl",
+        "*:[img:first-child]:rounded-t-lg *:[img:last-child]:rounded-b-lg",
         className
       )}
       {...props}
@@ -151,10 +150,9 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
 
 /**
  * `icon` is a plain glyph beside the title — never a badge or a filled
- * circle. A card's own tail and ring already say "this is a surface"; a
- * second contained shape on top of that would be a badge competing with the
- * Arc for the same job. The icon just labels the section, the way a heading
- * would in a document.
+ * circle. The card's own ring and fill already say "this is a surface"; a
+ * second contained shape inside it reads as another surface again. The icon
+ * just labels the section, the way a heading would in a document.
  *
  * **It is also the card's hover response.** Pointing at a card turns this one
  * glyph olive; on a card that draws its icon on a disc, the disc fills olive
@@ -252,9 +250,10 @@ function CardContent({ className, ...props }: React.ComponentProps<"div">) {
 }
 
 /**
- * An arc divider rather than a straight rule: a hairline that stops short of
- * the inline-end edge so it does not collide with the tail below it. Use it
- * where a card genuinely has two parts; a plain `border-t` is fine elsewhere.
+ * An inset divider rather than a full-bleed rule: a hairline that stops short
+ * of the inline-end edge, so it reads as separating two parts of one card
+ * rather than as cutting the card in half. Use it where a card genuinely has
+ * two parts; a plain `border-t` is fine elsewhere.
  *
  * `me-*` rather than a gradient, because CSS gradients take angles and have no
  * logical direction keyword — a `to right` fade would run the wrong way in
@@ -277,7 +276,7 @@ function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card-footer"
       className={cn(
-        "flex items-center gap-2 rounded-b-lg rounded-ee-4xl border-t bg-muted/50 p-(--card-spacing)",
+        "flex items-center gap-2 rounded-b-lg border-t bg-muted/50 p-(--card-spacing)",
         className
       )}
       {...props}
@@ -295,7 +294,7 @@ function CardSkeleton({ className, ...props }: React.ComponentProps<"div">) {
       data-slot="card-skeleton"
       aria-hidden
       className={cn(
-        "flex flex-col gap-3 rounded-lg rounded-ee-4xl bg-card p-4 shadow-card ring-1 ring-foreground/10",
+        "flex flex-col gap-3 rounded-lg bg-card p-4 shadow-card ring-1 ring-foreground/10",
         className
       )}
       {...props}

@@ -22,9 +22,9 @@ import { cn } from '@/lib/utils';
  *
  * ## Shape
  *
- * The track carries the Arc; the thumb does not. One tail per surface — a
- * swept thumb sliding inside a swept track would be two tails arguing. The
- * thumb moves by re-tinting rather than by translating a shared element,
+ * The track carries the radius; the thumb takes a smaller one, so it reads as
+ * sitting inside the track rather than as a second track. The thumb moves by
+ * re-tinting rather than by translating a shared element,
  * because the options are not a fixed width in two languages and an animated
  * offset would need measuring on every locale change.
  */
@@ -58,7 +58,7 @@ function Segmented<T extends string>({
       role={role}
       aria-label={label}
       className={cn(
-        'inline-flex rounded-lg rounded-ee-xl border border-border p-0.5',
+        'inline-flex rounded-lg border border-border p-0.5',
         className,
       )}
     >

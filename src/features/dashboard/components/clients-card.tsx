@@ -26,10 +26,11 @@ type ClientsCardProps = {
  * actually starts a working day, and every row is a way into that person's
  * record.
  *
- * The rows are plain surfaces rather than nested `Card`s: this panel already
- * carries the Arc, and **one tail per surface** (docs/design-system.md). Rows
- * are separated with a hairline (`divide-y`) rather than individual borders,
- * so the rule sits once between each pair rather than doubling at the edges.
+ * The rows are plain surfaces rather than nested `Card`s: this panel is already
+ * the card, and a stack of cards inside it would double every ring and shadow
+ * down the list. Rows are separated with a hairline (`divide-y`) rather than
+ * individual borders, so the rule sits once between each pair rather than
+ * doubling at the edges.
  *
  * **A row is text in three columns, not a portrait.** The avatar went because a
  * coloured initial identifies someone you already know by sight, and this list
@@ -84,7 +85,7 @@ export async function ClientsCard({ clients, locale }: ClientsCardProps) {
           <>
             {/*
               `pe-1` leaves the scrollbar somewhere to sit that is not on top of
-              the card's tail; `overscroll-contain` stops a flick at the end of
+              the card's edge; `overscroll-contain` stops a flick at the end of
               the list from scrolling the shell behind it.
 
               `max-h-80` is the fallback ceiling for below `xl`, where nothing

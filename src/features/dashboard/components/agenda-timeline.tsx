@@ -32,7 +32,8 @@ type AgendaTimelineProps = {
  * day" is answered by contrast rather than by reading times.
  *
  * The rows are plain surfaces rather than nested `Card`s on purpose: this panel
- * already carries the Arc, and **one tail per surface** (docs/design-system.md).
+ * is already the card, and a stack of cards inside it would double every ring
+ * and shadow down the list.
  */
 
 type Phase = 'past' | 'current' | 'upcoming';
@@ -121,9 +122,9 @@ export async function AgendaTimeline({ appointments, locale, today, nowMinute }:
           </div>
         ) : (
           /*
-            `pe-1` leaves the scrollbar somewhere to sit that isn't on top of a
-            card's tail; `overscroll-contain` stops a flick at the end of the
-            day from scrolling the shell behind it.
+            `pe-1` leaves the scrollbar somewhere to sit that isn't on top of
+            the card's edge; `overscroll-contain` stops a flick at the end of
+            the day from scrolling the shell behind it.
           */
           <ol className="flex flex-col overflow-y-auto overscroll-contain pe-1 xl:min-h-0 xl:flex-1">
             {ordered.map((appointment, index) => {

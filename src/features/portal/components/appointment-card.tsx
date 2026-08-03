@@ -80,8 +80,8 @@ export function AppointmentCard({
     <Card className={cn(past && 'opacity-75')}>
       <CardContent className="flex items-stretch gap-3 sm:gap-4">
         {/*
-          A plain rounded panel: the card around it already carries the one swept
-          corner this surface is allowed.
+          A plain rounded panel — a tinted block inside the card, not a second
+          card, so it takes no ring and no shadow of its own.
         */}
         <div
           className={cn(
