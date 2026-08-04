@@ -135,6 +135,14 @@ below.
 | Missed / incomplete | `status-incomplete-*` | neutral-700 on neutral-100 | **red** — a missed day is information, not a failure |
 | Medical flag | `status-medical-*` | clay-700 on clay-100 | anything that isn't a real allergy / condition / contraindication |
 | Rest day | `status-rest-*` | olive-700 on olive-50 | treating it as a missed day |
+| Day completed | `status-complete-*` | flame-700 on flame-100 | amber — that already means "needs follow-up", and a finished day sharing its hue is the one confusion this scale can't afford |
+
+`status-complete-*` also carries two graphic-only stops — `status-complete-mark`
+(flame-500) and `status-complete-mark-soft` (flame-300) — for the icon and
+progress ring in the portal's week strip. They are fills, never text: only the
+`fg`/`bg` pair is contrast-verified (5.6:1). Flame is a **warm accent with a
+budget of one per screen**, the same rule lime lives under — the portal home
+screen spends it on completed days, which is why nothing else there is orange.
 
 `Badge` has a variant for each. Use them instead of ad-hoc
 `bg-{color}-100 text-{color}-700` pairs. Don't reach for `destructive` to mean
@@ -403,10 +411,21 @@ Badges are a pill and the rail is square on every corner. A rounded box is what
 this system gives a control or a surface — a badge is a label, and the rail is
 the wall the app hangs on, so neither takes that shape.
 
-Radius scale: `sm` 8 · `md` 12 · `lg` 16 · `xl` 24, plus `--radius-control`
-(10px) for buttons and fields. **Never `rounded-none`** on a surface — except
-`Button variant="link"`, which is a run of text, and a child that deliberately
-squares off against its container (`Card variant="listRow"`).
+Small repeating tiles — the seven day cells in the portal's week strip, for
+instance — count as chips, not surfaces: seven swept corners in a row reads as
+noise rather than as the Arc.
+
+A card can still lead a screen without being filled with brand colour: the
+portal's progress card is an ordinary cream `Card` whose olive sits in the
+progress ring and a soft tint behind it. A fully saturated card pulls attention
+away from everything around it, which on a screen of five sections is a cost,
+not emphasis.
+
+Radius scale otherwise: `sm` 8 · `md` 12 · `lg` 16 · `xl` 24, plus
+`--radius-control` (10px) for buttons and fields. **Never `rounded-none`** on a
+surface — except `Button variant="link"`, which is a run of text, not a
+surface, and a child that deliberately squares off against its container
+(`Card variant="listRow"`).
 
 A panel nested inside a card takes a plain radius with no ring and no shadow of
 its own. It is part of that card, not a second one.
@@ -809,6 +828,15 @@ visible, lime node **above** the active icon rather than beside it: the bar is
 horizontal, and a node on the inline-end edge would read as belonging to the
 next item.
 
+It is **edge-to-edge**: flush left, right and bottom, `radius.xl` on the top two
+corners and square on the bottom two, so the bar ends where the screen does.
+This is the one surface that does not take the block-end/inline-end sweep —
+there is no corner there to open. The safe-area inset is padding *inside* the
+bar, never a margin around it, so the fill still reaches the display edge. The
+raised centre tab sits in a **notch cut out of the bar**, not on top of it: the
+cut is concentric with the disc and 6px larger in radius, leaving an even ring
+of page showing through. A ring of empty space, not a drawn frame.
+
 **Segmented** (`Segmented`) — two to four mutually exclusive options, all
 visible. The track is `rounded-lg` and the thumb `rounded-md`, so the thumb
 reads as sitting inside the track rather than as a second track.
@@ -944,10 +972,50 @@ fifth and sixth hue; prefer the `viz-*` scales, which are validated.
 ## Not built yet
 
 These are described by the brand but have no caller in the app, so they were
-not scaffolded speculatively: checkbox, radio, switch, slider, number stepper,
+not scaffolded speculatively: checkbox, radio, slider, number stepper,
 autocomplete, date picker with Hijri/Gregorian toggle, time picker, link tabs,
-breadcrumbs, the Q-arc progress/habit ring, streak-week and 4-week-adherence
-components, and toast.
+breadcrumbs, the Q-arc progress/habit ring, and toast.
 
 When a feature needs one, build it against the rules above rather than
 approximating it with a generic library component.
+
+## Controls built from §9.3, and how they submit
+
+`switch.tsx` and `segmented.tsx` were built against §9.3 when the client
+portal's account settings needed them — the switch at 52×30 with a 24px knob
+that slides on `inset-inline-start` and rotates −45° into the leaf angle, the
+segmented control as a 48px sunken shell holding 40px segments.
+
+Both are **submit buttons, not inputs**, and that is load-bearing rather than
+incidental. Every setting in the portal saves to the server, so each control is
+the submit button of its own single-field form: the switch carries the value it
+would move to (`name="enabled" value="off"`), a segment carries the value it
+selects. The whole settings screen therefore works with JavaScript off, and no
+control in it has an `onChange`. If you reach for one of these in a context that
+isn't a form, that's a signal the pattern doesn't fit — don't add a
+`checked`-plus-callback API alongside the form one.
+
+The switch's 30px track sits inside a 48px button so the target meets §9.3
+without the shape growing. Its accessible name comes from `aria-labelledby`
+pointing at the row's own label, because a `<label for>` cannot wrap a
+`role="switch"` button.
+
+**Segments use `aria-pressed`, not `role="radio"`.** A radio group promises
+arrow-key navigation that plain buttons don't provide; a labelled group of
+toggle buttons describes what's actually there and behaves correctly under Tab
+and Enter with no key handling invented.
+
+## Dark mode, and who it belongs to
+
+`.dark` is the app-wide class (nothing sets it yet). `[data-theme]` is the
+client portal's own switch, set on the portal wrapper in
+`src/features/portal/components/portal-theme.tsx` — so a client choosing dark
+never darkens the practitioner app, which shares a root layout with it.
+
+`system` is resolved by a `prefers-color-scheme` media query in `globals.css`,
+not by script: the theme has to be right on the first paint, and it must
+re-evaluate when a phone flips at sunset. The cost is that the dark token block
+is written twice, once for `[data-theme='dark']` and once inside the media
+query for `[data-theme='system']` — **add a new token to both or they drift.**
+The `dark:` variant is extended to fire in all three cases, so `dark:` utilities
+inside shared `ui/` components stay correct in the portal.

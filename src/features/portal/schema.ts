@@ -3,7 +3,14 @@ import { z } from 'zod';
 import { isoDateSchema, startMinuteSchema, uuidSchema } from '@/features/booking/schema';
 import { defaultLocale, locales } from '@/i18n/routing';
 
-import { REQUEST_KINDS } from './types';
+import { ADHERENCE_LEVELS } from './adherence';
+import {
+  CLIENT_REQUEST_TOPICS,
+  CONTACT_METHODS,
+  NOTIFICATION_KINDS,
+  REQUEST_KINDS,
+  THEME_PREFERENCES,
+} from './types';
 
 /**
  * Zod schemas for everything crossing the portal's server-action boundary.
@@ -56,8 +63,69 @@ export type AppointmentRequestInput = z.infer<typeof appointmentRequestSchema>;
 
 export const withdrawRequestSchema = z.object({ requestId: uuidSchema });
 
-/** The one setting a client owns: which language the clinic writes to them in. */
+/** Which language the clinic writes to the client in. */
 export const languagePreferenceSchema = z.object({ preferredLocale: z.enum(locales) });
+
+/**
+ * One notification switch being flipped.
+ *
+ * A key plus a boolean rather than the whole set: each switch is its own form,
+ * so a slow save on one cannot roll back a change the client made to another
+ * while it was in flight.
+ *
+ * The value arrives as the string a `<button name value>` submits, because that
+ * is what makes the switch work with no JavaScript at all.
+ */
+export const notificationSettingSchema = z.object({
+  kind: z.enum(NOTIFICATION_KINDS),
+  enabled: z.enum(['on', 'off']).transform((value) => value === 'on'),
+});
+
+export type NotificationSettingInput = z.infer<typeof notificationSettingSchema>;
+
+/**
+ * A day's adherence report — the value the progress tab's segmented control
+ * submits directly (§9.3: "a segment carries the value it selects"). The date
+ * is never part of this shape: the action always writes against the clinic's
+ * own `today`, never a date the caller names.
+ */
+export const planAdherenceSchema = z.object({ level: z.enum(ADHERENCE_LEVELS) });
+
+export const themePreferenceSchema = z.object({ theme: z.enum(THEME_PREFERENCES) });
+
+export const contactMethodSchema = z.object({ preferredContact: z.enum(CONTACT_METHODS) });
+
+/**
+ * A request to have something in the record corrected.
+ *
+ * The topic is a hidden field the screen supplies, so the client is never asked
+ * to classify their own problem before they can describe it. The message is
+ * required and bounded: an inbox item that does not say what is wrong is one
+ * nobody can act on, and the database restates the same rule as a check
+ * constraint.
+ */
+export const dataUpdateRequestSchema = z.object({
+  topic: z.enum(CLIENT_REQUEST_TOPICS),
+  message: z.string().trim().min(1).max(1000),
+});
+
+export type DataUpdateRequestInput = z.infer<typeof dataUpdateRequestSchema>;
+
+/**
+ * A request to close the account. The reason is optional — someone asking to
+ * leave does not owe an explanation before the ask is accepted.
+ */
+export const accountDeletionRequestSchema = z.object({
+  message: z.preprocess(blankToUndefined, z.string().trim().max(1000).optional()),
+  /**
+   * The confirmation step, carried as data rather than as trust in the UI. The
+   * screen asks twice; this is what proves the second answer reached the server,
+   * so a stray POST cannot file a deletion on a client's behalf.
+   */
+  confirm: z.literal('confirmed'),
+});
+
+export type AccountDeletionRequestInput = z.infer<typeof accountDeletionRequestSchema>;
 
 /** `?date=` on the request page. Falls back to today, which a schema has no clock to know. */
 export const requestSearchSchema = z.object({
