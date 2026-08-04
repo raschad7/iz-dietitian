@@ -33,8 +33,6 @@ CREATE TABLE "client_settings" (
 ALTER TABLE "clients" ADD COLUMN "conditions" text;--> statement-breakpoint
 ALTER TABLE "clients" ADD COLUMN "medications" text;--> statement-breakpoint
 ALTER TABLE "clients" ADD COLUMN "care_note" text;--> statement-breakpoint
-ALTER TABLE "clinics" ADD COLUMN "phone" text;--> statement-breakpoint
-ALTER TABLE "clinics" ADD COLUMN "address" text;--> statement-breakpoint
 ALTER TABLE "client_nutrition_profiles" ADD COLUMN "share_weight_with_client" boolean DEFAULT false NOT NULL;--> statement-breakpoint
 ALTER TABLE "client_requests" ADD CONSTRAINT "client_requests_clinic_id_clinics_id_fk" FOREIGN KEY ("clinic_id") REFERENCES "public"."clinics"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "client_requests" ADD CONSTRAINT "client_requests_client_id_clients_id_fk" FOREIGN KEY ("client_id") REFERENCES "public"."clients"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint

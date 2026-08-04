@@ -24,7 +24,9 @@ CREATE TABLE "clinic_working_hours" (
       ))
 );
 --> statement-breakpoint
+ALTER TABLE "clinics" ADD COLUMN "phone" text;--> statement-breakpoint
 ALTER TABLE "clinics" ADD COLUMN "contact_email" text;--> statement-breakpoint
+ALTER TABLE "clinics" ADD COLUMN "address" text;--> statement-breakpoint
 ALTER TABLE "clinics" ADD COLUMN "onboarding_completed_at" timestamp with time zone;--> statement-breakpoint
 ALTER TABLE "practitioners" ADD COLUMN "professional_title" text;--> statement-breakpoint
 ALTER TABLE "practitioners" ADD COLUMN "phone" text;--> statement-breakpoint
