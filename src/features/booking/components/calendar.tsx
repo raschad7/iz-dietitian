@@ -82,6 +82,45 @@ const DAY_MIN_WIDTH = 'min-w-28';
 const TIMELINE_PADDING_PX = 12;
 
 /**
+ * The platform's vertical scrollbar width, measured once from a **detached**
+ * probe rather than from the timeline itself.
+ *
+ * Detached is the whole point. The obvious measurement — `offsetWidth -
+ * clientWidth` on the timeline — is read from the very element the answer then
+ * resizes: the width is reserved as `paddingInlineEnd` on the day header, the
+ * header shares a `min-w-max` box with the timeline, so the padding grows the
+ * box and the timeline with it. Measuring a box and then changing that box from
+ * the same callback is a feedback edge, and `offsetWidth`/`clientWidth` are
+ * integer-rounded, so a fractional panel makes the reading alternate between
+ * two values that never compare equal. The guard in `measure` bails on an
+ * unchanged value and so never gets the chance to stop it — React does, with
+ * "maximum update depth exceeded".
+ *
+ * It is also simply more accurate. On this machine the timeline reports 16px
+ * for a scrollbar that is 15px, because the rounding lands on the far side of a
+ * fractional edge — a whole pixel of misalignment in the rules the reserved
+ * width exists to line up.
+ *
+ * A scrollbar's width is a property of the platform, not of any one element, so
+ * one probe answers for every scroller and the result is cached. Nothing in the
+ * layout can move it, which is exactly what makes it safe to write back.
+ */
+let platformScrollbarWidth: number | null = null;
+
+function verticalScrollbarWidth(): number {
+  if (platformScrollbarWidth !== null) return platformScrollbarWidth;
+
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:absolute;top:-9999px;width:100px;height:100px;overflow-y:scroll';
+
+  document.body.append(probe);
+  platformScrollbarWidth = probe.offsetWidth - probe.clientWidth;
+  probe.remove();
+
+  return platformScrollbarWidth;
+}
+
+/**
  * The full-bleed root: cancels `main`'s `p-3 md:p-5` at the inline edges and
  * the block-end, and grows the height by the same amount so the grid still
  * ends exactly on the shell's floor.
@@ -411,7 +450,9 @@ export function Calendar({
    *
    * Measured rather than assumed: it is 0 on an overlay-scrollbar platform
    * (macOS, most touch devices) and 15–17px on a classic one, and hardcoding
-   * either would misalign the other.
+   * either would misalign the other. Measured from a detached probe rather than
+   * from the timeline, though — see `verticalScrollbarWidth` for why reading it
+   * off the element it then resizes is what made this loop.
    */
   const [scrollbarWidth, setScrollbarWidth] = useState(0);
 
@@ -428,10 +469,15 @@ export function Calendar({
       const element = timelineRef.current;
       if (!element) return;
 
-      setScrollbarWidth((previous) => {
-        const next = element.offsetWidth - element.clientWidth;
-        return next === previous ? previous : next;
-      });
+      /*
+        Whether the timeline is currently scrolling is a question about
+        *heights* — and the answer this produces is written as inline padding,
+        which cannot change a height. That is what keeps this from feeding back
+        into itself; see `verticalScrollbarWidth`.
+      */
+      const gutter = element.scrollHeight > element.clientHeight ? verticalScrollbarWidth() : 0;
+
+      setScrollbarWidth((previous) => (previous === gutter ? previous : gutter));
 
       // In the grid's own coordinates: the timeline starts `TIMELINE_PADDING_PX`
       // into the scroller, so the deepest visible minute is that much shallower
