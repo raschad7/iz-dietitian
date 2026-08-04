@@ -114,6 +114,50 @@ export function blockBox(
 }
 
 /**
+ * How much of its own slot a card gives back, at the block-start and block-end
+ * edges each.
+ *
+ * Two back-to-back appointments occupy touching ranges — 10:00–10:30 and
+ * 10:30–11:00 share a boundary exactly — so cards drawn on the raw
+ * {@link blockBox} meet with no gap and a busy morning reads as one striped
+ * column rather than as a stack of separate bookings. This is the gap, and it
+ * is presentation only: the range the card *means* is still `blockBox`, which
+ * is what every gesture, drop target and validity check keeps using.
+ */
+export const BLOCK_GUTTER_PX = 4;
+
+/**
+ * The shortest a card may be drawn, whatever the gutter would leave it.
+ *
+ * A quarter-hour booking on a compressed grid is 20px tall, and taking 8px out
+ * of that leaves too little to hold a line of 12px type. Below this the gutter
+ * yields rather than the text.
+ */
+const MIN_BLOCK_HEIGHT_PX = 16;
+
+/**
+ * {@link blockBox} inset by {@link BLOCK_GUTTER_PX} — where the card is
+ * actually painted, as opposed to what it represents.
+ *
+ * Kept as a second function rather than folded into `blockBox` so the pure
+ * time-to-pixel mapping stays testable and stays the thing the gestures read:
+ * a card that is drawn 4px short must still be *dropped* on the slot boundary
+ * it is snapped to.
+ */
+export function blockCardBox(
+  appointment: { startMinute: number; durationMinutes: number },
+  openMinute: number,
+  pxPerSlot: number = PX_PER_SLOT,
+): BlockBox {
+  const box = blockBox(appointment, openMinute, pxPerSlot);
+
+  return {
+    top: box.top + BLOCK_GUTTER_PX,
+    height: Math.max(box.height - BLOCK_GUTTER_PX * 2, MIN_BLOCK_HEIGHT_PX),
+  };
+}
+
+/**
  * Clamps a candidate so a drag can never leave the clinic day.
  *
  * The validator would reject an out-of-hours range anyway; clamping means the

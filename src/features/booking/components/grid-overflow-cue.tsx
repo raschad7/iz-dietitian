@@ -18,8 +18,9 @@ import { cn } from '@/lib/utils';
  * no wheel and nothing to hover.
  *
  * Both appear together, and only when an appointment is genuinely hidden below
- * — see `useScrollOverflow`. A fade over empty afternoon rules would be the
- * same false promise the arrow would be.
+ * — off `datesBelowFold` in `calendar.tsx`, the same measurement that marks the
+ * individual columns, so the two cues cannot contradict each other. A fade over
+ * empty afternoon rules would be the same false promise the arrow would be.
  *
  * Sits outside the grid's horizontal scroller — see `calendar.tsx` — so it
  * stays pinned to the panel while the week's columns slide underneath it.

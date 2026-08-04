@@ -4,34 +4,28 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 /**
- * Shape: "the Arc". Three corners hold the 10px system radius; the
- * block-end/inline-end corner opens into a 24px sweep — the Q's tail. It grows
- * to 30px on hover so the button appears to lean into the pointer, and pulls
- * in to 18px on press while the whole control sinks 1px.
+ * Shape: all four corners hold the 10px system radius. The control still sinks
+ * 1px on press, but its geometry does not change under the pointer — a corner
+ * that moves while you are reading the label is motion with nothing to say.
  *
- * `rounded-ee-*` is a logical property, so the tail mirrors to bottom-left in
- * Arabic with no direction prop and no override.
- *
- * Icon buttons invert the idea: a circle with one swept corner, sized so round
- * and rectangular buttons read as the same family.
+ * Icon buttons are a plain circle, so round and rectangular buttons read as the
+ * same family.
  */
 const buttonVariants = cva(
   [
     // `max-w-80` + `whitespace-nowrap`: a label never wraps, so a button that
     // would need two lines is a label that needs rewriting.
     "group/button inline-flex max-w-80 shrink-0 items-center justify-center whitespace-nowrap select-none",
-    "rounded-[10px] rounded-ee-[24px] border bg-clip-padding text-body-md font-medium",
+    "rounded-[10px] border bg-clip-padding text-body-md font-medium",
     "transition-all duration-200 ease-[cubic-bezier(.2,.6,.2,1)] outline-none",
-    "hover:rounded-ee-[30px]",
     // `not-aria-[haspopup]` exempts menu triggers: a control that opens a
     // surface should not appear to sink under it.
-    "active:not-aria-[haspopup]:translate-y-px active:not-aria-[haspopup]:rounded-ee-[18px]",
+    "active:not-aria-[haspopup]:translate-y-px",
     // Lime ring + olive-950 halo. Fields deliberately use a different focus
     // treatment — see the note in globals.css.
     "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-focus-halo",
-    // Disabled keeps the resting tail: a control that still animates reads as
-    // available. n-500 on the sunken fill is 4.0:1.
-    "disabled:pointer-events-none disabled:border-transparent disabled:bg-muted disabled:text-[var(--n-500)] disabled:shadow-none disabled:hover:rounded-ee-[24px]",
+    // n-500 on the sunken fill is 4.0:1.
+    "disabled:pointer-events-none disabled:border-transparent disabled:bg-muted disabled:text-[var(--n-500)] disabled:shadow-none",
     "aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20",
     "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   ],
@@ -65,6 +59,23 @@ const buttonVariants = cva(
           "border-destructive bg-card text-destructive hover:bg-destructive-subtle focus-visible:ring-destructive",
 
         /**
+         * Destructive, tertiary — `ghost`'s shape with `destructive`'s colour.
+         * No box until you touch it, then the clay-100 fill; the label and glyph
+         * are clay the whole time, so the control never hides what it does.
+         *
+         * For a destructive action sitting *among* other controls rather than
+         * closing a decision: the rail's sign-out is stacked under a language
+         * switcher, and an outlined box there read as one more destination while
+         * everything around it was boxless. Where a destructive action is the
+         * decision — a delete inside a confirm dialog — use `destructive`, which
+         * carries the edge that says so.
+         *
+         * 6.84:1 at rest, 5.81:1 on the hover fill, same as `destructive`.
+         */
+        destructiveGhost:
+          "border-transparent text-destructive hover:bg-destructive-subtle hover:text-destructive focus-visible:ring-destructive",
+
+        /**
          * Secondary-subtle. Not one of the six named variants, but the brand
          * tint is what several dense surfaces already reach for, and having it
          * here keeps them off ad-hoc olive-50 classes.
@@ -74,9 +85,9 @@ const buttonVariants = cva(
 
         /**
          * Inline text link. The one place `rounded-none` is legal, because a
-         * link is a run of text, not a surface — it has no corners to sweep.
+         * link is a run of text, not a surface — it has no corners at all.
          */
-        link: "rounded-none border-transparent text-secondary-foreground underline-offset-4 hover:rounded-none hover:underline",
+        link: "rounded-none border-transparent text-secondary-foreground underline-offset-4 hover:underline",
       },
       /*
        * Two heights, and only two.
@@ -93,14 +104,8 @@ const buttonVariants = cva(
       size: {
         default: "h-12 gap-2 px-5",
         sm: "h-10 gap-2 px-5",
-        /*
-         * A circle with one corner opened to ~29% of the button, the same
-         * proportion the 24px tail has on a rectangular button. That ratio is
-         * what makes both shapes read as one family.
-         */
-        icon: "size-12 rounded-full rounded-ee-[14px] hover:rounded-ee-[17px] active:not-aria-[haspopup]:rounded-ee-[11px] disabled:hover:rounded-ee-[14px] [&_svg:not([class*='size-'])]:size-5",
-        "icon-sm":
-          "size-10 rounded-full rounded-ee-[12px] hover:rounded-ee-[15px] active:not-aria-[haspopup]:rounded-ee-[9px] disabled:hover:rounded-ee-[12px]",
+        icon: "size-12 rounded-full [&_svg:not([class*='size-'])]:size-5",
+        "icon-sm": "size-10 rounded-full",
       },
     },
     compoundVariants: [
@@ -118,12 +123,14 @@ const buttonVariants = cva(
        * Tertiary controls carry 12px of padding rather than 20px. A ghost
        * button has no box at rest, so the wider padding reads as a gap someone
        * forgot rather than as part of the control.
+       *
+       * `destructiveGhost` is in here for the same reason it is ghost-shaped at
+       * all: it has no box either, and 20px would leave it sitting differently
+       * from the tertiary controls it appears beside.
        */
-      ...(["default", "sm"] as const).map((size) => ({
-        variant: "ghost" as const,
-        size,
-        class: "px-3",
-      })),
+      ...(["ghost", "destructiveGhost"] as const).flatMap((variant) =>
+        (["default", "sm"] as const).map((size) => ({ variant, size, class: "px-3" })),
+      ),
     ],
     defaultVariants: {
       variant: "default",

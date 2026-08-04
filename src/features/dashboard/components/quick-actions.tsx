@@ -19,11 +19,15 @@ import { type Locale } from '@/i18n/routing';
  * sitting above two neutral charts made the top of the page one block of green
  * with no internal hierarchy; resting white and colouring under the pointer
  * spends the brand on the one card you are actually reaching for. The `Card`
- * `interactive` prop supplies the rest — the edge thickens rather than the
- * card lifting.
+ * `interactive` prop supplies the edge — an olive ring rather than a lift —
+ * and the disc below supplies the fill. These are the only cards on the page
+ * that get the ring, because they are the only ones you click.
  *
- * Each carries a subline, because the titles alone sound like they might open
- * the same screen otherwise.
+ * **No visible heading.** Three tiles that each name their own destination do
+ * not need a label saying they are shortcuts, and the row it cost was the one
+ * thing between the reader and the first thing they do. The section keeps the
+ * name as an `aria-label`, and the tiles take the height back — they fill the
+ * band the heading used to share with them (`xl:min-h-24`).
  *
  * — "Add a client" has no route of its own either: the client card is the only
  *   way into a record, so this opens it over the dashboard rather than sending
@@ -48,33 +52,25 @@ export async function QuickActions({ locale }: { locale: Locale }) {
   const t = await getTranslations('dashboard.quickActions');
 
   return (
-    <section aria-labelledby="quick-actions-title" className="shrink-0">
-      <h3 id="quick-actions-title" className="mb-2 font-heading text-heading-sm font-semibold">
-        {t('title')}
-      </h3>
-
-      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+    <section aria-label={t('title')} className="shrink-0">
+      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:min-h-24 xl:grid-cols-3">
         {ACTIONS.map((action) => {
           const tile = (
-            <Card size="sm" interactive className="h-full">
+            <Card size="sm" interactive className="h-full justify-center">
               <CardContent className="flex items-center gap-3">
-                {/* The disc is where the green arrives — one element changing
-                    colour, not the whole card repainting under the pointer. */}
+                {/* The disc is the *only* thing that answers the pointer: it
+                    fills olive and the glyph inside it goes white, while the
+                    card's own geometry, fill and edge all hold still. Same
+                    rule on every header disc on this page. */}
                 <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors group-hover/card:bg-primary group-hover/card:text-primary-foreground">
                   <Icon name={action.icon} className="size-5" />
                 </span>
 
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-heading-sm font-semibold">{t(`${action.key}.title`)}</span>
-                  <span className="block truncate text-caption text-muted-foreground">
-                    {t(`${action.key}.hint`)}
-                  </span>
                 </span>
 
-                <Icon
-                  name="chevronEnd"
-                  className="size-4 shrink-0 text-muted-foreground transition-colors group-hover/card:text-primary"
-                />
+                <Icon name="chevronEnd" className="size-4 shrink-0 text-muted-foreground" />
               </CardContent>
             </Card>
           );

@@ -1,5 +1,5 @@
 import { addDays, eachDay, monthGridDays, startOfWeek, toIsoDate } from './date';
-import { getCalendarData } from './queries';
+import { getCalendarData, getClientCalendarData } from './queries';
 import { ensurePractitioner } from './mutations';
 import { calendarSearchSchema, type CalendarView } from './schema';
 import { type CalendarData } from './types';
@@ -56,6 +56,30 @@ export async function loadCalendarPage(
 
   const { from, to } = rangeFor(view, anchorDate);
   const data = await getCalendarData(context.clinicId, from, to);
+
+  return { ...data, anchorDate };
+}
+
+/**
+ * The same resolution as {@link loadCalendarPage}, for one client's Visit
+ * History tab. A separate function rather than an optional parameter on the
+ * one above: that one is read by the clinic-wide calendar on every request,
+ * and threading an unused `clientId` through it for the sake of one caller
+ * would be a parameter nobody at that call site needs to think about.
+ */
+export async function loadClientCalendarPage(
+  context: { clinicId: string; ownerName: string },
+  clientId: string,
+  view: CalendarView,
+  searchParams: Record<string, string | string[] | undefined>,
+): Promise<CalendarPageData> {
+  const parsed = calendarSearchSchema.parse(searchParams);
+  const anchorDate = parsed.date ?? toIsoDate(new Date());
+
+  await ensurePractitioner(context);
+
+  const { from, to } = rangeFor(view, anchorDate);
+  const data = await getClientCalendarData(context.clinicId, clientId, from, to);
 
   return { ...data, anchorDate };
 }

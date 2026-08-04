@@ -12,6 +12,7 @@ import { formatDuration, formatMinute, formatMinuteRange } from '../format';
 import {
   SUBDIVISION_MIN_PX_PER_SLOT,
   blockBox,
+  blockCardBox,
   floorToSlot,
   gridHeight,
   minuteToY,
@@ -64,6 +65,13 @@ export type DayColumnProps = {
    * make the column claim something untrue about the clinic's hours.
    */
   isPast: boolean;
+  /**
+   * This day has an appointment starting below the visible part of the
+   * timeline. Drawn as a pulsing accent rule at the foot of the column — see
+   * the marker at the end of this file, and `datesBelowFold` in `./calendar`,
+   * which is what works it out.
+   */
+  hasHiddenBelow: boolean;
   onCreateGesture: (date: string, event: ReactPointerEvent<HTMLDivElement>) => void;
   onSelect: (id: string) => void;
   onOpen: (appointment: CalendarAppointment, pointer: { x: number; y: number }) => void;
@@ -88,6 +96,7 @@ export function DayColumn({
   pending,
   isClosed,
   isPast,
+  hasHiddenBelow,
   onCreateGesture,
   onSelect,
   onOpen,
@@ -202,11 +211,21 @@ export function DayColumn({
         );
       })}
 
-      {/* Hover affordance: the time a click here would book. */}
+      {/*
+        Hover affordance: the slot a click here would book, filled olive-50 and
+        labelled with its time.
+
+        The fill is the point — the label alone named a time without showing
+        how much of the day it meant, and a 15-minute slot is small enough that
+        "which quarter am I on?" was a question the ⊕ could not answer. Tinting
+        the whole slot is the same "hover fills" language the fields speak, and
+        it previews the shortest bookable block at its real size. olive-700 on
+        it is 7.37:1, so the time stays readable inside the tint.
+      */}
       {hoverMinute !== null && !unbookable && (
         <div
           aria-hidden
-          className="pointer-events-none absolute start-1 z-10 flex items-center gap-1 text-xs font-medium text-muted-foreground"
+          className="pointer-events-none absolute start-0 end-0 z-10 flex items-center gap-1 bg-secondary px-1 text-xs font-medium text-secondary-foreground"
           style={{ top: minuteToY(hoverMinute, hours.openMinute, pxPerSlot), height: pxPerSlot }}
         >
           <span aria-hidden>⊕</span>
@@ -217,7 +236,10 @@ export function DayColumn({
       )}
 
       {appointments.map((appointment) => {
-        const box = blockBox(appointment, hours.openMinute, pxPerSlot);
+        // The *card's* box, not the appointment's: inset by the gutter, so two
+        // back-to-back bookings do not meet edge to edge. What the block means
+        // is still `blockBox`, which is what the gestures read.
+        const box = blockCardBox(appointment, hours.openMinute, pxPerSlot);
 
         return (
           <AppointmentBlock
@@ -256,13 +278,12 @@ export function DayColumn({
           <div
             aria-hidden
             className={cn(
-              'pointer-events-none absolute start-0.5 end-0.5 z-20 rounded-md border-2 border-dashed',
+              // Same gutter as `AppointmentBlock`, so the preview is drawn
+              // exactly where the card it becomes will sit.
+              'pointer-events-none absolute start-2.5 end-2.5 z-20 rounded-md border-2 border-dashed',
               pending.valid ? 'border-primary bg-primary/15' : 'border-destructive bg-destructive/15',
             )}
-            style={{
-              top: minuteToY(pending.startMinute, hours.openMinute, pxPerSlot),
-              height: Math.max(blockBox(pending, hours.openMinute, pxPerSlot).height, 2),
-            }}
+            style={blockCardBox(pending, hours.openMinute, pxPerSlot)}
           />
 
           {/*
@@ -316,6 +337,32 @@ export function DayColumn({
           style={{ top: minuteToY(nowMinute, hours.openMinute, pxPerSlot) }}
         >
           <span className="absolute -top-1 start-0 size-2 rounded-full bg-viz-band-edge" />
+        </div>
+      )}
+
+      {/*
+        There is more of this day below the fold.
+
+        A 4px rule pulsing at the foot of the column, and nothing else — a
+        badge or a count would be a second thing to read at the moment someone
+        is looking for a first. It spans the day it belongs to, so in the week
+        view six quiet columns and one marked one say *which* day is hiding
+        something; in the day view there is one column and it spans the panel.
+
+        `sticky bottom-0` inside a full-height wrapper is what pins it to the
+        bottom of the *visible* area rather than to the end of the day: the
+        wrapper gives the rule a resting place at y = grid height, and sticky
+        pulls it up to the scroller's edge for as long as that is above it. No
+        scroll offset is written into the layout, so scrolling costs no paint
+        beyond the browser's own.
+
+        Lime-600 (`viz-band-edge`), the same stop as the now-line: lime-400 is
+        1.37:1 on white and cannot hold a 4px rule, and the palette defines the
+        darker step for exactly this — marking a boundary.
+      */}
+      {hasHiddenBelow && (
+        <div aria-hidden className="pointer-events-none absolute inset-0 z-30 flex flex-col justify-end">
+          <div className="sticky bottom-0 mx-1 h-1 animate-pulse rounded-full bg-viz-band-edge" />
         </div>
       )}
     </div>

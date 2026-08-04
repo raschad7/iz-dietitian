@@ -30,12 +30,17 @@ type PlanSummary = {
  */
 export function ClientPlansCard({ clientId, plans }: { clientId: string; plans: PlanSummary[] }) {
   const t = useTranslations('weeklyPlans');
-  const format = useFormatter();
+
+  // Newest week first is already the read's order (see `listPlans`), so the
+  // head of the list *is* the current plan; everything after it is history.
+  const [current, ...history] = plans;
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">{t('title')}</CardTitle>
+        <CardTitle icon="mealPlans" className="text-base">
+          {t('title')}
+        </CardTitle>
 
         <CardAction>
           <Link
@@ -47,41 +52,59 @@ export function ClientPlansCard({ clientId, plans }: { clientId: string; plans: 
         </CardAction>
       </CardHeader>
 
-      <CardContent>
-        {plans.length === 0 ? (
+      <CardContent className="space-y-4">
+        {!current ? (
           <p className="text-sm text-muted-foreground">{t('noPlanYet')}</p>
         ) : (
-          <ul className="divide-y divide-border">
-            {plans.map((plan) => (
-              <li
-                key={plan.id}
-                className="flex flex-wrap items-baseline justify-between gap-2 py-2 first:pt-0 last:pb-0"
-              >
-                {/*
-                 * `?planId=` rather than a route of its own: the board is always
-                 * mounted against a client, and picking a week is a selection
-                 * within it — the same link its own history dropdown builds.
-                 */}
-                <Link
-                  href={{ pathname: `/app/weekly-plans/${clientId}`, query: { planId: plan.id } }}
-                  className="text-sm font-medium underline-offset-4 hover:underline"
-                >
-                  {t('weekOf', { date: format.dateTime(new Date(plan.weekStartDate), 'date') })}
-                </Link>
+          <>
+            <div className="space-y-1.5">
+              <p className="text-caption text-muted-foreground">{t('current')}</p>
+              <PlanRow clientId={clientId} plan={current} />
+            </div>
 
-                <span className="flex items-baseline gap-2 text-xs text-muted-foreground">
-                  {isMember(PLAN_STATUSES, plan.status) && (
-                    <Badge variant={plan.status === 'published' ? 'default' : 'muted'}>
-                      {t(`status.${plan.status}`)}
-                    </Badge>
-                  )}
-                  {format.dateTime(plan.updatedAt, 'date')}
-                </span>
-              </li>
-            ))}
-          </ul>
+            {history.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-caption text-muted-foreground">{t('history')}</p>
+                <ul className="divide-y divide-border">
+                  {history.map((plan) => (
+                    <li key={plan.id} className="py-2 first:pt-0 last:pb-0">
+                      <PlanRow clientId={clientId} plan={plan} />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </>
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function PlanRow({ clientId, plan }: { clientId: string; plan: PlanSummary }) {
+  const t = useTranslations('weeklyPlans');
+  const format = useFormatter();
+
+  return (
+    <div className="flex flex-wrap items-baseline justify-between gap-2">
+      {/*
+       * `?planId=` rather than a route of its own: the board is always
+       * mounted against a client, and picking a week is a selection
+       * within it — the same link its own history dropdown builds.
+       */}
+      <Link
+        href={{ pathname: `/app/weekly-plans/${clientId}`, query: { planId: plan.id } }}
+        className="text-sm font-medium underline-offset-4 hover:underline"
+      >
+        {t('weekOf', { date: format.dateTime(new Date(plan.weekStartDate), 'date') })}
+      </Link>
+
+      <span className="flex items-baseline gap-2 text-xs text-muted-foreground">
+        {isMember(PLAN_STATUSES, plan.status) && (
+          <Badge variant={plan.status === 'published' ? 'default' : 'muted'}>{t(`status.${plan.status}`)}</Badge>
+        )}
+        {format.dateTime(plan.updatedAt, 'date')}
+      </span>
+    </div>
   );
 }

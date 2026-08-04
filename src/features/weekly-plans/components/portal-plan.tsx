@@ -233,8 +233,8 @@ function MealCard({ meal }: { meal: BoardMeal }) {
         </summary>
 
         {/*
-          Plain `rounded-lg`, no sweep: the shell around it already carries the one
-          tail this surface is allowed (design-system.md, "one tail per surface").
+          Plain `rounded-lg` on a bare fill: this is a panel inside the shell
+          around it, not a card in its own right.
         */}
         <div className="mt-1.5 rounded-lg bg-card p-4">
           {dish ? (

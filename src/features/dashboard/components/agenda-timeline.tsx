@@ -1,12 +1,11 @@
 import { getTranslations } from 'next-intl/server';
 
-import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
-import { addDays, startOfWeek } from '@/features/booking/date';
-import { formatDayNumber, formatDuration, formatMinuteRange, formatWeekday } from '@/features/booking/format';
+import { addDays, startOfWeek, weekdayOf } from '@/features/booking/date';
+import { formatDayNumber, formatMinuteRange, formatWeekday } from '@/features/booking/format';
 import { type CalendarAppointment } from '@/features/booking/types';
 import { Link } from '@/i18n/navigation';
 import { type Locale } from '@/i18n/routing';
@@ -18,6 +17,11 @@ type AgendaTimelineProps = {
   today: string;
   /** Minutes from midnight at render time — what splits the day into done / live / still to come. */
   nowMinute: number;
+  /**
+   * Clinic-local weekdays the clinic opens on, `0` = Sunday. Only these appear
+   * in the week strip.
+   */
+  workingDays: readonly number[];
 };
 
 /**
@@ -25,15 +29,18 @@ type AgendaTimelineProps = {
  *
  * A thin read-only slice of the schedule, not a second calendar — every row
  * links to the real day view. The column is portrait because a day is read
- * top to bottom, and because it lets a whole day sit beside the rail without
- * the eye leaving the shell's inline-start edge.
+ * top to bottom, and because it lets a whole day sit in a narrow track at the
+ * far edge of the page (see `src/app/[locale]/app/page.tsx`) — furthest from
+ * the sidebar, since this is the one panel on the dashboard you look at rather
+ * than act through.
  *
  * Exactly one appointment is emphasised: the one happening now, or the next one
  * if nothing is live. Everything before it drops back, so "where am I in the
  * day" is answered by contrast rather than by reading times.
  *
  * The rows are plain surfaces rather than nested `Card`s on purpose: this panel
- * already carries the Arc, and **one tail per surface** (docs/design-system.md).
+ * is already the card, and a stack of cards inside it would double every ring
+ * and shadow down the list.
  */
 
 type Phase = 'past' | 'current' | 'upcoming';
@@ -56,21 +63,39 @@ function findFocusIndex(appointments: CalendarAppointment[], nowMinute: number):
   return next === -1 ? null : next;
 }
 
-export async function AgendaTimeline({ appointments, locale, today, nowMinute }: AgendaTimelineProps) {
+export async function AgendaTimeline({
+  appointments,
+  locale,
+  today,
+  nowMinute,
+  workingDays,
+}: AgendaTimelineProps) {
   const t = await getTranslations('dashboard.agenda');
-  const td = await getTranslations('booking.duration');
 
   const ordered = [...appointments].sort((a, b) => a.startMinute - b.startMinute);
   const focusIndex = findFocusIndex(ordered, nowMinute);
   const weekStart = startOfWeek(today);
 
-  const dayHref = (date: string) => ({ pathname: '/app/calendar/day' as const, query: { date } });
+  /*
+    The strip is the clinic's week, not the calendar's. A day the clinic is
+    closed cannot hold an appointment, so a chip for it is a link to an empty
+    day view — and seven chips of which two are dead read as a date picker
+    rather than as "these are your days".
 
-  const duration = (minutes: number) =>
-    formatDuration(minutes, {
-      hour: (count) => td('hours', { count }),
-      minute: (count) => td('minutes', { count }),
-    });
+    Filtered rather than dimmed: a disabled-looking chip still asks to be
+    understood before it can be skipped, and the days a clinic works are stable
+    enough that their absence never needs explaining.
+
+    Today drops out with the rest when the clinic is closed today. The strip
+    then has no current-day marker, which is the honest reading — the card
+    above it is still today's agenda, and it is empty.
+  */
+  const week = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index)).filter((date) => {
+    const weekday = weekdayOf(date);
+    return weekday !== null && workingDays.includes(weekday);
+  });
+
+  const dayHref = (date: string) => ({ pathname: '/app/calendar/day' as const, query: { date } });
 
   return (
     /*
@@ -82,23 +107,19 @@ export async function AgendaTimeline({ appointments, locale, today, nowMinute }:
     <Card className="xl:h-full xl:min-h-0">
       <CardContent className="flex flex-col gap-4 xl:min-h-0 xl:flex-1">
         <header className="flex shrink-0 flex-col gap-3">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-caption text-muted-foreground">{t('dateLabel')}</p>
-              <h3 className="font-heading text-heading-lg font-semibold">{t('title')}</h3>
-            </div>
+          <div className="flex items-baseline justify-between gap-3">
+            <h3 className="font-heading text-heading-lg font-semibold">{t('title')}</h3>
             {/*
-              Neutral whatever the count. `onTrack` is a status, and a day with
-              appointments in it is not an achievement — it is a fact. It also
-              put a second olive chip a few pixels from the one element on this
-              page that is meant to be the emphasis.
+              Plain muted text, not a chip. A day with appointments in it is not
+              a status — it is a fact, and a filled badge gave that fact more
+              weight than the one row on this card that is meant to carry any.
             */}
-            <Badge variant="muted">{t('count', { count: ordered.length })}</Badge>
+            <span className="text-caption text-muted-foreground">{t('count', { count: ordered.length })}</span>
           </div>
 
-          {/* The week strip: the agenda doubles as a jump to any other day of the week. */}
+          {/* The week strip: the agenda doubles as a jump to any other working day. */}
           <ul className="flex items-stretch justify-between gap-1">
-            {Array.from({ length: 7 }, (_, index) => addDays(weekStart, index)).map((date) => {
+            {week.map((date) => {
               const isToday = date === today;
 
               return (
@@ -133,9 +154,9 @@ export async function AgendaTimeline({ appointments, locale, today, nowMinute }:
           </div>
         ) : (
           /*
-            `pe-1` leaves the scrollbar somewhere to sit that isn't on top of a
-            card's tail; `overscroll-contain` stops a flick at the end of the
-            day from scrolling the shell behind it.
+            `pe-1` leaves the scrollbar somewhere to sit that isn't on top of
+            the card's edge; `overscroll-contain` stops a flick at the end of
+            the day from scrolling the shell behind it.
           */
           <ol className="flex flex-col overflow-y-auto overscroll-contain pe-1 xl:min-h-0 xl:flex-1">
             {ordered.map((appointment, index) => {
@@ -208,18 +229,23 @@ export async function AgendaTimeline({ appointments, locale, today, nowMinute }:
                         )}
                       </span>
 
-                      {isFocused ? (
-                        /*
-                          The chip inverts with the card it sits on. Lime is
-                          1.17:1 against the resting olive-100 fill — it would
-                          be invisible at exactly the moment it has a job to
-                          do — so it rests as a solid primary chip (4.66:1 on
-                          the fill) and becomes the lime one on hover, where
-                          the card has gone dark and lime is 3.99:1.
+                      {/*
+                        The chip inverts with the card it sits on. Lime is
+                        1.17:1 against the resting olive-100 fill — it would
+                        be invisible at exactly the moment it has a job to
+                        do — so it rests as a solid primary chip (4.66:1 on
+                        the fill) and becomes the lime one on hover, where
+                        the card has gone dark and lime is 3.99:1.
 
-                          Still the page's one lime element. Do not add a
-                          second accent anywhere else on it.
-                        */
+                        Still the page's one lime element. Do not add a
+                        second accent anywhere else on it.
+
+                        Nothing sits here on the other rows: the length of a
+                        session is already in the time range beside it, and
+                        "45 min" on every row was a column of noise that made
+                        the one row carrying the chip harder to find.
+                      */}
+                      {isFocused ? (
                         <Badge
                           variant="accent"
                           className={cn(
@@ -229,17 +255,16 @@ export async function AgendaTimeline({ appointments, locale, today, nowMinute }:
                         >
                           {isLive ? t('live') : t('next')}
                         </Badge>
-                      ) : (
-                        <span className="text-label text-muted-foreground">
-                          {duration(appointment.durationMinutes)}
-                        </span>
-                      )}
+                      ) : null}
                     </div>
 
+                    {/*
+                      No avatar. The rail to the inline-start already gives
+                      every row a mark at its start, and a coloured initial an
+                      inch away from it made two badges per row competing to be
+                      the thing the eye lands on.
+                    */}
                     <div className="mt-2 flex items-center gap-2">
-                      {/* The client's own colour — row data, not a design token; see design-system.md. */}
-                      <Avatar size="sm" name={appointment.clientName} color={appointment.clientColor} />
-
                       <span className="min-w-0 flex-1">
                         <span
                           className={cn('block truncate font-medium', isFocused ? 'text-heading-sm' : 'text-body-md')}
@@ -263,13 +288,6 @@ export async function AgendaTimeline({ appointments, locale, today, nowMinute }:
                         ) : null}
                       </span>
                     </div>
-
-                    {isFocused ? (
-                      <p className="mt-2 flex items-center gap-1.5 text-caption text-muted-foreground group-hover/session:text-primary-foreground/85">
-                        <Icon name="clock" className="size-3.5" />
-                        {duration(appointment.durationMinutes)}
-                      </p>
-                    ) : null}
                   </Link>
                 </li>
               );

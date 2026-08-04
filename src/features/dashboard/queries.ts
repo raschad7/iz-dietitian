@@ -1,4 +1,4 @@
-import { and, count, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 
 import { db } from '@/db';
 import { appointments, clients } from '@/db/schema';
@@ -21,8 +21,10 @@ import { appointments, clients } from '@/db/schema';
 export type DashboardClient = {
   id: string;
   fullName: string;
-  /** The client's own stored hex, for `Avatar` — record data, not a token. */
-  color: string;
+  /** Shown beside the name, so the row can be dialled without opening the record. */
+  phone: string | null;
+  /** `YYYY-MM-DD`. The card renders an age from it; see `calculateAge`. */
+  dateOfBirth: string | null;
   status: string;
   createdAt: Date;
   /**
@@ -69,7 +71,8 @@ export async function listRecentClients(
     .select({
       id: clients.id,
       fullName: clients.fullName,
-      color: clients.color,
+      phone: clients.phone,
+      dateOfBirth: clients.dateOfBirth,
       status: clients.status,
       createdAt: clients.createdAt,
       nextVisitDate,
@@ -84,16 +87,6 @@ export async function listRecentClients(
     ...client,
     nextVisit: date !== null && startMinute !== null ? { date, startMinute } : null,
   }));
-}
-
-/** How many active clients the register holds — the card's subtitle. */
-export async function countActiveClients(clinicId: string): Promise<number> {
-  const [row] = await db
-    .select({ value: count() })
-    .from(clients)
-    .where(and(eq(clients.clinicId, clinicId), eq(clients.status, 'active')));
-
-  return row?.value ?? 0;
 }
 
 export type ClientDemographic = { dateOfBirth: string | null; sex: string | null };
