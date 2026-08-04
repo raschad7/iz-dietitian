@@ -465,7 +465,7 @@ export function Calendar({
       return;
     }
 
-    function measure(): void {
+    function read(): void {
       const element = timelineRef.current;
       if (!element) return;
 
@@ -498,16 +498,70 @@ export function Calendar({
       );
     }
 
-    measure();
-    node.addEventListener('scroll', measure, { passive: true });
+    let frame = 0;
 
-    // The panel resizes with the window and with the app shell; both change
-    // how much of the day fits without changing what is booked on it.
-    const observer = new ResizeObserver(measure);
+    /**
+     * One read per frame, and never inside the callback that asked for it.
+     *
+     * This is what stops the effect running away, and it is structural rather
+     * than a guess at any particular geometry. `read` writes `scrollbarWidth`,
+     * which is reserved as padding on the day header — a layout change. A
+     * `ResizeObserver` callback runs *inside* the browser's resize-observation
+     * loop, after layout and before paint, so setting React state there renders
+     * synchronously, changes layout again, and is re-observed within the same
+     * delivery. React counts those as nested updates and gives up with "maximum
+     * update depth exceeded" — and it counts every `setState` call, including
+     * the ones whose updater returns the previous value, so the equality guards
+     * below never get the chance to stop it.
+     *
+     * Deferring to the next frame takes the write out of that loop: each
+     * measurement becomes an ordinary independent update, and a burst of scroll
+     * and resize notifications collapses into a single read.
+     */
+    function schedule(): void {
+      if (frame) return;
+
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        read();
+      });
+    }
+
+    // The first read stays synchronous: it runs after commit like any effect,
+    // nothing has been written yet for it to feed back into, and waiting a
+    // frame would show the grid with the marker missing.
+    read();
+
+    node.addEventListener('scroll', schedule, { passive: true });
+
+    /*
+      The panel resizes with the window and with the app shell; both change how
+      much of the day fits without changing what is booked on it.
+
+      Height only. Nothing this effect produces depends on the width — `fold` is
+      built from `scrollTop` and `clientHeight`, and whether a vertical scrollbar
+      is needed is the content's height against the panel's, since block
+      positions come from minutes and a wider column is never a shorter one.
+      Meanwhile the one thing this effect *writes* is inline padding, which
+      changes width and not height. Ignoring width notifications therefore costs
+      no correctness and removes the only edge by which the output can provoke
+      another read.
+    */
+    let lastHeight = -1;
+
+    const observer = new ResizeObserver((entries) => {
+      const height = entries[0]?.contentRect.height ?? 0;
+      if (height === lastHeight) return;
+
+      lastHeight = height;
+      schedule();
+    });
+
     observer.observe(node);
 
     return () => {
-      node.removeEventListener('scroll', measure);
+      if (frame) cancelAnimationFrame(frame);
+      node.removeEventListener('scroll', schedule);
       observer.disconnect();
     };
   }, [days, hours.openMinute, previewedAppointments, pxPerSlot, view]);
