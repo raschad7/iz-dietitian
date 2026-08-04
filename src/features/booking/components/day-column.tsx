@@ -359,10 +359,17 @@ export function DayColumn({
         Lime-600 (`viz-band-edge`), the same stop as the now-line: lime-400 is
         1.37:1 on white and cannot hold a 4px rule, and the palette defines the
         darker step for exactly this — marking a boundary.
+
+        It does not pulse. A marker that animates for as long as the state
+        holds is animating for most of a working afternoon, which is both
+        tiring at the edge of vision and a promise of change from something
+        that is not changing. `animate-pulse` is also the app's skeleton
+        vocabulary — it means "waiting for this", and a booking that exists and
+        is merely out of sight is not waiting for anything.
       */}
       {hasHiddenBelow && (
         <div aria-hidden className="pointer-events-none absolute inset-0 z-30 flex flex-col justify-end">
-          <div className="sticky bottom-0 mx-1 h-1 animate-pulse rounded-full bg-viz-band-edge" />
+          <div className="sticky bottom-0 mx-1 h-1 rounded-full bg-viz-band-edge" />
         </div>
       )}
     </div>

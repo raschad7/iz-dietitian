@@ -58,8 +58,8 @@ describe('fitPxPerSlot', () => {
    * over is a scrollbar, and the fitted height is multiplied by the slot count,
    * so a rounding error at this end arrives magnified forty times.
    *
-   * `useFittedSlotHeight` floors its measurement, which is what makes whole
-   * pixels the only input this has to survive.
+   * Whole pixels are the only input this has to survive, because the caller
+   * floors its measurement before dividing it up.
    */
   test('never draws a grid taller than the panel it was fitted to', () => {
     const slots = (CLOSE - OPEN) / SLOT_MINUTES;
