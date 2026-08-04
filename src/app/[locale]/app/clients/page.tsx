@@ -42,7 +42,7 @@ export default async function ClientsPage({ params, searchParams }: ClientsPageP
   return (
     <div className="space-y-6 text-start">
       <div>
-        <h2 className="text-2xl font-semibold tracking-tight">{t('title')}</h2>
+        <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
         <p className="text-sm text-muted-foreground">{t('resultCount', { total: result.total })}</p>
       </div>
 

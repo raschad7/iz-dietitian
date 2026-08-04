@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
-import { useCallback, useMemo, useOptimistic, useRef, useState, useTransition } from 'react';
+import { useCallback, useEffect, useMemo, useOptimistic, useRef, useState, useTransition } from 'react';
 
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useRouter } from '@/i18n/navigation';
@@ -16,15 +16,21 @@ import {
   deleteAppointmentAction,
   updateAppointmentAction,
 } from '../actions';
-import { addDays, addMonths, eachDay, startOfWeek, toIsoDate } from '../date';
-import { formatDayNumber, formatLongDate, formatMinute, formatMonthYear, formatWeekday } from '../format';
+import { addDays, addMonths, eachDay, endOfMonth, startOfMonth, startOfWeek, toIsoDate } from '../date';
+import {
+  formatDayNumber,
+  formatLongDate,
+  formatMediumDateRange,
+  formatMinute,
+  formatMonthYear,
+  formatWeekday,
+} from '../format';
 import { isCompleted, localWallClock } from '../completed';
-import { minuteToY } from '../geometry';
+import { PX_PER_SLOT, minuteToY } from '../geometry';
 import { type CalendarView } from '../schema';
 import { type ActionErrorKey, type CalendarAppointment, type CalendarClient } from '../types';
 import { useCalendarClock } from '../use-calendar-clock';
 import { useCalendarGestures, type BookingRequest } from '../use-calendar-gestures';
-import { useFittedSlotHeight } from '../use-fitted-grid';
 import { isWorkingDay, movesIntoThePast, type ClinicHours, type ExistingAppointment } from '../validation';
 import { AppointmentDialog } from './appointment-dialog';
 import { CalendarToolbar } from './calendar-toolbar';
@@ -63,6 +69,35 @@ const HEADER_HEIGHT = 'h-9';
  */
 const DAY_MIN_WIDTH = 'min-w-28';
 
+/**
+ * The timeline scroller's block padding, in pixels.
+ *
+ * **Must match the `py-3` on that element.** It is the offset between the
+ * scroller's own coordinates and the grid's, which is what turns a `scrollTop`
+ * into "how deep into the day can you currently see" — the question the
+ * below-the-fold marker is answering.
+ */
+const TIMELINE_PADDING_PX = 12;
+
+/**
+ * The full-bleed root: cancels `main`'s `p-3 md:p-5` at the inline edges and
+ * the block-end, and grows the height by the same amount so the grid still
+ * ends exactly on the shell's floor.
+ *
+ * The negative block-end margin takes that growth back out of the flow, so
+ * `main` measures the same scroll height it did before and gains no scrollbar
+ * of its own. Keep both halves in step with the layout's padding.
+ */
+const FULL_BLEED = '-mx-3 -mb-3 h-[calc(100%+0.75rem)] md:-mx-5 md:-mb-5 md:h-[calc(100%+1.25rem)]';
+
+/**
+ * Puts that page gutter back on everything *above* the grid.
+ *
+ * The root cancels the shell's padding so the grid can run edge to edge; the
+ * toolbar and the one-line hints are ordinary page content and still want it.
+ */
+const TOOLBAR_INSET = 'px-3 md:px-5';
+
 export type CalendarProps = {
   locale: Locale;
   view: CalendarView;
@@ -71,6 +106,34 @@ export type CalendarProps = {
   hours: ClinicHours;
   appointments: CalendarAppointment[];
   clients: CalendarClient[];
+  /**
+   * The route family `day`/`week`/`month` hang off. Defaults to the main
+   * calendar's own address; a client's Visit History tab mounts this same
+   * component under `/app/clients/{id}/visits` instead, so its view switch
+   * and date navigation stay inside that client's page rather than jumping
+   * to the clinic-wide calendar.
+   */
+  basePath?: string;
+  /**
+   * Whether the day view's booking picker offers "add a new client". Defaults
+   * to the ordinary day-view rule. A client-scoped calendar passes `false`:
+   * every booking made there is already for the one person the page is
+   * about, so an "add someone else" button would be a false offer.
+   */
+  allowNewClient?: boolean;
+  /** Hides the toolbar's search field — see the note on `CalendarToolbarProps`. */
+  hideSearch?: boolean;
+  /**
+   * Whether the grid reaches past the app shell's page padding — see
+   * `FULL_BLEED`.
+   *
+   * Defaults to true, like `basePath`: an unqualified `Calendar` is the
+   * clinic's calendar page, where the grid *is* the page. A calendar mounted
+   * inside another screen — the client record's Visit History tab — passes
+   * false, because the padding it would be cancelling belongs to a container
+   * several levels up and is not its to reclaim.
+   */
+  fullBleed?: boolean;
 };
 
 type OptimisticAction =
@@ -88,6 +151,10 @@ export function Calendar({
   hours,
   appointments,
   clients,
+  basePath = '/app/calendar',
+  allowNewClient: allowNewClientProp,
+  hideSearch = false,
+  fullBleed = true,
 }: CalendarProps) {
   const t = useTranslations('booking');
   const router = useRouter();
@@ -115,11 +182,12 @@ export function Calendar({
   const nowClock = now ? localWallClock(now) : null;
 
   /**
-   * The measured timeline body. Its height decides the slot height, which is
-   * what makes the whole clinic day fit without a scrollbar.
+   * The timeline draws every slot at this fixed height regardless of how much
+   * vertical space the panel has — a working day usually needs more room than
+   * that to stay readable, and the body scrolls to it instead of the grid
+   * shrinking to avoid a scrollbar.
    */
-  const gridAreaRef = useRef<HTMLDivElement>(null);
-  const pxPerSlot = useFittedSlotHeight(gridAreaRef, hours);
+  const pxPerSlot = PX_PER_SLOT;
 
   const [optimisticAppointments, applyOptimistic] = useOptimistic(
     appointments,
@@ -208,7 +276,7 @@ export function Calendar({
   function navigate(next: { view?: CalendarView; date?: string }): void {
     const params = new URLSearchParams(searchParams.toString());
     params.set('date', next.date ?? anchorDate);
-    router.push(`/app/calendar/${next.view ?? view}?${params.toString()}`);
+    router.push(`${basePath}/${next.view ?? view}?${params.toString()}`);
   }
 
   const step = view === 'month' ? 'month' : view === 'week' ? 7 : 1;
@@ -318,6 +386,88 @@ export function Calendar({
         : row,
     );
   }, [gestures.dragPreview, optimisticAppointments]);
+
+  /**
+   * The dates whose next appointment starts below the fold — the ones a doctor
+   * would have to scroll to find.
+   *
+   * A *set of dates* rather than the raw scroll offset, deliberately: storing
+   * the offset would re-render seven columns and every block on them on each
+   * scroll frame, whereas this only changes when a column actually crosses the
+   * threshold. `datesBelowFold` is compared before it is stored, so a scroll
+   * that changes nothing renders nothing.
+   */
+  const timelineRef = useRef<HTMLDivElement>(null);
+  const [datesBelowFold, setDatesBelowFold] = useState<readonly string[]>([]);
+
+  /**
+   * How wide the timeline's own vertical scrollbar is, in pixels.
+   *
+   * The day headers and the day columns are two sibling rows, not a table, and
+   * only the second one scrolls — so the scrollbar came out of the columns'
+   * width and not out of the headers', and every vertical rule below the header
+   * row sat a little further off than the last. Reserving the same width at the
+   * header row's inline end makes the two rows divide identical space, which is
+   * what actually lines the rules up.
+   *
+   * Measured rather than assumed: it is 0 on an overlay-scrollbar platform
+   * (macOS, most touch devices) and 15–17px on a classic one, and hardcoding
+   * either would misalign the other.
+   */
+  const [scrollbarWidth, setScrollbarWidth] = useState(0);
+
+  useEffect(() => {
+    const node = timelineRef.current;
+    // The month view has no timeline. `view` is in the deps, so this re-runs
+    // and clears the marks when it mounts or unmounts.
+    if (!node) {
+      setDatesBelowFold((previous) => (previous.length === 0 ? previous : []));
+      return;
+    }
+
+    function measure(): void {
+      const element = timelineRef.current;
+      if (!element) return;
+
+      setScrollbarWidth((previous) => {
+        const next = element.offsetWidth - element.clientWidth;
+        return next === previous ? previous : next;
+      });
+
+      // In the grid's own coordinates: the timeline starts `TIMELINE_PADDING_PX`
+      // into the scroller, so the deepest visible minute is that much shallower
+      // than the raw scroll offset would suggest.
+      const fold = element.scrollTop + element.clientHeight - TIMELINE_PADDING_PX;
+
+      // Measured against each block's *top*, not its bottom. A booking whose
+      // header row is on screen has already been seen; one that starts below
+      // the fold is the one there is no way to know about.
+      const next = days.filter((date) =>
+        previewedAppointments.some(
+          (row) => row.date === date && minuteToY(row.startMinute, hours.openMinute, pxPerSlot) >= fold,
+        ),
+      );
+
+      setDatesBelowFold((previous) =>
+        previous.length === next.length && previous.every((date, index) => date === next[index]) ? previous : next,
+      );
+    }
+
+    measure();
+    node.addEventListener('scroll', measure, { passive: true });
+
+    // The panel resizes with the window and with the app shell; both change
+    // how much of the day fits without changing what is booked on it.
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+
+    return () => {
+      node.removeEventListener('scroll', measure);
+      observer.disconnect();
+    };
+  }, [days, hours.openMinute, previewedAppointments, pxPerSlot, view]);
+
+  const belowFold = useMemo(() => new Set(datesBelowFold), [datesBelowFold]);
 
   function book(clientId: string): void {
     const pending = pendingBooking;
@@ -447,41 +597,86 @@ export function Calendar({
       ? formatMonthYear(locale, anchorDate)
       : view === 'day'
         ? formatLongDate(locale, anchorDate)
-        : `${formatLongDate(locale, days[0] ?? anchorDate)} – ${formatLongDate(locale, days[days.length - 1] ?? anchorDate)}`;
+        : // The medium range, not two long dates joined by a dash: this is a
+          // button label now, and `Intl` collapses the shared month and year
+          // itself rather than saying "2026" twice.
+          formatMediumDateRange(locale, days[0] ?? anchorDate, days[days.length - 1] ?? anchorDate);
+
+  /** The gutter the grid gives up and everything above it keeps. Nothing to put back when embedded. */
+  const contentInset = fullBleed ? TOOLBAR_INSET : undefined;
+
+  /**
+   * The span currently on screen, inclusive — what the picker marks.
+   *
+   * `days` already is that span for day and week; the month view draws no
+   * columns, so its range comes from the anchor's own month.
+   */
+  const visibleRange =
+    view === 'month'
+      ? { from: startOfMonth(anchorDate), to: endOfMonth(anchorDate) }
+      : { from: days[0] ?? anchorDate, to: days[days.length - 1] ?? anchorDate };
 
   return (
-    // `h-full` and `min-h-0`: the calendar fills the area the app shell gives it
-    // and never grows past it, which is what leaves the scrolling to the grid
-    // rather than to the page.
-    <div className="flex h-full min-h-0 flex-col gap-3">
-      <CalendarToolbar
-        view={view}
-        rangeLabel={rangeLabel}
-        query={query}
-        onQueryChange={setQuery}
-        onViewChange={(next) => navigate({ view: next })}
-        onToday={() => navigate({ date: today ?? anchorDate })}
-        onPrevious={() => shift(-1)}
-        onNext={() => shift(1)}
-      />
+    /*
+      `min-h-0`: the calendar fills the area the app shell gives it and never
+      grows past it, which is what leaves the scrolling to the grid rather than
+      to the page.
+
+      **It reaches past the shell's padding on three sides** (see `FULL_BLEED`).
+      The grid is not a card sitting on a page — it *is* the page, and a working
+      day boxed inside a rounded panel wasted a gutter on every side while
+      giving the clinic's last hour nowhere to sit but above a strip of
+      background.
+
+      The block-start padding stays: the toolbar is a row of controls, and a
+      control flush against the top of the viewport reads as clipped.
+      `TOOLBAR_INSET` puts the same gutter back on everything above the grid,
+      so only the grid is full-bleed.
+    */
+    <div className={cn('flex min-h-0 flex-col gap-3', fullBleed ? FULL_BLEED : 'h-full')}>
+      <div className={contentInset}>
+        <CalendarToolbar
+          locale={locale}
+          view={view}
+          rangeLabel={rangeLabel}
+          anchorDate={anchorDate}
+          range={visibleRange}
+          today={today}
+          query={query}
+          onQueryChange={setQuery}
+          hideSearch={hideSearch}
+          onViewChange={(next) => navigate({ view: next })}
+          onToday={() => navigate({ date: today ?? anchorDate })}
+          onPrevious={() => shift(-1)}
+          onNext={() => shift(1)}
+          // Picking a date keeps the current view and moves it there — the
+          // picker answers "when", not "how much of it do I want to see".
+          onDateChange={(date) => navigate({ date })}
+        />
+      </div>
 
       {message && (
-        <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {t(message)}
-        </p>
+        <div className={contentInset}>
+          <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {t(message)}
+          </p>
+        </div>
       )}
 
       {/*
-        A one-line hint rather than a full empty state: the grid itself is the
-        thing to look at, and the point worth making is only that clicking it
-        does something.
+        **A quiet day gets no message.** There used to be a "nothing booked in
+        this range" line above the grid whenever a day or week was empty, and
+        it was the one piece of furniture that moved: the grid jumped down a
+        row the moment a booking was made and back up when it was deleted. An
+        empty calendar is also not a state worth narrating — the columns are
+        visibly empty, and clicking one to book is the same gesture whether
+        there is anything on it or not.
+
+        The month view's note stays, because it says something the grid cannot:
+        that nothing here can be edited.
       */}
-      {view === 'month' ? (
-        // Says why nothing here can be edited, so a doctor who tries to drag a
-        // chip knows where to go rather than assuming it is broken.
-        <p className="text-sm text-muted-foreground">{t('monthReadOnly')}</p>
-      ) : (
-        optimisticAppointments.length === 0 && <p className="text-sm text-muted-foreground">{t('empty')}</p>
+      {view === 'month' && (
+        <p className={cn('text-sm text-muted-foreground', contentInset)}>{t('monthReadOnly')}</p>
       )}
 
       {view === 'month' ? (
@@ -500,20 +695,25 @@ export function Calendar({
         />
       ) : (
         /*
-          The whole clinic day fits the panel — no vertical scrollbar, and every
-          hour label on screen at once. `gridAreaRef` is measured, the slot
-          height is divided out of that height, and the columns are drawn to
-          exactly it. `overflow-y-auto` is a safety net for a viewport so short
-          that a slot would fall under `MIN_PX_PER_SLOT`; in normal use nothing
-          overflows, so no bar appears.
+          The clinic day is drawn at a fixed, readable slot height rather than
+          squeezed to fit whatever the panel measures — a working day is
+          usually taller than that, and shrinking it to avoid a scrollbar is
+          what used to make every hour cramped. The body scrolls instead, and
+          the bar is left visible: with scrolling as the normal case here
+          rather than the exception, hiding the signal that there is more
+          below would just cost someone a missed afternoon slot.
 
-          The day headers are a separate, non-scrolling row above the measured
-          area rather than sticky inside it — with nothing scrolling, sticky had
-          no work left to do.
+          The day headers are a separate, non-scrolling row above the
+          scrolling area rather than sticky inside it — they never move, so
+          sticky positioning has no work left to do.
         */
         <div
           className={cn(
-            'flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-border',
+            // One rule across the top and nothing else — no radius, no side or
+            // block-end edge. The grid runs into the shell on three sides, so
+            // the only boundary left to draw is the one between it and the
+            // toolbar.
+            'flex min-h-0 flex-1 flex-col overflow-hidden border-t border-border',
             isPending && 'opacity-90',
           )}
         >
@@ -526,7 +726,14 @@ export function Calendar({
           */}
           <div className="no-scrollbar flex min-h-0 flex-1 flex-col overflow-x-auto">
             <div className="flex min-h-0 min-w-max flex-1 flex-col">
-              <div className="flex shrink-0">
+              {/*
+                `paddingInlineEnd` reserves exactly the width the timeline's
+                scrollbar takes out of the row below — see `scrollbarWidth`.
+                Without it the headers divide a wider box than the columns do
+                and every vertical rule drifts further out of line across the
+                week.
+              */}
+              <div className="flex shrink-0" style={{ paddingInlineEnd: scrollbarWidth }}>
                 {/* Sticky, so the hour gutter keeps its corner when scrolled. */}
                 <div
                   className={cn(
@@ -535,52 +742,82 @@ export function Calendar({
                   )}
                 />
 
-                {days.map((date) => (
-                  <div
-                    key={date}
-                    className={cn(
-                      'flex flex-1 items-center justify-center gap-1.5 border-b border-s border-border bg-background',
-                      DAY_MIN_WIDTH,
-                      HEADER_HEIGHT,
-                      // Muted for a day nothing can be booked on, whether that
-                      // is because the clinic is shut or because it has gone.
-                      (!isWorkingDay(date, hours) || (today !== null && date < today)) && 'text-muted-foreground',
-                    )}
-                  >
-                    <span className="text-xs font-medium" dir="auto">
-                      {formatWeekday(locale, date)}
-                    </span>
-                    <span
+                {days.map((date) => {
+                  /*
+                    Today is the whole cell tinted olive-50, not a filled pip
+                    behind the number. The pip marked the *date* when what is
+                    current is the *column*, and at 20px across it was also the
+                    one place in the shell carrying white on olive-500 (3.47:1)
+                    for no reason — the tint reads at a glance, runs the full
+                    width of the day it belongs to, and puts olive-700 on it at
+                    7.37:1.
+                  */
+                  const isToday = date === today;
+                  const muted = !isWorkingDay(date, hours) || (today !== null && date < today);
+
+                  const header = (
+                    <>
+                      <span className="text-xs font-medium" dir="auto">
+                        {formatWeekday(locale, date)}
+                      </span>
+                      <span className={cn('text-xs', isToday && 'font-semibold')} dir="auto">
+                        {formatDayNumber(locale, date)}
+                      </span>
+                    </>
+                  );
+
+                  const className = cn(
+                    'flex flex-1 items-center justify-center gap-1.5 border-b border-s border-border',
+                    DAY_MIN_WIDTH,
+                    HEADER_HEIGHT,
+                    // Muted for a day nothing can be booked on, whether that
+                    // is because the clinic is shut or because it has gone.
+                    muted && 'text-muted-foreground',
+                    isToday ? 'bg-secondary text-secondary-foreground' : 'bg-background',
+                  );
+
+                  /*
+                    In the week view each header is a real button that opens
+                    that day — seven columns is the overview, and the moment
+                    one of them is the day you care about, the day view is
+                    where there is room to work. The day view's own header is
+                    left inert: it would navigate to the page it is already on.
+                  */
+                  return view === 'week' ? (
+                    <button
+                      key={date}
+                      type="button"
+                      aria-label={formatLongDate(locale, date)}
+                      onClick={() => navigate({ view: 'day', date })}
                       className={cn(
-                        'flex size-5 items-center justify-center rounded-full text-xs',
-                        date === today && 'bg-primary font-semibold text-primary-foreground',
+                        className,
+                        'transition-colors duration-200 ease-[cubic-bezier(.2,.6,.2,1)]',
+                        'focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring focus-visible:outline-none',
+                        // The same "hover fills" language the fields speak, one
+                        // tint deeper on today so the current column never loses
+                        // its mark by being pointed at.
+                        isToday
+                          ? 'hover:bg-primary-subtle'
+                          : 'hover:bg-secondary hover:text-secondary-foreground',
                       )}
-                      dir="auto"
                     >
-                      {formatDayNumber(locale, date)}
-                    </span>
-                  </div>
-                ))}
+                      {header}
+                    </button>
+                  ) : (
+                    <div key={date} className={className}>
+                      {header}
+                    </div>
+                  );
+                })}
               </div>
 
               {/*
-                `overflow-y-auto` is kept as the safety net it always was — a
-                window too short for the clinic day at a readable slot height
-                still scrolls rather than clipping the afternoon away — but the
-                bar itself is hidden. In normal use the grid is fitted to this
-                panel exactly and there is nothing to scroll.
-
                 `py-3` is what gives the opening and closing hours room to
                 breathe. Without it the first label sits hard against the day
                 headers and the last against the panel's bottom edge, both of
                 them touching a border and neither easy to read.
-
-                It costs nothing to keep in step: this is the element the
-                `ResizeObserver` measures, and `contentRect` reports the *content*
-                box — so the fitted slot height already excludes this padding and
-                the grid still ends exactly where the padding begins.
               */}
-              <div ref={gridAreaRef} className="no-scrollbar flex min-h-0 flex-1 overflow-y-auto py-3">
+              <div ref={timelineRef} className="flex min-h-0 flex-1 overflow-y-auto py-3">
                 {/* Hour gutter. Its labels use the same geometry as the blocks. */}
                 <div className="sticky start-0 z-30 w-16 shrink-0 bg-background">
                   {Array.from(
@@ -642,6 +879,7 @@ export function Calendar({
                         pending={gestures.pending}
                         isClosed={closed}
                         isPast={today !== null && date < today}
+                        hasHiddenBelow={belowFold.has(date)}
                         onCreateGesture={gestures.beginCreate}
                         onSelect={setSelectedId}
                         onOpen={openAppointment}
@@ -670,8 +908,9 @@ export function Calendar({
           clients={clients}
           existing={existingByDate(pendingBooking.date)}
           // Only the day view takes someone's details; the week books people
-          // already on the register.
-          allowNewClient={view === 'day'}
+          // already on the register. A client-scoped calendar overrides this
+          // to false outright — see `allowNewClient` on `CalendarProps`.
+          allowNewClient={allowNewClientProp ?? view === 'day'}
           onPick={book}
           onNewClient={() => {
             setNewClientFor(pendingBooking);

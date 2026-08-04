@@ -36,6 +36,13 @@ const ICONS = {
   foods: 'donut-bold',
   whatsapp: 'chat-round-dots-bold',
   security: 'shield-keyhole-bold',
+  // The rail's profile menu. A gear, not the person glyph `profile` uses —
+  // that row is reached *from* a control already showing who you are.
+  settings: 'settings-bold',
+
+  // Client profile card headers
+  contact: 'phone-bold',
+  notes: 'notes-bold',
 
   // Navigation — client portal
   portalHome: 'home-2-bold',
@@ -66,7 +73,7 @@ const ICONS = {
   signOut: 'logout-2-bold',
 
   // Actions
-  search: 'magnifer-bold',
+  search: 'rounded-magnifer-bold',
   add: 'add-circle-bold',
   close: 'close-circle-bold',
   trash: 'trash-bin-trash-bold',

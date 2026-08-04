@@ -14,8 +14,8 @@ import { Icon, type IconName } from "./icon"
  * deliberately a card with a title and an explanation rather than a line of grey
  * text, and it carries no status colour — nothing has gone wrong.
  *
- * The icon sits in a circle, not a swept surface: `Card` already carries the one
- * tail this block is allowed (design-system.md, "one tail per surface").
+ * The icon sits in a circle rather than in a rounded box, so it reads as a mark
+ * inside the card rather than as a second card nested in the first.
  */
 function EmptyState({
   icon,

@@ -20,7 +20,14 @@ export type ClientActivityLevel = (typeof CLIENT_ACTIVITY_LEVELS)[number];
  * An untouched optional input arrives from FormData as `''`, which is not the
  * same thing as "not provided". Every optional field passes through here first.
  */
+/**
+ * `null` is what `FormData.get` returns for a field that never submitted
+ * anything at all — an unchecked radio group, unlike a text input, does not
+ * even send an empty string. Treated the same as a blank one: neither is a
+ * value, both mean "not answered".
+ */
 function blankToUndefined(value: unknown): unknown {
+  if (value === null) return undefined;
   return typeof value === 'string' && value.trim() === '' ? undefined : value;
 }
 
