@@ -46,6 +46,9 @@ export default async function ClientVisitsDayPage({ params, searchParams }: Page
       basePath={`/app/clients/${clientId}/visits`}
       allowNewClient={false}
       hideSearch
+      // See the note in the week view: embedded, so there is no shell padding
+      // of its own to bleed past.
+      fullBleed={false}
     />
   );
 }

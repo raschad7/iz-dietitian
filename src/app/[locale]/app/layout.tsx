@@ -13,15 +13,20 @@ type AppLayoutProps = {
   params: Promise<{ locale: string }>;
 };
 
+/**
+ * The five places a dietitian works.
+ *
+ * Profile, WhatsApp and security used to sit here too, which made a third of
+ * the rail settings. They are behind the profile menu at its foot now — see
+ * `SidebarProfile` — so this list is only the screens a working day is spent
+ * on, and none of them are duplicated there.
+ */
 const NAV_ITEMS = [
   { href: '/app', labelKey: 'dashboard' },
   { href: '/app/clients', labelKey: 'clients' },
   { href: '/app/calendar', labelKey: 'calendar' },
-  { href: '/app/profile', labelKey: 'profile' },
   { href: '/app/weekly-plans', labelKey: 'weeklyPlans' },
   { href: '/app/dishes', labelKey: 'dishes' },
-  { href: '/app/settings/whatsapp', labelKey: 'whatsapp' },
-  { href: '/app/settings/security', labelKey: 'security' },
 ] as const;
 
 /**
@@ -35,18 +40,15 @@ const NAV_ICONS = {
   dashboard: 'dashboard',
   clients: 'clients',
   calendar: 'calendar',
-  profile: 'profile',
   weeklyPlans: 'weeklyPlans',
   dishes: 'dishes',
-  whatsapp: 'whatsapp',
-  security: 'security',
 } as const satisfies Record<(typeof NAV_ITEMS)[number]['labelKey'], IconName>;
 
 export default async function AppLayout({ children, params }: AppLayoutProps) {
   const locale = await resolveLocale(params);
 
   // Authoritative guard for the whole dietitian area.
-  const { clinicId } = await requireStaffClinic(locale);
+  const { clinicId, session } = await requireStaffClinic(locale);
   if (!(await isClinicOnboardingComplete(clinicId))) redirect(`/${locale}/onboarding`);
 
   const t = await getTranslations('app');
@@ -62,13 +64,18 @@ export default async function AppLayout({ children, params }: AppLayoutProps) {
       card — it is the wall the app hangs on, not a surface you act on.
 
       **There is no app bar.** The bar carried a title the rail already said, a
-      name nobody needed reminding of, and a notification bell; the rail now
-      carries the two controls worth keeping (language, sign-out) at its
-      block-end, and the row the bar occupied goes back to the page. Each page
-      owns its own heading, which is where the `h1` lives.
+      name, and a notification bell; the rail's profile menu now carries the
+      name and everything that used to hang off it, and the row the bar occupied
+      goes back to the page. Each page owns its own heading, which is where the
+      `h1` lives.
     */
     <div className="flex h-dvh overflow-hidden bg-background">
-      <Sidebar items={NAV_ITEMS} title={t('shortName')} locale={locale} icons={NAV_ICONS} />
+      <Sidebar
+        items={NAV_ITEMS}
+        title={t('shortName')}
+        user={{ name: session.user.name, email: session.user.email, locale }}
+        icons={NAV_ICONS}
+      />
       <main className="min-h-0 min-w-0 flex-1 overflow-y-auto p-3 md:p-5">{children}</main>
     </div>
   );

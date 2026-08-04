@@ -2,23 +2,27 @@
 
 import { useTranslations } from 'next-intl';
 
-import { LocaleSwitcher } from '@/components/layout/locale-switcher';
-import { SignOutButton } from '@/components/layout/sign-out-button';
+import { SidebarProfile } from '@/components/layout/sidebar-profile';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { Link, usePathname } from '@/i18n/navigation';
 import { type Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 
+/**
+ * A destination in a rail.
+ *
+ * Profile, WhatsApp and security are deliberately absent: they are account
+ * settings, not places you work, and they live in the profile menu at the foot
+ * of the rail (`SidebarProfile`). Anything reachable from both lists would be
+ * two answers to "where does this live".
+ */
 export type NavItem = {
   href:
     | '/app'
     | '/app/clients'
     | '/app/calendar'
-    | '/app/profile'
     | '/app/weekly-plans'
     | '/app/dishes'
-    | '/app/settings/whatsapp'
-    | '/app/settings/security'
     | '/portal'
     | '/portal/appointments'
     | '/portal/meal-plan'
@@ -29,8 +33,6 @@ export type NavItem = {
     | 'calendar'
     | 'weeklyPlans'
     | 'dishes'
-    | 'whatsapp'
-    | 'security'
     | 'portalHome'
     | 'myAppointments'
     | 'myPlan'
@@ -59,17 +61,16 @@ export type NavItem = {
  * more than usual here: olive-500 on olive-50 is 2.95:1, under the contrast
  * floor. See the `--sidebar-*` note in globals.css.
  *
- * **The rail can end in the two controls that are not destinations.** The
- * dietitian area has no app bar any more, so it passes `locale` and the
- * language switcher and sign-out sit at the block-end of the rail, pushed there
- * by `mt-auto` and fenced off with a hairline — far from the navigation, in the
- * corner where an account control is looked for. Sign-out is the clay
- * `destructive` variant: it is the one thing here that ends the session, and it
- * should not look like a way further in.
+ * **The rail can end in an account control.** The dietitian area has no app bar
+ * any more, so it passes `user` and `SidebarProfile` takes the block-end: the
+ * signed-in name, and behind it everything that is about the account rather
+ * than about a client. It is fenced off with a hairline and pushed down with
+ * `mt-auto`, far from the navigation, in the corner an account control is
+ * looked for.
  *
- * The portal omits `locale` and gets no footer, because it still has a header
- * carrying the same pair — and below `md`, where this rail is hidden entirely,
- * that header is the only place a client can reach either one.
+ * The portal omits `user` and gets no footer, because it still has a header
+ * carrying sign-out and the language switcher — and below `md`, where this rail
+ * is hidden entirely, that header is the only place a client can reach either.
  *
  * A client component only because the current page cannot be known on the
  * server — `usePathname` drives the active state. It comes from
@@ -79,17 +80,17 @@ export type NavItem = {
 export function Sidebar({
   items,
   title,
-  locale,
+  user,
   icons,
 }: {
   items: readonly NavItem[];
   title: string;
   /**
-   * Set to give the rail its language/sign-out footer; sign-out posts this
-   * locale back to the server action. Omit in a shell that already has a header
-   * carrying the pair.
+   * Set to give the rail its profile menu. `locale` rides along because
+   * sign-out posts it back to the server action. Omit in a shell that already
+   * has a header carrying those controls.
    */
-  locale?: Locale;
+  user?: { name: string; email?: string | null; locale: Locale };
   /** Optional per-item glyph. The staff rail is text-only by design. */
   icons?: Partial<Record<NavItem['labelKey'], IconName>>;
 }) {
@@ -168,16 +169,12 @@ export function Sidebar({
         </nav>
 
         {/*
-          `mt-auto` pins the pair to the block-end however short the nav is, and
-          the hairline above it is the same device the rail uses against the
-          page — a change of region, not a card. Language sits above sign-out
-          because it is the reversible one of the two.
+          `mt-auto` lives on the profile control itself, so it pins to the
+          block-end however short the nav is; the hairline above it is the same
+          device the rail uses against the page — a change of region, not a card.
         */}
-        {locale ? (
-          <div className="mt-auto flex flex-col gap-2 border-t border-sidebar-border p-3">
-            <LocaleSwitcher className="w-full" />
-            <SignOutButton locale={locale} className="w-full" />
-          </div>
+        {user ? (
+          <SidebarProfile name={user.name} email={user.email} locale={user.locale} />
         ) : null}
       </div>
     </aside>

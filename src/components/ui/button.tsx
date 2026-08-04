@@ -59,6 +59,23 @@ const buttonVariants = cva(
           "border-destructive bg-card text-destructive hover:bg-destructive-subtle focus-visible:ring-destructive",
 
         /**
+         * Destructive, tertiary — `ghost`'s shape with `destructive`'s colour.
+         * No box until you touch it, then the clay-100 fill; the label and glyph
+         * are clay the whole time, so the control never hides what it does.
+         *
+         * For a destructive action sitting *among* other controls rather than
+         * closing a decision: the rail's sign-out is stacked under a language
+         * switcher, and an outlined box there read as one more destination while
+         * everything around it was boxless. Where a destructive action is the
+         * decision — a delete inside a confirm dialog — use `destructive`, which
+         * carries the edge that says so.
+         *
+         * 6.84:1 at rest, 5.81:1 on the hover fill, same as `destructive`.
+         */
+        destructiveGhost:
+          "border-transparent text-destructive hover:bg-destructive-subtle hover:text-destructive focus-visible:ring-destructive",
+
+        /**
          * Secondary-subtle. Not one of the six named variants, but the brand
          * tint is what several dense surfaces already reach for, and having it
          * here keeps them off ad-hoc olive-50 classes.
@@ -106,12 +123,14 @@ const buttonVariants = cva(
        * Tertiary controls carry 12px of padding rather than 20px. A ghost
        * button has no box at rest, so the wider padding reads as a gap someone
        * forgot rather than as part of the control.
+       *
+       * `destructiveGhost` is in here for the same reason it is ghost-shaped at
+       * all: it has no box either, and 20px would leave it sitting differently
+       * from the tertiary controls it appears beside.
        */
-      ...(["default", "sm"] as const).map((size) => ({
-        variant: "ghost" as const,
-        size,
-        class: "px-3",
-      })),
+      ...(["ghost", "destructiveGhost"] as const).flatMap((variant) =>
+        (["default", "sm"] as const).map((size) => ({ variant, size, class: "px-3" })),
+      ),
     ],
     defaultVariants: {
       variant: "default",

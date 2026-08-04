@@ -23,21 +23,29 @@ export function SignOutButton({ locale, className }: { locale: Locale; className
 }
 
 /**
- * `destructive` — a clay outline, never a solid red block. Ending a session is
- * not a delete, but it is the one control in the shell that undoes your way in,
- * and on the pale olive rail an olive `outline` button read as one more
- * destination. The clay edge separates it from the navigation above it without
- * shouting; the variant stays outlined for the same reason a delete does.
+ * `destructiveGhost` — no box until you touch it, then a clay fill; the label
+ * and glyph are clay throughout.
  *
- * `sm` is the 40px compact size, which matches the language switcher stacked
- * directly above it.
+ * Ending a session is not a delete, so it does not get the outlined
+ * `destructive` box a delete gets — inside the rail's profile menu it sits
+ * under four boxless links and a language switcher, and an outline there read
+ * as one more destination rather than as the way out. The colour is what marks
+ * it, and the colour never leaves.
+ *
+ * `sm` is the 40px compact size, matching the language switcher directly above.
  */
 function SignOutSubmit({ className }: { className?: string }) {
   const t = useTranslations('common');
   const { pending } = useFormStatus();
 
   return (
-    <Button type="submit" variant="destructive" size="sm" disabled={pending} className={className}>
+    <Button
+      type="submit"
+      variant="destructiveGhost"
+      size="sm"
+      disabled={pending}
+      className={className}
+    >
       <Icon name="signOut" />
       {pending ? t('loading') : t('signOut')}
     </Button>

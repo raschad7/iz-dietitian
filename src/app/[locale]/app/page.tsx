@@ -66,6 +66,7 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
           locale={locale}
           today={data.today}
           nowMinute={data.nowMinute}
+          workingDays={data.workingDays}
         />
 
         <div className="flex min-w-0 flex-col gap-4 xl:min-h-0">

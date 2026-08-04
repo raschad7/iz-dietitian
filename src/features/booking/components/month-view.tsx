@@ -69,7 +69,9 @@ export function MonthView({
   const MAX_VISIBLE = 3;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-border">
+    // Full-bleed, like the day and week grids: one rule between it and the
+    // toolbar, and no box of its own. See the note on the calendar's root.
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden border-t border-border">
       <div className="grid grid-cols-7 border-b border-border bg-muted/50">
         {weekdayStrip.map((date) => (
           <div key={date} className="px-2 py-1.5 text-center text-xs font-medium text-muted-foreground">

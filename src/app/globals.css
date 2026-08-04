@@ -89,6 +89,24 @@
   --lh-label: 1.4;
   --lh-caption: 1.45;
 
+  /*
+   * ── The faces for the active script ──
+   *
+   * These exist because `@theme inline` **inlines** a theme value into every
+   * utility it generates instead of leaving a `var()` behind: `.font-sans`
+   * compiles to the literal stack, not to `font-family: var(--font-sans)`. So
+   * overriding `--font-sans` for Arabic does nothing — no rule reads it.
+   *
+   * The indirection is what survives inlining. `--font-sans` is *declared* as
+   * `var(--script-ui-font), …`, so the inlined utility carries that `var()`
+   * with it and resolves it per element at run time — which means swapping this
+   * one variable under `:lang(ar)` re-points every font utility at once.
+   *
+   * Latin values here; the unlayered `:lang(ar)` block below swaps both.
+   */
+  --script-ui-font: var(--font-ibm-plex-sans-arabic);
+  --script-display-font: var(--font-readex-pro);
+
   /* ── Radius — 8 / 12 / 16 / 24, never 0 ── */
   --qiwam-radius-sm: 8px;
   --qiwam-radius-md: 12px;
@@ -125,10 +143,18 @@
  * src/app/[locale]/layout.tsx.
  */
 @theme inline {
-  --font-sans: var(--font-ibm-plex-sans-arabic), var(--font-ibm-plex-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-arabic: var(--font-ibm-plex-sans-arabic), var(--font-ibm-plex-sans), ui-sans-serif, system-ui, sans-serif;
-  /* Display — Readex Pro, headings only, both scripts. */
-  --font-heading: var(--font-readex-pro), var(--font-ibm-plex-sans-arabic), var(--font-ibm-plex-sans), ui-sans-serif, system-ui, sans-serif;
+  /*
+   * Both stacks lead with `--script-ui-font` / `--script-display-font` rather
+   * than naming a family directly. `@theme inline` inlines these values into
+   * the utilities verbatim, so the `var()` rides along and stays resolvable at
+   * run time — that is the hook `:lang(ar)` uses to change script. Naming a
+   * family here instead would bake it into `.font-sans` and no override could
+   * reach it.
+   */
+  --font-sans: var(--script-ui-font), var(--font-ibm-plex-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-arabic: var(--script-ui-font), var(--font-ibm-plex-sans), ui-sans-serif, system-ui, sans-serif;
+  /* Display — Readex Pro in Latin, the Arabic face in Arabic. */
+  --font-heading: var(--script-display-font), var(--script-ui-font), var(--font-ibm-plex-sans), ui-sans-serif, system-ui, sans-serif;
   /* Numeric / code only — never client-facing prose. */
   --font-mono: var(--font-ibm-plex-mono), ui-monospace, Menlo, monospace;
 
@@ -354,8 +380,16 @@
   --popover-foreground: var(--n-900);
   --overlay: rgba(22, 34, 13, .45);     /* scrim — olive-950, never black */
 
-  --primary: var(--olive-600);          /* action.primary.bg — white on it is 5.46:1 */
-  --primary-hover: var(--olive-700);
+  /*
+   * action.primary.bg. White on olive-500 is 3.47:1 — it clears the 3:1 floor
+   * a graphical mark needs but is under AA's 4.5:1 for a 16px label, and the
+   * hover fill (olive-600, 5.46:1) is the state that passes. This is a
+   * deliberate brand choice; don't "fix" it by darkening the fill back to
+   * olive-600 without raising it first. `.dark` pairs this same fill with an
+   * olive-950 label instead, which is the accessible way to carry olive-500.
+   */
+  --primary: var(--olive-500);
+  --primary-hover: var(--olive-600);
   --primary-foreground: var(--n-0);
   /*
    * The brand's quiet fill, mirroring `--destructive-subtle`. For a surface
@@ -390,7 +424,14 @@
   /* Border & focus */
   --border: var(--n-200);               /* border.divider */
   --input: var(--n-500);                /* border.interactive — meets 3:1 */
-  --input-hover: var(--olive-500);      /* field hover edge — a step short of focus, 3.17:1 */
+  /*
+   * Field hover edge. Now the *same* olive as `--primary`, because every olive
+   * quieter than 500 falls under the 3:1 a control boundary needs (olive-400 is
+   * 2.41:1 on white). Hover and focus therefore no longer differ by colour —
+   * they differ by fill and by weight: hover tints the box and keeps a 1px
+   * edge, focus empties the box and doubles the edge to 2px. See `.q-field`.
+   */
+  --input-hover: var(--olive-500);
   --ring: var(--lime-400);              /* focus.ring — inner ring, 2px */
   --focus-halo: var(--olive-950);       /* focus.halo — outer ring, 2px */
   /*
@@ -643,6 +684,40 @@
   --sidebar-ring: var(--ring);
 }
 
+/*
+ * ── Arabic: the script's own faces and leading ──
+ *
+ * **Unlayered, and it has to be.** Both `:root` blocks above are unlayered, and
+ * an unlayered declaration outranks every layered one regardless of order — so
+ * the same overrides sitting in `@layer base` (where the rest of the `:lang(ar)`
+ * rule lives) silently lost to `:root` and never applied. That is why the
+ * Arabic leading below reads as new: it has been declared for a long time and
+ * outranked the whole time.
+ *
+ * Only custom properties belong here. `letter-spacing` and `text-transform` stay
+ * in the layered block on purpose — unlayered, they would also outrank the
+ * `tracking-*` utilities and no component could ever set tracking on Arabic.
+ *
+ * `:lang(ar)` rather than `html[lang='ar']` so an Arabic name or note inside an
+ * English page gets the right face and the right leading too. On such a page the
+ * layout deliberately does not attach `--font-neo-sans-arabic`, which is what
+ * the inner fallbacks are for.
+ */
+:lang(ar) {
+  --script-ui-font: var(--font-neo-sans-arabic, var(--font-ibm-plex-sans-arabic));
+  --script-display-font: var(--font-neo-sans-arabic, var(--font-readex-pro));
+
+  --lh-display-lg: 1.35;
+  --lh-display-sm: 1.4;
+  --lh-heading-lg: 1.45;
+  --lh-heading-sm: 1.5;
+  --lh-body-lg: 1.75;
+  --lh-body-md: 1.75;
+  --lh-body-sm: 1.7;
+  --lh-label: 1.5;
+  --lh-caption: 1.5;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -711,24 +786,18 @@
    * so tracking breaks glyph joining, and the script has no letter case for
    * `uppercase` to act on.
    */
+  /*
+   * Only the two properties that must stay *inside* a layer. Everything else
+   * Arabic overrides — the script's faces and its leading — is a custom property
+   * and lives in the unlayered `:lang(ar)` block above, because an unlayered
+   * `:root` outranks anything declared in here.
+   *
+   * These two stay layered so a `tracking-*` or `uppercase` utility can still
+   * beat them on the rare element that wants it.
+   */
   :lang(ar) {
     letter-spacing: 0;
     text-transform: none;
-
-    /*
-     * The Arabic half of every step's leading pair. Declared here rather than
-     * on `html[lang]` so a single Arabic block inside an English page — a
-     * client's name, a note — gets the right leading too.
-     */
-    --lh-display-lg: 1.35;
-    --lh-display-sm: 1.4;
-    --lh-heading-lg: 1.45;
-    --lh-heading-sm: 1.5;
-    --lh-body-lg: 1.75;
-    --lh-body-md: 1.75;
-    --lh-body-sm: 1.7;
-    --lh-label: 1.5;
-    --lh-caption: 1.5;
   }
 
   /* Numbers, times, IDs and units keep LTR internal order inside RTL text. */
@@ -746,10 +815,11 @@
    * one edit, and the three components cannot drift apart.
    *
    * **The two states are told apart by which property moves, not by how much
-   * of it.** Hover fills the box with the brand tint and puts a mid olive on
-   * the edge — the field is *offering* itself. Focus empties the fill back to
-   * the page and darkens the edge to the full olive — the field is *taken*, and
-   * the box goes quiet because there is about to be text in it.
+   * of it.** Hover fills the box with the brand tint and keeps a 1px olive edge
+   * — the field is *offering* itself. Focus empties the fill back to the page
+   * and doubles the edge to 2px — the field is *taken*, and the box goes quiet
+   * because there is about to be text in it. Both edges are the same olive:
+   * `--primary` sits on olive-500 and nothing quieter clears 3:1.
    *
    * It replaces an olive line that grew along the block-end edge on focus plus
    * a 3px olive halo around the whole box. Both were drawing attention to the
@@ -772,9 +842,11 @@
       border-color var(--duration-label) ease-out;
   }
   /*
-   * `--input-hover` is olive-500 — one stop short of the olive-600 focus takes,
-   * so the pointer state is legibly less than the taken one. 3.17:1 against the
-   * page, over the 3:1 a control boundary needs.
+   * `--input-hover` is olive-500, which is now the same stop `--primary` sits
+   * on, so hover and focus share an edge colour. What separates them is this
+   * rule's tinted fill against focus's empty one, plus the 1px/2px difference
+   * in edge weight. 3.47:1 against the page, over the 3:1 a control boundary
+   * needs.
    */
   .q-field:hover:not(:disabled):not(:focus) {
     background-color: var(--secondary);

@@ -59,6 +59,17 @@ function Segmented<T extends string>({
       aria-label={label}
       className={cn(
         'inline-flex rounded-lg border border-border p-0.5',
+        /*
+         * `sm` is pinned to 40px so the control matches `Button size="sm"` and
+         * a 40px field beside it — the height is set on the *track*, and the
+         * options fill it, because the track is what someone measures the
+         * control by. It used to be ~26px of text padding, which left the one
+         * switch in a toolbar visibly shorter than everything around it.
+         *
+         * `default` is unchanged: the login role switch and the client tabs
+         * are its only callers and neither sits in a row of 40px controls.
+         */
+        size === 'sm' && 'h-10',
         className,
       )}
     >
@@ -74,9 +85,11 @@ function Segmented<T extends string>({
             aria-checked={isTablist ? undefined : active}
             onClick={() => onChange(option.value)}
             className={cn(
-              'rounded-md font-medium transition-colors duration-180',
+              'flex items-center justify-center rounded-md font-medium transition-colors duration-180',
               'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-focus-halo focus-visible:outline-none',
-              size === 'sm' ? 'px-2.5 py-1 text-caption' : 'px-3 py-2 text-body-md',
+              // `h-full`: the track owns the height (see above), the option
+              // owns its inline padding.
+              size === 'sm' ? 'h-full px-4 text-label' : 'px-3 py-2 text-body-md',
               active
                 ? 'bg-primary text-primary-foreground'
                 : 'text-muted-foreground hover:bg-secondary hover:text-secondary-foreground',

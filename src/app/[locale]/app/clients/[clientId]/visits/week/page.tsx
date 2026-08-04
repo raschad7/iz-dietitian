@@ -46,6 +46,10 @@ export default async function ClientVisitsWeekPage({ params, searchParams }: Pag
       basePath={`/app/clients/${clientId}/visits`}
       allowNewClient={false}
       hideSearch
+      // Mounted inside the client record rather than on a page of its own, so
+      // the shell padding the calendar page bleeds past is not this one's to
+      // reclaim — it belongs to containers several levels up.
+      fullBleed={false}
     />
   );
 }

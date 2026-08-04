@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
-import { addDays, startOfWeek } from '@/features/booking/date';
+import { addDays, startOfWeek, weekdayOf } from '@/features/booking/date';
 import { formatDayNumber, formatMinuteRange, formatWeekday } from '@/features/booking/format';
 import { type CalendarAppointment } from '@/features/booking/types';
 import { Link } from '@/i18n/navigation';
@@ -17,6 +17,11 @@ type AgendaTimelineProps = {
   today: string;
   /** Minutes from midnight at render time — what splits the day into done / live / still to come. */
   nowMinute: number;
+  /**
+   * Clinic-local weekdays the clinic opens on, `0` = Sunday. Only these appear
+   * in the week strip.
+   */
+  workingDays: readonly number[];
 };
 
 /**
@@ -56,12 +61,37 @@ function findFocusIndex(appointments: CalendarAppointment[], nowMinute: number):
   return next === -1 ? null : next;
 }
 
-export async function AgendaTimeline({ appointments, locale, today, nowMinute }: AgendaTimelineProps) {
+export async function AgendaTimeline({
+  appointments,
+  locale,
+  today,
+  nowMinute,
+  workingDays,
+}: AgendaTimelineProps) {
   const t = await getTranslations('dashboard.agenda');
 
   const ordered = [...appointments].sort((a, b) => a.startMinute - b.startMinute);
   const focusIndex = findFocusIndex(ordered, nowMinute);
   const weekStart = startOfWeek(today);
+
+  /*
+    The strip is the clinic's week, not the calendar's. A day the clinic is
+    closed cannot hold an appointment, so a chip for it is a link to an empty
+    day view — and seven chips of which two are dead read as a date picker
+    rather than as "these are your days".
+
+    Filtered rather than dimmed: a disabled-looking chip still asks to be
+    understood before it can be skipped, and the days a clinic works are stable
+    enough that their absence never needs explaining.
+
+    Today drops out with the rest when the clinic is closed today. The strip
+    then has no current-day marker, which is the honest reading — the card
+    above it is still today's agenda, and it is empty.
+  */
+  const week = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index)).filter((date) => {
+    const weekday = weekdayOf(date);
+    return weekday !== null && workingDays.includes(weekday);
+  });
 
   const dayHref = (date: string) => ({ pathname: '/app/calendar/day' as const, query: { date } });
 
@@ -85,9 +115,9 @@ export async function AgendaTimeline({ appointments, locale, today, nowMinute }:
             <span className="text-caption text-muted-foreground">{t('count', { count: ordered.length })}</span>
           </div>
 
-          {/* The week strip: the agenda doubles as a jump to any other day of the week. */}
+          {/* The week strip: the agenda doubles as a jump to any other working day. */}
           <ul className="flex items-stretch justify-between gap-1">
-            {Array.from({ length: 7 }, (_, index) => addDays(weekStart, index)).map((date) => {
+            {week.map((date) => {
               const isToday = date === today;
 
               return (

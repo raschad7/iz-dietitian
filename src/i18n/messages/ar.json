@@ -36,7 +36,8 @@
     "security": "الأمان",
     "weeklyPlans": "الخطط الأسبوعية",
     "dishes": "كتالوج الأطباق",
-    "whatsapp": "واتساب"
+    "whatsapp": "واتساب",
+    "notifications": "الإشعارات"
   },
   "landing": {
     "title": "إدارة عيادتك الغذائية في مكان واحد",
@@ -139,7 +140,6 @@
     "title": "التقويم",
     "completed": "منتهٍ",
     "now": "الآن",
-    "empty": "لا مواعيد في هذه الفترة. انقر على أي خانة فارغة لحجز موعد.",
     "openClientProfile": "فتح ملف المتابع",
     "monthMore": "+{count, number, integer} أخرى",
     "monthReadOnly": "عرض الشهر للاطّلاع فقط. انقر على أي يوم للحجز أو التعديل.",
@@ -150,7 +150,10 @@
       "view": "طريقة العرض",
       "day": "يوم",
       "week": "أسبوع",
-      "month": "شهر"
+      "month": "شهر",
+      "pickDate": "اختر تاريخًا",
+      "previousMonth": "الشهر السابق",
+      "nextMonth": "الشهر التالي"
     },
     "search": {
       "placeholder": "ابحث عن متابع"
@@ -526,8 +529,10 @@
   "localeSwitcher": {
     "label": "اللغة",
     "devOnly": "مبدّل اللغة (بيئة التطوير فقط)",
-    "ar": "العربية",
-    "en": "English"
+    "ar": "AR",
+    "en": "EN",
+    "arName": "العربية",
+    "enName": "English"
   },
   "errors": {
     "notFound": "الصفحة غير موجودة",

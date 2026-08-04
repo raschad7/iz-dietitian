@@ -23,7 +23,7 @@ copy inside a feature folder. Something genuinely new and reusable belongs in
 2. **`@theme inline`** — maps primitives to semantic names and registers them
    with Tailwind, which is what makes `bg-primary`, `text-status-medical-fg`,
    `text-body` and `shadow-card` exist as utility classes.
-3. **Semantic assignments** — `--primary: var(--olive-600)` and friends, plus
+3. **Semantic assignments** — `--primary: var(--olive-500)` and friends, plus
    the `.dark` remap.
 4. **`@layer components`** — `.q-field`, `.q-label`, `.q-field-group`: the
    shared field box and its focus behaviour.
@@ -39,7 +39,7 @@ colour" below); `eslint-rules/no-raw-hex.mjs` enforces it.
 | | | | |
 |---|---|---|---|
 | 50 `#F5F8EF` | 100 `#E8F0DA` | 200 `#D2E2B9` | 300 `#B2CE8D` |
-| 400 `#8CB35C` | 500 `#6B9639` | **600 `#4D7428`** ★ | 700 `#3D5C21` |
+| 400 `#8CB35C` | **500 `#6B9639`** ★ | 600 `#4D7428` (hover) | 700 `#3D5C21` |
 | 800 `#2E461A` | 900 `#223414` | 950 `#16220D` | |
 
 **Olive is ink.** It's the primary brand colour — buttons, links, active
@@ -62,8 +62,9 @@ support hues; olive stays on the controls. See "Charts" below.
 so it can't carry text, an icon, or a hairline on a light surface.
 
 The one legal text-on-lime pairing is **olive-950 on lime-400 (12.04:1)**,
-wired into `--on-accent`. Olive-600 on lime-400 is **3.98:1 and fails** — do
-not build that pairing, even though "text is primary" reads naturally.
+wired into `--on-accent`. Primary on lime-400 is **2.54:1 and fails** (so did
+olive-600, at 3.98:1) — do not build that pairing, even though "text is
+primary" reads naturally.
 
 Where lime is too pale to be seen — a 2px now-line, a chart edge — use
 `viz-band-edge` (lime-600), which is the darker stop the palette defines for
@@ -109,9 +110,13 @@ and still see as olive against a white card.
 
 **Anything lime sitting on it has to invert.** Lime-400 is 1.17:1 against
 olive-100, so a lime chip on a resting `primary-subtle` card is invisible at
-exactly the moment it has a job to do. Rest it as a solid primary chip (4.66:1
-on the fill) and swap to lime on hover, where the card has gone dark and lime
-measures 3.99:1.
+exactly the moment it has a job to do. Rest it as a solid primary chip and swap
+to lime on hover, where the card has gone dark and lime measures 3.99:1.
+
+⚠ That resting chip was 4.66:1 against the olive-100 fill when primary was
+olive-600; on olive-500 it is **2.96:1**, a hair under the 3:1 two adjacent
+fills need to be told apart. It is the same trade the primary button makes
+below.
 
 | Meaning | Token | Colour | Never |
 |---|---|---|---|
@@ -132,13 +137,90 @@ valid drop and clay for an invalid one, for this reason.
 
 | Family | Token | Role |
 |---|---|---|
-| Readex Pro | `font-heading` | Display / headings — `h1`–`h4` get it automatically |
-| IBM Plex Sans Arabic | `font-sans` / `font-arabic` | UI, body, forms, tables |
+| **Neo Sans Arabic** | `font-sans` / `font-arabic` / `font-heading`, **Arabic only** | Everything in Arabic — body, forms, tables **and headings** |
+| Readex Pro | `font-heading` **in English** | Display / headings — `h1`–`h4` get it automatically |
+| IBM Plex Sans Arabic | `font-sans` / `font-arabic` in English | Body and UI in English, and the Arabic fallback |
 | IBM Plex Mono | `font-mono` | Numeric / code / IDs — never client-facing prose |
 
-All three load through `next/font/google` in
-[`src/app/[locale]/layout.tsx`](../src/app/[locale]/layout.tsx); nothing needs
-downloading.
+Everything except Neo Sans Arabic loads through `next/font/google` in
+[`src/app/[locale]/layout.tsx`](../src/app/[locale]/layout.tsx).
+
+### The Arabic face is licensed, self-hosted, and Arabic-only
+
+Neo Sans Arabic is a paid Monotype family, so it is **not** fetched from Google
+— the licensed files live in [`src/app/fonts/`](../src/app/fonts/) and load
+through `next/font/local`. The `.woff2` files are what ship (~53–57KB each, ~72%
+smaller than the `.ttf`s they were compressed from); the `.ttf`s sit beside them
+as the sources and are not read by the build.
+
+**It applies to Arabic and nothing else**, which takes three cooperating pieces.
+Getting any one of them wrong makes the swap silently do nothing, which is
+exactly what happened on the first attempt:
+
+1. The layout attaches `--font-neo-sans-arabic` to `<html>` **only when the
+   locale is `ar`**, so an English document has no declaration naming the family
+   and no reason to fetch it.
+2. The theme's font stacks lead with **`--script-ui-font` / `--script-display-font`**
+   rather than naming a family. This is the part that is easy to get wrong:
+   `@theme inline` **inlines** a theme value into every utility it generates, so
+   `.font-sans` compiles to the literal stack and *never reads* `--font-sans`.
+   Overriding `--font-sans` for Arabic therefore changes nothing. Declaring the
+   stack as `var(--script-ui-font), …` is what survives inlining — the `var()`
+   rides into the utility and stays resolvable per element.
+3. An **unlayered** `:lang(ar)` block swaps those two variables. Unlayered
+   matters as much as the indirection: both `:root` blocks are unlayered, and an
+   unlayered declaration outranks any layered one, so the same override sitting
+   in `@layer base` loses to `:root` every time.
+
+⚠ The Arabic **leading** (`--lh-*`) was declared inside that layered `:lang(ar)`
+block and had been losing to `:root` for exactly this reason — Arabic was
+rendering with Latin line-heights. It moved to the unlayered block with the
+fonts and now applies. `letter-spacing` and `text-transform` deliberately stay
+*in* the layer, because unlayered they would outrank the `tracking-*` and case
+utilities and no component could override them.
+
+**The two scripts no longer share a display face.** English headings are Readex
+Pro; Arabic headings are Neo Sans Arabic. That is deliberate — Arabic is meant
+to be Neo Sans throughout — but it is worth knowing when comparing the two
+builds side by side, because it is the one place they diverge by design rather
+than by script. Pointing `--script-display-font` back at `--font-readex-pro` in
+the `:lang(ar)` block restores the shared display face and changes nothing else.
+
+Heading weights are covered: the scale uses 500 (`display-*`) and 600
+(`heading-*`), which land on the real Medium file and — via upward weight
+matching — the real Bold, never a synthesised one.
+
+Each swapped variable keeps an **inner fallback** —
+`--script-ui-font: var(--font-neo-sans-arabic, var(--font-ibm-plex-sans-arabic))`
+— because `:lang(ar)` also matches an Arabic name or note inside an *English*
+page, where step 1 deliberately withholds the family. Without the fallback that
+undefined variable would invalidate the whole `font-family` declaration and drop
+such text to the system font.
+
+**Check a font swap in the built CSS, not in the source.** The two failure modes
+above are both invisible in `globals.css` and obvious in `.next/static/chunks/*.css`:
+
+- `.font-sans{…}` must contain `var(--script-ui-font)`. If it names a family
+  directly, `@theme inline` baked it in and no override can reach it.
+- the `:lang(ar){…}` doing the swap must sit **outside** every `@layer` block.
+
+⚠ **`preload: false` on that font is load-bearing.** Next emits its
+`<link rel="preload">` from the module graph rather than from what a render
+actually used, so with preloading on, the English build shipped a preload tag
+and every English visitor downloaded the Arabic font. Gating the CSS variable on
+the locale does *not* prevent that — only `preload: false` does. If you ever
+turn it back on, check the built `en.html` for `NeoSansArabic` before shipping.
+
+**Three weights are licensed in, and they cover four.** The files carry
+`usWeightClass` 400, 500 and 700; `font-semibold` (600) has no file of its own
+but resolves onto the real 700 outlines, because CSS weight matching walks
+*upwards* first for any desired weight above 500. So every weight this app uses
+— `font-normal`, `font-medium`, `font-semibold`, `font-bold` — is drawn from
+real glyphs, and none of it is synthesised. See "Synthesised bold" below for why
+that is worth checking whenever a family is added.
+
+If a fourth weight is ever needed, add the `.woff2` to `src/app/fonts/` and a
+matching entry to the `src` array in the layout; nothing else changes.
 
 **The font variables go on `<html>`, not `<body>`.** `globals.css` sets
 `font-family` on the html element, and a CSS custom property is only visible to
@@ -284,15 +366,41 @@ Six variants, matching [buttons.png](design-images/buttons.png):
 
 | Variant | Rest | Hover |
 |---|---|---|
-| `default` | olive-600 fill, white label (5.46:1) | olive-700 |
+| `default` | olive-500 fill, white label (**3.47:1 — see below**) | olive-600 (5.46:1) |
 | `outline` | white, olive border + label | lime-400 fill, olive-950 label |
 | `ghost` | no box, olive label | lime-400 fill, olive-950 label |
 | `accent` | lime-400 fill, olive-950 label | lime-300 |
 | `destructive` | white, clay border + label (6.84:1) | clay-100 fill (5.81:1) |
+| `destructiveGhost` | no box, clay label (6.84:1) | clay-100 fill, label stays clay (5.81:1) |
 | `default` + any `icon*` size | olive-50 fill, olive-200 border, olive glyph | olive-100 |
 
 Plus `secondary` (olive-50 tint) and `link`, which aren't in the six but keep
 dense surfaces off ad-hoc classes.
+
+**`destructive` vs `destructiveGhost`** is about what the control is *among*,
+not how dangerous it is. A destructive action that closes a decision — the
+delete inside a confirm dialog — takes the outlined box that says so.
+A destructive action sitting among other controls takes the ghost: the rail's
+sign-out is stacked under four boxless links and a language switcher, and an
+outline there read as one more destination. Both keep the clay label at rest;
+neither is ever a solid red block. Like `ghost`, `destructiveGhost` carries 12px
+of padding rather than 20px, so a boxless control does not look like it has a
+gap around it.
+
+⚠ **White on olive-500 is 3.47:1 — under AA's 4.5:1 for a 16px label.** It
+clears the 3:1 a graphical mark needs, and the *hover* fill (olive-600) is the
+state that passes at 5.46:1, which is backwards: the resting state is the one
+that has to be readable. This is a deliberate brand choice and it is what
+ships, but it is the system's one knowing text-contrast failure, and it repeats
+on every `bg-primary text-primary-foreground` surface — the segmented thumb,
+the portal tab bar, the calendar's "today" pip, the plan day strip, the
+agenda's focused session.
+
+Two things fix it if it is ever revisited, and only one of them keeps the
+lighter green: pair olive-500 with an **olive-950 label** (4.77:1) and make
+hover go *lighter* to olive-400 (6.87:1) — which is exactly what `.dark`
+already does with this fill. Darkening the fill back to olive-600 is the other
+fix, and it is the one that gives up the lighter brand green.
 
 Disabled drops to the sunken fill with n-500 text (4.0:1).
 
@@ -347,9 +455,11 @@ size or position under the pointer.
 
 - **Hover** — olive-50 fill, olive-500 edge (`--input-hover`). The box is
   *offering* itself, and the tint is what makes it look reachable.
-- **Focus** — fill back to the page, edge to the full olive-600 **and 2px
-  thick**. The box is *taken*, and it goes quiet because there is about to be
-  text in it. Keyed off `:focus`, not `:focus-visible`: clicking into a box and
+- **Focus** — fill back to the page, same olive-500 edge **but 2px thick**. The
+  box is *taken*, and it goes quiet because there is about to be text in it.
+  The two states no longer differ in edge *colour* — `--primary` moved onto
+  olive-500 and nothing quieter clears 3:1 — so the fill and the 1px/2px
+  weight carry the difference. Keyed off `:focus`, not `:focus-visible`: clicking into a box and
   seeing nothing change is the one case where a mouse user needs what a keyboard
   user gets.
 - That second pixel is **1px border + 1px outline at `outline-offset: -1px`**,
@@ -563,18 +673,42 @@ with a lime ring because they pair it with an olive-950 halo; the rail has one
 ring and no halo, so the ring itself has to carry the contrast — 15.86:1 on the
 rail and 15.42:1 on the active item's olive-50 surface.
 
-**The rail can end in a footer** (`locale`): the language switcher above
-sign-out, pushed to the block-end with `mt-auto` and fenced off with a hairline.
-The dietitian area has no app bar, so this is where those two live. Sign-out is
-`destructive`/`sm` — clay, outlined, never a solid red block; it is the one
-control in the shell that undoes your way in, and on the rail an olive `outline`
-button read as one more destination. The portal omits `locale` and gets no
-footer, because it still has a header carrying the pair — and below `md`, where
-the rail is hidden, that header is the only place a client can reach either.
+**The rail can end in a profile menu** (`SidebarProfile`, given `user`): one row
+carrying the signed-in name over a muted email, with a chevron that points down
+closed and up open. Pushed to the block-end with `mt-auto` and fenced off with a
+hairline. The dietitian area has no app bar, so this is where account controls
+live.
+
+**It opens upward**, and it does that by rendering the panel *before* the
+trigger in the DOM — the rail's block-end is the floor, so growing the panel
+pushes the trigger down onto its own stack instead of off-screen, and the
+trigger stays put under the pointer that just clicked it. The growth is the
+`0fr` → `1fr` grid-row trick, with the panel `inert` while closed so it stays
+mounted (and keeps the sign-out form's state) without sitting in the tab order.
+
+Inside, block-start to block-end: **settings, notifications, WhatsApp,
+security**, then a hairline, then the **language switcher** and **sign-out**.
+The four destinations are *not* in the rail's own nav — the same link in two
+lists is two answers to "where does this live" — and sign-out is last, nearest
+the trigger, as the one item a mis-aimed click most wants to miss. It is
+`destructiveGhost`/`sm`: no box, clay label and glyph throughout, clay-100 fill
+on hover. Settings takes a **gear**, not the person glyph the old rail's Profile
+item used — it is reached from a control that is already a person.
+
+**Escape and an outside `pointerdown` both close it**, and so does following a
+link — client-side navigation keeps the component mounted, so an open menu
+would otherwise outlive the page it left.
+
+The portal omits `user` and gets no menu, because it still has a header carrying
+sign-out and the language switcher — and below `md`, where the rail is hidden,
+that header is the only place a client can reach either.
 
 **App bar** (`Header`) — **the portal only.** The dietitian area has no bar: it
-carried a title the rail already said, a name nobody needed reminding of, and a
-notification bell, and the row it cost is worth more than all three. Each staff
+carried a title the rail already said, a name, and a notification bell, and the
+row it cost is worth more than all three. The name and everything that hung off
+it moved into the rail's profile menu; the bell's feed became a page
+(`/app/notifications`) reached from that menu, because a list with a scrollbar,
+links out of every row and an empty state is a page, not a popover. Each staff
 page owns its own heading, and that heading is the page's `h1`.
 
 Where it does appear it is deliberately **unfilled**: no background, no border,
@@ -584,9 +718,21 @@ type and spacing. `children` sits beside the title for page-level controls.
 **Everything in the bar is 40px** — the one place the pointer-only `sm` size is
 for: sign-out is `sm`, and `LocaleSwitcher` is pinned to `h-10` to match.
 
-**The locale switcher appears once per screen** — in the rail's footer, in the
-portal's bar, or on the login screens, which have neither. There is no floating
-copy pinned to a corner.
+**The locale switcher appears once per screen** — inside the rail's profile
+menu, in the portal's bar, or on the login screens, which have neither. There is
+no floating copy pinned to a corner.
+
+It is labelled **`AR` / `EN`**, not with endonyms: it is 40px of a rail's width,
+and two endonyms in two scripts never fit without one truncating, while the ISO
+codes are the same two characters in both locales so the control stops changing
+width when the language does. The endonym moves to `aria-label`, and the button
+carries **no `lang`** — tagging Latin `AR` as Arabic tells a screen reader to
+pronounce it in the wrong language.
+
+**Its selected chip is neutral (n-100), not olive.** Olive marks what you can
+act on; the selected locale is a state, and in the profile menu an olive chip
+was the one brand-coloured thing in the panel, pulling the eye to the least
+consequential control in it.
 
 **Bottom bar** (`PortalTabBar`) — five-across on a phone, labels always
 visible, lime node **above** the active icon rather than beside it: the bar is

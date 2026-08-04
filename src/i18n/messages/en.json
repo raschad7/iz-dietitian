@@ -36,7 +36,8 @@
     "security": "Security",
     "weeklyPlans": "Weekly Plans",
     "dishes": "Dish catalog",
-    "whatsapp": "WhatsApp"
+    "whatsapp": "WhatsApp",
+    "notifications": "Notifications"
   },
   "landing": {
     "title": "Run your dietitian practice in one place",
@@ -139,7 +140,6 @@
     "title": "Calendar",
     "completed": "Completed",
     "now": "Now",
-    "empty": "Nothing booked in this range. Click any empty slot to add an appointment.",
     "openClientProfile": "Open client profile",
     "monthMore": "+{count, number, integer} more",
     "monthReadOnly": "Month view is an overview. Click a day to book or edit.",
@@ -150,7 +150,10 @@
       "view": "View",
       "day": "Day",
       "week": "Week",
-      "month": "Month"
+      "month": "Month",
+      "pickDate": "Pick a date",
+      "previousMonth": "Previous month",
+      "nextMonth": "Next month"
     },
     "search": {
       "placeholder": "Search clients"
@@ -526,8 +529,10 @@
   "localeSwitcher": {
     "label": "Language",
     "devOnly": "Locale switcher (development only)",
-    "ar": "العربية",
-    "en": "English"
+    "ar": "AR",
+    "en": "EN",
+    "arName": "العربية",
+    "enName": "English"
   },
   "errors": {
     "notFound": "Page not found",
