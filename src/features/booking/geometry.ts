@@ -33,12 +33,17 @@ export const INLINE_HEIGHT_PX = 46;
 export const DRAG_THRESHOLD_PX = 4;
 
 /**
- * The smallest a slot may shrink to when fitting a day into the viewport.
+ * The smallest slot height the rest of this module is expected to stay legible
+ * at — 20px a slot, which is 80px an hour, enough air between the hour rules to
+ * read the grid rather than a stack of hairlines.
  *
- * 20px per slot is 80px per hour — enough air between the hour rules to read the
- * grid comfortably rather than as a stack of hairlines. Below this the timeline
- * scrolls instead of compressing further: a ruler too fine to read is worse than
- * a short scroll.
+ * It used to be a floor the grid was *fitted* to: the timeline divided itself
+ * into the panel and stopped shrinking here. That is gone — the day is drawn at
+ * `PX_PER_SLOT` and the panel scrolls to it — so nothing computes against this
+ * any more. It stays as the specification it always was: every function here
+ * takes `pxPerSlot` as a parameter, and this is the bottom of the range those
+ * parameters are answerable for. `SUBDIVISION_MIN_PX_PER_SLOT` is defined
+ * against it, and `blockCardBox`'s readable floor is proved at it.
  */
 export const MIN_PX_PER_SLOT = 20;
 
@@ -50,22 +55,6 @@ export const MIN_PX_PER_SLOT = 20;
  * *closer together* than they are. Fewer lines, more apparent space.
  */
 export const SUBDIVISION_MIN_PX_PER_SLOT = 22;
-
-/**
- * The slot height that makes a whole clinic day fill `availableHeight` exactly,
- * so the grid fits the screen and there is no scrollbar.
- *
- * `PX_PER_SLOT` remains the *default* — the size the grid uses when nothing is
- * measuring it — and every function here takes the fitted value as an argument
- * instead of reading a global. That keeps them pure and keeps one formula in
- * charge of the mapping whether the grid is fitted or not.
- */
-export function fitPxPerSlot(availableHeight: number, openMinute: number, closeMinute: number): number {
-  const slots = (closeMinute - openMinute) / SLOT_MINUTES;
-  if (slots <= 0 || availableHeight <= 0) return PX_PER_SLOT;
-
-  return Math.max(MIN_PX_PER_SLOT, availableHeight / slots);
-}
 
 export function minutesToPx(minutes: number, pxPerSlot: number = PX_PER_SLOT): number {
   return (minutes * pxPerSlot) / SLOT_MINUTES;
