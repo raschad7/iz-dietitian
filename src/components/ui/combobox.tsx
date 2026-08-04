@@ -31,6 +31,10 @@ type ComboboxProps<T extends string> = {
   placeholder: string;
   emptyMessage: string;
   className?: string;
+  /** Presentation of the editable trigger; popup behaviour stays identical. */
+  inputClassName?: string;
+  /** Lets a compact trigger keep a comfortably wide result list. */
+  popupClassName?: string;
 };
 
 /**
@@ -59,6 +63,8 @@ export function Combobox<T extends string>({
   placeholder,
   emptyMessage,
   className,
+  inputClassName,
+  popupClassName,
 }: ComboboxProps<T>) {
   /*
    * The primitive works in whole option objects, the caller works in ids. The
@@ -94,7 +100,10 @@ export function Combobox<T extends string>({
           // (globals.css), shared with Input, Textarea and Select. 48px and
           // 20px of padding to match `Input` exactly — a field and the button
           // beside it sit in the same row and must be the same height.
-          className="q-field h-12 py-1 ps-5 pe-11 placeholder:text-muted-foreground"
+          className={cn(
+            'q-field h-12 py-1 ps-5 pe-11 placeholder:text-muted-foreground',
+            inputClassName,
+          )}
         />
 
         {/*
@@ -124,7 +133,10 @@ export function Combobox<T extends string>({
           <ComboboxPrimitive.Popup
             // `--anchor-width` is the primitive's own positioner variable, so
             // the list is exactly as wide as the field it drops out of.
-            className="w-(--anchor-width) origin-(--transform-origin) overflow-hidden rounded-lg rounded-ee-4xl border border-border bg-popover p-1 text-popover-foreground shadow-elevated transition-[transform,opacity] duration-150 ease-[cubic-bezier(.2,.6,.2,1)] data-ending-style:scale-95 data-ending-style:opacity-0 data-starting-style:scale-95 data-starting-style:opacity-0"
+            className={cn(
+              'w-(--anchor-width) origin-(--transform-origin) overflow-hidden rounded-lg rounded-ee-4xl border border-border bg-popover p-1 text-popover-foreground shadow-elevated transition-[transform,opacity] duration-150 ease-[cubic-bezier(.2,.6,.2,1)] data-ending-style:scale-95 data-ending-style:opacity-0 data-starting-style:scale-95 data-starting-style:opacity-0',
+              popupClassName,
+            )}
           >
             {/*
               Stays mounted whether or not the list is empty — the primitive

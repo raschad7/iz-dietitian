@@ -361,6 +361,14 @@ export async function moveMealDish(
 
     if (!source?.dishId) return false;
 
+    const [target] = await tx
+      .select({ dishId: weeklyPlanMeals.dishId, servings: weeklyPlanMeals.servings })
+      .from(weeklyPlanMeals)
+      .where(and(eq(weeklyPlanMeals.id, toMealId), eq(weeklyPlanMeals.planId, planId)))
+      .limit(1);
+
+    if (!target) return false;
+
     const updated = await tx
       .update(weeklyPlanMeals)
       .set({
@@ -377,8 +385,13 @@ export async function moveMealDish(
     if (mode === 'move') {
       await tx
         .update(weeklyPlanMeals)
-        .set({ dishId: null, servings: 1, rationaleAr: null, updatedAt: new Date() })
-        .where(eq(weeklyPlanMeals.id, fromMealId));
+        .set({
+          dishId: target.dishId,
+          servings: target.dishId ? target.servings : 1,
+          rationaleAr: null,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(weeklyPlanMeals.id, fromMealId), eq(weeklyPlanMeals.planId, planId)));
     }
 
     await touchPlan(tx, planId);

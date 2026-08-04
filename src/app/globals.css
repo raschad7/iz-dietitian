@@ -910,6 +910,29 @@
 }
 
 /*
+ * The planner rail and its compact trigger are one responsive pair. Keeping
+ * their breakpoint here prevents a partially generated utility sheet from
+ * showing the mobile trigger while hiding the desktop rail.
+ */
+.planner-desktop-rail {
+  display: none;
+}
+
+.planner-compact-trigger {
+  display: inline-flex;
+}
+
+@media (min-width: 80rem) {
+  .planner-desktop-rail {
+    display: flex;
+  }
+
+  .planner-compact-trigger {
+    display: none;
+  }
+}
+
+/*
  * A scroller with no visible scrollbar.
  *
  * The content still scrolls — by wheel, trackpad, touch and keyboard — only the

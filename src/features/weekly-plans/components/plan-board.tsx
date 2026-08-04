@@ -3,7 +3,6 @@
 import { useMemo, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
 import { getLocaleDirection } from '@/i18n/routing';
@@ -18,6 +17,7 @@ import type {
   PlannableClient,
   SwapCandidate,
 } from '../queries';
+import { railTabsForPlan, type RailTab } from '../rail-state';
 import { dayKey, PLAN_STATUSES } from '../schema';
 import { slotFillKey } from '../skeleton';
 import type { RecentUse } from '../usage';
@@ -32,9 +32,6 @@ import { MealDetailPanel } from './meal-detail-panel';
 import { NewWeekDialog, type NewWeekProps } from './new-week-dialog';
 import { PublishButton } from './publish-button';
 import { RailTabs } from './rail-tabs';
-
-/** The rail's panels. */
-type RailTab = 'client' | 'dishes' | 'meal' | 'past';
 
 type BoardProps = {
   board: Board;
@@ -101,7 +98,7 @@ function BoardBody({
   const activeLocale = useLocale();
   // The optimistic board, not the server one: everything below renders the edit
   // just made, before it has finished being written.
-  const { board, editable, pending, error } = useEditor();
+  const { board, editable, pending, error, lastMove, undoLastMove } = useEditor();
 
   const [selectedMealId, setSelectedMealId] = useState<string | null>(null);
   const [tab, setTab] = useState<RailTab>('client');
@@ -131,15 +128,11 @@ function BoardBody({
    * while the plan is editable, or the columns would end on a row nothing is ever
    * placed in — a row for the add control.
    *
-   * `minmax(auto, 1fr)` rather than a fixed floor such as `minmax(6rem, 1fr)`. A
-   * fixed minimum is not an intrinsic min track sizing function, so it switches
-   * off the grid item's automatic minimum size; and once the board is taller than
-   * the viewport there is no positive free space left for the `1fr` to grow the
-   * track with, so every row would pin at the floor and the taller cards would
-   * spill into the row below. `auto` floors each row at its own content and still
-   * stretches to fill a board with room to spare.
+   * The explicit floor is the readability contract. Metadata and the nutrition
+   * shelf may never squeeze the dish name out of the card; when the viewport is
+   * shorter than the week, the board scrolls instead of collapsing its content.
    */
-  const rowTemplate = `auto repeat(${slotRows}, minmax(auto, 1fr))${editable ? ' auto' : ''}`;
+  const rowTemplate = `auto repeat(${slotRows}, minmax(7.75rem, 1fr))${editable ? ' auto' : ''}`;
 
   /**
    * The previous plan's dish for each slot, marked where it repeats.
@@ -186,12 +179,7 @@ function BoardBody({
         label={t('title')}
         active={tab}
         onSelect={setTab}
-        tabs={[
-          { id: 'client' as const, label: t('tabs.client') },
-          { id: 'dishes' as const, label: t('tabs.dishes') },
-          { id: 'meal' as const, label: t('tabs.meal') },
-          { id: 'past' as const, label: t('tabs.past') },
-        ]}
+        tabs={railTabsForPlan(true).map((id) => ({ id, label: t(`tabs.${id}`) }))}
       />
 
       {/* The tabs stay put and the panel under them scrolls. A tab bar that
@@ -201,7 +189,7 @@ function BoardBody({
         role="tabpanel"
         id={`rail-panel-${tab}`}
         aria-labelledby={`rail-tab-${tab}`}
-        className="min-h-0 flex-1 overflow-y-auto"
+        className="min-h-0 flex-1 overflow-hidden pt-3"
       >
         {tab === 'dishes' ? (
           <DishCatalog
@@ -227,14 +215,15 @@ function BoardBody({
                 setSelectedMealId(null);
                 setTab('client');
               }}
+              onBrowseDishes={() => setTab('dishes')}
             />
           ) : (
             <p className="text-body-sm text-muted-foreground">{t('selectMeal')}</p>
           )
         ) : tab === 'past' ? (
-          history
+          <div className="no-scrollbar h-full overflow-y-auto overflow-x-hidden">{history}</div>
         ) : (
-          children
+          <div className="no-scrollbar h-full overflow-y-auto overflow-x-hidden">{children}</div>
         )}
       </div>
     </>
@@ -251,42 +240,48 @@ function BoardBody({
         is the trade a toolbar should make; hiding a control to save a row means
         the feature is gone.
       */}
-      <header className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <ClientPicker clients={clients} selectedClientId={board.clientId} />
-
-        {isMember(PLAN_STATUSES, board.status) && (
-          <Badge variant={board.status === 'published' ? 'default' : 'muted'}>
+      <header className="border-b border-border pb-4">
+        <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+          <div className="min-w-0 flex-1">
+          <span className="block text-caption text-muted-foreground">{t('title')}</span>
+          <h2 className="sr-only">{board.clientName}</h2>
+          <ClientPicker
+            clients={clients}
+            selectedClientId={board.clientId}
+            appearance="heading"
+          />
+            <div className="mt-2 flex flex-wrap items-center gap-y-1 text-label text-muted-foreground">
+              {isMember(PLAN_STATUSES, board.status) && (
+          <span className="inline-flex items-center gap-2 pe-3">
+            <span
+              aria-hidden
+              className={cn(
+                'size-2 rounded-full',
+                board.status === 'published' ? 'bg-primary' : 'bg-muted-foreground',
+              )}
+            />
             {t(`status.${board.status}`)}
-          </Badge>
-        )}
+          </span>
+              )}
 
-        <span className="whitespace-nowrap text-label text-muted-foreground">
+        <span className="whitespace-nowrap border-s border-border px-3">
           {t('weekOf', { date: board.weekStartDate })}
         </span>
 
         {/* The one fact here that is printed elsewhere on the same screen — the
             client panel carries it, and so does every unplanned day column — so
             it is the one that gives up its place on a phone. */}
-        <span className="hidden whitespace-nowrap text-label text-muted-foreground sm:inline">
+        <span className="hidden whitespace-nowrap border-s border-border ps-3 sm:inline">
           {t('dailyTargetShort', { value: dailyTarget })}
         </span>
 
         {/* Reserved width, so a save does not reflow the row it sits in. Only
             where there is width to reserve: on a phone the row is already two
             lines and 96px of held-open blank is a third. */}
-        <span
-          role="status"
-          aria-live="polite"
-          className="shrink-0 text-label text-muted-foreground sm:min-w-24"
-        >
-          {error ? (
-            <span className="text-destructive">{t(error)}</span>
-          ) : pending ? (
-            t('savingIndicator')
-          ) : null}
-        </span>
+            </div>
+          </div>
 
-        <div className="ms-auto flex flex-wrap items-center justify-end gap-3">
+          <div className="flex flex-wrap items-center justify-end gap-2">
           {/* Below `xl` the rail is a sheet, and a sheet that only opens by
               tapping a meal leaves the client, the catalog and the past weeks
               with no door at all. */}
@@ -294,7 +289,7 @@ function BoardBody({
             type="button"
             size="sm"
             variant="outline"
-            className="xl:hidden"
+            className="planner-compact-trigger"
             onClick={() => setSheetOpen(true)}
           >
             {t('openPanels')}
@@ -339,14 +334,25 @@ function BoardBody({
             <Button
               type="button"
               size="sm"
-              variant={comparing ? 'default' : 'outline'}
+              variant={comparing ? 'secondary' : 'ghost'}
               aria-pressed={comparing}
               onClick={() => setComparing((value) => !value)}
             >
               {t('compareWith', { date: previous.weekStartDate })}
             </Button>
           )}
+          </div>
         </div>
+
+        {(pending || error) && (
+          <p
+            role="status"
+            aria-live="polite"
+            className={cn('mt-2 text-label text-muted-foreground', error && 'text-destructive')}
+          >
+            {error ? t(error) : t('savingIndicator')}
+          </p>
+        )}
       </header>
 
       {allowPublished && (
@@ -371,7 +377,7 @@ function BoardBody({
             to shrink. `h-full` keeps the row template's `1fr` working: the fr
             unit needs a definite height to share out, and inside a scroller the
             grid would otherwise size to its content and never stretch. */}
-        <div className="min-w-0 flex-1 overflow-auto">
+        <div className="min-w-0 flex-1 overflow-auto [scrollbar-gutter:stable]">
           {/* One grid for the week, and each day a subgrid of it, so every card in
               a row is the same height and the rows run straight across.
               `grid-cols-7` is `repeat(7, minmax(0,1fr))` rather than `1fr`, so a
@@ -381,7 +387,7 @@ function BoardBody({
               parent's gutters, and repeating them on the day column would let the
               two drift out of step. */}
           <div
-            className="grid h-full grid-cols-7 gap-x-2.5 gap-y-1.5 max-md:grid-cols-1 md:min-w-[68.75rem]"
+            className="grid h-full grid-cols-7 gap-x-2.5 gap-y-2 max-md:grid-cols-1 md:min-w-[78rem]"
             style={{ gridTemplateRows: rowTemplate }}
           >
             {board.days.map((day) => (
@@ -407,7 +413,7 @@ function BoardBody({
           </div>
         </div>
 
-        <aside className="hidden w-72 shrink-0 flex-col border-s border-border ps-3 xl:flex">
+        <aside className="planner-desktop-rail w-[22rem] shrink-0 flex-col border-s border-border ps-5">
           {!belowXl && railContent}
         </aside>
       </div>
@@ -421,6 +427,19 @@ function BoardBody({
       >
         {belowXl && railContent}
       </BoardSheet>
+
+      {lastMove && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-4 start-1/2 z-50 flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-3 rounded-lg rounded-ee-4xl border border-border bg-card py-1.5 ps-4 pe-1.5 text-body-sm shadow-overlay rtl:translate-x-1/2"
+        >
+          <span className="min-w-0 truncate">{t('mealMoved', { name: lastMove.dishName })}</span>
+          <Button type="button" size="sm" variant="ghost" disabled={pending} onClick={undoLastMove}>
+            {t('undo')}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

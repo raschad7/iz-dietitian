@@ -19,9 +19,11 @@ import type { PlannableClient } from '../queries';
 export function ClientPicker({
   clients,
   selectedClientId,
+  appearance = 'field',
 }: {
   clients: readonly PlannableClient[];
   selectedClientId?: string;
+  appearance?: 'field' | 'heading';
 }) {
   const t = useTranslations('weeklyPlans');
   const router = useRouter();
@@ -46,7 +48,13 @@ export function ClientPicker({
       // Full width on a phone, where it takes the header's first line to
       // itself and everything else wraps under it; a fixed 256px that refuses
       // to shrink is what pushed the rest of the row off the screen.
-      className="w-full sm:w-64 sm:shrink-0"
+      className={appearance === 'heading' ? 'w-full min-w-56 sm:w-80' : 'w-full sm:w-64 sm:shrink-0'}
+      inputClassName={
+        appearance === 'heading'
+          ? 'h-10 border-transparent bg-transparent py-0 ps-0 pe-9 font-heading text-heading-md font-semibold shadow-none hover:bg-accent/50 focus:bg-card'
+          : undefined
+      }
+      popupClassName={appearance === 'heading' ? 'min-w-72' : undefined}
     />
   );
 }

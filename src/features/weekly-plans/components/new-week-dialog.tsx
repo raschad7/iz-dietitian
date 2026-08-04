@@ -54,12 +54,16 @@ export function NewWeekDialog({
   board,
   locale,
   newWeek,
+  triggerLabel,
+  triggerVariant = 'ghost',
 }: {
   clientId: string;
   /** The plan on screen, which decides whether generating replaces it. */
   board: { id: string; status: string } | null;
   locale: string;
   newWeek: NewWeekProps;
+  triggerLabel?: string;
+  triggerVariant?: 'default' | 'ghost';
 }) {
   const t = useTranslations('weeklyPlans');
   const tCommon = useTranslations('common');
@@ -74,8 +78,8 @@ export function NewWeekDialog({
 
   return (
     <>
-      <Button type="button" size="sm" onClick={() => setOpen(true)}>
-        {t('newWeek')}
+      <Button type="button" size="sm" variant={triggerVariant} onClick={() => setOpen(true)}>
+        {triggerLabel ?? t('newWeek')}
       </Button>
 
       <Dialog

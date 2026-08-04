@@ -163,13 +163,18 @@ export function applyEdit(board: Board, edit: BoardEdit): Board {
       if (!source?.dish) return board;
 
       const moved = source.dish;
+      const target = findMeal(board, edit.toMealId);
+      if (!target) return board;
+      const displaced = target.dish;
 
       return mapMeals(board, (meal) => {
         // The dish and its portion move; the target's own label, time and budget
         // stay. A lunch dropped on a breakfast slot becomes breakfast at
         // breakfast's budget, which is what the dietitian sees and expects.
         if (meal.id === edit.toMealId) return withDish(meal, moved, moved.servings);
-        if (meal.id === edit.fromMealId && edit.mode === 'move') return withDish(meal, null, 1);
+        if (meal.id === edit.fromMealId && edit.mode === 'move') {
+          return withDish(meal, displaced, displaced?.servings ?? 1);
+        }
         return meal;
       });
     }

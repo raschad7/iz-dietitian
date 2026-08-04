@@ -98,7 +98,7 @@ export function DayColumn({
         !showOnPhone && 'max-md:hidden',
       )}
     >
-      <div className="rounded-lg bg-muted/60 px-3 py-2.5">
+      <div className="sticky top-0 z-10 border-b border-border bg-background/95 px-2 pb-3 pt-2 backdrop-blur-sm">
         <div className="flex items-baseline justify-between gap-1.5">
           <span className="truncate text-body-sm font-semibold">{dayName}</span>
 
@@ -201,7 +201,7 @@ function AddMeal({ day }: { day: BoardDay }) {
         type="button"
         onClick={() => setOpen(true)}
         style={LAST_ROW}
-        className="h-10 rounded-lg border border-dashed border-border text-label text-muted-foreground hover:bg-accent"
+        className="h-10 rounded-lg border border-dashed border-border text-label text-muted-foreground transition-colors hover:border-primary hover:bg-secondary hover:text-secondary-foreground"
       >
         + {t('addMeal')}
       </button>

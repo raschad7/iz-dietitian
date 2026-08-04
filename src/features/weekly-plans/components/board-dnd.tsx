@@ -1,8 +1,9 @@
 'use client';
 
-import { createContext, useContext, useOptimistic, useState, useTransition } from 'react';
+import { createContext, useContext, useEffect, useOptimistic, useState, useTransition } from 'react';
 import {
   DndContext,
+  DragOverlay,
   KeyboardSensor,
   PointerSensor,
   TouchSensor,
@@ -59,6 +60,8 @@ type EditorValue = {
   pending: boolean;
   /** A message key from the last failed edit, or null. */
   error: EditErrorKey | null;
+  lastMove: { dishName: string } | null;
+  undoLastMove: () => void;
 };
 
 const EditorContext = createContext<EditorValue | null>(null);
@@ -70,9 +73,19 @@ export function useEditor(): EditorValue {
 }
 
 /** What a draggable puts in `data`, so drop handling stays type-safe. */
-type DragPayload =
+export type DragPayload =
   | { kind: 'dish'; dish: DishDetail; servings: number }
-  | { kind: 'meal'; mealId: string };
+  | {
+      kind: 'meal';
+      mealId: string;
+      preview: {
+        label: string;
+        timeOfDay: string;
+        dishName: string;
+        kcal: number;
+        servings: number;
+      };
+    };
 
 export function BoardEditor({
   board,
@@ -91,6 +104,17 @@ export function BoardEditor({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<EditErrorKey | null>(null);
   const [dragging, setDragging] = useState<DragPayload | null>(null);
+  const [lastMove, setLastMove] = useState<{
+    fromMealId: string;
+    toMealId: string;
+    dishName: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!lastMove) return;
+    const timeout = window.setTimeout(() => setLastMove(null), 8000);
+    return () => window.clearTimeout(timeout);
+  }, [lastMove]);
 
   // Pointer covers mouse and pen; Touch is what makes the board work on a tablet;
   // Keyboard is not optional, because every card is a real button today and an
@@ -129,7 +153,10 @@ export function BoardEditor({
     startTransition(async () => {
       applyOptimistic(edit);
       const result = await action(initialPlanActionState, formFor(fields));
-      if (result.status === 'error') setError(result.messageKey);
+      if (result.status === 'error') {
+        setLastMove(null);
+        setError(result.messageKey);
+      }
     });
   }
 
@@ -146,6 +173,7 @@ export function BoardEditor({
     if (!target || !payload || !editable) return;
 
     if (payload.kind === 'dish') {
+      setLastMove(null);
       runAction(
         { kind: 'place', mealId: target.mealId, dish: payload.dish, servings: payload.servings },
         placeDishAction,
@@ -156,6 +184,12 @@ export function BoardEditor({
 
     if (payload.mealId === target.mealId) return;
 
+    setLastMove({
+      fromMealId: payload.mealId,
+      toMealId: target.mealId,
+      dishName: payload.preview.dishName,
+    });
+
     runAction(
       { kind: 'move', fromMealId: payload.mealId, toMealId: target.mealId, mode: 'move' },
       moveMealAction,
@@ -163,7 +197,26 @@ export function BoardEditor({
     );
   }
 
-  const value: EditorValue = { board: optimisticBoard, editable, allowPublished, pending, error };
+  function undoLastMove(): void {
+    if (!lastMove || pending) return;
+    const move = lastMove;
+    setLastMove(null);
+    runAction(
+      { kind: 'move', fromMealId: move.toMealId, toMealId: move.fromMealId, mode: 'move' },
+      moveMealAction,
+      { fromMealId: move.toMealId, toMealId: move.fromMealId, mode: 'move' },
+    );
+  }
+
+  const value: EditorValue = {
+    board: optimisticBoard,
+    editable,
+    allowPublished,
+    pending,
+    error,
+    lastMove: lastMove ? { dishName: lastMove.dishName } : null,
+    undoLastMove,
+  };
 
   return (
     <EditorContext.Provider value={value}>
@@ -180,30 +233,74 @@ export function BoardEditor({
         sensors={sensors}
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
+        onDragCancel={() => setDragging(null)}
       >
         <EditorActionsContext.Provider
           value={{
-            setServings: (mealId, servings) =>
+            setServings: (mealId, servings) => {
+              setLastMove(null);
               runAction({ kind: 'servings', mealId, servings }, setServingsAction, {
                 mealId,
                 servings,
-              }),
-            clear: (mealId) => runAction({ kind: 'clear', mealId }, clearMealAction, { mealId }),
-            remove: (mealId) => runAction({ kind: 'remove', mealId }, removeMealAction, { mealId }),
-            add: (dayOfWeek, slotKey, label, timeOfDay) =>
+              });
+            },
+            clear: (mealId) => {
+              setLastMove(null);
+              runAction({ kind: 'clear', mealId }, clearMealAction, { mealId });
+            },
+            remove: (mealId) => {
+              setLastMove(null);
+              runAction({ kind: 'remove', mealId }, removeMealAction, { mealId });
+            },
+            add: (dayOfWeek, slotKey, label, timeOfDay) => {
+              setLastMove(null);
               runAction({ kind: 'add', dayOfWeek, slotKey, label, timeOfDay }, addMealAction, {
                 dayOfWeek,
                 slotKey,
                 label,
                 timeOfDay,
-              }),
+              });
+            },
             dragging,
           }}
         >
           {children}
         </EditorActionsContext.Provider>
+
+        <DragOverlay dropAnimation={{ duration: 180, easing: 'cubic-bezier(.2,.6,.2,1)' }}>
+          {dragging ? <DragPreview payload={dragging} /> : null}
+        </DragOverlay>
       </DndContext>
     </EditorContext.Provider>
+  );
+}
+
+function DragPreview({ payload }: { payload: DragPayload }) {
+  const isMeal = payload.kind === 'meal';
+  const name = isMeal ? payload.preview.dishName : payload.dish.nameAr;
+
+  return (
+    <div className="w-52 overflow-hidden rounded-lg rounded-ee-4xl border border-primary bg-card shadow-overlay">
+      {isMeal && (
+        <div className="flex items-baseline justify-between gap-2 px-3 pt-2.5 text-caption text-muted-foreground">
+          <span className="truncate">{payload.preview.label}</span>
+          <span dir="ltr">{payload.preview.timeOfDay}</span>
+        </div>
+      )}
+      <p className="px-3 py-3 font-heading text-body-md font-semibold leading-relaxed" dir="auto">
+        {name}
+      </p>
+      {isMeal && (
+        <div className="flex items-baseline justify-between border-t border-border bg-muted/70 px-3 py-2.5">
+          <strong className="font-heading text-heading-sm tabular-nums" dir="ltr">
+            {payload.preview.kcal} <small className="font-sans text-caption font-normal">kcal</small>
+          </strong>
+          <span className="text-caption text-muted-foreground" dir="ltr">
+            ×{payload.preview.servings}
+          </span>
+        </div>
+      )}
+    </div>
   );
 }
 

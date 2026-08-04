@@ -432,6 +432,22 @@ describe('the edit writes', () => {
     expect(from?.dishId).toBeNull();
   });
 
+  test('moveMealDish swaps filled meals instead of discarding the target', async () => {
+    const targetDishId = await seedDish('swap-target');
+    await placeDish(clinicId, planId, sunday.lunch, dishId, 1.5);
+    await placeDish(clinicId, planId, sunday.breakfast, targetDishId, 2);
+
+    expect(await moveMealDish(clinicId, planId, sunday.lunch, sunday.breakfast, 'move')).toBe(true);
+
+    const to = await readMeal(sunday.breakfast);
+    const from = await readMeal(sunday.lunch);
+
+    expect(to?.dishId).toBe(dishId);
+    expect(to?.servings).toBe(1.5);
+    expect(from?.dishId).toBe(targetDishId);
+    expect(from?.servings).toBe(2);
+  });
+
   test('moveMealDish in copy mode leaves the source filled', async () => {
     await placeDish(clinicId, planId, sunday.lunch, dishId, 1);
     await moveMealDish(clinicId, planId, sunday.lunch, sunday.breakfast, 'copy');

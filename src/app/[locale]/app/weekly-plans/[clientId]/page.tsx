@@ -5,13 +5,11 @@ import type { Metadata } from 'next';
 import { resolveLocale } from '@/i18n/params';
 import { requireStaffClinic } from '@/lib/session';
 
-import { ClientPicker } from '@/features/weekly-plans/components/client-picker';
 import { ContextPanel } from '@/features/weekly-plans/components/context-panel';
-import { GenerateForm } from '@/features/weekly-plans/components/generate-form';
+import { EmptyPlanBoard } from '@/features/weekly-plans/components/empty-plan-board';
 import { PlanBoard } from '@/features/weekly-plans/components/plan-board';
 import { PlanHistory } from '@/features/weekly-plans/components/plan-history';
 import { isLlmConfigured } from '@/features/weekly-plans/llm';
-import { newWeekMode } from '@/features/weekly-plans/new-week';
 import {
   getBoard,
   getClientContext,
@@ -105,10 +103,10 @@ export default async function ClientBoardPage({ params, searchParams }: PageProp
   const history = <PlanHistory plans={plans} clientId={clientId} />;
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4 text-start">
+    <div className="flex h-full min-h-0 flex-col text-start">
       {/* No week pills beside the title: they were the history tab's list, in
           a second place, with room for fewer of them. */}
-      <h1 className="text-xl font-semibold tracking-tight">{t('title')}</h1>
+      <h1 className="sr-only">{t('title')}</h1>
 
       <div className="flex min-h-0 flex-1 gap-4">
         {board ? (
@@ -128,40 +126,16 @@ export default async function ClientBoardPage({ params, searchParams }: PageProp
             <ContextPanel context={context} />
           </PlanBoard>
         ) : (
-          <div className="flex min-w-0 flex-1 gap-4">
-            {/* The picker rides this branch too. The rail it replaces was
-                outside the ternary, so without it a client with no plan yet
-                would be a screen you can only leave through the nav. */}
-            <div className="flex min-w-0 flex-1 flex-col gap-3">
-              <ClientPicker clients={clients} selectedClientId={clientId} />
-
-              <div className="flex min-h-0 flex-1 items-center justify-center rounded-lg border border-dashed border-border">
-                <p className="max-w-sm p-6 text-center text-sm text-muted-foreground">
-                  {t('noPlanYet')}
-                </p>
-              </div>
-            </div>
-
-            <aside className="w-72 shrink-0 overflow-y-auto border-s border-border ps-3">
-              <div className="flex flex-col gap-5">
-                <ContextPanel context={context} />
-
-                <div className="border-t border-border pt-4">
-                  {/* No board, so nothing to regenerate over — this is always
-                      a first week. There is no dialog on this branch either:
-                      the dialog lives in the board's header. */}
-                  <GenerateForm
-                    clientId={clientId}
-                    weekStartDate={weekStartDate}
-                    locale={locale}
-                    mode={newWeekMode(null)}
-                    blocked={blocked}
-                    context={context}
-                  />
-                </div>
-              </div>
-            </aside>
-          </div>
+          <EmptyPlanBoard
+            clientId={clientId}
+            clients={clients}
+            catalog={catalog}
+            usage={usage}
+            locale={locale}
+            history={history}
+            profile={<ContextPanel context={context} />}
+            newWeek={newWeek}
+          />
         )}
       </div>
     </div>

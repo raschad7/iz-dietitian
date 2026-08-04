@@ -1,11 +1,12 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { Popover } from '@base-ui/react/popover';
 import { useDraggable } from '@dnd-kit/core';
 import { useTranslations } from 'next-intl';
 
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
+import { buttonVariants } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { membersOf } from '@/lib/enum';
 import { cn } from '@/lib/utils';
@@ -76,52 +77,74 @@ export function DishCatalog({
   }, [catalog, query, tag, mealType, allMealTypes, slot]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2">
-      <Input
-        type="search"
-        value={query}
-        onChange={(event) => setQuery(event.target.value)}
-        placeholder={t('searchDishes')}
-      />
+    <div className="flex h-full min-h-0 flex-col overflow-hidden">
+      <div className="relative shrink-0 border-b border-border pb-3">
+        <Input
+          type="search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder={t('searchDishes')}
+        />
 
-      <div className="flex flex-wrap gap-1">
-        {mealType && (
-          <FilterChip active={!allMealTypes} onClick={() => setAllMealTypes((value) => !value)}>
-            {t(`mealTypes.${mealType}`)}
-          </FilterChip>
+        <div className="mt-2 flex gap-2">
+          {mealType && (
+            <button
+              type="button"
+              aria-pressed={!allMealTypes}
+              onClick={() => setAllMealTypes((value) => !value)}
+              className="min-h-10 flex-1 rounded-md border border-border px-3 text-start text-label text-muted-foreground hover:bg-accent"
+            >
+              {!allMealTypes ? t(`mealTypes.${mealType}`) : t('allMealTypes')}
+            </button>
+          )}
+
+          <Popover.Root>
+            <Popover.Trigger
+              className={buttonVariants({ variant: 'outline', size: 'sm', className: 'px-3 text-label' })}
+            >
+              <Icon name="filter" />
+              {t('dishFilters')}
+            </Popover.Trigger>
+            <Popover.Portal>
+              <Popover.Positioner side="bottom" align="end" sideOffset={6} className="z-50">
+                <Popover.Popup className="w-72 origin-(--transform-origin) rounded-lg rounded-ee-4xl border border-border bg-popover p-3 text-popover-foreground shadow-overlay transition-[transform,opacity] duration-150 ease-[cubic-bezier(.2,.6,.2,1)] data-ending-style:scale-95 data-ending-style:opacity-0 data-starting-style:scale-95 data-starting-style:opacity-0">
+                  <Popover.Title className="pb-2 text-label font-semibold">{t('dishFilters')}</Popover.Title>
+                  <div className="flex flex-wrap gap-1.5">
+                    {DISH_TAGS.map((entry) => (
+                      <FilterChip
+                        key={entry}
+                        active={tag === entry}
+                        onClick={() => setTag((current) => (current === entry ? null : entry))}
+                      >
+                        {t(`tags.${entry}`)}
+                      </FilterChip>
+                    ))}
+                  </div>
+                </Popover.Popup>
+              </Popover.Positioner>
+            </Popover.Portal>
+          </Popover.Root>
+        </div>
+
+        {slot && slot.budgetKcal > 0 && (
+          <div className="mt-2 flex items-center justify-between gap-2 text-caption">
+            <strong className="text-primary">{t('bestMatches', { value: slot.budgetKcal })}</strong>
+            <span className="text-muted-foreground">{shown.length}</span>
+          </div>
         )}
-
-        {DISH_TAGS.map((entry) => (
-          <FilterChip
-            key={entry}
-            active={tag === entry}
-            onClick={() => setTag((current) => (current === entry ? null : entry))}
-          >
-            {t(`tags.${entry}`)}
-          </FilterChip>
-        ))}
       </div>
-
-      {/* The list is not alphabetical while a meal is open — it is ranked by how
-          close each dish lands to that meal's budget. That was said in 10px
-          helper text under the chips, which is to say it was not said. A stated
-          header above the list is the list explaining its own order. */}
-      {slot && slot.budgetKcal > 0 && (
-        <p className="rounded-md bg-primary/5 px-3 py-2 text-caption text-muted-foreground">
-          {t('sortedForSlot', { value: slot.budgetKcal })}
-        </p>
-      )}
 
       {shown.length === 0 ? (
         <p className="text-body-sm text-muted-foreground">{t('noDishes')}</p>
       ) : (
-        <ul className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto">
+        <ul className="no-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
           {shown.map((dish) => (
             <li key={dish.id}>
               <CatalogRow
                 dish={dish}
                 usage={usage[dish.id]}
                 servings={slot ? (bestServings(dish.baseKcal, slot.budgetKcal) ?? 1) : 1}
+                budgetKcal={slot?.budgetKcal ?? null}
                 draggable={editable && dish.blockedBy.length === 0}
               />
             </li>
@@ -151,7 +174,7 @@ function FilterChip({
            which fitted more chips into the rail by making each of them a worse
            target — and below `xl` this panel is a bottom sheet, so it is being
            pressed with a thumb. Wrapping onto a third row is the cost. */
-        'inline-flex min-h-10 items-center rounded-full border px-3 py-1 text-label transition-colors',
+        'inline-flex min-h-9 items-center rounded-md border px-2.5 py-1 text-caption transition-colors',
         active
           ? 'border-primary bg-primary text-primary-foreground'
           : 'border-border text-muted-foreground hover:bg-accent',
@@ -173,11 +196,13 @@ function CatalogRow({
   dish,
   usage,
   servings,
+  budgetKcal,
   draggable,
 }: {
   dish: CatalogEntry;
   usage: RecentUse | undefined;
   servings: number;
+  budgetKcal: number | null;
   draggable: boolean;
 }) {
   const t = useTranslations('weeklyPlans');
@@ -189,41 +214,29 @@ function CatalogRow({
   });
 
   const blocked = dish.blockedBy.length > 0;
+  const kcal = roundForDisplay('kcal', dish.baseKcal * servings);
+  const delta = budgetKcal === null ? null : kcal - budgetKcal;
+  const deltaLabel = delta === null ? null : `${delta > 0 ? '+' : ''}${delta}`;
 
   return (
-    /* A blocked dish is `archived`, not a red box: sunken, readable, plainly not
-       live — which is exactly what it is. The allergen naming it stays clay,
-       because that is the one thing on the row that is a medical fact.
-       `interactive` gives the draggable rows the system's edge-thickening hover
-       instead of a fill change; `cursor-grab` overrides its pointer. */
-    <Card
+    <div
       ref={setNodeRef}
       {...(draggable ? listeners : {})}
       {...(draggable ? attributes : {})}
-      size="sm"
-      variant={blocked ? 'archived' : 'default'}
-      interactive={draggable}
       aria-disabled={blocked || undefined}
       className={cn(
-        'gap-0 text-start',
-        draggable && 'cursor-grab',
+        'grid min-h-16 grid-cols-[1.25rem_minmax(0,1fr)_auto] items-center gap-2 border-b border-border py-2.5 text-start transition-colors',
+        draggable && 'cursor-grab hover:bg-accent/50',
+        blocked && 'bg-muted/50 opacity-70',
         isDragging && 'opacity-40',
       )}
     >
-      <CardContent className="flex flex-col gap-0.5">
-        <span className="flex items-baseline gap-1.5">
-          <span className="min-w-0 flex-1 truncate text-body-sm font-medium">{dish.nameAr}</span>
-
-          {usage && (
-            <Badge variant="outline" size="sm">
-              {usage.weeksAgo === 0
-                ? t('usedThisWeek')
-                : t('usedWeeksAgo', { count: usage.weeksAgo })}
-            </Badge>
-          )}
+      <Icon name="dragHandle" className="size-4 text-muted-foreground" />
+      <span className="min-w-0">
+        <span className="block truncate font-heading text-body-sm font-semibold" dir="auto">
+          {dish.nameAr}
         </span>
-
-        <span className="block text-caption text-muted-foreground">
+        <span className="mt-0.5 block text-caption text-muted-foreground">
           {blocked ? (
             <span className="text-status-medical-fg">
               {t('blockedByAllergen', {
@@ -237,12 +250,28 @@ function CatalogRow({
             </span>
           ) : (
             <>
-              {t('portionShort', { servings })} ·{' '}
-              {t('kcalValue', { value: roundForDisplay('kcal', dish.baseKcal * servings) })}
+              {t('portionShort', { servings })}
+              {deltaLabel && (
+                <>
+                  <span aria-hidden> · </span>
+                  <span dir="ltr">{t('targetDifference', { value: deltaLabel })}</span>
+                </>
+              )}
+              {usage && (
+                <>
+                  {' '}·{' '}
+                  {usage.weeksAgo === 0
+                    ? t('usedThisWeek')
+                    : t('usedWeeksAgo', { count: usage.weeksAgo })}
+                </>
+              )}
             </>
           )}
         </span>
-      </CardContent>
-    </Card>
+      </span>
+      <span className="text-label font-semibold tabular-nums" dir="ltr">
+        {kcal}
+      </span>
+    </div>
   );
 }
