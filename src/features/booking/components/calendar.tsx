@@ -456,6 +456,27 @@ export function Calendar({
    */
   const [scrollbarWidth, setScrollbarWidth] = useState(0);
 
+  /**
+   * What `read` needs to know, kept current without making it re-subscribe.
+   *
+   * This used to be a dependency array, and that is what made the effect run
+   * away: `previewedAppointments` is a fresh array on every pointer move of a
+   * drag, so the effect tore itself down and rebuilt on every render — and its
+   * body calls `read` synchronously, which sets state, which renders, which
+   * re-runs the effect. React said so plainly ("one of the dependencies changes
+   * on every render"); the guards inside `read` could not help, because the
+   * problem was the effect firing again rather than the values it wrote.
+   *
+   * Same device as `latest` in `useCalendarGestures`, for the same reason and
+   * with the same caveat: written in an effect rather than during render,
+   * because a ref is mutable state and touching it mid-render is unsafe under
+   * concurrent rendering.
+   */
+  const readInputs = useRef({ days, previewedAppointments, openMinute: hours.openMinute, pxPerSlot });
+
+  /** Lets the render below ask for a measurement without owning the listeners. */
+  const scheduleRead = useRef<() => void>(() => {});
+
   useEffect(() => {
     const node = timelineRef.current;
     // The month view has no timeline. `view` is in the deps, so this re-runs
@@ -468,6 +489,8 @@ export function Calendar({
     function read(): void {
       const element = timelineRef.current;
       if (!element) return;
+
+      const { days, previewedAppointments, openMinute, pxPerSlot } = readInputs.current;
 
       /*
         Whether the timeline is currently scrolling is a question about
@@ -489,7 +512,7 @@ export function Calendar({
       // the fold is the one there is no way to know about.
       const next = days.filter((date) =>
         previewedAppointments.some(
-          (row) => row.date === date && minuteToY(row.startMinute, hours.openMinute, pxPerSlot) >= fold,
+          (row) => row.date === date && minuteToY(row.startMinute, openMinute, pxPerSlot) >= fold,
         ),
       );
 
@@ -503,20 +526,13 @@ export function Calendar({
     /**
      * One read per frame, and never inside the callback that asked for it.
      *
-     * This is what stops the effect running away, and it is structural rather
-     * than a guess at any particular geometry. `read` writes `scrollbarWidth`,
-     * which is reserved as padding on the day header — a layout change. A
-     * `ResizeObserver` callback runs *inside* the browser's resize-observation
-     * loop, after layout and before paint, so setting React state there renders
-     * synchronously, changes layout again, and is re-observed within the same
-     * delivery. React counts those as nested updates and gives up with "maximum
-     * update depth exceeded" — and it counts every `setState` call, including
-     * the ones whose updater returns the previous value, so the equality guards
-     * below never get the chance to stop it.
-     *
-     * Deferring to the next frame takes the write out of that loop: each
-     * measurement becomes an ordinary independent update, and a burst of scroll
-     * and resize notifications collapses into a single read.
+     * `read` writes `scrollbarWidth`, which is reserved as padding on the day
+     * header — a layout change. A `ResizeObserver` callback runs *inside* the
+     * browser's resize-observation loop, after layout and before paint, so
+     * setting React state there renders synchronously, changes layout again,
+     * and is re-observed within the same delivery. Deferring to the next frame
+     * takes the write out of that loop, and collapses a burst of scroll and
+     * resize notifications into a single read.
      */
     function schedule(): void {
       if (frame) return;
@@ -526,6 +542,8 @@ export function Calendar({
         read();
       });
     }
+
+    scheduleRead.current = schedule;
 
     // The first read stays synchronous: it runs after commit like any effect,
     // nothing has been written yet for it to feed back into, and waiting a
@@ -561,10 +579,31 @@ export function Calendar({
 
     return () => {
       if (frame) cancelAnimationFrame(frame);
+      scheduleRead.current = () => {};
       node.removeEventListener('scroll', schedule);
       observer.disconnect();
     };
-  }, [days, hours.openMinute, previewedAppointments, pxPerSlot, view]);
+    // `view` alone: the listeners follow the timeline coming and going, and
+    // nothing else. Everything `read` needs arrives through `readInputs`,
+    // precisely so that data changing cannot tear this down and rebuild it.
+  }, [view]);
+
+  /**
+   * Refresh what `read` sees, and ask for a fresh measurement.
+   *
+   * Runs after every render, which is the honest signal: an appointment can be
+   * booked, dragged to another hour or rolled back without resizing anything at
+   * all — blocks are absolutely positioned — so neither observer above can see
+   * it, but the calendar always re-renders for it.
+   *
+   * Safe to run unconditionally because `schedule` coalesces to one read a
+   * frame and both setters bail on an unchanged value: a render that moves
+   * nothing measures once more and stops, rather than scheduling another render.
+   */
+  useEffect(() => {
+    readInputs.current = { days, previewedAppointments, openMinute: hours.openMinute, pxPerSlot };
+    scheduleRead.current();
+  });
 
   const belowFold = useMemo(() => new Set(datesBelowFold), [datesBelowFold]);
 
