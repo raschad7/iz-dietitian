@@ -91,16 +91,26 @@ export type BookingCandidate = {
    */
   excludeId?: string | null;
   /**
-   * The clinic's today, `YYYY-MM-DD`. Rule 2 refuses any date before it.
+   * The earliest date this candidate may fall on, `YYYY-MM-DD` — or null for no
+   * limit at all. Rule 2 refuses anything before it.
    *
-   * Null when there is no clock to read — the server render, before
-   * `useCalendarClock` has ticked — and the rule is then skipped rather than
-   * guessed at, the same convention `isCompleted` uses for the same reason.
-   * Required rather than optional so that every candidate has to say which
-   * clock it was judged against; forgetting one is a compile error, not a rule
-   * that silently does not run.
+   * It used to be called `today`, and only ever held the clinic's today, because
+   * "you cannot book the past" was taken to be a property of the calendar. It is
+   * not: it is a property of *who is asking*. The clinic writes up visits after
+   * they happen, and a booking recorded on the day it occurred is bookkeeping
+   * rather than time travel — so every staff path passes null. The patient
+   * portal passes its own today, because a patient requesting last Tuesday is a
+   * mistake with nothing behind it.
+   *
+   * Null also still covers "there is no clock to read" — the server render,
+   * before `useCalendarClock` has ticked — which is the same answer for a
+   * different reason, and safe because the server re-checks every write.
+   *
+   * Required rather than optional, so that every candidate has to say which
+   * limit it was judged against; forgetting one is a compile error rather than a
+   * rule that silently does not run.
    */
-  today: string | null;
+  earliestDate: string | null;
 };
 
 /**
@@ -135,7 +145,7 @@ export function validateBooking(
   existing: readonly ExistingAppointment[],
   hours: ClinicHours,
 ): BookingErrorKey | null {
-  const { date, startMinute, durationMinutes, practitionerId, clientId, excludeId, today } = candidate;
+  const { date, startMinute, durationMinutes, practitionerId, clientId, excludeId, earliestDate } = candidate;
 
   // Guard before the rules: a non-integer start or duration would slip past
   // every comparison below (`NaN < x` is false) and reach the database.
@@ -148,27 +158,24 @@ export function validateBooking(
     return 'errors.tooShort';
   }
 
-  // 2. A usable date: one that existed, one that has not already gone, and one
-  //    the clinic opens on. An unparseable date fails first rather than being
-  //    quietly treated as a closed day, which would be a confusing message.
+  // 2. A usable date: one that existed, one no earlier than the caller allows,
+  //    and one the clinic opens on. An unparseable date fails first rather than
+  //    being quietly treated as a closed day, which would be a confusing message.
   const weekday = weekdayOf(date);
   if (weekday === null) {
     return 'errors.invalidDate';
   }
 
-  // Whole dates, not instants: today is bookable at any hour, so the 09:00 slot
-  // can still be filled in at 15:00 — writing up the morning is bookkeeping,
-  // not time travel. Both sides are zero-padded ISO, so `<` is chronological.
+  // Whose past, and whether they may write in it, is `earliestDate`'s business
+  // rather than this rule's — see the note on it. Staff pass null and may book
+  // any date at any hour, because recording a visit after it happened is
+  // bookkeeping and not time travel; the portal passes its own today.
   //
-  // Moving is judged at exactly this granularity too. It used to be stricter —
-  // a separate rule refused a drag to an earlier hour of today — but the clinic
-  // rearranges a morning that has already happened often enough that the rule
-  // cost more than it saved, and it made the two gestures disagree about the
-  // same slot: bookable by clicking it, refused by dragging onto it.
+  // Both sides are zero-padded ISO, so `<` is chronological.
   //
-  // Checked before the working-day rule so that a date which is both past and a
-  // closed day reports the more useful of the two: that the day has gone.
-  if (today !== null && date < today) {
+  // Checked before the working-day rule so that a date which is both too early
+  // and a closed day reports the more useful of the two.
+  if (earliestDate !== null && date < earliestDate) {
     return 'errors.pastDate';
   }
 

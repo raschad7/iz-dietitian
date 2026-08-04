@@ -39,9 +39,9 @@ function candidate(overrides: Partial<BookingCandidate> = {}): BookingCandidate 
     date: WEDNESDAY,
     startMinute: 9 * 60,
     durationMinutes: DEFAULT_DURATION_MINUTES,
-    // No clock unless a test asks for one, so every case below goes on asking
-    // exactly what it asked before the past-date rule existed.
-    today: null,
+    // No floor unless a test asks for one — which is also what every staff
+    // caller passes, so the cases below ask exactly what the calendar asks.
+    earliestDate: null,
     ...overrides,
   };
 }
@@ -104,59 +104,75 @@ describe('rule 2 — working days only', () => {
   });
 });
 
-describe('rule 2 — not in the past', () => {
-  test('rejects any date before today', () => {
-    expect(validateBooking(candidate({ date: TUESDAY, today: WEDNESDAY }), [], HOURS)).toBe('errors.pastDate');
-    expect(validateBooking(candidate({ date: '2020-01-06', today: WEDNESDAY }), [], HOURS)).toBe('errors.pastDate');
+describe('rule 2 — no earlier than the caller allows', () => {
+  test('rejects any date before the floor', () => {
+    expect(validateBooking(candidate({ date: TUESDAY, earliestDate: WEDNESDAY }), [], HOURS)).toBe('errors.pastDate');
+    expect(validateBooking(candidate({ date: '2020-01-06', earliestDate: WEDNESDAY }), [], HOURS)).toBe(
+      'errors.pastDate',
+    );
   });
 
-  test('accepts today itself', () => {
-    expect(validateBooking(candidate({ date: WEDNESDAY, today: WEDNESDAY }), [], HOURS)).toBeNull();
+  test('accepts the floor itself', () => {
+    expect(validateBooking(candidate({ date: WEDNESDAY, earliestDate: WEDNESDAY }), [], HOURS)).toBeNull();
   });
 
-  test('accepts today at a time that has already gone — the rule is about dates, not clocks', () => {
+  test('accepts the floor at a time that has already gone — it is about dates, not clocks', () => {
     // 08:00 on a day whose afternoon has arrived is still bookable: writing up
     // the morning is bookkeeping, not a booking in the past.
     expect(
-      validateBooking(candidate({ date: WEDNESDAY, startMinute: HOURS.openMinute, today: WEDNESDAY }), [], HOURS),
+      validateBooking(
+        candidate({ date: WEDNESDAY, startMinute: HOURS.openMinute, earliestDate: WEDNESDAY }),
+        [],
+        HOURS,
+      ),
     ).toBeNull();
   });
 
-  test('accepts a future date', () => {
-    expect(validateBooking(candidate({ date: THURSDAY, today: WEDNESDAY }), [], HOURS)).toBeNull();
+  test('accepts a later date', () => {
+    expect(validateBooking(candidate({ date: THURSDAY, earliestDate: WEDNESDAY }), [], HOURS)).toBeNull();
   });
 
-  test('is skipped when there is no clock, so the server render matches the first paint', () => {
-    expect(validateBooking(candidate({ date: TUESDAY, today: null }), [], HOURS)).toBeNull();
-  });
-
-  test('a past closed day reports that it has gone, not that the clinic is shut', () => {
+  test('a closed day below the floor reports the floor, not that the clinic is shut', () => {
     // Friday the 7th judged from the following Wednesday: both rules would
     // reject it, and the more useful answer is the one about the date.
-    expect(validateBooking(candidate({ date: FRIDAY, today: '2026-08-12' }), [], HOURS)).toBe('errors.pastDate');
+    expect(validateBooking(candidate({ date: FRIDAY, earliestDate: '2026-08-12' }), [], HOURS)).toBe(
+      'errors.pastDate',
+    );
   });
 
-  test('still rejects a date that never existed, even against a clock', () => {
-    expect(validateBooking(candidate({ date: '2026-02-30', today: WEDNESDAY }), [], HOURS)).toBe('errors.invalidDate');
+  test('still rejects a date that never existed, even against a floor', () => {
+    expect(validateBooking(candidate({ date: '2026-02-30', earliestDate: WEDNESDAY }), [], HOURS)).toBe(
+      'errors.invalidDate',
+    );
   });
 });
 
-describe('an hour of today that has already gone', () => {
+describe('a date that has already gone', () => {
   /**
-   * Both gestures agree about it now. Creating always did — writing up the
-   * morning in the afternoon is bookkeeping — while moving was refused by a
-   * rule of its own, which left the same slot bookable by clicking it and
-   * rejected by dragging onto it. That rule is gone, and the date is the only
-   * granularity either gesture enforces.
+   * Whether the past is bookable belongs to the caller, not to the rules. Staff
+   * pass no floor at all: the clinic writes up visits after they happen, and a
+   * calendar that refuses to record last Tuesday is a calendar the clinic has
+   * to keep notes beside. The portal passes its own today, because a patient
+   * asking for last Tuesday is only ever a mistake.
    */
-  test('is bookable, because the rules are bounded by the date and not the hour', () => {
-    expect(validateBooking(candidate({ date: WEDNESDAY, startMinute: 9 * 60, today: WEDNESDAY }), [], HOURS)).toBeNull();
+  test('is bookable with no floor — every staff path', () => {
+    expect(validateBooking(candidate({ date: TUESDAY, earliestDate: null }), [], HOURS)).toBeNull();
   });
 
-  test('is still refused on a date that has gone', () => {
-    expect(validateBooking(candidate({ date: TUESDAY, startMinute: 9 * 60, today: WEDNESDAY }), [], HOURS)).toBe(
-      'errors.pastDate',
-    );
+  test('is refused against a floor — the portal', () => {
+    expect(validateBooking(candidate({ date: TUESDAY, earliestDate: WEDNESDAY }), [], HOURS)).toBe('errors.pastDate');
+  });
+
+  test('an hour of today that has gone is bookable either way', () => {
+    // The date is the only granularity either side enforces; neither has ever
+    // cared what the clock says within a day it accepts.
+    expect(
+      validateBooking(candidate({ date: WEDNESDAY, startMinute: 9 * 60, earliestDate: WEDNESDAY }), [], HOURS),
+    ).toBeNull();
+  });
+
+  test('a closed day is still closed, floor or no floor', () => {
+    expect(validateBooking(candidate({ date: FRIDAY, earliestDate: null }), [], HOURS)).toBe('errors.closedDay');
   });
 });
 

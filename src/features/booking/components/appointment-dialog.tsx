@@ -44,12 +44,6 @@ export type AppointmentDialogProps = {
   clients: CalendarClient[];
   /** Every appointment on the currently selected date, for the overlap checks. */
   existingByDate: (date: string) => readonly ExistingAppointment[];
-  /**
-   * The clinic's today, or null before the shared clock has ticked. Bounds the
-   * date picker and drives the past-date rule. Passed in rather than read from
-   * a clock of its own, so the whole calendar judges itself against one instant.
-   */
-  today: string | null;
   completed: boolean;
   onSave: (next: {
     id: string;
@@ -110,7 +104,6 @@ export function AppointmentDialog({
   hours,
   clients,
   existingByDate,
-  today,
   completed,
   onSave,
   onDelete,
@@ -144,7 +137,9 @@ export function AppointmentDialog({
     startMinute,
     durationMinutes,
     excludeId: appointment.id,
-    today,
+    // No floor. Staff may put an appointment on any date they like — see the
+    // note on `earliestDate`; the portal is the caller that still has one.
+    earliestDate: null,
   };
   const liveError: BookingErrorKey | null = validateBooking(candidate, existing, hours);
 
@@ -154,7 +149,15 @@ export function AppointmentDialog({
 
     for (const minute of startChoices(hours, startMinute)) {
       const failure = validateBooking(
-        { practitionerId, clientId, date, startMinute: minute, durationMinutes, excludeId: appointment.id, today },
+        {
+          practitionerId,
+          clientId,
+          date,
+          startMinute: minute,
+          durationMinutes,
+          excludeId: appointment.id,
+          earliestDate: null,
+        },
         existing,
         hours,
       );
@@ -166,7 +169,7 @@ export function AppointmentDialog({
     }
 
     return blocked;
-  }, [appointment.id, clientId, date, durationMinutes, existing, hours, practitionerId, startMinute, today]);
+  }, [appointment.id, clientId, date, durationMinutes, existing, hours, practitionerId, startMinute]);
 
   function commitDateText(raw: string): void {
     const parsed = parseDateInput(raw);
@@ -264,11 +267,12 @@ export function AppointmentDialog({
                 tabIndex={-1}
                 aria-hidden
                 value={date}
-                // Greys out every day before today in the browser's own picker,
-                // so a past date cannot be chosen there at all. Typing one into
-                // the field beside it is still possible, and is caught by the
-                // past-date rule below like any other rule failure.
-                min={today ?? undefined}
+                // No `min`. The browser's picker used to grey out every day
+                // before today, which made this the one place in the calendar
+                // that could not record a visit on the day it happened — and it
+                // was only half a rule anyway, since the field beside it always
+                // accepted a typed date. Any date is bookable now; a closed day
+                // or a clash is still refused, and says which.
                 onChange={(event) => commitDateText(event.target.value)}
                 className="pointer-events-none absolute inset-0 size-full opacity-0"
               />

@@ -63,19 +63,6 @@ function scopedToClinic(clinicId: string, id: string) {
 }
 
 /**
- * Today, in the clinic's own time zone — the earliest date a booking may fall
- * on.
- *
- * The clinic's clock, not the caller's and not the server's: appointments are
- * clinic-local, so "has that date gone?" is a question about where the clinic
- * is. Read here rather than accepted from the request, which is the whole point
- * of enforcing this server side — a browser can post any date it likes.
- */
-function clinicToday(): string {
-  return wallClockIn(DISPLAY_TIME_ZONE).date;
-}
-
-/**
  * The clinic's practitioner, created on first use.
  *
  * The practitioner row still exists — appointments hang off it, and the overlap
@@ -189,7 +176,7 @@ export async function createAppointment(
       const practitionerId = await resolvePractitioner(tx, context);
       const existing = await readDay(tx, clinicId, input.date);
 
-      const failure = validateBooking({ ...input, practitionerId, today: clinicToday() }, existing, hours);
+      const failure = validateBooking({ ...input, practitionerId, earliestDate: null }, existing, hours);
       if (failure) return { ok: false, error: failure };
 
       const [row] = await tx
@@ -271,7 +258,7 @@ export async function updateAppointment(
       // `excludeId` is what stops a move from colliding with the appointment
       // being moved.
       const failure = validateBooking(
-        { ...input, practitionerId, excludeId: input.id, today: clinicToday() },
+        { ...input, practitionerId, excludeId: input.id, earliestDate: null },
         existing,
         hours,
       );
@@ -360,7 +347,7 @@ export async function createClientAndBook(
       // Validated before the client row is written: a rejected slot should not
       // leave a new person in the register. `clientId` is absent, so rule 5 is
       // skipped — a brand-new client cannot already be booked.
-      const failure = validateBooking({ ...input.booking, practitionerId, today: clinicToday() }, existing, hours);
+      const failure = validateBooking({ ...input.booking, practitionerId, earliestDate: null }, existing, hours);
       if (failure) return { ok: false, error: failure };
 
       const [client] = await tx

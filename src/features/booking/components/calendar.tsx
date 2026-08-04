@@ -211,15 +211,16 @@ export function Calendar({
    * Read once here and passed down, so the grid, the gestures and the edit
    * dialog all judge "has that date gone?" against the same instant. The server
    * asks the same question of the *clinic's* zone and has the final say; this
-   * is the courtesy answer that keeps a past day from being offered at all.
+   * is the courtesy answer, and it now decides only how a day is *drawn* — the
+   * marker on today, the quieter tint on the days behind it. No date is refused
+   * for being past any more; see `earliestDate` in `../validation`.
    */
   const today = now ? toIsoDate(now) : null;
 
   /**
-   * The same instant, to the minute. `today` decides which whole dates may be
-   * booked at all; this is finer, and answers the one question left over — has
-   * the slot an appointment is being dragged onto already finished, which
-   * freezes that appointment the moment it lands.
+   * The same instant, to the minute — and the one question the date alone
+   * cannot answer: has the slot an appointment is being dragged onto already
+   * finished, which freezes that appointment the moment it lands.
    */
   const nowClock = now ? localWallClock(now) : null;
 
@@ -395,7 +396,6 @@ export function Calendar({
     hours,
     existing,
     practitionerId,
-    today,
     pxPerSlot,
     onRequestBooking: handleRequestBooking,
     onCommitMove: handleCommitMove,
@@ -1114,7 +1114,6 @@ export function Calendar({
           hours={hours}
           clients={clients}
           existingByDate={existingByDate}
-          today={today}
           completed={completedIds.has(editing.id)}
           onSave={(next) => {
             // Changing the date must move the view too, or the appointment

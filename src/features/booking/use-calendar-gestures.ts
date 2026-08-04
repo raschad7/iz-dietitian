@@ -101,12 +101,6 @@ export type CalendarGesturesOptions = {
    */
   practitionerId: string;
   /**
-   * Today, so a drag onto a date that has already gone paints red like any
-   * other invalid candidate. Null until the shared clock has ticked, which
-   * skips the rule rather than guessing at it.
-   */
-  today: string | null;
-  /**
    * The slot height currently on screen.
    *
    * The grid is fitted to the panel, so this is not the module default — and if
@@ -125,7 +119,6 @@ export function useCalendarGestures({
   hours,
   existing,
   practitionerId,
-  today,
   pxPerSlot,
   onRequestBooking,
   onCommitMove,
@@ -144,16 +137,18 @@ export function useCalendarGestures({
    * touching it while rendering is not safe under concurrent rendering, where a
    * render can be thrown away. The effect runs before any pointer event can fire.
    */
-  const latest = useRef({ hours, existing, practitionerId, today, pxPerSlot, onRequestBooking, onCommitMove });
+  const latest = useRef({ hours, existing, practitionerId, pxPerSlot, onRequestBooking, onCommitMove });
 
   useEffect(() => {
-    latest.current = { hours, existing, practitionerId, today, pxPerSlot, onRequestBooking, onCommitMove };
+    latest.current = { hours, existing, practitionerId, pxPerSlot, onRequestBooking, onCommitMove };
   });
 
   const isValid = useCallback(
     (candidate: { practitionerId: string; date: string; startMinute: number; durationMinutes: number }, excludeId?: string) => {
-      const { hours: currentHours, existing: rows, today: currentToday } = latest.current;
-      return validateBooking({ ...candidate, excludeId, today: currentToday }, rows, currentHours) === null;
+      const { hours: currentHours, existing: rows } = latest.current;
+      // No floor: staff may draw a booking on any date, so the only things that
+      // paint a drag clay are a closed day, the clinic's hours and a clash.
+      return validateBooking({ ...candidate, excludeId, earliestDate: null }, rows, currentHours) === null;
     },
     [],
   );
