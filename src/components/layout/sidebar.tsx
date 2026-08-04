@@ -2,20 +2,27 @@
 
 import { useTranslations } from 'next-intl';
 
+import { SidebarProfile } from '@/components/layout/sidebar-profile';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { Link, usePathname } from '@/i18n/navigation';
+import { type Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 
+/**
+ * A destination in a rail.
+ *
+ * Profile, WhatsApp and security are deliberately absent: they are account
+ * settings, not places you work, and they live in the profile menu at the foot
+ * of the rail (`SidebarProfile`). Anything reachable from both lists would be
+ * two answers to "where does this live".
+ */
 export type NavItem = {
   href:
     | '/app'
     | '/app/clients'
     | '/app/calendar'
-    | '/app/profile'
     | '/app/weekly-plans'
     | '/app/dishes'
-    | '/app/settings/whatsapp'
-    | '/app/settings/security'
     | '/portal'
     | '/portal/appointments'
     | '/portal/meal-plan'
@@ -26,8 +33,6 @@ export type NavItem = {
     | 'calendar'
     | 'weeklyPlans'
     | 'dishes'
-    | 'whatsapp'
-    | 'security'
     | 'portalHome'
     | 'myAppointments'
     | 'myPlan'
@@ -35,31 +40,37 @@ export type NavItem = {
 };
 
 /**
- * Navigation shell for a signed-in area: a pale olive rail.
+ * Navigation shell for a signed-in area: a near-white rail.
  *
  * **Full-bleed, and separated from the page by a hairline rather than by a
- * shape.** It is not a card: no radius, no Arc, no elevation. The Arc marks
- * surfaces you can act on, and the rail is not one — it is the wall the app
- * hangs on. A 1px `border-e` is the whole separation, which is all a change of
- * fill needs to read as a change of region.
+ * shape.** It is not a card: no radius, no elevation. A rounded box is what
+ * this system gives a surface sitting *on* the page, and the rail is not one —
+ * it is the wall the app hangs on. The rail and the page are both near enough
+ * to white that the 1px `border-e` is not reinforcing the separation, it *is*
+ * the separation.
  *
- * The active item is marked three ways — its own icon fills in, an olive-600
- * surface grows around it, and a lime leaf node appears on the inline-end
- * edge. More than one mark because colour alone fails for anyone who cannot
- * separate the active surface from the rail, and because the node is what makes
- * movement legible: it scales and rotates into place in 220ms so the change
- * reads as a single object relocating rather than two states flickering.
+ * **The active item is the only olive thing on the rail** — an olive-50 surface
+ * with an olive-500 label and glyph, where every other row is a neutral glyph
+ * beside an olive-800 label on no surface at all. The lime leaf that used to
+ * ride the inline-end edge is gone: the tint is the mark now, and the leaf was
+ * a second, louder one competing with it.
  *
- * On a pale rail the active item is the *darkest* thing on it rather than the
- * lightest — see the note on `--sidebar-*` in globals.css for why that inverts
- * the hover surface too.
+ * Colour is not the only cue, because it cannot be — the active row also
+ * carries `font-semibold` and `aria-current="page"`, which is what a screen
+ * reader announces and what survives for anyone the olive fails. That matters
+ * more than usual here: olive-500 on olive-50 is 2.95:1, under the contrast
+ * floor. See the `--sidebar-*` note in globals.css.
  *
- * The node is drawn per item and animated with `transform`, not by moving one
- * shared element — React would remount a shared node on every navigation and
- * the travel would never play.
+ * **The rail can end in an account control.** The dietitian area has no app bar
+ * any more, so it passes `user` and `SidebarProfile` takes the block-end: the
+ * signed-in name, and behind it everything that is about the account rather
+ * than about a client. It is fenced off with a hairline and pushed down with
+ * `mt-auto`, far from the navigation, in the corner an account control is
+ * looked for.
  *
- * Sign-out lives in the header rather than here, because this rail is hidden
- * below `md` and a sign-out reachable only on desktop is a trap.
+ * The portal omits `user` and gets no footer, because it still has a header
+ * carrying sign-out and the language switcher — and below `md`, where this rail
+ * is hidden entirely, that header is the only place a client can reach either.
  *
  * A client component only because the current page cannot be known on the
  * server — `usePathname` drives the active state. It comes from
@@ -69,10 +80,17 @@ export type NavItem = {
 export function Sidebar({
   items,
   title,
+  user,
   icons,
 }: {
   items: readonly NavItem[];
   title: string;
+  /**
+   * Set to give the rail its profile menu. `locale` rides along because
+   * sign-out posts it back to the server action. Omit in a shell that already
+   * has a header carrying those controls.
+   */
+  user?: { name: string; email?: string | null; locale: Locale };
   /** Optional per-item glyph. The staff rail is text-only by design. */
   icons?: Partial<Record<NavItem['labelKey'], IconName>>;
 }) {
@@ -93,15 +111,20 @@ export function Sidebar({
   return (
     <aside className="hidden w-64 shrink-0 border-e border-sidebar-border bg-sidebar text-sidebar-foreground md:block">
       <div className="flex h-full flex-col">
-        {/* `h-14` matches the app bar beside it, so the wordmark and the page
-            title sit on one line across the divider. */}
-        <div className="flex h-14 items-center px-5">
+        {/*
+          `h-18` puts the wordmark's centre 36px down, which is where the
+          dashboard's greeting sits: `main`'s 20px of padding plus half of a
+          24px heading's line box. The rail and the page then start on the same
+          line, which is the whole reason for the height — it was `h-14`, sized
+          to an app bar that no longer exists in this area.
+        */}
+        <div className="flex h-18 items-center px-5">
           <span className="truncate font-heading text-heading-sm font-semibold text-sidebar-primary-foreground">
             {title}
           </span>
         </div>
 
-        <nav className="flex flex-col gap-1 p-3">
+        <nav className="flex min-h-0 flex-col gap-1 overflow-y-auto p-3">
           {items.map((item) => {
             const active = isActive(item.href);
             const icon = icons?.[item.labelKey];
@@ -118,41 +141,41 @@ export function Sidebar({
                   'transition-[background-color,color] duration-200 ease-[cubic-bezier(.2,.6,.2,1)]',
                   'focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:outline-none',
                   /*
-                    Hover is its own surface, not the active one at 40%: a
-                    translucent olive-600 over the pale rail lands in the
-                    mid-tones, where neither white nor olive text is readable.
+                    Hover is a neutral one step down from the rail, never a
+                    tint: the active surface is olive-50, and an olive hover
+                    under it would either outrank the state or be taken for it.
                   */
                   active
                     ? 'bg-sidebar-accent font-semibold text-sidebar-accent-foreground'
                     : 'hover:bg-sidebar-hover',
                 )}
               >
-                {icon ? <Icon name={icon} className="size-4.5" /> : null}
+                {/*
+                  The glyph is a neutral n-700 at rest and takes the row's olive
+                  when the row is active — `text-current` rather than a second
+                  active colour, so the two can never drift apart.
+                */}
+                {icon ? (
+                  <Icon
+                    name={icon}
+                    className={cn('size-4.5', active ? 'text-current' : 'text-sidebar-icon')}
+                  />
+                ) : null}
                 {/* `min-w-0` is what lets a long label actually truncate inside a flex row. */}
                 <span className="min-w-0 truncate">{t(item.labelKey)}</span>
-
-                {/*
-                  The lime leaf node. Scaled rather than mounted/unmounted, so
-                  switching pages animates instead of popping, and rotated a
-                  little on the way in so it settles rather than snapping.
-
-                  It sits *inside* the item's inline-end padding rather than
-                  outside the rail: a leaf is wider than the 8px dot it
-                  replaced, and hanging it past the edge clipped it in Arabic
-                  where the rail's own rounding is on that side.
-                */}
-                <Icon
-                  name="navNode"
-                  className={cn(
-                    'ms-auto size-4 text-sidebar-node',
-                    'transition-transform duration-220 ease-[cubic-bezier(.2,.6,.2,1)]',
-                    active ? 'scale-100 rotate-0' : 'scale-0 -rotate-45',
-                  )}
-                />
               </Link>
             );
           })}
         </nav>
+
+        {/*
+          `mt-auto` lives on the profile control itself, so it pins to the
+          block-end however short the nav is; the hairline above it is the same
+          device the rail uses against the page — a change of region, not a card.
+        */}
+        {user ? (
+          <SidebarProfile name={user.name} email={user.email} locale={user.locale} />
+        ) : null}
       </div>
     </aside>
   );

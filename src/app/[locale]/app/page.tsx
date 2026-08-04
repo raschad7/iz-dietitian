@@ -36,6 +36,15 @@ export async function generateMetadata({ params }: DashboardPageProps): Promise<
  * Below `xl` the columns stack and the page scrolls normally: one screen is a
  * desktop promise, and honouring it on a phone would mean four nested scrolls.
  *
+ * **The working column sits beside the sidebar; today's agenda sits at the far
+ * edge.** The agenda is read-only — every row just links out to the real day
+ * view — so it is the one panel on this page that is looked at rather than
+ * acted on, and it now sits furthest from the rail that is all about acting.
+ * Swapping the grid's two tracks (rather than only reordering the JSX) is what
+ * keeps this correct in Arabic: a physical `21rem_1fr` would put the agenda on
+ * the wrong edge once the page mirrors, so the grid stays two logical tracks
+ * and the columns are declared in the order they should read.
+ *
  * Reading order down the working column: the four things you start a session by
  * doing, then your register, then the two charts you consult rather than act
  * on. The four summary counters that used to head this column are gone — every
@@ -51,20 +60,16 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
   return (
     <div className="flex flex-col gap-4 text-start xl:h-full xl:min-h-0">
       <div className="flex flex-wrap items-baseline justify-between gap-2 xl:shrink-0">
-        <h2 className="font-heading text-heading-lg font-semibold tracking-tight" dir="auto">
+        <h1 className="font-heading text-heading-lg font-semibold tracking-tight" dir="auto">
           {t('welcome', { name: session.user.name })}
-        </h2>
-        <p className="text-caption text-muted-foreground">{formatLongDate(locale, data.today)}</p>
+        </h1>
+        {/* `body-sm` (14px) rather than the 12px caption: with no app bar above
+            it this line is the top of the page, and today's date is a fact you
+            read at a glance rather than fine print under something else. */}
+        <p className="text-body-sm text-muted-foreground">{formatLongDate(locale, data.today)}</p>
       </div>
 
-      <div className="grid gap-4 xl:min-h-0 xl:flex-1 xl:grid-cols-[21rem_minmax(0,1fr)] 2xl:grid-cols-[23rem_minmax(0,1fr)]">
-        <AgendaTimeline
-          appointments={data.agenda}
-          locale={locale}
-          today={data.today}
-          nowMinute={data.nowMinute}
-        />
-
+      <div className="grid gap-4 xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(0,1fr)_21rem] 2xl:grid-cols-[minmax(0,1fr)_23rem]">
         <div className="flex min-w-0 flex-col gap-4 xl:min-h-0">
           <QuickActions locale={locale} />
 
@@ -74,7 +79,7 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
             the page: one row that ends where the screen does.
           */}
           <div className="grid gap-4 xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-            <ClientsCard clients={data.recentClients} total={data.activeClients} locale={locale} />
+            <ClientsCard clients={data.recentClients} locale={locale} />
 
             <div className="grid gap-4 sm:grid-cols-2 xl:min-h-0 xl:grid-cols-1 xl:grid-rows-2">
               <AgeDistributionCard
@@ -90,6 +95,14 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
             </div>
           </div>
         </div>
+
+        <AgendaTimeline
+          appointments={data.agenda}
+          locale={locale}
+          today={data.today}
+          nowMinute={data.nowMinute}
+          workingDays={data.workingDays}
+        />
       </div>
     </div>
   );

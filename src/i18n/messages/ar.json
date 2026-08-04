@@ -36,7 +36,8 @@
     "security": "الأمان",
     "weeklyPlans": "الخطط الأسبوعية",
     "dishes": "كتالوج الأطباق",
-    "whatsapp": "واتساب"
+    "whatsapp": "واتساب",
+    "notifications": "الإشعارات"
   },
   "landing": {
     "title": "إدارة عيادتك الغذائية في مكان واحد",
@@ -139,8 +140,8 @@
     "title": "التقويم",
     "completed": "منتهٍ",
     "now": "الآن",
-    "empty": "لا مواعيد في هذه الفترة. انقر على أي خانة فارغة لحجز موعد.",
-    "monthCount": "{count, number, integer}",
+    "openClientProfile": "فتح ملف المتابع",
+    "monthMore": "+{count, number, integer} أخرى",
     "monthReadOnly": "عرض الشهر للاطّلاع فقط. انقر على أي يوم للحجز أو التعديل.",
     "nav": {
       "today": "اليوم",
@@ -149,7 +150,10 @@
       "view": "طريقة العرض",
       "day": "يوم",
       "week": "أسبوع",
-      "month": "شهر"
+      "month": "شهر",
+      "pickDate": "اختر تاريخًا",
+      "previousMonth": "الشهر السابق",
+      "nextMonth": "الشهر التالي"
     },
     "search": {
       "placeholder": "ابحث عن متابع"
@@ -228,7 +232,6 @@
     "welcome": "أهلًا {name}",
     "agenda": {
       "title": "اليوم",
-      "dateLabel": "جدولك",
       "count": "{count, plural, =0 {لا مواعيد} one {موعد واحد} two {موعدان} few {# مواعيد} many {# موعدًا} other {# موعد}}",
       "next": "التالي",
       "live": "الآن",
@@ -239,9 +242,7 @@
     },
     "clients": {
       "title": "متابعوك",
-      "subtitle": "{count, plural, =0 {لا متابعين في السجل بعد} one {متابع نشِط واحد} two {متابعان نشِطان} few {# متابعين نشِطين} many {# متابعًا نشِطًا} other {# متابع نشِط}}",
       "nextVisit": "التالي: {when}",
-      "nothingBooked": "لا موعد محجوز",
       "empty": "لا متابعين في سجلك بعد.",
       "emptyCta": "أضف أول متابع",
       "viewAll": "عرض كل المتابعين"
@@ -263,7 +264,6 @@
     },
     "ageDistribution": {
       "title": "توزّع الأعمار",
-      "subtitle": "{count, plural, =0 {لا متابعين بعد} one {متابع واحد} two {متابعان} few {# متابعين} many {# متابعًا} other {# متابع}}",
       "empty": "لا متابعين في السجل بعد",
       "tooltip": "{count, plural, =0 {لا متابعين} one {متابع واحد} two {متابعان} few {# متابعين} many {# متابعًا} other {# متابع}} في الفئة {band}",
       "bands": {
@@ -277,7 +277,6 @@
     },
     "sexDistribution": {
       "title": "توزّع الجنس",
-      "subtitle": "{count, plural, =0 {لا متابعين بعد} one {متابع واحد} two {متابعان} few {# متابعين} many {# متابعًا} other {# متابع}}",
       "empty": "لا متابعين في السجل بعد",
       "centerLabel": "متابع",
       "tooltip": "{count, plural, =0 {لا متابعين} one {متابع واحد} two {متابعان} few {# متابعين} many {# متابعًا} other {# متابع}} — {group}",
@@ -325,6 +324,13 @@
     "backToList": "العودة إلى قائمة المتابعين",
     "notProvided": "غير مُدخل",
     "yearsOld": "{count, number, integer} سنة",
+    "tabs": {
+      "label": "أقسام المتابع",
+      "info": "بيانات المتابع",
+      "visits": "سجل الزيارات",
+      "plans": "الخطط الغذائية",
+      "portal": "الدخول إلى البوابة"
+    },
     "sections": {
       "contact": "بيانات التواصل",
       "intake": "بيانات الحالة",
@@ -376,7 +382,6 @@
     "actions": {
       "archive": "أرشفة",
       "restore": "إلغاء الأرشفة",
-      "filter": "تصفية",
       "delete": "حذف نهائي",
       "confirmDelete": "سيُحذف سجل «{name}» نهائيًا مع حسابه في البوابة، ولا يمكن التراجع. هل أنت متأكد؟"
     },
@@ -524,8 +529,10 @@
   "localeSwitcher": {
     "label": "اللغة",
     "devOnly": "مبدّل اللغة (بيئة التطوير فقط)",
-    "ar": "العربية",
-    "en": "English"
+    "ar": "AR",
+    "en": "EN",
+    "arName": "العربية",
+    "enName": "English"
   },
   "errors": {
     "notFound": "الصفحة غير موجودة",
@@ -541,6 +548,7 @@
     "noClients": "لا يوجد عملاء نشطون",
     "noPlanYet": "لم يُخطط أسبوع لهذا العميل بعد",
     "noPlanHint": "أنشئ الأسبوع الأول عندما تكون جاهزاً. يبقى ملف العميل وكتالوج الأطباق والخطط السابقة متاحة في اللوحة الجانبية.",
+    "current": "الخطة الحالية",
     "history": "الخطط السابقة",
     "weekOf": "أسبوع {date}",
     "generatedBy": "النموذج المستخدم",

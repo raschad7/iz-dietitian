@@ -55,7 +55,7 @@ function Tooltip({
             // Same bubble as ChartTip — inverted, Arc-shaped, elevated — so a
             // hint over a table button and a hint over a chart mark read as
             // one thing.
-            "w-max max-w-44 rounded-md rounded-ee-xl bg-foreground px-2.5 py-1.5",
+            "w-max max-w-44 rounded-md bg-foreground px-2.5 py-1.5",
             "text-center text-label leading-tight text-background shadow-elevated"
           )}
         >

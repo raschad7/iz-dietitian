@@ -4,8 +4,8 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 /**
- * Chips and badges are the one shape in this system that stays a plain pill —
- * no sweep. The Arc marks surfaces you can act on; a badge is a label.
+ * Chips and badges are a pill rather than a rounded box, so a label never reads
+ * as a control someone forgot to make clickable.
  *
  * Status variants are deliberately not a traffic light. `incomplete` is
  * neutral, never red — a missed day is information, not a failure. `medical`

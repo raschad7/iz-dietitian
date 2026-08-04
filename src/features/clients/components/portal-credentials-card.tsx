@@ -4,7 +4,7 @@ import { useTranslations } from 'next-intl';
 import { useActionState } from 'react';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardField, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -49,7 +49,9 @@ export function PortalCredentialsCard({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">{t('portal.title')}</CardTitle>
+        <CardTitle icon="security" className="text-base">
+          {t('portal.title')}
+        </CardTitle>
         <CardDescription>{hasPortalAccess ? t('portal.granted') : t('portal.none')}</CardDescription>
       </CardHeader>
 
@@ -152,12 +154,7 @@ function ExistingAccess({
 
   return (
     <div className="space-y-4">
-      {username ? (
-        <p className="text-sm">
-          <span className="text-muted-foreground">{t('portal.username')}: </span>
-          <span dir="ltr">{username}</span>
-        </p>
-      ) : null}
+      {username ? <CardField label={t('portal.username')} value={username} dir="ltr" /> : null}
 
       <div className="flex flex-wrap items-center gap-2">
         <form action={reissueAction} className="space-y-2">
@@ -241,20 +238,14 @@ function IssuedCredentials({
     <div className="space-y-3 rounded-md border border-status-attention-fg/40 bg-status-attention-bg p-4 text-start">
       <p className="text-sm font-medium text-status-attention-fg">{t('portal.showOnce')}</p>
 
-      <dl className="space-y-1 text-sm">
-        <div className="flex flex-wrap gap-2">
-          <dt className="text-muted-foreground">{t('portal.username')}:</dt>
-          <dd dir="ltr" className="font-mono">
-            {username}
-          </dd>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <dt className="text-muted-foreground">{t('portal.temporaryPassword')}:</dt>
-          <dd dir="ltr" className="font-mono">
-            {temporaryPassword}
-          </dd>
-        </div>
-      </dl>
+      <div className="grid grid-cols-2 gap-4">
+        <CardField label={t('portal.username')} value={<span className="font-mono">{username}</span>} dir="ltr" />
+        <CardField
+          label={t('portal.temporaryPassword')}
+          value={<span className="font-mono">{temporaryPassword}</span>}
+          dir="ltr"
+        />
+      </div>
 
       <p className="text-sm text-muted-foreground">{t('portal.handOver')}</p>
 

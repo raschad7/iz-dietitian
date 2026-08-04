@@ -38,7 +38,7 @@ export function PortalTabBar() {
       // bottom of the usable screen.
       className="fixed inset-x-0 bottom-0 z-40 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:hidden"
     >
-      <ul className="mx-auto grid max-w-md grid-cols-4 rounded-lg rounded-ee-[28px] bg-card p-1.5 shadow-elevated ring-1 ring-foreground/10">
+      <ul className="mx-auto grid max-w-md grid-cols-4 rounded-lg bg-card p-1.5 shadow-elevated ring-1 ring-foreground/10">
         {PORTAL_NAV.map((item) => {
           // `/portal` is a prefix of the other three, so it matches only exactly.
           const active =

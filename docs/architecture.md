@@ -107,7 +107,7 @@ messages live in `src/i18n/`. Components must work in both RTL and LTR without
 separate layout implementations.
 
 Use logical CSS and Tailwind properties such as `ms-*`, `pe-*`, `text-start`,
-and `rounded-ee-*`. Physical left/right utilities are rejected by the custom
+and `border-s-*`. Physical left/right utilities are rejected by the custom
 lint rule. See [Design system](design-system.md) for the complete UI contract.
 
 ## Major feature areas

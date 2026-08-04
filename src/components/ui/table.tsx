@@ -10,25 +10,20 @@ import { cn } from '@/lib/utils';
  * same padding, the same `bg-muted/50` head and the same hover row, which is
  * how a design system drifts. This is that markup, once.
  *
- * `TableRoot` owns the scroll container and the Arc: a wide table on a phone
- * has to scroll sideways, and the tail belongs on the frame rather than on the
- * table element, which cannot clip its own corners.
+ * `TableRoot` owns only the scroll container: a wide table on a phone has to
+ * scroll sideways, and that behaviour belongs on the frame rather than on the
+ * table element, which cannot scroll its own overflow. It carries no card
+ * framing of its own — no shadow, no ring, no fill — so the table reads as
+ * part of the page it sits on. `TableHeader`'s `bg-muted` is the only surface
+ * change the table makes; the body rows are plain, divided by the hairline on
+ * `TableRow`.
  *
  * Cells default to `text-start`, so they follow the document direction. Pass
  * `numeric` for anything that must stay LTR inside Arabic text — figures,
  * times, IDs and units read left-to-right in both scripts.
  */
 function TableRoot({ className, ...props }: React.ComponentProps<'div'>) {
-  return (
-    <div
-      data-slot="table-root"
-      className={cn(
-        'w-full overflow-x-auto rounded-lg rounded-ee-4xl bg-card shadow-card ring-1 ring-foreground/10',
-        className,
-      )}
-      {...props}
-    />
-  );
+  return <div data-slot="table-root" className={cn('w-full overflow-x-auto', className)} {...props} />;
 }
 
 function Table({ className, ...props }: React.ComponentProps<'table'>) {

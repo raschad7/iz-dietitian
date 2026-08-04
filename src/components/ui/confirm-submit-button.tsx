@@ -61,7 +61,12 @@ export function ConfirmSubmitButton({
         // The glyph does not change while pending — swapping it would move the
         // reader's attention to the icon at the exact moment the row is about
         // to be replaced. `disabled` already says the click landed.
-        <Icon name={icon} />
+        //
+        // `size-5` because with no words beside it the glyph *is* the button;
+        // the base 16px is sized to sit next to a label. It has to be stated
+        // here rather than on a wrapper — the button only auto-sizes glyphs
+        // that carry no `size-` class, at a specificity a parent cannot beat.
+        <Icon name={icon} className="size-5" />
       ) : (
         <>
           {icon ? <Icon name={icon} /> : null}

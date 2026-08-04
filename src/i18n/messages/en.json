@@ -36,7 +36,8 @@
     "security": "Security",
     "weeklyPlans": "Weekly Plans",
     "dishes": "Dish catalog",
-    "whatsapp": "WhatsApp"
+    "whatsapp": "WhatsApp",
+    "notifications": "Notifications"
   },
   "landing": {
     "title": "Run your dietitian practice in one place",
@@ -139,8 +140,8 @@
     "title": "Calendar",
     "completed": "Completed",
     "now": "Now",
-    "empty": "Nothing booked in this range. Click any empty slot to add an appointment.",
-    "monthCount": "{count, number, integer}",
+    "openClientProfile": "Open client profile",
+    "monthMore": "+{count, number, integer} more",
     "monthReadOnly": "Month view is an overview. Click a day to book or edit.",
     "nav": {
       "today": "Today",
@@ -149,7 +150,10 @@
       "view": "View",
       "day": "Day",
       "week": "Week",
-      "month": "Month"
+      "month": "Month",
+      "pickDate": "Pick a date",
+      "previousMonth": "Previous month",
+      "nextMonth": "Next month"
     },
     "search": {
       "placeholder": "Search clients"
@@ -228,7 +232,6 @@
     "welcome": "Welcome, {name}",
     "agenda": {
       "title": "Today",
-      "dateLabel": "Your agenda",
       "count": "{count, plural, =0 {No appointments} one {# appointment} other {# appointments}}",
       "next": "Next",
       "live": "Now",
@@ -239,9 +242,7 @@
     },
     "clients": {
       "title": "Your clients",
-      "subtitle": "{count, plural, =0 {No one on the register yet} one {# active client} other {# active clients}}",
       "nextVisit": "Next: {when}",
-      "nothingBooked": "Nothing booked",
       "empty": "No one on your register yet.",
       "emptyCta": "Add your first client",
       "viewAll": "See all clients"
@@ -263,7 +264,6 @@
     },
     "ageDistribution": {
       "title": "Age distribution",
-      "subtitle": "{count, plural, =0 {No clients yet} one {# client} other {# clients}}",
       "empty": "No clients on the register yet",
       "tooltip": "{count, plural, =0 {No clients} one {# client} other {# clients}} aged {band}",
       "bands": {
@@ -277,7 +277,6 @@
     },
     "sexDistribution": {
       "title": "Sex distribution",
-      "subtitle": "{count, plural, =0 {No clients yet} one {# client} other {# clients}}",
       "empty": "No clients on the register yet",
       "centerLabel": "clients",
       "tooltip": "{count, plural, =0 {No clients} one {# client} other {# clients}} — {group}",
@@ -325,6 +324,13 @@
     "backToList": "Back to clients",
     "notProvided": "Not provided",
     "yearsOld": "{count, number, integer} years",
+    "tabs": {
+      "label": "Client sections",
+      "info": "Client info",
+      "visits": "Visit history",
+      "plans": "Meal plans",
+      "portal": "Portal access"
+    },
     "sections": {
       "contact": "Contact details",
       "intake": "Intake profile",
@@ -376,7 +382,6 @@
     "actions": {
       "archive": "Archive",
       "restore": "Restore",
-      "filter": "Filter",
       "delete": "Delete",
       "confirmDelete": "This permanently deletes {name} and their portal account. It cannot be undone. Are you sure?"
     },
@@ -524,8 +529,10 @@
   "localeSwitcher": {
     "label": "Language",
     "devOnly": "Locale switcher (development only)",
-    "ar": "العربية",
-    "en": "English"
+    "ar": "AR",
+    "en": "EN",
+    "arName": "العربية",
+    "enName": "English"
   },
   "errors": {
     "notFound": "Page not found",
@@ -541,6 +548,7 @@
     "noClients": "No active clients",
     "noPlanYet": "No week has been planned for this client yet",
     "noPlanHint": "Create the first week when you are ready. The client profile, dish catalog, and earlier plans remain available in the side panel.",
+    "current": "Current plan",
     "history": "Earlier plans",
     "weekOf": "Week of {date}",
     "generatedBy": "Model used",
