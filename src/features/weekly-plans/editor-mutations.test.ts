@@ -14,11 +14,13 @@ import { createTestClient, createTestClinic, resetDatabase } from '../../../test
 
 import {
   addMeal,
+  addMealToWeek,
   clearMeal,
   createPlanFromSkeleton,
   moveMealDish,
   placeDish,
   removeMeal,
+  removeMealFromWeek,
   setMealServings,
 } from './editor-mutations';
 import { planDishesBySlot } from './queries';
@@ -416,6 +418,83 @@ describe('the edit writes', () => {
     expect(rejected).toBe(true);
   });
 
+  test('addMealToWeek gives every day the slot, each after its own last one', async () => {
+    const added = await addMealToWeek(clinicId, planId, {
+      slotKey: 'extra_1',
+      label: 'سناك مسائي',
+      timeOfDay: '19:00',
+    });
+
+    expect(added).toBe(7);
+
+    const rows = await db
+      .select()
+      .from(weeklyPlanMeals)
+      .where(and(eq(weeklyPlanMeals.planId, planId), eq(weeklyPlanMeals.slotKey, 'extra_1')));
+
+    expect(rows).toHaveLength(7);
+    expect(new Set(rows.map((row) => row.dayOfWeek)).size).toBe(7);
+    // Appended, never interleaved: the row has to sort below the slots the
+    // client's schedule already put on each day.
+    expect(rows.every((row) => row.sortOrder === 2)).toBe(true);
+    expect(rows.every((row) => row.dishId === null && row.budgetKcal === 0)).toBe(true);
+  });
+
+  test('addMealToWeek skips the days that already carry the slot', async () => {
+    await addMeal(clinicId, planId, {
+      dayOfWeek: 3,
+      slotKey: 'extra_1',
+      label: 'سناك مسائي',
+      timeOfDay: '19:00',
+    });
+
+    // Six, not seven — and no duplicate on Wednesday, which would make the
+    // board's row lookup ambiguous.
+    const added = await addMealToWeek(clinicId, planId, {
+      slotKey: 'extra_1',
+      label: 'سناك مسائي',
+      timeOfDay: '19:00',
+    });
+
+    expect(added).toBe(6);
+
+    const rows = await db
+      .select()
+      .from(weeklyPlanMeals)
+      .where(and(eq(weeklyPlanMeals.planId, planId), eq(weeklyPlanMeals.slotKey, 'extra_1')));
+
+    expect(rows).toHaveLength(7);
+    expect(rows.filter((row) => row.dayOfWeek === 3)).toHaveLength(1);
+  });
+
+  test('removeMealFromWeek drops the slot from all seven days at once', async () => {
+    expect(await removeMealFromWeek(clinicId, planId, 'lunch')).toBe(7);
+
+    const left = await db
+      .select()
+      .from(weeklyPlanMeals)
+      .where(eq(weeklyPlanMeals.planId, planId));
+
+    // The schedule has two slots a day, so seven breakfasts survive and no
+    // lunch does.
+    expect(left).toHaveLength(7);
+    expect(left.every((row) => row.slotKey === 'breakfast')).toBe(true);
+  });
+
+  test('removeMealFromWeek leaves the other slots and their dishes alone', async () => {
+    await placeDish(clinicId, planId, sunday.breakfast, dishId, 2);
+
+    await removeMealFromWeek(clinicId, planId, 'lunch');
+
+    const breakfast = await readMeal(sunday.breakfast);
+    expect(breakfast?.dishId).toBe(dishId);
+    expect(breakfast?.servings).toBe(2);
+  });
+
+  test('removeMealFromWeek reports nothing removed for a slot the plan does not have', async () => {
+    expect(await removeMealFromWeek(clinicId, planId, 'extra_9')).toBe(0);
+  });
+
   test('moveMealDish carries the dish and leaves the target its own budget', async () => {
     await placeDish(clinicId, planId, sunday.lunch, dishId, 2);
 
@@ -467,6 +546,14 @@ describe('the edit writes', () => {
     expect(await setMealServings(otherClinicId, planId, sunday.lunch, 2)).toBe(false);
     expect(await clearMeal(otherClinicId, planId, sunday.lunch)).toBe(false);
     expect(await removeMeal(otherClinicId, planId, sunday.lunch)).toBe(false);
+    expect(
+      await addMealToWeek(otherClinicId, planId, {
+        slotKey: 'extra_1',
+        label: 'سناك',
+        timeOfDay: '19:00',
+      }),
+    ).toBe(0);
+    expect(await removeMealFromWeek(otherClinicId, planId, 'lunch')).toBe(0);
     expect(
       await addMeal(otherClinicId, planId, {
         dayOfWeek: 0,

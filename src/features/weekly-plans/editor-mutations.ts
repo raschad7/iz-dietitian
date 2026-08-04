@@ -3,6 +3,7 @@ import { and, desc, eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { clients, weeklyPlanMealOptions, weeklyPlanMeals, weeklyPlans } from '@/db/schema';
 
+import { DAYS_OF_WEEK } from './schema';
 import { snapServings } from './similar';
 import type { SkeletonMeal } from './skeleton';
 
@@ -253,6 +254,38 @@ export async function clearMeal(
 }
 
 /** Deletes a slot from one day. The client's stored schedule is untouched. */
+/**
+ * Removes a slot from every day of the week.
+ *
+ * The counterpart to `addMealToWeek`, and the same argument for doing it in one
+ * statement: the board draws a slot as a row, so deleting it day by day would
+ * pass through six intermediate states in which the row exists on some days and
+ * not others. `weekly_plan_meal_options` is cleaned up by the schema's cascade,
+ * exactly as it is for a single `removeMeal`.
+ */
+export async function removeMealFromWeek(
+  clinicId: string,
+  planId: string,
+  slotKey: string,
+  allowPublished = false,
+): Promise<number> {
+  const plan = await editablePlan(clinicId, planId, allowPublished);
+  if (!plan) return 0;
+
+  return db.transaction(async (tx) => {
+    const deleted = await tx
+      .delete(weeklyPlanMeals)
+      .where(and(eq(weeklyPlanMeals.planId, planId), eq(weeklyPlanMeals.slotKey, slotKey)))
+      .returning({ id: weeklyPlanMeals.id });
+
+    if (!deleted.length) return 0;
+
+    await touchPlan(tx, planId);
+
+    return deleted.length;
+  });
+}
+
 export async function removeMeal(
   clinicId: string,
   planId: string,
@@ -326,6 +359,78 @@ export async function addMeal(
     await touchPlan(tx, planId);
 
     return added.id;
+  });
+}
+
+/**
+ * The same slot, appended to every day of the week.
+ *
+ * One transaction and one insert rather than seven calls to `addMeal`: the
+ * board renders slots as rows, so a half-applied add would leave a row that
+ * exists on four days and is missing from three, which is exactly the ragged
+ * state the row model is there to avoid.
+ *
+ * Each day keeps its **own** next `sortOrder`. They are normally identical —
+ * `planSkeleton` gives every day the same schedule — but a day that has had a
+ * slot removed is one shorter, and forcing a shared position there would either
+ * leave a hole or collide with an existing row.
+ */
+export async function addMealToWeek(
+  clinicId: string,
+  planId: string,
+  input: { slotKey: string; label: string; timeOfDay: string },
+  allowPublished = false,
+): Promise<number> {
+  const plan = await editablePlan(clinicId, planId, allowPublished);
+  if (!plan) return 0;
+
+  return db.transaction(async (tx) => {
+    const existing = await tx
+      .select({
+        dayOfWeek: weeklyPlanMeals.dayOfWeek,
+        slotKey: weeklyPlanMeals.slotKey,
+        sortOrder: weeklyPlanMeals.sortOrder,
+      })
+      .from(weeklyPlanMeals)
+      .where(eq(weeklyPlanMeals.planId, planId));
+
+    const nextSortOrder = new Map<number, number>();
+    const alreadyHas = new Set<number>();
+
+    for (const row of existing) {
+      const seen = nextSortOrder.get(row.dayOfWeek) ?? 0;
+      nextSortOrder.set(row.dayOfWeek, Math.max(seen, row.sortOrder + 1));
+      // A day that already carries this slot is skipped rather than given a
+      // duplicate. Two rows with one slot key would make the board's row lookup
+      // ambiguous, and the dietitian asked for the row to exist, not for a
+      // second copy of it on the days that had it.
+      if (row.slotKey === input.slotKey) alreadyHas.add(row.dayOfWeek);
+    }
+
+    const values = DAYS_OF_WEEK.filter((dayOfWeek) => !alreadyHas.has(dayOfWeek)).map(
+      (dayOfWeek) => ({
+        planId,
+        dayOfWeek,
+        slotKey: input.slotKey,
+        label: input.label,
+        timeOfDay: input.timeOfDay,
+        budgetKcal: 0,
+        sortOrder: nextSortOrder.get(dayOfWeek) ?? 0,
+        dishId: null,
+        servings: 1,
+      }),
+    );
+
+    if (values.length === 0) return 0;
+
+    const added = await tx
+      .insert(weeklyPlanMeals)
+      .values(values)
+      .returning({ id: weeklyPlanMeals.id });
+
+    await touchPlan(tx, planId);
+
+    return added.length;
   });
 }
 

@@ -57,13 +57,13 @@ export function MealDetailPanel({
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
       <div className="flex shrink-0 items-start justify-between gap-3 border-b border-border pb-3">
         <div className="min-w-0">
-          <p className="text-xs text-muted-foreground">
+          <p className="text-caption text-muted-foreground">
             {meal.label} · {meal.timeOfDay}
           </p>
           <h3 className="mt-1 font-heading text-heading-sm font-semibold leading-snug" dir="auto">
             {meal.dish ? meal.dish.nameAr : t('emptySlot')}
           </h3>
-          {meal.dish && <p className="text-xs text-muted-foreground">{meal.dish.nameEn}</p>}
+          {meal.dish && <p className="text-caption text-muted-foreground">{meal.dish.nameEn}</p>}
         </div>
 
         <Button type="button" size="sm" variant="ghost" onClick={onClose}>
@@ -110,34 +110,49 @@ export function MealDetailPanel({
         )}
 
         {model && <span className="sr-only">{t('generatedBy')} · {model}</span>}
+      </div>
 
-        {editable && (
-          <section className="mt-4 flex gap-3 border-t border-border pt-3">
-            {meal.dish && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="flex-1"
-                onClick={() => clear(meal.id)}
-              >
-                <Icon name="clearSlot" />
-                {t('clearMeal')}
-              </Button>
-            )}
+      {/*
+       * Pinned to the panel, not parked at the end of the scroller.
+       *
+       * These two are the panel's only destructive controls and they were the
+       * last thing in a column that also holds the replacement list, the
+       * ingredients, the nutrition table and the model's rationale — so
+       * emptying a slot meant scrolling past all of it, and on a short window
+       * they sat below the fold with nothing indicating they existed. A footer
+       * outside the scroller costs 60px of the list and makes them reachable
+       * from wherever the panel happens to be scrolled to.
+       *
+       * `shrink-0` is load-bearing: the sibling above is `flex-1 min-h-0`, and
+       * without it a long ingredient list would compress the footer rather than
+       * scroll under it.
+       */}
+      {editable && (
+        <section className="flex shrink-0 gap-3 border-t border-border pt-3">
+          {meal.dish && (
             <Button
               type="button"
-              variant="destructive"
+              variant="ghost"
               size="sm"
-              className="flex-1"
-              onClick={() => remove(meal.id)}
+              className="min-w-0 flex-1"
+              onClick={() => clear(meal.id)}
             >
-              <Icon name="trash" />
-              {t('removeMeal')}
+              <Icon name="clearSlot" />
+              {t('clearMeal')}
             </Button>
-          </section>
-        )}
-      </div>
+          )}
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            className="min-w-0 flex-1"
+            onClick={() => remove(meal.id)}
+          >
+            <Icon name="trash" />
+            {t('removeMeal')}
+          </Button>
+        </section>
+      )}
     </div>
   );
 }
@@ -217,7 +232,7 @@ function Ingredients({ meal }: { meal: BoardMeal }) {
 
   return (
     <section>
-      <ul className="flex flex-col gap-1 text-xs">
+      <ul className="flex flex-col gap-1 text-body-sm">
         {ingredients.map((ingredient) => (
           <li key={ingredient.food.id} className="flex justify-between gap-2">
             <span className="min-w-0 flex-1 [overflow-wrap:anywhere] text-muted-foreground">
@@ -239,7 +254,7 @@ function Nutrients({ meal }: { meal: BoardMeal }) {
 
   return (
     <section>
-      <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+      <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-body-sm">
         {NUTRIENT_KEYS.map((key: NutrientKey) => {
           const total = meal.totals[key];
 
@@ -275,7 +290,7 @@ function Nutrients({ meal }: { meal: BoardMeal }) {
 function Rationale({ text }: { text: string }) {
   return (
     <section>
-      <p className="text-xs leading-relaxed">{text}</p>
+      <p className="text-body-sm leading-relaxed">{text}</p>
     </section>
   );
 }
@@ -322,7 +337,7 @@ function SwapSubmit({ children, flagged }: { children: React.ReactNode; flagged?
       type="submit"
       disabled={pending}
       className={cn(
-        'grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b border-border px-0 py-2.5 text-start text-xs transition-colors hover:bg-accent/60 disabled:opacity-50',
+        'grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b border-border px-0 py-2.5 text-start text-body-sm transition-colors hover:bg-accent/60 disabled:opacity-50',
         flagged && 'border-status-attention-fg/40',
       )}
     >

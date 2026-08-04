@@ -1,7 +1,10 @@
 import { useTranslations } from 'next-intl';
 
 import { Badge } from '@/components/ui/badge';
+import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Icon } from '@/components/ui/icon';
+import { Tooltip } from '@/components/ui/tooltip';
 import { CLIENT_ACTIVITY_LEVELS, CLIENT_GOALS } from '@/features/clients/schema';
 import { Link } from '@/i18n/navigation';
 import { isMember, membersOf } from '@/lib/enum';
@@ -43,12 +46,38 @@ export function ContextPanel({ context }: { context: ClientContext }) {
           </h3>
           <p className="mt-0.5 text-caption text-muted-foreground">{t('planningSnapshot')}</p>
         </div>
-        <Link
-          href={`/app/weekly-plans/${context.clientId}/profile`}
-          className="shrink-0 text-label font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          {profile ? t('editProfile') : t('createProfile')}
-        </Link>
+        {/*
+          Two different jobs, so two different controls.
+
+          With a profile on file this is a quiet "go and change something"
+          affordance sitting beside a name — a pen is enough, and a five-word
+          link there competed with the client's own name for the corner. Without
+          one it is the single most important thing on the panel: nothing can be
+          generated until it exists, so it keeps its words and takes a box.
+
+          The pen is icon-only, so it carries a real `aria-label` and a tooltip
+          reminding a pointer of the same string — a control whose only label is
+          a tooltip is unusable by keyboard and by touch alike.
+        */}
+        {profile ? (
+          <Tooltip label={t('editProfile')} className="shrink-0">
+            <Link
+              href={`/app/weekly-plans/${context.clientId}/profile`}
+              aria-label={t('editProfile')}
+              className={buttonVariants({ variant: 'ghost', size: 'icon-sm' })}
+            >
+              <Icon name="edit" />
+            </Link>
+          </Tooltip>
+        ) : (
+          <Link
+            href={`/app/weekly-plans/${context.clientId}/profile`}
+            className={buttonVariants({ variant: 'outline', size: 'sm', className: 'shrink-0' })}
+          >
+            <Icon name="add" />
+            {t('createProfile')}
+          </Link>
+        )}
       </header>
 
       {targets.missing.length > 0 && (

@@ -43,6 +43,8 @@ export type BoardEdit =
   | { kind: 'clear'; mealId: string }
   | { kind: 'remove'; mealId: string }
   | { kind: 'add'; dayOfWeek: number; label: string; timeOfDay: string; slotKey: string }
+  | { kind: 'addWeek'; label: string; timeOfDay: string; slotKey: string }
+  | { kind: 'removeWeek'; slotKey: string }
   | { kind: 'move'; fromMealId: string; toMealId: string; mode: 'move' | 'copy' };
 
 /** Finds a meal anywhere on the board. */
@@ -154,6 +156,46 @@ export function applyEdit(board: Board, edit: BoardEdit): Board {
         board,
         board.days.map((day) =>
           day.dayOfWeek === edit.dayOfWeek ? { ...day, meals: [...day.meals, added] } : day,
+        ),
+      );
+    }
+
+    case 'removeWeek': {
+      return recountBoard(
+        board,
+        board.days.map((day) => ({
+          ...day,
+          meals: day.meals.filter((meal) => meal.slotKey !== edit.slotKey),
+        })),
+      );
+    }
+
+    case 'addWeek': {
+      return recountBoard(
+        board,
+        board.days.map((day) =>
+          // Skipped where the day already carries the slot, matching what
+          // `addMealToWeek` writes — otherwise the optimistic board would show a
+          // duplicate row for a moment and then drop it on revalidation.
+          day.meals.some((meal) => meal.slotKey === edit.slotKey)
+            ? day
+            : {
+                ...day,
+                meals: [
+                  ...day.meals,
+                  {
+                    id: `optimistic-${day.dayOfWeek}-${edit.slotKey}`,
+                    slotKey: edit.slotKey,
+                    label: edit.label,
+                    timeOfDay: edit.timeOfDay,
+                    dish: null,
+                    rationaleAr: null,
+                    totals: emptyTotals(),
+                    budgetKcal: 0,
+                    options: [],
+                  },
+                ],
+              },
         ),
       );
     }

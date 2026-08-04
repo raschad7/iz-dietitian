@@ -5,8 +5,10 @@ import { useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import { useRouter } from '@/i18n/navigation';
+import { cn } from '@/lib/utils';
 
 import type { PlannableClient } from '../queries';
+import { PLANNER_THEME } from '../theme';
 
 /**
  * Choosing whose week is on screen.
@@ -49,12 +51,30 @@ export function ClientPicker({
       // itself and everything else wraps under it; a fixed 256px that refuses
       // to shrink is what pushed the rest of the row off the screen.
       className={appearance === 'heading' ? 'w-full min-w-56 sm:w-80' : 'w-full sm:w-64 sm:shrink-0'}
+      /*
+       * The heading appearance changes the *type*, and nothing else.
+       *
+       * It used to strip the box as well — transparent border, transparent
+       * fill, no shadow, `ps-0` — which left the client's name sitting on the
+       * page as if it were the title, with a chevron stranded 200px away at the
+       * far edge of an invisible 320px control. Nobody reads that as "you can
+       * change who this is"; they read it as a heading and a stray arrow.
+       *
+       * So the box comes back. `.q-field` gives it the neutral resting edge,
+       * the olive-50 hover fill and the 20px inset that ties the name to the
+       * chevron at the other end — the same language every other control in the
+       * app speaks. It is still unmistakably the subject of the page, because
+       * the name inside it is still heading type; it just also looks like
+       * something you can open.
+       *
+       * `text-heading-sm`, not `heading-md`: the scale has no `md` step, so that
+       * class emitted nothing and the name was rendering at the field's own
+       * 16px body size.
+       */
       inputClassName={
-        appearance === 'heading'
-          ? 'h-10 border-transparent bg-transparent py-0 ps-0 pe-9 font-heading text-heading-md font-semibold shadow-none hover:bg-accent/50 focus:bg-card'
-          : undefined
+        appearance === 'heading' ? 'font-heading text-heading-sm font-semibold' : undefined
       }
-      popupClassName={appearance === 'heading' ? 'min-w-72' : undefined}
+      popupClassName={cn(PLANNER_THEME, appearance === 'heading' && 'min-w-72')}
     />
   );
 }

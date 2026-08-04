@@ -134,7 +134,7 @@ export function Combobox<T extends string>({
             // `--anchor-width` is the primitive's own positioner variable, so
             // the list is exactly as wide as the field it drops out of.
             className={cn(
-              'w-(--anchor-width) origin-(--transform-origin) overflow-hidden rounded-lg rounded-ee-4xl border border-border bg-popover p-1 text-popover-foreground shadow-elevated transition-[transform,opacity] duration-150 ease-[cubic-bezier(.2,.6,.2,1)] data-ending-style:scale-95 data-ending-style:opacity-0 data-starting-style:scale-95 data-starting-style:opacity-0',
+              'w-(--anchor-width) origin-(--transform-origin) overflow-hidden rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-elevated transition-[transform,opacity] duration-150 ease-[cubic-bezier(.2,.6,.2,1)] data-ending-style:scale-95 data-ending-style:opacity-0 data-starting-style:scale-95 data-starting-style:opacity-0',
               popupClassName,
             )}
           >

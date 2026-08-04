@@ -5,6 +5,7 @@ import { useFormStatus } from 'react-dom';
 import { useLocale, useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
 import { Dialog, DialogBody, DialogHeader } from '@/components/ui/dialog';
 import { getLocaleDirection } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
@@ -63,7 +64,7 @@ export function NewWeekDialog({
   locale: string;
   newWeek: NewWeekProps;
   triggerLabel?: string;
-  triggerVariant?: 'default' | 'ghost';
+  triggerVariant?: 'default' | 'ghost' | 'neutral';
 }) {
   const t = useTranslations('weeklyPlans');
   const tCommon = useTranslations('common');
@@ -79,6 +80,7 @@ export function NewWeekDialog({
   return (
     <>
       <Button type="button" size="sm" variant={triggerVariant} onClick={() => setOpen(true)}>
+        <Icon name="add" />
         {triggerLabel ?? t('newWeek')}
       </Button>
 

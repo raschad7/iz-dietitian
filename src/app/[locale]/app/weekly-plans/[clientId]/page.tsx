@@ -20,6 +20,7 @@ import {
   previousPlanSlots,
   swapCandidatesByMeal,
 } from '@/features/weekly-plans/queries';
+import { PLANNER_THEME } from '@/features/weekly-plans/theme';
 import { recentDishUse } from '@/features/weekly-plans/usage';
 import { nextSunday } from '@/features/weekly-plans/week';
 
@@ -103,7 +104,7 @@ export default async function ClientBoardPage({ params, searchParams }: PageProp
   const history = <PlanHistory plans={plans} clientId={clientId} />;
 
   return (
-    <div className="flex h-full min-h-0 flex-col text-start">
+    <div className={`${PLANNER_THEME} flex h-full min-h-0 flex-col text-start`}>
       {/* No week pills beside the title: they were the history tab's list, in
           a second place, with room for fewer of them. */}
       <h1 className="sr-only">{t('title')}</h1>

@@ -82,10 +82,20 @@ Warm neutrals — never pure grey, and the ramp the charts are drawn in.
 | 200 `#E2DFD3` | 300 `#CDC9B9` | 400 `#A8A493` | 500 `#837F6E` |
 | 600 `#605D50` | 700 `#46443B` | 800 `#2F2E28` | 900 `#1C1B17` |
 
-The **three cool greys** are the rail, its hover and its divider (`#F9FAFB` /
-`#F3F4F6` / `#D1D5DB`), and they exist only there — see "Rail" below. They are
-not part of this ramp and nothing else may reach for them; a warm neutral used
-as a page surface beside a cool one is how a palette starts looking accidental.
+The **cool greys** are the rail — its surface, its hover and its divider
+(`#F9FAFB` / `#F3F4F6` / `#D1D5DB`) — and the **weekly planner board**, which
+adds `#E5E7EB` as a hairline and `#4B5563` as secondary text. They are not part
+of this ramp and nothing else may reach for them; a warm neutral used as a page
+surface beside a cool one is how a palette starts looking accidental.
+
+Those two are whole surfaces, which is the condition. The board is a grid of
+thirty-five hairline cards, so almost everything drawn on it is an edge — and
+thirty-five warm n-200 edges tint the page even though the page itself is
+`#FFFFFF`. Swapping the four neutrals it actually draws with (`--border`,
+`--muted`, `--accent`, `--muted-foreground`) is what makes it read as clinical
+white rather than as cream. `#4B5563` measures **7.46:1** on white, clearing the
+6.38:1 floor `--muted-foreground` holds elsewhere. See "The planner's own
+theme" under Typography.
 
 Amber — attention.
 
@@ -232,6 +242,47 @@ variables exist) while all body text silently renders in the system font.
 Form controls are fine either way — Tailwind's preflight gives
 `button, input, select, optgroup, textarea` an explicit `font: inherit`.
 
+### The planner's own theme
+
+The weekly planner board is the one screen that sets its own face. `.planner-theme`
+(`globals.css`, applied on both `/app/weekly-plans` routes) re-points
+`--script-ui-font` and `--script-display-font` at **Tajawal** and cools the four
+neutrals it draws with. Everything else in the app is unaffected.
+
+It is scoped that way because the board is not a page of cards — it is a working
+grid of thirty-five cells read at 12–14px, and Tajawal's rounder, more open
+shapes hold up there better than either body face.
+
+**Tajawal ships no 600.** The family jumps 500 → 700, and the scale bakes 600
+into `heading-*` and `label`. That needs no handling: CSS weight matching walks
+*upwards* first for any desired weight above 500, so `font-semibold` lands on
+the real 700 outlines rather than being synthesised — the same mechanism Neo
+Sans Arabic relies on. Only 400/500/700 are loaded.
+
+The board's own hierarchy is three roles, and it is deliberately not the app's:
+
+| Role | Step | Weight |
+|---|---|---|
+| Content — the dish name | `body-md` (16px) | **500** |
+| Chrome — day names | `body-sm` (14px) | **700** |
+| Chrome — slot labels | `label` (13px) | 700 (via 600 → 700) |
+| Figures — kcal | `body-sm` (14px) | 700, tabular |
+| Metadata — time, portion | `caption` (12px) | 400 |
+
+**The content is the largest thing and the lightest.** A dish name is the most
+repeated element on the screen, and at bold, thirty-five of them read as a wall;
+size carries it instead. The chrome inverts that — small and bold — because a
+column header is something you navigate by rather than read. Figures are small
+and bold so they stay scannable as data.
+
+⚠ `.planner-theme` is written as **`:root .planner-theme`**. In an Arabic
+document the board's own element also matches the unlayered `:lang(ar)` block,
+which sets those two font variables to the Neo Sans stack; at equal specificity
+the later rule wins and the override would depend on source order. The
+descendant selector makes it (0,2,0) against (0,1,0). The Arabic `--lh-*` values
+in that block are deliberately **not** overridden — Tajawal needs the looser
+Arabic leading exactly as much as Neo Sans does.
+
 ### Scale
 
 Nine steps. Each one owns its size, its leading **and** its weight, so a step
@@ -376,6 +427,25 @@ Six variants, matching [buttons.png](design-images/buttons.png):
 
 Plus `secondary` (olive-50 tint) and `link`, which aren't in the six but keep
 dense surfaces off ad-hoc classes.
+
+**`neutral` — a box, a black label, no brand colour.** For a row of peers where
+exactly one control is *the* action and the rest are merely available. `outline`
+and `ghost` both draw their label in olive, which is the system saying "act on
+me"; four of them side by side say it four times and the real primary stops
+being findable. `neutral` takes the edge so it still reads as pressable and
+gives the colour back to the button that earned it — n-900 on white, 16.64:1.
+`aria-pressed` fills it (n-100) rather than tinting it, so a toggle's on-state
+never spends the brand colour on a view preference. The planner's toolbar is the
+reference case: publish is the decision; "new week", "edit plan" and "compare"
+are things you may also do.
+
+**A control that will become available should hold its place.** Rendering it
+only once it applies pushes everything after it sideways at the moment the
+person is looking elsewhere — the planner's "edit plan" did exactly that on
+publish. Render it disabled instead: the row's shape stops changing, and the
+greyed control doubles as a note that this unlocks later. Put the explanation on
+a *wrapping element*, never on the button — `disabled:pointer-events-none` means
+a `title` on the button itself can never be hovered.
 
 **`destructive` vs `destructiveGhost`** is about what the control is *among*,
 not how dangerous it is. A destructive action that closes a decision — the

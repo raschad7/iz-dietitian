@@ -1,16 +1,20 @@
 'use client';
 
 import { useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
-import { ComfortBand } from '@/components/ui/comfort-band';
+import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/dialog';
+import { Field } from '@/components/ui/field';
 import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { getLocaleDirection } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 
 import { roundForDisplay } from '@/features/weekly-plans/nutrition';
 import { bandGeometry } from '../band';
+import type { BoardRow } from '../board-rows';
 import { nextSlotKey } from '../editor-state';
 import type { BoardDay } from '../queries';
 import { dayKey } from '../schema';
@@ -33,12 +37,13 @@ const LAST_ROW = { gridRow: '-2 / -1' } as const;
 /**
  * One day of the week, as a column of meal cards.
  *
- * The header carries the day's total and a band drawn against the daily target,
- * coloured only when it drifts — a board where every column is amber teaches the
- * dietitian to ignore the colour.
+ * The header carries the day's total, coloured only when it drifts off the daily
+ * target — a board where every column is amber teaches the dietitian to ignore
+ * the colour.
  */
 export function DayColumn({
   day,
+  rows,
   dailyTarget,
   planId,
   locale,
@@ -50,6 +55,8 @@ export function DayColumn({
   showOnPhone,
 }: {
   day: BoardDay;
+  /** The week's rows, so every column renders the same ones in the same order. */
+  rows: readonly BoardRow[];
   dailyTarget: number;
   planId: string;
   locale: string;
@@ -73,7 +80,9 @@ export function DayColumn({
   const dayName = tDays(dayKey(day.dayOfWeek));
   const kcal = roundForDisplay('kcal', day.totals.kcal.value);
   // A day with no meals has not missed its target, it has nothing to measure —
-  // drawing a band hard against zero would claim otherwise.
+  // colouring a total of zero "under" would claim otherwise. Only `state` is
+  // read now that the band itself is gone; the geometry it also returns is
+  // computed and dropped, which is cheap and keeps one definition of drift.
   const band = day.meals.length > 0 ? bandGeometry(kcal, dailyTarget) : null;
 
   return (
@@ -98,23 +107,48 @@ export function DayColumn({
         !showOnPhone && 'max-md:hidden',
       )}
     >
-      <div className="sticky top-0 z-10 border-b border-border bg-background/95 px-2 pb-3 pt-2 backdrop-blur-sm">
-        <div className="flex items-baseline justify-between gap-1.5">
-          <span className="truncate text-body-sm font-semibold">{dayName}</span>
+      {/* Opaque, not `/95` with a blur behind it. A translucent sticky header
+          over a scrolling column lets the cards ghost through the day name at
+          exactly the moment the header is doing its one job, and the blur was
+          paying for the smear. `px-3` matches the cards below it, so the day
+          name and every meal label share one inline-start edge down the
+          column — at `px-2` they were 4px out of line. */}
+      {/* No `relative` alongside `sticky` — both set `position`, so which one
+          won would depend on the order Tailwind happened to emit them in, and
+          losing it would unstick the header. `sticky` already establishes the
+          containing block the regenerate control positions against. */}
+      <div className="sticky top-0 z-10 border-b border-border bg-background px-3 pb-2 pt-1">
+        <div className="flex items-center justify-between gap-1.5">
+          {/* A step above the total under it. Both were within 1px and both
+              semibold, so the week had nothing to be scanned by.
+
+              Centred over its column, with the regenerate control pinned to the
+              inline-end — the day name is the column's title now that the cards
+              under it no longer carry any of their own. */}
+          <span className="min-w-0 flex-1 truncate text-center text-body-sm font-bold">
+            {dayName}
+          </span>
 
           {editable && (
-            <RegenerateDayButton planId={planId} dayOfWeek={day.dayOfWeek} locale={locale} />
+            <span className="absolute end-1 top-1">
+              <RegenerateDayButton planId={planId} dayOfWeek={day.dayOfWeek} locale={locale} />
+            </span>
           )}
         </div>
 
-        {/* The total alone. The target is what the band underneath is drawn
-            against, so printing it seven more times says the same thing twice.
-            The arrow is decorative — the amber figure beside it already carries
-            the meaning, and labelling both makes a screen reader say it twice. */}
+        {/* The total, and — when the day misses the target — an arrow and the
+            attention colour. The arrow is decorative; the amber figure beside
+            it already carries the meaning, and labelling both makes a screen
+            reader say it twice.
+
+            There is no band under it any more. Seven of them across the top of
+            the board was seven six-pixel graphics competing with the seven
+            figures they restated, in the one strip that has to stay scannable.
+            The drift state they were drawn to show is on the figure itself. */}
         <span
           className={cn(
-            'mt-0.5 flex items-baseline gap-1 text-label',
-            band?.state ? 'font-semibold text-status-attention-fg' : 'text-muted-foreground',
+            'mt-0.5 flex items-baseline justify-center gap-1 text-label font-medium',
+            band?.state ? 'font-bold text-status-attention-fg' : 'text-muted-foreground',
           )}
         >
           {band?.state && (
@@ -126,46 +160,26 @@ export function DayColumn({
           {t('kcalValue', { value: kcal })}
         </span>
 
-        {band ? (
-          <ComfortBand
-            rangeStart={band.rangeStart}
-            rangeWidth={band.rangeWidth}
-            marker={band.marker}
-            offTarget={band.state !== null}
-            label={t('dayBandLabel', { day: dayName })}
-            valueText={t('dayBandValue', { value: kcal, target: dailyTarget })}
-            className="mt-2"
-          />
-        ) : (
-          /* No band on a day with nothing in it — "under target" is not news
-             about a day nobody has planned yet. But the target is what the band
-             would have carried, and the dietitian looking at an unplanned day is
-             the one who most needs it, so print it. */
-          dailyTarget > 0 && (
-            <span className="mt-1 block text-caption text-muted-foreground">
-              {t('dailyTargetShort', { value: dailyTarget })}
-            </span>
-          )
+        {/* A day with nothing in it has no total worth printing, so it prints
+            the target instead — the dietitian looking at an unplanned column is
+            the one who most needs to know what it has to add up to. */}
+        {!band && dailyTarget > 0 && (
+          <span className="mt-1 block text-center text-caption text-muted-foreground">
+            {t('dailyTargetShort', { value: dailyTarget })}
+          </span>
         )}
       </div>
 
-      {day.meals.length === 0 && !editable ? (
-        /* Spans every meal row rather than auto-placing into the first one. The
-           tracks are shared, so the lines would stay put either way — but the
-           column would read as a small dashed box followed by a void the height
-           of its neighbours' cards. This branch is `!editable`-only, so the
-           template has no trailing add row and `-1` is the last meal row's end
-           line; under `editable` the same span would swallow the add control. */
-        <p
-          style={{ gridRow: '2 / -1' }}
-          className="rounded-lg border border-dashed border-border p-3 text-label text-muted-foreground"
-        >
-          {t('emptyDay')}
-        </p>
-      ) : (
-        day.meals.map((meal) => (
+      {/* One cell per row of the week, in the week's order — not this day's own
+          meals in their own order. That is what keeps the slot rail honest: row
+          three is غداء in all seven columns because every column renders row
+          three, whether or not this particular day carries it. */}
+      {rows.map((row) => {
+        const meal = row.mealByDay.get(day.dayOfWeek);
+
+        return meal ? (
           <MealCard
-            key={meal.id}
+            key={row.slotKey}
             meal={meal}
             selected={meal.id === selectedMealId}
             onSelect={() => onSelectMeal(meal.id)}
@@ -173,70 +187,198 @@ export function DayColumn({
             compareDate={compareDate}
             editable={editable}
           />
-        ))
-      )}
-
-      {editable && <AddMeal day={day} />}
+        ) : (
+          <SkippedSlot key={row.slotKey} row={row} dayOfWeek={day.dayOfWeek} editable={editable} />
+        );
+      })}
     </div>
   );
 }
 
 /**
- * Adds a slot to this day only.
+ * A row this day does not carry.
  *
- * Label and time are asked for rather than defaulted: the dietitian is inventing a
- * meal that is not in the client's schedule, and a card reading "Meal 6" at 00:00
- * would be worse than one more small form.
+ * The plan's slots are the client's schedule, so at first every day has every
+ * row and none of these are drawn. One appears when a slot is removed from a
+ * single day — a client who does not eat lunch on Fridays — and it is what lets
+ * that happen without the rest of the column sliding up a row and putting
+ * dinner under the lunch label.
+ *
+ * Empty rather than apologetic: it is a fact about the plan, not a gap someone
+ * forgot. While the plan is editable it is also the way back, because the same
+ * `add` that restores it is the one the slot was removed with.
  */
-function AddMeal({ day }: { day: BoardDay }) {
+function SkippedSlot({
+  row,
+  dayOfWeek,
+  editable,
+}: {
+  row: BoardRow;
+  dayOfWeek: number;
+  editable: boolean;
+}) {
   const t = useTranslations('weeklyPlans');
   const { add } = useEditorActions();
+
+  if (!editable) {
+    return <div aria-hidden className="rounded-lg border border-dashed border-border/60" />;
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => add(dayOfWeek, row.slotKey, row.label, row.timeOfDay)}
+      // Named for what it restores, not "add" — there are seven of these in a
+      // column and a screen reader hearing "add" seven times learns nothing.
+      aria-label={t('restoreSlot', { slot: row.label })}
+      title={t('restoreSlot', { slot: row.label })}
+      className="group/skip grid place-items-center rounded-lg border border-dashed border-border/60 text-muted-foreground transition-colors hover:border-primary hover:bg-secondary hover:text-primary"
+    >
+      <Icon
+        name="add"
+        className="size-4 opacity-0 transition-opacity group-hover/skip:opacity-100 group-focus-visible/skip:opacity-100 max-md:opacity-60"
+      />
+    </button>
+  );
+}
+
+/**
+ * Adds a slot to the whole week.
+ *
+ * Week-wide, because the board draws slots as rows: a slot on Tuesday alone is
+ * a row whose label describes one cell in seven. A day that turns out not to
+ * need it loses it individually afterwards, which leaves a `SkippedSlot` above
+ * rather than a ragged column.
+ *
+ * Label and time are asked for rather than defaulted: the dietitian is
+ * inventing a meal that is not in the client's schedule, and a row reading
+ * "Meal 6" at 00:00 would be worse than one more small form.
+ */
+export function AddSlot({ rows }: { rows: readonly BoardRow[] }) {
+  const t = useTranslations('weeklyPlans');
+  const activeLocale = useLocale();
+  const { addWeek } = useEditorActions();
   const [open, setOpen] = useState(false);
   const [label, setLabel] = useState('');
   const [time, setTime] = useState('17:00');
-
-  if (!open) {
-    return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        style={LAST_ROW}
-        className="h-10 rounded-lg border border-dashed border-border text-label text-muted-foreground transition-colors hover:border-primary hover:bg-secondary hover:text-secondary-foreground"
-      >
-        + {t('addMeal')}
-      </button>
-    );
-  }
 
   function submit(): void {
     const trimmed = label.trim();
     if (!trimmed) return;
 
-    add(day.dayOfWeek, nextSlotKey(day.meals.map((meal) => meal.slotKey)), trimmed, time);
+    addWeek(nextSlotKey(rows.map((row) => row.slotKey)), trimmed, time);
     setLabel('');
+    setTime('17:00');
     setOpen(false);
   }
 
   return (
-    <div style={LAST_ROW} className="flex flex-col gap-1.5 rounded-lg border border-border p-1.5">
-      <Input
-        value={label}
-        onChange={(event) => setLabel(event.target.value)}
-        placeholder={t('addMeal')}
-        maxLength={60}
-        autoFocus
-      />
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        style={LAST_ROW}
+        className="mx-1 mb-1 grid place-items-center gap-0.5 rounded-lg border border-dashed border-border py-2 text-caption text-muted-foreground transition-colors hover:border-primary hover:bg-secondary hover:text-secondary-foreground"
+      >
+        <Icon name="add" className="size-5" />
+        {t('addMeal')}
+      </button>
 
-      <Input type="time" value={time} onChange={(event) => setTime(event.target.value)} />
+      {/*
+       * A dialog, not an inline form.
+       *
+       * The form used to open *inside* this cell — which is a column of the
+       * board sized to the word "فطور", about 80px. Two fields and two buttons
+       * cannot live there: they overflowed the rail, pushed the grid, and the
+       * time input rendered its own picker wider than the whole column. The
+       * control belongs on the rail because what it adds is a row; the form it
+       * opens does not have to.
+       */}
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        label={t('addMeal')}
+        dir={getLocaleDirection(activeLocale)}
+      >
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            submit();
+          }}
+        >
+          <DialogHeader title={t('addMeal')} description={t('addMealHint')} />
 
-      <div className="flex gap-1.5">
-        <Button type="button" size="sm" className="flex-1" onClick={submit}>
-          {t('save')}
-        </Button>
-        <Button type="button" size="sm" variant="ghost" onClick={() => setOpen(false)}>
-          {t('close')}
-        </Button>
-      </div>
-    </div>
+          <DialogBody className="flex flex-col gap-4">
+            <Field>
+              <Label htmlFor="add-slot-label">{t('addMealLabel')}</Label>
+              <Input
+                id="add-slot-label"
+                value={label}
+                onChange={(event) => setLabel(event.target.value)}
+                placeholder={t('addMealPlaceholder')}
+                maxLength={60}
+                autoFocus
+                required
+              />
+            </Field>
+
+            <Field>
+              <Label htmlFor="add-slot-time">{t('addMealTime')}</Label>
+              <Input
+                id="add-slot-time"
+                type="time"
+                value={time}
+                onChange={(event) => setTime(event.target.value)}
+                required
+              />
+            </Field>
+          </DialogBody>
+
+          <DialogFooter>
+            {/* Source order, so the primary sits at the inline-start of the
+                group in both locales — see docs/design-system.md § Buttons. */}
+            <Button type="submit" disabled={label.trim().length === 0}>
+              {t('save')}
+            </Button>
+            <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+              {t('close')}
+            </Button>
+          </DialogFooter>
+        </form>
+      </Dialog>
+    </>
   );
 }
+
+/**
+ * Removes a slot from every day of the week.
+ *
+ * The counterpart to `AddSlot`, and it lives on the same axis for the same
+ * reason: what it removes is a row. Removing the slot from one day is a
+ * different action with a different control — the meal's own detail panel —
+ * and it leaves a `SkippedSlot` behind rather than closing the row.
+ *
+ * It confirms, because it is the one edit on this board that cannot be undone
+ * by dragging something back: seven meals go at once, and any dish in them goes
+ * with them.
+ */
+function RemoveSlot({ row }: { row: BoardRow }) {
+  const t = useTranslations('weeklyPlans');
+  const { removeWeek } = useEditorActions();
+
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        if (window.confirm(t('removeSlotConfirm', { slot: row.label }))) removeWeek(row.slotKey);
+      }}
+      aria-label={t('removeSlot', { slot: row.label })}
+      title={t('removeSlot', { slot: row.label })}
+      className="absolute end-0.5 top-0.5 rounded-full p-1 text-muted-foreground opacity-0 transition-[opacity,color,background-color] hover:bg-destructive-subtle hover:text-destructive focus-visible:opacity-100 group-hover/slot:opacity-100 max-md:opacity-60"
+    >
+      <Icon name="trash" className="size-3.5" />
+    </button>
+  );
+}
+
+export { RemoveSlot };

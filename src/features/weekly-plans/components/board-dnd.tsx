@@ -17,10 +17,12 @@ import type { DishDetail } from '@/features/weekly-plans/nutrition';
 
 import {
   addMealAction,
+  addWeekMealAction,
   clearMealAction,
   moveMealAction,
   placeDishAction,
   removeMealAction,
+  removeWeekMealAction,
   setServingsAction,
 } from '../editor-actions';
 import { applyEdit, type BoardEdit } from '../editor-state';
@@ -261,6 +263,18 @@ export function BoardEditor({
                 timeOfDay,
               });
             },
+            removeWeek: (slotKey) => {
+              setLastMove(null);
+              runAction({ kind: 'removeWeek', slotKey }, removeWeekMealAction, { slotKey });
+            },
+            addWeek: (slotKey, label, timeOfDay) => {
+              setLastMove(null);
+              runAction({ kind: 'addWeek', slotKey, label, timeOfDay }, addWeekMealAction, {
+                slotKey,
+                label,
+                timeOfDay,
+              });
+            },
             dragging,
           }}
         >
@@ -280,20 +294,29 @@ function DragPreview({ payload }: { payload: DragPayload }) {
   const name = isMeal ? payload.preview.dishName : payload.dish.nameAr;
 
   return (
-    <div className="w-52 overflow-hidden rounded-lg rounded-ee-4xl border border-primary bg-card shadow-overlay">
-      {isMeal && (
-        <div className="flex items-baseline justify-between gap-2 px-3 pt-2.5 text-caption text-muted-foreground">
-          <span className="truncate">{payload.preview.label}</span>
-          <span dir="ltr">{payload.preview.timeOfDay}</span>
-        </div>
-      )}
-      <p className="px-3 py-3 font-heading text-body-md font-semibold leading-relaxed" dir="auto">
+    /*
+     * The thing under the pointer has to be the thing being moved.
+     *
+     * This still had the old card's anatomy — a metadata row above the name and
+     * a tinted shelf under it — so lifting a card visibly changed it into a
+     * different object mid-drag. It now matches `meal-card.tsx` exactly: name
+     * centred at the top, a hairline, figures at the foot, no fill. The slot
+     * label and time are gone from it for the same reason they are gone from
+     * the card — they belong to the row, and a card in flight is between rows.
+     */
+    <div className="w-40 overflow-hidden rounded-lg border border-primary bg-card shadow-overlay">
+      <p
+        className="line-clamp-2 px-3 pt-3 text-center font-heading text-body-md font-semibold leading-relaxed [text-wrap:balance]"
+        dir="auto"
+      >
         {name}
       </p>
+
       {isMeal && (
-        <div className="flex items-baseline justify-between border-t border-border bg-muted/70 px-3 py-2.5">
-          <strong className="font-heading text-heading-sm tabular-nums" dir="ltr">
-            {payload.preview.kcal} <small className="font-sans text-caption font-normal">kcal</small>
+        <div className="mt-2 flex items-baseline justify-between border-t border-border px-3 pb-2 pt-2">
+          <strong className="text-body-sm font-semibold tabular-nums" dir="ltr">
+            {payload.preview.kcal}{' '}
+            <small className="text-caption font-normal text-muted-foreground">kcal</small>
           </strong>
           <span className="text-caption text-muted-foreground" dir="ltr">
             ×{payload.preview.servings}
@@ -309,7 +332,12 @@ type EditorActions = {
   setServings: (mealId: string, servings: number) => void;
   clear: (mealId: string) => void;
   remove: (mealId: string) => void;
+  /** Restores one day's skipped slot. The exception — see `addWeek`. */
   add: (dayOfWeek: number, slotKey: string, label: string, timeOfDay: string) => void;
+  /** Adds a slot to all seven days. How a schedule normally grows. */
+  addWeek: (slotKey: string, label: string, timeOfDay: string) => void;
+  /** Drops a slot from all seven days. Confirmed by the caller. */
+  removeWeek: (slotKey: string) => void;
   /** What is currently in flight, so drop targets can light up. */
   dragging: DragPayload | null;
 };

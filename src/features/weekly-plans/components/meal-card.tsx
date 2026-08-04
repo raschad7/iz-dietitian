@@ -97,7 +97,7 @@ export function MealCard({
     <div
       ref={setDropRef}
       className={cn(
-        'group relative min-h-0 overflow-hidden rounded-lg rounded-ee-4xl border bg-card transition-[border-color,background-color,transform,opacity,box-shadow] duration-(--duration-sweep) ease-(--ease-sweep)',
+        'group relative min-h-0 overflow-hidden rounded-lg border bg-card transition-[border-color,background-color,transform,opacity,box-shadow] duration-(--duration-sweep) ease-(--ease-sweep)',
         selected ? 'border-primary ring-1 ring-primary' : 'border-border',
         meal.dish === null && 'border-dashed bg-muted/40',
         wouldLand && '-translate-y-1 border-primary bg-secondary shadow-elevated',
@@ -118,33 +118,50 @@ export function MealCard({
           selected ? 'bg-primary/5' : 'hover:bg-accent/50',
         )}
       >
-        <span className="flex shrink-0 items-baseline justify-between gap-1.5 px-3 pt-2.5 text-caption text-muted-foreground">
-          <span className="min-w-0 truncate">{meal.label}</span>
-          <span className="shrink-0" dir="ltr">
-            {meal.timeOfDay}
-          </span>
-        </span>
+        {/* No label and no time. They are the row's, not the card's — printed
+            once in the slot rail rather than thirty-five times over the dish
+            names they were competing with. What the card gets back is its whole
+            top edge, which is why the name can now be the first thing on it.
 
-        {/* Flexes, so the footer below pins to the card's block-end edge and
-            every figure in a row shares a baseline. Clamped to two lines, or
-            one long dish name sets the height of all thirty-five cards. */}
-        <span
-          className={cn(
-            'mt-1.5 line-clamp-2 min-h-11 flex-1 px-3 font-heading text-body-md font-semibold leading-relaxed [text-wrap:pretty]',
-            meal.dish === null && 'font-normal text-muted-foreground',
-          )}
-        >
-          {meal.dish ? meal.dish.nameAr : t('emptySlot')}
+            Centred, and flexing so the figures below pin to the card's
+            block-end edge and every figure in a row shares a baseline. Clamped
+            to two lines, or one long dish name sets the height of all
+            thirty-five cards. */}
+        {/* Two elements, because `line-clamp-2` compiles to `display:
+            -webkit-box` — the clamped element cannot also be a flex container,
+            so the centring has to happen on a wrapper around it. The wrapper
+            takes the free space and centres the name in it; the name keeps the
+            clamp. A one-line name now sits in the middle of the card instead of
+            hanging off its top edge. */}
+        <span className="flex min-h-0 flex-1 items-center justify-center px-3 pt-3">
+          <span
+            className={cn(
+              'line-clamp-2 text-center font-heading text-body-md font-medium leading-relaxed [text-wrap:balance]',
+              meal.dish === null && 'font-normal text-muted-foreground',
+            )}
+          >
+            {meal.dish ? meal.dish.nameAr : t('emptySlot')}
+          </span>
         </span>
 
         {meal.dish && !meal.dish.isActive && (
           <span className="mt-1 block text-caption text-muted-foreground">{t('retiredDish')}</span>
         )}
 
-        <span className="mt-2 flex shrink-0 items-baseline justify-between gap-2 border-t border-border/70 bg-muted/70 px-3 py-2.5">
+        {/* The figures, on the card rather than on a shelf. The tinted band and
+            its hairline are gone: with the metadata row gone too, the card is
+            one surface with a name at the top and its numbers at the foot, and
+            a second fill inside it only cut the card in half.
+
+            The figure sits a step *below* the dish name, not two above it. At
+            `text-heading-sm` in the display face it was the loudest thing on a
+            board of thirty-five cards, and the card is about the dish. 14px is
+            the dense-table step, and the UI face is where the tabular figures
+            actually live. */}
+        <span className="mt-2 flex shrink-0 items-baseline justify-between gap-2 border-t border-border px-3 pb-2 pt-2">
           <span
             className={cn(
-              'inline-flex items-baseline gap-1 font-heading text-heading-sm font-semibold tabular-nums',
+              'inline-flex items-baseline gap-1 text-body-sm font-semibold tabular-nums',
               drift !== null && 'text-status-attention-fg',
               meal.dish === null && 'font-normal text-muted-foreground',
             )}
@@ -158,7 +175,7 @@ export function MealCard({
             )}
             <span dir="ltr">{meal.dish ? kcal : '—'}</span>
             {meal.dish && (
-              <small className="font-sans text-caption font-normal text-muted-foreground">kcal</small>
+              <small className="text-caption font-normal text-muted-foreground">kcal</small>
             )}
           </span>
 
@@ -200,7 +217,10 @@ export function MealCard({
           {...listeners}
           {...attributes}
           aria-label={meal.dish.nameAr}
-          className="absolute end-1 top-7 z-30 cursor-grab rounded-full p-1.5 text-muted-foreground opacity-0 transition-[opacity,background-color,color] hover:bg-secondary hover:text-primary group-hover:opacity-100 focus-visible:bg-secondary focus-visible:text-primary focus-visible:opacity-100 max-md:opacity-100"
+          // `top-1`, not `top-7`. The old offset cleared the metadata row that
+          // used to sit above the dish name; with that row in the slot rail the
+          // handle would have floated in the middle of the name it belongs to.
+          className="absolute end-1 top-1 z-30 cursor-grab rounded-full p-1.5 text-muted-foreground opacity-0 transition-[opacity,background-color,color] hover:bg-secondary hover:text-primary group-hover:opacity-100 focus-visible:bg-secondary focus-visible:text-primary focus-visible:opacity-100 max-md:opacity-100"
         >
           <Icon name="dragHandle" className="size-3.5" />
         </span>
