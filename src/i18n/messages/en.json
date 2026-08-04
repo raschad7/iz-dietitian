@@ -668,12 +668,23 @@
       "past": "Past"
     },
     "newWeek": "New week",
-    "newWeekGenerate": "Generate with AI",
-    "newWeekGenerateHint": "Opens the generate panel, with this week's targets.",
+    "newWeekTitle": "Start a new week",
+    "newWeekSubtitle": "Choose how to start planning this week's meals.",
+    "newWeekGenerate": {
+      "create": "Generate with AI",
+      "regenerate": "Regenerate with AI"
+    },
+    "newWeekGenerateHint": {
+      "create": "Builds a new week from this client's targets and the approved dish catalog.",
+      "regenerate": "Replaces the draft on screen. Nobody has seen it, so nothing is lost."
+    },
+    "regenerateWeek": "Regenerate this week",
+    "newWeekCopy": "Copy a previous plan",
     "newWeekFrom": "Start from {date}",
     "newWeekFromHint": "Copies that week's dishes into the client's current meal schedule.",
     "newWeekEmpty": "Empty week",
     "newWeekEmptyHint": "One empty slot per meal in the client's schedule.",
+    "newWeekEmptyAction": "Start an empty week",
     "selectMeal": "Open a meal on the board to see it here",
     "searchDishes": "Search dishes",
     "noDishes": "No dishes match",

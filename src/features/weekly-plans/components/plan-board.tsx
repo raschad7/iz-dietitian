@@ -25,7 +25,7 @@ import { DayColumn } from './day-column';
 import { DishCatalog } from './dish-catalog';
 import type { GhostMeal } from './meal-card';
 import { MealDetailPanel } from './meal-detail-panel';
-import { NewWeekMenu } from './new-week-menu';
+import { NewWeekDialog, type NewWeekProps } from './new-week-dialog';
 import { PublishButton } from './publish-button';
 import { RailTabs } from './rail-tabs';
 
@@ -44,11 +44,7 @@ type BoardProps = {
   locale: string;
   /** The client's earlier weeks, rendered on the server. */
   history: React.ReactNode;
-  newWeek: {
-    weekStartDate: string;
-    previousPlan: { id: string; weekStartDate: string } | null;
-    blocked: boolean;
-  };
+  newWeek: NewWeekProps;
   /** The context panel, rendered on the server and shown on the client tab. */
   children: React.ReactNode;
 };
@@ -198,13 +194,11 @@ function BoardBody({
             locale={locale}
           />
 
-          <NewWeekMenu
+          <NewWeekDialog
             clientId={board.clientId}
-            weekStartDate={newWeek.weekStartDate}
-            previousPlan={newWeek.previousPlan}
+            board={board}
             locale={locale}
-            blocked={newWeek.blocked}
-            onGenerate={() => setTab('client')}
+            newWeek={newWeek}
           />
 
           {board.status === 'published' && (

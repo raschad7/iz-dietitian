@@ -12,6 +12,7 @@ import { GenerateForm } from '@/features/weekly-plans/components/generate-form';
 import { PlanBoard } from '@/features/weekly-plans/components/plan-board';
 import { PlanHistory } from '@/features/weekly-plans/components/plan-history';
 import { isLlmConfigured } from '@/features/weekly-plans/llm';
+import { newWeekMode } from '@/features/weekly-plans/new-week';
 import {
   getBoard,
   getClientContext,
@@ -87,20 +88,19 @@ export default async function ClientBoardPage({ params, searchParams }: PageProp
 
   const weekStartDate = nextSunday();
 
-  // The newest plan that is not the one on screen — what "start from" offers. A
-  // plan cannot be copied into itself, and offering it would be the one entry in
-  // the menu that quietly does nothing.
-  const previousPlan = plans.find((plan) => plan.id !== board?.id) ?? null;
-
   // The copy and empty doors do not call a model, so an unconfigured OpenAI key
   // does not block them. Only a missing profile does, because all three build
   // their slots from it.
+  //
+  // Every plan goes to the dialog, not the newest one: `listPlans` already
+  // returns them all, and the copy door drops the open week itself.
   const newWeek = {
     weekStartDate,
-    previousPlan: previousPlan
-      ? { id: previousPlan.id, weekStartDate: previousPlan.weekStartDate }
-      : null,
+    plans,
     blocked: context.effectiveKcal === null || !context.profile,
+    generateBlocked: blocked,
+    context,
+    defaultInstruction: board?.weekInstructions ?? null,
   };
 
   const history = (
@@ -151,22 +151,9 @@ export default async function ClientBoardPage({ params, searchParams }: PageProp
             history={history}
             newWeek={newWeek}
           >
-            <div className="flex flex-col gap-5">
-              <ContextPanel context={context} />
-
-              {board.status === 'draft' && (
-                <div className="border-t border-border pt-4">
-                  <GenerateForm
-                    clientId={clientId}
-                    weekStartDate={weekStartDate}
-                    locale={locale}
-                    blocked={blocked}
-                    context={context}
-                    defaultInstruction={board.weekInstructions}
-                  />
-                </div>
-              )}
-            </div>
+            {/* The generate form moved into the new-week dialog, where the
+                choice to generate is actually made. This tab is the client. */}
+            <ContextPanel context={context} />
           </PlanBoard>
         ) : (
           <div className="flex min-w-0 flex-1 gap-4">
@@ -188,10 +175,14 @@ export default async function ClientBoardPage({ params, searchParams }: PageProp
                 <ContextPanel context={context} />
 
                 <div className="border-t border-border pt-4">
+                  {/* No board, so nothing to regenerate over — this is always
+                      a first week. There is no dialog on this branch either:
+                      the dialog lives in the board's header. */}
                   <GenerateForm
                     clientId={clientId}
                     weekStartDate={weekStartDate}
                     locale={locale}
+                    mode={newWeekMode(null)}
                     blocked={blocked}
                     context={context}
                   />

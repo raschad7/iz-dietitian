@@ -6,11 +6,13 @@ import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { CLIENT_GOALS } from '@/features/clients/schema';
 
 import { generateWeekAction } from '../actions';
 import { initialGenerateState, type GenerateState } from '../form-state';
+import { type NewWeekMode } from '../new-week';
 import type { ClientContext } from '../queries';
 
 /**
@@ -24,6 +26,7 @@ export function GenerateForm({
   clientId,
   weekStartDate,
   locale,
+  mode,
   blocked,
   context,
   defaultInstruction,
@@ -31,6 +34,12 @@ export function GenerateForm({
   clientId: string;
   weekStartDate: string;
   locale: string;
+  /**
+   * Whether this generation replaces the draft on screen or starts a week of
+   * its own. It changes what the button says and nothing else — the decision
+   * itself lives in `new-week.ts`.
+   */
+  mode: NewWeekMode;
   blocked: 'not_configured' | 'profile_incomplete' | null;
   /** For the placeholders on the target fields — what the profile would give. */
   context: ClientContext;
@@ -58,7 +67,6 @@ export function GenerateForm({
         maxLength={600}
         defaultValue={defaultInstruction ?? ''}
         placeholder={t('instructionPlaceholder')}
-        className="text-xs"
       />
 
       {blocked ? (
@@ -66,7 +74,7 @@ export function GenerateForm({
           {t(blocked === 'not_configured' ? 'errors.notConfigured' : 'errors.profileIncomplete')}
         </p>
       ) : (
-        <Submit />
+        <Submit mode={mode} />
       )}
 
       <Result state={state} />
@@ -101,7 +109,6 @@ function WeekTargets({ context }: { context: ClientContext }) {
             max={6000}
             inputMode="numeric"
             placeholder={context.effectiveKcal === null ? '' : String(context.effectiveKcal)}
-            className="h-8 text-xs"
           />
         </label>
 
@@ -116,40 +123,35 @@ function WeekTargets({ context }: { context: ClientContext }) {
             placeholder={
               context.effectiveProteinGrams === null ? '' : String(context.effectiveProteinGrams)
             }
-            className="h-8 text-xs"
           />
         </label>
       </div>
 
       <label className="flex flex-col gap-1 text-xs">
         <span className="text-muted-foreground">{t('goalLabel')}</span>
-        <select
-          name="goal"
-          defaultValue=""
-          className="h-8 rounded-md border border-input bg-transparent px-2 text-xs"
-        >
+        <Select name="goal" defaultValue="">
           <option value="">{t('useProfile')}</option>
           {CLIENT_GOALS.map((goal) => (
             <option key={goal} value={goal}>
               {tGoals(goal)}
             </option>
           ))}
-        </select>
+        </Select>
       </label>
 
-      <p className="text-[11px] leading-relaxed text-muted-foreground">{t('targetsHint')}</p>
+      <p className="text-caption text-muted-foreground">{t('targetsHint')}</p>
     </fieldset>
   );
 }
 
-function Submit() {
+function Submit({ mode }: { mode: NewWeekMode }) {
   const t = useTranslations('weeklyPlans');
   const { pending } = useFormStatus();
 
   return (
     <>
-      <Button type="submit" size="sm" disabled={pending}>
-        {pending ? t('generating') : t('generate')}
+      <Button type="submit" size="sm" className="w-full" disabled={pending}>
+        {pending ? t('generating') : mode === 'regenerate' ? t('regenerateWeek') : t('generate')}
       </Button>
 
       {/* A whole week is 35 meals and takes the best part of a minute. Saying so
