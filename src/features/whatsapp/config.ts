@@ -47,6 +47,24 @@ const DEFAULT_TIMEOUT_MS = 30_000;
 /** Path the webhook route is mounted at. One definition, used by both ends. */
 export const WEBHOOK_PATH = '/api/whatsapp/webhook';
 
+/**
+ * The country a bare local number is assumed to belong to.
+ *
+ * Readable on its own, without `readConfig`, because it is needed in one place
+ * that has nothing to do with sending: the client portal turns the clinic's
+ * phone number into a `tel:` and a WhatsApp link, and that screen must keep
+ * working on an install where WhatsApp was never switched on. `readConfig`
+ * throws without an API key, which is right for the send path and wrong here.
+ *
+ * Falls back rather than throwing on a malformed value, for the same reason —
+ * a typo in an optional variable should not take a profile screen down. The
+ * strict check stays in `readConfig`, where it can still be caught at start-up.
+ */
+export function defaultCountryCode(): string {
+  const configured = (process.env.WHATSAPP_DEFAULT_COUNTRY_CODE ?? '').replace(/\D/g, '');
+  return configured || DEFAULT_COUNTRY_CODE;
+}
+
 function trimTrailingSlash(value: string): string {
   return value.replace(/\/+$/, '');
 }

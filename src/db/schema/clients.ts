@@ -68,6 +68,19 @@ export const clients = pgTable(
      */
     color: text('color').notNull().default('#64748b'),
 
+    /**
+     * A photo of the client, as a path this app serves — `/avatars/hiba.jpg`.
+     *
+     * Null is the normal case and always will be: most clients never upload
+     * one, so every surface that shows a face falls back to the initials the
+     * `color` above was added for. A photo is a nicety, never a requirement.
+     *
+     * A path and not the bytes: images do not belong in a row, and the portal
+     * only ever needs to hand one to an `<img>`. There is no upload flow yet —
+     * this is set by whoever puts the file where it can be served.
+     */
+    photoUrl: text('photo_url'),
+
     /** Locale for this client's portal account and magic-link emails. ar | en */
     preferredLocale: text('preferred_locale').notNull().default('ar'),
 
@@ -88,9 +101,36 @@ export const clients = pgTable(
     /** sedentary | light | moderate | active | very_active */
     activityLevel: text('activity_level'),
 
+    /**
+     * The dietitian's own working notes. **Never shown to the client** — see
+     * `getPortalClient` in `src/features/portal/queries.ts`, which deliberately
+     * does not select them.
+     */
     medicalNotes: text('medical_notes'),
-    allergies: text('allergies'),
     notes: text('notes'),
+
+    /**
+     * The part of the clinical record the client is meant to read.
+     *
+     * These four are a different kind of column from `medical_notes` and
+     * `notes` above, and the split is the whole point: a dietitian writes
+     * `medical_notes` for themselves and these for the person they are about.
+     * The portal's profile screen renders them verbatim, so anything written
+     * here is written to the client.
+     *
+     * Still practitioner-owned: the client reads them and cannot edit them.
+     * Correcting one goes through `client_requests`, not through the portal.
+     *
+     * `allergies` predates the others and was already portal-visible, which is
+     * why it sits in this group rather than with the private pair.
+     */
+    allergies: text('allergies'),
+    /** Standing conditions the client should see recorded — not a diagnosis log. */
+    conditions: text('conditions'),
+    /** Medicines and supplements the plan is built around. */
+    medications: text('medications'),
+    /** What the dietitian wants this client to keep in mind between visits. */
+    careNote: text('care_note'),
 
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
