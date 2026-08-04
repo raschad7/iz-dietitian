@@ -1,14 +1,15 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useRef, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
+import { type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
 
+import { Icon } from '@/components/ui/icon';
 import { Link } from '@/i18n/navigation';
 import { type Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 
 import { formatDuration, formatMinuteRange } from '../format';
-import { DRAG_THRESHOLD_PX, blockTypeScale } from '../geometry';
+import { blockTypeScale } from '../geometry';
 import { type CalendarAppointment } from '../types';
 
 /**
@@ -61,16 +62,6 @@ export function AppointmentBlock({
 }: AppointmentBlockProps) {
   const t = useTranslations('booking');
   const scale = blockTypeScale(height);
-
-  /**
-   * Where the current press started, or null if nothing is pressed.
-   *
-   * A ref rather than state: it exists only to be compared against the release
-   * position one event later, and re-rendering the grid on every pointer-down
-   * to store a coordinate nobody draws would be pure cost. See the link at the
-   * foot of this component for what it decides.
-   */
-  const pressOrigin = useRef<{ x: number; y: number } | null>(null);
 
   const endMinute = appointment.startMinute + appointment.durationMinutes;
   /**
@@ -159,11 +150,6 @@ export function AppointmentBlock({
         // Left button only: right-click is the edit gesture and must not start a
         // drag, or the modal would open with the block already moved.
         if (event.button !== 0) return;
-        // Where the press landed, so the link below can tell a click from the
-        // end of a drag. Recorded here rather than on the link, so a press that
-        // began on the resize handle — which stops propagation — leaves no
-        // origin and can never be mistaken for a click on the card.
-        pressOrigin.current = { x: event.clientX, y: event.clientY };
         onSelect(appointment.id);
         // Selecting still works on a finished appointment; only moving does not.
         if (draggable) onMovePointerDown?.(appointment, event);
@@ -178,16 +164,13 @@ export function AppointmentBlock({
         side when there is not — but never one without the other: a block showing
         only a name makes staff click it to find out when it is.
 
-        The corner gutter that used to be reserved for the client-page arrow is
-        gone with it: the whole card is that link now, so the name has the full
-        width of the block to truncate against.
+        `pe-3` reserves what the client-page arrow reaches past the card's own
+        16px of padding, so a long name truncates before it rather than running
+        underneath it. It is narrower than it used to be because the card's
+        inline padding grew: the two together still clear the same glyph.
       */}
       <div
-        // Deliberately *not* raised above the stretched link below it: the link
-        // is transparent, so the name and time still read through it, and a
-        // click on the client's name has to reach the link like any other part
-        // of the card.
-        className={cn('flex min-w-0', scale.inline ? 'flex-row items-baseline' : 'flex-col')}
+        className={cn('flex min-w-0 pe-3', scale.inline ? 'flex-row items-baseline' : 'flex-col')}
         style={{ gap: `${scale.gapRem}rem` }}
       >
         <span
@@ -236,44 +219,32 @@ export function AppointmentBlock({
       </div>
 
       {/*
-        The client's record, reached by clicking the card itself.
+        The client's record, and **the only way to it from the grid**.
 
-        It replaced a 24px arrow in the corner — a target that was hard to hit
-        on a half-hour booking and invisible as an affordance until you found
-        it. A real `<Link>` stretched over the whole card rather than an
-        `onClick`, so the card keeps keyboard focus, middle-click,
-        open-in-new-tab and a URL in the status bar, exactly like the register's
-        rows.
+        Top corner, opposite the name and time rather than over them. Stops its
+        own pointer-down from reaching the card, or the click would first
+        register as the start of a select-and-maybe-drag gesture instead of a
+        navigation. No hover treatment: it sits in the same tight corner at
+        every block size, and a colour shift there reads as noise rather than
+        feedback worth having.
 
-        **Clicking and dragging do not fight**, because they are separated by
-        distance rather than by area. The press bubbles from here to the card,
-        which starts the move gesture; on release the browser fires a click, and
-        this handler cancels the navigation if the pointer travelled far enough
-        for that gesture to have become a drag — the same threshold the gesture
-        hook uses to decide the same thing. So a drag that ends over the card
-        moves it and goes nowhere, and a still click follows the link.
-
-        The cursor is inherited so the card keeps saying "grab" rather than
-        this overlay overriding it with a pointer.
+        The card around it is deliberately *not* a link. Left-click on the body
+        selects and may become a drag, right-click opens the appointment, and a
+        stretched link over all of that made every one of those gestures a
+        candidate for navigating away — a booking moved by a shaky hand and a
+        client page opened by accident are the same slipped pointer. Confining
+        navigation to one small, explicit target keeps the two apart by area
+        rather than by guessing at intent.
       */}
       <Link
         href={`/app/clients/${appointment.clientId}`}
         aria-label={t('openClientProfile')}
-        className="absolute inset-0 [cursor:inherit] rounded-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-        onClick={(event) => {
-          const origin = pressOrigin.current;
-          pressOrigin.current = null;
-
-          const travelled =
-            origin === null
-              ? Infinity
-              : Math.max(Math.abs(event.clientX - origin.x), Math.abs(event.clientY - origin.y));
-
-          // Keyboard activation reports (0, 0) and never sets an origin, so it
-          // is let through by the `detail === 0` check rather than by distance.
-          if (event.detail !== 0 && travelled >= DRAG_THRESHOLD_PX) event.preventDefault();
-        }}
-      />
+        className="absolute end-0.5 top-0.5 z-10 flex size-6 items-center justify-center rounded-full text-foreground/50"
+        onPointerDown={(event) => event.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <Icon name="chevronEnd" className="size-4" />
+      </Link>
 
       {/*
         The live times while this block is being moved or resized.
@@ -318,9 +289,7 @@ export function AppointmentBlock({
         <span
           role="presentation"
           aria-hidden
-          // Above the stretched link, so the bottom edge stays a resize grip
-          // rather than becoming one more place that navigates.
-          className="absolute start-0 end-0 bottom-0 z-20 cursor-ns-resize"
+          className="absolute start-0 end-0 bottom-0 cursor-ns-resize"
           style={{ height: Math.max(4, Math.min(8, height / 3)) }}
           onPointerDown={(event) => {
             if (event.button !== 0) return;
