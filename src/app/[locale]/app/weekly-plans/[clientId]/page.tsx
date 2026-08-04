@@ -2,16 +2,16 @@ import { getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 
-import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/params';
 import { requireStaffClinic } from '@/lib/session';
 
-import { ClientRail } from '@/features/weekly-plans/components/client-rail';
+import { ClientPicker } from '@/features/weekly-plans/components/client-picker';
 import { ContextPanel } from '@/features/weekly-plans/components/context-panel';
 import { GenerateForm } from '@/features/weekly-plans/components/generate-form';
 import { PlanBoard } from '@/features/weekly-plans/components/plan-board';
 import { PlanHistory } from '@/features/weekly-plans/components/plan-history';
 import { isLlmConfigured } from '@/features/weekly-plans/llm';
+import { newWeekMode } from '@/features/weekly-plans/new-week';
 import {
   getBoard,
   getClientContext,
@@ -87,63 +87,34 @@ export default async function ClientBoardPage({ params, searchParams }: PageProp
 
   const weekStartDate = nextSunday();
 
-  // The newest plan that is not the one on screen — what "start from" offers. A
-  // plan cannot be copied into itself, and offering it would be the one entry in
-  // the menu that quietly does nothing.
-  const previousPlan = plans.find((plan) => plan.id !== board?.id) ?? null;
-
   // The copy and empty doors do not call a model, so an unconfigured OpenAI key
   // does not block them. Only a missing profile does, because all three build
   // their slots from it.
+  //
+  // Every plan goes to the dialog, not the newest one: `listPlans` already
+  // returns them all, and the copy door drops the open week itself.
   const newWeek = {
     weekStartDate,
-    previousPlan: previousPlan
-      ? { id: previousPlan.id, weekStartDate: previousPlan.weekStartDate }
-      : null,
+    plans,
     blocked: context.effectiveKcal === null || !context.profile,
+    generateBlocked: blocked,
+    context,
+    defaultInstruction: board?.weekInstructions ?? null,
   };
 
-  const history = (
-    <PlanHistory
-      plans={plans}
-      clientId={clientId}
-      currentPlanId={board?.id ?? null}
-      nextWeekStartDate={weekStartDate}
-      locale={locale}
-    />
-  );
+  const history = <PlanHistory plans={plans} clientId={clientId} />;
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-4 text-start">
-      <div className="flex flex-wrap items-baseline gap-3">
-        <h1 className="text-xl font-semibold tracking-tight">{t('title')}</h1>
-
-        {plans.length > 1 && (
-          <nav className="flex flex-wrap items-center gap-2 text-xs">
-            <span className="text-muted-foreground">{t('history')}</span>
-            {plans.map((plan) => (
-              <Link
-                key={plan.id}
-                href={`/app/weekly-plans/${clientId}?planId=${plan.id}`}
-                className={
-                  plan.id === board?.id
-                    ? 'rounded bg-accent px-1.5 py-0.5 font-medium'
-                    : 'rounded px-1.5 py-0.5 text-muted-foreground hover:bg-accent/60'
-                }
-              >
-                {plan.weekStartDate}
-              </Link>
-            ))}
-          </nav>
-        )}
-      </div>
+      {/* No week pills beside the title: they were the history tab's list, in
+          a second place, with room for fewer of them. */}
+      <h1 className="text-xl font-semibold tracking-tight">{t('title')}</h1>
 
       <div className="flex min-h-0 flex-1 gap-4">
-        <ClientRail clients={clients} selectedClientId={clientId} />
-
         {board ? (
           <PlanBoard
             board={board}
+            clients={clients}
             candidates={candidates}
             catalog={catalog}
             usage={usage}
@@ -152,29 +123,23 @@ export default async function ClientBoardPage({ params, searchParams }: PageProp
             history={history}
             newWeek={newWeek}
           >
-            <div className="flex flex-col gap-5">
-              <ContextPanel context={context} />
-
-              {board.status === 'draft' && (
-                <div className="border-t border-border pt-4">
-                  <GenerateForm
-                    clientId={clientId}
-                    weekStartDate={weekStartDate}
-                    locale={locale}
-                    blocked={blocked}
-                    context={context}
-                    defaultInstruction={board.weekInstructions}
-                  />
-                </div>
-              )}
-            </div>
+            {/* The generate form moved into the new-week dialog, where the
+                choice to generate is actually made. This tab is the client. */}
+            <ContextPanel context={context} />
           </PlanBoard>
         ) : (
           <div className="flex min-w-0 flex-1 gap-4">
-            <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-border">
-              <p className="max-w-sm p-6 text-center text-sm text-muted-foreground">
-                {t('noPlanYet')}
-              </p>
+            {/* The picker rides this branch too. The rail it replaces was
+                outside the ternary, so without it a client with no plan yet
+                would be a screen you can only leave through the nav. */}
+            <div className="flex min-w-0 flex-1 flex-col gap-3">
+              <ClientPicker clients={clients} selectedClientId={clientId} />
+
+              <div className="flex min-h-0 flex-1 items-center justify-center rounded-lg border border-dashed border-border">
+                <p className="max-w-sm p-6 text-center text-sm text-muted-foreground">
+                  {t('noPlanYet')}
+                </p>
+              </div>
             </div>
 
             <aside className="w-72 shrink-0 overflow-y-auto border-s border-border ps-3">
@@ -182,10 +147,14 @@ export default async function ClientBoardPage({ params, searchParams }: PageProp
                 <ContextPanel context={context} />
 
                 <div className="border-t border-border pt-4">
+                  {/* No board, so nothing to regenerate over — this is always
+                      a first week. There is no dialog on this branch either:
+                      the dialog lives in the board's header. */}
                   <GenerateForm
                     clientId={clientId}
                     weekStartDate={weekStartDate}
                     locale={locale}
+                    mode={newWeekMode(null)}
                     blocked={blocked}
                     context={context}
                   />

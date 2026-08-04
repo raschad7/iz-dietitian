@@ -5,6 +5,7 @@ import { useFormStatus } from 'react-dom';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 
 import { regenerateDayAction, regenerateMealAction } from '../actions';
@@ -38,14 +39,14 @@ function Message({ state }: { state: GenerateState }) {
 
   if (state.status === 'partial') {
     return (
-      <p className="text-xs text-status-attention-fg">
+      <p className="text-caption text-status-attention-fg">
         {t('unfilledWarning', { count: state.unfilled })}
       </p>
     );
   }
 
   return (
-    <p className="text-xs text-destructive">
+    <p className="text-caption text-destructive">
       {t(state.messageKey)}
       {state.detail && <span className="block opacity-80">{state.detail}</span>}
     </p>
@@ -67,16 +68,21 @@ export function RegenerateDayButton({
 
   return (
     <>
-      <button
+      {/* An icon rather than a word: seven of these sit in a row of narrow
+          columns. `aria-label` and not `title` alone — a tooltip is never the
+          accessible name, and this control has no visible text. */}
+      <Button
         type="button"
+        variant="ghost"
+        size="icon-sm"
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
+        aria-label={t('regenerateDay')}
         title={t('regenerateDay')}
-        className="shrink-0 rounded px-1 text-label text-muted-foreground hover:text-foreground"
+        className="shrink-0"
       >
-        {/* A glyph rather than a word: seven of these sit in a row of narrow columns. */}
-        ⟳
-      </button>
+        <Icon name="refresh" />
+      </Button>
 
       {open && (
         <form action={formAction} className="mt-1 flex w-full flex-col gap-1">
@@ -88,7 +94,6 @@ export function RegenerateDayButton({
             name="instruction"
             placeholder={t('instructionPlaceholder')}
             maxLength={600}
-            className="h-7 text-label"
           />
 
           <Pending label={t('regenerate')} pendingLabel={t('generating')} />
@@ -124,7 +129,6 @@ export function RegenerateMealButton({
         name="instruction"
         placeholder={t('instructionPlaceholder')}
         maxLength={600}
-        className="h-8 text-xs"
       />
 
       <Pending label={t('regenerateMeal')} pendingLabel={t('generating')} />

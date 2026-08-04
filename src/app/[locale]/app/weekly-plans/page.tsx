@@ -1,7 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
-import { ClientRail } from '@/features/weekly-plans/components/client-rail';
+import { ClientPicker } from '@/features/weekly-plans/components/client-picker';
 import { listPlannableClients } from '@/features/weekly-plans/queries';
 import { resolveLocale } from '@/i18n/params';
 import { requireStaffClinic } from '@/lib/session';
@@ -17,8 +17,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 /**
  * The board with no client chosen.
  *
- * The rail is the whole page: picking a client is the first step of the workflow,
- * so there is nothing else to show and no reason to invent a dashboard.
+ * The picker is the whole page: choosing a client is the first step of the
+ * workflow, so there is nothing else to show and no reason to invent a
+ * dashboard.
  */
 export default async function WeeklyPlansPage({ params }: PageProps) {
   const locale = await resolveLocale(params);
@@ -36,12 +37,9 @@ export default async function WeeklyPlansPage({ params }: PageProps) {
         <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
       </div>
 
-      <div className="flex min-h-0 flex-1 gap-4">
-        <ClientRail clients={clients} />
-
-        <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-border">
-          <p className="text-sm text-muted-foreground">{t('selectClient')}</p>
-        </div>
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4">
+        <ClientPicker clients={clients} />
+        <p className="text-body-sm text-muted-foreground">{t('selectClient')}</p>
       </div>
     </div>
   );

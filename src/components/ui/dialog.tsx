@@ -36,11 +36,17 @@ type DialogProps = {
    * which one wins would come down to stylesheet order.
    */
   flat?: boolean;
+  /**
+   * `wide` is for a dialog whose content is a row of choices rather than a
+   * form — the default 28rem forces three columns into one. It stays a full
+   * bottom sheet on a phone like every other dialog.
+   */
+  size?: 'default' | 'wide';
   className?: string;
   children: React.ReactNode;
 };
 
-function Dialog({ open, onClose, label, dir, flat, className, children }: DialogProps) {
+function Dialog({ open, onClose, label, dir, flat, size = 'default', className, children }: DialogProps) {
   const ref = React.useRef<HTMLDialogElement>(null);
 
   React.useEffect(() => {
@@ -65,7 +71,8 @@ function Dialog({ open, onClose, label, dir, flat, className, children }: Dialog
       className={cn(
         'w-full max-w-none p-0 text-start',
         'mt-auto mb-0 rounded-t-2xl',
-        'sm:m-auto sm:w-[min(28rem,calc(100vw-2rem))] sm:rounded-lg',
+        'sm:m-auto sm:rounded-lg',
+        size === 'wide' ? 'sm:w-[min(64rem,calc(100vw-4rem))]' : 'sm:w-[min(28rem,calc(100vw-2rem))]',
         'bg-popover text-popover-foreground ring-1',
         flat ? 'ring-primary/25' : 'shadow-overlay ring-foreground/10',
         // The scrim dims *and* blurs: the page behind a modal is context, not

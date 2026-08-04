@@ -6,18 +6,20 @@
  * Idempotent: re-running replaces the seeded clients rather than duplicating
  * them. It is for local development only and refuses to run in production.
  */
-import { eq } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { account, appointments, clients, clinics, practitioners, user } from '@/db/schema';
+import { account, appointments, clients, clinics, clinicWorkingHours, practitioners, user } from '@/db/schema';
 import { addDays, toIsoDate } from '@/features/booking/date';
 import { ensurePractitioner } from '@/features/booking/mutations';
 import { createClient } from '@/features/clients/mutations';
 import { issuePortalCredentials } from '@/features/clients/portal-credentials';
 import { suggestUsername } from '@/features/clients/transliterate';
+import { defaultClinicScheduleRows } from '@/features/clinic-profile/default-schedule';
 import { auth } from '@/lib/auth';
 import { paletteColorAt, pickAvatarColor } from '@/lib/avatar-color';
 
+import { seedDishes } from './seed-dishes';
 import { seedFoods } from './seed-foods';
 
 const STAFF_EMAIL = 'dietitian@clinic.ps';
@@ -67,6 +69,13 @@ async function seed(): Promise<void> {
     if (!clinic) throw new Error('insert into clinics returned no row');
     clinicId = clinic.id;
 
+    // The same rows the `user.create.before` hook writes for a real sign-up
+    // (`src/lib/auth.ts`). Bypassing Better Auth means bypassing that hook, so
+    // they have to be written here too — and they are not optional decoration:
+    // `getClinicProfile` returns null unless it finds exactly seven, which makes
+    // the onboarding page throw, and every `/app` route redirects there.
+    await db.insert(clinicWorkingHours).values(defaultClinicScheduleRows(clinicId));
+
     await db.insert(user).values({
       id: userId,
       name: 'أخصائي التغذية',
@@ -94,12 +103,40 @@ async function seed(): Promise<void> {
   // accounts go too — `clients.user_id` is `set null`, so deleting only the
   // clients would leave client-role users behind and the next invite would then
   // fail with email_taken.
+  //
+  // Both deletes are scoped to this clinic. `users.role = 'client'` alone would
+  // reach across every tenant in the database and delete the portal accounts of
+  // clinics the seed does not own — a developer signed up as a real dietitian
+  // would lose their clients' logins to a script that is only supposed to
+  // refresh its own fixtures.
   if (!clinicId) {
     throw new Error(`staff account ${STAFF_EMAIL} has no clinic; delete it and re-run the seed`);
   }
 
+  // Repairs a database seeded before the insert above existed, whose clinic has
+  // no working hours and therefore cannot open any page under `/app`. Re-running
+  // the seed is the obvious thing to reach for when the app misbehaves, so it is
+  // what should fix it — a `db:reset` should not be the price of a stale row.
+  await ensureClinicSchedule(clinicId);
+
+  // Read first: `clients.user_id` is the only link from a clinic to its portal
+  // accounts, and `on delete set null` means it is gone the instant the client
+  // row is. Collecting the ids afterwards would find nothing.
+  const portalUserIds = (
+    await db
+      .select({ userId: clients.userId })
+      .from(clients)
+      .where(and(eq(clients.clinicId, clinicId), isNotNull(clients.userId)))
+  ).map((row) => row.userId as string);
+
   await db.delete(clients).where(eq(clients.clinicId, clinicId));
-  await db.delete(user).where(eq(user.role, 'client'));
+
+  if (portalUserIds.length > 0) {
+    // `role` is still checked: these ids come from `clients.user_id`, which
+    // nothing should ever point at a staff account, and a delete is the wrong
+    // place to find out that something did.
+    await db.delete(user).where(and(eq(user.role, 'client'), inArray(user.id, portalUserIds)));
+  }
 
   const created = await Promise.all(SEED_CLIENTS.map((input) => createClient(clinicId, input)));
 
@@ -134,21 +171,55 @@ async function seed(): Promise<void> {
 }
 
 /**
- * The foods reference table.
+ * Guarantees the clinic has the seven working-hours rows every screen under
+ * `/app` depends on.
  *
- * `foods` is shared reference data, not a tenant's — so it is upserted rather
- * than deleted and rewritten, and it survives re-seeding the clients above.
- * Nothing in the UI reads it directly; it is what `dish_ingredients` points at,
- * and therefore where every calorie a weekly plan shows comes from.
+ * A complete week is left exactly as it is, so a dietitian who has changed their
+ * opening hours does not have them silently reset by a re-seed of the client
+ * fixtures.
+ */
+async function ensureClinicSchedule(clinicId: string): Promise<void> {
+  const existing = await db
+    .select({ weekday: clinicWorkingHours.weekday })
+    .from(clinicWorkingHours)
+    .where(eq(clinicWorkingHours.clinicId, clinicId));
+
+  if (existing.length === 7) return;
+
+  // A partial set is as broken as an empty one — `getClinicProfile` wants
+  // exactly seven — and there is no way to know which of the present rows were
+  // edited on purpose, so the whole week is rewritten from the defaults.
+  if (existing.length > 0) {
+    await db.delete(clinicWorkingHours).where(eq(clinicWorkingHours.clinicId, clinicId));
+  }
+
+  await db.insert(clinicWorkingHours).values(defaultClinicScheduleRows(clinicId));
+  console.info('restored the clinic working-hours schedule');
+}
+
+/**
+ * The two shared reference tables, in the only order that works: every dish
+ * ingredient resolves to a `foods` row by `fdc_id`, so foods must land first.
+ *
+ * Neither is scoped to a clinic, so both are upserted rather than deleted and
+ * rewritten, and both survive re-seeding the clients above.
+ *
+ * The dish catalog is not optional garnish. It is the only thing weekly-plan
+ * generation may choose from — `loadCatalog` returning nothing makes the feature
+ * refuse with `errors.emptyCatalog` — so a database seeded without it looks
+ * fully set up and cannot generate a plan. `db:seed:dishes` still exists for
+ * reseeding the catalog alone after editing `data/dishes.json`.
  *
  * No sample plan is seeded. A weekly plan needs a nutrition profile with a meal
  * schedule and then either a model call or a hand-built board, which is more
- * machinery than a seed should own. Run `bun run db:seed:dishes` and generate one
- * from a client's board instead.
+ * machinery than a seed should own. Generate one from a client's board instead.
  */
 async function seedReferenceData(): Promise<void> {
   const foodCount = await seedFoods();
   console.info(`seeded ${foodCount} foods (USDA SR Legacy)`);
+
+  const { dishes: dishCount, ingredients } = await seedDishes();
+  console.info(`seeded ${dishCount} dishes, ${ingredients} ingredients`);
 }
 
 /**

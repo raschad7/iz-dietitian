@@ -170,6 +170,36 @@ export const QIWAM_ICONS = {
     viewBox: '0 0 24 24',
     body: "<path fill=\"currentColor\" d=\"M12 13.125a.75.75 0 0 1 .538 1.272l-4 4.125a.75.75 0 0 1-1.076 0l-4-4.125A.75.75 0 0 1 4 13.125h3.25V6a.75.75 0 1 1 1.5 0v7.125z\"/><path fill=\"currentColor\" d=\"M20 10.875a.75.75 0 0 0 .538-1.272l-4-4.125a.75.75 0 0 0-1.076 0l-4 4.125A.75.75 0 0 0 12 10.875h3.25V18a.75.75 0 0 0 1.5 0v-7.125z\"/>",
   },
+  dragHandle: {
+    // solar:menu-dots-bold
+    viewBox: '0 0 24 24',
+    body: "<path fill=\"currentColor\" d=\"M7 12a2 2 0 1 1-4 0a2 2 0 0 1 4 0m7 0a2 2 0 1 1-4 0a2 2 0 0 1 4 0m7 0a2 2 0 1 1-4 0a2 2 0 0 1 4 0\"/>",
+  },
+  clearSlot: {
+    // solar:eraser-bold
+    viewBox: '0 0 24 24',
+    body: "<path fill=\"currentColor\" d=\"M11.41 5.505C13.08 3.835 13.915 3 14.952 3c1.038 0 1.873.835 3.543 2.505S21 8.01 21 9.048c0 1.037-.835 1.872-2.505 3.542l-4.193 4.194l-7.086-7.086z\"/><path fill=\"currentColor\" d=\"m6.156 10.759l7.085 7.085l-.65.65c-.378.379-.713.714-1.018 1.006H21a.75.75 0 0 1 0 1.5H9c-1.016-.025-1.85-.86-3.495-2.505C3.835 16.825 3 15.99 3 14.952c0-1.037.835-1.872 2.505-3.542z\"/>",
+  },
+  driftUp: {
+    // solar:arrow-up-bold
+    viewBox: '0 0 24 24',
+    body: "<path fill=\"currentColor\" d=\"M12.75 20a.75.75 0 0 1-1.5 0v-9.25H6a.75.75 0 0 1-.53-1.28l6-6a.75.75 0 0 1 1.06 0l6 6a.75.75 0 0 1-.53 1.28h-5.25z\"/>",
+  },
+  driftDown: {
+    // solar:arrow-down-bold
+    viewBox: '0 0 24 24',
+    body: "<path fill=\"currentColor\" d=\"M12.75 4a.75.75 0 0 0-1.5 0v9.25H6a.75.75 0 0 0-.53 1.28l6 6a.75.75 0 0 0 1.06 0l6-6a.75.75 0 0 0-.53-1.28h-5.25z\"/>",
+  },
+  repeat: {
+    // solar:restart-bold
+    viewBox: '0 0 24 24',
+    body: "<path fill=\"currentColor\" d=\"M18.258 3.508a.75.75 0 0 1 .463.693v4.243a.75.75 0 0 1-.75.75h-4.243a.75.75 0 0 1-.53-1.28L14.8 6.31a7.25 7.25 0 1 0 4.393 5.783a.75.75 0 0 1 1.488-.187A8.75 8.75 0 1 1 15.93 5.18l1.51-1.51a.75.75 0 0 1 .817-.162\"/>",
+  },
+  minus: {
+    // solar:minus-circle-bold
+    viewBox: '0 0 24 24',
+    body: "<path fill=\"currentColor\" fill-rule=\"evenodd\" d=\"M22 12c0 5.523-4.477 10-10 10S2 17.523 2 12S6.477 2 12 2s10 4.477 10 10m-6.25 0a.75.75 0 0 1-.75.75H9a.75.75 0 0 1 0-1.5h6a.75.75 0 0 1 .75.75\" clip-rule=\"evenodd\"/>",
+  },
   eye: {
     // solar:eye-bold
     viewBox: '0 0 24 24',
