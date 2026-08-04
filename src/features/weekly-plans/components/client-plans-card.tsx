@@ -99,7 +99,7 @@ function PlanRow({ clientId, plan }: { clientId: string; plan: PlanSummary }) {
         {t('weekOf', { date: format.dateTime(new Date(plan.weekStartDate), 'date') })}
       </Link>
 
-      <span className="flex items-baseline gap-2 text-xs text-muted-foreground">
+      <span className="flex items-baseline gap-2 text-caption text-muted-foreground">
         {isMember(PLAN_STATUSES, plan.status) && (
           <Badge variant={plan.status === 'published' ? 'default' : 'muted'}>{t(`status.${plan.status}`)}</Badge>
         )}

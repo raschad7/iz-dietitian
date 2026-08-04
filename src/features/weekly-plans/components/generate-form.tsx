@@ -56,7 +56,7 @@ export function GenerateForm({
 
       <WeekTargets context={context} />
 
-      <label htmlFor="instruction" className="text-xs font-medium">
+      <label htmlFor="instruction" className="text-label">
         {t('weekInstructions')}
       </label>
 
@@ -70,7 +70,7 @@ export function GenerateForm({
       />
 
       {blocked ? (
-        <p className="rounded-md bg-muted px-2.5 py-2 text-xs text-muted-foreground">
+        <p className="rounded-md bg-muted px-2.5 py-2 text-caption text-muted-foreground">
           {t(blocked === 'not_configured' ? 'errors.notConfigured' : 'errors.profileIncomplete')}
         </p>
       ) : (
@@ -97,10 +97,10 @@ function WeekTargets({ context }: { context: ClientContext }) {
 
   return (
     <fieldset className="flex flex-col gap-1.5 rounded-md border border-border p-2.5">
-      <legend className="px-1 text-xs font-medium">{t('weekTargets')}</legend>
+      <legend className="px-1 text-label">{t('weekTargets')}</legend>
 
       <div className="grid grid-cols-2 gap-2">
-        <label className="flex flex-col gap-1 text-xs">
+        <label className="flex flex-col gap-1 text-label">
           <span className="text-muted-foreground">{t('kcalTargetLabel')}</span>
           <Input
             type="number"
@@ -112,7 +112,7 @@ function WeekTargets({ context }: { context: ClientContext }) {
           />
         </label>
 
-        <label className="flex flex-col gap-1 text-xs">
+        <label className="flex flex-col gap-1 text-label">
           <span className="text-muted-foreground">{t('proteinTargetLabel')}</span>
           <Input
             type="number"
@@ -127,7 +127,7 @@ function WeekTargets({ context }: { context: ClientContext }) {
         </label>
       </div>
 
-      <label className="flex flex-col gap-1 text-xs">
+      <label className="flex flex-col gap-1 text-label">
         <span className="text-muted-foreground">{t('goalLabel')}</span>
         <Select name="goal" defaultValue="">
           <option value="">{t('useProfile')}</option>
@@ -156,7 +156,7 @@ function Submit({ mode }: { mode: NewWeekMode }) {
 
       {/* A whole week is 35 meals and takes the best part of a minute. Saying so
           up front is the difference between waiting and reloading the page. */}
-      {pending && <p className="text-xs text-muted-foreground">{t('generatingHint')}</p>}
+      {pending && <p className="text-caption text-muted-foreground">{t('generatingHint')}</p>}
     </>
   );
 }
@@ -168,14 +168,14 @@ function Result({ state }: { state: GenerateState }) {
 
   if (state.status === 'partial') {
     return (
-      <p className="text-xs text-status-attention-fg">
+      <p className="text-caption text-status-attention-fg">
         {t('unfilledWarning', { count: state.unfilled })}
       </p>
     );
   }
 
   return (
-    <p className="text-xs text-destructive">
+    <p className="text-caption text-destructive">
       {t(state.messageKey)}
       {state.detail && <span className="mt-0.5 block opacity-80">{state.detail}</span>}
     </p>

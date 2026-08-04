@@ -1,8 +1,9 @@
 'use client';
 
-import { createContext, useContext, useOptimistic, useState, useTransition } from 'react';
+import { createContext, useContext, useEffect, useOptimistic, useState, useTransition } from 'react';
 import {
   DndContext,
+  DragOverlay,
   KeyboardSensor,
   PointerSensor,
   TouchSensor,
@@ -16,10 +17,12 @@ import type { DishDetail } from '@/features/weekly-plans/nutrition';
 
 import {
   addMealAction,
+  addWeekMealAction,
   clearMealAction,
   moveMealAction,
   placeDishAction,
   removeMealAction,
+  removeWeekMealAction,
   setServingsAction,
 } from '../editor-actions';
 import { applyEdit, type BoardEdit } from '../editor-state';
@@ -59,6 +62,8 @@ type EditorValue = {
   pending: boolean;
   /** A message key from the last failed edit, or null. */
   error: EditErrorKey | null;
+  lastMove: { dishName: string } | null;
+  undoLastMove: () => void;
 };
 
 const EditorContext = createContext<EditorValue | null>(null);
@@ -70,9 +75,19 @@ export function useEditor(): EditorValue {
 }
 
 /** What a draggable puts in `data`, so drop handling stays type-safe. */
-type DragPayload =
+export type DragPayload =
   | { kind: 'dish'; dish: DishDetail; servings: number }
-  | { kind: 'meal'; mealId: string };
+  | {
+      kind: 'meal';
+      mealId: string;
+      preview: {
+        label: string;
+        timeOfDay: string;
+        dishName: string;
+        kcal: number;
+        servings: number;
+      };
+    };
 
 export function BoardEditor({
   board,
@@ -91,6 +106,17 @@ export function BoardEditor({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<EditErrorKey | null>(null);
   const [dragging, setDragging] = useState<DragPayload | null>(null);
+  const [lastMove, setLastMove] = useState<{
+    fromMealId: string;
+    toMealId: string;
+    dishName: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!lastMove) return;
+    const timeout = window.setTimeout(() => setLastMove(null), 8000);
+    return () => window.clearTimeout(timeout);
+  }, [lastMove]);
 
   // Pointer covers mouse and pen; Touch is what makes the board work on a tablet;
   // Keyboard is not optional, because every card is a real button today and an
@@ -129,7 +155,10 @@ export function BoardEditor({
     startTransition(async () => {
       applyOptimistic(edit);
       const result = await action(initialPlanActionState, formFor(fields));
-      if (result.status === 'error') setError(result.messageKey);
+      if (result.status === 'error') {
+        setLastMove(null);
+        setError(result.messageKey);
+      }
     });
   }
 
@@ -146,6 +175,7 @@ export function BoardEditor({
     if (!target || !payload || !editable) return;
 
     if (payload.kind === 'dish') {
+      setLastMove(null);
       runAction(
         { kind: 'place', mealId: target.mealId, dish: payload.dish, servings: payload.servings },
         placeDishAction,
@@ -156,6 +186,12 @@ export function BoardEditor({
 
     if (payload.mealId === target.mealId) return;
 
+    setLastMove({
+      fromMealId: payload.mealId,
+      toMealId: target.mealId,
+      dishName: payload.preview.dishName,
+    });
+
     runAction(
       { kind: 'move', fromMealId: payload.mealId, toMealId: target.mealId, mode: 'move' },
       moveMealAction,
@@ -163,7 +199,26 @@ export function BoardEditor({
     );
   }
 
-  const value: EditorValue = { board: optimisticBoard, editable, allowPublished, pending, error };
+  function undoLastMove(): void {
+    if (!lastMove || pending) return;
+    const move = lastMove;
+    setLastMove(null);
+    runAction(
+      { kind: 'move', fromMealId: move.toMealId, toMealId: move.fromMealId, mode: 'move' },
+      moveMealAction,
+      { fromMealId: move.toMealId, toMealId: move.fromMealId, mode: 'move' },
+    );
+  }
+
+  const value: EditorValue = {
+    board: optimisticBoard,
+    editable,
+    allowPublished,
+    pending,
+    error,
+    lastMove: lastMove ? { dishName: lastMove.dishName } : null,
+    undoLastMove,
+  };
 
   return (
     <EditorContext.Provider value={value}>
@@ -180,30 +235,95 @@ export function BoardEditor({
         sensors={sensors}
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
+        onDragCancel={() => setDragging(null)}
       >
         <EditorActionsContext.Provider
           value={{
-            setServings: (mealId, servings) =>
+            setServings: (mealId, servings) => {
+              setLastMove(null);
               runAction({ kind: 'servings', mealId, servings }, setServingsAction, {
                 mealId,
                 servings,
-              }),
-            clear: (mealId) => runAction({ kind: 'clear', mealId }, clearMealAction, { mealId }),
-            remove: (mealId) => runAction({ kind: 'remove', mealId }, removeMealAction, { mealId }),
-            add: (dayOfWeek, slotKey, label, timeOfDay) =>
+              });
+            },
+            clear: (mealId) => {
+              setLastMove(null);
+              runAction({ kind: 'clear', mealId }, clearMealAction, { mealId });
+            },
+            remove: (mealId) => {
+              setLastMove(null);
+              runAction({ kind: 'remove', mealId }, removeMealAction, { mealId });
+            },
+            add: (dayOfWeek, slotKey, label, timeOfDay) => {
+              setLastMove(null);
               runAction({ kind: 'add', dayOfWeek, slotKey, label, timeOfDay }, addMealAction, {
                 dayOfWeek,
                 slotKey,
                 label,
                 timeOfDay,
-              }),
+              });
+            },
+            removeWeek: (slotKey) => {
+              setLastMove(null);
+              runAction({ kind: 'removeWeek', slotKey }, removeWeekMealAction, { slotKey });
+            },
+            addWeek: (slotKey, label, timeOfDay) => {
+              setLastMove(null);
+              runAction({ kind: 'addWeek', slotKey, label, timeOfDay }, addWeekMealAction, {
+                slotKey,
+                label,
+                timeOfDay,
+              });
+            },
             dragging,
           }}
         >
           {children}
         </EditorActionsContext.Provider>
+
+        <DragOverlay dropAnimation={{ duration: 180, easing: 'cubic-bezier(.2,.6,.2,1)' }}>
+          {dragging ? <DragPreview payload={dragging} /> : null}
+        </DragOverlay>
       </DndContext>
     </EditorContext.Provider>
+  );
+}
+
+function DragPreview({ payload }: { payload: DragPayload }) {
+  const isMeal = payload.kind === 'meal';
+  const name = isMeal ? payload.preview.dishName : payload.dish.nameAr;
+
+  return (
+    /*
+     * The thing under the pointer has to be the thing being moved.
+     *
+     * This still had the old card's anatomy — a metadata row above the name and
+     * a tinted shelf under it — so lifting a card visibly changed it into a
+     * different object mid-drag. It now matches `meal-card.tsx` exactly: name
+     * centred at the top, a hairline, figures at the foot, no fill. The slot
+     * label and time are gone from it for the same reason they are gone from
+     * the card — they belong to the row, and a card in flight is between rows.
+     */
+    <div className="w-40 overflow-hidden rounded-lg border border-primary bg-card shadow-overlay">
+      <p
+        className="line-clamp-2 px-3 pt-3 text-center font-heading text-body-md font-semibold leading-relaxed [text-wrap:balance]"
+        dir="auto"
+      >
+        {name}
+      </p>
+
+      {isMeal && (
+        <div className="mt-2 flex items-baseline justify-between border-t border-border px-3 pb-2 pt-2">
+          <strong className="text-body-sm font-semibold tabular-nums" dir="ltr">
+            {payload.preview.kcal}{' '}
+            <small className="text-caption font-normal text-muted-foreground">kcal</small>
+          </strong>
+          <span className="text-caption text-muted-foreground" dir="ltr">
+            ×{payload.preview.servings}
+          </span>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -212,7 +332,12 @@ type EditorActions = {
   setServings: (mealId: string, servings: number) => void;
   clear: (mealId: string) => void;
   remove: (mealId: string) => void;
+  /** Restores one day's skipped slot. The exception — see `addWeek`. */
   add: (dayOfWeek: number, slotKey: string, label: string, timeOfDay: string) => void;
+  /** Adds a slot to all seven days. How a schedule normally grows. */
+  addWeek: (slotKey: string, label: string, timeOfDay: string) => void;
+  /** Drops a slot from all seven days. Confirmed by the caller. */
+  removeWeek: (slotKey: string) => void;
   /** What is currently in flight, so drop targets can light up. */
   dragging: DragPayload | null;
 };

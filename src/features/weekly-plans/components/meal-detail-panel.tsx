@@ -22,7 +22,6 @@ import { initialPlanActionState } from '../form-state';
 import type { BoardMeal, SwapCandidate } from '../queries';
 
 import { useEditorActions } from './board-dnd';
-import { RegenerateMealButton } from './regenerate-buttons';
 
 /**
  * Everything about one meal: what it is, what it contains, why it was chosen, and
@@ -40,6 +39,7 @@ export function MealDetailPanel({
   editable,
   model,
   onClose,
+  onBrowseDishes,
 }: {
   meal: BoardMeal;
   candidates: readonly SwapCandidate[];
@@ -48,21 +48,22 @@ export function MealDetailPanel({
   editable: boolean;
   model?: string | null;
   onClose: () => void;
+  onBrowseDishes: () => void;
 }) {
   const t = useTranslations('weeklyPlans');
   const { clear, remove } = useEditorActions();
 
   return (
-    <div className="flex h-full flex-col gap-4 overflow-y-auto">
-      <div className="flex items-start justify-between gap-2">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden">
+      <div className="flex shrink-0 items-start justify-between gap-3 border-b border-border pb-3">
         <div className="min-w-0">
-          <p className="text-xs text-muted-foreground">
+          <p className="text-caption text-muted-foreground">
             {meal.label} · {meal.timeOfDay}
           </p>
-          <h3 className="mt-0.5 text-base font-semibold leading-tight">
+          <h3 className="mt-1 font-heading text-heading-sm font-semibold leading-snug" dir="auto">
             {meal.dish ? meal.dish.nameAr : t('emptySlot')}
           </h3>
-          {meal.dish && <p className="text-xs text-muted-foreground">{meal.dish.nameEn}</p>}
+          {meal.dish && <p className="text-caption text-muted-foreground">{meal.dish.nameEn}</p>}
         </div>
 
         <Button type="button" size="sm" variant="ghost" onClick={onClose}>
@@ -70,61 +71,101 @@ export function MealDetailPanel({
         </Button>
       </div>
 
-      {meal.dish && (
-        <>
-          <Portion meal={meal} editable={editable} />
-          <Ingredients meal={meal} />
-          <Nutrients meal={meal} />
-        </>
-      )}
+      <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain pt-4">
+        {meal.dish && <Portion meal={meal} editable={editable} />}
 
-      {meal.rationaleAr && <Rationale text={meal.rationaleAr} />}
+        {editable && meal.dish && (
+          <section className="mt-5">
+            <div className="flex items-baseline justify-between gap-2 pb-2">
+              <h4 className="text-label font-semibold">{t('replacementOptions')}</h4>
+              <span className="text-caption text-muted-foreground">{t('closestFirst')}</span>
+            </div>
 
-      {model && (
-        <p className="text-caption text-muted-foreground">
-          {t('generatedBy')} · {model}
-        </p>
-      )}
-
-      {editable && (
-        <>
-          <Alternatives meal={meal} planId={planId} locale={locale} />
-          <SimilarDishes meal={meal} candidates={candidates} planId={planId} locale={locale} />
-
-          <section className="border-t border-border pt-3">
-            <h4 className="pb-1.5 text-xs font-semibold text-muted-foreground">
-              {t('regenerateMeal')}
-            </h4>
-            <RegenerateMealButton planId={planId} mealId={meal.id} locale={locale} />
-          </section>
-
-          <section className="mt-auto flex gap-3 border-t border-border pt-3">
-            {meal.dish && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="flex-1"
-                onClick={() => clear(meal.id)}
-              >
-                <Icon name="clearSlot" />
-                {t('clearMeal')}
-              </Button>
+            {meal.options.length > 0 ? (
+              <Alternatives meal={meal} planId={planId} locale={locale} />
+            ) : (
+              <SimilarDishes meal={meal} candidates={candidates} planId={planId} locale={locale} />
             )}
-            <Button
-              type="button"
-              variant="destructive"
-              size="sm"
-              className="flex-1"
-              onClick={() => remove(meal.id)}
-            >
-              <Icon name="trash" />
-              {t('removeMeal')}
+
+            <Button type="button" variant="outline" className="mt-3 w-full" onClick={onBrowseDishes}>
+              {t('browseAllDishes')}
             </Button>
           </section>
-        </>
+        )}
+
+        {meal.dish && (
+          <div className="mt-4 border-t border-border">
+            <Disclosure label={t('ingredients')}>
+              <Ingredients meal={meal} />
+            </Disclosure>
+            <Disclosure label={t('nutrition')}>
+              <Nutrients meal={meal} />
+            </Disclosure>
+            {meal.rationaleAr && (
+              <Disclosure label={t('whyThisMeal')}>
+                <Rationale text={meal.rationaleAr} />
+              </Disclosure>
+            )}
+          </div>
+        )}
+
+        {model && <span className="sr-only">{t('generatedBy')} · {model}</span>}
+      </div>
+
+      {/*
+       * Pinned to the panel, not parked at the end of the scroller.
+       *
+       * These two are the panel's only destructive controls and they were the
+       * last thing in a column that also holds the replacement list, the
+       * ingredients, the nutrition table and the model's rationale — so
+       * emptying a slot meant scrolling past all of it, and on a short window
+       * they sat below the fold with nothing indicating they existed. A footer
+       * outside the scroller costs 60px of the list and makes them reachable
+       * from wherever the panel happens to be scrolled to.
+       *
+       * `shrink-0` is load-bearing: the sibling above is `flex-1 min-h-0`, and
+       * without it a long ingredient list would compress the footer rather than
+       * scroll under it.
+       */}
+      {editable && (
+        <section className="flex shrink-0 gap-3 border-t border-border pt-3">
+          {meal.dish && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="min-w-0 flex-1"
+              onClick={() => clear(meal.id)}
+            >
+              <Icon name="clearSlot" />
+              {t('clearMeal')}
+            </Button>
+          )}
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            className="min-w-0 flex-1"
+            onClick={() => remove(meal.id)}
+          >
+            <Icon name="trash" />
+            {t('removeMeal')}
+          </Button>
+        </section>
       )}
     </div>
+  );
+}
+
+function Disclosure({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <details className="group border-b border-border">
+      <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-2 text-label font-semibold text-muted-foreground outline-none focus-visible:text-foreground [&::-webkit-details-marker]:hidden">
+        {label}
+        <Icon name="chevronDown" className="size-4 transition-transform group-open:rotate-180" />
+      </summary>
+      <div className="pb-3">{children}</div>
+    </details>
   );
 }
 
@@ -137,7 +178,7 @@ function Portion({ meal, editable }: { meal: BoardMeal; editable: boolean }) {
   const drift = driftState(kcal, meal.budgetKcal, MEAL_TOLERANCE);
 
   return (
-    <section className="rounded-lg bg-muted/50 p-3">
+    <section className="rounded-lg bg-muted/60 p-3">
       <h4 className="pb-2 text-label font-semibold text-muted-foreground">{t('portionLabel')}</h4>
 
       {editable ? (
@@ -176,7 +217,7 @@ function Portion({ meal, editable }: { meal: BoardMeal; editable: boolean }) {
         <p className="text-body-sm">{t('portion', { servings: dish.servings, label: dish.baseServingLabel })}</p>
       )}
 
-      <p className={cn('mt-2 text-body-sm', drift ? 'text-status-attention-fg' : 'text-muted-foreground')}>
+      <p className={cn('mt-2 border-t border-border pt-2 text-body-sm', drift ? 'text-status-attention-fg' : 'text-muted-foreground')}>
         {t('kcalValue', { value: kcal })}
         {meal.budgetKcal > 0 && <> · {t('budget', { value: meal.budgetKcal })}</>}
       </p>
@@ -191,14 +232,10 @@ function Ingredients({ meal }: { meal: BoardMeal }) {
 
   return (
     <section>
-      <h4 className="pb-1.5 text-xs font-semibold text-muted-foreground">
-        {t('ingredients')}
-      </h4>
-
-      <ul className="flex flex-col gap-1 text-xs">
+      <ul className="flex flex-col gap-1 text-body-sm">
         {ingredients.map((ingredient) => (
           <li key={ingredient.food.id} className="flex justify-between gap-2">
-            <span className="min-w-0 flex-1 truncate text-muted-foreground">
+            <span className="min-w-0 flex-1 [overflow-wrap:anywhere] text-muted-foreground">
               {ingredient.food.description}
             </span>
             <span className="shrink-0 tabular-nums">
@@ -217,11 +254,7 @@ function Nutrients({ meal }: { meal: BoardMeal }) {
 
   return (
     <section>
-      <h4 className="pb-1.5 text-xs font-semibold text-muted-foreground">
-        {t('nutrition')}
-      </h4>
-
-      <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+      <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-body-sm">
         {NUTRIENT_KEYS.map((key: NutrientKey) => {
           const total = meal.totals[key];
 
@@ -255,14 +288,9 @@ function Nutrients({ meal }: { meal: BoardMeal }) {
  * claim the software is making.
  */
 function Rationale({ text }: { text: string }) {
-  const t = useTranslations('weeklyPlans');
-
   return (
-    <section className="border-s-2 border-primary/40 ps-2.5">
-      <h4 className="text-xs font-semibold text-muted-foreground">
-        {t('whyThisMeal')}
-      </h4>
-      <p className="mt-1 text-xs leading-relaxed">{text}</p>
+    <section>
+      <p className="text-body-sm leading-relaxed">{text}</p>
     </section>
   );
 }
@@ -293,24 +321,30 @@ function SwapButton({
       <input type="hidden" name="mealId" value={mealId} />
       <input type="hidden" name="dishId" value={dishId} />
       <input type="hidden" name="servings" value={servings} />
-      <SwapSubmit flagged={flagged}>{children}</SwapSubmit>
+      <SwapSubmit flagged={flagged}>
+        <span className="min-w-0">{children}</span>
+      </SwapSubmit>
     </form>
   );
 }
 
 function SwapSubmit({ children, flagged }: { children: React.ReactNode; flagged?: boolean }) {
   const { pending } = useFormStatus();
+  const t = useTranslations('weeklyPlans');
 
   return (
     <button
       type="submit"
       disabled={pending}
       className={cn(
-        'w-full rounded-md border border-border p-2 text-start text-xs transition-colors hover:bg-accent/60 disabled:opacity-50',
+        'grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b border-border px-0 py-2.5 text-start text-body-sm transition-colors hover:bg-accent/60 disabled:opacity-50',
         flagged && 'border-status-attention-fg/40',
       )}
     >
       {children}
+      <span className="rounded-md border border-primary px-2.5 py-1.5 font-semibold text-primary">
+        {pending ? '…' : t('replaceMeal')}
+      </span>
     </button>
   );
 }
@@ -322,13 +356,8 @@ function Alternatives({ meal, planId, locale }: { meal: BoardMeal; planId: strin
   if (!meal.options.length) return null;
 
   return (
-    <section>
-      <h4 className="pb-1.5 text-xs font-semibold text-muted-foreground">
-        {t('aiAlternatives')}
-      </h4>
-
-      <div className="flex flex-col gap-1.5">
-        {meal.options.map((option) => (
+      <div className="border-t border-border">
+        {meal.options.slice(0, 3).map((option) => (
           <SwapButton
             key={option.id}
             planId={planId}
@@ -348,7 +377,6 @@ function Alternatives({ meal, planId, locale }: { meal: BoardMeal; planId: strin
           </SwapButton>
         ))}
       </div>
-    </section>
   );
 }
 
@@ -375,13 +403,8 @@ function SimilarDishes({
   if (!candidates.length) return null;
 
   return (
-    <section>
-      <h4 className="pb-1.5 text-xs font-semibold text-muted-foreground">
-        {t('similarDishes')}
-      </h4>
-
-      <div className="flex flex-col gap-1.5">
-        {candidates.slice(0, 6).map((match) => (
+      <div className="border-t border-border">
+        {candidates.slice(0, 3).map((match) => (
           <SwapButton
             key={match.candidate.id}
             planId={planId}
@@ -398,6 +421,5 @@ function SimilarDishes({
           </SwapButton>
         ))}
       </div>
-    </section>
   );
 }

@@ -43,6 +43,8 @@ export type BoardEdit =
   | { kind: 'clear'; mealId: string }
   | { kind: 'remove'; mealId: string }
   | { kind: 'add'; dayOfWeek: number; label: string; timeOfDay: string; slotKey: string }
+  | { kind: 'addWeek'; label: string; timeOfDay: string; slotKey: string }
+  | { kind: 'removeWeek'; slotKey: string }
   | { kind: 'move'; fromMealId: string; toMealId: string; mode: 'move' | 'copy' };
 
 /** Finds a meal anywhere on the board. */
@@ -158,18 +160,63 @@ export function applyEdit(board: Board, edit: BoardEdit): Board {
       );
     }
 
+    case 'removeWeek': {
+      return recountBoard(
+        board,
+        board.days.map((day) => ({
+          ...day,
+          meals: day.meals.filter((meal) => meal.slotKey !== edit.slotKey),
+        })),
+      );
+    }
+
+    case 'addWeek': {
+      return recountBoard(
+        board,
+        board.days.map((day) =>
+          // Skipped where the day already carries the slot, matching what
+          // `addMealToWeek` writes — otherwise the optimistic board would show a
+          // duplicate row for a moment and then drop it on revalidation.
+          day.meals.some((meal) => meal.slotKey === edit.slotKey)
+            ? day
+            : {
+                ...day,
+                meals: [
+                  ...day.meals,
+                  {
+                    id: `optimistic-${day.dayOfWeek}-${edit.slotKey}`,
+                    slotKey: edit.slotKey,
+                    label: edit.label,
+                    timeOfDay: edit.timeOfDay,
+                    dish: null,
+                    rationaleAr: null,
+                    totals: emptyTotals(),
+                    budgetKcal: 0,
+                    options: [],
+                  },
+                ],
+              },
+        ),
+      );
+    }
+
     case 'move': {
       const source = findMeal(board, edit.fromMealId);
       if (!source?.dish) return board;
 
       const moved = source.dish;
+      const target = findMeal(board, edit.toMealId);
+      if (!target) return board;
+      const displaced = target.dish;
 
       return mapMeals(board, (meal) => {
         // The dish and its portion move; the target's own label, time and budget
         // stay. A lunch dropped on a breakfast slot becomes breakfast at
         // breakfast's budget, which is what the dietitian sees and expects.
         if (meal.id === edit.toMealId) return withDish(meal, moved, moved.servings);
-        if (meal.id === edit.fromMealId && edit.mode === 'move') return withDish(meal, null, 1);
+        if (meal.id === edit.fromMealId && edit.mode === 'move') {
+          return withDish(meal, displaced, displaced?.servings ?? 1);
+        }
         return meal;
       });
     }

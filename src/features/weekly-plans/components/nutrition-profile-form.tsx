@@ -131,7 +131,7 @@ export function NutritionProfileForm({
 
       <fieldset className="space-y-3">
         <legend className="text-sm font-semibold">{t('fields.allergenTags')}</legend>
-        <p className="text-xs text-muted-foreground">{t('allergenHint')}</p>
+        <p className="text-caption text-muted-foreground">{t('allergenHint')}</p>
 
         <div className="flex flex-wrap gap-x-4 gap-y-2">
           {ALLERGENS.map((allergen) => (
@@ -190,7 +190,7 @@ export function NutritionProfileForm({
 
       <fieldset className="space-y-3">
         <legend className="text-sm font-semibold">{t('sections.schedule')}</legend>
-        <p className="text-xs text-muted-foreground">{t('scheduleHint')}</p>
+        <p className="text-caption text-muted-foreground">{t('scheduleHint')}</p>
 
         <div className="space-y-2">
           {slots.map((slot, index) => (
@@ -198,7 +198,7 @@ export function NutritionProfileForm({
               <input type="hidden" name="slotKey" value={slot.slotKey} />
 
               <div className="min-w-32 flex-1">
-                <Label htmlFor={`slotLabel-${index}`} className="text-xs">
+                <Label htmlFor={`slotLabel-${index}`}>
                   {t('fields.slotLabel')}
                 </Label>
                 <Input
@@ -211,7 +211,7 @@ export function NutritionProfileForm({
               </div>
 
               <div>
-                <Label htmlFor={`slotTime-${index}`} className="text-xs">
+                <Label htmlFor={`slotTime-${index}`}>
                   {t('fields.slotTime')}
                 </Label>
                 <Input
@@ -225,7 +225,7 @@ export function NutritionProfileForm({
               </div>
 
               <div className="w-24">
-                <Label htmlFor={`slotShare-${index}`} className="text-xs">
+                <Label htmlFor={`slotShare-${index}`}>
                   {t('fields.slotShare')}
                 </Label>
                 <Input
@@ -277,7 +277,7 @@ export function NutritionProfileForm({
             {t('addSlot')}
           </Button>
 
-          <span className="text-xs text-muted-foreground">
+          <span className="text-caption text-muted-foreground">
             {/* Shares are normalised on the server, so this is information rather
                 than a validation error — but a dietitian aiming at 100 wants to know
                 where they are. */}
@@ -286,7 +286,7 @@ export function NutritionProfileForm({
         </div>
 
         {errorFor('mealSchedule') && (
-          <p className="text-xs text-destructive">{errorFor('mealSchedule')}</p>
+          <p className="text-caption text-destructive">{errorFor('mealSchedule')}</p>
         )}
       </fieldset>
 
@@ -337,8 +337,8 @@ function Field({
     <div className="space-y-1.5">
       <Label htmlFor={id}>{label}</Label>
       {children}
-      {hint && !error && <p className="text-xs text-muted-foreground">{hint}</p>}
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {hint && !error && <p className="text-caption text-muted-foreground">{hint}</p>}
+      {error && <p className="text-caption text-destructive">{error}</p>}
     </div>
   );
 }

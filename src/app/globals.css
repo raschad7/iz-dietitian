@@ -454,6 +454,7 @@
   --muted: var(--n-50);                 /* bg.sunken */
   --muted-foreground: var(--n-600);     /* text.secondary — 6.38:1 floor */
 
+
   /*
    * Ambient hover/highlight tint used by many primitives. This is NOT the
    * brand accent — lime is, and it must never sit behind this token.
@@ -912,6 +913,79 @@
   --lh-caption: 1.5;
 }
 
+/*
+ * The weekly planner board, and nothing else.
+ *
+ * Two deliberate departures from the app-wide tokens, both scoped to the one
+ * screen that is a dense working grid rather than a page of cards.
+ *
+ * **The face is Tajawal.** Re-pointing `--script-ui-font` / `--script-display-font`
+ * is the whole mechanism — `.font-sans` and `.font-heading` compile to
+ * `var(--script-ui-font), …`, so every descendant re-resolves the family with no
+ * per-component override. The inner fallback matters for the same reason it does
+ * on `:lang(ar)`: an undefined variable invalidates the entire `font-family`
+ * declaration and drops the subtree to the system font.
+ *
+ * ⚠ **The font rule has to match every descendant, not just the root.**
+ * `:lang(ar)` matches every element in an Arabic document — not only `<html>` —
+ * so each node inside the board re-declares `--script-ui-font` *for itself* and
+ * never inherits the value set on `.planner-theme`. Setting it on the wrapper
+ * alone therefore does nothing at all: the wrapper gets Tajawal and every child
+ * immediately overrides itself back to Neo Sans. The `*` is what stops that,
+ * and `:root ` in front is what wins the specificity (0,2,0 against 0,1,0)
+ * regardless of source order.
+ *
+ * The colour tokens below need no such treatment — nothing else re-declares
+ * them per element, so ordinary inheritance carries them down the subtree.
+ *
+ * The Arabic `--lh-*` values in that `:lang(ar)` block are deliberately **not**
+ * overridden — Tajawal needs the looser Arabic leading exactly as much as Neo
+ * Sans does.
+ *
+ * **The neutrals go cool.** The page was already `#FFFFFF`; what read as warm
+ * was everything drawn *on* it — a board is mostly hairlines, and thirty-five
+ * cards edged in warm n-200 tint the whole surface. These four are the cool
+ * equivalents at matched lightness, which is what makes the board read as
+ * clinical white rather than as cream.
+ *
+ * This is the second place cool greys are allowed (the rail is the first) and
+ * the exception is recorded in docs/design-system.md. It stays an exception:
+ * a warm page surface beside a cool one is only coherent while the cool ones
+ * are whole surfaces, not stray accents.
+ */
+:root .planner-theme,
+:root .planner-theme * {
+  --script-ui-font: var(--font-tajawal, var(--font-ibm-plex-sans-arabic));
+  --script-display-font: var(--font-tajawal, var(--font-readex-pro));
+}
+
+/*
+ * ⚠ And the family has to be *declared* here, not just re-pointed above.
+ *
+ * Re-pointing the variable only reaches elements that declare
+ * `font-family: var(--script-ui-font), …` themselves — that is, elements
+ * carrying `.font-sans` or `.font-heading`. Most of a page carries neither: it
+ * inherits `font-family` from `<html>`, where the `var()` was already
+ * substituted, so the *computed* Neo Sans stack is what comes down the tree and
+ * no amount of changing the variable further down can touch it.
+ *
+ * The symptom is precise and easy to misread as "the override didn't apply":
+ * the handful of elements with an explicit font utility switch to Tajawal while
+ * every label, tab and paragraph around them stays on the old face. Declaring
+ * the family on the scope root fixes those, and the variable rule above fixes
+ * the ones that override it per element. Both are needed; neither is enough.
+ */
+:root .planner-theme {
+  font-family: var(--script-ui-font), var(--font-ibm-plex-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+:root .planner-theme {
+  --border: #E5E7EB;                    /* border.divider — the warm n-200's cool twin */
+  --muted: #F9FAFB;                     /* bg.sunken */
+  --accent: #F3F4F6;                    /* ambient hover tint */
+  --muted-foreground: #4B5563;          /* text.secondary — 7.46:1 on white, clears the 6.38:1 floor n-600 set */
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -1217,6 +1291,43 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/*
+ * The planner rail and its compact trigger are one responsive pair. Keeping
+ * their breakpoint here prevents a partially generated utility sheet from
+ * showing the mobile trigger while hiding the desktop rail.
+ */
+.planner-desktop-rail {
+  display: none;
+}
+
+.planner-compact-trigger {
+  display: inline-flex;
+}
+
+/*
+ * The collapse control is the desktop half of the same pair, and belongs to the
+ * same breakpoint for the same reason: below `xl` there is no fixed rail to
+ * collapse, so the button would be offering to hide something that is not
+ * there.
+ */
+.planner-rail-toggle {
+  display: none;
+}
+
+@media (min-width: 80rem) {
+  .planner-desktop-rail {
+    display: flex;
+  }
+
+  .planner-compact-trigger {
+    display: none;
+  }
+
+  .planner-rail-toggle {
+    display: inline-flex;
   }
 }
 

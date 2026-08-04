@@ -19,6 +19,7 @@ import {
   SESSION_REFRESH_AGE_SECONDS,
   SESSION_TTL_SECONDS,
 } from './auth-constants';
+import { shouldUseSecureAuthCookies } from './auth-url';
 
 export type UserRole = 'staff' | 'client';
 
@@ -55,6 +56,8 @@ export const REQUIRE_EMAIL_VERIFICATION = false;
  */
 export const isGoogleEnabled = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
 
+const authBaseURL = process.env.BETTER_AUTH_URL ?? 'http://localhost:3000';
+
 function requireEnv(name: string): string {
   const value = process.env[name];
   if (!value) {
@@ -84,7 +87,7 @@ function userLocale(value: unknown): Locale {
 
 export const auth = betterAuth({
   appName: 'dietitian-software',
-  baseURL: process.env.BETTER_AUTH_URL ?? 'http://localhost:3000',
+  baseURL: authBaseURL,
   secret: requireEnv('BETTER_AUTH_SECRET'),
 
   database: drizzleAdapter(db, {
@@ -319,7 +322,10 @@ export const auth = betterAuth({
   advanced: {
     // Left at the Better Auth default prefix so `getSessionCookie` in
     // `src/middleware.ts` finds the cookie without extra configuration.
-    useSecureCookies: process.env.NODE_ENV === 'production',
+    // `bun start` is also used locally over plain HTTP. Basing this on
+    // NODE_ENV alone makes that production-build workflow issue cookies the
+    // browser cannot return. HTTPS deployments retain Secure automatically.
+    useSecureCookies: shouldUseSecureAuthCookies(authBaseURL),
   },
 
   plugins: [
@@ -350,9 +356,9 @@ export const auth = betterAuth({
      * actually covers.
      */
     passkey({
-      rpID: new URL(process.env.BETTER_AUTH_URL ?? 'http://localhost:3000').hostname,
+      rpID: new URL(authBaseURL).hostname,
       rpName: 'Dietitian Clinic',
-      origin: process.env.BETTER_AUTH_URL ?? 'http://localhost:3000',
+      origin: authBaseURL,
     }),
 
     // Must stay last: lets server actions set the session cookie.

@@ -49,7 +49,7 @@ export function PlanHistory({
   return (
     // The group owns the outline and the tail; the rows are square between
     // themselves, and `listRow` restores the sweep on the last one.
-    <ul className="rounded-lg rounded-ee-4xl border border-border">
+    <ul className="rounded-lg border border-border">
       {plans.map((plan) => (
         <li key={plan.id}>
           <Card variant="listRow" size="sm" className="px-3 transition-colors hover:bg-secondary/60">
