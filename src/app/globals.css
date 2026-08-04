@@ -2,7 +2,25 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
+/*
+ * `dark:` has to fire wherever the dark tokens do, and there are now three
+ * places that happens: the app-wide `.dark` class, the client portal's
+ * `[data-theme='dark']`, and that portal set to `تلقائي` on a device asking for
+ * dark. Without the last two, a `dark:` utility inside a shared component —
+ * `Textarea`'s `dark:bg-input/30`, for one — would keep its light value on a
+ * surface whose tokens had already flipped.
+ */
+@custom-variant dark {
+  &:is(.dark *, [data-theme='dark'] *) {
+    @slot;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    &:is([data-theme='system'] *) {
+      @slot;
+    }
+  }
+}
 
 /*
  * Qiwam / قوام design system.
@@ -65,6 +83,22 @@
   --clay-300: #E8A08F;
   --clay-600: #A33422;
   --clay-700: #82291B;
+
+  /*
+   * ── Flame: a day the client completed ──
+   *
+   * Not amber. Amber already means "needs follow-up", and a finished day
+   * carrying the same hue as a problem is the one confusion this scale cannot
+   * afford. Flame is warmer and more saturated than amber so the two read
+   * apart at the 28px the portal's week strip draws them at.
+   *
+   * flame-700 on flame-100 is 5.6:1. flame-500 is a graphic fill only —
+   * it carries icons and rings, never text.
+   */
+  --flame-100: #FBEBD9;
+  --flame-300: #F2A03D;
+  --flame-500: #E4761B;
+  --flame-700: #93490D;
 
   /*
    * ── Leading, per script ──
@@ -325,6 +359,12 @@
   --color-status-medical-bg: var(--status-medical-bg);
   --color-status-rest-fg: var(--status-rest-fg);
   --color-status-rest-bg: var(--status-rest-bg);
+  --color-status-complete-fg: var(--status-complete-fg);
+  --color-status-complete-bg: var(--status-complete-bg);
+  --color-status-complete-mark: var(--status-complete-mark);
+  --color-status-complete-mark-soft: var(--status-complete-mark-soft);
+  --color-progress-track: var(--progress-track);
+  --color-progress-card-border: var(--progress-card-border);
 
   --color-meal-bg: var(--meal-bg);
   --color-meal-fg: var(--meal-fg);
@@ -346,6 +386,7 @@
   --color-foreground: var(--foreground);
   --color-background: var(--background);
   --color-overlay: var(--overlay);
+  --color-scrim: var(--scrim);
 
   /* radius.* — sm 8 / md 12 / lg 16 / xl 24. Pill is rounded-full. Never 0. */
   --radius-sm: var(--qiwam-radius-sm);
@@ -375,6 +416,13 @@
 
   --card: var(--n-0);                   /* bg.surface */
   --card-foreground: var(--n-900);
+
+  /*
+   * The wash behind a drawer or dialog. Olive-tinted like the shadows and for
+   * the same reason: a neutral-black scrim over a warm cream canvas reads as
+   * dirty rather than as dimmed. First consumer is the client portal's menu.
+   */
+  --scrim: color-mix(in srgb, var(--olive-950) 45%, transparent);
 
   --popover: var(--n-0);
   --popover-foreground: var(--n-900);
@@ -453,6 +501,41 @@
   --status-medical-bg: var(--clay-100);
   --status-rest-fg: var(--olive-700);
   --status-rest-bg: var(--olive-50);
+  /*
+   * A day the client finished. The only warm accent on the portal home
+   * screen — if a second thing on that screen turns orange, one of them is
+   * wrong.
+   */
+  --status-complete-fg: var(--flame-700);
+  --status-complete-bg: var(--flame-100);
+  --status-complete-mark: var(--flame-500);
+  --status-complete-mark-soft: var(--flame-300);
+
+  /*
+   * The Q-arc's unfilled track (§9.6) — the dots the week has not reached yet.
+   *
+   * A stop of its own rather than status-on-track-bg, which is what it started
+   * as: the portal's progress card is a cream→olive-50→olive-100 gradient, and
+   * an olive-100 track sitting on an olive-100 ground is invisible. This is the
+   * next stop down, chosen so an untouched week still reads as a whole circle
+   * waiting to be filled rather than as an arc floating in space.
+   */
+  --progress-track: var(--olive-200);
+
+  /*
+   * The ground that arc sits on — the home screen's progress card.
+   *
+   * The ramp the note above names, as tokens rather than as four hex values in
+   * the component: cream at the ring end, olive-100 at the text end, so the arc
+   * has the lightest part of the card behind it and the copy has the softest.
+   * Semantic rather than palette because the card has to invert — a primitive
+   * ramp would stay cream on an olive-950 canvas.
+   */
+  --progress-card-from: var(--n-25);
+  --progress-card-via: var(--olive-50);
+  --progress-card-to: var(--olive-100);
+  --progress-card-edge: var(--olive-200);
+  --progress-card-border: var(--olive-200);
 
   /*
    * The meal card's surface — one tone for every meal.
@@ -577,17 +660,25 @@
   --sidebar-ring: var(--olive-950);
 }
 
-.dark {
+.dark,
+[data-theme='dark'] {
   /*
-   * Only bg, text, and border tokens remap. Brand and status hues stay
-   * identical, which keeps the verified pairs intact. Nothing in this app
-   * currently switches to `.dark` (no theme toggle is wired up), but the class
-   * is kept correct rather than left on stale placeholder grays.
+   * §15: "Only bg, text, and border tokens remap ... Brand and status hues
+   * stay identical, which keeps the verified pairs intact."
+   *
+   * Two selectors, one appearance. `.dark` is the app-wide class Tailwind's
+   * `dark:` variant keys off and nothing currently sets. `[data-theme='dark']`
+   * is the client portal's own switch: the attribute goes on the portal
+   * wrapper alone (see `src/features/portal/components/portal-theme.tsx`), so a
+   * client choosing dark never darkens the practitioner app.
    */
   --background: var(--olive-950);
   --foreground: var(--n-25);
 
-  --card: var(--olive-900);
+  /* The canvas is already olive-950, so the scrim has to go denser to register. */
+  --scrim: color-mix(in srgb, var(--olive-950) 72%, transparent);
+
+  --card: var(--olive-900);             /* surface → olive-900 */
   --card-foreground: var(--n-25);
 
   --popover: var(--olive-900);
@@ -632,6 +723,24 @@
   --status-medical-bg: var(--clay-100);
   --status-rest-fg: var(--olive-700);
   --status-rest-bg: var(--olive-50);
+  --status-complete-fg: var(--flame-700);
+  --status-complete-bg: var(--flame-100);
+  --status-complete-mark: var(--flame-500);
+  --status-complete-mark-soft: var(--flame-300);
+
+  /* Dark's progress card sits on olive-900, so its track steps up, not down. */
+  --progress-track: var(--olive-700);
+
+  /*
+   * Same ramp inverted: the ring end stays the lighter one. The middle stop is
+   * mixed rather than picked — the scale has no step between 800 and 900, and
+   * landing on either makes the gradient a two-stop step with a visible edge.
+   */
+  --progress-card-from: var(--olive-800);
+  --progress-card-via: color-mix(in oklch, var(--olive-800), var(--olive-900));
+  --progress-card-to: var(--olive-900);
+  --progress-card-edge: var(--olive-950);
+  --progress-card-border: var(--olive-800);
 
   --viz-band-range: var(--lime-300);
   --viz-band-edge: var(--lime-600);
@@ -682,6 +791,91 @@
   --sidebar-hover: var(--olive-800);
   --sidebar-border: var(--olive-800);
   --sidebar-ring: var(--ring);
+}
+
+/*
+ * `تلقائي` — the client portal's "follow the phone" theme.
+ *
+ * The block below is the one above, applied when the device asks for dark. It
+ * is written out a second time rather than shared, and the alternative was
+ * worse in every direction: a class toggled by script flashes the wrong theme
+ * before it runs and cannot be resolved on the server at all, and `light-dark()`
+ * would rewrite all thirty tokens into a form that breaks outright on a browser
+ * that does not have it. This is declarative, needs no JavaScript, has no first
+ * paint to get wrong, and re-evaluates the instant the attribute changes.
+ *
+ * The two must stay in step. When a token is added to the dark block above, it
+ * belongs here too, or `system` and `dark` quietly stop agreeing.
+ */
+@media (prefers-color-scheme: dark) {
+  [data-theme='system'] {
+    --background: var(--olive-950);
+    --foreground: var(--n-25);
+
+    --scrim: color-mix(in srgb, var(--olive-950) 72%, transparent);
+
+    --card: var(--olive-900);
+    --card-foreground: var(--n-25);
+
+    --popover: var(--olive-900);
+    --popover-foreground: var(--n-25);
+
+    --primary: var(--olive-600);
+    --primary-foreground: var(--n-25);
+
+    --secondary: var(--olive-800);
+    --secondary-foreground: var(--n-25);
+
+    --muted: var(--olive-900);
+    --muted-foreground: var(--olive-200);
+
+    --accent: var(--olive-800);
+    --accent-foreground: var(--n-25);
+
+    --destructive: var(--clay-600);
+    --destructive-foreground: var(--n-25);
+
+    --border: var(--olive-700);
+    --input: var(--n-400);
+    --ring: var(--lime-400);
+    --focus-halo: var(--n-25);
+
+    --status-on-track-fg: var(--olive-700);
+    --status-on-track-bg: var(--olive-100);
+    --status-attention-fg: var(--amber-700);
+    --status-attention-bg: var(--amber-100);
+    --status-incomplete-fg: var(--n-700);
+    --status-incomplete-bg: var(--n-100);
+    --status-medical-fg: var(--clay-700);
+    --status-medical-bg: var(--clay-100);
+    --status-rest-fg: var(--olive-700);
+    --status-rest-bg: var(--olive-50);
+    --status-complete-fg: var(--flame-700);
+    --status-complete-bg: var(--flame-100);
+    --status-complete-mark: var(--flame-500);
+    --status-complete-mark-soft: var(--flame-300);
+
+    --progress-track: var(--olive-700);
+
+    --progress-card-from: var(--olive-800);
+    --progress-card-via: color-mix(in oklch, var(--olive-800), var(--olive-900));
+    --progress-card-to: var(--olive-900);
+    --progress-card-edge: var(--olive-950);
+    --progress-card-border: var(--olive-800);
+
+    --viz-band-range: var(--lime-300);
+    --viz-band-edge: var(--lime-600);
+    --viz-band-marker: var(--olive-900);
+
+    --sidebar: var(--olive-900);
+    --sidebar-foreground: var(--olive-200);
+    --sidebar-primary: var(--primary);
+    --sidebar-primary-foreground: var(--n-0);
+    --sidebar-accent: var(--olive-800);
+    --sidebar-accent-foreground: var(--n-25);
+    --sidebar-border: var(--olive-700);
+    --sidebar-ring: var(--ring);
+  }
 }
 
 /*
