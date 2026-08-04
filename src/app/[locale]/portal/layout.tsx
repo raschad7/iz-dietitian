@@ -1,8 +1,9 @@
+import { getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
 
-import { PortalTheme } from '@/features/portal/components/portal-theme';
-import { portalSettings, requirePortalClient } from '@/features/portal/session';
+import { Header } from '@/components/layout/header';
 import { resolveLocale } from '@/i18n/params';
+import { requireClientSession } from '@/lib/session';
 
 type PortalLayoutProps = {
   children: ReactNode;
@@ -10,38 +11,33 @@ type PortalLayoutProps = {
 };
 
 /**
- * Shell for the whole client area: authenticates, sets the client app's
- * appearance, and nothing more.
+ * Shell for the whole client area: authenticates, puts a header on top, and
+ * nothing more.
  *
- * **What is deliberately not here.** Neither the navigation nor the header.
- * Both are in `(secured)/(tabs)/layout.tsx`, alongside the
- * `mustChangePassword` guard, because a client who has not yet replaced their
- * temporary password can reach exactly one page — offering them five tabs that
- * all bounce back to it would be a shell with no floor. `set-password` carries
- * its own header for the same reason, so it still has a way out.
+ * The navigation deliberately does NOT live here — it is in
+ * `(secured)/layout.tsx`, alongside the `mustChangePassword` guard. A client
+ * who has not yet replaced their temporary password can reach exactly one page,
+ * and offering them four tabs that all bounce back to it would be a shell with
+ * no floor.
  *
- * That guard is in a route group because route groups do not appear in the
- * URL: `/portal` still resolves to `(secured)/(tabs)/page.tsx` while
- * `/portal/set-password` is reached through this layout alone. Putting the
- * check here instead would lock every client out permanently — in the App
- * Router a nested layout wraps its parent rather than replacing it, so
- * `set-password` would inherit the redirect and bounce to itself forever.
- *
- * ## Appearance
- *
- * The client's theme is applied here and only here, on a wrapper this area
- * owns. It never reaches `<html>`, so the practitioner app's chrome is
- * untouched by a client's preference — `PortalTheme` explains how.
+ * That guard is in the route group for the same reason: route groups do not
+ * appear in the URL, so `/portal` still resolves to `(secured)/page.tsx` while
+ * `/portal/set-password` is reached through this layout alone. Putting the check
+ * here instead would lock every client out permanently — in the App Router a
+ * nested layout wraps its parent rather than replacing it, so `set-password`
+ * would inherit the redirect and bounce to itself forever.
  */
 export default async function PortalLayout({ children, params }: PortalLayoutProps) {
   const locale = await resolveLocale(params);
 
-  const context = await requirePortalClient(locale);
-  const { theme } = await portalSettings(context.id);
+  const session = await requireClientSession(locale);
+
+  const t = await getTranslations('portal');
 
   return (
-    <PortalTheme preference={theme} className="flex min-h-dvh flex-col bg-background text-foreground">
+    <div className="flex min-h-dvh flex-col">
+      <Header title={t('title')} userName={session.user.name} locale={locale} />
       {children}
-    </PortalTheme>
+    </div>
   );
 }

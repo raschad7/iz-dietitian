@@ -1,5 +1,4 @@
 import { redirect } from 'next/navigation';
-import { cache } from 'react';
 
 import { wallClockIn, type WallClock } from '@/features/booking/completed';
 import { type Locale } from '@/i18n/routing';
@@ -7,7 +6,7 @@ import { DISPLAY_TIME_ZONE } from '@/lib/format';
 import { requireClientSession } from '@/lib/session';
 import { type Session } from '@/lib/auth';
 
-import { getClientSettings, getPortalClient, type PortalClient } from './queries';
+import { getPortalClient, type PortalClient } from './queries';
 
 /**
  * Who is asking, in the portal's terms.
@@ -28,13 +27,7 @@ export type PortalContext = PortalClient & {
   now: WallClock;
 };
 
-/**
- * Wrapped in React's `cache` because two things now ask for it on every portal
- * render — the shell, for the header, and the page itself. One request should
- * mean one session check, one client row, and above all one clock: without
- * this, the header could read 23:59 and the page below it 00:00.
- */
-export const requirePortalClient = cache(async (locale: Locale): Promise<PortalContext> => {
+export async function requirePortalClient(locale: Locale): Promise<PortalContext> {
   const session = await requireClientSession(locale);
 
   const client = await getPortalClient(session.user.id);
@@ -50,21 +43,7 @@ export const requirePortalClient = cache(async (locale: Locale): Promise<PortalC
   }
 
   return { ...client, session, now: clinicNow() };
-});
-
-/**
- * The client's own account settings, read once per request.
- *
- * Two things ask for them on the settings screen — the shell, which needs the
- * theme to render the wrapper, and the page itself — and the shell asks on
- * every other portal page too. Cached for the same reason `requirePortalClient`
- * is: one request should mean one read.
- *
- * It lives here rather than in `queries.ts` because `cache` comes from React,
- * and that module is deliberately free of anything a plain script could not
- * import.
- */
-export const portalSettings = cache(getClientSettings);
+}
 
 /**
  * The clinic's wall clock.

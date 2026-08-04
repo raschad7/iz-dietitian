@@ -29,37 +29,7 @@ function getLocalDatabaseUrl(): string {
   return url;
 }
 
-/**
- * This wipes every table — clients, staff, and every portal account
- * (`user`/`account`) along with them — and does NOT reseed or reissue portal
- * credentials afterward. A login that worked before a reset (e.g. a
- * `zainab`/`...` portal account) will fail with "User not found" until
- * `bun run db:seed` is run again. Requires `--yes` so that isn't a surprise.
- */
-function requireConfirmation(): void {
-  if (process.argv.includes('--yes')) return;
-
-  console.error(
-    [
-      '',
-      'REFUSING TO RESET: this drops every table in the local database —',
-      'clients, staff, and every portal login (including any you created',
-      'by hand) go with it. Nothing is reseeded automatically afterward.',
-      '',
-      'If that is really what you want, re-run with --yes:',
-      '  bun run db:reset -- --yes',
-      '',
-      'Then recreate usable data with:',
-      '  bun run db:seed',
-      '',
-    ].join('\n'),
-  );
-  process.exit(1);
-}
-
 async function reset(): Promise<void> {
-  requireConfirmation();
-
   const client = postgres(getLocalDatabaseUrl(), { max: 1 });
 
   try {
