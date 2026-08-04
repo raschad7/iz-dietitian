@@ -5,6 +5,7 @@ import { SegmentedGroup, SegmentedOption } from '@/components/ui/segmented';
 import { SettingsLabel } from '@/features/portal/components/settings-section';
 import { Link } from '@/i18n/navigation';
 import { type Locale } from '@/i18n/routing';
+import { cn } from '@/lib/utils';
 
 /**
  * The shapes a settings row takes, minus the one that needs the browser.
@@ -45,12 +46,15 @@ export function SettingsChoiceRow<T extends string>({
   locale: Locale;
 }) {
   return (
-    <form action={action} className="flex flex-wrap items-center justify-between gap-3 py-2.5">
+    <form action={action} className="space-y-3 py-3">
       <input type="hidden" name="locale" value={locale} />
 
       <SettingsLabel id={`setting-${name}`} label={label} description={description} />
 
-      <SegmentedGroup label={label} className="shrink-0">
+      <SegmentedGroup
+        label={label}
+        className={cn('grid w-full', options.length === 2 ? 'grid-cols-2' : 'grid-cols-3')}
+      >
         {options.map((option) => (
           <SegmentedOption
             key={option.value}

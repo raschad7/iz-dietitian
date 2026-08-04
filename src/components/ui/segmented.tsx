@@ -125,7 +125,7 @@ export function SegmentedGroup({
       className={cn(
         // `max-w-full` so a long option set wraps inside its row rather than
         // pushing the page into a horizontal scroll on a narrow phone.
-        'inline-flex max-w-full gap-0.5 rounded-md rounded-ee-xl border border-border bg-muted p-1',
+        'inline-flex max-w-full gap-1 rounded-md rounded-ee-xl border border-border bg-muted p-1',
         className,
       )}
       {...props}
@@ -143,7 +143,7 @@ export function SegmentedOption({
       aria-pressed={selected}
       data-slot="segmented-option"
       className={cn(
-        'min-h-10 min-w-0 flex-1 truncate rounded-[9px] rounded-ee-[18px] px-4 text-sm font-semibold',
+        'min-h-10 min-w-0 rounded-[9px] rounded-ee-[18px] px-3 text-sm font-semibold whitespace-nowrap',
         'transition-all duration-[180ms] ease-[cubic-bezier(.2,.6,.2,1)] motion-reduce:transition-none',
         'outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-focus-halo',
         'disabled:pointer-events-none disabled:opacity-50',

@@ -68,7 +68,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
   return (
     <div className="space-y-4">
-      <ProfileIdentity profile={profile} clinic={clinic} practitioner={practitioner} />
+      <ProfileIdentity profile={profile} />
 
       <ProfileSection icon={UserRound} title={t('section.basic')}>
         <InfoRow label={t('field.fullName')} value={profile.fullName} />
