@@ -19,6 +19,7 @@
     "db:seed": "bun run scripts/seed.ts",
     "db:seed:foods": "bun run scripts/seed-foods.ts",
     "db:seed:dishes": "bun run scripts/seed-dishes.ts",
+    "db:seed:demo": "bun run scripts/seed-demo-client.ts",
     "db:build-food-dataset": "bun run scripts/build-food-dataset.ts",
     "db:reset": "bun run scripts/db-reset.ts",
     "wa:reminders": "bun run scripts/whatsapp-reminders.ts"

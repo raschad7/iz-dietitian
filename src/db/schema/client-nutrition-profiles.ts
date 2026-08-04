@@ -1,4 +1,4 @@
-import { index, integer, jsonb, pgTable, real, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import { boolean, index, integer, jsonb, pgTable, real, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 
 import { clients } from './clients';
 import { clinics } from './clinics';
@@ -61,6 +61,28 @@ export const clientNutritionProfiles = pgTable(
      * its own and nobody has asked for it yet.
      */
     weightKg: real('weight_kg'),
+
+    /**
+     * Whether the client may see the weight above in their own portal.
+     *
+     * §11 of the design system, "Sensitive data": weight and measurements can
+     * be hidden per client at the account level, and hidden means hidden
+     * everywhere. It is a clinical judgement — for some clients a number on a
+     * screen is the thing that helps, and for others it is the thing that
+     * hurts — so the dietitian makes it, not the app and not the client.
+     *
+     * **Default false, deliberately.** Revealing a figure nobody chose to
+     * reveal is the failure this column exists to prevent, and the reverse
+     * (a client who wants to see it and has to ask once) is not. When it is
+     * false the portal omits the row entirely rather than blanking it: §9.8
+     * specifies "the card is absent, not blanked", because a visible field
+     * reading "hidden" tells the client there is a number being kept from
+     * them, which is worse than not raising the subject.
+     *
+     * There is no toggle in the practitioner app for this yet; the switch it
+     * is drawn as ("إظهار الوزن للعميلة") is specified in §9.3.
+     */
+    shareWeightWithClient: boolean('share_weight_with_client').notNull().default(false),
 
     /**
      * The dietitian's override. Null means "use the figure `targets.ts` computes
