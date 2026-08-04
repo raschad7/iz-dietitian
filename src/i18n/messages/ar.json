@@ -688,7 +688,7 @@
     "selectMeal": "افتح وجبة من اللوح لعرضها هنا",
     "searchDishes": "ابحث في الأطباق",
     "noDishes": "لا أطباق مطابقة",
-    "fitsSlot": "الحصص محسوبة على {value} سعرة",
+    "sortedForSlot": "مرتّبة حسب قربها من {value} kcal",
     "usedThisWeek": "هذا الأسبوع",
     "usedWeeksAgo": "{count, plural, one {الأسبوع الماضي} other {قبل # أسابيع}}",
     "blockedByAllergen": "يحتوي على {allergens}",

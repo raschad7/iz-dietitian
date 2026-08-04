@@ -688,7 +688,7 @@
     "selectMeal": "Open a meal on the board to see it here",
     "searchDishes": "Search dishes",
     "noDishes": "No dishes match",
-    "fitsSlot": "Portions sized for {value} kcal",
+    "sortedForSlot": "Sorted by fit to {value} kcal",
     "usedThisWeek": "this week",
     "usedWeeksAgo": "{count, plural, one {last week} other {# weeks ago}}",
     "blockedByAllergen": "Contains {allergens}",
