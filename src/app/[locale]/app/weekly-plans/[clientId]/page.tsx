@@ -2,7 +2,6 @@ import { getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 
-import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/params';
 import { requireStaffClinic } from '@/lib/session';
 
@@ -103,40 +102,13 @@ export default async function ClientBoardPage({ params, searchParams }: PageProp
     defaultInstruction: board?.weekInstructions ?? null,
   };
 
-  const history = (
-    <PlanHistory
-      plans={plans}
-      clientId={clientId}
-      currentPlanId={board?.id ?? null}
-      nextWeekStartDate={weekStartDate}
-      locale={locale}
-    />
-  );
+  const history = <PlanHistory plans={plans} clientId={clientId} />;
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-4 text-start">
-      <div className="flex flex-wrap items-baseline gap-3">
-        <h1 className="text-xl font-semibold tracking-tight">{t('title')}</h1>
-
-        {plans.length > 1 && (
-          <nav className="flex flex-wrap items-center gap-2 text-xs">
-            <span className="text-muted-foreground">{t('history')}</span>
-            {plans.map((plan) => (
-              <Link
-                key={plan.id}
-                href={`/app/weekly-plans/${clientId}?planId=${plan.id}`}
-                className={
-                  plan.id === board?.id
-                    ? 'rounded bg-accent px-1.5 py-0.5 font-medium'
-                    : 'rounded px-1.5 py-0.5 text-muted-foreground hover:bg-accent/60'
-                }
-              >
-                {plan.weekStartDate}
-              </Link>
-            ))}
-          </nav>
-        )}
-      </div>
+      {/* No week pills beside the title: they were the history tab's list, in
+          a second place, with room for fewer of them. */}
+      <h1 className="text-xl font-semibold tracking-tight">{t('title')}</h1>
 
       <div className="flex min-h-0 flex-1 gap-4">
         {board ? (

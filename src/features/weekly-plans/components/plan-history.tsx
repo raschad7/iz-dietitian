@@ -1,16 +1,10 @@
-'use client';
-
-import { useActionState } from 'react';
-import { useFormStatus } from 'react-dom';
 import { useTranslations } from 'next-intl';
 
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link } from '@/i18n/navigation';
 import { isMember } from '@/lib/enum';
 
-import { startWeekFromPlanAction } from '../editor-actions';
-import { initialNewWeekState } from '../form-state';
 import { PLAN_STATUSES } from '../schema';
 
 export type PlanSummary = {
@@ -22,109 +16,76 @@ export type PlanSummary = {
 };
 
 /**
- * The client's earlier weeks.
+ * The client's earlier weeks — a record to read, not a place to act.
  *
- * Every plan, not only the ones the header pills have room for — the pills switch
- * between recent weeks, this is the record. Each row carries the target it was
- * built against, because "what were last week's numbers" is one of the two
- * questions that sends a dietitian looking backwards; the other is "what dishes
- * have they already had", which the board's compare view answers.
+ * Every row used to carry its own copy button, back when copying a week was
+ * something the new-week menu could only offer for a single plan. The dialog
+ * offers all of them now, so a button per row here would be a second way to do
+ * one thing, in the panel least likely to be open when someone wants it.
+ *
+ * With that gone the tab ships no client JavaScript at all: each row is a real
+ * `<Link>` stretched over the card, so it keeps keyboard focus, middle-click,
+ * open-in-new-tab and a URL in the status bar — the same `linked` pattern the
+ * tables use.
+ *
+ * Each row keeps the target the week was built against, because "what were last
+ * week's numbers" is one of the two questions that sends a dietitian looking
+ * backwards; the other is "what dishes have they already had", which the board's
+ * compare view answers.
  */
 export function PlanHistory({
   plans,
   clientId,
-  currentPlanId,
-  nextWeekStartDate,
-  locale,
 }: {
   plans: readonly PlanSummary[];
   clientId: string;
-  currentPlanId: string | null;
-  nextWeekStartDate: string;
-  locale: string;
 }) {
   const t = useTranslations('weeklyPlans');
 
   if (!plans.length) {
-    return <p className="text-xs text-muted-foreground">{t('noEarlierPlans')}</p>;
+    return <p className="text-caption text-muted-foreground">{t('noEarlierPlans')}</p>;
   }
 
   return (
-    <ul className="flex flex-col gap-2">
+    // The group owns the outline and the tail; the rows are square between
+    // themselves, and `listRow` restores the sweep on the last one.
+    <ul className="rounded-lg rounded-ee-4xl border border-border">
       {plans.map((plan) => (
-        <li key={plan.id} className="rounded-md border border-border p-2.5 text-xs">
-          <div className="flex items-baseline justify-between gap-2">
-            <Link
-              href={`/app/weekly-plans/${clientId}?planId=${plan.id}`}
-              className="font-semibold text-primary underline-offset-2 hover:underline"
-            >
-              {plan.weekStartDate}
-            </Link>
+        <li key={plan.id}>
+          <Card variant="listRow" size="sm" className="px-3 transition-colors hover:bg-secondary/60">
+            <CardHeader>
+              <CardTitle className="text-body-sm">
+                {/*
+                  The whole card is the target. `after:inset-0` stretches this
+                  link over the card, which is already the positioning context —
+                  `Card` carries `relative` on its base class. Anything else in
+                  the row that had to stay clickable would need `relative`; the
+                  badge is text, so nothing does.
+                */}
+                <Link
+                  href={`/app/weekly-plans/${clientId}?planId=${plan.id}`}
+                  className="after:absolute after:inset-0"
+                >
+                  {plan.weekStartDate}
+                </Link>
+              </CardTitle>
 
-            {isMember(PLAN_STATUSES, plan.status) && (
-              <Badge variant={plan.status === 'published' ? 'default' : 'muted'}>
-                {t(`status.${plan.status}`)}
-              </Badge>
-            )}
-          </div>
+              {isMember(PLAN_STATUSES, plan.status) && (
+                <CardAction>
+                  <Badge variant={plan.status === 'published' ? 'default' : 'muted'}>
+                    {t(`status.${plan.status}`)}
+                  </Badge>
+                </CardAction>
+              )}
+            </CardHeader>
 
-          <p className="mt-1 text-muted-foreground">
-            {t('kcalValue', { value: plan.kcalTargetSnapshot })} ·{' '}
-            {t('planMeals', { count: plan.mealCount })}
-          </p>
-
-          {/* No copy button on the plan already open: copying a week into itself is
-              not something anyone means to do. */}
-          {plan.id !== currentPlanId && (
-            <CopyForm
-              clientId={clientId}
-              sourcePlanId={plan.id}
-              weekStartDate={nextWeekStartDate}
-              locale={locale}
-            />
-          )}
+            <CardContent className="text-caption text-muted-foreground">
+              {t('kcalValue', { value: plan.kcalTargetSnapshot })} ·{' '}
+              {t('planMeals', { count: plan.mealCount })}
+            </CardContent>
+          </Card>
         </li>
       ))}
     </ul>
-  );
-}
-
-function CopyForm({
-  clientId,
-  sourcePlanId,
-  weekStartDate,
-  locale,
-}: {
-  clientId: string;
-  sourcePlanId: string;
-  weekStartDate: string;
-  locale: string;
-}) {
-  const t = useTranslations('weeklyPlans');
-  const [state, formAction] = useActionState(startWeekFromPlanAction, initialNewWeekState);
-
-  return (
-    <form action={formAction} className="mt-2">
-      <input type="hidden" name="locale" value={locale} />
-      <input type="hidden" name="clientId" value={clientId} />
-      <input type="hidden" name="sourcePlanId" value={sourcePlanId} />
-      <input type="hidden" name="weekStartDate" value={weekStartDate} />
-
-      <CopySubmit label={t('copyIntoWeek', { date: weekStartDate })} />
-
-      {state.status === 'error' && (
-        <p className="mt-1 text-destructive">{t(state.messageKey)}</p>
-      )}
-    </form>
-  );
-}
-
-function CopySubmit({ label }: { label: string }) {
-  const { pending } = useFormStatus();
-
-  return (
-    <Button type="submit" size="sm" variant="outline" className="w-full" disabled={pending}>
-      {label}
-    </Button>
   );
 }
