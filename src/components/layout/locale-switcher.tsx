@@ -23,9 +23,9 @@ export function LocaleSwitcher({ className }: { className?: string }) {
   }
 
   return (
-    // `h-10` matches the app bar's other controls — the sign-out button and the
-    // notification bell are both the 40px toolbar size, and a switcher two
-    // thirds their height made the row read as ragged.
+    // `h-10` matches the sign-out button stacked below it in the rail — both
+    // are the 40px compact size, and a switcher two thirds that height made the
+    // pair read as ragged.
     <div
       className={cn('inline-flex h-10 items-center gap-1 rounded-md border border-border p-1', className)}
       role="group"
@@ -40,7 +40,9 @@ export function LocaleSwitcher({ className }: { className?: string }) {
           aria-pressed={locale === activeLocale}
           onClick={() => switchTo(locale)}
           className={cn(
-            'flex h-full items-center rounded-sm px-2.5 text-xs font-medium transition-colors disabled:opacity-50',
+            // `flex-1` only bites when the group is given a width — in the rail
+            // it is `w-full`, so the two locales split it evenly.
+            'flex h-full flex-1 items-center justify-center rounded-sm px-2.5 text-xs font-medium transition-colors disabled:opacity-50',
             locale === activeLocale
               ? 'bg-primary text-primary-foreground'
               : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',

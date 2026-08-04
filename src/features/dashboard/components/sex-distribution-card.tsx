@@ -140,10 +140,9 @@ export async function SexDistributionCard({ sex, total, locale }: SexDistributio
   return (
     <Card className="min-h-0 xl:h-full">
       <CardHeader className="shrink-0 grid-cols-[auto_1fr] items-center gap-2">
-        {/* Neutral at rest; the disc fills olive and the glyph goes white
-            under the pointer. That is the card's whole hover response — see
-            the `interactive` variant in ui/card.tsx. */}
-        <span className="flex size-8 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors group-hover/card:bg-primary group-hover/card:text-primary-foreground">
+        {/* Static. Nothing on this card is clickable, so the disc stays
+            neutral — only the ring's own segments answer the pointer. */}
+        <span className="flex size-8 items-center justify-center rounded-full bg-muted text-muted-foreground">
           <Icon name="topClients" className="size-4" />
         </span>
         <CardTitle>{t('title')}</CardTitle>

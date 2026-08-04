@@ -55,7 +55,7 @@ const ICONS = {
   signOut: 'logout-2-bold',
 
   // Actions
-  search: 'magnifer-bold',
+  search: 'rounded-magnifer-bold',
   add: 'add-circle-bold',
   close: 'close-circle-bold',
   trash: 'trash-bin-trash-bold',

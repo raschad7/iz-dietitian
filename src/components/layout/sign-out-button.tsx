@@ -13,32 +13,31 @@ import { type Locale } from '@/i18n/routing';
  * call: the session cookie is httpOnly and cleared server side, and this keeps
  * working if JavaScript hasn't loaded.
  */
-export function SignOutButton({ locale }: { locale: Locale }) {
+export function SignOutButton({ locale, className }: { locale: Locale; className?: string }) {
   return (
     <form action={signOutAction}>
       <input type="hidden" name="locale" value={locale} />
-      <SignOutSubmit />
+      <SignOutSubmit className={className} />
     </form>
   );
 }
 
 /**
- * The app bar has no fill, so this is an ordinary secondary button on the
- * canvas — no inverted variant needed.
+ * `destructive` — a clay outline, never a solid red block. Ending a session is
+ * not a delete, but it is the one control in the shell that undoes your way in,
+ * and on the pale olive rail an olive `outline` button read as one more
+ * destination. The clay edge separates it from the navigation above it without
+ * shouting; the variant stays outlined for the same reason a delete does.
  *
- * `outline` rather than `ghost`, and that is a dimensions fix as much as a
- * visual one: the ghost compound variant drops horizontal padding to 12px,
- * so a ghost sign-out was the one control in the bar not built to the button
- * spec's 20px. It now carries the standard box, the standard padding and the
- * 40px toolbar height — the same height the notification bell beside it uses
- * (`icon-sm`), so the whole row sits on one line.
+ * `sm` is the 40px compact size, which matches the language switcher stacked
+ * directly above it.
  */
-function SignOutSubmit() {
+function SignOutSubmit({ className }: { className?: string }) {
   const t = useTranslations('common');
   const { pending } = useFormStatus();
 
   return (
-    <Button type="submit" variant="outline" size="sm" disabled={pending}>
+    <Button type="submit" variant="destructive" size="sm" disabled={pending} className={className}>
       <Icon name="signOut" />
       {pending ? t('loading') : t('signOut')}
     </Button>

@@ -54,13 +54,15 @@ const cardVariants = cva(
        * Opt-in interactivity. A card that answers the pointer is promising it
        * does something when clicked, so this is a prop rather than a default.
        *
-       * **The edge thickens, and the icon fills.** `ring-2` in the brand
-       * colour, with the icon disc going olive and its glyph inverting to
-       * white. Not a lift: a raised shadow reads as the card leaving the page,
-       * which on a grid of peers makes the hovered one look like it belongs to
-       * a different layer. A thicker edge says "this one" while the card stays
-       * where it is, and it is the same language `selected` already speaks —
-       * the edge, never the fill.
+       * **The edge colours, and the icon fills.** The hairline stays a
+       * hairline and turns the brand colour, with the icon disc going olive and
+       * its glyph inverting to white. Not a lift: a raised shadow reads as the
+       * card leaving the page, which on a grid of peers makes the hovered one
+       * look like it belongs to a different layer. Not a thicker ring either —
+       * at 2px the edge grew into the gap between tiles and the row read as
+       * jumpy; colour alone says "this one" while the geometry holds
+       * completely still. `selected` keeps `ring-2`, because a persistent state
+       * has to outrank a transient one.
        *
        * The card's geometry does **not** change with it. A corner that moves
        * under the pointer shifts the surface while you are reading it; the ring
@@ -70,7 +72,7 @@ const cardVariants = cva(
        * `CardTitle` below. Only a card you can click gets the edge.
        */
       interactive: {
-        true: "cursor-pointer transition-all duration-200 ease-[cubic-bezier(.2,.6,.2,1)] hover:ring-2 hover:ring-primary active:scale-[.995]",
+        true: "cursor-pointer transition-all duration-200 ease-[cubic-bezier(.2,.6,.2,1)] hover:ring-1 hover:ring-primary active:scale-[.995]",
         false: "",
       },
       /** Selected — the olive edge thickens rather than the card changing colour. */

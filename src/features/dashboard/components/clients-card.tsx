@@ -38,8 +38,13 @@ type ClientsCardProps = {
  * carries the age and the phone number, the two facts you would otherwise open
  * the record for. Both columns are held open by a dash when the record is
  * missing them, because a column that disappears on some rows is a column you
- * have to re-find on every one. `min-h-16` sets the floor, so a client with
- * nothing booked still gets a row you can hit.
+ * have to re-find on every one.
+ *
+ * **A row is built to the register's own row** — the same padding, the same
+ * hover tint, the same height floor as `ClientTable` on `/app/clients`. Two
+ * views of one list should not have two rhythms; the differences that remain
+ * are the ones that carry information (this one is three columns, not six, and
+ * it hangs a next-visit line under them).
  *
  * **The list scrolls inside the card, never the page.** At `xl` and up the
  * list is `flex-1`/`min-h-0` inside the card, which is already bounded by the
@@ -59,10 +64,9 @@ export async function ClientsCard({ clients, locale }: ClientsCardProps) {
   return (
     <Card className="min-h-0 xl:h-full">
       <CardHeader className="shrink-0 grid-cols-[auto_1fr] items-center gap-2">
-        {/* Neutral at rest; the disc fills olive and the glyph goes white
-            under the pointer. That is the card's whole hover response — see
-            the `interactive` variant in ui/card.tsx. */}
-        <span className="flex size-8 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors group-hover/card:bg-primary group-hover/card:text-primary-foreground">
+        {/* Static. The card is not a target — its rows are — so the disc has
+            nothing to promise and stays neutral whatever the pointer does. */}
+        <span className="flex size-8 items-center justify-center rounded-full bg-muted text-muted-foreground">
           <Icon name="clients" className="size-4" />
         </span>
         <CardTitle>{t('title')}</CardTitle>
@@ -112,15 +116,34 @@ export async function ClientsCard({ clients, locale }: ClientsCardProps) {
                       keep the three columns reading as one ruled row rather
                       than as a pill floating inside the list.
                     */}
+                    {/*
+                      `text-body-sm` is set once, on the row, and no cell inside
+                      it names a size of its own — the name used to inherit the
+                      card's 16px while the three facts beside and under it were
+                      12px, which made one row read as a heading with a caption
+                      stuck to it rather than as a line in a list. 14px is the
+                      dense-table size; the columns still separate on weight and
+                      colour, which is what they were separating on anyway.
+
+                      **The box is the register's own row, to the pixel.**
+                      `px-3 py-2.5` and `hover:bg-secondary/60` are lifted from
+                      `TableCell`/`TableRow`, and `2.85rem` is what that row
+                      measures (0.625rem padding twice, plus a 1.6 line) — this
+                      is the same list of the same people, and it had no
+                      business being a third taller here with a different tint
+                      under the pointer. It is a floor rather than a fixed
+                      height because a client with a next visit carries a second
+                      line the register has no column for.
+                    */}
                     <Link
                       href={`/app/clients/${client.id}`}
-                      className="grid min-h-16 grid-cols-3 items-center gap-x-3 gap-y-0.5 px-2 py-2.5 text-start transition-colors hover:bg-muted"
+                      className="grid min-h-[2.85rem] grid-cols-3 items-center gap-x-3 gap-y-0.5 px-3 py-2.5 text-start text-body-sm transition-colors hover:bg-secondary/60"
                     >
                       <span className="truncate font-medium" dir="auto">
                         {client.fullName}
                       </span>
 
-                      <span className="truncate text-caption text-muted-foreground tabular-nums">
+                      <span className="truncate text-muted-foreground tabular-nums">
                         {age === null ? <Missing /> : tc('yearsOld', { count: age })}
                       </span>
 
@@ -132,7 +155,7 @@ export async function ClientsCard({ clients, locale }: ClientsCardProps) {
                         in both locales — letting it inherit the Arabic
                         direction moves a leading `+` to the wrong end of it.
                       */}
-                      <span className="truncate text-caption text-muted-foreground">
+                      <span className="truncate text-muted-foreground">
                         {client.phone ? (
                           <span className="font-mono" dir="ltr">
                             {client.phone}
@@ -150,7 +173,7 @@ export async function ClientsCard({ clients, locale }: ClientsCardProps) {
                         past.
                       */}
                       {client.nextVisit ? (
-                        <span className="col-span-3 truncate text-caption text-muted-foreground">
+                        <span className="col-span-3 truncate text-muted-foreground">
                           {t('nextVisit', {
                             when: `${formatMediumDate(locale, client.nextVisit.date)} · ${formatMinute(
                               locale,

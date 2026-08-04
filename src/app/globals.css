@@ -205,7 +205,7 @@
 
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-node: var(--sidebar-node);
+  --color-sidebar-icon: var(--sidebar-icon);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-accent: var(--sidebar-accent);
   --color-sidebar-hover: var(--sidebar-hover);
@@ -274,9 +274,7 @@
 
   --color-ring: var(--ring);
   --color-focus-halo: var(--focus-halo);
-  --color-field-focus-halo: var(--field-focus-halo);
   --color-input: var(--input);
-  --color-input-hover: var(--input-hover);
   --color-border: var(--border);
 
   /*
@@ -340,7 +338,13 @@
 
 :root {
   /* Surface & text */
-  --background: var(--n-25);            /* bg.canvas */
+  /*
+   * bg.canvas — plain white. It used to be the warm n-25, one step below the
+   * white card, so a card was legible as a surface on tint alone. The canvas
+   * and the surface are now the same fill, which puts all of that work on the
+   * card's own hairline ring and shadow — both of which it already had.
+   */
+  --background: var(--n-0);
   --foreground: var(--n-900);           /* text.primary — 16.64:1 */
 
   --card: var(--n-0);                   /* bg.surface */
@@ -386,15 +390,15 @@
   /* Border & focus */
   --border: var(--n-200);               /* border.divider */
   --input: var(--n-500);                /* border.interactive — meets 3:1 */
-  --input-hover: var(--n-600);          /* field hover per the field spec */
+  --input-hover: var(--olive-500);      /* field hover edge — a step short of focus, 3.17:1 */
   --ring: var(--lime-400);              /* focus.ring — inner ring, 2px */
   --focus-halo: var(--olive-950);       /* focus.halo — outer ring, 2px */
   /*
    * Fields deliberately do NOT use the lime ring buttons use: a form has many
    * fields, and lime firing on every tabbed-to field turns the accent into
-   * noise. Fields get an all-olive treatment plus the drawn arc instead.
+   * noise. A field marks focus by going all-olive on its own edge — no ring, no
+   * halo, no token, see `.q-field`.
    */
-  --field-focus-halo: var(--olive-100);
 
   /* Status — deliberately not a traffic light. */
   --status-on-track-fg: var(--olive-700);
@@ -464,52 +468,70 @@
   --viz-cat-none: var(--n-300);
 
   /*
-   * ── Sidebar — a pale olive rail ──
+   * ── Sidebar — a near-white rail ──
    *
-   * olive-50, full-bleed, separated from the canvas by a hairline rather than
-   * by elevation. The rail used to be a dark olive-900 panel inset on the
-   * canvas; that made it the heaviest thing on every screen, which is a lot of
-   * weight to spend on furniture the reader stops seeing after a week.
+   * Full-bleed, separated from the canvas by a hairline rather than by
+   * elevation. The rail has been a dark olive-900 inset panel and then a pale
+   * olive-50 one; it is now #F9FAFB, a hair below the white page and the one
+   * cool grey in a warm system. Deliberate: with the canvas white, an olive
+   * rail was the only tinted furniture on screen and it read as a coloured
+   * band rather than as a wall.
    *
-   * The pale rail changes what each state has to do. On the dark rail the
-   * active item was a *lighter* olive surface; here it is the darkest thing on
-   * the rail — olive-600 with white text, the same 5.46:1 pairing the primary
-   * button uses — so the marked item still wins on contrast rather than merely
-   * differing in tint.
+   * **The active item is the only olive thing on the rail, and it is marked by
+   * tint rather than by weight.** olive-50 surface, olive-500 label and glyph.
+   * That inverts the pale-olive rail again, where the active item was the
+   * *darkest* thing on it; here the rail has no colour of its own, so a tint
+   * is enough to single an item out without a dark block interrupting a column
+   * of quiet rows.
    *
-   * `--sidebar-hover` is its own token because the dark rail could get away
-   * with the active surface at 40%; a translucent olive-600 over olive-50 lands
-   * in the mid-tones where neither white nor olive text works. The pale rail
-   * needs a real surface of its own, one step up from the rail.
+   * ⚠ olive-500 on olive-50 measures **2.95:1** — under the 4.5:1 a 16px label
+   * needs and under the 3:1 a glyph needs. It is what the design calls for, so
+   * it is what is here, but the active row is the one row on the rail that
+   * does not meet contrast. olive-600 on the same surface measures 5.09:1 and
+   * is a one-token fix if that matters more than the exact hue.
+   * `font-semibold` and `aria-current` carry the state for anyone the colour
+   * fails.
    *
-   * The node stays lime-400. It is only ever *visible* on the active item, and
-   * lime-400 on olive-600 is 3.99:1 — over the 3:1 floor a graphical mark
-   * needs. It could not sit on the rail itself: lime-400 is 1.37:1 on white.
+   * `--sidebar-hover` stays a neutral rather than a tint, one step down from
+   * the rail. It cannot be an olive: the active surface is olive-50, and a
+   * hover tinted the same family would either outrank the state it sits under
+   * or be mistaken for it.
+   *
+   * `--sidebar-icon` is its own token because the idle glyph is n-700 warm
+   * grey — 9.35:1 on the rail — while the idle label stays olive-800. The
+   * glyph is the thing you scan a rail by, and a neutral one reads as a
+   * wayfinding mark rather than as brand.
    */
-  --sidebar: var(--olive-50);               /* #F5F8EF */
-  --sidebar-foreground: var(--olive-800);   /* idle label — 9.74:1 on the rail */
+  --sidebar: #F9FAFB;
+  --sidebar-foreground: var(--olive-800);   /* idle label — 10.02:1 on the rail */
+  --sidebar-icon: var(--n-700);             /* idle glyph — #46443B, 9.35:1 */
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: var(--olive-900); /* the wordmark, on a light rail */
-  --sidebar-accent: var(--olive-600);       /* the active surface */
-  --sidebar-accent-foreground: var(--n-0);  /* on it — 5.46:1 */
-  --sidebar-hover: var(--olive-100);        /* one step up — 8.92:1 with the idle label */
-  --sidebar-node: var(--lime-400);
+  --sidebar-accent: var(--olive-50);        /* the active surface */
+  --sidebar-accent-foreground: var(--olive-500); /* on it — 2.95:1, see above */
+  --sidebar-hover: #F3F4F6;                 /* one step down — 9.51:1 with the idle label */
   /*
-   * The divider, and it is olive-300 rather than the olive-200 that would
-   * "match" the rail. olive-50 against the n-25 canvas measures 1.04:1 — the
-   * two fills are the same lightness, so the line is not reinforcing the
-   * separation, it *is* the separation. olive-200 gives 1.32:1 against the
-   * canvas and disappears; olive-300 gives 1.68:1 and reads as a boundary.
+   * The divider is the darkest of the rail's three greys, and it is the whole
+   * separation: #F9FAFB against the white canvas measures 1.02:1, so the two
+   * fills are all but the same lightness and the line is not reinforcing a
+   * boundary, it *is* the boundary.
+   *
+   * It was olive-300 (1.68:1 against the canvas), which was the last olive left
+   * in the shell furniture once the rail went grey — one green line with
+   * nothing else near it to belong to. #D1D5DB is the same cool family as the
+   * rail and its hover and measures 1.47:1: softer than the olive it replaces,
+   * but well clear of the ~1.3:1 where a hairline stops registering. Go a step
+   * darker before you go back to a tint.
    */
-  --sidebar-border: var(--olive-300);
+  --sidebar-border: #D1D5DB;
   /*
    * NOT `--ring`. The global focus ring is lime-400, which measured 9.77:1 on
    * the old olive-900 rail and measures 1.28:1 on this one — keeping it would
    * have left the rail's keyboard focus invisible. Buttons get away with lime
    * because they pair it with an olive-950 halo; the rail has one ring and no
-   * halo, so the ring itself has to be the dark one. olive-950 is 15.41:1 on
-   * the rail and still 3.03:1 on the active item's olive-600 surface, which is
-   * the case that has to clear the 3:1 floor.
+   * halo, so the ring itself has to be the dark one. olive-950 is 15.86:1 on
+   * the rail and 15.42:1 on the active item's olive-50 surface — both well over
+   * the 3:1 floor a focus indicator has to clear.
    */
   --sidebar-ring: var(--olive-950);
 }
@@ -551,10 +573,13 @@
 
   --border: var(--olive-700);
   --input: var(--n-400);
-  --input-hover: var(--n-300);
+  /*
+   * Inverted against light mode: `--primary` is olive-500 here, so the hover
+   * edge steps *down* to olive-600 to stay a shade short of the focused one.
+   */
+  --input-hover: var(--olive-600);
   --ring: var(--lime-400);              /* lime-400 on olive-950 is 12.09:1 */
   --focus-halo: var(--n-25);
-  --field-focus-halo: var(--olive-700);
 
   --status-on-track-fg: var(--olive-700);
   --status-on-track-bg: var(--olive-100);
@@ -601,12 +626,19 @@
    */
   --sidebar: var(--olive-900);
   --sidebar-foreground: var(--olive-200);
+  /*
+   * The glyph tracks the label here rather than taking light mode's n-700,
+   * which on an olive-900 rail would be all but invisible. Dark mode also
+   * keeps the olive-600 active surface: the light rail can single an item out
+   * with a tint because it has no colour of its own, but a tint on a dark
+   * olive rail is not a mark, it is a smudge.
+   */
+  --sidebar-icon: var(--olive-200);
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: var(--n-25);
   --sidebar-accent: var(--olive-600);
   --sidebar-accent-foreground: var(--n-0);
   --sidebar-hover: var(--olive-800);
-  --sidebar-node: var(--lime-400);
   --sidebar-border: var(--olive-800);
   --sidebar-ring: var(--ring);
 }
@@ -713,50 +745,69 @@
    * models. Defining the box once here means a change to the shape language is
    * one edit, and the three components cannot drift apart.
    *
-   * The focus cue is an olive line growing along the block-end edge to 58% of
-   * the width, anchored at the inline-start corner. It is painted as a
-   * background rather than an ::after because ::after does not apply to
-   * replaced elements (input/select/textarea), so this works directly on the
-   * field with no wrapper element. `background-position` has no logical
-   * keyword, so :dir() stands in for the inline-start anchor.
+   * **The two states are told apart by which property moves, not by how much
+   * of it.** Hover fills the box with the brand tint and puts a mid olive on
+   * the edge — the field is *offering* itself. Focus empties the fill back to
+   * the page and darkens the edge to the full olive — the field is *taken*, and
+   * the box goes quiet because there is about to be text in it.
    *
-   * Width only — no colour flash.
+   * It replaces an olive line that grew along the block-end edge on focus plus
+   * a 3px olive halo around the whole box. Both were drawing attention to the
+   * frame at the exact moment attention belongs on the cursor, the line
+   * anchored to a `background-position` that has no logical keyword (so Arabic
+   * needed a `:dir()` rule that Lightning CSS then dropped from the production
+   * build — it had been anchoring to the wrong edge in Arabic ever since), and
+   * the halo grew the control's footprint enough to nudge a dense form.
+   *
+   * Nothing here animates size or position: only `background-color` and
+   * `border-color`, so a field never changes shape under the pointer.
    */
   .q-field {
     @apply w-full min-w-0 border bg-transparent text-body-md outline-none;
     border-color: var(--input);
     border-radius: var(--radius-control);
 
-    background-image: linear-gradient(var(--olive-600), var(--olive-600));
-    background-repeat: no-repeat;
-    background-size: 0% 2px;
-    background-position: bottom left;
-
     transition:
-      background-size var(--duration-arc) var(--ease-sweep),
-      border-color var(--duration-label) ease-out,
-      box-shadow var(--duration-label) ease-out;
+      background-color var(--duration-label) ease-out,
+      border-color var(--duration-label) ease-out;
   }
-  .q-field:dir(rtl) {
-    background-position: bottom right;
-  }
-  .q-field:focus,
-  .q-field:focus-visible {
-    background-size: 58% 2px;
-  }
-  /* Reversing on blur is faster than drawing — the cue has served its purpose. */
-  .q-field:not(:focus) {
-    transition-duration: var(--duration-reverse);
-  }
+  /*
+   * `--input-hover` is olive-500 — one stop short of the olive-600 focus takes,
+   * so the pointer state is legibly less than the taken one. 3.17:1 against the
+   * page, over the 3:1 a control boundary needs.
+   */
   .q-field:hover:not(:disabled):not(:focus) {
+    background-color: var(--secondary);
     border-color: var(--input-hover);
   }
-  .q-field:focus-visible {
+  /*
+   * `:focus`, not `:focus-visible`: a field earns its focus ring by being
+   * focused at all, however you got there. Clicking into a box and seeing
+   * nothing change is the one case where a mouse user needs the same feedback
+   * a keyboard user gets.
+   *
+   * **The edge is 2px focused, drawn as 1px of border plus 1px of outline.**
+   * Not `border-width: 2px`: the border box would stay put but the content box
+   * would lose a pixel on every side, so the text you are about to type nudges
+   * as you click into it. An outline pulled 1px inwards paints over the border's
+   * own inner edge — same colour, so it reads as one 2px line — and outlines are
+   * outside layout entirely, so nothing moves at all.
+   */
+  .q-field:focus {
+    background-color: transparent;
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px var(--field-focus-halo);
+    outline: 1px solid var(--primary);
+    outline-offset: -1px;
   }
+  /*
+   * `outline-color` here rather than in a `:focus` variant of this rule: the
+   * outline only paints when focused anyway, and stating the colour once keeps
+   * a focused invalid field from wearing a red border with an olive second
+   * pixel.
+   */
   .q-field[aria-invalid='true'] {
     border-color: var(--destructive);
+    outline-color: var(--destructive);
     box-shadow: 0 0 0 3px color-mix(in oklch, var(--destructive), transparent 80%);
   }
   .q-field:disabled {
@@ -770,29 +821,23 @@
   .q-field[readonly] {
     background-color: var(--muted);
     border-color: transparent;
-    background-image: none;
   }
 
   /*
-   * ── The emphasised field ──
-   * A form where every box looks identical has no way to say which answers it
-   * cannot do without. The core facts of a client record — name, phone, email,
-   * date of birth — take the brand edge and the brand tint; every other field
-   * keeps the neutral box.
+   * There is no emphasised-field class any more.
    *
-   * Edge and fill only, never a shadow and never a different size: an
-   * emphasised field and a plain one sit in the same grid and must still line
-   * up to the pixel.
+   * `.q-field-primary` gave a field an olive-600 edge and an olive-50 fill at
+   * rest, to mark the answers a record cannot start without. It is gone because
+   * a field's resting state now has to mean one thing: with hover filling the
+   * box olive-50 and focus taking the olive edge, a field that already wore
+   * both was saying "you are pointing at me" to nobody, and an untouched client
+   * card opened as a block of green.
    *
-   * The hover selector is repeated at `.q-field`'s own specificity, so the
-   * olive edge survives the pointer instead of falling back to n-600 — a plain
-   * `.q-field-primary` would lose that cascade.
+   * A form marks its essential fields by *showing* them — the client card puts
+   * its four behind nothing and everything else behind a disclosure. If a
+   * future form needs more than that, mark it with type or a label, not by
+   * spending a state the pointer already owns.
    */
-  .q-field-primary,
-  .q-field-primary:hover:not(:disabled):not(:focus) {
-    border-color: var(--primary);
-    background-color: var(--secondary);
-  }
 
   /*
    * ── The label ──
@@ -820,8 +865,9 @@
    * That flip is keyed off `[dir='rtl']` — set on `<html>` by the locale layout —
    * and deliberately NOT off `:dir(rtl)`, which reads better but does not
    * survive: Lightning CSS drops every `:dir()` rule from the production build.
-   * `.q-field:dir(rtl)` above is currently lost the same way, so its focus
-   * line anchors to the wrong edge in Arabic once built. Worth fixing there too.
+   * `.q-field` used to depend on one for the inline-start anchor of its focus
+   * line and silently lost it in Arabic; that whole treatment is gone now, and
+   * nothing in this file may reintroduce a `:dir()` rule.
    */
   .q-skeleton {
     position: relative;

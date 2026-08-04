@@ -51,10 +51,13 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
   return (
     <div className="flex flex-col gap-4 text-start xl:h-full xl:min-h-0">
       <div className="flex flex-wrap items-baseline justify-between gap-2 xl:shrink-0">
-        <h2 className="font-heading text-heading-lg font-semibold tracking-tight" dir="auto">
+        <h1 className="font-heading text-heading-lg font-semibold tracking-tight" dir="auto">
           {t('welcome', { name: session.user.name })}
-        </h2>
-        <p className="text-caption text-muted-foreground">{formatLongDate(locale, data.today)}</p>
+        </h1>
+        {/* `body-sm` (14px) rather than the 12px caption: with no app bar above
+            it this line is the top of the page, and today's date is a fact you
+            read at a glance rather than fine print under something else. */}
+        <p className="text-body-sm text-muted-foreground">{formatLongDate(locale, data.today)}</p>
       </div>
 
       <div className="grid gap-4 xl:min-h-0 xl:flex-1 xl:grid-cols-[21rem_minmax(0,1fr)] 2xl:grid-cols-[23rem_minmax(0,1fr)]">

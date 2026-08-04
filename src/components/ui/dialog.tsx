@@ -83,7 +83,15 @@ function Dialog({ open, onClose, label, dir, flat, className, children }: Dialog
   );
 }
 
-/** Title inline-start, close button inline-end. */
+/**
+ * Title inline-start, optional close button inline-end.
+ *
+ * **The X is opt-in, and a dialog is allowed to have none.** Escape, a backdrop
+ * click and the footer's own cancel button all close a `<dialog>` already, so a
+ * form whose footer says "Cancel" beside "Save" is not made more escapable by a
+ * third exit — it is only made busier at the corner the title starts from. Pass
+ * `onClose` where the surface has no footer to leave by.
+ */
 function DialogHeader({
   title,
   description,
@@ -95,7 +103,8 @@ function DialogHeader({
   title: React.ReactNode;
   description?: React.ReactNode;
   onClose?: () => void;
-  closeLabel: string;
+  /** Required with `onClose` — the button is icon-only and carries no other name. */
+  closeLabel?: string;
   className?: string;
   children?: React.ReactNode;
 }) {

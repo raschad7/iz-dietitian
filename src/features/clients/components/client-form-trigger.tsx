@@ -54,7 +54,6 @@ export function ClientFormTrigger({
   'aria-label': ariaLabel,
 }: ClientFormTriggerProps) {
   const t = useTranslations('clients');
-  const tCommon = useTranslations('common');
   const router = useRouter();
 
   const [open, setOpen] = useState(false);
@@ -154,11 +153,15 @@ export function ClientFormTrigger({
                   : 'sm:w-[min(30rem,calc(100vw-2rem))]',
               )}
             >
+              {/*
+                No close button: this card's footer already ends in Cancel, and
+                Escape and a backdrop click both close it. A third exit in the
+                corner was crowding the title of the only surface a client
+                record is written on.
+              */}
               <DialogHeader
                 title={client ? t('editTitle') : t('createTitle')}
                 description={client ? undefined : t('createHint')}
-                onClose={close}
-                closeLabel={tCommon('close')}
                 className="px-4 pt-4 sm:px-5 sm:pt-5"
               />
 

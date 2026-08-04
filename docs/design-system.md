@@ -81,6 +81,11 @@ Warm neutrals — never pure grey, and the ramp the charts are drawn in.
 | 200 `#E2DFD3` | 300 `#CDC9B9` | 400 `#A8A493` | 500 `#837F6E` |
 | 600 `#605D50` | 700 `#46443B` | 800 `#2F2E28` | 900 `#1C1B17` |
 
+The **three cool greys** are the rail, its hover and its divider (`#F9FAFB` /
+`#F3F4F6` / `#D1D5DB`), and they exist only there — see "Rail" below. They are
+not part of this ramp and nothing else may reach for them; a warm neutral used
+as a page surface beside a cool one is how a palette starts looking accidental.
+
 Amber — attention.
 
 | | | | |
@@ -336,15 +341,36 @@ Every field is `.q-field` — one class in `globals.css` shared by `Input`,
 `Textarea` and `Select`, so the three cannot drift and a change to the shape
 language is one edit.
 
-- **Focus** draws a line: a 2px olive rule grows from the inline-start corner
-  along the block-end edge to 58% of the width, in 220ms. Width only, no colour
-  flash. It reverses in 140ms on blur — faster, because the cue has served its
-  purpose.
-- Fields deliberately **do not** use the lime focus ring buttons use. A form
-  has many fields, and lime firing on every tabbed-to field turns the accent
-  into noise. Fields get `border-primary` plus a 3px olive-100 halo.
-- **Hover** darkens the border to n-600. **Read-only** is a sunken fill with no
-  border. **Disabled** is the sunken fill at 50%.
+**Hover fills, focus empties.** Those are the only two moving parts, and only
+`background-color` and `border-color` ever move — a field never changes shape,
+size or position under the pointer.
+
+- **Hover** — olive-50 fill, olive-500 edge (`--input-hover`). The box is
+  *offering* itself, and the tint is what makes it look reachable.
+- **Focus** — fill back to the page, edge to the full olive-600 **and 2px
+  thick**. The box is *taken*, and it goes quiet because there is about to be
+  text in it. Keyed off `:focus`, not `:focus-visible`: clicking into a box and
+  seeing nothing change is the one case where a mouse user needs what a keyboard
+  user gets.
+- That second pixel is **1px border + 1px outline at `outline-offset: -1px`**,
+  never `border-width: 2px`. A thicker border keeps the outer box still but
+  steals a pixel from the content box, so the text nudges as you click into it;
+  an outline sits outside layout and moves nothing. Same colour, so the two read
+  as one line.
+- **Rest** is the neutral n-500 edge; **read-only** is a sunken fill with no
+  border; **disabled** is the sunken fill at 50%.
+- Fields deliberately **do not** use the lime focus ring buttons use. A form has
+  many fields, and lime firing on every tabbed-to field turns the accent into
+  noise. There is no ring and no halo at all — the edge does the whole job.
+
+> Replaced: a 2px olive rule that grew along the block-end edge to 58% of the
+> width, plus a 3px olive-100 halo on focus. Both put attention on the frame at
+> the moment attention belongs on the cursor, the halo painted outside the
+> control and nudged dense forms (the client card carried an inset gutter purely
+> to stop it being clipped), and the line was anchored with `background-position`,
+> which has no logical keyword — the `:dir(rtl)` rule standing in for it was
+> being dropped by Lightning CSS, so it had been growing from the wrong edge in
+> Arabic in every production build. **Do not reintroduce a `:dir()` rule here.**
 - Wrap a label and its control in `Field` — that's what drives the label's
   colour shift on focus (`:focus-within`) and gives `FieldError` somewhere
   reliable to live.
@@ -352,16 +378,22 @@ language is one edit.
   is describing a half-finished value. Error entrance is an opacity fade, never
   a shake.
 
-### The emphasised field
+### No emphasised field
 
-`.q-field-primary` gives a field the **brand edge and the brand tint** —
-olive-600 border, olive-50 fill — while keeping the same box, the same height
-and the same states as every other field. It marks the answers a record cannot
-start without, so a long form can say "these ones" without reordering itself or
-resizing anything: the client card draws name, phone, email and date of birth
-this way and leaves the rest neutral.
+**A field's resting state is neutral, always.** There was a `.q-field-primary`
+— olive-600 edge, olive-50 fill at rest — for marking the answers a record
+cannot start without. It is gone, and nothing should replace it: hover now fills
+a field olive-50 and focus takes the olive edge, so a field wearing both at rest
+was signalling a pointer that wasn't there, and a freshly opened client card was
+a block of green before anyone had typed a character.
 
-That card (`ClientFormTrigger`) is the **only** surface a client record is
+Mark the essential fields by **showing** them — the client card puts its four
+behind nothing and everything else behind a disclosure — or by type and wording.
+Don't spend a state the pointer already owns.
+
+### The client card
+
+`ClientFormTrigger` is the **only** surface a client record is
 written on — creating and editing both open it over whatever screen asked, and
 neither has a page of its own. A record is edited from the register, from the
 record itself, and from inside the calendar's appointment card, and in none of
@@ -371,10 +403,10 @@ disclosure that grows the card in both directions. An existing record opens
 with the disclosure already open when it has anything in that half — hiding a
 goal and three lines of medical notes reads as the app having lost them.
 
-Edge and fill only. **Never a shadow and never a different size** — an
-emphasised field and a plain one sit in the same grid and have to line up to
-the pixel. Use it where a form is genuinely split into a core and a remainder;
-a form where everything is emphasised has emphasised nothing.
+**Its header has no close button.** Escape, a backdrop click and the footer's
+own Cancel all close it already; a third exit only crowds the corner the title
+starts from. `DialogHeader` renders the X only when given `onClose` — pass it
+where a dialog has no footer to leave by.
 
 `Select` is a real native `<select>` with `appearance: none` and our own
 chevron — Chrome pins its built-in arrow to the border and ignores
@@ -396,23 +428,31 @@ does not change colour), `flagged` (a clay dot in the corner — never a red
 card). `CardTitle` takes an `icon` — a plain glyph beside the title, never a
 badge.
 
-**Every card answers the pointer with its icon; only a clickable one also gets
+**A card answers the pointer with its icon, and only a clickable one also gets
 an edge.** A header icon drawn on a disc fills olive with its glyph inverting
 to white (`group-hover/card:bg-primary group-hover/card:text-primary-foreground`);
 a bare `CardTitle` glyph, which has no disc to fill, goes olive instead
-(`group-hover/card:text-primary`). On a card that is not `interactive` that is
-the whole response — a surface you cannot click has no business promising
-otherwise.
+(`group-hover/card:text-primary`). On an `interactive` card that runs alongside
+the edge below; on a card that is not `interactive` it is the whole response —
+a surface you cannot click has no business promising otherwise.
 
-**`interactive` thickens the edge, it does not lift the card.** On hover the
-ring goes to 2px olive; there is no shadow change. A raised shadow reads as the
-card leaving the page, and on a grid of peers — the dashboard's quick actions —
-that makes the hovered one look like it belongs to a different layer. A thicker
-edge says "this one" while the card stays put, and it is the same language
-`selected` already speaks: the edge, never the fill. The **geometry does not
-change** with it: a corner that moves under the pointer shifts the card while
-you are reading it. It stays opt-in, because a card that answers the pointer is
-promising it does something when clicked.
+**A read-only panel may answer with nothing at all**, and a hand-rolled header
+disc should drop the hover classes when it does. The dashboard's register and
+its two charts are the case: they are not targets, nothing inside them is
+clicked through the header, and a disc lighting up there read as a promise the
+card could not keep.
+
+**`interactive` colours the edge, it does not lift or thicken it.** On hover the
+hairline stays 1px and turns olive; there is no shadow change. A raised shadow
+reads as the card leaving the page, and on a grid of peers — the dashboard's
+quick actions — that makes the hovered one look like it belongs to a different
+layer; a 2px ring grows into the gap between tiles and makes the row read as
+jumpy. Colour alone says "this one" while the card stays put, and it is the same
+language `selected` already speaks: the edge, never the fill. `selected` keeps
+its 2px ring, because a persistent state outranks a transient one. The
+**geometry does not change** with it: a corner that moves under the pointer
+shifts the card while you are reading it. It stays opt-in, because a card that
+answers the pointer is promising it does something when clicked.
 
 `CardSkeleton` is the loading state: same shape, same footprint, nothing jumps.
 
@@ -432,7 +472,16 @@ renders `aria-hidden` — the name it stands for is always beside it.
 `TableRoot` owns the scroll container and the frame's radius; `Table`, `TableHeader`,
 `TableRow`, `TableHead`, `TableCell` and `TableEmpty` are the rest. Cells
 default to `text-start`; pass `numeric` for anything that must stay LTR inside
-Arabic — figures, times, phone numbers, IDs, units.
+Arabic — figures, times, IDs, units.
+
+**`numeric` sets `dir="ltr"` on the cell, which also re-resolves `text-start`
+against the cell rather than the page** — so in Arabic a `numeric` column
+flushes left while every column beside it flushes right. That is correct for a
+figures column you are also aligning with `text-end` (see `dish-table`), and
+wrong for a value that simply happens to be Latin. When you want the *value*
+in LTR but the *column* to follow the page, leave `numeric` off and isolate the
+value instead: `<span dir="ltr">{value}</span>`, with `tabular` on the cell if
+it is digits. The register's phone and email columns do exactly this.
 
 - **`zebra`** on a row stripes the even ones with the sunken fill. It is a prop
   on `TableRow` rather than an `[&_tr:nth-child(even)]` rule on the table
@@ -468,67 +517,76 @@ are the reference case.
 
 Matching [Navigation.png](design-images/Navigation.png).
 
-**Rail** (`Sidebar`) — a pale **olive-50** column, full-bleed, separated from
-the page by a 1px olive-300 `border-e`. **It is not a card**: no radius, no
-elevation. It was a solid olive-900 inset panel; that made the
-navigation the heaviest thing on every screen, which is a lot of weight to
-spend on furniture the reader stops seeing after a week.
+**Rail** (`Sidebar`) — a near-white **#F9FAFB** column, full-bleed, separated
+from the page by a 1px olive-300 `border-e`. **It is not a card**: no radius, no
+elevation. It has been a solid olive-900 inset panel and then a pale olive-50
+one; the dark panel made navigation the heaviest thing on every screen, and the
+olive one became the only tinted furniture once the canvas went white, which
+read as a coloured band rather than as a wall. #F9FAFB is the system's one cool
+grey, and it is deliberate.
 
-**The divider is load-bearing, so it is olive-300 and not the olive-200 that
-would match the rail.** olive-50 against the n-25 canvas measures 1.04:1 — the
-two fills are the same lightness, so the line is not reinforcing the boundary,
-it *is* the boundary. olive-200 measures 1.32:1 against the canvas and
-disappears; olive-300 measures 1.68:1 and reads. Don't "tidy" it back to the
-rail's own ramp.
+**The divider is load-bearing.** #F9FAFB against the white canvas measures
+1.02:1, so the line is not reinforcing the boundary, it *is* the boundary, and
+it has to survive being drawn between two near-whites. It is **#D1D5DB**, the
+darkest of the rail's three greys, at 1.47:1 against the canvas. It was
+olive-300 (1.68:1) — firmer, but the last olive left in the shell furniture once
+the rail went grey, one green line with nothing near it to belong to. If it ever
+reads too soft, go a step darker in the same cool family; don't go back to a
+tint.
 
-Every item has an icon; nine text-only rows are hard to scan. The active item
-is marked **three ways**: its icon, an olive-600 surface that grows around it,
-and a lime **leaf** node on the inline-end edge. More than one mark because
-colour alone fails for anyone who can't separate the active surface from the
-rail.
+Every item has an icon; nine text-only rows are hard to scan. Idle rows are a
+neutral **n-700** glyph (`--sidebar-icon`) beside an olive-800 label on no
+surface at all — the glyph is what you scan a rail by, and a neutral one reads
+as a wayfinding mark rather than as brand.
 
-A pale rail inverts two things. The active item is the **darkest** thing on the
-rail rather than the lightest — olive-600 with white text, the primary button's
-own 5.46:1 pairing — so the marked item still wins on contrast and not merely
-on tint. And hover needs its own token (`--sidebar-hover`, olive-100): the dark
-rail could use the active surface at 40%, but a translucent olive-600 over
-olive-50 lands in the mid-tones where neither white nor olive text is readable.
+**The active item is the only olive thing on the rail**: an olive-50 surface
+with an olive-500 label and glyph. On the pale olive rail the active item was
+the *darkest* thing on it, because a tint could not out-mark a tinted rail; a
+rail with no colour of its own singles an item out with tint alone, and a dark
+block would interrupt a column of quiet rows. There is no lime leaf node any
+more — the tint is the mark, and the leaf was a second, louder one competing
+with it.
 
-The node stays lime-400, because it is only ever *visible* on the active item —
-lime-400 on olive-600 is 3.99:1, over the 3:1 floor a graphical mark needs. It
-could not sit on the rail itself, where lime is 1.37:1.
+⚠ **olive-500 on olive-50 measures 2.95:1**, under the 4.5:1 a 16px label needs
+and the 3:1 a glyph needs. It is the specified design, so it is what ships, and
+`font-semibold` plus `aria-current="page"` carry the state for anyone the colour
+fails — but it is the one row on the rail that does not meet contrast. olive-600
+on the same surface measures 5.09:1 and is a one-token fix.
+
+Hover (`--sidebar-hover`, #F3F4F6) stays a **neutral** one step down from the
+rail, never a tint: the active surface is olive-50, and an olive hover under it
+would either outrank the state it sits below or be mistaken for it.
 
 **The rail's focus ring is olive-950, not the global lime `--ring`.** Lime
 measured 9.77:1 on the old dark rail and 1.28:1 on this one. Buttons get away
 with a lime ring because they pair it with an olive-950 halo; the rail has one
-ring and no halo, so the ring itself has to carry the contrast — 15.41:1 on the
-rail, and still 3.03:1 on the active item's olive-600 surface, which is the
-case that has to clear 3:1.
+ring and no halo, so the ring itself has to carry the contrast — 15.86:1 on the
+rail and 15.42:1 on the active item's olive-50 surface.
 
-The node is drawn per item and animated with `transform` — not moved as one
-shared element, because React would remount it on every navigation and the
-travel would never play. It scales and rotates in together, so it settles
-rather than snapping.
+**The rail can end in a footer** (`locale`): the language switcher above
+sign-out, pushed to the block-end with `mt-auto` and fenced off with a hairline.
+The dietitian area has no app bar, so this is where those two live. Sign-out is
+`destructive`/`sm` — clay, outlined, never a solid red block; it is the one
+control in the shell that undoes your way in, and on the rail an olive `outline`
+button read as one more destination. The portal omits `locale` and gets no
+footer, because it still has a header carrying the pair — and below `md`, where
+the rail is hidden, that header is the only place a client can reach either.
 
-**App bar** (`Header`) — deliberately **unfilled**: no background, no border,
-no elevation. With the rail now pale too, the shell has no heavy surface at
-all; the page's own cards carry the weight, and the bar carries itself on type
-and spacing.
+**App bar** (`Header`) — **the portal only.** The dietitian area has no bar: it
+carried a title the rail already said, a name nobody needed reminding of, and a
+notification bell, and the row it cost is worth more than all three. Each staff
+page owns its own heading, and that heading is the page's `h1`.
 
-Two slots: `children` sits beside the title for page-level controls, `actions`
-sits beside sign-out for shell-level ones. The notification bell lives in
-`actions` — it belongs to every staff screen, not to the dashboard, and its
-badge counts pending *requests* only. A number on a bell promises someone is
-waiting; "no meal plan yet" is a nudge, and it stays inside the popover.
+Where it does appear it is deliberately **unfilled**: no background, no border,
+no elevation. The page's own cards carry the weight; the bar carries itself on
+type and spacing. `children` sits beside the title for page-level controls.
 
-**Everything in the bar is 40px.** The app bar is a toolbar, which is the one
-place the pointer-only `sm` size is for: sign-out is `outline`/`sm`, the bell is
-`icon-sm`, and `LocaleSwitcher` is pinned to `h-10` to match. Sign-out is
-deliberately not `ghost` — the ghost compound variant drops padding to 12px,
-which would make it the one control in the row not built to the button spec.
+**Everything in the bar is 40px** — the one place the pointer-only `sm` size is
+for: sign-out is `sm`, and `LocaleSwitcher` is pinned to `h-10` to match.
 
-**The locale switcher appears once per screen**, in this bar (or on the login
-screens, which have no bar). There is no floating copy pinned to a corner.
+**The locale switcher appears once per screen** — in the rail's footer, in the
+portal's bar, or on the login screens, which have neither. There is no floating
+copy pinned to a corner.
 
 **Bottom bar** (`PortalTabBar`) — five-across on a phone, labels always
 visible, lime node **above** the active icon rather than beside it: the bar is
@@ -581,7 +639,9 @@ and the bug is invisible until someone reads the RTL build.
   `to right` fade runs the wrong way in Arabic and looks fine in English —
   use an inset (`me-*`) or `:dir()` instead.
 - Numbers, times, phone numbers, IDs and units keep LTR internal order inside
-  RTL text. `Table`'s `numeric` prop does this for a column.
+  RTL text. `Table`'s `numeric` prop does this for a whole column, `<span
+  dir="ltr">` for one value — and the difference matters, because the column
+  form also pins that column's alignment. See "Tables".
 - Progress fills, sliders and comfort bands originate from the **inline-start**
   edge.
 
@@ -596,8 +656,11 @@ distinguishable from one another. That's why the no-raw-hex rule is scoped to
 A **brand** colour hardcoded in a component is a bug. Replace it with the
 token; don't add it to this exemption.
 
-The one deliberate exception in markup is the WhatsApp QR code, which needs
-true white (`--n-0`) for scanner contrast rather than the warm canvas tint.
+The one deliberate exception in markup is the WhatsApp QR code, which pins
+itself to true white (`--n-0`) for scanner contrast rather than trusting
+whatever the canvas is. The canvas *is* `--n-0` now, so the two match — leave
+the pin in place anyway; the QR's requirement is absolute and the canvas is a
+design decision that has already changed twice.
 
 ## Charts
 

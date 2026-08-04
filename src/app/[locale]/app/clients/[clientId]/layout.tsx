@@ -67,7 +67,7 @@ export default async function ClientLayout({ children, params }: ClientLayoutPro
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <h2 className="text-2xl font-semibold tracking-tight">{client.fullName}</h2>
+          <h1 className="text-2xl font-semibold tracking-tight">{client.fullName}</h1>
           <StatusBadge status={client.status} />
         </div>
 

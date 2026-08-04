@@ -43,10 +43,10 @@ export async function AgeDistributionCard({ age, total, locale }: AgeDistributio
   return (
     <Card className="min-h-0 xl:h-full">
       <CardHeader className="shrink-0 grid-cols-[auto_1fr] items-center gap-2">
-        {/* Neutral at rest; the disc fills olive and the glyph goes white
-            under the pointer. That is the card's whole hover response — see
-            the `interactive` variant in ui/card.tsx. */}
-        <span className="flex size-8 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors group-hover/card:bg-primary group-hover/card:text-primary-foreground">
+        {/* Static. Nothing on this card is clickable, so the disc stays
+            neutral — only the bars answer the pointer, and they answer with
+            data rather than with brand colour. */}
+        <span className="flex size-8 items-center justify-center rounded-full bg-muted text-muted-foreground">
           <Icon name="clients" className="size-4" />
         </span>
         <CardTitle>{t('title')}</CardTitle>

@@ -43,11 +43,21 @@ import { cn } from '@/lib/utils';
  * already know the screen, never the only way to find out what it does.
  */
 
-/** Columns a reader can order the register by, in the order they appear. */
+/**
+ * Columns a reader can order the register by, in the order they appear.
+ *
+ * **No column is `numeric`, including phone and email.** That prop puts
+ * `dir="ltr"` on the cell itself, which does keep the value's characters in
+ * Latin order — but it also re-resolves `text-start` against the *cell*, so in
+ * Arabic those two columns flushed left while every column beside them flushed
+ * right, and the table read as two tables. The order the digits and the address
+ * are written in is a property of the value, not of the column, so it is
+ * isolated on the value itself below and the cell is left to follow the page.
+ */
 const COLUMNS = [
   { key: 'fullName', numeric: false },
-  { key: 'phone', numeric: true },
-  { key: 'email', numeric: true },
+  { key: 'phone', numeric: false },
+  { key: 'email', numeric: false },
   { key: 'status', numeric: false },
   { key: 'portalAccess', numeric: false },
 ] as const satisfies ReadonlyArray<{ key: ClientSort; numeric: boolean }>;
@@ -157,8 +167,17 @@ export function ClientTable({
                   {client.fullName}
                 </Link>
               </TableCell>
-              <TableCell numeric>{client.phone ?? '—'}</TableCell>
-              <TableCell numeric>{client.email ?? '—'}</TableCell>
+              {/*
+                The cell keeps the page's direction so the column flushes with
+                its neighbours; `dir` on the inner span isolates the value and
+                runs it left-to-right, which is how a phone number and an email
+                address are read in both locales. Letting the number inherit the
+                Arabic direction moves a leading `+` to the wrong end of it.
+              */}
+              <TableCell className="tabular">
+                {client.phone ? <span dir="ltr">{client.phone}</span> : '—'}
+              </TableCell>
+              <TableCell>{client.email ? <span dir="ltr">{client.email}</span> : '—'}</TableCell>
               <TableCell>
                 <StatusBadge status={client.status} />
               </TableCell>
@@ -172,7 +191,19 @@ export function ClientTable({
                 these stay separately clickable.
               */}
               <TableCell className="relative">
-                <div className="flex items-center justify-end gap-2">
+                {/*
+                  `gap-0.5`, and 20px glyphs inside the same 40px targets. Three
+                  icons spaced like three separate controls read as three
+                  decisions; closed up they read as one set belonging to this
+                  row, which is what they are. The buttons do not shrink with
+                  the gap — the touch target is the 40px circle either way, and
+                  the glyph grows into the room the spacing gave back.
+
+                  `size-5` has to be on each `Icon`: the button base only sizes
+                  glyphs that carry no `size-` class of their own, and it does
+                  it at a specificity a wrapper class cannot outrank.
+                */}
+                <div className="flex items-center justify-end gap-0.5">
                   {/* Straight to this client's board — the client is the route, not a query param. */}
                   <Tooltip label={tNav('weeklyPlans')}>
                     <Link
@@ -180,7 +211,7 @@ export function ClientTable({
                       aria-label={tNav('weeklyPlans')}
                       className={buttonVariants({ variant: 'ghost', size: 'icon-sm' })}
                     >
-                      <Icon name="weeklyPlans" />
+                      <Icon name="weeklyPlans" className="size-5" />
                     </Link>
                   </Tooltip>
 
@@ -191,7 +222,7 @@ export function ClientTable({
                       aria-label={t('edit')}
                       className={buttonVariants({ variant: 'ghost', size: 'icon-sm' })}
                     >
-                      <Icon name="edit" />
+                      <Icon name="edit" className="size-5" />
                     </ClientFormTrigger>
                   </Tooltip>
 
