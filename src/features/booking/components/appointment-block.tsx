@@ -115,14 +115,18 @@ export function AppointmentBlock({
       aria-label={`${appointment.clientName} · ${timeRange}`}
       className={cn(
         /*
-          6px of gutter either side, not 2px. The card used to sit almost flush
-          against the slot rules, which made a column of bookings read as one
-          striped block reaching the day's edges — the cards had no air of their
-          own and the grid behind them had nowhere to show through. Inset far
-          enough that the gap is legible as a gap and each appointment reads as
-          a separate card on the day rather than as the day itself.
+          10px of gutter on the inline edges, and `BLOCK_GUTTER_PX` on the
+          block edges (applied by `blockCardBox`, since a card's block extent
+          is time and belongs to the geometry module).
+
+          The card used to sit 2px off the slot rules and flush against its
+          neighbours in time, which made a column of bookings read as one
+          striped block reaching the day's edges — no air of its own, and
+          nowhere for the grid behind it to show through. Inset on all four
+          sides, each appointment reads as a separate card *on* the day rather
+          than as the day itself.
         */
-        'absolute start-1.5 end-1.5 rounded-sm border px-4',
+        'absolute start-2.5 end-2.5 rounded-sm border px-4',
         'text-start transition-[opacity,box-shadow,background-color,border-color] select-none',
         // The block-axis padding the height allows. A short booking cannot
         // spend 12px on air and still show a line of text, so it takes 6px;

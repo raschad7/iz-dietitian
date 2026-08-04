@@ -29,8 +29,10 @@ type AgendaTimelineProps = {
  *
  * A thin read-only slice of the schedule, not a second calendar — every row
  * links to the real day view. The column is portrait because a day is read
- * top to bottom, and because it lets a whole day sit beside the rail without
- * the eye leaving the shell's inline-start edge.
+ * top to bottom, and because it lets a whole day sit in a narrow track at the
+ * far edge of the page (see `src/app/[locale]/app/page.tsx`) — furthest from
+ * the sidebar, since this is the one panel on the dashboard you look at rather
+ * than act through.
  *
  * Exactly one appointment is emphasised: the one happening now, or the next one
  * if nothing is live. Everything before it drops back, so "where am I in the

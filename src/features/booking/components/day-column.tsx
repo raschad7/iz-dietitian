@@ -12,6 +12,7 @@ import { formatDuration, formatMinute, formatMinuteRange } from '../format';
 import {
   SUBDIVISION_MIN_PX_PER_SLOT,
   blockBox,
+  blockCardBox,
   floorToSlot,
   gridHeight,
   minuteToY,
@@ -226,7 +227,10 @@ export function DayColumn({
       )}
 
       {appointments.map((appointment) => {
-        const box = blockBox(appointment, hours.openMinute, pxPerSlot);
+        // The *card's* box, not the appointment's: inset by the gutter, so two
+        // back-to-back bookings do not meet edge to edge. What the block means
+        // is still `blockBox`, which is what the gestures read.
+        const box = blockCardBox(appointment, hours.openMinute, pxPerSlot);
 
         return (
           <AppointmentBlock
@@ -265,13 +269,10 @@ export function DayColumn({
             className={cn(
               // Same gutter as `AppointmentBlock`, so the preview is drawn
               // exactly where the card it becomes will sit.
-              'pointer-events-none absolute start-1.5 end-1.5 z-20 rounded-md border-2 border-dashed',
+              'pointer-events-none absolute start-2.5 end-2.5 z-20 rounded-md border-2 border-dashed',
               pending.valid ? 'border-primary bg-primary/15' : 'border-destructive bg-destructive/15',
             )}
-            style={{
-              top: minuteToY(pending.startMinute, hours.openMinute, pxPerSlot),
-              height: Math.max(blockBox(pending, hours.openMinute, pxPerSlot).height, 2),
-            }}
+            style={blockCardBox(pending, hours.openMinute, pxPerSlot)}
           />
 
           {/*

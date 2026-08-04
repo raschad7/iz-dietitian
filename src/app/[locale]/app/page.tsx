@@ -36,6 +36,15 @@ export async function generateMetadata({ params }: DashboardPageProps): Promise<
  * Below `xl` the columns stack and the page scrolls normally: one screen is a
  * desktop promise, and honouring it on a phone would mean four nested scrolls.
  *
+ * **The working column sits beside the sidebar; today's agenda sits at the far
+ * edge.** The agenda is read-only — every row just links out to the real day
+ * view — so it is the one panel on this page that is looked at rather than
+ * acted on, and it now sits furthest from the rail that is all about acting.
+ * Swapping the grid's two tracks (rather than only reordering the JSX) is what
+ * keeps this correct in Arabic: a physical `21rem_1fr` would put the agenda on
+ * the wrong edge once the page mirrors, so the grid stays two logical tracks
+ * and the columns are declared in the order they should read.
+ *
  * Reading order down the working column: the four things you start a session by
  * doing, then your register, then the two charts you consult rather than act
  * on. The four summary counters that used to head this column are gone — every
@@ -60,15 +69,7 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
         <p className="text-body-sm text-muted-foreground">{formatLongDate(locale, data.today)}</p>
       </div>
 
-      <div className="grid gap-4 xl:min-h-0 xl:flex-1 xl:grid-cols-[21rem_minmax(0,1fr)] 2xl:grid-cols-[23rem_minmax(0,1fr)]">
-        <AgendaTimeline
-          appointments={data.agenda}
-          locale={locale}
-          today={data.today}
-          nowMinute={data.nowMinute}
-          workingDays={data.workingDays}
-        />
-
+      <div className="grid gap-4 xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(0,1fr)_21rem] 2xl:grid-cols-[minmax(0,1fr)_23rem]">
         <div className="flex min-w-0 flex-col gap-4 xl:min-h-0">
           <QuickActions locale={locale} />
 
@@ -94,6 +95,14 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
             </div>
           </div>
         </div>
+
+        <AgendaTimeline
+          appointments={data.agenda}
+          locale={locale}
+          today={data.today}
+          nowMinute={data.nowMinute}
+          workingDays={data.workingDays}
+        />
       </div>
     </div>
   );

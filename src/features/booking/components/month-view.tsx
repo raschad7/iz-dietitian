@@ -105,7 +105,16 @@ export function MonthView({
               data-day={date}
               aria-label={formatLongDate(locale, date)}
               className={cn(
-                'min-h-24 overflow-hidden border-b border-s border-border p-1 text-start transition-colors',
+                /*
+                  `min-h-36` — 144px, up from 96. The cell has to hold the day
+                  number, three chips at their new height and the "+N more"
+                  line, and it clips what does not fit; sizing it to the old
+                  chips would have cut the third one in half the moment they
+                  grew. Six rows of it is taller than most panels, so the month
+                  scrolls — which is the right trade for chips that can be read
+                  at a glance rather than squinted at.
+                */
+                'min-h-36 overflow-hidden border-b border-s border-border p-1.5 text-start transition-colors',
                 'hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
                 (!inMonth || isPast) && 'text-muted-foreground',
                 !inMonth && 'bg-muted/30',
@@ -122,19 +131,36 @@ export function MonthView({
                 Plain list items, not buttons. A month chip is read, never
                 acted on — the day view is where an appointment can be changed.
               */}
-              <ul className="mt-1 space-y-0.5">
+              <ul className="mt-1.5 space-y-1">
                 {visibleAppointments.map((appointment) => {
                   const completed = completedIds.has(appointment.id);
+                  const marked = selectedId === appointment.id || highlightId === appointment.id;
 
                   return (
                     <li key={appointment.id}>
                       <span
+                        /*
+                          The same surface the day and week cards wear: an
+                          olive-50 fill inside an olive-200 edge, and no client
+                          colour. A month grid is 30 of these at once, and a
+                          tint per person turned the overview into a swatch
+                          book — the one place a colour-per-client is least
+                          readable is the view with the most of them on screen.
+                          The register is where a client is identified by
+                          colour; this is where the *shape of the month* is.
+
+                          `px-2 py-1` and the taller row above it: at
+                          `px-1 py-0.5` the chip was a coloured line with text
+                          on it rather than a card, and the name sat hard
+                          against its own edge.
+                        */
                         className={cn(
-                          'flex w-full items-center gap-1 truncate rounded px-1 py-0.5 text-start text-label',
-                          (selectedId === appointment.id || highlightId === appointment.id) && 'ring-1 ring-ring',
+                          'flex w-full items-center gap-1.5 truncate rounded-sm border px-2 py-1 text-start text-label',
+                          marked
+                            ? 'border-(--olive-500) bg-(--olive-100)'
+                            : 'border-(--olive-200) bg-(--olive-50)',
                         )}
                         style={{
-                          background: `color-mix(in oklch, ${appointment.clientColor} 18%, var(--card))`,
                           filter: completed ? 'saturate(0.3)' : undefined,
                           opacity: completed ? 0.6 : dimmedIds.has(appointment.id) ? 0.25 : 1,
                         }}
@@ -166,7 +192,7 @@ export function MonthView({
 
               {/* What the three chips above left off — a count, not a fourth sliver of a chip. */}
               {hiddenCount > 0 && (
-                <p className="mt-0.5 px-1 text-label text-muted-foreground">{t('monthMore', { count: hiddenCount })}</p>
+                <p className="mt-1 px-2 text-label text-muted-foreground">{t('monthMore', { count: hiddenCount })}</p>
               )}
             </button>
           );
