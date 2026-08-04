@@ -43,7 +43,10 @@ export function ClientPicker({
       label={t('clients')}
       placeholder={t('searchClients')}
       emptyMessage={t('noClients')}
-      className="w-64 shrink-0"
+      // Full width on a phone, where it takes the header's first line to
+      // itself and everything else wraps under it; a fixed 256px that refuses
+      // to shrink is what pushed the rest of the row off the screen.
+      className="w-full sm:w-64 sm:shrink-0"
     />
   );
 }

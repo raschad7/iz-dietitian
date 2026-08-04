@@ -686,6 +686,7 @@
     "newWeekEmptyHint": "خانة فارغة لكل وجبة في جدول العميل.",
     "newWeekEmptyAction": "ابدأ أسبوعاً فارغاً",
     "selectMeal": "افتح وجبة من اللوح لعرضها هنا",
+    "openPanels": "اللوحات",
     "searchDishes": "ابحث في الأطباق",
     "noDishes": "لا أطباق مطابقة",
     "sortedForSlot": "مرتّبة حسب قربها من {value} kcal",

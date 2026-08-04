@@ -686,6 +686,7 @@
     "newWeekEmptyHint": "One empty slot per meal in the client's schedule.",
     "newWeekEmptyAction": "Start an empty week",
     "selectMeal": "Open a meal on the board to see it here",
+    "openPanels": "Panels",
     "searchDishes": "Search dishes",
     "noDishes": "No dishes match",
     "sortedForSlot": "Sorted by fit to {value} kcal",

@@ -1,11 +1,12 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
+import { getLocaleDirection } from '@/i18n/routing';
 import { isMember } from '@/lib/enum';
 
 import type {
@@ -20,6 +21,7 @@ import { slotFillKey } from '../skeleton';
 import type { RecentUse } from '../usage';
 
 import { BoardEditor, useEditor } from './board-dnd';
+import { BoardSheet, useBelowXl } from './board-sheet';
 import { ClientPicker } from './client-picker';
 import { DayColumn } from './day-column';
 import { DishCatalog } from './dish-catalog';
@@ -94,6 +96,7 @@ function BoardBody({
   onAllowPublished,
 }: BoardProps & { allowPublished: boolean; onAllowPublished: (value: boolean) => void }) {
   const t = useTranslations('weeklyPlans');
+  const activeLocale = useLocale();
   // The optimistic board, not the server one: everything below renders the edit
   // just made, before it has finished being written.
   const { board, editable, pending, error } = useEditor();
@@ -101,6 +104,11 @@ function BoardBody({
   const [selectedMealId, setSelectedMealId] = useState<string | null>(null);
   const [tab, setTab] = useState<RailTab>('client');
   const [comparing, setComparing] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  // Which of the two presentations the rail is in. The panels themselves do not
+  // know, and are rendered into exactly one of them.
+  const belowXl = useBelowXl();
 
   const selectedMeal = board.days
     .flatMap((day) => day.meals)
@@ -158,9 +166,86 @@ function BoardBody({
     return byDay;
   }, [comparing, previous, board.days]);
 
+  /**
+   * The rail's four panels, written once.
+   *
+   * They are rendered into either the fixed rail or the sheet, never both: the
+   * tabs and their panels carry `id`s that `aria-controls` and `aria-labelledby`
+   * point at, and two copies would be two elements answering to one name.
+   */
+  const railContent = (
+    <>
+      <RailTabs
+        className="shrink-0"
+        label={t('title')}
+        active={tab}
+        onSelect={setTab}
+        tabs={[
+          { id: 'client' as const, label: t('tabs.client') },
+          { id: 'dishes' as const, label: t('tabs.dishes') },
+          { id: 'meal' as const, label: t('tabs.meal') },
+          { id: 'past' as const, label: t('tabs.past') },
+        ]}
+      />
+
+      {/* The tabs stay put and the panel under them scrolls. A tab bar that
+          scrolls away with its own panel is a tab bar you have to scroll back
+          up to use. */}
+      <div
+        role="tabpanel"
+        id={`rail-panel-${tab}`}
+        aria-labelledby={`rail-tab-${tab}`}
+        className="min-h-0 flex-1 overflow-y-auto"
+      >
+        {tab === 'dishes' ? (
+          <DishCatalog
+            catalog={catalog}
+            usage={usage}
+            slot={
+              selectedMeal
+                ? { slotKey: selectedMeal.slotKey, budgetKcal: selectedMeal.budgetKcal }
+                : null
+            }
+            editable={editable}
+          />
+        ) : tab === 'meal' ? (
+          selectedMeal ? (
+            <MealDetailPanel
+              meal={selectedMeal}
+              candidates={candidates[selectedMeal.id] ?? []}
+              planId={board.id}
+              locale={locale}
+              editable={editable}
+              model={board.model}
+              onClose={() => {
+                setSelectedMealId(null);
+                setTab('client');
+              }}
+            />
+          ) : (
+            <p className="text-body-sm text-muted-foreground">{t('selectMeal')}</p>
+          )
+        ) : tab === 'past' ? (
+          history
+        ) : (
+          children
+        )}
+      </div>
+    </>
+  );
+
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <header className="flex items-center gap-3">
+      {/*
+        The header wraps rather than clips. Every item in it but the client name
+        was `whitespace-nowrap` or `shrink-0`, so below about 375px the name
+        truncated to nothing and then the row simply ran off the end of the
+        screen — the controls were still there, just not reachable. Wrapping
+        costs a second line on a phone and keeps every control pressable, which
+        is the trade a toolbar should make; hiding a control to save a row means
+        the feature is gone.
+      */}
+      <header className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <ClientPicker clients={clients} selectedClientId={board.clientId} />
 
         {isMember(PLAN_STATUSES, board.status) && (
@@ -173,12 +258,21 @@ function BoardBody({
           {t('weekOf', { date: board.weekStartDate })}
         </span>
 
-        <span className="whitespace-nowrap text-label text-muted-foreground">
+        {/* The one fact here that is printed elsewhere on the same screen — the
+            client panel carries it, and so does every unplanned day column — so
+            it is the one that gives up its place on a phone. */}
+        <span className="hidden whitespace-nowrap text-label text-muted-foreground sm:inline">
           {t('dailyTargetShort', { value: dailyTarget })}
         </span>
 
-        {/* Reserved width, so a save does not reflow the row it sits in. */}
-        <span role="status" aria-live="polite" className="min-w-24 shrink-0 text-label text-muted-foreground">
+        {/* Reserved width, so a save does not reflow the row it sits in. Only
+            where there is width to reserve: on a phone the row is already two
+            lines and 96px of held-open blank is a third. */}
+        <span
+          role="status"
+          aria-live="polite"
+          className="shrink-0 text-label text-muted-foreground sm:min-w-24"
+        >
           {error ? (
             <span className="text-destructive">{t(error)}</span>
           ) : pending ? (
@@ -186,7 +280,20 @@ function BoardBody({
           ) : null}
         </span>
 
-        <div className="ms-auto flex shrink-0 items-center gap-3">
+        <div className="ms-auto flex flex-wrap items-center justify-end gap-3">
+          {/* Below `xl` the rail is a sheet, and a sheet that only opens by
+              tapping a meal leaves the client, the catalog and the past weeks
+              with no door at all. */}
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="xl:hidden"
+            onClick={() => setSheetOpen(true)}
+          >
+            {t('openPanels')}
+          </Button>
+
           <PublishButton
             planId={board.id}
             status={board.status}
@@ -237,104 +344,74 @@ function BoardBody({
       </header>
 
       {allowPublished && (
-        <p className="rounded-md bg-status-attention-bg px-3 py-2 text-xs text-status-attention-fg">
+        <p className="rounded-md bg-status-attention-bg px-3 py-2 text-body-sm text-status-attention-fg">
           {t('editPublishedWarning')}
         </p>
       )}
 
       {board.unfilled > 0 && (
-        <p className="rounded-md bg-status-attention-bg px-3 py-2 text-xs text-status-attention-fg">
+        <p className="rounded-md bg-status-attention-bg px-3 py-2 text-body-sm text-status-attention-fg">
           {t('unfilledWarning', { count: board.unfilled })}
         </p>
       )}
 
       <div className="flex min-h-0 flex-1 gap-3">
-        {/* One grid for the week, and each day a subgrid of it, so every card in
-            a row is the same height and the rows run straight across.
-            `grid-cols-7` is `repeat(7, minmax(0,1fr))` rather than `1fr`, so a
-            long dish name wraps instead of widening its column past the others.
+        {/* The week scrolls sideways rather than being crushed. Seven columns
+            need about 150px each before a dish name stops fitting on two lines,
+            so the grid has a floor of 1100px and this wrapper is what carries
+            the overflow — the grid cannot be its own scroller and also refuse
+            to shrink. `h-full` keeps the row template's `1fr` working: the fr
+            unit needs a definite height to share out, and inside a scroller the
+            grid would otherwise size to its content and never stretch. */}
+        <div className="min-w-0 flex-1 overflow-auto">
+          {/* One grid for the week, and each day a subgrid of it, so every card in
+              a row is the same height and the rows run straight across.
+              `grid-cols-7` is `repeat(7, minmax(0,1fr))` rather than `1fr`, so a
+              long dish name wraps instead of widening its column past the others.
 
-            The row gap is declared here and only here: a subgrid inherits its
-            parent's gutters, and repeating them on the day column would let the
-            two drift out of step. */}
-        <div
-          className="grid min-w-0 flex-1 grid-cols-7 gap-x-2.5 gap-y-1.5 overflow-y-auto"
-          style={{ gridTemplateRows: rowTemplate }}
-        >
-          {board.days.map((day) => (
-            <DayColumn
-              key={day.dayOfWeek}
-              day={day}
-              dailyTarget={dailyTarget}
-              planId={board.id}
-              locale={locale}
-              editable={editable}
-              selectedMealId={selectedMealId}
-              onSelectMeal={(mealId) => {
-                setSelectedMealId((current) => (current === mealId ? null : mealId));
-                setTab('meal');
-              }}
-              ghosts={ghostsByDay?.[day.dayOfWeek]}
-              compareDate={previous?.weekStartDate}
-            />
-          ))}
+              The row gap is declared here and only here: a subgrid inherits its
+              parent's gutters, and repeating them on the day column would let the
+              two drift out of step. */}
+          <div
+            className="grid h-full min-w-[68.75rem] grid-cols-7 gap-x-2.5 gap-y-1.5"
+            style={{ gridTemplateRows: rowTemplate }}
+          >
+            {board.days.map((day) => (
+              <DayColumn
+                key={day.dayOfWeek}
+                day={day}
+                dailyTarget={dailyTarget}
+                planId={board.id}
+                locale={locale}
+                editable={editable}
+                selectedMealId={selectedMealId}
+                onSelectMeal={(mealId) => {
+                  setSelectedMealId((current) => (current === mealId ? null : mealId));
+                  setTab('meal');
+                  // Above `xl` the sheet never opens, so this is free there.
+                  setSheetOpen(true);
+                }}
+                ghosts={ghostsByDay?.[day.dayOfWeek]}
+                compareDate={previous?.weekStartDate}
+              />
+            ))}
+          </div>
         </div>
 
-        <aside className="flex w-72 shrink-0 flex-col overflow-y-auto border-s border-border ps-3">
-          <RailTabs
-            label={t('title')}
-            active={tab}
-            onSelect={setTab}
-            tabs={[
-              { id: 'client' as const, label: t('tabs.client') },
-              { id: 'dishes' as const, label: t('tabs.dishes') },
-              { id: 'meal' as const, label: t('tabs.meal') },
-              { id: 'past' as const, label: t('tabs.past') },
-            ]}
-          />
-
-          <div
-            role="tabpanel"
-            id={`rail-panel-${tab}`}
-            aria-labelledby={`rail-tab-${tab}`}
-            className="min-h-0 flex-1"
-          >
-            {tab === 'dishes' ? (
-              <DishCatalog
-                catalog={catalog}
-                usage={usage}
-                slot={
-                  selectedMeal
-                    ? { slotKey: selectedMeal.slotKey, budgetKcal: selectedMeal.budgetKcal }
-                    : null
-                }
-                editable={editable}
-              />
-            ) : tab === 'meal' ? (
-              selectedMeal ? (
-                <MealDetailPanel
-                  meal={selectedMeal}
-                  candidates={candidates[selectedMeal.id] ?? []}
-                  planId={board.id}
-                  locale={locale}
-                  editable={editable}
-                  model={board.model}
-                  onClose={() => {
-                    setSelectedMealId(null);
-                    setTab('client');
-                  }}
-                />
-              ) : (
-                <p className="text-xs text-muted-foreground">{t('selectMeal')}</p>
-              )
-            ) : tab === 'past' ? (
-              history
-            ) : (
-              children
-            )}
-          </div>
+        <aside className="hidden w-72 shrink-0 flex-col border-s border-border ps-3 xl:flex">
+          {!belowXl && railContent}
         </aside>
       </div>
+
+      <BoardSheet
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        label={t('openPanels')}
+        closeLabel={t('close')}
+        dir={getLocaleDirection(activeLocale)}
+      >
+        {belowXl && railContent}
+      </BoardSheet>
     </div>
   );
 }
