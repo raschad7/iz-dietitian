@@ -2,6 +2,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 import { IBM_Plex_Mono, IBM_Plex_Sans, IBM_Plex_Sans_Arabic, Readex_Pro } from 'next/font/google';
+import localFont from 'next/font/local';
 import type { ReactNode } from 'react';
 
 import { resolveLocale } from '@/i18n/params';
@@ -21,6 +22,48 @@ const ibmPlexSansArabic = IBM_Plex_Sans_Arabic({
   weight: ['400', '500', '600', '700'],
   variable: '--font-ibm-plex-sans-arabic',
   display: 'swap',
+});
+
+/**
+ * The Arabic UI face — licensed, so it is self-hosted rather than fetched from
+ * Google. It is attached to <html> **only on the Arabic locale** (see the
+ * `className` below) and consumed only by the `:lang(ar)` block in globals.css,
+ * so an English page neither downloads it nor references it.
+ *
+ * Served as woff2 (~53-57KB each); the licensed `.ttf`s sit beside them as the
+ * sources these bytes were compressed from and are not read by the build.
+ *
+ * **Three real weights, and that covers four.** 400/500/700 are the
+ * `usWeightClass` values in the files themselves, not guesses. `font-semibold`
+ * (600) has no file of its own, but CSS weight matching resolves a desired
+ * weight above 500 by walking *upwards* first — so 600 lands on the real 700
+ * outlines rather than being synthesised from 400. That matters because faked
+ * bold smears the outlines, which is the defect the note on `ibmPlexMono` below
+ * describes; every weight this app actually uses now has real glyphs behind it.
+ */
+const neoSansArabic = localFont({
+  src: [
+    { path: '../fonts/NeoSansArabic-Regular.woff2', weight: '400', style: 'normal' },
+    { path: '../fonts/NeoSansArabic-Medium.woff2', weight: '500', style: 'normal' },
+    { path: '../fonts/NeoSansArabic-Bold.woff2', weight: '700', style: 'normal' },
+  ],
+  variable: '--font-neo-sans-arabic',
+  display: 'swap',
+  // The Arabic fallback already in the stack, so the swap-in is not a reflow.
+  adjustFontFallback: false,
+  /*
+   * `preload: false` is load-bearing, not a tuning knob. Next emits its
+   * `<link rel="preload">` from the module graph, not from what a render
+   * actually used — so with preload on, the English build shipped a preload for
+   * this font and every English visitor downloaded 57KB of Arabic they never
+   * render. Gating the CSS variable on the locale does not prevent that; only
+   * this does. Verified by grepping the prerendered `en.html`.
+   *
+   * The cost is that Arabic discovers the font after CSS parses instead of in
+   * the initial scan. `display: 'swap'` covers that gap with IBM Plex Sans
+   * Arabic, which is the same face the stack falls back to anyway.
+   */
+  preload: false,
 });
 
 /** font.display — headings only, both scripts (§04, §15). */
@@ -70,6 +113,28 @@ export async function generateMetadata({ params }: Omit<LocaleLayoutProps, 'chil
 export default async function LocaleLayout({ children, params }: LocaleLayoutProps) {
   const locale = await resolveLocale(params);
 
+  /*
+    Neo Sans Arabic is attached to the Arabic locale only. Gating it on the
+    locale rather than shipping it everywhere and letting `:lang(ar)` pick it up
+    is what keeps English clean: with the variable absent, an English document
+    has no declaration referring to the family, so the browser has no reason to
+    fetch it and the English stack is byte-for-byte what it was.
+
+    `:lang(ar)` in globals.css still resolves `--font-neo-sans-arabic` with a
+    fallback, so an Arabic name or note inside an *English* page — where this
+    class is deliberately missing — degrades to IBM Plex Sans Arabic instead of
+    invalidating the whole `font-family` declaration.
+  */
+  const fontVariables = [
+    ibmPlexSans.variable,
+    ibmPlexSansArabic.variable,
+    readexPro.variable,
+    ibmPlexMono.variable,
+    locale === 'ar' ? neoSansArabic.variable : null,
+  ]
+    .filter(Boolean)
+    .join(' ');
+
   return (
     /*
       `lang` and `dir` are both derived from the route's locale — never hardcoded.
@@ -88,7 +153,7 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
       lang={locale}
       dir={getLocaleDirection(locale)}
       suppressHydrationWarning
-      className={`${ibmPlexSans.variable} ${ibmPlexSansArabic.variable} ${readexPro.variable} ${ibmPlexMono.variable}`}
+      className={fontVariables}
     >
       {/*
         `suppressHydrationWarning` is needed on <body> as well as <html>: it only

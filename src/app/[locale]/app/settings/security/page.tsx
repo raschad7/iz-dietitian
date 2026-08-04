@@ -31,7 +31,7 @@ export default async function SecurityPage({ params }: SecurityPageProps) {
 
   return (
     <div className="space-y-6 text-start">
-      <h2 className="text-2xl font-semibold tracking-tight">{t('security')}</h2>
+      <h1 className="text-2xl font-semibold tracking-tight">{t('security')}</h1>
       <SecuritySettings
         locale={locale}
         passkeys={passkeys.map((entry) => ({

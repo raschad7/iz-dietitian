@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { Select } from '@base-ui/react/select';
+import { useRef, useState } from 'react';
 
+import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
 import { type Locale } from '@/i18n/routing';
 import { COUNTRIES, COUNTRY_ORDER, type CountryCode } from '@/lib/phone-countries';
 import { countryForDial, joinPhone, splitPhone } from '@/lib/phone-format';
@@ -21,10 +22,14 @@ import { cn } from '@/lib/utils';
  * `onChange` and it reports upward, which is what a controlled dialog wants.
  * Both together is fine.
  *
- * A native `<select>`, following `src/components/ui/select.tsx`: 240 countries
- * is exactly the case where the browser's own picker — typeahead, scrolling, a
- * full-screen list on a phone — beats anything hand-built, and it costs no
- * bundle.
+ * The trigger shows only the dial code — `+962`, never "Jordan" — sized for
+ * digits rather than the widest country name in the list. The full name
+ * appears once you open the popup, which is the one moment it is worth
+ * reading; a closed field showing it would waste most of its own width on
+ * text nobody is choosing between. This is a Base UI `Select` rather than the
+ * native one `src/components/ui/select.tsx` wraps, precisely because a native
+ * `<select>` cannot show different text closed than it lists open — the two
+ * are the same string by construction.
  */
 
 export type PhoneFieldProps = {
@@ -36,12 +41,12 @@ export type PhoneFieldProps = {
   defaultValue?: string | null;
   /** The combined value, on every keystroke and every country change. */
   onChange?: (phone: string) => void;
-  /** Translated. The select has no visible label of its own. */
+  /** Translated. The trigger has no visible label of its own. */
   countryLabel: string;
   disabled?: boolean;
   /**
-   * Applied to both halves — a compound field carries emphasis such as
-   * `.q-field-primary` across the whole row or it reads as two fields.
+   * Applied to both halves — a compound field has to carry any styling across
+   * the whole row or it reads as two fields that happen to be adjacent.
    */
   className?: string;
 };
@@ -63,6 +68,21 @@ export function PhoneField({
     return { country: countryForDial(initial.dial), national: initial.national };
   });
 
+  /**
+   * Where the popup portals to, instead of Base UI's own default of
+   * `document.body`.
+   *
+   * Both callers of this field sit inside `Dialog` — a native `<dialog>`
+   * opened with `showModal()`, which the browser promotes to the top layer.
+   * A plain `document.body` portal is *not* in that layer, so it would paint
+   * behind the open dialog no matter its z-index — the popup would "work"
+   * and be entirely invisible. Portaling into a node that is itself a
+   * descendant of the dialog keeps the popup in the same top-layer subtree.
+   * `display: contents` on that node keeps it out of this row's flex layout
+   * — it holds no content of its own until the popup opens.
+   */
+  const portalContainerRef = useRef<HTMLDivElement>(null);
+
   function update(next: { country: CountryCode; national: string }): void {
     setValue(next);
     onChange?.(joinPhone(COUNTRIES[next.country].dial, next.national));
@@ -70,6 +90,7 @@ export function PhoneField({
 
   return (
     <div className="flex items-center gap-2">
+      <div ref={portalContainerRef} className="contents" />
       {/*
         The field the form actually submits. The two visible controls carry no
         `name`, so a server action goes on reading one `phone` value and needs
@@ -77,23 +98,66 @@ export function PhoneField({
       */}
       {name && <input type="hidden" name={name} value={joinPhone(COUNTRIES[country].dial, national)} />}
 
-      <Select
-        aria-label={countryLabel}
+      <Select.Root
         value={country}
         disabled={disabled}
-        // Bounded, or the widest country name in the list sets the width of the
-        // whole row. A native select truncates its own label to fit.
-        className={cn('w-32 shrink-0 sm:w-40', className)}
-        onChange={(event) => update({ country: event.target.value as CountryCode, national })}
+        onValueChange={(value) => update({ country: value as CountryCode, national })}
       >
-        {COUNTRY_ORDER[locale].map((iso) => (
-          // Name first: a native select jumps to the option whose text starts
-          // with what you type, and people type "Jordan", not "962".
-          <option key={iso} value={iso}>
-            {COUNTRIES[iso][locale]} (+{COUNTRIES[iso].dial})
-          </option>
-        ))}
-      </Select>
+        <Select.Trigger
+          type="button"
+          aria-label={countryLabel}
+          dir="ltr"
+          /*
+            88px rather than 112px, and the padding comes in with it: `ps-4` was
+            spacing a label that is never longer than a dial code, and the room
+            it took belongs to the digits beside it.
+
+            It is sized to the widest case, not the common one — 23 of the 240
+            entries carry a four-digit code (`+1876`), so `+XXXX` plus the 16px
+            chevron is what has to fit. Anything narrower reads fine against
+            `+962` and clips against Jamaica.
+          */
+          className={cn(
+            'q-field flex h-12 w-22 shrink-0 items-center justify-between gap-0.5 ps-3 pe-2 tabular-nums',
+            className,
+          )}
+        >
+          <Select.Value>{(value: CountryCode) => `+${COUNTRIES[value].dial}`}</Select.Value>
+          <Select.Icon>
+            <Icon name="chevronDown" className="size-4 text-muted-foreground" />
+          </Select.Icon>
+        </Select.Trigger>
+
+        <Select.Portal container={portalContainerRef}>
+          <Select.Positioner sideOffset={4} className="z-50" alignItemWithTrigger={false}>
+            <Select.Popup
+              className={cn(
+                'max-h-72 w-72 overflow-y-auto rounded-lg border border-border bg-popover p-1 shadow-elevated',
+                'motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 motion-safe:duration-200',
+              )}
+            >
+              <Select.List>
+                {COUNTRY_ORDER[locale].map((iso) => (
+                  // Name first: what someone scans a list of 240 countries by.
+                  <Select.Item
+                    key={iso}
+                    value={iso}
+                    className={cn(
+                      'flex cursor-default items-center justify-between gap-3 rounded-md px-3 py-2 text-start text-body-md',
+                      'data-highlighted:bg-accent data-highlighted:text-accent-foreground',
+                    )}
+                  >
+                    <Select.ItemText className="min-w-0 truncate">{COUNTRIES[iso][locale]}</Select.ItemText>
+                    <span className="shrink-0 tabular-nums text-muted-foreground" dir="ltr">
+                      +{COUNTRIES[iso].dial}
+                    </span>
+                  </Select.Item>
+                ))}
+              </Select.List>
+            </Select.Popup>
+          </Select.Positioner>
+        </Select.Portal>
+      </Select.Root>
 
       <Input
         id={id}

@@ -39,9 +39,8 @@ export function NotificationsMenu({ count, label, title, children }: Notificatio
 
         {count > 0 ? (
           /*
-            The count sits on the block-start/inline-end corner — the one the
-            Arc does not sweep, so the badge never collides with the tail.
-            `aria-hidden` because the trigger's own label already says it.
+            The count sits on the block-start/inline-end corner, clear of the
+            glyph. `aria-hidden` because the trigger's own label already says it.
           */
           <span
             aria-hidden
@@ -54,7 +53,7 @@ export function NotificationsMenu({ count, label, title, children }: Notificatio
 
       <Popover.Portal>
         <Popover.Positioner side="bottom" align="end" sideOffset={8} className="z-50">
-          <Popover.Popup className="w-[min(22rem,calc(100vw-1.5rem))] origin-(--transform-origin) overflow-hidden rounded-lg rounded-ee-4xl bg-popover text-popover-foreground shadow-overlay ring-1 ring-foreground/10 transition-[transform,opacity] duration-200 ease-[cubic-bezier(.2,.6,.2,1)] data-ending-style:scale-95 data-ending-style:opacity-0 data-starting-style:scale-95 data-starting-style:opacity-0">
+          <Popover.Popup className="w-[min(22rem,calc(100vw-1.5rem))] origin-(--transform-origin) overflow-hidden rounded-lg bg-popover text-popover-foreground shadow-overlay ring-1 ring-foreground/10 transition-[transform,opacity] duration-200 ease-[cubic-bezier(.2,.6,.2,1)] data-ending-style:scale-95 data-ending-style:opacity-0 data-starting-style:scale-95 data-starting-style:opacity-0">
             <Popover.Title className="border-b border-border px-4 py-3 font-heading text-heading-sm font-semibold">
               {title}
             </Popover.Title>

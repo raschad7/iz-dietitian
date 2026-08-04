@@ -35,7 +35,7 @@ export default async function WhatsappSettingsPage({ params }: WhatsappPageProps
 
   return (
     <div className="space-y-6 text-start">
-      <h2 className="text-2xl font-semibold tracking-tight">{t('title')}</h2>
+      <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
       <WhatsappSettings locale={locale} connection={connection} messages={messages} />
     </div>
   );

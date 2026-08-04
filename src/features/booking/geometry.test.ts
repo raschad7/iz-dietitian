@@ -1,12 +1,14 @@
 import { describe, expect, test } from 'bun:test';
 
 import {
+  BLOCK_GUTTER_PX,
   INLINE_HEIGHT_PX,
   MIN_PX_PER_SLOT,
   PX_PER_HOUR,
   PX_PER_SLOT,
   SUBDIVISION_MIN_PX_PER_SLOT,
   blockBox,
+  blockCardBox,
   blockTypeScale,
   clampToDay,
   fitPxPerSlot,
@@ -172,6 +174,40 @@ describe('blockBox', () => {
 
   test('a two-hour appointment is 256px', () => {
     expect(blockBox({ startMinute: OPEN, durationMinutes: 120 }, OPEN).height).toBe(256);
+  });
+});
+
+describe('blockCardBox', () => {
+  test('insets the drawn card by the gutter at both block edges', () => {
+    const appointment = { startMinute: 9 * 60, durationMinutes: 30 };
+
+    expect(blockCardBox(appointment, OPEN)).toEqual({
+      top: 128 + BLOCK_GUTTER_PX,
+      height: 64 - BLOCK_GUTTER_PX * 2,
+    });
+  });
+
+  test('leaves back-to-back appointments a gap of two gutters', () => {
+    const first = blockCardBox({ startMinute: 10 * 60, durationMinutes: 30 }, OPEN);
+    const second = blockCardBox({ startMinute: 10 * 60 + 30, durationMinutes: 30 }, OPEN);
+
+    expect(second.top - (first.top + first.height)).toBe(BLOCK_GUTTER_PX * 2);
+  });
+
+  test('never shrinks a card below the readable floor', () => {
+    // A quarter-hour on the most compressed grid: 20px, which two gutters
+    // would otherwise cut to 12.
+    const { height } = blockCardBox({ startMinute: OPEN, durationMinutes: 15 }, OPEN, MIN_PX_PER_SLOT);
+
+    expect(height).toBeGreaterThanOrEqual(16);
+  });
+
+  test('does not move the appointment itself', () => {
+    const appointment = { startMinute: 9 * 60, durationMinutes: 30 };
+
+    // The gap is presentation only — every gesture and drop target still reads
+    // the raw box, which is what keeps a card droppable on the slot it snaps to.
+    expect(blockBox(appointment, OPEN)).toEqual({ top: 128, height: 64 });
   });
 });
 

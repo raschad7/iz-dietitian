@@ -40,12 +40,20 @@ export async function getClinicHours(clinicId: string): Promise<ClinicHours | nu
  * Inclusive at both ends: callers pass the first and last day actually on
  * screen, which for the month view is the padded six-week grid, not the
  * calendar month.
+ *
+ * `clientId` narrows to one person's appointments — the Visit History tab on
+ * their profile reads the same grid the clinic-wide calendar does, just
+ * filtered to what one client can see there.
  */
 export async function listAppointments(
   clinicId: string,
   fromDate: string,
   toDate: string,
+  clientId?: string,
 ): Promise<CalendarAppointment[]> {
+  const conditions = [eq(appointments.clinicId, clinicId), between(appointments.date, fromDate, toDate)];
+  if (clientId) conditions.push(eq(appointments.clientId, clientId));
+
   return db
     .select({
       id: appointments.id,
@@ -60,7 +68,7 @@ export async function listAppointments(
     })
     .from(appointments)
     .innerJoin(clients, eq(clients.id, appointments.clientId))
-    .where(and(eq(appointments.clinicId, clinicId), between(appointments.date, fromDate, toDate)))
+    .where(and(...conditions))
     // Stable order so two appointments in the same column stack predictably.
     .orderBy(asc(appointments.date), asc(appointments.startMinute), asc(appointments.id));
 }
@@ -97,6 +105,45 @@ export async function getCalendarData(clinicId: string, fromDate: string, toDate
     // `requireStaffClinic` has already proved the caller has a clinic id, so a
     // missing row means the clinic was deleted mid-request. Failing loudly beats
     // rendering a calendar against invented opening hours.
+    throw new Error(`clinic ${clinicId} has no row; cannot read opening hours`);
+  }
+
+  return {
+    appointments: appointmentRows,
+    clients: clientRows,
+    hours: {
+      ...hours,
+      workingDays: [...hours.workingDays],
+      days: hours.days ? [...hours.days] : undefined,
+    },
+  };
+}
+
+/**
+ * The same read as {@link getCalendarData}, scoped to one client — the Visit
+ * History tab on their profile.
+ *
+ * `clients` here is at most that one row, and only if they are still active:
+ * an archived client cannot be booked from the clinic-wide calendar either
+ * (see `listBookableClients`), and their own profile is not a back door
+ * around that — restoring them first is still the honest workflow.
+ */
+export async function getClientCalendarData(
+  clinicId: string,
+  clientId: string,
+  fromDate: string,
+  toDate: string,
+): Promise<CalendarData> {
+  const [appointmentRows, clientRows, hours] = await Promise.all([
+    listAppointments(clinicId, fromDate, toDate, clientId),
+    db
+      .select({ id: clients.id, name: clients.fullName, color: clients.color })
+      .from(clients)
+      .where(and(eq(clients.clinicId, clinicId), eq(clients.id, clientId), eq(clients.status, 'active'))),
+    getClinicHours(clinicId),
+  ]);
+
+  if (!hours) {
     throw new Error(`clinic ${clinicId} has no row; cannot read opening hours`);
   }
 

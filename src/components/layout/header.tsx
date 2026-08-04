@@ -5,32 +5,26 @@ import { SignOutButton } from '@/components/layout/sign-out-button';
 import { type Locale } from '@/i18n/routing';
 
 /**
- * Top app bar for both signed-in areas.
+ * Top app bar for the client portal.
  *
  * Deliberately unfilled: it sits directly on the canvas with no background,
- * no border and no elevation, so the dark rail is the only heavy surface in
- * the shell and the eye has one place to go. The title and controls carry
- * themselves on type and spacing alone.
+ * no border and no elevation, so the page's own cards are the only surfaces
+ * and the eye has one place to go. The title and controls carry themselves on
+ * type and spacing alone.
  *
- * Sign-out lives here rather than in the sidebar because the sidebar is hidden
- * below `md`, and the client portal has no sidebar at all.
+ * **The dietitian area has no bar at all** — its rail carries the language
+ * switcher and sign-out at its block-end (see `layout/sidebar.tsx`). The portal
+ * has no rail to put them in, so it keeps this.
  */
 export function Header({
   title,
   userName,
   locale,
-  actions,
   children,
 }: {
   title: string;
   userName?: string;
   locale: Locale;
-  /**
-   * Shell-level controls that belong beside sign-out — the notification bell.
-   * Separate from `children` because those sit next to the title, and because
-   * the portal has no equivalent.
-   */
-  actions?: ReactNode;
   /** Contextual controls — a status chip, a page action — sit inline-end of the title. */
   children?: ReactNode;
 }) {
@@ -48,7 +42,6 @@ export function Header({
             {userName}
           </span>
         ) : null}
-        {actions}
         <LocaleSwitcher />
         <SignOutButton locale={locale} />
       </div>

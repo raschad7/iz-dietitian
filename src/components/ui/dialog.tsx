@@ -15,9 +15,9 @@ import { cn } from '@/lib/utils';
  * with the same class string; this is that, shared, with the scrim moved off
  * `bg-black/40` and onto the olive-tinted `--overlay` token.
  *
- * Bottom sheet on a phone, centred card from `sm` up. The sheet sweeps its
- * block-start corners because it rises from the bottom edge; the centred card
- * carries the normal Arc tail.
+ * Bottom sheet on a phone, centred card from `sm` up. The sheet rounds its
+ * block-start corners only, because it rises from the bottom edge and its other
+ * two are off-screen; the centred card rounds all four like any other surface.
  */
 type DialogProps = {
   open: boolean;
@@ -71,7 +71,7 @@ function Dialog({ open, onClose, label, dir, flat, size = 'default', className, 
       className={cn(
         'w-full max-w-none p-0 text-start',
         'mt-auto mb-0 rounded-t-2xl',
-        'sm:m-auto sm:rounded-lg sm:rounded-ee-4xl',
+        'sm:m-auto sm:rounded-lg',
         size === 'wide' ? 'sm:w-[min(64rem,calc(100vw-4rem))]' : 'sm:w-[min(28rem,calc(100vw-2rem))]',
         'bg-popover text-popover-foreground ring-1',
         flat ? 'ring-primary/25' : 'shadow-overlay ring-foreground/10',
@@ -90,7 +90,15 @@ function Dialog({ open, onClose, label, dir, flat, size = 'default', className, 
   );
 }
 
-/** Title inline-start, close button inline-end. */
+/**
+ * Title inline-start, optional close button inline-end.
+ *
+ * **The X is opt-in, and a dialog is allowed to have none.** Escape, a backdrop
+ * click and the footer's own cancel button all close a `<dialog>` already, so a
+ * form whose footer says "Cancel" beside "Save" is not made more escapable by a
+ * third exit — it is only made busier at the corner the title starts from. Pass
+ * `onClose` where the surface has no footer to leave by.
+ */
 function DialogHeader({
   title,
   description,
@@ -102,7 +110,8 @@ function DialogHeader({
   title: React.ReactNode;
   description?: React.ReactNode;
   onClose?: () => void;
-  closeLabel: string;
+  /** Required with `onClose` — the button is icon-only and carries no other name. */
+  closeLabel?: string;
   className?: string;
   children?: React.ReactNode;
 }) {

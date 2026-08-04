@@ -3,6 +3,8 @@
 import { useTranslations } from 'next-intl';
 import { type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
 
+import { Icon } from '@/components/ui/icon';
+import { Link } from '@/i18n/navigation';
 import { type Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 
@@ -13,16 +15,17 @@ import { type CalendarAppointment } from '../types';
 /**
  * One appointment, positioned on a day column.
  *
- * Colour comes from the client and is applied inline: it is row data, not a
- * design token, so there is no Tailwind class for it. The same hex draws that
- * person's avatar in the picker, so a block and a row in the list read as
- * obviously the same client. The block is a tint of it with a solid edge on the
- * inline-start side — `border-s`, so the edge is on the left in English and the
- * right in Arabic without a second rule.
+ * The card itself is a fixed, uniform surface — a light olive fill with a
+ * slightly darker edge on all four sides — so the grid reads as one calm
+ * system rather than a wall of client colours.
  *
  * Type scales with the block's height (see `blockTypeScale`) so a two-hour
  * booking reads larger than a half-hour one, and below ~44px there is no room
  * for two lines, so the block collapses to the client's name alone.
+ *
+ * Direction follows the app's locale, not the client name's script — no
+ * `dir="auto"` here. A card in the Arabic build starts from the right even
+ * when the name on it is English, matching every other surface in the app.
  */
 
 export type AppointmentBlockProps = {
@@ -82,22 +85,23 @@ export function AppointmentBlock({
   const draggable = !completed;
 
   /**
-   * Drag feedback wins over the client colour: while dragging, "is this legal?"
-   * is the only thing the block needs to say.
+   * Drag feedback wins over the resting olive fill: while dragging, "is this
+   * legal?" is the only thing the block needs to say. `undefined` when not
+   * dragging leaves the Tailwind classes below in charge, instead of an
+   * inline style fighting them for the same property.
    */
   const accent =
     dragState === 'valid'
       ? 'var(--status-on-track-fg)'
       : dragState === 'invalid'
         ? 'var(--destructive)'
-        : appointment.clientColor;
+        : undefined;
 
   const style: CSSProperties = {
     top,
     height,
-    // `color-mix` keeps one stored hex driving the fill, the edge and the text.
-    background: `color-mix(in oklch, ${accent} 16%, var(--card))`,
-    borderInlineStartColor: accent,
+    background: accent ? `color-mix(in oklch, ${accent} 16%, var(--card))` : undefined,
+    borderColor: accent,
     // Desaturated and faded once the appointment is over — derived every render
     // from the shared clock, never stored.
     filter: completed ? 'saturate(0.3)' : undefined,
@@ -106,17 +110,40 @@ export function AppointmentBlock({
 
   return (
     <article
-      dir="auto"
       data-appointment-id={appointment.id}
       data-completed={completed || undefined}
       aria-label={`${appointment.clientName} · ${timeRange}`}
       className={cn(
-        'absolute start-0.5 end-0.5 rounded-md border border-border/60 border-s-[3px] px-2',
-        'text-start transition-[opacity,box-shadow] select-none',
-        scale.inline ? 'py-0.5' : 'py-1',
+        /*
+          10px of gutter on the inline edges, and `BLOCK_GUTTER_PX` on the
+          block edges (applied by `blockCardBox`, since a card's block extent
+          is time and belongs to the geometry module).
+
+          The card used to sit 2px off the slot rules and flush against its
+          neighbours in time, which made a column of bookings read as one
+          striped block reaching the day's edges — no air of its own, and
+          nowhere for the grid behind it to show through. Inset on all four
+          sides, each appointment reads as a separate card *on* the day rather
+          than as the day itself.
+        */
+        'absolute start-2.5 end-2.5 rounded-sm border px-4',
+        'text-start transition-[opacity,box-shadow,background-color,border-color] select-none',
+        // The block-axis padding the height allows. A short booking cannot
+        // spend 12px on air and still show a line of text, so it takes 6px;
+        // everything from a half-hour up gets the full gutter.
+        scale.inline ? 'py-1.5' : 'py-3',
+        /*
+          The resting surface is **olive-50** — the palette's quietest tint —
+          with the olive-200 edge doing the containing. At olive-100 a column of
+          bookings was a solid green wall and the hover step had nowhere to go
+          but darker still; starting a step lighter leaves the fill room to
+          answer the pointer and lets the grid read through a busy day.
+        */
+        !accent && 'border-(--olive-200) bg-(--olive-50) hover:bg-(--olive-100)',
         // The cursor is the honest signal that a finished appointment is fixed.
         draggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-default',
-        selected && 'ring-2 ring-ring ring-offset-1 ring-offset-background',
+        selected &&
+          'border-(--olive-500) bg-(--olive-100) ring-2 ring-(--olive-500) ring-offset-1 ring-offset-background',
         // Clipped normally so a long name cannot spill into the next slot, but
         // opened up while dragging so the time chip below can escape a block too
         // short to contain it.
@@ -140,9 +167,14 @@ export function AppointmentBlock({
         Name and time, at every block size. Stacked when there is room, side by
         side when there is not — but never one without the other: a block showing
         only a name makes staff click it to find out when it is.
+
+        `pe-3` reserves what the client-page arrow reaches past the card's own
+        16px of padding, so a long name truncates before it rather than running
+        underneath it. It is narrower than it used to be because the card's
+        inline padding grew: the two together still clear the same glyph.
       */}
       <div
-        className={cn('flex min-w-0', scale.inline ? 'flex-row items-baseline' : 'flex-col')}
+        className={cn('flex min-w-0 pe-3', scale.inline ? 'flex-row items-baseline' : 'flex-col')}
         style={{ gap: `${scale.gapRem}rem` }}
       >
         <span
@@ -170,9 +202,7 @@ export function AppointmentBlock({
           )}
           style={{ fontSize: `${scale.timeRem}rem`, lineHeight: 1.25 }}
         >
-          <span dir="auto" className="tabular-nums">
-            {timeRange}
-          </span>
+          <span className="tabular-nums">{timeRange}</span>
           {/*
             No `uppercase tracking-wide` on the label below: it is translated,
             and both are neutralised under `:lang(ar)` anyway, so they only
@@ -193,6 +223,34 @@ export function AppointmentBlock({
       </div>
 
       {/*
+        The client's record, and **the only way to it from the grid**.
+
+        Top corner, opposite the name and time rather than over them. Stops its
+        own pointer-down from reaching the card, or the click would first
+        register as the start of a select-and-maybe-drag gesture instead of a
+        navigation. No hover treatment: it sits in the same tight corner at
+        every block size, and a colour shift there reads as noise rather than
+        feedback worth having.
+
+        The card around it is deliberately *not* a link. Left-click on the body
+        selects and may become a drag, right-click opens the appointment, and a
+        stretched link over all of that made every one of those gestures a
+        candidate for navigating away — a booking moved by a shaky hand and a
+        client page opened by accident are the same slipped pointer. Confining
+        navigation to one small, explicit target keeps the two apart by area
+        rather than by guessing at intent.
+      */}
+      <Link
+        href={`/app/clients/${appointment.clientId}`}
+        aria-label={t('openClientProfile')}
+        className="absolute end-0.5 top-0.5 z-10 flex size-6 items-center justify-center rounded-full text-foreground/50"
+        onPointerDown={(event) => event.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <Icon name="chevronEnd" className="size-4" />
+      </Link>
+
+      {/*
         The live times while this block is being moved or resized.
 
         Shown as a floating chip rather than relying on the block's own second
@@ -209,7 +267,7 @@ export function AppointmentBlock({
             dragState === 'valid' ? 'border-primary/60 text-foreground' : 'border-destructive/60 text-destructive',
           )}
         >
-          <span dir="auto">{timeRange}</span>
+          <span>{timeRange}</span>
           <span className="ms-1.5 font-normal text-muted-foreground">
             {formatDuration(appointment.durationMinutes, {
               hour: (n) => t('duration.hours', { count: n }),

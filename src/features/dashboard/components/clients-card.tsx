@@ -1,10 +1,10 @@
 import { getTranslations } from 'next-intl/server';
 
-import { Avatar } from '@/components/ui/avatar';
 import { buttonVariants } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
 import { formatMediumDate, formatMinute } from '@/features/booking/format';
+import { calculateAge } from '@/features/clients/age';
 import { ClientFormTrigger } from '@/features/clients/components/client-form-trigger';
 import { type DashboardClient } from '@/features/dashboard/queries';
 import { Link } from '@/i18n/navigation';
@@ -13,8 +13,6 @@ import { cn } from '@/lib/utils';
 
 type ClientsCardProps = {
   clients: DashboardClient[];
-  /** Everyone active, not just the rows shown — the subtitle counts the register. */
-  total: number;
   locale: Locale;
 };
 
@@ -28,10 +26,25 @@ type ClientsCardProps = {
  * actually starts a working day, and every row is a way into that person's
  * record.
  *
- * The rows are plain surfaces rather than nested `Card`s: this panel already
- * carries the Arc, and **one tail per surface** (docs/design-system.md). Rows
- * are separated with a hairline (`divide-y`) rather than individual borders,
- * so the rule sits once between each pair rather than doubling at the edges.
+ * The rows are plain surfaces rather than nested `Card`s: this panel is already
+ * the card, and a stack of cards inside it would double every ring and shadow
+ * down the list. Rows are separated with a hairline (`divide-y`) rather than
+ * individual borders, so the rule sits once between each pair rather than
+ * doubling at the edges.
+ *
+ * **A row is text in three columns, not a portrait.** The avatar went because a
+ * coloured initial identifies someone you already know by sight, and this list
+ * is read by someone who needs to *reach* them — so the space it held now
+ * carries the age and the phone number, the two facts you would otherwise open
+ * the record for. Both columns are held open by a dash when the record is
+ * missing them, because a column that disappears on some rows is a column you
+ * have to re-find on every one.
+ *
+ * **A row is built to the register's own row** — the same padding, the same
+ * hover tint, the same height floor as `ClientTable` on `/app/clients`. Two
+ * views of one list should not have two rhythms; the differences that remain
+ * are the ones that carry information (this one is three columns, not six, and
+ * it hangs a next-visit line under them).
  *
  * **The list scrolls inside the card, never the page.** At `xl` and up the
  * list is `flex-1`/`min-h-0` inside the card, which is already bounded by the
@@ -42,19 +55,21 @@ type ClientsCardProps = {
  * thing on the page and drag the whole page down with it just to show a list
  * that has its own scrollbar for exactly this reason.
  */
-export async function ClientsCard({ clients, total, locale }: ClientsCardProps) {
-  const t = await getTranslations('dashboard.clients');
+export async function ClientsCard({ clients, locale }: ClientsCardProps) {
+  const [t, tc] = await Promise.all([
+    getTranslations('dashboard.clients'),
+    getTranslations('clients'),
+  ]);
 
   return (
     <Card className="min-h-0 xl:h-full">
       <CardHeader className="shrink-0 grid-cols-[auto_1fr] items-center gap-2">
+        {/* Static. The card is not a target — its rows are — so the disc has
+            nothing to promise and stays neutral whatever the pointer does. */}
         <span className="flex size-8 items-center justify-center rounded-full bg-muted text-muted-foreground">
           <Icon name="clients" className="size-4" />
         </span>
-        <span>
-          <CardTitle>{t('title')}</CardTitle>
-          <CardDescription>{t('subtitle', { count: total })}</CardDescription>
-        </span>
+        <CardTitle>{t('title')}</CardTitle>
       </CardHeader>
 
       <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
@@ -74,7 +89,7 @@ export async function ClientsCard({ clients, total, locale }: ClientsCardProps) 
           <>
             {/*
               `pe-1` leaves the scrollbar somewhere to sit that is not on top of
-              the card's tail; `overscroll-contain` stops a flick at the end of
+              the card's edge; `overscroll-contain` stops a flick at the end of
               the list from scrolling the shell behind it.
 
               `max-h-80` is the fallback ceiling for below `xl`, where nothing
@@ -83,46 +98,95 @@ export async function ClientsCard({ clients, total, locale }: ClientsCardProps) 
               bounded by the one-screen layout.
             */}
             <ul className="flex max-h-80 flex-col divide-y divide-border overflow-y-auto overscroll-contain pe-1 xl:max-h-none xl:min-h-0 xl:flex-1">
-              {clients.map((client) => (
-                <li key={client.id}>
-                  <Link
-                    href={`/app/clients/${client.id}`}
-                    className="flex items-center gap-3 p-2 transition-colors hover:bg-muted"
-                  >
-                    {/* The client's own colour — record data, not a design token. */}
-                    <Avatar size="sm" name={client.fullName} color={client.color} />
+              {clients.map((client) => {
+                // Same rule as the client record's own profile card: a
+                // corrupt or implausible birth date reads as no age at all
+                // rather than as a number nobody can explain.
+                const age = client.dateOfBirth ? calculateAge(client.dateOfBirth) : null;
 
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate font-medium" dir="auto">
+                return (
+                  <li key={client.id}>
+                    {/*
+                      Three equal columns — `grid-cols-3` is
+                      `repeat(3, minmax(0,1fr))`, so each takes exactly a third
+                      and one long name cannot squeeze the figures beside it.
+                      Every cell starts at its own inline-start edge, which is
+                      the left in English and the right in Arabic with no
+                      per-locale branch; the square corners on the hover fill
+                      keep the three columns reading as one ruled row rather
+                      than as a pill floating inside the list.
+                    */}
+                    {/*
+                      `text-body-sm` is set once, on the row, and no cell inside
+                      it names a size of its own — the name used to inherit the
+                      card's 16px while the three facts beside and under it were
+                      12px, which made one row read as a heading with a caption
+                      stuck to it rather than as a line in a list. 14px is the
+                      dense-table size; the columns still separate on weight and
+                      colour, which is what they were separating on anyway.
+
+                      **The box is the register's own row, to the pixel.**
+                      `px-3 py-2.5` and `hover:bg-secondary/60` are lifted from
+                      `TableCell`/`TableRow`, and `2.85rem` is what that row
+                      measures (0.625rem padding twice, plus a 1.6 line) — this
+                      is the same list of the same people, and it had no
+                      business being a third taller here with a different tint
+                      under the pointer. It is a floor rather than a fixed
+                      height because a client with a next visit carries a second
+                      line the register has no column for.
+                    */}
+                    <Link
+                      href={`/app/clients/${client.id}`}
+                      className="grid min-h-[2.85rem] grid-cols-3 items-center gap-x-3 gap-y-0.5 px-3 py-2.5 text-start text-body-sm transition-colors hover:bg-secondary/60"
+                    >
+                      <span className="truncate font-medium" dir="auto">
                         {client.fullName}
                       </span>
-                      {/*
-                        The next visit if there is one, the day they joined if
-                        there is not — a row that said only a name would send
-                        the reader to the record to find out anything at all.
-                      */}
-                      <span
-                        className={cn(
-                          'block truncate text-caption',
-                          client.nextVisit ? 'text-muted-foreground' : 'text-muted-foreground/80',
-                        )}
-                      >
-                        {client.nextVisit
-                          ? t('nextVisit', {
-                              when: `${formatMediumDate(locale, client.nextVisit.date)} · ${formatMinute(
-                                locale,
-                                client.nextVisit.date,
-                                client.nextVisit.startMinute,
-                              )}`,
-                            })
-                          : t('nothingBooked')}
-                      </span>
-                    </span>
 
-                    <Icon name="chevronEnd" className="size-4 shrink-0 text-muted-foreground" />
-                  </Link>
-                </li>
-              ))}
+                      <span className="truncate text-muted-foreground tabular-nums">
+                        {age === null ? <Missing /> : tc('yearsOld', { count: age })}
+                      </span>
+
+                      {/*
+                        The cell keeps the page's direction so the number sits
+                        at the column's inline-start like its two neighbours;
+                        `dir` on the inner span isolates the digits and runs
+                        them left-to-right, which is how a phone number is read
+                        in both locales — letting it inherit the Arabic
+                        direction moves a leading `+` to the wrong end of it.
+                      */}
+                      <span className="truncate text-muted-foreground">
+                        {client.phone ? (
+                          <span className="font-mono" dir="ltr">
+                            {client.phone}
+                          </span>
+                        ) : (
+                          <Missing />
+                        )}
+                      </span>
+
+                      {/*
+                        The next visit runs under all three, when there is one.
+                        Nothing at all when there is not — "Nothing booked"
+                        repeated down the list said the same non-fact about
+                        most of the register and gave every row a line to read
+                        past.
+                      */}
+                      {client.nextVisit ? (
+                        <span className="col-span-3 truncate text-muted-foreground">
+                          {t('nextVisit', {
+                            when: `${formatMediumDate(locale, client.nextVisit.date)} · ${formatMinute(
+                              locale,
+                              client.nextVisit.date,
+                              client.nextVisit.startMinute,
+                            )}`,
+                          })}
+                        </span>
+                      ) : null}
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
 
             <Link
@@ -136,5 +200,21 @@ export async function ClientsCard({ clients, total, locale }: ClientsCardProps) 
         )}
       </CardContent>
     </Card>
+  );
+}
+
+/**
+ * A column held open with nothing in it.
+ *
+ * `aria-hidden`, because the dash is a ruling device: a screen reader
+ * announcing "dash" between a name and a phone number is worse than the
+ * silence of an empty cell, and "not recorded" said out loud on every second
+ * row would bury the rows that do have the number.
+ */
+function Missing() {
+  return (
+    <span aria-hidden className="text-muted-foreground/60">
+      —
+    </span>
   );
 }
