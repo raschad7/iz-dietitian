@@ -1,10 +1,40 @@
-import { and, asc, between, desc, eq, inArray } from 'drizzle-orm';
+import { and, asc, between, count, desc, eq, inArray } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { appointmentRequests, appointments, clients } from '@/db/schema';
+import {
+  appointmentRequests,
+  appointments,
+  clientCheckIns,
+  clientNutritionProfiles,
+  clientPlanAdherence,
+  clientRequests,
+  clientSettings,
+  clients,
+  clinics,
+  defaultClientSettings,
+  practitioners,
+} from '@/db/schema';
 import { type ExistingAppointment } from '@/features/booking/validation';
 
-import { type PortalAppointment, type PortalProfile, type PortalRequest, type RequestKind, type RequestStatus } from './types';
+import { type AdherenceRow } from './adherence';
+import { type CheckInRow } from './check-ins';
+
+import {
+  type ClientRequestKind,
+  type ClientRequestSummary,
+  type ClientRequestTopic,
+  type ContactMethod,
+  type PortalAppointment,
+  type PortalClinic,
+  type PortalPractitioner,
+  type PortalProfile,
+  type PortalRequest,
+  type PortalSettings,
+  type PortalWeight,
+  type RequestKind,
+  type RequestStatus,
+  type ThemePreference,
+} from './types';
 
 /**
  * Reads for the client portal. Imports nothing from Next.js, so these can be
@@ -18,8 +48,19 @@ import { type PortalAppointment, type PortalProfile, type PortalRequest, type Re
  * argument everywhere and forgetting it is a type error.
  */
 
-/** The signed-in client's own record, plus the two ids every other read needs. */
-export type PortalClient = { id: string; clinicId: string; profile: PortalProfile };
+/**
+ * The signed-in client's own record, plus the ids every other read needs.
+ *
+ * `assignedDietitianId` is a `users.id`, and it is carried here rather than
+ * resolved eagerly because only the profile screen wants the name behind it —
+ * the header, which loads this on every portal page, does not.
+ */
+export type PortalClient = {
+  id: string;
+  clinicId: string;
+  assignedDietitianId: string | null;
+  profile: PortalProfile;
+};
 
 /**
  * Resolves a portal session to the clinical record behind it.
@@ -32,22 +73,33 @@ export type PortalClient = { id: string; clinicId: string; profile: PortalProfil
  * `medical_notes` and `notes` are deliberately not selected. They are the
  * dietitian's own working notes about the person, not a record written for them
  * to read, and nothing in the portal should be able to leak them by accident.
+ *
+ * `conditions`, `medications` and `care_note` ARE selected, and the difference
+ * is the point: those three are the part of the same record a dietitian writes
+ * *for* the client, and the profile screen renders them verbatim. See the
+ * column comments in `src/db/schema/clients.ts`.
  */
 export async function getPortalClient(userId: string): Promise<PortalClient | null> {
   const [row] = await db
     .select({
       id: clients.id,
       clinicId: clients.clinicId,
+      assignedDietitianId: clients.assignedDietitianId,
       fullName: clients.fullName,
       phone: clients.phone,
       email: clients.email,
       preferredLocale: clients.preferredLocale,
+      photoUrl: clients.photoUrl,
       dateOfBirth: clients.dateOfBirth,
       sex: clients.sex,
       heightCm: clients.heightCm,
       goal: clients.goal,
       activityLevel: clients.activityLevel,
       allergies: clients.allergies,
+      conditions: clients.conditions,
+      medications: clients.medications,
+      careNote: clients.careNote,
+      updatedAt: clients.updatedAt,
     })
     .from(clients)
     .where(eq(clients.userId, userId))
@@ -55,9 +107,165 @@ export async function getPortalClient(userId: string): Promise<PortalClient | nu
 
   if (!row) return null;
 
-  const { id, clinicId, ...profile } = row;
+  const { id, clinicId, assignedDietitianId, ...profile } = row;
 
-  return { id, clinicId, profile: { id, ...profile } };
+  return { id, clinicId, assignedDietitianId, profile: { id, ...profile } };
+}
+
+/**
+ * The clinic the client belongs to, as the profile screen shows it.
+ *
+ * A read of its own rather than a join onto `getPortalClient`: the client row
+ * is loaded on every portal page by the shell, and the clinic's address is
+ * wanted on exactly one of them.
+ */
+export async function getPortalClinic(clinicId: string): Promise<PortalClinic | null> {
+  const [row] = await db
+    .select({
+      name: clinics.name,
+      phone: clinics.phone,
+      address: clinics.address,
+      workingDays: clinics.workingDays,
+      openMinute: clinics.openMinute,
+      closeMinute: clinics.closeMinute,
+    })
+    .from(clinics)
+    .where(eq(clinics.id, clinicId))
+    .limit(1);
+
+  return row ?? null;
+}
+
+/**
+ * The dietitian assigned to this client.
+ *
+ * `clients.assigned_dietitian_id` is a `users.id`, and the name and specialty
+ * live on `practitioners` — the two are linked by `practitioners.user_id`. The
+ * clinic id is in the `WHERE` as well, so a stale assignment pointing at
+ * someone who has since moved clinics resolves to nobody rather than naming a
+ * stranger.
+ *
+ * Returns null when no dietitian is assigned, which is the normal state for a
+ * one-person clinic that never filled the field in. The screen says so rather
+ * than guessing at the clinic's only practitioner: being told the wrong
+ * person is looking after you is worse than being told nobody is recorded.
+ */
+export async function getAssignedPractitioner(
+  clinicId: string,
+  assignedDietitianId: string | null,
+): Promise<PortalPractitioner | null> {
+  if (!assignedDietitianId) return null;
+
+  const [row] = await db
+    .select({ name: practitioners.name, specialty: practitioners.specialty })
+    .from(practitioners)
+    .where(
+      and(eq(practitioners.clinicId, clinicId), eq(practitioners.userId, assignedDietitianId)),
+    )
+    .limit(1);
+
+  return row ?? null;
+}
+
+/**
+ * The client's current weight — but only if their dietitian shares it.
+ *
+ * The `share_weight_with_client` flag is applied here, in the read, rather than
+ * in a component. §11 of the design system requires that a hidden measurement
+ * is hidden everywhere, and the only way to guarantee that across future
+ * callers is for the number never to leave the database in the first place.
+ *
+ * Returns null both when it is not shared and when none was recorded; see
+ * {@link PortalWeight} for why those two are deliberately the same value.
+ */
+export async function getSharedWeight(clientId: string): Promise<PortalWeight> {
+  const [row] = await db
+    .select({
+      weightKg: clientNutritionProfiles.weightKg,
+      shared: clientNutritionProfiles.shareWeightWithClient,
+    })
+    .from(clientNutritionProfiles)
+    .where(eq(clientNutritionProfiles.clientId, clientId))
+    .limit(1);
+
+  return row?.shared ? row.weightKg : null;
+}
+
+/**
+ * The client's own account settings, with the defaults filled in.
+ *
+ * A client who has never opened this screen has no row, and that is not an
+ * error — `defaultClientSettings` is what they are already living under, so
+ * returning it means the screen renders the truth without a write happening on
+ * a read.
+ *
+ * The two text columns are re-narrowed on the way out for the same reason
+ * `listPortalRequests` re-narrows `kind`: they are `text` guarded by a check
+ * constraint, so the driver hands back a `string`.
+ */
+export async function getClientSettings(clientId: string): Promise<PortalSettings> {
+  const [row] = await db
+    .select({
+      notifyAppointmentReminder: clientSettings.notifyAppointmentReminder,
+      notifyCheckInReminder: clientSettings.notifyCheckInReminder,
+      notifyPlanUpdate: clientSettings.notifyPlanUpdate,
+      notifyClinicMessage: clientSettings.notifyClinicMessage,
+      theme: clientSettings.theme,
+      preferredContact: clientSettings.preferredContact,
+    })
+    .from(clientSettings)
+    .where(eq(clientSettings.clientId, clientId))
+    .limit(1);
+
+  const stored = row ?? defaultClientSettings;
+
+  return {
+    notifications: {
+      appointmentReminder: stored.notifyAppointmentReminder,
+      checkInReminder: stored.notifyCheckInReminder,
+      planUpdate: stored.notifyPlanUpdate,
+      clinicMessage: stored.notifyClinicMessage,
+    },
+    theme: stored.theme as ThemePreference,
+    preferredContact: stored.preferredContact as ContactMethod,
+  };
+}
+
+/**
+ * The request of this kind the clinic has not answered yet, if there is one.
+ *
+ * Both screens ask this so they can show what is already waiting instead of a
+ * form that would be refused by the partial unique index — the same reasoning
+ * as `listPortalAppointments`'s `hasOpenRequest` flag.
+ */
+export async function getOpenClientRequest(
+  clientId: string,
+  kind: ClientRequestKind,
+): Promise<ClientRequestSummary | null> {
+  const [row] = await db
+    .select({
+      id: clientRequests.id,
+      kind: clientRequests.kind,
+      topic: clientRequests.topic,
+      createdAt: clientRequests.createdAt,
+    })
+    .from(clientRequests)
+    .where(
+      and(
+        eq(clientRequests.clientId, clientId),
+        eq(clientRequests.kind, kind),
+        eq(clientRequests.status, 'pending'),
+      ),
+    )
+    .limit(1);
+
+  if (!row) return null;
+
+  return {
+    ...row,
+    kind: row.kind as ClientRequestKind,
+    topic: row.topic as ClientRequestTopic | null,
+  };
 }
 
 /**
@@ -145,6 +353,7 @@ export async function listPortalRequests(clientId: string): Promise<PortalReques
       preferredStartMinute: appointmentRequests.preferredStartMinute,
       note: appointmentRequests.note,
       createdAt: appointmentRequests.createdAt,
+      updatedAt: appointmentRequests.updatedAt,
       appointmentDate: appointments.date,
       appointmentStartMinute: appointments.startMinute,
     })
@@ -192,6 +401,70 @@ export async function listClinicBookings(
     .from(appointments)
     .where(and(eq(appointments.clinicId, clinicId), between(appointments.date, fromDate, toDate)))
     .orderBy(asc(appointments.date), asc(appointments.startMinute));
+}
+
+/**
+ * How many of this client's requests the dietitian has not answered yet.
+ *
+ * A count rather than `listPortalRequests(...).filter(...)`: the header needs
+ * the number and nothing else, and the shell renders on every portal page —
+ * including the ones that never load the list.
+ */
+export async function countPendingRequests(clientId: string): Promise<number> {
+  const [row] = await db
+    .select({ value: count() })
+    .from(appointmentRequests)
+    .where(and(eq(appointmentRequests.clientId, clientId), eq(appointmentRequests.status, 'pending')));
+
+  return row?.value ?? 0;
+}
+
+/**
+ * The client's own check-ins across a date range, inclusive.
+ *
+ * Scoped by `clientId` and not by clinic: a check-in is the client's own record
+ * of their day, and the portal's whole authorisation model is that they read
+ * their row and nobody else's.
+ *
+ * Returns whatever exists — a day with no answer has no row, and the caller
+ * (`summariseWeek`) draws that absence rather than being handed a zero the
+ * client never gave.
+ */
+export async function listCheckIns(
+  clientId: string,
+  fromDate: string,
+  toDate: string,
+): Promise<CheckInRow[]> {
+  return db
+    .select({
+      date: clientCheckIns.date,
+      score: clientCheckIns.score,
+      energy: clientCheckIns.energy,
+      sleep: clientCheckIns.sleep,
+      appetite: clientCheckIns.appetite,
+      mood: clientCheckIns.mood,
+      water: clientCheckIns.water,
+    })
+    .from(clientCheckIns)
+    .where(and(eq(clientCheckIns.clientId, clientId), between(clientCheckIns.date, fromDate, toDate)))
+    .orderBy(asc(clientCheckIns.date));
+}
+
+/** How closely the client reported following their plan, one row per day they answered. */
+export async function listPlanAdherence(
+  clientId: string,
+  fromDate: string,
+  toDate: string,
+): Promise<AdherenceRow[]> {
+  const rows = await db
+    .select({ date: clientPlanAdherence.date, level: clientPlanAdherence.level })
+    .from(clientPlanAdherence)
+    .where(and(eq(clientPlanAdherence.clientId, clientId), between(clientPlanAdherence.date, fromDate, toDate)))
+    .orderBy(asc(clientPlanAdherence.date));
+
+  // `level` is plain `text` guarded by a check constraint, so the union is
+  // reasserted on the way out rather than trusted from the driver's `string`.
+  return rows.map((row) => ({ ...row, level: row.level as AdherenceRow['level'] }));
 }
 
 /*

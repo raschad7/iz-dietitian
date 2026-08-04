@@ -41,6 +41,8 @@ export type PortalRequest = {
   preferredStartMinute: number | null;
   note: string | null;
   createdAt: Date;
+  /** When the dietitian last acted on it — the notifications feed's "answered" timestamp. */
+  updatedAt: Date;
   /** The appointment it concerns, for a reschedule or a cancellation. */
   appointment: { date: string; startMinute: number } | null;
 };
@@ -52,12 +54,123 @@ export type PortalProfile = {
   phone: string | null;
   email: string | null;
   preferredLocale: string;
+  /** A servable path such as `/avatars/hiba.jpg`, or null — the usual case. */
+  photoUrl: string | null;
   dateOfBirth: string | null;
   sex: string | null;
   heightCm: number | null;
   goal: string | null;
   activityLevel: string | null;
   allergies: string | null;
+  conditions: string | null;
+  medications: string | null;
+  careNote: string | null;
+  /** When the dietitian last touched the record — the profile screen's "last updated". */
+  updatedAt: Date;
+};
+
+/**
+ * The clinic, as the one place a client can reach it from.
+ *
+ * `phone` and `address` are nullable because a staff sign-up asks for neither,
+ * so the contact section renders what exists and says plainly when it does not
+ * — it never fabricates a number to keep a button alive.
+ */
+export type PortalClinic = {
+  name: string;
+  phone: string | null;
+  address: string | null;
+  /** Weekday numbers, 0 = Sunday … 6 = Saturday. */
+  workingDays: readonly number[];
+  openMinute: number;
+  closeMinute: number;
+};
+
+/** The dietitian this client is assigned to. Null when nobody has been assigned yet. */
+export type PortalPractitioner = {
+  name: string;
+  specialty: string | null;
+};
+
+/**
+ * The client's current weight, only when the dietitian has chosen to share it.
+ *
+ * A `null` here is indistinguishable from "not recorded" **on purpose**: §11
+ * of the design system says hidden means hidden, and a shape that let the UI
+ * tell the two apart would let it draw the difference. The screen omits the
+ * row either way.
+ */
+export type PortalWeight = number | null;
+
+/* ── Account settings: the part of the record the client owns ────────────── */
+
+export const THEME_PREFERENCES = ['system', 'light', 'dark'] as const;
+
+export type ThemePreference = (typeof THEME_PREFERENCES)[number];
+
+export const CONTACT_METHODS = ['whatsapp', 'phone', 'email'] as const;
+
+export type ContactMethod = (typeof CONTACT_METHODS)[number];
+
+/**
+ * The four things the clinic may send. Named rather than a free-form record so
+ * the settings screen can render the list and the action can validate a key
+ * against the same source.
+ */
+export const NOTIFICATION_KINDS = [
+  'appointmentReminder',
+  'checkInReminder',
+  'planUpdate',
+  'clinicMessage',
+] as const;
+
+export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
+
+export type PortalSettings = {
+  notifications: Record<NotificationKind, boolean>;
+  theme: ThemePreference;
+  preferredContact: ContactMethod;
+};
+
+/* ── Asking the clinic to change something ───────────────────────────────── */
+
+export const CLIENT_REQUEST_KINDS = ['data_update', 'account_deletion'] as const;
+
+export type ClientRequestKind = (typeof CLIENT_REQUEST_KINDS)[number];
+
+export const CLIENT_REQUEST_TOPICS = ['basic', 'health', 'contact', 'other'] as const;
+
+export type ClientRequestTopic = (typeof CLIENT_REQUEST_TOPICS)[number];
+
+export const CLIENT_REQUEST_STATUSES = ['pending', 'resolved', 'declined', 'withdrawn'] as const;
+
+export type ClientRequestStatus = (typeof CLIENT_REQUEST_STATUSES)[number];
+
+/** One thing the client has asked the clinic to do about their record. */
+export type ClientRequestSummary = {
+  id: string;
+  kind: ClientRequestKind;
+  topic: ClientRequestTopic | null;
+  createdAt: Date;
+};
+
+/**
+ * Everything the profile screen renders from — produced by `loadProfilePage`.
+ *
+ * The three groups are separated here rather than flattened, because who owns
+ * what is the screen's whole argument: `profile` and `health` are the
+ * dietitian's record, `clinic` and `practitioner` are the clinic's, and the
+ * only client-owned thing on that screen is the photo.
+ */
+export type ProfilePageData = {
+  profile: PortalProfile;
+  /** Only when the dietitian shares it; see {@link PortalWeight}. */
+  weightKg: PortalWeight;
+  /** Null when the clinic row has gone — the section is omitted rather than blanked. */
+  clinic: PortalClinic | null;
+  practitioner: PortalPractitioner | null;
+  /** A correction already waiting on the clinic, so the screen offers status instead of a second form. */
+  openUpdateRequest: ClientRequestSummary | null;
 };
 
 /**
@@ -87,6 +200,20 @@ export type PortalResult<TData = undefined> =
 export type RequestFormState = { status: 'idle' } | { status: 'error'; messageKey: PortalErrorKey };
 
 export const initialRequestState: RequestFormState = { status: 'idle' };
+
+/**
+ * The state the "ask the clinic to correct something" form reports back.
+ *
+ * No success member, for the same reason `RequestFormState` has none: a filed
+ * request re-renders the section as the pending request itself, which is a
+ * truer confirmation than a sentence — it shows the client the thing that now
+ * exists, and offers them the way to take it back.
+ */
+export type ClientRequestFormState =
+  | { status: 'idle' }
+  | { status: 'error'; messageKey: PortalErrorKey };
+
+export const initialClientRequestState: ClientRequestFormState = { status: 'idle' };
 
 /** Everything the request form renders from — produced by `loadRequestPage`. */
 export type RequestPageData = {

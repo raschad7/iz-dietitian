@@ -1,6 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
+import { LocaleSwitcher } from '@/components/layout/locale-switcher';
 import { LoginRoleSwitch } from '@/features/auth/components/login-role-switch';
 import { isGoogleEnabled } from '@/lib/auth';
 import { resolveLocale } from '@/i18n/params';
@@ -32,6 +33,10 @@ export default async function LoginPage({ params, searchParams }: LoginPageProps
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-6 px-6 py-16">
+      <div className="flex justify-end">
+        <LocaleSwitcher />
+      </div>
+
       <header className="space-y-2 text-start">
         <h1 className="text-3xl font-semibold tracking-tight">{t('title')}</h1>
         <p className="text-muted-foreground">{t('subtitle')}</p>

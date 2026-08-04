@@ -9,12 +9,24 @@
 import { and, eq, inArray, isNotNull } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { account, appointments, clients, clinics, clinicWorkingHours, practitioners, user } from '@/db/schema';
+import {
+  account,
+  appointments,
+  clientCheckIns,
+  clientPlanAdherence,
+  clients,
+  clinics,
+  clinicWorkingHours,
+  METRIC_MAX,
+  METRIC_MIN,
+  practitioners,
+  user,
+  type AdherenceLevel,
+} from '@/db/schema';
 import { addDays, toIsoDate } from '@/features/booking/date';
 import { ensurePractitioner } from '@/features/booking/mutations';
 import { createClient } from '@/features/clients/mutations';
 import { issuePortalCredentials } from '@/features/clients/portal-credentials';
-import { suggestUsername } from '@/features/clients/transliterate';
 import { defaultClinicScheduleRows } from '@/features/clinic-profile/default-schedule';
 import { auth } from '@/lib/auth';
 import { paletteColorAt, pickAvatarColor } from '@/lib/avatar-color';
@@ -24,6 +36,10 @@ import { seedFoods } from './seed-foods';
 
 const STAFF_EMAIL = 'dietitian@clinic.ps';
 const STAFF_PASSWORD = 'clinic-dev-password';
+
+// Fixed (not `suggestUsername`-generated) so the same login always works after
+// a fresh `bun run db:seed` — a stable credential to develop and test against.
+const SEED_PORTAL_USERNAME = 'zainab';
 
 const SEED_CLIENTS = [
   { fullName: 'أحمد خليل', phone: '0599123456', email: 'ahmad@example.ps', preferredLocale: 'ar' as const, dateOfBirth: '1988-04-12', sex: 'male' as const, heightCm: 178, goal: 'weight_loss' as const, activityLevel: 'light' as const, allergies: 'لا يوجد' },
@@ -141,14 +157,38 @@ async function seed(): Promise<void> {
   const created = await Promise.all(SEED_CLIENTS.map((input) => createClient(clinicId, input)));
 
   // One client gets portal credentials so the granted state — and a working
-  // sign-in — is visible in the UI without doing it by hand.
+  // sign-in — is visible in the UI without doing it by hand. Issued through
+  // `issuePortalCredentials`, the same path staff use, so the seed cannot drift
+  // from the runtime behaviour (and Better Auth's `user`/`account` rows stay in
+  // sync with `clients.userId`, unlike a hand-rolled insert).
   const [, second] = created;
-  const secondInput = SEED_CLIENTS[1];
-  if (second && secondInput) {
-    const result = await issuePortalCredentials(clinicId, second.id, suggestUsername(secondInput.fullName));
+  if (second) {
+    const result = await issuePortalCredentials(clinicId, second.id, SEED_PORTAL_USERNAME);
     if (result.ok) {
-      console.info(`portal credentials: ${result.username} / ${result.temporaryPassword}`);
+      console.info(`portal credentials: ${result.username} / ${result.temporaryPassword} (must be changed on first sign-in)`);
+    } else {
+      console.warn(`could not issue portal credentials for "${SEED_PORTAL_USERNAME}": ${result.code}`);
     }
+
+    // Gives the portal test login a real photo on `/portal/profile` instead of
+    // the initials fallback. `createClient` has no `photoUrl` input — the
+    // practitioner form never sets one, since the photo is the one field on the
+    // record the client owns — so this is set directly, the same way as `color`
+    // and `status` below.
+    await db.update(clients).set({ photoUrl: '/avatars/hiba.png' }).where(eq(clients.id, second.id));
+
+    // And a fortnight of check-ins, so signing in as the portal test login
+    // lands on a home screen with a real week and streak instead of the empty
+    // state. Scoped to this one seeded client only — every other client's
+    // progress card stays genuinely empty until someone actually checks in.
+    await seedDemoCheckIns(clinicId, second.id);
+
+    // Plan adherence through yesterday, deliberately stopping short of today:
+    // both the home screen and the progress tab read `client_plan_adherence`
+    // now (never a mock of their own), so leaving today unlogged means signing
+    // in lands on the same "log today" prompt a real client would see, and
+    // logging it is what proves the two screens move together.
+    await seedDemoPlanAdherence(clinicId, second.id);
   }
 
   // Give every seeded client a distinct avatar colour, the way
@@ -220,6 +260,77 @@ async function seedReferenceData(): Promise<void> {
 
   const { dishes: dishCount, ingredients } = await seedDishes();
   console.info(`seeded ${dishCount} dishes, ${ingredients} ingredients`);
+}
+
+/**
+ * Fourteen days of check-ins ending today, for the portal test login only.
+ *
+ * Scores ride a plausible 6–10 wave rather than sitting at the maximum every
+ * day — a perfect fortnight would read as fake precisely because real weeks
+ * do not look like that. The five metrics are derived from the day's score
+ * rather than seeded independently: this is fixture data for exercising the
+ * home screen, not a stand-in for a real client's answers, so it only needs
+ * to be plausible, not independently meaningful.
+ */
+const DEMO_CHECK_IN_SCORES = [8, 7, 9, 6, 8, 10, 7, 9, 8, 7, 9, 8, 10, 7];
+
+async function seedDemoCheckIns(clinicId: string, clientId: string): Promise<void> {
+  const today = toIsoDate(new Date());
+
+  const rows = DEMO_CHECK_IN_SCORES.map((score, daysAgo) => {
+    const metricBase = Math.min(METRIC_MAX, Math.max(METRIC_MIN, Math.round(score / 2)));
+
+    return {
+      clinicId,
+      clientId,
+      date: addDays(today, -daysAgo),
+      score,
+      energy: metricBase,
+      sleep: Math.max(METRIC_MIN, metricBase - 1),
+      appetite: metricBase,
+      mood: Math.min(METRIC_MAX, metricBase + 1),
+      water: metricBase,
+    };
+  });
+
+  await db.insert(clientCheckIns).values(rows);
+  console.info(`seeded ${rows.length} demo check-ins for the portal login`);
+}
+
+/**
+ * Thirteen days of plan adherence ending yesterday, for the portal test login
+ * only. A mixed run rather than every day `full`, for the same reason the
+ * check-in scores wave instead of maxing out — a perfect run reads as fake.
+ */
+const DEMO_ADHERENCE_LEVELS: AdherenceLevel[] = [
+  'full',
+  'full',
+  'partial',
+  'full',
+  'missed',
+  'full',
+  'full',
+  'partial',
+  'full',
+  'full',
+  'missed',
+  'partial',
+  'full',
+];
+
+async function seedDemoPlanAdherence(clinicId: string, clientId: string): Promise<void> {
+  const today = toIsoDate(new Date());
+
+  const rows = DEMO_ADHERENCE_LEVELS.map((level, index) => ({
+    clinicId,
+    clientId,
+    // `index + 1`: the most recent entry is yesterday, never today.
+    date: addDays(today, -(index + 1)),
+    level,
+  }));
+
+  await db.insert(clientPlanAdherence).values(rows);
+  console.info(`seeded ${rows.length} demo plan-adherence reports for the portal login`);
 }
 
 /**
