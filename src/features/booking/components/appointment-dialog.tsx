@@ -18,9 +18,7 @@ import { SLOT_MINUTES } from '@/lib/time-constants';
 import { minuteToClock, parseDateInput } from '../date';
 import { formatDuration, formatLongDate, formatMinute } from '../format';
 import { type CalendarAppointment, type CalendarClient } from '../types';
-import { type WallClock } from '../completed';
 import {
-  movesIntoThePast,
   validateBooking,
   type BookingErrorKey,
   type ClinicHours,
@@ -52,8 +50,6 @@ export type AppointmentDialogProps = {
    * a clock of its own, so the whole calendar judges itself against one instant.
    */
   today: string | null;
-  /** The same instant to the minute, for the rule that a move may not go back. */
-  now: WallClock | null;
   completed: boolean;
   onSave: (next: {
     id: string;
@@ -115,7 +111,6 @@ export function AppointmentDialog({
   clients,
   existingByDate,
   today,
-  now,
   completed,
   onSave,
   onDelete,
@@ -151,14 +146,7 @@ export function AppointmentDialog({
     excludeId: appointment.id,
     today,
   };
-  /**
-   * The past-time rule first, because it is the one failure the generic rules
-   * cannot see: they judge the candidate alone, and this one needs to know the
-   * slot the appointment is being moved *from*.
-   */
-  const liveError: BookingErrorKey | null = movesIntoThePast({ date, startMinute }, appointment, now)
-    ? 'errors.pastTime'
-    : validateBooking(candidate, existing, hours);
+  const liveError: BookingErrorKey | null = validateBooking(candidate, existing, hours);
 
   /** Which whole-hour starts would collide, so they can be marked unavailable. */
   const unavailableStarts = useMemo(() => {
@@ -171,16 +159,14 @@ export function AppointmentDialog({
         hours,
       );
       // Only overlap and closing time make a *start* unavailable; a closed day
-      // disables every option and is reported once, on the date field.
+      // disables every option and is reported once, on the date field. An hour
+      // that has already gone is not among them — the clinic writes up its own
+      // morning, so every hour of a bookable day stays selectable.
       if (failure === 'errors.overlap' || failure === 'errors.outsideHours') blocked.add(minute);
-
-      // An hour that has already gone is unavailable for the same reason: it is
-      // this one option that cannot be chosen, not the whole day.
-      if (movesIntoThePast({ date, startMinute: minute }, appointment, now)) blocked.add(minute);
     }
 
     return blocked;
-  }, [appointment, clientId, date, durationMinutes, existing, hours, now, practitionerId, startMinute, today]);
+  }, [appointment.id, clientId, date, durationMinutes, existing, hours, practitionerId, startMinute, today]);
 
   function commitDateText(raw: string): void {
     const parsed = parseDateInput(raw);

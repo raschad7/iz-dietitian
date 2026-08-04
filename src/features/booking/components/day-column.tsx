@@ -42,6 +42,14 @@ export type DayColumnProps = {
   now: Date | null;
   selectedId: string | null;
   highlightId: string | null;
+  /**
+   * The appointment the search scrolled to, ringed like a selection.
+   *
+   * The scroll says *where* it is; this says *which* one it is. Without it, a
+   * search that matches three people leaves the grid parked on an appointment
+   * with nothing to distinguish it from the two other undimmed blocks.
+   */
+  matchId: string | null;
   /** Ids that do not match the current search, drawn dimmed. */
   dimmedIds: ReadonlySet<string>;
   completedIds: ReadonlySet<string>;
@@ -74,6 +82,7 @@ export function DayColumn({
   now,
   selectedId,
   highlightId,
+  matchId,
   dimmedIds,
   completedIds,
   pending,
@@ -218,7 +227,9 @@ export function DayColumn({
             top={box.top}
             height={box.height}
             completed={completedIds.has(appointment.id)}
-            selected={selectedId === appointment.id || highlightId === appointment.id}
+            selected={
+              selectedId === appointment.id || highlightId === appointment.id || matchId === appointment.id
+            }
             dimmed={dimmedIds.has(appointment.id)}
             dragState={dragging?.id === appointment.id ? (dragging.valid ? 'valid' : 'invalid') : null}
             onSelect={onSelect}

@@ -154,6 +154,7 @@
     "search": {
       "placeholder": "Search clients"
     },
+    "scrollDown": "More appointments below",
     "duration": {
       "hours": "{count, number, integer} hr",
       "minutes": "{count, number, integer} min"
@@ -199,6 +200,7 @@
     "confirmMove": {
       "title": "Change this appointment?",
       "body": "Move {name} from {from} to {to}?",
+      "landsInPast": "That time has already passed. Once moved, this appointment counts as finished and can no longer be edited — only deleted.",
       "confirm": "Change appointment"
     },
     "confirmDelete": {
@@ -211,7 +213,6 @@
       "tooShort": "The shortest appointment is 15 minutes.",
       "invalidDate": "That date is not valid. Try a format like 2026-08-05 or 8/5/2026.",
       "pastDate": "That date has already passed. The earliest you can book is today.",
-      "pastTime": "That time has already passed. Move the appointment to a later time.",
       "closedDay": "The clinic is closed that day.",
       "outsideHours": "That falls outside the clinic's opening hours.",
       "overlap": "That clashes with another appointment.",

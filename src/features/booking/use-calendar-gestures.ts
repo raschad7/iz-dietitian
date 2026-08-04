@@ -13,10 +13,8 @@ import {
 } from './geometry';
 import { dateAtX, type ColumnBounds } from './rtl';
 import { type CalendarAppointment } from './types';
-import { type WallClock } from './completed';
 import {
   DEFAULT_DURATION_MINUTES,
-  movesIntoThePast,
   validateBooking,
   type ClinicHours,
   type ExistingAppointment,
@@ -109,13 +107,6 @@ export type CalendarGesturesOptions = {
    */
   today: string | null;
   /**
-   * The wall clock, for the rule that a move may not land in the past. Finer
-   * than `today`, which bounds *creating* to whole dates: dragging a card to
-   * nine o'clock this morning at three in the afternoon is a different question
-   * from dragging it to yesterday, and both are refused.
-   */
-  now: WallClock | null;
-  /**
    * The slot height currently on screen.
    *
    * The grid is fitted to the panel, so this is not the module default — and if
@@ -135,7 +126,6 @@ export function useCalendarGestures({
   existing,
   practitionerId,
   today,
-  now,
   pxPerSlot,
   onRequestBooking,
   onCommitMove,
@@ -154,10 +144,10 @@ export function useCalendarGestures({
    * touching it while rendering is not safe under concurrent rendering, where a
    * render can be thrown away. The effect runs before any pointer event can fire.
    */
-  const latest = useRef({ hours, existing, practitionerId, today, now, pxPerSlot, onRequestBooking, onCommitMove });
+  const latest = useRef({ hours, existing, practitionerId, today, pxPerSlot, onRequestBooking, onCommitMove });
 
   useEffect(() => {
-    latest.current = { hours, existing, practitionerId, today, now, pxPerSlot, onRequestBooking, onCommitMove };
+    latest.current = { hours, existing, practitionerId, today, pxPerSlot, onRequestBooking, onCommitMove };
   });
 
   const isValid = useCallback(
@@ -355,12 +345,10 @@ export function useCalendarGestures({
         setDragPreview({
           id: appointment.id,
           ...next,
-          // A drag into an hour that has gone paints red exactly like one onto a
-          // closed day or another appointment, so the refusal is visible under
-          // the pointer rather than only after the drop.
-          valid:
-            !movesIntoThePast(next, appointment, latest.current.now) &&
-            isValid({ ...next, practitionerId: appointment.practitionerId }, appointment.id),
+          // An hour of today that has already gone is a legitimate drop — the
+          // clinic rearranges the morning in the afternoon. Only a closed day, a
+          // date that has gone and a clash still paint red.
+          valid: isValid({ ...next, practitionerId: appointment.practitionerId }, appointment.id),
         });
       };
 

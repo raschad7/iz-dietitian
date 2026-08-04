@@ -5,7 +5,6 @@ import {
   MIN_DURATION_MINUTES,
   findClientBooking,
   isWorkingDay,
-  movesIntoThePast,
   validateBooking,
   type BookingCandidate,
   type ClinicHours,
@@ -142,57 +141,22 @@ describe('rule 2 — not in the past', () => {
   });
 });
 
-describe('moving into the past', () => {
-  /** Wednesday the 5th, 15:00 — "today is Wednesday and the hour is 3 PM". */
-  const NOW = { date: WEDNESDAY, minute: 15 * 60 };
-
-  /** Where the appointment currently sits: later the same day, 17:00. */
-  const at = (date: string, startMinute: number) => ({ date, startMinute });
-
-  test('refuses a drag to earlier today', () => {
-    expect(movesIntoThePast(at(WEDNESDAY, 9 * 60), at(WEDNESDAY, 17 * 60), NOW)).toBe(true);
-  });
-
-  test('refuses a drag to an earlier day', () => {
-    expect(movesIntoThePast(at(TUESDAY, 17 * 60), at(WEDNESDAY, 17 * 60), NOW)).toBe(true);
-  });
-
-  test('allows a drag to later today', () => {
-    expect(movesIntoThePast(at(WEDNESDAY, 16 * 60), at(WEDNESDAY, 17 * 60), NOW)).toBe(false);
-  });
-
-  test('allows a drag to a later day, however early in that day', () => {
-    expect(movesIntoThePast(at(THURSDAY, 8 * 60), at(WEDNESDAY, 17 * 60), NOW)).toBe(false);
-  });
-
-  test('allows the current minute exactly — now is not yet past', () => {
-    expect(movesIntoThePast(at(WEDNESDAY, 15 * 60), at(WEDNESDAY, 17 * 60), NOW)).toBe(false);
-  });
-
-  test('refuses the minute before now', () => {
-    expect(movesIntoThePast(at(WEDNESDAY, 15 * 60 - 1), at(WEDNESDAY, 17 * 60), NOW)).toBe(true);
-  });
-
+describe('an hour of today that has already gone', () => {
   /**
-   * The exemption that keeps an appointment in progress editable. A 14:30
-   * booking at 15:00 has a start behind the clock by definition; without this
-   * its reason could never be corrected.
+   * Both gestures agree about it now. Creating always did — writing up the
+   * morning in the afternoon is bookkeeping — while moving was refused by a
+   * rule of its own, which left the same slot bookable by clicking it and
+   * rejected by dragging onto it. That rule is gone, and the date is the only
+   * granularity either gesture enforces.
    */
-  test('allows an edit that does not move the appointment at all', () => {
-    expect(movesIntoThePast(at(WEDNESDAY, 14 * 60 + 30), at(WEDNESDAY, 14 * 60 + 30), NOW)).toBe(false);
-  });
-
-  test('still refuses moving an in-progress appointment further back', () => {
-    expect(movesIntoThePast(at(WEDNESDAY, 14 * 60), at(WEDNESDAY, 14 * 60 + 30), NOW)).toBe(true);
-  });
-
-  test('is skipped when there is no clock, so the server render matches the first paint', () => {
-    expect(movesIntoThePast(at(TUESDAY, 9 * 60), at(WEDNESDAY, 17 * 60), null)).toBe(false);
-  });
-
-  test('creating is unaffected — it is bounded by the date, not the hour', () => {
-    // The same 09:00 slot the move above was refused, judged as a *new* booking.
+  test('is bookable, because the rules are bounded by the date and not the hour', () => {
     expect(validateBooking(candidate({ date: WEDNESDAY, startMinute: 9 * 60, today: WEDNESDAY }), [], HOURS)).toBeNull();
+  });
+
+  test('is still refused on a date that has gone', () => {
+    expect(validateBooking(candidate({ date: TUESDAY, startMinute: 9 * 60, today: WEDNESDAY }), [], HOURS)).toBe(
+      'errors.pastDate',
+    );
   });
 });
 

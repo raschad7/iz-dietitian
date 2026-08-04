@@ -17,7 +17,7 @@ import {
   type DeletedAppointment,
   type UpdatedAppointment,
 } from './types';
-import { movesIntoThePast, validateBooking, type ClinicHours, type ExistingAppointment } from './validation';
+import { validateBooking, type ClinicHours, type ExistingAppointment } from './validation';
 
 /**
  * Every write to the appointments table.
@@ -277,23 +277,16 @@ export async function updateAppointment(
       );
       if (failure) return { ok: false, error: failure };
 
-      /**
-       * A move may not land in the past — checked against the clinic's clock and
-       * against the row as it stands, which is the only place the previous slot
-       * exists. The browser refuses the same drag, but a server action is a
-       * public endpoint and the drag is only the polite half of the rule.
+      /*
+       * A move to an earlier hour of *today* is deliberately allowed, and there
+       * is no extra rule here to refuse it. `validateBooking` above already
+       * refuses a past date, which is the only granularity this calendar
+       * enforces — creating and moving now agree about the same slot rather
+       * than one accepting what the other rejects.
        *
-       * After `validateBooking`, not before, so the *specific* answer wins: a
-       * move to last Tuesday is reported as a date that has gone, and only a
-       * move to an earlier hour of today — which every other rule accepts — falls
-       * through to here.
-       *
-       * An edit that leaves the slot alone passes, which is what keeps an
-       * appointment currently in progress editable.
+       * The completed-lock above is what still bounds this: an appointment that
+       * has already ended cannot be moved anywhere.
        */
-      if (movesIntoThePast(input, current, clinicNow)) {
-        return { ok: false, error: 'errors.pastTime' };
-      }
 
       await tx
         .update(appointments)

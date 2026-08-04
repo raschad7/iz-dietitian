@@ -18,18 +18,21 @@ import {
 } from '../actions';
 import { addDays, addMonths, eachDay, startOfWeek, toIsoDate } from '../date';
 import { formatDayNumber, formatLongDate, formatMinute, formatMonthYear, formatWeekday } from '../format';
-import { isCompleted, localWallClock } from '../completed';
+import { hasEnded, isCompleted, localWallClock } from '../completed';
 import { minuteToY } from '../geometry';
 import { type CalendarView } from '../schema';
 import { type ActionErrorKey, type CalendarAppointment, type CalendarClient } from '../types';
 import { useCalendarClock } from '../use-calendar-clock';
 import { useCalendarGestures, type BookingRequest } from '../use-calendar-gestures';
 import { useFittedSlotHeight } from '../use-fitted-grid';
-import { isWorkingDay, movesIntoThePast, type ClinicHours, type ExistingAppointment } from '../validation';
+import { useScrollOverflow } from '../use-scroll-overflow';
+import { useScrollToMatch } from '../use-scroll-to-match';
+import { isWorkingDay, type ClinicHours, type ExistingAppointment } from '../validation';
 import { AppointmentDialog } from './appointment-dialog';
 import { CalendarToolbar } from './calendar-toolbar';
 import { ClientPicker, type PendingBooking } from './client-picker';
 import { DayColumn } from './day-column';
+import { GridOverflowCue } from './grid-overflow-cue';
 import { MonthView } from './month-view';
 import { NewClientDialog } from './new-client-dialog';
 
@@ -108,9 +111,10 @@ export function Calendar({
   const today = now ? toIsoDate(now) : null;
 
   /**
-   * The same instant, to the minute. `today` bounds *creating* a booking to
-   * whole dates; this bounds *moving* one, which is finer — an appointment may
-   * not be dragged to nine this morning at three this afternoon.
+   * The same instant, to the minute. `today` decides which whole dates may be
+   * booked at all; this is finer, and answers the one question left over — has
+   * the slot an appointment is being dragged onto already finished, which
+   * freezes that appointment the moment it lands.
    */
   const nowClock = now ? localWallClock(now) : null;
 
@@ -120,6 +124,20 @@ export function Calendar({
    */
   const gridAreaRef = useRef<HTMLDivElement>(null);
   const pxPerSlot = useFittedSlotHeight(gridAreaRef, hours);
+
+  /**
+   * The same element again, read for the appointments it could *not* fit.
+   *
+   * Two hooks rather than one on purpose: this decides how tall a slot should
+   * be, that reports which bookings stayed hidden once the decision was
+   * floored. Folding them together would tangle a layout measurement with a
+   * scroll position that changes on every wheel event.
+   *
+   * Blocks and not pixels: a clinic with nothing booked after two has four
+   * hours of empty grid below the fold every afternoon, and an arrow pointing
+   * at them would be showing all day and saying nothing.
+   */
+  const { hasMoreBelow, scrollDown } = useScrollOverflow(gridAreaRef, '[data-appointment-id]');
 
   const [optimisticAppointments, applyOptimistic] = useOptimistic(
     appointments,
@@ -201,6 +219,13 @@ export function Calendar({
   }, [optimisticAppointments, query]);
 
   /**
+   * …and then goes to the one it found. Dimming answers "who else is here?";
+   * this answers "where is she?", which on a grid taller than its panel — or a
+   * week scrolled sideways — the dimming cannot.
+   */
+  const matchId = useScrollToMatch(query, optimisticAppointments, days);
+
+  /**
    * Day, week and month are separate routes, so switching view is a navigation,
    * not a query-string flip. The date rides along as a search param because it
    * is a position within a view rather than a different page.
@@ -264,16 +289,6 @@ export function Calendar({
    */
   const handleCommitMove = useCallback(
     (appointment: CalendarAppointment, next: BookingRequest) => {
-      // Refused here rather than after the confirmation: asking "are you sure?"
-      // and then rejecting the answer wastes the doctor's time and a round trip.
-      // The server refuses it independently — this is the courtesy half.
-      if (movesIntoThePast(next, appointment, nowClock)) {
-        // The same precedence the server uses: a drop on an earlier day is a
-        // date that has gone, and only an earlier hour of today is a time.
-        setMessage(today !== null && next.date < today ? 'errors.pastDate' : 'errors.pastTime');
-        return;
-      }
-
       if (next.date !== appointment.date || next.startMinute !== appointment.startMinute) {
         setPendingMove({ appointment, next });
         return;
@@ -281,7 +296,7 @@ export function Calendar({
 
       commitMove(appointment, next);
     },
-    [commitMove, nowClock, today],
+    [commitMove],
   );
 
   const gestures = useCalendarGestures({
@@ -289,7 +304,6 @@ export function Calendar({
     existing,
     practitionerId,
     today,
-    now: nowClock,
     pxPerSlot,
     onRequestBooking: handleRequestBooking,
     onCommitMove: handleCommitMove,
@@ -513,7 +527,9 @@ export function Calendar({
         */
         <div
           className={cn(
-            'flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-border',
+            // `relative` is the positioning context for the overflow cue at the
+            // bottom of this panel — the panel is the box it pins to.
+            'relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-border',
             isPending && 'opacity-90',
           )}
         >
@@ -637,6 +653,7 @@ export function Calendar({
                         now={now}
                         selectedId={selectedId}
                         highlightId={highlightId}
+                        matchId={matchId}
                         dimmedIds={dimmedIds}
                         completedIds={completedIds}
                         pending={gestures.pending}
@@ -660,6 +677,14 @@ export function Calendar({
               </div>
             </div>
           </div>
+
+          {/*
+            A sibling of the horizontal scroller, not a child of it. Inside, the
+            cue would slide away to the side the moment anyone scrolled a week
+            across; out here it stays pinned to the panel, which is the thing it
+            is describing the bottom edge of.
+          */}
+          <GridOverflowCue visible={hasMoreBelow} onScrollDown={scrollDown} />
         </div>
       )}
 
@@ -698,7 +723,6 @@ export function Calendar({
           clients={clients}
           existingByDate={existingByDate}
           today={today}
-          now={nowClock}
           completed={completedIds.has(editing.id)}
           onSave={(next) => {
             // Changing the date must move the view too, or the appointment
@@ -726,6 +750,17 @@ export function Calendar({
             from: whenLabel(pendingMove.appointment),
             to: whenLabel(pendingMove.next),
           })}
+          /*
+            A drop into a slot that has already finished is allowed — that is
+            the whole point of letting a morning be rearranged in the afternoon
+            — but it is a one-way door: the appointment counts as completed the
+            moment it lands, and a completed appointment can only be deleted.
+
+            Said before the write rather than discovered after it. The test is
+            `hasEnded`, the same function the lock itself is built on, so the
+            warning cannot drift from the rule it is warning about.
+          */
+          note={nowClock && hasEnded(pendingMove.next, nowClock) ? t('confirmMove.landsInPast') : undefined}
           confirmLabel={t('confirmMove.confirm')}
           cancelLabel={t('actions.cancel')}
           onConfirm={() => {
