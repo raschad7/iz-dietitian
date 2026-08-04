@@ -3,21 +3,14 @@
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { useTranslations } from 'next-intl';
 
+import { Icon } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 
+import { MEAL_TOLERANCE, driftState } from '@/features/weekly-plans/drift';
 import { roundForDisplay } from '@/features/weekly-plans/nutrition';
 import type { BoardMeal } from '../queries';
-import { SERVING_STEP, snapServings } from '../similar';
 
 import { useEditorActions } from './board-dnd';
-
-/**
- * How far a meal may sit from its budget before the card says so.
- *
- * The same 15% band `similar.ts` uses for substitution — a meal that would not
- * count as a swap for its own slot is a meal worth a second look.
- */
-const TOLERANCE = 0.15;
 
 /** What the same slot held in the plan being compared against. */
 export type GhostMeal = { nameAr: string; isRepeat: boolean };
@@ -25,11 +18,17 @@ export type GhostMeal = { nameAr: string; isRepeat: boolean };
 /**
  * One meal in a day column.
  *
- * Both a drop target and a drag source: a dish arrives from the catalog, or a
- * dish already on the board moves here from another slot. The card itself is
- * still a button, because opening the detail panel is an action and has to be
- * reachable from the keyboard — the drag handle is separate so that dragging
- * never steals the click.
+ * Information only. Every control that used to sit here — the stepper, clear,
+ * remove — is in the detail panel this card opens, at a size the button spec
+ * allows; five 16px targets on each of thirty-five cards was both unhittable
+ * and the loudest thing on the board.
+ *
+ * Still both a drop target and a drag source: a dish arrives from the catalog,
+ * or a dish already on the board moves here from another slot. The card is a
+ * button, because opening the detail panel is an action and has to be reachable
+ * from the keyboard. The drag handle stays separate so dragging never steals
+ * that click, and fades in on hover because dragging is a pointer gesture and a
+ * handle nobody can use is chrome.
  */
 export function MealCard({
   meal,
@@ -48,11 +47,10 @@ export function MealCard({
   editable: boolean;
 }) {
   const t = useTranslations('weeklyPlans');
-  const { setServings, clear, remove, dragging } = useEditorActions();
+  const { dragging } = useEditorActions();
 
   const kcal = roundForDisplay('kcal', meal.totals.kcal.value);
-  const drift = meal.budgetKcal > 0 ? (kcal - meal.budgetKcal) / meal.budgetKcal : 0;
-  const offTarget = meal.dish !== null && Math.abs(drift) > TOLERANCE;
+  const drift = meal.dish === null ? null : driftState(kcal, meal.budgetKcal, MEAL_TOLERANCE);
 
   const { setNodeRef: setDropRef, isOver } = useDroppable({
     id: `slot:${meal.id}`,
@@ -71,8 +69,9 @@ export function MealCard({
     data: { kind: 'meal', mealId: meal.id },
   });
 
-  // Only light up for a drop that would actually land — a drag over its own source
-  // slot changes nothing, and saying otherwise is a lie the pointer can see.
+  // Only light up for a drop that would actually land — a drag over its own
+  // source slot changes nothing, and saying otherwise is a lie the pointer can
+  // see.
   const wouldLand =
     isOver && dragging !== null && !(dragging.kind === 'meal' && dragging.mealId === meal.id);
 
@@ -80,7 +79,7 @@ export function MealCard({
     <div
       ref={setDropRef}
       className={cn(
-        'rounded-md border transition-colors',
+        'group relative rounded-lg border transition-colors',
         selected ? 'border-primary ring-1 ring-primary' : 'border-border',
         meal.dish === null && 'border-dashed bg-muted/40',
         wouldLand && 'border-primary bg-primary/10',
@@ -91,132 +90,100 @@ export function MealCard({
         type="button"
         onClick={onSelect}
         aria-pressed={selected}
+        // The budget is not printed on the card — it is the same five figures
+        // repeated down every column. It stays reachable here, in the detail
+        // panel, and in the rail's schedule.
+        title={meal.budgetKcal > 0 ? t('budgetHint', { value: meal.budgetKcal }) : undefined}
         className={cn(
-          'w-full p-2 text-start text-xs',
+          'flex h-full w-full flex-col p-3 text-start',
           selected ? 'bg-primary/5' : 'hover:bg-accent/50',
         )}
       >
-        <span className="flex items-baseline gap-1">
-          <span className="min-w-0 flex-1 truncate text-label text-muted-foreground">{meal.label}</span>
-          <span className="shrink-0 text-label text-muted-foreground">{meal.timeOfDay}</span>
+        <span className="flex items-baseline justify-between gap-1.5 text-caption text-muted-foreground">
+          <span className="min-w-0 truncate">{meal.label}</span>
+          <span className="shrink-0" dir="ltr">
+            {meal.timeOfDay}
+          </span>
         </span>
 
-        {meal.dish ? (
-          <>
-            <span className="mt-0.5 block font-medium leading-snug">{meal.dish.nameAr}</span>
+        {/* Flexes, so the footer below pins to the card's block-end edge and
+            every figure in a row shares a baseline. Clamped to two lines, or
+            one long dish name sets the height of all thirty-five cards. */}
+        <span
+          className={cn(
+            'mt-1 line-clamp-2 flex-1 text-body-sm font-medium leading-snug',
+            meal.dish === null && 'font-normal text-muted-foreground',
+          )}
+        >
+          {meal.dish ? meal.dish.nameAr : t('emptySlot')}
+        </span>
 
-            {!meal.dish.isActive && (
-              <span className="mt-0.5 block text-[10px] text-muted-foreground">
-                {t('retiredDish')}
-              </span>
-            )}
-
-            <span className="mt-0.5 flex items-baseline gap-1 text-label text-muted-foreground">
-              <span className={cn(offTarget && 'font-medium text-status-attention-fg')}>
-                {t('kcalValue', { value: kcal })}
-              </span>
-              {meal.budgetKcal > 0 && <span>/ {meal.budgetKcal}</span>}
-            </span>
-          </>
-        ) : (
-          <span className="mt-0.5 block leading-snug text-muted-foreground">{t('emptySlot')}</span>
+        {meal.dish && !meal.dish.isActive && (
+          <span className="mt-1 block text-caption text-muted-foreground">{t('retiredDish')}</span>
         )}
+
+        <span className="mt-2 flex items-baseline justify-between gap-1.5">
+          <span
+            className={cn(
+              'inline-flex items-baseline gap-1 text-body-sm font-semibold',
+              drift !== null && 'text-status-attention-fg',
+              meal.dish === null && 'font-normal text-muted-foreground',
+            )}
+          >
+            {drift !== null && (
+              <Icon
+                name={drift === 'over' ? 'driftUp' : 'driftDown'}
+                className="size-3.5 self-center"
+                label={t(drift === 'over' ? 'overBudget' : 'underBudget')}
+              />
+            )}
+            <span dir="ltr">{meal.dish ? kcal : '—'}</span>
+          </span>
+
+          {meal.dish && meal.dish.servings !== 1 && (
+            <span
+              className="shrink-0 rounded-full bg-primary/10 px-2 text-caption font-semibold text-primary"
+              dir="ltr"
+            >
+              ×{meal.dish.servings}
+            </span>
+          )}
+        </span>
 
         {ghost && (
           <span
             className={cn(
-              'mt-1 block border-t border-dotted border-border pt-1 text-[10px]',
+              'mt-2 flex items-center gap-1 border-t border-dotted border-border pt-1.5 text-caption',
               ghost.isRepeat ? 'text-status-attention-fg' : 'text-muted-foreground',
             )}
           >
-            {ghost.isRepeat
-              ? `⟲ ${t('repeatedFromLastWeek', { date: compareDate ?? '' })}`
-              : `← ${ghost.nameAr}`}
+            {ghost.isRepeat ? (
+              <>
+                <Icon name="repeat" className="size-3.5" />
+                {t('repeatedFromLastWeek', { date: compareDate ?? '' })}
+              </>
+            ) : (
+              ghost.nameAr
+            )}
           </span>
         )}
       </button>
 
-      {editable && (
-        <div className="flex items-center gap-0.5 border-t border-border px-1 py-0.5">
-          {meal.dish && (
-            <>
-              {/* A separate handle, so dragging never competes with the click that
-                  opens the card. */}
-              <span
-                ref={setDragRef}
-                {...listeners}
-                {...attributes}
-                aria-label={meal.dish.nameAr}
-                className="cursor-grab px-1 text-[10px] leading-none text-muted-foreground"
-              >
-                ⠿
-              </span>
-
-              <Step
-                label={t('lessPortion')}
-                onClick={() => setServings(meal.id, snapServings(meal.dish!.servings - SERVING_STEP))}
-                disabled={meal.dish.servings <= 0.25}
-              >
-                −
-              </Step>
-
-              <span className="min-w-6 text-center text-[10px] tabular-nums">
-                {meal.dish.servings}
-              </span>
-
-              <Step
-                label={t('morePortion')}
-                onClick={() => setServings(meal.id, snapServings(meal.dish!.servings + SERVING_STEP))}
-                disabled={meal.dish.servings >= 3}
-              >
-                +
-              </Step>
-
-              <Step label={t('clearMeal')} onClick={() => clear(meal.id)}>
-                ×
-              </Step>
-            </>
-          )}
-
-          <Step
-            label={t('removeMeal')}
-            onClick={() => remove(meal.id)}
-            className="ms-auto"
-          >
-            🗑
-          </Step>
-        </div>
+      {/* A separate handle, so dragging never competes with the click that opens
+          the card. dnd-kit's `attributes` carry `role="button"` and `tabIndex`,
+          so this span is focusable and the keyboard sensor can reach it — which
+          is why it has to reappear on focus as well as on hover. */}
+      {editable && meal.dish && (
+        <span
+          ref={setDragRef}
+          {...listeners}
+          {...attributes}
+          aria-label={meal.dish.nameAr}
+          className="absolute end-1 top-1 cursor-grab rounded p-1 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+        >
+          <Icon name="dragHandle" className="size-3.5" />
+        </span>
       )}
     </div>
-  );
-}
-
-function Step({
-  label,
-  onClick,
-  disabled,
-  className,
-  children,
-}: {
-  label: string;
-  onClick: () => void;
-  disabled?: boolean;
-  className?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      title={label}
-      aria-label={label}
-      className={cn(
-        'rounded px-1 text-[11px] leading-none text-muted-foreground hover:bg-accent disabled:opacity-30',
-        className,
-      )}
-    >
-      {children}
-    </button>
   );
 }

@@ -64,6 +64,19 @@ const ICONS = {
   /** The "this column can be sorted" affordance, before a direction is chosen. */
   sort: 'sort-vertical-bold',
 
+  // Weekly plan board
+  /** The separate handle that starts a drag, so dragging never steals the click. */
+  dragHandle: 'menu-dots-bold',
+  /** Empties a slot without removing it from the day. */
+  clearSlot: 'eraser-bold',
+  /** A value that overshot its target. */
+  driftUp: 'arrow-up-bold',
+  /** A value that undershot its target. */
+  driftDown: 'arrow-down-bold',
+  /** A dish repeated from the plan being compared against. */
+  repeat: 'restart-bold',
+  minus: 'minus-circle-bold',
+
   // Field affordances
   eye: 'eye-bold',
   eyeOff: 'eye-closed-bold',

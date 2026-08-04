@@ -17,14 +17,17 @@ export function RailTabs<T extends string>({
   active,
   onSelect,
   label,
+  className,
 }: {
   tabs: readonly { id: T; label: string }[];
   active: T;
   onSelect: (id: T) => void;
   label: string;
+  /** The caller pins the bar; the bar does not know what it is sitting above. */
+  className?: string;
 }) {
   return (
-    <div role="tablist" aria-label={label} className="flex gap-1 pb-3">
+    <div role="tablist" aria-label={label} className={cn('flex gap-1 pb-3', className)}>
       {tabs.map((tab) => (
         <button
           key={tab.id}
@@ -35,7 +38,9 @@ export function RailTabs<T extends string>({
           aria-controls={`rail-panel-${tab.id}`}
           onClick={() => onSelect(tab.id)}
           className={cn(
-            'flex-1 rounded-md px-2 py-1 text-xs font-medium transition-colors',
+            // 40px, the system's floor: below `xl` this bar is inside a sheet
+            // and these four are thumb targets.
+            'min-h-10 flex-1 rounded-md px-2 py-1 text-label font-medium transition-colors',
             tab.id === active
               ? 'bg-primary text-primary-foreground'
               : 'bg-muted text-muted-foreground hover:bg-accent',
