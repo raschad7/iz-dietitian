@@ -1,6 +1,10 @@
+import { getTranslations } from 'next-intl/server';
 import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
+import { Sidebar } from '@/components/layout/sidebar';
+import { PORTAL_NAV, PORTAL_NAV_ICONS } from '@/features/portal/nav';
+import { PortalTabBar } from '@/features/portal/components/portal-tab-bar';
 import { resolveLocale } from '@/i18n/params';
 import { requireClientSession } from '@/lib/session';
 
@@ -10,16 +14,16 @@ type SecuredPortalLayoutProps = {
 };
 
 /**
- * Everything in the portal EXCEPT `set-password`: the password wall, and
- * nothing else.
+ * Everything in the portal EXCEPT `set-password`: the password wall, and the
+ * navigation that only makes sense once past it.
  *
- * A client signs in for the first time with a temporary password their
- * dietitian handed them. Until they replace it, this is the wall: every portal
- * page redirects to `set-password`, which sits outside this route group and is
+ * A client signs in for the first time with a temporary password their dietitian
+ * handed them. Until they replace it, this is the wall: every portal page
+ * redirects to `set-password`, which sits outside this route group and is
  * therefore reachable.
  *
  * `(secured)` is a route group, so it contributes nothing to the URL — `/portal`
- * still resolves to `(tabs)/page.tsx`. The group exists purely to give these
+ * still resolves to `(secured)/page.tsx`. The group exists purely to give these
  * pages a guard that `set-password` does not inherit. Moving this check up into
  * `portal/layout.tsx` would make `set-password` inherit it too and redirect to
  * itself forever, locking every client out with no way back.
@@ -27,13 +31,12 @@ type SecuredPortalLayoutProps = {
  * The flag rides on the session object (declared in `user.additionalFields`), so
  * this costs no extra query.
  *
- * ## Why the shell is not here
+ * ## The shell
  *
- * It used to be. But the portal has two kinds of screen, and they want
- * different chrome: the five destinations a client moves between all day, and
- * the account screens they open, read and back out of. `(tabs)` and `(screen)`
- * are those two, each with its own layout, and both behind this one guard.
- * Neither group appears in the URL.
+ * Mobile first: the four destinations are a bottom tab bar under `md`, and the
+ * shared sidebar from `md` up. The bar is fixed, so `main` carries bottom
+ * padding to keep the last card off it — dropped again at `md`, where the bar
+ * is gone.
  */
 export default async function SecuredPortalLayout({ children, params }: SecuredPortalLayoutProps) {
   const locale = await resolveLocale(params);
@@ -44,5 +47,23 @@ export default async function SecuredPortalLayout({ children, params }: SecuredP
     redirect(`/${locale}/portal/set-password`);
   }
 
-  return children;
+  const t = await getTranslations('portal');
+
+  return (
+    <div className="flex flex-1">
+      {/*
+        The portal rail carries icons where the staff rail does not: clients
+        move between four destinations, and the same four glyphs appear in the
+        bottom bar below `md`. Matching them is what makes the two shells read
+        as one product on a phone and a laptop.
+      */}
+      <Sidebar items={PORTAL_NAV} title={t('title')} icons={PORTAL_NAV_ICONS} />
+
+      <main className="min-w-0 flex-1 px-3 pt-3 pb-28 md:px-5 md:pt-5 md:pb-8">
+        <div className="mx-auto w-full max-w-3xl">{children}</div>
+      </main>
+
+      <PortalTabBar />
+    </div>
+  );
 }

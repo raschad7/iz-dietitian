@@ -20,20 +20,7 @@ export const clinics = pgTable(
     /** Seeded from the first staff member's name; there is no rename UI yet. */
     name: text('name').notNull(),
 
-    /**
-     * How a client reaches the clinic, and where it is. Nullable until the
-     * required onboarding flow is completed — a clinic is created by a staff
-     * sign-up that asks for neither, so null is the state every existing row
-     * starts in, not an anomaly.
-     *
-     * Both are also shown to the client on their profile screen: the phone
-     * backs a real `tel:` and WhatsApp link there, so an unset one means that
-     * screen offers no way to call rather than offering a dead button.
-     *
-     * `address` is free text rather than a structured address: this is a line
-     * a person reads on a phone and types into a map, not something the app
-     * geocodes.
-     */
+    /** Nullable until the required onboarding flow is completed. */
     phone: text('phone'),
     contactEmail: text('contact_email'),
     address: text('address'),

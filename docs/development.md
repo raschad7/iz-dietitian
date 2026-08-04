@@ -81,19 +81,11 @@ in another committed `.env` file.
 | `bun run db:migrate:test` | Apply migrations to the test database |
 | `bun run db:generate` | Generate a Drizzle migration after a schema change |
 | `bun run db:seed` | Seed the development database |
-| `bun run db:seed:demo` | Give one existing client a published week and adherence |
 | `bun run db:reset` | Destructively rebuild the local development schema |
 | `bun run wa:reminders` | Process due WhatsApp reminders once |
 
 `db:reset` is intentionally protected against production use. Still check the
 active database URL before running it.
-
-`db:seed:demo` is for reviewing the portal's Home and "خطتي" screens with real
-content. It decorates one named client — `سعيد سالم` by default, or
-`bun run db:seed:demo "<name>"` — and creates nobody, deletes nothing it did not
-write, and leaves every other client's plan and progress alone. Re-running it is
-safe and is how you pick up an edit to `scripts/demo-menu.ts`; a plan for that
-week the script did not write is reported and left untouched.
 
 ## Database changes
 

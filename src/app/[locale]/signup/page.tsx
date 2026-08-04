@@ -1,7 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
-import { LocaleSwitcher } from '@/components/layout/locale-switcher';
 import { StaffSignUpForm } from '@/features/auth/components/staff-signup-form';
 import { resolveLocale } from '@/i18n/params';
 import { isGoogleEnabled } from '@/lib/auth';
@@ -27,10 +26,6 @@ export default async function SignUpPage({ params }: SignUpPageProps) {
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-6 px-6 py-16">
-      <div className="flex justify-end">
-        <LocaleSwitcher />
-      </div>
-
       <header className="space-y-2 text-start">
         <h1 className="text-3xl font-semibold tracking-tight">{t('signUpHeading')}</h1>
         <p className="text-muted-foreground">{t('signUpSubtitle')}</p>

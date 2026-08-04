@@ -48,22 +48,7 @@ const ICONS = {
   portalHome: 'home-2-bold',
   myAppointments: 'calendar-bold',
   myPlan: 'chef-hat-bold',
-  progress: 'round-graph-bold',
   profile: 'user-bold',
-
-  /**
-   * The client bottom tab bar's own icon language — simple line icons, not the
-   * app's usual Solar Bold. The bar's four outer tabs are a deliberate
-   * exception (see `PortalTabBar`): they frame the featured centre tab, which
-   * stays bold and filled, and a bold outer set would compete with it instead
-   * of receding.
-   */
-  portalHomeOutline: 'home-2-linear',
-  myAppointmentsOutline: 'calendar-linear',
-  progressOutline: 'chart-2-linear',
-  profileOutline: 'user-linear',
-  /** The featured centre tab's glyph — a plan on a page. */
-  myPlanFeatured: 'document-text-bold',
 
   // Direction — these mirror in RTL, see DIRECTIONAL in icon.tsx
   chevronDown: 'alt-arrow-down-bold',
