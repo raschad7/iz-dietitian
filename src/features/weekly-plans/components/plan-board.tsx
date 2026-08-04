@@ -8,15 +8,17 @@ import { Button } from '@/components/ui/button';
 
 import { getLocaleDirection } from '@/i18n/routing';
 import { isMember } from '@/lib/enum';
+import { cn } from '@/lib/utils';
 
 import type {
   Board,
+  BoardDay,
   CatalogEntry,
   ComparisonPlan,
   PlannableClient,
   SwapCandidate,
 } from '../queries';
-import { PLAN_STATUSES } from '../schema';
+import { dayKey, PLAN_STATUSES } from '../schema';
 import { slotFillKey } from '../skeleton';
 import type { RecentUse } from '../usage';
 
@@ -105,6 +107,10 @@ function BoardBody({
   const [tab, setTab] = useState<RailTab>('client');
   const [comparing, setComparing] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
+  // Which day the phone is showing. Sunday until the dietitian says otherwise:
+  // "today" would need a helper in the week logic, and this board is planning
+  // next week anyway, where no day is today.
+  const [selectedDay, setSelectedDay] = useState(0);
 
   // Which of the two presentations the rail is in. The panels themselves do not
   // know, and are rendered into exactly one of them.
@@ -355,6 +361,8 @@ function BoardBody({
         </p>
       )}
 
+      <BoardDayStrip days={board.days} selectedDay={selectedDay} onSelect={setSelectedDay} />
+
       <div className="flex min-h-0 flex-1 gap-3">
         {/* The week scrolls sideways rather than being crushed. Seven columns
             need about 150px each before a dish name stops fitting on two lines,
@@ -373,7 +381,7 @@ function BoardBody({
               parent's gutters, and repeating them on the day column would let the
               two drift out of step. */}
           <div
-            className="grid h-full min-w-[68.75rem] grid-cols-7 gap-x-2.5 gap-y-1.5"
+            className="grid h-full grid-cols-7 gap-x-2.5 gap-y-1.5 max-md:grid-cols-1 md:min-w-[68.75rem]"
             style={{ gridTemplateRows: rowTemplate }}
           >
             {board.days.map((day) => (
@@ -393,6 +401,7 @@ function BoardBody({
                 }}
                 ghosts={ghostsByDay?.[day.dayOfWeek]}
                 compareDate={previous?.weekStartDate}
+                showOnPhone={day.dayOfWeek === selectedDay}
               />
             ))}
           </div>
@@ -412,6 +421,90 @@ function BoardBody({
       >
         {belowXl && railContent}
       </BoardSheet>
+    </div>
+  );
+}
+
+/**
+ * The week, as seven things to tap — below `md`, where seven columns are not a
+ * layout, they are a queue of slivers.
+ *
+ * The shape is the portal strip's (`plan-day-strip.tsx`): four across, then
+ * three. Not seven across, because Arabic weekday names are full words —
+ * الأربعاء is eight characters — and seven columns inside 343px leaves about
+ * 45px each; the only way to force one row is Intl's narrow form, which in
+ * Arabic is a single letter (ن ث ر خ) that nobody reads as a weekday. Two
+ * readable rows beat one cryptic one.
+ *
+ * What is deliberately not shared is the component. The portal selects a day by
+ * navigating, so its server sends one day's meals rather than handing a phone a
+ * week of dishes and ingredients to show a seventh of. The staff board already
+ * holds the whole week in memory, so here the choice is local state and a round
+ * trip would buy nothing.
+ *
+ * Days with nothing planned stay selectable and are only dimmed: an empty
+ * Friday is a fact about the plan, and a day you cannot open reads as a broken
+ * board rather than an empty one.
+ */
+function BoardDayStrip({
+  days,
+  selectedDay,
+  onSelect,
+}: {
+  days: readonly BoardDay[];
+  selectedDay: number;
+  onSelect: (dayOfWeek: number) => void;
+}) {
+  const t = useTranslations('weeklyPlans');
+  const tDays = useTranslations('weeklyPlans.days');
+
+  return (
+    <div
+      role="group"
+      aria-label={t('chooseDay')}
+      className="grid shrink-0 grid-cols-4 gap-2 md:hidden"
+    >
+      {days.map((day) => {
+        const active = day.dayOfWeek === selectedDay;
+        const planned = day.meals.length > 0;
+
+        return (
+          <button
+            key={day.dayOfWeek}
+            type="button"
+            aria-pressed={active}
+            onClick={() => onSelect(day.dayOfWeek)}
+            className={cn(
+              'flex min-h-12 w-full cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg px-2 py-2',
+              'transition-all duration-(--duration-sweep) ease-(--ease-sweep)',
+              // The same focus and press treatment `buttonVariants` gives every
+              // other control: a raw <button> otherwise falls back to the UA
+              // outline, and a phone has no hover to stand in for a press cue.
+              'outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-focus-halo active:translate-y-px',
+              // Separated by fill, not by outline. Seven outlined boxes is six
+              // competing borders before any content is read.
+              active
+                ? 'bg-primary text-primary-foreground'
+                : planned
+                  ? 'bg-muted text-foreground hover:bg-accent'
+                  : 'bg-muted/50 text-muted-foreground hover:bg-muted',
+            )}
+          >
+            <span className="text-body-sm leading-none">{tDays(dayKey(day.dayOfWeek))}</span>
+
+            {/* Rendered either way so every day is the same height; invisible
+                rather than absent when the day holds nothing. */}
+            <span
+              aria-hidden
+              className={cn(
+                'size-1.5 rounded-full',
+                !planned && 'invisible',
+                active ? 'bg-primary-foreground' : 'bg-primary',
+              )}
+            />
+          </button>
+        );
+      })}
     </div>
   );
 }

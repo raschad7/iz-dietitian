@@ -687,6 +687,7 @@
     "newWeekEmptyAction": "Start an empty week",
     "selectMeal": "Open a meal on the board to see it here",
     "openPanels": "Panels",
+    "chooseDay": "Choose a day",
     "searchDishes": "Search dishes",
     "noDishes": "No dishes match",
     "sortedForSlot": "Sorted by fit to {value} kcal",

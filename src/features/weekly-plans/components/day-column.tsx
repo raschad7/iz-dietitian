@@ -47,6 +47,7 @@ export function DayColumn({
   onSelectMeal,
   ghosts,
   compareDate,
+  showOnPhone,
 }: {
   day: BoardDay;
   dailyTarget: number;
@@ -55,6 +56,13 @@ export function DayColumn({
   editable: boolean;
   selectedMealId: string | null;
   onSelectMeal: (mealId: string) => void;
+  /**
+   * Whether this is the day the phone is showing. Below `md` the week is one
+   * column, chosen from the strip above it; the other six are `display: none`
+   * and so generate no grid item at all, which is what lets the survivor take
+   * the single column rather than a seventh of seven.
+   */
+  showOnPhone: boolean;
   /** The previous plan's dish for each slot key on this day, when compare is on. */
   ghosts?: Record<string, GhostMeal>;
   compareDate?: string;
@@ -77,8 +85,19 @@ export function DayColumn({
        here: the parent's row gutter is inherited, and restating it is how the
        two come apart. `grid-cols-1` is `minmax(0,1fr)`, not the implicit `auto`
        column a bare `grid` would generate — an auto column takes its width from
-       the widest card, which is the raggedness this whole change removes. */
-    <div className="row-span-full grid min-w-0 grid-cols-1 grid-rows-subgrid">
+       the widest card, which is the raggedness this whole change removes.
+
+       Hiding the other six below `md` does not disturb any of that. The row
+       template lives on the parent, so the one column left over still spans it
+       and still subgrids the same tracks; a `display: none` day generates no
+       grid item at all, which is what lets the survivor take the whole single
+       column instead of a seventh of it. */
+    <div
+      className={cn(
+        'row-span-full grid min-w-0 grid-cols-1 grid-rows-subgrid',
+        !showOnPhone && 'max-md:hidden',
+      )}
+    >
       <div className="rounded-lg bg-muted/60 px-3 py-2.5">
         <div className="flex items-baseline justify-between gap-1.5">
           <span className="truncate text-body-sm font-semibold">{dayName}</span>

@@ -687,6 +687,7 @@
     "newWeekEmptyAction": "ابدأ أسبوعاً فارغاً",
     "selectMeal": "افتح وجبة من اللوح لعرضها هنا",
     "openPanels": "اللوحات",
+    "chooseDay": "اختر اليوم",
     "searchDishes": "ابحث في الأطباق",
     "noDishes": "لا أطباق مطابقة",
     "sortedForSlot": "مرتّبة حسب قربها من {value} kcal",
