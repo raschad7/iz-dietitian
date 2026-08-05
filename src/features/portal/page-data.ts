@@ -29,7 +29,7 @@ import {
   listPortalRequests,
 } from './queries';
 import { type RequestSearchInput } from './schema';
-import { availableSlots, selectableDays, REQUEST_WINDOW_DAYS } from './slots';
+import { selectableDays, REQUEST_WINDOW_DAYS } from './slots';
 import { type PortalContext } from './session';
 import {
   type PortalAppointment,
@@ -301,12 +301,17 @@ export async function loadProfilePage(context: PortalContext): Promise<ProfilePa
 }
 
 /**
- * Everything the request form needs: which days have room, and what is free on
- * the chosen one.
+ * Everything the request form needs: which days have room, and which one is
+ * open.
  *
- * A cancellation proposes no time, so it skips the slot work entirely — loading
- * a month of the clinic's bookings to render a form with no date picker on it
- * would be pure waste.
+ * Not which *times* are free — a client asks for a day and the dietitian sets
+ * the hour, so the page has no time picker to feed. `selectableDays` still
+ * computes each day's `openCount` internally, because "has this day any room at
+ * all" is exactly what decides whether it can be chosen.
+ *
+ * A cancellation proposes no day either, so it skips the slot work entirely —
+ * loading a month of the clinic's bookings to render a form with no date picker
+ * on it would be pure waste.
  */
 export async function loadRequestPage(
   context: PortalContext,
@@ -322,7 +327,7 @@ export async function loadRequestPage(
   const kind: RequestKind = search.kind !== 'new' && appointment ? search.kind : 'new';
 
   if (kind === 'cancel') {
-    return { kind, appointment, days: [], selectedDate: context.now.date, slots: [] };
+    return { kind, appointment, days: [], selectedDate: context.now.date };
   }
 
   const hours = await requireHours(context.clinicId);
@@ -348,11 +353,5 @@ export async function loadRequestPage(
   const selectedDate =
     (fromUrl ?? days.find((day) => day.openCount > 0) ?? days[0])?.date ?? context.now.date;
 
-  return {
-    kind,
-    appointment,
-    days,
-    selectedDate,
-    slots: availableSlots({ ...slotInput, date: selectedDate }),
-  };
+  return { kind, appointment, days, selectedDate };
 }

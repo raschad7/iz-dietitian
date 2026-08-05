@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
-import { useActionState, useState, useTransition } from 'react';
+import { useActionState, useTransition } from 'react';
 import { useFormStatus } from 'react-dom';
 
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,8 @@ import {
   formatMinute,
   formatWeekday,
 } from '@/features/booking/format';
+// `formatMinute` is still used by the current-slot line on a reschedule, which
+// names the time the client already has — reading one, not choosing one.
 import { requestAppointmentAction } from '@/features/portal/actions';
 import { initialRequestState, type RequestPageData } from '@/features/portal/types';
 import { usePathname, useRouter } from '@/i18n/navigation';
@@ -26,38 +28,35 @@ import { cn } from '@/lib/utils';
  * The one form behind all three asks: book something new, move something, drop
  * something.
  *
- * **Why the days and slots come from the server.** Which times are free is a
- * question about the clinic's calendar and its opening hours, and the answer is
- * computed by the same rule engine that governs a real booking
- * (`src/features/portal/slots.ts`). Recomputing it in the browser would mean a
- * second copy of the rules that could drift; shipping the whole month's
- * bookings to do it would also tell the client when everyone else is booked.
+ * **The client picks a day, and never a time.** Which hour they are seen at
+ * depends on how long the consultation needs, what else is on that day and who
+ * else is waiting — none of which the client can see, and all of which the
+ * dietitian can. So this form asks for the one thing the client genuinely
+ * knows, and the dietitian sets the hour when they approve it from
+ * `/app/requests`. `appointmentRequestSchema` has no field for a time, so this
+ * is a rule rather than a convention.
  *
- * So picking a day is a navigation: it sets `?date=` and the server returns that
- * day's slots. Wrapped in a transition, so the strip stays interactive and the
- * page does not blink while it loads.
+ * **Why the days come from the server.** Whether a day has any room is a
+ * question about the clinic's calendar and its opening hours, answered by the
+ * same rule engine that governs a real booking (`src/features/portal/slots.ts`).
+ * Recomputing it in the browser would mean a second copy of the rules free to
+ * drift; shipping the month's bookings to do it would also tell each client when
+ * everyone else is booked.
  *
- * The chosen time is still re-checked server side before the request is filed —
- * a slot can be taken between this page rendering and the button being pressed.
+ * So picking a day is a navigation: it sets `?date=`, and the server answers.
+ * Wrapped in a transition, so the strip stays interactive and the page does not
+ * blink while it loads.
+ *
+ * The chosen day is re-checked server side before the request is filed — the
+ * last free hour on it can go between this page rendering and the button being
+ * pressed.
  */
 
 type RequestFormProps = RequestPageData & { locale: Locale };
 
-export function RequestForm({ kind, appointment, days, selectedDate, slots, locale }: RequestFormProps) {
+export function RequestForm({ kind, appointment, days, selectedDate, locale }: RequestFormProps) {
   const t = useTranslations('portal');
   const [state, formAction] = useActionState(requestAppointmentAction, initialRequestState);
-
-  /**
-   * The chosen time, remembered together with the day it was chosen on.
-   *
-   * Storing the day alongside it is what makes the selection expire by itself
-   * when the strip moves to another date: a time picked on Tuesday means nothing
-   * on Wednesday, and a bare `number` would stay selected across the change and
-   * let the client file a request they never made. Derived rather than reset in
-   * an effect, so there is no render where the two disagree.
-   */
-  const [selection, setSelection] = useState<{ date: string; minute: number } | null>(null);
-  const startMinute = selection?.date === selectedDate ? selection.minute : null;
 
   const cancelling = kind === 'cancel';
 
@@ -67,9 +66,6 @@ export function RequestForm({ kind, appointment, days, selectedDate, slots, loca
       <input type="hidden" name="kind" value={kind} />
       {appointment ? <input type="hidden" name="appointmentId" value={appointment.id} /> : null}
       {!cancelling ? <input type="hidden" name="preferredDate" value={selectedDate} /> : null}
-      {!cancelling && startMinute !== null ? (
-        <input type="hidden" name="preferredStartMinute" value={startMinute} />
-      ) : null}
 
       {appointment ? (
         <Card size="sm">
@@ -85,18 +81,7 @@ export function RequestForm({ kind, appointment, days, selectedDate, slots, loca
         </Card>
       ) : null}
 
-      {!cancelling ? (
-        <>
-          <DayStrip days={days} selectedDate={selectedDate} locale={locale} />
-          <SlotGrid
-            date={selectedDate}
-            slots={slots}
-            selected={startMinute}
-            onSelect={(minute) => setSelection({ date: selectedDate, minute })}
-            locale={locale}
-          />
-        </>
-      ) : null}
+      {!cancelling ? <DayStrip days={days} selectedDate={selectedDate} locale={locale} /> : null}
 
       <div className="space-y-2">
         <Label htmlFor="request-note">
@@ -111,12 +96,12 @@ export function RequestForm({ kind, appointment, days, selectedDate, slots, loca
         </p>
       ) : null}
 
-      <SubmitButton
-        label={t(`request.submit.${kind}`)}
-        // A time is the whole content of a booking request; a cancellation needs none.
-        disabled={!cancelling && startMinute === null}
-        destructive={cancelling}
-      />
+      {/*
+        Never disabled. A day is always selected — `loadRequestPage` opens on the
+        first one with room — and a cancellation needs nothing at all, so there
+        is no state in which this form has too little to send.
+      */}
+      <SubmitButton label={t(`request.submit.${kind}`)} destructive={cancelling} />
     </form>
   );
 }
@@ -191,64 +176,7 @@ function DayStrip({
   );
 }
 
-/** The times still open on the chosen day. */
-function SlotGrid({
-  date,
-  slots,
-  selected,
-  onSelect,
-  locale,
-}: {
-  date: string;
-  slots: readonly number[];
-  selected: number | null;
-  onSelect: (minute: number) => void;
-  locale: Locale;
-}) {
-  const t = useTranslations('portal');
-
-  if (slots.length === 0) {
-    return <p className="text-sm text-muted-foreground">{t('request.noSlots')}</p>;
-  }
-
-  return (
-    <div className="space-y-2">
-      <p className="text-sm font-medium">{t('request.chooseTime')}</p>
-
-      <div role="group" aria-label={t('request.chooseTime')} className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-        {slots.map((minute) => {
-          const active = minute === selected;
-
-          return (
-            <button
-              key={minute}
-              type="button"
-              aria-pressed={active}
-              onClick={() => onSelect(minute)}
-              dir="ltr"
-              className={cn(
-                'rounded-lg border px-2 py-2 text-sm transition-colors',
-                active ? 'border-primary bg-primary text-primary-foreground' : 'border-border hover:bg-muted',
-              )}
-            >
-              {formatMinute(locale, date, minute)}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function SubmitButton({
-  label,
-  disabled,
-  destructive,
-}: {
-  label: string;
-  disabled: boolean;
-  destructive: boolean;
-}) {
+function SubmitButton({ label, destructive }: { label: string; destructive: boolean }) {
   const tCommon = useTranslations('common');
   const { pending } = useFormStatus();
 
@@ -257,7 +185,7 @@ function SubmitButton({
       type="submit"
       variant={destructive ? 'destructive' : 'default'}
       className="w-full"
-      disabled={disabled || pending}
+      disabled={pending}
     >
       {pending ? tCommon('loading') : label}
     </Button>

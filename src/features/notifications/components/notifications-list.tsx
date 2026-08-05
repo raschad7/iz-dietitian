@@ -26,13 +26,19 @@ type NotificationsListProps = {
  * genuine medical flag, and none of these are one.
  */
 
-/** There is no staff-side requests inbox yet, so a request lands on the day it asks about. */
+/**
+ * A request lands in the inbox that can answer it; anything else lands on the
+ * client it is about.
+ *
+ * This used to send requests to the calendar day they asked about, because
+ * there was no staff-side inbox and the day view was the closest thing to one.
+ * There is now — `/app/requests` — and it is where accepting or declining
+ * actually happens, so a feed row that dropped the reader on a calendar to
+ * re-do the booking by hand would be sending them the long way round.
+ */
 function hrefFor(item: StaffNotification) {
   if (item.kind === 'attention') return `/app/clients/${item.clientId}` as const;
-  if (item.preferredDate) {
-    return { pathname: '/app/calendar/day' as const, query: { date: item.preferredDate } };
-  }
-  return '/app/calendar/day' as const;
+  return '/app/requests' as const;
 }
 
 const REQUEST_ICONS = {
@@ -106,7 +112,7 @@ export async function NotificationsList({ items, pendingRequestCount, locale, no
 
       <div className="flex flex-wrap gap-2 border-t border-border bg-muted/50 p-3">
         {pendingRequestCount > 0 ? (
-          <Link href="/app/calendar/day" className={buttonVariants({ variant: 'outline', size: 'sm' })}>
+          <Link href="/app/requests" className={buttonVariants({ variant: 'outline', size: 'sm' })}>
             {t('reviewRequests', { count: pendingRequestCount })}
           </Link>
         ) : null}

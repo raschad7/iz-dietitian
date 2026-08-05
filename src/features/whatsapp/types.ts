@@ -59,7 +59,12 @@ export type SendSkipReason =
   /** The body was empty once trimmed. Callers validate first, so this is a bug. */
   | 'empty_body'
   /** Already sent — the dedupe key was taken. This is the automation working. */
-  | 'duplicate';
+  | 'duplicate'
+  /**
+   * The appointment it is about has already started. Nothing is sent about a
+   * slot in the past — see the guard at the top of `./notify.ts`.
+   */
+  | 'in_the_past';
 
 export type SendResult =
   | { status: 'sent'; messageId: string; gatewayMessageId: string }

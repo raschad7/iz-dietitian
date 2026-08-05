@@ -215,7 +215,14 @@ export type ClientRequestFormState =
 
 export const initialClientRequestState: ClientRequestFormState = { status: 'idle' };
 
-/** Everything the request form renders from — produced by `loadRequestPage`. */
+/**
+ * Everything the request form renders from — produced by `loadRequestPage`.
+ *
+ * There is no list of start times here, and that is the shape of the rule: a
+ * client asks for a day and the dietitian sets the hour. `SelectableDay` still
+ * carries `openCount`, because whether a day has *any* room is what decides
+ * which days can be chosen at all.
+ */
 export type RequestPageData = {
   kind: RequestKind;
   /** The appointment being moved or cancelled. Null for a brand-new request. */
@@ -224,6 +231,4 @@ export type RequestPageData = {
   days: SelectableDay[];
   /** The day currently chosen. */
   selectedDate: string;
-  /** Start minutes still open on `selectedDate`. */
-  slots: number[];
 };

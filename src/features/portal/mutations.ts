@@ -89,7 +89,7 @@ export async function createAppointmentRequest(
   }
 
   if (input.kind !== 'cancel') {
-    const available = await isSlotAvailable(context, input.preferredDate, input.preferredStartMinute, {
+    const available = await hasOpenSlot(context, input.preferredDate, {
       excludeAppointmentId: input.kind === 'reschedule' ? input.appointmentId : null,
     });
 
@@ -130,7 +130,14 @@ export async function createAppointmentRequest(
         kind: input.kind,
         appointmentId: input.kind === 'new' ? null : input.appointmentId,
         preferredDate: input.kind === 'cancel' ? null : input.preferredDate,
-        preferredStartMinute: input.kind === 'cancel' ? null : input.preferredStartMinute,
+        /**
+         * Always null from this side. The column stays on the table because the
+         * dietitian's inbox reads it — rows filed before clients stopped naming
+         * a time still carry one — and because the check constraint only
+         * requires that a non-cancellation propose *something*, which the date
+         * above satisfies. See `appointmentRequestSchema`.
+         */
+        preferredStartMinute: null,
         note: input.note ?? null,
       })
       .returning({ id: appointmentRequests.id });
@@ -366,11 +373,24 @@ export async function logPlanAdherence(
   }
 }
 
-/** Whether one specific start time is still on offer, judged by the shared slot rules. */
-async function isSlotAvailable(
+/**
+ * Whether that day still has room for this client, judged by the shared slot
+ * rules.
+ *
+ * A day rather than a time, because a client names a day and nothing finer —
+ * see the header of `appointmentRequestSchema`. This asks the one question that
+ * remains answerable: is there any start time on that date this client could be
+ * given? A closed day, a fully booked one, a day already past, or one they
+ * already have an appointment on all answer no, and each of them would make the
+ * request an inbox item the dietitian could only decline.
+ *
+ * It deliberately does not reserve anything. Two clients may ask for the same
+ * day and both be told yes; the dietitian decides who gets which hour, and the
+ * booking rules are applied for real at that point.
+ */
+async function hasOpenSlot(
   { clientId, clinicId, now }: PortalWriteContext,
   date: string,
-  startMinute: number,
   { excludeAppointmentId }: { excludeAppointmentId: string | null },
 ): Promise<boolean> {
   const [hours, existing] = await Promise.all([
@@ -380,12 +400,14 @@ async function isSlotAvailable(
 
   if (!hours) return false;
 
-  return availableSlots({
-    date,
-    hours: { ...hours, workingDays: [...hours.workingDays] },
-    existing,
-    clientId,
-    now,
-    excludeAppointmentId,
-  }).includes(startMinute);
+  return (
+    availableSlots({
+      date,
+      hours: { ...hours, workingDays: [...hours.workingDays] },
+      existing,
+      clientId,
+      now,
+      excludeAppointmentId,
+    }).length > 0
+  );
 }
