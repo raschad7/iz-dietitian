@@ -80,6 +80,39 @@ function isKept(level: AdherenceLevel): boolean {
 }
 
 /**
+ * One {@link AdherenceDay} per date given, in the order given.
+ *
+ * Split out of {@link summariseAdherenceWeek} because the meal-plan screen draws
+ * the same seven flames over **its** week, and a published plan is not always
+ * the week `today` falls in — a client reading next week's plan, or looking back
+ * at last week's, gets a strip whose dates the summary below cannot produce
+ * (it is hardcoded to `weekDates(today)`, which is the right contract for the
+ * progress tab and the wrong one there).
+ *
+ * `weekday` is the position in `dates` rather than a computed day-of-week. Every
+ * caller passes a Sunday-first run of seven, so the two agree — and a caller that
+ * passes something else gets an index, which is what the field is used as.
+ */
+export function adherenceDaysFor(
+  dates: readonly IsoDate[],
+  rows: readonly AdherenceRow[],
+  today: IsoDate,
+): AdherenceDay[] {
+  const byDate = new Map(rows.map((row) => [row.date, row]));
+
+  return dates.map((date, index) => {
+    const row = byDate.get(date);
+
+    return {
+      date,
+      weekday: index,
+      state: stateOf(date, today, row),
+      score: row ? LEVEL_SCORE[row.level] : null,
+    };
+  });
+}
+
+/**
  * The week strip and the weekly percentage, derived from one pass over the
  * rows the query returned.
  *
@@ -93,16 +126,7 @@ export function summariseAdherenceWeek(rows: AdherenceRow[], today: IsoDate): We
   const byDate = new Map(rows.map((row) => [row.date, row]));
   const dates = weekDates(today);
 
-  const days: AdherenceDay[] = dates.map((date, index) => {
-    const row = byDate.get(date);
-
-    return {
-      date,
-      weekday: index,
-      state: stateOf(date, today, row),
-      score: row ? LEVEL_SCORE[row.level] : null,
-    };
-  });
+  const days = adherenceDaysFor(dates, rows, today);
 
   const recorded = dates
     .filter((date) => date <= today)

@@ -27,6 +27,15 @@ import { cn } from '@/lib/utils';
  * re-tinting rather than by translating a shared element,
  * because the options are not a fixed width in two languages and an animated
  * offset would need measuring on every locale change.
+ *
+ * `shape="pill"` is the phone form: a filled cream track spanning the row with
+ * two equal halves inside it, both fully rounded. It exists because a switch
+ * that is the *first* thing on a screen — the portal's upcoming/past
+ * appointments — is being aimed at with a thumb rather than a pointer, and a
+ * 40px control hugging its own labels in the corner is neither findable nor
+ * comfortably tappable. The track drops its hairline in this shape: at full
+ * width the fill already draws the boundary, and the border only added a second
+ * edge around it. Same tokens, same states, same semantics as `default`.
  */
 type SegmentedOption<T extends string> = {
   value: T;
@@ -40,6 +49,7 @@ function Segmented<T extends string>({
   label,
   role = 'tablist',
   size = 'default',
+  shape = 'default',
   className,
   activeClassName = 'bg-primary text-primary-foreground',
 }: {
@@ -50,11 +60,14 @@ function Segmented<T extends string>({
   label: string;
   role?: 'tablist' | 'radiogroup';
   size?: 'default' | 'sm';
+  /** `pill` fills its row with equal, fully rounded halves. See above. */
+  shape?: 'default' | 'pill';
   className?: string;
   /** The selected option's fill. Defaults to the primary olive used everywhere else. */
   activeClassName?: string;
 }) {
   const isTablist = role === 'tablist';
+  const pill = shape === 'pill';
 
   return (
     <div
@@ -62,6 +75,13 @@ function Segmented<T extends string>({
       aria-label={label}
       className={cn(
         'inline-flex rounded-lg border border-border p-0.5',
+        /*
+         * 44px segments inside 4px of track, so the control lands at 52px and
+         * every half clears the touch minimum on its own. `w-full` rather than
+         * a width on the caller: two equal halves is what makes this shape
+         * readable as one switch instead of two chips.
+         */
+        pill && 'w-full rounded-full border-transparent bg-muted p-1',
         /*
          * `sm` is pinned to 40px so the control matches `Button size="sm"` and
          * a 40px field beside it — the height is set on the *track*, and the
@@ -93,7 +113,19 @@ function Segmented<T extends string>({
               // `h-full`: the track owns the height (see above), the option
               // owns its inline padding.
               size === 'sm' ? 'h-full px-4 text-label' : 'px-3 py-2 text-body-md',
-              active ? activeClassName : 'text-muted-foreground hover:bg-secondary hover:text-secondary-foreground',
+              pill && 'h-11 flex-1 rounded-full px-3 py-0 font-semibold',
+              // `activeClassName` rather than the olive literal, so a caller can
+              // repaint the selected half; it defaults to that same olive, which
+              // is what every shape draws unless told otherwise.
+              active
+                ? activeClassName
+                : pill
+                  ? // An unselected half sits on the track, not on the page, so
+                    // `muted-foreground` on `muted` is the one pairing to avoid
+                    // here — it measures under 4.5:1. Full-strength foreground
+                    // instead, with the weight and the fill carrying the state.
+                    'text-foreground hover:bg-card'
+                  : 'text-muted-foreground hover:bg-secondary hover:text-secondary-foreground',
             )}
           >
             {option.label}

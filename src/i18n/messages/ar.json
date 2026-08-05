@@ -500,9 +500,15 @@
       "title": "المواعيد",
       "subtitle": "كل ما حجزه لك أخصائي التغذية.",
       "book": "طلب موعد",
+      "tabs": {
+        "upcoming": "القادمة",
+        "past": "السابقة"
+      },
+      "next": "الموعد القادم",
       "upcoming": "المواعيد القادمة",
       "history": "المواعيد السابقة",
       "requests": "طلباتك",
+      "defaultTitle": "متابعة دورية",
       "noneUpcomingTitle": "لا مواعيد قادمة",
       "noneUpcoming": "لا توجد مواعيد محجوزة. اطلب موعدًا من أخصائي التغذية.",
       "nonePast": "لا توجد مواعيد سابقة بعد.",
@@ -558,7 +564,6 @@
       "title": "الخطة الغذائية",
       "noneTitle": "لا توجد خطة بعد",
       "none": "لم يُعدّ أخصائي التغذية خطة لك بعد. ستظهر هنا فور نشرها.",
-      "grams": "{grams, number, plain} غرام",
       "weekOf": "أسبوع {date}",
       "dailyTarget": "الهدف اليومي: {value} kcal",
       "chooseDay": "اختر اليوم",
@@ -567,8 +572,8 @@
       "emptyDayTitle": "لا توجد وجبات لهذا اليوم",
       "emptyDayHint": "ترك أخصائي التغذية هذا اليوم مفتوحًا. اختر يومًا آخر من الأعلى.",
       "kcalValue": "{value} kcal",
+      "markEaten": "تحديد {meal} كوجبة تم تناولها",
       "portion": "{servings} × {label}",
-      "ingredientsTitle": "المكوّنات والكميات",
       "orInstead": "يمكنك بدلاً منها:",
       "noMeal": "لم تُحدد وجبة"
     },
