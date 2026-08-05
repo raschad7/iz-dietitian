@@ -16,32 +16,26 @@ import { ClientRequestCard } from './client-request-card';
  *
  * **It renders nothing when nothing is pending, and that is deliberate.** The
  * dashboard's stated constraint is that it fits one screen from `xl` up and
- * does not scroll, so a permanently-present card would spend the page's most
- * valuable row on the word "nothing" — the same reasoning that removed the four
+ * does not scroll, so a permanently-present card would spend a third of that
+ * screen on the word "nothing" — the same reasoning that removed the four
  * summary counters that used to head this column. On a quiet morning the
- * dashboard is exactly the page it was before this feature existed; on a busy
- * one, the thing with a person waiting at the other end is the first thing on
- * it.
+ * register takes the whole row and the page is exactly what it was before this
+ * feature existed; on a busy one, the thing with a person waiting at the other
+ * end sits beside the register at full height. The page owns that switch — see
+ * `src/app/[locale]/app/page.tsx`.
  *
- * The full inbox is one click away and carries the answered history, so this
- * shows the first few and links out rather than growing without limit. The list
- * scrolls inside the card, like the agenda beside it, instead of pushing the
- * page taller.
+ * **Every pending request is here, and the list scrolls inside the card.** It
+ * used to show three and hand the rest to the inbox, because it was then a
+ * banner squeezed between the quick actions and the register; it now owns a
+ * column of its own and is bounded by the one-screen layout the way the agenda
+ * and the register are, so a busy morning is a scroll rather than a link to
+ * somewhere else. The inbox link stays in the header — it carries the answered
+ * history, which this panel never shows.
  *
  * Accept and decline work here exactly as they do in the inbox — it is the same
  * card component. A dietitian who can see a request on this page can answer it
  * on this page.
  */
-
-/**
- * How many rows the panel shows before deferring to the inbox.
- *
- * Three: enough that a normal morning is answered without leaving the
- * dashboard, few enough that the card cannot take the screen from the register
- * and the charts below it.
- */
-const PREVIEW_LIMIT = 3;
-
 export async function PendingRequestsCard({
   data,
   locale,
@@ -59,13 +53,11 @@ export async function PendingRequestsCard({
 
   // Appointments first, for the same reason the inbox orders them that way: a
   // slot someone else may take is more urgent than a correction.
-  const appointments = data.appointments.slice(0, PREVIEW_LIMIT);
-  const clientRequests = data.clientRequests.slice(0, Math.max(0, PREVIEW_LIMIT - appointments.length));
-  const hidden = total - appointments.length - clientRequests.length;
+  const { appointments, clientRequests } = data;
 
   return (
-    <Card className="shrink-0 gap-0 p-0 xl:min-h-0">
-      <CardHeader className="flex flex-wrap items-center justify-between gap-2 px-4 pt-4 pb-3">
+    <Card className="min-h-0 gap-0 p-0 xl:h-full">
+      <CardHeader className="flex shrink-0 flex-wrap items-center justify-between gap-2 px-4 pt-4 pb-3">
         <CardTitle className="flex items-center gap-2">
           <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-status-attention-bg text-status-attention-fg">
             <Icon name="chat" className="size-4" />
@@ -79,10 +71,16 @@ export async function PendingRequestsCard({
         </Link>
       </CardHeader>
 
-      <CardContent className="p-0">
-        {/* Capped rather than free-growing: three rows of controls is already a
-            tall card, and the page below it has work of its own to show. */}
-        <ul className="flex max-h-96 flex-col overflow-y-auto border-t border-border">
+      <CardContent className="flex min-h-0 flex-1 flex-col p-0">
+        {/*
+          The whole queue, scrolled rather than truncated. At `xl` the height is
+          the row's — `flex-1`/`min-h-0` against a card the one-screen layout
+          already bounds. Below `xl` nothing bounds it, so `max-h-[32rem]` is the
+          ceiling there, the same fallback the register's list carries;
+          `overscroll-contain` keeps a flick at the end of the queue off the
+          shell behind it.
+        */}
+        <ul className="flex max-h-[32rem] flex-col overflow-y-auto overscroll-contain border-t border-border xl:max-h-none xl:min-h-0 xl:flex-1">
           {appointments.map((request) => (
             <li key={request.id}>
               <AppointmentRequestCard
@@ -102,16 +100,6 @@ export async function PendingRequestsCard({
             </li>
           ))}
         </ul>
-
-        {hidden > 0 ? (
-          <Link
-            href="/app/requests"
-            className="flex items-center justify-center gap-1 border-t border-border bg-muted/50 px-4 py-2 text-caption text-muted-foreground hover:text-foreground"
-          >
-            {t('dashboard.more', { count: hidden })}
-            <Icon name="chevronEnd" className="size-3.5" />
-          </Link>
-        ) : null}
       </CardContent>
     </Card>
   );

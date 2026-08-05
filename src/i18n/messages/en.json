@@ -260,30 +260,6 @@
         "title": "Weekly plans",
         "hint": "Opens the plan board"
       }
-    },
-    "ageDistribution": {
-      "title": "Age distribution",
-      "empty": "No clients on the register yet",
-      "tooltip": "{count, plural, =0 {No clients} one {# client} other {# clients}} aged {band}",
-      "bands": {
-        "under18": "Under 18",
-        "age18to29": "18–29",
-        "age30to44": "30–44",
-        "age45to59": "45–59",
-        "age60plus": "60 and over",
-        "unknown": "Not recorded"
-      }
-    },
-    "sexDistribution": {
-      "title": "Sex distribution",
-      "empty": "No clients on the register yet",
-      "centerLabel": "clients",
-      "tooltip": "{count, plural, =0 {No clients} one {# client} other {# clients}} — {group}",
-      "groups": {
-        "female": "Female",
-        "male": "Male",
-        "unknown": "Not recorded"
-      }
     }
   },
   "notifications": {
@@ -362,8 +338,7 @@
     },
     "dashboard": {
       "title": "Waiting on you ({count, number, integer})",
-      "openInbox": "All requests",
-      "more": "{count, plural, one {# more request} other {# more requests}}"
+      "openInbox": "All requests"
     },
     "errors": {
       "invalid": "Check the details you entered.",

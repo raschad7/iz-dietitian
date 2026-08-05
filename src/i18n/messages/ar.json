@@ -260,30 +260,6 @@
         "title": "الخطط الأسبوعية",
         "hint": "يفتح لوحة الخطط"
       }
-    },
-    "ageDistribution": {
-      "title": "توزّع الأعمار",
-      "empty": "لا متابعين في السجل بعد",
-      "tooltip": "{count, plural, =0 {لا متابعين} one {متابع واحد} two {متابعان} few {# متابعين} many {# متابعًا} other {# متابع}} في الفئة {band}",
-      "bands": {
-        "under18": "أقل من 18",
-        "age18to29": "18–29",
-        "age30to44": "30–44",
-        "age45to59": "45–59",
-        "age60plus": "60 فأكثر",
-        "unknown": "غير مسجّل"
-      }
-    },
-    "sexDistribution": {
-      "title": "توزّع الجنس",
-      "empty": "لا متابعين في السجل بعد",
-      "centerLabel": "متابع",
-      "tooltip": "{count, plural, =0 {لا متابعين} one {متابع واحد} two {متابعان} few {# متابعين} many {# متابعًا} other {# متابع}} — {group}",
-      "groups": {
-        "female": "إناث",
-        "male": "ذكور",
-        "unknown": "غير مسجّل"
-      }
     }
   },
   "notifications": {
@@ -362,8 +338,7 @@
     },
     "dashboard": {
       "title": "بانتظار ردّك ({count, number, integer})",
-      "openInbox": "كل الطلبات",
-      "more": "{count, plural, one {طلب واحد آخر} two {طلبان آخران} few {# طلبات أخرى} many {# طلبًا آخر} other {# طلب آخر}}"
+      "openInbox": "كل الطلبات"
     },
     "errors": {
       "invalid": "تحقّق من البيانات المُدخلة.",
