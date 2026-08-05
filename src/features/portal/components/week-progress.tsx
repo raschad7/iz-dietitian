@@ -135,51 +135,22 @@ export function WeekProgress({
       "
       style={{
         backgroundImage: `
+          radial-gradient(
+            65% 75% at 14% 42%,
+            rgba(203, 234, 36, 0.20) 0%,
+            rgba(203, 234, 36, 0.08) 45%,
+            transparent 78%
+          ),
           linear-gradient(
             118deg,
             var(--progress-card-from) 0%,
-            var(--progress-card-via) 30%,
-            var(--progress-card-to) 65%,
+            var(--progress-card-via) 32%,
+            var(--progress-card-to) 68%,
             var(--progress-card-edge) 100%
           )
         `,
       }}
     >
-      {/* Lime glow behind the progress ring */}
-      <span
-        aria-hidden="true"
-        className="
-          pointer-events-none
-          absolute
-          -start-12
-          top-1/2
-          size-52
-          -translate-y-1/2
-          rounded-full
-          blur-2xl
-        "
-        style={{
-          background:
-            'radial-gradient(circle, rgba(203, 234, 36, 0.28) 0%, rgba(203, 234, 36, 0.12) 42%, transparent 72%)',
-        }}
-      />
-
-      {/* Soft cream light behind the text area */}
-      <span
-        aria-hidden="true"
-        className="
-          pointer-events-none
-          absolute
-          inset-y-0
-          end-0
-          w-[62%]
-        "
-        style={{
-          background:
-            'linear-gradient(90deg, transparent 0%, rgba(252, 251, 247, 0.34) 100%)',
-        }}
-      />
-
       {/* Very subtle decorative highlights */}
       <span
         aria-hidden="true"
@@ -301,7 +272,7 @@ export function WeekProgress({
               })}
             </span>
 
-            <span className="text-[10px] leading-none text-muted-foreground">
+            <span className="text-caption leading-none text-muted-foreground">
               {t('progress.unit')}
             </span>
           </span>

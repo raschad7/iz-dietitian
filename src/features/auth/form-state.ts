@@ -27,7 +27,11 @@ export type AuthFormState =
         /** Vague on purpose — never reveals whether a portal username exists. */
         | 'wrongCredentials'
         /** The six-character client minimum is only defensible with this check. */
-        | 'passwordTooCommon';
+        | 'passwordTooCommon'
+        /** `changePassword`'s own proof of ownership failed. */
+        | 'currentPasswordIncorrect'
+        /** A "change" that keeps the same password is not one. */
+        | 'passwordSameAsCurrent';
     }
   | { status: 'rateLimited'; messageKey: 'rateLimited'; minutes: number }
   | { status: 'sent'; messageKey: 'verificationSent' | 'resetLinkSent' }

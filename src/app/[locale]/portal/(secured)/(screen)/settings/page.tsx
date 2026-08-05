@@ -1,17 +1,16 @@
-import { BellRing, FileText, LifeBuoy, Lock, Mail, MessageCircle, ShieldCheck, SlidersHorizontal, UserCog } from 'lucide-react';
+import { LifeBuoy, SlidersHorizontal, UserCog } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
 import { Card, CardContent } from '@/components/ui/card';
-import { updateLanguageAction, updateThemeAction } from '@/features/portal/actions';
+import { updateLanguageAction } from '@/features/portal/actions';
 import { AccountDeletionRequest } from '@/features/portal/components/account-deletion-request';
 import { PortalScreenHeader } from '@/features/portal/components/portal-screen-header';
 import { PortalSignOut } from '@/features/portal/components/portal-sign-out';
 import { SettingsChoiceRow, SettingsLinkRow } from '@/features/portal/components/settings-rows';
 import { SettingsSection } from '@/features/portal/components/settings-section';
 import { getOpenClientRequest } from '@/features/portal/queries';
-import { portalSettings, requirePortalClient } from '@/features/portal/session';
-import { THEME_PREFERENCES } from '@/features/portal/types';
+import { requirePortalClient } from '@/features/portal/session';
 import { resolveLocale } from '@/i18n/params';
 import { locales } from '@/i18n/routing';
 
@@ -37,27 +36,25 @@ export async function generateMetadata({ params }: SettingsPageProps): Promise<M
  * **A list of destinations, not a list of controls.** Notifications, the two
  * identifiers, and contacting the clinic each used to render inline here —
  * four switches, two read-only rows, and a pair of call/WhatsApp buttons all
- * competing with the two things that actually belong on this list: the
- * language and appearance pickers. They moved to their own screens, the same
- * shape `security` already had, so this list is now one kind of row almost
- * everywhere: a name and a chevron. Only language and appearance stay inline,
- * because a two-or-three-way choice is exactly what the segmented control
- * (`docs/design-system.md` §9.3) was built for — sending that through a
- * whole extra screen would be a worse tap, not a tidier one.
+ * competing with the one thing that actually belongs on this list: the
+ * language picker. They moved to their own screens, the same shape `security`
+ * already had, so this list is now one kind of row almost everywhere: a name
+ * and a chevron. Only language stays inline, because a two-way choice is
+ * exactly what the segmented control (`docs/design-system.md` §9.3) was built
+ * for — sending that through a whole extra screen would be a worse tap, not a
+ * tidier one. The app has one appearance now, so there is no theme picker to
+ * sit beside it.
  *
- * **Four groups, then the way out.** What the clinic may send, how the app
- * looks and speaks, the account and its identifiers, and where to get help.
- * Sign-out and the deletion request close the screen, in that order — the
- * everyday exit first, the one that needs a person second.
+ * **Four groups, then the way out.** What the clinic may send, the language,
+ * the account and its identifiers, and where to get help. Sign-out and the
+ * deletion request close the screen, in that order — the everyday exit
+ * first, the one that needs a person second.
  */
 export default async function SettingsPage({ params }: SettingsPageProps) {
   const locale = await resolveLocale(params);
 
   const context = await requirePortalClient(locale);
-  const [settings, openDeletionRequest] = await Promise.all([
-    portalSettings(context.id),
-    getOpenClientRequest(context.id, 'account_deletion'),
-  ]);
+  const openDeletionRequest = await getOpenClientRequest(context.id, 'account_deletion');
 
   const t = await getTranslations('portal.settings');
   const tSwitcher = await getTranslations('localeSwitcher');
@@ -69,11 +66,11 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
       <main className="min-w-0 flex-1 px-4 py-5 md:px-6">
         <div className="mx-auto w-full max-w-3xl space-y-4">
           <SettingsSection icon={UserCog} title={t('account.title')}>
-            <SettingsLinkRow href="/portal/settings/contact" icon={Mail} label={t('account.contactRow')} />
+            <SettingsLinkRow href="/portal/settings/contact" icon="contact" label={t('account.contactRow')} />
 
             <SettingsLinkRow
               href="/portal/settings/security"
-              icon={Lock}
+              icon="security"
               label={t('account.security')}
               description={t('account.securityDescription')}
             />
@@ -82,7 +79,7 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
           <SettingsSection icon={SlidersHorizontal} title={t('preferences.title')}>
             <SettingsLinkRow
               href="/portal/settings/notifications"
-              icon={BellRing}
+              icon="notifications"
               label={t('notifications.title')}
               description={t('notifications.description')}
             />
@@ -96,46 +93,33 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
               description={t('preferences.language.description')}
               locale={locale}
             />
-
-            <SettingsChoiceRow
-              action={updateThemeAction}
-              name="theme"
-              options={THEME_PREFERENCES.map((option) => ({
-                value: option,
-                label: t(`preferences.theme.${option}`),
-              }))}
-              current={settings.theme}
-              label={t('preferences.theme.label')}
-              description={t('preferences.theme.description')}
-              locale={locale}
-            />
           </SettingsSection>
 
           <SettingsSection icon={LifeBuoy} title={t('support.title')}>
             <SettingsLinkRow
               href="/portal/settings/help"
-              icon={LifeBuoy}
+              icon="help"
               label={t('support.help')}
               description={t('support.helpDescription')}
             />
 
             <SettingsLinkRow
               href="/portal/settings/contact-clinic"
-              icon={MessageCircle}
+              icon="chat"
               label={t('support.contactClinic')}
               description={t('support.contactClinicDescription')}
             />
 
             <SettingsLinkRow
               href="/portal/settings/privacy"
-              icon={ShieldCheck}
+              icon="privacy"
               label={t('support.privacy')}
               description={t('support.privacyDescription')}
             />
 
             <SettingsLinkRow
               href="/portal/settings/terms"
-              icon={FileText}
+              icon="terms"
               label={t('support.terms')}
               description={t('support.termsDescription')}
             />

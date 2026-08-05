@@ -142,6 +142,12 @@ const ICONS = {
   dish: 'chef-hat-bold',
   /** A client's requests about an appointment, which are a conversation. */
   chat: 'chat-round-line-bold',
+
+  // Portal settings — destination rows
+  help: 'question-circle-bold',
+  privacy: 'shield-check-bold',
+  /** Terms of service. Distinct glyph from `myPlanFeatured`'s document-text-bold. */
+  terms: 'file-text-bold',
 } as const satisfies Record<string, string>;
 
 type SolarIcon = { body: string; width?: number; height?: number };

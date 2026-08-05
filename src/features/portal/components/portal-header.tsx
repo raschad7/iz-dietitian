@@ -287,17 +287,6 @@ export function PortalHeader({
           </span>
 
           <span className="font-heading text-lg font-semibold text-secondary-foreground">{name}</span>
-
-          {showNav ? (
-            <Link
-              href="/portal/profile"
-              onClick={close}
-              className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline hover:underline-offset-4"
-            >
-              {tMenu('viewProfile')}
-              <ChevronRight className="size-4 rtl:-scale-x-100" aria-hidden="true" />
-            </Link>
-          ) : null}
         </div>
 
         <nav className="flex flex-col px-3 pb-6">

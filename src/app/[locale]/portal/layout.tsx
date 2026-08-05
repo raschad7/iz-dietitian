@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 
 import { PortalTheme } from '@/features/portal/components/portal-theme';
-import { portalSettings, requirePortalClient } from '@/features/portal/session';
+import { requirePortalClient } from '@/features/portal/session';
 import { resolveLocale } from '@/i18n/params';
 
 type PortalLayoutProps = {
@@ -29,19 +29,16 @@ type PortalLayoutProps = {
  *
  * ## Appearance
  *
- * The client's theme is applied here and only here, on a wrapper this area
- * owns. It never reaches `<html>`, so the practitioner app's chrome is
- * untouched by a client's preference — `PortalTheme` explains how.
+ * The portal's appearance is fixed to light here, on a wrapper this area owns.
+ * It never reaches `<html>`, so the practitioner app's chrome is untouched —
+ * `PortalTheme` explains how.
  */
 export default async function PortalLayout({ children, params }: PortalLayoutProps) {
   const locale = await resolveLocale(params);
 
-  const context = await requirePortalClient(locale);
-  const { theme } = await portalSettings(context.id);
+  await requirePortalClient(locale);
 
   return (
-    <PortalTheme preference={theme} className="flex min-h-dvh flex-col bg-background text-foreground">
-      {children}
-    </PortalTheme>
+    <PortalTheme className="flex min-h-dvh flex-col bg-background text-foreground">{children}</PortalTheme>
   );
 }
