@@ -38,7 +38,8 @@
     "weeklyPlans": "Weekly Plans",
     "dishes": "Dish catalog",
     "whatsapp": "WhatsApp",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "requests": "Requests"
   },
   "landing": {
     "title": "Run your dietitian practice in one place",
@@ -307,6 +308,74 @@
       "neverSignedIn": "Never signed in to the portal"
     }
   },
+  "requests": {
+    "title": "Requests",
+    "subtitle": "What clients have asked for, and where you answer it.",
+    "empty": {
+      "title": "Nothing waiting",
+      "description": "Appointment requests and record corrections from the portal arrive here."
+    },
+    "sections": {
+      "appointments": "Appointments ({count, number, integer})",
+      "records": "Record corrections ({count, number, integer})",
+      "answered": "Recently answered"
+    },
+    "kind": {
+      "new": "New booking request",
+      "reschedule": "Reschedule request",
+      "cancel": "Cancellation request"
+    },
+    "clientKind": {
+      "data_update": "Record correction",
+      "account_deletion": "Account closure",
+      "deletionExplain": "Closing an account is done from the client’s own record."
+    },
+    "topic": {
+      "basic": "Basic details",
+      "health": "Health details",
+      "contact": "Contact details",
+      "other": "Something else"
+    },
+    "status": {
+      "pending": "Waiting",
+      "approved": "Approved",
+      "declined": "Declined",
+      "withdrawn": "Withdrawn"
+    },
+    "asked": "Asked for {when}",
+    "askedDay": "Asked for {when}",
+    "currently": "Currently {when}",
+    "actions": {
+      "accept": "Accept",
+      "decline": "Decline",
+      "markDone": "Mark done",
+      "confirmBooking": "Confirm booking",
+      "confirmCancellation": "Cancel the appointment"
+    },
+    "approve": {
+      "new": {
+        "title": "Book this appointment"
+      },
+      "reschedule": {
+        "title": "Move this appointment"
+      },
+      "cancel": {
+        "title": "Cancel this appointment",
+        "explain": "Approving this removes the appointment from the calendar and tells the client."
+      }
+    },
+    "dashboard": {
+      "title": "Waiting on you ({count, number, integer})",
+      "openInbox": "All requests",
+      "more": "{count, plural, one {# more request} other {# more requests}}"
+    },
+    "errors": {
+      "invalid": "Check the details you entered.",
+      "notFound": "That request no longer exists.",
+      "alreadyAnswered": "That request has already been answered.",
+      "unexpected": "Something went wrong. Please try again."
+    }
+  },
   "clients": {
     "title": "Clients",
     "subtitle": "The clinic's client register.",
@@ -443,6 +512,7 @@
     "appointments": {
       "title": "Appointments",
       "subtitle": "Everything your dietitian has booked for you.",
+      "book": "Request an appointment",
       "upcoming": "Upcoming",
       "history": "Past appointments",
       "requests": "Your requests",
@@ -462,13 +532,12 @@
       "title": "Request an appointment",
       "backToAppointments": "Back to appointments",
       "chooseDay": "Choose a day",
-      "chooseTime": "Choose a time",
-      "noSlots": "Nothing is free on this day. Try another one.",
       "note": "Reason",
       "notePlaceholder": "Follow-up, a question about my plan…",
       "optional": "(Optional)",
       "currentSlot": "Currently {date} at {time}",
       "preferredSlot": "Asked for {date} at {time}",
+      "preferredDay": "Asked for {date}",
       "withdraw": "Withdraw",
       "confirmWithdraw": "This takes your request back. Are you sure?",
       "heading": {
@@ -964,7 +1033,7 @@
     "suggested": "Suggested: {value}",
     "shareTotal": "Shares total {value}%",
     "addSlot": "Add a meal",
-    "removeSlot": "Remove",
+    "removeSlot": "Remove {slot} from every day",
     "allergenHint": "These filter the catalog before it reaches the AI, so a dish containing them cannot be suggested.",
     "permanentInstructionsHint": "Sent with every generation, e.g. type 2 diabetes — avoid added sugar.",
     "scheduleHint": "The share is this meal's portion of the day's calories. It does not have to total exactly 100.",
@@ -1121,7 +1190,6 @@
     "addMealLabel": "Meal name",
     "addMealPlaceholder": "Evening snack",
     "addMealTime": "Time",
-    "removeSlot": "Remove {slot} from every day",
     "removeSlotConfirm": "Remove {slot} from all seven days? Any dishes placed in it are removed too.",
     "restoreSlot": "Add {slot} back to this day",
     "removeMeal": "Remove meal",

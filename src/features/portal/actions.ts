@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 
 import { requirePortalClient } from './session';
 import {
+  createAppointmentRequest,
   createClientRequest,
   logPlanAdherence,
   updateContactMethod,
@@ -16,6 +17,7 @@ import {
 } from './mutations';
 import {
   accountDeletionRequestSchema,
+  appointmentRequestSchema,
   contactMethodSchema,
   dataUpdateRequestSchema,
   languagePreferenceSchema,
@@ -53,26 +55,61 @@ function revalidatePortal(locale: string): void {
 }
 
 /**
- * Refuses every appointment request a client could file.
+ * Files an appointment request with the dietitian.
  *
- * Appointments are the dietitian's: clients do not book their own, ask to move
- * them, or ask to cancel them from the portal. The forms and links that reached
- * this are gone, but a server action is a public endpoint and a removed button
- * is not a removed capability — so the refusal has to be on this side of the
- * wire, and it is the whole body of the function.
+ * This was a refusing stub between the portal redesign and now — clients could
+ * not ask for anything, and the `appointment_requests` table only ever received
+ * rows from before the change. The capability was switched off rather than
+ * dismantled, exactly so that turning it back on would be this function
+ * regaining a body rather than a path being rebuilt.
  *
- * Kept rather than deleted because `RequestForm` still binds to it and the
- * `appointment_requests` table still holds rows the dietitian answers. Deleting
- * it would be a larger change to a feature that is dormant, not gone: if clients
- * are ever given the ability back, it is the guard below that lifts, not this
- * whole path that gets rebuilt. `createAppointmentRequest` in `./mutations.ts`
- * is unchanged and still under test.
+ * **Nothing here books anything.** The row it writes carries no authority over
+ * the calendar until the dietitian acts on it from `/app/requests`; see the
+ * header of `src/db/schema/appointment-requests.ts` for why a request is not an
+ * appointment. Two clients may ask for the same slot, and the dietitian decides.
+ *
+ * The client is re-resolved from the session rather than read from the form, so
+ * a crafted post cannot file a request in someone else's name. `kind` is taken
+ * from the payload and validated by the discriminated union, which is what
+ * makes each of the three carry exactly the fields it needs.
+ *
+ * On success the client is sent back to their appointments list, where the
+ * request is now listed as pending. That listing is the confirmation, and a
+ * truer one than a message — it shows them the thing that now exists.
  */
 export async function requestAppointmentAction(
   _previousState: RequestFormState,
-  _formData: FormData,
+  formData: FormData,
 ): Promise<RequestFormState> {
-  return { status: 'error', messageKey: 'errors.invalid' };
+  const locale = readLocale(formData);
+  const { id: clientId, clinicId, now } = await requirePortalClient(locale);
+
+  const parsed = appointmentRequestSchema.safeParse({
+    kind: formData.get('kind'),
+    appointmentId: formData.get('appointmentId') ?? undefined,
+    preferredDate: formData.get('preferredDate') ?? undefined,
+    preferredStartMinute: formData.get('preferredStartMinute') ?? undefined,
+    note: formData.get('note'),
+  });
+
+  if (!parsed.success) return { status: 'error', messageKey: 'errors.invalid' };
+
+  const result = await createAppointmentRequest({ clientId, clinicId, now }, parsed.data);
+
+  // An expected rejection — the slot went while the form was open, or something
+  // about this appointment is already waiting. Reported in the form rather than
+  // thrown, so the client reads a sentence instead of an error page.
+  if (!result.ok) return { status: 'error', messageKey: result.error };
+
+  revalidatePortal(locale);
+
+  // The dietitian's inbox and dashboard now have one more item on them.
+  revalidatePath(`/${locale}/app/requests`);
+  revalidatePath(`/${locale}/app`);
+
+  // Outside the try/catch shape of the rest: `redirect` works by throwing, so
+  // it has to be the last thing this function does.
+  redirect(`/${locale}/portal/appointments`);
 }
 
 /**
