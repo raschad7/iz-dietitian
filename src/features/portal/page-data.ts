@@ -5,6 +5,7 @@ import { getPublishedBoard, type Board, type BoardDay } from '@/features/weekly-
 import { weekDates as planWeekDates, type PlanDaySummary } from '@/features/weekly-plans/week';
 
 import {
+  adherenceDaysFor,
   continuityPath,
   currentAdherenceStreak,
   fourWeekTrend,
@@ -235,6 +236,13 @@ export type PlanPageData = {
  * Returns null when nothing has been published. That is not an error: it is the
  * normal state of a client whose dietitian has not written their plan yet, and
  * the page has a screen for it.
+ *
+ * The day picker draws the same adherence flame the home screen and the progress
+ * tab do, so this reads `client_plan_adherence` too — but over **the plan's**
+ * seven dates rather than today's week, which is why it calls
+ * `adherenceDaysFor` and not `summariseAdherenceWeek`. A plan for next week comes
+ * back as seven `future` days, which is the honest answer rather than an empty
+ * one.
  */
 export async function loadPlanPage(
   context: PortalContext,
@@ -246,14 +254,33 @@ export async function loadPlanPage(
 
   const dates = planWeekDates(board.weekStartDate);
 
+  // Second read rather than part of `loadCurrentPlan`: the board is the
+  // dietitian's published plan and this is the client's own reporting against
+  // it. Bounded by the plan's own first and last date, so a plan far in the past
+  // does not drag the whole table back.
+  const from = dates[0];
+  const to = dates[dates.length - 1];
+
+  const adherenceRows =
+    from && to ? await listPlanAdherence(context.id, from, to) : [];
+
+  const adherenceByDate = new Map(
+    adherenceDaysFor(dates, adherenceRows, context.now.date).map((day) => [day.date, day]),
+  );
+
   // `getPublishedBoard` builds one entry per weekday, in order, so the index is
   // the day of week and every day is present even when it holds no meals.
-  const days: PlanDaySummary[] = board.days.map((day, index) => ({
-    dayOfWeek: day.dayOfWeek,
-    date: dates[index] ?? null,
-    mealCount: day.meals.length,
-    isToday: dates[index] === context.now.date,
-  }));
+  const days: PlanDaySummary[] = board.days.map((day, index) => {
+    const date = dates[index] ?? null;
+
+    return {
+      dayOfWeek: day.dayOfWeek,
+      date,
+      mealCount: day.meals.length,
+      isToday: date === context.now.date,
+      adherence: date === null ? null : (adherenceByDate.get(date) ?? null),
+    };
+  });
 
   return { board, days, selectedDay: pickPlanDay(days, requestedDay, weekdayOf(context.now.date)) };
 }
