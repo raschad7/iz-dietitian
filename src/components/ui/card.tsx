@@ -40,6 +40,21 @@ const cardVariants = cva(
           "gap-2 rounded-none border-b border-border bg-transparent py-3 last:border-b-0 last:rounded-b-lg",
 
         /**
+         * An item inside a card, as its own surface: rounded, muted fill, no
+         * ring and no shadow. The shape the dashboard's agenda has always drawn
+         * by hand for an appointment — a card that reads as a card without
+         * stacking a second ring and shadow on top of the one containing it.
+         *
+         * Use it where the items in a list are separate things you act on;
+         * `listRow` is for a list that reads as one ruled column, and fills its
+         * container edge to edge. The tile owns its own padding, so the header
+         * and content inside it drop theirs — 16px, the same inset the card
+         * around it uses, because a tile carrying its own controls needs the
+         * air a ruled row does not.
+         */
+        tile: "gap-2 rounded-lg bg-muted/60 p-4",
+
+        /**
          * Archived / disabled. Sunken fill, secondary text, no elevation —
          * present, readable, plainly not live.
          */
@@ -142,7 +157,7 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
         "group/card-header @container/card-header grid auto-rows-min items-start gap-1 rounded-t-lg px-(--card-spacing)",
         "has-data-[slot=card-action]:grid-cols-[1fr_auto] has-data-[slot=card-description]:grid-rows-[auto_auto]",
         "[.border-b]:pb-(--card-spacing)",
-        "group-data-[variant=listRow]/card:px-0",
+        "group-data-[variant=listRow]/card:px-0 group-data-[variant=tile]/card:px-0",
         className
       )}
       {...props}
@@ -245,7 +260,10 @@ function CardContent({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-content"
-      className={cn("px-(--card-spacing) group-data-[variant=listRow]/card:px-0", className)}
+      className={cn(
+        "px-(--card-spacing) group-data-[variant=listRow]/card:px-0 group-data-[variant=tile]/card:px-0",
+        className
+      )}
       {...props}
     />
   )

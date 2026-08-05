@@ -1,10 +1,11 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useActionState, useEffect, useId, type ReactNode } from 'react';
+import { useActionState, useEffect, useId, useState, type ReactNode } from 'react';
 import { useFormStatus } from 'react-dom';
 
 import { Button } from '@/components/ui/button';
+import { DatePicker } from '@/components/ui/date-picker';
 import { DialogBody, DialogFooter } from '@/components/ui/dialog';
 import { Field, FieldError } from '@/components/ui/field';
 import { Icon } from '@/components/ui/icon';
@@ -22,6 +23,7 @@ import {
 } from '@/features/clients/schema';
 import { type ClientFormValues } from '@/features/clients/types';
 import { type Locale } from '@/i18n/routing';
+import { toIsoDate } from '@/lib/iso-date';
 import { cn } from '@/lib/utils';
 
 /**
@@ -77,6 +79,15 @@ export function ClientForm({
   const t = useTranslations('clients');
   const tCommon = useTranslations('common');
   const detailsId = useId();
+
+  /*
+   * The only controlled field on an otherwise uncontrolled form. The picker is
+   * a button and a popover rather than an input, so it has no `defaultValue`
+   * to post from — it holds the ISO string here and posts it through a hidden
+   * input of the same name.
+   */
+  const [dateOfBirth, setDateOfBirth] = useState(client?.dateOfBirth ?? '');
+  const today = toIsoDate(new Date());
 
   const [state, formAction] = useActionState(
     client ? updateClientAction : createClientAction,
@@ -141,14 +152,28 @@ export function ClientForm({
       </FormField>
     ),
 
+    /*
+      The one field on this card that is never a date near today, which is why
+      it is the app's date picker rather than `<input type="date">`: the
+      browser's own popup opens on this month and pages a month at a time, so a
+      1974 birthday was either six hundred clicks or a typed string in whatever
+      order the OS locale happened to want it. The picker opens on the stored
+      year and offers the month and the year as dropdowns.
+
+      `max` is today — nobody is born tomorrow — and the value still posts as
+      `YYYY-MM-DD` through the picker's hidden input, so the action's schema is
+      untouched.
+    */
     dateOfBirth: (
       <FormField id="dateOfBirth" label={t('fields.dateOfBirth')} error={errorFor('dateOfBirth')}>
-        <Input
+        <DatePicker
           id="dateOfBirth"
           name="dateOfBirth"
-          type="date"
-          dir="ltr"
-          defaultValue={client?.dateOfBirth ?? ''}
+          locale={locale}
+          value={dateOfBirth}
+          onChange={setDateOfBirth}
+          max={today}
+          aria-invalid={errorFor('dateOfBirth') !== undefined || undefined}
         />
       </FormField>
     ),

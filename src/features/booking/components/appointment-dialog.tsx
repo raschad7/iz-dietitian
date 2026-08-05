@@ -1,10 +1,11 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/dialog';
 import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
@@ -12,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { ClientFormTrigger } from '@/features/clients/components/client-form-trigger';
+import { Link } from '@/i18n/navigation';
 import { getLocaleDirection, type Locale } from '@/i18n/routing';
 import { SLOT_MINUTES } from '@/lib/time-constants';
 
@@ -112,8 +114,6 @@ export function AppointmentDialog({
   const t = useTranslations('booking');
   const direction = getLocaleDirection(locale);
 
-  const nativeDateRef = useRef<HTMLInputElement>(null);
-
   const [date, setDate] = useState(appointment.date);
   const [dateText, setDateText] = useState(appointment.date);
   const [startMinute, setStartMinute] = useState(appointment.startMinute);
@@ -207,11 +207,16 @@ export function AppointmentDialog({
   return (
     <Dialog open onClose={onClose} label={t('dialog.title')} dir={direction}>
       <form method="dialog" onSubmit={(event) => event.preventDefault()}>
+        {/*
+          No X in the corner. The footer of this card already ends in Cancel —
+          Close, once the appointment is finished — and Escape and a backdrop
+          click both close a `<dialog>` natively, so the third exit was only
+          crowding the corner the client's name starts from. Same reasoning as
+          the client card; see `DialogHeader`, where the X is opt-in.
+        */}
         <DialogHeader
           title={appointment.clientName}
           description={`${formatLongDate(locale, date)} · ${formatMinute(locale, date, startMinute)}`}
-          onClose={onClose}
-          closeLabel={t('actions.close')}
         >
           {/*
             No `uppercase` here or anywhere client-facing: Arabic has no letter
@@ -222,7 +227,24 @@ export function AppointmentDialog({
         </DialogHeader>
 
         <DialogBody>
-        {/* 1. Date — typed, or picked from the browser's own calendar. */}
+        {/*
+          1. Date — typed, or picked from the app's own calendar.
+
+          The typed field stays: staff who know the date are faster with six
+          keystrokes than with any grid, and `parseDateInput` accepts the two
+          forms they actually type. The button beside it used to hand off to
+          `<input type="date">`'s browser popup, which looked like nothing else
+          in the app, was styled by the OS rather than the design system, and
+          paged a month at a time. It now opens `DatePicker`, whose caption is a
+          month and a year dropdown.
+
+          No `min`. The browser's picker used to grey out every day before
+          today, which made this the one place in the calendar that could not
+          record a visit on the day it happened — and it was only half a rule
+          anyway, since the field beside it always accepted a typed date. Any
+          date is bookable; a closed day or a clash is still refused, and says
+          which.
+        */}
         <div className="space-y-1">
           <Label htmlFor="appointment-date">{t('fields.date')}</Label>
           <div className="flex items-center gap-1.5">
@@ -242,39 +264,14 @@ export function AppointmentDialog({
               }}
             />
 
-            <div className="relative shrink-0">
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                aria-label={t('fields.openDatePicker')}
-                disabled={completed}
-                onClick={() => {
-                  const input = nativeDateRef.current;
-                  if (!input) return;
-                  // `showPicker()` throws on an element that is not rendered, so
-                  // the input below is kept in the layout and made invisible
-                  // rather than hidden with `display: none`.
-                  input.showPicker();
-                }}
-              >
-                <Icon name="calendar" />
-              </Button>
-
-              <input
-                ref={nativeDateRef}
-                type="date"
-                tabIndex={-1}
-                aria-hidden
+            <div className="shrink-0">
+              <DatePicker
+                trigger="icon"
+                locale={locale}
                 value={date}
-                // No `min`. The browser's picker used to grey out every day
-                // before today, which made this the one place in the calendar
-                // that could not record a visit on the day it happened — and it
-                // was only half a rule anyway, since the field beside it always
-                // accepted a typed date. Any date is bookable now; a closed day
-                // or a clash is still refused, and says which.
-                onChange={(event) => commitDateText(event.target.value)}
-                className="pointer-events-none absolute inset-0 size-full opacity-0"
+                disabled={completed}
+                label={t('fields.openDatePicker')}
+                onChange={commitDateText}
               />
             </div>
           </div>
@@ -323,19 +320,42 @@ export function AppointmentDialog({
         <div className="space-y-1">
           <div className="flex items-center justify-between gap-2">
             <Label htmlFor="appointment-client">{t('fields.client')}</Label>
-            {/*
-              The client card opens *over* this one rather than replacing it:
-              correcting a phone number mid-booking must not cost the booking.
-              Both are modal `<dialog>`s, so the newer one stacks in the top
-              layer and Escape closes it first.
-            */}
-            <ClientFormTrigger
-              locale={locale}
-              clientId={clientId}
-              className="text-xs text-primary underline-offset-4 hover:underline"
-            >
-              {t('fields.editClient')}
-            </ClientFormTrigger>
+
+            <div className="flex items-center gap-3">
+              {/*
+                The client card opens *over* this one rather than replacing it:
+                correcting a phone number mid-booking must not cost the booking.
+                Both are modal `<dialog>`s, so the newer one stacks in the top
+                layer and Escape closes it first.
+              */}
+              <ClientFormTrigger
+                locale={locale}
+                clientId={clientId}
+                className="text-xs text-primary underline-offset-4 hover:underline"
+              >
+                {t('fields.editClient')}
+              </ClientFormTrigger>
+
+              {/*
+                The way to the client's whole record, which used to be an arrow
+                on the block itself — see `AppointmentBlock`, where that corner
+                now opens this dialog. It reads the *selected* client rather
+                than the booked one, so it always points at whoever the field
+                above is currently naming.
+
+                A real navigation, so it leaves the calendar: unlike the card
+                above, a profile is a page, and there is nothing here that a
+                staff member can lose by going to it — every edit in this dialog
+                is either already saved or explicitly cancelled.
+              */}
+              <Link
+                href={`/app/clients/${clientId}`}
+                className="inline-flex items-center gap-1 text-xs text-primary underline-offset-4 hover:underline"
+              >
+                {t('openClientProfile')}
+                <Icon name="chevronEnd" className="size-3" />
+              </Link>
+            </div>
           </div>
           <Select
             id="appointment-client"

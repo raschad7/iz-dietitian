@@ -107,16 +107,25 @@ export function ClientTable({
     pathname: '/app/clients' as const,
     query: {
       ...(input.q ? { q: input.q } : {}),
-      status: input.status,
+      ...(input.filterBy && input.filterValue
+        ? { filterBy: input.filterBy, filterValue: input.filterValue }
+        : {}),
       sort: key,
       dir: input.sort === key && input.dir === 'asc' ? 'desc' : 'asc',
     },
   });
 
   return (
-    <TableRoot>
+    /*
+      From `md` up this is the only part of the register that scrolls: the
+      page hands it a bounded height and the rows move inside it, so the
+      title, the search field and the pager stay where the reader left them.
+      Below that the page scrolls as one — see the page component — and the
+      sticky header simply pins itself to the top of the app shell instead.
+    */
+    <TableRoot className="md:min-h-0 md:flex-1 md:overflow-y-auto">
       <Table>
-        <TableHeader>
+        <TableHeader sticky>
           <TableRow>
             {COLUMNS.map((column) => {
               const active = input.sort === column.key ? input.dir : false;

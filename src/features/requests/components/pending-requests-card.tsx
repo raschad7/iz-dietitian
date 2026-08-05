@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
 import { Link } from '@/i18n/navigation';
 import { type Locale } from '@/i18n/routing';
+import { cn } from '@/lib/utils';
 
 import { type PendingRequests } from '../types';
 
@@ -29,12 +30,22 @@ import { ClientRequestCard } from './client-request-card';
  * banner squeezed between the quick actions and the register; it now owns a
  * column of its own and is bounded by the one-screen layout the way the agenda
  * and the register are, so a busy morning is a scroll rather than a link to
- * somewhere else. The inbox link stays in the header — it carries the answered
- * history, which this panel never shows.
+ * somewhere else. The link to the inbox stays for the answered history, which
+ * this panel never shows.
+ *
+ * **It is built to the register and the agenda around it**, because the three
+ * panels on this screen have to read as one set: the same padded `Card`, the
+ * same header of a disc and a title, the same scrolling list, the same ghost
+ * link at the foot pointing at the full view. It used to be the odd one out —
+ * a flush, edge-to-edge frame with rules between its rows and its link up in
+ * the header — which made the panel read as an alert bar dropped into the
+ * dashboard rather than as one of its cards.
  *
  * Accept and decline work here exactly as they do in the inbox — it is the same
- * card component. A dietitian who can see a request on this page can answer it
- * on this page.
+ * card component, asked for its `tile` shape rather than its list-row one, so a
+ * request sits on this page the way an appointment sits in the agenda: its own
+ * rounded surface with air around it. A dietitian who can see a request on this
+ * page can answer it on this page.
  */
 export async function PendingRequestsCard({
   data,
@@ -56,31 +67,28 @@ export async function PendingRequestsCard({
   const { appointments, clientRequests } = data;
 
   return (
-    <Card className="min-h-0 gap-0 p-0 xl:h-full">
-      <CardHeader className="flex shrink-0 flex-wrap items-center justify-between gap-2 px-4 pt-4 pb-3">
-        <CardTitle className="flex items-center gap-2">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-status-attention-bg text-status-attention-fg">
-            <Icon name="chat" className="size-4" />
-          </span>
-          {t('dashboard.title', { count: total })}
-        </CardTitle>
-
-        <Link href="/app/requests" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
-          {t('dashboard.openInbox')}
-          <Icon name="chevronEnd" />
-        </Link>
+    <Card className="min-h-0 xl:h-full">
+      {/* The register's header, disc and all — the same neutral mark, because
+          the card is not a target and has nothing to promise the pointer. The
+          count in the title is what says this one is waiting on you. */}
+      <CardHeader className="shrink-0 grid-cols-[auto_1fr] items-center gap-2">
+        <span className="flex size-8 items-center justify-center rounded-full bg-muted text-muted-foreground">
+          <Icon name="chat" className="size-4" />
+        </span>
+        <CardTitle>{t('dashboard.title', { count: total })}</CardTitle>
       </CardHeader>
 
-      <CardContent className="flex min-h-0 flex-1 flex-col p-0">
+      <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
         {/*
           The whole queue, scrolled rather than truncated. At `xl` the height is
           the row's — `flex-1`/`min-h-0` against a card the one-screen layout
           already bounds. Below `xl` nothing bounds it, so `max-h-[32rem]` is the
-          ceiling there, the same fallback the register's list carries;
-          `overscroll-contain` keeps a flick at the end of the queue off the
+          ceiling there, the same fallback the register's list carries; `pe-1`
+          leaves the scrollbar somewhere to sit that is not on top of the tiles,
+          and `overscroll-contain` keeps a flick at the end of the queue off the
           shell behind it.
         */}
-        <ul className="flex max-h-[32rem] flex-col overflow-y-auto overscroll-contain border-t border-border xl:max-h-none xl:min-h-0 xl:flex-1">
+        <ul className="flex max-h-[32rem] flex-col gap-2 overflow-y-auto overscroll-contain pe-1 xl:max-h-none xl:min-h-0 xl:flex-1">
           {appointments.map((request) => (
             <li key={request.id}>
               <AppointmentRequestCard
@@ -100,6 +108,17 @@ export async function PendingRequestsCard({
             </li>
           ))}
         </ul>
+
+        {/* The inbox, at the foot of the card rather than in its header — the
+            same ghost link, in the same place, as "See all clients" and "Open
+            the day view" either side of it. */}
+        <Link
+          href="/app/requests"
+          className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'shrink-0 self-start')}
+        >
+          {t('dashboard.openInbox')}
+          <Icon name="chevronEnd" />
+        </Link>
       </CardContent>
     </Card>
   );

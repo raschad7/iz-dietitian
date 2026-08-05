@@ -21,6 +21,10 @@
     "remove": "Remove",
     "close": "Close"
   },
+  "datePicker": {
+    "open": "Pick a date",
+    "empty": "Pick a date"
+  },
   "nav": {
     "dashboard": "Dashboard",
     "clients": "Clients",
@@ -38,8 +42,7 @@
     "weeklyPlans": "Weekly Plans",
     "dishes": "Dish catalog",
     "whatsapp": "WhatsApp",
-    "notifications": "Notifications",
-    "requests": "Requests"
+    "notifications": "Notifications"
   },
   "landing": {
     "title": "Run your dietitian practice in one place",
@@ -139,6 +142,7 @@
     "completed": "Completed",
     "now": "Now",
     "openClientProfile": "Open client profile",
+    "openActions": "Appointment actions",
     "monthMore": "+{count, number, integer} more",
     "monthReadOnly": "Month view is an overview. Click a day to book or edit.",
     "nav": {
@@ -359,7 +363,20 @@
     "edit": "Edit",
     "empty": "No clients yet. Start by adding your first one.",
     "emptyFiltered": "No clients match your search.",
-    "searchPlaceholder": "Search by name, phone or email",
+    "searchPlaceholder": "Search by name",
+    "filter": {
+      "trigger": "Filter",
+      "title": "Filter the register",
+      "column": "Filter by",
+      "value": "Matching",
+      "contains": "Contains…",
+      "apply": "Apply",
+      "clear": "Clear",
+      "portalAccess": {
+        "yes": "Has access",
+        "no": "No access"
+      }
+    },
     "resultCount": "{total, number, integer} clients",
     "notFound": "Client not found",
     "notFoundDescription": "This client may have been removed, or the link is incorrect.",

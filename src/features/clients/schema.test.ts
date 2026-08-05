@@ -72,22 +72,29 @@ describe('clientFormSchema', () => {
 });
 
 describe('listClientsSchema', () => {
-  test('defaults to active clients on page one', () => {
+  test('defaults to an unfiltered page one', () => {
     const result = listClientsSchema.parse({});
-    expect(result.status).toBe('active');
+    expect(result.filterBy).toBeUndefined();
+    expect(result.filterValue).toBeUndefined();
     expect(result.page).toBe(1);
     expect(result.q).toBeUndefined();
   });
 
   test('falls back to defaults instead of throwing on junk input', () => {
-    const result = listClientsSchema.parse({ status: 'nonsense', page: 'abc' });
-    expect(result.status).toBe('active');
+    const result = listClientsSchema.parse({ filterBy: 'nonsense', page: 'abc' });
+    expect(result.filterBy).toBeUndefined();
     expect(result.page).toBe(1);
   });
 
-  test('accepts the all filter and a page number', () => {
-    const result = listClientsSchema.parse({ status: 'all', page: '3', q: '  أحمد ' });
-    expect(result.status).toBe('all');
+  test('accepts a filter column, its value and a page number', () => {
+    const result = listClientsSchema.parse({
+      filterBy: 'status',
+      filterValue: ' all ',
+      page: '3',
+      q: '  أحمد ',
+    });
+    expect(result.filterBy).toBe('status');
+    expect(result.filterValue).toBe('all');
     expect(result.page).toBe(3);
     expect(result.q).toBe('أحمد');
   });

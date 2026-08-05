@@ -8,6 +8,7 @@ import { type ClinicHours } from '@/features/booking/validation';
 import { Link } from '@/i18n/navigation';
 import { type Locale } from '@/i18n/routing';
 import { formatTimeAgo } from '@/lib/format';
+import { cn } from '@/lib/utils';
 
 import { type StaffAppointmentRequest } from '../types';
 
@@ -39,7 +40,12 @@ export type AppointmentRequestCardProps = {
   hours: ClinicHours | null;
   today: string;
   now: Date;
-  /** `sm` is the dashboard panel, where the card is narrower and dates shorten. */
+  /**
+   * `sm` is the dashboard panel: the card is narrower, dates shorten, and the
+   * request draws itself as a `tile` — its own rounded surface, the shape the
+   * agenda beside it gives an appointment — rather than as a ruled row in the
+   * inbox's edge-to-edge list.
+   */
   size?: 'default' | 'sm';
 };
 
@@ -57,17 +63,35 @@ export async function AppointmentRequestCard({
   const formatDate = compact ? formatMediumDate : formatLongDate;
 
   return (
-    <Card variant="listRow" size={compact ? 'sm' : 'default'} className="px-4">
+    <Card
+      variant={compact ? 'tile' : 'listRow'}
+      size={compact ? 'sm' : 'default'}
+      className={compact ? undefined : 'px-4'}
+    >
       <CardContent className="flex flex-col gap-3">
         <div className="flex items-start gap-3">
           {/*
-            Amber, never clay: clay is reserved for a genuine medical flag, and
-            a person waiting for an answer is not one. Same rule the
-            notifications feed follows.
+            On a tile, a plain glyph in the neutral icon colour every other card
+            on the dashboard uses — the tile is already its own surface, and a
+            filled disc on top of it was a second contained shape inside a shape
+            inside the card. What kind of request this is stays legible in the
+            badge below, which is where it was doing the work anyway.
+
+            In the inbox the disc stays: those rows are flat and ruled, so the
+            disc is the only mark starting each one. Amber there, never clay —
+            clay is reserved for a genuine medical flag, and a person waiting
+            for an answer is not one.
           */}
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-status-attention-bg text-status-attention-fg">
-            <Icon name={KIND_ICONS[request.kind]} className="size-4" />
-          </span>
+          {compact ? (
+            <Icon
+              name={KIND_ICONS[request.kind]}
+              className="mt-1 size-4 shrink-0 text-muted-foreground"
+            />
+          ) : (
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-status-attention-bg text-status-attention-fg">
+              <Icon name={KIND_ICONS[request.kind]} className="size-4" />
+            </span>
+          )}
 
           <div className="min-w-0 flex-1 space-y-1">
             <div className="flex flex-wrap items-baseline justify-between gap-x-2">
@@ -135,8 +159,9 @@ export async function AppointmentRequestCard({
         </div>
 
         {/* Indented to the text column, so the controls line up under what they
-            act on rather than under the icon. */}
-        <div className="space-y-2 ps-11">
+            act on rather than under the icon: 44px past the inbox's disc, 28px
+            past the tile's glyph. */}
+        <div className={cn('space-y-2', compact ? 'ps-7' : 'ps-11')}>
           <AppointmentRequestActions
             request={request}
             locale={locale}

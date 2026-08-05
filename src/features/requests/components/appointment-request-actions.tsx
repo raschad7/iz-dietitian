@@ -107,7 +107,16 @@ export function AppointmentRequestActions({
   return (
     <>
       <div className="flex flex-wrap items-center gap-2">
-        <Button type="button" size={size} onClick={() => setOpen(true)} disabled={pending}>
+        {/* Olive-100 at rest, solid olive under the pointer. A request is
+            something you read before you answer, so the button that answers it
+            waits to be reached for rather than shouting from the card. */}
+        <Button
+          type="button"
+          variant="primarySubtle"
+          size={size}
+          onClick={() => setOpen(true)}
+          disabled={pending}
+        >
           <Icon name="check" />
           {t('actions.accept')}
         </Button>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
+import { useRef, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
 
 import { Icon } from '@/components/ui/icon';
 import { Link } from '@/i18n/navigation';
@@ -9,7 +9,7 @@ import { type Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 
 import { formatDuration, formatMinuteRange } from '../format';
-import { blockTypeScale } from '../geometry';
+import { blockTypeScale, DRAG_THRESHOLD_PX } from '../geometry';
 import { type CalendarAppointment } from '../types';
 
 /**
@@ -63,6 +63,9 @@ export function AppointmentBlock({
   const t = useTranslations('booking');
   const scale = blockTypeScale(height);
 
+  /** Where a press on the client name began — see the link's own note below. */
+  const pressPoint = useRef<{ x: number; y: number } | null>(null);
+
   const endMinute = appointment.startMinute + appointment.durationMinutes;
   /**
    * Start *and* end, at every block size.
@@ -79,8 +82,8 @@ export function AppointmentBlock({
    * Dragging it would rewrite history — and worse, it is the easiest thing on
    * the grid to catch by accident, because a past morning is exactly the area
    * staff sweep the pointer across on the way to booking the afternoon. It can
-   * still be opened with a right-click, so a genuine correction is one deliberate
-   * gesture away.
+   * still be opened — from the corner button or a right-click — so a genuine
+   * correction is one deliberate gesture away.
    */
   const draggable = !completed;
 
@@ -168,24 +171,61 @@ export function AppointmentBlock({
         side when there is not — but never one without the other: a block showing
         only a name makes staff click it to find out when it is.
 
-        `pe-3` reserves what the client-page arrow reaches past the card's own
-        16px of padding, so a long name truncates before it rather than running
-        underneath it. It is narrower than it used to be because the card's
-        inline padding grew: the two together still clear the same glyph.
+        `pe-3` reserves what the corner's action button reaches past the card's
+        own 16px of padding, so a long name truncates before it rather than
+        running underneath it. It is narrower than it used to be because the
+        card's inline padding grew: the two together still clear the same glyph.
       */}
       <div
         className={cn('flex min-w-0 pe-3', scale.inline ? 'flex-row items-baseline' : 'flex-col')}
         style={{ gap: `${scale.gapRem}rem` }}
       >
-        <span
-          // `min-w-0` is what lets this actually truncate inside a flex row —
-          // without it the name would refuse to shrink and push the time out of
-          // the block instead.
-          className="min-w-0 flex-1 truncate font-semibold text-foreground"
+        {/*
+          **The name is the way to the record.** It was the corner arrow, then
+          it was a link inside the dialog the corner now opens — two clicks and
+          a modal away from a name that is right there on the grid, on the
+          screen staff spend the day in. The dialog keeps its link; this is the
+          short way.
+
+          `min-w-0` is what lets this actually truncate inside a flex row —
+          without it the name would refuse to shrink and push the time out of
+          the block instead.
+        */}
+        <Link
+          href={`/app/clients/${appointment.clientId}`}
+          className="min-w-0 flex-1 truncate font-semibold text-foreground underline-offset-2 hover:underline focus-visible:underline focus-visible:outline-none"
           style={{ fontSize: `${scale.nameRem}rem`, lineHeight: 1.25 }}
+          /*
+            The press still reaches the card, so the block can be dragged by
+            its name like any other part of it — the whole top line is the
+            biggest grab surface a short booking has, and taking it away to
+            make room for a link would be a bad trade.
+
+            What that costs is a drag that ends where it started: the browser
+            fires a click on the anchor, and the appointment would move *and*
+            the calendar would navigate away from itself. So the press records
+            where it began and the click is dropped if the pointer travelled at
+            all — the same `DRAG_THRESHOLD_PX` the gesture hook uses to decide
+            the same question, so a press is a click here exactly when it is a
+            click there.
+          */
+          onPointerDown={(event) => {
+            pressPoint.current = { x: event.clientX, y: event.clientY };
+          }}
+          onClick={(event) => {
+            const origin = pressPoint.current;
+            pressPoint.current = null;
+
+            if (
+              origin &&
+              Math.hypot(event.clientX - origin.x, event.clientY - origin.y) > DRAG_THRESHOLD_PX
+            ) {
+              event.preventDefault();
+            }
+          }}
         >
           {appointment.clientName}
-        </span>
+        </Link>
 
         <span
           /*
@@ -223,32 +263,55 @@ export function AppointmentBlock({
       </div>
 
       {/*
-        The client's record, and **the only way to it from the grid**.
+        **Right-click, as something you can see.**
 
-        Top corner, opposite the name and time rather than over them. Stops its
-        own pointer-down from reaching the card, or the click would first
-        register as the start of a select-and-maybe-drag gesture instead of a
-        navigation. No hover treatment: it sits in the same tight corner at
-        every block size, and a colour shift there reads as noise rather than
-        feedback worth having.
+        Opening an appointment used to be a right-click and nothing else, which
+        is a gesture with no affordance at all: it does not exist on a touch
+        screen, and on a desktop nothing on the card said it was there. This
+        button runs the same handler the context menu does — same appointment,
+        same pointer position, same refusal on a finished booking — so the two
+        are one behaviour with two ways in rather than two code paths that have
+        to be kept in step.
 
-        The card around it is deliberately *not* a link. Left-click on the body
-        selects and may become a drag, right-click opens the appointment, and a
-        stretched link over all of that made every one of those gestures a
-        candidate for navigating away — a booking moved by a shaky hand and a
-        client page opened by accident are the same slipped pointer. Confining
-        navigation to one small, explicit target keeps the two apart by area
-        rather than by guessing at intent.
+        It replaces the arrow that used to sit in this corner and jump straight
+        to the client's record. That target is the client's name on the card
+        itself now, and the dialog this opens keeps one beside the client field
+        — neither of them a 24px glyph in a corner shared with a menu.
+
+        Stops its own pointer-down from reaching the card, or the click would
+        first register as the start of a select-and-maybe-drag gesture.
+
+        **It answers the pointer the way Cancel does** — the warm neutral
+        `accent` fill under the glyph, which is `Button variant="ghost"`'s whole
+        hover state. Darkening the glyph alone was the quietest possible answer
+        on a card that is itself tinted and already darkens under the pointer,
+        so the one control on the block was the hardest thing on it to tell you
+        had found. The fill is the same shape as the target.
+
+        The card around it stays deliberately unclickable as a whole — the name
+        above is a link and this corner is a menu, and everything between them
+        selects and may become a drag. A stretched target over all of that made
+        every one of those gestures a candidate for opening something, and a
+        booking moved by a shaky hand and a dialog opened by accident are the
+        same slipped pointer.
       */}
-      <Link
-        href={`/app/clients/${appointment.clientId}`}
-        aria-label={t('openClientProfile')}
-        className="absolute end-0.5 top-0.5 z-10 flex size-6 items-center justify-center rounded-full text-foreground/50"
+      <button
+        type="button"
+        aria-label={t('openActions')}
+        aria-haspopup="dialog"
+        className={cn(
+          'absolute end-0.5 top-0.5 z-10 flex size-6 items-center justify-center rounded-full',
+          'text-foreground/50 transition-colors hover:bg-accent hover:text-accent-foreground',
+          'focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+        )}
         onPointerDown={(event) => event.stopPropagation()}
-        onClick={(event) => event.stopPropagation()}
+        onClick={(event) => {
+          event.stopPropagation();
+          onOpen(appointment, { x: event.clientX, y: event.clientY });
+        }}
       >
-        <Icon name="chevronEnd" className="size-4" />
-      </Link>
+        <Icon name="moreActions" className="size-4" />
+      </button>
 
       {/*
         The live times while this block is being moved or resized.

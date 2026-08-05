@@ -18,6 +18,11 @@ import { cn } from '@/lib/utils';
  * change the table makes; the body rows are plain, divided by the hairline on
  * `TableRow`.
  *
+ * A long table can also scroll *vertically* inside that same frame: give
+ * `TableRoot` a bounded height (`min-h-0 flex-1` inside a full-height column)
+ * plus `overflow-y-auto`, and pass `sticky` to `TableHeader` so the column
+ * names stay put while the rows move under them.
+ *
  * Cells default to `text-start`, so they follow the document direction. Pass
  * `numeric` for anything that must stay LTR inside Arabic text — figures,
  * times, IDs and units read left-to-right in both scripts.
@@ -36,11 +41,30 @@ function Table({ className, ...props }: React.ComponentProps<'table'>) {
   );
 }
 
-function TableHeader({ className, ...props }: React.ComponentProps<'thead'>) {
+function TableHeader({
+  className,
+  sticky,
+  ...props
+}: React.ComponentProps<'thead'> & {
+  /**
+   * Pins the column names to the top of whatever scrolls the table.
+   *
+   * The rule targets the `th`s rather than the `thead`: a sticky `thead` is
+   * still uneven ground across browsers, while a sticky cell is not. Each cell
+   * has to carry its own `bg-muted` for the same reason — the fill declared on
+   * `thead` is painted by `thead`, which stays where it was, so a header that
+   * moved without it would have the rows scrolling straight through the words.
+   */
+  sticky?: boolean;
+}) {
   return (
     <thead
       data-slot="table-header"
-      className={cn('bg-muted text-caption text-muted-foreground', className)}
+      className={cn(
+        'bg-muted text-caption text-muted-foreground',
+        sticky && '[&>tr>th]:sticky [&>tr>th]:top-0 [&>tr>th]:z-10 [&>tr>th]:bg-muted',
+        className,
+      )}
       {...props}
     />
   );

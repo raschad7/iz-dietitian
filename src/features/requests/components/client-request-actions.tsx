@@ -63,7 +63,15 @@ export function ClientRequestActions({ request, locale, size = 'default' }: Clie
   return (
     <>
       <div className="flex flex-wrap items-center gap-2">
-        <Button type="button" size={size} onClick={() => answer('resolved')} disabled={pending}>
+        {/* Same rest/hover pair as the appointment inbox's accept — these two
+            buttons sit in one list and answer the same kind of item. */}
+        <Button
+          type="button"
+          variant="primarySubtle"
+          size={size}
+          onClick={() => answer('resolved')}
+          disabled={pending}
+        >
           <Icon name="check" />
           {t('actions.markDone')}
         </Button>
