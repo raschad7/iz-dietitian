@@ -9,10 +9,8 @@ import {
   notifyAppointmentRescheduled,
 } from '@/features/whatsapp/notify';
 import { requireStaffClinic } from '@/lib/session';
-import { DISPLAY_TIME_ZONE } from '@/lib/format';
 import { type Locale } from '@/i18n/routing';
 
-import { hasStarted, wallClockIn } from './completed';
 import {
   createAppointment,
   createClientAndBook,
@@ -170,13 +168,12 @@ export async function updateAppointmentAction(rawLocale: string, input: unknown)
   const { previous } = result.data;
   const moved = previous.date !== parsed.data.date || previous.startMinute !== parsed.data.startMinute;
 
-  // A slot that has already begun is not news the patient can act on. Since a
-  // booking may now be dragged to an earlier hour of today, this is a real
-  // outcome rather than a defensive check: writing up the morning at three in
-  // the afternoon must not text everyone about appointments they have already
-  // attended. Judged against the *clinic's* clock, the same one the write used.
-  if (hasStarted(parsed.data, wallClockIn(DISPLAY_TIME_ZONE))) return { ok: true, data: undefined };
-
+  // No past-slot check here any more. It used to be this one `if`, which meant
+  // every other path that messages a patient — booking, cancelling, approving a
+  // request — could still write about an hour that had gone. The rule now lives
+  // beside the send in `src/features/whatsapp/notify.ts`, where it covers all of
+  // them and the next caller too; both branches below are refused there if this
+  // slot has already started.
   if (moved) notifyRescheduled(context.clinicId, parsed.data.id, previous);
   else notifyBooked(context.clinicId, parsed.data.id);
 
