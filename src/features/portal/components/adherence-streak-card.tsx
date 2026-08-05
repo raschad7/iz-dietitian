@@ -21,10 +21,15 @@ import { cn } from '@/lib/utils';
  *
  * **The curve plots the run length, not the day's score.** That is what makes
  * the card one statement rather than two: the headline number is the last point
- * of the line under it, so "٣ أيام متواصلة" and the shape agree by
- * construction. A line drawn from adherence scores would put a second measure
- * on a card whose whole subject is continuity, and the trend card further down
- * the screen already answers "how well".
+ * of the line under it, so the number and the shape agree by construction. A
+ * line drawn from adherence scores would put a second measure on a card whose
+ * whole subject is continuity, and the trend card further down the screen
+ * already answers "how well".
+ *
+ * **The number appears once.** The old copy repeated the streak count in text
+ * under the number and again in the chart's callout bubble; the bubble is now
+ * the only other place it shows, since it is doing a different job (labelling
+ * today's point on the curve) rather than restating the headline.
  *
  * **A curve, not the old sparkline's runs of points.** A streak has no gaps to
  * break a line over — a day with nothing in it is a real value, zero — and
@@ -193,9 +198,7 @@ export function AdherenceStreakCard({
             <Sprout className="mt-1 size-5 shrink-0 text-primary/60" strokeWidth={1.7} aria-hidden="true" />
           </div>
 
-          <p className="text-sm font-medium text-secondary-foreground">
-            {streak > 0 ? t('unit', { count: streak }) : t('empty')}
-          </p>
+          {streak === 0 ? <p className="text-sm font-medium text-secondary-foreground">{t('empty')}</p> : null}
 
           {streak > 0 ? (
             <p className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground ring-1 ring-primary/15 ring-inset">
@@ -364,9 +367,8 @@ export function AdherenceStreakCard({
         </div>
       </CardContent>
 
-      <CardFooter className="flex-col items-start gap-1">
-        <p className="text-sm font-medium text-secondary-foreground">{t('note.title')}</p>
-        <p className="text-xs leading-relaxed text-muted-foreground">{t('note.body')}</p>
+      <CardFooter className="justify-center">
+        <p className="text-center text-base font-bold text-secondary-foreground">{t('note.title')}</p>
       </CardFooter>
     </Card>
   );

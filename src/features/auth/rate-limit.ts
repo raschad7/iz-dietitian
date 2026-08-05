@@ -25,7 +25,8 @@ export type AttemptKind =
   | 'sign_up'
   | 'password_reset'
   | 'verification_resend'
-  | 'portal_sign_in';
+  | 'portal_sign_in'
+  | 'password_change';
 
 type Rule = { max: number; windowSeconds: number };
 
@@ -65,6 +66,15 @@ export const AUTH_LIMITS = {
   portal_sign_in: {
     email: { max: 5, windowSeconds: 15 * MINUTE },
     ip: { max: 20, windowSeconds: 15 * MINUTE },
+  },
+  /**
+   * A signed-in client trying to prove they hold the CURRENT password. The
+   * `email` rule is keyed by the session's user id — there is no address or
+   * username at this point in the flow, and the account is already known — so
+   * no `ip` rule rides alongside it.
+   */
+  password_change: {
+    email: { max: 5, windowSeconds: 15 * MINUTE },
   },
 } as const satisfies Record<AttemptKind, { email?: Rule; ip?: Rule }>;
 

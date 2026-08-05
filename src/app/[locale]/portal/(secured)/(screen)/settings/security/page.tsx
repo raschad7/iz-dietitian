@@ -2,7 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
 import { Card, CardContent } from '@/components/ui/card';
-import { PasswordResetRequest } from '@/features/portal/components/password-reset-request';
+import { PasswordChangeForm } from '@/features/portal/components/password-change-form';
 import { PortalScreenHeader } from '@/features/portal/components/portal-screen-header';
 import { SettingsArticle, SettingsArticleBlock } from '@/features/portal/components/settings-detail';
 import { requirePortalClient } from '@/features/portal/session';
@@ -54,7 +54,7 @@ export default async function SecurityPage({ params }: SecurityPageProps) {
 
           <Card>
             <CardContent>
-              <PasswordResetRequest email={context.session.user.email} locale={locale} />
+              <PasswordChangeForm locale={locale} />
             </CardContent>
           </Card>
         </div>

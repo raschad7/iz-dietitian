@@ -65,7 +65,7 @@ function TodayRing({ level, locale }: { level: AdherenceLevel | null; locale: Lo
           {score === null ? '—' : formatNumber(locale, score)}
         </span>
         {score !== null ? (
-          <span className="text-[10px] leading-none text-muted-foreground">
+          <span className="text-caption leading-none text-muted-foreground">
             {t('unit', { max: formatNumber(locale, ADHERENCE_SCORE_MAX) })}
           </span>
         ) : null}

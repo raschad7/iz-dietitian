@@ -1,7 +1,5 @@
 import type { ReactNode } from 'react';
 
-import { type ThemePreference } from '@/features/portal/types';
-
 /**
  * The client app's appearance, applied to the client app alone.
  *
@@ -12,27 +10,16 @@ import { type ThemePreference } from '@/features/portal/types';
  * wrapper is the portal's own root, so `[data-theme]` reaches every portal
  * screen and stops exactly at its edge.
  *
- * **Why there is no JavaScript in here.** `system` is resolved by a media query
- * in `globals.css`, not by reading `matchMedia` after hydration. A script that
- * resolves the theme has already lost — the first paint happened before it ran
- * — and one that resolves it on the server cannot know the device's setting at
- * all. The attribute is rendered once, the browser matches it, and a phone
- * switching to dark at sunset re-matches with no code involved.
+ * **Always light.** The portal no longer offers a dark or system-matched
+ * appearance — `data-theme` is fixed rather than read from a stored
+ * preference, so there is nothing left for a phone's dark mode to switch.
  *
  * A server component: it renders an attribute and a `div`, and there is nothing
  * on this path that needs the browser.
  */
-export function PortalTheme({
-  preference,
-  className,
-  children,
-}: {
-  preference: ThemePreference;
-  className?: string;
-  children: ReactNode;
-}) {
+export function PortalTheme({ className, children }: { className?: string; children: ReactNode }) {
   return (
-    <div data-theme={preference} className={className}>
+    <div data-theme="light" className={className}>
       {children}
     </div>
   );

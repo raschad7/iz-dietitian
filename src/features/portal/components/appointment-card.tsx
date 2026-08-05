@@ -91,9 +91,7 @@ export function AppointmentCard({
             PANEL_TONES[tone],
           )}
         >
-          <span className={cn('leading-none', featured ? 'text-xs' : 'text-[0.7rem]')}>
-            {formatWeekday(locale, date)}
-          </span>
+          <span className="text-caption leading-none">{formatWeekday(locale, date)}</span>
           <span
             className={cn(
               'font-heading leading-none font-semibold tabular-nums',

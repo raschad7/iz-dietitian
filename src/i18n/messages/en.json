@@ -119,6 +119,8 @@
     "checkInboxSpam": "If it has not arrived, check your spam folder.",
     "checkInboxWrongAddress": "Entered the wrong address?",
     "passwordChanged": "Your password has been changed.",
+    "currentPasswordIncorrect": "Your current password is incorrect.",
+    "passwordSameAsCurrent": "Your new password must be different from your current password.",
     "lastSignInMethod": "You cannot remove your only way to sign in.",
     "passkeyRegistered": "Passkey added.",
     "passkeyRemoved": "Passkey removed.",
@@ -756,8 +758,7 @@
           "daysAgo": "{count, plural, one {# day ago} other {# days ago}}"
         },
         "note": {
-          "title": "Consistency makes the difference.",
-          "body": "Every day is a small step toward a better you."
+          "title": "Consistency makes the difference."
         }
       },
       "trend": {
@@ -854,13 +855,6 @@
           "label": "Language",
           "description": "The language of the app, and of what the clinic sends you."
         },
-        "theme": {
-          "label": "Appearance",
-          "description": "How the app looks on your device.",
-          "system": "Automatic",
-          "light": "Light",
-          "dark": "Dark"
-        },
         "contact": {
           "label": "Preferred contact",
           "description": "How you would rather the clinic reach you.",
@@ -894,8 +888,11 @@
         "signInAddress": "Sign-in address",
         "signInAddressNote": "This is the email you sign in with. To change it, contact the clinic.",
         "passwordTitle": "Change your password",
-        "passwordBody": "We send a link to the address above so you can set a new password. The link works once, and your password does not change until you use it.",
-        "sendResetLink": "Send a password link"
+        "passwordBody": "Enter your current password, then choose a new one.",
+        "currentPasswordLabel": "Current password",
+        "newPasswordLabel": "New password",
+        "confirmNewPasswordLabel": "Confirm new password",
+        "changePasswordSubmit": "Change password"
       },
       "privacy": {
         "title": "Privacy",
