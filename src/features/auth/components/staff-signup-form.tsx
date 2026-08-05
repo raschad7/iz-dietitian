@@ -11,7 +11,6 @@ import { VerifyEmailNotice } from '@/features/auth/components/verify-email-notic
 import { initialAuthState } from '@/features/auth/form-state';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Link } from '@/i18n/navigation';
 import { MIN_PASSWORD_LENGTH } from '@/lib/auth-constants';
 import { type Locale } from '@/i18n/routing';
 
