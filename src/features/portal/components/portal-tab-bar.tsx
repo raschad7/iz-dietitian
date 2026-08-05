@@ -115,7 +115,14 @@ export function PortalTabBar() {
                       <Icon name="navNode" className="absolute -end-1.5 -bottom-1 size-3.5" />
                     </span>
                   </span>
-                  <span className="truncate text-label font-semibold text-primary">{t(item.labelKey)}</span>
+                  <span
+                    className={cn(
+                      'truncate text-label',
+                      active ? 'font-semibold text-primary' : 'text-muted-foreground',
+                    )}
+                  >
+                    {t(item.labelKey)}
+                  </span>
                 </Link>
               </li>
             );
@@ -135,7 +142,7 @@ export function PortalTabBar() {
                   name={OUTLINE_ICON[item.labelKey]}
                   className={cn('size-6', active ? 'text-primary' : 'text-muted-foreground')}
                 />
-                <span className={cn('truncate', active ? 'font-semibold text-foreground' : 'text-muted-foreground')}>
+                <span className={cn('truncate', active ? 'font-semibold text-primary' : 'text-muted-foreground')}>
                   {t(item.labelKey)}
                 </span>
               </Link>

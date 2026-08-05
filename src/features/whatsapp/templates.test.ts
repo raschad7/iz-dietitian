@@ -39,7 +39,6 @@ describe('renderWhatsappMessage', () => {
       renderWhatsappMessage('portalCredentials', 'en', {
         ...variables,
         username: 'ahmad-1234',
-        portalUrl: 'https://clinic.ps/en/client-login',
         // password deliberately absent
       }),
     ).toThrow(/\{password\}/);
@@ -49,17 +48,20 @@ describe('renderWhatsappMessage', () => {
     expect(() => renderWhatsappMessage('appointmentReminder', 'en', { ...variables, time: '' })).toThrow(/\{time\}/);
   });
 
-  test('includes the credentials and the portal link', () => {
+  test('includes the credentials and no sign-in link', () => {
     const body = renderWhatsappMessage('portalCredentials', 'ar', {
       ...variables,
       username: 'ahmad-1234',
       password: 'temp-pass-99',
-      portalUrl: 'https://clinic.ps/ar/client-login',
     });
 
     expect(body).toContain('ahmad-1234');
     expect(body).toContain('temp-pass-99');
-    expect(body).toContain('https://clinic.ps/ar/client-login');
+
+    // The link was removed from this template deliberately; asserting its
+    // absence is what stops it drifting back in beside the password.
+    expect(body).not.toContain('client-login');
+    expect(body).not.toContain('http');
   });
 
   test('the reschedule names both the old slot and the new one', () => {

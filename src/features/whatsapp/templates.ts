@@ -64,7 +64,6 @@ export type WhatsappTemplateVariables = {
   previousTime?: string;
   username?: string;
   password?: string;
-  portalUrl?: string;
 };
 
 const COPY = {
@@ -165,12 +164,19 @@ const COPY = {
       'To book a new one, reply to this message.',
     ],
   },
+  /**
+   * Credentials only — no sign-in link.
+   *
+   * The link was here and was removed at the clinic's instruction. Worth knowing
+   * if you are tempted to add it back: a message carrying a username, a password
+   * *and* the door they open is a complete set of keys in one forwardable chat
+   * bubble, so leaving the address out is not merely a shorter message.
+   */
   portalCredentials: {
     ar: [
       'مرحباً {clientName} 👋',
       '',
       'تم إنشاء حسابك في بوابة {clinicName}:',
-      '🔗 {portalUrl}',
       '👤 اسم المستخدم: {username}',
       '🔑 كلمة المرور المؤقتة: {password}',
       '',
@@ -180,7 +186,6 @@ const COPY = {
       'Hello {clientName} 👋',
       '',
       'Your {clinicName} portal account is ready:',
-      '🔗 {portalUrl}',
       '👤 Username: {username}',
       '🔑 Temporary password: {password}',
       '',

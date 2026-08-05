@@ -1,28 +1,31 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+
+import { routing } from '@/i18n/routing';
 
 import { requirePortalClient } from './session';
 import {
+  createAppointmentRequest,
   createClientRequest,
   logPlanAdherence,
   updateContactMethod,
   updateLanguagePreference,
   updateNotificationSetting,
-  updateThemePreference,
   withdrawClientRequest,
   withdrawRequest,
 } from './mutations';
 import {
   accountDeletionRequestSchema,
+  appointmentRequestSchema,
   contactMethodSchema,
   dataUpdateRequestSchema,
   languagePreferenceSchema,
   localeSchema,
   notificationSettingSchema,
   planAdherenceSchema,
-  themePreferenceSchema,
   withdrawRequestSchema,
 } from './schema';
 import { CLIENT_REQUEST_KINDS, type ClientRequestFormState, type RequestFormState } from './types';
@@ -53,26 +56,61 @@ function revalidatePortal(locale: string): void {
 }
 
 /**
- * Refuses every appointment request a client could file.
+ * Files an appointment request with the dietitian.
  *
- * Appointments are the dietitian's: clients do not book their own, ask to move
- * them, or ask to cancel them from the portal. The forms and links that reached
- * this are gone, but a server action is a public endpoint and a removed button
- * is not a removed capability — so the refusal has to be on this side of the
- * wire, and it is the whole body of the function.
+ * This was a refusing stub between the portal redesign and now — clients could
+ * not ask for anything, and the `appointment_requests` table only ever received
+ * rows from before the change. The capability was switched off rather than
+ * dismantled, exactly so that turning it back on would be this function
+ * regaining a body rather than a path being rebuilt.
  *
- * Kept rather than deleted because `RequestForm` still binds to it and the
- * `appointment_requests` table still holds rows the dietitian answers. Deleting
- * it would be a larger change to a feature that is dormant, not gone: if clients
- * are ever given the ability back, it is the guard below that lifts, not this
- * whole path that gets rebuilt. `createAppointmentRequest` in `./mutations.ts`
- * is unchanged and still under test.
+ * **Nothing here books anything.** The row it writes carries no authority over
+ * the calendar until the dietitian acts on it from `/app/requests`; see the
+ * header of `src/db/schema/appointment-requests.ts` for why a request is not an
+ * appointment. Two clients may ask for the same slot, and the dietitian decides.
+ *
+ * The client is re-resolved from the session rather than read from the form, so
+ * a crafted post cannot file a request in someone else's name. `kind` is taken
+ * from the payload and validated by the discriminated union, which is what
+ * makes each of the three carry exactly the fields it needs.
+ *
+ * On success the client is sent back to their appointments list, where the
+ * request is now listed as pending. That listing is the confirmation, and a
+ * truer one than a message — it shows them the thing that now exists.
  */
 export async function requestAppointmentAction(
   _previousState: RequestFormState,
-  _formData: FormData,
+  formData: FormData,
 ): Promise<RequestFormState> {
-  return { status: 'error', messageKey: 'errors.invalid' };
+  const locale = readLocale(formData);
+  const { id: clientId, clinicId, now } = await requirePortalClient(locale);
+
+  const parsed = appointmentRequestSchema.safeParse({
+    kind: formData.get('kind'),
+    appointmentId: formData.get('appointmentId') ?? undefined,
+    preferredDate: formData.get('preferredDate') ?? undefined,
+    preferredStartMinute: formData.get('preferredStartMinute') ?? undefined,
+    note: formData.get('note'),
+  });
+
+  if (!parsed.success) return { status: 'error', messageKey: 'errors.invalid' };
+
+  const result = await createAppointmentRequest({ clientId, clinicId, now }, parsed.data);
+
+  // An expected rejection — the slot went while the form was open, or something
+  // about this appointment is already waiting. Reported in the form rather than
+  // thrown, so the client reads a sentence instead of an error page.
+  if (!result.ok) return { status: 'error', messageKey: result.error };
+
+  revalidatePortal(locale);
+
+  // The dietitian's inbox and dashboard now have one more item on them.
+  revalidatePath(`/${locale}/app/requests`);
+  revalidatePath(`/${locale}/app`);
+
+  // Outside the try/catch shape of the rest: `redirect` works by throwing, so
+  // it has to be the last thing this function does.
+  redirect(`/${locale}/portal/appointments`);
 }
 
 /**
@@ -115,6 +153,17 @@ export async function withdrawRequestAction(formData: FormData): Promise<void> {
  * The redirect is what makes the change visible immediately: `next-intl` reads
  * the locale from the URL, so writing the preference without navigating would
  * save a setting that appears to do nothing until the next sign-in.
+ *
+ * **The `NEXT_LOCALE` cookie is set here, not left to the middleware.** The
+ * middleware only syncs that cookie on a "document" request — a real
+ * top-level navigation — and deliberately skips it otherwise, so that its own
+ * background revalidation of a route the client just switched away from can't
+ * stomp the cookie back to the old locale. A server action's `redirect()` is
+ * resolved by the client router as exactly that kind of background request,
+ * so without writing the cookie ourselves it would keep naming the old
+ * locale — invisible while every link on screen still carries `next`'s own
+ * URL prefix, and only surfacing once something reads the cookie instead of
+ * the path: a bare `/portal` shortcut, a fresh tab, or the next sign-in.
  */
 export async function updateLanguageAction(formData: FormData): Promise<void> {
   const locale = readLocale(formData);
@@ -130,13 +179,39 @@ export async function updateLanguageAction(formData: FormData): Promise<void> {
 
   await updateLanguagePreference(clientId, session.user.id, next);
 
+  const cookieStore = await cookies();
+
+  // `localeCookie` is a fixed object in `src/i18n/routing.ts`, never the `boolean`
+  // its type also allows — the guard is only to satisfy that wider type.
+  if (typeof routing.localeCookie === 'object') {
+    cookieStore.set(routing.localeCookie.name ?? 'NEXT_LOCALE', next, routing.localeCookie);
+  }
+
+  // A short-lived marker for `PortalScreenHeader`'s back arrow. `'replace'`
+  // below stops the switch from leaving a duplicate of *this* screen behind in
+  // the old language, but whatever screen was open before the client ever
+  // opened Settings is still there in whichever language it was rendered in —
+  // real `history.back()` would step onto it and flip the language back the
+  // moment the client leaves. The header reads and clears this on its very
+  // next back press so that one hop is safe; ten seconds is generous for a tap
+  // that follows almost immediately, and it costs nothing if it's never read.
+  cookieStore.set('PORTAL_LOCALE_SWITCH', '1', { maxAge: 10, path: '/', sameSite: 'lax' });
+
   revalidatePortal(locale);
   revalidatePortal(next);
 
   // Outside any try/catch — `redirect` signals by throwing. Back to the screen
   // the switch is on, so the client sees the same page in the new language
   // rather than being dropped somewhere else as a side effect of a setting.
-  redirect(`/${next}/portal/settings`);
+  //
+  // `'replace'` rather than the default `'push'` a server action redirect
+  // otherwise gets: pushing would leave the pre-switch `/${locale}/portal/settings`
+  // sitting in browser history right behind this entry, so the screen's own back
+  // arrow — which steps through real history when there is any — would land the
+  // client straight back on this same screen in the old language. Replacing
+  // overwrites that entry instead, so back goes to wherever the client actually
+  // came from.
+  redirect(`/${next}/portal/settings`, 'replace');
 }
 
 /**
@@ -158,20 +233,6 @@ export async function updateNotificationAction(formData: FormData): Promise<void
   if (!parsed.success) return;
 
   await updateNotificationSetting(clientId, parsed.data);
-
-  revalidatePortal(locale);
-}
-
-/** Switches the client app between the phone's setting, light and dark. */
-export async function updateThemeAction(formData: FormData): Promise<void> {
-  const locale = readLocale(formData);
-  const { id: clientId } = await requirePortalClient(locale);
-
-  const parsed = themePreferenceSchema.safeParse({ theme: formData.get('theme') });
-
-  if (!parsed.success) return;
-
-  await updateThemePreference(clientId, parsed.data.theme);
 
   revalidatePortal(locale);
 }

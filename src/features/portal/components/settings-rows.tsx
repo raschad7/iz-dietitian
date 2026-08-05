@@ -1,6 +1,7 @@
-import { ChevronRight, type LucideIcon } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
+import { Icon, type IconName } from '@/components/ui/icon';
 import { SegmentedGroup, SegmentedOption } from '@/components/ui/segmented';
 import { SettingsLabel } from '@/features/portal/components/settings-section';
 import { Link } from '@/i18n/navigation';
@@ -20,10 +21,9 @@ import { cn } from '@/lib/utils';
  * save on one setting rolling back a change made to another while it was in
  * flight, and would need a save button the client has to remember to press.
  *
- * **These are server components on purpose.** They take a lucide icon as a
- * prop, and an icon is a function — it cannot cross into a client component.
- * The switch is the one row that needs browser state, and it lives in
- * `settings-switch-row.tsx` where it imports its own.
+ * **These are server components on purpose.** The switch is the one row that
+ * needs browser state, and it lives in `settings-switch-row.tsx` where it
+ * imports its own.
  */
 
 /** A setting with two to four named values, all visible at once. */
@@ -80,7 +80,7 @@ export function SettingsChoiceRow<T extends string>({
  */
 export function SettingsLinkRow({
   href,
-  icon: Icon,
+  icon,
   label,
   description,
 }: {
@@ -92,7 +92,7 @@ export function SettingsLinkRow({
     | '/portal/settings/privacy'
     | '/portal/settings/terms'
     | '/portal/settings/help';
-  icon: LucideIcon;
+  icon: IconName;
   label: string;
   description?: string;
 }) {
@@ -101,7 +101,7 @@ export function SettingsLinkRow({
       href={href}
       className="-mx-2 flex min-h-12 items-center gap-3 rounded-md px-2 py-2.5 transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-focus-halo focus-visible:outline-none"
     >
-      <Icon className="size-5 shrink-0 text-muted-foreground" strokeWidth={1.7} aria-hidden="true" />
+      <Icon name={icon} className="size-5 shrink-0 text-muted-foreground" />
 
       <div className="min-w-0 flex-1">
         <span className="text-sm font-medium">{label}</span>

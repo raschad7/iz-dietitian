@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { isoDateSchema, startMinuteSchema, uuidSchema } from '@/features/booking/schema';
+import { isoDateSchema, uuidSchema } from '@/features/booking/schema';
 import { defaultLocale, locales } from '@/i18n/routing';
 
 import { ADHERENCE_LEVELS } from './adherence';
@@ -37,19 +37,28 @@ const noteSchema = z.preprocess(blankToUndefined, z.string().trim().max(500).opt
  * and a single optional-everything object would push the "which fields does
  * this one need?" question into the mutation, where the database check
  * constraints would be the only thing left enforcing it.
+ *
+ * **A client names a day, never a time.** Which hour they are seen at is the
+ * dietitian's call — it depends on how long the consultation needs, what else
+ * is on that day, and who else is waiting, none of which the client can see. So
+ * there is no `preferredStartMinute` here, and its absence is the enforcement:
+ * a crafted post cannot smuggle one in, because the schema has nowhere to put
+ * it. The dietitian sets the time when they approve, from `/app/requests`.
+ *
+ * That is also why `startMinuteSchema` is no longer imported in this module. It
+ * still governs the staff side, where a time genuinely is chosen — see
+ * `src/features/requests/schema.ts`.
  */
 export const appointmentRequestSchema = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal(REQUEST_KINDS[0]),
     preferredDate: isoDateSchema,
-    preferredStartMinute: startMinuteSchema,
     note: noteSchema,
   }),
   z.object({
     kind: z.literal(REQUEST_KINDS[1]),
     appointmentId: uuidSchema,
     preferredDate: isoDateSchema,
-    preferredStartMinute: startMinuteSchema,
     note: noteSchema,
   }),
   z.object({

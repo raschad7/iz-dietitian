@@ -45,7 +45,7 @@ export function AdherenceTrendCard({ weeks }: { weeks: MonthlyTrendWeek[] }) {
                   />
                 </div>
 
-                <span className="text-[11px] leading-tight font-semibold text-secondary-foreground">
+                <span className="text-caption font-semibold text-secondary-foreground">
                   {week.isCurrent ? t('thisWeek') : ' '}
                 </span>
               </div>

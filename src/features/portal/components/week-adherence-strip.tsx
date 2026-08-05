@@ -79,7 +79,7 @@ export function WeekAdherenceStrip({
             >
               <span
                 className={cn(
-                  'text-[10px] leading-none',
+                  'text-caption leading-none',
                   day.state === 'today' ? 'font-semibold text-secondary-foreground' : 'text-muted-foreground',
                 )}
               >

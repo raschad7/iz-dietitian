@@ -38,7 +38,8 @@
     "weeklyPlans": "الخطط الأسبوعية",
     "dishes": "كتالوج الأطباق",
     "whatsapp": "واتساب",
-    "notifications": "الإشعارات"
+    "notifications": "الإشعارات",
+    "requests": "الطلبات"
   },
   "landing": {
     "title": "إدارة عيادتك الغذائية في مكان واحد",
@@ -118,6 +119,8 @@
     "checkInboxSpam": "إن لم تجد الرسالة، تحقّق من مجلد البريد غير المرغوب فيه.",
     "checkInboxWrongAddress": "أدخلت بريداً خاطئاً؟",
     "passwordChanged": "تم تغيير كلمة المرور.",
+    "currentPasswordIncorrect": "كلمة المرور الحالية غير صحيحة.",
+    "passwordSameAsCurrent": "يجب أن تختلف كلمة المرور الجديدة عن كلمة المرور الحالية.",
     "lastSignInMethod": "لا يمكن حذف طريقة الدخول الوحيدة لحسابك.",
     "passkeyRegistered": "تمت إضافة مفتاح المرور.",
     "passkeyRemoved": "تم حذف مفتاح المرور.",
@@ -307,6 +310,74 @@
       "neverSignedIn": "لم يسجّل الدخول إلى البوابة بعد"
     }
   },
+  "requests": {
+    "title": "الطلبات",
+    "subtitle": "ما طلبه المتابعون، ومن هنا تردّ عليه.",
+    "empty": {
+      "title": "لا شيء بالانتظار",
+      "description": "طلبات المواعيد وطلبات تصحيح البيانات القادمة من البوابة تظهر هنا."
+    },
+    "sections": {
+      "appointments": "المواعيد ({count, number, integer})",
+      "records": "تصحيح البيانات ({count, number, integer})",
+      "answered": "تمّ الردّ عليها مؤخرًا"
+    },
+    "kind": {
+      "new": "طلب حجز جديد",
+      "reschedule": "طلب تغيير الموعد",
+      "cancel": "طلب إلغاء الموعد"
+    },
+    "clientKind": {
+      "data_update": "تصحيح بيانات",
+      "account_deletion": "إغلاق الحساب",
+      "deletionExplain": "إغلاق الحساب يتم من ملف المتابع نفسه."
+    },
+    "topic": {
+      "basic": "البيانات الأساسية",
+      "health": "البيانات الصحية",
+      "contact": "بيانات التواصل",
+      "other": "شيء آخر"
+    },
+    "status": {
+      "pending": "بالانتظار",
+      "approved": "تمت الموافقة",
+      "declined": "مرفوض",
+      "withdrawn": "تم سحبه"
+    },
+    "asked": "طلب موعد {when}",
+    "askedDay": "طلب موعد يوم {when}",
+    "currently": "الموعد الحالي {when}",
+    "actions": {
+      "accept": "قبول",
+      "decline": "رفض",
+      "markDone": "تمّ التنفيذ",
+      "confirmBooking": "تأكيد الحجز",
+      "confirmCancellation": "إلغاء الموعد"
+    },
+    "approve": {
+      "new": {
+        "title": "حجز هذا الموعد"
+      },
+      "reschedule": {
+        "title": "نقل هذا الموعد"
+      },
+      "cancel": {
+        "title": "إلغاء هذا الموعد",
+        "explain": "الموافقة تحذف الموعد من التقويم وتُعلم المتابع بذلك."
+      }
+    },
+    "dashboard": {
+      "title": "بانتظار ردّك ({count, number, integer})",
+      "openInbox": "كل الطلبات",
+      "more": "{count, plural, one {طلب واحد آخر} two {طلبان آخران} few {# طلبات أخرى} many {# طلبًا آخر} other {# طلب آخر}}"
+    },
+    "errors": {
+      "invalid": "تحقّق من البيانات المُدخلة.",
+      "notFound": "هذا الطلب لم يعد موجودًا.",
+      "alreadyAnswered": "تمّ الردّ على هذا الطلب بالفعل.",
+      "unexpected": "حدث خطأ ما. حاول مرة أخرى."
+    }
+  },
   "clients": {
     "title": "المتابعون",
     "subtitle": "سجلّ متابعي العيادة.",
@@ -407,8 +478,7 @@
       "showOnce": "اكتب هذه البيانات الآن — لن تظهر مرة أخرى.",
       "temporaryPassword": "كلمة المرور المؤقتة",
       "handOver": "سلّم هذه البيانات للمتابع. سيختار كلمة مرور خاصة به عند أول دخول.",
-      "sendWhatsapp": "إرسال البيانات عبر واتساب أيضًا",
-      "sendWhatsappHelp": "ستُرسل كلمة المرور المؤقتة إلى رقم المتابع على واتساب. يُطلب تغييرها عند أول دخول.",
+      "willSendWhatsapp": "تُرسل هذه البيانات إلى المتابع عبر واتساب تلقائيًا.",
       "whatsapp": {
         "sent": "تم إرسال البيانات عبر واتساب.",
         "skipped": "لم تُرسل عبر واتساب — تحقّق من الرقم ومن حالة الاتصال.",
@@ -443,6 +513,7 @@
     "appointments": {
       "title": "المواعيد",
       "subtitle": "كل ما حجزه لك أخصائي التغذية.",
+      "book": "طلب موعد",
       "tabs": {
         "upcoming": "القادمة",
         "past": "السابقة"
@@ -468,13 +539,12 @@
       "title": "طلب موعد",
       "backToAppointments": "العودة إلى المواعيد",
       "chooseDay": "اختر اليوم",
-      "chooseTime": "اختر الوقت",
-      "noSlots": "لا توجد أوقات متاحة في هذا اليوم. جرّب يومًا آخر.",
       "note": "السبب",
       "notePlaceholder": "متابعة، استفسار عن الخطة…",
       "optional": "(اختياري)",
       "currentSlot": "الموعد الحالي: {date} الساعة {time}",
       "preferredSlot": "الوقت المطلوب: {date} الساعة {time}",
+      "preferredDay": "طلب موعد يوم {date}",
       "withdraw": "سحب الطلب",
       "confirmWithdraw": "سيتم سحب طلبك. هل أنت متأكد؟",
       "heading": {
@@ -692,8 +762,7 @@
           "daysAgo": "منذ {count, plural, few {# أيام} many {# يومًا} other {# يوم}}"
         },
         "note": {
-          "title": "الاستمرارية تصنع الفرق.",
-          "body": "كل يوم خطوة صغيرة نحو نسخة أفضل منكِ."
+          "title": "الاستمرارية تصنع الفرق."
         }
       },
       "trend": {
@@ -790,13 +859,6 @@
           "label": "اللغة",
           "description": "لغة التطبيق ولغة رسائل العيادة."
         },
-        "theme": {
-          "label": "المظهر",
-          "description": "مظهر التطبيق على جهازك.",
-          "system": "تلقائي",
-          "light": "فاتح",
-          "dark": "داكن"
-        },
         "contact": {
           "label": "طريقة التواصل المفضّلة",
           "description": "كيف تفضّلين أن تصلكِ العيادة.",
@@ -830,8 +892,11 @@
         "signInAddress": "عنوان الدخول",
         "signInAddressNote": "هذا هو البريد الذي تدخلين به إلى التطبيق. لتغييره، تواصلي مع العيادة.",
         "passwordTitle": "تغيير كلمة المرور",
-        "passwordBody": "نرسل رابطًا إلى بريدك أعلاه لتعيين كلمة مرور جديدة. الرابط صالح لمرة واحدة، ولا تتغيّر كلمة المرور قبل استخدامه.",
-        "sendResetLink": "إرسال رابط تغيير كلمة المرور"
+        "passwordBody": "أدخل كلمة مرورك الحالية، ثم اختر كلمة مرور جديدة.",
+        "currentPasswordLabel": "كلمة المرور الحالية",
+        "newPasswordLabel": "كلمة المرور الجديدة",
+        "confirmNewPasswordLabel": "تأكيد كلمة المرور الجديدة",
+        "changePasswordSubmit": "تغيير كلمة المرور"
       },
       "privacy": {
         "title": "الخصوصية",
@@ -969,7 +1034,7 @@
     "suggested": "المقترح: {value}",
     "shareTotal": "مجموع النسب {value}%",
     "addSlot": "إضافة وجبة",
-    "removeSlot": "حذف",
+    "removeSlot": "حذف {slot} من كل الأيام",
     "allergenHint": "تُستخدم هذه الخيارات لتصفية الكتالوج قبل إرساله للذكاء الاصطناعي، فلا يمكن اقتراح طبق يحتويها.",
     "permanentInstructionsHint": "تعليمات تُرسل مع كل توليد، مثل: سكري نوع 2 — تجنّب السكريات المضافة.",
     "scheduleHint": "النسبة هي حصة الوجبة من سعرات اليوم. لا يلزم أن يكون المجموع 100 بالضبط.",
@@ -1126,7 +1191,6 @@
     "addMealLabel": "اسم الوجبة",
     "addMealPlaceholder": "سناك مسائي",
     "addMealTime": "الوقت",
-    "removeSlot": "حذف {slot} من كل الأيام",
     "removeSlotConfirm": "حذف {slot} من أيام الأسبوع السبعة؟ ستُحذف الأطباق الموضوعة فيها.",
     "restoreSlot": "أعد {slot} إلى هذا اليوم",
     "removeMeal": "حذف الوجبة",

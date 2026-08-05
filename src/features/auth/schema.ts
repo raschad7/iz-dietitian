@@ -63,3 +63,21 @@ export const resetPasswordSchema = z
   .refine((values) => values.password === values.confirmPassword, {
     path: ['confirmPassword'],
   });
+
+/**
+ * The signed-in client's own change of their own password. Unlike
+ * `setPasswordSchema` — the forced first-sign-in change, which never asks for
+ * the temporary password — this one exists to prove the person holds the
+ * current password before replacing it, so `currentPassword` is required here
+ * and nowhere else.
+ */
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1),
+    newPassword: z.string().min(CLIENT_MIN_PASSWORD_LENGTH),
+    confirmNewPassword: z.string(),
+    locale: localeSchema,
+  })
+  .refine((values) => values.newPassword === values.confirmNewPassword, {
+    path: ['confirmNewPassword'],
+  });

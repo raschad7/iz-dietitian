@@ -1,7 +1,9 @@
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
+import { buttonVariants } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Icon } from '@/components/ui/icon';
 import { appointmentMarker } from '@/features/portal/appointments';
 import { AppointmentCard } from '@/features/portal/components/appointment-card';
 import { AppointmentTabs } from '@/features/portal/components/appointment-tabs';
@@ -9,6 +11,7 @@ import { PortalSection } from '@/features/portal/components/portal-section';
 import { RequestList } from '@/features/portal/components/request-list';
 import { loadAppointments } from '@/features/portal/page-data';
 import { requirePortalClient } from '@/features/portal/session';
+import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/params';
 
 type AppointmentsPageProps = {
@@ -22,11 +25,15 @@ export async function generateMetadata({ params }: AppointmentsPageProps): Promi
 }
 
 /**
- * This client's appointments: what is coming, and what has been.
+ * This client's appointments: what is coming, what has been, and the one thing
+ * they can start from here.
  *
- * **The page is read-only.** Booking, rescheduling and cancelling are all the
- * dietitian's, so there is nothing here to press but the switch at the top —
- * which is what lets the layout be as quiet as it is.
+ * **One action, and it asks rather than books.** Requesting an appointment files
+ * a row the dietitian answers; it does not hold a slot, and the button's own
+ * screen says so. Rescheduling and cancelling stay the dietitian's — a client
+ * who needs either says so in the note on a request, or contacts the clinic.
+ * Keeping the page to a single action is what lets the rest of the layout stay
+ * as quiet as it is.
  *
  * **The two halves are a switch, not two stacked sections.** They used to be:
  * upcoming, then requests, then history, all on one scroll. That made the past
@@ -35,6 +42,10 @@ export async function generateMetadata({ params }: AppointmentsPageProps): Promi
  * them. A client's two questions are "when am I next seen?" and, occasionally,
  * "when was that last one?"; the second is a different visit to this page, not a
  * scroll on the first.
+ *
+ * The ask sits above that switch rather than inside either half. It is about the
+ * page, not about the half being read — offering it under "past" would be
+ * offering it against a list of things that already happened.
  *
  * Within the upcoming half the soonest appointment is lifted out of the list
  * entirely. It is the one thing anyone opens this page for, and a list where
@@ -54,6 +65,13 @@ export default async function AppointmentsPage({ params }: AppointmentsPageProps
   // Withdrawn requests are the client's own change of mind; keeping them on the
   // page would be a list of things they decided not to do.
   const visibleRequests = requests.filter((request) => request.status !== 'withdrawn');
+
+  // One open request at a time for a brand-new appointment: the mutation refuses
+  // a second for the same day anyway, and offering a button that leads to a
+  // rejection is worse than saying plainly that one is already waiting.
+  const hasOpenNewRequest = requests.some(
+    (request) => request.status === 'pending' && request.kind === 'new',
+  );
 
   // `upcoming` is sorted soonest-first by `splitAppointments`, so the head is the
   // next appointment and the tail is everything after it.
@@ -133,11 +151,28 @@ export default async function AppointmentsPage({ params }: AppointmentsPageProps
 
   return (
     <div className="space-y-6">
-      <header className="space-y-1">
-        <h2 className="font-heading text-2xl font-semibold tracking-tight">
-          {t('appointments.title')}
-        </h2>
-        <p className="text-sm text-muted-foreground">{t('appointments.subtitle')}</p>
+      <header className="space-y-3">
+        <div className="space-y-1">
+          <h2 className="font-heading text-2xl font-semibold tracking-tight">
+            {t('appointments.title')}
+          </h2>
+          <p className="text-sm text-muted-foreground">{t('appointments.subtitle')}</p>
+        </div>
+
+        {hasOpenNewRequest ? (
+          <p className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground">
+            <Icon name="clock" className="size-4 shrink-0" />
+            {t('appointments.requestPending')}
+          </p>
+        ) : (
+          <Link
+            href="/portal/appointments/request"
+            className={buttonVariants({ variant: 'default', className: 'w-full sm:w-auto' })}
+          >
+            <Icon name="bookAppointment" />
+            {t('appointments.book')}
+          </Link>
+        )}
       </header>
 
       <AppointmentTabs

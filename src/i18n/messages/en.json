@@ -38,7 +38,8 @@
     "weeklyPlans": "Weekly Plans",
     "dishes": "Dish catalog",
     "whatsapp": "WhatsApp",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "requests": "Requests"
   },
   "landing": {
     "title": "Run your dietitian practice in one place",
@@ -118,6 +119,8 @@
     "checkInboxSpam": "If it has not arrived, check your spam folder.",
     "checkInboxWrongAddress": "Entered the wrong address?",
     "passwordChanged": "Your password has been changed.",
+    "currentPasswordIncorrect": "Your current password is incorrect.",
+    "passwordSameAsCurrent": "Your new password must be different from your current password.",
     "lastSignInMethod": "You cannot remove your only way to sign in.",
     "passkeyRegistered": "Passkey added.",
     "passkeyRemoved": "Passkey removed.",
@@ -307,6 +310,74 @@
       "neverSignedIn": "Never signed in to the portal"
     }
   },
+  "requests": {
+    "title": "Requests",
+    "subtitle": "What clients have asked for, and where you answer it.",
+    "empty": {
+      "title": "Nothing waiting",
+      "description": "Appointment requests and record corrections from the portal arrive here."
+    },
+    "sections": {
+      "appointments": "Appointments ({count, number, integer})",
+      "records": "Record corrections ({count, number, integer})",
+      "answered": "Recently answered"
+    },
+    "kind": {
+      "new": "New booking request",
+      "reschedule": "Reschedule request",
+      "cancel": "Cancellation request"
+    },
+    "clientKind": {
+      "data_update": "Record correction",
+      "account_deletion": "Account closure",
+      "deletionExplain": "Closing an account is done from the client’s own record."
+    },
+    "topic": {
+      "basic": "Basic details",
+      "health": "Health details",
+      "contact": "Contact details",
+      "other": "Something else"
+    },
+    "status": {
+      "pending": "Waiting",
+      "approved": "Approved",
+      "declined": "Declined",
+      "withdrawn": "Withdrawn"
+    },
+    "asked": "Asked for {when}",
+    "askedDay": "Asked for {when}",
+    "currently": "Currently {when}",
+    "actions": {
+      "accept": "Accept",
+      "decline": "Decline",
+      "markDone": "Mark done",
+      "confirmBooking": "Confirm booking",
+      "confirmCancellation": "Cancel the appointment"
+    },
+    "approve": {
+      "new": {
+        "title": "Book this appointment"
+      },
+      "reschedule": {
+        "title": "Move this appointment"
+      },
+      "cancel": {
+        "title": "Cancel this appointment",
+        "explain": "Approving this removes the appointment from the calendar and tells the client."
+      }
+    },
+    "dashboard": {
+      "title": "Waiting on you ({count, number, integer})",
+      "openInbox": "All requests",
+      "more": "{count, plural, one {# more request} other {# more requests}}"
+    },
+    "errors": {
+      "invalid": "Check the details you entered.",
+      "notFound": "That request no longer exists.",
+      "alreadyAnswered": "That request has already been answered.",
+      "unexpected": "Something went wrong. Please try again."
+    }
+  },
   "clients": {
     "title": "Clients",
     "subtitle": "The clinic's client register.",
@@ -407,8 +478,7 @@
       "showOnce": "Write these down now — they will not be shown again.",
       "temporaryPassword": "Temporary password",
       "handOver": "Give these to the client. They will choose their own password the first time they sign in.",
-      "sendWhatsapp": "Also send these over WhatsApp",
-      "sendWhatsappHelp": "The temporary password goes to the client's WhatsApp number. They must change it at first sign-in.",
+      "willSendWhatsapp": "These details are sent to the client on WhatsApp automatically.",
       "whatsapp": {
         "sent": "Sent over WhatsApp.",
         "skipped": "Not sent over WhatsApp — check the number and the connection status.",
@@ -443,6 +513,7 @@
     "appointments": {
       "title": "Appointments",
       "subtitle": "Everything your dietitian has booked for you.",
+      "book": "Request an appointment",
       "tabs": {
         "upcoming": "Upcoming",
         "past": "Past"
@@ -468,13 +539,12 @@
       "title": "Request an appointment",
       "backToAppointments": "Back to appointments",
       "chooseDay": "Choose a day",
-      "chooseTime": "Choose a time",
-      "noSlots": "Nothing is free on this day. Try another one.",
       "note": "Reason",
       "notePlaceholder": "Follow-up, a question about my plan…",
       "optional": "(Optional)",
       "currentSlot": "Currently {date} at {time}",
       "preferredSlot": "Asked for {date} at {time}",
+      "preferredDay": "Asked for {date}",
       "withdraw": "Withdraw",
       "confirmWithdraw": "This takes your request back. Are you sure?",
       "heading": {
@@ -692,8 +762,7 @@
           "daysAgo": "{count, plural, one {# day ago} other {# days ago}}"
         },
         "note": {
-          "title": "Consistency makes the difference.",
-          "body": "Every day is a small step toward a better you."
+          "title": "Consistency makes the difference."
         }
       },
       "trend": {
@@ -790,13 +859,6 @@
           "label": "Language",
           "description": "The language of the app, and of what the clinic sends you."
         },
-        "theme": {
-          "label": "Appearance",
-          "description": "How the app looks on your device.",
-          "system": "Automatic",
-          "light": "Light",
-          "dark": "Dark"
-        },
         "contact": {
           "label": "Preferred contact",
           "description": "How you would rather the clinic reach you.",
@@ -830,8 +892,11 @@
         "signInAddress": "Sign-in address",
         "signInAddressNote": "This is the email you sign in with. To change it, contact the clinic.",
         "passwordTitle": "Change your password",
-        "passwordBody": "We send a link to the address above so you can set a new password. The link works once, and your password does not change until you use it.",
-        "sendResetLink": "Send a password link"
+        "passwordBody": "Enter your current password, then choose a new one.",
+        "currentPasswordLabel": "Current password",
+        "newPasswordLabel": "New password",
+        "confirmNewPasswordLabel": "Confirm new password",
+        "changePasswordSubmit": "Change password"
       },
       "privacy": {
         "title": "Privacy",
@@ -969,7 +1034,7 @@
     "suggested": "Suggested: {value}",
     "shareTotal": "Shares total {value}%",
     "addSlot": "Add a meal",
-    "removeSlot": "Remove",
+    "removeSlot": "Remove {slot} from every day",
     "allergenHint": "These filter the catalog before it reaches the AI, so a dish containing them cannot be suggested.",
     "permanentInstructionsHint": "Sent with every generation, e.g. type 2 diabetes — avoid added sugar.",
     "scheduleHint": "The share is this meal's portion of the day's calories. It does not have to total exactly 100.",
@@ -1126,7 +1191,6 @@
     "addMealLabel": "Meal name",
     "addMealPlaceholder": "Evening snack",
     "addMealTime": "Time",
-    "removeSlot": "Remove {slot} from every day",
     "removeSlotConfirm": "Remove {slot} from all seven days? Any dishes placed in it are removed too.",
     "restoreSlot": "Add {slot} back to this day",
     "removeMeal": "Remove meal",

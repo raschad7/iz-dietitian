@@ -18,10 +18,10 @@ import { cn } from '@/lib/utils';
 /**
  * One appointment, as the client reads it.
  *
- * **Read-only.** A client does not book, move or cancel their own appointments —
- * their dietitian does — so this card offers nothing to press. What it owes them
- * instead is a clear answer to "what is this, who with, and when?", and it
- * answers them in that order.
+ * **Read-only.** Asking for a new appointment is done from the page's own
+ * button, and moving or cancelling an existing one stays the dietitian's — so
+ * this card offers nothing to press. What it owes the client instead is a clear
+ * answer to "what is this, and when?", and it answers them in that order.
  *
  * The date is a tile rather than a line of prose: on a page that is mostly a list
  * of dates, "which day?" is what every row is scanned for, and a weekday, a
@@ -190,8 +190,10 @@ export function AppointmentCard({
                 ) : null}
 
                 {/*
-                  Legacy only: nothing in the portal can open a request any more.
-                  Kept so a client who filed one before is still told it is pending.
+                  A request the client has filed about *this* appointment and
+                  the dietitian has not answered. It is the one status on the
+                  card that is about something outstanding rather than about the
+                  slot itself, which is why it earns a badge here.
                 */}
                 {appointment.hasOpenRequest ? (
                   <Badge variant="attention">{t('appointments.requestPending')}</Badge>

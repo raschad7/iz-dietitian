@@ -60,13 +60,23 @@ const usernameSchema = z
   .max(60);
 
 /**
- * Optionally WhatsApps a client the credentials that were just issued.
+ * WhatsApps a client the credentials that were just issued: username, temporary
+ * password, and the portal link to use them on.
  *
- * **Opt-in per issue, never automatic.** A temporary password in a chat thread is
- * readable by anyone holding the phone and cannot be recalled, so it happens only
- * when staff tick the box — and it is offered at all because most of this clinic's
- * clients have no email address (see the README's portal section), which otherwise
- * leaves the credentials on a screen the client is not standing in front of.
+ * **Automatic, on every issue and re-issue.** This reverses an earlier decision
+ * recorded here — that it should be opt-in per issue, because a temporary
+ * password in a chat thread is readable by anyone holding the phone and cannot
+ * be recalled. That trade-off has not changed and is worth remembering; what
+ * changed is the clinic's instruction, on the reasoning that credentials nobody
+ * sends are credentials the client never receives. Most of this clinic's clients
+ * have no email address (see the README's portal section), so the alternative is
+ * a password read aloud over the phone or left on a screen they are not standing
+ * in front of.
+ *
+ * It stays bounded by things this code can actually check: `notifyPortalCredentials`
+ * sends nothing without a live WhatsApp session and a usable phone number on the
+ * client, and reports `skipped` instead. The card says so before the button is
+ * pressed, so this is never a surprise.
  *
  * Awaited rather than deferred with `after()`: the dietitian is reading the
  * one-time password off the screen right now and needs to know whether they must
@@ -92,11 +102,6 @@ async function deliverCredentials(
     console.error('[clients] WhatsApp credential delivery failed', error);
     return 'failed';
   }
-}
-
-/** The "also send over WhatsApp" checkbox. Absent from FormData when unticked. */
-function wantsWhatsapp(formData: FormData): boolean {
-  return formData.get('sendWhatsapp') === 'on';
 }
 
 export async function createClientAction(
@@ -266,9 +271,7 @@ export async function issuePortalCredentialsAction(
       return { status: 'error', messageKey: 'errors.unexpected' };
     }
 
-    const whatsapp = wantsWhatsapp(formData)
-      ? await deliverCredentials(clinicId, id, result)
-      : undefined;
+    const whatsapp = await deliverCredentials(clinicId, id, result);
 
     revalidatePath(`/${locale}/app/clients`);
     revalidatePath(`/${locale}/app/clients/${id}`);
@@ -307,9 +310,7 @@ export async function reissuePortalPasswordAction(
       return { status: 'error', messageKey: 'errors.unexpected' };
     }
 
-    const whatsapp = wantsWhatsapp(formData)
-      ? await deliverCredentials(clinicId, id, result)
-      : undefined;
+    const whatsapp = await deliverCredentials(clinicId, id, result);
 
     revalidatePath(`/${locale}/app/clients`);
     revalidatePath(`/${locale}/app/clients/${id}`);
