@@ -478,8 +478,7 @@
       "showOnce": "Write these down now — they will not be shown again.",
       "temporaryPassword": "Temporary password",
       "handOver": "Give these to the client. They will choose their own password the first time they sign in.",
-      "sendWhatsapp": "Also send these over WhatsApp",
-      "sendWhatsappHelp": "The temporary password goes to the client's WhatsApp number. They must change it at first sign-in.",
+      "willSendWhatsapp": "These details are sent to the client on WhatsApp automatically.",
       "whatsapp": {
         "sent": "Sent over WhatsApp.",
         "skipped": "Not sent over WhatsApp — check the number and the connection status.",
