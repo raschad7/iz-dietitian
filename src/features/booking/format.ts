@@ -37,6 +37,22 @@ export function formatMinuteRange(locale: Locale, date: IsoDate, startMinute: nu
   );
 }
 
+/**
+ * `9:15 AM – 10:00 AM`, always in English AM/PM regardless of locale.
+ *
+ * The dashboard agenda card is read at a glance rather than translated for a
+ * client, so "ص"/"م" bought nothing there but an unfamiliar mark next to a
+ * time everyone already reads in Western digits. Locale-facing surfaces
+ * (calendar, portal, WhatsApp) keep using `formatMinuteRange` — the day
+ * period there is not decoration, it is content someone reads.
+ */
+export function formatMinuteRangeLatin(date: IsoDate, startMinute: number, endMinute: number): string {
+  return new Intl.DateTimeFormat('en-US', { timeStyle: 'short', ...WALL_CLOCK_DEFAULTS }).formatRange(
+    toUtcInstant(date, startMinute),
+    toUtcInstant(date, endMinute),
+  );
+}
+
 /** `5 – 11 August 2026`, collapsed by the locale's own range rules. */
 export function formatMediumDateRange(locale: Locale, from: IsoDate, to: IsoDate): string {
   return formatter(locale, { dateStyle: 'medium' }).formatRange(toUtcInstant(from), toUtcInstant(to));

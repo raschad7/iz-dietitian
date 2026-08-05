@@ -503,9 +503,14 @@
   --viz-seq-3: var(--n-600);
   --viz-seq-4: var(--n-700);
   --viz-seq-5: var(--n-800);
-  /* Colour follows the entity, never its rank: female is always slot 1. */
-  --viz-cat-1: var(--olive-800);
-  --viz-cat-2: var(--olive-500);
+  /*
+   * Colour follows the entity, never its rank: female is always slot 1.
+   * Lightened to olive-100/olive-50 by design request — the pair no longer
+   * clears 3:1 on white unaided, which the mandatory legend beside the ring
+   * is what carries the reading instead.
+   */
+  --viz-cat-1: var(--olive-100);
+  --viz-cat-2: var(--olive-50);
   --viz-cat-none: var(--n-300);
 
   /*
@@ -700,12 +705,12 @@
  *
  * `:lang(ar)` rather than `html[lang='ar']` so an Arabic name or note inside an
  * English page gets the right face and the right leading too. On such a page the
- * layout deliberately does not attach `--font-neo-sans-arabic`, which is what
+ * layout deliberately does not attach `--font-almarai`, which is what
  * the inner fallbacks are for.
  */
 :lang(ar) {
-  --script-ui-font: var(--font-neo-sans-arabic, var(--font-ibm-plex-sans-arabic));
-  --script-display-font: var(--font-neo-sans-arabic, var(--font-readex-pro));
+  --script-ui-font: var(--font-almarai, var(--font-ibm-plex-sans-arabic));
+  --script-display-font: var(--font-almarai, var(--font-readex-pro));
 
   --lh-display-lg: 1.35;
   --lh-display-sm: 1.4;
@@ -755,6 +760,34 @@
   }
   html {
     @apply font-sans;
+  }
+
+  /*
+   * ── Custom scrollbar ──
+   * Same track/thumb structure the platform default draws — a plain
+   * rectangular thumb inset from the edge, no radius — recoloured to
+   * olive-100. Declared in `@layer base` so `@utility no-scrollbar` (the
+   * calendar grid's opt-out) still wins: Tailwind's utilities layer outranks
+   * base regardless of selector specificity.
+   */
+  html {
+    scrollbar-width: auto;
+    scrollbar-color: var(--olive-100) transparent;
+  }
+  ::-webkit-scrollbar {
+    width: 14px;
+    height: 14px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--olive-100);
+    border: 3px solid transparent;
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--olive-200);
   }
 
   /*
@@ -1033,9 +1066,12 @@
  * bar itself is gone. Used by the calendar grid, which is sized to fit its panel
  * and shows a bar only in the cases it cannot: a window too short for the
  * clinic day at a readable slot height, or a week too narrow for seven columns.
+ * Also used by the dashboard agenda's appointment list, on request — that one
+ * genuinely can overflow with a full day, so the caution below applies to it
+ * more than to the calendar.
  *
  * The trade is real and worth stating: hiding the bar also hides the *signal*
- * that there is more to see. It is acceptable here because the calendar is
+ * that there is more to see. It is acceptable on the calendar because it is
  * fitted to the panel in normal use, so the hidden overflow is the exception
  * rather than the resting state. Do not reach for this on an ordinary long page.
  */

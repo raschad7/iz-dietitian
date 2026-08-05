@@ -36,11 +36,10 @@ import { cn } from '@/lib/utils';
  * and "you are here". The fields now rest neutral and pick up olive under the
  * pointer like every other field in the app.
  */
-type PrimaryField = 'fullName' | 'phone' | 'email' | 'dateOfBirth';
+type PrimaryField = 'fullName' | 'phone' | 'email' | 'dateOfBirth' | 'sex';
 
 /** Everything the disclosure hides. Listed so a server-side error can reopen it. */
 const DETAIL_FIELDS = [
-  'sex',
   'heightCm',
   'goal',
   'activityLevel',
@@ -255,7 +254,9 @@ export function ClientForm({
           reading at a glance rather than scanning across a column for. Date of
           birth and phone share the row after them: paired rather than each
           claiming a row of its own, because together they are still one
-          "when and how to reach this person" thought.
+          "when and how to reach this person" thought. Sex sits below them,
+          outside the disclosure — a record can't start without it, so it
+          stays visible whether or not the card is expanded.
         */}
         <div className="grid gap-4">
           {fields.fullName}
@@ -264,6 +265,7 @@ export function ClientForm({
             {fields.dateOfBirth}
             {fields.phone}
           </div>
+          {fields.sex}
         </div>
 
         {/*
@@ -286,7 +288,6 @@ export function ClientForm({
         >
           <div inert={!expanded} className="overflow-hidden">
             <div className="grid gap-4 pt-4 sm:grid-cols-2">
-              {fields.sex}
               {fields.heightCm}
               {fields.goal}
               {fields.activityLevel}
@@ -378,7 +379,12 @@ function SexField({ defaultValue }: { defaultValue?: string | null }) {
             htmlFor={inputId}
             className={cn(
               'flex h-12 cursor-pointer items-center justify-center gap-2 rounded-[10px] border border-input',
-              'text-body-md font-medium text-foreground transition-colors',
+              'text-body-md font-medium text-foreground transition-colors duration-180 ease-out',
+              // Same hover treatment as `.q-field` (globals.css) — the box
+              // fills and its edge picks up olive, exactly like hovering a
+              // text field. Scoped to the unchecked state so hovering a
+              // selected option doesn't dim its own selected colour.
+              'not-has-checked:hover:border-(--input-hover) not-has-checked:hover:bg-secondary',
               'has-checked:border-primary has-checked:bg-secondary has-checked:text-secondary-foreground',
             )}
           >
@@ -390,9 +396,7 @@ function SexField({ defaultValue }: { defaultValue?: string | null }) {
               defaultChecked={defaultValue === value}
               className="sr-only"
             />
-            <span aria-hidden className="text-lg leading-none">
-              {value === 'male' ? '♂' : '♀'}
-            </span>
+            <Icon name={value} className="size-5" />
             {t(`sex.${value}`)}
           </label>
         );

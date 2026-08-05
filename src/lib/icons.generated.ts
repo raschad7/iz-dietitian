@@ -215,6 +215,16 @@ export const QIWAM_ICONS = {
     viewBox: '0 0 24 24',
     body: "<path fill=\"currentColor\" fill-rule=\"evenodd\" d=\"M22 12c0 5.523-4.477 10-10 10S2 17.523 2 12S6.477 2 12 2s10 4.477 10 10m-5.97-3.03a.75.75 0 0 1 0 1.06l-5 5a.75.75 0 0 1-1.06 0l-2-2a.75.75 0 1 1 1.06-1.06l1.47 1.47l2.235-2.235L14.97 8.97a.75.75 0 0 1 1.06 0\" clip-rule=\"evenodd\"/>",
   },
+  male: {
+    // solar:men-bold
+    viewBox: '0 0 24 24',
+    body: "<path fill=\"currentColor\" d=\"M17 1.25a.75.75 0 1 0 0 1.5h3.19l-5.088 5.088a8 8 0 1 0 1.06 1.06l5.088-5.087V7a.75.75 0 1 0 1.5 0V2a.75.75 0 0 0-.75-.75z\"/>",
+  },
+  female: {
+    // solar:women-bold
+    viewBox: '0 0 24 24',
+    body: "<path fill=\"currentColor\" d=\"M12.75 15.96a7.001 7.001 0 1 0-1.5 0v1.79H9.5a.75.75 0 0 0 0 1.5h1.75V22a.75.75 0 1 0 1.5 0v-2.75h1.75a.75.75 0 0 0 0-1.5h-1.75z\"/>",
+  },
   navNode: {
     // solar:leaf-bold
     viewBox: '0 0 24 24',
@@ -264,6 +274,11 @@ export const QIWAM_ICONS = {
     // solar:graph-up-bold
     viewBox: '0 0 24 24',
     body: "<path fill=\"currentColor\" fill-rule=\"evenodd\" d=\"M3.464 3.464C2 4.93 2 7.286 2 12s0 7.071 1.464 8.535C4.93 22 7.286 22 12 22s7.071 0 8.535-1.465C22 19.072 22 16.714 22 12s0-7.071-1.465-8.536C19.072 2 16.714 2 12 2S4.929 2 3.464 3.464M13.75 10c0 .414.336.75.75.75h.69l-2.013 2.013a.25.25 0 0 1-.354 0l-1.586-1.586a1.75 1.75 0 0 0-2.474 0L6.47 13.47a.75.75 0 1 0 1.06 1.06l2.293-2.293a.25.25 0 0 1 .354 0l1.586 1.586a1.75 1.75 0 0 0 2.474 0l2.013-2.012v.689a.75.75 0 0 0 1.5 0V10a.75.75 0 0 0-.75-.75h-2.5a.75.75 0 0 0-.75.75\" clip-rule=\"evenodd\"/>",
+  },
+  linkArrow: {
+    // solar:arrow-left-up-bold
+    viewBox: '0 0 24 24',
+    body: "<path fill=\"currentColor\" d=\"M18.53 17.47a.75.75 0 1 1-1.06 1.06l-6.97-6.97l-3.97 3.97A.75.75 0 0 1 5.25 15V6A.75.75 0 0 1 6 5.25h9a.75.75 0 0 1 .53 1.28l-3.97 3.97z\"/>",
   },
   mealBreakfast: {
     // solar:sunrise-bold

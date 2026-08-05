@@ -88,6 +88,20 @@ export async function ClientsCard({ clients, locale }: ClientsCardProps) {
         ) : (
           <>
             {/*
+              The column heads, styled like `TableHeader`/`TableHead` on the
+              register itself (`bg-muted`, caption-size, muted-foreground):
+              this list is a thinner read of the same table, so it carries the
+              same header rather than starting straight into rows with no
+              labels. Shrinks out of the scroll region below — a header that
+              scrolls away with the rows it names is not a header.
+            */}
+            <div className="grid shrink-0 grid-cols-3 gap-x-3 bg-muted px-3 py-2.5 text-caption font-medium text-muted-foreground">
+              <span className="truncate">{tc('fields.fullName')}</span>
+              <span className="truncate">{tc('fields.age')}</span>
+              <span className="truncate">{tc('fields.phone')}</span>
+            </div>
+
+            {/*
               `pe-1` leaves the scrollbar somewhere to sit that is not on top of
               the card's edge; `overscroll-contain` stops a flick at the end of
               the list from scrolling the shell behind it.

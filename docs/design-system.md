@@ -137,27 +137,35 @@ valid drop and clay for an invalid one, for this reason.
 
 | Family | Token | Role |
 |---|---|---|
-| **Neo Sans Arabic** | `font-sans` / `font-arabic` / `font-heading`, **Arabic only** | Everything in Arabic — body, forms, tables **and headings** |
+| **Almarai** | `font-sans` / `font-arabic` / `font-heading`, **Arabic only** | Everything in Arabic — body, forms, tables **and headings** |
 | Readex Pro | `font-heading` **in English** | Display / headings — `h1`–`h4` get it automatically |
 | IBM Plex Sans Arabic | `font-sans` / `font-arabic` in English | Body and UI in English, and the Arabic fallback |
 | IBM Plex Mono | `font-mono` | Numeric / code / IDs — never client-facing prose |
 
-Everything except Neo Sans Arabic loads through `next/font/google` in
-[`src/app/[locale]/layout.tsx`](../src/app/[locale]/layout.tsx).
+Every family, Almarai included, loads through `next/font/google` in
+[`src/app/[locale]/layout.tsx`](../src/app/[locale]/layout.tsx) — Almarai is
+OFL-licensed, so unlike its predecessor (Neo Sans Arabic, a paid Monotype face
+self-hosted from `src/app/fonts/`) it needs no local files: Next fetches and
+self-hosts it at build time like every other family here.
 
-### The Arabic face is licensed, self-hosted, and Arabic-only
+### The Arabic face is Arabic-only
 
-Neo Sans Arabic is a paid Monotype family, so it is **not** fetched from Google
-— the licensed files live in [`src/app/fonts/`](../src/app/fonts/) and load
-through `next/font/local`. The `.woff2` files are what ship (~53–57KB each, ~72%
-smaller than the `.ttf`s they were compressed from); the `.ttf`s sit beside them
-as the sources and are not read by the build.
+**Two real weights, and they cover four.** Almarai ships static 400/700/800
+files and has no variable axis; 500 and 600 have no file of their own, but the
+CSS font-matching algorithm doesn't fake them — it picks the nearest
+*already-loaded* face instead. Desired weights at or below 500 search downward
+first, so `font-medium` (500) resolves onto the real 400 outlines; desired
+weights above 500 search upward first, so `font-semibold` (600) resolves onto
+the real 700 outlines. `font-normal` and `font-bold` are exact matches. Nothing
+is synthesised — see "Synthesised bold" below for why that distinction
+matters. 800 is not loaded: nothing in the type scale asks for it, so shipping
+it would be dead weight.
 
 **It applies to Arabic and nothing else**, which takes three cooperating pieces.
 Getting any one of them wrong makes the swap silently do nothing, which is
 exactly what happened on the first attempt:
 
-1. The layout attaches `--font-neo-sans-arabic` to `<html>` **only when the
+1. The layout attaches `--font-almarai` to `<html>` **only when the
    locale is `ar`**, so an English document has no declaration naming the family
    and no reason to fetch it.
 2. The theme's font stacks lead with **`--script-ui-font` / `--script-display-font`**
@@ -180,18 +188,14 @@ fonts and now applies. `letter-spacing` and `text-transform` deliberately stay
 utilities and no component could override them.
 
 **The two scripts no longer share a display face.** English headings are Readex
-Pro; Arabic headings are Neo Sans Arabic. That is deliberate — Arabic is meant
-to be Neo Sans throughout — but it is worth knowing when comparing the two
+Pro; Arabic headings are Almarai. That is deliberate — Arabic is meant
+to be Almarai throughout — but it is worth knowing when comparing the two
 builds side by side, because it is the one place they diverge by design rather
 than by script. Pointing `--script-display-font` back at `--font-readex-pro` in
 the `:lang(ar)` block restores the shared display face and changes nothing else.
 
-Heading weights are covered: the scale uses 500 (`display-*`) and 600
-(`heading-*`), which land on the real Medium file and — via upward weight
-matching — the real Bold, never a synthesised one.
-
 Each swapped variable keeps an **inner fallback** —
-`--script-ui-font: var(--font-neo-sans-arabic, var(--font-ibm-plex-sans-arabic))`
+`--script-ui-font: var(--font-almarai, var(--font-ibm-plex-sans-arabic))`
 — because `:lang(ar)` also matches an Arabic name or note inside an *English*
 page, where step 1 deliberately withholds the family. Without the fallback that
 undefined variable would invalidate the whole `font-family` declaration and drop
@@ -209,18 +213,7 @@ above are both invisible in `globals.css` and obvious in `.next/static/chunks/*.
 actually used, so with preloading on, the English build shipped a preload tag
 and every English visitor downloaded the Arabic font. Gating the CSS variable on
 the locale does *not* prevent that — only `preload: false` does. If you ever
-turn it back on, check the built `en.html` for `NeoSansArabic` before shipping.
-
-**Three weights are licensed in, and they cover four.** The files carry
-`usWeightClass` 400, 500 and 700; `font-semibold` (600) has no file of its own
-but resolves onto the real 700 outlines, because CSS weight matching walks
-*upwards* first for any desired weight above 500. So every weight this app uses
-— `font-normal`, `font-medium`, `font-semibold`, `font-bold` — is drawn from
-real glyphs, and none of it is synthesised. See "Synthesised bold" below for why
-that is worth checking whenever a family is added.
-
-If a fourth weight is ever needed, add the `.woff2` to `src/app/fonts/` and a
-matching entry to the `src` array in the layout; nothing else changes.
+turn it back on, check the built `en.html` for `Almarai` before shipping.
 
 **The font variables go on `<html>`, not `<body>`.** `globals.css` sets
 `font-family` on the html element, and a CSS custom property is only visible to

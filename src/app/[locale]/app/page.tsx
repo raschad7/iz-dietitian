@@ -63,10 +63,10 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
         <h1 className="font-heading text-heading-lg font-semibold tracking-tight" dir="auto">
           {t('welcome', { name: session.user.name })}
         </h1>
-        {/* `body-sm` (14px) rather than the 12px caption: with no app bar above
+        {/* `body-md` (16px) rather than the 12px caption: with no app bar above
             it this line is the top of the page, and today's date is a fact you
             read at a glance rather than fine print under something else. */}
-        <p className="text-body-sm text-muted-foreground">{formatLongDate(locale, data.today)}</p>
+        <p className="text-body-md text-muted-foreground">{formatLongDate(locale, data.today)}</p>
       </div>
 
       <div className="grid gap-4 xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(0,1fr)_21rem] 2xl:grid-cols-[minmax(0,1fr)_23rem]">

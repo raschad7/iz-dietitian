@@ -88,6 +88,10 @@ const ICONS = {
   eye: 'eye-bold',
   eyeOff: 'eye-closed-bold',
   check: 'check-circle-bold',
+  /** Mars symbol — the male option in the client sex field. */
+  male: 'men-bold',
+  /** Venus symbol — the female option in the client sex field. */
+  female: 'women-bold',
 
   /**
    * The navigation node — the mark that travels to the active item. A leaf
@@ -108,6 +112,8 @@ const ICONS = {
   addClient: 'user-plus-bold',
   bookAppointment: 'calendar-add-bold',
   trend: 'graph-up-bold',
+  /** A quick-action tile that navigates out to another page. Fixed — points top-left regardless of locale. */
+  linkArrow: 'arrow-left-up-bold',
 
   /**
    * The client's plan — one mark per meal slot, keyed by `mealTypeForSlot`.

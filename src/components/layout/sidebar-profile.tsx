@@ -5,6 +5,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 
 import { LocaleSwitcher } from '@/components/layout/locale-switcher';
 import { SignOutButton } from '@/components/layout/sign-out-button';
+import { Avatar } from '@/components/ui/avatar';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { Link } from '@/i18n/navigation';
 import { type Locale } from '@/i18n/routing';
@@ -158,13 +159,22 @@ export function SidebarProfile({
         )}
       >
         {/*
-          Name over email, and nothing else — no avatar, no role chip. This row
-          answers "who am I signed in as", which two lines of text answer
-          completely; a coloured initial beside them would be decoration on the
-          one control in the rail that has no destination of its own.
+          Down when there is more to see, up when there is not — the glyph
+          points at what the click will do. It swaps rather than rotating: these
+          are two drawn arrows in the icon set, and a rotated one lands a half
+          pixel off its own baseline at this size.
 
-          `min-w-0` on the stack and `truncate` on both lines is what stops a
-          long address from pushing the chevron off the rail.
+          `aria-expanded` on the button is what actually announces the state;
+          this is the sighted half of the same fact. It sits at the row's
+          leading edge now, opposite the avatar, so the one glyph that
+          actually does something is never confused for part of the identity
+          it sits beside.
+        */}
+        <Icon name={open ? 'chevronUp' : 'chevronDown'} className="size-4 text-sidebar-icon" />
+
+        {/*
+          Name over email. `min-w-0` on the stack and `truncate` on both lines
+          is what stops a long address from pushing the avatar off the rail.
         */}
         <span className="flex min-w-0 flex-1 flex-col">
           <span className="truncate text-body-sm font-medium" dir="auto">
@@ -178,15 +188,12 @@ export function SidebarProfile({
         </span>
 
         {/*
-          Down when there is more to see, up when there is not — the glyph
-          points at what the click will do. It swaps rather than rotating: these
-          are two drawn arrows in the icon set, and a rotated one lands a half
-          pixel off its own baseline at this size.
-
-          `aria-expanded` on the button is what actually announces the state;
-          this is the sighted half of the same fact.
+          The trigger's one piece of decoration — fixed olive-100 rather than
+          the per-client palette in `avatar-color.ts`, since this is always the
+          same one account. `text-foreground` overrides the shared component's
+          default white, which assumes a dark, per-record colour.
         */}
-        <Icon name={open ? 'chevronUp' : 'chevronDown'} className="size-4 text-sidebar-icon" />
+        <Avatar name={name} color="var(--olive-100)" className="text-foreground" />
       </button>
     </div>
   );
