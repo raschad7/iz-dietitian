@@ -1,7 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
-import { StaffSignUpForm } from '@/features/auth/components/staff-signup-form';
+import { AuthScreen } from '@/features/auth/components/auth-screen';
 import { resolveLocale } from '@/i18n/params';
 import { isGoogleEnabled } from '@/lib/auth';
 
@@ -18,20 +18,13 @@ export async function generateMetadata({ params }: SignUpPageProps): Promise<Met
 /**
  * Staff sign-up. Open by design — see `signUpStaff` in
  * `src/features/auth/actions.ts` for what makes that safe.
+ *
+ * The same screen as `/login`, opened with the card already flipped: sign-in
+ * and sign-up are two faces of one surface now, and this URL still exists
+ * because mail and other pages link straight to it.
  */
 export default async function SignUpPage({ params }: SignUpPageProps) {
   const locale = await resolveLocale(params);
 
-  const t = await getTranslations('login');
-
-  return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-6 px-6 py-16">
-      <header className="space-y-2 text-start">
-        <h1 className="text-3xl font-semibold tracking-tight">{t('signUpHeading')}</h1>
-        <p className="text-muted-foreground">{t('signUpSubtitle')}</p>
-      </header>
-
-      <StaffSignUpForm locale={locale} showGoogle={isGoogleEnabled} />
-    </main>
-  );
+  return <AuthScreen locale={locale} showGoogle={isGoogleEnabled} initialMode="signUp" />;
 }

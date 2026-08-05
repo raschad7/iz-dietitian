@@ -8,6 +8,7 @@ import { authClient } from '@/lib/auth-client';
 import { type Locale } from '@/i18n/routing';
 
 import { attemptGoogleSignIn } from '../google-sign-in';
+import { GoogleIcon } from './google-icon';
 
 type GoogleButtonProps = {
   locale: Locale;
@@ -68,7 +69,8 @@ export function GoogleButton({ locale, requestSignUp = false, redirectTo }: Goog
 
   return (
     <div className="space-y-2">
-      <Button type="button" variant="outline" className="w-full" disabled={pending} onClick={start}>
+      <Button type="button" variant="outline" className="w-full max-w-none" disabled={pending} onClick={start}>
+        <GoogleIcon />
         {t('continueWithGoogle')}
       </Button>
       {failed ? <p role="alert" className="text-sm text-destructive">{t('googleUnavailable')}</p> : null}

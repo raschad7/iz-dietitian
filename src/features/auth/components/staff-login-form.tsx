@@ -9,7 +9,6 @@ import { PasskeyButton } from '@/features/auth/components/passkey-button';
 import { PasswordInput } from '@/features/auth/components/password-input';
 import { signInWithPassword } from '@/features/auth/actions';
 import { initialAuthState, type AuthFormState } from '@/features/auth/form-state';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Link } from '@/i18n/navigation';
@@ -53,64 +52,75 @@ export function StaffLoginForm({ locale, showGoogle, redirectTo, oauthError }: S
     : null;
   const displayState = state.status !== 'idle' ? state : (urlErrorState ?? state);
 
+  /*
+   * Bare content — `AuthSplitCard` owns the surface, so a `Card` in here would
+   * be a second one nested inside it.
+   *
+   * No heading and no intro line either: the screen's `h1` and the role switch
+   * sit directly above this card and already say "Sign in" and "Clinic team",
+   * and a form of two labelled fields does not need to be described. Those
+   * lines were also what decided whether this form scrolled inside a card whose
+   * height cannot move.
+   */
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t('staffHeading')}</CardTitle>
-        <CardDescription>{t('staffDescription')}</CardDescription>
-      </CardHeader>
+    <div className="w-full">
 
-      <CardContent>
-        {/* Passkey first: it is the fastest and the safest, and order drives adoption. */}
-        <div className="space-y-3">
-          <PasskeyButton locale={locale} />
-          {/* No `requestSignUp`: this door admits existing accounts only. */}
-          {showGoogle ? <GoogleButton locale={locale} redirectTo={redirectTo} /> : null}
+      <form action={formAction} className="space-y-4">
+        <input type="hidden" name="locale" value={locale} />
+        <input type="hidden" name="redirectTo" value={redirectTo ?? ''} />
+
+        <div className="space-y-2">
+          <Label htmlFor="staff-email">{tCommon('email')}</Label>
+          {/*
+            No `dir="ltr"`. It was here to keep an address's characters in
+            order, but on a field that holds nothing else the bidi algorithm
+            already does that — an email is one uninterrupted Latin run with no
+            surrounding text to reorder its neutrals against. What `dir="ltr"`
+            *did* do was pin the placeholder to the left of an Arabic form while
+            every label above it sat on the right. Inheriting the page direction
+            aligns the placeholder, the value and the leading glyph together.
+          */}
+          <Input
+            id="staff-email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            required
+            placeholder={t('emailPlaceholder')}
+            icon="email"
+          />
         </div>
 
-        <div className="my-6 flex items-center gap-3 text-xs text-muted-foreground">
-          <span className="h-px flex-1 bg-border" />
-          {t('orUsePassword')}
-          <span className="h-px flex-1 bg-border" />
-        </div>
+        <PasswordInput
+          name="password"
+          label={tCommon('password')}
+          autoComplete="current-password"
+          placeholder={t('passwordPlaceholder')}
+        />
 
-        <form action={formAction} className="space-y-4">
-          <input type="hidden" name="locale" value={locale} />
-          <input type="hidden" name="redirectTo" value={redirectTo ?? ''} />
-
-          <div className="space-y-2">
-            <Label htmlFor="staff-email">{tCommon('email')}</Label>
-            <Input
-              id="staff-email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              dir="ltr"
-              required
-              placeholder={t('emailPlaceholder')}
-            />
-          </div>
-
-          <PasswordInput name="password" label={tCommon('password')} autoComplete="current-password" />
-
-          <p className="text-end text-sm">
-            <Link href="/forgot-password" className="font-medium text-foreground underline-offset-4 hover:underline">
-              {t('forgotLink')}
-            </Link>
-          </p>
-
-          <AuthFormMessage state={displayState} />
-
-          <AuthSubmitButton label={t('submit')} />
-        </form>
-
-        <p className="mt-4 text-sm text-muted-foreground">
-          {t('noAccount')}{' '}
-          <Link href="/signup" className="font-medium text-foreground underline-offset-4 hover:underline">
-            {t('signUpLink')}
+        <p className="text-end text-sm">
+          <Link href="/forgot-password" className="font-medium text-foreground underline-offset-4 hover:underline">
+            {t('forgotLink')}
           </Link>
         </p>
-      </CardContent>
-    </Card>
+
+        <AuthFormMessage state={displayState} />
+
+        <AuthSubmitButton label={t('submit')} />
+      </form>
+
+      <div className="my-6 flex items-center gap-3 text-xs text-muted-foreground">
+        <span className="h-px flex-1 bg-border" />
+        {t('orUsePassword')}
+        <span className="h-px flex-1 bg-border" />
+      </div>
+
+      {/* Alternate sign-in, once the primary path is filled in above. */}
+      <div className="space-y-3">
+        <PasskeyButton locale={locale} />
+        {/* No `requestSignUp`: this door admits existing accounts only. */}
+        {showGoogle ? <GoogleButton locale={locale} redirectTo={redirectTo} /> : null}
+      </div>
+    </div>
   );
 }

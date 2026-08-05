@@ -1,8 +1,14 @@
 import { NextIntlClientProvider } from 'next-intl';
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
-import { IBM_Plex_Mono, IBM_Plex_Sans, IBM_Plex_Sans_Arabic, Readex_Pro, Tajawal } from 'next/font/google';
-import localFont from 'next/font/local';
+import {
+  Almarai,
+  IBM_Plex_Mono,
+  IBM_Plex_Sans,
+  IBM_Plex_Sans_Arabic,
+  Readex_Pro,
+  Tajawal,
+} from 'next/font/google';
 import type { ReactNode } from 'react';
 
 import { resolveLocale } from '@/i18n/params';
@@ -25,29 +31,29 @@ const ibmPlexSansArabic = IBM_Plex_Sans_Arabic({
 });
 
 /**
- * The Arabic UI face — licensed, so it is self-hosted rather than fetched from
- * Google. It is attached to <html> **only on the Arabic locale** (see the
- * `className` below) and consumed only by the `:lang(ar)` block in globals.css,
- * so an English page neither downloads it nor references it.
+ * The Arabic UI face — Almarai, an OFL-licensed Google font, so (like
+ * Alexandria before it, and unlike the original Neo Sans Arabic) it needs no
+ * local files or licence gymnastics: `next/font/google` fetches and
+ * self-hosts it at build time. It is attached to <html> **only on the Arabic
+ * locale** (see the `className` below) and consumed only by the `:lang(ar)`
+ * block in globals.css, so an English page neither downloads it nor
+ * references it.
  *
- * Served as woff2 (~53-57KB each); the licensed `.ttf`s sit beside them as the
- * sources these bytes were compressed from and are not read by the build.
- *
- * **Three real weights, and that covers four.** 400/500/700 are the
- * `usWeightClass` values in the files themselves, not guesses. `font-semibold`
- * (600) has no file of its own, but CSS weight matching resolves a desired
- * weight above 500 by walking *upwards* first — so 600 lands on the real 700
- * outlines rather than being synthesised from 400. That matters because faked
- * bold smears the outlines, which is the defect the note on `ibmPlexMono` below
- * describes; every weight this app actually uses now has real glyphs behind it.
+ * **Two real weights, and they cover four.** Almarai ships static 400/700/800
+ * files and no variable axis; 500 and 600 have no file of their own, but the
+ * CSS font-matching algorithm doesn't fake them — it picks the nearest
+ * *already-loaded* face instead. Desired weights at or below 500 search
+ * downward first, so `font-medium` (500) resolves to the real 400 outlines;
+ * desired weights above 500 search upward first, so `font-semibold` (600)
+ * resolves to the real 700 outlines. `font-normal` and `font-bold` are exact
+ * matches. Nothing is synthesised — see "Synthesised bold" below for why that
+ * distinction matters. 800 is not loaded: nothing in the type scale asks for
+ * it, so shipping it would be dead weight.
  */
-const neoSansArabic = localFont({
-  src: [
-    { path: '../fonts/NeoSansArabic-Regular.woff2', weight: '400', style: 'normal' },
-    { path: '../fonts/NeoSansArabic-Medium.woff2', weight: '500', style: 'normal' },
-    { path: '../fonts/NeoSansArabic-Bold.woff2', weight: '700', style: 'normal' },
-  ],
-  variable: '--font-neo-sans-arabic',
+const almarai = Almarai({
+  subsets: ['arabic', 'latin'],
+  weight: ['400', '700'],
+  variable: '--font-almarai',
   display: 'swap',
   // The Arabic fallback already in the stack, so the swap-in is not a reflow.
   adjustFontFallback: false,
@@ -55,7 +61,7 @@ const neoSansArabic = localFont({
    * `preload: false` is load-bearing, not a tuning knob. Next emits its
    * `<link rel="preload">` from the module graph, not from what a render
    * actually used — so with preload on, the English build shipped a preload for
-   * this font and every English visitor downloaded 57KB of Arabic they never
+   * this font and every English visitor downloaded Arabic glyphs they never
    * render. Gating the CSS variable on the locale does not prevent that; only
    * this does. Verified by grepping the prerendered `en.html`.
    *
@@ -86,7 +92,7 @@ const readexPro = Readex_Pro({
  * the family jumps 500 → 700 — but CSS weight matching resolves a desired
  * weight above 500 by walking *upwards* first, so `font-semibold` lands on the
  * real 700 outlines rather than being synthesised from 400. That is the same
- * mechanism `neoSansArabic` below relies on, and it is why the 600 baked into
+ * mechanism `almarai` above relies on, and it is why the 600 baked into
  * the `heading-*` and `label` steps of the scale needs no special handling
  * here. 200/300/800/900 are deliberately not loaded: nothing asks for them and
  * each is another file on a page that already ships a board.
@@ -146,13 +152,13 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
   const locale = await resolveLocale(params);
 
   /*
-    Neo Sans Arabic is attached to the Arabic locale only. Gating it on the
-    locale rather than shipping it everywhere and letting `:lang(ar)` pick it up
-    is what keeps English clean: with the variable absent, an English document
+    Almarai is attached to the Arabic locale only. Gating it on the locale
+    rather than shipping it everywhere and letting `:lang(ar)` pick it up is
+    what keeps English clean: with the variable absent, an English document
     has no declaration referring to the family, so the browser has no reason to
     fetch it and the English stack is byte-for-byte what it was.
 
-    `:lang(ar)` in globals.css still resolves `--font-neo-sans-arabic` with a
+    `:lang(ar)` in globals.css still resolves `--font-almarai` with a
     fallback, so an Arabic name or note inside an *English* page — where this
     class is deliberately missing — degrades to IBM Plex Sans Arabic instead of
     invalidating the whole `font-family` declaration.
@@ -162,8 +168,9 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
     ibmPlexSansArabic.variable,
     readexPro.variable,
     ibmPlexMono.variable,
+    // Scoped to the weekly planner board, so it is attached in both locales.
     tajawal.variable,
-    locale === 'ar' ? neoSansArabic.variable : null,
+    locale === 'ar' ? almarai.variable : null,
   ]
     .filter(Boolean)
     .join(' ');

@@ -39,12 +39,25 @@ import { type Locale } from '@/i18n/routing';
  *   their own board, so there is no standalone form to send anyone to.
  */
 const ACTIONS = [
-  { key: 'addClient', icon: 'addClient', href: null },
-  { key: 'bookAppointment', icon: 'bookAppointment', href: '/app/calendar/day' },
-  { key: 'weeklyPlans', icon: 'weeklyPlans', href: '/app/weekly-plans' },
+  { key: 'addClient', icon: 'addClient', trailing: 'plus', href: null },
+  { key: 'bookAppointment', icon: 'bookAppointment', trailing: 'plus', href: '/app/calendar/day' },
+  { key: 'weeklyPlans', icon: 'weeklyPlans', trailing: 'linkArrow', href: '/app/weekly-plans' },
 ] as const satisfies ReadonlyArray<{
   key: string;
   icon: IconName;
+  /**
+   * What the tile ends on. `addClient` and `bookAppointment` create a
+   * record, so they end on a plus; `weeklyPlans` navigates away to a board
+   * that already exists, so it ends on the diagonal "out" arrow instead —
+   * neither reads as the generic chevron every row on the page already uses
+   * for "go to a list".
+   *
+   * `'plus'` is a literal glyph, not an icon: Solar has no bare plus, only a
+   * plus-in-a-circle, and at 16px inside a muted glyph colour that circle
+   * read as a faint smudge rather than a mark. A character renders crisper
+   * at this size than a stroke-width-9 outline ever would.
+   */
+  trailing: IconName | 'plus';
   href: '/app/calendar/day' | '/app/weekly-plans' | null;
 }>;
 
@@ -70,7 +83,13 @@ export async function QuickActions({ locale }: { locale: Locale }) {
                   <span className="block truncate text-heading-sm font-semibold">{t(`${action.key}.title`)}</span>
                 </span>
 
-                <Icon name="chevronEnd" className="size-4 shrink-0 text-muted-foreground" />
+                {action.trailing === 'plus' ? (
+                  <span aria-hidden className="shrink-0 text-heading-lg leading-none font-semibold text-muted-foreground">
+                    +
+                  </span>
+                ) : (
+                  <Icon name={action.trailing} className="size-4 shrink-0 text-muted-foreground" />
+                )}
               </CardContent>
             </Card>
           );

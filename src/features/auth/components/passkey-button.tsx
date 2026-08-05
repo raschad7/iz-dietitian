@@ -42,7 +42,32 @@ export function PasskeyButton({ locale }: { locale: Locale }) {
 
   return (
     <div className="space-y-2">
-      <Button type="button" variant="outline" className="w-full" disabled={pending} onClick={signIn}>
+      <Button type="button" variant="outline" className="w-full max-w-none" disabled={pending} onClick={signIn}>
+        {/*
+          The FIDO fingerprint, hand-inlined rather than taken from `Icon`:
+          Solar has no biometric glyph, and this is the mark the platform
+          prompts themselves use, so it is a standard mark like `GoogleIcon`
+          rather than a picture we get to choose.
+
+          It is a *stroke* glyph in a set that is otherwise Solar Bold and
+          filled — the one place that is true, and only because a fingerprint
+          drawn as a solid shape is an ink blot. Everything else follows the
+          rules: `currentColor` so it inverts with the button's label on hover
+          (a hardcoded olive-950 stayed dark at rest, where the label is not),
+          and sized by the button rather than by a 2em intrinsic size that made
+          it twice the width of the Google mark beside it.
+        */}
+        <svg
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          className="size-4 shrink-0"
+        >
+          <path d="M18 12a6 6 0 0 0-12 0a11.97 11.97 0 0 0 4.063 9M12 12a6 6 0 0 0 7 5.917M15.034 20.5A9 9 0 0 1 9 12a3 3 0 0 1 3-3a2.95 2.95 0 0 1 2.911 2.466l.178 1.068A2.95 2.95 0 0 0 18 15a3 3 0 0 0 3-3a9 9 0 1 0-18 0c0 1.753.3 3.436.854 5" />
+        </svg>
         {t('continueWithPasskey')}
       </Button>
       {error ? (

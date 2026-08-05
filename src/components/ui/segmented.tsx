@@ -51,6 +51,7 @@ function Segmented<T extends string>({
   size = 'default',
   shape = 'default',
   className,
+  activeClassName = 'bg-primary text-primary-foreground',
 }: {
   options: readonly SegmentedOption<T>[];
   value: T;
@@ -62,6 +63,8 @@ function Segmented<T extends string>({
   /** `pill` fills its row with equal, fully rounded halves. See above. */
   shape?: 'default' | 'pill';
   className?: string;
+  /** The selected option's fill. Defaults to the primary olive used everywhere else. */
+  activeClassName?: string;
 }) {
   const isTablist = role === 'tablist';
   const pill = shape === 'pill';
@@ -111,8 +114,11 @@ function Segmented<T extends string>({
               // owns its inline padding.
               size === 'sm' ? 'h-full px-4 text-label' : 'px-3 py-2 text-body-md',
               pill && 'h-11 flex-1 rounded-full px-3 py-0 font-semibold',
+              // `activeClassName` rather than the olive literal, so a caller can
+              // repaint the selected half; it defaults to that same olive, which
+              // is what every shape draws unless told otherwise.
               active
-                ? 'bg-primary text-primary-foreground'
+                ? activeClassName
                 : pill
                   ? // An unselected half sits on the track, not on the page, so
                     // `muted-foreground` on `muted` is the one pairing to avoid
