@@ -1,9 +1,9 @@
 'use client';
 
-import { Icon } from '@/components/ui/icon';
 import { useTranslations } from 'next-intl';
 import { useId, useState } from 'react';
 
+import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
@@ -14,6 +14,7 @@ type PasswordInputProps = {
   /** Rendered under the field — used for the minimum-length rule on sign-up. */
   hint?: string;
   minLength?: number;
+  placeholder?: string;
 };
 
 /**
@@ -22,9 +23,10 @@ type PasswordInputProps = {
  * Typing a long password blind is the main reason people give up on a sign-up
  * form, and it is worse here because the minimum is 10 characters. The toggle is
  * a real <button> so it is reachable by keyboard, and it is positioned with
- * `end-*` rather than `right-*` so it lands on the correct side in Arabic.
+ * `end-*` rather than `right-*` so it lands on the correct side in Arabic —
+ * opposite the lock, which `Input` draws at the inline-start.
  */
-export function PasswordInput({ name, label, autoComplete, hint, minLength }: PasswordInputProps) {
+export function PasswordInput({ name, label, autoComplete, hint, minLength, placeholder }: PasswordInputProps) {
   const t = useTranslations('login');
   const [revealed, setRevealed] = useState(false);
   const id = useId();
@@ -41,7 +43,9 @@ export function PasswordInput({ name, label, autoComplete, hint, minLength }: Pa
           autoComplete={autoComplete}
           minLength={minLength}
           required
-          className="pe-9"
+          placeholder={placeholder}
+          icon="lock"
+          className="pe-12"
         />
 
         <button
@@ -49,9 +53,9 @@ export function PasswordInput({ name, label, autoComplete, hint, minLength }: Pa
           onClick={() => setRevealed((current) => !current)}
           aria-pressed={revealed}
           aria-label={revealed ? t('hidePassword') : t('showPassword')}
-          className="absolute inset-y-0 end-0 flex w-9 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+          className="absolute inset-y-0 end-0 flex w-12 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
         >
-          {revealed ? <Icon name="eyeOff" /> : <Icon name="eye" />}
+          {revealed ? <Icon name="eyeOff" className="size-5" /> : <Icon name="eye" className="size-5" />}
         </button>
       </div>
 

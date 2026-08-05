@@ -1,7 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
-import { LoginRoleSwitch } from '@/features/auth/components/login-role-switch';
+import { AuthScreen } from '@/features/auth/components/auth-screen';
 import { isGoogleEnabled } from '@/lib/auth';
 import { resolveLocale } from '@/i18n/params';
 
@@ -21,28 +21,20 @@ export async function generateMetadata({ params }: LoginPageProps): Promise<Meta
  *
  * Staff and clients still authenticate through different Better Auth paths, so
  * until sign-in is unified this page asks which of the two forms to show — see
- * `LoginRoleSwitch`, which is marked temporary. `/[locale]/client-login` is
- * unchanged and still works as a direct link for clients.
+ * `AuthScreen`, whose role switch is marked temporary. Sign-up lives on the
+ * same card and is reached by flipping it; `/[locale]/signup` and
+ * `/[locale]/client-login` are the same screen opened on a different face.
  */
 export default async function LoginPage({ params, searchParams }: LoginPageProps) {
   const locale = await resolveLocale(params);
   const { redirect: redirectTo, error } = await searchParams;
 
-  const t = await getTranslations('login');
-
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-6 px-6 py-16">
-      <header className="space-y-2 text-start">
-        <h1 className="text-3xl font-semibold tracking-tight">{t('title')}</h1>
-        <p className="text-muted-foreground">{t('subtitle')}</p>
-      </header>
-
-      <LoginRoleSwitch
-        locale={locale}
-        showGoogle={isGoogleEnabled}
-        redirectTo={redirectTo}
-        oauthError={error}
-      />
-    </main>
+    <AuthScreen
+      locale={locale}
+      showGoogle={isGoogleEnabled}
+      redirectTo={redirectTo}
+      oauthError={error}
+    />
   );
 }

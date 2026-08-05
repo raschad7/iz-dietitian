@@ -88,6 +88,21 @@ const ICONS = {
   eye: 'eye-bold',
   eyeOff: 'eye-closed-bold',
   check: 'check-circle-bold',
+  /** The email field's leading glyph. */
+  email: 'letter-bold',
+  /** The name / username field's leading glyph. */
+  person: 'user-bold',
+  /**
+   * The password field's leading glyph. A plain padlock, not the keypad-faced
+   * `lock-password` — at 20px in a field the keypad dots read as noise rather
+   * than as detail.
+   */
+  lock: 'lock-bold',
+  /**
+   * Passkey sign-in. Solar has no fingerprint or biometric glyph, so a key
+   * stands in — the same association the term "passkey" itself trades on.
+   */
+  passkey: 'key-bold',
   /** Mars symbol — the male option in the client sex field. */
   male: 'men-bold',
   /** Venus symbol — the female option in the client sex field. */
@@ -99,6 +114,16 @@ const ICONS = {
    * one place in the chrome where the brand gets to say so.
    */
   navNode: 'leaf-bold',
+
+  /**
+   * The auth screens' illustration — one huge leaf filling the brand panel of
+   * the sign-in card, standing in for artwork that does not exist yet.
+   *
+   * The same Solar glyph as `navNode` and deliberately a second entry: the node
+   * is chrome and this is decoration, so either can be redrawn without dragging
+   * the other with it.
+   */
+  leaf: 'leaf-bold',
 
   // Status — pairs with the status token of the same name
   attention: 'danger-triangle-bold',

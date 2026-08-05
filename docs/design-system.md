@@ -83,9 +83,16 @@ Warm neutrals — never pure grey, and the ramp the charts are drawn in.
 | 600 `#605D50` | 700 `#46443B` | 800 `#2F2E28` | 900 `#1C1B17` |
 
 The **three cool greys** are the rail, its hover and its divider (`#F9FAFB` /
-`#F3F4F6` / `#D1D5DB`), and they exist only there — see "Rail" below. They are
-not part of this ramp and nothing else may reach for them; a warm neutral used
-as a page surface beside a cool one is how a palette starts looking accidental.
+`#F3F4F6` / `#D1D5DB`), and they are not part of this ramp. Nothing reaches for
+them by hand: a warm neutral used as a page surface beside a cool one is how a
+palette starts looking accidental.
+
+The rail's `#F9FAFB` has **one** other home, `--auth-canvas` — the page behind
+the sign-in card. Those screens are a single card on an otherwise empty page:
+on the white canvas the card had nothing to be a surface against, and warming
+the page to n-25 put a tint under a card whose own brand panel is already the
+loudest thing on the screen. It is a token, not a repeated hex, because a second
+use of a value is exactly where a palette starts to drift.
 
 Amber — attention.
 
@@ -760,8 +767,13 @@ the same glyphs as its bottom bar); the staff rail is text-only.
   `cubic-bezier(.2,.6,.2,1)`. Durations are named: `--duration-arc` 220ms
   (field focus line, node travel) · `--duration-sweep` 200ms (general reveal —
   a disclosure chevron, a panel opening) · `--duration-label` 180ms ·
-  `--duration-reverse` 140ms (anything reversing on blur). Don't invent a new
-  curve.
+  `--duration-reverse` 140ms (anything reversing on blur) ·
+  `--duration-travel` 420ms (**a whole surface crossing the screen** — only the
+  auth card being replaced by the other role's card). Don't invent a new curve,
+  and don't reach for `travel` for something moving *inside* a surface: every
+  other step is tuned to that, and the auth card's own two halves swap sides on
+  `--duration-arc`, because that is a control changing state and should feel
+  like one. The screen's width is what earns the longer time.
 - `prefers-reduced-motion: reduce` collapses every transition globally. State
   still changes; only the travel stops.
 
@@ -783,6 +795,29 @@ and the bug is invisible until someone reads the RTL build.
   form also pins that column's alignment. See "Tables".
 - Progress fills, sliders and comfort bands originate from the **inline-start**
   edge.
+
+**The auth card is the app's only direction lock**, in two places, and both are
+about the same thing: the language control must not move the furniture.
+
+- **The card's split.** `dir="ltr"` on the flex row, so sign-in keeps the form
+  on the right and sign-up keeps it on the left in both languages. Swapping
+  those two halves is the card's one gesture; mirroring the split with the page
+  turned two states into four and spent that gesture on someone who had only
+  asked for different words. Each half hands the document direction straight
+  back (`dir={getLocaleDirection(locale)}`), so **only the geometry is pinned**
+  — every label, field, placeholder and glyph inside still reads and aligns per
+  locale.
+- **The language row itself.** A `dir="ltr"` wrapper around the switcher, so the
+  control, its chevron and its open menu stay on the same side. It is what
+  *causes* the flip, and a switcher that jumps to the opposite corner the moment
+  you use it reads as the page having moved rather than the language having
+  changed — you lose the thing you just clicked.
+
+Both are a locked `dir`, **not** a physical inset: `justify-end` and the
+`translate-x` pairs inside still resolve against the locked row, so no `right-*`
+is involved and `eslint-rules/logical-properties.mjs` stays absolute. **Don't
+add a third**, and don't reach for this to fix a layout that merely looks wrong
+mirrored — that is a bug in the layout.
 
 ## Arbitrary colour, not a token
 

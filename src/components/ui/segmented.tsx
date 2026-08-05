@@ -41,6 +41,7 @@ function Segmented<T extends string>({
   role = 'tablist',
   size = 'default',
   className,
+  activeClassName = 'bg-primary text-primary-foreground',
 }: {
   options: readonly SegmentedOption<T>[];
   value: T;
@@ -50,6 +51,8 @@ function Segmented<T extends string>({
   role?: 'tablist' | 'radiogroup';
   size?: 'default' | 'sm';
   className?: string;
+  /** The selected option's fill. Defaults to the primary olive used everywhere else. */
+  activeClassName?: string;
 }) {
   const isTablist = role === 'tablist';
 
@@ -90,9 +93,7 @@ function Segmented<T extends string>({
               // `h-full`: the track owns the height (see above), the option
               // owns its inline padding.
               size === 'sm' ? 'h-full px-4 text-label' : 'px-3 py-2 text-body-md',
-              active
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:bg-secondary hover:text-secondary-foreground',
+              active ? activeClassName : 'text-muted-foreground hover:bg-secondary hover:text-secondary-foreground',
             )}
           >
             {option.label}

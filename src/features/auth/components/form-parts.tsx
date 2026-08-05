@@ -34,7 +34,7 @@ export function AuthSubmitButton({ label }: { label: string }) {
   const { pending } = useFormStatus();
 
   return (
-    <Button type="submit" className="w-full" disabled={pending}>
+    <Button type="submit" className="w-full max-w-none" disabled={pending}>
       {pending ? tCommon('loading') : label}
     </Button>
   );
