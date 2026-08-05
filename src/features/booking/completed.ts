@@ -68,6 +68,25 @@ export function hasEnded(appointment: CompletableAppointment, now: WallClock): b
 }
 
 /**
+ * True once the appointment's *start* has passed.
+ *
+ * The coarser sibling of {@link hasEnded}, and it answers a different question:
+ * not "is this a record now?" but "is there anything left to tell the patient?".
+ * An appointment can be moved to an hour of today that has already gone — the
+ * clinic writes up its own morning in the afternoon — and messaging someone
+ * "your appointment has moved to 09:00" at 15:00 is worse than saying nothing.
+ *
+ * The start rather than the end, because a slot the patient is already sitting
+ * in is equally past being useful news.
+ */
+export function hasStarted(appointment: { date: string; startMinute: number }, now: WallClock): boolean {
+  if (appointment.date < now.date) return true;
+  if (appointment.date > now.date) return false;
+
+  return appointment.startMinute <= now.minute;
+}
+
+/**
  * The current wall clock in a named time zone.
  *
  * This is what lets the *server* decide whether an appointment is finished.

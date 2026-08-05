@@ -25,17 +25,19 @@ import {
   formatMonthYear,
   formatWeekday,
 } from '../format';
-import { isCompleted, localWallClock } from '../completed';
+import { hasEnded, isCompleted, localWallClock } from '../completed';
 import { PX_PER_SLOT, minuteToY } from '../geometry';
 import { type CalendarView } from '../schema';
 import { type ActionErrorKey, type CalendarAppointment, type CalendarClient } from '../types';
 import { useCalendarClock } from '../use-calendar-clock';
 import { useCalendarGestures, type BookingRequest } from '../use-calendar-gestures';
-import { isWorkingDay, movesIntoThePast, type ClinicHours, type ExistingAppointment } from '../validation';
+import { useScrollToMatch } from '../use-scroll-to-match';
+import { isWorkingDay, type ClinicHours, type ExistingAppointment } from '../validation';
 import { AppointmentDialog } from './appointment-dialog';
 import { CalendarToolbar } from './calendar-toolbar';
 import { ClientPicker, type PendingBooking } from './client-picker';
 import { DayColumn } from './day-column';
+import { GridOverflowCue } from './grid-overflow-cue';
 import { MonthView } from './month-view';
 import { NewClientDialog } from './new-client-dialog';
 
@@ -78,6 +80,45 @@ const DAY_MIN_WIDTH = 'min-w-28';
  * below-the-fold marker is answering.
  */
 const TIMELINE_PADDING_PX = 12;
+
+/**
+ * The platform's vertical scrollbar width, measured once from a **detached**
+ * probe rather than from the timeline itself.
+ *
+ * Detached is the whole point. The obvious measurement — `offsetWidth -
+ * clientWidth` on the timeline — is read from the very element the answer then
+ * resizes: the width is reserved as `paddingInlineEnd` on the day header, the
+ * header shares a `min-w-max` box with the timeline, so the padding grows the
+ * box and the timeline with it. Measuring a box and then changing that box from
+ * the same callback is a feedback edge, and `offsetWidth`/`clientWidth` are
+ * integer-rounded, so a fractional panel makes the reading alternate between
+ * two values that never compare equal. The guard in `measure` bails on an
+ * unchanged value and so never gets the chance to stop it — React does, with
+ * "maximum update depth exceeded".
+ *
+ * It is also simply more accurate. On this machine the timeline reports 16px
+ * for a scrollbar that is 15px, because the rounding lands on the far side of a
+ * fractional edge — a whole pixel of misalignment in the rules the reserved
+ * width exists to line up.
+ *
+ * A scrollbar's width is a property of the platform, not of any one element, so
+ * one probe answers for every scroller and the result is cached. Nothing in the
+ * layout can move it, which is exactly what makes it safe to write back.
+ */
+let platformScrollbarWidth: number | null = null;
+
+function verticalScrollbarWidth(): number {
+  if (platformScrollbarWidth !== null) return platformScrollbarWidth;
+
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:absolute;top:-9999px;width:100px;height:100px;overflow-y:scroll';
+
+  document.body.append(probe);
+  platformScrollbarWidth = probe.offsetWidth - probe.clientWidth;
+  probe.remove();
+
+  return platformScrollbarWidth;
+}
 
 /**
  * The full-bleed root: cancels `main`'s `p-3 md:p-5` at the inline edges and
@@ -170,14 +211,16 @@ export function Calendar({
    * Read once here and passed down, so the grid, the gestures and the edit
    * dialog all judge "has that date gone?" against the same instant. The server
    * asks the same question of the *clinic's* zone and has the final say; this
-   * is the courtesy answer that keeps a past day from being offered at all.
+   * is the courtesy answer, and it now decides only how a day is *drawn* — the
+   * marker on today, the quieter tint on the days behind it. No date is refused
+   * for being past any more; see `earliestDate` in `../validation`.
    */
   const today = now ? toIsoDate(now) : null;
 
   /**
-   * The same instant, to the minute. `today` bounds *creating* a booking to
-   * whole dates; this bounds *moving* one, which is finer — an appointment may
-   * not be dragged to nine this morning at three this afternoon.
+   * The same instant, to the minute — and the one question the date alone
+   * cannot answer: has the slot an appointment is being dragged onto already
+   * finished, which freezes that appointment the moment it lands.
    */
   const nowClock = now ? localWallClock(now) : null;
 
@@ -269,6 +312,13 @@ export function Calendar({
   }, [optimisticAppointments, query]);
 
   /**
+   * …and then goes to the one it found. Dimming answers "who else is here?";
+   * this answers "where is she?", which on a grid taller than its panel — or a
+   * week scrolled sideways — the dimming cannot.
+   */
+  const matchId = useScrollToMatch(query, optimisticAppointments, days);
+
+  /**
    * Day, week and month are separate routes, so switching view is a navigation,
    * not a query-string flip. The date rides along as a search param because it
    * is a position within a view rather than a different page.
@@ -332,16 +382,6 @@ export function Calendar({
    */
   const handleCommitMove = useCallback(
     (appointment: CalendarAppointment, next: BookingRequest) => {
-      // Refused here rather than after the confirmation: asking "are you sure?"
-      // and then rejecting the answer wastes the doctor's time and a round trip.
-      // The server refuses it independently — this is the courtesy half.
-      if (movesIntoThePast(next, appointment, nowClock)) {
-        // The same precedence the server uses: a drop on an earlier day is a
-        // date that has gone, and only an earlier hour of today is a time.
-        setMessage(today !== null && next.date < today ? 'errors.pastDate' : 'errors.pastTime');
-        return;
-      }
-
       if (next.date !== appointment.date || next.startMinute !== appointment.startMinute) {
         setPendingMove({ appointment, next });
         return;
@@ -349,15 +389,13 @@ export function Calendar({
 
       commitMove(appointment, next);
     },
-    [commitMove, nowClock, today],
+    [commitMove],
   );
 
   const gestures = useCalendarGestures({
     hours,
     existing,
     practitionerId,
-    today,
-    now: nowClock,
     pxPerSlot,
     onRequestBooking: handleRequestBooking,
     onCommitMove: handleCommitMove,
@@ -412,9 +450,32 @@ export function Calendar({
    *
    * Measured rather than assumed: it is 0 on an overlay-scrollbar platform
    * (macOS, most touch devices) and 15–17px on a classic one, and hardcoding
-   * either would misalign the other.
+   * either would misalign the other. Measured from a detached probe rather than
+   * from the timeline, though — see `verticalScrollbarWidth` for why reading it
+   * off the element it then resizes is what made this loop.
    */
   const [scrollbarWidth, setScrollbarWidth] = useState(0);
+
+  /**
+   * What `read` needs to know, kept current without making it re-subscribe.
+   *
+   * This used to be a dependency array, and that is what made the effect run
+   * away: `previewedAppointments` is a fresh array on every pointer move of a
+   * drag, so the effect tore itself down and rebuilt on every render — and its
+   * body calls `read` synchronously, which sets state, which renders, which
+   * re-runs the effect. React said so plainly ("one of the dependencies changes
+   * on every render"); the guards inside `read` could not help, because the
+   * problem was the effect firing again rather than the values it wrote.
+   *
+   * Same device as `latest` in `useCalendarGestures`, for the same reason and
+   * with the same caveat: written in an effect rather than during render,
+   * because a ref is mutable state and touching it mid-render is unsafe under
+   * concurrent rendering.
+   */
+  const readInputs = useRef({ days, previewedAppointments, openMinute: hours.openMinute, pxPerSlot });
+
+  /** Lets the render below ask for a measurement without owning the listeners. */
+  const scheduleRead = useRef<() => void>(() => {});
 
   useEffect(() => {
     const node = timelineRef.current;
@@ -425,14 +486,21 @@ export function Calendar({
       return;
     }
 
-    function measure(): void {
+    function read(): void {
       const element = timelineRef.current;
       if (!element) return;
 
-      setScrollbarWidth((previous) => {
-        const next = element.offsetWidth - element.clientWidth;
-        return next === previous ? previous : next;
-      });
+      const { days, previewedAppointments, openMinute, pxPerSlot } = readInputs.current;
+
+      /*
+        Whether the timeline is currently scrolling is a question about
+        *heights* — and the answer this produces is written as inline padding,
+        which cannot change a height. That is what keeps this from feeding back
+        into itself; see `verticalScrollbarWidth`.
+      */
+      const gutter = element.scrollHeight > element.clientHeight ? verticalScrollbarWidth() : 0;
+
+      setScrollbarWidth((previous) => (previous === gutter ? previous : gutter));
 
       // In the grid's own coordinates: the timeline starts `TIMELINE_PADDING_PX`
       // into the scroller, so the deepest visible minute is that much shallower
@@ -444,7 +512,7 @@ export function Calendar({
       // the fold is the one there is no way to know about.
       const next = days.filter((date) =>
         previewedAppointments.some(
-          (row) => row.date === date && minuteToY(row.startMinute, hours.openMinute, pxPerSlot) >= fold,
+          (row) => row.date === date && minuteToY(row.startMinute, openMinute, pxPerSlot) >= fold,
         ),
       );
 
@@ -453,21 +521,119 @@ export function Calendar({
       );
     }
 
-    measure();
-    node.addEventListener('scroll', measure, { passive: true });
+    let frame = 0;
 
-    // The panel resizes with the window and with the app shell; both change
-    // how much of the day fits without changing what is booked on it.
-    const observer = new ResizeObserver(measure);
+    /**
+     * One read per frame, and never inside the callback that asked for it.
+     *
+     * `read` writes `scrollbarWidth`, which is reserved as padding on the day
+     * header — a layout change. A `ResizeObserver` callback runs *inside* the
+     * browser's resize-observation loop, after layout and before paint, so
+     * setting React state there renders synchronously, changes layout again,
+     * and is re-observed within the same delivery. Deferring to the next frame
+     * takes the write out of that loop, and collapses a burst of scroll and
+     * resize notifications into a single read.
+     */
+    function schedule(): void {
+      if (frame) return;
+
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        read();
+      });
+    }
+
+    scheduleRead.current = schedule;
+
+    // The first read stays synchronous: it runs after commit like any effect,
+    // nothing has been written yet for it to feed back into, and waiting a
+    // frame would show the grid with the marker missing.
+    read();
+
+    node.addEventListener('scroll', schedule, { passive: true });
+
+    /*
+      The panel resizes with the window and with the app shell; both change how
+      much of the day fits without changing what is booked on it.
+
+      Height only. Nothing this effect produces depends on the width — `fold` is
+      built from `scrollTop` and `clientHeight`, and whether a vertical scrollbar
+      is needed is the content's height against the panel's, since block
+      positions come from minutes and a wider column is never a shorter one.
+      Meanwhile the one thing this effect *writes* is inline padding, which
+      changes width and not height. Ignoring width notifications therefore costs
+      no correctness and removes the only edge by which the output can provoke
+      another read.
+    */
+    let lastHeight = -1;
+
+    const observer = new ResizeObserver((entries) => {
+      const height = entries[0]?.contentRect.height ?? 0;
+      if (height === lastHeight) return;
+
+      lastHeight = height;
+      schedule();
+    });
+
     observer.observe(node);
 
     return () => {
-      node.removeEventListener('scroll', measure);
+      if (frame) cancelAnimationFrame(frame);
+      scheduleRead.current = () => {};
+      node.removeEventListener('scroll', schedule);
       observer.disconnect();
     };
-  }, [days, hours.openMinute, previewedAppointments, pxPerSlot, view]);
+    // `view` alone: the listeners follow the timeline coming and going, and
+    // nothing else. Everything `read` needs arrives through `readInputs`,
+    // precisely so that data changing cannot tear this down and rebuild it.
+  }, [view]);
+
+  /**
+   * Refresh what `read` sees, and ask for a fresh measurement.
+   *
+   * Runs after every render, which is the honest signal: an appointment can be
+   * booked, dragged to another hour or rolled back without resizing anything at
+   * all — blocks are absolutely positioned — so neither observer above can see
+   * it, but the calendar always re-renders for it.
+   *
+   * Safe to run unconditionally because `schedule` coalesces to one read a
+   * frame and both setters bail on an unchanged value: a render that moves
+   * nothing measures once more and stops, rather than scheduling another render.
+   */
+  useEffect(() => {
+    readInputs.current = { days, previewedAppointments, openMinute: hours.openMinute, pxPerSlot };
+    scheduleRead.current();
+  });
 
   const belowFold = useMemo(() => new Set(datesBelowFold), [datesBelowFold]);
+
+  /**
+   * The panel-level half of the same answer.
+   *
+   * `belowFold` marks *which* columns are hiding something, which is the useful
+   * question in a week; this is whether any of them are, which is what the cue
+   * across the bottom edge needs. One measurement drives both — a second
+   * observer watching the same scroller for the same fact would be free to
+   * disagree with this one, and eventually would.
+   */
+  const hasMoreBelow = datesBelowFold.length > 0;
+
+  /**
+   * Most of a screen, not all of it. The overlap is the point: a full-screen
+   * jump leaves nothing shared between the two views, so the reader has to find
+   * their place again.
+   */
+  const scrollDown = useCallback(() => {
+    const element = timelineRef.current;
+    if (!element) return;
+
+    element.scrollBy({
+      top: element.clientHeight * 0.8,
+      // Honoured by hand: the global `prefers-reduced-motion` rule collapses
+      // CSS transitions, and a scroll asked for in script is not one.
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+    });
+  }, []);
 
   function book(clientId: string): void {
     const pending = pendingBooking;
@@ -713,7 +879,10 @@ export function Calendar({
             // block-end edge. The grid runs into the shell on three sides, so
             // the only boundary left to draw is the one between it and the
             // toolbar.
-            'flex min-h-0 flex-1 flex-col overflow-hidden border-t border-border',
+            //
+            // `relative` on top of that is the positioning context for the
+            // overflow cue pinned to this panel's bottom edge.
+            'relative flex min-h-0 flex-1 flex-col overflow-hidden border-t border-border',
             isPending && 'opacity-90',
           )}
         >
@@ -874,6 +1043,7 @@ export function Calendar({
                         now={now}
                         selectedId={selectedId}
                         highlightId={highlightId}
+                        matchId={matchId}
                         dimmedIds={dimmedIds}
                         completedIds={completedIds}
                         pending={gestures.pending}
@@ -898,6 +1068,14 @@ export function Calendar({
               </div>
             </div>
           </div>
+
+          {/*
+            A sibling of the horizontal scroller, not a child of it. Inside, the
+            cue would slide away to the side the moment anyone scrolled a week
+            across; out here it stays pinned to the panel, which is the thing it
+            is describing the bottom edge of.
+          */}
+          <GridOverflowCue visible={hasMoreBelow} onScrollDown={scrollDown} />
         </div>
       )}
 
@@ -936,8 +1114,6 @@ export function Calendar({
           hours={hours}
           clients={clients}
           existingByDate={existingByDate}
-          today={today}
-          now={nowClock}
           completed={completedIds.has(editing.id)}
           onSave={(next) => {
             // Changing the date must move the view too, or the appointment
@@ -965,6 +1141,17 @@ export function Calendar({
             from: whenLabel(pendingMove.appointment),
             to: whenLabel(pendingMove.next),
           })}
+          /*
+            A drop into a slot that has already finished is allowed — that is
+            the whole point of letting a morning be rearranged in the afternoon
+            — but it is a one-way door: the appointment counts as completed the
+            moment it lands, and a completed appointment can only be deleted.
+
+            Said before the write rather than discovered after it. The test is
+            `hasEnded`, the same function the lock itself is built on, so the
+            warning cannot drift from the rule it is warning about.
+          */
+          note={nowClock && hasEnded(pendingMove.next, nowClock) ? t('confirmMove.landsInPast') : undefined}
           confirmLabel={t('confirmMove.confirm')}
           cancelLabel={t('actions.cancel')}
           onConfirm={() => {

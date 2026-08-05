@@ -43,6 +43,14 @@ export type DayColumnProps = {
   now: Date | null;
   selectedId: string | null;
   highlightId: string | null;
+  /**
+   * The appointment the search scrolled to, ringed like a selection.
+   *
+   * The scroll says *where* it is; this says *which* one it is. Without it, a
+   * search that matches three people leaves the grid parked on an appointment
+   * with nothing to distinguish it from the two other undimmed blocks.
+   */
+  matchId: string | null;
   /** Ids that do not match the current search, drawn dimmed. */
   dimmedIds: ReadonlySet<string>;
   completedIds: ReadonlySet<string>;
@@ -50,11 +58,14 @@ export type DayColumnProps = {
   pending: PendingRange | null;
   isClosed: boolean;
   /**
-   * The date has already gone, so nothing can be booked on it.
+   * The date has already gone. Drawn quieter, but still fully bookable — the
+   * clinic records visits after they happen, and a day it cannot write on is a
+   * day it has to remember some other way.
    *
-   * Kept separate from `isClosed` even though the two look alike: a past
-   * *working* day is not a day the clinic is shut, and conflating them would
-   * make the column claim something untrue about the clinic's hours.
+   * Kept separate from `isClosed`, which is the one that actually forbids
+   * anything: a past *working* day is not a day the clinic is shut, and
+   * conflating them would make the column claim something untrue about the
+   * clinic's hours.
    */
   isPast: boolean;
   /**
@@ -82,6 +93,7 @@ export function DayColumn({
   now,
   selectedId,
   highlightId,
+  matchId,
   dimmedIds,
   completedIds,
   pending,
@@ -107,11 +119,14 @@ export function DayColumn({
   const isDragging = pending !== null || dragging !== null;
 
   /**
-   * Nothing new can be created here — the clinic is shut, or the day has gone.
-   * Existing appointments still render and still open, because a past day is a
-   * record worth reading even when it cannot be added to.
+   * Nothing new can be created here, because the clinic is shut.
+   *
+   * A past day used to count too. It no longer does — the clinic writes up
+   * visits after they happen, so yesterday takes a booking exactly as tomorrow
+   * does, and only the clinic's own opening hours still refuse one. `isPast`
+   * survives as a tint and nothing more.
    */
-  const unbookable = isClosed || isPast;
+  const unbookable = isClosed;
 
   const height = gridHeight(hours.openMinute, hours.closeMinute, pxPerSlot);
   const nowMinute = nowLineMinute(date, now);
@@ -156,7 +171,14 @@ export function DayColumn({
     <div
       ref={canvasRef}
       data-day={date}
-      className={cn('relative flex-1 select-none border-s border-border', unbookable && 'bg-muted/40')}
+      className={cn(
+        'relative flex-1 select-none border-s border-border',
+        // Two weights, because they mean different things. A closed day refuses
+        // a booking, so it is the heavier fill; a past day merely *is* past, and
+        // now takes bookings like any other, so it gets half as much — enough to
+        // read as behind you, not enough to read as switched off.
+        isClosed ? 'bg-muted/40' : isPast && 'bg-muted/20',
+      )}
       style={{ height }}
       onPointerDown={(event) => {
         // Only a press on empty canvas creates. A press that started on a block
@@ -240,7 +262,9 @@ export function DayColumn({
             top={box.top}
             height={box.height}
             completed={completedIds.has(appointment.id)}
-            selected={selectedId === appointment.id || highlightId === appointment.id}
+            selected={
+              selectedId === appointment.id || highlightId === appointment.id || matchId === appointment.id
+            }
             dimmed={dimmedIds.has(appointment.id)}
             dragState={dragging?.id === appointment.id ? (dragging.valid ? 'valid' : 'invalid') : null}
             onSelect={onSelect}
@@ -348,10 +372,17 @@ export function DayColumn({
         Lime-600 (`viz-band-edge`), the same stop as the now-line: lime-400 is
         1.37:1 on white and cannot hold a 4px rule, and the palette defines the
         darker step for exactly this — marking a boundary.
+
+        It does not pulse. A marker that animates for as long as the state
+        holds is animating for most of a working afternoon, which is both
+        tiring at the edge of vision and a promise of change from something
+        that is not changing. `animate-pulse` is also the app's skeleton
+        vocabulary — it means "waiting for this", and a booking that exists and
+        is merely out of sight is not waiting for anything.
       */}
       {hasHiddenBelow && (
         <div aria-hidden className="pointer-events-none absolute inset-0 z-30 flex flex-col justify-end">
-          <div className="sticky bottom-0 mx-1 h-1 animate-pulse rounded-full bg-viz-band-edge" />
+          <div className="sticky bottom-0 mx-1 h-1 rounded-full bg-viz-band-edge" />
         </div>
       )}
     </div>

@@ -100,11 +100,14 @@ export function availableSlots({
         startMinute,
         durationMinutes: REQUEST_DURATION_MINUTES,
         excludeId: excludeAppointmentId,
+        // The portal's floor, and the reason this is a parameter rather than a
+        // rule: staff pass null and may record a visit on the day it happened,
+        // where a patient asking for last Tuesday is only ever a mistake.
+        //
         // Already covered by the `hasEnded` guard above, which drops every past
-        // time before the rules run. Passed anyway so the portal states its
-        // clock like every other caller rather than relying on that guard
-        // staying where it is.
-        today: now.date,
+        // time before the rules run. Passed anyway so the portal states its own
+        // limit rather than relying on that guard staying where it is.
+        earliestDate: now.date,
       },
       sameDay,
       hours,

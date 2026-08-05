@@ -25,6 +25,16 @@ export type ConfirmDialogProps = {
   title: string;
   /** The consequence, in one sentence. Omit when the title already says it. */
   description?: string;
+  /**
+   * A consequence the description does not cover, and that the reader would not
+   * have predicted — something the action gives up rather than something it
+   * does. Drawn as an attention note so it separates from the description
+   * instead of becoming a second sentence nobody reads.
+   *
+   * Amber and not clay: clay is the system's only alarm, and this is a warning
+   * about a door closing, not a destructive act. Deletion says so with `tone`.
+   */
+  note?: string;
   confirmLabel: string;
   cancelLabel: string;
   /** `destructive` colours the confirm button red. Use it for deletions. */
@@ -37,6 +47,7 @@ export function ConfirmDialog({
   locale,
   title,
   description,
+  note,
   confirmLabel,
   cancelLabel,
   tone = 'default',
@@ -97,6 +108,15 @@ export function ConfirmDialog({
         {description && (
           <p className="text-sm text-muted-foreground" dir="auto">
             {description}
+          </p>
+        )}
+
+        {note && (
+          <p
+            className="rounded-md bg-status-attention-bg px-3 py-2 text-sm text-status-attention-fg"
+            dir="auto"
+          >
+            {note}
           </p>
         )}
 

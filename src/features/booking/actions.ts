@@ -9,8 +9,10 @@ import {
   notifyAppointmentRescheduled,
 } from '@/features/whatsapp/notify';
 import { requireStaffClinic } from '@/lib/session';
+import { DISPLAY_TIME_ZONE } from '@/lib/format';
 import { type Locale } from '@/i18n/routing';
 
+import { hasStarted, wallClockIn } from './completed';
 import {
   createAppointment,
   createClientAndBook,
@@ -167,6 +169,13 @@ export async function updateAppointmentAction(rawLocale: string, input: unknown)
   // nothing.
   const { previous } = result.data;
   const moved = previous.date !== parsed.data.date || previous.startMinute !== parsed.data.startMinute;
+
+  // A slot that has already begun is not news the patient can act on. Since a
+  // booking may now be dragged to an earlier hour of today, this is a real
+  // outcome rather than a defensive check: writing up the morning at three in
+  // the afternoon must not text everyone about appointments they have already
+  // attended. Judged against the *clinic's* clock, the same one the write used.
+  if (hasStarted(parsed.data, wallClockIn(DISPLAY_TIME_ZONE))) return { ok: true, data: undefined };
 
   if (moved) notifyRescheduled(context.clinicId, parsed.data.id, previous);
   else notifyBooked(context.clinicId, parsed.data.id);
