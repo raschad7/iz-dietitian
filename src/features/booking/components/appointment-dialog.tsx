@@ -18,9 +18,7 @@ import { SLOT_MINUTES } from '@/lib/time-constants';
 import { minuteToClock, parseDateInput } from '../date';
 import { formatDuration, formatLongDate, formatMinute } from '../format';
 import { type CalendarAppointment, type CalendarClient } from '../types';
-import { type WallClock } from '../completed';
 import {
-  movesIntoThePast,
   validateBooking,
   type BookingErrorKey,
   type ClinicHours,
@@ -46,14 +44,6 @@ export type AppointmentDialogProps = {
   clients: CalendarClient[];
   /** Every appointment on the currently selected date, for the overlap checks. */
   existingByDate: (date: string) => readonly ExistingAppointment[];
-  /**
-   * The clinic's today, or null before the shared clock has ticked. Bounds the
-   * date picker and drives the past-date rule. Passed in rather than read from
-   * a clock of its own, so the whole calendar judges itself against one instant.
-   */
-  today: string | null;
-  /** The same instant to the minute, for the rule that a move may not go back. */
-  now: WallClock | null;
   completed: boolean;
   onSave: (next: {
     id: string;
@@ -114,8 +104,6 @@ export function AppointmentDialog({
   hours,
   clients,
   existingByDate,
-  today,
-  now,
   completed,
   onSave,
   onDelete,
@@ -149,16 +137,11 @@ export function AppointmentDialog({
     startMinute,
     durationMinutes,
     excludeId: appointment.id,
-    today,
+    // No floor. Staff may put an appointment on any date they like — see the
+    // note on `earliestDate`; the portal is the caller that still has one.
+    earliestDate: null,
   };
-  /**
-   * The past-time rule first, because it is the one failure the generic rules
-   * cannot see: they judge the candidate alone, and this one needs to know the
-   * slot the appointment is being moved *from*.
-   */
-  const liveError: BookingErrorKey | null = movesIntoThePast({ date, startMinute }, appointment, now)
-    ? 'errors.pastTime'
-    : validateBooking(candidate, existing, hours);
+  const liveError: BookingErrorKey | null = validateBooking(candidate, existing, hours);
 
   /** Which whole-hour starts would collide, so they can be marked unavailable. */
   const unavailableStarts = useMemo(() => {
@@ -166,21 +149,27 @@ export function AppointmentDialog({
 
     for (const minute of startChoices(hours, startMinute)) {
       const failure = validateBooking(
-        { practitionerId, clientId, date, startMinute: minute, durationMinutes, excludeId: appointment.id, today },
+        {
+          practitionerId,
+          clientId,
+          date,
+          startMinute: minute,
+          durationMinutes,
+          excludeId: appointment.id,
+          earliestDate: null,
+        },
         existing,
         hours,
       );
       // Only overlap and closing time make a *start* unavailable; a closed day
-      // disables every option and is reported once, on the date field.
+      // disables every option and is reported once, on the date field. An hour
+      // that has already gone is not among them — the clinic writes up its own
+      // morning, so every hour of a bookable day stays selectable.
       if (failure === 'errors.overlap' || failure === 'errors.outsideHours') blocked.add(minute);
-
-      // An hour that has already gone is unavailable for the same reason: it is
-      // this one option that cannot be chosen, not the whole day.
-      if (movesIntoThePast({ date, startMinute: minute }, appointment, now)) blocked.add(minute);
     }
 
     return blocked;
-  }, [appointment, clientId, date, durationMinutes, existing, hours, now, practitionerId, startMinute, today]);
+  }, [appointment.id, clientId, date, durationMinutes, existing, hours, practitionerId, startMinute]);
 
   function commitDateText(raw: string): void {
     const parsed = parseDateInput(raw);
@@ -278,11 +267,12 @@ export function AppointmentDialog({
                 tabIndex={-1}
                 aria-hidden
                 value={date}
-                // Greys out every day before today in the browser's own picker,
-                // so a past date cannot be chosen there at all. Typing one into
-                // the field beside it is still possible, and is caught by the
-                // past-date rule below like any other rule failure.
-                min={today ?? undefined}
+                // No `min`. The browser's picker used to grey out every day
+                // before today, which made this the one place in the calendar
+                // that could not record a visit on the day it happened — and it
+                // was only half a rule anyway, since the field beside it always
+                // accepted a typed date. Any date is bookable now; a closed day
+                // or a clash is still refused, and says which.
                 onChange={(event) => commitDateText(event.target.value)}
                 className="pointer-events-none absolute inset-0 size-full opacity-0"
               />

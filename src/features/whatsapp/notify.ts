@@ -1,5 +1,6 @@
+import { hasStarted, wallClockIn } from '@/features/booking/completed';
 import { formatLongDate, formatMinute } from '@/features/booking/format';
-import { type Locale } from '@/i18n/routing';
+import { DISPLAY_TIME_ZONE } from '@/lib/format';
 
 import { getAppointmentTarget, getClientTarget, getSettings } from './queries';
 import {
@@ -36,6 +37,38 @@ import { type SendResult } from './types';
  */
 
 /**
+ * Nothing is ever sent about a slot that has already started.
+ *
+ * **Why this lives here and not at the call sites.** It used to be one `if` in
+ * `updateAppointmentAction`, which meant every *other* path could message a
+ * patient about the past — and three did. Recording a visit after it happened
+ * (staff may book any date, deliberately) texted "your appointment is
+ * confirmed" for this morning; deleting a finished visit as records cleanup
+ * texted "your appointment is cancelled"; and approving an appointment request
+ * onto a past slot did the same, because that path was written later and never
+ * knew about the check. A guard beside the send covers all of them, and covers
+ * the next caller nobody has written yet.
+ *
+ * **The clinic's clock, not the server's.** An appointment is a clinic-local
+ * wall-clock fact, so "has this gone?" is a question about `Asia/Hebron` — the
+ * same reasoning as `isReminderDue` and the calendar's own completed state.
+ *
+ * **The start, not the end.** `hasStarted` is the coarser sibling of `hasEnded`
+ * and the right one here: a patient already sitting in the slot has nothing left
+ * to act on, so an appointment that is under way counts as past for messaging
+ * even though it is not yet a completed record.
+ *
+ * The boundary is inclusive — an appointment starting at exactly this minute is
+ * treated as gone, since a confirmation arriving as the patient walks in is not
+ * news. Reminders use the same clock through their own `isReminderDue`, which is
+ * inclusive the other way; the difference is one minute on a message whose whole
+ * point is to arrive a day early.
+ */
+function isPast(slot: { date: string; startMinute: number }): boolean {
+  return hasStarted(slot, wallClockIn(DISPLAY_TIME_ZONE));
+}
+
+/**
  * Confirms a newly booked (or rescheduled) appointment.
  *
  * Rescheduling sends a second message on purpose — the dedupe key carries the
@@ -51,6 +84,10 @@ export async function notifyAppointmentBooked(clinicId: string, appointmentId: s
 
   // No appointment, or a client with no phone number. Both are ordinary.
   if (!target) return { status: 'skipped', reason: 'no_phone' };
+
+  // Staff may record a visit on the day it happened, so a "confirmation" for an
+  // hour that has gone is a real outcome of an ordinary action, not a bug.
+  if (isPast(target)) return { status: 'skipped', reason: 'in_the_past' };
 
   return sendWhatsappTemplate(
     {
@@ -103,6 +140,14 @@ export async function notifyAppointmentRescheduled(
 
   if (!target) return { status: 'skipped', reason: 'no_phone' };
 
+  /**
+   * Judged on where the appointment has moved *to*, never on where it came
+   * from. Moving a missed appointment into next week is exactly the news a
+   * patient needs; it is only a move onto an hour that has already gone that
+   * has nothing left to tell them.
+   */
+  if (isPast(target)) return { status: 'skipped', reason: 'in_the_past' };
+
   return sendWhatsappTemplate(
     {
       kind: 'appointmentRescheduled',
@@ -139,10 +184,14 @@ export async function notifyAppointmentRescheduled(
  * `whatsapp_messages.appointment_id` is a foreign key, and it would point at a
  * row that is gone. The id lives in the dedupe key instead, which is plain text.
  *
- * Every deletion notifies, including one for an appointment already in the past.
- * Deleting a finished visit is usually records cleanup rather than a
- * cancellation, so that is worth knowing about — but it is the clinic's call, and
- * suppressing it silently would be worse than an occasional odd message.
+ * **A deletion for a slot already past sends nothing.** This reverses an earlier
+ * decision recorded here, which was that every deletion should notify because
+ * suppressing one silently would be worse than an occasional odd message. The
+ * odd message turned out to be the common one: deleting a finished visit is
+ * usually records cleanup, and "your appointment on Tuesday at 09:00 is
+ * cancelled" arriving on Thursday tells the patient something untrue about an
+ * appointment they already attended. Cancelling anything still to come notifies
+ * exactly as before, which is the case this message exists for.
  */
 export async function notifyAppointmentCancelled(
   clinicId: string,
@@ -151,6 +200,10 @@ export async function notifyAppointmentCancelled(
   const settings = await getSettings(clinicId);
 
   if (!settings?.confirmationsEnabled) return { status: 'skipped', reason: 'not_configured' };
+
+  // Read off the deleted row the caller passed in — there is no appointment left
+  // to look up, which is the same reason the details arrive as an argument.
+  if (isPast(cancelled)) return { status: 'skipped', reason: 'in_the_past' };
 
   const target = await getClientTarget(clinicId, cancelled.clientId);
 
@@ -214,10 +267,6 @@ export async function notifyPortalCredentials(
         time: '-',
         username: credentials.username,
         password: credentials.temporaryPassword,
-        // The portal link keeps the client's own locale: they will be *reading a
-        // screen* there, which is exactly what `preferred_locale` is for, and an
-        // English-reading client should not land on an Arabic sign-in page.
-        portalUrl: portalSignInUrl(target.preferredLocale),
       },
     },
     {
@@ -228,22 +277,6 @@ export async function notifyPortalCredentials(
       dedupeKey: credentialsDedupeKey(clientId, credentials.username, credentials.issuedAt),
     },
   );
-}
-
-/**
- * The client sign-in URL, in the client's own language.
- *
- * `NEXT_PUBLIC_APP_URL` is the browser-facing origin — deliberately not
- * `WHATSAPP_PUBLIC_URL`, which is how the *gateway* reaches this app and is
- * commonly `host.docker.internal`. A patient tapping that link would get nothing.
- */
-function portalSignInUrl(locale: Locale): string {
-  const base = (process.env.NEXT_PUBLIC_APP_URL ?? process.env.BETTER_AUTH_URL ?? 'http://localhost:3000').replace(
-    /\/+$/,
-    '',
-  );
-
-  return `${base}/${locale}/client-login`;
 }
 
 /**

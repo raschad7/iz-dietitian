@@ -3,8 +3,8 @@
 import { useMemo, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
 
 import { getLocaleDirection } from '@/i18n/routing';
 import { isMember } from '@/lib/enum';
@@ -18,6 +18,8 @@ import type {
   PlannableClient,
   SwapCandidate,
 } from '../queries';
+import { boardRows } from '../board-rows';
+import { railTabsForPlan, type RailTab } from '../rail-state';
 import { dayKey, PLAN_STATUSES } from '../schema';
 import { slotFillKey } from '../skeleton';
 import type { RecentUse } from '../usage';
@@ -26,15 +28,13 @@ import { BoardEditor, useEditor } from './board-dnd';
 import { BoardSheet, useBelowXl } from './board-sheet';
 import { ClientPicker } from './client-picker';
 import { DayColumn } from './day-column';
+import { SlotRail } from './slot-rail';
 import { DishCatalog } from './dish-catalog';
 import type { GhostMeal } from './meal-card';
 import { MealDetailPanel } from './meal-detail-panel';
 import { NewWeekDialog, type NewWeekProps } from './new-week-dialog';
 import { PublishButton } from './publish-button';
 import { RailTabs } from './rail-tabs';
-
-/** The rail's panels. */
-type RailTab = 'client' | 'dishes' | 'meal' | 'past';
 
 type BoardProps = {
   board: Board;
@@ -101,12 +101,22 @@ function BoardBody({
   const activeLocale = useLocale();
   // The optimistic board, not the server one: everything below renders the edit
   // just made, before it has finished being written.
-  const { board, editable, pending, error } = useEditor();
+  const { board, editable, pending, error, lastMove, undoLastMove } = useEditor();
 
   const [selectedMealId, setSelectedMealId] = useState<string | null>(null);
   const [tab, setTab] = useState<RailTab>('client');
   const [comparing, setComparing] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
+  /*
+   * Whether the fixed rail is showing, above `xl`.
+   *
+   * The board did not fit on any monitor. Seven columns at the 150px floor plus
+   * their gutters is 1104px; the rail costs 373px and the app's own rail 256px,
+   * so even a 1920px window left the week 9px short and every narrower one cut
+   * two or three days off the end — with no scrollbar in view to say so. The
+   * week is the screen, so the rail is what gives way.
+   */
+  const [railOpen, setRailOpen] = useState(true);
   // Which day the phone is showing. Sunday until the dietitian says otherwise:
   // "today" would need a helper in the week logic, and this board is planning
   // next week anyway, where no day is today.
@@ -122,24 +132,28 @@ function BoardBody({
 
   const dailyTarget = Math.round(board.kcalTargetSnapshot);
 
-  // Every day carries the same slots, so one day's count sizes the whole grid.
+  /*
+   * The week's rows: one per slot, drawn from the union across all seven days.
+   *
+   * Not `max(meals per day)` any more. That counted rows without identifying
+   * them, so a day missing its third slot rendered its fourth meal in row three
+   * — fine when every card announced itself, and a lie the moment the slot rail
+   * labels the row instead. See `board-rows.ts`.
+   */
+  const rows = useMemo(() => boardRows(board.days), [board.days]);
   // The floor of 1 covers a plan whose days are all still empty.
-  const slotRows = Math.max(...board.days.map((day) => day.meals.length), 1);
+  const slotRows = Math.max(rows.length, 1);
 
   /*
    * One row template for the week: a header row, a row per meal slot, and — only
    * while the plan is editable, or the columns would end on a row nothing is ever
    * placed in — a row for the add control.
    *
-   * `minmax(auto, 1fr)` rather than a fixed floor such as `minmax(6rem, 1fr)`. A
-   * fixed minimum is not an intrinsic min track sizing function, so it switches
-   * off the grid item's automatic minimum size; and once the board is taller than
-   * the viewport there is no positive free space left for the `1fr` to grow the
-   * track with, so every row would pin at the floor and the taller cards would
-   * spill into the row below. `auto` floors each row at its own content and still
-   * stretches to fill a board with room to spare.
+   * The explicit floor is the readability contract. Metadata and the nutrition
+   * shelf may never squeeze the dish name out of the card; when the viewport is
+   * shorter than the week, the board scrolls instead of collapsing its content.
    */
-  const rowTemplate = `auto repeat(${slotRows}, minmax(auto, 1fr))${editable ? ' auto' : ''}`;
+  const rowTemplate = `auto repeat(${slotRows}, minmax(7rem, 1fr))${editable ? ' auto' : ''}`;
 
   /**
    * The previous plan's dish for each slot, marked where it repeats.
@@ -186,12 +200,7 @@ function BoardBody({
         label={t('title')}
         active={tab}
         onSelect={setTab}
-        tabs={[
-          { id: 'client' as const, label: t('tabs.client') },
-          { id: 'dishes' as const, label: t('tabs.dishes') },
-          { id: 'meal' as const, label: t('tabs.meal') },
-          { id: 'past' as const, label: t('tabs.past') },
-        ]}
+        tabs={railTabsForPlan(true).map((id) => ({ id, label: t(`tabs.${id}`) }))}
       />
 
       {/* The tabs stay put and the panel under them scrolls. A tab bar that
@@ -201,7 +210,7 @@ function BoardBody({
         role="tabpanel"
         id={`rail-panel-${tab}`}
         aria-labelledby={`rail-tab-${tab}`}
-        className="min-h-0 flex-1 overflow-y-auto"
+        className="min-h-0 flex-1 overflow-hidden pt-3"
       >
         {tab === 'dishes' ? (
           <DishCatalog
@@ -227,14 +236,15 @@ function BoardBody({
                 setSelectedMealId(null);
                 setTab('client');
               }}
+              onBrowseDishes={() => setTab('dishes')}
             />
           ) : (
             <p className="text-body-sm text-muted-foreground">{t('selectMeal')}</p>
           )
         ) : tab === 'past' ? (
-          history
+          <div className="no-scrollbar h-full overflow-y-auto overflow-x-hidden">{history}</div>
         ) : (
-          children
+          <div className="no-scrollbar h-full overflow-y-auto overflow-x-hidden">{children}</div>
         )}
       </div>
     </>
@@ -251,55 +261,58 @@ function BoardBody({
         is the trade a toolbar should make; hiding a control to save a row means
         the feature is gone.
       */}
-      <header className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <ClientPicker clients={clients} selectedClientId={board.clientId} />
-
-        {isMember(PLAN_STATUSES, board.status) && (
-          <Badge variant={board.status === 'published' ? 'default' : 'muted'}>
+      <header className="border-b border-border pb-4">
+        <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+          <div className="min-w-0 flex-1">
+          <span className="block text-caption text-muted-foreground">{t('title')}</span>
+          <h2 className="sr-only">{board.clientName}</h2>
+          <ClientPicker
+            clients={clients}
+            selectedClientId={board.clientId}
+            appearance="heading"
+          />
+            <div className="mt-2 flex flex-wrap items-center gap-y-1 text-label text-muted-foreground">
+              {isMember(PLAN_STATUSES, board.status) && (
+          <span className="inline-flex items-center gap-2 pe-3">
+            <span
+              aria-hidden
+              className={cn(
+                'size-2 rounded-full',
+                board.status === 'published' ? 'bg-primary' : 'bg-muted-foreground',
+              )}
+            />
             {t(`status.${board.status}`)}
-          </Badge>
-        )}
+          </span>
+              )}
 
-        <span className="whitespace-nowrap text-label text-muted-foreground">
+        <span className="whitespace-nowrap border-s border-border px-3">
           {t('weekOf', { date: board.weekStartDate })}
         </span>
 
         {/* The one fact here that is printed elsewhere on the same screen — the
             client panel carries it, and so does every unplanned day column — so
             it is the one that gives up its place on a phone. */}
-        <span className="hidden whitespace-nowrap text-label text-muted-foreground sm:inline">
+        <span className="hidden whitespace-nowrap border-s border-border ps-3 sm:inline">
           {t('dailyTargetShort', { value: dailyTarget })}
         </span>
 
         {/* Reserved width, so a save does not reflow the row it sits in. Only
             where there is width to reserve: on a phone the row is already two
             lines and 96px of held-open blank is a third. */}
-        <span
-          role="status"
-          aria-live="polite"
-          className="shrink-0 text-label text-muted-foreground sm:min-w-24"
-        >
-          {error ? (
-            <span className="text-destructive">{t(error)}</span>
-          ) : pending ? (
-            t('savingIndicator')
-          ) : null}
-        </span>
+            </div>
+          </div>
 
-        <div className="ms-auto flex flex-wrap items-center justify-end gap-3">
-          {/* Below `xl` the rail is a sheet, and a sheet that only opens by
-              tapping a meal leaves the client, the catalog and the past weeks
-              with no door at all. */}
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="xl:hidden"
-            onClick={() => setSheetOpen(true)}
-          >
-            {t('openPanels')}
-          </Button>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+          {/*
+            Plan actions, in a fixed order that does not depend on status.
 
+            Publishing is always the first control and always the same control —
+            see `publish-button.tsx` for why the header no longer promotes a
+            different button to the solid fill once a plan goes live. "New week"
+            is always second and always quiet. The two status-dependent controls
+            are *appended* rather than inserted, so nothing already on the row
+            shifts sideways when a plan is published.
+          */}
           <PublishButton
             planId={board.id}
             status={board.status}
@@ -312,41 +325,122 @@ function BoardBody({
             board={board}
             locale={locale}
             newWeek={newWeek}
+            triggerVariant="neutral"
           />
 
-          {board.status === 'published' && (
-            <Button
-              type="button"
-              size="sm"
-              variant={allowPublished ? 'default' : 'outline'}
-              aria-pressed={allowPublished}
-              onClick={() => {
-                if (allowPublished) {
-                  onAllowPublished(false);
-                  return;
-                }
+          {/*
+            Always rendered, disabled until there is a published plan to edit.
 
-                // One confirmation for the mode, not one per drop. Confirming every
-                // drag would make the editor unusable.
-                if (window.confirm(t('editPublishedConfirm'))) onAllowPublished(true);
-              }}
-            >
-              {t('editPublished')}
-            </Button>
-          )}
+            It used to appear on publish, which pushed every control after it
+            sideways at the exact moment the dietitian was looking somewhere
+            else. A control that is *going* to exist should hold its place: the
+            row's shape then never changes, and the greyed-out button doubles as
+            a note that this becomes available once the week is live.
+          */}
+          {/* The hint rides on a wrapping span, not on the button. `Button`
+              carries `disabled:pointer-events-none`, and an element that takes
+              no pointer events never fires the hover a native `title` needs —
+              so the one explanation of *why* it is greyed out would have been
+              unreachable exactly when it was wanted. */}
+          <span title={board.status === 'published' ? undefined : t('editPublishedDisabled')}>
+          <Button
+            type="button"
+            size="sm"
+            variant="neutral"
+            disabled={board.status !== 'published'}
+            aria-pressed={allowPublished}
+            onClick={() => {
+              if (allowPublished) {
+                onAllowPublished(false);
+                return;
+              }
+
+              // One confirmation for the mode, not one per drop. Confirming every
+              // drag would make the editor unusable.
+              if (window.confirm(t('editPublishedConfirm'))) onAllowPublished(true);
+            }}
+          >
+            <Icon name="edit" />
+            {t('editPublished')}
+          </Button>
+          </span>
 
           {previous && (
             <Button
               type="button"
               size="sm"
-              variant={comparing ? 'default' : 'outline'}
+              variant="neutral"
               aria-pressed={comparing}
+              // The week being compared against is in the label's own tooltip
+              // rather than in the label. A date is ten characters that change
+              // nothing about what the button does, and it was the longest
+              // string in a row that has to survive four other controls.
+              title={t('compareWith', { date: previous.weekStartDate })}
               onClick={() => setComparing((value) => !value)}
             >
-              {t('compareWith', { date: previous.weekStartDate })}
+              <Icon name="history" />
+              {t('compareShort')}
             </Button>
           )}
+
+          {/*
+            View controls, fenced off from the actions above.
+
+            They change what is on screen rather than what is in the plan, and
+            with a published plan there are already four controls beside them —
+            which is the row that wrapped into a ragged second line. A hairline
+            and icon-only triggers buy back about 180px of label and say the two
+            groups are different kinds of thing.
+          */}
+          <span className="flex items-center gap-2 border-s border-border ps-2">
+            {/* Below `xl` the rail is a sheet, and a sheet that only opens by
+                tapping a meal leaves the client, the catalog and the past weeks
+                with no door at all — so this one keeps its label. It is the
+                only way to those panels on a narrow screen, and an unlabelled
+                glyph is a door nobody finds. */}
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="planner-compact-trigger"
+              onClick={() => setSheetOpen(true)}
+            >
+              {t('openPanels')}
+            </Button>
+
+            {/* Above `xl` the same panels are already on screen, so this is not
+                a door, it is a width dial — and the one control in the row that
+                can afford to be a glyph, because losing it costs a view
+                preference rather than access to anything. */}
+            {/* `outline`, not `ghost`. A boxless chevron alone at the end of a
+                toolbar reads as a scroll arrow rather than a control — the
+                glyph needs an edge around it to say it is pressable, which is
+                the trade an icon-only button makes for giving up its label. */}
+            <Button
+              type="button"
+              size="icon-sm"
+              variant="outline"
+              className="planner-rail-toggle"
+              aria-pressed={!railOpen}
+              aria-label={railOpen ? t('hidePanels') : t('showPanels')}
+              title={railOpen ? t('hidePanels') : t('showPanels')}
+              onClick={() => setRailOpen((value) => !value)}
+            >
+              <Icon name={railOpen ? 'chevronEnd' : 'chevronStart'} />
+            </Button>
+          </span>
+          </div>
         </div>
+
+        {(pending || error) && (
+          <p
+            role="status"
+            aria-live="polite"
+            className={cn('mt-2 text-label text-muted-foreground', error && 'text-destructive')}
+          >
+            {error ? t(error) : t('savingIndicator')}
+          </p>
+        )}
       </header>
 
       {allowPublished && (
@@ -366,38 +460,69 @@ function BoardBody({
       <div className="flex min-h-0 flex-1 gap-3">
         {/* The week scrolls sideways rather than being crushed. Seven columns
             need about 150px each before a dish name stops fitting on two lines,
-            so the grid has a floor of 1100px and this wrapper is what carries
-            the overflow — the grid cannot be its own scroller and also refuse
-            to shrink. `h-full` keeps the row template's `1fr` working: the fr
-            unit needs a definite height to share out, and inside a scroller the
-            grid would otherwise size to its content and never stretch. */}
-        <div className="min-w-0 flex-1 overflow-auto">
+            so the grid has a floor of 1104px — seven of those plus the six 10px
+            gutters between them — and this wrapper is what carries the
+            overflow; the grid cannot be its own scroller and also refuse to
+            shrink. `h-full` keeps the row template's `1fr` working: the fr unit
+            needs a definite height to share out, and inside a scroller the grid
+            would otherwise size to its content and never stretch.
+
+            The floor was 78rem, which is 169px a column — 9px more than a 1920px
+            window can give it once both rails are paid for, so the week was
+            clipped on every monitor there is and the collapse control above had
+            nothing to collapse *to*. 69rem is the floor the comment always
+            claimed. */}
+        {/* The canvas under the cards is `canvas` — n-25, one stop off white —
+            so a white card reads as a surface sitting on the board rather than
+            as a bordered box on the page. Not `muted` (n-50): that is the
+            *sunken* fill, and a board-sized expanse of it reads as beige rather
+            than as white with the cards lifted off it. */}
+        <div className="min-w-0 flex-1 overflow-auto rounded-lg bg-background [scrollbar-gutter:stable]">
           {/* One grid for the week, and each day a subgrid of it, so every card in
               a row is the same height and the rows run straight across.
-              `grid-cols-7` is `repeat(7, minmax(0,1fr))` rather than `1fr`, so a
-              long dish name wraps instead of widening its column past the others.
+              `minmax(0,1fr)` per day rather than `1fr`, so a long dish name wraps
+              instead of widening its column past the others.
+
+              The first track is the slot rail. It is `auto` so it takes exactly
+              the width its labels need, and it is first in *logical* order —
+              which puts it at the inline-start, on the right in Arabic and the
+              left in English, with no override either way.
 
               The row gap is declared here and only here: a subgrid inherits its
               parent's gutters, and repeating them on the day column would let the
               two drift out of step. */}
           <div
-            className="grid h-full grid-cols-7 gap-x-2.5 gap-y-1.5 max-md:grid-cols-1 md:min-w-[68.75rem]"
+            className="grid h-full grid-cols-[auto_minmax(0,1fr)] gap-x-2 gap-y-2 p-2 md:min-w-[74rem] md:grid-cols-[auto_repeat(7,minmax(0,1fr))]"
             style={{ gridTemplateRows: rowTemplate }}
           >
+            <SlotRail rows={rows} editable={editable} />
+
             {board.days.map((day) => (
               <DayColumn
                 key={day.dayOfWeek}
                 day={day}
+                rows={rows}
                 dailyTarget={dailyTarget}
                 planId={board.id}
                 locale={locale}
                 editable={editable}
                 selectedMealId={selectedMealId}
                 onSelectMeal={(mealId) => {
-                  setSelectedMealId((current) => (current === mealId ? null : mealId));
+                  const opening = selectedMealId !== mealId;
+                  setSelectedMealId(opening ? mealId : null);
                   setTab('meal');
-                  // Above `xl` the sheet never opens, so this is free there.
-                  setSheetOpen(true);
+
+                  // Whichever presentation the rail is in has to be showing, or
+                  // the card opens a panel into nothing. Only on the way *open*:
+                  // tapping the selected card again closes it, and reopening the
+                  // rail on that press would fight the press.
+                  if (!opening) return;
+                  // Below `xl` this is the sheet. Setting it unconditionally
+                  // left `sheetOpen` stuck true on a desktop that never showed
+                  // the sheet — and narrowing the window afterwards then popped
+                  // it open with nothing having asked.
+                  if (belowXl) setSheetOpen(true);
+                  else setRailOpen(true);
                 }}
                 ghosts={ghostsByDay?.[day.dayOfWeek]}
                 compareDate={previous?.weekStartDate}
@@ -407,9 +532,15 @@ function BoardBody({
           </div>
         </div>
 
-        <aside className="hidden w-72 shrink-0 flex-col border-s border-border ps-3 xl:flex">
-          {!belowXl && railContent}
-        </aside>
+        {/* Unmounted rather than hidden when collapsed. The panels carry the
+            `id`s `aria-controls` points at, so a hidden second copy would be a
+            second element answering to the same name — the same reason the rail
+            and the sheet never render together. */}
+        {railOpen && (
+          <aside className="planner-desktop-rail w-[22rem] shrink-0 flex-col border-s border-border ps-5">
+            {!belowXl && railContent}
+          </aside>
+        )}
       </div>
 
       <BoardSheet
@@ -421,6 +552,19 @@ function BoardBody({
       >
         {belowXl && railContent}
       </BoardSheet>
+
+      {lastMove && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-4 start-1/2 z-50 flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-3 rounded-lg border border-border bg-card py-1.5 ps-4 pe-1.5 text-body-sm shadow-overlay rtl:translate-x-1/2"
+        >
+          <span className="min-w-0 truncate">{t('mealMoved', { name: lastMove.dishName })}</span>
+          <Button type="button" size="sm" variant="ghost" disabled={pending} onClick={undoLastMove}>
+            {t('undo')}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

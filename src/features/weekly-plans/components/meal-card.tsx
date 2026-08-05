@@ -66,7 +66,19 @@ export function MealCard({
   } = useDraggable({
     id: `meal:${meal.id}`,
     disabled: !editable || meal.dish === null,
-    data: { kind: 'meal', mealId: meal.id },
+    data: {
+      kind: 'meal',
+      mealId: meal.id,
+      preview: meal.dish
+        ? {
+            label: meal.label,
+            timeOfDay: meal.timeOfDay,
+            dishName: meal.dish.nameAr,
+            kcal,
+            servings: meal.dish.servings,
+          }
+        : undefined,
+    },
   });
 
   // Only light up for a drop that would actually land — a drag over its own
@@ -74,16 +86,23 @@ export function MealCard({
   // see.
   const wouldLand =
     isOver && dragging !== null && !(dragging.kind === 'meal' && dragging.mealId === meal.id);
+  const incomingName =
+    dragging?.kind === 'meal'
+      ? dragging.preview.dishName
+      : dragging?.kind === 'dish'
+        ? dragging.dish.nameAr
+        : null;
 
   return (
     <div
       ref={setDropRef}
       className={cn(
-        'group relative rounded-lg border transition-colors',
+        'group relative min-h-0 overflow-hidden rounded-lg border bg-card transition-[border-color,background-color,transform,opacity,box-shadow] duration-(--duration-sweep) ease-(--ease-sweep)',
         selected ? 'border-primary ring-1 ring-primary' : 'border-border',
         meal.dish === null && 'border-dashed bg-muted/40',
-        wouldLand && 'border-primary bg-primary/10',
-        isDragging && 'opacity-40',
+        wouldLand && '-translate-y-1 border-primary bg-secondary shadow-elevated',
+        dragging && !isDragging && !wouldLand && 'opacity-70',
+        isDragging && 'border-dashed bg-muted',
       )}
     >
       <button
@@ -95,37 +114,54 @@ export function MealCard({
         // panel, and in the rail's schedule.
         title={meal.budgetKcal > 0 ? t('budgetHint', { value: meal.budgetKcal }) : undefined}
         className={cn(
-          'flex h-full w-full flex-col p-3 text-start',
+          'flex h-full min-h-0 w-full flex-col text-start',
           selected ? 'bg-primary/5' : 'hover:bg-accent/50',
         )}
       >
-        <span className="flex items-baseline justify-between gap-1.5 text-caption text-muted-foreground">
-          <span className="min-w-0 truncate">{meal.label}</span>
-          <span className="shrink-0" dir="ltr">
-            {meal.timeOfDay}
-          </span>
-        </span>
+        {/* No label and no time. They are the row's, not the card's — printed
+            once in the slot rail rather than thirty-five times over the dish
+            names they were competing with. What the card gets back is its whole
+            top edge, which is why the name can now be the first thing on it.
 
-        {/* Flexes, so the footer below pins to the card's block-end edge and
-            every figure in a row shares a baseline. Clamped to two lines, or
-            one long dish name sets the height of all thirty-five cards. */}
-        <span
-          className={cn(
-            'mt-1 line-clamp-2 flex-1 text-body-sm font-medium leading-snug',
-            meal.dish === null && 'font-normal text-muted-foreground',
-          )}
-        >
-          {meal.dish ? meal.dish.nameAr : t('emptySlot')}
+            Centred, and flexing so the figures below pin to the card's
+            block-end edge and every figure in a row shares a baseline. Clamped
+            to two lines, or one long dish name sets the height of all
+            thirty-five cards. */}
+        {/* Two elements, because `line-clamp-2` compiles to `display:
+            -webkit-box` — the clamped element cannot also be a flex container,
+            so the centring has to happen on a wrapper around it. The wrapper
+            takes the free space and centres the name in it; the name keeps the
+            clamp. A one-line name now sits in the middle of the card instead of
+            hanging off its top edge. */}
+        <span className="flex min-h-0 flex-1 items-center justify-center px-3 pt-3">
+          <span
+            className={cn(
+              'line-clamp-2 text-center font-heading text-body-md font-medium leading-relaxed [text-wrap:balance]',
+              meal.dish === null && 'font-normal text-muted-foreground',
+            )}
+          >
+            {meal.dish ? meal.dish.nameAr : t('emptySlot')}
+          </span>
         </span>
 
         {meal.dish && !meal.dish.isActive && (
           <span className="mt-1 block text-caption text-muted-foreground">{t('retiredDish')}</span>
         )}
 
-        <span className="mt-2 flex items-baseline justify-between gap-1.5">
+        {/* The figures, on the card rather than on a shelf. The tinted band and
+            its hairline are gone: with the metadata row gone too, the card is
+            one surface with a name at the top and its numbers at the foot, and
+            a second fill inside it only cut the card in half.
+
+            The figure sits a step *below* the dish name, not two above it. At
+            `text-heading-sm` in the display face it was the loudest thing on a
+            board of thirty-five cards, and the card is about the dish. 14px is
+            the dense-table step, and the UI face is where the tabular figures
+            actually live. */}
+        <span className="mt-2 flex shrink-0 items-baseline justify-between gap-2 border-t border-border px-3 pb-2 pt-2">
           <span
             className={cn(
-              'inline-flex items-baseline gap-1 text-body-sm font-semibold',
+              'inline-flex items-baseline gap-1 text-body-sm font-semibold tabular-nums',
               drift !== null && 'text-status-attention-fg',
               meal.dish === null && 'font-normal text-muted-foreground',
             )}
@@ -138,14 +174,16 @@ export function MealCard({
               />
             )}
             <span dir="ltr">{meal.dish ? kcal : '—'}</span>
+            {meal.dish && (
+              <small className="text-caption font-normal text-muted-foreground">kcal</small>
+            )}
           </span>
 
-          {meal.dish && meal.dish.servings !== 1 && (
+          {meal.dish && (
             <span
-              className="shrink-0 rounded-full bg-primary/10 px-2 text-caption font-semibold text-primary"
-              dir="ltr"
+              className="shrink-0 text-caption text-muted-foreground"
             >
-              ×{meal.dish.servings}
+              {t('portionShort', { servings: meal.dish.servings })}
             </span>
           )}
         </span>
@@ -179,9 +217,31 @@ export function MealCard({
           {...listeners}
           {...attributes}
           aria-label={meal.dish.nameAr}
-          className="absolute end-1 top-1 cursor-grab rounded p-1 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+          // `top-1`, not `top-7`. The old offset cleared the metadata row that
+          // used to sit above the dish name; with that row in the slot rail the
+          // handle would have floated in the middle of the name it belongs to.
+          className="absolute end-1 top-1 z-30 cursor-grab rounded-full p-1.5 text-muted-foreground opacity-0 transition-[opacity,background-color,color] hover:bg-secondary hover:text-primary group-hover:opacity-100 focus-visible:bg-secondary focus-visible:text-primary focus-visible:opacity-100 max-md:opacity-100"
         >
           <Icon name="dragHandle" className="size-3.5" />
+        </span>
+      )}
+
+      {isDragging && (
+        <span className="pointer-events-none absolute inset-0 z-20 grid place-items-center bg-muted/95 px-3 text-center text-label font-semibold text-muted-foreground">
+          {t('originalPosition')}
+        </span>
+      )}
+
+      {wouldLand && incomingName && (
+        <span className="pointer-events-none absolute inset-0 z-20 grid place-items-center bg-secondary/95 px-3 text-center">
+          <span>
+            <span className="block text-caption font-semibold text-primary">
+              {meal.dish ? t('swapWith') : t('moveHere')}
+            </span>
+            <strong className="mt-1 block font-heading text-body-sm leading-relaxed" dir="auto">
+              {incomingName}
+            </strong>
+          </span>
         </span>
       )}
     </div>

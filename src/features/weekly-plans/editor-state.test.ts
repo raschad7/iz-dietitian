@@ -220,6 +220,28 @@ describe('applyEdit', () => {
     expect(next.days[0]!.meals[1]!.dish?.servings).toBe(2);
   });
 
+  test('moving onto a filled slot swaps both dishes and their portions', () => {
+    const first = filled([meal('m1'), meal('m2', { slotKey: 'dinner' })], 'm1', 1.5, 'd1');
+    const start = applyEdit(first, {
+      kind: 'place',
+      mealId: 'm2',
+      dish: dish('d2'),
+      servings: 2,
+    });
+
+    const next = applyEdit(start, {
+      kind: 'move',
+      fromMealId: 'm1',
+      toMealId: 'm2',
+      mode: 'move',
+    });
+
+    expect(next.days[0]!.meals[0]!.dish?.id).toBe('d2');
+    expect(next.days[0]!.meals[0]!.dish?.servings).toBe(2);
+    expect(next.days[0]!.meals[1]!.dish?.id).toBe('d1');
+    expect(next.days[0]!.meals[1]!.dish?.servings).toBe(1.5);
+  });
+
   test("move leaves the target's own budget alone", () => {
     const start = filled([meal('m1'), meal('m2', { slotKey: 'dinner', budgetKcal: 400 })], 'm1');
 

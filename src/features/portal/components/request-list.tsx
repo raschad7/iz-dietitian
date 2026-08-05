@@ -13,13 +13,14 @@ import { type Locale } from '@/i18n/routing';
  * a request is only ever read in the context of "so what is happening with my
  * appointments?", and a separate screen would make the client hunt for it.
  *
- * **Historical, and read-only.** The portal no longer opens requests of any kind
- * — appointments are the dietitian's to make and to move — so nothing new can
- * appear here, and there is no longer a withdraw button. What is kept is the
- * record: a client who filed a request before that change should still be able
- * to see it and its answer, rather than watch it vanish. The section renders
- * only when there is something in it, so it disappears on its own once these
- * have been answered.
+ * **Read-only.** A request is a record of an ask and its answer, not something
+ * to edit: the client files it from the request form and the dietitian answers
+ * it from their inbox. There is no withdraw button here — `withdrawRequest`
+ * exists in the mutations and nothing in this redesign exposes it.
+ *
+ * A pending row shows the day asked for and no time, because the client named
+ * none. The section renders only when there is something in it, so it
+ * disappears on its own once everything has been answered.
  */
 
 /**
@@ -54,7 +55,7 @@ export function RequestList({ requests }: { requests: readonly PortalRequest[] }
                 </Badge>
               </div>
 
-              {request.appointment || (request.preferredDate !== null && request.preferredStartMinute !== null) ? (
+              {request.appointment || request.preferredDate !== null ? (
                 <div className="space-y-1 border-s-2 border-border ps-2.5 text-sm text-muted-foreground">
                   {request.appointment ? (
                     <p>
@@ -65,12 +66,21 @@ export function RequestList({ requests }: { requests: readonly PortalRequest[] }
                     </p>
                   ) : null}
 
-                  {request.preferredDate !== null && request.preferredStartMinute !== null ? (
+                  {/*
+                    The day asked for. No time, because the client named none —
+                    their dietitian sets the hour when they approve it. Requests
+                    filed before that rule still carry one, and still show it.
+                  */}
+                  {request.preferredDate !== null ? (
                     <p>
-                      {t('request.preferredSlot', {
-                        date: formatMediumDate(locale, request.preferredDate),
-                        time: formatMinute(locale, request.preferredDate, request.preferredStartMinute),
-                      })}
+                      {request.preferredStartMinute === null
+                        ? t('request.preferredDay', {
+                            date: formatMediumDate(locale, request.preferredDate),
+                          })
+                        : t('request.preferredSlot', {
+                            date: formatMediumDate(locale, request.preferredDate),
+                            time: formatMinute(locale, request.preferredDate, request.preferredStartMinute),
+                          })}
                     </p>
                   ) : null}
                 </div>

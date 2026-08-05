@@ -21,22 +21,26 @@ export type NavItem = {
     | '/app'
     | '/app/clients'
     | '/app/calendar'
+    | '/app/requests'
     | '/app/weekly-plans'
     | '/app/dishes'
     | '/portal'
     | '/portal/appointments'
     | '/portal/meal-plan'
-    | '/portal/profile';
+    | '/portal/profile'
+    | '/portal/progress';
   labelKey:
     | 'dashboard'
     | 'clients'
     | 'calendar'
+    | 'requests'
     | 'weeklyPlans'
     | 'dishes'
     | 'portalHome'
     | 'myAppointments'
     | 'myPlan'
-    | 'profile';
+    | 'profile'
+    | 'progress';
 };
 
 /**

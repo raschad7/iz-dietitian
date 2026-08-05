@@ -52,7 +52,14 @@ const WEDNESDAY = upcoming(3);
 const THURSDAY = upcoming(4);
 const FRIDAY = upcoming(5);
 
-/** Yesterday. Whatever weekday it lands on, the past-date rule fires first. */
+/**
+ * Yesterday — which staff may now book, so what it lands on matters.
+ *
+ * It used to be irrelevant: the past-date rule fired before the working-day one
+ * whatever weekday it was. With no floor on staff writes, the clinic's weekend
+ * is the only thing left that can refuse it, and that depends on the day this
+ * suite happens to run. Hence the `closedDay` branch in the cases below.
+ */
 const YESTERDAY = addDays(CLINIC_TODAY, -1);
 
 let context: BookingContext;
@@ -150,29 +157,30 @@ describe('createAppointment', () => {
   });
 
   /**
-   * The browser greys past days out and refuses the gesture, but a server
-   * action is a public endpoint — these go straight to the mutation, which is
-   * exactly the request the UI cannot prevent.
+   * Staff writes pass no `earliestDate`, so no date is too old to record. The
+   * clinic writes visits up after they happen, and this is the path that has to
+   * accept them — the portal is the caller that still carries a floor, and it
+   * books through `appointmentRequests` rather than here.
    */
-  test('rejects a date before today, whatever the request says', async () => {
+  test('accepts yesterday, so a visit can be written up after it happened', async () => {
     const result = await createAppointment(context, booking({ date: YESTERDAY }));
 
-    expect(result).toEqual({ ok: false, error: 'errors.pastDate' });
-    expect(await countAppointments()).toBe(0);
+    // Yesterday may be the clinic's weekend, in which case the closed-day rule
+    // refuses it — the point being asserted is only that it is never `pastDate`.
+    if (!result.ok) expect(result.error).toBe('errors.closedDay');
+    else expect(await countAppointments()).toBe(1);
   });
 
-  test('rejects a date years in the past', async () => {
+  test('accepts a date years in the past', async () => {
     const result = await createAppointment(context, booking({ date: '2020-01-06' }));
 
-    expect(result).toEqual({ ok: false, error: 'errors.pastDate' });
-    expect(await countAppointments()).toBe(0);
+    if (!result.ok) expect(result.error).toBe('errors.closedDay');
+    else expect(await countAppointments()).toBe(1);
   });
 
-  test('accepts today, since the rule is about dates and not about the hour', async () => {
+  test('accepts today, since no rule here is about the hour either', async () => {
     const result = await createAppointment(context, booking({ date: CLINIC_TODAY }));
 
-    // Today may be the clinic's weekend, in which case a different rule refuses
-    // it — the point being asserted is only that it is never `pastDate`.
     if (!result.ok) expect(result.error).toBe('errors.closedDay');
     else expect(await countAppointments()).toBe(1);
   });
@@ -345,20 +353,23 @@ describe('updateAppointment', () => {
   });
 
   /**
-   * The rule would be worth very little on create alone: book today, move it to
-   * last Monday, and the calendar has a past appointment either way.
+   * Moving is judged exactly like creating, and neither has a floor. The two
+   * used to disagree in one direction or the other, which is what made the same
+   * slot reachable by typing a date and not by dragging onto it.
    */
-  test('rejects a move onto a date that has already passed', async () => {
+  test('accepts a move onto a date that has already passed', async () => {
     const id = await seed();
 
-    expect(await updateAppointment(context, { ...booking({ date: YESTERDAY }), id })).toEqual({
-      ok: false,
-      error: 'errors.pastDate',
-    });
-
-    // The original is untouched.
+    const result = await updateAppointment(context, { ...booking({ date: YESTERDAY }), id });
     const [row] = await db.select().from(appointments).where(eq(appointments.id, id));
-    expect(row?.date).toBe(WEDNESDAY);
+
+    if (result.ok) {
+      expect(row?.date).toBe(YESTERDAY);
+    } else {
+      // Only the clinic's weekend can refuse it now, and then nothing moved.
+      expect(result.error).toBe('errors.closedDay');
+      expect(row?.date).toBe(WEDNESDAY);
+    }
   });
 
   test('rejects an appointment id from another clinic', async () => {
@@ -559,14 +570,20 @@ describe('createClientAndBook', () => {
     expect((await db.select().from(clients).where(eq(clients.fullName, newClient.fullName))).length).toBe(0);
   });
 
-  test('rolls the client back when the date has already passed', async () => {
-    expect(await createClientAndBook(context, pending({ date: YESTERDAY }))).toEqual({
-      ok: false,
-      error: 'errors.pastDate',
-    });
+  test('takes a client and a past date together, so a walk-in can be written up after the fact', async () => {
+    const result = await createClientAndBook(context, pending({ date: YESTERDAY }));
+    const created = await db.select().from(clients).where(eq(clients.fullName, newClient.fullName));
 
-    expect((await db.select().from(clients).where(eq(clients.fullName, newClient.fullName))).length).toBe(0);
-    expect(await countAppointments()).toBe(0);
+    if (result.ok) {
+      expect(created.length).toBe(1);
+      expect(await countAppointments()).toBe(1);
+    } else {
+      // The clinic's weekend is the only refusal left, and it still rolls the
+      // client back — which the closed-day case above pins down directly.
+      expect(result.error).toBe('errors.closedDay');
+      expect(created.length).toBe(0);
+      expect(await countAppointments()).toBe(0);
+    }
   });
 
   test('books with the clinic\'s own practitioner', async () => {

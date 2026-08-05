@@ -1,7 +1,14 @@
 import { NextIntlClientProvider } from 'next-intl';
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
-import { Almarai, IBM_Plex_Mono, IBM_Plex_Sans, IBM_Plex_Sans_Arabic, Readex_Pro } from 'next/font/google';
+import {
+  Almarai,
+  IBM_Plex_Mono,
+  IBM_Plex_Sans,
+  IBM_Plex_Sans_Arabic,
+  Readex_Pro,
+  Tajawal,
+} from 'next/font/google';
 import type { ReactNode } from 'react';
 
 import { resolveLocale } from '@/i18n/params';
@@ -73,6 +80,38 @@ const readexPro = Readex_Pro({
   display: 'swap',
 });
 
+/**
+ * The weekly planner's face, and only the planner's.
+ *
+ * Scoped by `.planner-theme` in globals.css rather than by locale: the board is
+ * a dense working surface in both languages, and Tajawal's rounder, more open
+ * shapes hold up better at 12–14px in a grid of thirty-five cards than either
+ * of the app's two body faces do. Nothing else in the app uses it.
+ *
+ * **400 / 500 / 700, and that covers four weights.** Tajawal ships no 600 —
+ * the family jumps 500 → 700 — but CSS weight matching resolves a desired
+ * weight above 500 by walking *upwards* first, so `font-semibold` lands on the
+ * real 700 outlines rather than being synthesised from 400. That is the same
+ * mechanism `almarai` above relies on, and it is why the 600 baked into
+ * the `heading-*` and `label` steps of the scale needs no special handling
+ * here. 200/300/800/900 are deliberately not loaded: nothing asks for them and
+ * each is another file on a page that already ships a board.
+ *
+ * `preload: false` for the same reason it is set on the Arabic face — Next
+ * emits its preload link from the module graph rather than from what a render
+ * actually used, so preloading here would make every page in the app fetch a
+ * font only the planner draws with. The variable is attached to <html> in both
+ * locales, but a browser only downloads a face something on the page renders
+ * in, so the cost lands on the planner and nowhere else.
+ */
+const tajawal = Tajawal({
+  subsets: ['arabic', 'latin'],
+  weight: ['400', '500', '700'],
+  variable: '--font-tajawal',
+  display: 'swap',
+  preload: false,
+});
+
 /** Token/ID display only — never client-facing copy (design-system.md). */
 /**
  * Numeric / code display only — never client-facing prose.
@@ -129,6 +168,8 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
     ibmPlexSansArabic.variable,
     readexPro.variable,
     ibmPlexMono.variable,
+    // Scoped to the weekly planner board, so it is attached in both locales.
+    tajawal.variable,
     locale === 'ar' ? almarai.variable : null,
   ]
     .filter(Boolean)

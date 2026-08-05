@@ -32,12 +32,14 @@
     "portalHome": "Home",
     "myPlan": "My plan",
     "myAppointments": "My appointments",
+    "progress": "Progress",
     "profile": "Profile",
     "security": "Security",
     "weeklyPlans": "Weekly Plans",
     "dishes": "Dish catalog",
     "whatsapp": "WhatsApp",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "requests": "Requests"
   },
   "landing": {
     "title": "Run your dietitian practice in one place",
@@ -111,6 +113,8 @@
     "checkInboxSpam": "If it has not arrived, check your spam folder.",
     "checkInboxWrongAddress": "Entered the wrong address?",
     "passwordChanged": "Your password has been changed.",
+    "currentPasswordIncorrect": "Your current password is incorrect.",
+    "passwordSameAsCurrent": "Your new password must be different from your current password.",
     "lastSignInMethod": "You cannot remove your only way to sign in.",
     "passkeyRegistered": "Passkey added.",
     "passkeyRemoved": "Passkey removed.",
@@ -152,6 +156,7 @@
     "search": {
       "placeholder": "Search clients"
     },
+    "scrollDown": "More appointments below",
     "duration": {
       "hours": "{count, number, integer} hr",
       "minutes": "{count, number, integer} min"
@@ -197,6 +202,7 @@
     "confirmMove": {
       "title": "Change this appointment?",
       "body": "Move {name} from {from} to {to}?",
+      "landsInPast": "That time has already passed. Once moved, this appointment counts as finished and can no longer be edited — only deleted.",
       "confirm": "Change appointment"
     },
     "confirmDelete": {
@@ -209,7 +215,6 @@
       "tooShort": "The shortest appointment is 15 minutes.",
       "invalidDate": "That date is not valid. Try a format like 2026-08-05 or 8/5/2026.",
       "pastDate": "That date has already passed. The earliest you can book is today.",
-      "pastTime": "That time has already passed. Move the appointment to a later time.",
       "closedDay": "The clinic is closed that day.",
       "outsideHours": "That falls outside the clinic's opening hours.",
       "overlap": "That clashes with another appointment.",
@@ -297,6 +302,74 @@
       "noUpcomingAppointment": "No upcoming appointment",
       "noWeeklyPlan": "No plan this week",
       "neverSignedIn": "Never signed in to the portal"
+    }
+  },
+  "requests": {
+    "title": "Requests",
+    "subtitle": "What clients have asked for, and where you answer it.",
+    "empty": {
+      "title": "Nothing waiting",
+      "description": "Appointment requests and record corrections from the portal arrive here."
+    },
+    "sections": {
+      "appointments": "Appointments ({count, number, integer})",
+      "records": "Record corrections ({count, number, integer})",
+      "answered": "Recently answered"
+    },
+    "kind": {
+      "new": "New booking request",
+      "reschedule": "Reschedule request",
+      "cancel": "Cancellation request"
+    },
+    "clientKind": {
+      "data_update": "Record correction",
+      "account_deletion": "Account closure",
+      "deletionExplain": "Closing an account is done from the client’s own record."
+    },
+    "topic": {
+      "basic": "Basic details",
+      "health": "Health details",
+      "contact": "Contact details",
+      "other": "Something else"
+    },
+    "status": {
+      "pending": "Waiting",
+      "approved": "Approved",
+      "declined": "Declined",
+      "withdrawn": "Withdrawn"
+    },
+    "asked": "Asked for {when}",
+    "askedDay": "Asked for {when}",
+    "currently": "Currently {when}",
+    "actions": {
+      "accept": "Accept",
+      "decline": "Decline",
+      "markDone": "Mark done",
+      "confirmBooking": "Confirm booking",
+      "confirmCancellation": "Cancel the appointment"
+    },
+    "approve": {
+      "new": {
+        "title": "Book this appointment"
+      },
+      "reschedule": {
+        "title": "Move this appointment"
+      },
+      "cancel": {
+        "title": "Cancel this appointment",
+        "explain": "Approving this removes the appointment from the calendar and tells the client."
+      }
+    },
+    "dashboard": {
+      "title": "Waiting on you ({count, number, integer})",
+      "openInbox": "All requests",
+      "more": "{count, plural, one {# more request} other {# more requests}}"
+    },
+    "errors": {
+      "invalid": "Check the details you entered.",
+      "notFound": "That request no longer exists.",
+      "alreadyAnswered": "That request has already been answered.",
+      "unexpected": "Something went wrong. Please try again."
     }
   },
   "clients": {
@@ -399,8 +472,7 @@
       "showOnce": "Write these down now — they will not be shown again.",
       "temporaryPassword": "Temporary password",
       "handOver": "Give these to the client. They will choose their own password the first time they sign in.",
-      "sendWhatsapp": "Also send these over WhatsApp",
-      "sendWhatsappHelp": "The temporary password goes to the client's WhatsApp number. They must change it at first sign-in.",
+      "willSendWhatsapp": "These details are sent to the client on WhatsApp automatically.",
       "whatsapp": {
         "sent": "Sent over WhatsApp.",
         "skipped": "Not sent over WhatsApp — check the number and the connection status.",
@@ -424,11 +496,18 @@
       "requestAppointment": "Request an appointment",
       "viewAppointments": "View appointments",
       "viewMealPlan": "View meal plan",
-      "pendingRequests": "Waiting for your dietitian: {count, number, integer}"
+      "pendingRequests": "Waiting for your dietitian: {count, number, integer}",
+      "currentPlan": "Your current plan",
+      "viewPlan": "View plan",
+      "planToday": "{meals, plural, one {# meal} other {# meals}} today · {kcal} kcal",
+      "planNoMealsToday": "No meals set for today",
+      "planWeekOf": "Week of {date}",
+      "appointmentDetails": "Details"
     },
     "appointments": {
       "title": "Appointments",
       "subtitle": "Everything your dietitian has booked for you.",
+      "book": "Request an appointment",
       "upcoming": "Upcoming",
       "history": "Past appointments",
       "requests": "Your requests",
@@ -448,13 +527,12 @@
       "title": "Request an appointment",
       "backToAppointments": "Back to appointments",
       "chooseDay": "Choose a day",
-      "chooseTime": "Choose a time",
-      "noSlots": "Nothing is free on this day. Try another one.",
       "note": "Reason",
       "notePlaceholder": "Follow-up, a question about my plan…",
       "optional": "(Optional)",
       "currentSlot": "Currently {date} at {time}",
       "preferredSlot": "Asked for {date} at {time}",
+      "preferredDay": "Asked for {date}",
       "withdraw": "Withdraw",
       "confirmWithdraw": "This takes your request back. Are you sure?",
       "heading": {
@@ -503,12 +581,61 @@
       "noMeal": "No meal set"
     },
     "profile": {
-      "title": "Profile and settings",
-      "personalInfo": "Personal information",
-      "readOnly": "Your dietitian keeps these up to date. Tell them if something is wrong.",
-      "language": "Language",
-      "languageDescription": "The language of the portal, and of what the clinic sends you.",
-      "saveLanguage": "Save"
+      "title": "My profile",
+      "notRecorded": "Not recorded",
+      "clinicUnknown": "No clinic recorded",
+      "lastUpdated": "Last updated {date}",
+      "cm": "{value} cm",
+      "kg": "{value} kg",
+      "identifierNote": "Your phone number and email are how you sign in and how the clinic reaches you. Changing either one goes through the clinic.",
+      "callClinic": "Call",
+      "whatsappClinic": "WhatsApp",
+      "openMap": "Open in maps",
+      "photo": {
+        "changeSoon": "Change photo — coming soon"
+      },
+      "section": {
+        "basic": "Basic information",
+        "health": "My health profile",
+        "healthDescription": "What your dietitian recorded to build your plan.",
+        "clinic": "Clinic and dietitian",
+        "clinicDescription": "Who holds your record."
+      },
+      "field": {
+        "fullName": "Full name",
+        "dateOfBirth": "Date of birth",
+        "age": "Age",
+        "sex": "Sex",
+        "phone": "Phone",
+        "email": "Email",
+        "height": "Height",
+        "weight": "Current weight",
+        "goal": "Agreed goal",
+        "activityLevel": "Activity level",
+        "conditions": "Health conditions",
+        "allergies": "Food allergies",
+        "medications": "Medicines and supplements",
+        "careNote": "Notes from your dietitian",
+        "clinicName": "Clinic",
+        "practitioner": "Dietitian",
+        "specialty": "Specialty",
+        "clinicPhone": "Clinic phone",
+        "clinicAddress": "Clinic address",
+        "workingHours": "Opening hours"
+      },
+      "update": {
+        "notice": "This information is held by your dietitian. If something here is not right, you can ask the clinic to update it.",
+        "action": "Request a data update",
+        "messageLabel": "What needs updating?",
+        "messagePlaceholder": "For example: my phone number changed, or the height on file is not right.",
+        "messageHelp": "The request reaches the clinic. Nothing on your record changes until your dietitian reviews it.",
+        "submit": "Send request",
+        "pending": "Your update request is with the clinic.",
+        "pendingSince": "Sent {date}",
+        "withdraw": "Withdraw request",
+        "contactNotice": "Your phone number and email are held by the clinic, and changing either one needs to be verified. Ask for the change and the clinic will confirm it with you.",
+        "contactAction": "Request a phone or email change"
+      }
     },
     "errors": {
       "invalid": "Check what you entered and try again.",
@@ -518,7 +645,316 @@
       "pastAppointment": "That appointment has already happened.",
       "unexpected": "Something went wrong. Please try again."
     },
-    "emptyToday": "Nothing planned yet."
+    "emptyToday": "Nothing planned yet.",
+    "checkIns": {
+      "title": "Your week",
+      "today": "Today",
+      "state": {
+        "complete": "{day}: complete, {score} of {max}",
+        "partial": "{day}: {score} of {max}",
+        "empty": "{day}: no rating recorded",
+        "today": "{day}: today",
+        "future": "{day}: still to come"
+      },
+      "metric": {
+        "energy": "Energy",
+        "sleep": "Sleep",
+        "appetite": "Appetite",
+        "mood": "Mood",
+        "water": "Water"
+      },
+      "status": {
+        "good": "Good",
+        "onTrack": "In range",
+        "attention": "Needs a look",
+        "none": "Not recorded"
+      },
+      "progress": {
+        "unit": "of your week",
+        "empty": {
+          "title": "A fresh week",
+          "body": "Every day you record draws a clearer picture for your dietitian."
+        },
+        "starting": {
+          "title": "A good start",
+          "body": "One day at a time — that is enough for now."
+        },
+        "halfway": {
+          "title": "You are on your way",
+          "body": "Half the week is behind you. Keep going gently."
+        },
+        "strong": {
+          "title": "A lovely week so far",
+          "body": "Keep going — you are finding your balance."
+        },
+        "full": {
+          "title": "A full week",
+          "body": "All seven days. Your balance builds one day at a time."
+        },
+        "days": "{count, number, integer} of {total, number, integer} days",
+        "streak": "{count, plural, one {# day} other {# days}} in a row"
+      },
+      "summary": {
+        "title": "This week",
+        "footnote": "There is no perfect number — the range moves with your activity and sleep."
+      }
+    },
+    "progress": {
+      "today": {
+        "heading": "Your commitment today",
+        "unit": "of {max}",
+        "groupLabel": "Log today's commitment",
+        "prompt": "Log today's commitment so we can follow your progress.",
+        "level": {
+          "missed": "That's alright — tomorrow is a fresh start.",
+          "partial": "A good step toward your plan.",
+          "full": "Wonderful commitment today!"
+        },
+        "options": {
+          "missed": "Missed",
+          "partial": "Partial",
+          "full": "Full"
+        }
+      },
+      "week": {
+        "title": "This week",
+        "average": "Average adherence",
+        "recorded": "{count, number, integer} of {total, number, integer} days recorded",
+        "completed": "{count, number, integer} of {total, number, integer} days fully completed"
+      },
+      "strip": {
+        "title": "This week's days",
+        "today": "Today",
+        "state": {
+          "full": "{day}: fully followed, {score} of {max}",
+          "partial": "{day}: partially followed, {score} of {max}",
+          "missed": "{day}: plan not followed",
+          "empty": "{day}: nothing recorded",
+          "today": "{day}: today",
+          "future": "{day}: still to come"
+        }
+      },
+      "streak": {
+        "title": "Your consistency",
+        "subtitle": "Consistency path",
+        "unit": "{count, plural, one {# day in a row} other {# days in a row}}",
+        "empty": "Start today to begin your streak",
+        "chart": "Your consistency over the last {days, number, integer} days",
+        "encouragement": {
+          "starting": "A good start — keep going",
+          "steady": "Well done — keep it steady"
+        },
+        "axis": {
+          "today": "Today",
+          "yesterday": "Yesterday",
+          "dayBefore": "Two days ago",
+          "daysAgo": "{count, plural, one {# day ago} other {# days ago}}"
+        },
+        "note": {
+          "title": "Consistency makes the difference."
+        }
+      },
+      "trend": {
+        "title": "Adherence trend",
+        "subtitle": "Last 4 weeks",
+        "thisWeek": "This week"
+      }
+    },
+    "header": {
+      "menu": "Menu",
+      "profile": "Your profile",
+      "notifications": "Notifications",
+      "notificationsWaiting": "Notifications, {count, number, integer} request awaiting a reply",
+      "greeting": {
+        "morning": "Good morning",
+        "afternoon": "Good afternoon",
+        "evening": "Good evening"
+      },
+      "closeMenu": "Close menu"
+    },
+    "menu": {
+      "viewProfile": "View profile",
+      "personalInfo": "My information",
+      "notifications": "Notifications",
+      "settings": "Settings"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "empty": {
+        "title": "No new notifications",
+        "body": "Appointment reminders, plan updates and replies from the clinic will show up here as they happen."
+      },
+      "items": {
+        "adherenceReminder": {
+          "title": "Log today's commitment",
+          "body": "You have not logged today yet. Open Progress to record it."
+        },
+        "appointmentReminder": {
+          "title": "Appointment reminder",
+          "body": "Your appointment is on {date} at {time}."
+        },
+        "planUpdate": {
+          "title": "This week's plan is ready",
+          "body": "The plan for the week of {date} is ready for you."
+        },
+        "clinicMessage": {
+          "title": "A reply from the clinic",
+          "body": "{kind}: {status} — {date}."
+        }
+      }
+    },
+    "tabs": {
+      "portalHome": "Home",
+      "myPlan": "My plan",
+      "myAppointments": "Appointments",
+      "progress": "Progress",
+      "profile": "Profile"
+    },
+    "screen": {
+      "back": "Back",
+      "settings": "Settings",
+      "error": {
+        "title": "This page could not be shown",
+        "body": "Nothing has happened to your record. Try again, or go back to the home screen.",
+        "retry": "Try again",
+        "home": "Home screen"
+      }
+    },
+    "settings": {
+      "title": "Settings",
+      "notifications": {
+        "title": "Notifications",
+        "description": "Choose what you would like to hear about.",
+        "appointmentReminder": {
+          "label": "Appointment reminder",
+          "description": "A message before your appointment at the clinic."
+        },
+        "checkInReminder": {
+          "label": "Daily check-in reminder",
+          "description": "A gentle nudge to record your day."
+        },
+        "planUpdate": {
+          "label": "Plan updates",
+          "description": "When a new plan is published or the current one changes."
+        },
+        "clinicMessage": {
+          "label": "Messages from the clinic",
+          "description": "Your dietitian's replies and anything the clinic sends you."
+        }
+      },
+      "preferences": {
+        "title": "Preferences",
+        "language": {
+          "label": "Language",
+          "description": "The language of the app, and of what the clinic sends you."
+        },
+        "contact": {
+          "label": "Preferred contact",
+          "description": "How you would rather the clinic reach you.",
+          "whatsapp": "WhatsApp",
+          "phone": "Phone",
+          "email": "Email"
+        }
+      },
+      "account": {
+        "title": "Account",
+        "contactRow": "Email and phone number",
+        "identifierNote": "Both are how you sign in and how the clinic reaches you; changing either goes through the clinic.",
+        "email": "Email",
+        "phone": "Phone",
+        "security": "Password and security",
+        "securityDescription": "Change your password, and the address you sign in with."
+      },
+      "support": {
+        "title": "Support and help",
+        "privacy": "Privacy policy",
+        "privacyDescription": "Who sees your information, and what is kept.",
+        "help": "Help and support",
+        "helpDescription": "Common questions about your plan and appointments.",
+        "contactClinic": "Contact the clinic",
+        "contactClinicDescription": "Call or WhatsApp your clinic directly.",
+        "terms": "Terms and conditions",
+        "termsDescription": "Terms for using the client portal."
+      },
+      "security": {
+        "title": "Password and security",
+        "signInAddress": "Sign-in address",
+        "signInAddressNote": "This is the email you sign in with. To change it, contact the clinic.",
+        "passwordTitle": "Change your password",
+        "passwordBody": "Enter your current password, then choose a new one.",
+        "currentPasswordLabel": "Current password",
+        "newPasswordLabel": "New password",
+        "confirmNewPasswordLabel": "Confirm new password",
+        "changePasswordSubmit": "Change password"
+      },
+      "privacy": {
+        "title": "Privacy",
+        "whoSees": {
+          "title": "Who sees your information",
+          "body": "You and your clinic team, and nobody else. No other client can see your record, your plan or your daily check-ins."
+        },
+        "whatIsStored": {
+          "title": "What you can see",
+          "body": "You see what your dietitian recorded for you. Their own working notes are not shown in the app, and your weight appears only if your dietitian chooses to share it."
+        },
+        "messages": {
+          "title": "Messages",
+          "body": "The clinic sends reminders over WhatsApp or email, depending on what it has set up. You can turn any of them off in Notifications."
+        },
+        "rights": {
+          "title": "Your data",
+          "body": "You can ask for any detail to be corrected from your profile screen, or ask for your account to be closed at the bottom of this settings screen. A person at the clinic answers both."
+        }
+      },
+      "help": {
+        "title": "Help and support",
+        "plan": {
+          "title": "I cannot see my meal plan",
+          "body": "A plan appears once your dietitian publishes it. A plan still being written stays with them until it is finished."
+        },
+        "appointments": {
+          "title": "I asked for an appointment and it is not confirmed",
+          "body": "A request is not a booking. It reaches your dietitian, and its status stays on the appointments screen until they answer."
+        },
+        "record": {
+          "title": "Something in my profile is wrong",
+          "body": "Open your profile screen and use \"Request a data update\". The clinic corrects it after reviewing the request."
+        },
+        "signIn": {
+          "title": "I forgot my password",
+          "body": "On the \"Password and security\" screen, send a link to your email and set a new one."
+        }
+      },
+      "deletion": {
+        "action": "Request account deletion",
+        "explanation": "The request reaches the clinic, and nothing is deleted now. The clinic keeps a record of your appointments and plans under its own rules, and will contact you before closing your account.",
+        "reasonLabel": "Reason (optional)",
+        "reasonPlaceholder": "You can leave this blank.",
+        "confirm": "Confirm deletion request",
+        "pending": "Your deletion request is with the clinic.",
+        "pendingSince": "Sent {date}",
+        "withdraw": "Withdraw request"
+      },
+      "terms": {
+        "title": "Terms and conditions",
+        "usingThePortal": {
+          "title": "Using the portal",
+          "body": "Your portal account is issued by your clinic, and you are responsible for keeping your sign-in details safe."
+        },
+        "guidance": {
+          "title": "Nutrition content",
+          "body": "What your plan and profile show is your dietitian's guidance for your case, not a substitute for urgent medical advice."
+        },
+        "communications": {
+          "title": "Messages",
+          "body": "Clinic messages arrive over WhatsApp or email, depending on what you choose in Notifications."
+        },
+        "changes": {
+          "title": "Changes",
+          "body": "These terms may be updated. The current version always lives on this page."
+        }
+      }
+    }
   },
   "localeSwitcher": {
     "label": "Language",
@@ -535,12 +971,13 @@
   },
   "weeklyPlans": {
     "title": "Weekly Plans",
-    "subtitle": "AI-generated weekly plans, built from an approved dish catalog",
     "clients": "Clients",
-    "selectClient": "Select a client to see their weekly plan",
+    "noClientTitle": "Choose a client to start",
+    "noClientHint": "The week's plan appears here once a client is chosen. The dish catalog is browsable in the side panel already.",
     "searchClients": "Search clients",
     "noClients": "No active clients",
-    "noPlanYet": "No plan for this client yet. Add instructions for the week, then generate.",
+    "noPlanYet": "No week has been planned for this client yet",
+    "noPlanHint": "Create the first week when you are ready. The client profile, dish catalog, and earlier plans remain available in the side panel.",
     "current": "Current plan",
     "history": "Earlier plans",
     "weekOf": "Week of {date}",
@@ -561,12 +998,12 @@
     "save": "Save",
     "saving": "Saving…",
     "saved": "Saved",
-    "emptyDay": "No meals",
     "emptySlot": "Not filled",
     "unfilledWarning": "{count} meals could not be filled — fill them before publishing",
     "dailyTarget": "Daily target",
     "proteinTarget": "Protein {value} g",
     "goal": "Goal",
+    "activityLevel": "Activity level",
     "bmi": "BMI",
     "measurements": "Measurements",
     "allergies": "Allergies",
@@ -581,10 +1018,12 @@
     "backToBoard": "Back to the plan",
     "profileTitle": "Nutrition profile",
     "profileSubtitle": "The data {name}'s plan is built from",
+    "planningSnapshot": "Planning snapshot",
+    "allergiesMissing": "Allergy information has not been recorded. Confirm it before publishing.",
     "suggested": "Suggested: {value}",
     "shareTotal": "Shares total {value}%",
     "addSlot": "Add a meal",
-    "removeSlot": "Remove",
+    "removeSlot": "Remove {slot} from every day",
     "allergenHint": "These filter the catalog before it reaches the AI, so a dish containing them cannot be suggested.",
     "permanentInstructionsHint": "Sent with every generation, e.g. type 2 diabetes — avoid added sugar.",
     "scheduleHint": "The share is this meal's portion of the day's calories. It does not have to total exactly 100.",
@@ -609,6 +1048,16 @@
     "whyThisMeal": "Why this meal (AI suggestion)",
     "aiAlternatives": "AI alternatives",
     "similarDishes": "Similar dishes",
+    "replacementOptions": "Suitable alternatives",
+    "closestFirst": "Closest calories first",
+    "targetDifference": "{value} kcal",
+    "browseAllDishes": "Browse all dishes",
+    "replaceMeal": "Replace",
+    "originalPosition": "Original position",
+    "swapWith": "Swap with",
+    "moveHere": "Move here",
+    "mealMoved": "Moved {name}",
+    "undo": "Undo",
     "offBudget": "Outside the calorie band",
     "status": {
       "draft": "Draft",
@@ -670,6 +1119,7 @@
       "past": "Past"
     },
     "newWeek": "New week",
+    "createWeek": "Create week",
     "newWeekTitle": "Start a new week",
     "newWeekSubtitle": "Choose how to start planning this week's meals.",
     "newWeekGenerate": {
@@ -688,9 +1138,23 @@
     "newWeekEmptyHint": "One empty slot per meal in the client's schedule.",
     "newWeekEmptyAction": "Start an empty week",
     "selectMeal": "Open a meal on the board to see it here",
+    "noPlanMeal": "Create a week first, then open a meal to adjust its portion or replace it.",
     "openPanels": "Panels",
+    "hidePanels": "Hide panel",
+    "showPanels": "Show panel",
     "chooseDay": "Choose a day",
     "searchDishes": "Search dishes",
+    "dishFilters": "Filters",
+    "clearFilters": "Clear filters",
+    "filterTags": "Dish type",
+    "filterForThisSlot": "Fits this slot",
+    "dishOptions": {
+      "fitsBudget": "Within budget",
+      "notRecent": "Not used recently",
+      "allergenSafe": "No allergens"
+    },
+    "allMealTypes": "All meal types",
+    "bestMatches": "Best matches for {value} kcal",
     "noDishes": "No dishes match",
     "sortedForSlot": "Sorted by fit to {value} kcal",
     "usedThisWeek": "this week",
@@ -712,16 +1176,24 @@
     },
     "dropHere": "Drop here",
     "addMeal": "Add a meal",
-    "removeMeal": "Remove this meal",
-    "clearMeal": "Empty this slot",
+    "addMealHint": "The meal is added to all seven days. You can remove it from a single day afterwards.",
+    "addMealLabel": "Meal name",
+    "addMealPlaceholder": "Evening snack",
+    "addMealTime": "Time",
+    "removeSlotConfirm": "Remove {slot} from all seven days? Any dishes placed in it are removed too.",
+    "restoreSlot": "Add {slot} back to this day",
+    "removeMeal": "Remove meal",
+    "clearMeal": "Empty slot",
     "morePortion": "Larger portion",
     "lessPortion": "Smaller portion",
     "budgetHint": "This meal's budget is {value} kcal",
     "overBudget": "Over budget",
     "underBudget": "Under budget",
     "compareWith": "Compare with {date}",
+    "compareShort": "Compare",
     "repeatedFromLastWeek": "Same as {date}",
-    "editPublished": "Edit the published plan",
+    "editPublished": "Edit plan",
+    "editPublishedDisabled": "Available once the plan is published",
     "editPublishedWarning": "This plan is published. Changes are visible to the client immediately.",
     "editPublishedConfirm": "This plan is published and the client is following it. Edits appear for them straight away. Continue?",
     "retiredDish": "Retired from the catalog",

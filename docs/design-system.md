@@ -82,17 +82,29 @@ Warm neutrals — never pure grey, and the ramp the charts are drawn in.
 | 200 `#E2DFD3` | 300 `#CDC9B9` | 400 `#A8A493` | 500 `#837F6E` |
 | 600 `#605D50` | 700 `#46443B` | 800 `#2F2E28` | 900 `#1C1B17` |
 
-The **three cool greys** are the rail, its hover and its divider (`#F9FAFB` /
-`#F3F4F6` / `#D1D5DB`), and they are not part of this ramp. Nothing reaches for
-them by hand: a warm neutral used as a page surface beside a cool one is how a
-palette starts looking accidental.
+The **cool greys** are the rail — its surface, its hover and its divider
+(`#F9FAFB` / `#F3F4F6` / `#D1D5DB`) — the **weekly planner board**, which adds
+`#E5E7EB` as a hairline and `#4B5563` as secondary text, and the **auth
+screens**, whose page sits on the rail's own `#F9FAFB` as `--auth-canvas`. They
+are not part of this ramp and nothing else may reach for them; a warm neutral
+used as a page surface beside a cool one is how a palette starts looking
+accidental.
 
-The rail's `#F9FAFB` has **one** other home, `--auth-canvas` — the page behind
-the sign-in card. Those screens are a single card on an otherwise empty page:
-on the white canvas the card had nothing to be a surface against, and warming
-the page to n-25 put a tint under a card whose own brand panel is already the
-loudest thing on the screen. It is a token, not a repeated hex, because a second
-use of a value is exactly where a palette starts to drift.
+All three are whole surfaces, which is the condition. The board is a grid of
+thirty-five hairline cards, so almost everything drawn on it is an edge — and
+thirty-five warm n-200 edges tint the page even though the page itself is
+`#FFFFFF`. Swapping the four neutrals it actually draws with (`--border`,
+`--muted`, `--accent`, `--muted-foreground`) is what makes it read as clinical
+white rather than as cream. `#4B5563` measures **7.46:1** on white, clearing the
+6.38:1 floor `--muted-foreground` holds elsewhere. See "The planner's own
+theme" under Typography.
+
+The auth screens meet the same condition from the other direction: they are a
+single card on an otherwise empty page. On the white canvas the card had nothing
+to be a surface *against*, and warming the page to n-25 put a tint under a card
+whose own brand panel is already the loudest thing on the screen. It is a token,
+`--auth-canvas`, and not a repeated hex — a second use of a value is exactly
+where a palette starts to drift.
 
 Amber — attention.
 
@@ -132,6 +144,14 @@ below.
 | Missed / incomplete | `status-incomplete-*` | neutral-700 on neutral-100 | **red** — a missed day is information, not a failure |
 | Medical flag | `status-medical-*` | clay-700 on clay-100 | anything that isn't a real allergy / condition / contraindication |
 | Rest day | `status-rest-*` | olive-700 on olive-50 | treating it as a missed day |
+| Day completed | `status-complete-*` | flame-700 on flame-100 | amber — that already means "needs follow-up", and a finished day sharing its hue is the one confusion this scale can't afford |
+
+`status-complete-*` also carries two graphic-only stops — `status-complete-mark`
+(flame-500) and `status-complete-mark-soft` (flame-300) — for the icon and
+progress ring in the portal's week strip. They are fills, never text: only the
+`fg`/`bg` pair is contrast-verified (5.6:1). Flame is a **warm accent with a
+budget of one per screen**, the same rule lime lives under — the portal home
+screen spends it on completed days, which is why nothing else there is orange.
 
 `Badge` has a variant for each. Use them instead of ad-hoc
 `bg-{color}-100 text-{color}-700` pairs. Don't reach for `destructive` to mean
@@ -231,6 +251,47 @@ as an already-computed value. The symptom is subtle: headings look right
 variables exist) while all body text silently renders in the system font.
 Form controls are fine either way — Tailwind's preflight gives
 `button, input, select, optgroup, textarea` an explicit `font: inherit`.
+
+### The planner's own theme
+
+The weekly planner board is the one screen that sets its own face. `.planner-theme`
+(`globals.css`, applied on both `/app/weekly-plans` routes) re-points
+`--script-ui-font` and `--script-display-font` at **Tajawal** and cools the four
+neutrals it draws with. Everything else in the app is unaffected.
+
+It is scoped that way because the board is not a page of cards — it is a working
+grid of thirty-five cells read at 12–14px, and Tajawal's rounder, more open
+shapes hold up there better than either body face.
+
+**Tajawal ships no 600.** The family jumps 500 → 700, and the scale bakes 600
+into `heading-*` and `label`. That needs no handling: CSS weight matching walks
+*upwards* first for any desired weight above 500, so `font-semibold` lands on
+the real 700 outlines rather than being synthesised — the same mechanism Neo
+Sans Arabic relies on. Only 400/500/700 are loaded.
+
+The board's own hierarchy is three roles, and it is deliberately not the app's:
+
+| Role | Step | Weight |
+|---|---|---|
+| Content — the dish name | `body-md` (16px) | **500** |
+| Chrome — day names | `body-sm` (14px) | **700** |
+| Chrome — slot labels | `label` (13px) | 700 (via 600 → 700) |
+| Figures — kcal | `body-sm` (14px) | 700, tabular |
+| Metadata — time, portion | `caption` (12px) | 400 |
+
+**The content is the largest thing and the lightest.** A dish name is the most
+repeated element on the screen, and at bold, thirty-five of them read as a wall;
+size carries it instead. The chrome inverts that — small and bold — because a
+column header is something you navigate by rather than read. Figures are small
+and bold so they stay scannable as data.
+
+⚠ `.planner-theme` is written as **`:root .planner-theme`**. In an Arabic
+document the board's own element also matches the unlayered `:lang(ar)` block,
+which sets those two font variables to the Neo Sans stack; at equal specificity
+the later rule wins and the override would depend on source order. The
+descendant selector makes it (0,2,0) against (0,1,0). The Arabic `--lh-*` values
+in that block are deliberately **not** overridden — Tajawal needs the looser
+Arabic leading exactly as much as Neo Sans does.
 
 ### Scale
 
@@ -352,10 +413,21 @@ Badges are a pill and the rail is square on every corner. A rounded box is what
 this system gives a control or a surface — a badge is a label, and the rail is
 the wall the app hangs on, so neither takes that shape.
 
-Radius scale: `sm` 8 · `md` 12 · `lg` 16 · `xl` 24, plus `--radius-control`
-(10px) for buttons and fields. **Never `rounded-none`** on a surface — except
-`Button variant="link"`, which is a run of text, and a child that deliberately
-squares off against its container (`Card variant="listRow"`).
+Small repeating tiles — the seven day cells in the portal's week strip, for
+instance — count as chips, not surfaces: seven swept corners in a row reads as
+noise rather than as the Arc.
+
+A card can still lead a screen without being filled with brand colour: the
+portal's progress card is an ordinary cream `Card` whose olive sits in the
+progress ring and a soft tint behind it. A fully saturated card pulls attention
+away from everything around it, which on a screen of five sections is a cost,
+not emphasis.
+
+Radius scale otherwise: `sm` 8 · `md` 12 · `lg` 16 · `xl` 24, plus
+`--radius-control` (10px) for buttons and fields. **Never `rounded-none`** on a
+surface — except `Button variant="link"`, which is a run of text, not a
+surface, and a child that deliberately squares off against its container
+(`Card variant="listRow"`).
 
 A panel nested inside a card takes a plain radius with no ring and no shadow of
 its own. It is part of that card, not a second one.
@@ -376,6 +448,25 @@ Six variants, matching [buttons.png](design-images/buttons.png):
 
 Plus `secondary` (olive-50 tint) and `link`, which aren't in the six but keep
 dense surfaces off ad-hoc classes.
+
+**`neutral` — a box, a black label, no brand colour.** For a row of peers where
+exactly one control is *the* action and the rest are merely available. `outline`
+and `ghost` both draw their label in olive, which is the system saying "act on
+me"; four of them side by side say it four times and the real primary stops
+being findable. `neutral` takes the edge so it still reads as pressable and
+gives the colour back to the button that earned it — n-900 on white, 16.64:1.
+`aria-pressed` fills it (n-100) rather than tinting it, so a toggle's on-state
+never spends the brand colour on a view preference. The planner's toolbar is the
+reference case: publish is the decision; "new week", "edit plan" and "compare"
+are things you may also do.
+
+**A control that will become available should hold its place.** Rendering it
+only once it applies pushes everything after it sideways at the moment the
+person is looking elsewhere — the planner's "edit plan" did exactly that on
+publish. Render it disabled instead: the row's shape stops changing, and the
+greyed control doubles as a note that this unlocks later. Put the explanation on
+a *wrapping element*, never on the button — `disabled:pointer-events-none` means
+a `title` on the button itself can never be hovered.
 
 **`destructive` vs `destructiveGhost`** is about what the control is *among*,
 not how dangerous it is. A destructive action that closes a decision — the
@@ -739,6 +830,15 @@ visible, lime node **above** the active icon rather than beside it: the bar is
 horizontal, and a node on the inline-end edge would read as belonging to the
 next item.
 
+It is **edge-to-edge**: flush left, right and bottom, `radius.xl` on the top two
+corners and square on the bottom two, so the bar ends where the screen does.
+This is the one surface that does not take the block-end/inline-end sweep —
+there is no corner there to open. The safe-area inset is padding *inside* the
+bar, never a margin around it, so the fill still reaches the display edge. The
+raised centre tab sits in a **notch cut out of the bar**, not on top of it: the
+cut is concentric with the disc and 6px larger in radius, leaving an even ring
+of page showing through. A ring of empty space, not a drawn frame.
+
 **Segmented** (`Segmented`) — two to four mutually exclusive options, all
 visible. The track is `rounded-lg` and the thumb `rounded-md`, so the thumb
 reads as sitting inside the track rather than as a second track.
@@ -902,10 +1002,50 @@ fifth and sixth hue; prefer the `viz-*` scales, which are validated.
 ## Not built yet
 
 These are described by the brand but have no caller in the app, so they were
-not scaffolded speculatively: checkbox, radio, switch, slider, number stepper,
+not scaffolded speculatively: checkbox, radio, slider, number stepper,
 autocomplete, date picker with Hijri/Gregorian toggle, time picker, link tabs,
-breadcrumbs, the Q-arc progress/habit ring, streak-week and 4-week-adherence
-components, and toast.
+breadcrumbs, the Q-arc progress/habit ring, and toast.
 
 When a feature needs one, build it against the rules above rather than
 approximating it with a generic library component.
+
+## Controls built from §9.3, and how they submit
+
+`switch.tsx` and `segmented.tsx` were built against §9.3 when the client
+portal's account settings needed them — the switch at 52×30 with a 24px knob
+that slides on `inset-inline-start` and rotates −45° into the leaf angle, the
+segmented control as a 48px sunken shell holding 40px segments.
+
+Both are **submit buttons, not inputs**, and that is load-bearing rather than
+incidental. Every setting in the portal saves to the server, so each control is
+the submit button of its own single-field form: the switch carries the value it
+would move to (`name="enabled" value="off"`), a segment carries the value it
+selects. The whole settings screen therefore works with JavaScript off, and no
+control in it has an `onChange`. If you reach for one of these in a context that
+isn't a form, that's a signal the pattern doesn't fit — don't add a
+`checked`-plus-callback API alongside the form one.
+
+The switch's 30px track sits inside a 48px button so the target meets §9.3
+without the shape growing. Its accessible name comes from `aria-labelledby`
+pointing at the row's own label, because a `<label for>` cannot wrap a
+`role="switch"` button.
+
+**Segments use `aria-pressed`, not `role="radio"`.** A radio group promises
+arrow-key navigation that plain buttons don't provide; a labelled group of
+toggle buttons describes what's actually there and behaves correctly under Tab
+and Enter with no key handling invented.
+
+## Dark mode, and who it belongs to
+
+`.dark` is the app-wide class (nothing sets it yet). `[data-theme]` is the
+client portal's own switch, set on the portal wrapper in
+`src/features/portal/components/portal-theme.tsx` — so a client choosing dark
+never darkens the practitioner app, which shares a root layout with it.
+
+`system` is resolved by a `prefers-color-scheme` media query in `globals.css`,
+not by script: the theme has to be right on the first paint, and it must
+re-evaluate when a phone flips at sunset. The cost is that the dark token block
+is written twice, once for `[data-theme='dark']` and once inside the media
+query for `[data-theme='system']` — **add a new token to both or they drift.**
+The `dark:` variant is extended to fire in all three cases, so `dark:` utilities
+inside shared `ui/` components stay correct in the portal.

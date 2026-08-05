@@ -168,6 +168,12 @@ export async function updateAppointmentAction(rawLocale: string, input: unknown)
   const { previous } = result.data;
   const moved = previous.date !== parsed.data.date || previous.startMinute !== parsed.data.startMinute;
 
+  // No past-slot check here any more. It used to be this one `if`, which meant
+  // every other path that messages a patient — booking, cancelling, approving a
+  // request — could still write about an hour that had gone. The rule now lives
+  // beside the send in `src/features/whatsapp/notify.ts`, where it covers all of
+  // them and the next caller too; both branches below are refused there if this
+  // slot has already started.
   if (moved) notifyRescheduled(context.clinicId, parsed.data.id, previous);
   else notifyBooked(context.clinicId, parsed.data.id);
 

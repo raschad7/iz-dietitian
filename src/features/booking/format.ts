@@ -24,6 +24,36 @@ function formatter(locale: Locale, options: Intl.DateTimeFormatOptions): Intl.Da
   return new Intl.DateTimeFormat(toIntlLocale(locale), { ...options, ...WALL_CLOCK_DEFAULTS });
 }
 
+/**
+ * Collapses every Unicode space separator to a plain `U+0020`.
+ *
+ * **This is what stops `formatRange` causing a hydration mismatch**, and it is
+ * not hypothetical tidying. `Intl` reads its separators from whichever ICU the
+ * runtime was built against, and Node's and the browser's are not the same
+ * build — the English range separator is a thin space (`U+2009`) on ICU 78 and
+ * an ordinary space on the ICU Chrome currently ships:
+ *
+ * ```text
+ * server  Aug 2 <U+2009> – <U+2009> 8, 2026
+ * client  Aug 2 <U+0020> – <U+0020> 8, 2026
+ * ```
+ *
+ * The two render identically and compare unequal, so React throws away the
+ * server's markup for that subtree and redraws it. Nothing *looks* wrong, which
+ * is exactly why it survived: the bug is invisible until you print codepoints.
+ *
+ * Only the range formatters need it — every single-value formatter here was
+ * checked and agrees byte for byte on both runtimes — but it is applied through
+ * one helper so a third range never has to remember.
+ *
+ * The whole `Zs` category rather than just `U+2009`, so a future ICU picking a
+ * different width is already handled. `U+200F` (right-to-left mark) is `Cf`,
+ * not `Zs`, so Arabic keeps the marks that make its dates read correctly.
+ */
+function withStableSpaces(value: string): string {
+  return value.replace(/\p{Zs}/gu, ' ');
+}
+
 /** `9:15 AM` / `٩:١٥ ص` — but with Western digits, per the project's rule. */
 export function formatMinute(locale: Locale, date: IsoDate, minute: number): string {
   return formatter(locale, { timeStyle: 'short' }).format(toUtcInstant(date, minute));
@@ -31,9 +61,11 @@ export function formatMinute(locale: Locale, date: IsoDate, minute: number): str
 
 /** `9:15 AM – 10:00 AM`, using the locale's own range separator. */
 export function formatMinuteRange(locale: Locale, date: IsoDate, startMinute: number, endMinute: number): string {
-  return formatter(locale, { timeStyle: 'short' }).formatRange(
-    toUtcInstant(date, startMinute),
-    toUtcInstant(date, endMinute),
+  return withStableSpaces(
+    formatter(locale, { timeStyle: 'short' }).formatRange(
+      toUtcInstant(date, startMinute),
+      toUtcInstant(date, endMinute),
+    ),
   );
 }
 
@@ -55,7 +87,9 @@ export function formatMinuteRangeLatin(date: IsoDate, startMinute: number, endMi
 
 /** `5 – 11 August 2026`, collapsed by the locale's own range rules. */
 export function formatMediumDateRange(locale: Locale, from: IsoDate, to: IsoDate): string {
-  return formatter(locale, { dateStyle: 'medium' }).formatRange(toUtcInstant(from), toUtcInstant(to));
+  return withStableSpaces(
+    formatter(locale, { dateStyle: 'medium' }).formatRange(toUtcInstant(from), toUtcInstant(to)),
+  );
 }
 
 /** `5 August 2026` — the long form the appointment popup header shows. */

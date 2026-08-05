@@ -48,7 +48,22 @@ const ICONS = {
   portalHome: 'home-2-bold',
   myAppointments: 'calendar-bold',
   myPlan: 'chef-hat-bold',
+  progress: 'round-graph-bold',
   profile: 'user-bold',
+
+  /**
+   * The client bottom tab bar's own icon language — simple line icons, not the
+   * app's usual Solar Bold. The bar's four outer tabs are a deliberate
+   * exception (see `PortalTabBar`): they frame the featured centre tab, which
+   * stays bold and filled, and a bold outer set would compete with it instead
+   * of receding.
+   */
+  portalHomeOutline: 'home-2-linear',
+  myAppointmentsOutline: 'calendar-linear',
+  progressOutline: 'chart-2-linear',
+  profileOutline: 'user-linear',
+  /** The featured centre tab's glyph — a plan on a page. */
+  myPlanFeatured: 'document-text-bold',
 
   // Direction — these mirror in RTL, see DIRECTIONAL in icon.tsx
   chevronDown: 'alt-arrow-down-bold',
@@ -82,6 +97,8 @@ const ICONS = {
   driftDown: 'arrow-down-bold',
   /** A dish repeated from the plan being compared against. */
   repeat: 'restart-bold',
+  /** Holding this week against an earlier one. */
+  history: 'history-bold',
   minus: 'minus-circle-bold',
 
   // Field affordances
@@ -146,18 +163,39 @@ const ICONS = {
    * Time of day rather than specific foods: the plan's dishes are Palestinian,
    * and a plate of pasta on every lunch would be telling the client something
    * about the food that the plan does not say. Solar has no fruit or cutlery
-   * glyph, so `donut` and `plate` stand in for the snack and the main meal —
-   * `donut` is already the staff `foods` mark, which is fine, because the two
-   * never appear on the same screen as each other.
+   * glyph, so `plate` and a bitten `donut` stand in for the main meal and the
+   * snack.
+   *
+   * **These four are read side by side, stacked, at 24px** — the planner's slot
+   * rail is the only place in the app where a set of icons is compared rather
+   * than glanced at, so they are chosen for distinct *silhouettes* first: a
+   * rayed disc, a plate, a bitten ring, a crescent with stars. Two glyphs that
+   * differ only in their interior detail read as the same mark in that column.
+   *
+   * ⚠ Breakfast is `sun`, **not** `sunrise`. A sunrise glyph is a sun drawn
+   * above a horizontal bar, and at this size that bar stops reading as a horizon
+   * and starts reading as the edge of a box the sun is sitting inside — so the
+   * one icon on the rail with a straight line in it looked like it had a card
+   * behind it and the other three did not.
+   *
+   * ⚠ The snack is **not** `cup-hot`, which is already `dishes` — the staff
+   * rail's catalog mark, visible beside the board on every wide screen. The same
+   * picture meaning two things on one screen is worse than a duller glyph.
    */
-  mealBreakfast: 'sunrise-bold',
-  mealSnack: 'donut-bold',
+  mealBreakfast: 'sun-bold',
+  mealSnack: 'donut-bitten-bold',
   mealLunch: 'plate-bold',
-  mealDinner: 'moon-bold',
+  mealDinner: 'moon-stars-bold',
   /** The dish itself, on a meal card. Constant — no dish carries its own icon. */
   dish: 'chef-hat-bold',
   /** A client's requests about an appointment, which are a conversation. */
   chat: 'chat-round-line-bold',
+
+  // Portal settings — destination rows
+  help: 'question-circle-bold',
+  privacy: 'shield-check-bold',
+  /** Terms of service. Distinct glyph from `myPlanFeatured`'s document-text-bold. */
+  terms: 'file-text-bold',
 } as const satisfies Record<string, string>;
 
 type SolarIcon = { body: string; width?: number; height?: number };

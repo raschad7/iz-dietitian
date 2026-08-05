@@ -1,6 +1,8 @@
 import { toIsoDate } from '@/features/booking/date';
 import { getClinicHours, listAppointments } from '@/features/booking/queries';
 import { type CalendarAppointment } from '@/features/booking/types';
+import { listPendingAppointmentRequests, listPendingClientRequests } from '@/features/requests/queries';
+import { type PendingRequests } from '@/features/requests/types';
 
 import { summariseDemographics, type Demographics } from './demographics';
 import { listClientDemographics, listRecentClients, type DashboardClient } from './queries';
@@ -49,6 +51,14 @@ export type DashboardData = {
   /** Newest first, active only, at most {@link RECENT_CLIENTS}. */
   recentClients: DashboardClient[];
   demographics: Demographics;
+  /**
+   * What clients are waiting on an answer for. Both lists are usually empty,
+   * and the panel that renders them draws nothing when they are — see
+   * `PendingRequestsCard` for why that matters on this page in particular.
+   */
+  requests: PendingRequests;
+  /** Read once here so every "3 hours ago" on the page measures from one instant. */
+  now: Date;
 };
 
 export async function loadDashboard(clinicId: string): Promise<DashboardData> {
@@ -58,12 +68,15 @@ export async function loadDashboard(clinicId: string): Promise<DashboardData> {
   const today = toIsoDate(now);
   const nowMinute = now.getHours() * 60 + now.getMinutes();
 
-  const [agenda, recentClients, demographicRows, hours] = await Promise.all([
-    listAppointments(clinicId, today, today),
-    listRecentClients(clinicId, today, RECENT_CLIENTS),
-    listClientDemographics(clinicId),
-    getClinicHours(clinicId),
-  ]);
+  const [agenda, recentClients, demographicRows, hours, pendingRequests, pendingClientRequests] =
+    await Promise.all([
+      listAppointments(clinicId, today, today),
+      listRecentClients(clinicId, today, RECENT_CLIENTS),
+      listClientDemographics(clinicId),
+      getClinicHours(clinicId),
+      listPendingAppointmentRequests(clinicId),
+      listPendingClientRequests(clinicId),
+    ]);
 
   return {
     today,
@@ -72,5 +85,10 @@ export async function loadDashboard(clinicId: string): Promise<DashboardData> {
     workingDays: hours?.workingDays ?? EVERY_WEEKDAY,
     recentClients,
     demographics: summariseDemographics(demographicRows, now),
+    // The two request reads join this page's single round of parallel queries
+    // rather than calling `loadPendingRequests`, which would repeat the
+    // `getClinicHours` read the week strip above already needs.
+    requests: { appointments: pendingRequests, clientRequests: pendingClientRequests, today, hours },
+    now,
   };
 }

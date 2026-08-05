@@ -11,7 +11,6 @@ import {
   blockCardBox,
   blockTypeScale,
   clampToDay,
-  fitPxPerSlot,
   floorToSlot,
   gridHeight,
   minuteToY,
@@ -41,86 +40,40 @@ describe('the constant everything derives from', () => {
   });
 });
 
-describe('fitPxPerSlot', () => {
-  test('divides the clinic day into the height available', () => {
-    // 10 hours is 40 slots; 800px of panel gives 20px each.
-    expect(fitPxPerSlot(800, OPEN, CLOSE)).toBe(20);
-  });
+/**
+ * The grid is drawn at `PX_PER_SLOT` and the panel scrolls to it, so nothing
+ * ships a different scale today. These stay because the *parameter* is still
+ * the contract: every function here takes `pxPerSlot`, and a caller that passes
+ * something other than the default must get answers at that scale rather than
+ * silently at 32px. That was a real bug once — the gestures read the pointer at
+ * the module default while the columns were drawn at another size, so every
+ * drag landed on a different slot from the one under the cursor.
+ *
+ * `MIN_PX_PER_SLOT` is the bottom of the range the module is answerable for, so
+ * it is what these are exercised at.
+ */
+describe('a scale other than the default', () => {
+  const DENSE = MIN_PX_PER_SLOT; // 20px per slot
 
-  test('makes the day exactly fill a panel with room for it, so nothing scrolls', () => {
-    const fitted = fitPxPerSlot(1000, OPEN, CLOSE);
-    expect(gridHeight(OPEN, CLOSE, fitted)).toBeCloseTo(1000, 6);
-  });
-
-  /**
-   * The invariant behind "no scrollbar": for any whole-pixel panel tall enough
-   * to hold the day, the drawn grid is never taller than the panel. A fraction
-   * over is a scrollbar, and the fitted height is multiplied by the slot count,
-   * so a rounding error at this end arrives magnified forty times.
-   *
-   * `useFittedSlotHeight` floors its measurement, which is what makes whole
-   * pixels the only input this has to survive.
-   */
-  test('never draws a grid taller than the panel it was fitted to', () => {
-    const slots = (CLOSE - OPEN) / SLOT_MINUTES;
-
-    // From the shortest panel that still fits at the readable minimum, upwards.
-    for (let height = slots * MIN_PX_PER_SLOT; height <= 1400; height += 1) {
-      expect(gridHeight(OPEN, CLOSE, fitPxPerSlot(height, OPEN, CLOSE))).toBeLessThanOrEqual(height);
-    }
-  });
-
-  test('leaves no visible gap either — it fills the panel to the pixel', () => {
-    for (let height = 800; height <= 1400; height += 1) {
-      const drawn = gridHeight(OPEN, CLOSE, fitPxPerSlot(height, OPEN, CLOSE));
-      expect(height - drawn).toBeLessThan(1);
-    }
-  });
-
-  test('refuses to shrink past the readable minimum, and scrolls instead', () => {
-    expect(fitPxPerSlot(100, OPEN, CLOSE)).toBe(MIN_PX_PER_SLOT);
-
-    // The consequence, stated rather than implied: a ten-hour day needs 800px
-    // of panel to fit. Anything shorter overflows and the timeline scrolls,
-    // which is the deliberate trade for keeping the hours readable.
-    expect(gridHeight(OPEN, CLOSE, fitPxPerSlot(640, OPEN, CLOSE))).toBe(800);
-  });
-
-  test('falls back to the default before anything has been measured', () => {
-    expect(fitPxPerSlot(0, OPEN, CLOSE)).toBe(PX_PER_SLOT);
-    expect(fitPxPerSlot(800, OPEN, OPEN)).toBe(PX_PER_SLOT);
-  });
-
-  test('a shorter clinic day gets taller slots from the same panel', () => {
-    const fullDay = fitPxPerSlot(800, OPEN, CLOSE);
-    const halfDay = fitPxPerSlot(800, 9 * 60, 13 * 60);
-
-    expect(halfDay).toBeGreaterThan(fullDay);
-  });
-});
-
-describe('a fitted grid', () => {
-  const FITTED = fitPxPerSlot(800, OPEN, CLOSE); // 20px per slot
-
-  test('positions blocks at the fitted scale, not the default', () => {
-    expect(blockBox({ startMinute: 9 * 60, durationMinutes: 30 }, OPEN, FITTED)).toEqual({ top: 80, height: 40 });
+  test('positions blocks at the given scale, not the default', () => {
+    expect(blockBox({ startMinute: 9 * 60, durationMinutes: 30 }, OPEN, DENSE)).toEqual({ top: 80, height: 40 });
   });
 
   test('round-trips a pointer back to the same minute', () => {
     const minute = 11 * 60 + 45;
-    const y = minuteToY(minute, OPEN, FITTED);
+    const y = minuteToY(minute, OPEN, DENSE);
 
-    expect(yToMinute(y, OPEN, FITTED)).toBeCloseTo(minute, 6);
+    expect(yToMinute(y, OPEN, DENSE)).toBeCloseTo(minute, 6);
   });
 
-  test('reads a pointer against the fitted scale', () => {
+  test('reads a pointer against the given scale', () => {
     // One hour down at 20px/slot is 80px.
-    expect(pointerToMinute(200 + 80, 200, OPEN, CLOSE, FITTED)).toBeCloseTo(9 * 60, 6);
+    expect(pointerToMinute(200 + 80, 200, OPEN, CLOSE, DENSE)).toBeCloseTo(9 * 60, 6);
   });
 
-  test('a pointer read at the default scale would land on the wrong hour', () => {
-    // The bug this parameter exists to prevent: 80px is 09:00 on a fitted grid
-    // and 08:37 on an unfitted one.
+  test('the same pointer read at the default scale lands on another hour', () => {
+    // The bug this parameter exists to prevent: 80px is 09:00 at 20px a slot
+    // and 08:37 at the default 32.
     expect(pointerToMinute(200 + 80, 200, OPEN, CLOSE)).not.toBeCloseTo(9 * 60, 6);
   });
 });
@@ -304,7 +257,7 @@ describe('blockTypeScale', () => {
 });
 
 describe('hour spacing', () => {
-  test('a fitted slot never compresses below a comfortable hour', () => {
+  test('the slowest slot the module answers for still gives a comfortable hour', () => {
     // 20px a slot is 80px an hour — the point of the floor.
     expect(minutesToPx(60, MIN_PX_PER_SLOT)).toBe(80);
   });
@@ -314,8 +267,9 @@ describe('hour spacing', () => {
     expect(SUBDIVISION_MIN_PX_PER_SLOT).toBeGreaterThan(MIN_PX_PER_SLOT);
   });
 
-  test('a comfortable panel keeps the quarter-hour rules', () => {
-    // 1000px over a 10-hour day is 25px a slot, above the subdivision floor.
-    expect(fitPxPerSlot(1000, OPEN, CLOSE)).toBeGreaterThanOrEqual(SUBDIVISION_MIN_PX_PER_SLOT);
+  test('the scale actually shipped keeps the quarter-hour rules', () => {
+    // 32px a slot, comfortably above the subdivision floor — which is why the
+    // dropped-subdivision branch in `DayColumn` does not currently fire.
+    expect(PX_PER_SLOT).toBeGreaterThanOrEqual(SUBDIVISION_MIN_PX_PER_SLOT);
   });
 });

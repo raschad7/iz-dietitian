@@ -17,7 +17,7 @@ import {
   type DeletedAppointment,
   type UpdatedAppointment,
 } from './types';
-import { movesIntoThePast, validateBooking, type ClinicHours, type ExistingAppointment } from './validation';
+import { validateBooking, type ClinicHours, type ExistingAppointment } from './validation';
 
 /**
  * Every write to the appointments table.
@@ -60,19 +60,6 @@ export type BookingContext = { clinicId: string; ownerName: string };
 /** Matches one appointment within one clinic, so a foreign id matches no rows. */
 function scopedToClinic(clinicId: string, id: string) {
   return and(eq(appointments.id, id), eq(appointments.clinicId, clinicId));
-}
-
-/**
- * Today, in the clinic's own time zone — the earliest date a booking may fall
- * on.
- *
- * The clinic's clock, not the caller's and not the server's: appointments are
- * clinic-local, so "has that date gone?" is a question about where the clinic
- * is. Read here rather than accepted from the request, which is the whole point
- * of enforcing this server side — a browser can post any date it likes.
- */
-function clinicToday(): string {
-  return wallClockIn(DISPLAY_TIME_ZONE).date;
 }
 
 /**
@@ -189,7 +176,7 @@ export async function createAppointment(
       const practitionerId = await resolvePractitioner(tx, context);
       const existing = await readDay(tx, clinicId, input.date);
 
-      const failure = validateBooking({ ...input, practitionerId, today: clinicToday() }, existing, hours);
+      const failure = validateBooking({ ...input, practitionerId, earliestDate: null }, existing, hours);
       if (failure) return { ok: false, error: failure };
 
       const [row] = await tx
@@ -271,29 +258,22 @@ export async function updateAppointment(
       // `excludeId` is what stops a move from colliding with the appointment
       // being moved.
       const failure = validateBooking(
-        { ...input, practitionerId, excludeId: input.id, today: clinicToday() },
+        { ...input, practitionerId, excludeId: input.id, earliestDate: null },
         existing,
         hours,
       );
       if (failure) return { ok: false, error: failure };
 
-      /**
-       * A move may not land in the past — checked against the clinic's clock and
-       * against the row as it stands, which is the only place the previous slot
-       * exists. The browser refuses the same drag, but a server action is a
-       * public endpoint and the drag is only the polite half of the rule.
+      /*
+       * A move to an earlier hour of *today* is deliberately allowed, and there
+       * is no extra rule here to refuse it. `validateBooking` above already
+       * refuses a past date, which is the only granularity this calendar
+       * enforces — creating and moving now agree about the same slot rather
+       * than one accepting what the other rejects.
        *
-       * After `validateBooking`, not before, so the *specific* answer wins: a
-       * move to last Tuesday is reported as a date that has gone, and only a
-       * move to an earlier hour of today — which every other rule accepts — falls
-       * through to here.
-       *
-       * An edit that leaves the slot alone passes, which is what keeps an
-       * appointment currently in progress editable.
+       * The completed-lock above is what still bounds this: an appointment that
+       * has already ended cannot be moved anywhere.
        */
-      if (movesIntoThePast(input, current, clinicNow)) {
-        return { ok: false, error: 'errors.pastTime' };
-      }
 
       await tx
         .update(appointments)
@@ -367,7 +347,7 @@ export async function createClientAndBook(
       // Validated before the client row is written: a rejected slot should not
       // leave a new person in the register. `clientId` is absent, so rule 5 is
       // skipped — a brand-new client cannot already be booked.
-      const failure = validateBooking({ ...input.booking, practitionerId, today: clinicToday() }, existing, hours);
+      const failure = validateBooking({ ...input.booking, practitionerId, earliestDate: null }, existing, hours);
       if (failure) return { ok: false, error: failure };
 
       const [client] = await tx

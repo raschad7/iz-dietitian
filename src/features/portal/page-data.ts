@@ -2,21 +2,39 @@ import { addDays, weekdayOf } from '@/features/booking/date';
 import { getClinicHours } from '@/features/booking/queries';
 import { type ClinicHours } from '@/features/booking/validation';
 import { getPublishedBoard, type Board, type BoardDay } from '@/features/weekly-plans/queries';
-import { weekDates, type PlanDaySummary } from '@/features/weekly-plans/week';
+import { weekDates as planWeekDates, type PlanDaySummary } from '@/features/weekly-plans/week';
 
-import { nextAppointment, splitAppointments, type SplitAppointments } from './appointments';
 import {
+  continuityPath,
+  currentAdherenceStreak,
+  fourWeekTrend,
+  summariseAdherenceWeek,
+  type AdherenceLevel,
+  type ContinuityDay,
+  type MonthlyTrendWeek,
+  type WeekAdherence,
+} from './adherence';
+import { nextAppointment, splitAppointments, type SplitAppointments } from './appointments';
+import { weekDates, STREAK_WINDOW_DAYS } from './check-ins';
+import { buildNotifications, type PortalNotification } from './notifications';
+import {
+  getAssignedPractitioner,
+  getOpenClientRequest,
   getPortalAppointment,
+  getPortalClinic,
+  getSharedWeight,
   listClinicBookings,
+  listPlanAdherence,
   listPortalAppointments,
   listPortalRequests,
 } from './queries';
 import { type RequestSearchInput } from './schema';
-import { availableSlots, selectableDays, REQUEST_WINDOW_DAYS } from './slots';
+import { selectableDays, REQUEST_WINDOW_DAYS } from './slots';
 import { type PortalContext } from './session';
 import {
   type PortalAppointment,
   type PortalRequest,
+  type ProfilePageData,
   type RequestKind,
   type RequestPageData,
 } from './types';
@@ -56,13 +74,34 @@ export type DashboardData = {
   today: BoardDay | null;
   /** Requests still waiting on the dietitian. */
   pending: PortalRequest[];
+  /**
+   * This week's plan adherence, already derived into what the home screen
+   * draws — the same `client_plan_adherence` rows and the same summarising
+   * function the progress tab reads, so the two screens can never disagree
+   * about how the week has gone. See {@link loadProgressPage}.
+   */
+  week: WeekAdherence;
+  /** Consecutive days kept at least partially, ending today or yesterday. */
+  streak: number;
 };
 
 export async function loadDashboard(context: PortalContext): Promise<DashboardData> {
-  const [appointmentRows, requests, plan] = await Promise.all([
+  // The clinic week `now` falls in. Read once here so the strip and the ring
+  // are describing the same seven days.
+  const dates = weekDates(context.now.date);
+  const to = dates[dates.length - 1] ?? context.now.date;
+
+  // The streak reaches back further than the week the strip draws, so one read
+  // covers both. `summariseAdherenceWeek` documents that it ignores dates
+  // outside the week, which is what makes the over-fetch safe rather than a
+  // second query.
+  const from = addDays(context.now.date, -(STREAK_WINDOW_DAYS - 1));
+
+  const [appointmentRows, requests, plan, adherenceRows] = await Promise.all([
     listPortalAppointments(context.id),
     listPortalRequests(context.id),
     loadCurrentPlan(context),
+    listPlanAdherence(context.id, from, to),
   ]);
 
   const weekday = weekdayOf(context.now.date);
@@ -72,6 +111,53 @@ export async function loadDashboard(context: PortalContext): Promise<DashboardDa
     planTitle: plan?.weekStartDate ?? null,
     today: plan && weekday !== null ? (plan.days[weekday] ?? null) : null,
     pending: requests.filter((request) => request.status === 'pending'),
+    week: summariseAdherenceWeek(adherenceRows, context.now.date),
+    streak: currentAdherenceStreak(adherenceRows, context.now.date),
+  };
+}
+
+export type ProgressPageData = {
+  /** Today's own report, or null when nothing has been logged yet today. */
+  todayLevel: AdherenceLevel | null;
+  week: WeekAdherence;
+  /** Consecutive days kept at least partially, ending today or yesterday. */
+  streak: number;
+  /**
+   * The same streak as it stood on each of the last {@link CONTINUITY_DAYS}
+   * days — the continuity card's curve. Its last point equals `streak`.
+   */
+  continuity: ContinuityDay[];
+  /** The last four calendar weeks, oldest first. */
+  monthlyTrend: MonthlyTrendWeek[];
+};
+
+/**
+ * Everything the progress tab shows — adherence to the assigned nutrition
+ * plan only. Deliberately reads `client_plan_adherence`, never
+ * `client_check_ins`: the two answer different clinical questions, and mixing
+ * a wellness score into a plan-adherence screen would answer neither
+ * correctly.
+ *
+ * One read of the last {@link STREAK_WINDOW_DAYS} covers the week strip, the
+ * streak, the continuity curve and the four-week trend — the same "read once,
+ * derive everything" shape `loadDashboard` uses for its own, shorter window
+ * over the same table.
+ */
+export async function loadProgressPage(context: PortalContext): Promise<ProgressPageData> {
+  const dates = weekDates(context.now.date);
+  const to = dates[dates.length - 1] ?? context.now.date;
+  const from = addDays(context.now.date, -(STREAK_WINDOW_DAYS - 1));
+
+  const rows = await listPlanAdherence(context.id, from, to);
+
+  const week = summariseAdherenceWeek(rows, context.now.date);
+
+  return {
+    todayLevel: rows.find((row) => row.date === context.now.date)?.level ?? null,
+    week,
+    streak: currentAdherenceStreak(rows, context.now.date),
+    continuity: continuityPath(rows, context.now.date),
+    monthlyTrend: fourWeekTrend(rows, context.now.date),
   };
 }
 
@@ -84,6 +170,35 @@ export async function loadAppointments(context: PortalContext): Promise<Appointm
   ]);
 
   return { ...splitAppointments(appointmentRows, context.now), requests };
+}
+
+export type NotificationsPageData = {
+  items: PortalNotification[];
+};
+
+/**
+ * The standalone notifications screen: every item derived from data another
+ * screen already owns (an appointment, this week's plan, today's adherence, a
+ * request the dietitian answered) — see `./notifications.ts` for why there is
+ * no notifications table behind this.
+ */
+export async function loadNotificationsPage(context: PortalContext): Promise<NotificationsPageData> {
+  const [appointmentRows, requests, plan, todayAdherence] = await Promise.all([
+    listPortalAppointments(context.id),
+    listPortalRequests(context.id),
+    loadCurrentPlan(context),
+    listPlanAdherence(context.id, context.now.date, context.now.date),
+  ]);
+
+  return {
+    items: buildNotifications({
+      now: context.now,
+      todayAdherenceLevel: todayAdherence[0]?.level ?? null,
+      appointments: appointmentRows,
+      requests,
+      currentWeekPlanStartDate: plan?.weekStartDate ?? null,
+    }),
+  };
 }
 
 /**
@@ -129,7 +244,7 @@ export async function loadPlanPage(
 
   if (!board) return null;
 
-  const dates = weekDates(board.weekStartDate);
+  const dates = planWeekDates(board.weekStartDate);
 
   // `getPublishedBoard` builds one entry per weekday, in order, so the index is
   // the day of week and every day is present even when it holds no meals.
@@ -165,12 +280,38 @@ export function pickPlanDay(
 }
 
 /**
- * Everything the request form needs: which days have room, and what is free on
- * the chosen one.
+ * The client's record as their own profile screen shows it.
  *
- * A cancellation proposes no time, so it skips the slot work entirely — loading
- * a month of the clinic's bookings to render a form with no date picker on it
- * would be pure waste.
+ * Four reads in one round, and they answer to three different owners: the
+ * dietitian (the weight, and the record already carried on `context.profile`),
+ * the clinic (its details and who is assigned), and the client themselves (the
+ * correction they have filed, if any). Keeping that separation visible in the
+ * return shape is what stops a later change quietly making a clinic-owned
+ * field look editable.
+ */
+export async function loadProfilePage(context: PortalContext): Promise<ProfilePageData> {
+  const [weightKg, clinic, practitioner, openUpdateRequest] = await Promise.all([
+    getSharedWeight(context.id),
+    getPortalClinic(context.clinicId),
+    getAssignedPractitioner(context.clinicId, context.assignedDietitianId),
+    getOpenClientRequest(context.id, 'data_update'),
+  ]);
+
+  return { profile: context.profile, weightKg, clinic, practitioner, openUpdateRequest };
+}
+
+/**
+ * Everything the request form needs: which days have room, and which one is
+ * open.
+ *
+ * Not which *times* are free — a client asks for a day and the dietitian sets
+ * the hour, so the page has no time picker to feed. `selectableDays` still
+ * computes each day's `openCount` internally, because "has this day any room at
+ * all" is exactly what decides whether it can be chosen.
+ *
+ * A cancellation proposes no day either, so it skips the slot work entirely —
+ * loading a month of the clinic's bookings to render a form with no date picker
+ * on it would be pure waste.
  */
 export async function loadRequestPage(
   context: PortalContext,
@@ -186,7 +327,7 @@ export async function loadRequestPage(
   const kind: RequestKind = search.kind !== 'new' && appointment ? search.kind : 'new';
 
   if (kind === 'cancel') {
-    return { kind, appointment, days: [], selectedDate: context.now.date, slots: [] };
+    return { kind, appointment, days: [], selectedDate: context.now.date };
   }
 
   const hours = await requireHours(context.clinicId);
@@ -212,11 +353,5 @@ export async function loadRequestPage(
   const selectedDate =
     (fromUrl ?? days.find((day) => day.openCount > 0) ?? days[0])?.date ?? context.now.date;
 
-  return {
-    kind,
-    appointment,
-    days,
-    selectedDate,
-    slots: availableSlots({ ...slotInput, date: selectedDate }),
-  };
+  return { kind, appointment, days, selectedDate };
 }

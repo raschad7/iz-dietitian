@@ -47,6 +47,26 @@ const buttonVariants = cva(
         ghost:
           "border-transparent text-secondary-foreground hover:bg-accent hover:text-accent-foreground aria-expanded:bg-accent aria-expanded:text-accent-foreground",
 
+        /**
+         * Neutral — a real box, a black label, and no brand colour at all.
+         *
+         * For a row of peers where exactly one control is the action and the
+         * rest are not. `outline` and `ghost` both draw their label in olive,
+         * which is the system saying "act on me"; four of them side by side say
+         * it four times and the actual primary stops being findable. This one
+         * takes an edge so it still reads as pressable, and gives the colour
+         * back to the button that has earned it.
+         *
+         * The planner's toolbar is the case: publish is the decision, while
+         * "new week", "edit plan" and "compare" are simply things you may also
+         * do. n-900 on white is 16.64:1.
+         *
+         * `aria-pressed` fills it rather than tinting it, so a toggle's on-state
+         * is legible without spending the brand colour on a view preference.
+         */
+        neutral:
+          "border-border bg-card text-foreground hover:bg-accent aria-pressed:border-input aria-pressed:bg-accent aria-expanded:bg-accent",
+
         /** Accent — the lime fill itself, for a completion action. */
         accent: "border-transparent bg-accent-lime text-on-accent hover:bg-[var(--lime-300)]",
 

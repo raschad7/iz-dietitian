@@ -22,6 +22,7 @@ import {
 } from './rate-limit';
 import { resolveSafeRedirect } from './redirect';
 import {
+  changePasswordSchema,
   credentialsSchema,
   forgotPasswordSchema,
   localeSchema,
@@ -267,6 +268,81 @@ export async function setPortalPassword(
 
   // Outside the try/catch — `redirect` signals by throwing.
   redirect(`/${locale}/portal`);
+}
+
+/**
+ * The signed-in client changes their own password, in place.
+ *
+ * This is the in-app replacement for the reset-link flow that used to live on
+ * the security screen: that flow mailed a link to `session.user.email`, which
+ * for a portal client is a synthetic `@portal.invalid` address — see
+ * `syntheticEmail` in `src/features/clients/portal-credentials.ts` — so it
+ * could never actually be delivered. A signed-in session already proves
+ * something; asking for the current password on top of it is what proves the
+ * *person*, so `auth.api.changePassword` (which demands it) is the right
+ * primitive here, unlike `setPortalPassword` above.
+ *
+ * `revokeOtherSessions` is left unset. A reset is what someone does when they
+ * believe another person holds their password, which is worth signing
+ * everyone out for — see `revokeSessionsOnPasswordReset` in `src/lib/auth.ts`.
+ * A change made by someone who just typed their own current password
+ * correctly is not that situation, and the task is explicit that the client
+ * stays signed in.
+ */
+export async function changePortalPassword(
+  _previousState: AuthFormState,
+  formData: FormData,
+): Promise<AuthFormState> {
+  const parsed = changePasswordSchema.safeParse({
+    currentPassword: formData.get('currentPassword'),
+    newPassword: formData.get('newPassword'),
+    confirmNewPassword: formData.get('confirmNewPassword'),
+    locale: formData.get('locale'),
+  });
+
+  if (!parsed.success) {
+    const fieldErrors = z.flattenError(parsed.error).fieldErrors;
+    if (fieldErrors.confirmNewPassword) return { status: 'error', messageKey: 'passwordMismatch' };
+    if (fieldErrors.newPassword) return { status: 'error', messageKey: 'passwordTooShort' };
+    return { status: 'error', messageKey: 'genericError' };
+  }
+
+  const { currentPassword, newPassword, locale } = parsed.data;
+
+  if (newPassword === currentPassword) {
+    return { status: 'error', messageKey: 'passwordSameAsCurrent' };
+  }
+
+  // At six characters this check is load-bearing, not decoration — see
+  // `src/features/auth/password-policy.ts`.
+  if (isCommonPassword(newPassword)) {
+    return { status: 'error', messageKey: 'passwordTooCommon' };
+  }
+
+  const session = await requireClientSession(locale);
+
+  const limited = await guard('password_change', session.user.id);
+  if (limited) return limited;
+
+  try {
+    await auth.api.changePassword({
+      body: { currentPassword, newPassword },
+      headers: await headers(),
+    });
+  } catch (error) {
+    await penalise('password_change', session.user.id);
+
+    if (error instanceof APIError && error.body?.code === 'INVALID_PASSWORD') {
+      return { status: 'error', messageKey: 'currentPasswordIncorrect' };
+    }
+
+    console.error('[auth] portal password change failed', error);
+    return { status: 'error', messageKey: 'genericError' };
+  }
+
+  await clearAttempts('password_change', session.user.id);
+
+  return { status: 'success', messageKey: 'passwordChanged' };
 }
 
 export async function resendVerification(

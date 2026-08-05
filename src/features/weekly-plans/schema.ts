@@ -34,6 +34,7 @@ export const ALLERGENS = ['nuts', 'lactose', 'gluten', 'egg', 'fish', 'sesame'] 
 
 export type MealType = (typeof MEAL_TYPES)[number];
 export type Allergen = (typeof ALLERGENS)[number];
+export type DishTag = (typeof DISH_TAGS)[number];
 
 export const PLAN_STATUSES = ['draft', 'published', 'archived'] as const;
 export type PlanStatus = (typeof PLAN_STATUSES)[number];
@@ -304,6 +305,27 @@ export const addMealSchema = z.object({
   slotKey: mealSlotSchema.shape.slotKey,
   label: mealSlotSchema.shape.label,
   timeOfDay: timeOfDaySchema,
+});
+
+/**
+ * The same slot, added to all seven days at once.
+ *
+ * No `dayOfWeek`, and that absence is the point: the board is drawn as a table
+ * of slots against days, so a new slot is a new *row*. Adding one to a single
+ * day is still possible — that is what restoring a skipped cell does — but it
+ * is the exception, not the way a schedule grows.
+ */
+export const addWeekMealSchema = z.object({
+  ...editBase,
+  slotKey: mealSlotSchema.shape.slotKey,
+  label: mealSlotSchema.shape.label,
+  timeOfDay: timeOfDaySchema,
+});
+
+/** The same slot, removed from all seven days — see `addWeekMealSchema`. */
+export const removeWeekMealSchema = z.object({
+  ...editBase,
+  slotKey: mealSlotSchema.shape.slotKey,
 });
 
 export const moveMealSchema = z.object({

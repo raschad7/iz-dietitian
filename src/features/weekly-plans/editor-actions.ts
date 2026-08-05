@@ -12,20 +12,24 @@ import { requireStaffClinic } from '@/lib/session';
 
 import {
   addMeal,
+  addMealToWeek,
   clearMeal,
   createPlanFromSkeleton,
   moveMealDish,
   placeDish,
   removeMeal,
+  removeMealFromWeek,
   setMealServings,
 } from './editor-mutations';
 import type { NewWeekState, PlanActionState } from './form-state';
 import { getClientContext, planDishesBySlot } from './queries';
 import {
   addMealSchema,
+  addWeekMealSchema,
   mealEditSchema,
   moveMealSchema,
   placeDishSchema,
+  removeWeekMealSchema,
   setServingsSchema,
   startEmptyWeekSchema,
   startWeekFromPlanSchema,
@@ -362,6 +366,49 @@ export async function addMealAction(
   });
 }
 
+/**
+ * Adds a slot to every day of the week.
+ *
+ * The board's default way to grow a schedule: slots are rows, and a row that
+ * only exists on Tuesday is a row whose label describes one cell out of seven.
+ * Restoring a single skipped day goes through `addMealAction` instead.
+ */
+export async function addWeekMealAction(
+  _previousState: PlanActionState,
+  formData: FormData,
+): Promise<PlanActionState> {
+  const locale = readLocale(formData);
+  const { clinicId } = await requireStaffClinic(locale);
+
+  const parsed = addWeekMealSchema.safeParse({
+    planId: formData.get('planId'),
+    slotKey: formData.get('slotKey'),
+    label: formData.get('label'),
+    timeOfDay: formData.get('timeOfDay'),
+    allowPublished: formData.get('allowPublished'),
+  });
+
+  if (!parsed.success) return { status: 'error', messageKey: 'errors.invalid' };
+
+  const clientId = await planClientId(clinicId, parsed.data.planId);
+  if (!clientId) return { status: 'error', messageKey: 'errors.planNotFound' };
+
+  return runEdit(locale, clientId, async () => {
+    const added = await addMealToWeek(
+      clinicId,
+      parsed.data.planId,
+      {
+        slotKey: parsed.data.slotKey,
+        label: parsed.data.label,
+        timeOfDay: parsed.data.timeOfDay,
+      },
+      parsed.data.allowPublished,
+    );
+
+    return added > 0;
+  });
+}
+
 export async function moveMealAction(
   _previousState: PlanActionState,
   formData: FormData,
@@ -392,4 +439,41 @@ export async function moveMealAction(
       parsed.data.allowPublished,
     ),
   );
+}
+
+/**
+ * Removes a slot from every day of the week.
+ *
+ * Confirmed in the UI rather than here: the server cannot tell a deliberate
+ * week-wide removal from an accidental one, and the seven meals it drops take
+ * whatever dishes were in them with them.
+ */
+export async function removeWeekMealAction(
+  _previousState: PlanActionState,
+  formData: FormData,
+): Promise<PlanActionState> {
+  const locale = readLocale(formData);
+  const { clinicId } = await requireStaffClinic(locale);
+
+  const parsed = removeWeekMealSchema.safeParse({
+    planId: formData.get('planId'),
+    slotKey: formData.get('slotKey'),
+    allowPublished: formData.get('allowPublished'),
+  });
+
+  if (!parsed.success) return { status: 'error', messageKey: 'errors.invalid' };
+
+  const clientId = await planClientId(clinicId, parsed.data.planId);
+  if (!clientId) return { status: 'error', messageKey: 'errors.planNotFound' };
+
+  return runEdit(locale, clientId, async () => {
+    const removed = await removeMealFromWeek(
+      clinicId,
+      parsed.data.planId,
+      parsed.data.slotKey,
+      parsed.data.allowPublished,
+    );
+
+    return removed > 0;
+  });
 }

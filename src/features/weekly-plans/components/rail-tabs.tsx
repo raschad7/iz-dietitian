@@ -27,7 +27,7 @@ export function RailTabs<T extends string>({
   className?: string;
 }) {
   return (
-    <div role="tablist" aria-label={label} className={cn('flex gap-1 pb-3', className)}>
+    <div role="tablist" aria-label={label} className={cn('grid grid-cols-4 border-b border-border', className)}>
       {tabs.map((tab) => (
         <button
           key={tab.id}
@@ -36,14 +36,35 @@ export function RailTabs<T extends string>({
           id={`rail-tab-${tab.id}`}
           aria-selected={tab.id === active}
           aria-controls={`rail-panel-${tab.id}`}
+          tabIndex={tab.id === active ? 0 : -1}
           onClick={() => onSelect(tab.id)}
+          onKeyDown={(event) => {
+            if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+            event.preventDefault();
+
+            const current = tabs.findIndex((entry) => entry.id === tab.id);
+            const rtl = document.documentElement.dir === 'rtl';
+            const visualStep = event.key === 'ArrowRight' ? 1 : -1;
+            const step = rtl ? -visualStep : visualStep;
+            const nextIndex =
+              event.key === 'Home'
+                ? 0
+                : event.key === 'End'
+                  ? tabs.length - 1
+                  : (current + step + tabs.length) % tabs.length;
+            const next = tabs[nextIndex];
+            if (!next) return;
+
+            onSelect(next.id);
+            document.getElementById(`rail-tab-${next.id}`)?.focus();
+          }}
           className={cn(
             // 40px, the system's floor: below `xl` this bar is inside a sheet
             // and these four are thumb targets.
-            'min-h-10 flex-1 rounded-md px-2 py-1 text-label font-medium transition-colors',
+            'relative min-h-11 px-2 py-1 text-label font-medium outline-none transition-colors after:absolute after:inset-x-2 after:bottom-[-1px] after:h-0.5 after:origin-center after:scale-x-0 after:bg-primary after:transition-transform focus-visible:bg-accent',
             tab.id === active
-              ? 'bg-primary text-primary-foreground'
-              : 'bg-muted text-muted-foreground hover:bg-accent',
+              ? 'text-primary after:scale-x-100'
+              : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground',
           )}
         >
           {tab.label}
