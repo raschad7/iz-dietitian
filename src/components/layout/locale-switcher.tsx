@@ -1,13 +1,28 @@
 'use client';
 
 import { useLocale, useTranslations } from 'next-intl';
-import { useTransition } from 'react';
+import { useEffect, useId, useRef, useState, useTransition } from 'react';
 
+import { Icon } from '@/components/ui/icon';
 import { usePathname, useRouter } from '@/i18n/navigation';
 import { locales, type Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 
-export function LocaleSwitcher({ className }: { className?: string }) {
+/**
+ * Two shapes, one control.
+ *
+ * `group` is the rail's and the portal bar's: both locales visible at once, in
+ * 40px of a rail's width. `dropdown` is the auth screens', where the switcher
+ * sits alone in the corner of a wide, otherwise empty page — there is room for
+ * the endonyms there, and a page with one card on it should not carry a second
+ * segmented control above the one that picks who is signing in.
+ */
+type LocaleSwitcherProps = {
+  className?: string;
+  variant?: 'group' | 'dropdown';
+};
+
+export function LocaleSwitcher({ className, variant = 'group' }: LocaleSwitcherProps) {
   const t = useTranslations('localeSwitcher');
   const activeLocale = useLocale() as Locale;
   const router = useRouter();
@@ -20,6 +35,17 @@ export function LocaleSwitcher({ className }: { className?: string }) {
       // `pathname` here is locale-agnostic; the router re-adds the prefix.
       router.replace(pathname, { locale: nextLocale });
     });
+  }
+
+  if (variant === 'dropdown') {
+    return (
+      <LocaleDropdown
+        className={className}
+        activeLocale={activeLocale}
+        disabled={isPending}
+        onSelect={switchTo}
+      />
+    );
   }
 
   return (
@@ -73,6 +99,119 @@ export function LocaleSwitcher({ className }: { className?: string }) {
           {t(locale)}
         </button>
       ))}
+    </div>
+  );
+}
+
+/**
+ * The corner switcher on the auth screens.
+ *
+ * **This variant shows the endonyms, and so it also carries `lang`.** The rule
+ * the `group` variant follows — Latin `AR` must not be tagged as Arabic, or a
+ * screen reader pronounces two letters in the wrong language — inverts once the
+ * label really is "العربية": untagged, it would be read with an English voice.
+ * The rule was never "no `lang`", it was "`lang` has to match the glyphs".
+ */
+function LocaleDropdown({
+  className,
+  activeLocale,
+  disabled,
+  onSelect,
+}: {
+  className?: string;
+  activeLocale: Locale;
+  disabled: boolean;
+  onSelect: (locale: Locale) => void;
+}) {
+  const t = useTranslations('localeSwitcher');
+  const [open, setOpen] = useState(false);
+  const menuId = useId();
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  /*
+   * Escape closes, and so does a pointer anywhere else — the same pair the
+   * rail's profile menu uses, and for the same reason: a menu with no way out
+   * but its own trigger strands whoever opened it by accident. `pointerdown`
+   * rather than `click`, so the menu is gone before what is underneath it acts.
+   */
+  useEffect(() => {
+    if (!open) return;
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') setOpen(false);
+    }
+    function onPointerDown(event: PointerEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    }
+
+    document.addEventListener('keydown', onKeyDown);
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      document.removeEventListener('pointerdown', onPointerDown);
+    };
+  }, [open]);
+
+  return (
+    <div ref={rootRef} className={cn('relative', className)}>
+      <button
+        type="button"
+        disabled={disabled}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-controls={menuId}
+        aria-label={t('label')}
+        onClick={() => setOpen((wasOpen) => !wasOpen)}
+        className={cn(
+          'inline-flex h-10 items-center gap-2 rounded-[10px] px-3 text-body-sm font-medium',
+          'text-muted-foreground transition-colors duration-(--duration-label) hover:text-foreground',
+          'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-focus-halo focus-visible:outline-none',
+          'disabled:opacity-50',
+          open && 'text-foreground',
+        )}
+      >
+        <span lang={activeLocale}>{t(`${activeLocale}Name`)}</span>
+        {/*
+          Down when there is more to see, up when there is not — two drawn
+          arrows rather than one rotated, which lands a half pixel off its own
+          baseline at this size.
+        */}
+        <Icon name={open ? 'chevronUp' : 'chevronDown'} className="size-4" />
+      </button>
+
+      {open ? (
+        <ul
+          id={menuId}
+          role="menu"
+          className={cn(
+            'absolute end-0 top-full z-20 mt-1 min-w-40 rounded-md border border-border bg-card p-1 shadow-elevated',
+            'motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 motion-safe:duration-200',
+          )}
+        >
+          {locales.map((locale) => (
+            <li key={locale}>
+              <button
+                type="button"
+                role="menuitemradio"
+                aria-checked={locale === activeLocale}
+                onClick={() => {
+                  onSelect(locale);
+                  setOpen(false);
+                }}
+                className={cn(
+                  'flex w-full items-center justify-between gap-3 rounded-sm px-3 py-2 text-start text-body-sm',
+                  'transition-colors duration-(--duration-label) hover:bg-accent hover:text-accent-foreground',
+                  'focus-visible:bg-accent focus-visible:outline-none',
+                  locale === activeLocale ? 'font-medium text-foreground' : 'text-muted-foreground',
+                )}
+              >
+                <span lang={locale}>{t(`${locale}Name`)}</span>
+                {locale === activeLocale ? <Icon name="check" className="size-4 text-primary" /> : null}
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </div>
   );
 }

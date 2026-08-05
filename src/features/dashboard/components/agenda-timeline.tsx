@@ -5,7 +5,7 @@ import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
 import { addDays, startOfWeek, weekdayOf } from '@/features/booking/date';
-import { formatDayNumber, formatMinuteRange, formatWeekday } from '@/features/booking/format';
+import { formatDayNumber, formatMinuteRangeLatin, formatWeekday } from '@/features/booking/format';
 import { type CalendarAppointment } from '@/features/booking/types';
 import { Link } from '@/i18n/navigation';
 import { type Locale } from '@/i18n/routing';
@@ -130,7 +130,7 @@ export async function AgendaTimeline({
                     className={cn(
                       'flex flex-col items-center gap-0.5 rounded-md py-1.5 transition-colors',
                       isToday
-                        ? 'bg-secondary font-semibold text-secondary-foreground'
+                        ? 'bg-secondary font-semibold text-primary'
                         : 'text-muted-foreground hover:bg-muted',
                     )}
                   >
@@ -154,11 +154,14 @@ export async function AgendaTimeline({
           </div>
         ) : (
           /*
-            `pe-1` leaves the scrollbar somewhere to sit that isn't on top of
-            the card's edge; `overscroll-contain` stops a flick at the end of
-            the day from scrolling the shell behind it.
+            `no-scrollbar`: the bar competed with the rail beside it for the
+            one thing on this card that is allowed to be a line down the
+            edge. The list still scrolls by wheel, trackpad, touch and
+            keyboard — only the bar itself is gone. `overscroll-contain`
+            stops a flick at the end of the day from scrolling the shell
+            behind it.
           */
-          <ol className="flex flex-col overflow-y-auto overscroll-contain pe-1 xl:min-h-0 xl:flex-1">
+          <ol className="flex flex-col overflow-y-auto overscroll-contain no-scrollbar xl:min-h-0 xl:flex-1">
             {ordered.map((appointment, index) => {
               const isFirst = index === 0;
               const isLast = index === ordered.length - 1;
@@ -202,11 +205,11 @@ export async function AgendaTimeline({
                       'group/session mb-3 block min-w-0 flex-1 rounded-lg transition-all duration-200 ease-[cubic-bezier(.2,.6,.2,1)]',
                       isLast && 'mb-0',
                       /*
-                        The next session rests in the brand's quiet fill and
-                        fills in to solid primary under the pointer — the same
-                        move the quick actions make. It was solid primary at
-                        rest, which made the one card you are meant to *read*
-                        the loudest thing on the page and left its hover with
+                        The next session rests in olive-100 and fills in to
+                        solid primary under the pointer — the same move the
+                        quick actions make. It was solid primary at rest,
+                        which made the one card you are meant to *read* the
+                        loudest thing on the page and left its hover with
                         nowhere to go but a slightly darker olive.
 
                         n-900 on olive-100 is 14.7:1; white on olive-600 is
@@ -220,9 +223,11 @@ export async function AgendaTimeline({
                     )}
                   >
                     <div className="flex items-baseline justify-between gap-2">
-                      <span className={cn('font-mono', isFocused ? 'text-body-md' : 'text-caption')}>
-                        {formatMinuteRange(
-                          locale,
+                      <span
+                        className={cn('font-sans font-semibold', isFocused ? 'text-body-md' : 'text-caption')}
+                        dir="ltr"
+                      >
+                        {formatMinuteRangeLatin(
                           appointment.date,
                           appointment.startMinute,
                           appointment.startMinute + appointment.durationMinutes,
@@ -230,15 +235,19 @@ export async function AgendaTimeline({
                       </span>
 
                       {/*
-                        The chip inverts with the card it sits on. Lime is
-                        1.17:1 against the resting olive-100 fill — it would
-                        be invisible at exactly the moment it has a job to
-                        do — so it rests as a solid primary chip (4.66:1 on
-                        the fill) and becomes the lime one on hover, where
-                        the card has gone dark and lime is 3.99:1.
+                        The chip inverts with the card it sits on. It rests a
+                        step above the card's own olive-100 fill — olive-200,
+                        the ramp's next stop, since there is no named token
+                        between them — and becomes the lime one on hover,
+                        where the card has gone dark and lime is 3.99:1.
 
                         Still the page's one lime element. Do not add a
                         second accent anywhere else on it.
+
+                        Square corners are dropped for `rounded-lg` — the
+                        same 16px radius the card it sits on carries — rather
+                        than the badge's usual pill, so the chip reads as
+                        belonging to this card and not as a generic label.
 
                         Nothing sits here on the other rows: the length of a
                         session is already in the time range beside it, and
@@ -249,7 +258,7 @@ export async function AgendaTimeline({
                         <Badge
                           variant="accent"
                           className={cn(
-                            'bg-primary text-primary-foreground transition-colors',
+                            'rounded-lg bg-(--olive-200) text-foreground transition-colors',
                             'group-hover/session:bg-accent-lime group-hover/session:text-on-accent',
                           )}
                         >
