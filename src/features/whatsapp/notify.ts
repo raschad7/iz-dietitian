@@ -1,6 +1,5 @@
 import { hasStarted, wallClockIn } from '@/features/booking/completed';
 import { formatLongDate, formatMinute } from '@/features/booking/format';
-import { type Locale } from '@/i18n/routing';
 import { DISPLAY_TIME_ZONE } from '@/lib/format';
 
 import { getAppointmentTarget, getClientTarget, getSettings } from './queries';
@@ -268,10 +267,6 @@ export async function notifyPortalCredentials(
         time: '-',
         username: credentials.username,
         password: credentials.temporaryPassword,
-        // The portal link keeps the client's own locale: they will be *reading a
-        // screen* there, which is exactly what `preferred_locale` is for, and an
-        // English-reading client should not land on an Arabic sign-in page.
-        portalUrl: portalSignInUrl(target.preferredLocale),
       },
     },
     {
@@ -282,22 +277,6 @@ export async function notifyPortalCredentials(
       dedupeKey: credentialsDedupeKey(clientId, credentials.username, credentials.issuedAt),
     },
   );
-}
-
-/**
- * The client sign-in URL, in the client's own language.
- *
- * `NEXT_PUBLIC_APP_URL` is the browser-facing origin — deliberately not
- * `WHATSAPP_PUBLIC_URL`, which is how the *gateway* reaches this app and is
- * commonly `host.docker.internal`. A patient tapping that link would get nothing.
- */
-function portalSignInUrl(locale: Locale): string {
-  const base = (process.env.NEXT_PUBLIC_APP_URL ?? process.env.BETTER_AUTH_URL ?? 'http://localhost:3000').replace(
-    /\/+$/,
-    '',
-  );
-
-  return `${base}/${locale}/client-login`;
 }
 
 /**

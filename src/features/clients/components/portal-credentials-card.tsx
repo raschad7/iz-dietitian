@@ -5,6 +5,7 @@ import { useActionState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardField, CardHeader, CardTitle } from '@/components/ui/card';
+import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -29,9 +30,12 @@ type PortalCredentialsCardProps = {
   /** Server-computed suggestion, editable before the account is created. */
   suggestedUsername: string;
   /**
-   * Whether to offer sending the credentials over WhatsApp: the clinic has a live
-   * WhatsApp connection *and* this client has a phone number. False hides the
-   * option rather than showing one that cannot work.
+   * Whether issuing will actually reach this client over WhatsApp: the clinic
+   * has a live connection *and* the client has a phone number.
+   *
+   * It no longer gates the send — that is automatic now — only the notice
+   * promising it. False renders nothing rather than telling the dietitian a
+   * message is on its way that the gateway will skip.
    */
   canSendWhatsapp: boolean;
 };
@@ -111,7 +115,7 @@ function IssueForm({
         <Input id="username" name="username" dir="ltr" required defaultValue={suggestedUsername} />
       </div>
 
-      {canSendWhatsapp ? <WhatsappOptIn /> : null}
+      {canSendWhatsapp ? <WhatsappNotice /> : null}
 
       <CredentialsMessage state={state} />
 
@@ -160,7 +164,7 @@ function ExistingAccess({
         <form action={reissueAction} className="space-y-2">
           <input type="hidden" name="locale" value={locale} />
           <input type="hidden" name="clientId" value={clientId} />
-          {canSendWhatsapp ? <WhatsappOptIn /> : null}
+          {canSendWhatsapp ? <WhatsappNotice /> : null}
           <ConfirmSubmitButton
             label={t('portal.reissue')}
             confirmMessage={t('portal.confirmReissue')}
@@ -197,24 +201,26 @@ function ExistingAccess({
 }
 
 /**
- * The "send these over WhatsApp too" opt-in.
+ * What will happen when the button below is pressed.
  *
- * Unchecked by default, and only rendered when it can actually work. Sending a
- * temporary password through a chat is a considered trade-off — see
- * `deliverCredentials` in `../actions.ts` — so it is always a decision somebody
- * makes, never a default somebody forgets.
+ * This replaced an unchecked opt-in checkbox when the send became automatic. A
+ * notice rather than nothing, because the message carries a password to a phone
+ * the dietitian is not holding: something that always happens still has to be
+ * something they knew was going to happen, and the moment to say so is before
+ * the button, not in the result afterwards.
+ *
+ * Rendered only when the send can actually work — a live WhatsApp session and a
+ * phone number on this client. Where it cannot, the card promises nothing and
+ * the credentials are handed over on screen.
  */
-function WhatsappOptIn() {
+function WhatsappNotice() {
   const t = useTranslations('clients');
 
   return (
-    <label className="flex items-start gap-2 text-sm">
-      <input type="checkbox" name="sendWhatsapp" className="mt-0.5 size-4 rounded border-input accent-primary" />
-      <span>
-        {t('portal.sendWhatsapp')}
-        <span className="block text-xs text-muted-foreground">{t('portal.sendWhatsappHelp')}</span>
-      </span>
-    </label>
+    <p className="flex items-start gap-2 rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
+      <Icon name="whatsapp" className="mt-0.5 size-4 shrink-0" />
+      {t('portal.willSendWhatsapp')}
+    </p>
   );
 }
 
