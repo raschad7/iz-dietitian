@@ -104,6 +104,29 @@ const buttonVariants = cva(
           "border-transparent bg-secondary text-secondary-foreground hover:bg-[var(--olive-100)]",
 
         /**
+         * Primary, at rest. Olive-100 with an olive label, filling to the solid
+         * primary — white label and all — under the pointer.
+         *
+         * The same move the dashboard's next session and its quick actions
+         * make, as a control: for the affirmative action on a card that is
+         * itself something you read, where a solid olive block would make the
+         * loudest thing on the page the one you are meant to consider first
+         * rather than act on first. It still fills in, so the button that
+         * commits has somewhere to go.
+         *
+         * olive-700 on olive-100 is 6.51:1 — so the *resting* state, the one
+         * that has to be readable, passes. The hover fill is olive-500 under a
+         * white label at 3.47:1, which is `default`'s own knowing brand
+         * failure (see the ⚠ note in docs/design-system.md); this variant does
+         * not add one, it inherits it, and only in the transient state.
+         *
+         * `primary-subtle` remaps in dark mode, so this needs no second
+         * definition there.
+         */
+        primarySubtle:
+          "border-transparent bg-primary-subtle text-secondary-foreground hover:bg-primary hover:text-primary-foreground",
+
+        /**
          * Inline text link. The one place `rounded-none` is legal, because a
          * link is a run of text, not a surface — it has no corners at all.
          */

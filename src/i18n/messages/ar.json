@@ -21,6 +21,10 @@
     "remove": "إزالة",
     "close": "إغلاق"
   },
+  "datePicker": {
+    "open": "اختر تاريخًا",
+    "empty": "اختر تاريخًا"
+  },
   "nav": {
     "dashboard": "لوحة التحكم",
     "clients": "المتابعون",
@@ -38,8 +42,7 @@
     "weeklyPlans": "الخطط الأسبوعية",
     "dishes": "كتالوج الأطباق",
     "whatsapp": "واتساب",
-    "notifications": "الإشعارات",
-    "requests": "الطلبات"
+    "notifications": "الإشعارات"
   },
   "landing": {
     "title": "إدارة عيادتك الغذائية في مكان واحد",
@@ -139,6 +142,7 @@
     "completed": "منتهٍ",
     "now": "الآن",
     "openClientProfile": "فتح ملف المتابع",
+    "openActions": "إجراءات الموعد",
     "monthMore": "+{count, number, integer} أخرى",
     "monthReadOnly": "عرض الشهر للاطّلاع فقط. انقر على أي يوم للحجز أو التعديل.",
     "nav": {
@@ -260,30 +264,6 @@
         "title": "الخطط الأسبوعية",
         "hint": "يفتح لوحة الخطط"
       }
-    },
-    "ageDistribution": {
-      "title": "توزّع الأعمار",
-      "empty": "لا متابعين في السجل بعد",
-      "tooltip": "{count, plural, =0 {لا متابعين} one {متابع واحد} two {متابعان} few {# متابعين} many {# متابعًا} other {# متابع}} في الفئة {band}",
-      "bands": {
-        "under18": "أقل من 18",
-        "age18to29": "18–29",
-        "age30to44": "30–44",
-        "age45to59": "45–59",
-        "age60plus": "60 فأكثر",
-        "unknown": "غير مسجّل"
-      }
-    },
-    "sexDistribution": {
-      "title": "توزّع الجنس",
-      "empty": "لا متابعين في السجل بعد",
-      "centerLabel": "متابع",
-      "tooltip": "{count, plural, =0 {لا متابعين} one {متابع واحد} two {متابعان} few {# متابعين} many {# متابعًا} other {# متابع}} — {group}",
-      "groups": {
-        "female": "إناث",
-        "male": "ذكور",
-        "unknown": "غير مسجّل"
-      }
     }
   },
   "notifications": {
@@ -362,8 +342,7 @@
     },
     "dashboard": {
       "title": "بانتظار ردّك ({count, number, integer})",
-      "openInbox": "كل الطلبات",
-      "more": "{count, plural, one {طلب واحد آخر} two {طلبان آخران} few {# طلبات أخرى} many {# طلبًا آخر} other {# طلب آخر}}"
+      "openInbox": "كل الطلبات"
     },
     "errors": {
       "invalid": "تحقّق من البيانات المُدخلة.",
@@ -384,7 +363,20 @@
     "edit": "تعديل",
     "empty": "لا يوجد متابعون بعد. ابدأ بإضافة أول متابع.",
     "emptyFiltered": "لا نتائج مطابقة لبحثك.",
-    "searchPlaceholder": "ابحث بالاسم أو الهاتف أو البريد",
+    "searchPlaceholder": "ابحث بالاسم",
+    "filter": {
+      "trigger": "تصفية",
+      "title": "تصفية السجل",
+      "column": "التصفية حسب",
+      "value": "المطابق",
+      "contains": "يحتوي على…",
+      "apply": "تطبيق",
+      "clear": "مسح",
+      "portalAccess": {
+        "yes": "لديه دخول",
+        "no": "لا دخول له"
+      }
+    },
     "resultCount": "{total, number, integer} متابع",
     "notFound": "المتابع غير موجود",
     "notFoundDescription": "قد يكون هذا المتابع قد حُذف، أو أنّ الرابط غير صحيح.",

@@ -6,6 +6,7 @@ import { Icon, type IconName } from '@/components/ui/icon';
 import { Link } from '@/i18n/navigation';
 import { type Locale } from '@/i18n/routing';
 import { formatTimeAgo } from '@/lib/format';
+import { cn } from '@/lib/utils';
 
 import { type StaffClientRequest } from '../types';
 
@@ -33,6 +34,7 @@ export type ClientRequestCardProps = {
   request: StaffClientRequest;
   locale: Locale;
   now: Date;
+  /** See `AppointmentRequestCardProps.size` — `sm` is the dashboard's tile. */
   size?: 'default' | 'sm';
 };
 
@@ -43,23 +45,40 @@ export async function ClientRequestCard({ request, locale, now, size = 'default'
   const isDeletion = request.kind === 'account_deletion';
 
   return (
-    <Card variant="listRow" size={compact ? 'sm' : 'default'} className="px-4">
+    <Card
+      variant={compact ? 'tile' : 'listRow'}
+      size={compact ? 'sm' : 'default'}
+      className={compact ? undefined : 'px-4'}
+    >
       <CardContent className="flex flex-col gap-3">
         <div className="flex items-start gap-3">
           {/*
-            A deletion is the one item in this inbox that ends someone's care,
-            so it takes the medical tone. A correction is ordinary work and
-            stays amber with everything else.
+            On the dashboard's tile, a plain neutral glyph like every other card
+            on that page — see `AppointmentRequestCard` for why the disc goes.
+            The deletion's clay is not lost with it: its badge below is the
+            `medical` one, and that is the thing a reader was actually reading.
+
+            In the inbox the disc stays, and a deletion takes the medical tone
+            there — it is the one item in that list that ends someone's care. A
+            correction is ordinary work and stays amber with everything else.
           */}
-          <span
-            className={
-              isDeletion
-                ? 'flex size-8 shrink-0 items-center justify-center rounded-full bg-status-medical-bg text-status-medical-fg'
-                : 'flex size-8 shrink-0 items-center justify-center rounded-full bg-status-attention-bg text-status-attention-fg'
-            }
-          >
-            <Icon name={KIND_ICONS[request.kind]} className="size-4" />
-          </span>
+          {compact ? (
+            <Icon
+              name={KIND_ICONS[request.kind]}
+              className="mt-1 size-4 shrink-0 text-muted-foreground"
+            />
+          ) : (
+            <span
+              className={cn(
+                'flex size-8 shrink-0 items-center justify-center rounded-full',
+                isDeletion
+                  ? 'bg-status-medical-bg text-status-medical-fg'
+                  : 'bg-status-attention-bg text-status-attention-fg',
+              )}
+            >
+              <Icon name={KIND_ICONS[request.kind]} className="size-4" />
+            </span>
+          )}
 
           <div className="min-w-0 flex-1 space-y-1">
             <div className="flex flex-wrap items-baseline justify-between gap-x-2">
@@ -102,7 +121,7 @@ export async function ClientRequestCard({ request, locale, now, size = 'default'
           </div>
         </div>
 
-        <div className="space-y-2 ps-11">
+        <div className={cn('space-y-2', compact ? 'ps-7' : 'ps-11')}>
           <ClientRequestActions request={request} locale={locale} size={compact ? 'sm' : 'default'} />
         </div>
       </CardContent>

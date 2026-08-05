@@ -86,6 +86,17 @@ const ICONS = {
   /** The "this column can be sorted" affordance, before a direction is chosen. */
   sort: 'sort-vertical-bold',
 
+  /**
+   * "There is more you can do to this thing." The calendar's appointment cards
+   * carry it in their top corner, where it opens exactly what a right-click
+   * opens.
+   *
+   * The same Solar glyph as `dragHandle` and deliberately a second entry — the
+   * one is a grip and this one is a menu, and either can be redrawn without
+   * dragging the other with it. Same reasoning as `navNode` / `leaf`.
+   */
+  moreActions: 'menu-dots-bold',
+
   // Weekly plan board
   /** The separate handle that starts a drag, so dragging never steals the click. */
   dragHandle: 'menu-dots-bold',

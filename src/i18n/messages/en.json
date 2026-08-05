@@ -21,6 +21,10 @@
     "remove": "Remove",
     "close": "Close"
   },
+  "datePicker": {
+    "open": "Pick a date",
+    "empty": "Pick a date"
+  },
   "nav": {
     "dashboard": "Dashboard",
     "clients": "Clients",
@@ -38,8 +42,7 @@
     "weeklyPlans": "Weekly Plans",
     "dishes": "Dish catalog",
     "whatsapp": "WhatsApp",
-    "notifications": "Notifications",
-    "requests": "Requests"
+    "notifications": "Notifications"
   },
   "landing": {
     "title": "Run your dietitian practice in one place",
@@ -139,6 +142,7 @@
     "completed": "Completed",
     "now": "Now",
     "openClientProfile": "Open client profile",
+    "openActions": "Appointment actions",
     "monthMore": "+{count, number, integer} more",
     "monthReadOnly": "Month view is an overview. Click a day to book or edit.",
     "nav": {
@@ -260,30 +264,6 @@
         "title": "Weekly plans",
         "hint": "Opens the plan board"
       }
-    },
-    "ageDistribution": {
-      "title": "Age distribution",
-      "empty": "No clients on the register yet",
-      "tooltip": "{count, plural, =0 {No clients} one {# client} other {# clients}} aged {band}",
-      "bands": {
-        "under18": "Under 18",
-        "age18to29": "18–29",
-        "age30to44": "30–44",
-        "age45to59": "45–59",
-        "age60plus": "60 and over",
-        "unknown": "Not recorded"
-      }
-    },
-    "sexDistribution": {
-      "title": "Sex distribution",
-      "empty": "No clients on the register yet",
-      "centerLabel": "clients",
-      "tooltip": "{count, plural, =0 {No clients} one {# client} other {# clients}} — {group}",
-      "groups": {
-        "female": "Female",
-        "male": "Male",
-        "unknown": "Not recorded"
-      }
     }
   },
   "notifications": {
@@ -362,8 +342,7 @@
     },
     "dashboard": {
       "title": "Waiting on you ({count, number, integer})",
-      "openInbox": "All requests",
-      "more": "{count, plural, one {# more request} other {# more requests}}"
+      "openInbox": "All requests"
     },
     "errors": {
       "invalid": "Check the details you entered.",
@@ -384,7 +363,20 @@
     "edit": "Edit",
     "empty": "No clients yet. Start by adding your first one.",
     "emptyFiltered": "No clients match your search.",
-    "searchPlaceholder": "Search by name, phone or email",
+    "searchPlaceholder": "Search by name",
+    "filter": {
+      "trigger": "Filter",
+      "title": "Filter the register",
+      "column": "Filter by",
+      "value": "Matching",
+      "contains": "Contains…",
+      "apply": "Apply",
+      "clear": "Clear",
+      "portalAccess": {
+        "yes": "Has access",
+        "no": "No access"
+      }
+    },
     "resultCount": "{total, number, integer} clients",
     "notFound": "Client not found",
     "notFoundDescription": "This client may have been removed, or the link is incorrect.",

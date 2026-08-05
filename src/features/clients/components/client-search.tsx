@@ -7,6 +7,7 @@ import { useEffect, useRef, useState, useTransition } from 'react';
 import { buttonVariants } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
+import { ClientFilterMenu } from '@/features/clients/components/client-filter';
 import { ClientFormTrigger } from '@/features/clients/components/client-form-trigger';
 import { type ListClientsInput } from '@/features/clients/schema';
 import { usePathname, useRouter } from '@/i18n/navigation';
@@ -16,13 +17,21 @@ import { type Locale } from '@/i18n/routing';
 const SEARCH_DEBOUNCE_MS = 300;
 
 /**
+ * The register's toolbar: search, filter, new client.
+ *
+ * **The field searches names.** Nothing else — it used to match phone and email
+ * along with them, which made one box mean three things and gave a reader no
+ * way to say which. Those are columns you filter on now, in the control beside
+ * it (`ClientFilterMenu`), and the field answers the question it is actually
+ * used for: which of these people is Ahmad.
+ *
  * Typing here re-queries the register live — no Enter, no submit button. The
  * term still round-trips through the URL (`router.replace`, so a keystroke
  * never adds a history entry of its own), which is what keeps a search
  * shareable and is what the page reads to run the query.
  *
- * Every other filter already in the address bar — sort, direction, status —
- * rides along untouched: a search only ever adds or clears `q`.
+ * Every other parameter already in the address bar — sort, direction, the
+ * filter — rides along untouched: a search only ever adds or clears `q`.
  */
 export function ClientSearch({ input, locale }: { input: ListClientsInput; locale: Locale }) {
   const t = useTranslations('clients');
@@ -69,7 +78,9 @@ export function ClientSearch({ input, locale }: { input: ListClientsInput; local
   }
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3">
+    // `shrink-0`: this row is chrome the register scrolls under, never something
+    // the list squeezes to make room for itself. See the page component.
+    <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
       {/*
         The glyph is inside the field's box rather than beside it. `relative` on
         the wrapper and `start-4` on the icon keep it on the reading edge in
@@ -93,11 +104,23 @@ export function ClientSearch({ input, locale }: { input: ListClientsInput; local
         />
       </div>
 
-      {/* Opens the client card over the list. */}
-      <ClientFormTrigger locale={locale} className={buttonVariants()}>
-        <Icon name="addClient" />
-        {t('new')}
-      </ClientFormTrigger>
+      {/*
+        The two controls travel together at the row's inline-end, and the field
+        above gives up the width they need — it is `flex-1`, so the filter cost
+        it exactly its own width and nothing had to be measured. Filter first:
+        it is the narrower of the two and the one that qualifies what the field
+        beside it just asked for, so the reading order is question, then
+        qualifier, then the thing that has nothing to do with either.
+      */}
+      <div className="flex shrink-0 items-center gap-2">
+        <ClientFilterMenu input={input} />
+
+        {/* Opens the client card over the list. */}
+        <ClientFormTrigger locale={locale} className={buttonVariants()}>
+          <Icon name="addClient" />
+          {t('new')}
+        </ClientFormTrigger>
+      </div>
     </div>
   );
 }

@@ -1,11 +1,11 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/dialog';
-import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
@@ -165,8 +165,6 @@ export function ApproveDialog({
   const tBooking = useTranslations('booking');
   const direction = getLocaleDirection(locale);
 
-  const nativeDateRef = useRef<HTMLInputElement>(null);
-
   /**
    * Opens on the day the client asked for, falling back to the appointment being
    * moved and then to today.
@@ -312,28 +310,24 @@ export function ApproveDialog({
                     }}
                   />
 
-                  <div className="relative shrink-0">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      aria-label={tBooking('fields.openDatePicker')}
-                      onClick={() => nativeDateRef.current?.showPicker()}
-                    >
-                      <Icon name="calendar" />
-                    </Button>
+                  {/*
+                    The app's picker, not the browser's — same pairing as the
+                    calendar's appointment dialog, and the same reasoning: a
+                    month-and-year caption, styled by the design system rather
+                    than by the OS.
 
-                    {/* Kept in the layout and made invisible rather than
-                        `display: none` — `showPicker()` throws on an element
-                        that is not rendered. */}
-                    <input
-                      ref={nativeDateRef}
-                      type="date"
-                      tabIndex={-1}
-                      aria-hidden
+                    No `min`, matching what the native input was doing here: a
+                    request that sat unanswered over the weekend is still one a
+                    dietitian may want to approve onto the day it was asked
+                    for, and the server is where that call gets made.
+                  */}
+                  <div className="shrink-0">
+                    <DatePicker
+                      trigger="icon"
+                      locale={locale}
                       value={date}
-                      onChange={(event) => commitDateText(event.target.value)}
-                      className="pointer-events-none absolute inset-0 size-full opacity-0"
+                      label={tBooking('fields.openDatePicker')}
+                      onChange={commitDateText}
                     />
                   </div>
                 </div>

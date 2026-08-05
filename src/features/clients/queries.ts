@@ -1,10 +1,15 @@
-import { and, asc, count, desc, eq, ilike, or, sql, type AnyColumn, type SQL } from 'drizzle-orm';
+import { and, asc, count, desc, eq, ilike, isNotNull, isNull, sql, type AnyColumn, type SQL } from 'drizzle-orm';
 
 import { db } from '@/db';
 import { clients, type Client } from '@/db/schema';
 
 import { normalizeForSearch } from './search';
-import { clientIdSchema, type ListClientsInput } from './schema';
+import {
+  CLIENT_STATUSES,
+  clientIdSchema,
+  type ClientStatus,
+  type ListClientsInput,
+} from './schema';
 
 /**
  * Reads for the clients feature. Imports nothing from Next.js so that the tests
@@ -32,6 +37,56 @@ export type ClientListResult = {
 export type ClientDetail = Client & { hasPortalAccess: boolean };
 
 /**
+ * Which clients the status rule lets through.
+ *
+ * The register shows active clients unless it is explicitly told otherwise, so
+ * this is the default whenever the reader is filtering on something else — or
+ * on nothing. Only `filterBy: 'status'` can change it, and a value outside the
+ * set falls back to the default rather than showing the whole register: a
+ * mistyped query string should not quietly widen what is on screen.
+ */
+function statusRule(input: ListClientsInput): ClientStatus | 'all' {
+  if (input.filterBy !== 'status') return 'active';
+
+  const value = input.filterValue;
+  if (value === 'all') return 'all';
+  return CLIENT_STATUSES.find((status) => status === value) ?? 'active';
+}
+
+/**
+ * The one column the reader chose to filter on, if any.
+ *
+ * `status` is not here — it is the rule above, because it is the one filter
+ * that also has a default. A column with no value filters nothing: the popover
+ * can be opened and a column picked without a term typed yet, and that state
+ * should show the register, not an empty one.
+ */
+function filterCondition(input: ListClientsInput): SQL | undefined {
+  const value = input.filterValue;
+  if (!value) return undefined;
+
+  switch (input.filterBy) {
+    // Matched as typed, like the register renders them: a phone number and an
+    // email address have no folded copy to search, and both are read
+    // left-to-right whatever the page's direction is.
+    case 'phone':
+      return ilike(clients.phone, `%${value}%`);
+    case 'email':
+      return ilike(clients.email, `%${value}%`);
+    // Not a column — `userId IS NOT NULL`, exactly what the list renders in
+    // that cell and what `SORT_COLUMNS` orders it by.
+    case 'portalAccess':
+      return value === 'yes'
+        ? isNotNull(clients.userId)
+        : value === 'no'
+          ? isNull(clients.userId)
+          : undefined;
+    default:
+      return undefined;
+  }
+}
+
+/**
  * Every read is scoped to one clinic.
  *
  * `clinicId` is a required first argument rather than an optional filter so that
@@ -40,19 +95,26 @@ export type ClientDetail = Client & { hasPortalAccess: boolean };
 function buildFilter(clinicId: string, input: ListClientsInput): SQL | undefined {
   const conditions: SQL[] = [eq(clients.clinicId, clinicId)];
 
-  if (input.status !== 'all') {
-    conditions.push(eq(clients.status, input.status));
-  }
+  const status = statusRule(input);
+  if (status !== 'all') conditions.push(eq(clients.status, status));
 
   if (input.q) {
-    // The name is matched against the normalised column using the same folding
-    // applied when it was stored; phone and email are matched as typed.
-    const name = `%${normalizeForSearch(input.q)}%`;
-    const raw = `%${input.q.trim()}%`;
+    /*
+      **The search field is the name column, and only the name column.** It
+      used to also match phone and email, which made one field mean three
+      things: typing "05" returned every client whose number contains it and
+      whoever happens to have "05" in their address, and there was no way to
+      say which you meant. Those two are columns you *filter* on now — see
+      `filterCondition` — and this is the one you search.
 
-    const matches = or(ilike(clients.searchName, name), ilike(clients.phone, raw), ilike(clients.email, raw));
-    if (matches) conditions.push(matches);
+      Matched against the normalised column using the same folding applied when
+      the name was stored, so "احمد" finds "أحمد".
+    */
+    conditions.push(ilike(clients.searchName, `%${normalizeForSearch(input.q)}%`));
   }
+
+  const filter = filterCondition(input);
+  if (filter) conditions.push(filter);
 
   return and(...conditions);
 }

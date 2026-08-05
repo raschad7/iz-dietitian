@@ -10,64 +10,32 @@
  *
  * ISO strings are zero-padded, which makes `a < b` a correct chronological
  * comparison. Several call sites rely on that instead of parsing.
+ *
+ * The value type and its parsing primitives now live in `src/lib/iso-date.ts`,
+ * because the shared date picker needs them and a control in
+ * `src/components/ui/` cannot reach into a feature. They are re-exported here
+ * unchanged: this module is still the one place the booking code imports a
+ * date from.
  */
+import {
+  daysInMonth,
+  isoToParts,
+  partsToIso,
+  type IsoDate,
+} from '@/lib/iso-date';
 
-/** A `YYYY-MM-DD` calendar date. */
-export type IsoDate = string;
-
-export type DateParts = { year: number; month: number; day: number };
-
-const ISO_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
-
-const DAYS_IN_MONTH = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31] as const;
-
-function isLeapYear(year: number): boolean {
-  return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
-}
-
-export function daysInMonth(year: number, month: number): number {
-  if (month < 1 || month > 12) return 0;
-  if (month === 2 && isLeapYear(year)) return 29;
-  return DAYS_IN_MONTH[month - 1] ?? 0;
-}
-
-/**
- * True only for a date that actually existed. `2026-02-30` is syntactically
- * fine and semantically nonsense; `new Date(2026, 1, 30)` would silently roll it
- * forward to March, which is exactly the corruption this prevents.
- */
-export function isValidDate({ year, month, day }: DateParts): boolean {
-  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return false;
-  if (year < 1900 || year > 2200) return false;
-  if (month < 1 || month > 12) return false;
-  return day >= 1 && day <= daysInMonth(year, month);
-}
-
-function pad(value: number, length = 2): string {
-  return String(value).padStart(length, '0');
-}
-
-export function partsToIso({ year, month, day }: DateParts): IsoDate {
-  return `${pad(year, 4)}-${pad(month)}-${pad(day)}`;
-}
-
-/** Returns null for anything that is not a real `YYYY-MM-DD` date. */
-export function isoToParts(iso: string): DateParts | null {
-  const match = ISO_PATTERN.exec(iso);
-  if (!match) return null;
-
-  const parts = { year: Number(match[1]), month: Number(match[2]), day: Number(match[3]) };
-  return isValidDate(parts) ? parts : null;
-}
-
-export function isIsoDate(value: string): boolean {
-  return isoToParts(value) !== null;
-}
-
-/** Reads a `Date`'s **local** calendar day. Used only on values already local. */
-export function toIsoDate(value: Date): IsoDate {
-  return partsToIso({ year: value.getFullYear(), month: value.getMonth() + 1, day: value.getDate() });
-}
+export {
+  daysInMonth,
+  isIsoDate,
+  isValidDate,
+  isoToLocalDate,
+  isoToParts,
+  parseDateInput,
+  partsToIso,
+  toIsoDate,
+  type DateParts,
+  type IsoDate,
+} from '@/lib/iso-date';
 
 /**
  * Day of the week, 0 = Sunday … 6 = Saturday — the same numbering as
@@ -144,39 +112,13 @@ export function isSameMonth(a: IsoDate, b: IsoDate): boolean {
 }
 
 /**
- * Parses what a human typed into the popup's date field.
- *
- * Accepts `2026-08-05`, `8/5/2026` and `08-05-2026`. The two slash/dash forms
- * are read **month first**, matching the `M/D/YYYY` in the spec — `13/5/2026` is
- * therefore rejected rather than silently read as 13 May.
- *
- * Returns null for anything malformed or for a date that never existed, so the
- * caller can snap the field back instead of writing a rolled-over value.
- */
-export function parseDateInput(raw: string): IsoDate | null {
-  const value = raw.trim();
-  if (value === '') return null;
-
-  const iso = ISO_PATTERN.exec(value);
-  if (iso) {
-    const parts = { year: Number(iso[1]), month: Number(iso[2]), day: Number(iso[3]) };
-    return isValidDate(parts) ? partsToIso(parts) : null;
-  }
-
-  const parsed = /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/.exec(value);
-  if (!parsed) return null;
-
-  const parts = { year: Number(parsed[3]), month: Number(parsed[1]), day: Number(parsed[2]) };
-  return isValidDate(parts) ? partsToIso(parts) : null;
-}
-
-/**
  * Minutes from midnight rendered as `HH:MM` — a stable, locale-free value for a
  * `<input type="time">` or a `<select>`. Anything a human reads goes through
  * `Intl` in `src/lib/format.ts` instead.
  */
 export function minuteToClock(minute: number): string {
   const normalized = ((Math.round(minute) % 1440) + 1440) % 1440;
+  const pad = (value: number) => String(value).padStart(2, '0');
   return `${pad(Math.floor(normalized / 60))}:${pad(normalized % 60)}`;
 }
 

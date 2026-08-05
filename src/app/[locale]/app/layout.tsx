@@ -14,22 +14,24 @@ type AppLayoutProps = {
 };
 
 /**
- * The six places a dietitian works.
+ * The five places a dietitian works.
  *
  * Profile, WhatsApp and security used to sit here too, which made a third of
  * the rail settings. They are behind the profile menu at its foot now — see
  * `SidebarProfile` — so this list is only the screens a working day is spent
  * on, and none of them are duplicated there.
  *
- * Requests sits beside the calendar rather than under the profile menu with
- * notifications, and the difference is real: notifications is a feed you check,
- * while requests is a screen you work in — approving one writes the calendar.
+ * **Requests is deliberately not a destination.** The inbox is reached from the
+ * dashboard's requests card and from the notifications feed, both of which
+ * appear only when something is actually pending. A permanent rail row for it
+ * was a row that said "nothing" on most days, in the one list where every item
+ * is somewhere a working day is spent; the card that does have something to
+ * say is the way in. See `PendingRequestsCard`.
  */
 const NAV_ITEMS = [
   { href: '/app', labelKey: 'dashboard' },
   { href: '/app/clients', labelKey: 'clients' },
   { href: '/app/calendar', labelKey: 'calendar' },
-  { href: '/app/requests', labelKey: 'requests' },
   { href: '/app/weekly-plans', labelKey: 'weeklyPlans' },
   { href: '/app/dishes', labelKey: 'dishes' },
 ] as const;
@@ -45,7 +47,6 @@ const NAV_ICONS = {
   dashboard: 'dashboard',
   clients: 'clients',
   calendar: 'calendar',
-  requests: 'chat',
   weeklyPlans: 'weeklyPlans',
   dishes: 'dishes',
 } as const satisfies Record<(typeof NAV_ITEMS)[number]['labelKey'], IconName>;

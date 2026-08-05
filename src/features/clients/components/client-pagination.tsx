@@ -15,7 +15,9 @@ export function ClientPagination({ result, input }: { result: ClientListResult; 
     pathname: '/app/clients' as const,
     query: {
       ...(input.q ? { q: input.q } : {}),
-      status: input.status,
+      ...(input.filterBy && input.filterValue
+        ? { filterBy: input.filterBy, filterValue: input.filterValue }
+        : {}),
       sort: input.sort,
       dir: input.dir,
       page: String(page),
@@ -23,7 +25,7 @@ export function ClientPagination({ result, input }: { result: ClientListResult; 
   });
 
   return (
-    <nav className="flex items-center justify-between gap-4 text-sm" aria-label={t('title')}>
+    <nav className="flex shrink-0 items-center justify-between gap-4 text-sm" aria-label={t('title')}>
       {result.page > 1 ? (
         <Link href={query(result.page - 1)} className="underline-offset-4 hover:underline">
           {t('pagination.previous')}

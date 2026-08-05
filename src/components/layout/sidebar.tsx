@@ -15,13 +15,17 @@ import { cn } from '@/lib/utils';
  * settings, not places you work, and they live in the profile menu at the foot
  * of the rail (`SidebarProfile`). Anything reachable from both lists would be
  * two answers to "where does this live".
+ *
+ * `/app/requests` is absent for a different reason — it is a screen you work
+ * in, but only when a client is waiting, so it is reached from the dashboard
+ * card and the notifications feed that know whether one is. See the nav list in
+ * `src/app/[locale]/app/layout.tsx`.
  */
 export type NavItem = {
   href:
     | '/app'
     | '/app/clients'
     | '/app/calendar'
-    | '/app/requests'
     | '/app/weekly-plans'
     | '/app/dishes'
     | '/portal'
@@ -33,7 +37,6 @@ export type NavItem = {
     | 'dashboard'
     | 'clients'
     | 'calendar'
-    | 'requests'
     | 'weeklyPlans'
     | 'dishes'
     | 'portalHome'

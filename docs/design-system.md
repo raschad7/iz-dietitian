@@ -446,8 +446,17 @@ Six variants, matching [buttons.png](design-images/buttons.png):
 | `destructiveGhost` | no box, clay label (6.84:1) | clay-100 fill, label stays clay (5.81:1) |
 | `default` + any `icon*` size | olive-50 fill, olive-200 border, olive glyph | olive-100 |
 
-Plus `secondary` (olive-50 tint) and `link`, which aren't in the six but keep
-dense surfaces off ad-hoc classes.
+Plus `secondary` (olive-50 tint), `primarySubtle` and `link`, which aren't in
+the six but keep dense surfaces off ad-hoc classes.
+
+**`primarySubtle` — the primary, resting.** Olive-100 fill with the olive-700
+label (6.51:1), filling to the solid primary and its white label on hover. For
+the affirmative action on a card that is itself something you *read* before you
+act — a pending request, where a solid olive block makes the loudest thing on
+the page the one you are meant to consider first. It is not a weaker `default`:
+reach for it only where the card, not the button, is the thing being offered.
+Its rest state passes where `default`'s does not; the ⚠ below applies to its
+hover.
 
 **`neutral` — a box, a black label, no brand colour.** For a row of peers where
 exactly one control is *the* action and the rest are merely available. `outline`
@@ -622,7 +631,10 @@ inline-end).
 
 Variants: `default` · `tinted` · `empty` (dashed olive-300, for empty states) ·
 `listRow` (square and unshadowed; the last row of a group rounds its block-end
-corners so the stack ends flush with its container) · `archived`.
+corners so the stack ends flush with its container) · `tile` (a rounded muted
+surface with its own padding, for an item inside a card that is a separate
+thing you act on — no ring, no shadow, per the nesting rule above) ·
+`archived`.
 
 Props: `size="sm"`, `interactive`, `selected` (the olive ring thickens; the card
 does not change colour), `flagged` (a clay dot in the corner — never a red

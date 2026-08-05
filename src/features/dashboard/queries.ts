@@ -14,8 +14,10 @@ import { appointments, clients } from '@/db/schema';
  * The notification feed's reads used to live here; they moved to
  * `src/features/notifications/queries.ts` when the bell became part of the
  * shell rather than a card on this page. The four counters behind the summary
- * tiles and the monthly-visit histogram left with those cards — the numbers
- * they served are all one click away in the calendar and the register.
+ * tiles, the monthly-visit histogram and the register's age/sex breakdown all
+ * left with the cards that drew them — the numbers they served are one click
+ * away in the calendar and the register, and the row they held now carries the
+ * requests a client is actually waiting on.
  */
 
 export type DashboardClient = {
@@ -89,23 +91,3 @@ export async function listRecentClients(
   }));
 }
 
-export type ClientDemographic = { dateOfBirth: string | null; sex: string | null };
-
-/**
- * Birth date and sex for everyone on the clinic's register.
- *
- * Returned as rows rather than aggregated in SQL because the age has to be
- * computed by `calculateAge`, which deliberately does *not* build a `Date` from
- * the stored value — `new Date('1990-06-15')` is UTC midnight and can render as
- * the previous day in Asia/Hebron. Bucketing with `age()` in Postgres would be
- * a second, subtly different implementation of the same rule.
- *
- * Two narrow columns for one clinic's register; the whole point of the table's
- * `clinic_id` index.
- */
-export function listClientDemographics(clinicId: string): Promise<ClientDemographic[]> {
-  return db
-    .select({ dateOfBirth: clients.dateOfBirth, sex: clients.sex })
-    .from(clients)
-    .where(eq(clients.clinicId, clinicId));
-}

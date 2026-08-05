@@ -85,12 +85,44 @@ export const CLIENT_SORTS = ['fullName', 'phone', 'email', 'status', 'portalAcce
 export type ClientSort = (typeof CLIENT_SORTS)[number];
 
 /**
+ * Columns the register can be filtered on, and the one filter it holds at a
+ * time.
+ *
+ * **Not `fullName`.** The search field beside the filter control is the name
+ * filter, and always was — offering the same column twice in one toolbar is two
+ * answers to "how do I find Ahmad".
+ *
+ * **One column at a time**, because the control is a chooser: pick the column,
+ * give it a value. A stack of simultaneous filters is a different screen — a
+ * saved-view feature — and this register is read by someone looking for one
+ * thing.
+ *
+ * `status` is in here rather than as a parameter of its own. It used to be
+ * both, which meant the register had a filter nobody could see: the list has
+ * always defaulted to active clients only, and the only way to reach an
+ * archived one was a hand-typed query string. That default still holds when no
+ * filter is set — see `buildFilter` — and "Status → All" is now how you get
+ * past it.
+ */
+export const CLIENT_FILTERS = ['phone', 'email', 'status', 'portalAccess'] as const;
+export type ClientFilter = (typeof CLIENT_FILTERS)[number];
+
+/** What `portalAccess` filters on: the client has a portal login, or has not. */
+export const PORTAL_ACCESS_VALUES = ['yes', 'no'] as const;
+
+/**
  * List filters. Every field uses `.catch()` so a hand-edited query string
  * degrades to the default view instead of throwing a 500 at the user.
+ *
+ * `filterValue` is validated against the *column* rather than here — an enum
+ * for status and portal access, free text for phone and email — so the rule
+ * lives with the query that applies it. Anything nonsensical is ignored there
+ * and the register falls back to its default view.
  */
 export const listClientsSchema = z.object({
   q: z.preprocess(blankToUndefined, z.string().trim().max(120).optional()),
-  status: z.enum([...CLIENT_STATUSES, 'all']).catch('active'),
+  filterBy: z.preprocess(blankToUndefined, z.enum(CLIENT_FILTERS).optional().catch(undefined)),
+  filterValue: z.preprocess(blankToUndefined, z.string().trim().max(120).optional().catch(undefined)),
   sort: z.enum(CLIENT_SORTS).catch('createdAt'),
   dir: z.enum(['asc', 'desc']).catch('desc'),
   page: z.coerce.number().int().min(1).max(10_000).catch(1),
