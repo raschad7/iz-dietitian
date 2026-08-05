@@ -7,6 +7,7 @@ import { signUpStaff } from '@/features/auth/actions';
 import { AuthFormMessage, AuthSubmitButton } from '@/features/auth/components/form-parts';
 import { GoogleButton } from '@/features/auth/components/google-button';
 import { PasswordInput } from '@/features/auth/components/password-input';
+import { VerifyEmailNotice } from '@/features/auth/components/verify-email-notice';
 import { initialAuthState } from '@/features/auth/form-state';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,31 +26,13 @@ export function StaffSignUpForm({ locale, showGoogle }: StaffSignUpFormProps) {
   const tCommon = useTranslations('common');
   const [state, formAction] = useActionState(signUpStaff, initialAuthState);
 
-  /* Bare content: `AuthSplitCard` is the surface — see `StaffLoginForm`. */
+  /*
+    Sign-up succeeded and issued no session — the account is waiting on the link
+    that just went out. The notice is shared with `/verify-email` so both places
+    offer the same resend.
+  */
   if (state.status === 'sent') {
-    return (
-      <div className="w-full">
-        <header className="mb-6 space-y-1 text-start">
-          <h2 className="font-heading text-heading-lg">{t('checkInboxHeading')}</h2>
-          <p className="text-body-sm text-muted-foreground">{t('checkInboxDescription')}</p>
-        </header>
-
-        <div className="space-y-4 text-sm text-muted-foreground">
-          <p>{t('checkInboxSpam')}</p>
-          {/*
-            A mistyped address cannot be corrected from here: there is no session
-            and the mail went elsewhere. Signing up again is the only way out, so
-            say so plainly rather than leaving a dead end.
-          */}
-          <p>
-            {t('checkInboxWrongAddress')}{' '}
-            <Link href="/signup" className="font-medium text-foreground underline-offset-4 hover:underline">
-              {t('signUpLink')}
-            </Link>
-          </p>
-        </div>
-      </div>
-    );
+    return <VerifyEmailNotice locale={locale} email={state.email} sendFailed={state.deliveryFailed} bare />;
   }
 
   return (

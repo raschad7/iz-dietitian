@@ -7,7 +7,7 @@ import { redirect } from 'next/navigation';
 import { z } from 'zod';
 
 import { replacePortalPassword } from '@/features/clients/portal-credentials';
-import { auth, REQUIRE_EMAIL_VERIFICATION } from '@/lib/auth';
+import { auth } from '@/lib/auth';
 import { requireClientSession, requireStaffSession } from '@/lib/session';
 
 import { purgeUnverifiedAccounts } from './cleanup';
@@ -114,11 +114,9 @@ export async function signInWithPassword(
  *  - Registration is rate limited per IP, so the flow cannot be used to
  *    enumerate, flood, or mass-create.
  *
- * Whether it also holds a session depends on `REQUIRE_EMAIL_VERIFICATION` in
- * `src/lib/auth.ts`. With the gate on, sign-up issues none and this returns the
- * "check your inbox" state; with it off, `autoSignIn` has already set the cookie
- * by the time `signUpEmail` returns and the only sensible thing left to do is
- * send the new dietitian to their clinic.
+ * It issues no session. Under `REQUIRE_EMAIL_VERIFICATION` the account exists
+ * but cannot be signed into until the mailed link is opened, so this returns the
+ * "check your email" state rather than redirecting anywhere.
  *
  * `role` is still forced to `staff` server-side and can never be posted — see
  * `input: false` in `src/lib/auth.ts`.
@@ -181,16 +179,42 @@ export async function signUpStaff(
     return { status: 'error', messageKey: 'genericError' };
   }
 
-  // With the gate on there is no session yet and nothing to redirect to — the
-  // form shows a "check your inbox" screen from this state.
-  if (REQUIRE_EMAIL_VERIFICATION) {
-    return { status: 'sent', messageKey: 'verificationSent' };
+  /**
+   * The link is sent from here rather than by `sendOnSignUp`, so that a mail
+   * provider refusing the message reaches the person waiting for it instead of
+   * a log line nobody is reading — see `sendOnSignUp` in `src/lib/auth.ts`.
+   *
+   * A failure here is never the practitioner's fault: the account exists, the
+   * address is fine, and our transport is the thing that is broken. So it does
+   * not undo the sign-up — it lands them on the same screen with the truth and
+   * a resend button.
+   */
+  let deliveryFailed = false;
+
+  try {
+    await auth.api.sendVerificationEmail({
+      /**
+       * `callbackURL` is where the link lands once the token is accepted.
+       * Sending them to `/app` rather than the sign-in page is what makes
+       * `autoSignInAfterVerification` worth having: one click and they are
+       * inside their clinic. The app layout forwards a brand new clinic on to
+       * onboarding from there.
+       */
+      body: { email, callbackURL: `/${locale}/app` },
+      headers: await headers(),
+    });
+  } catch (error) {
+    console.error('[auth] verification email failed to send at sign-up', error);
+    deliveryFailed = true;
   }
 
-  // Outside the try/catch — `redirect` signals by throwing. `/app` is where a
-  // signed-in dietitian belongs; its layout sends them on to onboarding, which
-  // a brand new clinic has not done yet.
-  redirect(`/${locale}/app`);
+  /**
+   * No session exists yet and there is nothing to redirect to — the form
+   * renders the "check your email" screen from this state. The address rides
+   * along so that screen can show it and pre-fill its resend form; it is the
+   * one the person just typed, so echoing it back reveals nothing.
+   */
+  return { status: 'sent', messageKey: 'verificationSent', email, deliveryFailed };
 }
 
 /**
@@ -345,6 +369,17 @@ export async function changePortalPassword(
   return { status: 'success', messageKey: 'passwordChanged' };
 }
 
+/**
+ * Re-sends the confirmation link, from the "check your email" screen.
+ *
+ * The mail rarely vanishes, but it does arrive slowly, land in spam, or expire
+ * while someone is away from their desk — `EMAIL_VERIFICATION_TTL_SECONDS` is
+ * an hour. Without this the only way out is to sign up again, which the taken
+ * address now refuses.
+ *
+ * Rate limited per address and per IP, and — like the password-reset request —
+ * it answers identically whether or not the address exists.
+ */
 export async function resendVerification(
   _previousState: AuthFormState,
   formData: FormData,
@@ -369,11 +404,28 @@ export async function resendVerification(
       headers: await headers(),
     });
   } catch (error) {
-    // Swallowed: the response must not depend on whether the address exists.
     console.error('[auth] verification resend failed', error);
+
+    /**
+     * Which failure this was decides how much may be said.
+     *
+     * Better Auth raises `APIError` for the refusals that describe the
+     * *account* — no such user, already verified — and reporting those would
+     * turn this form into an address oracle. They stay swallowed behind the
+     * same answer every other address gets.
+     *
+     * Anything else came out of the mail transport itself, which knows nothing
+     * about whether the address is registered: the same Resend rejection
+     * happens for an address that exists and one that does not. Saying so
+     * leaks nothing and is the only way someone learns that waiting for the
+     * mail is pointless.
+     */
+    if (!(error instanceof APIError)) {
+      return { status: 'sent', messageKey: 'verificationSent', email, deliveryFailed: true };
+    }
   }
 
-  return { status: 'sent', messageKey: 'verificationSent' };
+  return { status: 'sent', messageKey: 'verificationSent', email };
 }
 
 export async function requestPasswordReset(
