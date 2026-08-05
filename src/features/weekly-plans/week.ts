@@ -1,3 +1,5 @@
+import { type AdherenceDay } from '@/features/portal/adherence';
+
 /**
  * Which week a plan is for.
  *
@@ -68,6 +70,14 @@ export type PlanDaySummary = {
   /** How many meals the dietitian planned. Zero is a real, showable state. */
   mealCount: number;
   isToday: boolean;
+  /**
+   * How the client reported this day, for the flame the picker draws.
+   *
+   * Null only when {@link date} is — there is no day to have an adherence
+   * report about. A day that simply has no report is `state: 'empty'`, which is
+   * a different fact and the strip draws it differently.
+   */
+  adherence: AdherenceDay | null;
 };
 
 /** The seven dates a plan covers, for the portal's day headings. */

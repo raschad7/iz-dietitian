@@ -101,6 +101,14 @@ export function formatMonthYear(locale: Locale, date: IsoDate): string {
 }
 
 /**
+ * `August` — the month on its own, for a date tile that already carries the day
+ * number and the weekday and only needs the third piece.
+ */
+export function formatMonthName(locale: Locale, date: IsoDate): string {
+  return formatter(locale, { month: 'long' }).format(toUtcInstant(date));
+}
+
+/**
  * `1 hr 30 min`, assembled from translated units rather than `Intl.DurationFormat`,
  * which is not available across the runtimes this project targets.
  */

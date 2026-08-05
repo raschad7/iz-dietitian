@@ -1,17 +1,16 @@
-import { useLocale, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Icon, type IconName } from '@/components/ui/icon';
-import { formatLongDate } from '@/features/booking/format';
-import { MACRO_KEYS, NUTRIENT_UNITS, roundForDisplay } from '@/features/weekly-plans/nutrition';
-import { type Locale } from '@/i18n/routing';
+import { roundForDisplay } from '@/features/weekly-plans/nutrition';
 import { cn } from '@/lib/utils';
 
+import { MealCheck } from './meal-check';
 import { PlanDayStrip } from './plan-day-strip';
 import type { Board, BoardMeal } from '../queries';
-import { dayKey, mealTypeForSlot, type MealType } from '../schema';
+import { mealTypeForSlot, type MealType } from '../schema';
 import { type PlanDaySummary } from '../week';
 
 /**
@@ -44,12 +43,9 @@ export function PortalPlan({
   days: readonly PlanDaySummary[];
   selectedDay: number;
 }) {
-  const locale = useLocale() as Locale;
   const t = useTranslations('portal.plan');
-  const tDays = useTranslations('weeklyPlans.days');
 
   const day = board.days[selectedDay];
-  const summary = days.find((entry) => entry.dayOfWeek === selectedDay);
 
   const meals = day?.meals ?? [];
   const dayKcal = day ? roundForDisplay('kcal', day.totals.kcal.value) : 0;
@@ -63,20 +59,18 @@ export function PortalPlan({
         </p>
       </header>
 
-      <PlanDayStrip days={days} selectedDay={selectedDay} locale={locale} />
+      <PlanDayStrip days={days} selectedDay={selectedDay} />
 
+      {/*
+        No day heading here, deliberately.
+
+        It used to repeat the selected day's name and full date directly under
+        the strip that had just been tapped to choose them — and the strip marks
+        its selection with a solid olive fill and its today with a badge, so the
+        heading restated, one line lower, the only two facts already drawn above
+        it. What follows the strip is the day's meals, and they start immediately.
+      */}
       <section className="space-y-4">
-        <div className="space-y-1">
-          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <h3 className="font-heading text-xl font-semibold">{tDays(dayKey(selectedDay))}</h3>
-            {summary?.isToday ? <Badge>{t('today')}</Badge> : null}
-          </div>
-
-          {summary?.date ? (
-            <p className="text-sm text-muted-foreground">{formatLongDate(locale, summary.date)}</p>
-          ) : null}
-        </div>
-
         {meals.length === 0 ? (
           <EmptyState
             icon="dish"
@@ -155,8 +149,6 @@ const MEAL_BADGE = 'bg-meal-fg text-meal-bg';
  */
 function MealCard({ meal }: { meal: BoardMeal }) {
   const t = useTranslations('portal.plan');
-  const tNutrients = useTranslations('weeklyPlans.nutrients');
-  const tPlans = useTranslations('weeklyPlans');
 
   const mealType = mealTypeForSlot(meal.slotKey);
   const mealIcon = MEAL_ICONS[mealType];
@@ -180,7 +172,11 @@ function MealCard({ meal }: { meal: BoardMeal }) {
           at. `list-none` plus the WebKit marker rule removes the default triangle
           in every engine.
         */}
-        <summary className="flex min-h-14 cursor-pointer list-none items-center gap-2.5 rounded-md px-2.5 py-2 outline-none transition-colors hover:bg-foreground/5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-focus-halo [&::-webkit-details-marker]:hidden">
+        {/*
+          `gap-2` rather than `gap-2.5`: the row gained a fifth element with the
+          check, and eight pixels of it came back out of the four gaps.
+        */}
+        <summary className="flex min-h-14 cursor-pointer list-none items-center gap-2 rounded-md px-2.5 py-2 outline-none transition-colors hover:bg-foreground/5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-focus-halo [&::-webkit-details-marker]:hidden">
           {/*
             The shell's own pair, inverted: a dark disc on the three light tones and
             a light one on the deep tone, from a single rule. Same pair either way
@@ -222,6 +218,16 @@ function MealCard({ meal }: { meal: BoardMeal }) {
           </span>
 
           {/*
+            The tick sits at the inline-end, nearest the thumb, so the meal's own
+            mark keeps leading the row. It stores nothing yet — see `meal-check.tsx`.
+
+            Its label names the meal, because five identical "mark as eaten"
+            buttons on one screen give a screen reader no way to tell which is
+            which.
+          */}
+          <MealCheck label={t('markEaten', { meal: meal.label })} />
+
+          {/*
             `chevronDown` is not in `DIRECTIONAL`, and correctly so: it points
             down in both scripts, and mirroring it would be mirroring nothing.
             The rotation rides the system's sweep tokens rather than a literal.
@@ -239,61 +245,31 @@ function MealCard({ meal }: { meal: BoardMeal }) {
         <div className="mt-1.5 rounded-lg bg-card p-4">
           {dish ? (
             <div className="space-y-4">
-              <div className="flex items-start justify-between gap-4">
-                <div className="min-w-0 space-y-1">
-                  <p className="font-heading text-lg leading-snug font-semibold text-primary">
-                    {dish.nameAr}
-                  </p>
-                  <p className="text-sm text-secondary-foreground">
-                    {t('portion', { servings: dish.servings, label: dish.baseServingLabel })}
-                  </p>
-                </div>
-
-                {/*
-                  A second, larger mark for the dish itself. Constant across dishes —
-                  nothing in `dishes` carries an image or an icon, and inventing one
-                  per dish would be inventing a fact about the food.
-                */}
-                <span
-                  aria-hidden
-                  className={cn(
-                    'flex size-16 shrink-0 items-center justify-center rounded-lg',
-                    MEAL_SHELL,
-                  )}
-                >
-                  <Icon name="dish" className="size-7" />
-                </span>
-              </div>
-
               {/*
-                The three macros, which `MACRO_KEYS` documents as the only nutrients
-                present on every food. A total built partly from foods that were
-                never measured is a floor rather than an answer, so it is marked
-                with the same trailing `+` the dietitian's own panels use.
-              */}
-              <dl className="grid grid-cols-3 gap-2">
-                {MACRO_KEYS.map((key) => {
-                  const total = meal.totals[key];
+                The dish and its portion, and nothing beside them.
 
-                  return (
-                    <div key={key} className="rounded-lg bg-muted px-2 py-2.5 text-center">
-                      <dt className="text-sm text-muted-foreground">{tNutrients(key)}</dt>
-                      <dd className="font-heading text-base font-semibold tabular-nums">
-                        {roundForDisplay(key, total.value)} {NUTRIENT_UNITS[key]}
-                        {total.unmeasured > 0 ? (
-                          <span
-                            className="text-muted-foreground"
-                            title={tPlans('unmeasuredCount', { count: total.unmeasured })}
-                          >
-                            {' '}
-                            +
-                          </span>
-                        ) : null}
-                      </dd>
-                    </div>
-                  );
-                })}
-              </dl>
+                There was a 64px tinted tile with the generic `dish` glyph in it
+                here. It was constant across every dish — nothing in `dishes`
+                carries an image — so on a five-meal day it drew the same picture
+                five times and named none of them, while pushing the one line
+                that does identify the dish into two thirds of the row.
+
+                The three macro tiles that followed are gone with it. A client
+                reading their plan on a phone is being told what to eat; grams of
+                protein, carbohydrate and fat are the dietitian's working
+                figures, and they are still on the dietitian's own panels
+                (`meal-detail-panel.tsx`) where they are acted on. The meal's
+                energy stays — it is on the summary row above, where it can be
+                read without opening the card at all.
+              */}
+              <div className="min-w-0 space-y-1">
+                <p className="font-heading text-lg leading-snug font-semibold text-primary">
+                  {dish.nameAr}
+                </p>
+                <p className="text-sm text-secondary-foreground">
+                  {t('portion', { servings: dish.servings, label: dish.baseServingLabel })}
+                </p>
+              </div>
 
               {meal.rationaleAr ? (
                 <p className="rounded-lg bg-muted px-4 py-3 text-center text-sm leading-relaxed text-muted-foreground">
@@ -322,36 +298,19 @@ function MealCard({ meal }: { meal: BoardMeal }) {
                 </div>
               ) : null}
 
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-muted-foreground">{t('ingredientsTitle')}</p>
+              {/*
+                The ingredient-and-gram list that used to close this card is gone.
+                It was the longest thing in it — a dish runs to a dozen rows — and
+                it is a recipe, which is a different document from a plan. The
+                dish name and the portion say what to eat; the breakdown behind it
+                remains on the dietitian's side, where it is what the arithmetic
+                is checked against.
 
-                {/*
-                  Striped rather than ruled: on a list this long, alternating fills
-                  track the eye across a row without adding a border per line. No
-                  longer behind its own disclosure — the card is the disclosure now,
-                  and two levels of "open this to see" is one too many.
-                */}
-                <ul className="overflow-hidden rounded-lg text-sm">
-                  {dish.ingredients.map((ingredient) => (
-                    <li
-                      key={ingredient.food.id}
-                      className="flex items-baseline justify-between gap-4 px-3 py-2.5 even:bg-muted"
-                    >
-                      <span className="min-w-0 font-medium text-primary">
-                        {ingredient.food.description}
-                      </span>
-                      <span className="shrink-0 text-muted-foreground tabular-nums">
-                        {t('grams', {
-                          grams: roundForDisplay(
-                            'protein',
-                            ingredient.quantityGrams * dish.servings,
-                          ),
-                        })}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+                `dish.ingredients` is still loaded and still summed: `foods` is
+                what every calorie on this screen is derived from at read time
+                (see `docs/architecture.md`), so the join stays whether or not it
+                is drawn.
+              */}
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">{t('noMeal')}</p>

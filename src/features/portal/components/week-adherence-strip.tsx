@@ -1,8 +1,8 @@
-import { Flame } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
 import { CalendarGlyphIcon } from '@/components/icons';
 import { ADHERENCE_SCORE_MAX, type AdherenceDay } from '@/features/portal/adherence';
+import { DayFlame } from '@/features/portal/components/day-flame';
 import { type Locale } from '@/i18n/routing';
 import { formatDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -13,88 +13,11 @@ import { cn } from '@/lib/utils';
  * the progress tab. One component and one query behind it, so the two
  * screens can never draw two different weeks.
  *
- * **A flame, not a number.** Seven scores out of ten across a phone-width row
- * asked the client to read and compare digits at 11px to answer a question
- * that is really "which days did I keep". The flame answers it at a glance:
- * lit and ringed for a day kept, lit with an open ring for a partial one,
- * grey and unlit for a day with nothing in it. The exact score is still
- * spoken in each day's label, and the progress tab still draws it as a number.
- *
- * `missed` is not folded into `empty`: a client who tapped "لم ألتزم" told the
- * app something, and a day nobody answered told it nothing. Both stay calm and
- * neutral (§06: a missed day is information, not a failure), so the
- * distinction is carried by how far each fades, never by red.
+ * The mark itself is `DayFlame`, which moved to its own file when the meal
+ * plan's day picker began drawing the same week — see that file for why it is
+ * a flame rather than a number. The exact score is still spoken in each day's
+ * label here, and the progress tab still draws it as a number.
  */
-
-const RADIUS = 14;
-const RING_LENGTH = 2 * Math.PI * RADIUS;
-
-/**
- * What the flame draws, with state and score folded into one value.
- *
- * `today` is deliberately not a case here: the current day keeps its olive
- * card, but the flame inside it reports the same way every other day's does,
- * so a day logged this morning does not change meaning at midnight.
- */
-type Burn = 'full' | 'partial' | 'none' | 'empty' | 'future';
-
-function burnOf({ state, score }: AdherenceDay): Burn {
-  if (state === 'future') return 'future';
-  if (score === null) return 'empty';
-  if (score >= ADHERENCE_SCORE_MAX) return 'full';
-  return score > 0 ? 'partial' : 'none';
-}
-
-/** For `partial` this is the track the orange arc is drawn over, not the arc. */
-const RING: Record<Burn, string> = {
-  full: 'stroke-status-complete-mark',
-  partial: 'stroke-border',
-  none: 'stroke-border',
-  empty: 'stroke-border/55',
-  future: 'stroke-border/35',
-};
-
-/** Filled only when the day is complete — the one state that reads as "lit". */
-const FLAME: Record<Burn, string> = {
-  full: 'fill-current text-status-complete-mark',
-  partial: 'text-status-complete-mark',
-  none: 'text-muted-foreground',
-  empty: 'text-muted-foreground/55',
-  future: 'text-muted-foreground/35',
-};
-
-function DayFlame({ day }: { day: AdherenceDay }) {
-  const burn = burnOf(day);
-  const partial = burn === 'partial';
-
-  return (
-    <span className="relative grid size-8 place-items-center">
-      <svg viewBox="0 0 32 32" className="absolute inset-0 size-full -rotate-90" aria-hidden="true">
-        <circle
-          cx="16"
-          cy="16"
-          r={RADIUS}
-          strokeWidth={burn === 'full' || partial ? 2.25 : 1.5}
-          className={cn('fill-none', RING[burn])}
-        />
-
-        {partial ? (
-          <circle
-            cx="16"
-            cy="16"
-            r={RADIUS}
-            strokeWidth="2.25"
-            strokeLinecap="round"
-            strokeDasharray={`${((day.score ?? 0) / ADHERENCE_SCORE_MAX) * RING_LENGTH} ${RING_LENGTH}`}
-            className="fill-none stroke-status-complete-mark"
-          />
-        ) : null}
-      </svg>
-
-      <Flame className={cn('relative size-4', FLAME[burn])} strokeWidth={1.75} aria-hidden="true" />
-    </span>
-  );
-}
 
 export function WeekAdherenceStrip({
   days,
