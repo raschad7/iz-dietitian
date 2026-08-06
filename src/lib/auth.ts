@@ -19,33 +19,36 @@ import {
   SESSION_REFRESH_AGE_SECONDS,
   SESSION_TTL_SECONDS,
 } from './auth-constants';
-import { shouldUseSecureAuthCookies } from './auth-url';
+import { resolveAuthBaseURL, shouldUseSecureAuthCookies } from './auth-url';
 
 export type UserRole = 'staff' | 'client';
 
 /**
- * The email-verification gate, currently OFF.
+ * The email-verification gate, ON.
  *
- * Turned off because no mail transport is configured to deliver the link — with
- * `MAIL_TRANSPORT=console` the verification URL is printed to the server console
- * and never sent, so the gate locked out every account it created. Nothing about
- * the flow was removed: the templates, the `sendVerificationEmail` callback, the
- * resend action and the `verifyEmailFirst` message are all still here and still
- * wired up. Flipping this one constant back to `true` restores the gate exactly
- * as it was.
+ * A practitioner must prove they can read the address they registered before
+ * their account does anything. What this buys, and why it is worth the extra
+ * step at sign-up:
  *
- * Understand what is being traded before leaving it off in production:
+ *  - Nobody can register with an address they do not own, which is how an
+ *    attacker would otherwise squat on a real dietitian's email before that
+ *    person signs up.
+ *  - Password reset only ever mails a link to an address someone has proven
+ *    they can read.
+ *  - Better Auth refuses to link a Google identity into an unverified local
+ *    account, so squatted addresses would block their real owner — see
+ *    `purgeUnverifiedAccounts`, which sweeps them after 24 hours.
  *
- *  - Anyone may register with an address they do not own, which is how an
- *    attacker squats on a real dietitian's email before that person signs up.
- *  - Password reset sends a link to an address nobody proved they can read.
- *  - `purgeUnverifiedAccounts` no longer has unverified accounts to clean up,
- *    because sign-up now issues a session immediately.
- *
- * Turn it back on as soon as `MAIL_TRANSPORT=resend` is working — see
+ * REQUIRES A WORKING MAIL TRANSPORT. With `MAIL_TRANSPORT=console` the link is
+ * printed to the server console instead of being sent, which is fine for local
+ * work — copy it out of the terminal — but would lock out every account a
+ * deployment created. Set `MAIL_TRANSPORT=resend` outside development; see
  * `.env.example`.
+ *
+ * This constant drives three settings below and nothing else, so the gate can
+ * be reasoned about from one place.
  */
-export const REQUIRE_EMAIL_VERIFICATION = false;
+export const REQUIRE_EMAIL_VERIFICATION = true;
 
 /**
  * Whether Google sign-in is configured on this deployment.
@@ -56,7 +59,11 @@ export const REQUIRE_EMAIL_VERIFICATION = false;
  */
 export const isGoogleEnabled = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
 
-const authBaseURL = process.env.BETTER_AUTH_URL ?? 'http://localhost:3000';
+/**
+ * Every verification and reset link in an inbox is built from this, so it is
+ * resolved once, validated, and shared — see `resolveAuthBaseURL`.
+ */
+const authBaseURL = resolveAuthBaseURL(process.env.BETTER_AUTH_URL, process.env.APP_URL);
 
 function requireEnv(name: string): string {
   const value = process.env[name];
@@ -147,11 +154,35 @@ export const auth = betterAuth({
   },
 
   emailVerification: {
-    // Only on sign-up does this follow the gate — sending a link nobody is
-    // waiting for, over a transport that prints it to a console, is noise. The
-    // `resendVerification` action still calls `sendVerificationEmail` directly,
-    // so the path stays live and testable either way.
-    sendOnSignUp: REQUIRE_EMAIL_VERIFICATION,
+    /**
+     * OFF, and `signUpStaff` sends the link itself instead. This is not a
+     * change of behaviour — the mail still goes out as part of sign-up — it is
+     * a change of who can see it fail.
+     *
+     * Better Auth hands this send to `runInBackgroundOrAwait`
+     * (`dist/context/create-context.mjs`), which awaits the promise inside a
+     * `try/catch` and reduces any rejection to a `logger.error` line. Sign-up
+     * then returns success regardless, so a deployment whose mail provider is
+     * refusing every message shows each new practitioner a cheerful "check your
+     * email" for a message that was never accepted. That is precisely how a
+     * misconfigured `EMAIL_FROM` stayed invisible here.
+     *
+     * `auth.api.sendVerificationEmail` has no such wrapper
+     * (`dist/api/routes/email-verification.mjs`), so calling it from the action
+     * lets a rejection reach the person waiting on it.
+     *
+     * Both paths still land in the one `sendVerificationEmail` callback below,
+     * so they cannot drift into sending different mail.
+     */
+    sendOnSignUp: false,
+
+    /**
+     * Opening the link signs them in, so the click that proves the address is
+     * also the click that lands them in their clinic. Without this they would
+     * verify, be told so, and then be asked to type the password they chose
+     * ninety seconds ago — a pointless step at the exact moment they are
+     * furthest from giving up.
+     */
     autoSignInAfterVerification: true,
     expiresIn: EMAIL_VERIFICATION_TTL_SECONDS,
     sendVerificationEmail: async ({ user: recipient, url }) => {

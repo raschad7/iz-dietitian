@@ -8,6 +8,7 @@ import { roundForDisplay } from '@/features/weekly-plans/nutrition';
 import { cn } from '@/lib/utils';
 
 import { MealCheck } from './meal-check';
+import { PlanDayCompletionProvider } from './plan-day-completion';
 import { PlanDayStrip } from './plan-day-strip';
 import type { Board, BoardMeal } from '../queries';
 import { mealTypeForSlot, type MealType } from '../schema';
@@ -38,10 +39,13 @@ export function PortalPlan({
   board,
   days,
   selectedDay,
+  completedMealIds,
 }: {
   board: Board;
   days: readonly PlanDaySummary[];
   selectedDay: number;
+  /** Which of the selected day's meals are already ticked — see `loadPlanPage`. */
+  completedMealIds: readonly string[];
 }) {
   const t = useTranslations('portal.plan');
 
@@ -49,6 +53,7 @@ export function PortalPlan({
 
   const meals = day?.meals ?? [];
   const dayKcal = day ? roundForDisplay('kcal', day.totals.kcal.value) : 0;
+  const mealIds = meals.map((meal) => meal.id);
 
   return (
     <div className="space-y-8 text-start">
@@ -59,49 +64,61 @@ export function PortalPlan({
         </p>
       </header>
 
-      <PlanDayStrip days={days} selectedDay={selectedDay} />
-
       {/*
-        No day heading here, deliberately.
-
-        It used to repeat the selected day's name and full date directly under
-        the strip that had just been tapped to choose them — and the strip marks
-        its selection with a solid olive fill and its today with a badge, so the
-        heading restated, one line lower, the only two facts already drawn above
-        it. What follows the strip is the day's meals, and they start immediately.
+        Keyed on the day so switching days remounts this with the new day's
+        own starting state, instead of carrying the previous day's ticks
+        across — see the note on `PlanDayCompletionProvider`.
       */}
-      <section className="space-y-4">
-        {meals.length === 0 ? (
-          <EmptyState
-            icon="dish"
-            title={t('emptyDayTitle')}
-            description={t('emptyDayHint')}
-          />
-        ) : (
-          <>
-            {/*
-              The day's own totals, stated rather than plotted. This is what the
-              dietitian planned for the day, not what anyone has eaten — so it is
-              labelled as the day's energy and never framed as progress against a
-              goal the client has not been measured on.
-            */}
-            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-lg bg-secondary px-4 py-3 text-secondary-foreground">
-              <span className="text-sm">{t('dayEnergyLabel')}</span>
-              <span className="font-heading text-lg font-semibold tabular-nums">
-                {t('kcalValue', { value: dayKcal })}
-              </span>
-            </div>
+      <PlanDayCompletionProvider
+        key={selectedDay}
+        dayOfWeek={selectedDay}
+        mealIds={mealIds}
+        initialCompletedMealIds={completedMealIds}
+      >
+        <PlanDayStrip days={days} selectedDay={selectedDay} />
 
-            <ul className="space-y-5">
-              {meals.map((meal) => (
-                <li key={meal.id}>
-                  <MealCard meal={meal} />
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
-      </section>
+        {/*
+          No day heading here, deliberately.
+
+          It used to repeat the selected day's name and full date directly under
+          the strip that had just been tapped to choose them — and the strip marks
+          its selection with a solid olive fill and its today with a badge, so the
+          heading restated, one line lower, the only two facts already drawn above
+          it. What follows the strip is the day's meals, and they start immediately.
+        */}
+        <section className="space-y-4">
+          {meals.length === 0 ? (
+            <EmptyState
+              icon="dish"
+              title={t('emptyDayTitle')}
+              description={t('emptyDayHint')}
+            />
+          ) : (
+            <>
+              {/*
+                The day's own totals, stated rather than plotted. This is what the
+                dietitian planned for the day, not what anyone has eaten — so it is
+                labelled as the day's energy and never framed as progress against a
+                goal the client has not been measured on.
+              */}
+              <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-lg bg-secondary px-4 py-3 text-secondary-foreground">
+                <span className="text-sm">{t('dayEnergyLabel')}</span>
+                <span className="font-heading text-lg font-semibold tabular-nums">
+                  {t('kcalValue', { value: dayKcal })}
+                </span>
+              </div>
+
+              <ul className="space-y-5">
+                {meals.map((meal) => (
+                  <li key={meal.id}>
+                    <MealCard meal={meal} />
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </section>
+      </PlanDayCompletionProvider>
     </div>
   );
 }
@@ -225,7 +242,7 @@ function MealCard({ meal }: { meal: BoardMeal }) {
             buttons on one screen give a screen reader no way to tell which is
             which.
           */}
-          <MealCheck label={t('markEaten', { meal: meal.label })} />
+          <MealCheck mealId={meal.id} label={t('markEaten', { meal: meal.label })} />
 
           {/*
             `chevronDown` is not in `DIRECTIONAL`, and correctly so: it points

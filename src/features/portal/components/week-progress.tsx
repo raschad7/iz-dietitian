@@ -51,15 +51,8 @@ function Leaf({
   );
 }
 
-function LeafRing({ recorded }: { recorded: number }) {
-  const safeRecorded = Math.min(
-    Math.max(recorded, 0),
-    DAYS_PER_WEEK,
-  );
-
-  const filled = Math.round(
-    (safeRecorded / DAYS_PER_WEEK) * LEAVES,
-  );
+function LeafRing({ fraction }: { fraction: number }) {
+  const filled = Math.round(Math.min(Math.max(fraction, 0), 1) * LEAVES);
 
   return (
     <svg
@@ -101,10 +94,27 @@ function LeafRing({ recorded }: { recorded: number }) {
   );
 }
 
+/**
+ * The home screen's ring: **how well the week went**, not how much of it was
+ * recorded.
+ *
+ * It used to draw `recordedCount / 7` — a client who had opened the app on
+ * three days read 43%, whatever they had actually eaten, and the progress
+ * tab's "this week" number beside it said something else entirely. It now
+ * draws `averageFraction`, the mean of each day's own completed ÷ total, which
+ * is the same number `WeekAdherenceSummary` prints on the progress tab.
+ *
+ * The days chip keeps the recorded count, because that is a different and
+ * still-true fact — "you have logged 3 of 7 days" — and it is what the tier
+ * copy above it is written about.
+ */
 export function WeekProgress({
+  averageFraction,
   recordedCount,
   streak,
 }: {
+  /** The week's adherence, 0–1, or null when no day has been reported yet. */
+  averageFraction: number | null;
   recordedCount: number;
   /**
    * Consecutive days with a check-in, ending today or yesterday.
@@ -121,10 +131,6 @@ export function WeekProgress({
   );
 
   const tier = progressTier(safeRecordedCount);
-
-  const percent = Math.round(
-    (safeRecordedCount / DAYS_PER_WEEK) * 100,
-  );
 
   return (
     <Card
@@ -251,7 +257,7 @@ export function WeekProgress({
             "
           />
 
-          <LeafRing recorded={safeRecordedCount} />
+          <LeafRing fraction={averageFraction ?? 0} />
 
           <span className="absolute inset-0 flex flex-col items-center justify-center gap-0.5">
             <span
@@ -261,15 +267,22 @@ export function WeekProgress({
                 font-semibold
                 tabular-nums
                 ${
-                  safeRecordedCount > 0
-                    ? 'text-secondary-foreground'
-                    : 'text-muted-foreground'
+                  averageFraction === null
+                    ? 'text-muted-foreground'
+                    : 'text-secondary-foreground'
                 }
               `}
             >
-              {formatNumber(locale, percent / 100, {
-                style: 'percent',
-              })}
+              {/*
+                An em dash, not 0%: a week nobody has reported on yet has no
+                adherence, and printing zero would read as a week the client
+                failed rather than one they have not started.
+              */}
+              {averageFraction === null
+                ? '—'
+                : formatNumber(locale, averageFraction, {
+                    style: 'percent',
+                  })}
             </span>
 
             <span className="text-caption leading-none text-muted-foreground">

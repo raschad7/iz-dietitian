@@ -1,39 +1,46 @@
 import { useTranslations } from 'next-intl';
 
-import { SegmentedGroup, SegmentedOption } from '@/components/ui/segmented';
+import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { ADHERENCE_LEVELS, ADHERENCE_SCORE_MAX, LEVEL_SCORE, type AdherenceLevel } from '@/features/portal/adherence';
-import { logPlanAdherenceAction } from '@/features/portal/actions';
+import { Icon } from '@/components/ui/icon';
+import { type TodayAdherence } from '@/features/portal/adherence';
+import { Link } from '@/i18n/navigation';
 import { type Locale } from '@/i18n/routing';
 import { formatNumber } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 /**
- * "التزامك اليوم" — today's own report, and the one place on the portal a
- * client writes anything about their nutrition plan.
+ * "التزامك اليوم" — today's own report, read rather than written here.
  *
- * The ring is the same "score out of 10" arc the week strip draws
- * (`WeekAdherenceStrip`'s `Dial`), scaled up: one visual grammar for "how did
- * the day go", reused here at a larger size. `full` gets the same flame the
- * strip spends on a completed day — this is a different screen, so that
- * budget has not already been spent here.
+ * The ring is the same arc the week strip's flames draw, scaled up: one visual
+ * grammar for "how did the day go", reused here at a larger size. `full` gets
+ * the same flame the strip spends on a completed day — this is a different
+ * screen, so that budget has not already been spent here.
  *
- * The segmented control is always visible and always live, even after
- * logging: re-tapping a segment corrects today's report rather than opening
- * a second form, the same "segment carries the value it selects" contract
- * `segmented.tsx` documents. There is no separate "log" button — see the
- * decision to keep this a single, always-visible three-way choice rather
- * than a button that reveals one.
+ * **It reads a percentage, not a score.** The number in the middle was a score
+ * out of ten that only ever showed 0, 5 or 10, because a three-level `level`
+ * was all it had: two meals of four and three of four both printed "5 من ١٠".
+ * It now prints the exact fraction of today's meals ticked — 25%, 33%, 75% —
+ * with the pair it came from underneath, so the headline and the meals agree
+ * and the ring is drawn to the same number the client can count themselves.
+ *
+ * There used to be a three-way segmented control here — "missed" / "partial"
+ * / "full" — for the client to pick themselves. It is gone: adherence is
+ * derived from how many of today's meals are ticked on the meal-plan screen
+ * (see `client-plan-adherence.ts` and `toggleMealCompletion`), so a client
+ * reporting on their own day and the plan they actually followed could
+ * silently disagree. The card now only reads that derived figure and points
+ * at the one place it can still be changed — ticking meals.
  */
 
 const RADIUS = 44;
 const RING_LENGTH = 2 * Math.PI * RADIUS;
 
-function TodayRing({ level, locale }: { level: AdherenceLevel | null; locale: Locale }) {
+function TodayRing({ today, locale }: { today: TodayAdherence | null; locale: Locale }) {
   const t = useTranslations('portal.progress.today');
-  const score = level ? LEVEL_SCORE[level] : null;
-  const drawn = score !== null && score > 0;
-  const full = score === ADHERENCE_SCORE_MAX;
+  const fraction = today?.fraction ?? null;
+  const drawn = fraction !== null && fraction > 0;
+  const full = fraction !== null && fraction >= 1;
 
   return (
     <span className="relative grid size-28 shrink-0 place-items-center rounded-full bg-secondary">
@@ -49,24 +56,27 @@ function TodayRing({ level, locale }: { level: AdherenceLevel | null; locale: Lo
             r={RADIUS}
             strokeWidth="7"
             strokeLinecap="round"
-            strokeDasharray={full ? undefined : `${((score ?? 0) / ADHERENCE_SCORE_MAX) * RING_LENGTH} ${RING_LENGTH}`}
+            strokeDasharray={full ? undefined : `${(fraction ?? 0) * RING_LENGTH} ${RING_LENGTH}`}
             className={cn('fill-none', full ? 'stroke-status-complete-mark' : 'stroke-status-complete-mark-soft')}
           />
         ) : null}
       </svg>
 
-      <span className="relative flex flex-col items-center">
+      <span className="relative flex flex-col items-center gap-0.5">
         <span
           className={cn(
             'font-heading text-2xl leading-none font-medium tabular-nums',
-            score === null ? 'text-muted-foreground' : 'text-secondary-foreground',
+            today === null ? 'text-muted-foreground' : 'text-secondary-foreground',
           )}
         >
-          {score === null ? '—' : formatNumber(locale, score)}
+          {today === null ? '—' : formatNumber(locale, today.fraction, { style: 'percent' })}
         </span>
-        {score !== null ? (
+        {today !== null ? (
+          // The meals under the percentage, because a percentage alone does
+          // not tell a client what to do next: "2 of 4" names the two still
+          // waiting for them on the screen this card links to.
           <span className="text-caption leading-none text-muted-foreground">
-            {t('unit', { max: formatNumber(locale, ADHERENCE_SCORE_MAX) })}
+            {t('meals', { completed: today.completedMeals, total: today.totalMeals })}
           </span>
         ) : null}
       </span>
@@ -74,34 +84,39 @@ function TodayRing({ level, locale }: { level: AdherenceLevel | null; locale: Lo
   );
 }
 
-export function TodayAdherenceCard({ level, locale }: { level: AdherenceLevel | null; locale: Locale }) {
+export function TodayAdherenceCard({ today, locale }: { today: TodayAdherence | null; locale: Locale }) {
   const t = useTranslations('portal.progress.today');
 
   return (
     <Card>
       <CardContent className="flex flex-col gap-4">
         <div className="flex items-center gap-4">
-          <TodayRing level={level} locale={locale} />
+          <TodayRing today={today} locale={locale} />
 
           <div className="min-w-0 flex-1 space-y-1">
             <h2 className="font-heading text-lg leading-snug font-medium">{t('heading')}</h2>
+            {/*
+              The one thing on this card that still reads the level rather
+              than the number: encouragement is a sentence, and there is no
+              way to write one per percentage. It never contradicts the ring —
+              both come off the same row.
+            */}
             <p className="text-sm leading-relaxed text-muted-foreground">
-              {level ? t(`level.${level}`) : t('prompt')}
+              {today ? t(`level.${today.level}`) : t('prompt')}
             </p>
           </div>
         </div>
 
-        <form action={logPlanAdherenceAction}>
-          <input type="hidden" name="locale" value={locale} />
-
-          <SegmentedGroup label={t('groupLabel')} className="grid w-full grid-cols-3">
-            {ADHERENCE_LEVELS.map((option) => (
-              <SegmentedOption key={option} type="submit" name="level" value={option} selected={level === option}>
-                {t(`options.${option}`)}
-              </SegmentedOption>
-            ))}
-          </SegmentedGroup>
-        </form>
+        {/*
+          `/portal/meal-plan`, not `/${locale}/portal/meal-plan`: `Link` here
+          is the locale-aware one from `@/i18n/navigation`, which prefixes the
+          active locale itself — see the same pattern in
+          `pending-requests-card.tsx`.
+        */}
+        <Link href="/portal/meal-plan" className={buttonVariants({ variant: 'outline', className: 'w-full' })}>
+          {t('cta')}
+          <Icon name="chevronEnd" />
+        </Link>
       </CardContent>
     </Card>
   );

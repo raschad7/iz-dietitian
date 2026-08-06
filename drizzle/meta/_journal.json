@@ -127,6 +127,20 @@
       "when": 1785879300483,
       "tag": "0017_catch_up_skipped_0013_0014",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1785932236652,
+      "tag": "0018_talented_amphibian",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1786002304008,
+      "tag": "0019_premium_shadowcat",
+      "breakpoints": true
     }
   ]
 }

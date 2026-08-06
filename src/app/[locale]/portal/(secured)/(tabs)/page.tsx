@@ -57,7 +57,11 @@ export default async function PortalPage({ params }: PortalPageProps) {
         month={formatDate(locale, context.now.date, { dateStyle: undefined, month: 'short' })}
       />
 
-      <WeekProgress recordedCount={week.recordedCount} streak={streak} />
+      <WeekProgress
+        averageFraction={week.averageFraction}
+        recordedCount={week.recordedCount}
+        streak={streak}
+      />
 
       <PlanPreview day={today} planWeek={planTitle} />
 
