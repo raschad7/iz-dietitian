@@ -195,6 +195,18 @@ export function confirmationDedupeKey(appointmentId: string, date: string, start
 }
 
 /**
+ * The one message covering a course of appointments booked together.
+ *
+ * Keyed on the appointments themselves, sorted so the key does not depend on
+ * the order they were created in: a retried repeat covering the same set sends
+ * once, while a second course booked later — different ids — is different news
+ * and sends again.
+ */
+export function seriesDedupeKey(appointmentIds: readonly string[]): string {
+  return `series:${[...appointmentIds].sort().join(',')}`;
+}
+
+/**
  * The "your appointment moved" message, keyed on where it moved *to*.
  *
  * So a booking dragged 09:00 → 10:00 → 11:00 tells the patient twice, which is

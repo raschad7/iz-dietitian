@@ -220,6 +220,27 @@
       "bodyCompleted": "This appointment has already finished. Deleting {name} on {when} removes the record permanently.",
       "confirm": "Delete appointment"
     },
+    "repeatBooking": {
+      "title": "Repeat this booking every week?",
+      "body": "{name} is booked for {when}. Repeat the same day and time every week?",
+      "durationLabel": "Repeat for",
+      "presets": {
+        "week1": "1 week",
+        "week2": "2 weeks",
+        "week3": "3 weeks",
+        "month1": "1 month"
+      },
+      "custom": "Custom…",
+      "customLabel": "Number of weeks",
+      "weeks": "{count, plural, one {1 week} other {# weeks}}",
+      "preview": "Adds {count, plural, one {1 appointment} other {# appointments}}, one a week, ending {until}.",
+      "skipNote": "Any week the clinic is closed, or the hour is already taken, is skipped.",
+      "confirm": "Confirm",
+      "cancel": "No",
+      "created": "Booked every week for a month — {count, number, integer} more appointments added.",
+      "partial": "{count, number, integer} weekly appointments added. {skipped, number, integer} were skipped because that slot was not free.",
+      "none": "No weekly repeats were added — that slot is not free on any of the coming weeks."
+    },
     "errors": {
       "tooShort": "The shortest appointment is 15 minutes.",
       "invalidDate": "That date is not valid. Try a format like 2026-08-05 or 8/5/2026.",

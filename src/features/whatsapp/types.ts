@@ -19,6 +19,27 @@ export type ReminderCandidate = {
   preferredLocale: Locale;
 };
 
+/**
+ * A course of appointments booked in one go, addressed to one client.
+ *
+ * The client and clinic details are on the series rather than on each slot,
+ * because every appointment in it belongs to the same person at the same clinic
+ * — that is what makes one message the right shape for it.
+ */
+export type AppointmentSeriesTarget = {
+  clientId: string;
+  clientName: string;
+  phone: string;
+  clinicName: string;
+  /** In date order, which is the order the patient will read them in. */
+  appointments: {
+    appointmentId: string;
+    date: string;
+    startMinute: number;
+    durationMinutes: number;
+  }[];
+};
+
 /** Anyone a message can be addressed to. */
 export type WhatsappTarget = {
   clientId: string;

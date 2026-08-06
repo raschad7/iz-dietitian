@@ -67,7 +67,24 @@ export type ActionResult<TData = undefined> =
   | { ok: true; data: TData }
   | { ok: false; error: ActionErrorKey };
 
-export type CreatedAppointment = { id: string };
+/**
+ * A booking that was just written.
+ *
+ * `clientId` rides along because the caller does not always know it: the "new
+ * client" path invents the person and the booking in one step, and the repeat
+ * offer that follows has to book that same person again three more times.
+ */
+export type CreatedAppointment = { id: string; clientId: string };
+
+/**
+ * What a weekly repeat did.
+ *
+ * A repeat is best-effort by design — see `repeatWeekly` — so this reports both
+ * halves: the appointments that were written and the weeks that were refused
+ * because the clinic is shut, the hour is taken, or that client is already
+ * booked that day. `ids` is what the notifications are sent for.
+ */
+export type WeeklyRepeatSummary = { ids: string[]; created: number; skipped: number };
 
 /**
  * What an update reports back: where the appointment used to be.
