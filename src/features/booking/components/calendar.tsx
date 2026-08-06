@@ -14,6 +14,7 @@ import {
   createAppointmentAction,
   createClientAndBookAction,
   deleteAppointmentAction,
+  repeatWeeklyAction,
   updateAppointmentAction,
 } from '../actions';
 import { addDays, addMonths, eachDay, endOfMonth, startOfMonth, startOfWeek, toIsoDate } from '../date';
@@ -40,6 +41,7 @@ import { DayColumn } from './day-column';
 import { GridOverflowCue } from './grid-overflow-cue';
 import { MonthView } from './month-view';
 import { NewClientDialog } from './new-client-dialog';
+import { RepeatBookingDialog } from './repeat-booking-dialog';
 
 /**
  * The calendar shell: it owns the state the views share and is the only place
@@ -185,6 +187,23 @@ type OptimisticAction =
 /** A finished drag, waiting on the doctor to confirm it before anything is written. */
 type PendingMove = { appointment: CalendarAppointment; next: BookingRequest };
 
+/**
+ * A booking that is already saved, waiting on the answer to "every week for a
+ * month?".
+ *
+ * Held rather than derived from the calendar's rows, because the offer outlives
+ * the write it followed: `revalidatePath` may have replaced the whole list by
+ * the time the doctor answers, and the repeats are booked from these values
+ * rather than from whatever the grid is showing.
+ */
+type RepeatOffer = {
+  clientId: string;
+  clientName: string;
+  date: string;
+  startMinute: number;
+  durationMinutes: number;
+};
+
 export function Calendar({
   locale,
   view,
@@ -251,6 +270,12 @@ export function Calendar({
   /** The freshly created booking, highlighted briefly. Creating never opens the dialog. */
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [message, setMessage] = useState<ActionErrorKey | null>(null);
+  /**
+   * Something that went right, said in words the grid cannot: how many of the
+   * requested weekly repeats were actually booked. Kept apart from `message`,
+   * which is only ever a refusal and is drawn in clay.
+   */
+  const [notice, setNotice] = useState<string | null>(null);
 
   const [pendingBooking, setPendingBooking] = useState<PendingBooking | null>(null);
   const [newClientFor, setNewClientFor] = useState<PendingBooking | null>(null);
@@ -258,6 +283,8 @@ export function Calendar({
   /** The two writes that ask first: rescheduling by drag, and deleting. */
   const [pendingMove, setPendingMove] = useState<PendingMove | null>(null);
   const [pendingDelete, setPendingDelete] = useState<CalendarAppointment | null>(null);
+  /** The booking just saved, and the offer to repeat it — see `RepeatOffer`. */
+  const [repeatOffer, setRepeatOffer] = useState<RepeatOffer | null>(null);
 
   /**
    * The clinic's single practitioner, taken from whatever is already booked.
@@ -641,6 +668,7 @@ export function Calendar({
 
     setPendingBooking(null);
     setMessage(null);
+    setNotice(null);
 
     const client = clients.find((row) => row.id === clientId);
 
@@ -681,6 +709,58 @@ export function Calendar({
       // edit dialog — staff asked to book someone, not to edit a booking.
       setHighlightId(result.data.id);
       setSelectedId(result.data.id);
+      offerRepeat({
+        clientId: result.data.clientId,
+        clientName: client?.name ?? '',
+        date: pending.date,
+        startMinute: pending.startMinute,
+        durationMinutes: pending.durationMinutes,
+      });
+    });
+  }
+
+  /**
+   * Offers to repeat the booking that was just saved, weekly, for a month.
+   *
+   * Asked *after* the write rather than as a checkbox before it, because the
+   * answer only makes sense once the first appointment exists — and because a
+   * follow-up course is a decision about the month, not a detail of the slot.
+   * Declining costs one click and writes nothing.
+   */
+  function offerRepeat(offer: RepeatOffer): void {
+    setRepeatOffer(offer);
+  }
+
+  /**
+   * Books the same slot every week for the span the doctor chose, and reports
+   * what took.
+   */
+  function commitRepeat(offer: RepeatOffer, weeks: number): void {
+    setMessage(null);
+    setNotice(null);
+
+    startTransition(async () => {
+      const result = await repeatWeeklyAction(locale, {
+        clientId: offer.clientId,
+        date: offer.date,
+        startMinute: offer.startMinute,
+        durationMinutes: offer.durationMinutes,
+        weeks,
+      });
+
+      if (!result.ok) {
+        setMessage(result.error);
+        return;
+      }
+
+      // Three answers, not one: every week took, some weeks were refused, or
+      // none were. A repeat that silently booked two of three would leave the
+      // doctor believing in a month of appointments that is not there.
+      const { created, skipped } = result.data;
+
+      if (created === 0) setNotice(t('repeatBooking.none'));
+      else if (skipped > 0) setNotice(t('repeatBooking.partial', { count: created, skipped }));
+      else setNotice(t('repeatBooking.created', { count: created }));
     });
   }
 
@@ -690,6 +770,7 @@ export function Calendar({
 
     setNewClientFor(null);
     setMessage(null);
+    setNotice(null);
 
     startTransition(async () => {
       const result = await createClientAndBookAction(locale, {
@@ -708,6 +789,15 @@ export function Calendar({
 
       setHighlightId(result.data.id);
       setSelectedId(result.data.id);
+      // The spec's own wording: the question follows the patient being added to
+      // the system *and* the first booking being created, which is this path.
+      offerRepeat({
+        clientId: result.data.clientId,
+        clientName: client.fullName,
+        date: pending.date,
+        startMinute: pending.startMinute,
+        durationMinutes: pending.durationMinutes,
+      });
     });
   }
 
@@ -825,6 +915,19 @@ export function Calendar({
         <div className={contentInset}>
           <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
             {t(message)}
+          </p>
+        </div>
+      )}
+
+      {notice && (
+        <div className={contentInset}>
+          {/*
+            `status`, not `alert`: nothing is wrong, and an assertive live
+            region would interrupt whatever a screen reader was saying to
+            announce a success.
+          */}
+          <p role="status" className="rounded-lg bg-secondary px-3 py-2 text-sm text-secondary-foreground" dir="auto">
+            {notice}
           </p>
         </div>
       )}
@@ -1160,6 +1263,31 @@ export function Calendar({
             commitMove(appointment, next);
           }}
           onCancel={() => setPendingMove(null)}
+        />
+      )}
+
+      {/*
+        The repeat offer, shown the moment a booking is saved.
+
+        Its own dialog rather than a `ConfirmDialog`, because it stopped being a
+        yes/no question the moment the span became the doctor's to choose: there
+        is a control to operate and a consequence — how many appointments, and
+        the date of the last — that has to update as they operate it.
+
+        Declining writes nothing and undoes nothing: the appointment this
+        followed is already saved on its own.
+      */}
+      {repeatOffer && (
+        <RepeatBookingDialog
+          locale={locale}
+          clientName={repeatOffer.clientName}
+          date={repeatOffer.date}
+          startMinute={repeatOffer.startMinute}
+          onConfirm={(weeks) => {
+            setRepeatOffer(null);
+            commitRepeat(repeatOffer, weeks);
+          }}
+          onCancel={() => setRepeatOffer(null)}
         />
       )}
 
