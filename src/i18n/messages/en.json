@@ -362,8 +362,6 @@
     "new": "New client",
     "createTitle": "Add a client",
     "createHint": "Name, phone, email and date of birth are enough to start.",
-    "moreDetails": "More details",
-    "fewerDetails": "Fewer details",
     "editTitle": "Edit client",
     "edit": "Edit",
     "empty": "No clients yet. Start by adding your first one.",
@@ -393,12 +391,12 @@
       "info": "Client info",
       "visits": "Visit history",
       "plans": "Meal plans",
-      "portal": "Portal access"
+      "portal": "Portal access",
+      "nutrition": "Nutrition"
     },
     "sections": {
       "contact": "Contact details",
-      "intake": "Intake profile",
-      "notes": "Notes"
+      "demographics": "Demographics"
     },
     "fields": {
       "fullName": "Full name",
@@ -418,7 +416,19 @@
       "status": "Status",
       "createdAt": "Registered",
       "portalAccess": "Portal access",
-      "actions": "Actions"
+      "actions": "Actions",
+      "conditions": "Conditions",
+      "medications": "Medications and supplements",
+      "careNote": "Care note",
+      "weightKg": "Weight (kg)",
+      "dailyKcalTarget": "Daily calories",
+      "proteinTargetGrams": "Protein (g)",
+      "preferences": "Preferences",
+      "dislikes": "Dislikes",
+      "permanentInstructions": "Standing instructions",
+      "slotLabel": "Meal name",
+      "slotTime": "Time",
+      "slotShare": "Share %"
     },
     "status": {
       "active": "Active",
@@ -480,7 +490,83 @@
       "invalid": "Check the fields highlighted in red.",
       "usernameTaken": "That username is already taken. Choose another.",
       "usernameInvalid": "Use 3 to 60 letters, numbers or hyphens.",
-      "unexpected": "Something went wrong. Please try again."
+      "unexpected": "Something went wrong. Please try again.",
+      "clientNotFound": "Client not found."
+    },
+    "intake": {
+      "createTitle": "Complete the nutrition intake",
+      "editTitle": "Edit the nutrition intake",
+      "forClient": "For {name}",
+      "save": "Save intake",
+      "edit": "Edit",
+      "start": "Start now",
+      "sections": {
+        "measurements": "Measurements",
+        "allergies": "Allergies and clinical record",
+        "clinical": "Clinical notes",
+        "planning": "What the plan follows",
+        "private": "Private notes",
+        "portal": "What the client sees",
+        "targets": "Targets",
+        "schedule": "Meal schedule"
+      },
+      "allergenLegend": "Tick every allergen to exclude",
+      "allergyDetailLabel": "Allergy detail",
+      "privateBadge": "Clinic only",
+      "fromFormula": "Computed",
+      "suggested": "Suggested",
+      "noAllergens": "No allergens recorded — the catalog is unfiltered.",
+      "shareWeight": "Show her weight in the portal",
+      "shareWeightHint": "Off by default. Off means the card is absent, not blank.",
+      "shared": "Visible to her",
+      "notShared": "Hidden from her",
+      "careNoteHint": "Rendered to the client exactly as written here.",
+      "removeSlotOf": "Remove the {label} meal",
+      "missingFields": "To generate, add: {fields}",
+      "kcalValue": "{value} kcal",
+      "gramsValue": "{value} g",
+      "override": "Manual",
+      "shareTotal": "Shares total {value}%",
+      "addSlot": "Add a meal",
+      "allergenHint": "Only the ticks above remove dishes from the catalog.",
+      "dailyTarget": "Daily target",
+      "bmi": "BMI",
+      "sectionsLabel": "Intake sections",
+      "hasContent": "Has content",
+      "allergyDetailPlaceholder": "e.g. mild reaction to walnuts but not almonds; lactose-free dairy is fine.",
+      "overrideDivider": "Manual figures",
+      "unsetCount": "{count} fields not filled in",
+      "unsetOne": "1 field not filled in",
+      "complete": "Everything is filled in",
+      "bmiLabel": "BMI {category}",
+      "noSchedule": "No meal schedule",
+      "hour": "Hour",
+      "minute": "Minute",
+      "customAllergenLegend": "Other allergies (these do not filter the catalog)",
+      "customAllergenPlaceholder": "Name it",
+      "addAllergen": "Add an allergy",
+      "removeAllergen": "Remove {name}"
+    },
+    "allergens": {
+      "nuts": "Nuts",
+      "lactose": "Lactose",
+      "gluten": "Gluten",
+      "egg": "Egg",
+      "fish": "Fish",
+      "sesame": "Sesame"
+    },
+    "bmiCategories": {
+      "underweight": "Underweight",
+      "normal": "Normal",
+      "overweight": "Overweight",
+      "obese": "Obese",
+      "severely_obese": "Severely obese"
+    },
+    "units": {
+      "cm": "cm",
+      "kg": "kg",
+      "kcal": "kcal",
+      "g": "g"
     }
   },
   "portal": {
@@ -1030,6 +1116,19 @@
     "generate": "Generate plan with AI",
     "generating": "Generating…",
     "generatingHint": "A whole week takes about a minute. Do not close the page.",
+    "generationLoading": {
+      "title": "Building the new week",
+      "regenerateTitle": "Rebuilding this week",
+      "description": "AI is matching the client's targets and instructions to dishes in the approved catalog.",
+      "elapsed": "{seconds, plural, one {# second elapsed} other {# seconds elapsed}}",
+      "activity": {
+        "targets": "Reading the client's targets and week instructions…",
+        "catalog": "Matching suitable dishes from the approved catalog…",
+        "balance": "Balancing meals across all seven days…",
+        "draft": "Preparing a draft for your review…"
+      },
+      "review": "The result stays a draft until you review and publish it."
+    },
     "regenerate": "Regenerate",
     "regenerateDay": "Regenerate this day",
     "regenerateMeal": "Regenerate this meal",
@@ -1345,6 +1444,7 @@
       "button": "Send",
       "sent": "Message sent.",
       "noPhone": "This client has no usable phone number.",
+      "notOnWhatsapp": "WhatsApp does not recognize this client's phone number.",
       "notConnected": "WhatsApp is not connected right now.",
       "notConfigured": "WhatsApp is not linked yet."
     },
