@@ -3,8 +3,13 @@
 import { useTranslations } from 'next-intl';
 import { useActionState } from 'react';
 
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardField, CardHeader, CardTitle } from '@/components/ui/card';
+import { Callout } from '@/components/ui/callout';
+import { Card, CardContent, CardDivider, CardHeader, CardTitle } from '@/components/ui/card';
+import { ConfirmSubmitButton } from '@/components/ui/confirm-submit-button';
+import { CopyButton } from '@/components/ui/copy-button';
+import { Field, FieldHint } from '@/components/ui/field';
 import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,7 +18,6 @@ import {
   reissuePortalPasswordAction,
   revokePortalAccessAction,
 } from '@/features/clients/actions';
-import { ConfirmSubmitButton } from '@/components/ui/confirm-submit-button';
 import {
   initialPortalCredentialsState,
   initialRevokePortalAccessState,
@@ -40,6 +44,21 @@ type PortalCredentialsCardProps = {
   canSendWhatsapp: boolean;
 };
 
+/**
+ * Issuing, reissuing and revoking a client's sign-in.
+ *
+ * **State first, then the controls.** The card used to open with a title and a
+ * sentence and leave you to infer the rest; whether this person can sign in at
+ * all is the question the tab exists to answer, so it is a badge in the header
+ * now, and the username sits under it as a value you can copy rather than one
+ * you select by hand.
+ *
+ * Everything here that was hand-rolled is shared furniture now: `Field` wraps
+ * the label and its input (which is what drives the label's focus shift and
+ * gives `FieldError` somewhere to live), the notice and the one-time credentials
+ * are `Callout`, and the confirmations are the design system's dialog rather
+ * than `window.confirm()` — see `ConfirmSubmitButton`.
+ */
 export function PortalCredentialsCard({
   locale,
   clientId,
@@ -52,14 +71,21 @@ export function PortalCredentialsCard({
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle icon="security" className="text-base">
+      <CardHeader className="flex-row flex-wrap items-center justify-between gap-2">
+        <CardTitle icon="security" size="sm">
           {t('portal.title')}
         </CardTitle>
-        <CardDescription>{hasPortalAccess ? t('portal.granted') : t('portal.none')}</CardDescription>
+        <Badge variant={hasPortalAccess ? 'onTrack' : 'muted'}>
+          {hasPortalAccess ? <Icon name="check" /> : null}
+          {hasPortalAccess ? t('portal.stateActive') : t('portal.stateNone')}
+        </Badge>
       </CardHeader>
 
-      <CardContent className="space-y-4">
+      <CardContent className="flex flex-col gap-4">
+        <p className="text-body-sm text-muted-foreground">
+          {hasPortalAccess ? t('portal.granted') : t('portal.none')}
+        </p>
+
         {hasPortalAccess ? (
           <ExistingAccess
             locale={locale}
@@ -106,20 +132,24 @@ function IssueForm({
   }
 
   return (
-    <form action={formAction} className="space-y-3">
+    <form action={formAction} className="flex max-w-md flex-col gap-4">
       <input type="hidden" name="locale" value={locale} />
       <input type="hidden" name="clientId" value={clientId} />
 
-      <div className="space-y-2">
+      <Field>
         <Label htmlFor="username">{t('portal.username')}</Label>
         <Input id="username" name="username" dir="ltr" required defaultValue={suggestedUsername} />
-      </div>
+        <FieldHint>{t('portal.usernameHint')}</FieldHint>
+      </Field>
 
       {canSendWhatsapp ? <WhatsappNotice /> : null}
 
       <CredentialsMessage state={state} />
 
-      <Button type="submit">{t('portal.issue')}</Button>
+      <Button type="submit" className="self-start">
+        <Icon name="lock" />
+        {t('portal.issue')}
+      </Button>
     </form>
   );
 }
@@ -157,32 +187,12 @@ function ExistingAccess({
   }
 
   return (
-    <div className="space-y-4">
-      {username ? <CardField label={t('portal.username')} value={username} dir="ltr" /> : null}
+    <div className="flex flex-col gap-4">
+      {username ? (
+        <Secret label={t('portal.username')} value={username} copyLabel={t('copy.username')} />
+      ) : null}
 
-      <div className="flex flex-wrap items-center gap-2">
-        <form action={reissueAction} className="space-y-2">
-          <input type="hidden" name="locale" value={locale} />
-          <input type="hidden" name="clientId" value={clientId} />
-          {canSendWhatsapp ? <WhatsappNotice /> : null}
-          <ConfirmSubmitButton
-            label={t('portal.reissue')}
-            confirmMessage={t('portal.confirmReissue')}
-            variant="outline"
-          />
-        </form>
-
-        <form action={revokeAction}>
-          <input type="hidden" name="locale" value={locale} />
-          <input type="hidden" name="clientId" value={clientId} />
-          {/* Revoking ends their session immediately, so it asks first. */}
-          <ConfirmSubmitButton
-            label={t('portal.revoke')}
-            confirmMessage={t('portal.confirmRevoke')}
-            variant="destructive"
-          />
-        </form>
-      </div>
+      {canSendWhatsapp ? <WhatsappNotice /> : null}
 
       <CredentialsMessage state={reissueState} />
 
@@ -190,12 +200,51 @@ function ExistingAccess({
         <p
           role="status"
           className={
-            revokeState.status === 'error' ? 'text-sm text-destructive' : 'text-sm text-muted-foreground'
+            revokeState.status === 'error'
+              ? 'text-body-sm text-destructive'
+              : 'text-body-sm text-muted-foreground'
           }
         >
           {t(revokeState.messageKey)}
         </p>
       ) : null}
+
+      <CardDivider className="ms-0" />
+
+      {/*
+        Reissue is `neutral` and revoke is `destructiveGhost`: neither is *the*
+        action on this card — the card is a state you read — and the design
+        system reserves the outlined destructive box for a decision being closed,
+        which is what the confirm dialog's own button carries.
+      */}
+      <div className="flex flex-wrap items-center gap-3">
+        <form action={reissueAction} className="flex">
+          <input type="hidden" name="locale" value={locale} />
+          <input type="hidden" name="clientId" value={clientId} />
+          <ConfirmSubmitButton
+            label={t('portal.reissue')}
+            confirmTitle={t('portal.confirmReissueTitle')}
+            confirmMessage={t('portal.confirmReissue')}
+            variant="neutral"
+            size="sm"
+            icon="refresh"
+          />
+        </form>
+
+        <form action={revokeAction} className="flex">
+          <input type="hidden" name="locale" value={locale} />
+          <input type="hidden" name="clientId" value={clientId} />
+          {/* Revoking ends their session immediately, so it asks first. */}
+          <ConfirmSubmitButton
+            label={t('portal.revoke')}
+            confirmTitle={t('portal.confirmRevokeTitle')}
+            confirmMessage={t('portal.confirmRevoke')}
+            variant="destructiveGhost"
+            size="sm"
+            icon="close"
+          />
+        </form>
+      </div>
     </div>
   );
 }
@@ -216,18 +265,17 @@ function ExistingAccess({
 function WhatsappNotice() {
   const t = useTranslations('clients');
 
-  return (
-    <p className="flex items-start gap-2 rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
-      <Icon name="whatsapp" className="mt-0.5 size-4 shrink-0" />
-      {t('portal.willSendWhatsapp')}
-    </p>
-  );
+  return <Callout icon="whatsapp">{t('portal.willSendWhatsapp')}</Callout>;
 }
 
 /**
  * Shown exactly once, right after issuing or re-issuing: the plaintext
  * temporary password never comes back from the server again after this
  * render, because nothing stores it in plaintext.
+ *
+ * Which is exactly why both values carry a copy button. "Select this carefully
+ * before you navigate away" is a poor thing to ask about the one value on the
+ * screen that cannot be recovered.
  */
 function IssuedCredentials({
   username,
@@ -241,29 +289,61 @@ function IssuedCredentials({
   const t = useTranslations('clients');
 
   return (
-    <div className="space-y-3 rounded-md border border-status-attention-fg/40 bg-status-attention-bg p-4 text-start">
-      <p className="text-sm font-medium text-status-attention-fg">{t('portal.showOnce')}</p>
+    <div className="flex max-w-lg flex-col gap-4">
+      <Callout tone="attention" title={t('portal.showOnce')}>
+        {t('portal.handOver')}
+      </Callout>
 
-      <div className="grid grid-cols-2 gap-4">
-        <CardField label={t('portal.username')} value={<span className="font-mono">{username}</span>} dir="ltr" />
-        <CardField
+      <div className="flex flex-col gap-2">
+        <Secret label={t('portal.username')} value={username} copyLabel={t('copy.username')} />
+        <Secret
           label={t('portal.temporaryPassword')}
-          value={<span className="font-mono">{temporaryPassword}</span>}
-          dir="ltr"
+          value={temporaryPassword}
+          copyLabel={t('copy.password')}
         />
       </div>
-
-      <p className="text-sm text-muted-foreground">{t('portal.handOver')}</p>
 
       {/*
         A failed or skipped send is not an error about the account — the password
         above is real either way — so it reads as information, not as a failure.
       */}
       {whatsapp ? (
-        <p role="status" className={whatsapp === 'sent' ? 'text-sm text-muted-foreground' : 'text-sm text-destructive'}>
+        <p
+          role="status"
+          className={
+            whatsapp === 'sent'
+              ? 'text-body-sm text-muted-foreground'
+              : 'text-body-sm text-destructive'
+          }
+        >
           {t(`portal.whatsapp.${whatsapp}`)}
         </p>
       ) : null}
+    </div>
+  );
+}
+
+/** A credential: what it is, the value in mono, and one click to copy it. */
+function Secret({
+  label,
+  value,
+  copyLabel,
+}: {
+  label: string;
+  value: string;
+  copyLabel: string;
+}) {
+  const t = useTranslations('clients');
+
+  return (
+    <div className="flex items-center gap-3 rounded-md bg-muted px-4 py-2.5">
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="text-caption text-muted-foreground">{label}</span>
+        <span className="truncate font-mono text-body-md" dir="ltr">
+          {value}
+        </span>
+      </span>
+      <CopyButton value={value} label={copyLabel} copiedLabel={t('copy.copied')} />
     </div>
   );
 }
@@ -273,7 +353,7 @@ function CredentialsMessage({ state }: { state: PortalCredentialsState }) {
   if (state.status !== 'error') return null;
 
   return (
-    <p role="status" className="text-sm text-destructive">
+    <p role="status" className="text-body-sm text-destructive">
       {t(state.messageKey)}
     </p>
   );

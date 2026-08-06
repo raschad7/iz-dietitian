@@ -181,14 +181,30 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
 function CardTitle({
   className,
   icon,
+  size = "default",
   children,
   ...props
-}: React.ComponentProps<"div"> & { icon?: IconName }) {
+}: React.ComponentProps<"div"> & {
+  icon?: IconName
+  /**
+   * `sm` is the 16px title, for a card that is one panel among several on a
+   * screen rather than the thing the screen is about.
+   *
+   * It is a prop because every call site in the clients feature was reaching
+   * for `className="text-base"` to get it — twelve local patches of the same
+   * value, which is the tell that the default was wrong for that usage rather
+   * than that twelve cards were special. Overriding through `className` also
+   * only worked by accident: `cn` has to know this scale for tailwind-merge to
+   * treat `text-base` as a size rather than a colour.
+   */
+  size?: "default" | "sm"
+}) {
   return (
     <div
       data-slot="card-title"
       className={cn(
-        "font-heading text-heading-sm leading-snug font-semibold group-data-[size=sm]/card:text-body-md",
+        "font-heading leading-snug font-semibold group-data-[size=sm]/card:text-body-md",
+        size === "sm" ? "text-body-md" : "text-heading-sm",
         icon && "flex items-center gap-2",
         className
       )}

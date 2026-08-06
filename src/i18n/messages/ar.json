@@ -386,6 +386,38 @@
     "backToList": "العودة إلى قائمة المتابعين",
     "notProvided": "غير مُدخل",
     "yearsOld": "{count, number, integer} سنة",
+    "openPlanner": "لوحة الخطط",
+    "copy": {
+      "copied": "تم النسخ",
+      "phone": "نسخ رقم الهاتف",
+      "email": "نسخ البريد الإلكتروني",
+      "username": "نسخ اسم المستخدم",
+      "password": "نسخ كلمة المرور"
+    },
+    "nextVisit": "الزيارة القادمة",
+    "noUpcomingVisit": "لا يوجد موعد",
+    "lastVisit": "آخر زيارة",
+    "noPreviousVisit": "لا توجد زيارات سابقة",
+    "recentActivity": {
+      "title": "آخر ما جرى",
+      "currentPlan": "الخطة الحالية",
+      "noPlan": "لا توجد خطة بعد",
+      "portalAccess": "الدخول إلى البوابة",
+      "portalGranted": "مُفعّل",
+      "portalNone": "غير مُفعّل"
+    },
+    "contactActions": {
+      "whatsapp": "مراسلة عبر واتساب",
+      "call": "اتصال",
+      "emailLink": "إرسال بريد"
+    },
+    "healthSummary": {
+      "title": "تنبيهات صحية",
+      "toNutrition": "التغذية",
+      "kcalMismatch": "الهدف اليومي بعيد عن المحسوب",
+      "kcalMismatchDetail": "أُدخل {manual} kcal يدويًا، والقياسات تعطي {computed} kcal.",
+      "missingForTargets": "لا يمكن حساب الأهداف قبل إضافة: {fields}"
+    },
     "tabs": {
       "label": "أقسام المتابع",
       "info": "بيانات المتابع",
@@ -457,7 +489,9 @@
       "archive": "أرشفة",
       "restore": "إلغاء الأرشفة",
       "delete": "حذف نهائي",
-      "confirmDelete": "سيُحذف سجل «{name}» نهائيًا مع حسابه في البوابة، ولا يمكن التراجع. هل أنت متأكد؟"
+      "more": "إجراءات أخرى",
+      "confirmDeleteTitle": "حذف السجل نهائيًا؟",
+      "confirmDelete": "سيُحذف سجل «{name}» نهائيًا مع حسابه في البوابة، ولا يمكن التراجع."
     },
     "clearFilters": "مسح الفلاتر",
     "pagination": {
@@ -469,10 +503,15 @@
       "title": "الدخول إلى البوابة",
       "none": "لا يملك هذا المتابع حسابًا في بوابة المتابعين.",
       "granted": "يستطيع هذا المتابع الدخول إلى البوابة.",
+      "stateActive": "مُفعّل",
+      "stateNone": "غير مُفعّل",
       "username": "اسم المستخدم",
+      "usernameHint": "يستخدمه المتابع للدخول. حروف لاتينية وأرقام.",
       "issue": "إنشاء بيانات الدخول",
       "reissue": "إصدار كلمة مرور جديدة",
-      "confirmReissue": "سيتم إنهاء جلسات المتابع الحالية. هل تريد المتابعة؟",
+      "confirmReissueTitle": "إصدار كلمة مرور جديدة؟",
+      "confirmReissue": "ستُنهى جلسات المتابع الحالية، ولن تعمل كلمة المرور القديمة بعدها.",
+      "confirmRevokeTitle": "سحب صلاحية الدخول؟",
       "revoke": "سحب صلاحية الدخول",
       "revoked": "تم سحب صلاحية الدخول.",
       "confirmRevoke": "سيفقد المتابع إمكانية الدخول إلى البوابة فورًا. هل أنت متأكد؟",
@@ -538,6 +577,14 @@
       "unsetCount": "{count} حقول غير مُدخلة",
       "unsetOne": "حقل واحد غير مُدخل",
       "complete": "كل الحقول مُدخلة",
+      "completeness": "اكتمال السجل",
+      "filledOf": "{filled} من {total} حقلاً مُدخلة",
+      "gapsHeading": "{count, plural, =0 {كل الحقول مُدخلة} one {حقل واحد بلا بيانات} two {حقلان بلا بيانات} few {# حقول بلا بيانات} many {# حقلاً بلا بيانات} other {# حقل بلا بيانات}}",
+      "fillGaps": "إكمال البيانات",
+      "slotCount": "{count, plural, one {وجبة واحدة} two {وجبتان} few {# وجبات} many {# وجبة} other {# وجبة}}",
+      "kcalMismatch": "الهدف اليدوي بعيد عن المحسوب",
+      "kcalMismatchDetail": "أُدخل {manual} kcal يدويًا، بينما القياسات والهدف يعطيان {computed} kcal. راجعي الرقم أو احذفيه ليُحسب تلقائيًا.",
+      "bmiValueText": "{value} — {category}",
       "bmiLabel": "كتلة الجسم {category}",
       "noSchedule": "لا يوجد جدول وجبات",
       "hour": "الساعة",
@@ -566,7 +613,8 @@
       "cm": "سم",
       "kg": "كغ",
       "kcal": "kcal",
-      "g": "غ"
+      "g": "غ",
+      "years": "سنة"
     }
   },
   "portal": {
@@ -1063,6 +1111,21 @@
     "noPlanYet": "لم يُخطط أسبوع لهذا العميل بعد",
     "noPlanHint": "أنشئ الأسبوع الأول عندما تكون جاهزاً. يبقى ملف العميل وكتالوج الأطباق والخطط السابقة متاحة في اللوحة الجانبية.",
     "current": "الخطة الحالية",
+    "currentWeekOf": "الخطة الحالية · أسبوع {date}",
+    "openBoard": "فتح اللوحة",
+    "openThisWeek": "فتح هذا الأسبوع",
+    "mealsFilled": "الوجبات المُدخلة",
+    "ofWeek": "من أصل الأسبوع",
+    "kcalTarget": "هدف السعرات",
+    "snapshotNote": "محفوظ مع الخطة",
+    "lastEdited": "آخر تعديل",
+    "columns": {
+      "week": "الأسبوع",
+      "status": "الحالة",
+      "meals": "الوجبات",
+      "target": "السعرات",
+      "updated": "آخر تعديل"
+    },
     "history": "الخطط السابقة",
     "weekOf": "أسبوع {date}",
     "generatedBy": "النموذج المستخدم",
