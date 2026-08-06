@@ -1115,6 +1115,19 @@
     "generate": "Generate plan with AI",
     "generating": "Generating…",
     "generatingHint": "A whole week takes about a minute. Do not close the page.",
+    "generationLoading": {
+      "title": "Building the new week",
+      "regenerateTitle": "Rebuilding this week",
+      "description": "AI is matching the client's targets and instructions to dishes in the approved catalog.",
+      "elapsed": "{seconds, plural, one {# second elapsed} other {# seconds elapsed}}",
+      "activity": {
+        "targets": "Reading the client's targets and week instructions…",
+        "catalog": "Matching suitable dishes from the approved catalog…",
+        "balance": "Balancing meals across all seven days…",
+        "draft": "Preparing a draft for your review…"
+      },
+      "review": "The result stays a draft until you review and publish it."
+    },
     "regenerate": "Regenerate",
     "regenerateDay": "Regenerate this day",
     "regenerateMeal": "Regenerate this meal",
@@ -1430,6 +1443,7 @@
       "button": "Send",
       "sent": "Message sent.",
       "noPhone": "This client has no usable phone number.",
+      "notOnWhatsapp": "WhatsApp does not recognize this client's phone number.",
       "notConnected": "WhatsApp is not connected right now.",
       "notConfigured": "WhatsApp is not linked yet."
     },

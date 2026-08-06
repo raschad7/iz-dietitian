@@ -56,6 +56,8 @@ export type SendSkipReason =
   | 'not_connected'
   /** The client has no phone number, or it cannot be read as one. */
   | 'no_phone'
+  /** The number is valid, but WhatsApp reports that it has no account. */
+  | 'not_on_whatsapp'
   /** The body was empty once trimmed. Callers validate first, so this is a bug. */
   | 'empty_body'
   /** Already sent — the dedupe key was taken. This is the automation working. */

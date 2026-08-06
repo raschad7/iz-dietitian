@@ -59,6 +59,9 @@ services:
       - STORAGE_LOCAL_PATH=/app/data/media
       - WEBHOOK_TIMEOUT=10000
       - WEBHOOK_RETRY_DELAY=5000
+      # The app runs on the Docker host. Keep SSRF protection enabled, but allow
+      # this one intentional private callback destination.
+      - SSRF_ALLOWED_HOSTS=host.docker.internal
       # Chromium needs writable config/cache dirs, and the root filesystem is
       # read-only below; these point at the tmpfs.
       - HOME=/tmp

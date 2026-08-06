@@ -182,6 +182,33 @@ describe('sendWhatsappMessage', () => {
     });
   });
 
+  test('skips an otherwise valid number that is not registered on WhatsApp', async () => {
+    await createTestWhatsappSettings(clinicId);
+    const gateway = createFakeGateway();
+    gateway.checkNumber = async () => false;
+
+    expect(await sendWhatsappMessage(request(), { gateway })).toEqual({
+      status: 'skipped',
+      reason: 'not_on_whatsapp',
+    });
+    expect(gateway.sent).toHaveLength(0);
+    expect(await db.select().from(whatsappMessages)).toHaveLength(0);
+  });
+
+  test('does not claim a message when the recipient check cannot reach the gateway', async () => {
+    await createTestWhatsappSettings(clinicId);
+    const gateway = createFakeGateway();
+    gateway.checkNumber = async () => {
+      throw new GatewayError('gateway is down', 0);
+    };
+
+    const result = await sendWhatsappMessage(request(), { gateway });
+
+    expect(result).toEqual({ status: 'failed', messageId: null, error: 'gateway is down' });
+    expect(gateway.sent).toHaveLength(0);
+    expect(await db.select().from(whatsappMessages)).toHaveLength(0);
+  });
+
   test('skips everything when the feature is switched off', async () => {
     await createTestWhatsappSettings(clinicId);
     disableWhatsappForTests();

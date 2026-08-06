@@ -178,6 +178,7 @@ export async function sendWhatsappMessageAction(
     // A duplicate cannot happen here — a manual send gets a random dedupe key —
     // so the remaining reasons are about the setup, not the message.
     if (result.reason === 'no_phone') return { status: 'skipped', messageKey: 'send.noPhone' };
+    if (result.reason === 'not_on_whatsapp') return { status: 'skipped', messageKey: 'send.notOnWhatsapp' };
     if (result.reason === 'not_connected') return { status: 'skipped', messageKey: 'send.notConnected' };
     // Unreachable through this action (the schema rejects an empty body), but it is
     // a bad input rather than a missing connection, so it must not say otherwise.
