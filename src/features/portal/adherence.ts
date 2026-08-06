@@ -28,6 +28,22 @@ export const LEVEL_SCORE: Record<AdherenceLevel, number> = { missed: 0, partial:
 export const ADHERENCE_SCORE_MAX = 10;
 
 /**
+ * A day's level, from how many of its meals are ticked complete.
+ *
+ * The one place this fraction turns into a level — `toggleMealCompletion`
+ * calls it after every tick, so `client_plan_adherence` never disagrees with
+ * the meals it was derived from. `null` when the day has no meals to tick at
+ * all, which leaves the day's existing row untouched rather than writing a
+ * `missed` nobody could have prevented.
+ */
+export function deriveAdherenceLevel(completed: number, total: number): AdherenceLevel | null {
+  if (total <= 0) return null;
+  if (completed <= 0) return 'missed';
+  if (completed >= total) return 'full';
+  return 'partial';
+}
+
+/**
  * What a day looks like in the week strip.
  *
  * `today` is its own state rather than a flag on the others, same reasoning

@@ -3,11 +3,13 @@
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useTransition } from 'react';
 
+import { deriveAdherenceLevel, LEVEL_SCORE, type AdherenceDay } from '@/features/portal/adherence';
 import { DayFlame } from '@/features/portal/components/day-flame';
 import { usePathname, useRouter } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
 
 import { dayKey } from '../schema';
+import { usePlanDayCompletion } from './plan-day-completion';
 import { type PlanDaySummary } from '../week';
 
 /**
@@ -61,6 +63,7 @@ export function PlanDayStrip({
   const router = useRouter();
   const pathname = usePathname();
   const [isPending, startTransition] = useTransition();
+  const completion = usePlanDayCompletion();
 
   const rowRef = useRef<HTMLDivElement | null>(null);
   const selectedRef = useRef<HTMLButtonElement | null>(null);
@@ -140,6 +143,26 @@ export function PlanDayStrip({
           const planned = day.mealCount > 0;
           const name = tDays(dayKey(day.dayOfWeek));
 
+          const baseAdherence: AdherenceDay = day.adherence ?? {
+            date: day.date ?? '',
+            weekday: day.dayOfWeek,
+            state: 'empty',
+            score: null,
+          };
+
+          // Only the day this screen actually let someone tick meals on: its
+          // flame follows the local, instant count rather than the score
+          // `loadPlanPage` read before any of today's taps happened.
+          const localLevel =
+            completion && completion.dayOfWeek === day.dayOfWeek
+              ? deriveAdherenceLevel(completion.completedCount, completion.totalCount)
+              : null;
+
+          const adherence: AdherenceDay =
+            completion && completion.dayOfWeek === day.dayOfWeek
+              ? { ...baseAdherence, score: localLevel ? LEVEL_SCORE[localLevel] : null }
+              : baseAdherence;
+
           return (
             <button
               key={day.dayOfWeek}
@@ -216,16 +239,7 @@ export function PlanDayStrip({
                 unlit `empty` mark rather than to a gap that would make the row
                 ragged.
               */}
-              <DayFlame
-                day={
-                  day.adherence ?? {
-                    date: day.date ?? '',
-                    weekday: day.dayOfWeek,
-                    state: 'empty',
-                    score: null,
-                  }
-                }
-              />
+              <DayFlame day={adherence} />
             </button>
           );
         })}

@@ -16,9 +16,12 @@ import { clinics } from './clinics';
  * adherent.
  *
  * Three levels rather than a 0–10 scale: the portal asks for a quick daily
- * read, not a rating scale, and `missed`/`partial`/`full` is what the
- * segmented control on the progress tab submits directly as the value of the
- * chosen segment (§9.3 — "a segment carries the value it selects").
+ * read, not a rating scale. There is no manual selector for it any more — a
+ * row here is written automatically, derived from the fraction of that day's
+ * meals ticked complete on the meal-plan screen (see
+ * `weekly_plan_meal_completions` and
+ * `src/features/portal/mutations.ts:toggleMealCompletion`): none ticked is
+ * `missed`, all ticked is `full`, anything between is `partial`.
  */
 export const ADHERENCE_LEVELS = ['missed', 'partial', 'full'] as const;
 

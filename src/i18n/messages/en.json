@@ -713,17 +713,12 @@
       "today": {
         "heading": "Your commitment today",
         "unit": "of {max}",
-        "groupLabel": "Log today's commitment",
-        "prompt": "Log today's commitment so we can follow your progress.",
+        "prompt": "Tick off today's meals in My Plan to see your commitment here.",
+        "cta": "Update today's adherence",
         "level": {
           "missed": "That's alright — tomorrow is a fresh start.",
           "partial": "A good step toward your plan.",
           "full": "Wonderful commitment today!"
-        },
-        "options": {
-          "missed": "Missed",
-          "partial": "Partial",
-          "full": "Full"
         }
       },
       "week": {
