@@ -3,8 +3,6 @@ import { notFound } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 import { Icon } from '@/components/ui/icon';
-import { toIsoDate } from '@/features/booking/date';
-import { getClientVisitSummary } from '@/features/booking/queries';
 import { ClientRecordHeader } from '@/features/clients/components/client-record-header';
 import { ClientTabs } from '@/features/clients/components/client-tabs';
 import { intakeGaps } from '@/features/clients/intake-gaps';
@@ -19,8 +17,8 @@ type ClientLayoutProps = {
 };
 
 /**
- * The chrome every tab of a client's record shares: who they are, the numbers
- * every tab wants, the record-level actions, and the tab bar.
+ * The chrome every tab of a client's record shares: who they are, the
+ * record-level actions, and the tab bar.
  *
  * Fetching the client here rather than in each tab page means a bad id 404s
  * once, before any tab-specific data is read, and the header never has to be
@@ -29,10 +27,8 @@ type ClientLayoutProps = {
  * independently correct rather than trusting data smuggled down from a layout
  * Next.js does not actually let a page receive props from.
  *
- * **The intake is read here too**, which is new. The header's fact strip is
- * built from it and so is the count on the Nutrition tab, and both have to be
- * right on all five tabs — including the four that do not otherwise touch the
- * clinical record.
+ * **Everything on this strip is paid for five times over**, which is the whole
+ * argument for keeping it short. It carries only what no tab repeats.
  *
  * `h-full`/`min-h-0` on the shell, with only the middle strip scrolling: the
  * same shape `/app/calendar` uses, and it is what lets the Visit History tab
@@ -51,14 +47,12 @@ export default async function ClientLayout({ children, params }: ClientLayoutPro
     notFound();
   }
 
-  // The server clock's own local day, the same derivation `loadDashboard` and
-  // `loadCalendarPage` use — so a record and the calendar inside it never
-  // disagree about which day "next" is being measured from.
-  const today = toIsoDate(new Date());
-
-  const [intake, visits, t] = await Promise.all([
+  // The intake is read here for one reason only: the count on the Nutrition
+  // tab, which has to be right on all five tabs including the four that never
+  // touch the clinical record. The header itself no longer needs it — see
+  // `ClientRecordHeader` for why the summary band is gone.
+  const [intake, t] = await Promise.all([
     getClientIntake(clinicId, client.id),
-    getClientVisitSummary(clinicId, client.id, today),
     getTranslations('clients'),
   ]);
 
@@ -86,7 +80,7 @@ export default async function ClientLayout({ children, params }: ClientLayoutPro
         {t('backToList')}
       </Link>
 
-      <ClientRecordHeader client={client} intake={intake} visits={visits} locale={locale} />
+      <ClientRecordHeader client={client} locale={locale} />
 
       <ClientTabs clientId={client.id} nutritionGaps={intakeGaps(intake).length} />
 

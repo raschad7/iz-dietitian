@@ -107,7 +107,13 @@ export function ClientPlansCard({
         </CardHeader>
 
         <CardContent className="flex flex-col gap-4">
-          <StatGrid columns={3}>
+          {/*
+            Two tiles, not three. "Last edited" was a third, and a `StatTile`
+            isolates its value LTR — correct for a figure, wrong for a formatted
+            date, which reorders as "2026 أغسطس 7". It is a caption under the
+            controls now, which is what a timestamp is anyway.
+          */}
+          <StatGrid columns={2}>
             <StatTile
               label={t('mealsFilled')}
               value={`${current.mealCount} / ${expected}`}
@@ -118,10 +124,6 @@ export function ClientPlansCard({
               value={current.kcalTargetSnapshot}
               unit="kcal"
               note={t('snapshotNote')}
-            />
-            <StatTile
-              label={t('lastEdited')}
-              value={format.dateTime(current.updatedAt, 'date')}
             />
           </StatGrid>
 
@@ -144,6 +146,10 @@ export function ClientPlansCard({
               <Icon name="history" />
               {t('openThisWeek')}
             </Link>
+
+            <span className="text-body-sm text-muted-foreground">
+              {t('lastEdited')} {format.dateTime(current.updatedAt, 'date')}
+            </span>
           </div>
         </CardContent>
       </Card>

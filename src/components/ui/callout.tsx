@@ -29,7 +29,10 @@ import { cn } from '@/lib/utils';
  * the subject is more specific than the tone (the WhatsApp notice is neutral,
  * but its glyph is WhatsApp).
  */
-const calloutVariants = cva('flex items-start gap-3 rounded-md px-4 py-3 text-body-sm', {
+// `body-md` (16px), the scale's stated default and its mobile minimum. A
+// callout is something the reader has to take in, and Arabic loses legibility
+// at 14px well before Latin does — the i'jam collapse into the letterform.
+const calloutVariants = cva('flex items-start gap-3 rounded-md px-4 py-3 text-body-md', {
   variants: {
     tone: {
       neutral: 'bg-muted text-muted-foreground',

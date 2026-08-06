@@ -6,7 +6,7 @@ import { useActionState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Callout } from '@/components/ui/callout';
-import { Card, CardContent, CardDivider, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ConfirmSubmitButton } from '@/components/ui/confirm-submit-button';
 import { CopyButton } from '@/components/ui/copy-button';
 import { Field, FieldHint } from '@/components/ui/field';
@@ -209,15 +209,18 @@ function ExistingAccess({
         </p>
       ) : null}
 
-      <CardDivider className="ms-0" />
-
       {/*
+        A full-width rule, not `CardDivider`. That one is inset — it stops 40px
+        short of the inline-end edge by design — and inside a card whose content
+        is already inset, a line that ends before the edge reads as a border
+        that has broken rather than as a separation.
+
         Reissue is `neutral` and revoke is `destructiveGhost`: neither is *the*
         action on this card — the card is a state you read — and the design
         system reserves the outlined destructive box for a decision being closed,
         which is what the confirm dialog's own button carries.
       */}
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3 border-t border-border pt-4">
         <form action={reissueAction} className="flex">
           <input type="hidden" name="locale" value={locale} />
           <input type="hidden" name="clientId" value={clientId} />

@@ -99,8 +99,19 @@ export function ClientNutrition({
     Boolean(intake.conditions) ||
     Boolean(intake.medications);
 
+  /*
+   * `careNote` is in here rather than in a section of its own. It used to live
+   * on a "what the client sees" card alongside the share-weight toggle; that
+   * card is gone, and a note the dietitian writes *for* the client is guidance
+   * that shapes the plan, so it belongs with the rest of the guidance. Leaving
+   * it out entirely would have made it write-only — editable in the dialog and
+   * visible nowhere.
+   */
   const hasPlanningRecord =
-    Boolean(intake.permanentInstructions) || Boolean(intake.preferences) || Boolean(intake.dislikes);
+    Boolean(intake.permanentInstructions) ||
+    Boolean(intake.preferences) ||
+    Boolean(intake.dislikes) ||
+    Boolean(intake.careNote);
 
   const hasPrivateRecord = Boolean(intake.medicalNotes) || Boolean(intake.notes);
 
@@ -183,7 +194,18 @@ export function ClientNutrition({
         <CardContent className="flex flex-col gap-4">
           <StatGrid columns={6}>
             <StatTile label={t('fields.heightCm')} value={intake.heightCm} unit={t('units.cm')} />
-            <StatTile label={t('fields.weightKg')} value={intake.weightKg} unit={t('units.kg')} />
+            {/*
+              Whether the client can see this figure is a fact *about this
+              figure*, so it sits under it. It used to be a row in a "what the
+              client sees" card, which put a setting about the weight two cards
+              away from the weight.
+            */}
+            <StatTile
+              label={t('fields.weightKg')}
+              value={intake.weightKg}
+              unit={t('units.kg')}
+              note={intake.shareWeightWithClient ? t('intake.shared') : t('intake.notShared')}
+            />
             <StatTile label={t('fields.age')} value={age} unit={t('units.years')} />
             <StatTile
               label={t('intake.bmi')}
@@ -318,6 +340,7 @@ export function ClientNutrition({
                   { label: t('fields.permanentInstructions'), value: intake.permanentInstructions },
                   { label: t('fields.preferences'), value: intake.preferences },
                   { label: t('fields.dislikes'), value: intake.dislikes },
+                  { label: t('fields.careNote'), value: intake.careNote },
                 ]}
               />
             </CardContent>
@@ -343,33 +366,6 @@ export function ClientNutrition({
           </Card>
         ) : null}
 
-        {/*
-          What the client is shown. `myPlan` rather than `profile`: the Info tab
-          already owns the person glyph, and one picture meaning two things on
-          one record is worse than a duller glyph.
-        */}
-        <Card className="lg:col-span-3">
-          <CardHeader>
-            <CardTitle icon="myPlan" size="sm">
-              {t('intake.sections.portal')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            <p className="flex items-center gap-2 text-body-sm">
-              <Icon
-                name={intake.shareWeightWithClient ? 'eye' : 'eyeOff'}
-                className="size-4 text-muted-foreground"
-              />
-              <span className="text-muted-foreground">{t('intake.shareWeight')}</span>
-              <span className="font-medium">
-                {intake.shareWeightWithClient ? t('intake.shared') : t('intake.notShared')}
-              </span>
-            </p>
-            {intake.careNote ? (
-              <Notes items={[{ label: t('fields.careNote'), value: intake.careNote }]} />
-            ) : null}
-          </CardContent>
-        </Card>
       </div>
 
       {/*
@@ -454,7 +450,7 @@ function BmiScale({
         Four labels, because the boundaries worth naming are 18.5 / 25 / 30. A
         fifth would need a tick at 35 that no label fits beside at this width.
       */}
-      <div className="grid grid-cols-4 text-caption text-muted-foreground">
+      <div className="grid grid-cols-4 text-body-sm text-muted-foreground">
         {scaleLabels.map((text, index) => (
           <span key={text} className={index === 0 ? 'text-start' : 'text-center last:text-end'}>
             {text}
@@ -500,14 +496,15 @@ function MealSchedule({
           style={{ flexGrow: Math.max(slot.kcalShare, 0.01) }}
           className="flex min-w-0 flex-col gap-1 rounded-md bg-muted px-3 py-2.5 sm:basis-0"
         >
-          <span className="flex items-center gap-1.5 text-body-sm font-medium" dir="auto">
+          <span className="flex items-center gap-1.5 text-body-md font-medium" dir="auto">
             <Icon
               name={MEAL_ICONS[mealTypeForSlot(slot.slotKey)]}
-              className="size-4 shrink-0 text-muted-foreground"
+              className="size-[1.0625rem] shrink-0 text-muted-foreground"
             />
             <span className="truncate">{slot.label}</span>
           </span>
-          <span className="text-caption tabular-nums text-muted-foreground" dir="ltr">
+          {/* A clock time and a percentage — bare digits, so genuinely LTR. */}
+          <span className="text-body-sm tabular-nums text-muted-foreground" dir="ltr">
             {slot.timeOfDay} · {Math.round(slot.kcalShare * 100)}%
           </span>
         </li>
@@ -530,7 +527,7 @@ function Notes({ items }: { items: { label: string; value: string | null }[] }) 
         <div key={item.label}>
           <dt className="text-label text-muted-foreground">{item.label}</dt>
           <dd
-            className="mt-0.5 text-body-sm whitespace-pre-line text-foreground [overflow-wrap:anywhere]"
+            className="mt-1 text-body-md whitespace-pre-line text-foreground [overflow-wrap:anywhere]"
             dir="auto"
           >
             {item.value}

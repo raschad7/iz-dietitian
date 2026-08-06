@@ -2,7 +2,7 @@ import { useFormatter, useTranslations } from 'next-intl';
 
 import { Badge } from '@/components/ui/badge';
 import { Callout } from '@/components/ui/callout';
-import { Card, CardContent, CardDivider, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { CopyButton } from '@/components/ui/copy-button';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { formatMediumDate } from '@/features/booking/format';
@@ -91,7 +91,15 @@ export function ClientProfile({
             </CardTitle>
           </CardHeader>
 
-          <CardContent className="flex flex-col">
+          {/*
+            `gap-2` between rows rather than a rule under each. The card was
+            drawing three horizontal lines that each stopped short of its own
+            edge — two row separators inside the content padding and an inset
+            `CardDivider` — which together read as a border that had broken
+            rather than as structure. There is one rule on this card now, and it
+            is the footer's, which is full-bleed.
+          */}
+          <CardContent className="flex flex-col gap-2">
             <ContactRow
               icon="contact"
               label={t('fields.phone')}
@@ -113,19 +121,20 @@ export function ClientProfile({
             />
           </CardContent>
 
-          <CardDivider />
-
           {/*
-            Reference, not headline. These three used to render at the same
-            weight as the phone number, which made the least useful fact on the
-            card exactly as loud as the most useful one.
+            Reference, not headline — but not fine print either. These were at
+            12px, the size the design system reserves for text nobody needs;
+            a date of birth is something a dietitian actually reads.
           */}
-          <CardContent className="flex flex-wrap gap-x-6 gap-y-1.5 text-caption text-muted-foreground">
+          <CardFooter className="flex-wrap gap-x-8 gap-y-2 text-body-sm">
             <Reference label={t('fields.preferredLocale')}>
               {client.preferredLocale === 'ar' ? 'العربية' : 'English'}
             </Reference>
             <Reference label={t('fields.dateOfBirth')}>
               {client.dateOfBirth ? (
+                // A bare ISO date — digits and hyphens, no direction of its
+                // own — so this one is genuinely LTR. A *formatted* date must
+                // never get `dir="ltr"`: "7 أغسطس 2026" reorders.
                 <span dir="ltr" className="tabular-nums">
                   {client.dateOfBirth}
                 </span>
@@ -134,9 +143,9 @@ export function ClientProfile({
               )}
             </Reference>
             <Reference label={t('fields.createdAt')}>
-              <span className="tabular-nums">{format.dateTime(client.createdAt, 'date')}</span>
+              {format.dateTime(client.createdAt, 'date')}
             </Reference>
-          </CardContent>
+          </CardFooter>
         </Card>
 
         {/*
@@ -151,10 +160,10 @@ export function ClientProfile({
             </CardTitle>
             <Link
               href={`/app/clients/${client.id}/nutrition`}
-              className="inline-flex shrink-0 items-center gap-1 text-caption text-muted-foreground underline-offset-4 hover:text-secondary-foreground hover:underline"
+              className="inline-flex shrink-0 items-center gap-1 text-body-sm text-muted-foreground underline-offset-4 hover:text-secondary-foreground hover:underline"
             >
               {t('healthSummary.toNutrition')}
-              <Icon name="chevronEnd" className="size-3" />
+              <Icon name="chevronEnd" className="size-3.5" />
             </Link>
           </CardHeader>
 
@@ -278,13 +287,13 @@ function ContactRow({
   numeric?: boolean;
 }) {
   return (
-    <div className="flex items-center gap-3 py-2 not-first:border-t not-first:border-border">
+    <div className="flex items-center gap-3 rounded-md bg-muted/60 px-3 py-2.5">
       <span className="grid size-9 shrink-0 place-items-center rounded-full bg-secondary">
         <Icon name={icon} className="size-4 text-primary" />
       </span>
 
       <span className="flex min-w-0 flex-1 flex-col">
-        <span className="text-caption text-muted-foreground">{label}</span>
+        <span className="text-label text-muted-foreground">{label}</span>
         {value && href ? (
           <a
             href={href}
@@ -308,9 +317,9 @@ function ContactRow({
 
 function Reference({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center gap-1.5">
-      {label}
-      <span className="font-medium text-foreground">{children}</span>
+    <span className="inline-flex items-center gap-2">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-semibold text-foreground">{children}</span>
     </span>
   );
 }
@@ -332,21 +341,23 @@ function ActivityItem({
 }) {
   return (
     <div className="flex items-start gap-3">
-      <span className="grid size-8 shrink-0 place-items-center rounded-full bg-muted">
+      <span className="grid size-9 shrink-0 place-items-center rounded-full bg-muted">
         <Icon name={icon} className="size-4 text-muted-foreground" />
       </span>
 
-      <div className="flex min-w-0 flex-col items-start gap-0.5">
-        <span className="text-caption text-muted-foreground">{label}</span>
+      <div className="flex min-w-0 flex-col items-start gap-1">
+        <span className="text-label text-muted-foreground">{label}</span>
         {value === null ? (
-          <span className="text-body-sm text-muted-foreground">{emptyText ?? '—'}</span>
+          <span className="text-body-md text-muted-foreground">{emptyText ?? '—'}</span>
         ) : (
-          <span className="text-body-sm font-medium text-foreground" dir="auto">
+          // No `dir="ltr"` anywhere near this: the value is a *formatted* date
+          // and `auto` is what keeps "7 أغسطس 2026" in the right order.
+          <span className="text-body-md font-semibold text-foreground" dir="auto">
             {value}
           </span>
         )}
         {note ? (
-          <span className="truncate text-caption text-muted-foreground" dir="auto">
+          <span className="truncate text-body-sm text-muted-foreground" dir="auto">
             {note}
           </span>
         ) : null}

@@ -113,7 +113,13 @@ function StatTile({
         )}
       </dd>
 
-      {note ? <p className="truncate text-caption text-muted-foreground">{note}</p> : null}
+      {/*
+        `body-sm`, not `caption`. A note here says where a figure came from —
+        "computed", "manual · computed 2,700" — which is the difference between
+        a number you trust and one you check, and 12px is the size the design
+        system reserves for text nobody needs.
+      */}
+      {note ? <p className="truncate text-body-sm text-muted-foreground">{note}</p> : null}
     </div>
   );
 }
