@@ -6,11 +6,12 @@ import { redirect } from 'next/navigation';
 
 import { routing } from '@/i18n/routing';
 
+import { type AdherenceLevel } from './adherence';
 import { requirePortalClient } from './session';
 import {
   createAppointmentRequest,
   createClientRequest,
-  logPlanAdherence,
+  toggleMealCompletion,
   updateContactMethod,
   updateLanguagePreference,
   updateNotificationSetting,
@@ -25,10 +26,10 @@ import {
   languagePreferenceSchema,
   localeSchema,
   notificationSettingSchema,
-  planAdherenceSchema,
+  toggleMealCompletionSchema,
   withdrawRequestSchema,
 } from './schema';
-import { CLIENT_REQUEST_KINDS, type ClientRequestFormState, type RequestFormState } from './types';
+import { CLIENT_REQUEST_KINDS, type ClientRequestFormState, type PortalResult, type RequestFormState } from './types';
 
 /**
  * The portal's mutations.
@@ -114,24 +115,30 @@ export async function requestAppointmentAction(
 }
 
 /**
- * Logs how closely today went to plan.
+ * Ticks or unticks one meal on the meal-plan screen.
  *
- * Always writes against `context.now.date` — the clinic's own today — never a
- * date read from the form, so a client can log or correct today's report but
- * never one from another day. Returns nothing, same reasoning as
- * `updateNotificationAction`: the segmented control re-renders in its new
- * position, which is the whole confirmation a tap like this owes.
+ * Called directly from `MealCheck` rather than through a `<form action>` —
+ * unlike the rest of the portal's fire-and-forget writes, the caller needs
+ * the derived level back to reconcile its own optimistic state, and a plain
+ * async server action returns that where a form action cannot. The client is
+ * still re-resolved from the session, exactly as every other action here
+ * does; `locale` arrives as a plain argument since there is no `FormData` to
+ * carry it in.
  */
-export async function logPlanAdherenceAction(formData: FormData): Promise<void> {
-  const locale = readLocale(formData);
-  const { id: clientId, clinicId, now } = await requirePortalClient(locale);
+export async function toggleMealCompletionAction(
+  input: { mealId: string; completed: boolean; locale: string },
+): Promise<PortalResult<{ date: string; level: AdherenceLevel | null }>> {
+  const locale = localeSchema.parse(input.locale);
+  const { id: clientId, clinicId } = await requirePortalClient(locale);
 
-  const parsed = planAdherenceSchema.safeParse({ level: formData.get('level') });
-  if (!parsed.success) return;
+  const parsed = toggleMealCompletionSchema.safeParse({ mealId: input.mealId, completed: input.completed });
+  if (!parsed.success) return { ok: false, error: 'errors.invalid' };
 
-  await logPlanAdherence({ clientId, clinicId }, now.date, parsed.data.level);
+  const result = await toggleMealCompletion({ clientId, clinicId }, parsed.data.mealId, parsed.data.completed);
 
-  revalidatePortal(locale);
+  if (result.ok) revalidatePortal(locale);
+
+  return result;
 }
 
 /** Takes back a request the dietitian has not answered yet. */

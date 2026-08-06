@@ -1,6 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 
-import { clampMessageBody, MAX_BODY_LENGTH, renderWhatsappMessage } from './templates';
+import {
+  clampMessageBody,
+  formatAppointmentList,
+  MAX_BODY_LENGTH,
+  renderWhatsappMessage,
+} from './templates';
 
 const variables = {
   clientName: 'أحمد خليل',
@@ -134,5 +139,68 @@ describe('clampMessageBody', () => {
 
   test('leaves an ordinary message untouched', () => {
     expect(clampMessageBody('تذكير بموعدك غدًا')).toBe('تذكير بموعدك غدًا');
+  });
+});
+
+/**
+ * The one message that covers a course of appointments booked together.
+ *
+ * The count in these is the point: a patient told "your 4 appointments" must be
+ * able to count four lines, whatever span the doctor chose.
+ */
+describe('the appointment series', () => {
+  const course = [
+    { date: '12 August 2026', time: '10:00 AM', duration: '30 min' },
+    { date: '19 August 2026', time: '10:00 AM', duration: '30 min' },
+    { date: '26 August 2026', time: '10:00 AM', duration: '30 min' },
+    { date: '2 September 2026', time: '10:00 AM', duration: '30 min' },
+  ];
+
+  test('lists every appointment, numbered, one per line', () => {
+    const list = formatAppointmentList(course);
+
+    expect(list.split('\n')).toHaveLength(4);
+    expect(list).toContain('1. 📅 12 August 2026 — 🕐 10:00 AM (30 min)');
+    expect(list).toContain('4. 📅 2 September 2026 — 🕐 10:00 AM (30 min)');
+  });
+
+  test('the message states the count and carries every date', () => {
+    const body = renderWhatsappMessage('appointmentSeries', 'ar', {
+      ...variables,
+      count: String(course.length),
+      appointments: formatAppointmentList(course),
+    });
+
+    expect(body).toContain('4');
+    for (const appointment of course) expect(body).toContain(appointment.date);
+    expect(body).not.toContain('{');
+  });
+
+  test('the count follows the list, whatever span was chosen', () => {
+    // Thirteen weeks and one week render from the same template — nothing about
+    // the copy assumes four.
+    for (const size of [2, 13, 26]) {
+      const many = Array.from({ length: size }, (_, index) => ({
+        date: `date-${index}`,
+        time: '10:00 AM',
+        duration: '30 min',
+      }));
+
+      const body = renderWhatsappMessage('appointmentSeries', 'en', {
+        ...variables,
+        count: String(size),
+        appointments: formatAppointmentList(many),
+      });
+
+      expect(body).toContain(`Your ${size} appointments`);
+      expect(body).toContain(`${size}. 📅 date-${size - 1}`);
+      expect(body).not.toContain('{');
+    }
+  });
+
+  test('refuses to send a series with nothing listed in it', () => {
+    expect(() =>
+      renderWhatsappMessage('appointmentSeries', 'en', { ...variables, count: '0', appointments: '' }),
+    ).toThrow(/\{appointments\}/);
   });
 });

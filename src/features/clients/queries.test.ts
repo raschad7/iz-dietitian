@@ -200,11 +200,11 @@ describe('listClients', () => {
 
 describe('getClient', () => {
   test('returns the full record', async () => {
-    const { id } = await createClient(clinicId, { fullName: 'سارة', preferredLocale: 'ar', heightCm: 165 });
+    const { id } = await createClient(clinicId, { fullName: 'سارة', preferredLocale: 'ar', sex: 'female' });
 
     const client = await getClient(clinicId, id);
     expect(client?.fullName).toBe('سارة');
-    expect(client?.heightCm).toBe(165);
+    expect(client?.sex).toBe('female');
     expect(client?.hasPortalAccess).toBe(false);
   });
 

@@ -3,7 +3,6 @@ import { z } from 'zod';
 import { isoDateSchema, uuidSchema } from '@/features/booking/schema';
 import { defaultLocale, locales } from '@/i18n/routing';
 
-import { ADHERENCE_LEVELS } from './adherence';
 import {
   CLIENT_REQUEST_TOPICS,
   CONTACT_METHODS,
@@ -93,12 +92,16 @@ export const notificationSettingSchema = z.object({
 export type NotificationSettingInput = z.infer<typeof notificationSettingSchema>;
 
 /**
- * A day's adherence report — the value the progress tab's segmented control
- * submits directly (§9.3: "a segment carries the value it selects"). The date
- * is never part of this shape: the action always writes against the clinic's
- * own `today`, never a date the caller names.
+ * A meal being ticked or unticked on the meal-plan screen.
+ *
+ * `mealId` is trusted only as far as "some meal" — `toggleMealCompletion`
+ * re-checks that it belongs to this client's own published plan before
+ * touching anything, the same way every other portal write re-proves
+ * ownership in the query rather than trusting an id from the form.
  */
-export const planAdherenceSchema = z.object({ level: z.enum(ADHERENCE_LEVELS) });
+export const toggleMealCompletionSchema = z.object({ mealId: uuidSchema, completed: z.boolean() });
+
+export type ToggleMealCompletionInput = z.infer<typeof toggleMealCompletionSchema>;
 
 export const themePreferenceSchema = z.object({ theme: z.enum(THEME_PREFERENCES) });
 

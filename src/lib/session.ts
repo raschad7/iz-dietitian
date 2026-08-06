@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 
 import type { Locale } from '@/i18n/routing';
 
-import { auth, type Session, type UserRole } from './auth';
+import { auth, REQUIRE_EMAIL_VERIFICATION, type Session, type UserRole } from './auth';
 
 /** Returns the current session, or `null` for an anonymous request. */
 export async function getSession(): Promise<Session | null> {
@@ -37,9 +37,36 @@ async function requireRole(role: UserRole, locale: Locale): Promise<Session> {
   return session;
 }
 
-/** Use in `/[locale]/app/**` — dietitian and staff only. */
-export function requireStaffSession(locale: Locale): Promise<Session> {
-  return requireRole('staff', locale);
+/**
+ * Use in `/[locale]/app/**` — dietitian and staff only.
+ *
+ * The verification check is here rather than in the app layout because a server
+ * action is a public endpoint: a layout guard protects the render and nothing
+ * else, and every staff action in the app already funnels through this function
+ * or `requireStaffClinic` below.
+ *
+ * It is not redundant with `requireEmailVerification` in `src/lib/auth.ts`.
+ * That setting refuses to *issue* a session to an unverified account; it says
+ * nothing about sessions that already exist. Accounts created before the gate
+ * was turned on hold exactly such a session, and would otherwise keep the run
+ * of the dashboard indefinitely.
+ *
+ * DELIBERATELY STAFF-ONLY. Portal clients are provisioned by their dietitian
+ * and never verify an address — `issuePortalCredentials` writes
+ * `emailVerified: true` against a synthetic `@portal.invalid` address precisely
+ * because nobody emails a patient a confirmation link. `requireClientSession`
+ * below is untouched, and this check must never be lifted into `requireRole`.
+ */
+export async function requireStaffSession(locale: Locale): Promise<Session> {
+  const session = await requireRole('staff', locale);
+
+  if (REQUIRE_EMAIL_VERIFICATION && !session.user.emailVerified) {
+    // `/verify-email` reads the session itself and never calls back into this
+    // guard, so there is no redirect loop.
+    redirect(`/${locale}/verify-email`);
+  }
+
+  return session;
 }
 
 /**

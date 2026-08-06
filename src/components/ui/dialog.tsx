@@ -42,11 +42,27 @@ type DialogProps = {
    * bottom sheet on a phone like every other dialog.
    */
   size?: 'default' | 'wide';
+  /**
+   * Whether Escape and a backdrop click may close the dialog. Long-running
+   * submissions set this to false so the protected task cannot be hidden while
+   * it is still in flight. Programmatic changes to `open` continue to work.
+   */
+  dismissible?: boolean;
   className?: string;
   children: React.ReactNode;
 };
 
-function Dialog({ open, onClose, label, dir, flat, size = 'default', className, children }: DialogProps) {
+function Dialog({
+  open,
+  onClose,
+  label,
+  dir,
+  flat,
+  size = 'default',
+  dismissible = true,
+  className,
+  children,
+}: DialogProps) {
   const ref = React.useRef<HTMLDialogElement>(null);
 
   React.useEffect(() => {
@@ -63,10 +79,13 @@ function Dialog({ open, onClose, label, dir, flat, size = 'default', className, 
       dir={dir}
       aria-label={label}
       onClose={onClose}
+      onCancel={(event) => {
+        if (!dismissible) event.preventDefault();
+      }}
       onClick={(event) => {
         // A click on the backdrop targets the dialog element itself; a click
         // on anything inside targets that child instead.
-        if (event.target === ref.current) ref.current?.close();
+        if (dismissible && event.target === ref.current) ref.current?.close();
       }}
       className={cn(
         'w-full max-w-none p-0 text-start',

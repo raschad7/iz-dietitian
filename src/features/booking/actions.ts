@@ -7,6 +7,7 @@ import {
   notifyAppointmentBooked,
   notifyAppointmentCancelled,
   notifyAppointmentRescheduled,
+  notifyAppointmentSeriesBooked,
 } from '@/features/whatsapp/notify';
 import { requireStaffClinic } from '@/lib/session';
 import { type Locale } from '@/i18n/routing';
@@ -92,6 +93,23 @@ function notifyBooked(clinicId: string, appointmentId: string): void {
       await notifyAppointmentBooked(clinicId, appointmentId);
     } catch (error) {
       console.error('[booking] WhatsApp confirmation failed', error);
+    }
+  });
+}
+
+/**
+ * Tells the client about a whole course of appointments at once.
+ *
+ * The repeat's counterpart to {@link notifyBooked}, and deliberately not a loop
+ * over it: a month of weekly visits is one schedule, and it arrives as one
+ * message. Same `after()` reasoning, same indifference to failure.
+ */
+function notifySeriesBooked(clinicId: string, appointmentIds: string[]): void {
+  after(async () => {
+    try {
+      await notifyAppointmentSeriesBooked(clinicId, appointmentIds);
+    } catch (error) {
+      console.error('[booking] WhatsApp series confirmation failed', error);
     }
   });
 }
@@ -233,7 +251,9 @@ export async function repeatWeeklyAction(
 
   if (result.ok && result.data.created > 0) {
     revalidateCalendar(locale);
-    for (const id of result.data.ids) notifyBooked(context.clinicId, id);
+    // One message listing the whole course, not one per appointment — see
+    // `notifyAppointmentSeriesBooked`.
+    notifySeriesBooked(context.clinicId, result.data.ids);
   }
 
   return result;

@@ -1,10 +1,10 @@
 import { useLocale, useTranslations } from 'next-intl';
 
 import { CalendarGlyphIcon } from '@/components/icons';
-import { ADHERENCE_SCORE_MAX, type AdherenceDay } from '@/features/portal/adherence';
+import { type AdherenceDay, type AdherenceDayState } from '@/features/portal/adherence';
 import { DayFlame } from '@/features/portal/components/day-flame';
 import { type Locale } from '@/i18n/routing';
-import { formatDate } from '@/lib/format';
+import { formatDate, formatNumber } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 /**
@@ -15,9 +15,22 @@ import { cn } from '@/lib/utils';
  *
  * The mark itself is `DayFlame`, which moved to its own file when the meal
  * plan's day picker began drawing the same week — see that file for why it is
- * a flame rather than a number. The exact score is still spoken in each day's
+ * a flame rather than a number. The exact figure is still spoken in each day's
  * label here, and the progress tab still draws it as a number.
  */
+
+/**
+ * Which `state.*` message a day is spoken with.
+ *
+ * One extra case beyond `AdherenceDayState`: today, which is its own state and
+ * therefore says nothing about how it has gone, gets a second message the
+ * moment it has meals ticked. Every other day's state already implies whether
+ * there are figures to read.
+ */
+function labelKeyOf(day: AdherenceDay): AdherenceDayState | 'todayReported' {
+  if (day.state === 'today' && day.fraction !== null) return 'todayReported';
+  return day.state;
+}
 
 export function WeekAdherenceStrip({
   days,
@@ -67,10 +80,20 @@ export function WeekAdherenceStrip({
         {days.map((day) => (
           <li key={day.date}>
             <div
-              aria-label={t(`state.${day.state}`, {
+              /*
+                The flame is a shape; this label is the only place the day's
+                adherence is stated exactly, so it carries the percentage and
+                the meals behind it — "25% (1 of 4 meals)" — rather than the
+                score out of ten it used to spell out. Today announces its own
+                figures too when it has any: a client who has ticked two of
+                four meals this morning should not have to open the progress
+                tab to hear where that leaves them.
+              */
+              aria-label={t(`state.${labelKeyOf(day)}`, {
                 day: formatDate(locale, day.date, { dateStyle: undefined, weekday: 'long' }),
-                score: day.score ?? 0,
-                max: ADHERENCE_SCORE_MAX,
+                percent: formatNumber(locale, day.fraction ?? 0, { style: 'percent' }),
+                completed: day.completedMeals,
+                total: day.totalMeals,
               })}
               className={cn(
                 'flex flex-col items-center gap-2 rounded-2xl py-2',

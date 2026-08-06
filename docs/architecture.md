@@ -90,6 +90,13 @@ Conventions:
 - Add indexes and constraints for real query and integrity requirements, not in
   anticipation of possible future features.
 
+A client record spans two tables — `clients` and `client_nutrition_profiles` —
+and is written by **one** form, the intake dialog in `src/features/clients/`.
+The storage split is real: the profile carries what only plan generation reads.
+The form split it used to have was not, and cost the app a client whose height
+lived on one screen and whose weight lived on another. `saveIntake` writes both
+in one transaction; nothing else may write either half on its own.
+
 `foods` and curated `dishes` are shared reference data rather than clinic-owned
 records. Their nutrition values are derived from the committed datasets and
 must not be replaced by model-generated facts.
@@ -115,11 +122,12 @@ lint rule. See [Design system](design-system.md) for the complete UI contract.
 - `auth`: staff and client authentication, password policy, passkeys, and rate
   limiting
 - `booking`: calendar, appointments, and appointment requests
-- `clients`: clinic roster, client details, and portal credential issuing
+- `clients`: clinic roster, client details, the nutrition intake, and portal
+  credential issuing
 - `dashboard`: staff overview and attention items
 - `portal`: client dashboard, appointments, profile, and published plan access
-- `weekly-plans`: nutrition profiles, dish-based generation, review, publish, and
-  the shared nutrition arithmetic over the `foods` reference table
+- `weekly-plans`: dish-based generation, review, publish, and the shared
+  nutrition arithmetic over the `foods` reference table
 - `whatsapp`: gateway configuration, messages, reminders, and inbound replies
 
 ## External services
