@@ -113,8 +113,13 @@
     "rateLimited": "Too many attempts. Try again in {minutes} minutes.",
     "checkInboxHeading": "Check your inbox",
     "checkInboxDescription": "We have sent a confirmation link to your email address.",
-    "checkInboxSpam": "If it has not arrived, check your spam folder.",
+    "checkInboxDescriptionWithEmail": "We have sent a confirmation link to {email}. Open it to activate your account.",
+    "checkInboxSpam": "If it has not arrived, check your spam folder. The link is valid for one hour.",
     "checkInboxWrongAddress": "Entered the wrong address?",
+    "resendVerificationHint": "Link expired or never arrived? We can send another one.",
+    "resendVerificationSubmit": "Send a new link",
+    "verificationEmailFailedHeading": "We could not send the email",
+    "verificationEmailFailed": "Your account was created, but the confirmation email could not be sent. This is a problem on our side, not with your address. Try again below, or contact us if it keeps failing.",
     "passwordChanged": "Your password has been changed.",
     "currentPasswordIncorrect": "Your current password is incorrect.",
     "passwordSameAsCurrent": "Your new password must be different from your current password.",
@@ -753,7 +758,7 @@
         "none": "Not recorded"
       },
       "progress": {
-        "unit": "of your week",
+        "unit": "average adherence",
         "empty": {
           "title": "A fresh week",
           "body": "Every day you record draws a clearer picture for your dietitian."
@@ -785,18 +790,13 @@
     "progress": {
       "today": {
         "heading": "Your commitment today",
-        "unit": "of {max}",
-        "groupLabel": "Log today's commitment",
-        "prompt": "Log today's commitment so we can follow your progress.",
+        "meals": "{completed, number, integer} of {total, number, integer} {total, plural, one {meal} other {meals}}",
+        "prompt": "Tick off today's meals in My Plan to see your commitment here.",
+        "cta": "Update today's adherence",
         "level": {
           "missed": "That's alright — tomorrow is a fresh start.",
           "partial": "A good step toward your plan.",
           "full": "Wonderful commitment today!"
-        },
-        "options": {
-          "missed": "Missed",
-          "partial": "Partial",
-          "full": "Full"
         }
       },
       "week": {
@@ -809,11 +809,12 @@
         "title": "This week's days",
         "today": "Today",
         "state": {
-          "full": "{day}: fully followed, {score} of {max}",
-          "partial": "{day}: partially followed, {score} of {max}",
+          "full": "{day}: fully followed, {percent} — {completed, number, integer} of {total, number, integer} {total, plural, one {meal} other {meals}}",
+          "partial": "{day}: {percent} followed — {completed, number, integer} of {total, number, integer} {total, plural, one {meal} other {meals}}",
           "missed": "{day}: plan not followed",
           "empty": "{day}: nothing recorded",
           "today": "{day}: today",
+          "todayReported": "{day}: today, {percent} — {completed, number, integer} of {total, number, integer} {total, plural, one {meal} other {meals}}",
           "future": "{day}: still to come"
         }
       },

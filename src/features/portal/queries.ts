@@ -13,6 +13,7 @@ import {
   clinics,
   defaultClientSettings,
   practitioners,
+  weeklyPlanMealCompletions,
 } from '@/db/schema';
 import { type ExistingAppointment } from '@/features/booking/validation';
 
@@ -457,7 +458,14 @@ export async function listPlanAdherence(
   toDate: string,
 ): Promise<AdherenceRow[]> {
   const rows = await db
-    .select({ date: clientPlanAdherence.date, level: clientPlanAdherence.level })
+    .select({
+      date: clientPlanAdherence.date,
+      level: clientPlanAdherence.level,
+      // The measure itself — every percentage the portal draws is computed
+      // from this pair, never recovered from `level`.
+      completedMeals: clientPlanAdherence.completedMeals,
+      totalMeals: clientPlanAdherence.totalMeals,
+    })
     .from(clientPlanAdherence)
     .where(and(eq(clientPlanAdherence.clientId, clientId), between(clientPlanAdherence.date, fromDate, toDate)))
     .orderBy(asc(clientPlanAdherence.date));
@@ -465,6 +473,27 @@ export async function listPlanAdherence(
   // `level` is plain `text` guarded by a check constraint, so the union is
   // reasserted on the way out rather than trusted from the driver's `string`.
   return rows.map((row) => ({ ...row, level: row.level as AdherenceRow['level'] }));
+}
+
+/**
+ * Which of the given meals this client has ticked complete.
+ *
+ * Scoped to the meal ids the caller already knows belong to this client's own
+ * plan — the same "prove ownership in the query that produced the ids"
+ * pattern `loadPlanPage` already uses for `adherenceByDate`, rather than this
+ * read re-deriving ownership itself.
+ */
+export async function listMealCompletions(clientId: string, mealIds: readonly string[]): Promise<Set<string>> {
+  if (mealIds.length === 0) return new Set();
+
+  const rows = await db
+    .select({ mealId: weeklyPlanMealCompletions.mealId })
+    .from(weeklyPlanMealCompletions)
+    .where(
+      and(eq(weeklyPlanMealCompletions.clientId, clientId), inArray(weeklyPlanMealCompletions.mealId, [...mealIds])),
+    );
+
+  return new Set(rows.map((row) => row.mealId));
 }
 
 /*

@@ -3,7 +3,17 @@ import { and, eq } from 'drizzle-orm';
 
 import { db } from '@/db';
 import { pgConstraintName, pgErrorCode, UNIQUE_VIOLATION } from '@/db/errors';
-import { clients, dishIngredients, dishes, foods, weeklyPlanMeals, weeklyPlans } from '@/db/schema';
+import {
+  clientPlanAdherence,
+  clients,
+  dishIngredients,
+  dishes,
+  foods,
+  weeklyPlanMealCompletions,
+  weeklyPlanMeals,
+  weeklyPlans,
+} from '@/db/schema';
+import { toggleMealCompletion } from '@/features/portal/mutations';
 import { createTestClient, createTestClinic, resetDatabase } from '../../../tests/helpers';
 
 import type { ReconciledMeal } from './generate';
@@ -11,6 +21,7 @@ import { saveIntake } from '@/features/clients/mutations';
 
 import {
   createPlanFromGeneration,
+  deletePlan,
   publishPlan,
   replaceMeals,
   swapMealDish,
@@ -126,6 +137,16 @@ async function expectRejected(
   }
 
   throw new Error('expected the database to reject this write, but it succeeded');
+}
+
+/** The client's derived level for one day, or null when no row exists at all. */
+async function adherenceLevel(forClientId: string, date: string): Promise<string | null> {
+  const [row] = await db
+    .select({ level: clientPlanAdherence.level })
+    .from(clientPlanAdherence)
+    .where(and(eq(clientPlanAdherence.clientId, forClientId), eq(clientPlanAdherence.date, date)));
+
+  return row?.level ?? null;
 }
 
 /**
@@ -480,6 +501,109 @@ describe('unpublishPlan', () => {
 
     expect(await unpublishPlan(clinicId, planId)).toBe(true);
     expect(await getPublishedBoard(clientId)).toBeNull();
+  });
+});
+
+/**
+ * Reproduces the bug found live in `dietitian_dev`: a client ticks meals
+ * against a published plan, the dietitian unpublishes it to fix something,
+ * and the edit that follows deletes the ticked meals out from under the
+ * completions — cascading them away — while `client_plan_adherence` carried
+ * no relation to either table and so was never told. The client's Progress
+ * tab kept reporting a day as fully followed with zero completions behind
+ * it, forever, because nothing but a live tick on that exact date ever wrote
+ * to that table.
+ */
+describe('adherence recompute on plan edits', () => {
+  test('replaceMeals clears stale adherence rather than leaving it behind', async () => {
+    const planId = await createPlan([meal({ slotKey: 'breakfast' }), meal({ slotKey: 'lunch' })]);
+    await publishPlan(clinicId, planId);
+
+    const board = await getPublishedBoard(clientId);
+    const mealIds = board!.days[0]!.meals.map((row) => row.id);
+
+    for (const mealId of mealIds) {
+      expect((await toggleMealCompletion({ clientId, clinicId }, mealId, true)).ok).toBe(true);
+    }
+
+    expect(await adherenceLevel(clientId, '2026-08-02')).toBe('full');
+
+    await unpublishPlan(clinicId, planId);
+    expect(
+      await replaceMeals(
+        clinicId,
+        planId,
+        [
+          meal({ slotKey: 'breakfast', dishId: dishIds[1]! }),
+          meal({ slotKey: 'lunch', dishId: dishIds[1]! }),
+        ],
+        'test-model-2',
+      ),
+    ).toBe(true);
+
+    const remaining = await db
+      .select({ id: weeklyPlanMealCompletions.id })
+      .from(weeklyPlanMealCompletions)
+      .where(eq(weeklyPlanMealCompletions.clientId, clientId));
+
+    expect(remaining).toHaveLength(0);
+    expect(await adherenceLevel(clientId, '2026-08-02')).toBe('missed');
+  });
+
+  test('replaceMeals leaves days it did not touch alone', async () => {
+    const planId = await createPlan([
+      meal({ dayOfWeek: 0, slotKey: 'lunch' }),
+      meal({ dayOfWeek: 1, slotKey: 'lunch' }),
+    ]);
+    await publishPlan(clinicId, planId);
+
+    const board = await getPublishedBoard(clientId);
+    await toggleMealCompletion({ clientId, clinicId }, board!.days[1]!.meals[0]!.id, true);
+
+    expect(await adherenceLevel(clientId, '2026-08-03')).toBe('full');
+
+    await unpublishPlan(clinicId, planId);
+    await replaceMeals(clinicId, planId, [meal({ dayOfWeek: 0, slotKey: 'lunch', dishId: dishIds[1]! })], 'x');
+
+    // Only Sunday (day 0) was replaced — Monday's report must survive untouched.
+    expect(await adherenceLevel(clientId, '2026-08-03')).toBe('full');
+  });
+
+  test('deletePlan clears every day of the plan’s week rather than leaving stale adherence behind', async () => {
+    const planId = await createPlan([meal({ slotKey: 'breakfast' }), meal({ slotKey: 'lunch' })]);
+    await publishPlan(clinicId, planId);
+
+    const board = await getPublishedBoard(clientId);
+    await toggleMealCompletion({ clientId, clinicId }, board!.days[0]!.meals[0]!.id, true);
+
+    expect(await adherenceLevel(clientId, '2026-08-02')).toBe('partial');
+
+    await unpublishPlan(clinicId, planId);
+    expect(await deletePlan(clinicId, planId)).toBe(true);
+
+    expect(await adherenceLevel(clientId, '2026-08-02')).toBeNull();
+  });
+
+  test('createPlanFromGeneration clears stale adherence from the draft it replaces', async () => {
+    const planId = await createPlan([meal({ slotKey: 'breakfast' }), meal({ slotKey: 'lunch' })]);
+    await publishPlan(clinicId, planId);
+
+    const board = await getPublishedBoard(clientId);
+    for (const row of board!.days[0]!.meals) {
+      await toggleMealCompletion({ clientId, clinicId }, row.id, true);
+    }
+
+    expect(await adherenceLevel(clientId, '2026-08-02')).toBe('full');
+
+    await unpublishPlan(clinicId, planId);
+
+    // Regenerating the same client and week deletes the old draft — still
+    // carrying the completions from when it was published — and replaces it
+    // wholesale with a brand new plan and meals.
+    const regeneratedId = await createPlan([meal({ slotKey: 'breakfast' })]);
+    expect(regeneratedId).not.toBe(planId);
+
+    expect(await adherenceLevel(clientId, '2026-08-02')).toBe('missed');
   });
 });
 

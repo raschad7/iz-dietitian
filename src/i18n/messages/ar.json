@@ -113,8 +113,13 @@
     "rateLimited": "محاولات كثيرة. حاول مرة أخرى بعد {minutes} دقيقة.",
     "checkInboxHeading": "تحقّق من بريدك",
     "checkInboxDescription": "أرسلنا رابط تأكيد إلى بريدك الإلكتروني.",
-    "checkInboxSpam": "إن لم تجد الرسالة، تحقّق من مجلد البريد غير المرغوب فيه.",
+    "checkInboxDescriptionWithEmail": "أرسلنا رابط تأكيد إلى {email}. افتحه لتفعيل حسابك.",
+    "checkInboxSpam": "إن لم تجد الرسالة، تحقّق من مجلد البريد غير المرغوب فيه. الرابط صالح لمدة ساعة واحدة.",
     "checkInboxWrongAddress": "أدخلت بريداً خاطئاً؟",
+    "resendVerificationHint": "انتهت صلاحية الرابط أو لم تصلك الرسالة؟ يمكننا إرسال رابط جديد.",
+    "resendVerificationSubmit": "إرسال رابط جديد",
+    "verificationEmailFailedHeading": "تعذّر إرسال الرسالة",
+    "verificationEmailFailed": "تم إنشاء حسابك، لكن تعذّر إرسال رسالة التأكيد. المشكلة لدينا وليست في بريدك الإلكتروني. حاول مرة أخرى أدناه، أو تواصل معنا إن تكرّر ذلك.",
     "passwordChanged": "تم تغيير كلمة المرور.",
     "currentPasswordIncorrect": "كلمة المرور الحالية غير صحيحة.",
     "passwordSameAsCurrent": "يجب أن تختلف كلمة المرور الجديدة عن كلمة المرور الحالية.",
@@ -753,7 +758,7 @@
         "none": "لم تُسجّل بعد"
       },
       "progress": {
-        "unit": "من أسبوعك",
+        "unit": "متوسط الالتزام",
         "empty": {
           "title": "أسبوع جديد يبدأ",
           "body": "كل يوم تسجّلينه يرسم صورة أوضح لأخصائيتك."
@@ -785,18 +790,13 @@
     "progress": {
       "today": {
         "heading": "التزامك اليوم",
-        "unit": "من {max}",
-        "groupLabel": "سجلي التزامك اليوم",
-        "prompt": "سجلي التزامك اليوم لنتابع تقدّمك.",
+        "meals": "{completed, number, integer} من {total, number, integer} {total, plural, one {وجبة} two {وجبتين} few {وجبات} many {وجبة} other {وجبة}}",
+        "prompt": "أتمّي وجبات اليوم في خطتي ليظهر التزامك هنا.",
+        "cta": "تحديث التزامك اليوم",
         "level": {
           "missed": "لا بأس، غدًا فرصة جديدة.",
           "partial": "خطوة جيدة نحو خطتك.",
           "full": "التزام رائع اليوم!"
-        },
-        "options": {
-          "missed": "لم ألتزم",
-          "partial": "التزمت جزئيًا",
-          "full": "التزمت بالكامل"
         }
       },
       "week": {
@@ -809,11 +809,12 @@
         "title": "أيام الأسبوع",
         "today": "اليوم",
         "state": {
-          "full": "{day}: التزام كامل، {score} من {max}",
-          "partial": "{day}: التزام جزئي، {score} من {max}",
+          "full": "{day}: التزام كامل، {percent} — {completed, number, integer} من {total, number, integer} {total, plural, one {وجبة} two {وجبتين} few {وجبات} many {وجبة} other {وجبة}}",
+          "partial": "{day}: التزام {percent} — {completed, number, integer} من {total, number, integer} {total, plural, one {وجبة} two {وجبتين} few {وجبات} many {وجبة} other {وجبة}}",
           "missed": "{day}: لم يتم الالتزام بالخطة",
           "empty": "{day}: لم يُسجَّل التزام",
           "today": "{day}: اليوم",
+          "todayReported": "{day}: اليوم، {percent} — {completed, number, integer} من {total, number, integer} {total, plural, one {وجبة} two {وجبتين} few {وجبات} many {وجبة} other {وجبة}}",
           "future": "{day}: لم يأتِ بعد"
         }
       },

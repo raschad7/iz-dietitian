@@ -1,6 +1,6 @@
 {
-  "id": "7241b20d-1598-42b8-bcd7-83c467aaffec",
-  "prevId": "83cf45fb-ebce-4e59-acbf-b8061cc13c2a",
+  "id": "fc77840a-1748-4694-9827-e7216b312431",
+  "prevId": "7241b20d-1598-42b8-bcd7-83c467aaffec",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -2367,6 +2367,13 @@
         },
         "allergen_tags": {
           "name": "allergen_tags",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'"
+        },
+        "custom_allergens": {
+          "name": "custom_allergens",
           "type": "text[]",
           "primaryKey": false,
           "notNull": true,

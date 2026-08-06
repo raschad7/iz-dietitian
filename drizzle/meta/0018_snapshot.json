@@ -1,5 +1,5 @@
 {
-  "id": "c1a4a4ce-385d-418e-ae44-bca3ae6aff27",
+  "id": "83cf45fb-ebce-4e59-acbf-b8061cc13c2a",
   "prevId": "072707a9-ff2d-4e44-84e0-9743a508394c",
   "version": "7",
   "dialect": "postgresql",
@@ -3411,6 +3411,135 @@
           "tableTo": "clients",
           "columnsFrom": [
             "client_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.weekly_plan_meal_completions": {
+      "name": "weekly_plan_meal_completions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "clinic_id": {
+          "name": "clinic_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "client_id": {
+          "name": "client_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "meal_id": {
+          "name": "meal_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "completed_at": {
+          "name": "completed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "weekly_plan_meal_completions_client_meal_idx": {
+          "name": "weekly_plan_meal_completions_client_meal_idx",
+          "columns": [
+            {
+              "expression": "client_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "meal_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "weekly_plan_meal_completions_clinic_id_idx": {
+          "name": "weekly_plan_meal_completions_clinic_id_idx",
+          "columns": [
+            {
+              "expression": "clinic_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "weekly_plan_meal_completions_clinic_id_clinics_id_fk": {
+          "name": "weekly_plan_meal_completions_clinic_id_clinics_id_fk",
+          "tableFrom": "weekly_plan_meal_completions",
+          "tableTo": "clinics",
+          "columnsFrom": [
+            "clinic_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "weekly_plan_meal_completions_client_id_clients_id_fk": {
+          "name": "weekly_plan_meal_completions_client_id_clients_id_fk",
+          "tableFrom": "weekly_plan_meal_completions",
+          "tableTo": "clients",
+          "columnsFrom": [
+            "client_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "weekly_plan_meal_completions_meal_id_weekly_plan_meals_id_fk": {
+          "name": "weekly_plan_meal_completions_meal_id_weekly_plan_meals_id_fk",
+          "tableFrom": "weekly_plan_meal_completions",
+          "tableTo": "weekly_plan_meals",
+          "columnsFrom": [
+            "meal_id"
           ],
           "columnsTo": [
             "id"

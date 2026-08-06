@@ -106,6 +106,20 @@ export function StaffLoginForm({ locale, showGoogle, redirectTo, oauthError }: S
 
         <AuthFormMessage state={displayState} />
 
+        {/*
+          The one error with somewhere to go. "Confirm your email first" is
+          useless on its own — the link may have expired, or never arrived —
+          and the reset flow above cannot help, so offer the resend screen
+          right where the refusal is read.
+        */}
+        {displayState.status === 'error' && displayState.messageKey === 'verifyEmailFirst' ? (
+          <p className="text-sm">
+            <Link href="/verify-email" className="font-medium text-foreground underline-offset-4 hover:underline">
+              {t('resendVerificationSubmit')}
+            </Link>
+          </p>
+        ) : null}
+
         <AuthSubmitButton label={t('submit')} />
       </form>
 

@@ -39,11 +39,11 @@ export default async function ProgressPage({ params }: ProgressPageProps) {
   const locale = await resolveLocale(params);
 
   const context = await requirePortalClient(locale);
-  const { todayLevel, week, streak, continuity, monthlyTrend } = await loadProgressPage(context);
+  const { today, week, streak, continuity, monthlyTrend } = await loadProgressPage(context);
 
   return (
     <div className="space-y-4">
-      <TodayAdherenceCard level={todayLevel} locale={locale} />
+      <TodayAdherenceCard today={today} locale={locale} />
 
       <WeekAdherenceSummary
         averageFraction={week.averageFraction}

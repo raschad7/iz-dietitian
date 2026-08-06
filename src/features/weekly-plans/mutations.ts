@@ -8,9 +8,11 @@ import {
   weeklyPlanMeals,
   weeklyPlans,
 } from '@/db/schema';
+import { recomputeDayAdherence } from '@/features/portal/mutations';
 
 import type { GenerationOutcome, ReconciledMeal } from './generate';
 import type { GenerationScope } from './schema';
+import { weekDates } from './week';
 
 /**
  * Writes for the weekly-plans feature.
@@ -28,13 +30,14 @@ import type { GenerationScope } from './schema';
 async function ownedPlan(
   clinicId: string,
   planId: string,
-): Promise<{ id: string; clientId: string; status: string; kcalTargetSnapshot: number } | null> {
+): Promise<{ id: string; clientId: string; status: string; kcalTargetSnapshot: number; weekStartDate: string } | null> {
   const [plan] = await db
     .select({
       id: weeklyPlans.id,
       clientId: weeklyPlans.clientId,
       status: weeklyPlans.status,
       kcalTargetSnapshot: weeklyPlans.kcalTargetSnapshot,
+      weekStartDate: weeklyPlans.weekStartDate,
     })
     .from(weeklyPlans)
     .where(and(eq(weeklyPlans.id, planId), eq(weeklyPlans.clinicId, clinicId)))
@@ -141,6 +144,14 @@ export async function recordGeneration(input: {
  * looks like a plan. Replaces any existing DRAFT for the same client and week —
  * regenerating is an overwrite of the draft you are looking at, not an accumulation
  * of drafts nobody will read. Published and archived plans are untouched.
+ *
+ * The draft being replaced can itself be an unpublished plan a client already
+ * ticked meals against — `unpublishPlan` only flips the status, it does not
+ * touch the meals — and deleting it here cascades away those
+ * `weekly_plan_meal_completions` rows along with it. `client_plan_adherence`
+ * carries no reference to either table, so without the recompute pass at the
+ * end this would leave the client's Progress tab reporting a day exactly as
+ * complete as it was before the regeneration, with nothing left behind it.
  */
 export async function createPlanFromGeneration(input: {
   clinicId: string;
@@ -195,6 +206,16 @@ export async function createPlanFromGeneration(input: {
 
     await insertOptions(tx, inserted, input.outcome.meals);
 
+    for (const [dayOfWeek, date] of weekDates(input.weekStartDate).entries()) {
+      await recomputeDayAdherence(tx, {
+        clinicId: input.clinicId,
+        clientId: input.clientId,
+        planId: plan.id,
+        dayOfWeek,
+        date,
+      });
+    }
+
     return plan.id;
   });
 }
@@ -208,7 +229,14 @@ export async function createPlanFromGeneration(input: {
  *
  * Refuses to touch a published plan: republishing is an explicit act, and silently
  * editing a plan the client is already following would be the worst kind of
- * surprise.
+ * surprise. A draft plan reaches here having been published before, though — a
+ * dietitian unpublishes to fix something, which is exactly what `replaceMeals`
+ * is for — so its meals can already carry `weekly_plan_meal_completions` from
+ * when the client was following it. The delete above cascades those away with
+ * the old meal rows; the recompute pass at the end re-derives each affected
+ * day from what is left (nothing, on the meals just replaced), so the day
+ * reads as not-yet-followed rather than keeping whatever it was ticked to
+ * before the edit.
  */
 export async function replaceMeals(
   clinicId: string,
@@ -219,6 +247,9 @@ export async function replaceMeals(
   const plan = await ownedPlan(clinicId, planId);
   if (!plan || plan.status !== 'draft') return false;
   if (!meals.length) return false;
+
+  const dates = weekDates(plan.weekStartDate);
+  const affectedDays = [...new Set(meals.map((meal) => meal.dayOfWeek))];
 
   await db.transaction(async (tx) => {
     for (const meal of meals) {
@@ -248,6 +279,13 @@ export async function replaceMeals(
       .update(weeklyPlans)
       .set({ model, updatedAt: new Date() })
       .where(eq(weeklyPlans.id, planId));
+
+    for (const dayOfWeek of affectedDays) {
+      const date = dates[dayOfWeek];
+      if (!date) continue;
+
+      await recomputeDayAdherence(tx, { clinicId, clientId: plan.clientId, planId, dayOfWeek, date });
+    }
   });
 
   return true;
@@ -404,12 +442,28 @@ export async function unpublishPlan(clinicId: string, planId: string): Promise<b
   return true;
 }
 
-/** Deletes a plan. Cascades take its meals and options. */
+/**
+ * Deletes a plan. Cascades take its meals, their options, and any
+ * `weekly_plan_meal_completions` a client had already ticked against them.
+ *
+ * `client_plan_adherence` is not covered by that cascade — it carries no
+ * reference to either table — so every day of the plan's week is recomputed
+ * after the delete, inside the same transaction. The plan's meals are gone by
+ * then, so each recompute sees zero and clears the day's row rather than
+ * leaving it reporting adherence to a plan that no longer exists.
+ */
 export async function deletePlan(clinicId: string, planId: string): Promise<boolean> {
   const plan = await ownedPlan(clinicId, planId);
   if (!plan) return false;
 
-  await db.delete(weeklyPlans).where(eq(weeklyPlans.id, planId));
+  await db.transaction(async (tx) => {
+    await tx.delete(weeklyPlans).where(eq(weeklyPlans.id, planId));
+
+    for (const [dayOfWeek, date] of weekDates(plan.weekStartDate).entries()) {
+      await recomputeDayAdherence(tx, { clinicId, clientId: plan.clientId, planId, dayOfWeek, date });
+    }
+  });
+
   return true;
 }
 

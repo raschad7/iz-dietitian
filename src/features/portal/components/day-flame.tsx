@@ -1,6 +1,6 @@
 import { Flame } from 'lucide-react';
 
-import { ADHERENCE_SCORE_MAX, type AdherenceDay } from '@/features/portal/adherence';
+import { type AdherenceDay } from '@/features/portal/adherence';
 import { cn } from '@/lib/utils';
 
 /**
@@ -31,19 +31,24 @@ const RADIUS = 14;
 const RING_LENGTH = 2 * Math.PI * RADIUS;
 
 /**
- * What the flame draws, with state and score folded into one value.
+ * What the flame draws, with state and adherence folded into one value.
  *
  * `today` is deliberately not a case here: the current day keeps its olive
  * card, but the flame inside it reports the same way every other day's does,
  * so a day logged this morning does not change meaning at midnight.
+ *
+ * `partial` is now a **range** rather than a single look — the arc below is
+ * drawn to the day's exact fraction, so 1 of 4 meals shows a quarter ring and
+ * 3 of 4 shows three quarters. It used to be one half-ring for every partial
+ * day, because a level was all the flame had to read.
  */
 type Burn = 'full' | 'partial' | 'none' | 'empty' | 'future';
 
-function burnOf({ state, score }: AdherenceDay): Burn {
+function burnOf({ state, fraction }: AdherenceDay): Burn {
   if (state === 'future') return 'future';
-  if (score === null) return 'empty';
-  if (score >= ADHERENCE_SCORE_MAX) return 'full';
-  return score > 0 ? 'partial' : 'none';
+  if (fraction === null) return 'empty';
+  if (fraction >= 1) return 'full';
+  return fraction > 0 ? 'partial' : 'none';
 }
 
 /** For `partial` this is the track the orange arc is drawn over, not the arc. */
@@ -86,7 +91,7 @@ export function DayFlame({ day }: { day: AdherenceDay }) {
             r={RADIUS}
             strokeWidth="2.25"
             strokeLinecap="round"
-            strokeDasharray={`${((day.score ?? 0) / ADHERENCE_SCORE_MAX) * RING_LENGTH} ${RING_LENGTH}`}
+            strokeDasharray={`${(day.fraction ?? 0) * RING_LENGTH} ${RING_LENGTH}`}
             className="fill-none stroke-status-complete-mark"
           />
         ) : null}

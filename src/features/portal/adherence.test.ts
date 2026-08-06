@@ -1,10 +1,13 @@
 import { describe, expect, test } from 'bun:test';
 
 import {
+  adherenceFraction,
   continuityPath,
   currentAdherenceStreak,
+  deriveAdherenceLevel,
   fourWeekTrend,
   summariseAdherenceWeek,
+  todayAdherenceOf,
   type AdherenceDayState,
   type AdherenceLevel,
   type AdherenceRow,
@@ -17,8 +20,26 @@ const MONDAY = '2026-08-03';
 const TUESDAY = '2026-08-04';
 const THURSDAY = '2026-08-06';
 
+/**
+ * A day of `completed` meals out of `total`, with its level derived the way
+ * the mutation derives it — so a fixture can never describe a day the database
+ * could not hold.
+ */
+function meals(date: string, completed: number, total: number): AdherenceRow {
+  const level = deriveAdherenceLevel(completed, total);
+  if (!level) throw new Error(`a day of ${total} meals has no level to report`);
+
+  return { date, level, completedMeals: completed, totalMeals: total };
+}
+
+/**
+ * A day named by its level, for the tests that are about streaks and states
+ * rather than percentages. Four meals, because that is the shape the
+ * percentages below are easiest to read against: 0 of 4, 2 of 4, 4 of 4.
+ */
 function row(date: string, level: AdherenceLevel): AdherenceRow {
-  return { date, level };
+  const completed = { missed: 0, partial: 2, full: 4 }[level];
+  return meals(date, completed, 4);
 }
 
 function statesOf(rows: AdherenceRow[], today = WEDNESDAY): AdherenceDayState[] {
@@ -46,9 +67,9 @@ describe('summariseAdherenceWeek day states', () => {
     const week = summariseAdherenceWeek([row(MONDAY, 'missed')], WEDNESDAY);
 
     expect(week.days[0]?.state).toBe('empty');
-    expect(week.days[0]?.score).toBeNull();
+    expect(week.days[0]?.fraction).toBeNull();
     expect(week.days[1]?.state).toBe('missed');
-    expect(week.days[1]?.score).toBe(0);
+    expect(week.days[1]?.fraction).toBe(0);
   });
 
   test('ignores rows outside the week rather than counting them', () => {
@@ -70,7 +91,7 @@ describe('summariseAdherenceWeek averages', () => {
     const week = summariseAdherenceWeek([row(SUNDAY, 'full'), row(MONDAY, 'full'), row(TUESDAY, 'missed')], WEDNESDAY);
 
     expect(week.recordedCount).toBe(3);
-    // (10 + 10 + 0) / 3 / 10
+    // (100% + 100% + 0%) / 3
     expect(week.averageFraction).toBeCloseTo(0.6667, 3);
   });
 
@@ -193,6 +214,92 @@ describe('currentAdherenceStreak', () => {
 
   test('is zero with nothing reported at all', () => {
     expect(currentAdherenceStreak([], WEDNESDAY)).toBe(0);
+  });
+});
+
+describe('deriveAdherenceLevel', () => {
+  test('none ticked is missed', () => {
+    expect(deriveAdherenceLevel(0, 4)).toBe('missed');
+  });
+
+  test('all ticked is full', () => {
+    expect(deriveAdherenceLevel(4, 4)).toBe('full');
+  });
+
+  test('some ticked is partial', () => {
+    expect(deriveAdherenceLevel(2, 4)).toBe('partial');
+  });
+
+  test('a day with no meals has no level rather than a fabricated missed', () => {
+    expect(deriveAdherenceLevel(0, 0)).toBeNull();
+  });
+});
+
+describe('adherenceFraction', () => {
+  test('is completed over total, exactly', () => {
+    expect(adherenceFraction(1, 4)).toBe(0.25);
+    expect(adherenceFraction(2, 4)).toBe(0.5);
+    expect(adherenceFraction(3, 4)).toBe(0.75);
+    expect(adherenceFraction(4, 4)).toBe(1);
+  });
+
+  test('a day of three meals divides by three, not by four', () => {
+    expect(adherenceFraction(1, 3)).toBeCloseTo(0.3333, 4);
+    expect(adherenceFraction(2, 3)).toBeCloseTo(0.6667, 4);
+  });
+
+  /**
+   * The bug this whole measure replaced: every partially-followed day was
+   * worth a flat half, so a client who ate three of their four meals and one
+   * who ate one read the same number on every screen.
+   */
+  test('two partial days of the same size are not the same number', () => {
+    expect(adherenceFraction(1, 4)).not.toBe(adherenceFraction(3, 4));
+  });
+
+  test('a day with no meals has no fraction rather than a zero', () => {
+    expect(adherenceFraction(0, 0)).toBeNull();
+  });
+
+  test('clamps a pair the database constraints already forbid', () => {
+    expect(adherenceFraction(5, 4)).toBe(1);
+    expect(adherenceFraction(-1, 4)).toBe(0);
+  });
+});
+
+describe('the day the week strip draws', () => {
+  test('carries the exact fraction and the meals behind it', () => {
+    const week = summariseAdherenceWeek([meals(SUNDAY, 1, 4), meals(MONDAY, 2, 3)], WEDNESDAY);
+
+    expect(week.days[0]?.fraction).toBe(0.25);
+    expect(week.days[0]?.completedMeals).toBe(1);
+    expect(week.days[0]?.totalMeals).toBe(4);
+    expect(week.days[1]?.fraction).toBeCloseTo(0.6667, 4);
+  });
+
+  test('averages days of different sizes per day, not per meal', () => {
+    // 25% and 100%, not 5 of 8.
+    const week = summariseAdherenceWeek([meals(SUNDAY, 1, 4), meals(MONDAY, 4, 4)], WEDNESDAY);
+
+    expect(week.averageFraction).toBe(0.625);
+  });
+
+  test('a fully completed day counts whatever its meal count', () => {
+    const week = summariseAdherenceWeek([meals(SUNDAY, 3, 3), meals(MONDAY, 3, 4)], WEDNESDAY);
+
+    expect(week.fullyCompletedCount).toBe(1);
+  });
+});
+
+describe('todayAdherenceOf', () => {
+  test('is the exact fraction of today, with the pair it came from', () => {
+    const today = todayAdherenceOf([meals(MONDAY, 4, 4), meals(WEDNESDAY, 1, 4)], WEDNESDAY);
+
+    expect(today).toEqual({ level: 'partial', completedMeals: 1, totalMeals: 4, fraction: 0.25 });
+  });
+
+  test('is null when today has nothing reported, rather than a zero day', () => {
+    expect(todayAdherenceOf([meals(MONDAY, 4, 4)], WEDNESDAY)).toBeNull();
   });
 });
 

@@ -31,10 +31,31 @@ export type AuthFormState =
         /** `changePassword`'s own proof of ownership failed. */
         | 'currentPasswordIncorrect'
         /** A "change" that keeps the same password is not one. */
-        | 'passwordSameAsCurrent';
+        | 'passwordSameAsCurrent'
+        /** The mail provider refused the message — ours to fix, not theirs. */
+        | 'verificationEmailFailed';
     }
   | { status: 'rateLimited'; messageKey: 'rateLimited'; minutes: number }
-  | { status: 'sent'; messageKey: 'verificationSent' | 'resetLinkSent' }
+  /**
+   * `email` is carried so the "check your email" screen can show the address a
+   * link was sent to and pre-fill its resend form. Absent on `resetLinkSent`,
+   * whose whole point is to answer identically whether or not the address is
+   * registered — echoing it back there would leak nothing on its own, but the
+   * screen has no use for it either.
+   */
+  | {
+      status: 'sent';
+      messageKey: 'verificationSent' | 'resetLinkSent';
+      email?: string;
+      /**
+       * The account exists but the mail provider refused the message, so the
+       * "check your email" screen is still the right place to be — there is
+       * nothing to correct on the sign-up form — but it must say so rather than
+       * send someone to watch an inbox nothing is coming to. The resend button
+       * is already on that screen, which is the only useful thing to do next.
+       */
+      deliveryFailed?: boolean;
+    }
   | { status: 'success'; messageKey: 'passwordChanged' | 'passkeyRemoved' };
 
 export const initialAuthState: AuthFormState = { status: 'idle' };
