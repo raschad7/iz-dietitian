@@ -2,7 +2,6 @@ import { and, eq, ne, sql } from 'drizzle-orm';
 
 import { db } from '@/db';
 import {
-  clientNutritionProfiles,
   clients,
   weeklyPlanGenerations,
   weeklyPlanMealOptions,
@@ -11,7 +10,7 @@ import {
 } from '@/db/schema';
 
 import type { GenerationOutcome, ReconciledMeal } from './generate';
-import type { GenerationScope, NutritionProfileInput } from './schema';
+import type { GenerationScope } from './schema';
 
 /**
  * Writes for the weekly-plans feature.
@@ -58,51 +57,6 @@ async function ownedClient(clinicId: string, clientId: string): Promise<boolean>
 // ---------------------------------------------------------------------------
 // The profile
 // ---------------------------------------------------------------------------
-
-/**
- * Creates or updates a client's nutrition profile.
- *
- * An upsert on `client_id`, which carries a unique index — so two dietitians
- * saving the form at the same moment produce one row rather than a constraint
- * violation the second one sees.
- */
-export async function saveNutritionProfile(
-  clinicId: string,
-  input: NutritionProfileInput,
-): Promise<boolean> {
-  if (!(await ownedClient(clinicId, input.clientId))) return false;
-
-  await db
-    .insert(clientNutritionProfiles)
-    .values({
-      clinicId,
-      clientId: input.clientId,
-      weightKg: input.weightKg ?? null,
-      dailyKcalTarget: input.dailyKcalTarget ?? null,
-      proteinTargetGrams: input.proteinTargetGrams ?? null,
-      allergenTags: input.allergenTags,
-      preferences: input.preferences ?? null,
-      dislikes: input.dislikes ?? null,
-      permanentInstructions: input.permanentInstructions ?? null,
-      mealSchedule: input.mealSchedule,
-    })
-    .onConflictDoUpdate({
-      target: clientNutritionProfiles.clientId,
-      set: {
-        weightKg: input.weightKg ?? null,
-        dailyKcalTarget: input.dailyKcalTarget ?? null,
-        proteinTargetGrams: input.proteinTargetGrams ?? null,
-        allergenTags: input.allergenTags,
-        preferences: input.preferences ?? null,
-        dislikes: input.dislikes ?? null,
-        permanentInstructions: input.permanentInstructions ?? null,
-        mealSchedule: input.mealSchedule,
-        updatedAt: new Date(),
-      },
-    });
-
-  return true;
-}
 
 // ---------------------------------------------------------------------------
 // Persisting a generation

@@ -2,7 +2,6 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { z } from 'zod';
 
 import { localeSchema } from '@/features/clients/schema';
 import { type Locale } from '@/i18n/routing';
@@ -17,7 +16,6 @@ import {
   publishPlan,
   recordGeneration,
   replaceMeals,
-  saveNutritionProfile,
   saveWeekInstructions,
   swapMealDish,
   unpublishPlan,
@@ -35,7 +33,6 @@ import {
 import {
   DAYS_OF_WEEK,
   generateWeekSchema,
-  nutritionProfileSchema,
   planIdSchema,
   publishPlanSchema,
   regenerateDaySchema,
@@ -44,7 +41,7 @@ import {
   type GenerationScope,
 } from './schema';
 import { slotBudgets } from './targets';
-import type { GenerateState, PlanActionState, ProfileFormState } from './form-state';
+import type { GenerateState, PlanActionState } from './form-state';
 
 /**
  * A server action is a public endpoint. The layout guard protects the page render,
@@ -65,60 +62,6 @@ function revalidateBoard(locale: Locale, clientId?: string): void {
   revalidatePath(`/${locale}/app/weekly-plans`);
   if (clientId) revalidatePath(`/${locale}/app/weekly-plans/${clientId}`);
   revalidatePath(`/${locale}/portal/plan`);
-}
-
-// ---------------------------------------------------------------------------
-// The profile
-// ---------------------------------------------------------------------------
-
-export async function saveProfileAction(
-  _previousState: ProfileFormState,
-  formData: FormData,
-): Promise<ProfileFormState> {
-  const locale = readLocale(formData);
-  const { clinicId } = await requireStaffClinic(locale);
-
-  // The schedule arrives as parallel arrays of inputs — one set of fields per
-  // slot — which is what an HTML form can express. Zipped here rather than in the
-  // schema, so the schema stays about validity and not about form encoding.
-  const slotKeys = formData.getAll('slotKey').map(String);
-  const mealSchedule = slotKeys.map((slotKey, index) => ({
-    slotKey,
-    label: String(formData.getAll('slotLabel')[index] ?? ''),
-    timeOfDay: String(formData.getAll('slotTime')[index] ?? ''),
-    kcalShare: Number(formData.getAll('slotShare')[index] ?? 0) / 100,
-  }));
-
-  const parsed = nutritionProfileSchema.safeParse({
-    clientId: formData.get('clientId'),
-    allergenTags: formData.getAll('allergenTags'),
-    weightKg: formData.get('weightKg'),
-    dailyKcalTarget: formData.get('dailyKcalTarget'),
-    proteinTargetGrams: formData.get('proteinTargetGrams'),
-    preferences: formData.get('preferences'),
-    dislikes: formData.get('dislikes'),
-    permanentInstructions: formData.get('permanentInstructions'),
-    mealSchedule,
-  });
-
-  if (!parsed.success) {
-    return {
-      status: 'error',
-      messageKey: 'errors.invalid',
-      fieldErrors: z.flattenError(parsed.error).fieldErrors,
-    };
-  }
-
-  try {
-    const saved = await saveNutritionProfile(clinicId, parsed.data);
-    if (!saved) return { status: 'error', messageKey: 'errors.clientNotFound' };
-  } catch (error) {
-    console.error('[weekly-plans] profile save failed', error);
-    return { status: 'error', messageKey: 'errors.unexpected' };
-  }
-
-  revalidateBoard(locale, parsed.data.clientId);
-  return { status: 'saved' };
 }
 
 // ---------------------------------------------------------------------------

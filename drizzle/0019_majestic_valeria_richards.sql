@@ -1,0 +1,1 @@
+ALTER TABLE "client_nutrition_profiles" ADD COLUMN "custom_allergens" text[] DEFAULT '{}' NOT NULL;

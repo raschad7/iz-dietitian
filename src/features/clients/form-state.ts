@@ -48,11 +48,29 @@ export type PortalCredentialsState =
       whatsapp?: 'sent' | 'skipped' | 'failed';
     };
 
+/**
+ * The intake dialog's own state.
+ *
+ * Separate from {@link ClientFormState} rather than shared, for one reason:
+ * `errors.clientNotFound`. The intake is opened against a client that already
+ * exists, so "gone since this screen rendered" is a real outcome here and is not
+ * one on the card, which creates as often as it edits.
+ */
+export type IntakeFormState =
+  | { status: 'idle' }
+  | { status: 'success' }
+  | {
+      status: 'error';
+      messageKey: 'errors.invalid' | 'errors.unexpected' | 'errors.clientNotFound';
+      fieldErrors?: Record<string, string[] | undefined>;
+    };
+
 export type RevokePortalAccessState =
   | { status: 'idle' }
   | { status: 'error'; messageKey: 'errors.unexpected' }
   | { status: 'success'; messageKey: 'portal.revoked' };
 
 export const initialFormState: ClientFormState = { status: 'idle' };
+export const initialIntakeFormState: IntakeFormState = { status: 'idle' };
 export const initialPortalCredentialsState: PortalCredentialsState = { status: 'idle' };
 export const initialRevokePortalAccessState: RevokePortalAccessState = { status: 'idle' };

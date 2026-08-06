@@ -107,6 +107,25 @@ export const clientNutritionProfiles = pgTable(
      */
     allergenTags: text('allergen_tags').array().notNull().default([]),
 
+    /**
+     * Allergens the dietitian typed that are not among the six above.
+     *
+     * A separate column, and the separation is the whole point: these do **not**
+     * filter the catalog. `dishes.allergen_tags` carries the same six closed
+     * values, so a dish can only be excluded by one of them — a custom entry
+     * like "فراولة" matches no dish and removes nothing.
+     *
+     * They are recorded, shown to the dietitian, and sent to the model as
+     * context. Putting them in `allergen_tags` would have been one line shorter
+     * and silently wrong: that column would stop meaning "what the catalog
+     * filters on", and a client would look protected from something nothing
+     * checks. The UI draws them differently for the same reason.
+     *
+     * The upgrade path for any one of these is to add it to `ALLERGENS` *and*
+     * tag the dish catalog with it, at which point it becomes a real filter.
+     */
+    customAllergens: text('custom_allergens').array().notNull().default([]),
+
     /** Free text, sent to the model as the dietitian wrote it. */
     preferences: text('preferences'),
     dislikes: text('dislikes'),
