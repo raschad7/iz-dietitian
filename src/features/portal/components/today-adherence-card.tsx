@@ -1,16 +1,16 @@
 import { useTranslations } from 'next-intl';
 
-import { SegmentedGroup, SegmentedOption } from '@/components/ui/segmented';
+import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { ADHERENCE_LEVELS, ADHERENCE_SCORE_MAX, LEVEL_SCORE, type AdherenceLevel } from '@/features/portal/adherence';
-import { logPlanAdherenceAction } from '@/features/portal/actions';
+import { Icon } from '@/components/ui/icon';
+import { ADHERENCE_SCORE_MAX, LEVEL_SCORE, type AdherenceLevel } from '@/features/portal/adherence';
+import { Link } from '@/i18n/navigation';
 import { type Locale } from '@/i18n/routing';
 import { formatNumber } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 /**
- * "التزامك اليوم" — today's own report, and the one place on the portal a
- * client writes anything about their nutrition plan.
+ * "التزامك اليوم" — today's own report, read rather than written here.
  *
  * The ring is the same "score out of 10" arc the week strip draws
  * (`WeekAdherenceStrip`'s `Dial`), scaled up: one visual grammar for "how did
@@ -18,12 +18,13 @@ import { cn } from '@/lib/utils';
  * strip spends on a completed day — this is a different screen, so that
  * budget has not already been spent here.
  *
- * The segmented control is always visible and always live, even after
- * logging: re-tapping a segment corrects today's report rather than opening
- * a second form, the same "segment carries the value it selects" contract
- * `segmented.tsx` documents. There is no separate "log" button — see the
- * decision to keep this a single, always-visible three-way choice rather
- * than a button that reveals one.
+ * There used to be a three-way segmented control here — "missed" / "partial"
+ * / "full" — for the client to pick themselves. It is gone: `level` is now
+ * derived from how many of today's meals are ticked on the meal-plan screen
+ * (see `client-plan-adherence.ts` and `toggleMealCompletion`), so a client
+ * reporting on their own day and the plan they actually followed could
+ * silently disagree. The card now only reads that derived score and points
+ * at the one place it can still be changed — ticking meals.
  */
 
 const RADIUS = 44;
@@ -91,17 +92,16 @@ export function TodayAdherenceCard({ level, locale }: { level: AdherenceLevel | 
           </div>
         </div>
 
-        <form action={logPlanAdherenceAction}>
-          <input type="hidden" name="locale" value={locale} />
-
-          <SegmentedGroup label={t('groupLabel')} className="grid w-full grid-cols-3">
-            {ADHERENCE_LEVELS.map((option) => (
-              <SegmentedOption key={option} type="submit" name="level" value={option} selected={level === option}>
-                {t(`options.${option}`)}
-              </SegmentedOption>
-            ))}
-          </SegmentedGroup>
-        </form>
+        {/*
+          `/portal/meal-plan`, not `/${locale}/portal/meal-plan`: `Link` here
+          is the locale-aware one from `@/i18n/navigation`, which prefixes the
+          active locale itself — see the same pattern in
+          `pending-requests-card.tsx`.
+        */}
+        <Link href="/portal/meal-plan" className={buttonVariants({ variant: 'outline', className: 'w-full' })}>
+          {t('cta')}
+          <Icon name="chevronEnd" />
+        </Link>
       </CardContent>
     </Card>
   );

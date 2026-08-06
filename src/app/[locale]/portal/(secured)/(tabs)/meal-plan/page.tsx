@@ -49,5 +49,12 @@ export default async function MealPlanPage({ params, searchParams }: MealPlanPag
     );
   }
 
-  return <PortalPlan board={plan.board} days={plan.days} selectedDay={plan.selectedDay} />;
+  return (
+    <PortalPlan
+      board={plan.board}
+      days={plan.days}
+      selectedDay={plan.selectedDay}
+      completedMealIds={plan.completedMealIds}
+    />
+  );
 }

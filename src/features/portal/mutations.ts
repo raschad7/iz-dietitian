@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, count, eq, inArray } from 'drizzle-orm';
 
 import { db } from '@/db';
 import { isUniqueViolation } from '@/db/errors';
@@ -10,12 +10,16 @@ import {
   clientSettings,
   clients,
   user,
+  weeklyPlanMealCompletions,
+  weeklyPlanMeals,
+  weeklyPlans,
 } from '@/db/schema';
 import { hasEnded, type WallClock } from '@/features/booking/completed';
 import { getClinicHours } from '@/features/booking/queries';
+import { weekDates } from '@/features/weekly-plans/week';
 import { type Locale } from '@/i18n/routing';
 
-import { type AdherenceLevel } from './adherence';
+import { deriveAdherenceLevel, type AdherenceLevel } from './adherence';
 import { listClinicBookings } from './queries';
 import {
   type AccountDeletionRequestInput,
@@ -342,33 +346,139 @@ export async function withdrawClientRequest(
   return updated.length > 0 ? { ok: true, data: undefined } : { ok: false, error: 'errors.notFound' };
 }
 
+/** The transaction handle `db.transaction`'s callback receives — typed once here so every caller of {@link recomputeDayAdherence} agrees on it. */
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
 /**
- * Records how closely the client says they followed their plan on one day.
+ * Recomputes one plan-day's `client_plan_adherence` row from whichever of
+ * that day's meals exist right now, and writes the result — or, when the day
+ * no longer has any meals to derive a level from, deletes the row instead of
+ * leaving it holding the last thing it was ever set to.
  *
- * An upsert against the unique `(client_id, date)` index, same shape as
- * `saveClientSettings`: the first tap of the day and a correction later that
- * same day are the same statement, with no read-then-write race between them.
- * `date` is never taken from the caller's input — it is always the clinic's
- * own `today`, so a client can log or correct today's report but cannot
- * backdate one.
+ * Originally the tail end of {@link toggleMealCompletion} alone. It is
+ * exported and reused by `weekly-plans/mutations.ts` — `replaceMeals`,
+ * `deletePlan` and `createPlanFromGeneration` — because every one of those
+ * deletes `weekly_plan_meals` rows (directly, or by deleting the plan that
+ * owns them), which cascades away any `weekly_plan_meal_completions` tied to
+ * them. Without this running again afterward, a day a client had already
+ * ticked keeps showing whatever it last derived to — a stale "full" with zero
+ * completions behind it — because nothing else ever revisits that row once
+ * the meals it was computed from are gone. The `null` branch here is what
+ * that dietitian-side path needs and `toggleMealCompletion` itself never
+ * exercises: a meal being toggled always leaves at least itself on the day,
+ * so `total` can never reach zero from there.
+ *
+ * Takes a transaction rather than opening its own, so a caller doing several
+ * of these — one per affected day — commits them together with whatever else
+ * it is doing to the plan.
  */
-export async function logPlanAdherence(
-  { clientId, clinicId }: { clientId: string; clinicId: string },
-  date: string,
-  level: AdherenceLevel,
-): Promise<PortalResult> {
-  try {
-    await db
+export async function recomputeDayAdherence(
+  tx: Tx,
+  {
+    clinicId,
+    clientId,
+    planId,
+    dayOfWeek,
+    date,
+  }: { clinicId: string; clientId: string; planId: string; dayOfWeek: number; date: string },
+): Promise<AdherenceLevel | null> {
+  const dayMeals = await tx
+    .select({ id: weeklyPlanMeals.id })
+    .from(weeklyPlanMeals)
+    .where(and(eq(weeklyPlanMeals.planId, planId), eq(weeklyPlanMeals.dayOfWeek, dayOfWeek)));
+
+  const dayMealIds = dayMeals.map((row) => row.id);
+
+  const [completedRow] = dayMealIds.length
+    ? await tx
+        .select({ value: count() })
+        .from(weeklyPlanMealCompletions)
+        .where(
+          and(
+            eq(weeklyPlanMealCompletions.clientId, clientId),
+            inArray(weeklyPlanMealCompletions.mealId, dayMealIds),
+          ),
+        )
+    : [];
+
+  const derived = deriveAdherenceLevel(completedRow?.value ?? 0, dayMealIds.length);
+
+  if (derived) {
+    await tx
       .insert(clientPlanAdherence)
-      .values({ clinicId, clientId, date, level })
+      .values({ clinicId, clientId, date, level: derived })
       .onConflictDoUpdate({
         target: [clientPlanAdherence.clientId, clientPlanAdherence.date],
-        set: { level, updatedAt: new Date() },
+        set: { level: derived, updatedAt: new Date() },
       });
+  } else {
+    await tx
+      .delete(clientPlanAdherence)
+      .where(and(eq(clientPlanAdherence.clientId, clientId), eq(clientPlanAdherence.date, date)));
+  }
 
-    return { ok: true, data: undefined };
+  return derived;
+}
+
+/**
+ * Ticks or unticks one meal, and recomputes that day's `client_plan_adherence`
+ * level from the result.
+ *
+ * `mealId` is proved to belong to this client's own **published** plan in the
+ * same query that reads which day it falls on — a draft plan or another
+ * client's meal simply matches no row, the same ownership shape every other
+ * portal write uses. The day is derived from the meal (`day_of_week` plus the
+ * plan's `week_start_date`), never taken from the caller, so a client cannot
+ * tick a meal into a day it does not belong to.
+ *
+ * Ticking is `onConflictDoNothing` and unticking is a plain delete, both
+ * against the unique `(client_id, meal_id)` index — a double-tap from a slow
+ * network is a no-op rather than a second row to reconcile.
+ *
+ * The whole thing runs in one transaction: the tick, the recount, and the
+ * derived adherence row all commit together, so a reader can never observe a
+ * meal ticked against a day whose level has not caught up with it yet.
+ */
+export async function toggleMealCompletion(
+  { clientId, clinicId }: { clientId: string; clinicId: string },
+  mealId: string,
+  completed: boolean,
+): Promise<PortalResult<{ date: string; level: AdherenceLevel | null }>> {
+  try {
+    const [meal] = await db
+      .select({ dayOfWeek: weeklyPlanMeals.dayOfWeek, planId: weeklyPlanMeals.planId, weekStartDate: weeklyPlans.weekStartDate })
+      .from(weeklyPlanMeals)
+      .innerJoin(weeklyPlans, eq(weeklyPlans.id, weeklyPlanMeals.planId))
+      .where(
+        and(
+          eq(weeklyPlanMeals.id, mealId),
+          eq(weeklyPlans.clientId, clientId),
+          eq(weeklyPlans.clinicId, clinicId),
+          eq(weeklyPlans.status, 'published'),
+        ),
+      )
+      .limit(1);
+
+    if (!meal) return { ok: false, error: 'errors.notFound' };
+
+    const date = weekDates(meal.weekStartDate)[meal.dayOfWeek];
+    if (!date) return { ok: false, error: 'errors.unexpected' };
+
+    const level = await db.transaction(async (tx) => {
+      if (completed) {
+        await tx.insert(weeklyPlanMealCompletions).values({ clinicId, clientId, mealId }).onConflictDoNothing();
+      } else {
+        await tx
+          .delete(weeklyPlanMealCompletions)
+          .where(and(eq(weeklyPlanMealCompletions.clientId, clientId), eq(weeklyPlanMealCompletions.mealId, mealId)));
+      }
+
+      return recomputeDayAdherence(tx, { clinicId, clientId, planId: meal.planId, dayOfWeek: meal.dayOfWeek, date });
+    });
+
+    return { ok: true, data: { date, level } };
   } catch (error) {
-    console.error('[portal] logging plan adherence failed', error);
+    console.error('[portal] toggling meal completion failed', error);
     return { ok: false, error: 'errors.unexpected' };
   }
 }

@@ -1,24 +1,16 @@
 'use client';
 
-import { useState } from 'react';
-
 import { Icon } from '@/components/ui/icon';
+
+import { useMealCompletion } from './plan-day-completion';
 
 /**
  * The "I had this" circle on a meal card.
  *
- * ⚠ **It remembers nothing.** The checked state is local to this component, so
- * it resets on a reload, on choosing another day, and on any navigation away
- * from the plan — nothing is written to `client_plan_adherence` or anywhere
- * else, and no other screen learns about it. That is deliberate and temporary:
- * it is here so the interaction can be seen and judged before the writing half
- * is designed. Do not build anything on top of it in this state.
- *
- * Giving it a home means deciding what a checked meal *is* — the portal already
- * has a day-level `client_plan_adherence` row (`missed` / `partial` / `full`),
- * so a per-meal tick is either a finer grain that table cannot hold, or a way of
- * deriving that day's level from five ticks. That is a data-model decision, not
- * a component one.
+ * Ticking writes through `useMealCompletion` to `weekly_plan_meal_completions`
+ * — the source of truth the whole progress tab is now derived from (see
+ * `client-plan-adherence.ts`) — and flips instantly rather than waiting on
+ * that write, via the same hook's optimistic state.
  *
  * **It is its own client component so the meal card is not.** `portal-plan.tsx`
  * renders the whole week's dishes on the server precisely so they never reach
@@ -30,8 +22,8 @@ import { Icon } from '@/components/ui/icon';
  * click on any descendant carries that default with it as it bubbles. Ticking a
  * meal and having it unfold underneath you is not what the control promises.
  */
-export function MealCheck({ label }: { label: string }) {
-  const [checked, setChecked] = useState(false);
+export function MealCheck({ mealId, label }: { mealId: string; label: string }) {
+  const { checked, toggle } = useMealCompletion(mealId);
 
   return (
     <button
@@ -47,7 +39,7 @@ export function MealCheck({ label }: { label: string }) {
       onClick={(event) => {
         event.preventDefault();
         event.stopPropagation();
-        setChecked((value) => !value);
+        toggle();
       }}
       className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-focus-halo"
     >

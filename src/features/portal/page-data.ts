@@ -1,4 +1,4 @@
-import { addDays, weekdayOf } from '@/features/booking/date';
+import { addDays } from '@/features/booking/date';
 import { getClinicHours } from '@/features/booking/queries';
 import { type ClinicHours } from '@/features/booking/validation';
 import { getPublishedBoard, type Board, type BoardDay } from '@/features/weekly-plans/queries';
@@ -25,6 +25,7 @@ import {
   getPortalClinic,
   getSharedWeight,
   listClinicBookings,
+  listMealCompletions,
   listPlanAdherence,
   listPortalAppointments,
   listPortalRequests,
@@ -105,12 +106,18 @@ export async function loadDashboard(context: PortalContext): Promise<DashboardDa
     listPlanAdherence(context.id, from, to),
   ]);
 
-  const weekday = weekdayOf(context.now.date);
+  // The plan's own week, not today's — a dietitian who has published next
+  // week's plan already means `plan.weekStartDate` is not the week `today`
+  // falls in, and `plan.days` is ordered by *that* week's weekday. Indexing
+  // it by `weekdayOf(context.now.date)` would silently hand back a day that
+  // shares today's weekday number but is a week away, which is not today's
+  // plan by any definition a client would recognise.
+  const todayIndexInPlan = plan ? planWeekDates(plan.weekStartDate).indexOf(context.now.date) : -1;
 
   return {
     next: nextAppointment(appointmentRows, context.now),
     planTitle: plan?.weekStartDate ?? null,
-    today: plan && weekday !== null ? (plan.days[weekday] ?? null) : null,
+    today: plan && todayIndexInPlan !== -1 ? (plan.days[todayIndexInPlan] ?? null) : null,
     pending: requests.filter((request) => request.status === 'pending'),
     week: summariseAdherenceWeek(adherenceRows, context.now.date),
     streak: currentAdherenceStreak(adherenceRows, context.now.date),
@@ -223,6 +230,12 @@ export type PlanPageData = {
   days: PlanDaySummary[];
   /** The day being read, 0–6. Always a day that exists in `days`. */
   selectedDay: number;
+  /**
+   * Which of the selected day's meals this client has already ticked
+   * complete. Only that day's, matching what the page actually renders —
+   * ticking a meal on another day means opening it first.
+   */
+  completedMealIds: string[];
 };
 
 /**
@@ -282,7 +295,15 @@ export async function loadPlanPage(
     };
   });
 
-  return { board, days, selectedDay: pickPlanDay(days, requestedDay, weekdayOf(context.now.date)) };
+  const selectedDay = pickPlanDay(days, requestedDay, context.now.date);
+
+  // Only the day actually rendered — a whole week of meal ids to check
+  // completion against would be the same over-fetch `PortalPlan` already
+  // avoids for dishes and ingredients.
+  const selectedMealIds = board.days[selectedDay]?.meals.map((meal) => meal.id) ?? [];
+  const completedMealIds = [...(await listMealCompletions(context.id, selectedMealIds))];
+
+  return { board, days, selectedDay, completedMealIds };
 }
 
 /**
@@ -292,16 +313,24 @@ export async function loadPlanPage(
  * only if today has meals, because opening on an empty state when six other days
  * are full reads as a broken plan. Otherwise the first day with anything in it,
  * and only then the start of the week.
+ *
+ * Matched by **date**, not by weekday number. A plan published for next week
+ * still has a day whose `dayOfWeek` equals today's weekday — Thursday is day 4
+ * whichever week it falls in — and matching on that number alone would open the
+ * page on a day seven days away while calling it today, letting a client tick
+ * meals nobody can have eaten yet. Matching `date === today` only succeeds when
+ * the plan's own week genuinely contains today, which is the same test
+ * `isToday` above is built from.
  */
 export function pickPlanDay(
   days: readonly PlanDaySummary[],
   requested: number | null,
-  todayWeekday: number | null,
+  today: string | null,
 ): number {
   if (requested !== null && days.some((day) => day.dayOfWeek === requested)) return requested;
 
-  const today = days.find((day) => day.dayOfWeek === todayWeekday);
-  if (today && today.mealCount > 0) return today.dayOfWeek;
+  const todayDay = days.find((day) => day.date === today);
+  if (todayDay && todayDay.mealCount > 0) return todayDay.dayOfWeek;
 
   return days.find((day) => day.mealCount > 0)?.dayOfWeek ?? days[0]?.dayOfWeek ?? 0;
 }

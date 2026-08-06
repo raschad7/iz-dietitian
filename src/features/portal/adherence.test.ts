@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import {
   continuityPath,
   currentAdherenceStreak,
+  deriveAdherenceLevel,
   fourWeekTrend,
   summariseAdherenceWeek,
   type AdherenceDayState,
@@ -193,6 +194,24 @@ describe('currentAdherenceStreak', () => {
 
   test('is zero with nothing reported at all', () => {
     expect(currentAdherenceStreak([], WEDNESDAY)).toBe(0);
+  });
+});
+
+describe('deriveAdherenceLevel', () => {
+  test('none ticked is missed', () => {
+    expect(deriveAdherenceLevel(0, 4)).toBe('missed');
+  });
+
+  test('all ticked is full', () => {
+    expect(deriveAdherenceLevel(4, 4)).toBe('full');
+  });
+
+  test('some ticked is partial', () => {
+    expect(deriveAdherenceLevel(2, 4)).toBe('partial');
+  });
+
+  test('a day with no meals has no level rather than a fabricated missed', () => {
+    expect(deriveAdherenceLevel(0, 0)).toBeNull();
   });
 });
 
