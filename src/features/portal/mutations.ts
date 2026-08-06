@@ -401,15 +401,21 @@ export async function recomputeDayAdherence(
         )
     : [];
 
-  const derived = deriveAdherenceLevel(completedRow?.value ?? 0, dayMealIds.length);
+  const completedMeals = completedRow?.value ?? 0;
+  const totalMeals = dayMealIds.length;
+  const derived = deriveAdherenceLevel(completedMeals, totalMeals);
 
   if (derived) {
+    // The counts go in with the level, in one row, in one statement: they are
+    // what every percentage downstream divides, and a row holding a level from
+    // one recount and counts from another would put a day's ring and its
+    // "3 of 4 meals" label out of step with each other.
     await tx
       .insert(clientPlanAdherence)
-      .values({ clinicId, clientId, date, level: derived })
+      .values({ clinicId, clientId, date, level: derived, completedMeals, totalMeals })
       .onConflictDoUpdate({
         target: [clientPlanAdherence.clientId, clientPlanAdherence.date],
-        set: { level: derived, updatedAt: new Date() },
+        set: { level: derived, completedMeals, totalMeals, updatedAt: new Date() },
       });
   } else {
     await tx

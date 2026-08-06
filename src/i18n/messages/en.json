@@ -672,7 +672,7 @@
         "none": "Not recorded"
       },
       "progress": {
-        "unit": "of your week",
+        "unit": "average adherence",
         "empty": {
           "title": "A fresh week",
           "body": "Every day you record draws a clearer picture for your dietitian."
@@ -704,7 +704,7 @@
     "progress": {
       "today": {
         "heading": "Your commitment today",
-        "unit": "of {max}",
+        "meals": "{completed, number, integer} of {total, number, integer} {total, plural, one {meal} other {meals}}",
         "prompt": "Tick off today's meals in My Plan to see your commitment here.",
         "cta": "Update today's adherence",
         "level": {
@@ -723,11 +723,12 @@
         "title": "This week's days",
         "today": "Today",
         "state": {
-          "full": "{day}: fully followed, {score} of {max}",
-          "partial": "{day}: partially followed, {score} of {max}",
+          "full": "{day}: fully followed, {percent} — {completed, number, integer} of {total, number, integer} {total, plural, one {meal} other {meals}}",
+          "partial": "{day}: {percent} followed — {completed, number, integer} of {total, number, integer} {total, plural, one {meal} other {meals}}",
           "missed": "{day}: plan not followed",
           "empty": "{day}: nothing recorded",
           "today": "{day}: today",
+          "todayReported": "{day}: today, {percent} — {completed, number, integer} of {total, number, integer} {total, plural, one {meal} other {meals}}",
           "future": "{day}: still to come"
         }
       },

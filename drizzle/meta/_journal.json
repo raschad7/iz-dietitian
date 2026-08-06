@@ -134,6 +134,13 @@
       "when": 1785932236652,
       "tag": "0018_talented_amphibian",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1786002304008,
+      "tag": "0019_premium_shadowcat",
+      "breakpoints": true
     }
   ]
 }

@@ -458,7 +458,14 @@ export async function listPlanAdherence(
   toDate: string,
 ): Promise<AdherenceRow[]> {
   const rows = await db
-    .select({ date: clientPlanAdherence.date, level: clientPlanAdherence.level })
+    .select({
+      date: clientPlanAdherence.date,
+      level: clientPlanAdherence.level,
+      // The measure itself — every percentage the portal draws is computed
+      // from this pair, never recovered from `level`.
+      completedMeals: clientPlanAdherence.completedMeals,
+      totalMeals: clientPlanAdherence.totalMeals,
+    })
     .from(clientPlanAdherence)
     .where(and(eq(clientPlanAdherence.clientId, clientId), between(clientPlanAdherence.date, fromDate, toDate)))
     .orderBy(asc(clientPlanAdherence.date));

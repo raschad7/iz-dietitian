@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useTransition } from 'react';
 
-import { deriveAdherenceLevel, LEVEL_SCORE, type AdherenceDay } from '@/features/portal/adherence';
+import { adherenceFraction, type AdherenceDay } from '@/features/portal/adherence';
 import { DayFlame } from '@/features/portal/components/day-flame';
 import { usePathname, useRouter } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
@@ -147,21 +147,26 @@ export function PlanDayStrip({
             date: day.date ?? '',
             weekday: day.dayOfWeek,
             state: 'empty',
-            score: null,
+            fraction: null,
+            completedMeals: 0,
+            totalMeals: 0,
           };
 
           // Only the day this screen actually let someone tick meals on: its
-          // flame follows the local, instant count rather than the score
-          // `loadPlanPage` read before any of today's taps happened.
-          const localLevel =
-            completion && completion.dayOfWeek === day.dayOfWeek
-              ? deriveAdherenceLevel(completion.completedCount, completion.totalCount)
-              : null;
+          // flame follows the local, instant count rather than the fraction
+          // `loadPlanPage` read before any of today's taps happened. It is the
+          // same completed ÷ total the server will store when the write lands,
+          // so the arc does not move again when the page revalidates.
+          const local = completion?.dayOfWeek === day.dayOfWeek ? completion : null;
 
-          const adherence: AdherenceDay =
-            completion && completion.dayOfWeek === day.dayOfWeek
-              ? { ...baseAdherence, score: localLevel ? LEVEL_SCORE[localLevel] : null }
-              : baseAdherence;
+          const adherence: AdherenceDay = local
+            ? {
+                ...baseAdherence,
+                fraction: adherenceFraction(local.completedCount, local.totalCount),
+                completedMeals: local.completedCount,
+                totalMeals: local.totalCount,
+              }
+            : baseAdherence;
 
           return (
             <button

@@ -73,6 +73,23 @@ async function adherenceLevel(forClientId: string, date: string): Promise<string
   return row?.level ?? null;
 }
 
+/**
+ * The counts the day's row was written with — the pair every percentage in the
+ * portal divides. Asserted alongside the level because the level alone cannot
+ * tell 1 of 4 from 3 of 4, which is the whole reason these columns exist.
+ */
+async function adherenceCounts(
+  forClientId: string,
+  date: string,
+): Promise<{ completed: number; total: number } | null> {
+  const [row] = await db
+    .select({ completed: clientPlanAdherence.completedMeals, total: clientPlanAdherence.totalMeals })
+    .from(clientPlanAdherence)
+    .where(and(eq(clientPlanAdherence.clientId, forClientId), eq(clientPlanAdherence.date, date)));
+
+  return row ?? null;
+}
+
 async function completionExists(forClientId: string, mealId: string): Promise<boolean> {
   const [row] = await db
     .select({ id: weeklyPlanMealCompletions.id })
@@ -102,6 +119,9 @@ describe('toggleMealCompletion', () => {
     expect(result).toEqual({ ok: true, data: { date: WEEK_START, level: 'partial' } });
     expect(await completionExists(clientId, first)).toBe(true);
     expect(await adherenceLevel(clientId, WEEK_START)).toBe('partial');
+    // The day is 1 of 2, and the row says so — this is what the portal draws
+    // 50% from, rather than inferring it from the word "partial".
+    expect(await adherenceCounts(clientId, WEEK_START)).toEqual({ completed: 1, total: 2 });
   });
 
   test('ticking every meal on the day derives full', async () => {
@@ -114,6 +134,7 @@ describe('toggleMealCompletion', () => {
 
     expect(result).toEqual({ ok: true, data: { date: WEEK_START, level: 'full' } });
     expect(await adherenceLevel(clientId, WEEK_START)).toBe('full');
+    expect(await adherenceCounts(clientId, WEEK_START)).toEqual({ completed: 2, total: 2 });
   });
 
   test('unticking a meal removes its row and recomputes down to missed', async () => {
@@ -127,6 +148,9 @@ describe('toggleMealCompletion', () => {
     expect(result).toEqual({ ok: true, data: { date: WEEK_START, level: 'missed' } });
     expect(await completionExists(clientId, first)).toBe(false);
     expect(await adherenceLevel(clientId, WEEK_START)).toBe('missed');
+    // Back to zero completed, but the denominator stays: the day still has two
+    // meals to have followed, and 0 of 2 is a different fact from no plan.
+    expect(await adherenceCounts(clientId, WEEK_START)).toEqual({ completed: 0, total: 2 });
   });
 
   test('ticking twice is a no-op rather than a duplicate row or an error', async () => {

@@ -10,9 +10,10 @@ import {
   currentAdherenceStreak,
   fourWeekTrend,
   summariseAdherenceWeek,
-  type AdherenceLevel,
+  todayAdherenceOf,
   type ContinuityDay,
   type MonthlyTrendWeek,
+  type TodayAdherence,
   type WeekAdherence,
 } from './adherence';
 import { nextAppointment, splitAppointments, type SplitAppointments } from './appointments';
@@ -125,8 +126,11 @@ export async function loadDashboard(context: PortalContext): Promise<DashboardDa
 }
 
 export type ProgressPageData = {
-  /** Today's own report, or null when nothing has been logged yet today. */
-  todayLevel: AdherenceLevel | null;
+  /**
+   * Today's own report — its exact fraction and the meals behind it — or null
+   * when nothing has been logged yet today.
+   */
+  today: TodayAdherence | null;
   week: WeekAdherence;
   /** Consecutive days kept at least partially, ending today or yesterday. */
   streak: number;
@@ -161,7 +165,7 @@ export async function loadProgressPage(context: PortalContext): Promise<Progress
   const week = summariseAdherenceWeek(rows, context.now.date);
 
   return {
-    todayLevel: rows.find((row) => row.date === context.now.date)?.level ?? null,
+    today: todayAdherenceOf(rows, context.now.date),
     week,
     streak: currentAdherenceStreak(rows, context.now.date),
     continuity: continuityPath(rows, context.now.date),

@@ -672,7 +672,7 @@
         "none": "لم تُسجّل بعد"
       },
       "progress": {
-        "unit": "من أسبوعك",
+        "unit": "متوسط الالتزام",
         "empty": {
           "title": "أسبوع جديد يبدأ",
           "body": "كل يوم تسجّلينه يرسم صورة أوضح لأخصائيتك."
@@ -704,7 +704,7 @@
     "progress": {
       "today": {
         "heading": "التزامك اليوم",
-        "unit": "من {max}",
+        "meals": "{completed, number, integer} من {total, number, integer} {total, plural, one {وجبة} two {وجبتين} few {وجبات} many {وجبة} other {وجبة}}",
         "prompt": "أتمّي وجبات اليوم في خطتي ليظهر التزامك هنا.",
         "cta": "تحديث التزامك اليوم",
         "level": {
@@ -723,11 +723,12 @@
         "title": "أيام الأسبوع",
         "today": "اليوم",
         "state": {
-          "full": "{day}: التزام كامل، {score} من {max}",
-          "partial": "{day}: التزام جزئي، {score} من {max}",
+          "full": "{day}: التزام كامل، {percent} — {completed, number, integer} من {total, number, integer} {total, plural, one {وجبة} two {وجبتين} few {وجبات} many {وجبة} other {وجبة}}",
+          "partial": "{day}: التزام {percent} — {completed, number, integer} من {total, number, integer} {total, plural, one {وجبة} two {وجبتين} few {وجبات} many {وجبة} other {وجبة}}",
           "missed": "{day}: لم يتم الالتزام بالخطة",
           "empty": "{day}: لم يُسجَّل التزام",
           "today": "{day}: اليوم",
+          "todayReported": "{day}: اليوم، {percent} — {completed, number, integer} من {total, number, integer} {total, plural, one {وجبة} two {وجبتين} few {وجبات} many {وجبة} other {وجبة}}",
           "future": "{day}: لم يأتِ بعد"
         }
       },

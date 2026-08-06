@@ -19,13 +19,76 @@ import { DAYS_PER_WEEK, runEndingAt, weekDates } from './check-ins';
 
 export { ADHERENCE_LEVELS, type AdherenceLevel };
 
-/** One day's report, as the reads hand it over. */
-export type AdherenceRow = { date: IsoDate; level: AdherenceLevel };
+/**
+ * One day's report, as the reads hand it over.
+ *
+ * The counts are the measure. `level` rides along for the copy that needs a
+ * word — see `client-plan-adherence.ts` — and is never turned back into a
+ * number.
+ */
+export type AdherenceRow = {
+  date: IsoDate;
+  level: AdherenceLevel;
+  completedMeals: number;
+  totalMeals: number;
+};
 
-/** A level's weight out of ten — the same "score out of 10" the day dials already draw. */
-export const LEVEL_SCORE: Record<AdherenceLevel, number> = { missed: 0, partial: 5, full: 10 };
+/**
+ * A day's adherence as the exact fraction it is: completed ÷ total.
+ *
+ * **The single definition in the app.** Every percentage a client sees — the
+ * ring on the progress tab, the flame arc on all three week strips, the week
+ * average, the four-week trend, the home screen's ring — resolves to this
+ * call, so 1 of 4 meals is 25% on every one of them and cannot be 50% on any.
+ *
+ * `null` when the day had no meals to tick: a day nobody was asked about is an
+ * absence, and the callers keep it out of their averages rather than folding
+ * it in as a zero.
+ */
+export function adherenceFraction(completed: number, total: number): number | null {
+  if (total <= 0) return null;
 
-export const ADHERENCE_SCORE_MAX = 10;
+  // Clamped rather than trusted: the database constraints already forbid the
+  // out-of-range pair, and a fraction above 1 would overdraw an arc rather
+  // than fail visibly.
+  return Math.min(Math.max(completed, 0), total) / total;
+}
+
+/** The same fraction, read off a row. */
+export function rowFraction(row: AdherenceRow): number | null {
+  return adherenceFraction(row.completedMeals, row.totalMeals);
+}
+
+/**
+ * Today's report as the progress tab's ring draws it.
+ *
+ * Carries the level as well as the fraction because that card says two things
+ * at once — a percentage, and a line of encouragement that needs a word rather
+ * than a number. Both come off one row, so they cannot describe different days.
+ */
+export type TodayAdherence = {
+  level: AdherenceLevel;
+  completedMeals: number;
+  totalMeals: number;
+  /** completed ÷ total. Never null: a row exists only for a day that had meals. */
+  fraction: number;
+};
+
+/** Today's row, shaped for that card — null when today has nothing reported yet. */
+export function todayAdherenceOf(rows: readonly AdherenceRow[], today: IsoDate): TodayAdherence | null {
+  const row = rows.find((candidate) => candidate.date === today);
+  if (!row) return null;
+
+  const fraction = rowFraction(row);
+  if (fraction === null) return null;
+
+  return {
+    level: row.level,
+    completedMeals: row.completedMeals,
+    totalMeals: row.totalMeals,
+    fraction,
+  };
+}
 
 /**
  * A day's level, from how many of its meals are ticked complete.
@@ -35,6 +98,10 @@ export const ADHERENCE_SCORE_MAX = 10;
  * the meals it was derived from. `null` when the day has no meals to tick at
  * all, which leaves the day's existing row untouched rather than writing a
  * `missed` nobody could have prevented.
+ *
+ * It is a **label, not a score**: three words for the encouragement line and
+ * the streak's "did this day count" test. Anything that draws a quantity takes
+ * {@link adherenceFraction} instead.
  */
 export function deriveAdherenceLevel(completed: number, total: number): AdherenceLevel | null {
   if (total <= 0) return null;
@@ -58,8 +125,18 @@ export type AdherenceDay = {
   /** 0 = Sunday, matching `weekdayOf`. */
   weekday: number;
   state: AdherenceDayState;
-  /** The day's score out of 10, or null when nothing was reported. */
-  score: number | null;
+  /**
+   * The day's exact adherence, 0–1, or null when nothing was reported.
+   *
+   * This replaced a `score` out of 10 that only ever held 0, 5 or 10, because
+   * the three levels were all it could be derived from. Everything that draws
+   * this day — the flame's arc, the ring, the spoken label — reads the
+   * fraction, so a 3-of-4 day and a 1-of-4 day no longer look identical.
+   */
+  fraction: number | null;
+  /** The pair the fraction came from, for labels that say "3 of 4 meals". */
+  completedMeals: number;
+  totalMeals: number;
 };
 
 export type WeekAdherence = {
@@ -76,6 +153,24 @@ export type WeekAdherence = {
 function mean(values: number[]): number | null {
   if (values.length === 0) return null;
   return values.reduce((total, value) => total + value, 0) / values.length;
+}
+
+/**
+ * A run of days averaged as one number: the mean of each day's own exact
+ * fraction.
+ *
+ * **Per day, not per meal.** A week of one 1-of-4 day and one 4-of-4 day
+ * averages to 62.5%, not to the 5-of-8 (62.5% here too, but they diverge the
+ * moment the days have different meal counts) a pooled count would give. The
+ * card calls this "average adherence", and a day the client kept is a day they
+ * kept whether the dietitian planned three meals for it or five — pooling
+ * would quietly weight the busiest days heaviest.
+ *
+ * Days with no meals to tick contribute nothing rather than a zero, the same
+ * rule the callers already apply to days with no report at all.
+ */
+function meanFraction(rows: readonly AdherenceRow[]): number | null {
+  return mean(rows.map(rowFraction).filter((fraction): fraction is number => fraction !== null));
 }
 
 function stateOf(date: IsoDate, today: IsoDate, row: AdherenceRow | undefined): AdherenceDayState {
@@ -123,7 +218,9 @@ export function adherenceDaysFor(
       date,
       weekday: index,
       state: stateOf(date, today, row),
-      score: row ? LEVEL_SCORE[row.level] : null,
+      fraction: row ? rowFraction(row) : null,
+      completedMeals: row?.completedMeals ?? 0,
+      totalMeals: row?.totalMeals ?? 0,
     };
   });
 }
@@ -149,8 +246,8 @@ export function summariseAdherenceWeek(rows: AdherenceRow[], today: IsoDate): We
     .map((date) => byDate.get(date))
     .filter((row): row is AdherenceRow => Boolean(row));
 
-  const averageFraction = mean(recorded.map((row) => LEVEL_SCORE[row.level] / ADHERENCE_SCORE_MAX));
-  const fullyCompletedCount = recorded.filter((row) => row.level === 'full').length;
+  const averageFraction = meanFraction(recorded);
+  const fullyCompletedCount = recorded.filter((row) => row.completedMeals >= row.totalMeals).length;
 
   return { days, recordedCount: recorded.length, fullyCompletedCount, averageFraction };
 }
@@ -274,7 +371,7 @@ export function fourWeekTrend(rows: AdherenceRow[], today: IsoDate, weeks = TREN
 
     return {
       weekStartDate,
-      averageFraction: mean(recorded.map((row) => LEVEL_SCORE[row.level] / ADHERENCE_SCORE_MAX)),
+      averageFraction: meanFraction(recorded),
       isCurrent: weekStartDate === currentWeekStart,
     };
   });
