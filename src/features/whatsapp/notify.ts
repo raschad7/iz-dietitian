@@ -1,18 +1,20 @@
 import { hasStarted, wallClockIn } from '@/features/booking/completed';
-import { formatLongDate, formatMinute } from '@/features/booking/format';
+import { formatDuration, formatLongDate, formatMinute } from '@/features/booking/format';
 import { DISPLAY_TIME_ZONE } from '@/lib/format';
 
-import { getAppointmentTarget, getClientTarget, getSettings } from './queries';
+import { getAppointmentSeriesTarget, getAppointmentTarget, getClientTarget, getSettings } from './queries';
 import {
   cancellationDedupeKey,
   confirmationDedupeKey,
   credentialsDedupeKey,
   manualDedupeKey,
   rescheduleDedupeKey,
+  seriesDedupeKey,
   sendWhatsappMessage,
   sendWhatsappTemplate,
+  type SendDeps,
 } from './send';
-import { clampMessageBody, PATIENT_MESSAGE_LOCALE } from './templates';
+import { clampMessageBody, formatAppointmentList, PATIENT_MESSAGE_LOCALE } from './templates';
 import { type SendResult } from './types';
 
 /**
@@ -109,6 +111,100 @@ export async function notifyAppointmentBooked(clinicId: string, appointmentId: s
       dedupeKey: confirmationDedupeKey(target.appointmentId, target.date, target.startMinute),
     },
     { settings },
+  );
+}
+
+/**
+ * Confirms a whole course of appointments — a repeat the doctor accepted — in
+ * **one** message.
+ *
+ * The alternative, which this replaced, was calling
+ * {@link notifyAppointmentBooked} once per created appointment. Six months of
+ * weekly visits meant twenty-six near-identical texts arriving in the same
+ * second: it reads as a malfunction, buries the rest of the thread, and is the
+ * kind of volume a gateway rate-limits or a recipient blocks. It also left the
+ * patient to assemble their own schedule from twenty-six bubbles.
+ *
+ * The count in the message is the count of appointments actually written, not
+ * the number the doctor asked for — weeks the clinic is closed or the hour was
+ * taken are skipped by `repeatWeekly`, and their ids never reach here. A patient
+ * is told about the appointments they have.
+ *
+ * Slots that have already started are dropped rather than suppressing the whole
+ * message, for the same reason `isPast` exists at all: one stale slot in a long
+ * course should not cost the patient the other twenty-five. If every one of them
+ * is past, there is nothing to say.
+ *
+ * A single appointment is delegated to {@link notifyAppointmentBooked}: "your 1
+ * appointments are confirmed" is a list of one, and the ordinary confirmation is
+ * both better written and dedupes on the key that message already uses.
+ */
+export async function notifyAppointmentSeriesBooked(
+  clinicId: string,
+  appointmentIds: readonly string[],
+  /**
+   * The gateway, injectable exactly as `sendWhatsappMessage` allows — this is
+   * the one automation whose contract is about *how many* messages it sends, and
+   * proving that needs something to count them. Production passes nothing.
+   */
+  deps: Pick<SendDeps, 'gateway'> = {},
+): Promise<SendResult> {
+  if (appointmentIds.length === 0) return { status: 'skipped', reason: 'not_configured' };
+  if (appointmentIds.length === 1) return notifyAppointmentBooked(clinicId, appointmentIds[0]!);
+
+  const settings = await getSettings(clinicId);
+
+  if (!settings?.confirmationsEnabled) return { status: 'skipped', reason: 'not_configured' };
+
+  const target = await getAppointmentSeriesTarget(clinicId, appointmentIds);
+
+  if (!target) return { status: 'skipped', reason: 'no_phone' };
+
+  const upcoming = target.appointments.filter((appointment) => !isPast(appointment));
+
+  if (upcoming.length === 0) return { status: 'skipped', reason: 'in_the_past' };
+
+  // Down to one after the past ones were dropped — the same list-of-one
+  // reasoning as above, reached the other way.
+  if (upcoming.length === 1) return notifyAppointmentBooked(clinicId, upcoming[0]!.appointmentId);
+
+  return sendWhatsappTemplate(
+    {
+      kind: 'appointmentSeries',
+      locale: PATIENT_MESSAGE_LOCALE,
+      variables: {
+        clientName: target.clientName,
+        clinicName: target.clinicName,
+        count: String(upcoming.length),
+        appointments: formatAppointmentList(
+          upcoming.map((appointment) => ({
+            date: formatLongDate(PATIENT_MESSAGE_LOCALE, appointment.date),
+            time: formatMinute(PATIENT_MESSAGE_LOCALE, appointment.date, appointment.startMinute),
+            duration: formatDuration(appointment.durationMinutes, {
+              hour: (count) => (count === 1 ? 'ساعة' : `${count} ساعات`),
+              minute: (count) => `${count} دقيقة`,
+            }),
+          })),
+        ),
+        // Unused by this template — the list carries the dates — but the
+        // variable type is shared. Supplying them keeps the renderer's
+        // "missing value" check meaningful.
+        date: '-',
+        time: '-',
+      },
+    },
+    {
+      clinicId,
+      clientId: target.clientId,
+      // The first of the course, so the message links to a real appointment:
+      // the column is a foreign key and holds one id, not a list. The whole set
+      // is in the dedupe key.
+      appointmentId: upcoming[0]!.appointmentId,
+      kind: 'appointment_confirmation',
+      phone: target.phone,
+      dedupeKey: seriesDedupeKey(upcoming.map((appointment) => appointment.appointmentId)),
+    },
+    { ...deps, settings },
   );
 }
 

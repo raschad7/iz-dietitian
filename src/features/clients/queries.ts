@@ -1,8 +1,9 @@
 import { and, asc, count, desc, eq, ilike, isNotNull, isNull, sql, type AnyColumn, type SQL } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { clients, type Client } from '@/db/schema';
+import { clientNutritionProfiles, clients, type Client } from '@/db/schema';
 
+import { DEFAULT_MEAL_SCHEDULE, mealScheduleSchema } from './nutrition';
 import { normalizeForSearch } from './search';
 import {
   CLIENT_STATUSES,
@@ -10,6 +11,7 @@ import {
   type ClientStatus,
   type ListClientsInput,
 } from './schema';
+import { type ClientIntakeValues, type MealSlotValues } from './types';
 
 /**
  * Reads for the clients feature. Imports nothing from Next.js so that the tests
@@ -214,4 +216,101 @@ export async function getClient(clinicId: string, id: string): Promise<ClientDet
   if (!row) return null;
 
   return { ...row, hasPortalAccess: row.userId !== null };
+}
+
+/**
+ * Reads the stored schedule, falling back to the default.
+ *
+ * Validated on read and not only on write: `meal_schedule` is jsonb, so a
+ * hand-edited row or a schema change could otherwise put a malformed slot into
+ * a form and crash the render. A bad value degrades to the default rather than
+ * throwing.
+ */
+function readMealSchedule(value: MealSlotValues[] | null): MealSlotValues[] {
+  if (!value) return DEFAULT_MEAL_SCHEDULE;
+  const parsed = mealScheduleSchema.safeParse(value);
+  return parsed.success ? parsed.data : DEFAULT_MEAL_SCHEDULE;
+}
+
+/**
+ * One client's whole intake, across both tables, for the dialog that writes it.
+ *
+ * A left join and not two reads: the profile row does not exist until the first
+ * save, and a client with no profile is the ordinary case rather than an error.
+ * Everything comes back with the defaults the form would have offered anyway, so
+ * a first-time intake and a fifth edit render through the same code path.
+ *
+ * Null for a client of another clinic — indistinguishable from one that does
+ * not exist, the same rule `getClient` follows.
+ */
+export async function getClientIntake(
+  clinicId: string,
+  id: string,
+): Promise<ClientIntakeValues | null> {
+  const parsed = clientIdSchema.safeParse(id);
+  if (!parsed.success) return null;
+
+  const [row] = await db
+    .select({
+      clientId: clients.id,
+      fullName: clients.fullName,
+      dateOfBirth: clients.dateOfBirth,
+      sex: clients.sex,
+      heightCm: clients.heightCm,
+      goal: clients.goal,
+      activityLevel: clients.activityLevel,
+      allergies: clients.allergies,
+      conditions: clients.conditions,
+      medications: clients.medications,
+      careNote: clients.careNote,
+      medicalNotes: clients.medicalNotes,
+      notes: clients.notes,
+      profileId: clientNutritionProfiles.id,
+      weightKg: clientNutritionProfiles.weightKg,
+      shareWeightWithClient: clientNutritionProfiles.shareWeightWithClient,
+      dailyKcalTarget: clientNutritionProfiles.dailyKcalTarget,
+      proteinTargetGrams: clientNutritionProfiles.proteinTargetGrams,
+      allergenTags: clientNutritionProfiles.allergenTags,
+      customAllergens: clientNutritionProfiles.customAllergens,
+      preferences: clientNutritionProfiles.preferences,
+      dislikes: clientNutritionProfiles.dislikes,
+      permanentInstructions: clientNutritionProfiles.permanentInstructions,
+      mealSchedule: clientNutritionProfiles.mealSchedule,
+    })
+    .from(clients)
+    .leftJoin(clientNutritionProfiles, eq(clientNutritionProfiles.clientId, clients.id))
+    .where(and(eq(clients.id, parsed.data), eq(clients.clinicId, clinicId)))
+    .limit(1);
+
+  if (!row) return null;
+
+  return {
+    clientId: row.clientId,
+    fullName: row.fullName,
+    dateOfBirth: row.dateOfBirth,
+    sex: row.sex,
+    heightCm: row.heightCm,
+    goal: row.goal,
+    activityLevel: row.activityLevel,
+    allergies: row.allergies,
+    conditions: row.conditions,
+    medications: row.medications,
+    careNote: row.careNote,
+    medicalNotes: row.medicalNotes,
+    notes: row.notes,
+    weightKg: row.weightKg,
+    // Not null-coalesced to `false` for show: the column is `not null`, and the
+    // left join is what can make it absent. Absent means there is no profile
+    // yet, and no profile means not shared.
+    shareWeightWithClient: row.shareWeightWithClient ?? false,
+    dailyKcalTarget: row.dailyKcalTarget,
+    proteinTargetGrams: row.proteinTargetGrams,
+    allergenTags: row.allergenTags ?? [],
+    customAllergens: row.customAllergens ?? [],
+    preferences: row.preferences,
+    dislikes: row.dislikes,
+    permanentInstructions: row.permanentInstructions,
+    mealSchedule: readMealSchedule(row.mealSchedule),
+    hasProfile: row.profileId !== null,
+  };
 }

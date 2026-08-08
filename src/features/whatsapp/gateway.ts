@@ -314,7 +314,9 @@ export function createHttpGateway(config: WhatsappConfig): WhatsappGateway {
       const result = await request(
         `${sessionPath(sessionId)}/contacts/check/${encodeURIComponent(phone)}`,
         numberCheckSchema,
-        { nullOn: [400, 404], timeoutMs: 10_000 },
+        // A missing session is an infrastructure failure, not evidence that the
+        // recipient is absent from WhatsApp, so let a 404 surface to the caller.
+        { nullOn: [400], timeoutMs: 10_000 },
       );
 
       return result?.exists ?? false;

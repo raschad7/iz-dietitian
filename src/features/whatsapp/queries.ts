@@ -1,4 +1,4 @@
-import { and, asc, between, desc, eq, isNotNull, sql } from 'drizzle-orm';
+import { and, asc, between, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm';
 
 import { db } from '@/db';
 import {
@@ -12,7 +12,12 @@ import {
 import { type Locale } from '@/i18n/routing';
 
 import { phoneMatchKey } from './phone';
-import { type MessageLogEntry, type ReminderCandidate, type WhatsappTarget } from './types';
+import {
+  type AppointmentSeriesTarget,
+  type MessageLogEntry,
+  type ReminderCandidate,
+  type WhatsappTarget,
+} from './types';
 
 /**
  * Reads for the WhatsApp feature. No Next.js imports, so `bun test` and the
@@ -145,6 +150,64 @@ export async function getAppointmentTarget(
   if (!row?.phone) return null;
 
   return { ...row, phone: row.phone, preferredLocale: row.preferredLocale as Locale };
+}
+
+/**
+ * Several appointments of one client, shaped for a single message about all of
+ * them.
+ *
+ * One query rather than a loop over {@link getAppointmentTarget}: a month of
+ * weekly visits is four round-trips that way, and every row would repeat the
+ * same client and clinic. Rows are read in date order so the list a patient
+ * reads runs forwards in time.
+ *
+ * Scoped by clinic, like every read here, and returns `null` if the ids resolve
+ * to nothing, to more than one client, or to a client with no phone number —
+ * the last two are not errors, they are simply nothing to send.
+ */
+export async function getAppointmentSeriesTarget(
+  clinicId: string,
+  appointmentIds: readonly string[],
+): Promise<AppointmentSeriesTarget | null> {
+  if (appointmentIds.length === 0) return null;
+
+  const rows = await db
+    .select({
+      appointmentId: appointments.id,
+      clientId: clients.id,
+      date: appointments.date,
+      startMinute: appointments.startMinute,
+      durationMinutes: appointments.durationMinutes,
+      clientName: clients.fullName,
+      phone: clients.phone,
+      clinicName: clinics.name,
+    })
+    .from(appointments)
+    .innerJoin(clients, eq(clients.id, appointments.clientId))
+    .innerJoin(clinics, eq(clinics.id, appointments.clinicId))
+    .where(and(inArray(appointments.id, [...appointmentIds]), eq(appointments.clinicId, clinicId)))
+    .orderBy(asc(appointments.date), asc(appointments.startMinute));
+
+  const [first] = rows;
+  if (!first?.phone) return null;
+
+  // One message can only be addressed to one person. A mixed set means the
+  // caller has a bug, and sending one client another's schedule would be a
+  // considerably worse outcome than sending nothing.
+  if (rows.some((row) => row.clientId !== first.clientId)) return null;
+
+  return {
+    clientId: first.clientId,
+    clientName: first.clientName,
+    phone: first.phone,
+    clinicName: first.clinicName,
+    appointments: rows.map((row) => ({
+      appointmentId: row.appointmentId,
+      date: row.date,
+      startMinute: row.startMinute,
+      durationMinutes: row.durationMinutes,
+    })),
+  };
 }
 
 /** One client, shaped for a hand-typed or credential message. */

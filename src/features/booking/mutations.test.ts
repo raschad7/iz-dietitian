@@ -13,9 +13,11 @@ import {
   createClientAndBook,
   deleteAppointment,
   ensurePractitioner,
+  repeatWeekly,
   updateAppointment,
   type BookingContext,
 } from './mutations';
+import { weeklyRepeatDates } from './repeat';
 
 /**
  * The server-side half of the rules.
@@ -595,5 +597,77 @@ describe('createClientAndBook', () => {
     const [practitioner] = await db.select().from(practitioners).where(eq(practitioners.id, row!.practitionerId));
 
     expect(practitioner?.clinicId).toBe(context.clinicId);
+  });
+});
+
+/**
+ * The offer made straight after a booking is saved.
+ *
+ * The point of these is the best-effort contract: a week the calendar refuses
+ * is skipped and counted, not allowed to take the rest of the month down with
+ * it. Everything about *whether* a given week is bookable is already proven
+ * above — these prove only what the repeat does with the answer.
+ */
+describe('repeatWeekly', () => {
+  /** A booking plus how many weekly appointments to add after it. */
+  function repeating(weeks: number, overrides = {}) {
+    return { ...booking(overrides), weeks };
+  }
+
+  test('books one appointment a week for the span asked for', async () => {
+    const result = await repeatWeekly(context, repeating(3));
+
+    expect(result).toEqual({ ok: true, data: { ids: expect.any(Array), created: 3, skipped: 0 } });
+
+    const rows = await db.select().from(appointments).where(eq(appointments.clientId, clientId));
+
+    expect(rows.map((row) => row.date).sort()).toEqual([7, 14, 21].map((days) => addDays(WEDNESDAY, days)));
+    // Same hour, same length — a repeat is the same appointment a week later.
+    expect(rows.every((row) => row.startMinute === 600 && row.durationMinutes === 30)).toBe(true);
+  });
+
+  test('one week is the single appointment after this one, not none', async () => {
+    const result = await repeatWeekly(context, repeating(1));
+
+    expect(result.ok && result.data.created).toBe(1);
+
+    const rows = await db.select().from(appointments).where(eq(appointments.clientId, clientId));
+    expect(rows.map((row) => row.date)).toEqual([addDays(WEDNESDAY, 7)]);
+  });
+
+  test('the dates written are the ones the dialog previewed', async () => {
+    await repeatWeekly(context, repeating(13));
+
+    const rows = await db.select().from(appointments).where(eq(appointments.clientId, clientId));
+    // Same function the dialog counts with, so a preview cannot promise three
+    // months the server then declines to write.
+    expect(rows.map((row) => row.date).sort()).toEqual(weeklyRepeatDates(WEDNESDAY, 13));
+  });
+
+  test('skips a week whose slot is taken and reports how many', async () => {
+    const other = await createTestClient(context.clinicId, 'سارة عبد الله');
+    await createAppointment(context, booking({ clientId: other, date: addDays(WEDNESDAY, 14) }));
+
+    const result = await repeatWeekly(context, repeating(3));
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    expect(result.data).toEqual({ ids: expect.any(Array), created: 2, skipped: 1 });
+
+    // The other two weeks still went in — the refused one is not contagious.
+    const rows = await db.select().from(appointments).where(eq(appointments.clientId, clientId));
+    expect(rows.map((row) => row.date).sort()).toEqual([addDays(WEDNESDAY, 7), addDays(WEDNESDAY, 21)]);
+  });
+
+  test('never books another clinic\'s client, however many weeks are asked for', async () => {
+    const otherClinic = await createTestClinic('Other Clinic');
+    const foreign = await createTestClient(otherClinic, 'مريم سالم');
+
+    expect(await repeatWeekly(context, repeating(26, { clientId: foreign }))).toEqual({
+      ok: false,
+      error: 'errors.notFound',
+    });
+    expect(await countAppointments()).toBe(0);
   });
 });

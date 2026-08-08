@@ -57,7 +57,6 @@ export function ClientFormTrigger({
   const router = useRouter();
 
   const [open, setOpen] = useState(false);
-  const [expanded, setExpanded] = useState(false);
   const [client, setClient] = useState<ClientFormValues | null>(null);
   const [loading, startLoading] = useTransition();
 
@@ -84,9 +83,7 @@ export function ClientFormTrigger({
 
   const openCard = () => {
     if (!clientId) {
-      // A new record starts from the four core fields, every time.
       setClient(null);
-      setExpanded(false);
       setOpen(true);
       return;
     }
@@ -106,12 +103,6 @@ export function ClientFormTrigger({
       }
 
       setClient(values);
-      /*
-       * An existing record opens on whatever it already holds. Collapsing a
-       * goal, a height and three lines of medical notes out of sight would
-       * read as the app having lost them.
-       */
-      setExpanded(DETAIL_FIELDS.some((field) => values[field] !== null && values[field] !== ''));
       setOpen(true);
     });
   };
@@ -145,12 +136,11 @@ export function ClientFormTrigger({
                 // `open:` and not a bare `flex`: a `display` utility on a
                 // <dialog> outranks the UA rule that hides it while closed.
                 'open:flex open:flex-col max-h-[90dvh] overflow-hidden',
-                'transition-[width] duration-200 ease-[cubic-bezier(.2,.6,.2,1)]',
-                // The disclosure grows the card in both directions — the extra
-                // fields need the height, and the second column needs the width.
-                expanded
-                  ? 'sm:w-[min(50rem,calc(100vw-2rem))]'
-                  : 'sm:w-[min(30rem,calc(100vw-2rem))]',
+                // One width, because there is one set of fields. The card used
+                // to animate between 30rem and 50rem as its disclosure opened;
+                // the disclosure is gone, and a fixed width is one fewer thing
+                // moving under the pointer.
+                'sm:w-[min(30rem,calc(100vw-2rem))]',
               )}
             >
               {/*
@@ -168,8 +158,6 @@ export function ClientFormTrigger({
               <ClientForm
                 locale={locale}
                 client={client ?? undefined}
-                expanded={expanded}
-                onExpandedChange={setExpanded}
                 onCancel={close}
                 onSaved={close}
               />
@@ -180,18 +168,3 @@ export function ClientFormTrigger({
     </>
   );
 }
-
-/**
- * What "this record has more to it" means when deciding whether to open the
- * disclosure. It is the hidden half of the card minus `preferredLocale`, which
- * every record carries — counting it would expand every edit, every time.
- */
-const DETAIL_FIELDS = [
-  'sex',
-  'heightCm',
-  'goal',
-  'activityLevel',
-  'medicalNotes',
-  'allergies',
-  'notes',
-] as const satisfies ReadonlyArray<keyof ClientFormValues>;
