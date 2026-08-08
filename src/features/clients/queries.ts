@@ -262,12 +262,10 @@ export async function getClientIntake(
       allergies: clients.allergies,
       conditions: clients.conditions,
       medications: clients.medications,
-      careNote: clients.careNote,
       medicalNotes: clients.medicalNotes,
       notes: clients.notes,
       profileId: clientNutritionProfiles.id,
       weightKg: clientNutritionProfiles.weightKg,
-      shareWeightWithClient: clientNutritionProfiles.shareWeightWithClient,
       dailyKcalTarget: clientNutritionProfiles.dailyKcalTarget,
       proteinTargetGrams: clientNutritionProfiles.proteinTargetGrams,
       allergenTags: clientNutritionProfiles.allergenTags,
@@ -295,14 +293,9 @@ export async function getClientIntake(
     allergies: row.allergies,
     conditions: row.conditions,
     medications: row.medications,
-    careNote: row.careNote,
     medicalNotes: row.medicalNotes,
     notes: row.notes,
     weightKg: row.weightKg,
-    // Not null-coalesced to `false` for show: the column is `not null`, and the
-    // left join is what can make it absent. Absent means there is no profile
-    // yet, and no profile means not shared.
-    shareWeightWithClient: row.shareWeightWithClient ?? false,
     dailyKcalTarget: row.dailyKcalTarget,
     proteinTargetGrams: row.proteinTargetGrams,
     allergenTags: row.allergenTags ?? [],

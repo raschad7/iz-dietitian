@@ -189,7 +189,6 @@ describe('saveIntake', () => {
   const base = {
     allergenTags: [],
     customAllergens: [],
-    shareWeightWithClient: false,
     mealSchedule: DEFAULT_MEAL_SCHEDULE,
   };
 
@@ -253,12 +252,30 @@ describe('saveIntake', () => {
     expect((await readProfile(id))?.weightKg).toBeNull();
   });
 
-  test('defaults the weight to hidden from the client', async () => {
+  /**
+   * The columns the removed portal section used to write.
+   *
+   * `saveIntake` no longer names either one, and a column left out of an UPDATE
+   * keeps its value — which is the whole reason the removal did not come with a
+   * migration. A later change that "tidies up" by adding them back to the write
+   * with a null default would silently erase every care note in the database on
+   * the next save of an unrelated field, and nothing else would catch it.
+   */
+  test('leaves care_note and share_weight_with_client exactly as it found them', async () => {
     const { id } = await createClient(clinicId, { fullName: 'سارة', preferredLocale: 'ar' });
 
     await saveIntake(clinicId, { ...base, clientId: id, weightKg: 74 });
 
-    expect((await readProfile(id))?.shareWeightWithClient).toBe(false);
+    await db.update(clients).set({ careNote: 'تعليمات سابقة' }).where(eq(clients.id, id));
+    await db
+      .update(clientNutritionProfiles)
+      .set({ shareWeightWithClient: true })
+      .where(eq(clientNutritionProfiles.clientId, id));
+
+    await saveIntake(clinicId, { ...base, clientId: id, weightKg: 75, heightCm: 165 });
+
+    expect((await readClient(id))?.careNote).toBe('تعليمات سابقة');
+    expect((await readProfile(id))?.shareWeightWithClient).toBe(true);
   });
 
   test('refuses a client belonging to another clinic, and writes nothing', async () => {

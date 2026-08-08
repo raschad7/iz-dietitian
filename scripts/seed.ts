@@ -41,7 +41,6 @@ type SeedClient = {
 
 /** The fields every intake carries, so each seed row states only what differs. */
 const BASE_INTAKE = {
-  shareWeightWithClient: false,
   allergenTags: [],
   customAllergens: [],
   mealSchedule: DEFAULT_MEAL_SCHEDULE,
@@ -54,7 +53,7 @@ const SEED_CLIENTS: SeedClient[] = [
   },
   {
     client: { fullName: 'سارة عبد الله', phone: '0598222333', email: 'sara@example.ps', preferredLocale: 'ar', dateOfBirth: '1994-11-03', sex: 'female' },
-    intake: { ...BASE_INTAKE, heightCm: 165, goal: 'maintenance', activityLevel: 'moderate', weightKg: 61, shareWeightWithClient: true },
+    intake: { ...BASE_INTAKE, heightCm: 165, goal: 'maintenance', activityLevel: 'moderate', weightKg: 61 },
   },
   {
     client: { fullName: 'إبراهيم نصّار', phone: '0597444555', preferredLocale: 'ar', dateOfBirth: '1972-01-20', sex: 'male' },

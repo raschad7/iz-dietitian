@@ -28,6 +28,13 @@ import { UNVERIFIED_ACCOUNT_TTL_SECONDS } from '@/lib/auth-constants';
  * an unscoped sweep would delete every portal account roughly a day after it was
  * created, and the dietitian would find the access they granted had evaporated.
  *
+ * ONLY SAFE TO RUN WHILE THE VERIFICATION GATE IS ON. Its whole premise is that
+ * an account still unverified after a day is abandoned, which holds only when
+ * something asked it to verify. `REQUIRE_EMAIL_VERIFICATION` in `src/lib/auth.ts`
+ * is off at the moment, so every account is unverified by design and this would
+ * delete live practitioners — the sole caller, `signUpStaff`, is gated on that
+ * constant. Any new caller must be too.
+ *
  * Imports nothing from Next.js so `bun test` can drive it directly.
  */
 export async function purgeUnverifiedAccounts(): Promise<number> {

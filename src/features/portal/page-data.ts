@@ -24,7 +24,6 @@ import {
   getOpenClientRequest,
   getPortalAppointment,
   getPortalClinic,
-  getSharedWeight,
   listClinicBookings,
   listMealCompletions,
   listPlanAdherence,
@@ -342,22 +341,20 @@ export function pickPlanDay(
 /**
  * The client's record as their own profile screen shows it.
  *
- * Four reads in one round, and they answer to three different owners: the
- * dietitian (the weight, and the record already carried on `context.profile`),
- * the clinic (its details and who is assigned), and the client themselves (the
- * correction they have filed, if any). Keeping that separation visible in the
- * return shape is what stops a later change quietly making a clinic-owned
- * field look editable.
+ * Three reads in one round, and they answer to three different owners: the
+ * dietitian (the record already carried on `context.profile`), the clinic (its
+ * details and who is assigned), and the client themselves (the correction they
+ * have filed, if any). Keeping that separation visible in the return shape is
+ * what stops a later change quietly making a clinic-owned field look editable.
  */
 export async function loadProfilePage(context: PortalContext): Promise<ProfilePageData> {
-  const [weightKg, clinic, practitioner, openUpdateRequest] = await Promise.all([
-    getSharedWeight(context.id),
+  const [clinic, practitioner, openUpdateRequest] = await Promise.all([
     getPortalClinic(context.clinicId),
     getAssignedPractitioner(context.clinicId, context.assignedDietitianId),
     getOpenClientRequest(context.id, 'data_update'),
   ]);
 
-  return { profile: context.profile, weightKg, clinic, practitioner, openUpdateRequest };
+  return { profile: context.profile, clinic, practitioner, openUpdateRequest };
 }
 
 /**

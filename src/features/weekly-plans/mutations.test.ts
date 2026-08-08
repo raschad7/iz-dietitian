@@ -305,7 +305,6 @@ describe('listPlannableClients', () => {
       clientId,
       allergenTags: [],
       customAllergens: [],
-      shareWeightWithClient: false,
       mealSchedule: DEFAULT_MEAL_SCHEDULE,
     });
 

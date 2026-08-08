@@ -165,7 +165,6 @@
     "search": {
       "placeholder": "ابحث عن متابع"
     },
-    "scrollDown": "توجد مواعيد أخرى في الأسفل",
     "duration": {
       "hours": "{count, number, integer} ساعة",
       "minutes": "{count, number, integer} دقيقة"
@@ -407,6 +406,23 @@
     "backToList": "العودة إلى قائمة المتابعين",
     "notProvided": "غير مُدخل",
     "yearsOld": "{count, number, integer} سنة",
+    "openPlanner": "لوحة الخطط",
+    "copy": {
+      "copied": "تم النسخ",
+      "phone": "نسخ رقم الهاتف",
+      "email": "نسخ البريد الإلكتروني",
+      "username": "نسخ اسم المستخدم",
+      "password": "نسخ كلمة المرور"
+    },
+    "nextVisit": "الزيارة القادمة",
+    "noUpcomingVisit": "لا يوجد موعد",
+    "lastVisit": "آخر زيارة",
+    "noPreviousVisit": "لا توجد زيارات سابقة",
+    "contactActions": {
+      "whatsapp": "مراسلة عبر واتساب",
+      "call": "اتصال",
+      "emailLink": "إرسال بريد"
+    },
     "tabs": {
       "label": "أقسام المتابع",
       "info": "بيانات المتابع",
@@ -417,7 +433,8 @@
     },
     "sections": {
       "contact": "بيانات التواصل",
-      "demographics": "بيانات أساسية"
+      "demographics": "بيانات أساسية",
+      "privateNotes": "ملاحظات خاصة بالعيادة"
     },
     "fields": {
       "fullName": "الاسم الكامل",
@@ -440,7 +457,6 @@
       "actions": "إجراءات",
       "conditions": "الحالات الصحية",
       "medications": "الأدوية والمكمّلات",
-      "careNote": "ملاحظة للمتابِعة",
       "weightKg": "الوزن (كغ)",
       "dailyKcalTarget": "السعرات اليومية",
       "proteinTargetGrams": "البروتين (غ)",
@@ -478,7 +494,9 @@
       "archive": "أرشفة",
       "restore": "إلغاء الأرشفة",
       "delete": "حذف نهائي",
-      "confirmDelete": "سيُحذف سجل «{name}» نهائيًا مع حسابه في البوابة، ولا يمكن التراجع. هل أنت متأكد؟"
+      "more": "إجراءات أخرى",
+      "confirmDeleteTitle": "حذف السجل نهائيًا؟",
+      "confirmDelete": "سيُحذف سجل «{name}» نهائيًا مع حسابه في البوابة، ولا يمكن التراجع."
     },
     "clearFilters": "مسح الفلاتر",
     "pagination": {
@@ -487,13 +505,16 @@
       "position": "صفحة {page, number, integer} من {pageCount, number, integer}"
     },
     "portal": {
-      "title": "الدخول إلى البوابة",
-      "none": "لا يملك هذا المتابع حسابًا في بوابة المتابعين.",
-      "granted": "يستطيع هذا المتابع الدخول إلى البوابة.",
+      "title": "الحساب",
+      "stateActive": "مُفعّل",
+      "stateNone": "غير مُفعّل",
       "username": "اسم المستخدم",
+      "usernameHint": "يستخدمه المتابع للدخول. حروف لاتينية وأرقام.",
       "issue": "إنشاء بيانات الدخول",
       "reissue": "إصدار كلمة مرور جديدة",
-      "confirmReissue": "سيتم إنهاء جلسات المتابع الحالية. هل تريد المتابعة؟",
+      "confirmReissueTitle": "إصدار كلمة مرور جديدة؟",
+      "confirmReissue": "ستُنهى جلسات المتابع الحالية، ولن تعمل كلمة المرور القديمة بعدها.",
+      "confirmRevokeTitle": "سحب صلاحية الدخول؟",
       "revoke": "سحب صلاحية الدخول",
       "revoked": "تم سحب صلاحية الدخول.",
       "confirmRevoke": "سيفقد المتابع إمكانية الدخول إلى البوابة فورًا. هل أنت متأكد؟",
@@ -505,7 +526,8 @@
         "sent": "تم إرسال البيانات عبر واتساب.",
         "skipped": "لم تُرسل عبر واتساب — تحقّق من الرقم ومن حالة الاتصال.",
         "failed": "تعذّر الإرسال عبر واتساب. سلّم البيانات يدويًا."
-      }
+      },
+      "state": "الدخول {state}"
     },
     "errors": {
       "invalid": "تحقّق من الحقول المميّزة بالأحمر.",
@@ -527,21 +549,14 @@
         "clinical": "الملاحظات الطبية",
         "planning": "ما تلتزم به الخطة",
         "private": "ملاحظات خاصة",
-        "portal": "ما تراه المتابِعة",
         "targets": "الأهداف",
         "schedule": "جدول الوجبات"
       },
       "allergenLegend": "أشّري كل مادة يجب استبعادها",
       "allergyDetailLabel": "تفاصيل الحساسية",
-      "privateBadge": "خاص بالعيادة",
       "fromFormula": "محسوب",
       "suggested": "مقترح",
       "noAllergens": "لا توجد مواد مستبعدة — الكتالوج غير مُصفّى.",
-      "shareWeight": "إظهار الوزن للمتابِعة",
-      "shareWeightHint": "معطّل افتراضياً. عند التعطيل لا تظهر البطاقة أصلاً بدل أن تظهر فارغة.",
-      "shared": "يظهر لها",
-      "notShared": "لا يظهر لها",
-      "careNoteHint": "تُعرض للمتابِعة كما تُكتب هنا.",
       "removeSlotOf": "حذف وجبة {label}",
       "missingFields": "لإتمام التوليد أضف: {fields}",
       "kcalValue": "{value} kcal",
@@ -559,6 +574,12 @@
       "unsetCount": "{count} حقول غير مُدخلة",
       "unsetOne": "حقل واحد غير مُدخل",
       "complete": "كل الحقول مُدخلة",
+      "completeness": "اكتمال السجل",
+      "filledOf": "{filled} من {total} حقلاً مُدخلة",
+      "gapsHeading": "{count, plural, =0 {كل الحقول مُدخلة} one {حقل واحد بلا بيانات} two {حقلان بلا بيانات} few {# حقول بلا بيانات} many {# حقلاً بلا بيانات} other {# حقل بلا بيانات}}",
+      "kcalMismatch": "الهدف اليدوي بعيد عن المحسوب",
+      "kcalMismatchDetail": "أُدخل {manual} kcal يدويًا، بينما القياسات والهدف يعطيان {computed} kcal. راجعي الرقم أو احذفيه ليُحسب تلقائيًا.",
+      "bmiValueText": "{value} — {category}",
       "bmiLabel": "كتلة الجسم {category}",
       "noSchedule": "لا يوجد جدول وجبات",
       "hour": "الساعة",
@@ -566,7 +587,15 @@
       "customAllergenLegend": "حساسيات أخرى (لا تُصفّي الكتالوج)",
       "customAllergenPlaceholder": "اسم المادة",
       "addAllergen": "إضافة حساسية",
-      "removeAllergen": "حذف {name}"
+      "removeAllergen": "حذف {name}",
+      "goalLine": "الهدف",
+      "activityLine": "النشاط",
+      "completeShort": "مكتمل",
+      "editRecord": "تعديل السجل",
+      "scheduleSummary": "{count, plural, one {وجبة واحدة} two {وجبتان} few {# وجبات} many {# وجبة} other {# وجبة}} على {kcal} سعرة",
+      "gapsPrompt": "اضغط أيًّا منها لإكماله",
+      "allergyLine": "الحساسية",
+      "privateBadge": "خاص بالعيادة"
     },
     "allergens": {
       "nuts": "مكسرات",
@@ -586,8 +615,16 @@
     "units": {
       "cm": "سم",
       "kg": "كغ",
-      "kcal": "kcal",
-      "g": "غ"
+      "kcal": "سعرة",
+      "g": "غ",
+      "years": "سنة"
+    },
+    "trail": {
+      "title": "المسار",
+      "bookVisit": "حجز",
+      "createPlan": "إنشاء",
+      "currentPlan": "الخطة الحالية",
+      "noPlan": "لا توجد خطة بعد"
     }
   },
   "portal": {
@@ -724,7 +761,6 @@
         "conditions": "الحالات الصحية",
         "allergies": "الحساسية الغذائية",
         "medications": "الأدوية والمكمّلات",
-        "careNote": "ملاحظات مهمة للأخصائية",
         "clinicName": "اسم العيادة",
         "practitioner": "الأخصائية",
         "specialty": "التخصص",
@@ -1084,6 +1120,21 @@
     "noPlanYet": "لم يُخطط أسبوع لهذا العميل بعد",
     "noPlanHint": "أنشئ الأسبوع الأول عندما تكون جاهزاً. يبقى ملف العميل وكتالوج الأطباق والخطط السابقة متاحة في اللوحة الجانبية.",
     "current": "الخطة الحالية",
+    "currentWeekOf": "الخطة الحالية · أسبوع {date}",
+    "openBoard": "فتح اللوحة",
+    "openThisWeek": "فتح هذا الأسبوع",
+    "mealsFilled": "الوجبات المُدخلة",
+    "ofWeek": "من أصل الأسبوع",
+    "kcalTarget": "هدف السعرات",
+    "snapshotNote": "محفوظ مع الخطة",
+    "lastEdited": "آخر تعديل",
+    "columns": {
+      "week": "الأسبوع",
+      "status": "الحالة",
+      "meals": "الوجبات",
+      "target": "السعرات",
+      "updated": "آخر تعديل"
+    },
     "history": "الخطط السابقة",
     "weekOf": "أسبوع {date}",
     "generatedBy": "النموذج المستخدم",

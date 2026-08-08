@@ -1,4 +1,4 @@
-import { and, asc, between, eq } from 'drizzle-orm';
+import { and, asc, between, desc, eq, gte, lt } from 'drizzle-orm';
 
 import { db } from '@/db';
 import { appointments, clients, clinicWorkingHours } from '@/db/schema';
@@ -71,6 +71,71 @@ export async function listAppointments(
     .where(and(...conditions))
     // Stable order so two appointments in the same column stack predictably.
     .orderBy(asc(appointments.date), asc(appointments.startMinute), asc(appointments.id));
+}
+
+/** One appointment, as a client's record header and Info tab read it. */
+export type ClientVisit = {
+  id: string;
+  date: string;
+  startMinute: number;
+  reason: string | null;
+};
+
+export type ClientVisitSummary = {
+  /** The soonest appointment from `today` onward, inclusive. */
+  next: ClientVisit | null;
+  /** The most recent one strictly before `today`. */
+  last: ClientVisit | null;
+};
+
+/**
+ * The two appointments a client's record actually shows: the next one and the
+ * one before now.
+ *
+ * Two narrow reads rather than loading a client's history and picking the ends
+ * off it in JavaScript — a client seen fortnightly for two years is a hundred
+ * rows to answer a question about two of them, and the index on
+ * `(clinic_id, date)` already orders both.
+ *
+ * `today` is passed in rather than derived here so that a page rendering both
+ * this and a calendar measures them against the same day. Same reason
+ * `loadDashboard` takes its "now" once at the top.
+ *
+ * An appointment *on* today counts as `next`, not `last`: it has a start minute
+ * this query deliberately does not compare against the clock, because a visit
+ * earlier today is still the thing a dietitian is most likely to be asking
+ * about when they open the record.
+ */
+export async function getClientVisitSummary(
+  clinicId: string,
+  clientId: string,
+  today: string,
+): Promise<ClientVisitSummary> {
+  const columns = {
+    id: appointments.id,
+    date: appointments.date,
+    startMinute: appointments.startMinute,
+    reason: appointments.reason,
+  };
+
+  const scope = and(eq(appointments.clinicId, clinicId), eq(appointments.clientId, clientId));
+
+  const [next, last] = await Promise.all([
+    db
+      .select(columns)
+      .from(appointments)
+      .where(and(scope, gte(appointments.date, today)))
+      .orderBy(asc(appointments.date), asc(appointments.startMinute))
+      .limit(1),
+    db
+      .select(columns)
+      .from(appointments)
+      .where(and(scope, lt(appointments.date, today)))
+      .orderBy(desc(appointments.date), desc(appointments.startMinute))
+      .limit(1),
+  ]);
+
+  return { next: next[0] ?? null, last: last[0] ?? null };
 }
 
 /**
