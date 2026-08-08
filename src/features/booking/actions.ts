@@ -7,6 +7,7 @@ import {
   notifyAppointmentBooked,
   notifyAppointmentCancelled,
   notifyAppointmentRescheduled,
+  notifyAppointmentSeriesBooked,
 } from '@/features/whatsapp/notify';
 import { requireStaffClinic } from '@/lib/session';
 import { type Locale } from '@/i18n/routing';
@@ -15,6 +16,7 @@ import {
   createAppointment,
   createClientAndBook,
   deleteAppointment,
+  repeatWeekly,
   updateAppointment,
   type BookingContext,
 } from './mutations';
@@ -23,9 +25,15 @@ import {
   createClientAndBookSchema,
   deleteAppointmentSchema,
   localeSchema,
+  repeatWeeklySchema,
   updateAppointmentSchema,
 } from './schema';
-import { type ActionResult, type CreatedAppointment, type DeletedAppointment } from './types';
+import {
+  type ActionResult,
+  type CreatedAppointment,
+  type DeletedAppointment,
+  type WeeklyRepeatSummary,
+} from './types';
 
 /**
  * The booking feature's mutations.
@@ -85,6 +93,23 @@ function notifyBooked(clinicId: string, appointmentId: string): void {
       await notifyAppointmentBooked(clinicId, appointmentId);
     } catch (error) {
       console.error('[booking] WhatsApp confirmation failed', error);
+    }
+  });
+}
+
+/**
+ * Tells the client about a whole course of appointments at once.
+ *
+ * The repeat's counterpart to {@link notifyBooked}, and deliberately not a loop
+ * over it: a month of weekly visits is one schedule, and it arrives as one
+ * message. Same `after()` reasoning, same indifference to failure.
+ */
+function notifySeriesBooked(clinicId: string, appointmentIds: string[]): void {
+  after(async () => {
+    try {
+      await notifyAppointmentSeriesBooked(clinicId, appointmentIds);
+    } catch (error) {
+      console.error('[booking] WhatsApp series confirmation failed', error);
     }
   });
 }
@@ -197,6 +222,41 @@ export async function deleteAppointmentAction(rawLocale: string, input: unknown)
   notifyCancelled(context.clinicId, result.data);
 
   return { ok: true, data: undefined };
+}
+
+/**
+ * The offer made straight after a booking is saved: the same slot, every week,
+ * for the rest of the month.
+ *
+ * A separate action rather than a flag on the create, because it answers a
+ * separate question. The first booking is already written and already confirmed
+ * to the patient by the time this is called, so a week the calendar refuses
+ * cannot take the appointment down with it — see `repeatWeekly`, which skips
+ * those weeks and counts them.
+ *
+ * Each repeat is a real appointment, so each gets its own confirmation message,
+ * on the same terms as any other booking.
+ */
+export async function repeatWeeklyAction(
+  rawLocale: string,
+  input: unknown,
+): Promise<ActionResult<WeeklyRepeatSummary>> {
+  const locale = localeSchema.parse(rawLocale);
+  const context = await bookingContext(locale);
+
+  const parsed = repeatWeeklySchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: 'errors.invalid' };
+
+  const result = await repeatWeekly(context, parsed.data);
+
+  if (result.ok && result.data.created > 0) {
+    revalidateCalendar(locale);
+    // One message listing the whole course, not one per appointment — see
+    // `notifyAppointmentSeriesBooked`.
+    notifySeriesBooked(context.clinicId, result.data.ids);
+  }
+
+  return result;
 }
 
 /**
