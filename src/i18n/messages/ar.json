@@ -759,21 +759,15 @@
       }
     },
     "header": {
-      "menu": "القائمة",
-      "profile": "الملف الشخصي",
       "notifications": "الإشعارات",
       "notificationsWaiting": "الإشعارات، {count, number, integer} طلب بانتظار الردّ",
       "greeting": {
         "morning": "صباح الخير",
         "afternoon": "مساء الخير",
         "evening": "مساء الخير"
-      },
-      "closeMenu": "إغلاق القائمة"
+      }
     },
     "menu": {
-      "viewProfile": "عرض الملف الشخصي",
-      "personalInfo": "معلوماتي الشخصية",
-      "notifications": "الإشعارات",
       "settings": "الإعدادات"
     },
     "notifications": {

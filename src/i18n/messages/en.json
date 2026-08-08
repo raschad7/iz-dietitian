@@ -759,21 +759,15 @@
       }
     },
     "header": {
-      "menu": "Menu",
-      "profile": "Your profile",
       "notifications": "Notifications",
       "notificationsWaiting": "Notifications, {count, number, integer} request awaiting a reply",
       "greeting": {
         "morning": "Good morning",
         "afternoon": "Good afternoon",
         "evening": "Good evening"
-      },
-      "closeMenu": "Close menu"
+      }
     },
     "menu": {
-      "viewProfile": "View profile",
-      "personalInfo": "My information",
-      "notifications": "Notifications",
       "settings": "Settings"
     },
     "notifications": {
