@@ -114,19 +114,10 @@ export function ClientNutrition({
     Boolean(intake.conditions) ||
     Boolean(intake.medications);
 
-  /*
-   * `careNote` is in here rather than in a section of its own. It used to live
-   * on a 'what the client sees' card alongside the share-weight toggle; that
-   * card is gone, and a note the dietitian writes *for* the client is guidance
-   * that shapes the plan, so it belongs with the rest of the guidance. Leaving
-   * it out entirely would have made it write-only — editable in the dialog and
-   * visible nowhere.
-   */
   const hasPlanningRecord =
     Boolean(intake.permanentInstructions) ||
     Boolean(intake.preferences) ||
-    Boolean(intake.dislikes) ||
-    Boolean(intake.careNote);
+    Boolean(intake.dislikes);
 
   const hasPrivateRecord = Boolean(intake.medicalNotes) || Boolean(intake.notes);
 
@@ -270,13 +261,33 @@ export function ClientNutrition({
               unit={t('units.g')}
             />
           </StatGrid>
+        </CardContent>
+      </Card>
 
-          {/*
-            A bare 27.4 means nothing to most readers; against the named
-            categories it means 'a little over'. See `BmiScale` for why this is
-            no longer a `ComfortBand`.
-          */}
-          {targets.bmi !== null && targets.bmiCategory ? (
+      {/*
+        ⚠ **The scale is a card of its own, not the last row of the one above.**
+
+        Inside the measurements card it was read as a footer to the six figures
+        rather than as a chart — an unlabelled rule under a grid, close enough to
+        the tiles to look like part of the same object, and the only element on
+        that card with no name of its own. It also answers a different question
+        from the tiles: they say what the numbers *are*, this says where this
+        person *falls*, which is the reading a dietitian actually acts on.
+
+        Given its own card it gets a title naming what is plotted, and the gap
+        between the two cards does the separating that a hairline inside one card
+        could not. A bare 27.4 still means nothing to most readers; against the
+        named categories it means 'a little over'. See `BmiScale` for why this is
+        no longer a `ComfortBand`.
+      */}
+      {targets.bmi !== null && targets.bmiCategory ? (
+        <Card>
+          <CardHeader>
+            <CardTitle as="h2" icon="trend" size="sm">
+              {t('intake.bmi')}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
             <BmiScale
               bmi={targets.bmi}
               category={targets.bmiCategory}
@@ -293,9 +304,9 @@ export function ClientNutrition({
                 severely_obese: t('bmiCategories.severely_obese'),
               }}
             />
-          ) : null}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      ) : null}
 
       {/*
         ⚠ **Two independent column stacks, not four cards in one grid.**
@@ -362,7 +373,6 @@ export function ClientNutrition({
                         value: intake.preferences,
                       },
                       { label: t('fields.dislikes'), value: intake.dislikes },
-                      { label: t('fields.careNote'), value: intake.careNote },
                     ]}
                   />
                 </CardContent>

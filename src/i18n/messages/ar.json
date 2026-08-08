@@ -165,7 +165,6 @@
     "search": {
       "placeholder": "ابحث عن متابع"
     },
-    "scrollDown": "توجد مواعيد أخرى في الأسفل",
     "duration": {
       "hours": "{count, number, integer} ساعة",
       "minutes": "{count, number, integer} دقيقة"
@@ -437,7 +436,6 @@
       "actions": "إجراءات",
       "conditions": "الحالات الصحية",
       "medications": "الأدوية والمكمّلات",
-      "careNote": "ملاحظة للمتابِعة",
       "weightKg": "الوزن (كغ)",
       "dailyKcalTarget": "السعرات اليومية",
       "proteinTargetGrams": "البروتين (غ)",
@@ -531,17 +529,13 @@
         "planning": "ما تلتزم به الخطة",
         "private": "ملاحظات خاصة",
         "targets": "الأهداف",
-        "schedule": "جدول الوجبات",
-        "portal": "ما يظهر في البوابة"
+        "schedule": "جدول الوجبات"
       },
       "allergenLegend": "أشّري كل مادة يجب استبعادها",
       "allergyDetailLabel": "تفاصيل الحساسية",
       "fromFormula": "محسوب",
       "suggested": "مقترح",
       "noAllergens": "لا توجد مواد مستبعدة — الكتالوج غير مُصفّى.",
-      "shareWeight": "إظهار الوزن للمتابِعة",
-      "shareWeightHint": "معطّل افتراضياً. عند التعطيل لا تظهر البطاقة أصلاً بدل أن تظهر فارغة.",
-      "careNoteHint": "تُعرض للمتابِعة كما تُكتب هنا.",
       "removeSlotOf": "حذف وجبة {label}",
       "missingFields": "لإتمام التوليد أضف: {fields}",
       "kcalValue": "{value} kcal",
@@ -746,7 +740,6 @@
         "conditions": "الحالات الصحية",
         "allergies": "الحساسية الغذائية",
         "medications": "الأدوية والمكمّلات",
-        "careNote": "ملاحظات مهمة للأخصائية",
         "clinicName": "اسم العيادة",
         "practitioner": "الأخصائية",
         "specialty": "التخصص",

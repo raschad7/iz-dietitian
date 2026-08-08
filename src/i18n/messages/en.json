@@ -165,7 +165,6 @@
     "search": {
       "placeholder": "Search clients"
     },
-    "scrollDown": "More appointments below",
     "duration": {
       "hours": "{count, number, integer} hr",
       "minutes": "{count, number, integer} min"
@@ -437,7 +436,6 @@
       "actions": "Actions",
       "conditions": "Conditions",
       "medications": "Medications and supplements",
-      "careNote": "Care note",
       "weightKg": "Weight (kg)",
       "dailyKcalTarget": "Daily calories",
       "proteinTargetGrams": "Protein (g)",
@@ -531,17 +529,13 @@
         "planning": "What the plan follows",
         "private": "Private notes",
         "targets": "Targets",
-        "schedule": "Meal schedule",
-        "portal": "What the client sees"
+        "schedule": "Meal schedule"
       },
       "allergenLegend": "Tick every allergen to exclude",
       "allergyDetailLabel": "Allergy detail",
       "fromFormula": "Computed",
       "suggested": "Suggested",
       "noAllergens": "No allergens recorded — the catalog is unfiltered.",
-      "shareWeight": "Show her weight in the portal",
-      "shareWeightHint": "Off by default. Off means the card is absent, not blank.",
-      "careNoteHint": "Rendered to the client exactly as written here.",
       "removeSlotOf": "Remove the {label} meal",
       "missingFields": "To generate, add: {fields}",
       "kcalValue": "{value} kcal",
@@ -746,7 +740,6 @@
         "conditions": "Health conditions",
         "allergies": "Food allergies",
         "medications": "Medicines and supplements",
-        "careNote": "Notes from your dietitian",
         "clinicName": "Clinic",
         "practitioner": "Dietitian",
         "specialty": "Specialty",

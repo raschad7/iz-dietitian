@@ -40,7 +40,6 @@ export const INTAKE_GAP_FIELDS = [
   'dislikes',
   'medicalNotes',
   'notes',
-  'careNote',
 ] as const;
 
 export type IntakeGapField = (typeof INTAKE_GAP_FIELDS)[number];

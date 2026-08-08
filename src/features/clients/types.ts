@@ -58,7 +58,6 @@ export type ClientIntakeValues = {
   activityLevel: string | null;
 
   weightKg: number | null;
-  shareWeightWithClient: boolean;
 
   allergenTags: string[];
   /** Typed by hand; recorded and sent to the model, but never a catalog filter. */
@@ -67,7 +66,6 @@ export type ClientIntakeValues = {
 
   conditions: string | null;
   medications: string | null;
-  careNote: string | null;
   medicalNotes: string | null;
   notes: string | null;
 

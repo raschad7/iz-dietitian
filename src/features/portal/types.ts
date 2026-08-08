@@ -64,7 +64,6 @@ export type PortalProfile = {
   allergies: string | null;
   conditions: string | null;
   medications: string | null;
-  careNote: string | null;
   /** When the dietitian last touched the record — the profile screen's "last updated". */
   updatedAt: Date;
 };
@@ -91,16 +90,6 @@ export type PortalPractitioner = {
   name: string;
   specialty: string | null;
 };
-
-/**
- * The client's current weight, only when the dietitian has chosen to share it.
- *
- * A `null` here is indistinguishable from "not recorded" **on purpose**: §11
- * of the design system says hidden means hidden, and a shape that let the UI
- * tell the two apart would let it draw the difference. The screen omits the
- * row either way.
- */
-export type PortalWeight = number | null;
 
 /* ── Account settings: the part of the record the client owns ────────────── */
 
@@ -164,8 +153,6 @@ export type ClientRequestSummary = {
  */
 export type ProfilePageData = {
   profile: PortalProfile;
-  /** Only when the dietitian shares it; see {@link PortalWeight}. */
-  weightKg: PortalWeight;
   /** Null when the clinic row has gone — the section is omitted rather than blanked. */
   clinic: PortalClinic | null;
   practitioner: PortalPractitioner | null;
