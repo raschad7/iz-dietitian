@@ -7,7 +7,12 @@ import noRawHex from './eslint-rules/no-raw-hex.mjs';
 /** @type {import('eslint').Linter.Config[]} */
 const config = [
   {
-    ignores: ['.next/**', 'node_modules/**', 'drizzle/**', 'next-env.d.ts'],
+    /**
+     * `.claude/**` is vendored tooling — agent skills and their helper scripts,
+     * committed so the workflow travels with the repo but not written against
+     * this project's rules. Linting it reports on code we do not maintain.
+     */
+    ignores: ['.next/**', 'node_modules/**', 'drizzle/**', '.claude/**', 'next-env.d.ts'],
   },
 
   ...nextCoreWebVitals,

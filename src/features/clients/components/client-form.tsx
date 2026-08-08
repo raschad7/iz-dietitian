@@ -154,21 +154,32 @@ export function ClientForm({ locale, client, onCancel, onSaved }: ClientFormProp
 
       <DialogBody className="min-h-0 flex-1 gap-0 overflow-y-auto p-4 sm:p-5">
         {/*
-          Name, then email, each its own full-width row — the two facts worth
-          reading at a glance rather than scanning across a column for. Date of
-          birth and phone share the row after them: paired rather than each
-          claiming a row of its own, because together they are still one
-          "when and how to reach this person" thought. Sex sits last, on its
-          own, because its control is a pair of boxes rather than a field and
-          putting it in a column beside one reads as a third option.
+          One field per row, top to bottom.
+
+          Email is absent when creating and present when editing. A walk-in is
+          booked from a name and a number, and asking for an address at the
+          counter is a field that gets skipped or filled with something made up
+          — which is worse than empty, because the register can filter on it.
+          The record can still take one later, from the same card in edit mode,
+          which is where the rest of the intake is filled in anyway.
+
+          Date of birth and phone used to share a row, on the reading that they
+          are one "when and how to reach this person" thought. They are not, and
+          the pairing cost both of them: each is a composite control — the picker
+          is a button that opens a popover, the phone is a country menu welded to
+          a number — and halving the card's width left the picker showing a
+          truncated date and the phone's dialling code crowding the digits beside
+          it. The two widest controls on the card were the two sharing the row.
+
+          Sex stays last and stays full width for the reason it always did: its
+          control is a pair of boxes rather than a field, and in a column beside
+          one it reads as a third option.
         */}
         <div className="grid gap-4">
           {fields.fullName}
-          {fields.email}
-          <div className="grid grid-cols-2 gap-4">
-            {fields.dateOfBirth}
-            {fields.phone}
-          </div>
+          {client ? fields.email : null}
+          {fields.dateOfBirth}
+          {fields.phone}
           {fields.sex}
         </div>
 

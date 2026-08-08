@@ -284,7 +284,15 @@ export function DatePicker({
               aria-invalid={ariaInvalid}
               aria-describedby={ariaDescribedBy}
               className={cn(
-                trigger === 'field' && 'w-full justify-between px-4 font-normal',
+                /*
+                  `max-w-none` cancels the button scale's own `max-w-80`, which
+                  otherwise silently overrides the `w-full` beside it. A button
+                  caps its width because a button is as wide as its label; a
+                  field-styled trigger is a form field and belongs to its column,
+                  so at any container wider than 320px the cap left the date
+                  sitting short of every other field on the form.
+                */
+                trigger === 'field' && 'w-full max-w-none justify-between px-4 font-normal',
                 trigger === 'field' && !selected && 'text-muted-foreground',
                 /*
                   The system's 10px control radius, not the icon size's circle.

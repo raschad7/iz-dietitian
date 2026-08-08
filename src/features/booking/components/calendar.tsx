@@ -37,7 +37,6 @@ import { AppointmentDialog } from './appointment-dialog';
 import { CalendarToolbar } from './calendar-toolbar';
 import { ClientPicker, type PendingBooking } from './client-picker';
 import { DayColumn } from './day-column';
-import { GridOverflowCue } from './grid-overflow-cue';
 import { MonthView } from './month-view';
 import { NewClientDialog } from './new-client-dialog';
 
@@ -607,34 +606,6 @@ export function Calendar({
 
   const belowFold = useMemo(() => new Set(datesBelowFold), [datesBelowFold]);
 
-  /**
-   * The panel-level half of the same answer.
-   *
-   * `belowFold` marks *which* columns are hiding something, which is the useful
-   * question in a week; this is whether any of them are, which is what the cue
-   * across the bottom edge needs. One measurement drives both — a second
-   * observer watching the same scroller for the same fact would be free to
-   * disagree with this one, and eventually would.
-   */
-  const hasMoreBelow = datesBelowFold.length > 0;
-
-  /**
-   * Most of a screen, not all of it. The overlap is the point: a full-screen
-   * jump leaves nothing shared between the two views, so the reader has to find
-   * their place again.
-   */
-  const scrollDown = useCallback(() => {
-    const element = timelineRef.current;
-    if (!element) return;
-
-    element.scrollBy({
-      top: element.clientHeight * 0.8,
-      // Honoured by hand: the global `prefers-reduced-motion` rule collapses
-      // CSS transitions, and a scroll asked for in script is not one.
-      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
-    });
-  }, []);
-
   function book(clientId: string): void {
     const pending = pendingBooking;
     if (!pending) return;
@@ -906,7 +877,7 @@ export function Calendar({
                 {/* Sticky, so the hour gutter keeps its corner when scrolled. */}
                 <div
                   className={cn(
-                    'sticky start-0 z-30 w-16 shrink-0 border-b border-border bg-background',
+                    'sticky start-0 z-30 w-20 shrink-0 border-b border-border bg-background',
                     HEADER_HEIGHT,
                   )}
                 />
@@ -924,12 +895,30 @@ export function Calendar({
                   const isToday = date === today;
                   const muted = !isWorkingDay(date, hours) || (today !== null && date < today);
 
+                  /*
+                    ⚠ **Both of these were `text-xs`, which is the scale's
+                    12px floor** — a step the design system reserves for
+                    timestamps and helper text with the standing rule that
+                    nothing a reader *needs* may live there. The weekday and
+                    the date are how someone finds the right column before they
+                    can read anything in it; they are the most needed text on
+                    the screen, and they were the smallest.
+
+                    The weekday takes the label step (13px/600 — the extra
+                    weight is what keeps Arabic legible below 14px, see the
+                    scale's own note) and the date takes body-sm, a step above
+                    it. That size difference is also the hierarchy: the number
+                    is what you scan for, the weekday is what confirms it.
+                  */
                   const header = (
                     <>
-                      <span className="text-xs font-medium" dir="auto">
+                      <span className="text-label" dir="auto">
                         {formatWeekday(locale, date)}
                       </span>
-                      <span className={cn('text-xs', isToday && 'font-semibold')} dir="auto">
+                      <span
+                        className={cn('text-body-sm', isToday ? 'font-bold' : 'font-semibold')}
+                        dir="auto"
+                      >
                         {formatDayNumber(locale, date)}
                       </span>
                     </>
@@ -988,7 +977,7 @@ export function Calendar({
               */}
               <div ref={timelineRef} className="flex min-h-0 flex-1 overflow-y-auto py-3">
                 {/* Hour gutter. Its labels use the same geometry as the blocks. */}
-                <div className="sticky start-0 z-30 w-16 shrink-0 bg-background">
+                <div className="sticky start-0 z-30 w-20 shrink-0 bg-background">
                   {Array.from(
                     { length: Math.floor((hours.closeMinute - hours.openMinute) / 60) + 1 },
                     (_, index) => hours.openMinute + index * 60,
@@ -1011,8 +1000,16 @@ export function Calendar({
                     return (
                       <span
                         key={minute}
+                        /*
+                          The label step, not the 12px floor. Every position on
+                          this grid is read against these — a block means
+                          nothing until you know which hour it is beside — so
+                          the gutter is load-bearing text, not a caption. The
+                          gutter was widened to `w-20` to take it; see the
+                          matching width on the header's corner cell.
+                        */
                         className={cn(
-                          'absolute end-2 text-xs font-medium whitespace-nowrap text-muted-foreground tabular-nums',
+                          'absolute end-2 text-label whitespace-nowrap text-muted-foreground tabular-nums',
                           first ? 'translate-y-0' : last ? '-translate-y-full' : '-translate-y-1/2',
                         )}
                         style={{ top: minuteToY(minute, hours.openMinute, pxPerSlot) }}
@@ -1070,12 +1067,14 @@ export function Calendar({
           </div>
 
           {/*
-            A sibling of the horizontal scroller, not a child of it. Inside, the
-            cue would slide away to the side the moment anyone scrolled a week
-            across; out here it stays pinned to the panel, which is the thing it
-            is describing the bottom edge of.
+            `GridOverflowCue` used to sit here — a fade across the panel's
+            bottom edge with a round chevron button in the middle of it. It is
+            gone, and the per-column count chip in `DayColumn` is the whole
+            answer now. Two cues for one fact meant the reader had to work out
+            whether they were being told the same thing twice, and neither of
+            them could say the thing worth knowing: how much is down there, and
+            on which day.
           */}
-          <GridOverflowCue visible={hasMoreBelow} onScrollDown={scrollDown} />
         </div>
       )}
 
