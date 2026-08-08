@@ -398,25 +398,10 @@
     "noUpcomingVisit": "لا يوجد موعد",
     "lastVisit": "آخر زيارة",
     "noPreviousVisit": "لا توجد زيارات سابقة",
-    "recentActivity": {
-      "title": "آخر ما جرى",
-      "currentPlan": "الخطة الحالية",
-      "noPlan": "لا توجد خطة بعد",
-      "portalAccess": "الدخول إلى البوابة",
-      "portalGranted": "مُفعّل",
-      "portalNone": "غير مُفعّل"
-    },
     "contactActions": {
       "whatsapp": "مراسلة عبر واتساب",
       "call": "اتصال",
       "emailLink": "إرسال بريد"
-    },
-    "healthSummary": {
-      "title": "تنبيهات صحية",
-      "toNutrition": "التغذية",
-      "kcalMismatch": "الهدف اليومي بعيد عن المحسوب",
-      "kcalMismatchDetail": "أُدخل {manual} kcal يدويًا، والقياسات تعطي {computed} kcal.",
-      "missingForTargets": "لا يمكن حساب الأهداف قبل إضافة: {fields}"
     },
     "tabs": {
       "label": "أقسام المتابع",
@@ -428,7 +413,8 @@
     },
     "sections": {
       "contact": "بيانات التواصل",
-      "demographics": "بيانات أساسية"
+      "demographics": "بيانات أساسية",
+      "privateNotes": "ملاحظات خاصة بالعيادة"
     },
     "fields": {
       "fullName": "الاسم الكامل",
@@ -500,9 +486,7 @@
       "position": "صفحة {page, number, integer} من {pageCount, number, integer}"
     },
     "portal": {
-      "title": "الدخول إلى البوابة",
-      "none": "لا يملك هذا المتابع حسابًا في بوابة المتابعين.",
-      "granted": "يستطيع هذا المتابع الدخول إلى البوابة.",
+      "title": "الحساب",
       "stateActive": "مُفعّل",
       "stateNone": "غير مُفعّل",
       "username": "اسم المستخدم",
@@ -523,7 +507,8 @@
         "sent": "تم إرسال البيانات عبر واتساب.",
         "skipped": "لم تُرسل عبر واتساب — تحقّق من الرقم ومن حالة الاتصال.",
         "failed": "تعذّر الإرسال عبر واتساب. سلّم البيانات يدويًا."
-      }
+      },
+      "state": "الدخول {state}"
     },
     "errors": {
       "invalid": "تحقّق من الحقول المميّزة بالأحمر.",
@@ -545,20 +530,17 @@
         "clinical": "الملاحظات الطبية",
         "planning": "ما تلتزم به الخطة",
         "private": "ملاحظات خاصة",
-        "portal": "ما تراه المتابِعة",
         "targets": "الأهداف",
-        "schedule": "جدول الوجبات"
+        "schedule": "جدول الوجبات",
+        "portal": "ما يظهر في البوابة"
       },
       "allergenLegend": "أشّري كل مادة يجب استبعادها",
       "allergyDetailLabel": "تفاصيل الحساسية",
-      "privateBadge": "خاص بالعيادة",
       "fromFormula": "محسوب",
       "suggested": "مقترح",
       "noAllergens": "لا توجد مواد مستبعدة — الكتالوج غير مُصفّى.",
       "shareWeight": "إظهار الوزن للمتابِعة",
       "shareWeightHint": "معطّل افتراضياً. عند التعطيل لا تظهر البطاقة أصلاً بدل أن تظهر فارغة.",
-      "shared": "يظهر لها",
-      "notShared": "لا يظهر لها",
       "careNoteHint": "تُعرض للمتابِعة كما تُكتب هنا.",
       "removeSlotOf": "حذف وجبة {label}",
       "missingFields": "لإتمام التوليد أضف: {fields}",
@@ -580,8 +562,6 @@
       "completeness": "اكتمال السجل",
       "filledOf": "{filled} من {total} حقلاً مُدخلة",
       "gapsHeading": "{count, plural, =0 {كل الحقول مُدخلة} one {حقل واحد بلا بيانات} two {حقلان بلا بيانات} few {# حقول بلا بيانات} many {# حقلاً بلا بيانات} other {# حقل بلا بيانات}}",
-      "fillGaps": "إكمال البيانات",
-      "slotCount": "{count, plural, one {وجبة واحدة} two {وجبتان} few {# وجبات} many {# وجبة} other {# وجبة}}",
       "kcalMismatch": "الهدف اليدوي بعيد عن المحسوب",
       "kcalMismatchDetail": "أُدخل {manual} kcal يدويًا، بينما القياسات والهدف يعطيان {computed} kcal. راجعي الرقم أو احذفيه ليُحسب تلقائيًا.",
       "bmiValueText": "{value} — {category}",
@@ -592,7 +572,15 @@
       "customAllergenLegend": "حساسيات أخرى (لا تُصفّي الكتالوج)",
       "customAllergenPlaceholder": "اسم المادة",
       "addAllergen": "إضافة حساسية",
-      "removeAllergen": "حذف {name}"
+      "removeAllergen": "حذف {name}",
+      "goalLine": "الهدف",
+      "activityLine": "النشاط",
+      "completeShort": "مكتمل",
+      "editRecord": "تعديل السجل",
+      "scheduleSummary": "{count, plural, one {وجبة واحدة} two {وجبتان} few {# وجبات} many {# وجبة} other {# وجبة}} على {kcal} سعرة",
+      "gapsPrompt": "اضغط أيًّا منها لإكماله",
+      "allergyLine": "الحساسية",
+      "privateBadge": "خاص بالعيادة"
     },
     "allergens": {
       "nuts": "مكسرات",
@@ -612,9 +600,16 @@
     "units": {
       "cm": "سم",
       "kg": "كغ",
-      "kcal": "kcal",
+      "kcal": "سعرة",
       "g": "غ",
       "years": "سنة"
+    },
+    "trail": {
+      "title": "المسار",
+      "bookVisit": "حجز",
+      "createPlan": "إنشاء",
+      "currentPlan": "الخطة الحالية",
+      "noPlan": "لا توجد خطة بعد"
     }
   },
   "portal": {

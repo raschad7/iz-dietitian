@@ -1,37 +1,32 @@
 import { useFormatter, useTranslations } from 'next-intl';
 
-import { Badge } from '@/components/ui/badge';
-import { Callout } from '@/components/ui/callout';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { CopyButton } from '@/components/ui/copy-button';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { formatMediumDate } from '@/features/booking/format';
 import { type ClientVisitSummary } from '@/features/booking/queries';
-import { calculateAge } from '@/features/clients/age';
-import { ALLERGENS } from '@/features/clients/nutrition';
 import { type ClientDetail } from '@/features/clients/queries';
-import { type ClientIntakeValues } from '@/features/clients/types';
-import { suggestTargets } from '@/features/weekly-plans/targets';
+import { PLAN_STATUSES } from '@/features/weekly-plans/schema';
 import { Link } from '@/i18n/navigation';
 import { type Locale } from '@/i18n/routing';
-import { isMember, membersOf } from '@/lib/enum';
-import { PLAN_STATUSES } from '@/features/weekly-plans/schema';
-import { cn } from '@/lib/utils';
+import { isMember } from '@/lib/enum';
 
 /**
- * Who this client is: how to reach them, anything flagged about them, and what
- * has happened lately.
+ * Who this client is, and where their record goes next.
  *
- * **The previous version showed seven facts and then stopped**, leaving roughly
- * two thirds of the screen empty — contact details and demographics in two thin
- * cards, every value at identical weight, none of them clickable, and a
- * registration date shouting exactly as loudly as the phone number. What a
- * dietitian actually opens a client to check — when they last came in, whether a
- * plan is live, whether anything is flagged — was a tab away.
+ * ## What this tab stopped carrying
  *
- * Reference facts are demoted rather than deleted: preferred language, date of
- * birth and registration date sit under a divider at caption size, because they
- * are things you look up rather than things you came for.
+ * It used to be a summary of the other four tabs: a health-alerts card
+ * duplicating the Nutrition tab's allergens, the same amber "missing fields" and
+ * "target is far from computed" callouts that tab already draws — derived a
+ * second time, from a second copy of the arithmetic — and a four-item activity
+ * card in which three items read "none" and the fourth restated the Portal tab.
+ * Opening a client therefore showed the same warning twice and the same allergy
+ * twice, and the largest card on the screen was mostly the word "لا".
+ *
+ * **The clinical record has one owner now, and it is the Nutrition tab.** What is
+ * left here is the person: how to reach them, the reference facts about them, and
+ * the two things that are genuinely about to happen.
  *
  * **The WhatsApp conversation is deliberately not here.** It used to hang below
  * this tab whenever the clinic had a linked session, which quietly made a
@@ -39,13 +34,11 @@ import { cn } from '@/lib/utils';
  */
 export function ClientProfile({
   client,
-  intake,
   visits,
   currentPlan,
   locale,
 }: {
   client: ClientDetail;
-  intake: ClientIntakeValues;
   visits: ClientVisitSummary;
   currentPlan: { weekStartDate: string; status: string } | null;
   locale: Locale;
@@ -54,205 +47,114 @@ export function ClientProfile({
   const tPlans = useTranslations('weeklyPlans');
   const format = useFormatter();
 
-  const age = client.dateOfBirth ? calculateAge(client.dateOfBirth) : null;
-
-  const targets = suggestTargets({
-    weightKg: intake.weightKg,
-    heightCm: intake.heightCm,
-    age,
-    sex: intake.sex,
-    activityLevel: intake.activityLevel,
-    goal: intake.goal,
-  });
-
-  const allergenTags = membersOf(ALLERGENS, intake.allergenTags);
-  const hasAllergens = allergenTags.length > 0 || intake.customAllergens.length > 0;
-
-  /*
-   * A manual target more than a fifth away from what the measurements imply.
-   * The record can hold this contradiction indefinitely and, until now, never
-   * mentioned it — a 1,200 kcal target against a weight-gain goal reads as
-   * deliberate right up until somebody checks the arithmetic.
-   */
-  const kcalMismatch =
-    intake.dailyKcalTarget !== null &&
-    targets.suggestedKcal !== null &&
-    Math.abs(intake.dailyKcalTarget - targets.suggestedKcal) / targets.suggestedKcal > 0.2
-      ? { manual: intake.dailyKcalTarget, computed: targets.suggestedKcal }
-      : null;
-
   return (
-    <div className="flex flex-col gap-4">
-      <div className="grid items-start gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle icon="contact" size="sm">
-              {t('sections.contact')}
-            </CardTitle>
-          </CardHeader>
-
-          {/*
-            `gap-2` between rows rather than a rule under each. The card was
-            drawing three horizontal lines that each stopped short of its own
-            edge — two row separators inside the content padding and an inset
-            `CardDivider` — which together read as a border that had broken
-            rather than as structure. There is one rule on this card now, and it
-            is the footer's, which is full-bleed.
-          */}
-          <CardContent className="flex flex-col gap-2">
-            <ContactRow
-              icon="contact"
-              label={t('fields.phone')}
-              value={client.phone}
-              href={client.phone ? `tel:${client.phone}` : null}
-              copyLabel={t('copy.phone')}
-              copiedLabel={t('copy.copied')}
-              emptyText={t('notProvided')}
-              numeric
-            />
-            <ContactRow
-              icon="email"
-              label={t('fields.email')}
-              value={client.email}
-              href={client.email ? `mailto:${client.email}` : null}
-              copyLabel={t('copy.email')}
-              copiedLabel={t('copy.copied')}
-              emptyText={t('notProvided')}
-            />
-          </CardContent>
-
-          {/*
-            Reference, not headline — but not fine print either. These were at
-            12px, the size the design system reserves for text nobody needs;
-            a date of birth is something a dietitian actually reads.
-          */}
-          <CardFooter className="flex-wrap gap-x-8 gap-y-2 text-body-sm">
-            <Reference label={t('fields.preferredLocale')}>
-              {client.preferredLocale === 'ar' ? 'العربية' : 'English'}
-            </Reference>
-            <Reference label={t('fields.dateOfBirth')}>
-              {client.dateOfBirth ? (
-                // A bare ISO date — digits and hyphens, no direction of its
-                // own — so this one is genuinely LTR. A *formatted* date must
-                // never get `dir="ltr"`: "7 أغسطس 2026" reorders.
-                <span dir="ltr" className="tabular-nums">
-                  {client.dateOfBirth}
-                </span>
-              ) : (
-                t('notProvided')
-              )}
-            </Reference>
-            <Reference label={t('fields.createdAt')}>
-              {format.dateTime(client.createdAt, 'date')}
-            </Reference>
-          </CardFooter>
-        </Card>
-
-        {/*
-          Allergies and conditions live on the Nutrition tab, which meant you
-          could open a client and be told nothing at all about them. This
-          summarises and links through rather than duplicating the record.
-        */}
-        <Card>
-          <CardHeader className="flex-row items-center justify-between gap-2">
-            <CardTitle icon="medical" size="sm">
-              {t('healthSummary.title')}
-            </CardTitle>
-            <Link
-              href={`/app/clients/${client.id}/nutrition`}
-              className="inline-flex shrink-0 items-center gap-1 text-body-sm text-muted-foreground underline-offset-4 hover:text-secondary-foreground hover:underline"
-            >
-              {t('healthSummary.toNutrition')}
-              <Icon name="chevronEnd" className="size-3.5" />
-            </Link>
-          </CardHeader>
-
-          <CardContent className="flex flex-col gap-3">
-            {hasAllergens ? (
-              <div className="flex flex-wrap items-center gap-1.5">
-                {allergenTags.map((tag) => (
-                  <Badge key={tag} variant="medical">
-                    {t(`allergens.${tag}`)}
-                  </Badge>
-                ))}
-                {/*
-                  Outlined, not filled — the same distinction the intake dialog
-                  draws. A solid clay badge means "the catalog excludes this";
-                  these are recorded and exclude nothing.
-                */}
-                {intake.customAllergens.map((tag) => (
-                  <Badge key={tag} variant="outline" className="border-dashed" dir="auto">
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-            ) : (
-              <Callout>{t('intake.noAllergens')}</Callout>
-            )}
-
-            {targets.missing.length > 0 ? (
-              <Callout tone="attention">
-                {t('healthSummary.missingForTargets', {
-                  fields: targets.missing.map((field) => t(`fields.${field}`)).join('، '),
-                })}
-              </Callout>
-            ) : null}
-
-            {kcalMismatch ? (
-              <Callout tone="attention" title={t('healthSummary.kcalMismatch')}>
-                {t('healthSummary.kcalMismatchDetail', {
-                  manual: kcalMismatch.manual,
-                  computed: kcalMismatch.computed,
-                })}
-              </Callout>
-            ) : null}
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
+    <div className="grid items-start gap-4 lg:grid-cols-3">
+      <Card className="lg:col-span-2">
         <CardHeader>
-          <CardTitle icon="history" size="sm">
-            {t('recentActivity.title')}
+          <CardTitle as="h2" icon="contact" size="sm">
+            {t('sections.contact')}
           </CardTitle>
         </CardHeader>
 
-        <CardContent className="grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-4">
-          <ActivityItem
-            icon="calendar"
-            label={t('lastVisit')}
-            value={visits.last ? formatMediumDate(locale, visits.last.date) : null}
-            emptyText={t('noPreviousVisit')}
-            note={visits.last?.reason ?? undefined}
+        {/*
+          `gap-2` between rows rather than a rule under each. The card was
+          drawing three horizontal lines that each stopped short of its own
+          edge — two row separators inside the content padding and an inset
+          `CardDivider` — which together read as a border that had broken
+          rather than as structure. There is one rule on this card now, and it
+          is the footer's, which is full-bleed.
+        */}
+        <CardContent className="flex flex-col gap-2">
+          <ContactRow
+            icon="contact"
+            label={t('fields.phone')}
+            value={client.phone}
+            href={client.phone ? `tel:${client.phone}` : null}
+            copyLabel={t('copy.phone')}
+            copiedLabel={t('copy.copied')}
+            emptyText={t('notProvided')}
+            numeric
           />
-          <ActivityItem
+          <ContactRow
+            icon="email"
+            label={t('fields.email')}
+            value={client.email}
+            href={client.email ? `mailto:${client.email}` : null}
+            copyLabel={t('copy.email')}
+            copiedLabel={t('copy.copied')}
+            emptyText={t('notProvided')}
+          />
+        </CardContent>
+
+        {/*
+          Reference, not headline — but not fine print either. These were at
+          12px, the size the design system reserves for text nobody needs;
+          a date of birth is something a dietitian actually reads.
+
+          **Both dates are set in the same style**, which they were not: the date
+          of birth printed as a bare ISO string (`1973-08-07`) beside a
+          localised registration date (`2026/08/06`), so one row held two date
+          formats. They still go through two different formatters, and have to:
+          a date of birth is a wall clock and is pinned to UTC by
+          `formatMediumDate`, while `createdAt` is a real instant and is rendered
+          in the clinic's display zone. Only the *style* is shared.
+        */}
+        <CardFooter className="flex-wrap gap-x-8 gap-y-2 text-body-sm">
+          <Reference label={t('fields.preferredLocale')}>
+            {client.preferredLocale === 'ar' ? 'العربية' : 'English'}
+          </Reference>
+          <Reference label={t('fields.dateOfBirth')}>
+            {client.dateOfBirth ? formatMediumDate(locale, client.dateOfBirth) : t('notProvided')}
+          </Reference>
+          <Reference label={t('fields.createdAt')}>
+            {format.dateTime(client.createdAt, { dateStyle: 'medium' })}
+          </Reference>
+        </CardFooter>
+      </Card>
+
+      {/*
+        Two facts, both of them about what happens next, and both of them a link
+        to the place that changes it. This replaces a four-item grid of static
+        text in which "last visit", "current plan" and "portal access" were a
+        tab's own subject restated — and in which an empty row was a dead end
+        rather than an invitation.
+      */}
+      <Card>
+        <CardHeader>
+          <CardTitle as="h2" icon="history" size="sm">
+            {t('trail.title')}
+          </CardTitle>
+        </CardHeader>
+
+        <CardContent className="flex flex-col">
+          <TrailRow
             icon="bookAppointment"
             label={t('nextVisit')}
             value={visits.next ? formatMediumDate(locale, visits.next.date) : null}
             emptyText={t('noUpcomingVisit')}
-            note={visits.next?.reason ?? undefined}
+            note={visits.next?.reason ?? null}
+            href={`/app/clients/${client.id}/visits`}
+            emptyAction={t('trail.bookVisit')}
           />
-          <ActivityItem
+
+          <div aria-hidden className="h-px bg-border" />
+
+          <TrailRow
             icon="mealPlans"
-            label={t('recentActivity.currentPlan')}
+            label={t('trail.currentPlan')}
             value={
               currentPlan
                 ? tPlans('weekOf', { date: formatMediumDate(locale, currentPlan.weekStartDate) })
                 : null
             }
-            emptyText={t('recentActivity.noPlan')}
-            badge={
-              currentPlan && isMember(PLAN_STATUSES, currentPlan.status) ? (
-                <Badge variant={currentPlan.status === 'published' ? 'onTrack' : 'muted'}>
-                  {tPlans(`status.${currentPlan.status}`)}
-                </Badge>
-              ) : undefined
+            emptyText={t('trail.noPlan')}
+            note={
+              currentPlan && isMember(PLAN_STATUSES, currentPlan.status)
+                ? tPlans(`status.${currentPlan.status}`)
+                : null
             }
-          />
-          <ActivityItem
-            icon="security"
-            label={t('recentActivity.portalAccess')}
-            value={client.hasPortalAccess ? t('recentActivity.portalGranted') : t('recentActivity.portalNone')}
+            href={`/app/weekly-plans/${client.id}`}
+            emptyAction={t('trail.createPlan')}
           />
         </CardContent>
       </Card>
@@ -266,6 +168,16 @@ export function ClientProfile({
  * The phone number and the email address are the only facts on a client record
  * that are instructions to act *outside* the app, which is why they are the only
  * two drawn as rows with their own affordances rather than as text in a grid.
+ *
+ * ⚠ **The value is isolated, the link is not.** `dir="ltr"` used to sit on the
+ * `<a>` itself — which is a flex item here, so it is blockified, so the
+ * attribute re-resolved `text-align: start` against the *value's* direction and
+ * flushed the phone number to the opposite edge of the card from the label above
+ * it. In Arabic the label sat right and the number sat left, while the email
+ * row beside it (whose empty state carries no `dir`) stayed right; two rows of
+ * one card, aligned two different ways. `<bdi>` keeps the digits in Latin order
+ * and leaves the box in the page's direction. See "RTL" in
+ * docs/design-system.md — `Table`'s `numeric` prop documents the same trap.
  */
 function ContactRow({
   icon,
@@ -287,9 +199,15 @@ function ContactRow({
   numeric?: boolean;
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-md bg-muted/60 px-3 py-2.5">
-      <span className="grid size-9 shrink-0 place-items-center rounded-full bg-secondary">
-        <Icon name={icon} className="size-4 text-primary" />
+    <div className="flex items-center gap-3 rounded-md bg-muted px-3 py-2.5">
+      {/*
+        A neutral disc, not an olive one. Olive marks what you can act on and
+        this glyph is not a target — the row's own link is. The Trail card's
+        discs beside it were already neutral, so the two cards on this tab were
+        drawing the same 36px shape two different ways.
+      */}
+      <span className="grid size-9 shrink-0 place-items-center rounded-full bg-card">
+        <Icon name={icon} className="size-4 text-muted-foreground" />
       </span>
 
       <span className="flex min-w-0 flex-1 flex-col">
@@ -297,13 +215,11 @@ function ContactRow({
         {value && href ? (
           <a
             href={href}
-            dir="ltr"
-            className={cn(
-              'truncate text-body-md font-medium underline-offset-4 hover:text-secondary-foreground hover:underline',
-              numeric && 'tabular-nums',
-            )}
+            className="truncate text-body-md font-medium underline-offset-4 hover:text-secondary-foreground hover:underline"
           >
-            {value}
+            <bdi dir="ltr" className={numeric ? 'tabular-nums' : undefined}>
+              {value}
+            </bdi>
           </a>
         ) : (
           <span className="text-body-md text-muted-foreground">{emptyText}</span>
@@ -324,31 +240,43 @@ function Reference({ label, children }: { label: string; children: React.ReactNo
   );
 }
 
-function ActivityItem({
+/**
+ * Something that is about to happen, and the way to change it.
+ *
+ * The whole row is the link, so an empty one is somewhere to go rather than a
+ * sentence saying no. `emptyAction` names what the click will do — a row reading
+ * "no plan yet" is only useful next to the word "create".
+ */
+function TrailRow({
   icon,
   label,
   value,
   emptyText,
   note,
-  badge,
+  href,
+  emptyAction,
 }: {
   icon: IconName;
   label: string;
   value: string | null;
-  emptyText?: string;
-  note?: string;
-  badge?: React.ReactNode;
+  emptyText: string;
+  note: string | null;
+  href: string;
+  emptyAction: string;
 }) {
   return (
-    <div className="flex items-start gap-3">
+    <Link
+      href={href}
+      className="group/row flex items-center gap-3 py-3 no-underline outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-focus-halo"
+    >
       <span className="grid size-9 shrink-0 place-items-center rounded-full bg-muted">
         <Icon name={icon} className="size-4 text-muted-foreground" />
       </span>
 
-      <div className="flex min-w-0 flex-col items-start gap-1">
+      <span className="flex min-w-0 flex-1 flex-col">
         <span className="text-label text-muted-foreground">{label}</span>
         {value === null ? (
-          <span className="text-body-md text-muted-foreground">{emptyText ?? '—'}</span>
+          <span className="text-body-md text-muted-foreground">{emptyText}</span>
         ) : (
           // No `dir="ltr"` anywhere near this: the value is a *formatted* date
           // and `auto` is what keeps "7 أغسطس 2026" in the right order.
@@ -361,8 +289,12 @@ function ActivityItem({
             {note}
           </span>
         ) : null}
-        {badge}
-      </div>
-    </div>
+      </span>
+
+      <span className="shrink-0 text-body-sm font-semibold text-secondary-foreground opacity-0 transition-opacity group-hover/row:opacity-100 group-focus-visible/row:opacity-100">
+        {value === null ? emptyAction : null}
+      </span>
+      <Icon name="chevronEnd" className="size-4 shrink-0 text-muted-foreground" />
+    </Link>
   );
 }

@@ -1,10 +1,8 @@
-import { useTranslations } from 'next-intl';
+import { useFormatter, useTranslations } from 'next-intl';
 
-import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
 import { Callout } from '@/components/ui/callout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ComfortBand } from '@/components/ui/comfort-band';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { StatGrid, StatTile } from '@/components/ui/stat-tile';
 import { calculateAge } from '@/features/clients/age';
@@ -14,9 +12,14 @@ import { ALLERGENS } from '@/features/clients/nutrition';
 import { CLIENT_ACTIVITY_LEVELS, CLIENT_GOALS } from '@/features/clients/schema';
 import { type ClientIntakeValues } from '@/features/clients/types';
 import { mealTypeForSlot, type MealType } from '@/features/weekly-plans/schema';
-import { suggestProteinGrams, suggestTargets } from '@/features/weekly-plans/targets';
+import {
+  type BmiCategory,
+  suggestProteinGrams,
+  suggestTargets,
+} from '@/features/weekly-plans/targets';
 import { type Locale } from '@/i18n/routing';
 import { isMember, membersOf } from '@/lib/enum';
+import { cn } from '@/lib/utils';
 
 /**
  * A client's nutrition record, read-only, with the dialog that writes it.
@@ -29,7 +32,7 @@ import { isMember, membersOf } from '@/lib/enum';
  *
  * **Three type sizes on one row.** Numeric facts were set at `heading-sm` with a
  * 12px unit beside them and non-numeric ones at `body-sm`, sharing a grid — so
- * "80 كغ", "زيادة الوزن" and "نشاط خفيف" sat in one row at three different sizes
+ * '80 كغ', 'زيادة الوزن' and 'نشاط خفيف' sat in one row at three different sizes
  * with nothing aligned to anything. Every measurement is a `StatTile` now, which
  * is one size and one baseline by construction.
  *
@@ -41,7 +44,18 @@ import { isMember, membersOf } from '@/lib/enum';
  *
  * **A record that contradicted itself in silence.** A manual calorie target far
  * from what the measurements imply is the most consequential thing this screen
- * can know, and it was drawn as a 12px note reading "يدوي".
+ * can know, and it was drawn as a 12px note reading 'يدوي'.
+ *
+ * **Chips that were decoration.** Goal, activity level, the meal count and
+ * 'clinic only' were each a filled pill, and with the status pill in the header
+ * and a count on the tab there were six of them on one screen. A pill is how
+ * this system marks a *state*; a client's goal is a fact, and stating six facts
+ * that way leaves the reader nothing to tell apart. They are words now.
+ *
+ * **Notes under the figures.** Every tile carried a second line — 'محسوب',
+ * 'مقترح', 'فوق النطاق الصحي' — and the last of those repeated, in words, the
+ * comfort band drawn directly beneath it. The lattice is a label over a figure
+ * and nothing else, centred so six readings scan across as one row.
  *
  * A server component. `IntakeFormTrigger` is the only client component here and
  * reads the record itself when opened, so none of this ships to the browser
@@ -55,6 +69,7 @@ export function ClientNutrition({
   locale: Locale;
 }) {
   const t = useTranslations('clients');
+  const format = useFormatter();
 
   const age = intake.dateOfBirth ? calculateAge(intake.dateOfBirth) : null;
 
@@ -101,7 +116,7 @@ export function ClientNutrition({
 
   /*
    * `careNote` is in here rather than in a section of its own. It used to live
-   * on a "what the client sees" card alongside the share-weight toggle; that
+   * on a 'what the client sees' card alongside the share-weight toggle; that
    * card is gone, and a note the dietitian writes *for* the client is guidance
    * that shapes the plan, so it belongs with the rest of the guidance. Leaving
    * it out entirely would have made it write-only — editable in the dialog and
@@ -118,53 +133,93 @@ export function ClientNutrition({
   return (
     <div className="flex flex-col gap-4">
       {/*
-        One status card, carrying the edit control. A meter rather than a
-        sentence: "13 / 22" answers "how much is left" at a glance, where
-        "9 حقول غير مُدخلة" made the reader do the subtraction. The two states
-        share a shape, so the button never moves between them.
+        The meter lives in the header of the card it describes. It used to be a
+        card of its own — no title, no heading, floating above four cards that
+        all had both — and it carried an `تعديل` button directly under the
+        header's own `تعديل`: two identical labels a few pixels apart opening
+        two different dialogs. This one names its object.
       */}
-      <Card size="sm">
-        <CardContent className="flex flex-col gap-3">
-          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
-            <div className="flex min-w-60 flex-1 items-center gap-3">
-              <span className="text-label text-muted-foreground">{t('intake.completeness')}</span>
+      <Card>
+        <CardHeader className="flex-row flex-wrap items-center justify-between gap-x-4 gap-y-3">
+          <CardTitle as="h2" icon="progress" size="sm">
+            {t('intake.sections.measurements')}
+          </CardTitle>
+
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <span className="text-label text-muted-foreground">
+              {t('intake.completeShort')}
+            </span>
+            <span
+              role="meter"
+              aria-valuenow={filled}
+              aria-valuemin={0}
+              aria-valuemax={INTAKE_FIELD_COUNT}
+              aria-valuetext={t('intake.filledOf', {
+                filled,
+                total: INTAKE_FIELD_COUNT,
+              })}
+              aria-label={t('intake.completeness')}
+              className="h-1.5 w-16 overflow-hidden rounded-full bg-muted"
+            >
               <span
-                role="meter"
-                aria-valuenow={filled}
-                aria-valuemin={0}
-                aria-valuemax={INTAKE_FIELD_COUNT}
-                aria-valuetext={t('intake.filledOf', { filled, total: INTAKE_FIELD_COUNT })}
-                aria-label={t('intake.completeness')}
-                className="h-1.5 min-w-24 flex-1 overflow-hidden rounded-full bg-muted"
-              >
-                <span
-                  aria-hidden
-                  className="block h-full rounded-full bg-primary"
-                  style={{ inlineSize: `${(filled / INTAKE_FIELD_COUNT) * 100}%` }}
-                />
-              </span>
-              <span className="text-label tabular-nums" dir="ltr">
-                {filled} / {INTAKE_FIELD_COUNT}
-              </span>
-            </div>
+                aria-hidden
+                className="block h-full rounded-full bg-primary"
+                style={{
+                  inlineSize: `${(filled / INTAKE_FIELD_COUNT) * 100}%`,
+                }}
+              />
+            </span>
+            <span className="text-label tabular-nums" dir="ltr">
+              {filled}/{INTAKE_FIELD_COUNT}
+            </span>
 
             <IntakeFormTrigger
               locale={locale}
               clientId={intake.clientId}
-              className={buttonVariants({
-                variant: targets.missing.length > 0 ? 'default' : 'neutral',
-                size: 'sm',
-              })}
+              className={buttonVariants({ variant: 'default', size: 'sm' })}
             >
               <Icon name="edit" />
-              {intake.hasProfile ? t('intake.edit') : t('intake.start')}
+              {intake.hasProfile ? t('intake.editRecord') : t('intake.start')}
             </IntakeFormTrigger>
           </div>
+        </CardHeader>
+
+        <CardContent className="flex flex-col gap-4">
+          {/*
+            Goal and activity as a sentence rather than two pills. They are
+            facts about the client, not states of the record, and the design
+            system spends its pill shape on the latter.
+          */}
+          {goalLabel || activityLabel ? (
+            <p className="flex flex-wrap items-center gap-x-6 gap-y-1 text-body-sm text-muted-foreground">
+              {goalLabel ? (
+                <span>
+                  {t('intake.goalLine')}{' '}
+                  <span className="font-semibold text-foreground">
+                    {goalLabel}
+                  </span>
+                </span>
+              ) : null}
+              {activityLabel ? (
+                <span>
+                  {t('intake.activityLine')}{' '}
+                  <span className="font-semibold text-foreground">
+                    {activityLabel}
+                  </span>
+                </span>
+              ) : null}
+            </p>
+          ) : null}
 
           {targets.missing.length > 0 ? (
             <Callout tone="attention">
               {t('intake.missingFields', {
-                fields: targets.missing.map((field) => t(`fields.${field}`)).join('، '),
+                // `format.list` and not a hardcoded '، ': that separator was an
+                // Arabic comma typed into the component, so the English build
+                // was joining its own field names with it too.
+                fields: format.list(
+                  targets.missing.map((field) => t(`fields.${field}`)),
+                ),
               })}
             </Callout>
           ) : null}
@@ -177,195 +232,224 @@ export function ClientNutrition({
               })}
             </Callout>
           ) : null}
-        </CardContent>
-      </Card>
 
-      <Card>
-        <CardHeader className="flex-row flex-wrap items-center justify-between gap-2">
-          <CardTitle icon="progress" size="sm">
-            {t('intake.sections.measurements')}
-          </CardTitle>
-          <div className="flex flex-wrap items-center gap-1.5">
-            {goalLabel ? <Badge variant="muted">{goalLabel}</Badge> : null}
-            {activityLabel ? <Badge variant="muted">{activityLabel}</Badge> : null}
-          </div>
-        </CardHeader>
-
-        <CardContent className="flex flex-col gap-4">
+          {/*
+            No `note` on any tile. 'محسوب' / 'مقترح' said where a number came
+            from, and 'فوق النطاق الصحي' repeated in words the band drawn
+            immediately below it. A reading is a label and a figure.
+          */}
           <StatGrid columns={6}>
-            <StatTile label={t('fields.heightCm')} value={intake.heightCm} unit={t('units.cm')} />
-            {/*
-              Whether the client can see this figure is a fact *about this
-              figure*, so it sits under it. It used to be a row in a "what the
-              client sees" card, which put a setting about the weight two cards
-              away from the weight.
-            */}
+            <StatTile
+              label={t('fields.heightCm')}
+              value={intake.heightCm}
+              unit={t('units.cm')}
+            />
             <StatTile
               label={t('fields.weightKg')}
               value={intake.weightKg}
               unit={t('units.kg')}
-              note={intake.shareWeightWithClient ? t('intake.shared') : t('intake.notShared')}
             />
-            <StatTile label={t('fields.age')} value={age} unit={t('units.years')} />
+            <StatTile
+              label={t('fields.age')}
+              value={age}
+              unit={t('units.years')}
+            />
             <StatTile
               label={t('intake.bmi')}
               value={targets.bmi === null ? null : targets.bmi.toFixed(1)}
-              /*
-               * The category is a note under the figure rather than appended to
-               * it: "27.4 · زيادة وزن" sat one line under a goal reading "زيادة
-               * الوزن", and two different facts in near-identical words on one
-               * card is a card nobody trusts.
-               */
-              note={targets.bmiCategory ? t(`bmiCategories.${targets.bmiCategory}`) : undefined}
             />
             <StatTile
               label={t('intake.dailyTarget')}
               value={effectiveKcal}
               unit={t('units.kcal')}
               flagged={kcalMismatch !== null}
-              note={
-                effectiveKcal === null
-                  ? undefined
-                  : intake.dailyKcalTarget === null
-                    ? t('intake.fromFormula')
-                    : t('intake.override')
-              }
             />
             <StatTile
               label={t('fields.proteinTargetGrams')}
               value={effectiveProtein}
               unit={t('units.g')}
-              note={
-                effectiveProtein === null || intake.proteinTargetGrams !== null
-                  ? undefined
-                  : t('intake.suggested')
-              }
             />
           </StatGrid>
 
           {/*
-            A bare 27.4 means nothing to most readers; against the healthy band
-            it means "a little over". `ComfortBand` already draws exactly this —
-            a track, a comfortable span and a marker — so the scale reuses the
-            shared component rather than inventing a second one.
+            A bare 27.4 means nothing to most readers; against the named
+            categories it means 'a little over'. See `BmiScale` for why this is
+            no longer a `ComfortBand`.
           */}
           {targets.bmi !== null && targets.bmiCategory ? (
             <BmiScale
               bmi={targets.bmi}
+              category={targets.bmiCategory}
               label={t('intake.bmi')}
               valueText={t('intake.bmiValueText', {
                 value: targets.bmi.toFixed(1),
                 category: t(`bmiCategories.${targets.bmiCategory}`),
               })}
-              offTarget={targets.bmiCategory !== 'normal'}
-              scaleLabels={[
-                t('bmiCategories.underweight'),
-                t('bmiCategories.normal'),
-                t('bmiCategories.overweight'),
-                t('bmiCategories.obese'),
-              ]}
+              scaleLabels={{
+                underweight: t('bmiCategories.underweight'),
+                normal: t('bmiCategories.normal'),
+                overweight: t('bmiCategories.overweight'),
+                obese: t('bmiCategories.obese'),
+                severely_obese: t('bmiCategories.severely_obese'),
+              }}
             />
           ) : null}
         </CardContent>
       </Card>
 
+      {/*
+        ⚠ **Two independent column stacks, not four cards in one grid.**
+        A `grid-cols-3` holding a 2-column card beside a 1-column card puts the
+        next pair on a new grid *row*, and a row is as tall as its tallest
+        member — so a short meal schedule beside a long allergy record left a
+        hole under the schedule the height of the difference, and the planning
+        card started well below where it looked like it should. `items-start`
+        made each card the right height and did nothing about the row.
+
+        Each column is its own flex stack now, so a card follows the one above
+        it with exactly `gap-4` between them and nothing waits on the other
+        column. Below `lg` both stacks collapse into one, which is what a single
+        column of cards should look like anyway.
+
+        Each stack renders only when it has something in it: an empty flex child
+        still occupies its grid column, which would leave the other stack at
+        two-thirds width with dead space beside it.
+      */}
       <div className="grid items-start gap-4 lg:grid-cols-3">
-        {intake.mealSchedule.length > 0 ? (
-          <Card className="lg:col-span-2">
-            <CardHeader className="flex-row items-center justify-between gap-2">
-              <CardTitle icon="clock" size="sm">
-                {t('intake.sections.schedule')}
-              </CardTitle>
-              <Badge variant="muted">
-                {t('intake.slotCount', { count: intake.mealSchedule.length })}
-              </Badge>
-            </CardHeader>
-            <CardContent>
-              <MealSchedule slots={intake.mealSchedule} />
-            </CardContent>
-          </Card>
-        ) : null}
-
-        {hasAllergyRecord ? (
-          <Card>
-            <CardHeader>
-              <CardTitle icon="medical" size="sm">
-                {t('intake.sections.allergies')}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-3">
-              {allergenTags.length > 0 || intake.customAllergens.length > 0 ? (
-                <div className="flex flex-wrap items-center gap-1.5">
-                  {allergenTags.map((tag) => (
-                    <Badge key={tag} variant="medical">
-                      {t(`allergens.${tag}`)}
-                    </Badge>
-                  ))}
+        {intake.mealSchedule.length > 0 || hasPlanningRecord ? (
+          <div className="flex flex-col gap-4 lg:col-span-2">
+            {intake.mealSchedule.length > 0 ? (
+              <Card>
+                <CardHeader className="flex-row flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                  <CardTitle as="h2" icon="clock" size="sm">
+                    {t('intake.sections.schedule')}
+                  </CardTitle>
                   {/*
-                    Outlined, not filled — the same distinction the intake dialog
-                    draws. A solid clay badge means "the catalog excludes this";
-                    these are recorded and sent to the model but exclude nothing,
-                    and a reader glancing at this card has to be able to tell the
-                    two apart without reading a legend.
-                  */}
-                  {intake.customAllergens.map((tag) => (
-                    <Badge key={tag} variant="outline" className="border-dashed" dir="auto">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              ) : null}
+                What the schedule adds up to, in words. This was a pill counting
+                the slots — a number the row below it already shows by existing.
+                Saying which target the shares divide is the part that is not on
+                screen anywhere else.
+              */}
+                  <p className="text-body-sm text-muted-foreground">
+                    {t('intake.scheduleSummary', {
+                      count: intake.mealSchedule.length,
+                      kcal: effectiveKcal ?? '—',
+                    })}
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <MealSchedule slots={intake.mealSchedule} />
+                </CardContent>
+              </Card>
+            ) : null}
 
-              <Notes
-                items={[
-                  { label: t('intake.allergyDetailLabel'), value: intake.allergies },
-                  { label: t('fields.conditions'), value: intake.conditions },
-                  { label: t('fields.medications'), value: intake.medications },
-                ]}
-              />
-            </CardContent>
-          </Card>
+            {hasPlanningRecord ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle as="h2" icon="weeklyPlans" size="sm">
+                    {t('intake.sections.planning')}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Notes
+                    items={[
+                      {
+                        label: t('fields.permanentInstructions'),
+                        value: intake.permanentInstructions,
+                      },
+                      {
+                        label: t('fields.preferences'),
+                        value: intake.preferences,
+                      },
+                      { label: t('fields.dislikes'), value: intake.dislikes },
+                      { label: t('fields.careNote'), value: intake.careNote },
+                    ]}
+                  />
+                </CardContent>
+              </Card>
+            ) : null}
+          </div>
         ) : null}
 
-        {hasPlanningRecord ? (
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle icon="weeklyPlans" size="sm">
-                {t('intake.sections.planning')}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Notes
-                items={[
-                  { label: t('fields.permanentInstructions'), value: intake.permanentInstructions },
-                  { label: t('fields.preferences'), value: intake.preferences },
-                  { label: t('fields.dislikes'), value: intake.dislikes },
-                  { label: t('fields.careNote'), value: intake.careNote },
-                ]}
-              />
-            </CardContent>
-          </Card>
-        ) : null}
+        {hasAllergyRecord || hasPrivateRecord ? (
+          <div className="flex flex-col gap-4">
+            {hasAllergyRecord ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle as="h2" icon="medical" size="sm">
+                    {t('intake.sections.allergies')}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {/*
+                The allergens are a labelled line in the same list as the rest of
+                the clinical record, not a row of pills above it. They read in
+                clay, which is what marks a medical fact — the pill added a
+                filled shape around information that was already the loudest
+                thing on the card. The catalog/free-text distinction the filled
+                and outlined pills used to draw is the intake dialog's job; on a
+                read-only card it was a legend nobody had.
+              */}
+                  <Notes
+                    items={[
+                      {
+                        label: t('intake.allergyLine'),
+                        value:
+                          allergenTags.length > 0 ||
+                          intake.customAllergens.length > 0
+                            ? format.list([
+                                ...allergenTags.map((tag) =>
+                                  t(`allergens.${tag}`),
+                                ),
+                                ...intake.customAllergens,
+                              ])
+                            : null,
+                        medical: true,
+                      },
+                      {
+                        label: t('intake.allergyDetailLabel'),
+                        value: intake.allergies,
+                      },
+                      {
+                        label: t('fields.conditions'),
+                        value: intake.conditions,
+                      },
+                      {
+                        label: t('fields.medications'),
+                        value: intake.medications,
+                      },
+                    ]}
+                  />
+                </CardContent>
+              </Card>
+            ) : null}
 
-        {hasPrivateRecord ? (
-          <Card>
-            <CardHeader className="flex-row items-center justify-between gap-2">
-              <CardTitle icon="notes" size="sm">
-                {t('intake.sections.private')}
-              </CardTitle>
-              <Badge variant="muted">{t('intake.privateBadge')}</Badge>
-            </CardHeader>
-            <CardContent>
-              <Notes
-                items={[
-                  { label: t('fields.medicalNotes'), value: intake.medicalNotes },
-                  { label: t('fields.notes'), value: intake.notes },
-                ]}
-              />
-            </CardContent>
-          </Card>
+            {hasPrivateRecord ? (
+              <Card>
+                <CardHeader>
+                  {/*
+                'خاص بالعيادة' was a pill beside the title. It is a property of
+                the whole card, which is what a title is for.
+              */}
+                  <CardTitle as="h2" icon="notes" size="sm">
+                    {t('sections.privateNotes')}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Notes
+                    items={[
+                      {
+                        label: t('fields.medicalNotes'),
+                        value: intake.medicalNotes,
+                      },
+                      { label: t('fields.notes'), value: intake.notes },
+                    ]}
+                  />
+                </CardContent>
+              </Card>
+            ) : null}
+          </div>
         ) : null}
-
       </div>
 
       {/*
@@ -377,27 +461,34 @@ export function ClientNutrition({
       {gaps.length > 0 ? (
         <Card variant="empty" size="sm">
           <CardContent className="flex flex-col gap-3">
-            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-              <p className="text-body-md text-foreground">
-                {t('intake.gapsHeading', { count: gaps.length })}
-              </p>
-              <IntakeFormTrigger
-                locale={locale}
-                clientId={intake.clientId}
-                className={buttonVariants({ variant: 'outline', size: 'sm' })}
-              >
-                {t('intake.fillGaps')}
-              </IntakeFormTrigger>
-            </div>
+            {/*
+              The 'إكمال البيانات' button is gone. Every chip below already
+              opens the same dialog and each one names the field it will take
+              you to, so the button was a fourth door to a room with three —
+              counting the header's own control.
+            */}
+            <p className="text-body-md text-foreground">
+              {t('intake.gapsHeading', { count: gaps.length })}
+              {' — '}
+              <span className="text-muted-foreground">
+                {t('intake.gapsPrompt')}
+              </span>
+            </p>
 
-            <ul className="flex flex-wrap gap-1.5">
+            <ul className="flex flex-wrap gap-2">
               {gaps.map((field) => (
                 <li key={field}>
+                  {/*
+                    `h-10`, the design system's floor for a control. These were
+                    26px tall — below the smallest size the button scale admits,
+                    on a target that is the whole point of the card.
+                  */}
                   <IntakeFormTrigger
                     locale={locale}
                     clientId={intake.clientId}
-                    className="rounded-full border border-dashed border-input px-3 py-1 text-label font-normal text-muted-foreground transition-colors hover:border-solid hover:border-primary hover:bg-secondary hover:text-secondary-foreground"
+                    className="inline-flex h-10 items-center gap-2 rounded-full border border-dashed border-input px-4 text-label text-muted-foreground transition-colors hover:border-solid hover:border-primary hover:bg-secondary hover:text-secondary-foreground"
                   >
+                    <Icon name="edit" className="size-4" />
                     {t(`fields.${field}`)}
                   </IntakeFormTrigger>
                 </li>
@@ -411,49 +502,170 @@ export function ClientNutrition({
 }
 
 /**
- * BMI drawn against the healthy range.
+ * Where this BMI actually falls, drawn as the four named categories.
  *
- * The track spans 15–40, which covers every category the app names without
- * compressing the middle: the healthy band is 18.5–25, and on a 15–40 scale that
- * occupies a quarter of the width rather than a sliver.
+ * ⚠ **It used to highlight 'normal' no matter what the reading was.** The scale
+ * was a `ComfortBand` — a track with one lime span marking the *comfortable*
+ * range and a hairline marker for the value — which is exactly right for a
+ * calorie target against its tolerance and exactly wrong here. The lime span sat
+ * on 18.5–25 permanently, so the loudest thing on the scale said 'healthy' while
+ * a client at BMI 51.9 was represented by a 3px tick clamped against the far
+ * edge, easy to miss entirely. The chart answered 'where is normal?' when the
+ * question is 'where is *this person*?'.
+ *
+ * Now the four categories are the track, and **the one the client is in is the
+ * one that is filled** — in its own status colour, with its label emphasised to
+ * match. Everything else is the sunken neutral. A reading in the obese range
+ * produces a clay band and a clay label; nothing on the scale reads as
+ * reassuring unless the value is.
+ *
+ * ⚠ **It was also missing a category outright.** `bmiCategory` returns five —
+ * `obese` is 30–35 and `severely_obese` is 35 and up — and the scale drew four,
+ * labelling everything past 30 'سمنة'. A client at BMI 51.9 was therefore shown
+ * a category that was not the one the record had computed, which is the reading
+ * that made this look broken. All five are drawn now, and the track runs to 45
+ * so the most severe band is a band rather than the edge.
+ *
+ * A value past the end still clamps, but clamping no longer loses the meaning:
+ * the filled segment and the emphasised label carry the category regardless of
+ * where the marker sits.
+ *
+ * Segment widths and label columns come from the same `percent()`, so the labels
+ * cannot drift out of the bands they name — they did, when the labels were four
+ * equal quarters over four unequal ranges and `overweight` centred inside the
+ * obese span.
+ *
+ * The two obesity bands are coloured apart because `BMI_CATEGORIES` splits them
+ * apart: clay-100 for `obese`, the solid clay for `severely_obese`. Clay is the
+ * system's only alarm colour and a clinical finding is what it is for.
  */
+const BMI_TONES = {
+  underweight: {
+    fill: 'bg-status-attention-bg',
+    text: 'text-status-attention-fg',
+    mark: 'bg-status-attention-fg',
+  },
+  normal: {
+    fill: 'bg-status-on-track-bg',
+    text: 'text-status-on-track-fg',
+    mark: 'bg-status-on-track-fg',
+  },
+  overweight: {
+    fill: 'bg-status-attention-bg',
+    text: 'text-status-attention-fg',
+    mark: 'bg-status-attention-fg',
+  },
+  obese: {
+    fill: 'bg-status-medical-bg',
+    text: 'text-status-medical-fg',
+    mark: 'bg-status-medical-fg',
+  },
+  severely_obese: {
+    fill: 'bg-destructive',
+    text: 'text-destructive',
+    mark: 'bg-destructive',
+  },
+} as const satisfies Record<
+  BmiCategory,
+  { fill: string; text: string; mark: string }
+>;
+
 function BmiScale({
   bmi,
+  category,
   label,
   valueText,
-  offTarget,
   scaleLabels,
 }: {
   bmi: number;
+  category: BmiCategory;
   label: string;
   valueText: string;
-  offTarget: boolean;
-  scaleLabels: [string, string, string, string];
+  scaleLabels: Record<BmiCategory, string>;
 }) {
+  /*
+   * 15–45. It was 15–40, which put the `severely_obese` boundary (35) at 80% of
+   * the track and left that category four fifths of the way along with nowhere
+   * to sit. Widening by five points gives every band a share and still keeps
+   * the healthy range a readable fifth of the width rather than a sliver.
+   */
   const MIN = 15;
-  const MAX = 40;
+  const MAX = 45;
   const percent = (value: number) => ((value - MIN) / (MAX - MIN)) * 100;
+
+  // The boundaries `bmiCategory` itself uses. Keep the two in step.
+  const bounds = [percent(18.5), percent(25), percent(30), percent(35)];
+
+  const segments = [
+    { key: 'underweight', width: bounds[0]! },
+    { key: 'normal', width: bounds[1]! - bounds[0]! },
+    { key: 'overweight', width: bounds[2]! - bounds[1]! },
+    { key: 'obese', width: bounds[3]! - bounds[2]! },
+    { key: 'severely_obese', width: 100 - bounds[3]! },
+  ] as const satisfies readonly { key: BmiCategory; width: number }[];
+
+  const columns = segments.map((segment) => `${segment.width}fr`).join(' ');
+  const marker = Math.min(100, Math.max(0, percent(bmi)));
+  const tone = BMI_TONES[category];
 
   return (
     <div className="flex flex-col gap-2">
-      <ComfortBand
-        rangeStart={percent(18.5)}
-        rangeWidth={percent(25) - percent(18.5)}
-        // Clamped, so a reading outside the drawn scale marks its edge rather
-        // than overflowing the track.
-        marker={Math.min(100, Math.max(0, percent(bmi)))}
-        offTarget={offTarget}
-        label={label}
-        valueText={valueText}
-      />
-      {/*
-        Four labels, because the boundaries worth naming are 18.5 / 25 / 30. A
-        fifth would need a tick at 35 that no label fits beside at this width.
-      */}
-      <div className="grid grid-cols-4 text-body-sm text-muted-foreground">
-        {scaleLabels.map((text, index) => (
-          <span key={text} className={index === 0 ? 'text-start' : 'text-center last:text-end'}>
-            {text}
+      <div
+        role="meter"
+        aria-valuenow={Number(bmi.toFixed(1))}
+        aria-valuemin={MIN}
+        aria-valuemax={MAX}
+        aria-valuetext={valueText}
+        aria-label={label}
+        className="relative"
+      >
+        {/*
+          `gap-px` on a `bg-card` grid draws the dividers between segments as
+          the card showing through, so the four bands read as one track cut into
+          parts rather than as four separate bars.
+        */}
+        <div
+          aria-hidden
+          className="grid h-2 gap-px overflow-hidden rounded-full bg-card"
+          style={{ gridTemplateColumns: columns }}
+        >
+          {segments.map((segment) => (
+            <span
+              key={segment.key}
+              className={segment.key === category ? tone.fill : 'bg-muted'}
+            />
+          ))}
+        </div>
+
+        {/*
+          Centred on its own position rather than anchored by an edge, so the
+          mark straddles the reading instead of starting at it. Extends past the
+          track vertically so it reads as a mark and not as another segment.
+        */}
+        <span
+          aria-hidden
+          className={cn('absolute -top-1 h-4 w-[3px] rounded-full', tone.mark)}
+          style={{ insetInlineStart: `calc(${marker}% - 1.5px)` }}
+        />
+      </div>
+
+      {/* One label per band — 18.5 / 25 / 30 / 35, the boundaries the record's
+          own `bmiCategory` splits on. */}
+      <div
+        className="grid text-body-sm"
+        style={{ gridTemplateColumns: columns }}
+      >
+        {segments.map((segment) => (
+          <span
+            key={segment.key}
+            className={cn(
+              'truncate px-1 text-center',
+              segment.key === category
+                ? cn('font-semibold', tone.text)
+                : 'text-muted-foreground',
+            )}
+          >
+            {scaleLabels[segment.key]}
           </span>
         ))}
       </div>
@@ -469,13 +681,29 @@ const MEAL_ICONS = {
 } as const satisfies Record<MealType, IconName>;
 
 /**
- * The day's meals, in order, with their share of the target as width.
+ * The day's meals, in order, with their share of the target drawn under each.
  *
  * A schedule is a sequence, and it was being drawn as an unordered wrap of
  * hand-rolled `bg-muted` chips — not `Badge`, not a tile — with nothing to say
- * which meal came first or how much of the day each one carried. `flex-grow`
- * taken from `kcalShare` puts both facts into the geometry: order runs along the
- * row, and a lunch carrying 35% is visibly wider than a snack carrying 15%.
+ * which meal came first or how much of the day each one carried.
+ *
+ * ⚠ **The share used to be the cell's width, and it cost the labels.** Taking
+ * `flex-grow` from `kcalShare` made a 10% snack a tenth as wide as the row's
+ * total, which on a five-meal day is far narrower than the word 'سناك صباحي' —
+ * so the two snacks in a normal schedule both truncated to 'سناك…' and the
+ * reader lost the one thing a schedule is for. Encoding a number in geometry is
+ * only free when the geometry has room to spare.
+ *
+ * Every cell takes an equal share of the row with a floor under it, and the
+ * share is stated as a figure instead of drawn.
+ *
+ * **Three lines, centred, and no bar.** The bar that briefly replaced the
+ * width-encoding was the same idea one step quieter, and it still spent a row of
+ * the cell on a quantity the '25%' beside the time already gives exactly. Five
+ * cells each carrying a tiny partial rule read as a progress tracker, which a
+ * meal plan is not. What is left is the glyph, the name and the timing — the
+ * three things a dietitian scans a schedule for — stacked on the centre line so
+ * the row reads as five equal parts of one day.
  *
  * An `<ol>`, because the order is the content. The row mirrors in Arabic for
  * free — a flex row follows the document direction, so the earliest meal starts
@@ -484,27 +712,35 @@ const MEAL_ICONS = {
 function MealSchedule({
   slots,
 }: {
-  slots: { slotKey: string; label: string; timeOfDay: string; kcalShare: number }[];
+  slots: {
+    slotKey: string;
+    label: string;
+    timeOfDay: string;
+    kcalShare: number;
+  }[];
 }) {
   return (
     <ol className="flex flex-col gap-2 sm:flex-row">
       {slots.map((slot) => (
         <li
           key={slot.slotKey}
-          // `max` so a slot recorded at 0% still renders as a readable cell
-          // rather than collapsing to nothing.
-          style={{ flexGrow: Math.max(slot.kcalShare, 0.01) }}
-          className="flex min-w-0 flex-col gap-1 rounded-md bg-muted px-3 py-2.5 sm:basis-0"
+          className="flex min-w-0 flex-1 flex-col items-center gap-1 rounded-md bg-muted px-3 py-3 text-center sm:min-w-28 sm:basis-0"
         >
-          <span className="flex items-center gap-1.5 text-body-md font-medium" dir="auto">
-            <Icon
-              name={MEAL_ICONS[mealTypeForSlot(slot.slotKey)]}
-              className="size-[1.0625rem] shrink-0 text-muted-foreground"
-            />
-            <span className="truncate">{slot.label}</span>
+          <Icon
+            name={MEAL_ICONS[mealTypeForSlot(slot.slotKey)]}
+            className="size-[1.0625rem] shrink-0 text-muted-foreground"
+          />
+          <span
+            className="max-w-full truncate text-body-md font-medium"
+            dir="auto"
+          >
+            {slot.label}
           </span>
           {/* A clock time and a percentage — bare digits, so genuinely LTR. */}
-          <span className="text-body-sm tabular-nums text-muted-foreground" dir="ltr">
+          <span
+            className="text-body-sm tabular-nums text-muted-foreground"
+            dir="ltr"
+          >
             {slot.timeOfDay} · {Math.round(slot.kcalShare * 100)}%
           </span>
         </li>
@@ -516,9 +752,24 @@ function MealSchedule({
 /**
  * A stack of written notes. Renders nothing when every one of them is empty,
  * which is what lets its card be omitted rather than drawn hollow.
+ *
+ * ⚠ **`dir` goes on a `<bdi>` inside the value, never on the `<dd>` itself.**
+ * A `dd` is a block, so `dir="auto"` on it resolved the *paragraph* direction
+ * from the note's own first strong character — and with that came
+ * `text-align: start`, which flipped. A Latin-script note in an Arabic record
+ * therefore rendered hard against the opposite edge of the card from the Arabic
+ * label naming it, a full card-width away, with nothing between them. `<bdi>`
+ * isolates the run so mixed scripts still order correctly while the block stays
+ * in the page's direction. Same trap as the phone number in `ClientProfile`.
  */
-function Notes({ items }: { items: { label: string; value: string | null }[] }) {
-  const present = items.filter((item) => item.value !== null && item.value !== '');
+function Notes({
+  items,
+}: {
+  items: { label: string; value: string | null; medical?: boolean }[];
+}) {
+  const present = items.filter(
+    (item) => item.value !== null && item.value !== '',
+  );
   if (present.length === 0) return null;
 
   return (
@@ -527,10 +778,14 @@ function Notes({ items }: { items: { label: string; value: string | null }[] }) 
         <div key={item.label}>
           <dt className="text-label text-muted-foreground">{item.label}</dt>
           <dd
-            className="mt-1 text-body-md whitespace-pre-line text-foreground [overflow-wrap:anywhere]"
-            dir="auto"
+            className={cn(
+              'mt-1 text-body-md whitespace-pre-line [overflow-wrap:anywhere]',
+              item.medical
+                ? 'font-semibold text-status-medical-fg'
+                : 'text-foreground',
+            )}
           >
-            {item.value}
+            <bdi>{item.value}</bdi>
           </dd>
         </div>
       ))}

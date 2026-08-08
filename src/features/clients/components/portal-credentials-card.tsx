@@ -3,7 +3,6 @@
 import { useTranslations } from 'next-intl';
 import { useActionState } from 'react';
 
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Callout } from '@/components/ui/callout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -71,21 +70,25 @@ export function PortalCredentialsCard({
 
   return (
     <Card>
-      <CardHeader className="flex-row flex-wrap items-center justify-between gap-2">
-        <CardTitle icon="security" size="sm">
+      {/*
+        The title was `portal.title`, which was byte-identical to the tab label
+        directly above it — the card announced the page it was the only thing
+        on. Underneath, a sentence ("this client can sign in to the portal")
+        restated the pill beside it in longer words. Three ways of saying one
+        thing; what is left is the thing, in words rather than as a chip.
+      */}
+      <CardHeader className="flex-row flex-wrap items-center justify-between gap-x-4 gap-y-1">
+        <CardTitle as="h2" icon="security" size="sm">
           {t('portal.title')}
         </CardTitle>
-        <Badge variant={hasPortalAccess ? 'onTrack' : 'muted'}>
-          {hasPortalAccess ? <Icon name="check" /> : null}
-          {hasPortalAccess ? t('portal.stateActive') : t('portal.stateNone')}
-        </Badge>
+        <p className="text-body-sm text-muted-foreground">
+          {t('portal.state', {
+            state: hasPortalAccess ? t('portal.stateActive') : t('portal.stateNone'),
+          })}
+        </p>
       </CardHeader>
 
       <CardContent className="flex flex-col gap-4">
-        <p className="text-body-sm text-muted-foreground">
-          {hasPortalAccess ? t('portal.granted') : t('portal.none')}
-        </p>
-
         {hasPortalAccess ? (
           <ExistingAccess
             locale={locale}
@@ -215,10 +218,18 @@ function ExistingAccess({
         is already inset, a line that ends before the edge reads as a border
         that has broken rather than as a separation.
 
-        Reissue is `neutral` and revoke is `destructiveGhost`: neither is *the*
-        action on this card — the card is a state you read — and the design
-        system reserves the outlined destructive box for a decision being closed,
-        which is what the confirm dialog's own button carries.
+        ⚠ **Reissue sits at the inline-start, and revoke does not.** The design
+        system puts the primary at the inline-start of a group, and these two
+        were in the opposite order — so the destructive control held the slot the
+        reader's eye lands on first, in Arabic and English alike. Reissuing is
+        the thing anyone actually comes to this card to do; revoking is pushed to
+        the far end with a spacer between them, so a mis-aimed click has the
+        whole row to miss in.
+
+        Reissue is `default` and revoke is `destructiveGhost`: exactly one
+        control here is the action, and the design system reserves the outlined
+        destructive box for a decision being closed, which is what the confirm
+        dialog's own button carries.
       */}
       <div className="flex flex-wrap items-center gap-3 border-t border-border pt-4">
         <form action={reissueAction} className="flex">
@@ -228,11 +239,13 @@ function ExistingAccess({
             label={t('portal.reissue')}
             confirmTitle={t('portal.confirmReissueTitle')}
             confirmMessage={t('portal.confirmReissue')}
-            variant="neutral"
+            variant="default"
             size="sm"
             icon="refresh"
           />
         </form>
+
+        <span className="flex-1" />
 
         <form action={revokeAction} className="flex">
           <input type="hidden" name="locale" value={locale} />
@@ -339,9 +352,15 @@ function Secret({
   const t = useTranslations('clients');
 
   return (
-    <div className="flex items-center gap-3 rounded-md bg-muted px-4 py-2.5">
+    <div className="flex items-center gap-3 rounded-md bg-muted px-3 py-2.5">
       <span className="flex min-w-0 flex-1 flex-col">
-        <span className="text-caption text-muted-foreground">{label}</span>
+        {/*
+          `text-label` (13px), matching every other label in the record. It was
+          `text-caption` — 12px, which docs/design-system.md calls the floor and
+          reserves for text nobody needs. The name of the credential someone is
+          about to copy is not that.
+        */}
+        <span className="text-label text-muted-foreground">{label}</span>
         <span className="truncate font-mono text-body-md" dir="ltr">
           {value}
         </span>

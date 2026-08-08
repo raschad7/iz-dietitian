@@ -157,6 +157,32 @@ screen spends it on completed days, which is why nothing else there is orange.
 `bg-{color}-100 text-{color}-700` pairs. Don't reach for `destructive` to mean
 "bad" in general — reach for the status that describes what actually happened.
 
+### A badge is a state, and it has a budget
+
+**A pill marks a record's state. It is not how you render a fact.** The client
+record is the cautionary case: it carried a status pill in the header, a count
+pill on a tab, goal and activity-level pills in one card header, a meal-count
+pill in another, a "clinic only" pill in a third, and a row of allergen pills in
+a fourth — nine filled shapes on one screen, at which point none of them marked
+anything. Every one of those except the allergens was a *fact* about the client,
+and a fact is words: "الهدف المحافظة على الوزن" reads faster than the same
+string inside a tinted capsule, and costs no ink that a reader has to decode.
+
+Three tests before reaching for one:
+
+- **Is it a state, or a value?** Published / archived / active is a state.
+  A goal, a count, a category and a name are values.
+- **Does it vary?** A pill that reads the same on almost every record marks
+  nothing. The header's status pill said "نشِط" on virtually every client ever
+  opened; it now renders only when the record is *archived*, which is the
+  reading worth interrupting for.
+- **Is it already the loudest thing there?** The allergen pills sat at the top of
+  the allergy card. Clay type in the card's own list says it just as clearly
+  without a second shape around it.
+
+One or two per screen. If a surface needs more than that, the surface is
+describing things, not marking them.
+
 There is **no green-means-go colour**. Calendar drag feedback uses olive for a
 valid drop and clay for an invalid one, for this reason.
 
@@ -432,6 +458,21 @@ surface, and a child that deliberately squares off against its container
 A panel nested inside a card takes a plain radius with no ring and no shadow of
 its own. It is part of that card, not a second one.
 
+⚠ **A scroll container clips a card's ring and shadow.** Both are drawn outside
+the border box, and setting `overflow-y` to anything but `visible` makes
+`overflow-x` compute to `auto` as well — so a card flush against a scrolling
+parent loses its edge on whichever side it touches, and reads as a card with a
+side missing. The client record's tab body was doing this on all four edges.
+Give the scroller a little padding (`px-1 pt-1 pb-6` there — the block-end needs
+more, because that is where the last card's shadow lands).
+
+**A two-column card grid gaps badly when the columns differ in height.** In a
+`grid-cols-3` holding `col-span-2` cards beside single-column ones, each pair is
+a grid *row*, and a row is as tall as its tallest member — so a short card
+leaves a hole beneath it the size of the difference. `items-start` fixes the
+card heights and not the rows. Where the two columns are independent stacks,
+make them independent: one flex column per side, each with its own `gap`.
+
 ## Buttons
 
 Six variants, matching [buttons.png](design-images/buttons.png):
@@ -672,6 +713,16 @@ does not change colour), `flagged` (a clay dot in the corner — never a red
 card). `CardTitle` takes an `icon` — a plain glyph beside the title, never a
 badge.
 
+**`CardTitle` renders a `div` unless you ask for a heading.** Pass
+`as="h2"` (or `h3`) where the card genuinely is a *section* of the page; the
+visual scale does not change, only the semantics. The default stays `div`
+because a card title is often a label rather than a section head, and promoting
+all twenty-odd call sites at once would invent a heading outline nobody
+designed. Where a screen is a stack of cards, promote them: the client record
+had one heading across five tabs — the client's name — so the Nutrition tab
+presented six unlabelled regions to a screen reader with no way to jump between
+them.
+
 **A card answers the pointer with its icon, and only a clickable one also gets
 an edge.** A header icon drawn on a disc fills olive with its glyph inverting
 to white (`group-hover/card:bg-primary group-hover/card:text-primary-foreground`);
@@ -787,6 +838,21 @@ one row held three type sizes and nothing lined up with anything. `flagged`
 draws a figure in amber — a reading to check, never clay, which is reserved for
 medical facts. An absent value renders at body size, because an absence is not
 a reading and setting "—" at 24px gives a missing number the weight of one.
+
+**The tile is centred, and the figure is `heading-sm`.** Both changed together.
+Start-aligned, each reading hung off the inline-start edge and the unit trailing
+the figure pulled every optical centre a different distance from the label above
+it; centred, the label sits over its own figure and six tiles scan across as one
+row. The step down from `heading-lg` is about the screen, not the tile: 24px is
+what the client's *name* is set at in the record header, and a height reading
+has no business matching the person it belongs to.
+
+**A tile is a label and a figure.** The `note` slot exists for provenance a
+reader cannot otherwise recover — "saved with the plan" — and it is easy to
+overspend: the Nutrition tab had one on five of six tiles ("محسوب", "مقترح",
+"فوق النطاق الصحي"), and the last of those restated in words the comfort band
+drawn directly beneath it. If the thing under the figure is already on screen,
+it is not a note.
 
 The record header's fact strip is deliberately **not** `StatGrid`: the same
 rules and tabular figures one step down, because a header must not compete with
@@ -944,6 +1010,13 @@ olive-50 at 2.95:1, and the tabs deliberately do not repeat that. No radius: a
 tab's block-end edge is the container's own hairline, and rounding only the
 block-start corners would single out a side.
 
+**`TabBadge` is a bare numeral, not a pill.** It was a filled chip, which is the
+shape reserved for a *state* — and a count of unfilled fields is a quantity. See
+"A badge is a state" under Colour: the client record was wearing enough of them
+that none of them registered. The digit carries the whole message at a third of
+the ink, and still inherits the tab's active colour so it never looks like it
+belongs to the label beside it.
+
 **Segmented is not the control for routes.** A boxed switch promises "a view of
 this page"; five of them promising pages cost the client record middle-click,
 Cmd-click, open-in-new-tab, a URL in the status bar and working before
@@ -1059,6 +1132,21 @@ component is the same bug it is anywhere else.
 | Categorical | `viz-cat-1`, `viz-cat-2` | **identity** — which segment |
 | Neutral | `viz-cat-none` | "not recorded" — an absence, never a third category |
 | Comfort band | `viz-band-range` / `-edge` / `-marker` | the three-stop band the brand defines |
+
+**`ComfortBand` is for a value against a *tolerance*, not against a set of
+categories.** It draws one highlighted span and a marker, so whatever that span
+covers is the loudest thing on the track — correct for "today's calories against
+the target", wrong for anything with named bands. The client record's BMI scale
+used it and therefore highlighted the healthy range permanently: a client at BMI
+51.9 got a lime "normal" band and a 3px tick clamped against the far edge, so
+the chart answered "where is normal?" when the question was "where is this
+person?".
+
+A categorical scale draws every band and fills **the one the value is in**, in
+that band's own status colour, with its label emphasised to match. Take the
+boundaries from the same function that classifies the value — the same scale had
+four bands for the five `BMI_CATEGORIES`, so everything above 30 was labelled
+"obese" and `severely_obese` could not be shown at all.
 
 The steps were picked by running the palette validator, not by eye:
 

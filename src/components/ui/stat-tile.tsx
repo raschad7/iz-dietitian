@@ -80,14 +80,26 @@ function StatTile({
   return (
     <div
       data-slot="stat-tile"
-      className={cn('flex min-w-0 flex-col gap-1 bg-card px-4 py-3.5', className)}
+      /*
+       * Centred, because a lattice of readings is a table and a column of
+       * left-hung stacks is not: with the label over the figure and both on the
+       * cell's centre line, six tiles scan across as one row. It also stops the
+       * unit — which sits after the figure — from dragging each reading's
+       * optical centre a different distance off the label above it.
+       */
+      className={cn('flex min-w-0 flex-col items-center gap-1 bg-card px-4 py-3.5 text-center', className)}
       {...props}
     >
-      <dt className="truncate text-label text-muted-foreground">{label}</dt>
+      <dt className="max-w-full truncate text-label text-muted-foreground">{label}</dt>
 
       <dd
         className={cn(
-          'flex items-baseline gap-1 font-heading text-heading-lg font-semibold',
+          /*
+           * `heading-sm` (20px), not `heading-lg` (24px). 24px is the size the
+           * client's own name is set at in the record header, and a height
+           * reading has no business matching the person it belongs to.
+           */
+          'flex items-baseline justify-center gap-1 font-heading text-heading-sm font-semibold',
           empty ? 'text-muted-foreground' : flagged ? 'text-status-attention-fg' : 'text-foreground',
         )}
       >

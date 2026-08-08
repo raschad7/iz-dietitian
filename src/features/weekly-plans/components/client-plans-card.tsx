@@ -66,6 +66,7 @@ export function ClientPlansCard({
   locale: Locale;
 }) {
   const t = useTranslations('weeklyPlans');
+  const tClients = useTranslations('clients');
   const format = useFormatter();
 
   // Newest week first is already the read's order (see `listPlans`), so the head
@@ -122,7 +123,9 @@ export function ClientPlansCard({
             <StatTile
               label={t('kcalTarget')}
               value={current.kcalTargetSnapshot}
-              unit="kcal"
+              // Was the literal string "kcal", which no locale could reach —
+              // the one unit in the app that was never translated.
+              unit={tClients('units.kcal')}
               note={t('snapshotNote')}
             />
           </StatGrid>

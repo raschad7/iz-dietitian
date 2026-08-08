@@ -106,10 +106,15 @@ const tabLinkVariants = cva(
 /**
  * A count on a tab — how many fields are still empty, how many plans exist.
  *
- * Not `Badge`: that is a pill with its own padding scale meant to sit in a
- * card header, and at 13px it makes the tab row visibly taller. This is the
- * same shape one step down, and it inherits the tab's active state so the
- * count never looks like it belongs to a different tab than its label.
+ * **A bare numeral, not a pill.** It was a filled chip, which is the shape this
+ * system gives a *status* — and a count of empty fields is not a status, it is
+ * a quantity. A record carrying a chip on one tab, a status chip in its header
+ * and three more down the page reads as decorated rather than as informative,
+ * and the chips stop meaning anything precisely because every one of them is
+ * one. The digit alone carries the whole message at a third of the ink.
+ *
+ * It still inherits the tab's active state, so the count never looks like it
+ * belongs to a different tab than its label.
  */
 function TabBadge({
   active,
@@ -120,8 +125,8 @@ function TabBadge({
     <span
       data-slot="tab-badge"
       className={cn(
-        'rounded-full px-1.5 py-px text-caption font-semibold tabular-nums',
-        active ? 'bg-primary-subtle text-secondary-foreground' : 'bg-muted text-muted-foreground',
+        'text-label font-semibold tabular-nums',
+        active ? 'text-secondary-foreground' : 'text-muted-foreground/80',
         className,
       )}
       {...props}

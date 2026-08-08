@@ -84,7 +84,20 @@ export default async function ClientLayout({ children, params }: ClientLayoutPro
 
       <ClientTabs clientId={client.id} nutritionGaps={intakeGaps(intake).length} />
 
-      <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
+      {/*
+        ⚠ **The padding is what stops the cards looking sliced.** Setting
+        `overflow-y` to anything but `visible` forces `overflow-x` to compute to
+        `auto` as well, so this box clips on all four edges — and a `Card` draws
+        a 1px ring plus an olive-tinted shadow *outside* its border box. Flush
+        against the clip, that ring vanished on whichever edge the card touched:
+        the inline edges always, the block-start edge at rest, the block-end
+        edge once scrolled. The result read as cards with a side missing.
+
+        `pb-6` rather than `pb-1` because the block-end edge is also where the
+        last card's shadow lands when the list is scrolled to the bottom, and a
+        shadow needs more room than a hairline.
+      */}
+      <div className="min-h-0 flex-1 overflow-y-auto px-1 pt-1 pb-6">{children}</div>
     </div>
   );
 }
