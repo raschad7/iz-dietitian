@@ -181,41 +181,53 @@ function Portion({ meal, editable }: { meal: BoardMeal; editable: boolean }) {
     <section className="rounded-lg bg-muted/60 p-3">
       <h4 className="pb-2 text-label font-semibold text-muted-foreground">{t('portionLabel')}</h4>
 
-      {editable ? (
-        <div className="flex items-center gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            size="icon-sm"
-            aria-label={t('lessPortion')}
-            disabled={dish.servings <= 0.25}
-            onClick={() => setServings(meal.id, snapServings(dish.servings - SERVING_STEP))}
-          >
-            <Icon name="minus" />
-          </Button>
+      {/*
+        The stepper holds its place on a published plan rather than being
+        replaced by a line of text.
 
-          <span className="min-w-14 text-center text-heading-sm font-semibold tabular-nums" dir="ltr">
-            ×{dish.servings}
-          </span>
+        Removing it meant the panel silently changed shape the moment a plan was
+        published, and the only way to learn that portions were still adjustable
+        was to find the "edit published" toggle by accident. Rendering it
+        disabled says both things at once: this is the control, and it is not
+        available yet. The design system asks for exactly this — and for the
+        explanation to sit on a *wrapping* element, because
+        `disabled:pointer-events-none` means a `title` on the button itself can
+        never be hovered.
+      */}
+      <div
+        className="flex items-center gap-3"
+        title={editable ? undefined : t('editPublishedDisabled')}
+      >
+        <Button
+          type="button"
+          variant="outline"
+          size="icon-sm"
+          aria-label={t('lessPortion')}
+          disabled={!editable || dish.servings <= 0.25}
+          onClick={() => setServings(meal.id, snapServings(dish.servings - SERVING_STEP))}
+        >
+          <Icon name="minus" />
+        </Button>
 
-          <Button
-            type="button"
-            variant="outline"
-            size="icon-sm"
-            aria-label={t('morePortion')}
-            disabled={dish.servings >= 3}
-            onClick={() => setServings(meal.id, snapServings(dish.servings + SERVING_STEP))}
-          >
-            <Icon name="add" />
-          </Button>
+        <span className="min-w-14 text-center text-heading-sm font-semibold tabular-nums" dir="ltr">
+          ×{dish.servings}
+        </span>
 
-          <span className="ms-auto text-body-sm text-muted-foreground">
-            {t('portion', { servings: dish.servings, label: dish.baseServingLabel })}
-          </span>
-        </div>
-      ) : (
-        <p className="text-body-sm">{t('portion', { servings: dish.servings, label: dish.baseServingLabel })}</p>
-      )}
+        <Button
+          type="button"
+          variant="outline"
+          size="icon-sm"
+          aria-label={t('morePortion')}
+          disabled={!editable || dish.servings >= 3}
+          onClick={() => setServings(meal.id, snapServings(dish.servings + SERVING_STEP))}
+        >
+          <Icon name="add" />
+        </Button>
+
+        <span className="ms-auto text-body-sm text-muted-foreground">
+          {t('portion', { servings: dish.servings, label: dish.baseServingLabel })}
+        </span>
+      </div>
 
       <p className={cn('mt-2 border-t border-border pt-2 text-body-sm', drift ? 'text-status-attention-fg' : 'text-muted-foreground')}>
         {t('kcalValue', { value: kcal })}

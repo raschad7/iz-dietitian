@@ -1,40 +1,28 @@
-import { getTranslations } from 'next-intl/server';
-import { notFound } from 'next/navigation';
-import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
 
-import { NutritionProfileForm } from '@/features/weekly-plans/components/nutrition-profile-form';
-import { getClientContext } from '@/features/weekly-plans/queries';
 import { resolveLocale } from '@/i18n/params';
-import { requireStaffClinic } from '@/lib/session';
 
 type PageProps = { params: Promise<{ locale: string; clientId: string }> };
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const locale = await resolveLocale(params);
-  const t = await getTranslations({ locale, namespace: 'weeklyPlans' });
-  return { title: t('profileTitle') };
-}
-
-export default async function NutritionProfilePage({ params }: PageProps) {
+/**
+ * The nutrition profile form used to live here, reachable only from the
+ * planner's context panel — and it could write only the half of a client's
+ * intake that lived in `client_nutrition_profiles`. It is the client's own
+ * Nutrition tab now, which writes both tables.
+ *
+ * A redirect rather than a deletion: this address is in bookmarks, in the app's
+ * own history, and in `docs/superpowers/specs/`. It costs one file to keep them
+ * all working.
+ *
+ * No session guard here on purpose. This resolves to a route that has one — the
+ * clients layout calls `requireStaffClinic` — and adding a second would mean a
+ * signed-out visitor was bounced to a login that then sent them somewhere else
+ * again. The redirect leaks nothing: the target 404s for a client of another
+ * clinic exactly as it would if it had been typed directly.
+ */
+export default async function NutritionProfileRedirect({ params }: PageProps) {
   const locale = await resolveLocale(params);
   const { clientId } = await params;
-  const { clinicId } = await requireStaffClinic(locale);
 
-  const context = await getClientContext(clinicId, clientId);
-  if (!context) notFound();
-
-  const t = await getTranslations('weeklyPlans');
-
-  return (
-    <div className="space-y-6 text-start">
-      <div>
-        <h1 className="text-xl font-semibold tracking-tight">{t('profileTitle')}</h1>
-        <p className="text-sm text-muted-foreground">
-          {t('profileSubtitle', { name: context.fullName })}
-        </p>
-      </div>
-
-      <NutritionProfileForm context={context} locale={locale} />
-    </div>
-  );
+  redirect(`/${locale}/app/clients/${clientId}/nutrition`);
 }

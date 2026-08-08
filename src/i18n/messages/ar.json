@@ -220,6 +220,27 @@
       "bodyCompleted": "انتهى هذا الموعد بالفعل، وحذف موعد {name} في {when} يزيل السجل نهائيًا.",
       "confirm": "حذف الموعد"
     },
+    "repeatBooking": {
+      "title": "تكرار هذا الحجز أسبوعيًا؟",
+      "body": "تم حجز موعد {name} في {when}. هل تريد تكرار اليوم والوقت نفسه كل أسبوع؟",
+      "durationLabel": "مدة التكرار",
+      "presets": {
+        "week1": "أسبوع واحد",
+        "week2": "أسبوعان",
+        "week3": "٣ أسابيع",
+        "month1": "شهر واحد"
+      },
+      "custom": "مدة مخصّصة…",
+      "customLabel": "عدد الأسابيع",
+      "weeks": "{count, plural, zero {# أسبوع} one {أسبوع واحد} two {أسبوعان} few {# أسابيع} many {# أسبوعًا} other {# أسبوع}}",
+      "preview": "سيضيف {count, plural, zero {# موعد} one {موعدًا واحدًا} two {موعدين} few {# مواعيد} many {# موعدًا} other {# موعد}}، بواقع موعد كل أسبوع، آخرها {until}.",
+      "skipNote": "يُتخطّى أي أسبوع تكون فيه العيادة مغلقة أو يكون الوقت محجوزًا.",
+      "confirm": "تأكيد",
+      "cancel": "لا",
+      "created": "تم الحجز كل أسبوع لمدة شهر، بإضافة {count, number, integer} مواعيد.",
+      "partial": "أُضيفت {count, number, integer} مواعيد أسبوعية، وتُخطّي {skipped, number, integer} منها لأن الوقت غير متاح.",
+      "none": "لم تُضف أي مواعيد أسبوعية، فالوقت غير متاح في أي من الأسابيع القادمة."
+    },
     "errors": {
       "tooShort": "أقصر مدة للموعد ١٥ دقيقة.",
       "invalidDate": "تاريخ غير صحيح. استخدم صيغة مثل 2026-08-05 أو 8/5/2026.",
@@ -362,8 +383,6 @@
     "new": "متابع جديد",
     "createTitle": "إضافة متابع",
     "createHint": "الاسم ورقم الهاتف والبريد وتاريخ الميلاد تكفي للبدء.",
-    "moreDetails": "تفاصيل أكثر",
-    "fewerDetails": "تفاصيل أقل",
     "editTitle": "تعديل بيانات المتابع",
     "edit": "تعديل",
     "empty": "لا يوجد متابعون بعد. ابدأ بإضافة أول متابع.",
@@ -393,12 +412,12 @@
       "info": "بيانات المتابع",
       "visits": "سجل الزيارات",
       "plans": "الخطط الغذائية",
-      "portal": "الدخول إلى البوابة"
+      "portal": "الدخول إلى البوابة",
+      "nutrition": "التغذية"
     },
     "sections": {
       "contact": "بيانات التواصل",
-      "intake": "بيانات الحالة",
-      "notes": "ملاحظات"
+      "demographics": "بيانات أساسية"
     },
     "fields": {
       "fullName": "الاسم الكامل",
@@ -418,7 +437,19 @@
       "status": "الحالة",
       "createdAt": "تاريخ التسجيل",
       "portalAccess": "الدخول إلى البوابة",
-      "actions": "إجراءات"
+      "actions": "إجراءات",
+      "conditions": "الحالات الصحية",
+      "medications": "الأدوية والمكمّلات",
+      "careNote": "ملاحظة للمتابِعة",
+      "weightKg": "الوزن (كغ)",
+      "dailyKcalTarget": "السعرات اليومية",
+      "proteinTargetGrams": "البروتين (غ)",
+      "preferences": "التفضيلات",
+      "dislikes": "أطعمة غير مرغوبة",
+      "permanentInstructions": "تعليمات دائمة",
+      "slotLabel": "اسم الوجبة",
+      "slotTime": "الوقت",
+      "slotShare": "النسبة %"
     },
     "status": {
       "active": "نشِط",
@@ -480,7 +511,83 @@
       "invalid": "تحقّق من الحقول المميّزة بالأحمر.",
       "usernameTaken": "اسم المستخدم هذا مستخدم بالفعل. اختر غيره.",
       "usernameInvalid": "استخدم من 3 إلى 60 حرفاً أو رقماً أو شرطة.",
-      "unexpected": "حدث خطأ غير متوقع. حاول مجددًا."
+      "unexpected": "حدث خطأ غير متوقع. حاول مجددًا.",
+      "clientNotFound": "العميل غير موجود."
+    },
+    "intake": {
+      "createTitle": "استكمال بيانات التغذية",
+      "editTitle": "تعديل بيانات التغذية",
+      "forClient": "لـ {name}",
+      "save": "حفظ البيانات",
+      "edit": "تعديل",
+      "start": "ابدأ الآن",
+      "sections": {
+        "measurements": "القياسات",
+        "allergies": "الحساسية والحالة الصحية",
+        "clinical": "الملاحظات الطبية",
+        "planning": "ما تلتزم به الخطة",
+        "private": "ملاحظات خاصة",
+        "portal": "ما تراه المتابِعة",
+        "targets": "الأهداف",
+        "schedule": "جدول الوجبات"
+      },
+      "allergenLegend": "أشّري كل مادة يجب استبعادها",
+      "allergyDetailLabel": "تفاصيل الحساسية",
+      "privateBadge": "خاص بالعيادة",
+      "fromFormula": "محسوب",
+      "suggested": "مقترح",
+      "noAllergens": "لا توجد مواد مستبعدة — الكتالوج غير مُصفّى.",
+      "shareWeight": "إظهار الوزن للمتابِعة",
+      "shareWeightHint": "معطّل افتراضياً. عند التعطيل لا تظهر البطاقة أصلاً بدل أن تظهر فارغة.",
+      "shared": "يظهر لها",
+      "notShared": "لا يظهر لها",
+      "careNoteHint": "تُعرض للمتابِعة كما تُكتب هنا.",
+      "removeSlotOf": "حذف وجبة {label}",
+      "missingFields": "لإتمام التوليد أضف: {fields}",
+      "kcalValue": "{value} kcal",
+      "gramsValue": "{value} غ",
+      "override": "يدوي",
+      "shareTotal": "مجموع النسب {value}%",
+      "addSlot": "إضافة وجبة",
+      "allergenHint": "الخانات أعلاه هي وحدها ما يستبعد الأطباق من الكتالوج.",
+      "dailyTarget": "الهدف اليومي",
+      "bmi": "مؤشر كتلة الجسم",
+      "sectionsLabel": "أقسام بيانات التغذية",
+      "hasContent": "يحتوي على بيانات",
+      "allergyDetailPlaceholder": "مثال: حساسية خفيفة من الجوز دون اللوز، والألبان الخالية من اللاكتوز مقبولة.",
+      "overrideDivider": "أرقام يدوية",
+      "unsetCount": "{count} حقول غير مُدخلة",
+      "unsetOne": "حقل واحد غير مُدخل",
+      "complete": "كل الحقول مُدخلة",
+      "bmiLabel": "كتلة الجسم {category}",
+      "noSchedule": "لا يوجد جدول وجبات",
+      "hour": "الساعة",
+      "minute": "الدقيقة",
+      "customAllergenLegend": "حساسيات أخرى (لا تُصفّي الكتالوج)",
+      "customAllergenPlaceholder": "اسم المادة",
+      "addAllergen": "إضافة حساسية",
+      "removeAllergen": "حذف {name}"
+    },
+    "allergens": {
+      "nuts": "مكسرات",
+      "lactose": "لاكتوز",
+      "gluten": "غلوتين",
+      "egg": "بيض",
+      "fish": "سمك",
+      "sesame": "سمسم"
+    },
+    "bmiCategories": {
+      "underweight": "نقص وزن",
+      "normal": "وزن طبيعي",
+      "overweight": "زيادة وزن",
+      "obese": "سمنة",
+      "severely_obese": "سمنة مفرطة"
+    },
+    "units": {
+      "cm": "سم",
+      "kg": "كغ",
+      "kcal": "kcal",
+      "g": "غ"
     }
   },
   "portal": {
@@ -1024,6 +1131,19 @@
     "generate": "توليد خطة بالذكاء الاصطناعي",
     "generating": "جارٍ التوليد…",
     "generatingHint": "توليد أسبوع كامل يستغرق نحو دقيقة. لا تُغلق الصفحة.",
+    "generationLoading": {
+      "title": "جارٍ إعداد الأسبوع الجديد",
+      "regenerateTitle": "جارٍ إعادة إعداد هذا الأسبوع",
+      "description": "يطابق الذكاء الاصطناعي أهداف العميل وتعليماته مع الأطباق الموجودة في الكتالوج المعتمد.",
+      "elapsed": "انقضت {seconds, plural, zero {# ثانية} one {ثانية واحدة} two {ثانيتان} few {# ثوانٍ} many {# ثانية} other {# ثانية}}",
+      "activity": {
+        "targets": "جارٍ قراءة أهداف العميل وتعليمات الأسبوع…",
+        "catalog": "جارٍ مطابقة الأطباق المناسبة من الكتالوج المعتمد…",
+        "balance": "جارٍ موازنة الوجبات على أيام الأسبوع السبعة…",
+        "draft": "جارٍ إعداد مسودة لمراجعتك…"
+      },
+      "review": "ستبقى النتيجة مسودة إلى أن تراجعها وتنشرها."
+    },
     "regenerate": "إعادة التوليد",
     "regenerateDay": "إعادة توليد هذا اليوم",
     "regenerateMeal": "إعادة توليد هذه الوجبة",
@@ -1339,6 +1459,7 @@
       "button": "إرسال",
       "sent": "تم إرسال الرسالة.",
       "noPhone": "لا يوجد رقم هاتف صالح لهذا المتابع.",
+      "notOnWhatsapp": "واتساب لا يتعرّف على رقم هاتف هذا المتابع.",
       "notConnected": "واتساب غير متصل حاليًا.",
       "notConfigured": "لم يتم ربط واتساب بعد."
     },

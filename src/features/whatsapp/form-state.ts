@@ -28,7 +28,10 @@ export type AutomationActionState =
 export type SendMessageActionState =
   | { status: 'idle' }
   | { status: 'error'; messageKey: 'errors.invalid' | 'errors.sendFailed' | 'errors.unexpected' }
-  | { status: 'skipped'; messageKey: 'send.noPhone' | 'send.notConnected' | 'send.notConfigured' }
+  | {
+      status: 'skipped';
+      messageKey: 'send.noPhone' | 'send.notOnWhatsapp' | 'send.notConnected' | 'send.notConfigured';
+    }
   | { status: 'success'; messageKey: 'send.sent' };
 
 export const initialConnectionState: ConnectionActionState = { status: 'idle' };

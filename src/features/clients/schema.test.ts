@@ -21,24 +21,14 @@ describe('clientFormSchema', () => {
       ...minimal,
       phone: '',
       email: '',
-      heightCm: '',
-      goal: '',
       dateOfBirth: '',
+      sex: '',
     });
     expect(result.success).toBe(true);
     expect(result.data?.phone).toBeUndefined();
     expect(result.data?.email).toBeUndefined();
-    expect(result.data?.heightCm).toBeUndefined();
-    expect(result.data?.goal).toBeUndefined();
-  });
-
-  test('coerces a numeric string height', () => {
-    const result = clientFormSchema.safeParse({ ...minimal, heightCm: '172' });
-    expect(result.data?.heightCm).toBe(172);
-  });
-
-  test('rejects an implausible height', () => {
-    expect(clientFormSchema.safeParse({ ...minimal, heightCm: '500' }).success).toBe(false);
+    expect(result.data?.dateOfBirth).toBeUndefined();
+    expect(result.data?.sex).toBeUndefined();
   });
 
   test('lowercases and trims email', () => {
@@ -51,7 +41,17 @@ describe('clientFormSchema', () => {
   });
 
   test('rejects an unknown enum value', () => {
-    expect(clientFormSchema.safeParse({ ...minimal, goal: 'become_taller' }).success).toBe(false);
+    expect(clientFormSchema.safeParse({ ...minimal, sex: 'unknown' }).success).toBe(false);
+  });
+
+  // The clinical fields moved to `intakeSchema`; the card must not silently
+  // accept and then drop one, which is how a height typed into the wrong form
+  // would vanish without an error.
+  test('ignores clinical fields — they belong to the intake', () => {
+    const result = clientFormSchema.safeParse({ ...minimal, heightCm: '172', goal: 'weight_loss' });
+    expect(result.success).toBe(true);
+    expect(result.data).not.toHaveProperty('heightCm');
+    expect(result.data).not.toHaveProperty('goal');
   });
 
   test('rejects a malformed date of birth', () => {
@@ -63,11 +63,11 @@ describe('clientFormSchema', () => {
   });
 
   test('reports the offending field so the form can highlight it', () => {
-    const result = clientFormSchema.safeParse({ fullName: '', heightCm: '999' });
+    const result = clientFormSchema.safeParse({ fullName: '', email: 'not-an-email' });
     expect(result.success).toBe(false);
     const fieldErrors = result.error ? Object.keys(z.flattenError(result.error).fieldErrors) : [];
     expect(fieldErrors).toContain('fullName');
-    expect(fieldErrors).toContain('heightCm');
+    expect(fieldErrors).toContain('email');
   });
 });
 

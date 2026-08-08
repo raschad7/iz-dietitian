@@ -597,21 +597,35 @@ a field olive-50 and focus takes the olive edge, so a field wearing both at rest
 was signalling a pointer that wasn't there, and a freshly opened client card was
 a block of green before anyone had typed a character.
 
-Mark the essential fields by **showing** them — the client card puts its four
-behind nothing and everything else behind a disclosure — or by type and wording.
-Don't spend a state the pointer already owns.
+Mark the essential fields by **showing** them — a form that asks for only what
+it needs needs no emphasis at all — or by type and wording. Don't spend a state
+the pointer already owns.
 
-### The client card
+### The two client dialogs
 
-`ClientFormTrigger` is the **only** surface a client record is
-written on — creating and editing both open it over whatever screen asked, and
-neither has a page of its own. A record is edited from the register, from the
-record itself, and from inside the calendar's appointment card, and in none of
-those places is losing your place a reasonable price for fixing a phone number.
-The four core fields show first; the remaining eight sit behind a centred
-disclosure that grows the card in both directions. An existing record opens
-with the disclosure already open when it has anything in that half — hiding a
-goal and three lines of medical notes reads as the app having lost them.
+A client record is written on **dialogs, never on a page**. Creating and editing
+both open over whatever screen asked, a record is edited from the register, from
+the record itself, from the calendar's appointment card and from the planner's
+context panel, and in none of those is losing your place a reasonable price for
+fixing a phone number or recording a weigh-in.
+
+There are two, and the split is by *what kind of fact*, not by how much room is
+left:
+
+- **`ClientFormTrigger` — the client card.** Identity: name, email, date of
+  birth, phone, sex. Five fields, one column, one width, no disclosure. This is
+  what a walk-in is created from.
+- **`IntakeFormTrigger` — the intake.** Everything clinical, across both
+  `clients` and `client_nutrition_profiles`: measurements, allergies, targets,
+  the meal schedule, and what the portal shows. Read on the client's Nutrition
+  tab, written here.
+
+⚠ **Don't put a clinical field back on the card.** The card used to carry six of
+them behind a "more details" disclosure while the rest lived on a form owned by
+the weekly planner. Neither surface held a whole client, the six inputs the
+calorie formula needs were split five-and-one across them, and the planner's
+"missing fields" banner named fields its own link could not edit. That is what
+the disclosure cost, and it is why there is no longer one.
 
 **Its header has no close button.** Escape, a backdrop click and the footer's
 own Cancel all close it already; a third exit only crowds the corner the title
