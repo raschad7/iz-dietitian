@@ -108,7 +108,8 @@ function Segmented<T extends string>({
             aria-checked={isTablist ? undefined : active}
             onClick={() => onChange(option.value)}
             className={cn(
-              'flex items-center justify-center rounded-md font-medium transition-colors duration-180',
+              'flex items-center justify-center rounded-md font-medium',
+              'transition-[color,background-color,box-shadow,transform] duration-(--duration-label) ease-(--ease-sweep)',
               'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-focus-halo focus-visible:outline-none',
               // `h-full`: the track owns the height (see above), the option
               // owns its inline padding.
@@ -118,14 +119,14 @@ function Segmented<T extends string>({
               // repaint the selected half; it defaults to that same olive, which
               // is what every shape draws unless told otherwise.
               active
-                ? activeClassName
+                ? cn(activeClassName, 'scale-100 shadow-card')
                 : pill
                   ? // An unselected half sits on the track, not on the page, so
                     // `muted-foreground` on `muted` is the one pairing to avoid
                     // here — it measures under 4.5:1. Full-strength foreground
                     // instead, with the weight and the fill carrying the state.
-                    'text-foreground hover:bg-card'
-                  : 'text-muted-foreground hover:bg-secondary hover:text-secondary-foreground',
+                    'scale-[0.99] text-foreground hover:scale-100 hover:bg-card'
+                  : 'scale-[0.99] text-muted-foreground hover:scale-100 hover:bg-secondary hover:text-secondary-foreground',
             )}
           >
             {option.label}

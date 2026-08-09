@@ -42,7 +42,9 @@
     "weeklyPlans": "Weekly Plans",
     "dishes": "Dish catalog",
     "whatsapp": "WhatsApp",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "openNavigation": "Open navigation",
+    "closeNavigation": "Close navigation"
   },
   "landing": {
     "title": "Run your dietitian practice in one place",
@@ -219,23 +221,22 @@
       "bodyCompleted": "This appointment has already finished. Deleting {name} on {when} removes the record permanently.",
       "confirm": "Delete appointment"
     },
-    "repeatBooking": {
-      "title": "Repeat this booking every week?",
-      "body": "{name} is booked for {when}. Repeat the same day and time every week?",
-      "durationLabel": "Repeat for",
+    "repeat": {
+      "label": "Repeats",
+      "never": "Does not repeat",
       "presets": {
-        "week1": "1 week",
-        "week2": "2 weeks",
-        "week3": "3 weeks",
-        "month1": "1 month"
-      },
-      "custom": "Custom…",
+        "week1": "Weekly, for 1 week",
+        "week2": "Weekly, for 2 weeks",
+        "week3": "Weekly, for 3 weeks",
+        "month1": "Weekly, for 1 month"
+      }
+    },
+    "repeatBooking": {
+      "custom": "Weekly, custom length…",
       "customLabel": "Number of weeks",
       "weeks": "{count, plural, one {1 week} other {# weeks}}",
       "preview": "Adds {count, plural, one {1 appointment} other {# appointments}}, one a week, ending {until}.",
       "skipNote": "Any week the clinic is closed, or the hour is already taken, is skipped.",
-      "confirm": "Confirm",
-      "cancel": "No",
       "created": "Booked every week for a month — {count, number, integer} more appointments added.",
       "partial": "{count, number, integer} weekly appointments added. {skipped, number, integer} were skipped because that slot was not free.",
       "none": "No weekly repeats were added — that slot is not free on any of the coming weeks."
@@ -293,11 +294,19 @@
   },
   "notifications": {
     "title": "Notifications",
-    "trigger": "Notifications, {count, plural, =0 {nothing pending} one {# pending request} other {# pending requests}}",
+    "subtitle": "Requests waiting for an answer, and clients whose record has gone quiet.",
     "empty": "Nothing needs you right now",
+    "emptyDescription": "No requests to answer, and no client is overdue a check-in. This page fills itself as things come in.",
     "preferred": "Asked for {when}",
-    "reviewRequests": "Review {count, plural, one {# request} other {# requests}}",
-    "viewClients": "All clients",
+    "reviewRequests": "Review all {count, plural, one {# request} other {# requests}}",
+    "groups": {
+      "requests": "Appointment requests",
+      "requestsDescription": "Clients asking to book, move or cancel a visit. Answered in the requests inbox.",
+      "requestsEmpty": "No requests waiting.",
+      "attention": "Clients to check on",
+      "attentionDescription": "Nobody is waiting on a reply here — these are records that have gone quiet.",
+      "attentionEmpty": "Every client is up to date."
+    },
     "request": {
       "new": "New booking request",
       "reschedule": "Reschedule request",
@@ -307,7 +316,8 @@
       "noUpcomingAppointment": "No upcoming appointment",
       "noWeeklyPlan": "No plan this week",
       "neverSignedIn": "Never signed in to the portal"
-    }
+    },
+    "seeAll": "See all notifications"
   },
   "requests": {
     "title": "Requests",
@@ -366,7 +376,8 @@
       }
     },
     "dashboard": {
-      "title": "Waiting on you ({count, number, integer})",
+      "heading": "Client requests",
+      "empty": "Nothing is waiting on an answer.",
       "openInbox": "All requests"
     },
     "errors": {
@@ -453,7 +464,7 @@
       "notes": "Notes",
       "status": "Status",
       "createdAt": "Registered",
-      "portalAccess": "Portal access",
+      "portalAccess": "Portal",
       "actions": "Actions",
       "conditions": "Conditions",
       "medications": "Medications and supplements",
@@ -527,7 +538,8 @@
         "skipped": "Not sent over WhatsApp — check the number and the connection status.",
         "failed": "WhatsApp delivery failed. Hand the details over in person."
       },
-      "state": "Sign-in {state}"
+      "state": "Sign-in {state}",
+      "granted": "Yes"
     },
     "errors": {
       "invalid": "Check the fields highlighted in red.",
@@ -625,6 +637,23 @@
       "createPlan": "Create",
       "currentPlan": "Current plan",
       "noPlan": "No plan yet"
+    },
+    "archive": {
+      "title": "Archived clients",
+      "subtitle": "Restore anyone who should be back on the register.",
+      "empty": "Nothing has been archived."
+    },
+    "visits": {
+      "upcoming": "Upcoming",
+      "past": "Past visits",
+      "totalVisits": "Appointments",
+      "completedVisits": "Visits so far",
+      "lastVisit": "Last visit",
+      "nextVisit": "Next visit",
+      "noUpcoming": "None booked",
+      "noPast": "No visits yet",
+      "empty": "No appointments on this record yet.",
+      "book": "Open the calendar"
     }
   },
   "portal": {
@@ -1349,6 +1378,17 @@
     "addMealLabel": "Meal name",
     "addMealPlaceholder": "Evening snack",
     "addMealTime": "Time",
+    "addMealIcon": "Choose a food icon",
+    "mealIconChoices": {
+      "tea": "Tea cup",
+      "hotDrink": "Hot drink",
+      "snack": "Snack",
+      "bottle": "Drink bottle",
+      "chef": "Chef hat",
+      "chefHeart": "Prepared meal",
+      "plate": "Dinner plate",
+      "chefMinimal": "Chef choice"
+    },
     "removeSlotConfirm": "Remove {slot} from all seven days? Any dishes placed in it are removed too.",
     "restoreSlot": "Add {slot} back to this day",
     "removeMeal": "Remove meal",
@@ -1530,7 +1570,6 @@
     }
   },
   "clinicProfile": {
-    "eyebrow": "Clinic setup",
     "onboardingTitle": "Set up your clinic",
     "onboardingDescription": "Add the essentials once so appointments and daily work match how your clinic actually operates.",
     "profileTitle": "Clinic profile",
@@ -1557,9 +1596,17 @@
     "professionalPhone": "Professional phone",
     "licenseNumber": "License number",
     "optional": "optional",
+    "day": "Day",
     "opens": "Opens",
     "closes": "Closes",
-    "offDay": "Off day",
+    "hour": "Hour",
+    "minute": "Minute",
+    "applyToAll": "Same hours every day",
+    "applyToAllSource": "Copies {day}'s hours to every open day.",
+    "leaveTitle": "Leave without saving?",
+    "leaveDescription": "This section has changes you have not saved yet. Switching away discards them.",
+    "leaveConfirm": "Discard changes",
+    "leaveCancel": "Keep editing",
     "back": "Back",
     "next": "Continue",
     "finish": "Finish setup",

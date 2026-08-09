@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>مقترح تصميم المخطط الأسبوعي</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --olive-950: #273719;
+        --olive-800: #47672a;
+        --olive: #6b9639;
+        --lime: #b6da78;
+        --lime-soft: #ecf6dc;
+        --ink: #1f2937;
+        --muted: #6b7280;
+        --line: #e5e7eb;
+        --surface: #ffffff;
+        --canvas: #f3f4f6;
+        --sunken: #f9fafb;
+        --warning-bg: #fff7e6;
+        --warning: #9a6300;
+        --danger-bg: #fdf0ee;
+        --danger: #b54134;
+        --shadow: 0 12px 30px rgb(31 41 55 / 7%);
+      }
+
+      * { box-sizing: border-box; }
+      html { background: var(--canvas); }
+      body {
+        margin: 0;
+        min-width: 320px;
+        background: var(--canvas);
+        color: var(--ink);
+        font-family: Tajawal, sans-serif;
+        font-size: 14px;
+        line-height: 1.45;
+      }
+
+      button, input { font: inherit; }
+      button { cursor: pointer; }
+      .icon { width: 20px; height: 20px; flex: 0 0 auto; fill: currentColor; }
+
+      .app-shell { min-height: 100vh; display: flex; }
+      .app-rail {
+        width: 88px;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 14px;
+        padding: 20px 12px;
+        color: #dcebc9;
+        background: var(--olive-950);
+      }
+      .brand {
+        width: 44px; height: 44px; display: grid; place-items: center;
+        border-radius: 15px; color: var(--olive-950); background: var(--lime);
+        font-size: 22px; font-weight: 800;
+      }
+      .nav-item {
+        width: 56px; height: 54px; border: 0; border-radius: 13px;
+        display: grid; place-items: center; gap: 2px; color: #dcebc9;
+        background: transparent; font-size: 10px;
+      }
+      .nav-item svg { width: 19px; }
+      .nav-item.active { color: #fff; background: rgb(255 255 255 / 13%); }
+      .nav-spacer { flex: 1; }
+      .avatar { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 50%; background: #d7eabf; color: var(--olive-950); font-weight: 800; }
+
+      .page { width: min(1740px, calc(100% - 88px)); margin-inline: auto; padding: 26px 30px 34px; }
+      .eyebrow { margin: 0 0 5px; color: var(--olive-800); font-size: 12px; font-weight: 700; }
+      .topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 20px; }
+      h1 { margin: 0; color: var(--olive-950); font-size: clamp(25px, 2.5vw, 34px); line-height: 1.2; }
+      .subhead { margin: 7px 0 0; color: var(--muted); }
+      .top-actions, .toolbar, .week-nav, .heading-row, .tags, .macro-row { display: flex; align-items: center; gap: 9px; }
+      .top-actions { justify-content: flex-end; flex-wrap: wrap; }
+      .button {
+        min-height: 42px; padding: 0 14px; border: 1px solid var(--line); border-radius: 10px;
+        display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+        color: #374151; background: var(--surface); font-weight: 700; transition: .18s ease;
+      }
+      .button:hover { border-color: #b8caa3; background: #f8fbf3; }
+      .button.primary { border-color: var(--olive); color: #fff; background: var(--olive); box-shadow: 0 5px 13px rgb(107 150 57 / 22%); }
+      .button.primary:hover { background: var(--olive-800); }
+      .button .icon { width: 18px; }
+
+      .client-context {
+        display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 13px;
+        padding: 13px 15px; margin-bottom: 16px; border: 1px solid var(--line); border-radius: 14px;
+        background: var(--surface); box-shadow: 0 3px 10px rgb(31 41 55 / 3%);
+      }
+      .client-avatar { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 50%; color: var(--olive-950); background: #e2efd1; font-weight: 800; }
+      .client-name { margin: 0; font-size: 16px; font-weight: 800; }
+      .client-meta { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
+      .goal-chip { padding: 7px 10px; border-radius: 8px; color: var(--olive-800); background: var(--lime-soft); font-size: 12px; font-weight: 700; white-space: nowrap; }
+
+      .workspace { display: grid; grid-template-columns: minmax(0, 1fr) 282px; gap: 18px; direction: rtl; }
+      .planner { min-width: 0; }
+      .planner-control {
+        display: flex; align-items: center; justify-content: space-between; gap: 14px;
+        padding: 12px 14px; margin-bottom: 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface);
+      }
+      .week-nav { flex-wrap: wrap; }
+      .icon-only { width: 34px; height: 34px; padding: 0; border: 1px solid var(--line); border-radius: 8px; display: grid; place-items: center; color: #4b5563; background: #fff; }
+      .icon-only:hover { background: var(--sunken); }
+      .week-label { margin: 0 3px; color: var(--olive-950); font-weight: 800; white-space: nowrap; }
+      .status { padding: 6px 9px; border-radius: 7px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+      .status.draft { color: var(--warning); background: var(--warning-bg); }
+      .status.ready { color: var(--olive-800); background: var(--lime-soft); }
+      .status.alert { color: var(--danger); background: var(--danger-bg); }
+      .planner-note { color: var(--muted); font-size: 12px; }
+
+      .week-wrap { overflow-x: auto; padding-bottom: 4px; }
+      .week-grid { min-width: 1030px; display: grid; grid-template-columns: repeat(7, minmax(142px, 1fr)); gap: 9px; }
+      .day {
+        min-height: 554px; overflow: hidden; border: 1px solid var(--line); border-radius: 13px; background: var(--surface);
+      }
+      .day.today { border-color: #b7cf98; box-shadow: 0 0 0 2px rgb(182 218 120 / 32%); }
+      .day-head { padding: 12px 11px 10px; border-bottom: 1px solid var(--line); background: #fcfcfb; }
+      .day.today .day-head { background: #f5faed; }
+      .date-line { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; }
+      .weekday { color: var(--olive-950); font-weight: 800; }
+      .date { color: var(--muted); font-size: 12px; }
+      .day-target { margin-top: 5px; color: var(--muted); font-size: 11px; }
+      .day-target strong { color: var(--olive-800); font-size: 12px; }
+      .meal-list { padding: 8px; display: grid; gap: 8px; }
+      .meal-card { padding: 9px; border: 1px solid #edf0ea; border-radius: 10px; background: #fff; transition: .18s ease; }
+      .meal-card:hover { border-color: #bfd3a5; box-shadow: 0 6px 14px rgb(31 41 55 / 6%); transform: translateY(-1px); }
+      .meal-top { display: flex; align-items: center; justify-content: space-between; gap: 5px; }
+      .meal-type { color: var(--muted); font-size: 11px; font-weight: 700; }
+      .handle { color: #b5bdc8; letter-spacing: -1px; font-size: 17px; line-height: 1; }
+      .dish-name { margin: 5px 0 1px; color: #26351b; font-size: 13px; font-weight: 800; line-height: 1.3; }
+      .dish-detail { color: var(--muted); font-size: 11px; }
+      .meal-foot { display: flex; align-items: center; justify-content: space-between; gap: 5px; margin-top: 7px; }
+      .calories { color: var(--olive-800); font-size: 11px; font-weight: 800; }
+      .swap { border: 0; padding: 0; color: #68785a; background: transparent; font-size: 11px; font-weight: 700; }
+      .swap:hover { color: var(--olive-800); text-decoration: underline; }
+      .add-meal { width: calc(100% - 16px); margin: 0 8px 8px; padding: 7px; border: 1px dashed #bdc9b0; border-radius: 8px; color: var(--olive-800); background: #fbfdf8; font-size: 12px; font-weight: 700; }
+      .add-meal:hover { border-color: var(--olive); background: var(--lime-soft); }
+      .day-total { display: flex; justify-content: space-between; margin: auto 8px 8px; padding: 8px 9px; border-radius: 8px; color: #526043; background: var(--sunken); font-size: 11px; }
+      .day-total strong { color: var(--olive-950); }
+
+      .catalog { align-self: start; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--surface); box-shadow: var(--shadow); }
+      .catalog-head { padding: 15px; border-bottom: 1px solid var(--line); }
+      .catalog-title { margin: 0; color: var(--olive-950); font-size: 16px; font-weight: 800; }
+      .catalog-subtitle { margin: 3px 0 0; color: var(--muted); font-size: 12px; }
+      .search { position: relative; margin-top: 12px; }
+      .search .icon { position: absolute; inset-inline-start: 10px; top: 10px; width: 17px; color: #9ca3af; }
+      .search input { width: 100%; height: 38px; padding: 0 34px 0 10px; border: 1px solid var(--line); border-radius: 8px; outline: 0; color: var(--ink); background: var(--sunken); }
+      .search input:focus { border-color: var(--olive); box-shadow: 0 0 0 3px rgb(107 150 57 / 13%); background: #fff; }
+      .filters { display: flex; gap: 6px; overflow-x: auto; padding: 10px 15px; border-bottom: 1px solid var(--line); }
+      .filter { flex: 0 0 auto; border: 0; padding: 5px 8px; border-radius: 6px; color: #66705f; background: transparent; font-size: 11px; font-weight: 700; }
+      .filter.active { color: var(--olive-800); background: var(--lime-soft); }
+      .dish-list { display: grid; gap: 7px; padding: 10px; }
+      .catalog-dish { padding: 9px; border: 1px solid transparent; border-radius: 9px; display: grid; grid-template-columns: 33px 1fr auto; gap: 8px; align-items: center; background: #fff; }
+      .catalog-dish:hover { border-color: #c9d9b8; background: #fbfdf8; }
+      .dish-thumb { width: 33px; height: 33px; border-radius: 8px; display: grid; place-items: center; color: var(--olive-800); background: #e9f1df; font-size: 16px; }
+      .catalog-dish h3 { margin: 0; color: #354229; font-size: 12px; font-weight: 800; }
+      .catalog-dish p { margin: 1px 0 0; color: var(--muted); font-size: 10px; }
+      .add-dish { width: 26px; height: 26px; border: 1px solid #c6d8ae; border-radius: 7px; display: grid; place-items: center; color: var(--olive-800); background: #f6faef; font-size: 18px; line-height: 1; }
+      .add-dish:hover { color: #fff; border-color: var(--olive); background: var(--olive); }
+      .catalog-footer { padding: 12px 15px; border-top: 1px solid var(--line); }
+      .catalog-footer .button { width: 100%; min-height: 38px; font-size: 12px; }
+
+      .summary { display: grid; grid-template-columns: 1.15fr .85fr .85fr .85fr; gap: 10px; margin-top: 15px; }
+      .summary-card { min-width: 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+      .summary-label { color: var(--muted); font-size: 11px; font-weight: 700; }
+      .summary-value { margin-top: 3px; color: var(--olive-950); font-size: 19px; font-weight: 800; }
+      .summary-value small { color: var(--muted); font-size: 11px; font-weight: 500; }
+      .bar { height: 6px; overflow: hidden; margin-top: 9px; border-radius: 999px; background: #e7ebe3; }
+      .bar > span { display: block; height: 100%; border-radius: inherit; background: var(--olive); }
+      .summary-hint { margin-top: 3px; color: var(--olive-800); font-size: 11px; }
+
+      .floating-help { position: fixed; inset-inline-start: 22px; bottom: 22px; width: 45px; height: 45px; border: 0; border-radius: 50%; display: grid; place-items: center; color: #fff; background: var(--olive-800); box-shadow: 0 9px 22px rgb(39 55 25 / 25%); }
+
+      @media (max-width: 1200px) {
+        .workspace { grid-template-columns: minmax(0, 1fr) 250px; }
+        .page { padding-inline: 20px; }
+      }
+      @media (max-width: 960px) {
+        .app-rail { display: none; }
+        .page { width: 100%; }
+        .workspace { grid-template-columns: 1fr; }
+        .catalog { order: 2; }
+        .dish-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .summary { grid-template-columns: repeat(2, 1fr); }
+      }
+      @media (max-width: 620px) {
+        .page { padding: 17px 13px 30px; }
+        .topbar, .planner-control { align-items: stretch; flex-direction: column; }
+        .top-actions { justify-content: stretch; }
+        .top-actions .button { flex: 1; }
+        .client-context { grid-template-columns: auto 1fr; }
+        .goal-chip { grid-column: 1 / -1; justify-self: start; }
+        .planner-control .toolbar { justify-content: space-between; }
+        .planner-note { display: none; }
+        .dish-list { grid-template-columns: 1fr; }
+        .summary { grid-template-columns: 1fr 1fr; }
+        .summary-card:first-child { grid-column: 1 / -1; }
+        .floating-help { inset-inline-start: 15px; bottom: 15px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="app-rail" aria-label="التنقل الرئيسي">
+        <div class="brand">ن</div>
+        <button class="nav-item" aria-label="لوحة التحكم"><svg class="icon" viewBox="0 0 24 24"><path d="M3 13h7V3H3v10Zm0 8h7v-6H3v6Zm11 0h7V11h-7v10Zm0-18v6h7V3h-7Z"/></svg><span>الرئيسية</span></button>
+        <button class="nav-item" aria-label="العملاء"><svg class="icon" viewBox="0 0 24 24"><path d="M16 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM8 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-3.31 0-6 1.79-6 4v3h12v-3c0-2.21-2.69-4-6-4Zm8 0c-.41 0-.8.04-1.17.11 1.32.89 2.17 2.09 2.17 3.89v3h5v-3c0-2.21-2.69-4-6-4Z"/></svg><span>العملاء</span></button>
+        <button class="nav-item" aria-label="المواعيد"><svg class="icon" viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2Zm0 16H5V9h14v11ZM7 11h5v5H7z"/></svg><span>التقويم</span></button>
+        <button class="nav-item active" aria-current="page"><svg class="icon" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2ZM9 17H7v-2h2v2Zm0-4H7v-2h2v2Zm0-4H7V7h2v2Zm8 8h-6v-2h6v2Zm0-4h-6v-2h6v2Zm0-4h-6V7h6v2Z"/></svg><span>الخطط</span></button>
+        <div class="nav-spacer"></div>
+        <div class="avatar" aria-label="أميرة">أ</div>
+      </aside>
+
+      <main class="page">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">مقترح تصميم · نسخة توضيحية</p>
+            <h1>المخطط الأسبوعي</h1>
+            <p class="subhead">مكان عمل واضح لإنشاء الوجبات ومراجعة التوازن قبل نشر الخطة.</p>
+          </div>
+          <div class="top-actions">
+            <button class="button"><svg class="icon" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2Z"/></svg>إضافة وجبة</button>
+            <button class="button primary"><svg class="icon" viewBox="0 0 24 24"><path d="M17 3H5c-1.1 0-1.99.9-1.99 2L3 19c0 1.1.89 2 1.99 2H19c1.1 0 2-.9 2-2V7l-4-4Zm-5 16a3 3 0 1 1 0-6 3 3 0 0 1 0 6Zm3-10H5V5h10v4Z"/></svg>حفظ التغييرات</button>
+          </div>
+        </header>
+
+        <section class="client-context" aria-label="معلومات العميل">
+          <div class="client-avatar">ت</div>
+          <div>
+            <p class="client-name">العميل التجريبي</p>
+            <p class="client-meta">خطة غذائية نشطة · آخر قياس قبل 3 أيام</p>
+          </div>
+          <div class="goal-chip">الهدف اليومي: 1,800 سعرة</div>
+        </section>
+
+        <div class="workspace">
+          <section class="planner" aria-label="خطة الأسبوع">
+            <div class="planner-control">
+              <div class="week-nav">
+                <button class="icon-only" aria-label="الأسبوع التالي">›</button>
+                <p class="week-label">10 – 16 أغسطس 2026</p>
+                <button class="icon-only" aria-label="الأسبوع السابق">‹</button>
+                <button class="button" style="min-height:34px;padding-inline:10px;font-size:12px">اليوم</button>
+              </div>
+              <div class="toolbar">
+                <span class="status draft">مسودة</span>
+                <span class="planner-note">اسحب الوجبات لإعادة ترتيبها</span>
+              </div>
+            </div>
+
+            <div class="week-wrap">
+              <div class="week-grid">
+                <article class="day">
+                  <header class="day-head"><div class="date-line"><span class="weekday">الأحد</span><span class="date">10 أغسطس</span></div><div class="day-target"><strong>1,740</strong> / 1,800 سعرة</div></header>
+                  <div class="meal-list">
+                    <div class="meal-card"><div class="meal-top"><span class="meal-type">الفطور</span><span class="handle">⠿</span></div><p class="dish-name">بيض بالخضار وخبز</p><div class="dish-detail">2 بيضة · شريحة خبز</div><div class="meal-foot"><span class="calories">410 سعرة</span><button class="swap">تبديل</button></div></div>
+                    <div class="meal-card"><div class="meal-top"><span class="meal-type">الغداء</span><span class="handle">⠿</span></div><p class="dish-name">دجاج مشوي وأرز</p><div class="dish-detail">150غ دجاج · كوب أرز</div><div class="meal-foot"><span class="calories">620 سعرة</span><button class="swap">تبديل</button></div></div>
+                    <div class="meal-card"><div class="meal-top"><span class="meal-type">العشاء</span><span class="handle">⠿</span></div><p class="dish-name">سلطة تونة متوسطية</p><div class="dish-detail">علبة تونة · خضار</div><div class="meal-foot"><span class="calories">430 سعرة</span><button class="swap">تبديل</button></div></div>
+                    <div class="meal-card"><div class="meal-top"><span class="meal-type">وجبة خفيفة</span><span class="handle">⠿</span></div><p class="dish-name">زبادي وفاكهة</p><div class="dish-detail">علبة زبادي · موز</div><div class="meal-foot"><span class="calories">280 سعرة</span><button class="swap">تبديل</button></div></div>
+                  </div>
+                  <button class="add-meal">+ إضافة وجبة</button><div class="day-total"><span>إجمالي اليوم</span><strong>1,740</strong></div>
+                </article>
+
+                <article class="day today">
+                  <header class="day-head"><div class="date-line"><span class="weekday">الاثنين · اليوم</span><span class="date">11 أغسطس</span></div><div class="day-target"><strong>1,815</strong> / 1,800 سعرة</div></header>
+                  <div class="meal-list">
+                    <div class="meal-card"><div class="meal-top"><span class="meal-type">الفطور</span><span class="handle">⠿</span></div><p class="dish-name">شوفان بالحليب والتمر</p><div class="dish-detail">½ كوب شوفان · 3 تمرات</div><div class="meal-foot"><span class="calories">390 سعرة</span><button class="swap">تبديل</button></div></div>
+                    <div class="meal-card"><div class="meal-top"><span class="meal-type">الغداء</span><span class="handle">⠿</span></div><p class="dish-name">سمك مشوي وبطاطا</p><div class="dish-detail">180غ سمك · حبة بطاطا</div><div class="meal-foot"><span class="calories">640 سعرة</span><button class="swap">تبديل</button></div></div>
+                    <div class="meal-card"><div class="meal-top"><span class="meal-type">العشاء</span><span class="handle">⠿</span></div><p class="dish-name">شوربة عدس وسلطة</p><div class="dish-detail">طبق شوربة · سلطة جانبية</div><div class="meal-foot"><span class="calories">455 سعرة</span><button class="swap">تبديل</button></div></div>
+                    <div class="meal-card"><div class="meal-top"><span class="meal-type">وجبة خفيفة</span><span class="handle">⠿</span></div><p class="dish-name">تفاحة ولوز</p><div class="dish-detail">تفاحة · 15غ لوز</div><div class="meal-foot"><span class="calories">330 سعرة</span><button class="swap">تبديل</button></div></div>
+                  </div>
+                  <button class="add-meal">+ إضافة وجبة</button><div class="day-total"><span>إجمالي اليوم</span><strong>1,815</strong></div>
+                </article>
+
+                <article class="day">
+                  <header class="day-head"><div class="date-line"><span class="weekday">الثلاثاء</span><span class="date">12 أغسطس</span></div><div class="day-target"><strong>1,670</strong> / 1,800 سعرة</div></header>
+                  <div class="meal-list">
+                    <div class="meal-card"><div class="meal-top"><span class="meal-type">الفطور</span><span class="handle">⠿</span></div><p class="dish-name">لبنة وزعتر وخبز</p><div class="dish-detail">4 ملاعق · رغيف صغير</div><div class="meal-foot"><span class="calories">380 سعرة</span><button class="swap">تبديل</button></div></div>
+                    <div class="meal-card"><div class="meal-top"><span class="meal-type">الغداء</span><span class="handle">⠿</span></div><p class="dish-name">مجدرة وسلطة</p><div class="dish-detail">طبق متوسط · خضار</div><div class="meal-foot"><span class="calories">560 سعرة</span><button class="swap">تبديل</button></div></div>
+                    <div class="meal-card"><div class="meal-top"><span class="meal-type">العشاء</span><span class="handle">⠿</span></div><p class="dish-name">ساندويش ديك رومي</p><div class="dish-detail">خبز أسمر · شرائح ديك رومي</div><div class="meal-foot"><span class="calories">440 سعرة</span><button class="swap">تبديل</button></div></div>
+                    <div class="meal-card"><div class="meal-top"><span class="meal-type">وجبة خفيفة</span><span class="handle">⠿</span></div><p class="dish-name">خيار وجزر وحمص</p><div class="dish-detail">خضار طازجة · 3 ملاعق</div><div class="meal-foot"><span class="calories">290 سعرة</span><button class="swap">تبديل</button></div></div>
+                  </div>
+                  <button class="add-meal">+ إضافة وجبة</button><div class="day-total"><span>إجمالي اليوم</span><strong>1,670</strong></div>
+                </article>
+
+                <article class="day">
+                  <header class="day-head"><div class="date-line"><span class="weekday">الأربعاء</span><span class="date">13 أغسطس</span></div><div class="day-target"><strong>1,760</strong> / 1,800 سعرة</div></header>
+                  <div class="meal-list">
+                    <div class="meal-card"><div class="meal-top"><span class="meal-type">الفطور</span><span class="handle">⠿</span></div><p class="dish-name">أومليت بالجبنة</p><div class="dish-detail">بيضتان · جبنة قليلة الدسم</div><div class="meal-foot"><span class="calories">405 سعرة</span><button class="swap">تبديل</button></div></div>
+                    <div class="meal-card"><div class="meal-top"><span class="meal-type">الغداء</span><span class="handle">⠿</span></div><p class="dish-name">كفتة بالفرن وبرغل</p><div class="dish-detail">150غ كفتة · ¾ كوب برغل</div><div class="meal-foot"><span class="calories">610 سعرة</span><button class="swap">تبديل</button></div></div>
+                    <div class="meal-card"><div class="meal-top"><span class="meal-type">العشاء</span><span class="handle">⠿</span></div><p class="dish-name">فتوش مع جبنة حلوم</p><div class="dish-detail">طبق سلطة · 50غ جبنة</div><div class="meal-foot"><span class="calories">460 سعرة</span><button class="swap">تبديل</button></div></div>
+                    <div class="meal-card"><div class="meal-top"><span class="meal-type">وجبة خفيفة</span><span class="handle">⠿</span></div><p class="dish-name">برتقالة</p><div class="dish-detail">حبة متوسطة</div><div class="meal-foot"><span class="calories">85 سعرة</span><button class="swap">تبديل</button></div></div>
+                  </div>
+                  <button class="add-meal">+ إضافة وجبة</button><div class="day-total"><span>إجمالي اليوم</span><strong>1,760</strong></div>
+                </article>
+
+                <article class="day">
+                  <header class="day-head"><div class="date-line"><span class="weekday">الخميس</span><span class="date">14 أغسطس</span></div><div class="day-target"><strong>1,790</strong> / 1,800 سعرة</div></header>
+                  <div class="meal-list">
+                    <div class="meal-card"><div class="meal-top"><span class="meal-type">الفطور</span><span class="handle">⠿</span></div><p class="dish-name">توست أفوكادو وبيض</p><div class="dish-detail">شريحتان · بيضة</div><div class="meal-foot"><span class="calories">430 سعرة</span><button class="swap">تبديل</button></div></div>
+                    <div class="meal-card"><div class="meal-top"><span class="meal-type">الغداء</span><span class="handle">⠿</span></div><p class="dish-name">مكرونة بصلصة الطماطم</p><div class="dish-detail">كوب ونصف · سلطة</div><div class="meal-foot"><span class="calories">595 سعرة</span><button class="swap">تبديل</button></div></div>
+                    <div class="meal-card"><div class="meal-top"><span class="meal-type">العشاء</span><span class="handle">⠿</span></div><p class="dish-name">ساندويش تونة</p><div class="dish-detail">خبز حبوب كاملة</div><div class="meal-foot"><span class="calories">445 سعرة</span><button class="swap">تبديل</button></div></div>
+                    <div class="meal-card"><div class="meal-top"><span class="meal-type">وجبة خفيفة</span><span class="handle">⠿</span></div><p class="dish-name">حليب وموز</p><div class="dish-detail">كوب حليب · موزة صغيرة</div><div class="meal-foot"><span class="calories">320 سعرة</span><button class="swap">تبديل</button></div></div>
+                  </div>
+                  <button class="add-meal">+ إضافة وجبة</button><div class="day-total"><span>إجمالي اليوم</span><strong>1,790</strong></div>
+                </article>
+
+                <article class="day">
+                  <header class="day-head"><div class="date-line"><span class="weekday">الجمعة</span><span class="date">15 أغسطس</span></div><div class="day-target"><strong>1,835</strong> / 1,800 سعرة</div></header>
+                  <div class="meal-list">
+                    <div class="meal-card"><div class="meal-top"><span class="meal-type">الفطور</span><span class="handle">⠿</span></div><p class="dish-name">فول وزيت زيتون</p><div class="dish-detail">½ كوب فول · رغيف صغير</div><div class="meal-foot"><span class="calories">420 سعرة</span><button class="swap">تبديل</button></div></div>
+                    <div class="meal-card"><div class="meal-top"><span class="meal-type">الغداء</span><span class="handle">⠿</span></div><p class="dish-name">دجاج بالخضار</p><div class="dish-detail">صدر دجاج · خضار مشوية</div><div class="meal-foot"><span class="calories">630 سعرة</span><button class="swap">تبديل</button></div></div>
+                    <div class="meal-card"><div class="meal-top"><span class="meal-type">العشاء</span><span class="handle">⠿</span></div><p class="dish-name">بطاطا مشوية ولبن</p><div class="dish-detail">بطاطا متوسطة · كوب لبن</div><div class="meal-foot"><span class="calories">480 سعرة</span><button class="swap">تبديل</button></div></div>
+                    <div class="meal-card"><div class="meal-top"><span class="meal-type">وجبة خفيفة</span><span class="handle">⠿</span></div><p class="dish-name">تمر وجوز</p><div class="dish-detail">3 تمرات · 10غ جوز</div><div class="meal-foot"><span class="calories">305 سعرة</span><button class="swap">تبديل</button></div></div>
+                  </div>
+                  <button class="add-meal">+ إضافة وجبة</button><div class="day-total"><span>إجمالي اليوم</span><strong>1,835</strong></div>
+                </article>
+
+                <article class="day">
+                  <header class="day-head"><div class="date-line"><span class="weekday">السبت</span><span class="date">16 أغسطس</span></div><div class="day-target"><strong>1,755</strong> / 1,800 سعرة</div></header>
+                  <div class="meal-list">
+                    <div class="meal-card"><div class="meal-top"><span class="meal-type">الفطور</span><span class="handle">⠿</span></div><p class="dish-name">بان كيك بالشوفان</p><div class="dish-detail">قطعتان · فاكهة موسمية</div><div class="meal-foot"><span class="calories">400 سعرة</span><button class="swap">تبديل</button></div></div>
+                    <div class="meal-card"><div class="meal-top"><span class="meal-type">الغداء</span><span class="handle">⠿</span></div><p class="dish-name">أرز بالخضار واللحم</p><div class="dish-detail">كوب أرز · 120غ لحم</div><div class="meal-foot"><span class="calories">650 سعرة</span><button class="swap">تبديل</button></div></div>
+                    <div class="meal-card"><div class="meal-top"><span class="meal-type">العشاء</span><span class="handle">⠿</span></div><p class="dish-name">سلطة دجاج خفيفة</p><div class="dish-detail">100غ دجاج · خضار ورقية</div><div class="meal-foot"><span class="calories">405 سعرة</span><button class="swap">تبديل</button></div></div>
+                    <div class="meal-card"><div class="meal-top"><span class="meal-type">وجبة خفيفة</span><span class="handle">⠿</span></div><p class="dish-name">كمثرى</p><div class="dish-detail">حبة متوسطة</div><div class="meal-foot"><span class="calories">300 سعرة</span><button class="swap">تبديل</button></div></div>
+                  </div>
+                  <button class="add-meal">+ إضافة وجبة</button><div class="day-total"><span>إجمالي اليوم</span><strong>1,755</strong></div>
+                </article>
+              </div>
+            </div>
+
+            <section class="summary" aria-label="ملخص الأسبوع">
+              <div class="summary-card"><div class="summary-label">التزام السعرات خلال الأسبوع</div><div class="summary-value">98% <small>ضمن الهامش المستهدف</small></div><div class="bar"><span style="width:98%"></span></div><div class="summary-hint">متوسط 1,767 سعرة يومياً</div></div>
+              <div class="summary-card"><div class="summary-label">البروتين</div><div class="summary-value">112 <small>غ / يوم</small></div><div class="bar"><span style="width:93%"></span></div></div>
+              <div class="summary-card"><div class="summary-label">الكربوهيدرات</div><div class="summary-value">202 <small>غ / يوم</small></div><div class="bar"><span style="width:89%"></span></div></div>
+              <div class="summary-card"><div class="summary-label">الدهون</div><div class="summary-value">61 <small>غ / يوم</small></div><div class="bar"><span style="width:96%"></span></div></div>
+            </section>
+          </section>
+
+          <aside class="catalog" aria-label="مكتبة الأطباق">
+            <div class="catalog-head">
+              <h2 class="catalog-title">مكتبة الأطباق</h2>
+              <p class="catalog-subtitle">أضف طبقاً أو اسحبه إلى اليوم المناسب.</p>
+              <label class="search"><svg class="icon" viewBox="0 0 24 24"><path d="M9.5 3a6.5 6.5 0 1 1 0 13 6.5 6.5 0 0 1 0-13Zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Zm6.71 10.29 4 4-1.42 1.42-4-4 1.42-1.42Z"/></svg><input type="search" placeholder="ابحث عن طبق" /></label>
+            </div>
+            <div class="filters"><button class="filter active">الكل</button><button class="filter">فطور</button><button class="filter">غداء</button><button class="filter">عشاء</button></div>
+            <div class="dish-list">
+              <div class="catalog-dish"><div class="dish-thumb">☼</div><div><h3>سلطة كينوا وخضار</h3><p>390 سعرة · 18غ بروتين</p></div><button class="add-dish" aria-label="إضافة سلطة كينوا">+</button></div>
+              <div class="catalog-dish"><div class="dish-thumb">◒</div><div><h3>دجاج تكا مع أرز</h3><p>580 سعرة · 46غ بروتين</p></div><button class="add-dish" aria-label="إضافة دجاج تكا">+</button></div>
+              <div class="catalog-dish"><div class="dish-thumb">◉</div><div><h3>زبادي يوناني وفاكهة</h3><p>260 سعرة · 20غ بروتين</p></div><button class="add-dish" aria-label="إضافة زبادي يوناني">+</button></div>
+              <div class="catalog-dish"><div class="dish-thumb">◈</div><div><h3>شوربة خضار موسمية</h3><p>230 سعرة · 10غ بروتين</p></div><button class="add-dish" aria-label="إضافة شوربة خضار">+</button></div>
+              <div class="catalog-dish"><div class="dish-thumb">◌</div><div><h3>ساندويش حمص وخضار</h3><p>410 سعرة · 15غ بروتين</p></div><button class="add-dish" aria-label="إضافة ساندويش حمص">+</button></div>
+            </div>
+            <div class="catalog-footer"><button class="button"><svg class="icon" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2Z"/></svg>إنشاء طبق جديد</button></div>
+          </aside>
+        </div>
+      </main>
+    </div>
+    <button class="floating-help" aria-label="مساعدة"><svg class="icon" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 .001 20.001A10 10 0 0 0 12 2Zm1 17h-2v-2h2v2Zm2.07-7.25-.9.92C13.45 13.4 13 14 13 15h-2v-.5c0-.8.45-1.55 1.17-2.27l1.24-1.26A1.98 1.98 0 0 0 14 9.5a2 2 0 0 0-4 0H8a4 4 0 0 1 8 0c0 .88-.36 1.68-.93 2.25Z"/></svg></button>
+  </body>
+</html>

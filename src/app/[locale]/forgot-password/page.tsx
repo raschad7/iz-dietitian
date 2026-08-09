@@ -18,7 +18,7 @@ export default async function ForgotPasswordPage({ params }: ForgotPasswordPageP
   const locale = await resolveLocale(params);
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-6 py-16">
+    <main className="q-route-stage mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-6 py-16">
       <ForgotPasswordForm locale={locale} />
     </main>
   );

@@ -134,7 +134,7 @@ export function PlanDayStrip({
             the overflow into a scroll. `py-1` keeps the focus ring from being
             clipped by that scroll container.
           */
-          'flex gap-2 overflow-x-auto px-0.5 py-1 transition-opacity duration-200',
+          'no-scrollbar flex gap-2 overflow-x-auto px-0.5 py-1 transition-opacity duration-200',
           isPending && 'opacity-60',
         )}
       >

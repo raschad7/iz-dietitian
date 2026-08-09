@@ -11,7 +11,6 @@ import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from '@/compone
 import { Select } from '@/components/ui/select';
 import {
   CLIENT_FILTERS,
-  CLIENT_STATUSES,
   PORTAL_ACCESS_VALUES,
   type ClientFilter,
   type ListClientsInput,
@@ -37,11 +36,12 @@ import { cn } from '@/lib/utils';
  * the toolbar: a second control that only makes sense once the first is
  * answered should not sit permanently in a row you read past every day.
  *
- * **Status is one of the columns.** It always filtered this list — the register
- * has shown active clients only since it was built — but it did it from a query
- * parameter with no control anywhere on screen, so an archived client was
- * reachable by hand-typed URL and nothing else. It is a column in the chooser
- * now, and "All" is how you get past the default.
+ * **Status is not one of the columns.** It was — "Status → All" was how an
+ * archived client used to be found — and it is gone because archived clients
+ * have a page of their own now. A place beats a filter for a list you either
+ * are or are not looking at: it can be linked to, it says what it is at the
+ * top, and it puts Restore in front of you rather than leaving you to spot
+ * which rows are grey.
  *
  * Applying replaces rather than pushes, like the search field beside it: a
  * filter is where you are, not somewhere you went, and the back button should
@@ -53,13 +53,10 @@ import { cn } from '@/lib/utils';
  * email are absent because they take a term, not a choice.
  *
  * Left with its literal types rather than widened to `string[]`: the labels are
- * looked up as `status.${option}`, and a widened union would make that a
- * message key the catalogue cannot promise exists.
+ * looked up as `filter.portalAccess.${option}`, and a widened union would make
+ * that a message key the catalogue cannot promise exists.
  */
-const STATUS_OPTIONS = [...CLIENT_STATUSES, 'all'] as const;
-
 const VALUE_OPTIONS = {
-  status: STATUS_OPTIONS,
   portalAccess: PORTAL_ACCESS_VALUES,
 } as const;
 
@@ -136,21 +133,14 @@ export function ClientFilterMenu({ input }: { input: ListClientsInput }) {
 
   const active = Boolean(input.filterBy && input.filterValue);
 
-  /*
-    The chosen column's fixed choices, already labelled — resolved in two
-    narrowed branches rather than one loop over `VALUE_OPTIONS[column]`, because
-    the two sets have two different label namespaces and a union of both would
-    ask the catalogue for `status.yes` and `portalAccess.active`.
-  */
+  /** The chosen column's fixed choices, already labelled. */
   const valueOptions =
-    column === 'status'
-      ? STATUS_OPTIONS.map((option) => ({ value: option, label: t(`status.${option}`) }))
-      : column === 'portalAccess'
-        ? PORTAL_ACCESS_VALUES.map((option) => ({
-            value: option,
-            label: t(`filter.portalAccess.${option}`),
-          }))
-        : null;
+    column === 'portalAccess'
+      ? PORTAL_ACCESS_VALUES.map((option) => ({
+          value: option,
+          label: t(`filter.portalAccess.${option}`),
+        }))
+      : null;
 
   return (
     <Popover open={open} onOpenChange={reset}>

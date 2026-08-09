@@ -14,7 +14,7 @@ export default async function LandingPage({ params }: LandingPageProps) {
   const t = await getTranslations('landing');
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-3xl flex-col justify-center gap-8 px-6 py-16">
+    <main className="q-route-stage mx-auto flex min-h-dvh max-w-3xl flex-col justify-center gap-8 px-6 py-16">
       <div className="space-y-4 text-start">
         <h1 className="text-balance text-4xl font-semibold tracking-tight sm:text-5xl">{t('title')}</h1>
         <p className="text-pretty text-lg text-muted-foreground">{t('description')}</p>

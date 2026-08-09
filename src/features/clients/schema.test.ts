@@ -88,15 +88,24 @@ describe('listClientsSchema', () => {
 
   test('accepts a filter column, its value and a page number', () => {
     const result = listClientsSchema.parse({
-      filterBy: 'status',
-      filterValue: ' all ',
+      filterBy: 'portalAccess',
+      filterValue: ' yes ',
       page: '3',
       q: '  أحمد ',
     });
-    expect(result.filterBy).toBe('status');
-    expect(result.filterValue).toBe('all');
+    expect(result.filterBy).toBe('portalAccess');
+    expect(result.filterValue).toBe('yes');
     expect(result.page).toBe(3);
     expect(result.q).toBe('أحمد');
+  });
+
+  test('status is the route\'s to set, and defaults to the active register', () => {
+    // It is no longer a `filterBy` value: archived clients have their own page,
+    // and a hand-edited query string must not swap one list for the other.
+    expect(listClientsSchema.parse({}).status).toBe('active');
+    expect(listClientsSchema.parse({ status: 'archived' }).status).toBe('archived');
+    expect(listClientsSchema.parse({ status: 'nonsense' }).status).toBe('active');
+    expect(listClientsSchema.parse({ filterBy: 'status' }).filterBy).toBeUndefined();
   });
 
   test('defaults to newest first', () => {

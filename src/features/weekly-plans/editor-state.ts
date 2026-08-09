@@ -1,5 +1,6 @@
 import { combineTotals, dishTotals, emptyTotals, type DishDetail } from './nutrition';
 import type { Board, BoardDay, BoardMeal } from './queries';
+import type { MealType } from './schema';
 
 /**
  * What an edit does to the board, as a pure function.
@@ -11,29 +12,40 @@ import type { Board, BoardDay, BoardMeal } from './queries';
  * over the ingredient lists the board already carries. Nothing here guesses.
  */
 
-/** The prefix for a slot added to one day rather than to the client's schedule. */
-const ADDED_SLOT = /^extra_(\d+)$/;
+const ADDED_SLOT_PREFIX = {
+  breakfast: 'breakfast_extra',
+  snack: 'snack_extra',
+  // `extra_N` is the legacy shape and already resolves to lunch through
+  // `mealTypeForSlot`, so lunch keeps it for backwards compatibility.
+  lunch: 'extra',
+  dinner: 'dinner_extra',
+} as const satisfies Record<MealType, string>;
 
 /**
- * A free `extra_N` for one day.
+ * A free added-slot key for the selected meal type.
  *
- * The lowest unused index, not a count: removing `extra_1` and adding another meal
- * should give `extra_1` back, and counting would walk the keys upward forever
- * across an afternoon of edits. Per day, because the unique index the key has to
- * satisfy is `(plan_id, day_of_week, slot_key)`.
+ * The lowest unused index, not a count: removing a numbered slot and adding
+ * another meal of that type should reuse the gap, while counting would walk the
+ * keys upward forever across an afternoon of edits.
  */
-export function nextSlotKey(existingSlotKeys: readonly string[]): string {
+export function nextSlotKey(
+  existingSlotKeys: readonly string[],
+  mealType: MealType = 'lunch',
+  customPrefix?: string,
+): string {
   const taken = new Set<number>();
+  const prefix = customPrefix ?? ADDED_SLOT_PREFIX[mealType];
+  const addedSlot = new RegExp(`^${prefix}_(\\d+)$`);
 
   for (const key of existingSlotKeys) {
-    const match = ADDED_SLOT.exec(key);
+    const match = addedSlot.exec(key);
     if (match) taken.add(Number(match[1]));
   }
 
   let index = 1;
   while (taken.has(index)) index += 1;
 
-  return `extra_${index}`;
+  return `${prefix}_${index}`;
 }
 
 /** Every edit the board can make, as one closed set. */

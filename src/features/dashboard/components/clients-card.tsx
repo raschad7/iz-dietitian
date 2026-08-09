@@ -94,8 +94,13 @@ export async function ClientsCard({ clients, locale }: ClientsCardProps) {
               same header rather than starting straight into rows with no
               labels. Shrinks out of the scroll region below — a header that
               scrolls away with the rows it names is not a header.
+
+              `rounded-[10px]` is the control radius the register's own strip
+              takes; this is a `div` rather than a real `<thead>`, so it has to
+              say so itself, and the two would drift apart the moment one of
+              them changed.
             */}
-            <div className="grid shrink-0 grid-cols-3 gap-x-3 bg-muted px-3 py-2.5 text-caption font-medium text-muted-foreground">
+            <div className="grid shrink-0 grid-cols-3 gap-x-3 rounded-[10px] bg-muted px-3 py-2.5 text-caption font-medium text-muted-foreground">
               <span className="truncate">{tc('fields.fullName')}</span>
               <span className="truncate">{tc('fields.age')}</span>
               <span className="truncate">{tc('fields.phone')}</span>

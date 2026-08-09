@@ -37,10 +37,10 @@ export default async function WeeklyPlansPage({ params }: PageProps) {
   ]);
 
   return (
-    <div className={`${PLANNER_THEME} flex h-full min-h-0 flex-col text-start`}>
+    <div className={`${PLANNER_THEME} flex h-full min-h-0 min-w-0 flex-col text-start`}>
       <h1 className="sr-only">{t('title')}</h1>
 
-      <div className="flex min-h-0 flex-1 gap-4">
+      <div className="flex min-h-0 min-w-0 flex-1 gap-4">
         <NoClientBoard clients={clients} catalog={catalog} />
       </div>
     </div>

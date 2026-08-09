@@ -70,6 +70,7 @@ const ICONS = {
   chevronUp: 'alt-arrow-up-bold',
   chevronStart: 'alt-arrow-left-bold',
   chevronEnd: 'alt-arrow-right-bold',
+  navigationMenu: 'hamburger-menu-linear',
   signOut: 'logout-2-bold',
 
   // Actions
@@ -193,10 +194,24 @@ const ICONS = {
    * rail's catalog mark, visible beside the board on every wide screen. The same
    * picture meaning two things on one screen is worse than a duller glyph.
    */
-  mealBreakfast: 'sun-bold',
+  mealBreakfast: 'tea-cup-bold',
   mealSnack: 'donut-bitten-bold',
-  mealLunch: 'plate-bold',
-  mealDinner: 'moon-stars-bold',
+  mealLunch: 'chef-hat-bold',
+  mealDinner: 'plate-bold',
+  /**
+   * The planner's row markers and add-slot picker use the lighter Solar Linear
+   * family. They are deliberately separate from the portal's filled meal marks:
+   * the planner compares four large icons side by side, where the open strokes
+   * stay legible without turning the frozen row header into a dark stripe.
+   */
+  plannerMealBreakfast: 'tea-cup-linear',
+  plannerMealSnack: 'donut-bitten-linear',
+  plannerMealLunch: 'chef-hat-linear',
+  plannerMealDinner: 'plate-linear',
+  plannerMealHotDrink: 'cup-hot-linear',
+  plannerMealBottle: 'bottle-linear',
+  plannerMealChefHeart: 'chef-hat-heart-linear',
+  plannerMealChefMinimal: 'chef-hat-minimalistic-linear',
   /** The dish itself, on a meal card. Constant — no dish carries its own icon. */
   dish: 'chef-hat-bold',
   /** A client's requests about an appointment, which are a conversation. */
@@ -250,7 +265,7 @@ const output = `/**
  * Run \`bun run icons:generate\` to regenerate. The icon list lives in
  * scripts/generate-icons.ts; see that file for how to add one.
  *
- * Source: Solar Bold (https://icon-sets.iconify.design/solar/), MIT.
+ * Source: Solar Bold and Linear (https://icon-sets.iconify.design/solar/), MIT.
  */
 
 export type IconName = keyof typeof QIWAM_ICONS;

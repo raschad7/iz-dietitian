@@ -84,15 +84,16 @@ const tabLinkVariants = cva(
      * block-end edge is the container's own hairline rather than a free corner,
      * so there is nothing here for a radius to round.
      */
-    'px-4 pt-3 pb-3.5 -mb-px border-b-2',
+    'relative px-4 pt-3 pb-3.5 -mb-px border-b-2',
     'text-body-sm font-medium no-underline',
-    'transition-colors duration-200 ease-[cubic-bezier(.2,.6,.2,1)]',
+    'transition-colors duration-(--duration-label) ease-(--ease-sweep)',
+    'after:pointer-events-none after:absolute after:inset-x-4 after:bottom-[-1px] after:h-0.5 after:origin-center after:scale-x-0 after:bg-primary after:transition-transform after:duration-(--duration-label) after:ease-(--ease-sweep)',
     'outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-focus-halo',
   ],
   {
     variants: {
       active: {
-        true: 'border-b-primary text-secondary-foreground font-semibold',
+        true: 'border-b-transparent text-secondary-foreground font-semibold after:scale-x-100',
         // The hover fill stops at the label rather than reaching the hairline,
         // which is why it is the sunken neutral and not a brand tint: a tint
         // here would read as a second active state.

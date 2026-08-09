@@ -40,7 +40,6 @@ import { ClientPicker, type PendingBooking } from './client-picker';
 import { DayColumn } from './day-column';
 import { MonthView } from './month-view';
 import { NewClientDialog } from './new-client-dialog';
-import { RepeatBookingDialog } from './repeat-booking-dialog';
 
 /**
  * The calendar shell: it owns the state the views share and is the only place
@@ -186,23 +185,6 @@ type OptimisticAction =
 /** A finished drag, waiting on the doctor to confirm it before anything is written. */
 type PendingMove = { appointment: CalendarAppointment; next: BookingRequest };
 
-/**
- * A booking that is already saved, waiting on the answer to "every week for a
- * month?".
- *
- * Held rather than derived from the calendar's rows, because the offer outlives
- * the write it followed: `revalidatePath` may have replaced the whole list by
- * the time the doctor answers, and the repeats are booked from these values
- * rather than from whatever the grid is showing.
- */
-type RepeatOffer = {
-  clientId: string;
-  clientName: string;
-  date: string;
-  startMinute: number;
-  durationMinutes: number;
-};
-
 export function Calendar({
   locale,
   view,
@@ -277,13 +259,14 @@ export function Calendar({
   const [notice, setNotice] = useState<string | null>(null);
 
   const [pendingBooking, setPendingBooking] = useState<PendingBooking | null>(null);
-  const [newClientFor, setNewClientFor] = useState<PendingBooking | null>(null);
+  /** The pending slot plus the repeat span already chosen for it in the picker. */
+  const [newClientFor, setNewClientFor] = useState<{ pending: PendingBooking; weeks: number } | null>(
+    null,
+  );
   const [editing, setEditing] = useState<CalendarAppointment | null>(null);
   /** The two writes that ask first: rescheduling by drag, and deleting. */
   const [pendingMove, setPendingMove] = useState<PendingMove | null>(null);
   const [pendingDelete, setPendingDelete] = useState<CalendarAppointment | null>(null);
-  /** The booking just saved, and the offer to repeat it — see `RepeatOffer`. */
-  const [repeatOffer, setRepeatOffer] = useState<RepeatOffer | null>(null);
 
   /**
    * The clinic's single practitioner, taken from whatever is already booked.
@@ -633,7 +616,7 @@ export function Calendar({
 
   const belowFold = useMemo(() => new Set(datesBelowFold), [datesBelowFold]);
 
-  function book(clientId: string): void {
+  function book(clientId: string, weeks: number): void {
     const pending = pendingBooking;
     if (!pending) return;
 
@@ -680,63 +663,54 @@ export function Calendar({
       // edit dialog — staff asked to book someone, not to edit a booking.
       setHighlightId(result.data.id);
       setSelectedId(result.data.id);
-      offerRepeat({
-        clientId: result.data.clientId,
-        clientName: client?.name ?? '',
-        date: pending.date,
-        startMinute: pending.startMinute,
-        durationMinutes: pending.durationMinutes,
-      });
-    });
-  }
 
-  /**
-   * Offers to repeat the booking that was just saved, weekly, for a month.
-   *
-   * Asked *after* the write rather than as a checkbox before it, because the
-   * answer only makes sense once the first appointment exists — and because a
-   * follow-up course is a decision about the month, not a detail of the slot.
-   * Declining costs one click and writes nothing.
-   */
-  function offerRepeat(offer: RepeatOffer): void {
-    setRepeatOffer(offer);
-  }
-
-  /**
-   * Books the same slot every week for the span the doctor chose, and reports
-   * what took.
-   */
-  function commitRepeat(offer: RepeatOffer, weeks: number): void {
-    setMessage(null);
-    setNotice(null);
-
-    startTransition(async () => {
-      const result = await repeatWeeklyAction(locale, {
-        clientId: offer.clientId,
-        date: offer.date,
-        startMinute: offer.startMinute,
-        durationMinutes: offer.durationMinutes,
-        weeks,
-      });
-
-      if (!result.ok) {
-        setMessage(result.error);
-        return;
+      if (weeks > 0) {
+        await runRepeat({
+          clientId: result.data.clientId,
+          date: pending.date,
+          startMinute: pending.startMinute,
+          durationMinutes: pending.durationMinutes,
+          weeks,
+        });
       }
-
-      // Three answers, not one: every week took, some weeks were refused, or
-      // none were. A repeat that silently booked two of three would leave the
-      // doctor believing in a month of appointments that is not there.
-      const { created, skipped } = result.data;
-
-      if (created === 0) setNotice(t('repeatBooking.none'));
-      else if (skipped > 0) setNotice(t('repeatBooking.partial', { count: created, skipped }));
-      else setNotice(t('repeatBooking.created', { count: created }));
     });
   }
 
-  function createClientAndBook(client: { fullName: string; phone?: string }): void {
-    const pending = newClientFor;
+  /**
+   * Books the same slot every week for the span chosen alongside the booking,
+   * and reports what took.
+   *
+   * The span used to be asked for in a modal that opened on every save. It is
+   * a field on the create surfaces now — see `RepeatField` — so this runs only
+   * when someone actually asked for a repeat, and it runs inside the same
+   * transition as the booking it follows.
+   */
+  async function runRepeat(input: {
+    clientId: string;
+    date: string;
+    startMinute: number;
+    durationMinutes: number;
+    weeks: number;
+  }): Promise<void> {
+    const result = await repeatWeeklyAction(locale, input);
+
+    if (!result.ok) {
+      setMessage(result.error);
+      return;
+    }
+
+    // Three answers, not one: every week took, some weeks were refused, or none
+    // were. A repeat that silently booked two of three would leave the doctor
+    // believing in a month of appointments that is not there.
+    const { created, skipped } = result.data;
+
+    if (created === 0) setNotice(t('repeatBooking.none'));
+    else if (skipped > 0) setNotice(t('repeatBooking.partial', { count: created, skipped }));
+    else setNotice(t('repeatBooking.created', { count: created }));
+  }
+
+  function createClientAndBook(client: { fullName: string; phone?: string }, weeks: number): void {
+    const pending = newClientFor?.pending;
     if (!pending) return;
 
     setNewClientFor(null);
@@ -760,15 +734,16 @@ export function Calendar({
 
       setHighlightId(result.data.id);
       setSelectedId(result.data.id);
-      // The spec's own wording: the question follows the patient being added to
-      // the system *and* the first booking being created, which is this path.
-      offerRepeat({
-        clientId: result.data.clientId,
-        clientName: client.fullName,
-        date: pending.date,
-        startMinute: pending.startMinute,
-        durationMinutes: pending.durationMinutes,
-      });
+
+      if (weeks > 0) {
+        await runRepeat({
+          clientId: result.data.clientId,
+          date: pending.date,
+          startMinute: pending.startMinute,
+          durationMinutes: pending.durationMinutes,
+          weeks,
+        });
+      }
     });
   }
 
@@ -799,22 +774,22 @@ export function Calendar({
   }
 
   /**
-   * Right-click opens the editor — unless the appointment has finished.
+   * Right-click opens the editor, for a finished appointment too.
    *
-   * A finished appointment is a record of what happened, so the editor does not
-   * open for one at all. It still selects and still says why, because a
-   * right-click that does nothing reads as a broken calendar rather than a rule.
+   * It used to refuse outright — select the block, say "completed", and stop —
+   * which locked away the one thing a finished appointment *can* still do.
+   * `AppointmentDialog` is built for exactly this case: every field disabled,
+   * no Save at all, and Delete the only live control, because deleting is the
+   * sole way to remove a record entered by mistake. Refusing to open it meant
+   * an appointment booked on the wrong client at the wrong hour became
+   * permanent the moment it ended.
    *
-   * The policy lives here rather than in the block, because this is where
-   * `completedIds` is derived; the block would have to be told twice.
+   * The rule it was enforcing is not weakened by this. Editing is still
+   * impossible — the dialog offers nothing to edit with, and
+   * `updateAppointment` refuses the write independently, against the clinic's
+   * own clock rather than the caller's.
    */
   function openAppointment(appointment: CalendarAppointment): void {
-    if (completedIds.has(appointment.id)) {
-      setSelectedId(appointment.id);
-      setMessage('errors.completedLocked');
-      return;
-    }
-
     setMessage(null);
     setEditing(appointment);
   }
@@ -1192,8 +1167,10 @@ export function Calendar({
           // to false outright — see `allowNewClient` on `CalendarProps`.
           allowNewClient={allowNewClientProp ?? view === 'day'}
           onPick={book}
-          onNewClient={() => {
-            setNewClientFor(pendingBooking);
+          // The repeat chosen in the picker travels with the slot, so stepping
+          // aside to add the person does not quietly reset it.
+          onNewClient={(weeks) => {
+            setNewClientFor({ pending: pendingBooking, weeks });
             setPendingBooking(null);
           }}
           onCancel={() => setPendingBooking(null)}
@@ -1202,7 +1179,8 @@ export function Calendar({
 
       {newClientFor && (
         <NewClientDialog
-          pending={newClientFor}
+          pending={newClientFor.pending}
+          weeks={newClientFor.weeks}
           locale={locale}
           onCreate={createClientAndBook}
           onCancel={() => setNewClientFor(null)}
@@ -1266,29 +1244,16 @@ export function Calendar({
       )}
 
       {/*
-        The repeat offer, shown the moment a booking is saved.
+        There is no repeat dialog here any more.
 
-        Its own dialog rather than a `ConfirmDialog`, because it stopped being a
-        yes/no question the moment the span became the doctor's to choose: there
-        is a control to operate and a consequence — how many appointments, and
-        the date of the last — that has to update as they operate it.
-
-        Declining writes nothing and undoes nothing: the appointment this
-        followed is already saved on its own.
+        A modal opened on every single save asking whether to repeat the
+        booking. Most appointments do not repeat, so the common path was book →
+        dialog → dismiss, and a prompt dismissed nine times in ten stops being
+        read — by the tenth it is being clicked away before it renders, which is
+        the time it mattered. It also put a modal in front of the calendar at
+        the one moment the calendar had just changed. The span is a field on the
+        create surfaces now; see `RepeatField`.
       */}
-      {repeatOffer && (
-        <RepeatBookingDialog
-          locale={locale}
-          clientName={repeatOffer.clientName}
-          date={repeatOffer.date}
-          startMinute={repeatOffer.startMinute}
-          onConfirm={(weeks) => {
-            setRepeatOffer(null);
-            commitRepeat(repeatOffer, weeks);
-          }}
-          onCancel={() => setRepeatOffer(null)}
-        />
-      )}
 
       {pendingDelete && (
         <ConfirmDialog
