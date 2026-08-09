@@ -69,7 +69,15 @@ export async function PendingRequestsCard({
   const { appointments, clientRequests } = data;
 
   return (
-    <Card className="min-h-0">
+    /*
+      `shrink-0`, so the card is never squeezed below its own contents. It is
+      bounded already — the queue inside it stops at `22rem` and scrolls — so
+      "what it needs" is a small, known number, and the agenda above takes the
+      rest of the column. Without this the flex column was free to compress the
+      card while its padded empty state stayed full size, which put the text
+      out through the bottom edge.
+    */
+    <Card className="min-h-0 xl:shrink-0">
       {/* The register's header, disc and all — the same neutral mark, because
           the card is not a target and has nothing to promise the pointer. The
           count beside the title is what says this one is waiting on you, and it

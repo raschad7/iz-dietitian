@@ -1,7 +1,7 @@
 import { and, asc, between, desc, eq, gte, lt } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { appointments, clients, clinicWorkingHours } from '@/db/schema';
+import { appointments, clients, clinicWorkingHours, practitioners } from '@/db/schema';
 import { toClinicSchedule } from '@/features/clinic-profile/schedule';
 
 import { type CalendarAppointment, type CalendarClient, type CalendarData } from './types';
@@ -80,6 +80,42 @@ export type ClientVisit = {
   startMinute: number;
   reason: string | null;
 };
+
+/** A row of the Visit History tab's record. */
+export type ClientVisitEntry = ClientVisit & {
+  durationMinutes: number;
+  practitionerName: string;
+};
+
+/**
+ * Every appointment this client has, newest first.
+ *
+ * The whole history rather than a page of it. `getClientVisitSummary` above
+ * exists precisely because the *record header* needs two rows and must not read
+ * a hundred to find them — but this is the tab whose subject is the hundred, and
+ * it has to count them, split them at today and show both halves. Even a client
+ * seen weekly for five years is 260 narrow rows on an index that already orders
+ * them; the read that would be worth paginating is one that no longer fits a
+ * page, and a visit history that long has a scrollbar before it has a problem.
+ */
+export async function listClientVisits(
+  clinicId: string,
+  clientId: string,
+): Promise<ClientVisitEntry[]> {
+  return db
+    .select({
+      id: appointments.id,
+      date: appointments.date,
+      startMinute: appointments.startMinute,
+      durationMinutes: appointments.durationMinutes,
+      reason: appointments.reason,
+      practitionerName: practitioners.name,
+    })
+    .from(appointments)
+    .innerJoin(practitioners, eq(practitioners.id, appointments.practitionerId))
+    .where(and(eq(appointments.clinicId, clinicId), eq(appointments.clientId, clientId)))
+    .orderBy(desc(appointments.date), desc(appointments.startMinute));
+}
 
 export type ClientVisitSummary = {
   /** The soonest appointment from `today` onward, inclusive. */

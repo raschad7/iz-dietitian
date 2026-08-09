@@ -95,7 +95,16 @@ export function DateCalendar({
       new Intl.DateTimeFormat(intlLocale, { ...options, numberingSystem: 'latn', calendar: 'gregory' });
 
     const day = format({ day: 'numeric' });
-    const weekday = format({ weekday: 'short' });
+    /*
+      Narrow weekdays in Arabic, short ones in English.
+      `short` in Arabic is not short: `Intl` returns the whole word — الأربعاء,
+      eight letters — and seven of those in a 36px column each is not a header
+      row, it is one unbroken line of Arabic running across the top of the grid
+      with nothing above the column it names. Narrow is the single letter
+      (ح ن ث ر خ ج س), which is what a column that size can hold. English keeps
+      `short`: "Wed" fits, and "S M T W T F S" makes a reader count.
+    */
+    const weekday = format({ weekday: locale === 'ar' ? 'narrow' : 'short' });
     const monthName = format({ month: 'long' });
     const year = format({ year: 'numeric' });
     const caption = format({ month: 'long', year: 'numeric' });
@@ -153,7 +162,38 @@ export function DateCalendar({
           'relative rounded-md transition-colors hover:bg-accent has-[select:focus-visible]:ring-2 has-[select:focus-visible]:ring-ring',
         caption_label:
           'flex items-center gap-1 rounded-md px-2 py-1 text-body-sm font-semibold [&>svg]:size-3.5 [&>svg]:text-muted-foreground',
+        /*
+          A gap between the days, and the same gap above the first week.
+
+          shadcn's grid butts every cell against the next, which is right for a
+          range picker — the run of chosen days has to read as one bar — and
+          wrong for this one, which only ever holds a single date. Flush cells
+          turned the toolbar's "this month is on screen" tint into a solid block
+          of colour with numbers on it, and left the day under the pointer with
+          no edge of its own to light up. `gap-0.5` is enough to separate them
+          and not enough to stop the week reading as a row.
+        */
+        weekdays: 'flex gap-0.5',
         weekday: 'flex-1 text-caption font-normal text-muted-foreground select-none',
+        week: 'mt-0.5 flex w-full gap-0.5',
+        /*
+          Rewritten rather than extended, to drop two rules from the shadcn
+          default: `[&:first-child[data-selected=true]_button]:rounded-s` and
+          its `last-child` twin. Those exist to square off the ends of a
+          selected *range* so it meets the grid edge — but they key off
+          `data-selected`, which a single date sets too, so the chosen day
+          flattened its outer side whenever it landed in the first or last
+          column. A Sunday and a Saturday came out as half-pills; every day
+          between them was a circle.
+        */
+        day: 'group/day relative aspect-square h-full w-full rounded-full p-0 text-center select-none',
+        /*
+          Same story: the default squares today off when it is also the chosen
+          day, which is the common case here — the picker opens on the date the
+          calendar is already showing. Today's fill just steps aside for the
+          selected one instead.
+        */
+        today: 'rounded-full bg-muted text-foreground data-[selected=true]:bg-transparent',
       }}
     />
   );

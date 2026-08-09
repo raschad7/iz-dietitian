@@ -50,12 +50,16 @@ export type MonthViewProps = {
 };
 
 /**
- * A cell only has room for a handful of chips before the row itself starts
- * pushing into the next week. Past this, the count left off is worth more than
- * a fourth sliver of a chip — it says there is more without spending the space
- * to half-show it.
+ * How many lines of anything a cell has room for. Past this, the count left off
+ * is worth more than a fourth sliver of a chip — it says there is more without
+ * spending the space to half-show it.
+ *
+ * The count *is* one of the lines: a day with four appointments shows two and
+ * "+2 more", not three and "+1 more". The block is then always three lines
+ * high whatever the day holds, which is what lets the row be sized once for
+ * the worst case instead of overflowing on the busy days.
  */
-const MAX_VISIBLE = 3;
+const MAX_LINES = 3;
 
 export function MonthView({
   anchorDate,
@@ -102,12 +106,33 @@ export function MonthView({
         ))}
       </div>
 
-      <div className="grid min-h-0 flex-1 grid-cols-7 grid-rows-6 overflow-y-auto">
+      {/*
+        The minimum lives on the *rows*, not on the cells. It used to be
+        `min-h-36` on each cell inside `grid-rows-6` — and `grid-rows-6` is
+        `minmax(0, 1fr)`, which lets a row be shorter than what is in it. So on
+        any normal window the rows came out at ~121px while every cell insisted
+        on being 144px, and each one hung 23px down over the week below it.
+        That is the whole of what looked broken here: the grid scrolled by the
+        overhang, the last row was clipped by it, and the invisible 23px lip of
+        the *previous* week sat on top of the first three weeks' worth of every
+        cell, so hovering near the top of a day lit up the day above it.
+
+        Putting the floor on the track fixes all three at once — the row is
+        never smaller than its cell, so nothing overlaps and nothing is clipped;
+        and when the panel is taller than six minimum rows, `1fr` spends the
+        rest on the cells rather than leaving a gap at the foot.
+      */}
+      <div className="grid min-h-0 flex-1 grid-cols-7 grid-rows-[repeat(6,minmax(7rem,1fr))] overflow-y-auto">
         {days.map((date) => {
           const inMonth = isSameMonth(date, anchorDate);
           const closed = !isWorkingDay(date, hours);
           const dayAppointments = byDate.get(date) ?? [];
-          const visibleAppointments = dayAppointments.slice(0, MAX_VISIBLE);
+          // Over the limit, the last line goes to the count rather than to a
+          // chip — see `MAX_LINES`.
+          const visibleAppointments =
+            dayAppointments.length > MAX_LINES
+              ? dayAppointments.slice(0, MAX_LINES - 1)
+              : dayAppointments;
           const hiddenCount = dayAppointments.length - visibleAppointments.length;
           // A day already gone reads the same muted way a day outside this
           // month does — neither can be booked from here, so neither earns
@@ -121,34 +146,38 @@ export function MonthView({
               data-day={date}
               className={cn(
                 /*
-                  `min-h-36` — 144px. The cell has to hold the day number, three
-                  chips and the "+N more" line, and it clips what does not fit.
-                  Six rows of it is taller than most panels, so the month
-                  scrolls — the right trade for chips that can be read at a
-                  glance rather than squinted at.
+                  No `min-h` here — the floor is on the row instead, so the cell
+                  is exactly its track and can never lap the week below. See the
+                  note on the grid.
 
                   The vertical rule is dropped on the first column of each row:
                   `border-s` on all seven drew a line down the grid's own
                   leading edge, which in Arabic is the edge the rail is already
                   on, so the month began with a doubled boundary.
                 */
-                'group/day relative min-h-36 overflow-hidden border-b border-s border-border p-1.5',
+                'relative overflow-hidden border-b border-s border-border p-1.5',
                 '[&:nth-child(7n+1)]:border-s-0',
                 /*
-                  Hover is the ambient tint, a step down from the sunken fill a
-                  closed day wears — at `bg-muted/60` the pointer response was
-                  lighter than the closed days it had to be visible on top of.
+                  Hover is the ambient tint. `has-[:focus-visible]`, not
+                  `focus-within`: a click focuses the cell's button, and
+                  `focus-within` left that day tinted after the pointer had
+                  moved on — two days lit at once, which read as the hover
+                  landing somewhere it had not been asked to.
                 */
-                'transition-colors focus-within:bg-accent/70 hover:bg-accent/70',
+                'transition-colors hover:bg-accent/70 has-[:focus-visible]:bg-accent/70',
                 /*
                   Two states, two treatments, and they stack rather than
                   compete: outside this month is quiet *text*, a closed day is a
-                  sunken *fill*. They used to be two fills at 30% and 50%, so a
-                  closed day outside the month got both and which one showed
-                  depended on the order Tailwind happened to emit them in.
+                  sunken *fill*.
+
+                  Half-strength `muted`, because a closed day is the one thing
+                  in this grid that is *not* news. At full strength the clinic's
+                  weekend was two solid grey columns down the month and the eye
+                  went to them first; at 50% it reads as a shade of the page,
+                  which is all "nothing happens here" needs to say.
                 */
                 (!inMonth || isPast) && 'text-muted-foreground',
-                closed && 'bg-muted',
+                closed && 'bg-muted/50',
               )}
             >
               {/*
@@ -175,7 +204,7 @@ export function MonthView({
               */}
               <span
                 className={cn(
-                  'flex size-7 items-center justify-center text-body-md font-semibold tabular-nums',
+                  'flex size-6 items-center justify-center text-body-sm font-semibold tabular-nums',
                   isToday && 'rounded-full bg-primary text-primary-foreground',
                 )}
               >
@@ -186,7 +215,12 @@ export function MonthView({
                 Plain list items, not buttons. A month chip is read, never acted
                 on — the day view is where an appointment can be changed.
               */}
-              <ul className="mt-1.5 space-y-1">
+              {/*
+                Three lines of chip at 13px, the day number above them and the
+                cell's own padding is what sets the row's `7rem` floor. Tighten
+                either and the other has to move — they are one measurement.
+              */}
+              <ul className="mt-1 space-y-0.5">
                 {visibleAppointments.map((appointment) => {
                   const completed = completedIds.has(appointment.id);
                   const marked = selectedId === appointment.id || highlightId === appointment.id;
@@ -210,7 +244,7 @@ export function MonthView({
                           up, which is exactly the pair this needs.
                         */
                         className={cn(
-                          'flex w-full items-center gap-1.5 rounded-sm border px-2 py-1 text-start text-label',
+                          'flex w-full items-center gap-1.5 rounded-sm border px-1.5 py-0.5 text-start text-label',
                           marked
                             ? 'border-primary bg-primary-subtle text-secondary-foreground'
                             : 'border-primary/35 bg-secondary text-secondary-foreground',
@@ -266,9 +300,9 @@ export function MonthView({
                 })}
               </ul>
 
-              {/* What the three chips above left off — a count, not a fourth sliver of a chip. */}
+              {/* What the chips above left off — a count, not a fourth sliver of a chip. */}
               {hiddenCount > 0 ? (
-                <p className="mt-1 px-2 text-label text-muted-foreground">
+                <p className="mt-0.5 px-1.5 text-label text-muted-foreground">
                   {t('monthMore', { count: hiddenCount })}
                 </p>
               ) : null}

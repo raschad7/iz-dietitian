@@ -640,6 +640,18 @@
       "title": "Archived clients",
       "subtitle": "Restore anyone who should be back on the register.",
       "empty": "Nothing has been archived."
+    },
+    "visits": {
+      "upcoming": "Upcoming",
+      "past": "Past visits",
+      "totalVisits": "Appointments",
+      "completedVisits": "Visits so far",
+      "lastVisit": "Last visit",
+      "nextVisit": "Next visit",
+      "noUpcoming": "None booked",
+      "noPast": "No visits yet",
+      "empty": "No appointments on this record yet.",
+      "book": "Open the calendar"
     }
   },
   "portal": {

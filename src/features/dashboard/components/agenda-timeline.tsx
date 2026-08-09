@@ -103,8 +103,15 @@ export async function AgendaTimeline({
       that scrolls inside it, then the footer link. A clinic with fourteen
       appointments must not be able to push the rest of the dashboard off the
       screen — the day scrolls, the page does not.
+
+      `flex-1`, not `h-full`. `h-full` asked for the whole column while the
+      requests card below still wanted its own height, so the two together
+      overflowed their track and the browser settled it by squeezing the
+      shorter one — which is why the empty requests panel used to hang out
+      past its own card. `flex-1` claims what is *left* after that card, which
+      is what the note on this column in `page.tsx` has always described.
     */
-    <Card className="xl:h-full xl:min-h-0">
+    <Card className="xl:min-h-0 xl:flex-1">
       <CardContent className="flex flex-col gap-4 xl:min-h-0 xl:flex-1">
         <header className="flex shrink-0 flex-col gap-3">
           <div className="flex items-baseline justify-between gap-3">

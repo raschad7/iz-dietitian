@@ -74,13 +74,19 @@ export function NotificationsBell({
           not a record's state, it is how many things are waiting, and it has to
           survive being drawn at 16px on the corner of a glyph. Capped at 9+ so
           the disc never has to grow and shift the header row under the reader.
+
+          `destructive`, not `primary`. Olive is the page's own colour — it is
+          on the sidebar, the buttons, and today's date in the calendar — so an
+          olive disc on the bell is another piece of furniture. Clay is the only
+          alarm in the scale and appears nowhere else above the fold, which is
+          exactly what a count of unanswered things needs.
         */}
         {badgeCount > 0 ? (
           <span
             aria-hidden
             className={cn(
               'absolute -top-0.5 -end-0.5 flex min-w-4 items-center justify-center rounded-full px-1',
-              'bg-primary text-[0.625rem] leading-4 font-semibold text-primary-foreground tabular-nums',
+              'bg-destructive text-[0.625rem] leading-4 font-semibold text-destructive-foreground tabular-nums',
             )}
           >
             {badgeCount > 9 ? '9+' : badgeCount}
