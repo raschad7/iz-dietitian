@@ -82,15 +82,46 @@ Warm neutrals — never pure grey, and the ramp the charts are drawn in.
 | 200 `#E2DFD3` | 300 `#CDC9B9` | 400 `#A8A493` | 500 `#837F6E` |
 | 600 `#605D50` | 700 `#46443B` | 800 `#2F2E28` | 900 `#1C1B17` |
 
-The **cool greys** are the rail — its surface, its hover and its divider
-(`#F9FAFB` / `#F3F4F6` / `#D1D5DB`) — the **weekly planner board**, which adds
-`#E5E7EB` as a hairline and `#4B5563` as secondary text, and the **auth
-screens**, whose page sits on the rail's own `#F9FAFB` as `--auth-canvas`. They
-are not part of this ramp and nothing else may reach for them; a warm neutral
-used as a page surface beside a cool one is how a palette starts looking
-accidental.
+Cool neutrals — the second family, and deliberately only the stops the app
+draws with.
 
-All three are whole surfaces, which is the condition. The board is a grid of
+| | | | |
+|---|---|---|---|
+| 50 `#F9FAFB` | 100 `#F3F4F6` | 200 `#E5E7EB` | 300 `#D1D5DB` |
+| 600 `#4B5563` | | | |
+
+They are `--c-*` primitives, not hexes at the call site. They used to be four
+loose literals — the rail's surface, hover and divider, the board's hairline and
+secondary text — repeated wherever they were needed, which is how a palette
+drifts.
+
+**`--muted` and `--accent` are cool.** The sunken fill is the app's
+most-repeated surface — every table header, every zebra row, every read-only
+field — and drawn in the warm n-50 it laid a cream tint over screens whose
+canvas is plain white. It is **c-100**, and the step matters: c-50 is 1.02:1
+against white, below where a fill still registers as one, and the register's
+header strip disappeared into the card at that value. c-50 is right for the
+*rail*, which has a load-bearing divider doing the separating for it; a strip
+in the middle of a card has only its own fill. c-100 is 1.06:1 — quieter than a
+colour, a hair firmer than the n-50 it replaced.
+
+`--accent`, the ambient hover tint, follows it to **c-200**, one step past.
+It has to: the register's sortable column heads are `hover:bg-accent` drawn
+directly on the `bg-muted` strip, so a warm tint on a cool fill put the two
+families in contact at the same lightness, which reads as a rendering fault
+rather than as a hover.
+
+The rest of the ramp is where it was: the **rail** (c-50 surface, c-100 hover,
+c-300 divider), the **weekly planner board** — which keeps its *own* lighter
+`--muted`/`--accent` of c-50/c-100, because thirty-five hairline cells on a
+clinical white page is a different problem from a strip on a card — and the
+**auth screens** (the rail's c-50 as `--auth-canvas`).
+
+Nothing else may cross between the two families: a warm neutral used as a
+surface beside a cool one is how a palette starts looking accidental.
+
+The rail, the board and the auth page are whole surfaces, which was the original
+condition for reaching over here at all. The board is a grid of
 thirty-five hairline cards, so almost everything drawn on it is an edge — and
 thirty-five warm n-200 edges tint the page even though the page itself is
 `#FFFFFF`. Swapping the four neutrals it actually draws with (`--border`,
@@ -695,6 +726,36 @@ chevron — Chrome pins its built-in arrow to the border and ignores
 `padding-inline-end`, so long option text collides with it. Keyboard
 behaviour, screen-reader semantics and the mobile picker still come free.
 
+### Two time controls, and which one
+
+Neither is `<input type="time">`. Chrome's popup is a three-column spinner in
+the OS's own type, which reads as a foreign object inside an Arabic page and
+forces a 12-hour step on a clinic that works in 24.
+
+- **`TimeField`** — an hour list beside a minute list. For a time on a fine
+  grid, chosen as two independent parts: a meal at 07:35. `minuteStep` sets the
+  minute grid, and it must match whatever validates the value — a control that
+  offers a time its own form rejects is a trap the reader walks into once per
+  visit.
+- **`TimeSelect`** — one list of whole times: `08:00`, `08:15`. For a time on a
+  coarse grid where the *whole* time is the unit of choice. It is controlled,
+  because a caller that wants one time usually also wants to copy it somewhere.
+
+The clinic's opening hours are the case that separated them. Seven days of
+`TimeField` meant **twenty-eight** dropdowns, and none of them showed a time —
+you read `08` and `00` in two boxes and assembled `08:00` yourself, twice per
+row. Two `TimeSelect`s per row halve the controls and each one states the
+answer. Both components keep an off-grid stored value as its own entry rather
+than rounding it away; silently moving a clinic's 08:20 to 08:15 on load is data
+loss disguised as tidiness.
+
+**Where the same value repeats down a list, offer to copy it.** Most clinics
+work the same hours every day, and the schedule made you say so seven times.
+One `neutral` button copying the first open day's hours across the rest turns
+the normal case from twenty actions into three — and it is `neutral` rather
+than `outline` precisely because Save is the decision on that card and only one
+control should be wearing olive.
+
 ## Cards
 
 Anatomy: `CardHeader` (title + optional `CardAction` marker) · `CardContent` ·
@@ -763,6 +824,20 @@ surfaces, and a person is neither. The `color` prop is per-record data, not a to
 renders `aria-hidden` — the name it stands for is always beside it.
 
 ## Tables
+
+**The header strip is a rounded bar**, not a full-bleed band: the control radius
+(10px) on all four corners, applied to the first and last `th` on their *logical*
+sides so Arabic mirrors it for free. It has to go on the end cells rather than on
+the `thead` — a table's fill is painted per cell, and square cells sitting on a
+rounded group clip the corners straight back off. `Table` is
+`border-separate border-spacing-0` for the same reason: the collapsed border
+model drops `border-radius` on everything inside a table. Nothing else changes,
+because only `TableRow` draws an edge and only on its block-start side, so there
+was never a border for the collapsing model to merge.
+
+The dashboard's register card draws the same strip by hand — it is a `div` of
+three columns, not a `<table>` — so it carries the radius itself. Change one and
+change the other; they are meant to be the same bar.
 
 `TableRoot` owns the scroll container and the frame's radius; `Table`, `TableHeader`,
 `TableRow`, `TableHead`, `TableCell` and `TableEmpty` are the rest. Cells
@@ -1033,6 +1108,14 @@ the same glyphs as its bottom bar); the staff rail is text-only.
 
 - Spacing is Tailwind's 4px scale. Card padding is `--card-spacing`, 16px
   mobile / 20px desktop.
+- **A capped page column hangs from the inline-start, never centred.** The staff
+  shell is a rail plus a full-width `main`, and the dashboard and the register
+  both run edge to edge — so `mx-auto max-w-3xl` put three screens (profile,
+  notifications, requests) in a 400px band of nothing beside the rail, with
+  their `h1` indented from an edge every other page starts at. Cap the measure
+  and use `me-auto`: the slack all falls on the far side, where the page ends
+  anyway. Centring is right where there is no rail to be detached from — the
+  onboarding wizard and the auth screens.
 - Shadows are **olive-tinted, never neutral black** — `shadow-card` /
   `shadow-elevated` / `shadow-overlay`. Scrims use `--overlay` (olive-950 at
   45%), not `bg-black/40`, and **blur 4px** with it: the page behind a modal is

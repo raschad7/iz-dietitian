@@ -47,4 +47,34 @@ describe('clearFieldError', () => {
   test('clears the week-level error when a working day is selected', () => {
     expect(clearFieldError({ schedule: 'workingDayRequired' }, 'working-2')).toEqual({});
   });
+
+  test('clears a day-pair error from either end of that day', () => {
+    // `closingAfterOpening` is keyed on the close, but moving the *opening*
+    // time is an equally valid fix — the message describes the pair.
+    expect(clearFieldError({ 'close-3': 'closingAfterOpening' }, 'open-3')).toEqual({});
+    expect(clearFieldError({ 'close-3': 'closingAfterOpening' }, 'close-3')).toEqual({});
+  });
+
+  test('leaves another day alone when one day is corrected', () => {
+    expect(
+      clearFieldError({ 'close-3': 'closingAfterOpening', 'close-4': 'invalidTime' }, 'open-3'),
+    ).toEqual({ 'close-4': 'invalidTime' });
+  });
+
+  test('clears every time error when the whole week is rewritten at once', () => {
+    // What "apply these hours to every open day" reports: seven rows changed,
+    // so no per-day time error can still be describing what is on screen.
+    expect(
+      clearFieldError(
+        { schedule: 'workingDayRequired', 'open-1': 'invalidTime', 'close-4': 'closingAfterOpening' },
+        'schedule',
+      ),
+    ).toEqual({});
+  });
+
+  test('the week-level clear does not touch the other sections', () => {
+    expect(clearFieldError({ clinicName: 'required', 'open-1': 'invalidTime' }, 'schedule')).toEqual({
+      clinicName: 'required',
+    });
+  });
 });
