@@ -2,8 +2,8 @@
 
 import { useTranslations } from 'next-intl';
 
-import { setClientStatusAction } from '@/features/clients/actions';
 import { ConfirmSubmitButton } from '@/components/ui/confirm-submit-button';
+import { setClientStatusAction } from '@/features/clients/actions';
 import { type Locale } from '@/i18n/routing';
 
 /**
@@ -14,15 +14,19 @@ export function ArchiveButton({
   locale,
   clientId,
   archived,
+  variant = 'outline',
   size = 'default',
   iconOnly = false,
+  className,
 }: {
   locale: Locale;
   clientId: string;
   archived: boolean;
+  variant?: 'outline' | 'ghost' | 'neutral';
   size?: 'default' | 'sm';
   /** Table rows use the glyph; the record page keeps the words. */
   iconOnly?: boolean;
+  className?: string;
 }) {
   const t = useTranslations('clients');
 
@@ -35,9 +39,10 @@ export function ArchiveButton({
       <input type="hidden" name="intent" value={archived ? 'restore' : 'archive'} />
       <ConfirmSubmitButton
         label={label}
-        variant={iconOnly ? 'ghost' : 'outline'}
+        variant={iconOnly ? 'ghost' : variant}
         size={iconOnly ? 'icon-sm' : size}
-        icon={iconOnly ? (archived ? 'restore' : 'archive') : undefined}
+        icon={archived ? 'restore' : 'archive'}
+        className={className}
       />
     </form>
   );

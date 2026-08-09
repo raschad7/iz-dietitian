@@ -2,7 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 
-import { getClient } from '@/features/clients/queries';
+import { getClient, getClientIntake } from '@/features/clients/queries';
 import { ClientPlansCard } from '@/features/weekly-plans/components/client-plans-card';
 import { listPlans } from '@/features/weekly-plans/queries';
 import { resolveLocale } from '@/i18n/params';
@@ -31,7 +31,20 @@ export default async function ClientPlansPage({ params }: ClientPlansPageProps) 
   const client = await getClient(clinicId, clientId);
   if (!client) notFound();
 
-  const plans = await listPlans(clinicId, client.id);
+  // The intake carries this client's own meal schedule, which is the
+  // denominator for "how full is this week" — a client on three meals a day has
+  // a complete week at 21 slots, not at the 35 a five-slot client needs.
+  const [plans, intake] = await Promise.all([
+    listPlans(clinicId, client.id),
+    getClientIntake(clinicId, client.id),
+  ]);
 
-  return <ClientPlansCard clientId={client.id} plans={plans} />;
+  return (
+    <ClientPlansCard
+      clientId={client.id}
+      plans={plans}
+      slotsPerDay={intake?.mealSchedule.length ?? 0}
+      locale={locale}
+    />
+  );
 }

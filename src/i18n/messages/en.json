@@ -165,7 +165,6 @@
     "search": {
       "placeholder": "Search clients"
     },
-    "scrollDown": "More appointments below",
     "duration": {
       "hours": "{count, number, integer} hr",
       "minutes": "{count, number, integer} min"
@@ -407,6 +406,23 @@
     "backToList": "Back to clients",
     "notProvided": "Not provided",
     "yearsOld": "{count, number, integer} years",
+    "openPlanner": "Plan board",
+    "copy": {
+      "copied": "Copied",
+      "phone": "Copy phone number",
+      "email": "Copy email address",
+      "username": "Copy username",
+      "password": "Copy password"
+    },
+    "nextVisit": "Next visit",
+    "noUpcomingVisit": "None booked",
+    "lastVisit": "Last visit",
+    "noPreviousVisit": "No previous visits",
+    "contactActions": {
+      "whatsapp": "Message on WhatsApp",
+      "call": "Call",
+      "emailLink": "Send email"
+    },
     "tabs": {
       "label": "Client sections",
       "info": "Client info",
@@ -417,7 +433,8 @@
     },
     "sections": {
       "contact": "Contact details",
-      "demographics": "Demographics"
+      "demographics": "Demographics",
+      "privateNotes": "Private clinic notes"
     },
     "fields": {
       "fullName": "Full name",
@@ -440,7 +457,6 @@
       "actions": "Actions",
       "conditions": "Conditions",
       "medications": "Medications and supplements",
-      "careNote": "Care note",
       "weightKg": "Weight (kg)",
       "dailyKcalTarget": "Daily calories",
       "proteinTargetGrams": "Protein (g)",
@@ -478,7 +494,9 @@
       "archive": "Archive",
       "restore": "Restore",
       "delete": "Delete",
-      "confirmDelete": "This permanently deletes {name} and their portal account. It cannot be undone. Are you sure?"
+      "more": "More actions",
+      "confirmDeleteTitle": "Delete this record permanently?",
+      "confirmDelete": "This permanently deletes {name} and their portal account. It cannot be undone."
     },
     "clearFilters": "Clear filters",
     "pagination": {
@@ -487,13 +505,16 @@
       "position": "Page {page, number, integer} of {pageCount, number, integer}"
     },
     "portal": {
-      "title": "Portal access",
-      "none": "This client does not have a portal account.",
-      "granted": "This client can sign in to the portal.",
+      "title": "Account",
+      "stateActive": "active",
+      "stateNone": "not set up",
       "username": "Username",
+      "usernameHint": "What the client signs in with. Latin letters and numbers.",
       "issue": "Create sign-in details",
       "reissue": "Issue a new password",
-      "confirmReissue": "This ends the client's current sessions. Continue?",
+      "confirmReissueTitle": "Issue a new password?",
+      "confirmReissue": "This ends the client's current sessions, and their old password stops working.",
+      "confirmRevokeTitle": "Revoke portal access?",
       "revoke": "Revoke portal access",
       "revoked": "Portal access revoked.",
       "confirmRevoke": "This client will immediately lose access to the portal. Are you sure?",
@@ -505,7 +526,8 @@
         "sent": "Sent over WhatsApp.",
         "skipped": "Not sent over WhatsApp — check the number and the connection status.",
         "failed": "WhatsApp delivery failed. Hand the details over in person."
-      }
+      },
+      "state": "Sign-in {state}"
     },
     "errors": {
       "invalid": "Check the fields highlighted in red.",
@@ -527,21 +549,14 @@
         "clinical": "Clinical notes",
         "planning": "What the plan follows",
         "private": "Private notes",
-        "portal": "What the client sees",
         "targets": "Targets",
         "schedule": "Meal schedule"
       },
       "allergenLegend": "Tick every allergen to exclude",
       "allergyDetailLabel": "Allergy detail",
-      "privateBadge": "Clinic only",
       "fromFormula": "Computed",
       "suggested": "Suggested",
       "noAllergens": "No allergens recorded — the catalog is unfiltered.",
-      "shareWeight": "Show her weight in the portal",
-      "shareWeightHint": "Off by default. Off means the card is absent, not blank.",
-      "shared": "Visible to her",
-      "notShared": "Hidden from her",
-      "careNoteHint": "Rendered to the client exactly as written here.",
       "removeSlotOf": "Remove the {label} meal",
       "missingFields": "To generate, add: {fields}",
       "kcalValue": "{value} kcal",
@@ -559,6 +574,12 @@
       "unsetCount": "{count} fields not filled in",
       "unsetOne": "1 field not filled in",
       "complete": "Everything is filled in",
+      "completeness": "Record completeness",
+      "filledOf": "{filled} of {total} fields filled in",
+      "gapsHeading": "{count, plural, =0 {Everything is filled in} one {1 field has no data yet} other {# fields have no data yet}}",
+      "kcalMismatch": "The manual target is far from the computed one",
+      "kcalMismatchDetail": "{manual} kcal was entered by hand, but the measurements and goal give {computed} kcal. Check the number, or clear it to compute it automatically.",
+      "bmiValueText": "{value} — {category}",
       "bmiLabel": "BMI {category}",
       "noSchedule": "No meal schedule",
       "hour": "Hour",
@@ -566,7 +587,15 @@
       "customAllergenLegend": "Other allergies (these do not filter the catalog)",
       "customAllergenPlaceholder": "Name it",
       "addAllergen": "Add an allergy",
-      "removeAllergen": "Remove {name}"
+      "removeAllergen": "Remove {name}",
+      "goalLine": "Goal",
+      "activityLine": "Activity",
+      "completeShort": "Complete",
+      "editRecord": "Edit record",
+      "scheduleSummary": "{count, plural, one {1 meal} other {# meals}} on {kcal} kcal",
+      "gapsPrompt": "Tap any of them to fill it in",
+      "allergyLine": "Allergies",
+      "privateBadge": "Clinic only"
     },
     "allergens": {
       "nuts": "Nuts",
@@ -587,7 +616,15 @@
       "cm": "cm",
       "kg": "kg",
       "kcal": "kcal",
-      "g": "g"
+      "g": "g",
+      "years": "yrs"
+    },
+    "trail": {
+      "title": "Trail",
+      "bookVisit": "Book",
+      "createPlan": "Create",
+      "currentPlan": "Current plan",
+      "noPlan": "No plan yet"
     }
   },
   "portal": {
@@ -724,7 +761,6 @@
         "conditions": "Health conditions",
         "allergies": "Food allergies",
         "medications": "Medicines and supplements",
-        "careNote": "Notes from your dietitian",
         "clinicName": "Clinic",
         "practitioner": "Dietitian",
         "specialty": "Specialty",
@@ -1078,6 +1114,21 @@
     "noPlanYet": "No week has been planned for this client yet",
     "noPlanHint": "Create the first week when you are ready. The client profile, dish catalog, and earlier plans remain available in the side panel.",
     "current": "Current plan",
+    "currentWeekOf": "Current plan · week of {date}",
+    "openBoard": "Open the board",
+    "openThisWeek": "Open this week",
+    "mealsFilled": "Meals filled",
+    "ofWeek": "of the week",
+    "kcalTarget": "Calorie target",
+    "snapshotNote": "Saved with the plan",
+    "lastEdited": "Last edited",
+    "columns": {
+      "week": "Week",
+      "status": "Status",
+      "meals": "Meals",
+      "target": "Calories",
+      "updated": "Last edited"
+    },
     "history": "Earlier plans",
     "weekOf": "Week of {date}",
     "generatedBy": "Model used",

@@ -83,15 +83,6 @@ export const clientFormSchema = z.object({
 export type ClientFormInput = z.infer<typeof clientFormSchema>;
 
 /**
- * A checkbox, as `FormData` reports it: `'on'` when ticked, absent when not.
- *
- * Absent means false, which is the safe reading of a field that failed to
- * submit — and for `shareWeightWithClient` in particular, the safe reading is
- * the one that does not reveal a figure nobody chose to reveal.
- */
-const checkboxSchema = z.preprocess((value) => value === 'on' || value === 'true', z.boolean());
-
-/**
  * The intake form — everything clinical about one client, from both tables.
  *
  * One schema over two tables on purpose. `clients` holds the columns the rest
@@ -123,7 +114,6 @@ export const intakeSchema = z.object({
    * is a feature of its own and nobody has asked for it yet.
    */
   weightKg: z.preprocess(blankToUndefined, z.coerce.number().min(20).max(400).optional()),
-  shareWeightWithClient: checkboxSchema,
 
   // ── Allergies: the tags filter, the prose does not ───────────────────────
   /**
@@ -164,10 +154,9 @@ export const intakeSchema = z.object({
   /** The detail behind the ticks — "mild reaction to walnuts, not almonds". */
   allergies: optionalText(1000),
 
-  // ── Clinical record, from `clients`. The first three are portal-visible ──
+  // ── Clinical record, from `clients`. The first two are portal-visible ────
   conditions: optionalText(1000),
   medications: optionalText(1000),
-  careNote: optionalText(1000),
   /** The dietitian's own working notes. Never shown to the client. */
   medicalNotes: optionalText(2000),
   notes: optionalText(2000),

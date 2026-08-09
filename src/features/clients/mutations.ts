@@ -101,7 +101,6 @@ export async function saveIntake(clinicId: string, input: IntakeInput): Promise<
         allergies: input.allergies ?? null,
         conditions: input.conditions ?? null,
         medications: input.medications ?? null,
-        careNote: input.careNote ?? null,
         medicalNotes: input.medicalNotes ?? null,
         notes: input.notes ?? null,
         updatedAt: new Date(),
@@ -114,9 +113,16 @@ export async function saveIntake(clinicId: string, input: IntakeInput): Promise<
     // between the two.
     if (rows.length === 0) return false;
 
+    /*
+     * `clients.care_note` and `client_nutrition_profiles.share_weight_with_client`
+     * are absent from both writes on purpose. The screens that read and wrote
+     * them are gone, and a column left out of an UPDATE keeps whatever it holds
+     * — so removing the UI does not quietly erase notes a dietitian wrote for a
+     * client. Drop the columns in a migration if the feature is never coming
+     * back; until then, leaving them untouched is the reversible option.
+     */
     const profile = {
       weightKg: input.weightKg ?? null,
-      shareWeightWithClient: input.shareWeightWithClient,
       dailyKcalTarget: input.dailyKcalTarget ?? null,
       proteinTargetGrams: input.proteinTargetGrams ?? null,
       allergenTags: input.allergenTags,

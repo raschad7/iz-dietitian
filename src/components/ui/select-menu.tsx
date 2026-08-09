@@ -32,6 +32,8 @@ import { cn } from '@/lib/utils';
  *    be clipped by the dialog panel's own `overflow-y-auto`, and portalling to
  *    `<body>` would drop it *behind* a `<dialog>`, which renders in the top
  *    layer. Fixed, rendered in place, is the one option that is neither.
+ *  - Because it is rendered in place, it is positioned with PHYSICAL `left`
+ *    rather than `insetInlineStart` — see `measure` for the RTL bug that costs.
  */
 
 export type SelectOption = {
@@ -71,7 +73,7 @@ export function SelectMenu({
 
   const [open, setOpen] = React.useState(false);
   const [active, setActive] = React.useState(0);
-  const [rect, setRect] = React.useState<{ top: number; start: number; width: number } | null>(null);
+  const [rect, setRect] = React.useState<{ top: number; left: number; width: number } | null>(null);
 
   const trigger = React.useRef<HTMLButtonElement>(null);
   const list = React.useRef<HTMLUListElement>(null);
@@ -92,17 +94,34 @@ export function SelectMenu({
     const box = node.getBoundingClientRect();
     const below = window.innerHeight - box.bottom;
 
-    // Flip above the trigger when the list would not fit under it. `start` is
-    // the inline-start edge in the document's own direction, which is what the
-    // style below positions against.
+    // Flip above the trigger when the list would not fit under it.
     const height = Math.min(options.length * 40 + 8, 240);
     const top = below < height + 8 ? box.top - height - 4 : box.bottom + 4;
 
-    setRect({
-      top,
-      start: document.dir === 'rtl' ? window.innerWidth - box.right : box.left,
-      width: box.width,
-    });
+    /*
+      ⚠ **Physical `left`, measured off the trigger — never `insetInlineStart`.**
+
+      This used to store `document.dir === 'rtl' ? innerWidth - box.right : box.left`
+      and apply it as `insetInlineStart`, which assumed the list resolves its
+      inline-start against the *document's* direction. A logical property
+      resolves against the ELEMENT's own computed direction, and this list is
+      rendered in place — so inside any `dir="ltr"` subtree of an Arabic page,
+      `insetInlineStart` became `left` while the number in it was still a
+      distance from the RIGHT edge of the viewport. The list landed mirrored
+      across the screen from the control that owns it.
+
+      `TimeField` is exactly that subtree: it pins itself `dir="ltr"` because a
+      clock time is one LTR run in both scripts, and it is built out of two of
+      these. So every hour and minute menu in the Arabic build opened in the
+      wrong place, while the plain RTL menus beside them were fine — which is
+      why this read as "the schedule is broken" rather than "the select is".
+
+      A physical `left` cannot be reinterpreted by anything it is nested in, and
+      needs no direction branch: `box.left` is where the trigger actually is, and
+      the list is pinned to the trigger's own width, so its edges land on the
+      trigger's in both scripts.
+    */
+    setRect({ top, left: box.left, width: box.width });
   }, [options.length]);
 
   const openList = () => {
@@ -258,7 +277,7 @@ export function SelectMenu({
           id={listId}
           role="listbox"
           aria-label={ariaLabel}
-          style={{ top: rect.top, insetInlineStart: rect.start, width: rect.width }}
+          style={{ top: rect.top, left: rect.left, width: rect.width }}
           className={cn(
             'fixed z-50 max-h-60 overflow-y-auto rounded-[10px] border border-border bg-popover p-1',
             'shadow-elevated',

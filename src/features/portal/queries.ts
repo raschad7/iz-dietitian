@@ -5,7 +5,6 @@ import {
   appointmentRequests,
   appointments,
   clientCheckIns,
-  clientNutritionProfiles,
   clientPlanAdherence,
   clientRequests,
   clientSettings,
@@ -31,7 +30,6 @@ import {
   type PortalProfile,
   type PortalRequest,
   type PortalSettings,
-  type PortalWeight,
   type RequestKind,
   type RequestStatus,
   type ThemePreference,
@@ -99,7 +97,6 @@ export async function getPortalClient(userId: string): Promise<PortalClient | nu
       allergies: clients.allergies,
       conditions: clients.conditions,
       medications: clients.medications,
-      careNote: clients.careNote,
       updatedAt: clients.updatedAt,
     })
     .from(clients)
@@ -168,29 +165,18 @@ export async function getAssignedPractitioner(
   return row ?? null;
 }
 
-/**
- * The client's current weight — but only if their dietitian shares it.
+/*
+ * `getSharedWeight` used to be here.
  *
- * The `share_weight_with_client` flag is applied here, in the read, rather than
- * in a component. §11 of the design system requires that a hidden measurement
- * is hidden everywhere, and the only way to guarantee that across future
- * callers is for the number never to leave the database in the first place.
+ * The dietitian's "show her weight in the portal" switch is gone, and with it
+ * the only thing that ever set `share_weight_with_client` to true — so the read
+ * it gated could no longer return anything but null. The weight is simply not
+ * part of the portal record now, which is the same thing every client was
+ * already seeing: the flag defaults to false.
  *
- * Returns null both when it is not shared and when none was recorded; see
- * {@link PortalWeight} for why those two are deliberately the same value.
+ * §11 still holds and is now trivially satisfied — the number never leaves the
+ * database for a client-facing screen at all.
  */
-export async function getSharedWeight(clientId: string): Promise<PortalWeight> {
-  const [row] = await db
-    .select({
-      weightKg: clientNutritionProfiles.weightKg,
-      shared: clientNutritionProfiles.shareWeightWithClient,
-    })
-    .from(clientNutritionProfiles)
-    .where(eq(clientNutritionProfiles.clientId, clientId))
-    .limit(1);
-
-  return row?.shared ? row.weightKg : null;
-}
 
 /**
  * The client's own account settings, with the defaults filled in.

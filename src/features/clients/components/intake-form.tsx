@@ -7,12 +7,11 @@ import { useFormStatus } from 'react-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DialogFooter } from '@/components/ui/dialog';
-import { Field, FieldError, FieldHint } from '@/components/ui/field';
+import { Field, FieldError } from '@/components/ui/field';
 import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SelectMenu } from '@/components/ui/select-menu';
-import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { TimeField } from '@/components/ui/time-field';
 import { saveIntakeAction } from '@/features/clients/actions';
@@ -30,17 +29,17 @@ import { cn } from '@/lib/utils';
  * writes client records on.
  *
  * **One form over two tables.** `clients` holds height, goal, activity level and
- * the portal-visible prose; `client_nutrition_profiles` holds weight, the
- * allergen tags, the targets and the schedule. That storage split is fine and
- * stays — what was wrong was making a dietitian navigate it. `saveIntake` fans
- * one submission back out.
+ * the clinical prose; `client_nutrition_profiles` holds weight, the allergen
+ * tags, the targets and the schedule. That storage split is fine and stays —
+ * what was wrong was making a dietitian navigate it. `saveIntake` fans one
+ * submission back out.
  *
- * **A rail, not one scroll and not a wizard.** Six sections and twenty-five
+ * **A rail, not one scroll and not a wizard.** Five sections and two dozen
  * fields in a single column put the Save button two thousand pixels from the
  * first field, and a dietitian recording one weigh-in scrolled past allergens,
  * medications and the meal schedule to reach it. A wizard would be worse: this
  * form is edited far more often than it is created, and steps punish the person
- * who came to change one number. The rail shows all six at once, marks which
+ * who came to change one number. The rail shows all five at once, marks which
  * ones have content, and reaches any of them in a click — so the structure is
  * also the progress indicator.
  *
@@ -49,8 +48,15 @@ import { cn } from '@/lib/utils';
  * that loses the half someone had already typed.
  */
 
-/** The sections, in the order a client is actually worked through. */
-const SECTIONS = ['measurements', 'allergies', 'clinical', 'planning', 'schedule', 'portal'] as const;
+/**
+ * The sections, in the order a client is actually worked through.
+ *
+ * There was a sixth, `portal` — a share-the-weight switch and a note written for
+ * the client to read. Both are gone, along with everything downstream that
+ * displayed them; the columns are still in the database and are simply no longer
+ * read or written, so nothing already recorded was destroyed to remove a screen.
+ */
+const SECTIONS = ['measurements', 'allergies', 'clinical', 'planning', 'schedule'] as const;
 
 type SectionId = (typeof SECTIONS)[number];
 
@@ -61,7 +67,6 @@ const SECTION_ICONS = {
   clinical: 'notes',
   planning: 'weeklyPlans',
   schedule: 'clock',
-  portal: 'profile',
 } as const satisfies Record<SectionId, string>;
 
 export function IntakeForm({
@@ -95,7 +100,6 @@ export function IntakeForm({
   const [goal, setGoal] = useState(intake.goal ?? '');
   const [activityLevel, setActivityLevel] = useState(intake.activityLevel ?? '');
 
-  const [shareWeight, setShareWeight] = useState(intake.shareWeightWithClient);
   const [slots, setSlots] = useState<MealSlotValues[]>(intake.mealSchedule);
   const [custom, setCustom] = useState<string[]>(intake.customAllergens);
 
@@ -123,7 +127,6 @@ export function IntakeForm({
   });
 
   const suggestedProtein = suggestProteinGrams(toNumberOrNull(weightKg));
-  const shareWeightLabelId = useId();
   const panelId = useId();
 
   /*
@@ -153,7 +156,6 @@ export function IntakeForm({
         intake.proteinTargetGrams !== null,
     ),
     schedule: true,
-    portal: intake.shareWeightWithClient || Boolean(intake.careNote?.trim()),
   };
 
   /*
@@ -186,12 +188,6 @@ export function IntakeForm({
     <form action={formAction} className="flex min-h-0 flex-1 flex-col text-start">
       <input type="hidden" name="locale" value={locale} />
       <input type="hidden" name="clientId" value={intake.clientId} />
-      {/*
-        The switch is a `<button>` — see `Switch`, which exists so every setting
-        in the portal submits its own single-field form. Inside a form with one
-        Save it is a controlled toggle instead, and this is what posts it.
-      */}
-      <input type="hidden" name="shareWeightWithClient" value={shareWeight ? 'on' : ''} />
 
       <div className="flex min-h-0 flex-1 flex-col sm:flex-row">
         <SectionRail
@@ -204,7 +200,7 @@ export function IntakeForm({
         {/*
           Every section stays mounted. A value typed into the schedule and then
           navigated away from has to still be there on save — this is one form
-          with one submit, not six.
+          with one submit, not five.
         */}
         <div
           id={panelId}
@@ -402,32 +398,6 @@ export function IntakeForm({
               error={errorFor('mealSchedule')}
             />
           </Panel>
-
-          <Panel id="portal" current={section}>
-            <div className="flex items-center justify-between gap-4 rounded-lg border border-border p-4">
-              <div className="min-w-0">
-                <p id={shareWeightLabelId} className="text-body-sm font-medium">
-                  {t('intake.shareWeight')}
-                </p>
-                <FieldHint>{t('intake.shareWeightHint')}</FieldHint>
-              </div>
-              <Switch
-                checked={shareWeight}
-                aria-labelledby={shareWeightLabelId}
-                onClick={() => setShareWeight((current) => !current)}
-              />
-            </div>
-
-            <TextField
-              name="careNote"
-              label={t('fields.careNote')}
-              hint={t('intake.careNoteHint')}
-              rows={3}
-              maxLength={1000}
-              defaultValue={intake.careNote}
-              error={errorFor('careNote')}
-            />
-          </Panel>
         </div>
       </div>
 
@@ -449,7 +419,6 @@ const FIELDS_BY_SECTION: Record<SectionId, readonly string[]> = {
   clinical: ['conditions', 'medications', 'medicalNotes', 'notes'],
   planning: ['permanentInstructions', 'preferences', 'dislikes', 'dailyKcalTarget', 'proteinTargetGrams'],
   schedule: ['mealSchedule'],
-  portal: ['careNote'],
 };
 
 /** `''` from an untouched number input is "not provided", not zero. */
@@ -460,14 +429,14 @@ function toNumberOrNull(value: string): number | null {
 }
 
 /**
- * The six sections, always all visible, with a dot for the ones that hold
+ * The five sections, always all visible, with a dot for the ones that hold
  * something.
  *
  * A `tablist` and not a nav: these are panels of one form, not destinations, and
  * the arrow-key behaviour a tablist promises is the behaviour a reader wants
  * here. Horizontal and scrollable on a phone, a real column from `sm` up — the
- * six Arabic labels do not fit across a 375px screen, and truncating the one
- * that says "what the client sees" would hide the section people forget exists.
+ * Arabic labels do not fit across a 375px screen, and truncating them would hide
+ * the sections people forget exist.
  */
 function SectionRail({
   current,
@@ -704,11 +673,10 @@ function NumberField({
   );
 }
 
-/** A labelled textarea with an optional hint. */
+/** A labelled textarea. */
 function TextField({
   name,
   label,
-  hint,
   rows,
   maxLength,
   defaultValue,
@@ -716,14 +684,11 @@ function TextField({
 }: {
   name: string;
   label: string;
-  hint?: string;
   rows: number;
   maxLength: number;
   defaultValue: string | null;
   error?: string;
 }) {
-  const hintId = `${name}-hint`;
-
   return (
     <Field>
       <Label htmlFor={name}>{label}</Label>
@@ -733,9 +698,7 @@ function TextField({
         rows={rows}
         maxLength={maxLength}
         defaultValue={defaultValue ?? ''}
-        aria-describedby={hint ? hintId : undefined}
       />
-      {hint ? <FieldHint id={hintId}>{hint}</FieldHint> : null}
       <FieldError>{error}</FieldError>
     </Field>
   );

@@ -45,8 +45,10 @@ export async function generateMetadata({ params }: ProfilePageProps): Promise<Me
  *
  * **What is deliberately absent.** The dietitian's private notes
  * (`clients.medical_notes`, `clients.notes`) are never selected by
- * `getPortalClient`, and the weight is omitted entirely — not blanked — unless
- * the dietitian shares it (§11 sensitive data; see `getSharedWeight`).
+ * `getPortalClient`. Neither is the weight: it was shown only when a dietitian
+ * ticked a switch that no longer exists, and rather than leave a read that
+ * could never return anything, it is off this screen entirely (§11 sensitive
+ * data). The same goes for the care note the dialog used to write.
  *
  * One of the portal's five tabs, so it renders like the others in this group:
  * no header of its own, just content under the shared greeting header and
@@ -57,8 +59,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   const locale = await resolveLocale(params);
 
   const context = await requirePortalClient(locale);
-  const { profile, weightKg, clinic, practitioner, openUpdateRequest } =
-    await loadProfilePage(context);
+  const { profile, clinic, practitioner, openUpdateRequest } = await loadProfilePage(context);
 
   const t = await getTranslations('portal.profile');
   const tClients = await getTranslations('clients');
@@ -116,18 +117,6 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
           }
         />
 
-        {/*
-          Absent, not blank. A row reading "hidden" would tell the client
-          there is a number being kept from them, which is worse than not
-          raising the subject at all — §9.8's `hidden-metric` state.
-        */}
-        {weightKg === null ? null : (
-          <InfoRow
-            label={t('field.weight')}
-            value={t('kg', { value: format.number(weightKg, 'plain') })}
-          />
-        )}
-
         <InfoRow
           label={t('field.goal')}
           value={enumLabel(CLIENT_GOALS, profile.goal, (key) => tClients(`goal.${key}`))}
@@ -141,7 +130,6 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
         <InfoRow label={t('field.conditions')} value={profile.conditions} block />
         <InfoRow label={t('field.allergies')} value={profile.allergies} block />
         <InfoRow label={t('field.medications')} value={profile.medications} block />
-        <InfoRow label={t('field.careNote')} value={profile.careNote} block />
       </ProfileSection>
 
       {clinic ? (
