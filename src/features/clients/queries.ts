@@ -5,12 +5,7 @@ import { clientNutritionProfiles, clients, type Client } from '@/db/schema';
 
 import { DEFAULT_MEAL_SCHEDULE, mealScheduleSchema } from './nutrition';
 import { normalizeForSearch } from './search';
-import {
-  CLIENT_STATUSES,
-  clientIdSchema,
-  type ClientStatus,
-  type ListClientsInput,
-} from './schema';
+import { clientIdSchema, type ListClientsInput } from './schema';
 import { type ClientIntakeValues, type MealSlotValues } from './types';
 
 /**
@@ -24,8 +19,15 @@ export type ClientListItem = {
   id: string;
   fullName: string;
   phone: string | null;
-  email: string | null;
-  status: string;
+  /**
+   * `YYYY-MM-DD`, for the age the register shows.
+   *
+   * The date rather than a computed age, for the same reason the dashboard's
+   * register card takes it: an age is a number about *today*, and computing it
+   * in the query would cache a value that is wrong the morning after someone's
+   * birthday.
+   */
+  dateOfBirth: string | null;
   hasPortalAccess: boolean;
 };
 
@@ -39,29 +41,12 @@ export type ClientListResult = {
 export type ClientDetail = Client & { hasPortalAccess: boolean };
 
 /**
- * Which clients the status rule lets through.
- *
- * The register shows active clients unless it is explicitly told otherwise, so
- * this is the default whenever the reader is filtering on something else — or
- * on nothing. Only `filterBy: 'status'` can change it, and a value outside the
- * set falls back to the default rather than showing the whole register: a
- * mistyped query string should not quietly widen what is on screen.
- */
-function statusRule(input: ListClientsInput): ClientStatus | 'all' {
-  if (input.filterBy !== 'status') return 'active';
-
-  const value = input.filterValue;
-  if (value === 'all') return 'all';
-  return CLIENT_STATUSES.find((status) => status === value) ?? 'active';
-}
-
-/**
  * The one column the reader chose to filter on, if any.
  *
- * `status` is not here — it is the rule above, because it is the one filter
- * that also has a default. A column with no value filters nothing: the popover
- * can be opened and a column picked without a term typed yet, and that state
- * should show the register, not an empty one.
+ * `status` is not here, and is no longer a filter at all — it is a property of
+ * *which page you are on*, and it arrives on `input.status`. A column with no
+ * value filters nothing: the popover can be opened and a column picked without
+ * a term typed yet, and that state should show the register, not an empty one.
  */
 function filterCondition(input: ListClientsInput): SQL | undefined {
   const value = input.filterValue;
@@ -95,10 +80,7 @@ function filterCondition(input: ListClientsInput): SQL | undefined {
  * forgetting it is a type error, not a silent cross-tenant leak.
  */
 function buildFilter(clinicId: string, input: ListClientsInput): SQL | undefined {
-  const conditions: SQL[] = [eq(clients.clinicId, clinicId)];
-
-  const status = statusRule(input);
-  if (status !== 'all') conditions.push(eq(clients.status, status));
+  const conditions: SQL[] = [eq(clients.clinicId, clinicId), eq(clients.status, input.status)];
 
   if (input.q) {
     /*
@@ -138,22 +120,32 @@ function buildFilter(clinicId: string, input: ListClientsInput): SQL | undefined
 const SORT_COLUMNS: Record<ListClientsInput['sort'], AnyColumn | SQL> = {
   fullName: clients.searchName,
   phone: clients.phone,
-  email: clients.email,
-  status: clients.status,
+  /** Ordered by the date behind it; see `INVERTED_SORTS` for the direction. */
+  age: clients.dateOfBirth,
   portalAccess: sql`(${clients.userId} is not null)`,
   createdAt: clients.createdAt,
 };
 
 /**
- * Nullable columns — phone and email — are pushed to the end in **both**
- * directions. A blank is not "smallest"; it is missing, and a reader flipping
- * the direction to find the As is not asking to be shown eleven dashes first.
+ * Nullable columns are pushed to the end in **both** directions. A blank is not
+ * "smallest"; it is missing, and a reader flipping the direction to find the As
+ * is not asking to be shown eleven dashes first.
  */
-const NULLABLE_SORTS = new Set<ListClientsInput['sort']>(['phone', 'email']);
+const NULLABLE_SORTS = new Set<ListClientsInput['sort']>(['phone', 'age']);
+
+/**
+ * Sorts whose column runs the opposite way to the value on screen.
+ *
+ * Age is the only one: the *oldest* client has the *earliest* date of birth, so
+ * ascending age is descending date. Flipped here rather than at the call site,
+ * so the header's arrow means the same thing on this column as on every other.
+ */
+const INVERTED_SORTS = new Set<ListClientsInput['sort']>(['age']);
 
 function buildOrder(input: ListClientsInput): SQL[] {
   const column = SORT_COLUMNS[input.sort];
-  const direction = input.dir === 'asc' ? asc : desc;
+  const ascending = INVERTED_SORTS.has(input.sort) ? input.dir === 'desc' : input.dir === 'asc';
+  const direction = ascending ? asc : desc;
 
   const order: SQL[] = [];
   if (NULLABLE_SORTS.has(input.sort)) order.push(sql`${column} is null`);
@@ -177,8 +169,7 @@ export async function listClients(clinicId: string, input: ListClientsInput): Pr
       id: clients.id,
       fullName: clients.fullName,
       phone: clients.phone,
-      email: clients.email,
-      status: clients.status,
+      dateOfBirth: clients.dateOfBirth,
       userId: clients.userId,
     })
     .from(clients)

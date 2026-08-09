@@ -144,7 +144,15 @@ export async function AgendaTimeline({
         </header>
 
         {ordered.length === 0 ? (
-          <div className="flex shrink-0 flex-col items-start gap-3 rounded-lg border border-dashed border-border p-4">
+          /*
+            Centred, not start-aligned. Three items hung off the inline-start
+            edge of a dashed box — a glyph, a sentence and a button, each a
+            different width — read as a list that had lost its rows; there is
+            nothing beside them for the edge to line up with. Centred, the three
+            share one axis and the box reads as one statement. The same shape
+            `EmptyState` gives a screen, at panel scale.
+          */
+          <div className="flex shrink-0 flex-col items-center gap-3 rounded-lg border border-dashed border-border p-6 text-center">
             <Icon name="calendar" className="size-6 text-muted-foreground" />
             <p className="text-body-md text-muted-foreground">{t('empty')}</p>
             <Link href={dayHref(today)} className={buttonVariants({ variant: 'outline', size: 'sm' })}>

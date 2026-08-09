@@ -15,15 +15,19 @@ import { ClientRequestCard } from './client-request-card';
 /**
  * What clients are waiting for, on the dashboard.
  *
- * **It renders nothing when nothing is pending, and that is deliberate.** The
- * dashboard's stated constraint is that it fits one screen from `xl` up and
- * does not scroll, so a permanently-present card would spend a third of that
- * screen on the word "nothing" — the same reasoning that removed the four
- * summary counters that used to head this column. On a quiet morning the
- * register takes the whole row and the page is exactly what it was before this
- * feature existed; on a busy one, the thing with a person waiting at the other
- * end sits beside the register at full height. The page owns that switch — see
- * `src/app/[locale]/app/page.tsx`.
+ * **It stays on the page when nothing is pending.** It used to return `null`,
+ * on the argument that the dashboard is one screen and a card saying "nothing"
+ * is a third of it spent on no news. That was the wrong trade for this card in
+ * particular: a panel that appears and disappears is one nobody learns the
+ * position of, so a request arriving on a quiet morning had to be *noticed*
+ * rearranging the page rather than simply read where it always is. It also made
+ * the answered history unreachable from here on exactly the days there was time
+ * to review it — the inbox link went with the card.
+ *
+ * What made the old trade look necessary was the card's *place*: it sat beside
+ * the register, so an empty one left a hole in the widest row on the page. It
+ * now sits under today's agenda in the narrow column, where an empty state is
+ * one line and the row above it takes back the height.
  *
  * **Every pending request is here, and the list scrolls inside the card.** It
  * used to show three and hand the rest to the inbox, because it was then a
@@ -58,8 +62,6 @@ export async function PendingRequestsCard({
 }) {
   const total = data.appointments.length + data.clientRequests.length;
 
-  if (total === 0) return null;
-
   const t = await getTranslations('requests');
 
   // Appointments first, for the same reason the inbox orders them that way: a
@@ -67,58 +69,94 @@ export async function PendingRequestsCard({
   const { appointments, clientRequests } = data;
 
   return (
-    <Card className="min-h-0 xl:h-full">
+    <Card className="min-h-0">
       {/* The register's header, disc and all — the same neutral mark, because
           the card is not a target and has nothing to promise the pointer. The
-          count in the title is what says this one is waiting on you. */}
-      <CardHeader className="shrink-0 grid-cols-[auto_1fr] items-center gap-2">
+          count beside the title is what says this one is waiting on you, and it
+          is a bare numeral rather than a pill: a count is a quantity, not a
+          state. See "A badge is a state" in docs/design-system.md. */}
+      <CardHeader className="shrink-0 grid-cols-[auto_1fr_auto] items-center gap-2">
         <span className="flex size-8 items-center justify-center rounded-full bg-muted text-muted-foreground">
           <Icon name="chat" className="size-4" />
         </span>
-        <CardTitle>{t('dashboard.title', { count: total })}</CardTitle>
+        <CardTitle>{t('dashboard.heading')}</CardTitle>
+        {total > 0 ? (
+          <span className="text-heading-sm font-semibold tabular-nums">{total}</span>
+        ) : null}
       </CardHeader>
 
       <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
-        {/*
-          The whole queue, scrolled rather than truncated. At `xl` the height is
-          the row's — `flex-1`/`min-h-0` against a card the one-screen layout
-          already bounds. Below `xl` nothing bounds it, so `max-h-[32rem]` is the
-          ceiling there, the same fallback the register's list carries; `pe-1`
-          leaves the scrollbar somewhere to sit that is not on top of the tiles,
-          and `overscroll-contain` keeps a flick at the end of the queue off the
-          shell behind it.
-        */}
-        <ul className="flex max-h-[32rem] flex-col gap-2 overflow-y-auto overscroll-contain pe-1 xl:max-h-none xl:min-h-0 xl:flex-1">
-          {appointments.map((request) => (
-            <li key={request.id}>
-              <AppointmentRequestCard
-                request={request}
-                locale={locale}
-                hours={data.hours}
-                today={data.today}
-                now={now}
-                size="sm"
-              />
-            </li>
-          ))}
+        {total === 0 ? (
+          /*
+            The empty card is one statement in a dashed box, not three things
+            stacked down the inline-start edge. It was a title, a grey sentence
+            and a ghost link at three different widths with card-sized gaps
+            between them — nothing lined up with anything, and the link floated
+            as if it had lost the list it belonged under. Boxed and centred, the
+            three read as one panel, and the way to the inbox sits inside it as
+            the single next step rather than as leftover furniture.
 
-          {clientRequests.map((request) => (
-            <li key={request.id}>
-              <ClientRequestCard request={request} locale={locale} now={now} size="sm" />
-            </li>
-          ))}
-        </ul>
+            The same shape as the agenda's empty state directly above it, which
+            is the point: two panels in one column saying "nothing today" should
+            say it the same way.
+          */
+          <div className="flex shrink-0 flex-col items-center gap-3 rounded-lg border border-dashed border-border p-6 text-center">
+            <Icon name="chat" className="size-6 text-muted-foreground" />
+            <p className="text-body-md text-muted-foreground">{t('dashboard.empty')}</p>
+            <Link
+              href="/app/requests"
+              className={buttonVariants({ variant: 'outline', size: 'sm' })}
+            >
+              {t('dashboard.openInbox')}
+              <Icon name="chevronEnd" />
+            </Link>
+          </div>
+        ) : (
+          /*
+            The whole queue, scrolled rather than truncated. `max-h-[22rem]` is
+            the ceiling at every width now, not only below `xl`: this card sits
+            *under* today's agenda in the narrow column rather than beside the
+            register, so it is no longer a full-height panel with the layout
+            bounding it — it takes what it needs and gives the rest back to the
+            agenda above. `pe-1` leaves the scrollbar somewhere to sit that is
+            not on top of the tiles, and `overscroll-contain` keeps a flick at
+            the end of the queue off the shell behind it.
+          */
+          <ul className="flex max-h-[22rem] flex-col gap-2 overflow-y-auto overscroll-contain pe-1">
+            {appointments.map((request) => (
+              <li key={request.id}>
+                <AppointmentRequestCard
+                  request={request}
+                  locale={locale}
+                  hours={data.hours}
+                  today={data.today}
+                  now={now}
+                  size="sm"
+                />
+              </li>
+            ))}
+
+            {clientRequests.map((request) => (
+              <li key={request.id}>
+                <ClientRequestCard request={request} locale={locale} now={now} size="sm" />
+              </li>
+            ))}
+          </ul>
+        )}
 
         {/* The inbox, at the foot of the card rather than in its header — the
-            same ghost link, in the same place, as "See all clients" and "Open
-            the day view" either side of it. */}
-        <Link
-          href="/app/requests"
-          className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'shrink-0 self-start')}
-        >
-          {t('dashboard.openInbox')}
-          <Icon name="chevronEnd" />
-        </Link>
+            same ghost link, in the same place, as "See all clients" beside it.
+            Only when there is a queue: the empty state above carries its own
+            way through, and two links to one place is one too many. */}
+        {total > 0 ? (
+          <Link
+            href="/app/requests"
+            className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'shrink-0 self-start')}
+          >
+            {t('dashboard.openInbox')}
+            <Icon name="chevronEnd" />
+          </Link>
+        ) : null}
       </CardContent>
     </Card>
   );

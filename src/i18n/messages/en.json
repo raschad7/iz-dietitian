@@ -219,23 +219,22 @@
       "bodyCompleted": "This appointment has already finished. Deleting {name} on {when} removes the record permanently.",
       "confirm": "Delete appointment"
     },
-    "repeatBooking": {
-      "title": "Repeat this booking every week?",
-      "body": "{name} is booked for {when}. Repeat the same day and time every week?",
-      "durationLabel": "Repeat for",
+    "repeat": {
+      "label": "Repeats",
+      "never": "Does not repeat",
       "presets": {
-        "week1": "1 week",
-        "week2": "2 weeks",
-        "week3": "3 weeks",
-        "month1": "1 month"
-      },
-      "custom": "Custom…",
+        "week1": "Weekly, for 1 week",
+        "week2": "Weekly, for 2 weeks",
+        "week3": "Weekly, for 3 weeks",
+        "month1": "Weekly, for 1 month"
+      }
+    },
+    "repeatBooking": {
+      "custom": "Weekly, custom length…",
       "customLabel": "Number of weeks",
       "weeks": "{count, plural, one {1 week} other {# weeks}}",
       "preview": "Adds {count, plural, one {1 appointment} other {# appointments}}, one a week, ending {until}.",
       "skipNote": "Any week the clinic is closed, or the hour is already taken, is skipped.",
-      "confirm": "Confirm",
-      "cancel": "No",
       "created": "Booked every week for a month — {count, number, integer} more appointments added.",
       "partial": "{count, number, integer} weekly appointments added. {skipped, number, integer} were skipped because that slot was not free.",
       "none": "No weekly repeats were added — that slot is not free on any of the coming weeks."
@@ -315,7 +314,8 @@
       "noUpcomingAppointment": "No upcoming appointment",
       "noWeeklyPlan": "No plan this week",
       "neverSignedIn": "Never signed in to the portal"
-    }
+    },
+    "seeAll": "See all notifications"
   },
   "requests": {
     "title": "Requests",
@@ -374,7 +374,8 @@
       }
     },
     "dashboard": {
-      "title": "Waiting on you ({count, number, integer})",
+      "heading": "Client requests",
+      "empty": "Nothing is waiting on an answer.",
       "openInbox": "All requests"
     },
     "errors": {
@@ -461,7 +462,7 @@
       "notes": "Notes",
       "status": "Status",
       "createdAt": "Registered",
-      "portalAccess": "Portal access",
+      "portalAccess": "Portal",
       "actions": "Actions",
       "conditions": "Conditions",
       "medications": "Medications and supplements",
@@ -535,7 +536,8 @@
         "skipped": "Not sent over WhatsApp — check the number and the connection status.",
         "failed": "WhatsApp delivery failed. Hand the details over in person."
       },
-      "state": "Sign-in {state}"
+      "state": "Sign-in {state}",
+      "granted": "Yes"
     },
     "errors": {
       "invalid": "Check the fields highlighted in red.",
@@ -633,6 +635,11 @@
       "createPlan": "Create",
       "currentPlan": "Current plan",
       "noPlan": "No plan yet"
+    },
+    "archive": {
+      "title": "Archived clients",
+      "subtitle": "Restore anyone who should be back on the register.",
+      "empty": "Nothing has been archived."
     }
   },
   "portal": {

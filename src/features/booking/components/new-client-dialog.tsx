@@ -13,6 +13,7 @@ import { getLocaleDirection, type Locale } from '@/i18n/routing';
 
 import { formatLongDate, formatMinuteRange } from '../format';
 import { type PendingBooking } from './client-picker';
+import { NO_REPEAT, RepeatField } from './repeat-field';
 
 /**
  * Adding a client without leaving the booking.
@@ -31,15 +32,28 @@ export type NewClientDialogProps = {
   pending: PendingBooking;
   locale: Locale;
   pendingLabel?: string;
-  onCreate: (client: { fullName: string; phone?: string }) => void;
+  /**
+   * Whatever repeat was already chosen in the picker this dialog was opened
+   * from. Carried through rather than reset, so stepping aside to add the
+   * person does not silently discard the span that was set a click earlier.
+   */
+  weeks?: number;
+  onCreate: (client: { fullName: string; phone?: string }, weeks: number) => void;
   onCancel: () => void;
 };
 
-export function NewClientDialog({ pending, locale, onCreate, onCancel }: NewClientDialogProps) {
+export function NewClientDialog({
+  pending,
+  locale,
+  weeks: initialWeeks = NO_REPEAT,
+  onCreate,
+  onCancel,
+}: NewClientDialogProps) {
   const t = useTranslations('booking');
 
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
+  const [weeks, setWeeks] = useState(initialWeeks);
 
   const trimmedName = fullName.trim();
   const canSave = trimmedName.length >= 2;
@@ -56,7 +70,10 @@ export function NewClientDialog({ pending, locale, onCreate, onCancel }: NewClie
         onSubmit={(event) => {
           event.preventDefault();
           if (!canSave) return;
-          onCreate({ fullName: trimmedName, phone: phone.trim() === '' ? undefined : phone.trim() });
+          onCreate(
+            { fullName: trimmedName, phone: phone.trim() === '' ? undefined : phone.trim() },
+            weeks,
+          );
         }}
       >
         <DialogHeader
@@ -95,6 +112,16 @@ export function NewClientDialog({ pending, locale, onCreate, onCancel }: NewClie
               countryLabel={t('newClient.phoneCountry')}
             />
           </Field>
+
+          {/* The same field as the picker's, because this saves the same
+              appointment — just with a person who did not exist a moment ago. */}
+          <RepeatField
+            locale={locale}
+            date={pending.date}
+            weeks={weeks}
+            onChange={setWeeks}
+            idPrefix="new-client-repeat"
+          />
         </DialogBody>
 
         <DialogFooter>

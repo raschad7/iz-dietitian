@@ -14,6 +14,7 @@ import { formatDuration, formatLongDate, formatMinute, formatMinuteRange, initia
 import { anchorPopover } from '../rtl';
 import { type CalendarClient } from '../types';
 import { findClientBooking, type ExistingAppointment } from '../validation';
+import { NO_REPEAT, RepeatField } from './repeat-field';
 
 /**
  * The popover that turns a dragged range into a booking.
@@ -48,8 +49,10 @@ export type ClientPickerProps = {
    * the capability is absent rather than merely discouraged.
    */
   allowNewClient: boolean;
-  onPick: (clientId: string) => void;
-  onNewClient: () => void;
+  /** `weeks` is how many weekly repeats to add after this one — 0 for none. */
+  onPick: (clientId: string, weeks: number) => void;
+  /** Carries the repeat choice through to the new-client dialog. */
+  onNewClient: (weeks: number) => void;
   onCancel: () => void;
 };
 
@@ -73,6 +76,11 @@ export function ClientPicker({
 
   const [query, setQuery] = useState('');
   const [highlight, setHighlight] = useState(0);
+  /**
+   * How many weekly repeats to add — chosen here, before the booking exists,
+   * rather than asked in a modal after it is saved. See `RepeatField`.
+   */
+  const [weeks, setWeeks] = useState(NO_REPEAT);
   const [position, setPosition] = useState<{ insetInlineStart: number; insetBlockStart: number } | null>(null);
 
   const endMinute = pending.startMinute + pending.durationMinutes;
@@ -158,7 +166,7 @@ export function ClientPicker({
 
   function commit(client: CalendarClient): void {
     if (bookings.has(client.id)) return;
-    onPick(client.id);
+    onPick(client.id, weeks);
   }
 
   return (
@@ -219,6 +227,20 @@ export function ClientPicker({
           <Icon name="close" />
         </Button>
       </header>
+
+      {/*
+        The repeat, chosen with the slot rather than asked about afterwards. It
+        sits above the client list because it describes the *appointment*, and
+        the list below is the act of saving it — clicking a name is what writes
+        the row, so everything that shapes the row belongs before it.
+      */}
+      <RepeatField
+        locale={locale}
+        date={pending.date}
+        weeks={weeks}
+        onChange={setWeeks}
+        idPrefix="picker-repeat"
+      />
 
       <div className="relative">
         <Icon name="search" className="pointer-events-none absolute start-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -299,7 +321,7 @@ export function ClientPicker({
       </ul>
 
       {allowNewClient ? (
-        <Button type="button" variant="outline" size="sm" onClick={onNewClient} className="justify-start">
+        <Button type="button" variant="outline" size="sm" onClick={() => onNewClient(weeks)} className="justify-start">
           <Icon name="add" data-icon="inline-start" />
           {t('picker.newClient')}
         </Button>
