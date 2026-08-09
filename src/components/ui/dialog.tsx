@@ -69,8 +69,22 @@ function Dialog({
     const dialog = ref.current;
     if (!dialog) return;
 
-    if (open && !dialog.open) dialog.showModal();
-    if (!open && dialog.open) dialog.close();
+    if (open) {
+      dialog.removeAttribute('data-closing');
+      if (!dialog.open) dialog.showModal();
+      return;
+    }
+
+    if (!dialog.open) return;
+    dialog.dataset.closing = 'true';
+
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const timeout = window.setTimeout(() => {
+      if (dialog.open) dialog.close();
+      dialog.removeAttribute('data-closing');
+    }, reduceMotion ? 0 : 140);
+
+    return () => window.clearTimeout(timeout);
   }, [open]);
 
   return (
@@ -80,14 +94,16 @@ function Dialog({
       aria-label={label}
       onClose={onClose}
       onCancel={(event) => {
-        if (!dismissible) event.preventDefault();
+        event.preventDefault();
+        if (dismissible) onClose();
       }}
       onClick={(event) => {
         // A click on the backdrop targets the dialog element itself; a click
         // on anything inside targets that child instead.
-        if (dismissible && event.target === ref.current) ref.current?.close();
+        if (dismissible && event.target === ref.current) onClose();
       }}
       className={cn(
+        'q-dialog',
         'w-full max-w-none p-0 text-start',
         'mt-auto mb-0 rounded-t-2xl',
         'sm:m-auto sm:rounded-lg',
@@ -100,7 +116,6 @@ function Dialog({
         // through custom properties registered on `*`, which `::backdrop` does
         // not inherit in every engine, so the utility silently does nothing.
         'backdrop:bg-[var(--overlay)] backdrop:[backdrop-filter:blur(4px)]',
-        'motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 motion-safe:duration-200',
         className,
       )}
     >

@@ -16,12 +16,12 @@ import { roundForDisplay } from '@/features/weekly-plans/nutrition';
 import { bandGeometry } from '../band';
 import type { BoardRow } from '../board-rows';
 import { nextSlotKey } from '../editor-state';
+import { MEAL_ICON_OPTIONS } from '../meal-icons';
 import type { BoardDay } from '../queries';
 import { dayKey } from '../schema';
 
 import { useEditorActions } from './board-dnd';
 import { MealCard, type GhostMeal } from './meal-card';
-import { RegenerateDayButton } from './regenerate-buttons';
 
 /**
  * Pins the add control to the last row of the week's grid.
@@ -45,8 +45,6 @@ export function DayColumn({
   day,
   rows,
   dailyTarget,
-  planId,
-  locale,
   editable,
   selectedMealId,
   onSelectMeal,
@@ -58,16 +56,12 @@ export function DayColumn({
   /** The week's rows, so every column renders the same ones in the same order. */
   rows: readonly BoardRow[];
   dailyTarget: number;
-  planId: string;
-  locale: string;
   editable: boolean;
   selectedMealId: string | null;
   onSelectMeal: (mealId: string) => void;
   /**
    * Whether this is the day the phone is showing. Below `md` the week is one
-   * column, chosen from the strip above it; the other six are `display: none`
-   * and so generate no grid item at all, which is what lets the survivor take
-   * the single column rather than a seventh of seven.
+   * column chosen from the strip above it.
    */
   showOnPhone: boolean;
   /** The previous plan's dish for each slot key on this day, when compare is on. */
@@ -87,8 +81,8 @@ export function DayColumn({
 
   return (
     /* A subgrid of the week's rows rather than seven days flattened into one
-       grid: the per-day grouping is what carries the drop targets, the day's
-       regenerate control, and the order a screen reader reads a column in.
+       grid: the per-day grouping is what carries the drop targets and the
+       order a screen reader reads a column in.
        `row-span-full` is `grid-row: 1 / -1` — a subgrid only inherits the tracks
        it actually spans, so the span has to cover the whole template. No gap
        here: the parent's row gutter is inherited, and restating it is how the
@@ -96,14 +90,13 @@ export function DayColumn({
        column a bare `grid` would generate — an auto column takes its width from
        the widest card, which is the raggedness this whole change removes.
 
-       Hiding the other six below `md` does not disturb any of that. The row
-       template lives on the parent, so the one column left over still spans it
-       and still subgrids the same tracks; a `display: none` day generates no
-       grid item at all, which is what lets the survivor take the whole single
-       column instead of a seventh of it. */
+       Hiding six days on a phone does not disturb any of that. The row template
+       lives on the parent, so the visible column still spans and subgrids the
+       same tracks; a `display: none` day generates no grid
+       item at all. */
     <div
       className={cn(
-        'row-span-full grid min-w-0 grid-cols-1 grid-rows-subgrid',
+        'planner-day-column row-span-full grid min-w-0 grid-cols-1 grid-rows-subgrid',
         !showOnPhone && 'max-md:hidden',
       )}
     >
@@ -113,27 +106,16 @@ export function DayColumn({
           paying for the smear. `px-3` matches the cards below it, so the day
           name and every meal label share one inline-start edge down the
           column — at `px-2` they were 4px out of line. */}
-      {/* No `relative` alongside `sticky` — both set `position`, so which one
-          won would depend on the order Tailwind happened to emit them in, and
-          losing it would unstick the header. `sticky` already establishes the
-          containing block the regenerate control positions against. */}
       <div className="sticky top-0 z-10 border-b border-border bg-background px-3 pb-2 pt-1">
-        <div className="flex items-center justify-between gap-1.5">
+        <div className="flex items-center justify-center gap-1.5">
           {/* A step above the total under it. Both were within 1px and both
               semibold, so the week had nothing to be scanned by.
 
-              Centred over its column, with the regenerate control pinned to the
-              inline-end — the day name is the column's title now that the cards
-              under it no longer carry any of their own. */}
+              Centred over its column: the day name is the column's title now
+              that the cards under it no longer carry any of their own. */}
           <span className="min-w-0 flex-1 truncate text-center text-body-sm font-bold">
             {dayName}
           </span>
-
-          {editable && (
-            <span className="absolute end-1 top-1">
-              <RegenerateDayButton planId={planId} dayOfWeek={day.dayOfWeek} locale={locale} />
-            </span>
-          )}
         </div>
 
         {/* The total, and — when the day misses the target — an arrow and the
@@ -261,14 +243,23 @@ export function AddSlot({ rows }: { rows: readonly BoardRow[] }) {
   const [open, setOpen] = useState(false);
   const [label, setLabel] = useState('');
   const [time, setTime] = useState('17:00');
+  const [mealIconId, setMealIconId] = useState<(typeof MEAL_ICON_OPTIONS)[number]['id']>('snack');
 
   function submit(): void {
     const trimmed = label.trim();
     if (!trimmed) return;
 
-    addWeek(nextSlotKey(rows.map((row) => row.slotKey)), trimmed, time);
+    const iconChoice =
+      MEAL_ICON_OPTIONS.find((option) => option.id === mealIconId) ?? MEAL_ICON_OPTIONS[2];
+
+    addWeek(
+      nextSlotKey(rows.map((row) => row.slotKey), iconChoice.type, iconChoice.slotPrefix),
+      trimmed,
+      time,
+    );
     setLabel('');
     setTime('17:00');
+    setMealIconId('snack');
     setOpen(false);
   }
 
@@ -332,6 +323,33 @@ export function AddSlot({ rows }: { rows: readonly BoardRow[] }) {
                 required
               />
             </Field>
+
+            <fieldset className="space-y-2">
+              <legend className="text-label font-semibold">{t('addMealIcon')}</legend>
+              <div className="grid grid-cols-4 gap-2">
+                {MEAL_ICON_OPTIONS.map((option) => {
+                  const selected = option.id === mealIconId;
+
+                  return (
+                    <Button
+                      key={option.id}
+                      type="button"
+                      variant="neutral"
+                      aria-pressed={selected}
+                      aria-label={t(`mealIconChoices.${option.id}`)}
+                      onClick={() => setMealIconId(option.id)}
+                      className={cn(
+                        'aspect-square h-auto min-h-16 max-w-none p-0',
+                        selected &&
+                          'border-primary bg-secondary text-primary ring-2 ring-primary ring-offset-2 ring-offset-background',
+                      )}
+                    >
+                      <Icon name={option.icon} className="size-10" />
+                    </Button>
+                  );
+                })}
+              </div>
+            </fieldset>
           </DialogBody>
 
           <DialogFooter>

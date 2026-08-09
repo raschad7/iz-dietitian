@@ -67,10 +67,15 @@ export function ConfirmDialog({
    * the answer and then immediately report a cancellation on top of it.
    */
   const settled = useRef(false);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog?.open) dialog?.showModal();
+
+    return () => {
+      if (closeTimer.current) clearTimeout(closeTimer.current);
+    };
   }, []);
 
   function settle(confirmed: boolean): void {
@@ -81,23 +86,42 @@ export function ConfirmDialog({
     else onCancel();
   }
 
+  function beginClose(confirmed: boolean): void {
+    const dialog = dialogRef.current;
+    if (!dialog || settled.current || dialog.dataset.closing === 'true') return;
+
+    dialog.dataset.closing = 'true';
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    closeTimer.current = setTimeout(() => {
+      settle(confirmed);
+      if (dialog.open) dialog.close();
+    }, reduceMotion ? 0 : 140);
+  }
+
   return (
     <dialog
       ref={dialogRef}
       dir={direction}
       aria-labelledby={titleId}
       className={[
+        'q-dialog',
         // Bottom sheet on small screens, centred card from `sm` up — the same
         // shape the appointment dialog takes, so the two read as one system.
-        'w-full max-w-none rounded-t-2xl p-0 backdrop:bg-black/40',
+        'w-full max-w-none rounded-t-2xl p-0',
         'mt-auto mb-0 sm:m-auto sm:w-[min(24rem,calc(100vw-2rem))] sm:rounded-2xl',
-        'bg-popover text-popover-foreground border border-border shadow-xl',
+        'bg-popover text-popover-foreground shadow-overlay ring-1 ring-foreground/10',
+        'backdrop:bg-[var(--overlay)] backdrop:[backdrop-filter:blur(4px)]',
       ].join(' ')}
       // Escape and the backdrop both land here, and both mean "no".
       onClose={() => settle(false)}
+      onCancel={(event) => {
+        event.preventDefault();
+        beginClose(false);
+      }}
       onClick={(event) => {
         // A click on the backdrop targets the dialog element itself.
-        if (event.target === dialogRef.current) dialogRef.current?.close();
+        if (event.target === dialogRef.current) beginClose(false);
       }}
     >
       <div className="flex flex-col gap-3 p-4 text-start">
@@ -125,17 +149,14 @@ export function ConfirmDialog({
           it: pressing Enter the moment this appears must not delete anything.
         */}
         <div className="mt-1 flex items-center justify-end gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={() => dialogRef.current?.close()}>
+          <Button type="button" variant="outline" size="sm" onClick={() => beginClose(false)}>
             {cancelLabel}
           </Button>
           <Button
             type="button"
             variant={tone === 'destructive' ? 'destructive' : 'default'}
             size="sm"
-            onClick={() => {
-              settle(true);
-              dialogRef.current?.close();
-            }}
+            onClick={() => beginClose(true)}
           >
             {confirmLabel}
           </Button>

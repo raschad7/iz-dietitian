@@ -58,6 +58,7 @@ export function NewWeekDialog({
   newWeek,
   triggerLabel,
   triggerVariant = 'ghost',
+  compactTrigger = false,
 }: {
   clientId: string;
   /** The plan on screen, which decides whether generating replaces it. */
@@ -66,6 +67,8 @@ export function NewWeekDialog({
   newWeek: NewWeekProps;
   triggerLabel?: string;
   triggerVariant?: 'default' | 'ghost' | 'neutral';
+  /** Keeps the icon-only form on narrow phones while preserving its name. */
+  compactTrigger?: boolean;
 }) {
   const t = useTranslations('weeklyPlans');
   const tCommon = useTranslations('common');
@@ -94,13 +97,18 @@ export function NewWeekDialog({
         type="button"
         size="sm"
         variant={triggerVariant}
+        aria-label={compactTrigger ? (triggerLabel ?? t('newWeek')) : undefined}
+        title={compactTrigger ? (triggerLabel ?? t('newWeek')) : undefined}
+        className={compactTrigger ? 'max-sm:px-3' : undefined}
         onClick={() => {
           setGenerating(false);
           setOpen(true);
         }}
       >
         <Icon name="add" />
-        {triggerLabel ?? t('newWeek')}
+        <span className={compactTrigger ? 'max-sm:sr-only' : undefined}>
+          {triggerLabel ?? t('newWeek')}
+        </span>
       </Button>
 
       <Dialog
@@ -248,7 +256,7 @@ function CopyDoor({
           <input type="hidden" name="clientId" value={clientId} />
           <input type="hidden" name="weekStartDate" value={weekStartDate} />
 
-          <fieldset className="flex max-h-64 min-h-0 flex-1 flex-col overflow-y-auto">
+          <fieldset className="no-scrollbar flex max-h-64 min-h-0 flex-1 flex-col overflow-y-auto">
             <legend className="sr-only">{t('newWeekCopy')}</legend>
 
             {plans.map((plan, index) => (

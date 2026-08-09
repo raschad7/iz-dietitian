@@ -344,8 +344,8 @@ function FilterChip({
 
            40px, the system's floor for anything you can press. It was 24px,
            which fitted more chips into the rail by making each of them a worse
-           target — and below `xl` this panel is a bottom sheet, so it is being
-           pressed with a thumb. Wrapping onto a third row is the cost. */
+           target — and in the compact layout this panel is a sheet, so it is
+           being pressed with a thumb. Wrapping onto a third row is the cost. */
         'inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 py-1 text-caption transition-colors',
         active
           ? 'border-primary bg-primary text-primary-foreground'
