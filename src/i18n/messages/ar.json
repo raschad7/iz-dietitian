@@ -848,6 +848,7 @@
       "today": {
         "heading": "التزامك اليوم",
         "meals": "{completed, number, integer} من {total, number, integer} {total, plural, one {وجبة} two {وجبتين} few {وجبات} many {وجبة} other {وجبة}}",
+        "caloriesCompleted": "{value, number, integer} سعرة حرارية مكتملة",
         "prompt": "أتمّي وجبات اليوم في خطتي ليظهر التزامك هنا.",
         "cta": "تحديث التزامك اليوم",
         "level": {

@@ -101,6 +101,15 @@
   --flame-700: #93490D;
 
   /*
+   * ── Portal home glow ──
+   * The ambient blur behind the portal's home screen, pinned to the exact
+   * Figma value rather than mapped onto the olive/lime ramp — it is a single
+   * decorative fill, not a step in a scale, and no other surface may reach
+   * for it. See `.portal-home-glow` in `@layer components`.
+   */
+  --portal-home-glow: #A5D66C;
+
+  /*
    * ── Leading, per script ──
    *
    * Every step of the type scale ships two line heights: the looser one for
@@ -1144,6 +1153,30 @@
 }
 
 @layer components {
+  /*
+   * ── Portal home glow ──
+   * The exact ellipse the design gave for the portal home screen: 782.51×
+   * 629.99 at -184.36/-219 on a 390×844 frame, blurred 77.7px, rotated 1.81deg.
+   * Written in `vw` at that same ratio (value / 390 × 100) rather than fixed
+   * px, so it holds its proportions on any phone width instead of matching
+   * only the one frame it was measured on — `HomeGlow` renders it `md:hidden`,
+   * where phone widths stay in the range that ratio was tuned for.
+   *
+   * `inset-inline-start`, not `left`: the shape is a formless ambient blur, so
+   * mirroring it in Arabic costs nothing and keeps the rule that only a
+   * genuinely directional asset earns a physical property.
+   */
+  .portal-home-glow {
+    position: absolute;
+    inset-block-start: -56.15vw;
+    inset-inline-start: -47.27vw;
+    width: 200.64vw;
+    height: 161.54vw;
+    background: var(--portal-home-glow);
+    filter: blur(19.92vw);
+    transform: rotate(1.81deg);
+  }
+
   /*
    * ── The shared field box ──
    * Input, Textarea and Select are the same control with different content

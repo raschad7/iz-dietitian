@@ -9,6 +9,7 @@ import { greetingKey } from '@/features/portal/greeting';
 import { countPendingRequests } from '@/features/portal/queries';
 import { requirePortalClient } from '@/features/portal/session';
 import { resolveLocale } from '@/i18n/params';
+import { formatDate } from '@/lib/format';
 
 type PortalTabsLayoutProps = {
   children: ReactNode;
@@ -42,6 +43,7 @@ export default async function PortalTabsLayout({ children, params }: PortalTabsL
       <PortalHeader
         name={context.profile.fullName}
         greeting={greetingKey(context.now.minute)}
+        month={formatDate(locale, context.now.date, { dateStyle: undefined, month: 'short' })}
         pendingCount={pendingCount}
         locale={locale}
         showNav

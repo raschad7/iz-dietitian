@@ -848,6 +848,7 @@
       "today": {
         "heading": "Your commitment today",
         "meals": "{completed, number, integer} of {total, number, integer} {total, plural, one {meal} other {meals}}",
+        "caloriesCompleted": "{value, number, integer} kcal completed",
         "prompt": "Tick off today's meals in My Plan to see your commitment here.",
         "cta": "Update today's adherence",
         "level": {

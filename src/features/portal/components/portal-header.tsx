@@ -4,20 +4,20 @@ import { Bell, LogOut, Settings, Sun } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useFormStatus } from 'react-dom';
 
+import { CalendarGlyphIcon } from '@/components/icons';
 import { signOutAction } from '@/features/auth/actions';
 import { type GreetingKey } from '@/features/portal/greeting';
-import { Link } from '@/i18n/navigation';
+import { Link, usePathname } from '@/i18n/navigation';
 import { type Locale } from '@/i18n/routing';
 
 /**
  * The portal's own header: who you are and what day it is, rather than the
  * app's name.
  *
- * The date itself is not here. The month used to sit at the end of the name
- * row, where it read as a stray label pinned to the header's bottom edge; it
- * now belongs to the week strip on the home screen, on the same line as that
- * section's own heading, which is the only place on the app where a month is
- * actually answering a question the reader has.
+ * The month sits beside the greeting line, but only when `usePathname` says
+ * this render is the home tab — see `month` below. It used to live on the
+ * week strip's own heading row instead, one section down; it moved back up
+ * here so it reads on the same line as the name, matching the current design.
  *
  * **The bell means something.** Its dot is on when the dietitian has not yet
  * answered a request, and it opens the standalone notifications screen — its
@@ -86,12 +86,24 @@ function HeaderSignOutSubmit({ label }: { label: string }) {
 export function PortalHeader({
   name,
   greeting,
+  month,
   pendingCount,
   locale,
   showNav,
 }: {
   name: string;
   greeting: GreetingKey;
+  /**
+   * The current month, already formatted in the active locale — "أغسطس",
+   * "Aug". Shown beside the greeting line, but only on the home tab: this
+   * header is shared chrome across all five portal screens, and the other
+   * four are each already dated by their own content (the progress tab's
+   * trend cards, the meal-plan's own day picker) — so `usePathname` below is
+   * what keeps it from also showing there. Optional because `set-password`,
+   * the one caller outside the tab group, is never the home route and so
+   * never needs to compute it.
+   */
+  month?: string;
   pendingCount: number;
   locale: Locale;
   /**
@@ -104,6 +116,8 @@ export function PortalHeader({
 }) {
   const t = useTranslations('portal.header');
   const tMenu = useTranslations('portal.menu');
+  const pathname = usePathname();
+  const isHome = pathname === '/portal';
 
   return (
     <header className="border-b border-border bg-card px-4 pt-3 pb-4">
@@ -143,7 +157,23 @@ export function PortalHeader({
             {t(`greeting.${greeting}`)}
             <Sun className="size-4 text-status-complete-mark-soft" strokeWidth={2} aria-hidden="true" />
           </p>
-          <p className="truncate font-heading text-xl font-semibold text-secondary-foreground">{name}</p>
+
+          {/*
+            `items-baseline`, not `items-center`: the month chip is much
+            smaller than the name, and centring the two vertically would sit
+            the chip noticeably above the name's own baseline instead of
+            resting on the same line as its text.
+          */}
+          <p className="flex items-baseline justify-between gap-3">
+            <span className="truncate font-heading text-xl font-semibold text-secondary-foreground">{name}</span>
+
+            {isHome && month ? (
+              <span className="shrink-0 text-xs font-medium text-muted-foreground">
+                <CalendarGlyphIcon className="me-1 inline-block size-3.5 align-[-0.15em]" />
+                {month}
+              </span>
+            ) : null}
+          </p>
         </div>
       </div>
     </header>
