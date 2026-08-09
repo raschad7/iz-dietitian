@@ -393,6 +393,11 @@
   --color-progress-track: var(--progress-track);
   --color-progress-card-border: var(--progress-card-border);
 
+  --color-commitment-card-from: var(--commitment-card-from);
+  --color-commitment-card-to: var(--commitment-card-to);
+  --color-commitment-card-figure: var(--commitment-card-figure);
+  --color-commitment-card-stat: var(--commitment-card-stat);
+
   --color-meal-bg: var(--meal-bg);
   --color-meal-fg: var(--meal-fg);
 
@@ -578,6 +583,17 @@
   --progress-card-to: var(--olive-100);
   --progress-card-edge: var(--olive-200);
   --progress-card-border: var(--olive-200);
+
+  /*
+   * The home screen's "commitment today" hero — a lime-to-olive wash, the
+   * same fill-vs-foreground pairing the streak chart already speaks (lime is
+   * the wash, olive is what reads on top of it), so this card and the ring
+   * above it agree without sharing a component.
+   */
+  --commitment-card-from: var(--lime-100);
+  --commitment-card-to: var(--olive-400);
+  --commitment-card-figure: var(--olive-800);
+  --commitment-card-stat: var(--olive-700);
 
   /*
    * The meal card's surface — one tone for every meal.
@@ -792,6 +808,12 @@
   --progress-card-edge: var(--olive-950);
   --progress-card-border: var(--olive-800);
 
+  /* The wash sits lower on the ramp so it stays a card, not a light on the dark canvas; text goes light to keep reading on it. */
+  --commitment-card-from: var(--olive-800);
+  --commitment-card-to: var(--olive-600);
+  --commitment-card-figure: var(--n-25);
+  --commitment-card-stat: var(--olive-200);
+
   --viz-band-range: var(--lime-300);
   --viz-band-edge: var(--lime-600);
   --viz-band-marker: var(--olive-900);
@@ -912,6 +934,11 @@
     --progress-card-to: var(--olive-900);
     --progress-card-edge: var(--olive-950);
     --progress-card-border: var(--olive-800);
+
+    --commitment-card-from: var(--olive-800);
+    --commitment-card-to: var(--olive-600);
+    --commitment-card-figure: var(--n-25);
+    --commitment-card-stat: var(--olive-200);
 
     --viz-band-range: var(--lime-300);
     --viz-band-edge: var(--lime-600);
@@ -1378,6 +1405,60 @@
   .q-disclosure[open]::details-content {
     block-size: auto;
   }
+
+  /*
+   * ── Streak celebration ──
+   * `TodayFlameCell` reaches for these once today crosses from under 100% to
+   * exactly 100%: `.q-flame-celebrate` plays on the dialog's own hero flame
+   * the moment it opens, then again on the strip's flame the moment the
+   * claimed one lands on it, alongside `.q-flame-glow` and
+   * `.q-flame-particle` — both of which play only on that landing, not in the
+   * dialog. Nothing here spends a second orange: the glow and the particles
+   * read off the same `--flame-*`/`--status-complete-*` pair the ring itself
+   * turns the moment it is complete (§ design-system "Status is not a
+   * traffic light" — flame is a one-per-screen accent, and this is the same
+   * one, not a second). See day-flame.tsx's `BURN_TRANSITION` for how the
+   * ring and glyph underneath fade to "full" rather than snap the instant
+   * that landing swaps the strip's held, pre-claim shape for the real one.
+   *
+   * The flight between the two — dialog to strip — is not here at all: it is
+   * a single `transform` set and cleared by hand in `TodayFlameCell`, because
+   * its start point is measured at claim time and a stylesheet cannot know it
+   * in advance. `FLIGHT_MS`/`--ease-sweep` there are the same 480ms/curve
+   * this file already uses.
+   *
+   * One easing curve throughout, `--ease-sweep`, written literally as
+   * `plan-day-strip.tsx` already does inline rather than through a custom
+   * class. Durations are multiples of `--duration-arc` (220ms) rather than
+   * new numbers — a pop at 2×, a burst at 3×, a glow at ~4× — so the moment
+   * is built from the same unit the rest of the app's motion is, not a new
+   * one invented for it.
+   */
+  .q-flame-celebrate {
+    animation: q-flame-pop 440ms cubic-bezier(.2, .6, .2, 1);
+  }
+
+  .q-flame-glow {
+    border-radius: 9999px;
+    background: radial-gradient(circle, var(--flame-300) 0%, transparent 70%);
+    animation: q-flame-glow-pulse 900ms cubic-bezier(.2, .6, .2, 1);
+  }
+
+  /*
+   * One dot, reused six times at six angles — `TodayFlameCell` sets `--q-tx`/
+   * `--q-ty` per instance rather than this file hardcoding six keyframes for
+   * one one-time burst.
+   */
+  .q-flame-particle {
+    position: absolute;
+    inset-inline-start: calc(50% - 2px);
+    inset-block-start: calc(50% - 2px);
+    width: 4px;
+    height: 4px;
+    border-radius: 9999px;
+    background: var(--status-complete-mark);
+    animation: q-flame-particle-burst 660ms cubic-bezier(.2, .6, .2, 1) both;
+  }
 }
 
 /*
@@ -1465,5 +1546,43 @@
 @keyframes q-skeleton-sweep-rtl {
   to {
     transform: translateX(-100%);
+  }
+}
+
+@keyframes q-flame-pop {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.18);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes q-flame-glow-pulse {
+  0% {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  40% {
+    opacity: 0.55;
+    transform: scale(1.15);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.3);
+  }
+}
+
+@keyframes q-flame-particle-burst {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--q-tx, 0), var(--q-ty, 0)) scale(0.3);
   }
 }

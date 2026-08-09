@@ -1,29 +1,31 @@
 'use client';
 
-import { CalendarCheck, Flame, type LucideIcon } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { type ReactNode } from 'react';
 
 import { Icon, type IconName } from '@/components/ui/icon';
 import { adherenceFraction } from '@/features/portal/adherence';
 import { MealCheck } from '@/features/weekly-plans/components/meal-check';
-import { PlanDayCompletionProvider, usePlanDayCompletion } from '@/features/weekly-plans/components/plan-day-completion';
+import { usePlanDayCompletion } from '@/features/weekly-plans/components/plan-day-completion';
 import { mealTypeForSlot, type MealType } from '@/features/weekly-plans/schema';
 import { type Locale } from '@/i18n/routing';
 import { formatNumber } from '@/lib/format';
-import { cn } from '@/lib/utils';
 
 /**
- * The home screen's own hero: today's ring, this week's completed-days count
- * and today's completed calories beside it, then today's meals below.
+ * The home screen's own hero: today's completion figure on the commitment
+ * card, this week's completed-days count and today's completed calories
+ * beside it, then today's meals below.
  *
  * **Reuses the meal-plan screen's own completion state, not a copy of it.**
- * `MealCheck` and `PlanDayCompletionProvider` are the exact client pieces
- * `PortalPlan` ticks meals with — see `plan-day-completion.tsx` for why that
- * context exists at all. Wrapping them here means a tick on this screen writes
+ * `MealCheck` is the exact client piece `PortalPlan` ticks meals with, and
+ * `usePlanDayCompletion()` below reads the same `PlanDayCompletionProvider`
+ * — see `plan-day-completion.tsx` for why that context exists at all. The
+ * provider itself now wraps this **and** `WeekAdherenceStrip` from the page,
+ * not from here, so that today's cell in the strip above shares the exact
+ * same live counts this component's ring does. A tick on this screen writes
  * through the same `toggleMealCompletionAction` and flips the same optimistic
- * state, so the ring and the two chips beside it update the instant a meal is
- * checked, with no second source of truth to keep in sync.
+ * state, so the figure, the two lines beside it, and today's flame above all
+ * update the instant a meal is checked, with no second source of truth to
+ * keep in sync.
  *
  * **Only the day's shape crosses into this client component.** `today.meals`
  * carries dish, options and rationale nobody on this screen reads — see the
@@ -47,24 +49,12 @@ const MEAL_ICONS: Record<MealType, IconName> = {
   dinner: 'mealDinner',
 };
 
-const RADIUS = 46;
-const RING_LENGTH = 2 * Math.PI * RADIUS;
-
-/** A small pill beside the ring — one figure and its unit, nothing else. */
-function StatChip({ icon: StatIcon, children }: { icon: LucideIcon; children: ReactNode }) {
-  return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-1.5 text-xs font-medium text-secondary-foreground shadow-sm">
-      <StatIcon className="size-3.5 shrink-0 text-primary" strokeWidth={1.9} aria-hidden="true" />
-      {children}
-    </span>
-  );
-}
-
 /**
- * The ring plus its two beside-ring chips. A client component reading the
- * completion context directly — not server props — which is what lets all
- * three move the instant `MealCheck` flips a meal below, rather than waiting
- * on the next navigation.
+ * The commitment card: today's completion figure beside this week's two
+ * running counts. A client component reading the completion context
+ * directly — not server props — which is what lets the figure and the
+ * calorie count update the instant `MealCheck` flips a meal below, rather
+ * than waiting on the next navigation.
  */
 function TodayProgress({
   meals,
@@ -84,55 +74,53 @@ function TodayProgress({
   const total = context?.totalCount ?? 0;
   const completed = context?.completedCount ?? 0;
   const fraction = adherenceFraction(completed, total);
-  const drawn = fraction !== null && fraction > 0;
-  const full = fraction !== null && fraction >= 1;
-
+const percentageParts =
+  fraction === null
+    ? null
+    : new Intl.NumberFormat(locale, {
+        style: 'percent',
+        maximumFractionDigits: 0,
+      }).formatToParts(fraction);
   const completedCalories = meals.reduce(
     (sum, meal) => (context?.isCompleted(meal.id) ? sum + meal.kcal : sum),
-    0,
+    0, 
   );
 
   return (
-    <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
-      <span className="relative grid size-40 shrink-0 place-items-center rounded-full bg-card shadow-elevated sm:size-44">
-        <svg viewBox="0 0 100 100" className="absolute inset-0 size-full -rotate-90" aria-hidden="true">
-          {!full ? <circle cx="50" cy="50" r={RADIUS} strokeWidth="7" className="fill-none stroke-border" /> : null}
-
-          {drawn ? (
-            <circle
-              cx="50"
-              cy="50"
-              r={RADIUS}
-              strokeWidth="7"
-              strokeLinecap="round"
-              strokeDasharray={full ? undefined : `${(fraction ?? 0) * RING_LENGTH} ${RING_LENGTH}`}
-              className={cn('fill-none', full ? 'stroke-status-complete-mark' : 'stroke-primary')}
-            />
-          ) : null}
-        </svg>
-
-        <span className="relative flex flex-col items-center gap-1">
-          <span
-            className={cn(
-              'font-heading text-4xl leading-none font-semibold tabular-nums',
-              fraction === null ? 'text-muted-foreground' : 'text-secondary-foreground',
-            )}
-          >
-            {fraction === null ? '—' : formatNumber(locale, fraction, { style: 'percent' })}
-          </span>
-
-          {total > 0 ? (
-            <span className="text-caption leading-none text-muted-foreground">
-              {t('meals', { completed, total })}
-            </span>
-          ) : null}
-        </span>
-      </span>
-
-      <div className="flex flex-col gap-2">
-        <StatChip icon={CalendarCheck}>{tCheckIns('progress.days', { count: daysCompleted, total: daysTotal })}</StatChip>
-        <StatChip icon={Flame}>{t('caloriesCompleted', { value: completedCalories })}</StatChip>
+<div className="flex min-h-[150px] w-full items-center justify-between rounded-[30px] bg-[linear-gradient(110deg,#F1F3E8_0%,#E7EBD8_45%,#DDE5C8_100%)] px-7 py-8">      <div className="flex flex-col gap-1.5 text-caption text-commitment-card-stat">
+        <p>{t('caloriesCompleted', { value: completedCalories })}</p>
+        <p>{tCheckIns('progress.days', { count: daysCompleted, total: daysTotal })}</p>
       </div>
+      
+      
+      <div className="flex shrink-0 flex-col items-center justify-between">
+  <span className="font-heading leading-none font-bold tabular-nums text-commitment-card-figure">
+    {percentageParts ? (
+      percentageParts.map((part, index) =>
+        part.type === 'percent' ? (
+          <span
+            key={index} 
+            className="ml-1 align-middle text-2xl font-semibold"
+          >
+            {part.value}
+          </span>
+        ) : (
+          <span key={index} className="text-5xl">
+            {part.value}
+          </span>
+        ),
+      )
+    ) : (
+      <span className="text-5xl">—</span>
+    )}
+  </span>
+
+  {total > 0 ? (
+    <span className="text-caption leading-none text-commitment-card-figure">
+      {t('meals', { completed, total })}
+    </span>
+  ) : null}
+</div>
     </div>
   );
 }
@@ -168,51 +156,43 @@ function TodayMealRow({ meal }: { meal: HomeTodayMeal }) {
 }
 
 export function HomeToday({
-  dayOfWeek,
   meals,
-  initialCompletedMealIds,
   planTitle,
   daysCompleted,
   daysTotal,
 }: {
-  /** 0–6, Sunday-first — `today.dayOfWeek` off the published board. */
-  dayOfWeek: number;
   meals: HomeTodayMeal[];
-  initialCompletedMealIds: readonly string[];
   /** Null when nothing has been published yet — the empty state below reads this. */
   planTitle: string | null;
-  /** This week's days reported as fully completed — the chip beside the ring. */
+  /** This week's days reported as fully completed — one of the two lines on the commitment card. */
   daysCompleted: number;
   daysTotal: number;
 }) {
   const t = useTranslations('portal');
   const tToday = useTranslations('portal.progress.today');
-  const mealIds = meals.map((meal) => meal.id);
 
   return (
-    <PlanDayCompletionProvider dayOfWeek={dayOfWeek} mealIds={mealIds} initialCompletedMealIds={initialCompletedMealIds}>
-      <div className="space-y-4">
-        <section className="space-y-3 rounded-3xl bg-primary-subtle p-5 text-center shadow-card sm:p-6">
-          <p className="text-sm font-medium text-muted-foreground">{tToday('heading')}</p>
-          <TodayProgress meals={meals} daysCompleted={daysCompleted} daysTotal={daysTotal} />
-        </section>
+    <div className="space-y-4">
+      <section className="space-y-3">
+        <p className="text-sm font-medium text-muted-foreground">{tToday('heading')}</p>
+        <TodayProgress meals={meals} daysCompleted={daysCompleted} daysTotal={daysTotal} />
+      </section>
 
-        <section className="space-y-3">
-          <h2 className="font-heading text-lg font-semibold">{t('dashboard.todaysMeals')}</h2>
+      <section className="space-y-3">
+        <h2 className="font-heading text-lg font-semibold">{t('dashboard.todaysMeals')}</h2>
 
-          {planTitle === null ? (
-            <p className="text-sm text-muted-foreground">{t('plan.none')}</p>
-          ) : meals.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{t('emptyToday')}</p>
-          ) : (
-            <ul className="space-y-3">
-              {meals.map((meal) => (
-                <TodayMealRow key={meal.id} meal={meal} />
-              ))}
-            </ul>
-          )}
-        </section>
-      </div>
-    </PlanDayCompletionProvider>
+        {planTitle === null ? (
+          <p className="text-sm text-muted-foreground">{t('plan.none')}</p>
+        ) : meals.length === 0 ? (
+          <p className="text-sm text-muted-foreground">{t('emptyToday')}</p>
+        ) : (
+          <ul className="space-y-3">
+            {meals.map((meal) => (
+              <TodayMealRow key={meal.id} meal={meal} />
+            ))}
+          </ul>
+        )}
+      </section>
+    </div>
   );
 }

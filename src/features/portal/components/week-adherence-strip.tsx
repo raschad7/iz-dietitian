@@ -2,6 +2,7 @@ import { useLocale, useTranslations } from 'next-intl';
 
 import { type AdherenceDay, type AdherenceDayState } from '@/features/portal/adherence';
 import { DayFlame } from '@/features/portal/components/day-flame';
+import { TodayFlameCell } from '@/features/portal/components/today-flame-celebration';
 import { type Locale } from '@/i18n/routing';
 import { formatDate, formatNumber } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -95,7 +96,14 @@ export function WeekAdherenceStrip({
                   : formatDate(locale, day.date, { dateStyle: undefined, weekday: 'short' })}
               </span>
 
-              <DayFlame day={day} />
+              {/*
+                Today alone gets the live, reactive cell — it is the only day
+                a client can still change on this visit. `TodayFlameCell`
+                falls back to this same `day` and this same `DayFlame` when
+                there is no `PlanDayCompletionProvider` above it (the
+                progress tab's strip), so it is safe to always use here.
+              */}
+              {day.state === 'today' ? <TodayFlameCell day={day} /> : <DayFlame day={day} />}
             </div>
           </li>
         ))}

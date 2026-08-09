@@ -8,6 +8,7 @@ import { NextAppointmentPreview } from '@/features/portal/components/next-appoin
 import { WeekAdherenceStrip } from '@/features/portal/components/week-adherence-strip';
 import { loadDashboard } from '@/features/portal/page-data';
 import { requirePortalClient } from '@/features/portal/session';
+import { PlanDayCompletionProvider } from '@/features/weekly-plans/components/plan-day-completion';
 import { roundForDisplay } from '@/features/weekly-plans/nutrition';
 import { resolveLocale } from '@/i18n/params';
 
@@ -79,16 +80,22 @@ export default async function PortalPage({ params }: PortalPageProps) {
     <div className="space-y-4">
       <HomeGlow />
 
-      <WeekAdherenceStrip days={week.days} showTitle={false} />
-
-      <HomeToday
+      {/*
+        One provider over both the strip and today's meals, not one each —
+        see `plan-day-completion.tsx`. Today's cell in the strip below needs
+        the same live completed/total counts `HomeToday`'s ring reads, so
+        that ticking the last meal moves both the instant it happens rather
+        than only the ring, with the strip waiting on `router.refresh()`.
+      */}
+      <PlanDayCompletionProvider
         dayOfWeek={today?.dayOfWeek ?? 0}
-        meals={todayMeals}
+        mealIds={todayMeals.map((meal) => meal.id)}
         initialCompletedMealIds={todayCompletedMealIds}
-        planTitle={planTitle}
-        daysCompleted={week.fullyCompletedCount}
-        daysTotal={DAYS_PER_WEEK}
-      />
+      >
+        <WeekAdherenceStrip days={week.days} showTitle={false} />
+
+        <HomeToday meals={todayMeals} planTitle={planTitle} daysCompleted={week.fullyCompletedCount} daysTotal={DAYS_PER_WEEK} />
+      </PlanDayCompletionProvider>
 
       <NextAppointmentPreview appointment={next} />
     </div>

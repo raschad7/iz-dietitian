@@ -874,6 +874,11 @@
           "today": "{day}: اليوم",
           "todayReported": "{day}: اليوم، {percent} — {completed, number, integer} من {total, number, integer} {total, plural, one {وجبة} two {وجبتين} few {وجبات} many {وجبة} other {وجبة}}",
           "future": "{day}: لم يأتِ بعد"
+        },
+        "celebration": {
+          "title": "كسبتِ شعلة اليوم!",
+          "claim": "احصلي على شعلة اليوم",
+          "claimed": "تم تأكيد شعلة اليوم."
         }
       },
       "streak": {

@@ -14,10 +14,14 @@ import { type Locale } from '@/i18n/routing';
  * The portal's own header: who you are and what day it is, rather than the
  * app's name.
  *
- * The month sits beside the greeting line, but only when `usePathname` says
- * this render is the home tab — see `month` below. It used to live on the
- * week strip's own heading row instead, one section down; it moved back up
- * here so it reads on the same line as the name, matching the current design.
+ * The greeting, the name and the month all show only on the home tab —
+ * `isHome` below, keyed off `usePathname`. This header is shared chrome
+ * across all five portal screens, and the other four are each already
+ * identified by their own title or content, so repeating "Good evening,
+ * <name>" on every one of them said nothing a screen didn't already say for
+ * itself. The month used to live on the week strip's own heading row instead,
+ * one section down; it moved up here so it reads on the same line as the
+ * name, matching the current design.
  *
  * **The bell means something.** Its dot is on when the dietitian has not yet
  * answered a request, and it opens the standalone notifications screen — its
@@ -95,13 +99,10 @@ export function PortalHeader({
   greeting: GreetingKey;
   /**
    * The current month, already formatted in the active locale — "أغسطس",
-   * "Aug". Shown beside the greeting line, but only on the home tab: this
-   * header is shared chrome across all five portal screens, and the other
-   * four are each already dated by their own content (the progress tab's
-   * trend cards, the meal-plan's own day picker) — so `usePathname` below is
-   * what keeps it from also showing there. Optional because `set-password`,
-   * the one caller outside the tab group, is never the home route and so
-   * never needs to compute it.
+   * "Aug". Shown beside the name, but only on the home tab — like the
+   * greeting and name themselves, see `isHome` below. Optional because
+   * `set-password`, the one caller outside the tab group, is never the home
+   * route and so never needs to compute it.
    */
   month?: string;
   pendingCount: number;
@@ -152,29 +153,31 @@ export function PortalHeader({
           )}
         </div>
 
-        <div className="mt-2">
-          <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            {t(`greeting.${greeting}`)}
-            <Sun className="size-4 text-status-complete-mark-soft" strokeWidth={2} aria-hidden="true" />
-          </p>
+        {isHome ? (
+          <div className="mt-2">
+            <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              {t(`greeting.${greeting}`)}
+              <Sun className="size-4 text-status-complete-mark-soft" strokeWidth={2} aria-hidden="true" />
+            </p>
 
-          {/*
-            `items-baseline`, not `items-center`: the month chip is much
-            smaller than the name, and centring the two vertically would sit
-            the chip noticeably above the name's own baseline instead of
-            resting on the same line as its text.
-          */}
-          <p className="flex items-baseline justify-between gap-3">
-            <span className="truncate font-heading text-xl font-semibold text-secondary-foreground">{name}</span>
+            {/*
+              `items-baseline`, not `items-center`: the month chip is much
+              smaller than the name, and centring the two vertically would sit
+              the chip noticeably above the name's own baseline instead of
+              resting on the same line as its text.
+            */}
+            <p className="flex items-baseline justify-between gap-3">
+              <span className="truncate font-heading text-xl font-semibold text-secondary-foreground">{name}</span>
 
-            {isHome && month ? (
-              <span className="shrink-0 text-xs font-medium text-muted-foreground">
-                <CalendarGlyphIcon className="me-1 inline-block size-3.5 align-[-0.15em]" />
-                {month}
-              </span>
-            ) : null}
-          </p>
-        </div>
+              {month ? (
+                <span className="shrink-0 text-xs font-medium text-muted-foreground">
+                  <CalendarGlyphIcon className="me-1 inline-block size-3.5 align-[-0.15em]" />
+                  {month}
+                </span>
+              ) : null}
+            </p>
+          </div>
+        ) : null}
       </div>
     </header>
   );
