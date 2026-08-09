@@ -42,7 +42,9 @@
     "weeklyPlans": "الخطط الأسبوعية",
     "dishes": "كتالوج الأطباق",
     "whatsapp": "واتساب",
-    "notifications": "الإشعارات"
+    "notifications": "الإشعارات",
+    "openNavigation": "فتح التنقل",
+    "closeNavigation": "إغلاق التنقل"
   },
   "landing": {
     "title": "إدارة عيادتك الغذائية في مكان واحد",
@@ -1349,6 +1351,17 @@
     "addMealLabel": "اسم الوجبة",
     "addMealPlaceholder": "سناك مسائي",
     "addMealTime": "الوقت",
+    "addMealIcon": "اختر أيقونة طعام",
+    "mealIconChoices": {
+      "tea": "كوب شاي",
+      "hotDrink": "مشروب ساخن",
+      "snack": "وجبة خفيفة",
+      "bottle": "زجاجة مشروب",
+      "chef": "قبعة طاهٍ",
+      "chefHeart": "وجبة محضّرة",
+      "plate": "طبق عشاء",
+      "chefMinimal": "اختيار الطاهي"
+    },
     "removeSlotConfirm": "حذف {slot} من أيام الأسبوع السبعة؟ ستُحذف الأطباق الموضوعة فيها.",
     "restoreSlot": "أعد {slot} إلى هذا اليوم",
     "removeMeal": "حذف الوجبة",

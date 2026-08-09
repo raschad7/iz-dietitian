@@ -56,11 +56,14 @@ export function SidebarProfile({
   name,
   email,
   locale,
+  onNavigate,
 }: {
   name: string;
   /** Optional only because a session is not obliged to carry one; the row still works. */
   email?: string | null;
   locale: Locale;
+  /** Closes a responsive navigation drawer after choosing a destination. */
+  onNavigate?: () => void;
 }) {
   const t = useTranslations('nav');
   const [open, setOpen] = useState(false);
@@ -117,7 +120,10 @@ export function SidebarProfile({
                   href={link.href}
                   // Client-side navigation keeps this component mounted, so an
                   // open menu would survive the page it just left.
-                  onClick={() => setOpen(false)}
+                  onClick={() => {
+                    setOpen(false);
+                    onNavigate?.();
+                  }}
                   className={cn(
                     'flex items-center gap-3 rounded-md px-3 py-2 text-start text-body-sm',
                     'transition-colors duration-200 ease-[cubic-bezier(.2,.6,.2,1)]',

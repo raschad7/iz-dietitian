@@ -25,7 +25,7 @@ import { slotFillKey } from '../skeleton';
 import type { RecentUse } from '../usage';
 
 import { BoardEditor, useEditor } from './board-dnd';
-import { BoardSheet, useBelowXl } from './board-sheet';
+import { BoardSheet, useCompactPlanner } from './board-sheet';
 import { ClientPicker } from './client-picker';
 import { DayColumn } from './day-column';
 import { SlotRail } from './slot-rail';
@@ -108,23 +108,20 @@ function BoardBody({
   const [comparing, setComparing] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   /*
-   * Whether the fixed rail is showing, above `xl`.
+   * Whether the fixed rail is showing in the wide workspace.
    *
-   * The board did not fit on any monitor. Seven columns at the 150px floor plus
-   * their gutters is 1104px; the rail costs 373px and the app's own rail 256px,
-   * so even a 1920px window left the week 9px short and every narrower one cut
-   * two or three days off the end — with no scrollbar in view to say so. The
-   * week is the screen, so the rail is what gives way.
+   * The week is the primary workspace, so the context rail only stays fixed
+   * when the app rail, seven readable day columns and context rail all fit.
    */
   const [railOpen, setRailOpen] = useState(true);
-  // Which day the phone is showing. Sunday until the dietitian says otherwise:
+  // Which day the phone shows. Sunday until the dietitian says otherwise:
   // "today" would need a helper in the week logic, and this board is planning
   // next week anyway, where no day is today.
   const [selectedDay, setSelectedDay] = useState(0);
 
   // Which of the two presentations the rail is in. The panels themselves do not
   // know, and are rendered into exactly one of them.
-  const belowXl = useBelowXl();
+  const compactPlanner = useCompactPlanner();
 
   const selectedMeal = board.days
     .flatMap((day) => day.meals)
@@ -153,7 +150,7 @@ function BoardBody({
    * shelf may never squeeze the dish name out of the card; when the viewport is
    * shorter than the week, the board scrolls instead of collapsing its content.
    */
-  const rowTemplate = `auto repeat(${slotRows}, minmax(7rem, 1fr))${editable ? ' auto' : ''}`;
+  const rowTemplate = `auto repeat(${slotRows}, minmax(6rem, 1fr))${editable ? ' auto' : ''}`;
 
   /**
    * The previous plan's dish for each slot, marked where it repeats.
@@ -193,65 +190,82 @@ function BoardBody({
    * tabs and their panels carry `id`s that `aria-controls` and `aria-labelledby`
    * point at, and two copies would be two elements answering to one name.
    */
-  const railContent = (
-    <>
-      <RailTabs
-        className="shrink-0"
-        label={t('title')}
-        active={tab}
-        onSelect={setTab}
-        tabs={railTabsForPlan(true).map((id) => ({ id, label: t(`tabs.${id}`) }))}
-      />
+  function renderRailContent(collapsed = false) {
+    return (
+      <>
+        <RailTabs
+          className="shrink-0"
+          label={t('title')}
+          active={tab}
+          onSelect={setTab}
+          tabs={railTabsForPlan(true).map((id) => ({ id, label: t(`tabs.${id}`) }))}
+          onToggle={() => {
+            if (compactPlanner) setSheetOpen(false);
+            else setRailOpen((open) => !open);
+          }}
+          toggleLabel={compactPlanner ? t('close') : t(railOpen ? 'hidePanels' : 'showPanels')}
+          collapsed={collapsed}
+        />
 
-      {/* The tabs stay put and the panel under them scrolls. A tab bar that
-          scrolls away with its own panel is a tab bar you have to scroll back
-          up to use. */}
-      <div
-        role="tabpanel"
-        id={`rail-panel-${tab}`}
-        aria-labelledby={`rail-tab-${tab}`}
-        className="min-h-0 flex-1 overflow-hidden pt-3"
-      >
-        {tab === 'dishes' ? (
-          <DishCatalog
-            catalog={catalog}
-            usage={usage}
-            slot={
-              selectedMeal
-                ? { slotKey: selectedMeal.slotKey, budgetKcal: selectedMeal.budgetKcal }
-                : null
-            }
-            editable={editable}
-          />
-        ) : tab === 'meal' ? (
-          selectedMeal ? (
-            <MealDetailPanel
-              meal={selectedMeal}
-              candidates={candidates[selectedMeal.id] ?? []}
-              planId={board.id}
-              locale={locale}
-              editable={editable}
-              model={board.model}
-              onClose={() => {
-                setSelectedMealId(null);
-                setTab('client');
-              }}
-              onBrowseDishes={() => setTab('dishes')}
-            />
-          ) : (
-            <p className="text-body-sm text-muted-foreground">{t('selectMeal')}</p>
-          )
-        ) : tab === 'past' ? (
-          <div className="no-scrollbar h-full overflow-y-auto overflow-x-hidden">{history}</div>
-        ) : (
-          <div className="no-scrollbar h-full overflow-y-auto overflow-x-hidden">{children}</div>
-        )}
-      </div>
-    </>
-  );
+        {/* The tabs stay put and the panel under them scrolls. A tab bar that
+            scrolls away with its own panel is a tab bar you have to scroll back
+            up to use. */}
+        {!collapsed ? (
+          <div
+            role="tabpanel"
+            id={`rail-panel-${tab}`}
+            aria-labelledby={`rail-tab-${tab}`}
+            className={cn(
+              'min-h-0 flex-1 overflow-hidden pt-3',
+              !compactPlanner && 'ps-5',
+            )}
+          >
+            {tab === 'dishes' ? (
+              <DishCatalog
+                catalog={catalog}
+                usage={usage}
+                slot={
+                  selectedMeal
+                    ? { slotKey: selectedMeal.slotKey, budgetKcal: selectedMeal.budgetKcal }
+                    : null
+                }
+                editable={editable}
+              />
+            ) : tab === 'meal' ? (
+              selectedMeal ? (
+                <MealDetailPanel
+                  meal={selectedMeal}
+                  candidates={candidates[selectedMeal.id] ?? []}
+                  planId={board.id}
+                  locale={locale}
+                  editable={editable}
+                  model={board.model}
+                  onClose={() => {
+                    setSelectedMealId(null);
+                    setTab('client');
+                  }}
+                  onBrowseDishes={() => setTab('dishes')}
+                />
+              ) : (
+                <p className="text-body-sm text-muted-foreground">{t('selectMeal')}</p>
+              )
+            ) : tab === 'past' ? (
+              <div className="no-scrollbar h-full overflow-y-auto overflow-x-hidden">
+                {history}
+              </div>
+            ) : (
+              <div className="no-scrollbar h-full overflow-y-auto overflow-x-hidden">
+                {children}
+              </div>
+            )}
+          </div>
+        ) : null}
+      </>
+    );
+  }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3">
+    <div className="relative flex min-h-0 min-w-0 flex-1 flex-col gap-3">
       {/*
         The header wraps rather than clips. Every item in it but the client name
         was `whitespace-nowrap` or `shrink-0`, so below about 375px the name
@@ -302,16 +316,26 @@ function BoardBody({
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-end gap-2">
+          <div className="planner-action-bar flex w-full max-w-full shrink-0 flex-wrap items-center justify-start gap-2 pb-1 sm:w-auto rtl:flex-row-reverse">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="planner-compact-trigger max-sm:px-3"
+            aria-label={t('openPanels')}
+            title={t('openPanels')}
+            onClick={() => setSheetOpen(true)}
+          >
+            <Icon name="moreActions" />
+            <span className="max-sm:sr-only">{t('openPanels')}</span>
+          </Button>
           {/*
-            Plan actions, in a fixed order that does not depend on status.
+            Plan actions, in a stable order that does not depend on status.
 
-            Publishing is always the first control and always the same control —
-            see `publish-button.tsx` for why the header no longer promotes a
-            different button to the solid fill once a plan goes live. "New week"
-            is always second and always quiet. The two status-dependent controls
-            are *appended* rather than inserted, so nothing already on the row
-            shifts sideways when a plan is published.
+            The panels control is first in source order. `rtl:flex-row-reverse`
+            keeps it on the physical left in both languages while the button's
+            own text retains the document direction. The row wraps instead of
+            scrolling, so every action remains reachable on a narrow screen.
           */}
           <PublishButton
             planId={board.id}
@@ -326,6 +350,7 @@ function BoardBody({
             locale={locale}
             newWeek={newWeek}
             triggerVariant="neutral"
+            compactTrigger
           />
 
           {/*
@@ -383,64 +408,9 @@ function BoardBody({
             </Button>
           )}
 
-          {/*
-            View controls, fenced off from the actions above.
-
-            They change what is on screen rather than what is in the plan, and
-            with a published plan there are already four controls beside them —
-            which is the row that wrapped into a ragged second line. A hairline
-            and icon-only triggers buy back about 180px of label and say the two
-            groups are different kinds of thing.
-          */}
-          <span className="flex items-center gap-2 border-s border-border ps-2">
-            {/* Below `xl` the rail is a sheet, and a sheet that only opens by
-                tapping a meal leaves the client, the catalog and the past weeks
-                with no door at all — so this one keeps its label. It is the
-                only way to those panels on a narrow screen, and an unlabelled
-                glyph is a door nobody finds. */}
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="planner-compact-trigger"
-              onClick={() => setSheetOpen(true)}
-            >
-              {t('openPanels')}
-            </Button>
-
-            {/* Above `xl` the same panels are already on screen, so this is not
-                a door, it is a width dial — and the one control in the row that
-                can afford to be a glyph, because losing it costs a view
-                preference rather than access to anything. */}
-            {/* `outline`, not `ghost`. A boxless chevron alone at the end of a
-                toolbar reads as a scroll arrow rather than a control — the
-                glyph needs an edge around it to say it is pressable, which is
-                the trade an icon-only button makes for giving up its label. */}
-            <Button
-              type="button"
-              size="icon-sm"
-              variant="outline"
-              className="planner-rail-toggle"
-              aria-pressed={!railOpen}
-              aria-label={railOpen ? t('hidePanels') : t('showPanels')}
-              title={railOpen ? t('hidePanels') : t('showPanels')}
-              onClick={() => setRailOpen((value) => !value)}
-            >
-              <Icon name={railOpen ? 'chevronEnd' : 'chevronStart'} />
-            </Button>
-          </span>
           </div>
         </div>
 
-        {(pending || error) && (
-          <p
-            role="status"
-            aria-live="polite"
-            className={cn('mt-2 text-label text-muted-foreground', error && 'text-destructive')}
-          >
-            {error ? t(error) : t('savingIndicator')}
-          </p>
-        )}
       </header>
 
       {allowPublished && (
@@ -458,26 +428,22 @@ function BoardBody({
       <BoardDayStrip days={board.days} selectedDay={selectedDay} onSelect={setSelectedDay} />
 
       <div className="flex min-h-0 flex-1 gap-3">
-        {/* The week scrolls sideways rather than being crushed. Seven columns
-            need about 150px each before a dish name stops fitting on two lines,
-            so the grid has a floor of 1104px — seven of those plus the six 10px
-            gutters between them — and this wrapper is what carries the
-            overflow; the grid cannot be its own scroller and also refuse to
-            shrink. `h-full` keeps the row template's `1fr` working: the fr unit
-            needs a definite height to share out, and inside a scroller the grid
-            would otherwise size to its content and never stretch.
-
-            The floor was 78rem, which is 169px a column — 9px more than a 1920px
-            window can give it once both rails are paid for, so the week was
-            clipped on every monitor there is and the collapse control above had
-            nothing to collapse *to*. 69rem is the floor the comment always
-            claimed. */}
+        {/* Phones render one selected day. Tablets make the week itself a
+            three-column-wide swipe surface, so the day picker no longer spends
+            two rows above the work. The seven-column desktop keeps a 64rem
+            readable floor and lets this wrapper own exceptional overflow.
+            `h-full` keeps the row template's `1fr` working: the fr unit needs a
+            definite height to share out. */}
         {/* The canvas under the cards is `canvas` — n-25, one stop off white —
             so a white card reads as a surface sitting on the board rather than
             as a bordered box on the page. Not `muted` (n-50): that is the
             *sunken* fill, and a board-sized expanse of it reads as beige rather
             than as white with the cards lifted off it. */}
-        <div className="min-w-0 flex-1 overflow-auto rounded-lg bg-background [scrollbar-gutter:stable]">
+        <div
+          className="planner-week-scroll no-scrollbar min-w-0 flex-1 overflow-auto rounded-lg bg-background overscroll-contain"
+          tabIndex={0}
+          aria-label={t('title')}
+        >
           {/* One grid for the week, and each day a subgrid of it, so every card in
               a row is the same height and the rows run straight across.
               `minmax(0,1fr)` per day rather than `1fr`, so a long dish name wraps
@@ -492,7 +458,7 @@ function BoardBody({
               parent's gutters, and repeating them on the day column would let the
               two drift out of step. */}
           <div
-            className="grid h-full grid-cols-[auto_minmax(0,1fr)] gap-x-2 gap-y-2 p-2 md:min-w-[74rem] md:grid-cols-[auto_repeat(7,minmax(0,1fr))]"
+            className="planner-week-grid grid h-full grid-cols-[auto_minmax(0,1fr)] gap-x-2 gap-y-2 p-2 xl:min-w-[64rem] xl:grid-cols-[auto_repeat(7,minmax(0,1fr))]"
             style={{ gridTemplateRows: rowTemplate }}
           >
             <SlotRail rows={rows} editable={editable} />
@@ -503,8 +469,6 @@ function BoardBody({
                 day={day}
                 rows={rows}
                 dailyTarget={dailyTarget}
-                planId={board.id}
-                locale={locale}
                 editable={editable}
                 selectedMealId={selectedMealId}
                 onSelectMeal={(mealId) => {
@@ -517,11 +481,12 @@ function BoardBody({
                   // tapping the selected card again closes it, and reopening the
                   // rail on that press would fight the press.
                   if (!opening) return;
-                  // Below `xl` this is the sheet. Setting it unconditionally
+                  // In the compact layout this is the sheet. Setting it
+                  // unconditionally
                   // left `sheetOpen` stuck true on a desktop that never showed
                   // the sheet — and narrowing the window afterwards then popped
                   // it open with nothing having asked.
-                  if (belowXl) setSheetOpen(true);
+                  if (compactPlanner) setSheetOpen(true);
                   else setRailOpen(true);
                 }}
                 ghosts={ghostsByDay?.[day.dayOfWeek]}
@@ -532,15 +497,19 @@ function BoardBody({
           </div>
         </div>
 
-        {/* Unmounted rather than hidden when collapsed. The panels carry the
-            `id`s `aria-controls` points at, so a hidden second copy would be a
-            second element answering to the same name — the same reason the rail
-            and the sheet never render together. */}
-        {railOpen && (
-          <aside className="planner-desktop-rail w-[22rem] shrink-0 flex-col border-s border-border ps-5">
-            {!belowXl && railContent}
-          </aside>
-        )}
+        {/* The rail collapses into its own 48px edge, so the same control stays
+            attached to the same object. Only the panel content unmounts; the
+            rail itself never jumps into the toolbar. */}
+        <aside
+          aria-label={t('openPanels')}
+          className={cn(
+            'planner-desktop-rail shrink-0 flex-col overflow-hidden border-s border-border',
+            'transition-[width] duration-300 ease-[cubic-bezier(.16,1,.3,1)]',
+            railOpen ? 'w-[22rem]' : 'w-12',
+          )}
+        >
+          {!compactPlanner && renderRailContent(!railOpen)}
+        </aside>
       </div>
 
       <BoardSheet
@@ -549,9 +518,31 @@ function BoardBody({
         label={t('openPanels')}
         closeLabel={t('close')}
         dir={getLocaleDirection(activeLocale)}
+        showDefaultClose={false}
       >
-        {belowXl && railContent}
+        {compactPlanner && renderRailContent()}
       </BoardSheet>
+
+      {/* Persistence feedback floats above the workspace instead of inserting a
+          new header row. Optimistic edits already move immediately; this quiet
+          indicator confirms the background write without making the tool jump. */}
+      <div
+        role="status"
+        aria-live="polite"
+        aria-hidden={!pending && !error}
+        className={cn(
+          'pointer-events-none fixed bottom-4 end-4 z-50 flex items-center gap-2 rounded-full border bg-card px-3 py-2 text-label shadow-elevated',
+          'transition-[opacity,transform] duration-150 ease-[cubic-bezier(.16,1,.3,1)]',
+          pending || error ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0',
+          error ? 'border-destructive text-destructive' : 'border-border text-muted-foreground',
+        )}
+      >
+        <Icon
+          name={error ? 'attention' : 'refresh'}
+          className={cn('size-4', pending && !error && 'motion-safe:animate-spin')}
+        />
+        {error ? t(error) : t('savingIndicator')}
+      </div>
 
       {lastMove && (
         <div
@@ -570,8 +561,8 @@ function BoardBody({
 }
 
 /**
- * The week, as seven things to tap — below `md`, where seven columns are not a
- * layout, they are a queue of slivers.
+ * The week, as seven things to tap on a phone, where even a three-column window
+ * would become a queue of slivers. Tablets swipe the board itself instead.
  *
  * The shape is the portal strip's (`plan-day-strip.tsx`): four across, then
  * three. Not seven across, because Arabic weekday names are full words —

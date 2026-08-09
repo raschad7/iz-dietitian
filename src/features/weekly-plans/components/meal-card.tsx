@@ -47,7 +47,7 @@ export function MealCard({
   editable: boolean;
 }) {
   const t = useTranslations('weeklyPlans');
-  const { dragging } = useEditorActions();
+  const { dragging, settledMealId } = useEditorActions();
 
   const kcal = roundForDisplay('kcal', meal.totals.kcal.value);
   const drift = meal.dish === null ? null : driftState(kcal, meal.budgetKcal, MEAL_TOLERANCE);
@@ -100,9 +100,9 @@ export function MealCard({
         'group relative min-h-0 overflow-hidden rounded-lg border bg-card transition-[border-color,background-color,transform,opacity,box-shadow] duration-(--duration-sweep) ease-(--ease-sweep)',
         selected ? 'border-primary ring-1 ring-primary' : 'border-border',
         meal.dish === null && 'border-dashed bg-muted/40',
-        wouldLand && '-translate-y-1 border-primary bg-secondary shadow-elevated',
-        dragging && !isDragging && !wouldLand && 'opacity-70',
+        wouldLand && 'scale-[1.01] border-primary bg-secondary shadow-elevated',
         isDragging && 'border-dashed bg-muted',
+        settledMealId === meal.id && 'planner-drop-settled',
       )}
     >
       <button
@@ -220,9 +220,9 @@ export function MealCard({
           // `top-1`, not `top-7`. The old offset cleared the metadata row that
           // used to sit above the dish name; with that row in the slot rail the
           // handle would have floated in the middle of the name it belongs to.
-          className="absolute end-1 top-1 z-30 cursor-grab rounded-full p-1.5 text-muted-foreground opacity-0 transition-[opacity,background-color,color] hover:bg-secondary hover:text-primary group-hover:opacity-100 focus-visible:bg-secondary focus-visible:text-primary focus-visible:opacity-100 max-md:opacity-100"
+          className="planner-drag-handle absolute end-0.5 top-0.5 z-30 cursor-grab rounded-full p-1.5 text-muted-foreground opacity-0 transition-[opacity,background-color,color] hover:bg-secondary hover:text-primary active:cursor-grabbing group-hover:opacity-100 focus-visible:bg-secondary focus-visible:text-primary focus-visible:opacity-100 max-md:opacity-100"
         >
-          <Icon name="dragHandle" className="size-3.5" />
+          <Icon name="dragHandle" className="size-5" />
         </span>
       )}
 

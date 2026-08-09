@@ -42,7 +42,9 @@
     "weeklyPlans": "Weekly Plans",
     "dishes": "Dish catalog",
     "whatsapp": "WhatsApp",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "openNavigation": "Open navigation",
+    "closeNavigation": "Close navigation"
   },
   "landing": {
     "title": "Run your dietitian practice in one place",
@@ -1349,6 +1351,17 @@
     "addMealLabel": "Meal name",
     "addMealPlaceholder": "Evening snack",
     "addMealTime": "Time",
+    "addMealIcon": "Choose a food icon",
+    "mealIconChoices": {
+      "tea": "Tea cup",
+      "hotDrink": "Hot drink",
+      "snack": "Snack",
+      "bottle": "Drink bottle",
+      "chef": "Chef hat",
+      "chefHeart": "Prepared meal",
+      "plate": "Dinner plate",
+      "chefMinimal": "Chef choice"
+    },
     "removeSlotConfirm": "Remove {slot} from all seven days? Any dishes placed in it are removed too.",
     "restoreSlot": "Add {slot} back to this day",
     "removeMeal": "Remove meal",

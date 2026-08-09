@@ -106,8 +106,11 @@ export function PortalTabBar() {
                 >
                   <span
                     className={cn(
-                      'flex size-16 items-center justify-center rounded-full text-primary-foreground shadow-elevated transition-colors duration-200',
-                      active ? 'bg-primary-hover' : 'bg-primary',
+                      'flex size-16 items-center justify-center rounded-full text-primary-foreground shadow-elevated',
+                      'transition-[background-color,transform,box-shadow] duration-(--duration-label) ease-(--ease-sweep)',
+                      active
+                        ? '-translate-y-0.5 scale-[1.03] bg-primary-hover shadow-overlay'
+                        : 'bg-primary active:scale-95',
                     )}
                   >
                     <span className="relative">
@@ -136,11 +139,16 @@ export function PortalTabBar() {
                 // `pt-2.5` is the bar's top padding, carried here rather than
                 // on the `ul` so the centre column starts at the plate's top
                 // edge. See the note above.
-                className="flex flex-col items-center gap-1 pt-2.5 pb-1.5 text-label transition-colors"
+                className="group flex flex-col items-center gap-1 pt-2.5 pb-1.5 text-label transition-colors duration-(--duration-label)"
               >
                 <Icon
                   name={OUTLINE_ICON[item.labelKey]}
-                  className={cn('size-6', active ? 'text-primary' : 'text-muted-foreground')}
+                  className={cn(
+                    'size-6 transition-[color,transform] duration-(--duration-label) ease-(--ease-sweep)',
+                    active
+                      ? '-translate-y-0.5 scale-105 text-primary'
+                      : 'text-muted-foreground group-active:scale-95',
+                  )}
                 />
                 <span className={cn('truncate', active ? 'font-semibold text-primary' : 'text-muted-foreground')}>
                   {t(item.labelKey)}

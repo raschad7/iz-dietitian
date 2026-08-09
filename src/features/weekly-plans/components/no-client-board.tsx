@@ -4,12 +4,11 @@ import { useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
-import { Icon } from '@/components/ui/icon';
 import { getLocaleDirection } from '@/i18n/routing';
 
 import type { CatalogEntry, PlannableClient } from '../queries';
 
-import { BoardSheet, useBelowXl } from './board-sheet';
+import { BoardSheet, useCompactPlanner } from './board-sheet';
 import { ClientPicker } from './client-picker';
 import { DishCatalog } from './dish-catalog';
 
@@ -42,8 +41,7 @@ export function NoClientBoard({
   const t = useTranslations('weeklyPlans');
   const activeLocale = useLocale();
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [railOpen, setRailOpen] = useState(true);
-  const belowXl = useBelowXl();
+  const compactPlanner = useCompactPlanner();
 
   const railContent = (
     <>
@@ -61,7 +59,7 @@ export function NoClientBoard({
   );
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
       <header className="border-b border-border pb-4">
         <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
           <div className="min-w-0 flex-1">
@@ -83,19 +81,6 @@ export function NoClientBoard({
             >
               {t('openPanels')}
             </Button>
-
-            <Button
-              type="button"
-              size="icon-sm"
-              variant="outline"
-              className="planner-rail-toggle"
-              aria-pressed={!railOpen}
-              aria-label={railOpen ? t('hidePanels') : t('showPanels')}
-              title={railOpen ? t('hidePanels') : t('showPanels')}
-              onClick={() => setRailOpen((value) => !value)}
-            >
-              <Icon name={railOpen ? 'chevronEnd' : 'chevronStart'} />
-            </Button>
           </span>
         </div>
       </header>
@@ -110,11 +95,9 @@ export function NoClientBoard({
           </div>
         </section>
 
-        {railOpen && (
-          <aside className="planner-desktop-rail w-[22rem] shrink-0 flex-col border-s border-border ps-5">
-            {!belowXl && railContent}
-          </aside>
-        )}
+        <aside className="planner-desktop-rail w-[22rem] shrink-0 flex-col border-s border-border ps-5">
+          {!compactPlanner && railContent}
+        </aside>
       </div>
 
       <BoardSheet
@@ -124,7 +107,7 @@ export function NoClientBoard({
         closeLabel={t('close')}
         dir={getLocaleDirection(activeLocale)}
       >
-        {belowXl && railContent}
+        {compactPlanner && railContent}
       </BoardSheet>
     </div>
   );

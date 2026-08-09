@@ -188,7 +188,7 @@ export function AuthScreen({
   const pace = view.role === shown.role ? 'panel' : 'card';
 
   return (
-    <main className="flex min-h-dvh w-full flex-col items-center justify-center gap-6 overflow-x-hidden bg-auth-canvas px-4 py-12 sm:px-6">
+    <main className="q-route-stage flex min-h-dvh w-full flex-col items-center justify-center gap-6 overflow-x-hidden bg-auth-canvas px-4 py-12 sm:px-6">
       <header className="flex w-full max-w-6xl flex-col items-center gap-5 text-center">
         {/*
           Keyed on the title so React remounts it and the fade replays. The
