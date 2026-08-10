@@ -44,6 +44,8 @@ describe('listPlannableClients', () => {
         hasProfile: false,
         latestPlanStatus: 'draft',
         latestWeekStartDate: '2026-07-26',
+        nextAppointment: null,
+        lastAppointment: null,
       },
     ]);
   });

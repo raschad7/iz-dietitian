@@ -51,6 +51,26 @@ export function AppointmentTabs({
         role="tablist"
         value={view}
         onChange={setView}
+        /*
+          A tinted half, and nothing else — not the solid olive fill the control
+          draws by default, and no mark under the label either.
+
+          This switch sits directly under the page's one button and directly
+          above the next appointment, and a filled olive half there was a third
+          brand-coloured block in a 200px stack — the eye had nowhere to land.
+          It then carried a 3px olive rule along its block-end edge, which read
+          as an underlined *link* rather than as the state of a switch: the one
+          decoration on this page that looked pressable and was not.
+
+          So the state is the fill alone, at olive-100 rather than the olive-50
+          `bg-secondary` the rule used to accompany. On a white track olive-50 is
+          within a hair of the surface it sits on and needed the mark to be seen
+          at all; olive-100 is visible on its own, and the olive-700 label rides
+          on it at 6.51:1 — the same pairing `Button variant="primarySubtle"`
+          ships. Fill and label colour are still two channels, which is what a
+          control whose two states are both plausible needs.
+        */
+        activeClassName="bg-primary-subtle text-secondary-foreground"
         options={[
           { value: 'upcoming', label: upcomingLabel },
           { value: 'past', label: pastLabel },

@@ -26,6 +26,17 @@ import { AppointmentRequestActions } from './appointment-request-actions';
  * things that can be done about it. The client's own words come last and
  * unstyled apart from the quotation marks: it is the one part of the row nobody
  * else wrote.
+ *
+ * **Except when the words are the whole request.** A `new` request that names
+ * no time is a note: the client wrote to their dietitian, who reads it and
+ * books an appointment in the ordinary way, from the calendar. There is nothing
+ * to approve — approving it would have to invent the time the client did not
+ * give — so the row drops its action buttons entirely, and with them the amber
+ * that means somebody is waiting on a decision. It is a message in an inbox,
+ * and it looks like one.
+ *
+ * Requests filed before the portal stopped asking for a day still carry one,
+ * are still answerable, and still get the buttons and the amber.
  */
 
 const KIND_ICONS = {
@@ -33,6 +44,11 @@ const KIND_ICONS = {
   reschedule: 'refresh',
   cancel: 'close',
 } as const satisfies Record<StaffAppointmentRequest['kind'], IconName>;
+
+/** See the note above: a `new` request with no proposed time is a message. */
+function isNote(request: StaffAppointmentRequest): boolean {
+  return request.kind === 'new' && request.preferredDate === null;
+}
 
 export type AppointmentRequestCardProps = {
   request: StaffAppointmentRequest;
@@ -61,6 +77,7 @@ export async function AppointmentRequestCard({
 
   const compact = size === 'sm';
   const formatDate = compact ? formatMediumDate : formatLongDate;
+  const note = isNote(request);
 
   return (
     <Card
@@ -84,12 +101,22 @@ export async function AppointmentRequestCard({
           */}
           {compact ? (
             <Icon
-              name={KIND_ICONS[request.kind]}
+              name={note ? 'chat' : KIND_ICONS[request.kind]}
               className="mt-1 size-4 shrink-0 text-muted-foreground"
             />
           ) : (
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-status-attention-bg text-status-attention-fg">
-              <Icon name={KIND_ICONS[request.kind]} className="size-4" />
+            <span
+              className={cn(
+                'flex size-8 shrink-0 items-center justify-center rounded-full',
+                // A note is not waiting on the dietitian, so it does not take
+                // the amber disc. Neutral, and a speech bubble rather than a
+                // calendar glyph: what arrived is words, not a proposed slot.
+                note
+                  ? 'bg-muted text-muted-foreground'
+                  : 'bg-status-attention-bg text-status-attention-fg',
+              )}
+            >
+              <Icon name={note ? 'chat' : KIND_ICONS[request.kind]} className="size-4" />
             </span>
           )}
 
@@ -110,8 +137,8 @@ export async function AppointmentRequestCard({
               </span>
             </div>
 
-            <Badge variant="attention" size="sm">
-              {t(`kind.${request.kind}`)}
+            <Badge variant={note ? 'muted' : 'attention'} size="sm">
+              {note ? t('kind.note') : t(`kind.${request.kind}`)}
             </Badge>
 
             {/*
@@ -150,8 +177,19 @@ export async function AppointmentRequestCard({
               </p>
             ) : null}
 
+            {/*
+              On a note this is the request, so it reads at full strength and
+              keeps its line height. Everywhere else it is the client's aside
+              beside the time they asked for, and stays quiet.
+            */}
             {request.note ? (
-              <p className="text-body-sm text-muted-foreground" dir="auto">
+              <p
+                className={cn(
+                  'text-body-sm',
+                  note ? 'leading-relaxed whitespace-pre-line' : 'text-muted-foreground',
+                )}
+                dir="auto"
+              >
                 “{request.note}”
               </p>
             ) : null}
@@ -160,16 +198,22 @@ export async function AppointmentRequestCard({
 
         {/* Indented to the text column, so the controls line up under what they
             act on rather than under the icon: 44px past the inbox's disc, 28px
-            past the tile's glyph. */}
-        <div className={cn('space-y-2', compact ? 'ps-7' : 'ps-11')}>
-          <AppointmentRequestActions
-            request={request}
-            locale={locale}
-            hours={hours}
-            today={today}
-            size={compact ? 'sm' : 'default'}
-          />
-        </div>
+            past the tile's glyph.
+
+            A note has none: there is no time in it to approve, and a decline
+            would be refusing a message. The dietitian reads it and books from
+            the calendar like any other appointment. */}
+        {note ? null : (
+          <div className={cn('space-y-2', compact ? 'ps-7' : 'ps-11')}>
+            <AppointmentRequestActions
+              request={request}
+              locale={locale}
+              hours={hours}
+              today={today}
+              size={compact ? 'sm' : 'default'}
+            />
+          </div>
+        )}
       </CardContent>
     </Card>
   );

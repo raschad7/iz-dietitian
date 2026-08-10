@@ -155,7 +155,11 @@ export async function getAssignedPractitioner(
   if (!assignedDietitianId) return null;
 
   const [row] = await db
-    .select({ name: practitioners.name, specialty: practitioners.specialty })
+    .select({
+      name: practitioners.name,
+      specialty: practitioners.specialty,
+      color: practitioners.color,
+    })
     .from(practitioners)
     .where(
       and(eq(practitioners.clinicId, clinicId), eq(practitioners.userId, assignedDietitianId)),

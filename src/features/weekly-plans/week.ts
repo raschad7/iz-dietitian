@@ -80,6 +80,38 @@ export type PlanDaySummary = {
   adherence: AdherenceDay | null;
 };
 
+/**
+ * Where a plan day sits relative to the clinic's today.
+ *
+ * This is what decides whether the client may tick that day's meals: only today
+ * can be reported on. A day that has not happened cannot have been eaten, and a
+ * day that has ended is a record — letting either be edited turns the adherence
+ * history into something a client can rewrite, which is the one thing the whole
+ * `client_plan_adherence` table exists to be trusted about.
+ */
+export type DayStanding = 'past' | 'today' | 'future';
+
+/**
+ * Compares two `YYYY-MM-DD` calendar dates and nothing else.
+ *
+ * **Date-only, never an instant.** Both sides are zero-padded ISO, so string
+ * comparison is chronological, and the answer cannot move because it is 23:59 in
+ * one place and 00:30 in another — the same reason every other date in this
+ * module is a string in and a string out. `today` is the clinic's own wall-clock
+ * date (`context.now.date`), so the day rolls over when the clinic's does rather
+ * than when the client's phone happens to.
+ *
+ * A `null` date reads as `past`, which is the safe direction: it only occurs
+ * when the plan's `week_start_date` is unreadable, and a day nobody can put on a
+ * calendar is not a day to open for writing.
+ */
+export function dayStanding(date: string | null, today: string): DayStanding {
+  if (date === null) return 'past';
+  if (date === today) return 'today';
+
+  return date < today ? 'past' : 'future';
+}
+
 /** The seven dates a plan covers, for the portal's day headings. */
 export function weekDates(weekStartDate: string): string[] {
   const parts = weekStartDate.split('-').map(Number);

@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { useTransition } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import {
@@ -37,10 +38,11 @@ export function ClientPicker({
 }: {
   clients: readonly PlannableClient[];
   selectedClientId?: string;
-  appearance?: 'field' | 'heading';
+  appearance?: 'field' | 'heading' | 'bar';
 }) {
   const t = useTranslations('weeklyPlans');
   const router = useRouter();
+  const [pending, startTransition] = useTransition();
 
   const selected = clients.find((client) => client.id === selectedClientId) ?? null;
 
@@ -56,7 +58,14 @@ export function ClientPicker({
       isItemEqualToValue={(a, b) => a?.id === b?.id}
       itemToStringLabel={(client) => client.fullName}
       onValueChange={(client) => {
-        if (client) router.push(`/app/weekly-plans/${client.id}`);
+        /*
+         * Re-picking whoever is already on screen is not a navigation. The
+         * transition keeps the current board interactive while the next one
+         * loads, and `pending` fades the control so the delay has somewhere
+         * visible to live.
+         */
+        if (!client || client.id === selectedClientId) return;
+        startTransition(() => router.push(`/app/weekly-plans/${client.id}`));
       }}
     >
       <ComboboxInput
@@ -66,15 +75,23 @@ export function ClientPicker({
         // itself and everything else wraps under it; a fixed 256px that refuses
         // to shrink is what pushed the rest of the row off the screen.
         className={cn(
-          appearance === 'heading' ? 'w-full min-w-56 sm:w-80' : 'w-full sm:w-64 sm:shrink-0',
-          // The heading appearance changes the *type*, and nothing else — the
-          // box stays, so it still reads as something you can open rather than
-          // as a title with a stray chevron beside it.
-          appearance === 'heading' && '[&_input]:font-heading [&_input]:text-heading-sm [&_input]:font-semibold',
+          appearance === 'heading'
+            ? 'w-full min-w-56 sm:w-80'
+            : appearance === 'bar'
+              ? 'w-full min-w-44'
+              : 'w-full sm:w-64 sm:shrink-0',
+          // `heading` and `bar` change the *type*, and nothing else — the box
+          // stays, so it still reads as something you can open rather than as
+          // a title with a stray chevron beside it.
+          appearance === 'heading' &&
+            '[&_input]:font-heading [&_input]:text-heading-sm [&_input]:font-semibold',
+          appearance === 'bar' &&
+            '[&_input]:font-heading [&_input]:text-body-md [&_input]:font-semibold',
+          pending && 'pointer-events-none opacity-60',
         )}
       />
 
-      <ComboboxContent className={cn(PLANNER_THEME, appearance === 'heading' && 'min-w-72')}>
+      <ComboboxContent className={cn(PLANNER_THEME, appearance !== 'field' && 'min-w-72')}>
         <ComboboxEmpty>{t('noClients')}</ComboboxEmpty>
 
         <ComboboxList>

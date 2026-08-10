@@ -38,10 +38,18 @@ type ClientLayoutProps = {
  */
 export default async function ClientLayout({ children, params }: ClientLayoutProps) {
   const locale = await resolveLocale(params);
-  const { clinicId } = await requireStaffClinic(locale);
+  const { session, clinicId } = await requireStaffClinic(locale);
 
   const { clientId } = await params;
   const client = await getClient(clinicId, clientId);
+
+  // TEMP DEBUG — remove once the client-detail 404 is root-caused.
+  console.log('[client-layout-debug]', {
+    userEmail: session.user.email,
+    sessionClinicId: clinicId,
+    requestedClientId: clientId,
+    found: Boolean(client),
+  });
 
   if (!client) {
     notFound();

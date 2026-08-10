@@ -55,6 +55,7 @@ export default async function MealPlanPage({ params, searchParams }: MealPlanPag
       days={plan.days}
       selectedDay={plan.selectedDay}
       completedMealIds={plan.completedMealIds}
+      today={plan.today}
     />
   );
 }

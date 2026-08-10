@@ -8,11 +8,12 @@ import { roundForDisplay } from '@/features/weekly-plans/nutrition';
 import { cn } from '@/lib/utils';
 
 import { MealCheck } from './meal-check';
+import { SettledMealCheck } from './meal-check-mark';
 import { PlanDayCompletionProvider } from './plan-day-completion';
 import { PlanDayStrip } from './plan-day-strip';
 import type { Board, BoardMeal } from '../queries';
 import { mealTypeForSlot, type MealType } from '../schema';
-import { type PlanDaySummary } from '../week';
+import { dayStanding, type DayStanding, type PlanDaySummary } from '../week';
 
 /**
  * The client's own view of their published week.
@@ -40,12 +41,15 @@ export function PortalPlan({
   days,
   selectedDay,
   completedMealIds,
+  today,
 }: {
   board: Board;
   days: readonly PlanDaySummary[];
   selectedDay: number;
   /** Which of the selected day's meals are already ticked — see `loadPlanPage`. */
   completedMealIds: readonly string[];
+  /** The clinic's own `YYYY-MM-DD`, read once per request — see `loadPlanPage`. */
+  today: string;
 }) {
   const t = useTranslations('portal.plan');
 
@@ -54,6 +58,83 @@ export function PortalPlan({
   const meals = day?.meals ?? [];
   const dayKcal = day ? roundForDisplay('kcal', day.totals.kcal.value) : 0;
   const mealIds = meals.map((meal) => meal.id);
+
+  /*
+    Which of the three days this is, and therefore what a meal card may offer.
+
+    Read off the *selected day's own date* rather than its weekday number: a
+    published plan is not always the week today falls in, and Thursday is day 4
+    whichever week it belongs to. `pickPlanDay` already learned this lesson —
+    matching on the number alone would let last week's Thursday be ticked as
+    though it were this one.
+  */
+  const standing = dayStanding(
+    days.find((summary) => summary.dayOfWeek === selectedDay)?.date ?? null,
+    today,
+  );
+
+  const completed = new Set(completedMealIds);
+
+  const body = (
+    <>
+      <PlanDayStrip days={days} selectedDay={selectedDay} />
+
+      {/*
+        No day heading here, deliberately.
+
+        It used to repeat the selected day's name and full date directly under
+        the strip that had just been tapped to choose them — and the strip marks
+        its selection with a solid olive fill and its today with a badge, so the
+        heading restated, one line lower, the only two facts already drawn above
+        it. What follows the strip is the day's meals, and they start immediately.
+      */}
+      <section className="space-y-4">
+        {meals.length === 0 ? (
+          <EmptyState icon="dish" title={t('emptyDayTitle')} description={t('emptyDayHint')} />
+        ) : (
+          <>
+            {/*
+              The day's own totals, stated rather than plotted. This is what the
+              dietitian planned for the day, not what anyone has eaten — so it is
+              labelled as the day's energy and never framed as progress against a
+              goal the client has not been measured on.
+
+              On the meal surface (`MEAL_SHELL`) rather than the brand-subtle
+              `secondary` it used to sit on: it is the same material as the five
+              cards below it, and it is a figure to read, not a thing to act on
+              — see the `--meal-*` note in `globals.css` for why olive left this
+              screen.
+
+              It keeps that neutral surface on a settled day, while the meals
+              below it may not. This is the dietitian's plan for the day — a
+              figure that was true before anyone ate anything and stays true
+              after — so tinting it with how the day went would be reporting
+              against it, which is the one thing the label says it is not.
+            */}
+            <div
+              className={cn(
+                'flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-lg px-4 py-3',
+                MEAL_SHELL,
+              )}
+            >
+              <span className="text-sm">{t('dayEnergyLabel')}</span>
+              <span className="font-heading text-lg font-semibold tabular-nums">
+                {t('kcalValue', { value: dayKcal })}
+              </span>
+            </div>
+
+            <ul className="space-y-5">
+              {meals.map((meal) => (
+                <li key={meal.id}>
+                  <MealCard meal={meal} standing={standing} completed={completed.has(meal.id)} />
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </section>
+    </>
+  );
 
   return (
     <div className="space-y-8 text-start">
@@ -65,60 +146,34 @@ export function PortalPlan({
       </header>
 
       {/*
-        Keyed on the day so switching days remounts this with the new day's
-        own starting state, instead of carrying the previous day's ticks
-        across — see the note on `PlanDayCompletionProvider`.
+        **The provider is only mounted on the day that can be edited**, and that
+        is the whole switch: no `editable` flag threaded through it, no disabled
+        branch inside `MealCheck`. A day with no provider has no `toggle` to
+        reach, so a past or future day cannot be written to even by mistake.
+
+        It also fixes the strip. `PlanDayStrip` overrides the open day's flame
+        with the provider's live count so a tick moves it immediately — correct
+        on today, and wrong on a future day, where a count of 0 out of 5 would
+        redraw a day that has not happened as a day that was missed. With no
+        provider there is nothing to override with, and the server's own
+        `future` mark stands.
+
+        Keyed on the day so switching days remounts it with the new day's own
+        starting state, instead of carrying the previous day's ticks across —
+        see the note on `PlanDayCompletionProvider`.
       */}
-      <PlanDayCompletionProvider
-        key={selectedDay}
-        dayOfWeek={selectedDay}
-        mealIds={mealIds}
-        initialCompletedMealIds={completedMealIds}
-      >
-        <PlanDayStrip days={days} selectedDay={selectedDay} />
-
-        {/*
-          No day heading here, deliberately.
-
-          It used to repeat the selected day's name and full date directly under
-          the strip that had just been tapped to choose them — and the strip marks
-          its selection with a solid olive fill and its today with a badge, so the
-          heading restated, one line lower, the only two facts already drawn above
-          it. What follows the strip is the day's meals, and they start immediately.
-        */}
-        <section className="space-y-4">
-          {meals.length === 0 ? (
-            <EmptyState
-              icon="dish"
-              title={t('emptyDayTitle')}
-              description={t('emptyDayHint')}
-            />
-          ) : (
-            <>
-              {/*
-                The day's own totals, stated rather than plotted. This is what the
-                dietitian planned for the day, not what anyone has eaten — so it is
-                labelled as the day's energy and never framed as progress against a
-                goal the client has not been measured on.
-              */}
-              <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-lg bg-secondary px-4 py-3 text-secondary-foreground">
-                <span className="text-sm">{t('dayEnergyLabel')}</span>
-                <span className="font-heading text-lg font-semibold tabular-nums">
-                  {t('kcalValue', { value: dayKcal })}
-                </span>
-              </div>
-
-              <ul className="space-y-5">
-                {meals.map((meal) => (
-                  <li key={meal.id}>
-                    <MealCard meal={meal} />
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
-        </section>
-      </PlanDayCompletionProvider>
+      {standing === 'today' ? (
+        <PlanDayCompletionProvider
+          key={selectedDay}
+          dayOfWeek={selectedDay}
+          mealIds={mealIds}
+          initialCompletedMealIds={completedMealIds}
+        >
+          {body}
+        </PlanDayCompletionProvider>
+      ) : (
+        body
+      )}
     </div>
   );
 }
@@ -131,24 +186,52 @@ export function PortalPlan({
  * without anything here having to know about it. Time-of-day metaphors rather
  * than specific foods: the plan's dishes are Palestinian, and a croissant is not
  * what breakfast looks like here.
+ *
+ * **The line set, not the app's usual Solar Bold**, and drawn bare rather than on
+ * a filled disc — see the note beside these in `scripts/generate-icons.ts`. The
+ * staff planner's slot rail still takes the bold four.
  */
 const MEAL_ICONS = {
-  breakfast: 'mealBreakfast',
-  snack: 'mealSnack',
-  lunch: 'mealLunch',
-  dinner: 'mealDinner',
+  breakfast: 'mealBreakfastOutline',
+  snack: 'mealSnackOutline',
+  lunch: 'mealLunchOutline',
+  dinner: 'mealDinnerOutline',
 } as const satisfies Record<MealType, IconName>;
 
 /**
- * The meal card's surface, and the same pair inverted for the icon disc — see the
- * `--meal-*` block in `globals.css`.
+ * The meal card's surface — see the `--meal-*` block in `globals.css`.
  *
  * One tone for every meal: what tells a breakfast from a dinner here is the icon
- * and the label, not the colour. Being the same pair either way round, the disc
- * carries the same measured contrast as the text on the shell.
+ * and the label, not the colour.
  */
 const MEAL_SHELL = 'bg-meal-bg text-meal-fg';
-const MEAL_BADGE = 'bg-meal-fg text-meal-bg';
+
+/**
+ * The shell a meal wears once its day has ended and it was ticked: the neutral
+ * one, tinted olive-100.
+ *
+ * `status-on-track-bg` rather than a green invented for this — the palette
+ * already owns a fill that means "this went the way it should", and the table in
+ * §Status is where it is defined. It is one step off `MEAL_SHELL` (n-50), which
+ * is the whole intent: a day you are looking back on should show its kept meals
+ * at a glance without the list turning into a block of green.
+ *
+ * **The text stays `meal-fg`, and that is not an oversight.** The matching
+ * `status-on-track-fg` would recolour the meal's name, its time and its dish to
+ * olive-700 — a far louder change than a tint, and one that would make a
+ * completed meal read as a different *kind* of thing rather than the same meal
+ * in a settled state. n-900 on olive-100 measures **14.7:1** (§Status), so the
+ * pair holds.
+ *
+ * The tick is the one thing that does take olive-700, and it has to: olive-500
+ * on olive-100 is 2.96:1, under the 3:1 a graphical mark needs, which is exactly
+ * the failure the `--meal-*` note in `globals.css` records having escaped by
+ * lifting this surface off olive in the first place. See `SETTLED_TICK`.
+ */
+const SETTLED_SHELL = 'bg-status-on-track-bg text-meal-fg';
+
+/** olive-700 on olive-100 — 6.51:1, the pair §Status verifies. */
+const SETTLED_TICK = 'text-status-on-track-fg';
 
 /**
  * One meal: a closed card that opens.
@@ -163,13 +246,43 @@ const MEAL_BADGE = 'bg-meal-fg text-meal-bg';
  * Built on `<details>`, not on state. It keeps this a server component, so the
  * week's dishes and ingredients are never shipped to the browser; and the
  * keyboard, the screen reader and find-in-page all work without being wired up.
+ *
+ * **The tick has three states, and only one of them is a control.**
+ *
+ * - **Today** — the live `MealCheck`. The only day whose meals can be reported
+ *   on, and the only day that ships any JavaScript for it.
+ * - **A day that has ended** — `SettledMealCheck`: the same mark, stated rather
+ *   than offered, and a completed meal's card carries `SETTLED_SHELL` so a
+ *   glance down a past day separates what was kept from what was not without
+ *   reading a single tick.
+ * - **A day that has not arrived** — nothing at all. Not a disabled circle: an
+ *   empty ring on tomorrow's breakfast is a question ("have you eaten this?")
+ *   whose only honest answer is "not yet, and you couldn't have", and five of
+ *   them down a day that has not happened reads as five things already missed.
+ *   The meal itself is unchanged — a future day is exactly what this screen is
+ *   for reading.
+ *
+ * The row's shape survives all three. The tick's 44px footprint is kept on a
+ * settled day and given up entirely on a future one, where nothing else is
+ * competing for the inline-start edge.
  */
-function MealCard({ meal }: { meal: BoardMeal }) {
+function MealCard({
+  meal,
+  standing,
+  completed,
+}: {
+  meal: BoardMeal;
+  standing: DayStanding;
+  /** Server-known and fixed on a settled day; on today `MealCheck` owns it instead. */
+  completed: boolean;
+}) {
   const t = useTranslations('portal.plan');
 
   const mealType = mealTypeForSlot(meal.slotKey);
   const mealIcon = MEAL_ICONS[mealType];
   const dish = meal.dish;
+
+  const settledAndKept = standing === 'past' && completed;
 
   return (
     /*
@@ -181,7 +294,12 @@ function MealCard({ meal }: { meal: BoardMeal }) {
       `gap-0 p-1.5` replaces `Card`'s own padding: here the padding belongs to the
       panel inside, not to the shell.
     */
-    <Card className={cn('gap-0 p-1.5 transition-shadow hover:shadow-elevated', MEAL_SHELL)}>
+    <Card
+      className={cn(
+        'gap-0 p-1.5 transition-shadow hover:shadow-elevated',
+        settledAndKept ? SETTLED_SHELL : MEAL_SHELL,
+      )}
+    >
       <details className="q-disclosure group">
         {/*
           The whole row is the control — 56px tall and full width, so it is a
@@ -190,24 +308,36 @@ function MealCard({ meal }: { meal: BoardMeal }) {
           in every engine.
         */}
         {/*
-          `gap-2` rather than `gap-2.5`: the row gained a fifth element with the
-          check, and eight pixels of it came back out of the four gaps.
+          `gap-2.5` again: the kcal pill left the row, so four elements share
+          three gaps where five shared four, and the eight pixels that were
+          taken out of them go back.
         */}
-        <summary className="flex min-h-14 cursor-pointer list-none items-center gap-2 rounded-md px-2.5 py-2 outline-none transition-colors hover:bg-foreground/5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-focus-halo [&::-webkit-details-marker]:hidden">
+        <summary className="flex min-h-14 cursor-pointer list-none items-center gap-2.5 rounded-md px-2.5 py-2 outline-none transition-colors hover:bg-foreground/5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-focus-halo [&::-webkit-details-marker]:hidden">
           {/*
-            The shell's own pair, inverted: a dark disc on the three light tones and
-            a light one on the deep tone, from a single rule. Same pair either way
-            round, so the contrast is the measured one.
+            The tick leads the row, at the **inline-start** — the edge a column of
+            five is read down, so "which of these have I eaten" is answered by one
+            glance straight down the margin rather than by tracking to the far side
+            of five rows of different lengths. In Arabic that puts it against the
+            right edge, which is where the reference design has it; in English it
+            lands on the left, from the same source order.
+
+            It stores nothing itself — see `meal-check.tsx`. Its label names the
+            meal, because five identical "mark as eaten" buttons on one screen give
+            a screen reader no way to tell which is which — and the settled
+            labels name it too, for the same reason.
+
+            A future day renders neither, which is why this is a three-way and
+            not a `disabled` prop.
           */}
-          <span
-            aria-hidden
-            className={cn(
-              'flex size-9 shrink-0 items-center justify-center rounded-full',
-              MEAL_BADGE,
-            )}
-          >
-            <Icon name={mealIcon} className="size-4.5" />
-          </span>
+          {standing === 'today' ? (
+            <MealCheck mealId={meal.id} label={t('markEaten', { meal: meal.label })} />
+          ) : standing === 'past' ? (
+            <SettledMealCheck
+              checked={completed}
+              label={t(completed ? 'wasEaten' : 'wasNotEaten', { meal: meal.label })}
+              className={settledAndKept ? SETTLED_TICK : undefined}
+            />
+          ) : null}
 
           {/*
             `span`, not `p`: a <summary> takes phrasing content, so a paragraph
@@ -227,22 +357,14 @@ function MealCard({ meal }: { meal: BoardMeal }) {
           </span>
 
           {/*
-            Solid, with its own foreground: inheriting the shell's text colour would
-            put the dinner card's near-white numerals on a near-white pill.
+            Bare on the shell, with no disc behind it: a line glyph knocked out of
+            a solid circle is a filled mark again, whatever the glyph is doing. It
+            inherits `text-meal-fg`, the measured pair for this surface, and sits
+            beside the chevron because the two together are now the row's quiet end
+            — everything that identifies the meal is at the start, everything that
+            is chrome is here.
           */}
-          <span className="shrink-0 rounded-full bg-card px-2.5 py-1 font-heading text-sm font-semibold text-foreground tabular-nums">
-            {t('kcalValue', { value: roundForDisplay('kcal', meal.totals.kcal.value) })}
-          </span>
-
-          {/*
-            The tick sits at the inline-end, nearest the thumb, so the meal's own
-            mark keeps leading the row. It stores nothing yet — see `meal-check.tsx`.
-
-            Its label names the meal, because five identical "mark as eaten"
-            buttons on one screen give a screen reader no way to tell which is
-            which.
-          */}
-          <MealCheck mealId={meal.id} label={t('markEaten', { meal: meal.label })} />
+          <Icon name={mealIcon} className="size-5 shrink-0" />
 
           {/*
             `chevronDown` is not in `DIRECTIONAL`, and correctly so: it points
@@ -275,16 +397,45 @@ function MealCard({ meal }: { meal: BoardMeal }) {
                 reading their plan on a phone is being told what to eat; grams of
                 protein, carbohydrate and fat are the dietitian's working
                 figures, and they are still on the dietitian's own panels
-                (`meal-detail-panel.tsx`) where they are acted on. The meal's
-                energy stays — it is on the summary row above, where it can be
-                read without opening the card at all.
+                (`meal-detail-panel.tsx`) where they are acted on.
+
+                The meal's energy is here rather than on the summary row, where
+                it used to ride as a pill. A closed row is the answer to "what am
+                I eating and when"; a figure nobody asked for on every one of
+                five of them made the day read as a budget, and the day's own
+                total is already stated once above the list. Opening the card is
+                where you have asked about *this* meal, so it is where the number
+                belongs.
               */}
-              <div className="min-w-0 space-y-1">
-                <p className="font-heading text-lg leading-snug font-semibold text-primary">
-                  {dish.nameAr}
-                </p>
-                <p className="text-sm text-secondary-foreground">
-                  {t('portion', { servings: dish.servings, label: dish.baseServingLabel })}
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0 space-y-1">
+                  <p className="font-heading text-lg leading-snug font-semibold text-primary">
+                    {dish.nameAr}
+                  </p>
+                  <p className="text-sm text-secondary-foreground">
+                    {t('portion', { servings: dish.servings, label: dish.baseServingLabel })}
+                  </p>
+                </div>
+
+                {/*
+                  The same label-and-figure relationship the day's own tile above
+                  the list uses, one step down: `text-sm` label under a
+                  `text-base` semibold figure. Two steps of the scale as they come,
+                  rather than a step with its weight overridden — a step owns its
+                  weight (§Typography), and the pill this replaces was the only
+                  place on the screen reaching past that.
+
+                  `text-end`, not `text-start`: the figure and its label sit at the
+                  inline-end of a row that reads from the other side, so they hang
+                  off the edge they are against in both scripts.
+                */}
+                <p className="shrink-0 text-end">
+                  <span className="block font-heading text-base font-semibold tabular-nums">
+                    {t('kcalValue', { value: roundForDisplay('kcal', meal.totals.kcal.value) })}
+                  </span>
+                  <span className="block text-sm text-muted-foreground">
+                    {t('mealEnergyLabel')}
+                  </span>
                 </p>
               </div>
 

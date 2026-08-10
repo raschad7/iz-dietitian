@@ -2,7 +2,6 @@ import { getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
 
 import { AppShell } from '@/components/layout/sidebar';
-import { initialsOf } from '@/features/booking/format';
 import { PORTAL_NAV, PORTAL_NAV_ICONS } from '@/features/portal/nav';
 import { PortalHeader } from '@/features/portal/components/portal-header';
 import { PortalTabBar } from '@/features/portal/components/portal-tab-bar';
@@ -10,6 +9,7 @@ import { greetingKey } from '@/features/portal/greeting';
 import { countPendingRequests } from '@/features/portal/queries';
 import { requirePortalClient } from '@/features/portal/session';
 import { resolveLocale } from '@/i18n/params';
+import { formatDate } from '@/lib/format';
 
 type PortalTabsLayoutProps = {
   children: ReactNode;
@@ -42,9 +42,8 @@ export default async function PortalTabsLayout({ children, params }: PortalTabsL
     <>
       <PortalHeader
         name={context.profile.fullName}
-        initials={initialsOf(context.profile.fullName)}
-        photoUrl={context.profile.photoUrl}
         greeting={greetingKey(context.now.minute)}
+        month={formatDate(locale, context.now.date, { dateStyle: undefined, month: 'short' })}
         pendingCount={pendingCount}
         locale={locale}
         showNav

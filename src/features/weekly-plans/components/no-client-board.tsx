@@ -1,114 +1,151 @@
 'use client';
 
-import { useState } from 'react';
-import { useLocale, useTranslations } from 'next-intl';
+import { useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
-import { Button } from '@/components/ui/button';
-import { getLocaleDirection } from '@/i18n/routing';
+import { Avatar } from '@/components/ui/avatar';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Icon } from '@/components/ui/icon';
+import { formatMediumDate, formatMinute } from '@/features/booking/format';
+import { Link } from '@/i18n/navigation';
+import type { Locale } from '@/i18n/routing';
+import { cn } from '@/lib/utils';
 
+import { plannerClientSuggestions, type PlannerClientSuggestion } from '../client-suggestions';
 import type { CatalogEntry, PlannableClient } from '../queries';
 
-import { BoardSheet, useCompactPlanner } from './board-sheet';
 import { ClientPicker } from './client-picker';
-import { DishCatalog } from './dish-catalog';
+import { DishCatalogDrawer } from './dish-catalog-drawer';
 
-/**
- * The planner with no client chosen.
- *
- * This used to be a page of its own — a lone combobox floating in the middle of
- * an otherwise blank screen, with a line of text under it. It answered the
- * question "who?" without ever showing what it was asking on behalf of, so the
- * first thing the planner showed a dietitian was a form rather than the tool.
- *
- * So it is the tool, empty. Same header, same picker in the same place it will
- * stay once a client is chosen, same rail. Choosing a client fills the middle
- * in rather than replacing the screen, and nothing moves under the pointer.
- *
- * The rail carries the catalog and only the catalog. The other three panels —
- * the client, the open meal, the past weeks — are all *about* a client, so with
- * none chosen they would be three tabs saying "pick a client" beside one that
- * works. The catalog needs nobody, and browsing it is a real thing to do here.
- * It is a heading rather than a one-item `tablist`, because a tab strip with a
- * single tab tells a screen reader there is a choice to make when there is not.
- */
+/** A useful first screen: search plus clients whose plans are most time-sensitive. */
 export function NoClientBoard({
   clients,
   catalog,
+  locale,
 }: {
   clients: readonly PlannableClient[];
   catalog: readonly CatalogEntry[];
+  locale: Locale;
 }) {
   const t = useTranslations('weeklyPlans');
-  const activeLocale = useLocale();
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const compactPlanner = useCompactPlanner();
-
-  const railContent = (
-    <>
-      <h2 className="shrink-0 border-b border-border pb-3 text-label font-semibold">
-        {t('tabs.dishes')}
-      </h2>
-
-      <div className="min-h-0 flex-1 overflow-hidden pt-3">
-        {/* No client, so no allergens to block anything and no history to rank
-            by — the catalog is browsable but not draggable, because there is no
-            board to drag onto. */}
-        <DishCatalog catalog={catalog} usage={{}} slot={null} editable={false} />
-      </div>
-    </>
-  );
+  const [catalogOpen, setCatalogOpen] = useState(false);
+  const suggestions = useMemo(() => plannerClientSuggestions(clients), [clients]);
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
-      <header className="border-b border-border pb-4">
-        <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-          <div className="min-w-0 flex-1">
-            <span className="block text-caption text-muted-foreground">{t('title')}</span>
-            <ClientPicker clients={clients} appearance="heading" />
-          </div>
+      <div className="flex justify-end border-b border-border pb-4">
+        <Button type="button" size="sm" variant="outline" onClick={() => setCatalogOpen(true)}>
+          <Icon name="dishes" />
+          {t('tabs.dishes')}
+        </Button>
+      </div>
 
-          {/* The plan actions are deliberately absent rather than disabled.
-              There is no plan to publish and no week to start until there is
-              someone to start it for, and a row of dead buttons is a worse
-              answer to "what can I do here" than an empty one. */}
-          <span className="flex items-center gap-2">
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="planner-compact-trigger"
-              onClick={() => setSheetOpen(true)}
-            >
-              {t('openPanels')}
-            </Button>
-          </span>
-        </div>
-      </header>
-
-      <div className="flex min-h-0 flex-1 gap-3">
-        <section className="flex min-w-0 flex-1 items-center justify-center border-y border-dashed border-border px-6 py-16 text-center">
-          <div className="max-w-md">
-            <h3 className="font-heading text-heading-sm font-semibold">{t('noClientTitle')}</h3>
+      <section className="flex min-h-0 min-w-0 flex-1 items-center justify-center overflow-y-auto px-3 py-8 sm:px-6 sm:py-12">
+        <div className="w-full max-w-4xl motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-(--duration-sweep)">
+          <div className="mx-auto max-w-xl text-center">
+            <h2 className="font-heading text-heading-lg font-semibold [text-wrap:balance]">
+              {t('noClientTitle')}
+            </h2>
             <p className="mt-2 text-body-sm leading-relaxed text-muted-foreground">
               {t('noClientHint')}
             </p>
+            <div className="mt-5 text-start">
+              <ClientPicker clients={clients} />
+            </div>
           </div>
-        </section>
 
-        <aside className="planner-desktop-rail w-[22rem] shrink-0 flex-col border-s border-border ps-5">
-          {!compactPlanner && railContent}
-        </aside>
-      </div>
+          {suggestions.length > 0 ? (
+            <div className="mt-9">
+              <div className="mb-3 flex items-end justify-between gap-4">
+                <div>
+                  <h3 className="font-heading text-heading-sm font-semibold">
+                    {t('suggestedClientsTitle')}
+                  </h3>
+                  <p className="mt-1 text-caption text-muted-foreground">
+                    {t('suggestedClientsHint')}
+                  </p>
+                </div>
+              </div>
 
-      <BoardSheet
-        open={sheetOpen}
-        onClose={() => setSheetOpen(false)}
-        label={t('openPanels')}
-        closeLabel={t('close')}
-        dir={getLocaleDirection(activeLocale)}
-      >
-        {compactPlanner && railContent}
-      </BoardSheet>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {suggestions.map((suggestion) => (
+                  <SuggestedClientCard key={suggestion.client.id} suggestion={suggestion} locale={locale} />
+                ))}
+              </div>
+            </div>
+          ) : (
+            <Card variant="empty" className="mx-auto mt-9 max-w-xl">
+              <CardHeader>
+                <CardTitle icon="clients">{t('noClients')}</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-wrap items-center justify-between gap-4">
+                <p className="text-body-sm text-muted-foreground">{t('noActiveClientsHint')}</p>
+                <Link href="/app/clients" className={buttonVariants({ variant: 'outline', size: 'sm' })}>
+                  {t('browseClients')}
+                  <Icon name="chevronEnd" />
+                </Link>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </section>
+
+      <DishCatalogDrawer
+        open={catalogOpen}
+        onOpenChange={setCatalogOpen}
+        catalog={catalog}
+        usage={{}}
+        slot={null}
+        editable={false}
+        locale={locale}
+      />
     </div>
+  );
+}
+
+function SuggestedClientCard({
+  suggestion,
+  locale,
+}: {
+  suggestion: PlannerClientSuggestion;
+  locale: Locale;
+}) {
+  const t = useTranslations('weeklyPlans');
+  const { client, reason } = suggestion;
+  const appointment = reason === 'nextAppointment' ? client.nextAppointment : client.lastAppointment;
+  const when = appointment
+    ? `${formatMediumDate(locale, appointment.date)} · ${formatMinute(
+        locale,
+        appointment.date,
+        appointment.startMinute,
+      )}`
+    : null;
+
+  return (
+    <Link
+      href={`/app/weekly-plans/${client.id}`}
+      className="rounded-lg outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+    >
+      <Card interactive size="sm" className="h-full">
+        <CardHeader className="grid-cols-[auto_1fr] items-center gap-x-3">
+          <Avatar name={client.fullName} color={client.color} />
+          <CardTitle size="sm" className="truncate" dir="auto">
+            {client.fullName}
+          </CardTitle>
+        </CardHeader>
+        <CardContent
+          className={cn(
+            'flex items-center gap-2 text-caption',
+            reason === 'nextAppointment' ? 'text-primary' : 'text-muted-foreground',
+          )}
+        >
+          <Icon name={reason === 'activeClient' ? 'clients' : 'calendar'} className="size-4 shrink-0" />
+          <span className="truncate">
+            {when ? t(`suggestionReason.${reason}`, { when }) : t(`suggestionReason.${reason}`)}
+          </span>
+        </CardContent>
+      </Card>
+    </Link>
   );
 }

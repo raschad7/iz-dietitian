@@ -247,8 +247,14 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
               One viewport for the whole app, mounted once here rather than per
               screen: `toast()` is called from anywhere and has to land
               somewhere, and a second viewport would give two of them.
+
+              **It takes `dir` explicitly, unlike every other popup here.**
+              This is sonner, not Base UI, so `DirectionProvider` above means
+              nothing to it — that context is Base UI's own channel. The
+              toaster is outside the page's layout flow, so it cannot inherit
+              the `dir` on <html> the way in-flow content does either.
             */}
-            <Toaster />
+            <Toaster dir={getLocaleDirection(locale)} />
           </NextIntlClientProvider>
         </DirectionProvider>
       </body>

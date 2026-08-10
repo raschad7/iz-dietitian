@@ -57,12 +57,22 @@ export const appointmentRequests = pgTable(
     /**
      * What the client is asking for, as a clinic-local wall clock — the same
      * date + minute-offset pair as `appointments`, and for the same reasons (see
-     * that table). Null only for a `cancel`, which proposes no time.
+     * that table).
+     *
+     * Null for a `cancel`, which proposes no time, and null for every `new`
+     * request filed since the portal stopped asking for one: a client now
+     * writes a note and the dietitian decides when to see them. Rows filed
+     * before that still carry a date and a minute, and the staff inbox still
+     * renders — and still answers — them.
      */
     preferredDate: date('preferred_date', { mode: 'string' }),
     preferredStartMinute: integer('preferred_start_minute'),
 
-    /** The client's own words: why they are asking. Free text, optional. */
+    /**
+     * The client's own words. Optional against the column, because a
+     * `reschedule` or a `cancel` is complete without one — but a `new` request
+     * that proposes no time is nothing *but* this, and the check below says so.
+     */
     note: text('note'),
 
     /** pending | approved | declined | withdrawn */
@@ -103,10 +113,34 @@ export const appointmentRequests = pgTable(
       sql`(${table.kind} = 'new') = (${table.appointmentId} IS NULL)`,
     ),
 
-    // A `cancel` proposes no time; everything else must propose a whole one.
+    /**
+     * Which kinds may propose a time, and which must.
+     *
+     * `cancel` proposes none. `reschedule` is meaningless without a whole one —
+     * it exists to name a different hour. `new` may go either way: the portal
+     * files it as a note with no time at all, and the rows filed before that
+     * carry both halves. What it may never be is half a time, which is the
+     * pairing this still enforces on it.
+     */
     check(
       'appointment_requests_preferred_matches_kind',
-      sql`(${table.kind} = 'cancel') = (${table.preferredDate} IS NULL AND ${table.preferredStartMinute} IS NULL)`,
+      sql`CASE ${table.kind}
+        WHEN 'cancel' THEN ${table.preferredDate} IS NULL AND ${table.preferredStartMinute} IS NULL
+        WHEN 'reschedule' THEN ${table.preferredDate} IS NOT NULL AND ${table.preferredStartMinute} IS NOT NULL
+        ELSE (${table.preferredDate} IS NULL) = (${table.preferredStartMinute} IS NULL)
+      END`,
+    ),
+
+    /**
+     * A `new` request that names no time has to carry a note.
+     *
+     * It is the entire request — the client wrote to their dietitian and there
+     * is nothing else in the row. Without this a blank one would be an inbox
+     * item that says only that somebody tapped a button.
+     */
+    check(
+      'appointment_requests_note_when_no_time',
+      sql`${table.kind} <> 'new' OR ${table.preferredDate} IS NOT NULL OR ${table.note} IS NOT NULL`,
     ),
 
     // Same bound as `appointments.start_minute`; `sql.raw` for the same reason —
