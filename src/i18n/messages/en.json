@@ -307,6 +307,12 @@
       "attentionDescription": "Nobody is waiting on a reply here — these are records that have gone quiet.",
       "attentionEmpty": "Every client is up to date."
     },
+    "tabs": {
+      "label": "Filter notifications",
+      "all": "All",
+      "requests": "Requests",
+      "clients": "Clients"
+    },
     "request": {
       "new": "New booking request",
       "reschedule": "Reschedule request",
