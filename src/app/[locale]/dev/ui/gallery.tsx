@@ -7,6 +7,7 @@ import { Badge, StatusDot } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Callout } from '@/components/ui/callout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Combobox,
   ComboboxContent,
@@ -17,15 +18,35 @@ import {
 } from '@/components/ui/combobox';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Field, FieldError, FieldHint } from '@/components/ui/field';
 import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Progress } from '@/components/ui/progress';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Segmented } from '@/components/ui/segmented';
+import { Separator } from '@/components/ui/separator';
 import { SelectField } from '@/components/ui/select-field';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Spinner } from '@/components/ui/spinner';
 import { StatGrid, StatTile } from '@/components/ui/stat-tile';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -137,6 +158,9 @@ export function UiGallery({ locale }: { locale: Locale }) {
   const [date, setDate] = React.useState('');
   const [view, setView] = React.useState<'day' | 'week' | 'month'>('week');
   const [notify, setNotify] = React.useState(true);
+  const [sheetOpen, setSheetOpen] = React.useState(false);
+  const [agreed, setAgreed] = React.useState(true);
+  const [plan, setPlan] = React.useState('weekly');
 
   /*
    * `data-theme` rather than the `.dark` class: globals.css answers to both, but
@@ -511,6 +535,96 @@ export function UiGallery({ locale }: { locale: Locale }) {
             <Skeleton className="h-4 w-1/3" />
             <Skeleton className="h-4 w-2/3" />
             <Skeleton className="h-4 w-1/2" />
+          </div>
+        </Row>
+      </Section>
+
+      <Section title="Menus, sheets and choices" note="Added in phase 5. Open the menu near a viewport edge.">
+        <Row label="dropdown menu">
+          <DropdownMenu>
+            <DropdownMenuTrigger render={<Button variant="outline">Open menu</Button>} />
+            <DropdownMenuContent className="w-48">
+              {/*
+                The label goes *inside* the group, not above it. Base UI backs
+                it with `MenuGroupContext` and throws without one — a label
+                names a group, so there has to be a group for it to name.
+              */}
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>Client</DropdownMenuLabel>
+                <DropdownMenuItem>
+                  <Icon name="edit" />
+                  Edit
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Icon name="copy" />
+                  Duplicate
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuGroup>
+                <DropdownMenuItem variant="destructive">
+                  <Icon name="trash" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Button variant="outline" onClick={() => setSheetOpen(true)}>
+            Open sheet
+          </Button>
+        </Row>
+
+        <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+          <SheetContent>
+            <SheetHeader>
+              <SheetTitle>Sheet</SheetTitle>
+              <SheetDescription>
+                Slides in from the inline-end edge, so it mirrors in Arabic.
+              </SheetDescription>
+            </SheetHeader>
+          </SheetContent>
+        </Sheet>
+
+        <Row label="checkbox">
+          <label className="flex items-center gap-2 text-body-sm">
+            <Checkbox checked={agreed} onCheckedChange={(next) => setAgreed(next === true)} />
+            Send a reminder
+          </label>
+          <label className="flex items-center gap-2 text-body-sm text-muted-foreground">
+            <Checkbox disabled />
+            Disabled
+          </label>
+        </Row>
+
+        <div className="flex flex-col gap-2">
+          <span className="text-label text-muted-foreground">radio group</span>
+          <RadioGroup value={plan} onValueChange={(next) => setPlan(String(next))}>
+            {['weekly', 'fortnightly', 'monthly'].map((option) => (
+              <label key={option} className="flex items-center gap-2 text-body-sm">
+                <RadioGroupItem value={option} />
+                {option}
+              </label>
+            ))}
+          </RadioGroup>
+        </div>
+
+        <Row label="separator">
+          <div className="flex w-full flex-col gap-2">
+            <span className="text-body-sm">Above</span>
+            <Separator />
+            <span className="text-body-sm">Below</span>
+          </div>
+        </Row>
+
+        <Row label="spinner / progress">
+          <Spinner />
+          <Button disabled>
+            <Spinner />
+            Saving
+          </Button>
+          <div className="w-56">
+            <Progress value={62} />
           </div>
         </Row>
       </Section>
