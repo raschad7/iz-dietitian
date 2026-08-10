@@ -65,6 +65,36 @@ export type DateCalendarProps = {
   captionLayout?: 'label' | 'dropdown' | 'dropdown-months' | 'dropdown-years';
   autoFocus?: boolean;
   className?: string;
+  /**
+   * The month on screen, when the caller drives it. Left out, the grid pages
+   * itself from `defaultMonth`.
+   */
+  month?: Date;
+  onMonthChange?: (month: Date) => void;
+  /**
+   * Per-part class overrides, merged *after* the ones below. For a caller whose
+   * surface asks for a different grid — the calendar toolbar's popover is
+   * denser than a form field's — not for restyling one day cell.
+   */
+  classNames?: React.ComponentProps<typeof Calendar>['classNames'];
+  /** Part overrides, chiefly `Nav` for a caller adding its own month controls. */
+  components?: React.ComponentProps<typeof Calendar>['components'];
+  /**
+   * What colour the chosen day is filled with.
+   *
+   * `neutral` — the default — is the registry's own look, a black day on white,
+   * reached by pointing `--primary` at the foreground for this subtree. That
+   * exists because the registry calendar paints the selected day with
+   * `bg-primary`, this app's primary is olive, and a form's month grid came out
+   * as a field of green — a colour the rest of the app spends on one action per
+   * screen.
+   *
+   * `primary` opts back into the olive. The toolbar's date picker is not a
+   * field in a form: it is the control that says where the calendar is, the
+   * chosen day is the answer to the only question the panel asks, and one green
+   * cell in a popover is the single accent that screen was already spending.
+   */
+  selectedTone?: 'neutral' | 'primary';
 };
 
 /**
@@ -88,6 +118,11 @@ export function DateCalendar({
   captionLayout = 'dropdown',
   autoFocus,
   className,
+  month,
+  onMonthChange,
+  classNames,
+  components,
+  selectedTone = 'neutral',
 }: DateCalendarProps) {
   const formatters = useMemo(() => {
     const intlLocale = toIntlLocale(locale);
@@ -96,22 +131,35 @@ export function DateCalendar({
 
     const day = format({ day: 'numeric' });
     /*
-      Narrow weekdays in Arabic, short ones in English.
-      `short` in Arabic is not short: `Intl` returns the whole word — الأربعاء,
-      eight letters — and seven of those in a 36px column each is not a header
-      row, it is one unbroken line of Arabic running across the top of the grid
-      with nothing above the column it names. Narrow is the single letter
-      (ح ن ث ر خ ج س), which is what a column that size can hold. English keeps
-      `short`: "Wed" fits, and "S M T W T F S" makes a reader count.
+      Two-letter weekdays in Arabic, `short` in English.
+
+      Neither of `Intl`'s Arabic widths is usable here. `short` is not short —
+      it returns the whole word, الأربعاء, eight letters — and seven of those in
+      a 34px column is not a header row, it is one unbroken line of Arabic
+      across the top of the grid with nothing above the column it names.
+      `narrow` is a single letter, which fits but does not identify: it gives
+      ث for both الاثنين and الثلاثاء, and ح for الأحد against ج for الجمعة, so
+      the reader is left counting columns.
+
+      The pairs below are the clinic's own, and they are the shortest form that
+      still tells the days apart: the first letters of each name, plus a second
+      wherever the first is shared. English keeps `short`, where "Wed" fits and
+      "S M T W T F S" is the version that makes a reader count.
     */
-    const weekday = format({ weekday: locale === 'ar' ? 'narrow' : 'short' });
+    const arabicWeekdays = ['اح', 'اث', 'ثل', 'ار', 'خم', 'جم', 'سب'];
+    const weekday = format({ weekday: 'short' });
     const monthName = format({ month: 'long' });
     const year = format({ year: 'numeric' });
     const caption = format({ month: 'long', year: 'numeric' });
 
     return {
       formatDay: (date: Date) => day.format(date),
-      formatWeekdayName: (date: Date) => weekday.format(date),
+      // Indexed by `getDay()`, which is 0 for Sunday — the same column the grid
+      // starts on, so the pair and the column cannot drift apart. The fallback
+      // is for the type only: `getDay()` is 0–6, but nothing in the type system
+      // says so, and `Intl` is the right answer if that ever stops being true.
+      formatWeekdayName: (date: Date) =>
+        (locale === 'ar' ? arabicWeekdays[date.getDay()] : undefined) ?? weekday.format(date),
       formatMonthDropdown: (date: Date) => monthName.format(date),
       formatYearDropdown: (date: Date) => year.format(date),
       formatCaption: (date: Date) => caption.format(date),
@@ -126,6 +174,9 @@ export function DateCalendar({
       // and the month view already draw.
       weekStartsOn={0}
       selected={selected}
+      month={month}
+      onMonthChange={onMonthChange}
+      components={components}
       defaultMonth={defaultMonth ?? selected}
       startMonth={startMonth}
       endMonth={endMonth}
@@ -165,12 +216,19 @@ export function DateCalendar({
         action per screen. Pointing `--primary` at the foreground for this
         subtree alone produces the registry's own look, a black day on white,
         and leaves every button on the page untouched.
+
+        A caller can decline it — see `selectedTone`. Handled here rather than
+        left to the caller's `className`, because two `[--primary:…]` arbitrary
+        properties at equal specificity are decided by the order Tailwind
+        happens to emit them in, which is not something to depend on.
       */
       className={cn(
         'bg-transparent p-0',
-        '[--primary:var(--foreground)] [--primary-foreground:var(--background)]',
+        selectedTone === 'neutral' &&
+          '[--primary:var(--foreground)] [--primary-foreground:var(--background)]',
         className,
       )}
+      classNames={classNames}
     />
   );
 }

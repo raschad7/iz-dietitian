@@ -56,6 +56,7 @@ function Segmented<T extends string>({
   shape = 'default',
   className,
   activeClassName = 'bg-primary text-primary-foreground',
+  inactiveClassName,
 }: {
   options: readonly SegmentedOption<T>[];
   value: T;
@@ -69,6 +70,19 @@ function Segmented<T extends string>({
   className?: string;
   /** The selected option's fill. Defaults to the primary olive used everywhere else. */
   activeClassName?: string;
+  /**
+   * The unselected options, replacing the default grey-plus-hover-fill.
+   *
+   * Its twin `activeClassName` exists so the calendar can repaint the selected
+   * segment; this is the other half of the same seam. Pass a class list with no
+   * `hover:` in it and the segments stop answering the pointer — which the
+   * calendar's view switch wants and the login role switch does not.
+   *
+   * It replaces rather than appends, because switching a hover *off* by adding
+   * classes means naming every property the default sets and trusting
+   * tailwind-merge to unpick each one.
+   */
+  inactiveClassName?: string;
 }) {
   const isTablist = role === 'tablist';
   const pill = shape === 'pill';
@@ -127,7 +141,9 @@ function Segmented<T extends string>({
               // is what every shape draws unless told otherwise.
               active
                 ? cn(activeClassName, 'scale-100 shadow-card')
-                : pill
+                : inactiveClassName
+                  ? inactiveClassName
+                  : pill
                   ? // The track is white now, so an unselected half can take
                     // `muted-foreground` (6.38:1 there) and let the selected one
                     // hold the colour. On the old cream track that pairing was

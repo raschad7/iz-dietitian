@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { useRef, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
 
+import { Avatar } from '@/components/ui/avatar';
 import { Icon } from '@/components/ui/icon';
 import { Link } from '@/i18n/navigation';
 import { type Locale } from '@/i18n/routing';
@@ -10,14 +11,31 @@ import { cn } from '@/lib/utils';
 
 import { formatDuration, formatMinuteRange } from '../format';
 import { blockTypeScale, DRAG_THRESHOLD_PX } from '../geometry';
+import { patientToneStyle } from '../patient-color';
 import { type CalendarAppointment } from '../types';
 
 /**
  * One appointment, positioned on a day column.
  *
- * The card itself is a fixed, uniform surface — a light olive fill with a
- * slightly darker edge on all four sides — so the grid reads as one calm
- * system rather than a wall of client colours.
+ * The card is a light fill with a slightly darker edge on all four sides, in
+ * **the client's own colour** — see `../patient-color.ts`. It was a single
+ * uniform olive for every booking, on the reasoning that a colour per client
+ * turns a busy day into a wall of unrelated hues. What answers that is not
+ * fewer colours but quieter ones: the fill is a 2.5%-chroma tint, so a full
+ * column still reads as one grid, and the saturated part of the hue is spent
+ * on two small things — the hairline, and the avatar.
+ *
+ * **The avatar is where the colour is actually legible.** A tint that pale is a
+ * hint at arm's length; a 20px disc of the same hue carrying the client's
+ * initials is the thing you recognise across a week, and it carries the letters
+ * that settle it when two clients' hues sit close together.
+ *
+ * **Hue says who; everything else says what state.** Selection is the olive
+ * ring, a valid drop is olive and an invalid one clay, and a finished
+ * appointment desaturates and fades. All of those are either a ring, a filter,
+ * or a fill this one deliberately overrides, so a block can be "Layla's,
+ * selected, and being dragged somewhere legal" and say all three at once
+ * without any of them overwriting another.
  *
  * Type scales with the block's height (see `blockTypeScale`) so a two-hour
  * booking reads larger than a half-hour one, and below ~44px there is no room
@@ -101,6 +119,7 @@ export function AppointmentBlock({
         : undefined;
 
   const style: CSSProperties = {
+    ...patientToneStyle(appointment.clientSeq),
     top,
     height,
     background: accent ? `color-mix(in oklch, ${accent} 16%, var(--card))` : undefined,
@@ -129,6 +148,9 @@ export function AppointmentBlock({
           sides, each appointment reads as a separate card *on* the day rather
           than as the day itself.
         */
+        // `patient-tone` builds the four steps below from the hue the style
+        // sets. See the note on the class in globals.css.
+        'patient-tone',
         'absolute start-2.5 end-2.5 rounded-sm border px-4',
         'text-start transition-[opacity,box-shadow,background-color,border-color] select-none',
         // The block-axis padding the height allows. A short booking cannot
@@ -136,17 +158,26 @@ export function AppointmentBlock({
         // everything from a half-hour up gets the full gutter.
         scale.inline ? 'py-1.5' : 'py-3',
         /*
-          The resting surface is **olive-50** — the palette's quietest tint —
-          with the olive-200 edge doing the containing. At olive-100 a column of
-          bookings was a solid green wall and the hover step had nowhere to go
-          but darker still; starting a step lighter leaves the fill room to
-          answer the pointer and lets the grid read through a busy day.
+          The resting surface is the client's tone: a pale fill, a saturated
+          hairline, and a fill one step deeper under the pointer. The tint is
+          light enough that a column of bookings still lets the grid read
+          through it, and the edge is what actually carries the identity — it
+          measures 3.39:1 on the card against the 1.37:1 the olive edge it
+          replaces managed, so the colour survives at the 20px a half-hour
+          booking is drawn at.
         */
-        !accent && 'border-(--olive-200) bg-(--olive-50) hover:bg-(--olive-100)',
+        !accent && 'border-(--tone-edge) bg-(--tone-fill) hover:bg-(--tone-fill-hover)',
         // The cursor is the honest signal that a finished appointment is fixed.
         draggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-default',
-        selected &&
-          'border-(--olive-500) bg-(--olive-100) ring-2 ring-(--olive-500) ring-offset-1 ring-offset-background',
+        /*
+          Selection is the ring and nothing else. It used to repaint the fill
+          and the edge olive too, which meant that selecting a booking erased
+          the one thing on it saying whose it was — and on a grid where you
+          select a card in order to move it, that is exactly the moment the
+          answer matters. The ring sits outside the card's own edge, so the two
+          marks stack instead of competing.
+        */
+        selected && 'ring-2 ring-(--olive-500) ring-offset-1 ring-offset-background',
         // Clipped normally so a long name cannot spill into the next slot, but
         // opened up while dragging so the time chip below can escape a block too
         // short to contain it.
@@ -176,10 +207,36 @@ export function AppointmentBlock({
         running underneath it. It is narrower than it used to be because the
         card's inline padding grew: the two together still clear the same glyph.
       */}
-      <div
-        className={cn('flex min-w-0 pe-3', scale.inline ? 'flex-row items-baseline' : 'flex-col')}
-        style={{ gap: `${scale.gapRem}rem` }}
-      >
+      {/*
+        The avatar leads the row, and the name and time stack beside it.
+
+        `items-start` rather than centred: on a two-hour booking the text is two
+        lines and a centred disc would float between them instead of marking
+        where the block begins. `mt-px` is the optical nudge that lands its
+        centre on the name's cap height rather than on its box.
+
+        It is dropped on a collapsed block — below ~44px the card is one line of
+        text with 6px of padding, and a 20px disc there would take a third of
+        the width the name has to truncate into. The hairline and the fill still
+        carry the client's hue at that size; only the initials go.
+      */}
+      <div className={cn('flex min-w-0 gap-2', scale.inline ? 'items-baseline' : 'items-start')}>
+        {!scale.inline && (
+          <Avatar
+            name={appointment.clientName}
+            color="var(--tone-mark)"
+            size="xs"
+            className="mt-px"
+          />
+        )}
+
+        <div
+          className={cn(
+            'flex min-w-0 flex-1 pe-3',
+            scale.inline ? 'flex-row items-baseline' : 'flex-col',
+          )}
+          style={{ gap: `${scale.gapRem}rem` }}
+        >
         {/*
           **The name is the way to the record.** It was the corner arrow, then
           it was a link inside the dialog the corner now opens — two clicks and
@@ -259,7 +316,8 @@ export function AppointmentBlock({
               ✓
             </span>
           )}
-        </span>
+          </span>
+        </div>
       </div>
 
       {/*

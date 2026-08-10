@@ -162,7 +162,13 @@
       "month": "شهر",
       "pickDate": "اختر تاريخًا",
       "previousMonth": "الشهر السابق",
-      "nextMonth": "الشهر التالي"
+      "nextMonth": "الشهر التالي",
+      "previousYear": "السنة السابقة",
+      "nextYear": "السنة التالية",
+      "pickMonth": "اختر الشهر",
+      "pickYear": "اختر السنة",
+      "previousYears": "السنوات السابقة",
+      "nextYears": "السنوات التالية"
     },
     "search": {
       "placeholder": "ابحث عن مشترك"
@@ -306,6 +312,12 @@
       "attention": "مشتركون يحتاجون انتباهك",
       "attentionDescription": "لا أحد ينتظر ردًا هنا؛ هذه سجلات هدأت حركتها.",
       "attentionEmpty": "كل المشتركين على ما يرام."
+    },
+    "tabs": {
+      "label": "تصفية الإشعارات",
+      "all": "الكل",
+      "requests": "الطلبات",
+      "clients": "المشتركون"
     },
     "request": {
       "new": "طلب حجز جديد",

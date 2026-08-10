@@ -50,8 +50,11 @@ export async function ClientRequestCard({ request, locale, now, size = 'default'
       size={compact ? 'sm' : 'default'}
       className={compact ? undefined : 'px-4'}
     >
-      <CardContent className="flex flex-col gap-3">
-        <div className="flex items-start gap-3">
+      {/* Tighter on the dashboard tile than in the inbox — see the matching note
+          in `AppointmentRequestCard`. The two tiles sit in one list and have to
+          measure the same. */}
+      <CardContent className={cn('flex flex-col', compact ? 'gap-2' : 'gap-3')}>
+        <div className={cn('flex items-start', compact ? 'gap-2' : 'gap-3')}>
           {/*
             On the dashboard's tile, a plain neutral glyph like every other card
             on that page — see `AppointmentRequestCard` for why the disc goes.
@@ -80,7 +83,7 @@ export async function ClientRequestCard({ request, locale, now, size = 'default'
             </span>
           )}
 
-          <div className="min-w-0 flex-1 space-y-1">
+          <div className={cn('min-w-0 flex-1', compact ? 'space-y-0.5' : 'space-y-1')}>
             <div className="flex flex-wrap items-baseline justify-between gap-x-2">
               <Link
                 href={`/app/clients/${request.clientId}`}
@@ -109,8 +112,13 @@ export async function ClientRequestCard({ request, locale, now, size = 'default'
               ) : null}
             </div>
 
+            {/* Clamped on the dashboard tile only — see the matching note in
+                `AppointmentRequestCard`. Unlike an appointment's aside this
+                message *is* the correction, so two lines is the floor rather
+                than a courtesy: enough to tell one correction from another,
+                with the rest in the inbox. */}
             {request.message ? (
-              <p className="text-body-sm" dir="auto">
+              <p className={cn('text-body-sm', compact && 'line-clamp-2')} dir="auto">
                 “{request.message}”
               </p>
             ) : null}
@@ -121,7 +129,7 @@ export async function ClientRequestCard({ request, locale, now, size = 'default'
           </div>
         </div>
 
-        <div className={cn('space-y-2', compact ? 'ps-7' : 'ps-11')}>
+        <div className={cn('space-y-2', compact ? 'ps-6' : 'ps-11')}>
           <ClientRequestActions request={request} locale={locale} size={compact ? 'sm' : 'default'} />
         </div>
       </CardContent>
