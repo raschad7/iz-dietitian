@@ -65,6 +65,20 @@ export type DateCalendarProps = {
   captionLayout?: 'label' | 'dropdown' | 'dropdown-months' | 'dropdown-years';
   autoFocus?: boolean;
   className?: string;
+  /**
+   * The month on screen, when the caller drives it. Left out, the grid pages
+   * itself from `defaultMonth`.
+   */
+  month?: Date;
+  onMonthChange?: (month: Date) => void;
+  /**
+   * Per-part class overrides, merged *after* the ones below. For a caller whose
+   * surface asks for a different grid — the calendar toolbar's popover is
+   * denser than a form field's — not for restyling one day cell.
+   */
+  classNames?: React.ComponentProps<typeof Calendar>['classNames'];
+  /** Part overrides, chiefly `Nav` for a caller adding its own month controls. */
+  components?: React.ComponentProps<typeof Calendar>['components'];
 };
 
 /**
@@ -88,6 +102,10 @@ export function DateCalendar({
   captionLayout = 'dropdown',
   autoFocus,
   className,
+  month,
+  onMonthChange,
+  classNames,
+  components,
 }: DateCalendarProps) {
   const formatters = useMemo(() => {
     const intlLocale = toIntlLocale(locale);
@@ -126,6 +144,9 @@ export function DateCalendar({
       // and the month view already draw.
       weekStartsOn={0}
       selected={selected}
+      month={month}
+      onMonthChange={onMonthChange}
+      components={components}
       defaultMonth={defaultMonth ?? selected}
       startMonth={startMonth}
       endMonth={endMonth}
@@ -194,6 +215,7 @@ export function DateCalendar({
           selected one instead.
         */
         today: 'rounded-full bg-muted text-foreground data-[selected=true]:bg-transparent',
+        ...classNames,
       }}
     />
   );

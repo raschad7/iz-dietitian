@@ -1,3 +1,5 @@
+"use client"
+
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
@@ -5,12 +7,20 @@ import { cn } from "@/lib/utils"
 /**
  * The label an icon-only control shows when you point at it.
  *
- * Pure CSS — it wraps its trigger in a `group` and reveals the bubble on
- * `:hover` or `:focus-within`, so it works inside a server component and adds
- * nothing to the client bundle. The dashboard's charts already reveal their
- * tips the same way; this is that pattern with the positioning built in,
- * because every caller anchors a tooltip in the same place and a chart mark
- * does not.
+ * The reveal is CSS — the wrapper is a `group` and the bubble comes up on
+ * `:hover`. The one thing CSS cannot express is the rule below, so this holds a
+ * single boolean and nothing else; it is still safe to render from a server
+ * component, as every call site does.
+ *
+ * **Pressing the control dismisses the hint.** Once you have clicked, you have
+ * acted on the thing the hint was explaining, and a card still sitting over the
+ * toolbar is describing a decision you already made — worse on a control you
+ * press repeatedly, like a month step, where the pointer never leaves and the
+ * card would hang there through every press. It comes back the next time you
+ * arrive, because leaving the trigger clears the flag.
+ *
+ * `pointerdown` rather than `click`: the hint should go as the press begins,
+ * not after it resolves.
  *
  * **The tooltip is never the accessible name.** It is `aria-hidden`, exactly
  * like `ChartTip`: the trigger inside carries its own `aria-label`, and a
@@ -30,10 +40,16 @@ function Tooltip({
   children,
   ...props
 }: React.ComponentProps<"span"> & { label: React.ReactNode }) {
+  const [pressed, setPressed] = React.useState(false)
+
   return (
     <span
       data-slot="tooltip"
       className={cn("group/tooltip relative inline-flex", className)}
+      onPointerDown={() => setPressed(true)}
+      // Cleared on the way out, so the next hover starts clean. `pointerleave`
+      // fires for touch too, where the "hover" was a tap in the first place.
+      onPointerLeave={() => setPressed(false)}
       {...props}
     >
       {children}
@@ -41,22 +57,75 @@ function Tooltip({
       <span
         aria-hidden
         className={cn(
-          // Sits above the trigger, out of the way of the row below it. The
-          // wrapper is `inline-flex` and this is `absolute`, so it takes the
-          // trigger's width as its centring line and no more.
-          "pointer-events-none absolute inset-x-0 bottom-full z-30 mb-1.5 flex justify-center",
-          "translate-y-1 scale-95 opacity-0 transition-all duration-200 ease-[cubic-bezier(.2,.6,.2,1)]",
-          "group-hover/tooltip:translate-y-0 group-hover/tooltip:scale-100 group-hover/tooltip:opacity-100",
-          "group-focus-within/tooltip:translate-y-0 group-focus-within/tooltip:scale-100 group-focus-within/tooltip:opacity-100"
+          /*
+            Sits above the trigger, out of the way of the row below it. The
+            wrapper is `inline-flex` and this is `absolute`, so it takes the
+            trigger's width as its centring line and no more.
+
+            `z-50`, not `z-30`. The calendar's sticky day headers and its hour
+            gutter both sit at `z-30`, and a hint that ties with the furniture
+            it is drawn over loses to whichever painted last — which is how a
+            tooltip on the toolbar ends up behind the grid instead of over it.
+            Nothing in the app draws above 50 except a dialog, which is modal
+            and has no hover behind it to hint about.
+          */
+          "pointer-events-none absolute inset-x-0 bottom-full z-50 mb-1.5 flex justify-center",
+          /*
+            `invisible` alongside `opacity-0` so the resting state is genuinely
+            out of the picture — an element that is merely transparent still
+            takes hit-testing and still counts as painted content for the
+            layers above it.
+          */
+          "invisible translate-y-1 scale-95 opacity-0 transition-all duration-200 ease-[cubic-bezier(.2,.6,.2,1)]",
+          /*
+            The reveal is dropped entirely once the trigger has been pressed,
+            rather than fought with a second rule that has to out-specify it.
+            Two competing variants at equal specificity are decided by which one
+            Tailwind happens to emit last, which is not something to depend on.
+
+            `group-has-[:focus-visible]` and not `group-focus-within`: a mouse
+            click focuses the button, so focus-within would put the card straight
+            back up under the pointer that just dismissed it. `:focus-visible`
+            is the browser's own answer to "did they arrive here by keyboard",
+            which is exactly the case that still needs the hint.
+          */
+          !pressed && [
+            "group-hover/tooltip:visible group-hover/tooltip:translate-y-0 group-hover/tooltip:scale-100 group-hover/tooltip:opacity-100",
+            "group-has-[:focus-visible]/tooltip:visible group-has-[:focus-visible]/tooltip:translate-y-0 group-has-[:focus-visible]/tooltip:scale-100 group-has-[:focus-visible]/tooltip:opacity-100",
+          ]
         )}
       >
         <span
           className={cn(
-            // Same bubble as ChartTip — inverted, Arc-shaped, elevated — so a
-            // hint over a table button and a hint over a chart mark read as
-            // one thing.
-            "w-max max-w-44 rounded-md bg-foreground px-2.5 py-1.5",
-            "text-center text-label leading-tight text-background shadow-elevated"
+            /*
+              A light card, not an inverted slab.
+
+              It used to be `bg-foreground` with a `background`-coloured label —
+              the same bubble `ChartTip` draws. Over a chart that is right: the
+              tip lands on top of the plot and has to separate itself from
+              whatever colour is under it. Over a toolbar it is a small black
+              rectangle appearing on a cream page, which reads as an error state
+              rather than as a hint. The sunken neutral with the ordinary text
+              colour is the same surface every other transient panel here uses,
+              and the hairline plus the shadow are what lift it off the page now
+              that the fill no longer does that work on its own.
+            */
+            "w-max rounded-md border border-border bg-muted px-2.5 py-1.5",
+            /*
+              One line, always. These labels are two or three words — "الشهر
+              السابق", "Previous month" — and a hint that wraps reads as a
+              sentence someone has to stop and parse rather than as the name of
+              the thing under the pointer. It is also unstable: the same bubble
+              broke to two lines in Arabic and stayed on one in English, so the
+              row it hovered over moved by a line height depending on the
+              locale.
+
+              The clamp stays as a ceiling for a caller that passes something
+              longer than these — it keeps the bubble inside the window even
+              when the text would rather not be.
+            */
+            "whitespace-nowrap max-w-[calc(100vw-2rem)]",
+            "text-center text-label leading-tight text-foreground shadow-elevated"
           )}
         >
           {label}

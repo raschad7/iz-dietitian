@@ -162,7 +162,10 @@
       "month": "شهر",
       "pickDate": "اختر تاريخًا",
       "previousMonth": "الشهر السابق",
-      "nextMonth": "الشهر التالي"
+      "nextMonth": "الشهر التالي",
+      "previousYear": "السنة السابقة",
+      "nextYear": "السنة التالية",
+      "pickMonth": "اختر الشهر"
     },
     "search": {
       "placeholder": "ابحث عن مشترك"

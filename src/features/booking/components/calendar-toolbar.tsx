@@ -3,9 +3,11 @@
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
+import { Caret } from '@/components/ui/caret';
 import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Segmented } from '@/components/ui/segmented';
+import { Tooltip } from '@/components/ui/tooltip';
 import { type Locale } from '@/i18n/routing';
 
 import { CALENDAR_VIEWS, type CalendarView } from '../schema';
@@ -28,10 +30,15 @@ import { DatePickerButton } from './date-picker-button';
  * button in the same box as Today, because it does the same kind of thing —
  * both move the calendar to a date — and it opens the month grid.
  *
- * The previous/next chevrons point along the *reading* direction: in Arabic
- * "previous" points right. `chevronStart`/`chevronEnd` are logical names and
- * `Icon` mirrors them in RTL, so this no longer has to branch on the locale —
- * the direction is expressed once, in the icon's name.
+ * The previous/next carets point along the *reading* direction: in Arabic
+ * "previous" points right. `start`/`end` are logical names and `Caret` mirrors
+ * itself in RTL, so this never branches on the locale — the direction is
+ * expressed once, in the prop.
+ *
+ * Both carry a tooltip naming the step, because two arrows either side of a
+ * date are the one place in this row where the control's meaning depends on
+ * which side of the label it is on — and in Arabic that is the opposite side
+ * from the one a reader of English would guess.
  */
 
 export type CalendarToolbarProps = {
@@ -99,9 +106,36 @@ export function CalendarToolbar({
         one wide control instead of three.
       */}
       <div className="flex items-center justify-center gap-2">
-        <Button type="button" variant="ghost" size="icon-sm" aria-label={t('nav.previous')} onClick={onPrevious}>
-          <Icon name="chevronStart" />
-        </Button>
+        {/*
+          `Caret` rather than the icon set's disclosure chevron: this is a
+          control whose whole content is the arrow, and the set's chevron is
+          drawn at the weight of a mark *on* something else. It mirrors itself
+          in RTL, so in Arabic the arrow on the right is "previous" — which is
+          also what its tooltip says when you point at it. The tooltip repeats
+          the `aria-label` rather than replacing it; `Tooltip` is `aria-hidden`,
+          so the pointer gets the hint and everything else gets the label.
+        */}
+        <Tooltip label={t('nav.previous')}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            /*
+              `rounded-lg` (8px), not the circle `icon-sm` draws by default.
+              The round fill is right for a standalone icon button — an avatar
+              menu, a bell — where the control is its own object. These two sit
+              tight against a rectangular date button and mark a *step*, so a
+              disc appearing under the pointer read as a third kind of shape in
+              a three-item row. A soft rectangle matches the button between them
+              and the segmented switch across the toolbar.
+            */
+            className="rounded-lg"
+            aria-label={t('nav.previous')}
+            onClick={onPrevious}
+          >
+            <Caret direction="start" />
+          </Button>
+        </Tooltip>
 
         <DatePickerButton
           locale={locale}
@@ -112,9 +146,27 @@ export function CalendarToolbar({
           onSelect={onDateChange}
         />
 
-        <Button type="button" variant="ghost" size="icon-sm" aria-label={t('nav.next')} onClick={onNext}>
-          <Icon name="chevronEnd" />
-        </Button>
+        <Tooltip label={t('nav.next')}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            /*
+              `rounded-lg` (8px), not the circle `icon-sm` draws by default.
+              The round fill is right for a standalone icon button — an avatar
+              menu, a bell — where the control is its own object. These two sit
+              tight against a rectangular date button and mark a *step*, so a
+              disc appearing under the pointer read as a third kind of shape in
+              a three-item row. A soft rectangle matches the button between them
+              and the segmented switch across the toolbar.
+            */
+            className="rounded-lg"
+            aria-label={t('nav.next')}
+            onClick={onNext}
+          >
+            <Caret direction="end" />
+          </Button>
+        </Tooltip>
       </div>
 
       <div className="flex flex-wrap items-center justify-start gap-2 md:justify-end">

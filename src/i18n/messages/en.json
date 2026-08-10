@@ -162,7 +162,10 @@
       "month": "Month",
       "pickDate": "Pick a date",
       "previousMonth": "Previous month",
-      "nextMonth": "Next month"
+      "nextMonth": "Next month",
+      "previousYear": "Previous year",
+      "nextYear": "Next year",
+      "pickMonth": "Choose a month"
     },
     "search": {
       "placeholder": "Search clients"
