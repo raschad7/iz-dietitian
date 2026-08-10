@@ -39,6 +39,20 @@ export default async function PortalLayout({ children, params }: PortalLayoutPro
   await requirePortalClient(locale);
 
   return (
-    <PortalTheme className="flex min-h-dvh flex-col bg-background text-foreground">{children}</PortalTheme>
+    /*
+      `isolate` makes this wrapper a stacking context, which is what the home
+      screen's glow needs to be visible at all. It is a `-z-10` fixed layer, and
+      a negative-z element paints below the *background* of every ancestor
+      between it and the nearest stacking context — so without one here it would
+      land under this wrapper's own `bg-background` and disappear. Inside a
+      context it paints above that fill and below every in-flow surface, which
+      is exactly the layer it wants. The portal's two other stacked pieces (the
+      tab bar at `z-40`, the flame celebration at `z-50`) keep their order:
+      they are both inside this wrapper, so they are only ever ranked against
+      each other.
+    */
+    <PortalTheme className="isolate flex min-h-dvh flex-col bg-background text-foreground">
+      {children}
+    </PortalTheme>
   );
 }
