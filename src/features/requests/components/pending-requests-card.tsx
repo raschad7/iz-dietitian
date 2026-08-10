@@ -127,10 +127,14 @@ export async function PendingRequestsCard({
             register, so it is no longer a full-height panel with the layout
             bounding it — it takes what it needs and gives the rest back to the
             agenda above. `pe-1` leaves the scrollbar somewhere to sit that is
-            not on top of the tiles, and `overscroll-contain` keeps a flick at
-            the end of the queue off the shell behind it.
+            not on top of the tiles.
+
+            No `overscroll-contain`: a queue of two requests never reaches that
+            ceiling, and a scroll container that cannot scroll still contains —
+            so the card became a patch of the page the wheel died on. See
+            `clients-card.tsx`.
           */
-          <ul className="flex max-h-[22rem] flex-col gap-2 overflow-y-auto overscroll-contain pe-1">
+          <ul className="flex max-h-[22rem] flex-col gap-2 overflow-y-auto pe-1">
             {appointments.map((request) => (
               <li key={request.id}>
                 <AppointmentRequestCard

@@ -1155,7 +1155,13 @@
   "errors": {
     "notFound": "Page not found",
     "notFoundDescription": "The link you opened is incorrect or has moved.",
-    "unexpected": "Something went wrong"
+    "unexpected": "Something went wrong",
+    "screen": {
+      "title": "This screen could not be displayed",
+      "body": "Nothing in your data was affected. Try again, or go back to the dashboard.",
+      "retry": "Try again",
+      "dashboard": "Dashboard"
+    }
   },
   "weeklyPlans": {
     "title": "Weekly Plans",

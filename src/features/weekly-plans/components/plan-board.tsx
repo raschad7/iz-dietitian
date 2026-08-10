@@ -344,8 +344,17 @@ function BoardBody({
             as a bordered box on the page. Not `muted` (n-50): that is the
             *sunken* fill, and a board-sized expanse of it reads as beige rather
             than as white with the cards lifted off it. */}
+        {/* `overscroll-x-contain`, not `overscroll-contain`. The board is the
+            one two-axis scroller in the app: sideways it holds the week, and
+            containment there is what stops a swipe past Saturday from being
+            read as a browser back-gesture. On the block axis it had nothing to
+            contain — the grid usually fits — and containment applies to the box
+            whether or not it can scroll, so the wheel died on the largest
+            surface of the screen and the rail was the only place the page would
+            move from. Naming the axis keeps the gesture guard and gives the
+            wheel back. */}
         <div
-          className="planner-week-scroll no-scrollbar min-w-0 flex-1 overflow-auto rounded-lg bg-background overscroll-contain"
+          className="planner-week-scroll no-scrollbar min-w-0 flex-1 overflow-auto rounded-lg bg-background overscroll-x-contain"
           tabIndex={0}
           aria-label={t('title')}
         >

@@ -226,8 +226,14 @@ function VisitList({
             The list scrolls past a screenful instead of making the tab do it:
             a client of four years has a long history and the summary band above
             should stay put while it is read.
+
+            No `overscroll-contain`: a client with three visits does not reach
+            the ceiling, and containment holds whether or not the box has
+            anywhere to scroll — so the list would sit there refusing to move
+            and refusing to let the page move either. See
+            `dashboard/components/clients-card.tsx`.
           */
-          <ul className="-mx-2 max-h-[26rem] overflow-y-auto overscroll-contain">
+          <ul className="-mx-2 max-h-[26rem] overflow-y-auto">
             {visits.map((visit) => (
               <VisitRow
                 key={visit.id}

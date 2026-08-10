@@ -66,6 +66,21 @@ type ShellProps = {
   showTitle?: boolean;
   user?: { name: string; email?: string | null; locale: Locale };
   icons?: Partial<Record<NavItem['labelKey'], IconName>>;
+  /**
+   * Classes for the shell's outer box — in practice, whether it is a fixed
+   * frame or a growing page.
+   *
+   * The registry ships `min-h-svh`, which means the window scrolls and the
+   * shell is however tall its content turned out to be. The staff app wants the
+   * opposite (`h-svh overflow-hidden`): a frame the size of the viewport, with
+   * the page scrolling inside `main`. That is not decoration — a screen that
+   * claims `h-full` and hands its own overflow to an inner panel needs a
+   * definite height to divide up, and `min-h-svh` never gives it one.
+   *
+   * The portal keeps the default. Its tab screens have no inner scroller to
+   * hand the overflow to, so a fixed frame would clip them.
+   */
+  className?: string;
   children: React.ReactNode;
 };
 
@@ -96,9 +111,17 @@ type ShellProps = {
  * wrapper around it, which is what lets the rail stay put while only the page
  * scrolls — the property the old shell spent a fixed-height flex row on.
  */
-export function AppShell({ items, title, showTitle = true, user, icons, children }: ShellProps) {
+export function AppShell({
+  items,
+  title,
+  showTitle = true,
+  user,
+  icons,
+  className,
+  children,
+}: ShellProps) {
   return (
-    <SidebarProvider>
+    <SidebarProvider className={className}>
       <AppSidebar items={items} title={title} showTitle={showTitle} user={user} icons={icons} />
       <SidebarInset>
         {/*

@@ -109,10 +109,19 @@ export async function ClientsCard({ clients, locale }: ClientsCardProps) {
               `max-h-80` is the fallback ceiling for below `xl`, where nothing
               else bounds this list's height — `xl:max-h-none` hands sizing back
               to the `flex-1`/`min-h-0` chain once the card itself is bounded by
-              the one-screen layout. `overscroll-contain` stops a flick at the
-              end of the list from scrolling the shell behind it.
+              the one-screen layout.
+
+              **No `overscroll-contain`.** It used to be here to stop a flick at
+              the end of the list carrying on into the shell, and the cost of
+              that turned out to be the whole page: containment is a property of
+              the box, not of whether the box can currently scroll, so a
+              register short enough to fit — four clients, most days — became a
+              hole the wheel fell into. It could not scroll itself and it would
+              not let the page scroll either. A list that runs past its ceiling
+              still stops at its own end first; only what happens *after* that
+              changes, and chaining is what every other surface in the app does.
             */}
-            <TableRoot className="max-h-80 overflow-y-auto overscroll-contain xl:max-h-none xl:min-h-0 xl:flex-1">
+            <TableRoot className="max-h-80 overflow-y-auto xl:max-h-none xl:min-h-0 xl:flex-1">
               {/*
                 `table-fixed` with `w-1/3` heads is what the old `grid-cols-3`
                 guaranteed: exactly a third each, so one long name cannot

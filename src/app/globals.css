@@ -1234,6 +1234,36 @@
   }
 
   /*
+   * ── Nothing behind a modal scrolls ──
+   *
+   * `showModal()` makes the rest of the document inert and paints a backdrop
+   * over it, and everyone reasonably assumes that includes freezing it. It does
+   * not. Pointer *events* are blocked, but a wheel over the backdrop still
+   * reaches the root scroller, so the page slid around underneath every dialog
+   * in the app the moment the cursor left the panel — and because the content
+   * behind is inert, there was nothing to grab it back with.
+   *
+   * `:has()` rather than a lock the component toggles: the state being matched
+   * is exactly `a modal dialog is on screen`, the browser already tracks it,
+   * and nesting and unmounting need no counter to stay correct. Every dialog in
+   * the app is `showModal()` — nothing calls `show()` — so `[open]` cannot
+   * match a non-modal dialog that has no business freezing anything.
+   *
+   * `body` as well as the root, because either can be the scrolling box
+   * depending on the page, and hiding overflow on a scrolled element keeps its
+   * position — the page is frozen where it stood, not jumped to the top.
+   *
+   * Only the *root* needs this. A modal `<dialog>` hit-tests its whole backdrop
+   * to the dialog element itself, whose containing block is the viewport, so
+   * the wheel's scroll chain skips the app shell's own `main` scroller
+   * entirely; there is nothing else behind a dialog for a wheel to find.
+   */
+  html:has(dialog[open]),
+  html:has(dialog[open]) body {
+    overflow: hidden;
+  }
+
+  /*
    * Direction is set on <html> from the route locale. In RTL the Arabic face
    * leads (it carries Latin glyphs too), so mixed Arabic/Latin strings stay on
    * one type family instead of visibly switching mid-sentence.
