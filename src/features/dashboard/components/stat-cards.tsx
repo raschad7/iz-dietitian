@@ -3,7 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { addDays } from '@/features/booking/date';
-import { formatDayNumber, formatMediumDateRange, formatMonthShort } from '@/features/booking/format';
+import { formatDayNumber, formatLongDateRange, formatMonthShort } from '@/features/booking/format';
 import { AppointmentsChart, ClientIntakeChart, type ChartPoint } from '@/features/dashboard/components/stat-charts';
 import { type DashboardData } from '@/features/dashboard/page-data';
 import { trendOf } from '@/features/dashboard/trends';
@@ -210,7 +210,7 @@ export async function StatCards({ stats, today, locale }: StatCardsProps) {
         icon="calendar"
         title={t('appointments.title')}
         value={formatNumber(locale, stats.appointmentsThisWeek)}
-        caption={formatMediumDateRange(locale, weekStart, addDays(weekStart, 6))}
+        caption={formatLongDateRange(locale, weekStart, addDays(weekStart, 6))}
         action={
           <Link href="/app/calendar/week" className={ACTION_CLASS} aria-label={t('appointments.action')}>
             <Icon name="linkArrow" className="size-5" />

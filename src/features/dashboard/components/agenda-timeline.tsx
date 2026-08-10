@@ -1,11 +1,13 @@
 import { getTranslations } from 'next-intl/server';
 
+import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
 import { addDays, startOfWeek, weekdayOf } from '@/features/booking/date';
 import { formatDayNumber, formatMinuteRangeLatin, formatWeekday } from '@/features/booking/format';
+import { patientToneStyle } from '@/features/booking/patient-color';
 import { type CalendarAppointment } from '@/features/booking/types';
 import { Link } from '@/i18n/navigation';
 import { type Locale } from '@/i18n/routing';
@@ -224,22 +226,40 @@ export async function AgendaTimeline({
                       'group/session mb-3 block min-w-0 flex-1 rounded-lg transition-all duration-200 ease-[cubic-bezier(.2,.6,.2,1)]',
                       isLast && 'mb-0',
                       /*
-                        The next session rests in olive-100 and fills in to
-                        solid primary under the pointer — the same move the
-                        quick actions make. It was solid primary at rest,
-                        which made the one card you are meant to *read* the
-                        loudest thing on the page and left its hover with
-                        nowhere to go but a slightly darker olive.
+                        **Every row wears the client's tone; the emphasis is
+                        carried by everything except hue.**
 
-                        n-900 on olive-100 is 14.7:1; white on olive-600 is
-                        5.46:1. Both states carry the text.
+                        The next session used to rest in olive-100 and fill to
+                        solid primary under the pointer. That put two different
+                        questions on one property: olive said "this is the one
+                        happening next", and there was nothing left to say who
+                        it was with. Now the fill answers *who* — the same four
+                        tones the calendar draws, so a client looks the same on
+                        the dashboard as they do on the grid — and "next" is
+                        said by the things that were already saying it: 16px of
+                        padding against 12, a heading-sized name, the card
+                        shadow, the olive node on the rail beside it, and the
+                        chip.
+
+                        Past rows keep the tone and lose their strength, which
+                        is the honest reading — the appointment still belongs to
+                        that client, it has simply been and gone. `saturate` and
+                        not a grey wash, so the row dims towards its own colour
+                        rather than out of the system.
+
+                        n-900 on every tone measures 13.3–15.0:1 at rest and no
+                        lower under the pointer, where the fill deepens by one
+                        step rather than inverting.
                       */
-                      isFocused
-                        ? 'bg-primary-subtle p-4 text-foreground shadow-card hover:bg-primary hover:text-primary-foreground'
-                        : 'p-3 hover:bg-muted',
-                      phase === 'past' && 'bg-muted/60 text-muted-foreground',
-                      phase === 'upcoming' && 'bg-muted/60',
+                      'patient-tone border border-(--tone-edge) bg-(--tone-fill) hover:bg-(--tone-fill-hover)',
+                      isFocused ? 'p-4 text-foreground shadow-card' : 'p-3',
+                      phase === 'past' && 'text-foreground/60',
                     )}
+                    style={{
+                      ...patientToneStyle(appointment.clientSeq),
+                      filter: phase === 'past' ? 'saturate(0.3)' : undefined,
+                      opacity: phase === 'past' ? 0.7 : 1,
+                    }}
                   >
                     <div className="flex items-baseline justify-between gap-2">
                       <span
@@ -254,14 +274,18 @@ export async function AgendaTimeline({
                       </span>
 
                       {/*
-                        The chip inverts with the card it sits on. It rests a
-                        step above the card's own olive-100 fill — olive-200,
-                        the ramp's next stop, since there is no named token
-                        between them — and becomes the lime one on hover,
-                        where the card has gone dark and lime is 3.99:1.
+                        The chip is a wash of the card's own foreground, not a
+                        colour of its own.
 
-                        Still the page's one lime element. Do not add a
-                        second accent anywhere else on it.
+                        It used to rest in olive-200 and turn lime on hover —
+                        the page's one accent, and correct while the card
+                        underneath was always olive-100. It cannot survive the
+                        card becoming one of four hues: an olive chip on the
+                        rose tone is two unrelated colours arguing inside 80px,
+                        and lime on any of them is the one pairing this palette
+                        already documents as invisible. A translucent
+                        foreground takes the tone of whatever it sits on, so
+                        one rule reads on all four.
 
                         Square corners are dropped for `rounded-lg` — the
                         same 16px radius the card it sits on carries — rather
@@ -274,25 +298,29 @@ export async function AgendaTimeline({
                         the one row carrying the chip harder to find.
                       */}
                       {isFocused ? (
-                        <Badge
-                          variant="accent"
-                          className={cn(
-                            'rounded-lg bg-(--olive-200) text-foreground transition-colors',
-                            'group-hover/session:bg-accent-lime group-hover/session:text-on-accent',
-                          )}
-                        >
+                        <Badge variant="accent" className="rounded-lg bg-foreground/10 text-foreground">
                           {isLive ? t('live') : t('next')}
                         </Badge>
                       ) : null}
                     </div>
 
                     {/*
-                      No avatar. The rail to the inline-start already gives
-                      every row a mark at its start, and a coloured initial an
-                      inch away from it made two badges per row competing to be
-                      the thing the eye lands on.
+                      The avatar sits with the *name*, not at the head of the
+                      row, and that placement is the whole reason it can be here
+                      at all. This card used to carry none, because a coloured
+                      initial an inch from the rail's own node made two marks
+                      per row competing to be the thing the eye lands on. The
+                      two are not competing now because they answer different
+                      questions and sit in different places: the node on the
+                      rail is *when* — past, live, next — and the disc against
+                      the name is *who*.
                     */}
                     <div className="mt-2 flex items-center gap-2">
+                      <Avatar
+                        name={appointment.clientName}
+                        color="var(--tone-mark)"
+                        size={isFocused ? 'sm' : 'xs'}
+                      />
                       <span className="min-w-0 flex-1">
                         <span
                           className={cn('block truncate font-medium', isFocused ? 'text-heading-sm' : 'text-body-md')}
@@ -302,13 +330,13 @@ export async function AgendaTimeline({
                         </span>
                         {appointment.reason ? (
                           <span
-                            className={cn(
-                              'block truncate text-caption text-muted-foreground',
-                              // n-600 reads on the resting olive-100 fill
-                              // (5.63:1); once the card goes solid it has to
-                              // become the light half of the pair.
-                              isFocused && 'group-hover/session:text-primary-foreground/85',
-                            )}
+                            // `text-foreground/70`, not `text-muted-foreground`.
+                            // The row is a tinted surface now, and warm grey on
+                            // a cool tint is the low-contrast pair the block on
+                            // the calendar already avoids for the same reason: a
+                            // translucent foreground stays legible on all four
+                            // tones instead of being tuned for one.
+                            className="block truncate text-caption text-foreground/70"
                             dir="auto"
                           >
                             {appointment.reason}

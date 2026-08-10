@@ -162,7 +162,13 @@
       "month": "Month",
       "pickDate": "Pick a date",
       "previousMonth": "Previous month",
-      "nextMonth": "Next month"
+      "nextMonth": "Next month",
+      "previousYear": "Previous year",
+      "nextYear": "Next year",
+      "pickMonth": "Choose a month",
+      "pickYear": "Choose a year",
+      "previousYears": "Previous years",
+      "nextYears": "Next years"
     },
     "search": {
       "placeholder": "Search clients"
@@ -318,6 +324,12 @@
       "attention": "Clients to check on",
       "attentionDescription": "Nobody is waiting on a reply here — these are records that have gone quiet.",
       "attentionEmpty": "Every client is up to date."
+    },
+    "tabs": {
+      "label": "Filter notifications",
+      "all": "All",
+      "requests": "Requests",
+      "clients": "Clients"
     },
     "request": {
       "new": "New booking request",

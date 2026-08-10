@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 
 import { isSameMonth, monthGridDays } from '../date';
 import { formatDayNumber, formatLongDate, formatMinuteRange, formatWeekday } from '../format';
+import { patientToneStyle } from '../patient-color';
 import { type CalendarAppointment } from '../types';
 import { isWorkingDay, type ClinicHours } from '../validation';
 
@@ -229,27 +230,34 @@ export function MonthView({
                     <li key={appointment.id}>
                       <span
                         /*
-                          The same surface the day and week cards wear: a brand
-                          tint inside a brand hairline, and no client colour. A
-                          month grid is 30 of these at once, and a tint per
-                          person turned the overview into a swatch book. The
-                          register is where a client is identified by colour;
-                          this is where the *shape of the month* is.
+                          The same surface the day and week cards wear: the
+                          client's own tone inside its own hairline.
 
-                          Semantic tokens, not `bg-(--olive-50)`. The primitives
-                          are the ramp the theme is built from and a component
-                          reaching past the semantic layer is how a palette
-                          stops being changeable in one place — `secondary` is
-                          the brand tint and `primary-subtle` is the one a step
-                          up, which is exactly the pair this needs.
+                          This used to carry no client colour at all, because a
+                          tint per person turned a grid of thirty chips into a
+                          swatch book. What stops that is the *weight* of the
+                          tint, not the number of them: at 2.5% chroma thirty
+                          chips read as a month with colour in it rather than as
+                          a swatch book, and the hairline is what actually
+                          separates one client from the next at this size.
+
+                          No avatar here, unlike the block and the agenda row. A
+                          chip is 18px tall and holds a name and a time already;
+                          a 20px disc would be the whole row. The name is on
+                          every chip, which is what the disc is there to support
+                          elsewhere.
+
+                          Marked is the ring, matching `AppointmentBlock`: the
+                          chip that is selected keeps saying whose it is.
                         */
                         className={cn(
+                          'patient-tone',
                           'flex w-full items-center gap-1.5 rounded-sm border px-1.5 py-0.5 text-start text-label',
-                          marked
-                            ? 'border-primary bg-primary-subtle text-secondary-foreground'
-                            : 'border-primary/35 bg-secondary text-secondary-foreground',
+                          'border-(--tone-edge) bg-(--tone-fill) text-foreground',
+                          marked && 'ring-2 ring-(--olive-500) ring-offset-1 ring-offset-card',
                         )}
                         style={{
+                          ...patientToneStyle(appointment.clientSeq),
                           /*
                             `saturate(.3)`, not `grayscale`. A completed chip is
                             meant to read as a quieter olive, and `grayscale` is

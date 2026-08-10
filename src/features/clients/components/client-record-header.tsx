@@ -1,5 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 
+import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
@@ -11,11 +12,11 @@ import { type Locale } from '@/i18n/routing';
 /**
  * Whose record this is, and how to correct it.
  *
- * **The name, and nothing else.** This strip is repeated above all five tabs, so
- * everything on it is paid for five times over. Successive versions spent that
- * budget on an avatar, a five-figure summary band, a shortcut to the plan board,
- * and then — after those went — a line carrying sex, age, phone and email plus a
- * status chip. Every one of them turned out to be repetition:
+ * **The name, and the disc that identifies it.** This strip is repeated above
+ * all five tabs, so everything on it is paid for five times over. Successive
+ * versions spent that budget on a five-figure summary band, a shortcut to the
+ * plan board, and then a line carrying sex, age, phone and email plus a status
+ * chip. Every one of them turned out to be repetition:
  *
  * - the **phone and email** are the Info tab's own subject, and that tab was
  *   rendering them in a card directly below this line;
@@ -25,8 +26,13 @@ import { type Locale } from '@/i18n/routing';
  *   marker that is nearly always present marks nothing.
  *
  * What survives is the one fact no tab repeats and every tab needs: who you are
- * looking at. An archived record still says so, because *that* is the state
- * worth interrupting for — see below.
+ * looking at — the name, and the coloured disc that is how that person is
+ * recognised in every list they appear in. The avatar is the one item from the
+ * cut list that earns its place back, because it is not another *fact* about
+ * the client competing with a tab that states it in full; it is the same fact
+ * the heading already carries, in the form the eye matches fastest. An archived
+ * record still says so too, because *that* is the state worth interrupting for
+ * — see below.
  *
  * **No allergy chip here either.** Putting one in the header would show it on
  * five tabs while the Nutrition tab drew it again in full, which is the same
@@ -47,6 +53,19 @@ export async function ClientRecordHeader({
   return (
     <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
       <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+        {/*
+          The record's own avatar, in the colour the row is stored with — the
+          same disc the client table and the rail draw, so the person you picked
+          from a list is recognisably the person you are now looking at. It is
+          `aria-hidden` inside the component: the name is right beside it, and
+          announcing both says the person twice.
+
+          `lg` (44px) rather than the default 36px, because it is paired with a
+          24px heading here and a disc smaller than its own label reads as a
+          bullet point rather than as a portrait.
+        */}
+        <Avatar name={client.fullName} color={client.color} size="lg" />
+
         <h1 className="font-heading text-heading-lg font-semibold" dir="auto">
           {client.fullName}
         </h1>

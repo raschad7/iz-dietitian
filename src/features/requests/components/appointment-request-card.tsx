@@ -85,8 +85,11 @@ export async function AppointmentRequestCard({
       size={compact ? 'sm' : 'default'}
       className={compact ? undefined : 'px-4'}
     >
-      <CardContent className="flex flex-col gap-3">
-        <div className="flex items-start gap-3">
+      {/* Tighter on the dashboard tile than in the inbox: three of these have to
+          fit a window in a column that is also carrying today's agenda, and the
+          inbox has a whole page to spend. */}
+      <CardContent className={cn('flex flex-col', compact ? 'gap-2' : 'gap-3')}>
+        <div className={cn('flex items-start', compact ? 'gap-2' : 'gap-3')}>
           {/*
             On a tile, a plain glyph in the neutral icon colour every other card
             on the dashboard uses — the tile is already its own surface, and a
@@ -120,7 +123,7 @@ export async function AppointmentRequestCard({
             </span>
           )}
 
-          <div className="min-w-0 flex-1 space-y-1">
+          <div className={cn('min-w-0 flex-1', compact ? 'space-y-0.5' : 'space-y-1')}>
             <div className="flex flex-wrap items-baseline justify-between gap-x-2">
               {/* The name links to the record, so "who is this?" is one click
                   rather than a search in another tab. */}
@@ -187,6 +190,16 @@ export async function AppointmentRequestCard({
                 className={cn(
                   'text-body-sm',
                   note ? 'leading-relaxed whitespace-pre-line' : 'text-muted-foreground',
+                  /*
+                    On the dashboard tile the aside is clamped to two lines. It
+                    is what made this tile's height unpredictable — an Arabic
+                    message wrapping to five lines pushed one request past the
+                    height of two — and the full text is one click away in the
+                    inbox, which is what that link in the header is for. A note
+                    is not clamped: there the message *is* the request, and
+                    hiding it would hide the item.
+                  */
+                  compact && !note && 'line-clamp-2',
                 )}
                 dir="auto"
               >
@@ -197,14 +210,14 @@ export async function AppointmentRequestCard({
         </div>
 
         {/* Indented to the text column, so the controls line up under what they
-            act on rather than under the icon: 44px past the inbox's disc, 28px
-            past the tile's glyph.
+            act on rather than under the icon: 44px past the inbox's disc, 24px
+            past the tile's glyph (16px glyph + the tile's 8px gap).
 
             A note has none: there is no time in it to approve, and a decline
             would be refusing a message. The dietitian reads it and books from
             the calendar like any other appointment. */}
         {note ? null : (
-          <div className={cn('space-y-2', compact ? 'ps-7' : 'ps-11')}>
+          <div className={cn('space-y-2', compact ? 'ps-6' : 'ps-11')}>
             <AppointmentRequestActions
               request={request}
               locale={locale}

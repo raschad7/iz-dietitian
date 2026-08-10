@@ -1,4 +1,4 @@
-import { and, asc, between, desc, eq, gte, lt } from 'drizzle-orm';
+import { and, asc, between, desc, eq, gte, lt, sql } from 'drizzle-orm';
 
 import { db } from '@/db';
 import { appointments, clients, clinicWorkingHours, practitioners } from '@/db/schema';
@@ -15,6 +15,39 @@ import { type ClinicHours } from './validation';
  * optional filter, so forgetting the tenant boundary is a type error instead of
  * a silent cross-clinic leak.
  */
+
+/**
+ * The client's position in their own clinic, counted from 0.
+ *
+ * This is what makes a patient's calendar colour *theirs* and nobody else's.
+ * The colour used to be hashed from the client id, and a hash cannot promise
+ * what a colour code has to: two ids can land a fraction of a degree apart on
+ * the wheel, which is not a near-miss but the same colour. An index cannot —
+ * distinct clients have distinct positions, so they have distinct hues, and
+ * `patientHue` spaces those positions as far apart as a sequence can be spaced.
+ *
+ * **Ordered by `created_at, id`, so the numbering only ever appends.** A client
+ * registered today is given the next free position and nobody else moves. Any
+ * ordering that a client could change — by name, most obviously — would
+ * renumber half the clinic the first time somebody married, and repaint a
+ * calendar staff had learned to read at a glance. `id` breaks the tie when two
+ * records share a timestamp, so the order is total rather than merely mostly
+ * decided.
+ *
+ * It counts *every* client of the clinic, archived ones included. They are
+ * excluded from the booking picker but their past appointments are still drawn,
+ * and skipping them here would shift every position after each one.
+ *
+ * A correlated subquery rather than a window function: the rank has to be the
+ * same number whatever the surrounding query selects, filters or orders by, and
+ * `row_number()` is computed over that query's own result set.
+ */
+const clientSeq = sql<number>`(
+  select count(*)
+  from ${clients} as seq_peer
+  where seq_peer.clinic_id = ${clients.clinicId}
+    and (seq_peer.created_at, seq_peer.id) < (${clients.createdAt}, ${clients.id})
+)`.mapWith(Number);
 
 /** Opening hours, or null when the clinic id does not exist. */
 export async function getClinicHours(clinicId: string): Promise<ClinicHours | null> {
@@ -65,6 +98,7 @@ export async function listAppointments(
       reason: appointments.reason,
       clientName: clients.fullName,
       clientColor: clients.color,
+      clientSeq,
     })
     .from(appointments)
     .innerJoin(clients, eq(clients.id, appointments.clientId))
@@ -183,7 +217,10 @@ export async function getClientVisitSummary(
  */
 export async function listBookableClients(clinicId: string): Promise<CalendarClient[]> {
   return db
-    .select({ id: clients.id, name: clients.fullName, color: clients.color })
+    // `seq` travels with the client so a just-booked appointment can be drawn
+    // optimistically in that person's own colour, before the row exists to be
+    // read back.
+    .select({ id: clients.id, name: clients.fullName, color: clients.color, seq: clientSeq })
     .from(clients)
     .where(and(eq(clients.clinicId, clinicId), eq(clients.status, 'active')))
     .orderBy(asc(clients.fullName));
@@ -238,7 +275,7 @@ export async function getClientCalendarData(
   const [appointmentRows, clientRows, hours] = await Promise.all([
     listAppointments(clinicId, fromDate, toDate, clientId),
     db
-      .select({ id: clients.id, name: clients.fullName, color: clients.color })
+      .select({ id: clients.id, name: clients.fullName, color: clients.color, seq: clientSeq })
       .from(clients)
       .where(and(eq(clients.clinicId, clinicId), eq(clients.id, clientId), eq(clients.status, 'active'))),
     getClinicHours(clinicId),

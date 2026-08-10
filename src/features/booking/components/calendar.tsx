@@ -21,9 +21,8 @@ import { addDays, addMonths, eachDay, endOfMonth, startOfMonth, startOfWeek, toI
 import {
   formatDayNumber,
   formatLongDate,
-  formatMediumDateRange,
+  formatLongDateRange,
   formatMinute,
-  formatMonthYear,
   formatWeekday,
 } from '../format';
 import { hasEnded, isCompleted, localWallClock } from '../completed';
@@ -121,15 +120,21 @@ function verticalScrollbarWidth(): number {
 }
 
 /**
- * The full-bleed root: cancels `main`'s `p-3 md:p-5` at the inline edges and
- * the block-end, and grows the height by the same amount so the grid still
- * ends exactly on the shell's floor.
+ * The full-bleed root: cancels `main`'s `p-3 md:p-5` at the **inline** edges,
+ * so the grid runs the width of the window with no gutter wasted on either
+ * side of a day column.
  *
- * The negative block-end margin takes that growth back out of the flow, so
- * `main` measures the same scroll height it did before and gains no scrollbar
- * of its own. Keep both halves in step with the layout's padding.
+ * **The block-end padding stays.** This used to cancel that too — `-mb-3` plus
+ * a matching height increase — so the grid ended exactly on the shell's floor,
+ * and the closing hour sat on the bottom edge of the window with the panel's
+ * own border as the last thing on screen. No amount of padding *inside* the
+ * scroller fixes that: it adds room under the last hour and the panel still
+ * ends at the floor. Leaving the shell's block-end padding alone is what puts
+ * the calendar on the page rather than against its edge.
+ *
+ * Keep the inline halves in step with the layout's padding.
  */
-const FULL_BLEED = '-mx-3 -mb-3 h-[calc(100%+0.75rem)] md:-mx-5 md:-mb-5 md:h-[calc(100%+1.25rem)]';
+const FULL_BLEED = '-mx-3 h-full md:-mx-5';
 
 /**
  * Puts that page gutter back on everything *above* the grid.
@@ -643,6 +648,10 @@ export function Calendar({
             reason: null,
             clientName: client.name,
             clientColor: client.color,
+            // Carried on `CalendarClient` for exactly this: the optimistic
+            // block is drawn in the client's own colour, so it does not change
+            // colour a moment later when the real row arrives.
+            clientSeq: client.seq,
           },
         });
       }
@@ -794,16 +803,6 @@ export function Calendar({
     setEditing(appointment);
   }
 
-  const rangeLabel =
-    view === 'month'
-      ? formatMonthYear(locale, anchorDate)
-      : view === 'day'
-        ? formatLongDate(locale, anchorDate)
-        : // The medium range, not two long dates joined by a dash: this is a
-          // button label now, and `Intl` collapses the shared month and year
-          // itself rather than saying "2026" twice.
-          formatMediumDateRange(locale, days[0] ?? anchorDate, days[days.length - 1] ?? anchorDate);
-
   /** The gutter the grid gives up and everything above it keeps. Nothing to put back when embedded. */
   const contentInset = fullBleed ? TOOLBAR_INSET : undefined;
 
@@ -818,25 +817,57 @@ export function Calendar({
       ? { from: startOfMonth(anchorDate), to: endOfMonth(anchorDate) }
       : { from: days[0] ?? anchorDate, to: days[days.length - 1] ?? anchorDate };
 
+  /**
+   * The picker's label: the first day on screen and the last, both in full.
+   *
+   * It is built from `visibleRange` rather than from the view, so the label and
+   * the days the picker tints as "on screen" are read off one value and cannot
+   * disagree. The month view says `1 August 2026 – 31 August 2026` for the same
+   * reason the week view says `10 August 2026 – 16 August 2026`: the control
+   * names the span it moves, and a month is a span like any other.
+   *
+   * It used to say `August 2026` there — the month named, not bounded. That is
+   * shorter, and it is a different claim: it tells you which month you are in
+   * without saying what the view actually covers, which is the question the
+   * picker beside it answers.
+   *
+   * The day view keeps a single date, because a span of one day printed at both
+   * ends would say the same thing twice.
+   */
+  const rangeLabel =
+    view === 'day'
+      ? formatLongDate(locale, anchorDate)
+      : formatLongDateRange(locale, visibleRange.from, visibleRange.to);
+
   return (
     /*
       `min-h-0`: the calendar fills the area the app shell gives it and never
       grows past it, which is what leaves the scrolling to the grid rather than
       to the page.
 
-      **It reaches past the shell's padding on three sides** (see `FULL_BLEED`).
-      The grid is not a card sitting on a page — it *is* the page, and a working
-      day boxed inside a rounded panel wasted a gutter on every side while
-      giving the clinic's last hour nowhere to sit but above a strip of
-      background.
+      **It reaches past the shell's padding at the inline edges** (see
+      `FULL_BLEED`). The grid is not a card sitting on a page — it *is* the
+      page, and a working day boxed inside a rounded panel wasted a gutter on
+      either side of every day column.
 
-      The block-start padding stays: the toolbar is a row of controls, and a
-      control flush against the top of the viewport reads as clipped.
-      `TOOLBAR_INSET` puts the same gutter back on everything above the grid,
-      so only the grid is full-bleed.
+      The block padding stays at both ends. At the start because the toolbar is
+      a row of controls and a control flush against the top of the viewport
+      reads as clipped; at the end because the grid's own border is the last
+      thing on screen, and a panel that stops exactly on the floor of the window
+      reads as cut off rather than as finished. `TOOLBAR_INSET` puts the inline
+      gutter back on everything above the grid, so only the grid is full-bleed.
     */
     <div className={cn('flex min-h-0 flex-col gap-3', fullBleed ? FULL_BLEED : 'h-full')}>
-      <div className={contentInset}>
+      {/*
+        `pt-4 md:pt-6` above the toolbar. The shell's own padding puts the row
+        below the top of the viewport, but not by enough: the toolbar carries
+        the tallest controls on the page — a 40px field and a segmented switch —
+        and with only the shell's gutter above them they read as pinned to the
+        edge rather than sitting on the page. The grid below is full-bleed, so
+        this is the only breathing room anything above it gets, which is why it
+        is a step deeper than the gap between the toolbar and the grid.
+      */}
+      <div className={cn('pt-4 md:pt-6', contentInset)}>
         <CalendarToolbar
           locale={locale}
           view={view}
@@ -1048,12 +1079,32 @@ export function Calendar({
               </div>
 
               {/*
-                `py-3` is what gives the opening and closing hours room to
-                breathe. Without it the first label sits hard against the day
-                headers and the last against the panel's bottom edge, both of
-                them touching a border and neither easy to read.
+                Padding at both ends of the scroller is what gives the opening
+                and closing hours room to breathe: without it the first label
+                sits hard against the day headers and the last against the
+                panel's bottom edge, both touching a border and neither easy to
+                read.
+
+                **The block-end is much deeper than the block-start.** 12px is
+                enough above the opening hour, which has the header row over it
+                as a natural lid. The closing hour has nothing under it, so the
+                same 12px left the clinic's last appointment of the day sitting
+                on the floor of the window — and an appointment block that ends
+                *at* closing has its bottom edge, its label and the grid's last
+                rule all inside those 12px. `pb-16` gives that hour a margin of
+                its own and the last block somewhere to cast a shadow.
+
+                It was briefly four times this, chasing a gap that padding here
+                could never produce: the panel itself ended on the floor of the
+                window, so every pixel added inside it only moved the last hour
+                further from a border that was still the last thing on screen.
+                That is fixed where it belonged, in `FULL_BLEED`.
+
+                It is scrolled space, not layout: the scroller is
+                `overflow-y-auto`, so this deepens what the grid can scroll to
+                rather than pushing the grid past the shell's floor.
               */}
-              <div ref={timelineRef} className="flex min-h-0 flex-1 overflow-y-auto py-3">
+              <div ref={timelineRef} className="flex min-h-0 flex-1 overflow-y-auto pt-3 pb-16">
                 {/* Hour gutter. Its labels use the same geometry as the blocks. */}
                 <div className="sticky start-0 z-30 w-20 shrink-0 bg-background">
                   {Array.from(
