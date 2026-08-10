@@ -245,11 +245,35 @@ you want — keep `native-select` only for short, plain lists.
 **Fix:** `@shadcn/combobox`, or `@shadcn/command` inside a popover if it should
 support filtering across many clients.
 
-### Toast
+### Toast — sonner, and why it is the one exception
 
-No toast system exists in the codebase. Add `@shadcn/toast` (Base UI — **not**
-sonner) and use it for meal replacement in weekly plans, and for save/confirm
-feedback on the dialogs above.
+This said "add `@shadcn/toast` (Base UI — **not** sonner)", on the general rule
+that a Base UI project takes Base UI primitives. It shipped that way, and then
+the planner rebuild replaced it with **sonner**. That reversal is deliberate and
+should not be undone without reproducing what caused it:
+
+> the Base UI toast measured its animated height synchronously after a drop and
+> could trap Chromium in a resize/update loop, **freezing the whole planner**
+> after the database write had already succeeded.
+
+The board is the one screen that posts a toast from inside a drag: a drop
+commits, re-renders the board optimistically, and announces itself, all in the
+same frame. Sonner owns measurement and stacking in its own tree, which keeps
+that work off the planner's render path. The move announcement also moved out of
+`plan-board` and into `board-dnd`, so the toast no longer fires from a component
+that re-renders the board — the two halves of the same fix.
+
+Two things follow from sonner not being Base UI:
+
+- **It needs `dir` passed explicitly.** `DirectionProvider` is Base UI's own
+  channel and sonner cannot read it, and the toaster sits outside the layout
+  flow so it does not inherit `dir` from `<html>` either. The root layout passes
+  `dir={getLocaleDirection(locale)}`.
+- **Its API is `toast.success(msg, { description })` / `toast.error(msg)`**, not
+  Base UI's `toast.add({ type, title })`. Anything still calling `.add` predates
+  the swap.
+
+Everything else in `components/ui` stays on Base UI.
 
 ---
 

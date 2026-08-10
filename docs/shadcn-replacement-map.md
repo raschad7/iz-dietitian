@@ -53,7 +53,7 @@ They stay on the list only as an optional consistency pass.
 | --- | --- | --- |
 | `weekly-plans/client-picker.tsx` | Weekly plans — "search for a client" | **already** on `@base-ui/react/combobox`. Verified working. Optional — `@shadcn/command` only if it must filter hundreds of clients. |
 | `ui/combobox.tsx` | Weekly plans client picker | already Base UI; keeps swatch/meta the registry version has no slot for. Optional. |
-| **nothing exists** | Weekly plans meal replace · save/confirm on every dialog above | **add** `@shadcn/toast`<br>*Base UI project — **not** sonner* |
+| **nothing exists** | Weekly plans meal replace · save/confirm on every dialog above | **sonner** ✅<br>*the one non-Base-UI primitive — the Base UI toast froze the planner on drop; see `shadcn-migration.md`* |
 
 ## Phase 4 — Low blast radius swaps (1–5 files each)
 
