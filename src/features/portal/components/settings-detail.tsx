@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 
 import { Card, CardContent } from '@/components/ui/card';
+import { Icon, type IconName } from '@/components/ui/icon';
 
 /**
  * The body of a settings sub-screen: prose, in blocks with headings.
@@ -25,5 +26,107 @@ export function SettingsArticleBlock({ title, children }: { title: string; child
       <h2 className="font-heading text-sm font-medium text-secondary-foreground">{title}</h2>
       <div className="space-y-2 text-muted-foreground">{children}</div>
     </section>
+  );
+}
+
+/**
+ * The other shape a settings sub-screen can take: one claim per card, each with
+ * a glyph.
+ *
+ * `SettingsArticle` above is a document — four headings inside a single surface,
+ * read top to bottom. This is a **list of separate promises**, and the privacy
+ * screen is the one place that distinction matters: nobody reads a privacy page,
+ * they arrive at it with one question ("can my dietitian see my weight?",
+ * "who else gets this?") and want to find the one paragraph that answers it. A
+ * card each gives every claim its own edge to be found by, and the glyph gives
+ * it a mark to be found by *without reading* — which is the whole point on a
+ * screen someone is scanning rather than studying.
+ *
+ * It is not the better shape in general, which is why help, terms and security
+ * keep the article: those are read in order, and four cards there would be four
+ * boxes pretending to be independent when they are chapters.
+ *
+ * The heading colour is `secondary-foreground` — olive-700, the palette's
+ * `text.brand` at 7.37:1 — and not `text-primary`. Olive-500 is 3.47:1 and would
+ * fail on a heading; this is also what the article's headings already use, so
+ * the two shapes read as the same voice.
+ */
+export function SettingsPoint({
+  icon,
+  title,
+  children,
+}: {
+  icon: IconName;
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <Card size="sm">
+      {/*
+        `items-center`, so the glyph sits against the block rather than against
+        its first line. These are two to four lines each — short enough that a
+        centred mark reads as belonging to the whole claim. On anything longer it
+        would float mid-paragraph and `items-start` would be right instead.
+      */}
+      <CardContent className="flex items-center gap-3">
+        <span
+          aria-hidden="true"
+          className="grid size-10 shrink-0 place-items-center rounded-xl bg-secondary text-primary"
+        >
+          <Icon name={icon} className="size-5" />
+        </span>
+
+        <div className="min-w-0 flex-1 space-y-1">
+          <h2 className="font-heading text-sm leading-snug font-medium text-secondary-foreground">
+            {title}
+          </h2>
+          <div className="space-y-2 text-sm leading-relaxed text-muted-foreground">{children}</div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * The line a list of `SettingsPoint`s ends on: the one sentence the whole screen
+ * adds up to.
+ *
+ * Sunken rather than raised, and deliberately not a fifth card. Every card above
+ * it answers a specific question; this answers none of them, it is the summary —
+ * and a fifth identical surface would read as a fifth topic somebody forgot to
+ * give a proper heading. Dropping it onto the page's own plane is what says the
+ * list is over. Same reason it is a `<p>` and not an `<h2>`: it does not belong
+ * in the outline as a peer of the sections it closes.
+ *
+ * **Its disc is `primary-subtle`, not `secondary`.** olive-50 on the n-50 fill is
+ * #F5F8EF on #F7F5EF — two surfaces that do not differ, so the disc that reads
+ * clearly on the white cards above simply disappears here. olive-100 is the stop
+ * the palette keeps for a fill that has to hold against a tinted ground.
+ */
+export function SettingsAssurance({
+  icon,
+  title,
+  children,
+}: {
+  icon: IconName;
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-lg bg-muted px-4 py-3.5">
+      <span
+        aria-hidden="true"
+        className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary-subtle text-secondary-foreground"
+      >
+        <Icon name={icon} className="size-5" />
+      </span>
+
+      <div className="min-w-0 flex-1 space-y-0.5">
+        <p className="font-heading text-sm leading-snug font-medium text-secondary-foreground">
+          {title}
+        </p>
+        <p className="text-xs leading-relaxed text-muted-foreground">{children}</p>
+      </div>
+    </div>
   );
 }

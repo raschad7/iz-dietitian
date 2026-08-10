@@ -2,7 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
 import { PortalScreenHeader } from '@/features/portal/components/portal-screen-header';
-import { SettingsArticle, SettingsArticleBlock } from '@/features/portal/components/settings-detail';
+import { SettingsAssurance, SettingsPoint } from '@/features/portal/components/settings-detail';
 import { resolveLocale } from '@/i18n/params';
 
 type PrivacyPageProps = {
@@ -25,6 +25,18 @@ export async function generateMetadata({ params }: PrivacyPageProps): Promise<Me
  * (`requirePortalClient`). If one of those changes, this copy is wrong and has
  * to change with it — which is the point of stating them concretely rather than
  * in the language of a policy nobody reads.
+ *
+ * **A card each, not four headings in one article.** This is the one settings
+ * sub-screen nobody reads front to back: a client opens it holding a single
+ * question and wants the paragraph that answers it. Separate surfaces with a
+ * glyph apiece make each claim findable by its mark instead of by reading all
+ * four — see `SettingsPoint`, which also says why help, terms and security
+ * deliberately keep the article shape.
+ *
+ * The glyphs are picked so no two are the same family: a guarded shield for who
+ * may look, an eye for what is shown to you, a message bubble for what the
+ * clinic sends, a document for the record itself, and the padlock is spent once,
+ * on the closing line.
  */
 export default async function PrivacyPage({ params }: PrivacyPageProps) {
   const locale = await resolveLocale(params);
@@ -36,24 +48,26 @@ export default async function PrivacyPage({ params }: PrivacyPageProps) {
       <PortalScreenHeader title={t('title')} fallbackHref="/portal/settings" />
 
       <main className="min-w-0 flex-1 px-4 py-5 md:px-6">
-        <div className="mx-auto w-full max-w-3xl">
-          <SettingsArticle>
-            <SettingsArticleBlock title={t('whoSees.title')}>
-              <p>{t('whoSees.body')}</p>
-            </SettingsArticleBlock>
+        <div className="mx-auto w-full max-w-3xl space-y-3">
+          <SettingsPoint icon="security" title={t('whoSees.title')}>
+            <p>{t('whoSees.body')}</p>
+          </SettingsPoint>
 
-            <SettingsArticleBlock title={t('whatIsStored.title')}>
-              <p>{t('whatIsStored.body')}</p>
-            </SettingsArticleBlock>
+          <SettingsPoint icon="eye" title={t('whatIsStored.title')}>
+            <p>{t('whatIsStored.body')}</p>
+          </SettingsPoint>
 
-            <SettingsArticleBlock title={t('messages.title')}>
-              <p>{t('messages.body')}</p>
-            </SettingsArticleBlock>
+          <SettingsPoint icon="chat" title={t('messages.title')}>
+            <p>{t('messages.body')}</p>
+          </SettingsPoint>
 
-            <SettingsArticleBlock title={t('rights.title')}>
-              <p>{t('rights.body')}</p>
-            </SettingsArticleBlock>
-          </SettingsArticle>
+          <SettingsPoint icon="notes" title={t('rights.title')}>
+            <p>{t('rights.body')}</p>
+          </SettingsPoint>
+
+          <SettingsAssurance icon="lock" title={t('assurance.title')}>
+            {t('assurance.body')}
+          </SettingsAssurance>
         </div>
       </main>
     </>

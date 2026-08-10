@@ -2,7 +2,15 @@ import { describe, expect, test } from 'bun:test';
 
 import { type ExistingAppointment } from '@/features/booking/validation';
 
-import { availableSlots, selectableDays, REQUEST_DURATION_MINUTES, REQUEST_SLOT_MINUTES } from './slots';
+import {
+  availableSlots,
+  isWithinRequestWindow,
+  lastRequestableDate,
+  selectableDays,
+  REQUEST_DURATION_MINUTES,
+  REQUEST_SLOT_MINUTES,
+  REQUEST_WINDOW_DAYS,
+} from './slots';
 
 /** Sunday–Thursday, 08:00 to 12:00 — a short day, so the slot list is countable. */
 const HOURS = { workingDays: [0, 1, 2, 3, 4], openMinute: 8 * 60, closeMinute: 12 * 60 };
@@ -146,5 +154,45 @@ describe('selectableDays', () => {
     // Today loses only the 09:00 slot the booking sits on; tomorrow is untouched.
     expect(days[0]?.openCount).toBe(7);
     expect(days[1]?.openCount).toBe(8);
+  });
+
+  test('offers no more than the window, so nothing beyond a month can be picked', () => {
+    const days = selectableDays(input);
+    const last = days.at(-1);
+
+    expect(days).toHaveLength(REQUEST_WINDOW_DAYS);
+    expect(last?.date).toBe(lastRequestableDate(WEDNESDAY));
+    expect(isWithinRequestWindow(last!.date, WEDNESDAY)).toBe(true);
+  });
+});
+
+describe('isWithinRequestWindow', () => {
+  test('accepts today and the last day of the window', () => {
+    expect(isWithinRequestWindow(WEDNESDAY, WEDNESDAY)).toBe(true);
+    expect(isWithinRequestWindow(lastRequestableDate(WEDNESDAY), WEDNESDAY)).toBe(true);
+  });
+
+  /**
+   * The rule the date strip cannot enforce on its own: a form posts whatever it
+   * is given, and `availableSlots` would happily call a Tuesday six months out
+   * open, because the clinic is indeed open on Tuesdays.
+   */
+  test('refuses the day after the window closes', () => {
+    // Thirty days from Wednesday 5 August, counting today, ends on 3 September.
+    expect(isWithinRequestWindow('2026-09-03', WEDNESDAY)).toBe(true);
+    expect(isWithinRequestWindow('2026-09-04', WEDNESDAY)).toBe(false);
+  });
+
+  test('refuses a date months out', () => {
+    expect(isWithinRequestWindow('2027-02-05', WEDNESDAY)).toBe(false);
+  });
+
+  test('refuses yesterday — a request is never about the past', () => {
+    expect(isWithinRequestWindow('2026-08-04', WEDNESDAY)).toBe(false);
+  });
+
+  test('the last requestable date is today plus the window, inclusive of today', () => {
+    // 30 days offered starting Wednesday 5 August is the 3rd of September.
+    expect(lastRequestableDate(WEDNESDAY)).toBe('2026-09-03');
   });
 });

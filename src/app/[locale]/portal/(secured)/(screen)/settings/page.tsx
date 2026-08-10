@@ -66,7 +66,19 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
       <main className="min-w-0 flex-1 px-4 py-5 md:px-6">
         <div className="mx-auto w-full max-w-3xl space-y-4">
           <SettingsSection icon={UserCog} title={t('account.title')}>
-            <SettingsLinkRow href="/portal/settings/contact" icon="contact" label={t('account.contactRow')} />
+            {/*
+              A person, not a phone. The row used to be "email and phone number"
+              and carried the handset glyph to say so; it now holds the whole of
+              what the clinic has written down about who this client *is* — the
+              name, the birth date, the two identifiers — so it takes the person
+              glyph and the profile's own name.
+            */}
+            <SettingsLinkRow
+              href="/portal/settings/contact"
+              icon="profile"
+              label={t('account.profileRow')}
+              description={t('account.profileRowDescription')}
+            />
 
             <SettingsLinkRow
               href="/portal/settings/security"

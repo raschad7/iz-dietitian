@@ -164,6 +164,26 @@ export function PortalHeader({
   const open = openedAt === pathname;
   const close = () => setOpenedAt(null);
 
+  /**
+   * The record tab draws its own heading, so the header steps back to two
+   * controls.
+   *
+   * Every other tab opens on content with no title of its own — the week strip,
+   * the appointment list — and the greeting is what tells you whose portal this
+   * is. `/portal/profile` is the one screen that names itself, and stacking a
+   * 56px avatar and a 20px name above a page whose first line is already
+   * "my health record" said the same thing twice, in the larger type, before the
+   * thing it was introducing.
+   *
+   * **The menu button goes with it, and the gear replaces it.** The drawer's
+   * three rows are the profile (you are on it), notifications (the bell beside
+   * it) and settings — so on this one screen the drawer was a hamburger hiding a
+   * single destination. The gear goes straight there, and the settings screen
+   * carries sign-out and the language switcher, which is what the drawer was
+   * really for.
+   */
+  const bare = pathname === '/portal/profile';
+
   // Escape closes it, which is the one keyboard affordance a scrim implies and
   // does not provide on its own.
   useEffect(() => {
@@ -178,19 +198,35 @@ export function PortalHeader({
   }, [open]);
 
   return (
-    <header className="border-b border-border bg-card px-4 pt-3 pb-4">
+    <header className={cn('border-b border-border bg-card px-4 pt-3', bare ? 'pb-3' : 'pb-4')}>
       <div className="mx-auto w-full max-w-3xl">
         <div className="flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => setOpenedAt(pathname)}
-            aria-expanded={open}
-            aria-controls="portal-menu"
-            aria-label={t('menu')}
-            className="flex size-11 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted"
-          >
-            <MenuIcon className="h-3.5 w-5" />
-          </button>
+          {bare ? (
+            /*
+              Same slot the menu button held, so the control the thumb reaches
+              for does not move between tabs — only what it does changes. In
+              Arabic that is the inline-start edge, which is the right.
+            */
+            <Destination
+              href="/portal/settings"
+              enabled={showNav}
+              label={tMenu('settings')}
+              className="flex size-11 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted"
+            >
+              <Settings className="size-5.5" strokeWidth={1.9} aria-hidden="true" />
+            </Destination>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setOpenedAt(pathname)}
+              aria-expanded={open}
+              aria-controls="portal-menu"
+              aria-label={t('menu')}
+              className="flex size-11 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted"
+            >
+              <MenuIcon className="h-3.5 w-5" />
+            </button>
+          )}
 
           <Destination
             href="/portal/notifications"
@@ -208,49 +244,59 @@ export function PortalHeader({
           </Destination>
         </div>
 
-        <div className="mt-2 flex items-center gap-3">
-          <Destination
-            href="/portal/profile"
-            enabled={showNav}
-            label={t('profile')}
-            className="relative flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary font-heading text-base font-medium text-primary-foreground shadow-card"
-          >
-            {photoUrl ? (
-              // `fill` + `object-cover`: a portrait and a square both have to
-              // land as a circle without the caller knowing the ratio. The
-              // initials stay underneath, so a photo that 404s degrades to
-              // them rather than to a hole.
-              <Image src={photoUrl} alt="" fill sizes="56px" className="object-cover" />
-            ) : null}
-            <span className={photoUrl ? 'sr-only' : undefined}>{initials}</span>
-          </Destination>
+        {bare ? null : (
+          <div className="mt-2 flex items-center gap-3">
+            <Destination
+              href="/portal/profile"
+              enabled={showNav}
+              label={t('profile')}
+              className="relative flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary font-heading text-base font-medium text-primary-foreground shadow-card"
+            >
+              {photoUrl ? (
+                // `fill` + `object-cover`: a portrait and a square both have to
+                // land as a circle without the caller knowing the ratio. The
+                // initials stay underneath, so a photo that 404s degrades to
+                // them rather than to a hole.
+                <Image src={photoUrl} alt="" fill sizes="56px" className="object-cover" />
+              ) : null}
+              <span className={photoUrl ? 'sr-only' : undefined}>{initials}</span>
+            </Destination>
 
-          <div className="min-w-0 flex-1">
-            <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              {t(`greeting.${greeting}`)}
-              <Sun className="size-4 text-status-complete-mark-soft" strokeWidth={2} aria-hidden="true" />
-            </p>
-            <p className="truncate font-heading text-xl font-semibold text-secondary-foreground">{name}</p>
+            <div className="min-w-0 flex-1">
+              <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                {t(`greeting.${greeting}`)}
+                <Sun className="size-4 text-status-complete-mark-soft" strokeWidth={2} aria-hidden="true" />
+              </p>
+              <p className="truncate font-heading text-xl font-semibold text-secondary-foreground">{name}</p>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/*
         The scrim. A button rather than a div so it is reachable and dismissible
         without a pointer; `inert`-like behaviour comes from it being removed
         from the tree entirely when closed.
-      */}
-      <button
-        type="button"
-        onClick={close}
-        aria-label={t('closeMenu')}
-        className={cn(
-          'fixed inset-0 z-40 bg-scrim transition-opacity duration-200',
-          open ? 'opacity-100' : 'pointer-events-none opacity-0',
-        )}
-        tabIndex={open ? 0 : -1}
-      />
 
+        Both it and the drawer are dropped entirely on the bare header — with no
+        button to open it, a panel that can never be reached is markup with no
+        behaviour, and a scrim fixed over the viewport is not the thing to leave
+        lying around on a guess.
+      */}
+      {bare ? null : (
+        <button
+          type="button"
+          onClick={close}
+          aria-label={t('closeMenu')}
+          className={cn(
+            'fixed inset-0 z-40 bg-scrim transition-opacity duration-200',
+            open ? 'opacity-100' : 'pointer-events-none opacity-0',
+          )}
+          tabIndex={open ? 0 : -1}
+        />
+      )}
+
+      {bare ? null : (
       <div
         id="portal-menu"
         // `start-0` is the right edge in Arabic and the left in English, so the
@@ -314,6 +360,7 @@ export function PortalHeader({
           </div>
         </nav>
       </div>
+      )}
     </header>
   );
 }

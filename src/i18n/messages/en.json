@@ -37,7 +37,7 @@
     "myPlan": "My plan",
     "myAppointments": "My appointments",
     "progress": "Progress",
-    "profile": "Profile",
+    "profile": "Health record",
     "security": "Security",
     "weeklyPlans": "Weekly Plans",
     "dishes": "Dish catalog",
@@ -303,6 +303,7 @@
     },
     "kind": {
       "new": "New booking request",
+      "note": "Client message",
       "reschedule": "Reschedule request",
       "cancel": "Cancellation request"
     },
@@ -505,6 +506,7 @@
       "title": "Appointments",
       "subtitle": "Everything your dietitian has booked for you.",
       "book": "Request an appointment",
+      "requestSent": "Your request has been sent. Your dietitian will see it with your appointments.",
       "tabs": {
         "upcoming": "Upcoming",
         "past": "Past"
@@ -516,6 +518,8 @@
       "defaultTitle": "Routine follow-up",
       "noneUpcomingTitle": "No upcoming appointments",
       "noneUpcoming": "Nothing booked yet. Ask your dietitian for an appointment.",
+      "noMoreUpcomingTitle": "No other upcoming appointments",
+      "noMoreUpcoming": "A new booking will appear here.",
       "nonePast": "No past appointments yet.",
       "reschedule": "Ask to reschedule",
       "cancel": "Ask to cancel",
@@ -530,7 +534,10 @@
       "title": "Request an appointment",
       "backToAppointments": "Back to appointments",
       "chooseDay": "Choose a day",
+      "chooseTime": "Choose a time",
+      "noTimes": "Nothing is free on this day. Choose another one.",
       "note": "Reason",
+      "noteRequired": "Write to your dietitian",
       "notePlaceholder": "Follow-up, a question about my plan…",
       "optional": "(Optional)",
       "currentSlot": "Currently {date} at {time}",
@@ -544,7 +551,7 @@
         "cancel": "Ask to cancel"
       },
       "description": {
-        "new": "Pick a day and a time that suit you. Your dietitian confirms it.",
+        "new": "Write to your dietitian and they will arrange a time with you.",
         "reschedule": "Pick a new day and time. Your appointment stays as it is until your dietitian agrees.",
         "cancel": "Your dietitian will be told. The appointment stays booked until they cancel it."
       },
@@ -555,10 +562,12 @@
       },
       "kind": {
         "new": "New appointment",
+        "note": "Message",
         "reschedule": "Reschedule",
         "cancel": "Cancellation"
       },
       "status": {
+        "sent": "Sent",
         "pending": "Waiting",
         "approved": "Approved",
         "declined": "Declined",
@@ -574,22 +583,26 @@
       "chooseDay": "Choose a day",
       "today": "Today",
       "dayEnergyLabel": "Energy for this day",
+      "mealEnergyLabel": "Meal energy",
       "emptyDayTitle": "Nothing planned for this day",
       "emptyDayHint": "Your dietitian left this day open. Pick another day above.",
       "kcalValue": "{value} kcal",
       "markEaten": "Mark {meal} as eaten",
+      "wasEaten": "{meal} — eaten",
+      "wasNotEaten": "{meal} — not marked as eaten",
       "portion": "{servings} × {label}",
       "orInstead": "You can eat this instead:",
       "noMeal": "No meal set"
     },
     "profile": {
-      "title": "My profile",
+      "title": "My health record",
       "notRecorded": "Not recorded",
       "clinicUnknown": "No clinic recorded",
       "lastUpdated": "Last updated {date}",
       "cm": "{value} cm",
       "kg": "{value} kg",
-      "identifierNote": "Your phone number and email are how you sign in and how the clinic reaches you. Changing either one goes through the clinic.",
+      "unitCm": "cm",
+      "unitKg": "kg",
       "callClinic": "Call",
       "whatsappClinic": "WhatsApp",
       "openMap": "Open in maps",
@@ -619,8 +632,6 @@
         "medications": "Medicines and supplements",
         "careNote": "Notes from your dietitian",
         "clinicName": "Clinic",
-        "practitioner": "Dietitian",
-        "specialty": "Specialty",
         "clinicPhone": "Clinic phone",
         "clinicAddress": "Clinic address",
         "workingHours": "Opening hours"
@@ -637,14 +648,17 @@
         "withdraw": "Withdraw request",
         "contactNotice": "Your phone number and email are held by the clinic, and changing either one needs to be verified. Ask for the change and the clinic will confirm it with you.",
         "contactAction": "Request a phone or email change"
-      }
+      },
+      "healthNote": "The more complete your record, the more precise and effective your plan can be."
     },
     "errors": {
       "invalid": "Check what you entered and try again.",
       "notFound": "That appointment no longer exists.",
       "slotUnavailable": "That time has just been taken. Choose another one.",
+      "outsideWindow": "You can only ask for a time within the next month.",
       "alreadyRequested": "You have already asked about this. Your dietitian will answer soon.",
       "pastAppointment": "That appointment has already happened.",
+      "dayLocked": "You can only tick meals for today.",
       "unexpected": "Something went wrong. Please try again."
     },
     "emptyToday": "Nothing planned yet.",
@@ -856,10 +870,9 @@
       },
       "account": {
         "title": "Account",
-        "contactRow": "Email and phone number",
+        "profileRow": "Personal profile",
+        "profileRowDescription": "Your name, date of birth, and the contact details the clinic holds.",
         "identifierNote": "Both are how you sign in and how the clinic reaches you; changing either goes through the clinic.",
-        "email": "Email",
-        "phone": "Phone",
         "security": "Password and security",
         "securityDescription": "Change your password, and the address you sign in with."
       },
@@ -871,6 +884,8 @@
         "helpDescription": "Common questions about your plan and appointments.",
         "contactClinic": "Contact the clinic",
         "contactClinicDescription": "Call or WhatsApp your clinic directly.",
+        "callAction": "Phone call",
+        "whatsappAction": "WhatsApp chat",
         "terms": "Terms and conditions",
         "termsDescription": "Terms for using the client portal."
       },
@@ -902,6 +917,10 @@
         "rights": {
           "title": "Your data",
           "body": "You can ask for any detail to be corrected from your profile screen, or ask for your account to be closed at the bottom of this settings screen. A person at the clinic answers both."
+        },
+        "assurance": {
+          "title": "Your privacy matters",
+          "body": "We don't share your data with anyone outside the app without your consent."
         }
       },
       "help": {
@@ -921,6 +940,10 @@
         "signIn": {
           "title": "I forgot my password",
           "body": "On the \"Password and security\" screen, send a link to your email and set a new one."
+        },
+        "noAnswer": {
+          "title": "Didn't find an answer to your question?",
+          "body": "Get in touch and we'll help you as soon as we can."
         }
       },
       "deletion": {

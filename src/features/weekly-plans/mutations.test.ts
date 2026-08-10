@@ -554,7 +554,7 @@ describe('adherence recompute on plan edits', () => {
     const mealIds = board!.days[0]!.meals.map((row) => row.id);
 
     for (const mealId of mealIds) {
-      expect((await toggleMealCompletion({ clientId, clinicId }, mealId, true)).ok).toBe(true);
+      expect((await toggleMealCompletion({ clientId, clinicId, today: '2026-08-02' }, mealId, true)).ok).toBe(true);
     }
 
     expect(await adherenceLevel(clientId, '2026-08-02')).toBe('full');
@@ -589,7 +589,7 @@ describe('adherence recompute on plan edits', () => {
     await publishPlan(clinicId, planId);
 
     const board = await getPublishedBoard(clientId);
-    await toggleMealCompletion({ clientId, clinicId }, board!.days[1]!.meals[0]!.id, true);
+    await toggleMealCompletion({ clientId, clinicId, today: '2026-08-03' }, board!.days[1]!.meals[0]!.id, true);
 
     expect(await adherenceLevel(clientId, '2026-08-03')).toBe('full');
 
@@ -605,7 +605,7 @@ describe('adherence recompute on plan edits', () => {
     await publishPlan(clinicId, planId);
 
     const board = await getPublishedBoard(clientId);
-    await toggleMealCompletion({ clientId, clinicId }, board!.days[0]!.meals[0]!.id, true);
+    await toggleMealCompletion({ clientId, clinicId, today: '2026-08-02' }, board!.days[0]!.meals[0]!.id, true);
 
     expect(await adherenceLevel(clientId, '2026-08-02')).toBe('partial');
 
@@ -621,7 +621,7 @@ describe('adherence recompute on plan edits', () => {
 
     const board = await getPublishedBoard(clientId);
     for (const row of board!.days[0]!.meals) {
-      await toggleMealCompletion({ clientId, clinicId }, row.id, true);
+      await toggleMealCompletion({ clientId, clinicId, today: '2026-08-02' }, row.id, true);
     }
 
     expect(await adherenceLevel(clientId, '2026-08-02')).toBe('full');

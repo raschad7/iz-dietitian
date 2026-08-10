@@ -90,6 +90,13 @@ export type PortalClinic = {
 export type PortalPractitioner = {
   name: string;
   specialty: string | null;
+  /**
+   * Their stored hex, for the initials `Avatar` on the profile screen — genuinely
+   * per-record data rather than a token, the same exemption `clients.color` has
+   * (§Arbitrary colour). It is the one colour on this screen that is about a
+   * person rather than about the brand.
+   */
+  color: string;
 };
 
 /**
@@ -182,8 +189,12 @@ export type PortalErrorKey =
   | 'errors.invalid'
   | 'errors.notFound'
   | 'errors.slotUnavailable'
+  /** Asked for a date beyond the month the portal lets a client book within. */
+  | 'errors.outsideWindow'
   | 'errors.alreadyRequested'
   | 'errors.pastAppointment'
+  /** Tried to tick a meal on a day that is not today — see `toggleMealCompletion`. */
+  | 'errors.dayLocked'
   | 'errors.unexpected';
 
 export type PortalResult<TData = undefined> =
@@ -231,4 +242,23 @@ export type RequestPageData = {
   days: SelectableDay[];
   /** The day currently chosen. */
   selectedDate: string;
+  /**
+   * The start minutes still open on {@link selectedDate}, in clock order.
+   *
+   * Only that day's. The whole month's times would be a payload that also told
+   * every client when everybody else is booked, which is why choosing a day is
+   * a navigation and this arrives with the answer.
+   *
+   * Empty is ordinary — a closed day, a full one, or one the client already has
+   * an appointment on — and the form says so rather than offering nothing with
+   * no explanation.
+   */
+  slots: number[];
+  /**
+   * The time the form opens on: the first open one, or null when the day has
+   * none. Chosen on the server for the same reason `selectedDate` is — the
+   * form should be submittable without a tap, and which times exist is the
+   * clinic's answer, not the browser's.
+   */
+  selectedStartMinute: number | null;
 };

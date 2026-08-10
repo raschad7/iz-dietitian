@@ -174,11 +174,13 @@ export function ApproveDialog({
   /**
    * The hour, which is this dialog's whole reason for existing.
    *
-   * Clients name a day and never a time, so `preferredStartMinute` is null on
-   * every request filed since that rule came in — it is read first only because
-   * older rows still carry one. Failing that, the appointment being moved keeps
-   * its current hour, and a brand-new request opens at the clinic's own opening
-   * time.
+   * The client's own requested time comes first: they now pick one from the
+   * hours the clinic actually had open, so it is a real proposal rather than a
+   * guess, and opening on anything else would make the dietitian re-find it.
+   * Approving unchanged grants exactly what was asked for. Failing that — a
+   * cancellation, or a row filed during the spell when clients named only a day
+   * — the appointment being moved keeps its current hour, and a brand-new
+   * request opens at the clinic's own opening time.
    *
    * The final `0` is midnight and would be a silly default to offer, which is
    * why it sits behind `hours`: it is reached only when the clinic has no

@@ -1,7 +1,9 @@
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
+import { buttonVariants } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Icon } from '@/components/ui/icon';
 import { appointmentMarker } from '@/features/portal/appointments';
 import { AppointmentCard } from '@/features/portal/components/appointment-card';
 import { AppointmentTabs } from '@/features/portal/components/appointment-tabs';
@@ -9,10 +11,13 @@ import { PortalSection } from '@/features/portal/components/portal-section';
 import { RequestList } from '@/features/portal/components/request-list';
 import { loadAppointments } from '@/features/portal/page-data';
 import { requirePortalClient } from '@/features/portal/session';
+import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/params';
 
 type AppointmentsPageProps = {
   params: Promise<{ locale: string }>;
+  /** `?sent=1`, set by the redirect out of the request form. See below. */
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export async function generateMetadata({ params }: AppointmentsPageProps): Promise<Metadata> {
@@ -22,16 +27,15 @@ export async function generateMetadata({ params }: AppointmentsPageProps): Promi
 }
 
 /**
- * This client's appointments: what is coming and what has been.
+ * This client's appointments: what is coming, what has been, and the one thing
+ * they can start from here.
  *
- * **It is a read-only screen.** Booking, rescheduling and cancelling are all the
- * dietitian's to do — a client who needs any of them contacts the clinic. The
- * page used to lead with a "request an appointment" button, and it is gone
- * deliberately: an action a client cannot actually carry through is worse than
- * no action at all. The request *flow* still exists behind
- * `/portal/appointments/request` and any request already filed still shows in
- * the list below, so nothing a client has asked for is hidden — there is simply
- * no longer a way to start a new one from here.
+ * **One action, and it asks rather than books.** Requesting an appointment files
+ * a row the dietitian answers; it does not hold a slot, and the button's own
+ * screen says so. Rescheduling and cancelling stay the dietitian's — a client
+ * who needs either says so in the note on a request, or contacts the clinic.
+ * Keeping the page to a single action is what lets the rest of the layout stay
+ * as quiet as it is.
  *
  * **The two halves are a switch, not two stacked sections.** They used to be:
  * upcoming, then requests, then history, all on one scroll. That made the past
@@ -41,6 +45,10 @@ export async function generateMetadata({ params }: AppointmentsPageProps): Promi
  * "when was that last one?"; the second is a different visit to this page, not a
  * scroll on the first.
  *
+ * The ask sits above that switch rather than inside either half. It is about the
+ * page, not about the half being read — offering it under "past" would be
+ * offering it against a list of things that already happened.
+ *
  * Within the upcoming half the soonest appointment is lifted out of the list
  * entirely. It is the one thing anyone opens this page for, and a list where
  * every row looks identical makes them find it by reading dates.
@@ -48,8 +56,22 @@ export async function generateMetadata({ params }: AppointmentsPageProps): Promi
  * Both halves are rendered here, on the server, and handed to `AppointmentTabs`
  * as slots — see that file for why the choice is local state rather than `?view=`.
  */
-export default async function AppointmentsPage({ params }: AppointmentsPageProps) {
+export default async function AppointmentsPage({ params, searchParams }: AppointmentsPageProps) {
   const locale = await resolveLocale(params);
+
+  /*
+    Set by the redirect at the end of `requestAppointmentAction`, and read for
+    one thing only: saying that the send worked. The filed request does appear
+    further down this page, but a note lands inside a section a client has to
+    scroll to and recognise, and "did that go through?" deserves an answer where
+    they land rather than one they have to go looking for.
+
+    Nothing else depends on it, so a stale or hand-typed `?sent=1` costs a
+    sentence and no state — which is why this stays a query param rather than a
+    flash cookie.
+  */
+  const sent = (await searchParams).sent;
+  const justSent = (Array.isArray(sent) ? sent[0] : sent) === '1';
 
   const context = await requirePortalClient(locale);
   const { upcoming, past, requests } = await loadAppointments(context);
@@ -60,6 +82,15 @@ export default async function AppointmentsPage({ params }: AppointmentsPageProps
   // page would be a list of things they decided not to do.
   const visibleRequests = requests.filter((request) => request.status !== 'withdrawn');
 
+  /*
+    The button is always offered.
+
+    It used to hide behind an open request, because two identical asks in the
+    dietitian's inbox meant they could approve the same thing twice. Asking is
+    now a note, which nobody approves — so a client who thinks of something else
+    a week later should be able to say it, and a button that disappears after
+    one use would read as the portal having taken the offer away.
+  */
   // `upcoming` is sorted soonest-first by `splitAppointments`, so the head is the
   // next appointment and the tail is everything after it.
   const [next, ...later] = upcoming;
@@ -82,26 +113,39 @@ export default async function AppointmentsPage({ params }: AppointmentsPageProps
             />
           </PortalSection>
 
-          {later.length > 0 ? (
-            <PortalSection
-              icon="calendar"
-              title={t('appointments.upcoming')}
-              count={later.length}
-            >
-              <ul className="space-y-3">
-                {later.map((appointment, index) => (
-                  <li key={appointment.id}>
-                    <AppointmentCard
-                      appointment={appointment}
-                      // `index + 1`: these start after the featured one, and
-                      // `appointmentMarker` reads position 0 as "next".
-                      marker={appointmentMarker(appointment, index + 1, context.now)}
-                    />
-                  </li>
-                ))}
-              </ul>
-            </PortalSection>
-          ) : null}
+          <PortalSection icon="calendar" title={t('appointments.upcoming')} count={later.length}>
+            <div className="space-y-3">
+              {later.length > 0 ? (
+                <ul className="space-y-3">
+                  {later.map((appointment, index) => (
+                    <li key={appointment.id}>
+                      <AppointmentCard
+                        appointment={appointment}
+                        // `index + 1`: these start after the featured one, and
+                        // `appointmentMarker` reads position 0 as "next".
+                        marker={appointmentMarker(appointment, index + 1, context.now)}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+
+              {/*
+                The list says where it ends. Without it the upcoming half just
+                stops, and a client who has one appointment after the next one
+                cannot tell the difference between "that is all of them" and a
+                list that failed to finish loading — the page is a scroll, not a
+                count. It renders under a populated list and in place of one, so
+                the answer to "is there more?" is in the same spot either way.
+              */}
+              <EmptyState
+                layout="row"
+                icon="calendar"
+                title={t('appointments.noMoreUpcomingTitle')}
+                description={t('appointments.noMoreUpcoming')}
+              />
+            </div>
+          </PortalSection>
         </>
       )}
 
@@ -138,11 +182,59 @@ export default async function AppointmentsPage({ params }: AppointmentsPageProps
 
   return (
     <div className="space-y-6">
-      <header className="space-y-1">
-        <h2 className="font-heading text-2xl font-semibold tracking-tight">
-          {t('appointments.title')}
-        </h2>
-        <p className="text-sm text-muted-foreground">{t('appointments.subtitle')}</p>
+      <header className="space-y-4">
+        <div className="space-y-1">
+          {/*
+            The page's own `h1`. The portal header above it carries the tab bar
+            and a bell, not a title, so every tab screen owns the top of its own
+            outline — the profile screen does the same.
+          */}
+          <h1 className="font-heading text-2xl font-semibold tracking-tight">
+            {t('appointments.title')}
+          </h1>
+          <p className="text-sm text-muted-foreground">{t('appointments.subtitle')}</p>
+        </div>
+
+        {/*
+          `soft` and full width, matching the switch below it. The solid olive
+          it used to be was the loudest thing on a screen whose actual subject —
+          the next appointment — sits underneath it, and this page asks for an
+          appointment rather than booking one, so a bar that reads like a
+          checkout button was overstating what pressing it does.
+
+          `max-w-none` because `buttonVariants` caps every button at 320px, so
+          `w-full` alone stops short of the edge on any phone wider than that.
+        */}
+        <Link
+          href="/portal/appointments/request"
+          className={buttonVariants({ variant: 'soft', className: 'w-full max-w-none' })}
+        >
+          <Icon name="bookAppointment" />
+          {t('appointments.book')}
+        </Link>
+
+        {/*
+          Under the button rather than above the title: it is the answer to the
+          press, so it belongs against the control that was pressed, not floated
+          over the page's heading as a thing that happened to the whole screen.
+
+          `role="status"` because a client arriving here by redirect has had the
+          page replaced under them — a screen reader announces the new document,
+          not this sentence, unless it is a live region.
+
+          On-track olive rather than a green of its own: the palette already
+          spends olive on "this is going the way it should", and a second
+          success colour would only be a second success colour.
+        */}
+        {justSent ? (
+          <p
+            role="status"
+            className="flex items-start gap-2 rounded-lg bg-status-on-track-bg px-4 py-3 text-sm font-medium text-status-on-track-fg"
+          >
+            <Icon name="check" className="mt-0.5" />
+            {t('appointments.requestSent')}
+          </p>
+        ) : null}
       </header>
 
       <AppointmentTabs

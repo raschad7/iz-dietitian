@@ -1,15 +1,13 @@
-import { HeartPulse, UserRound } from 'lucide-react';
 import { getFormatter, getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
-import { formatMediumDate } from '@/features/booking/format';
-import { calculateAge } from '@/features/clients/age';
-import { CLIENT_ACTIVITY_LEVELS, CLIENT_GOALS, CLIENT_SEXES } from '@/features/clients/schema';
+import { CLIENT_ACTIVITY_LEVELS, CLIENT_GOALS } from '@/features/clients/schema';
 import { ClinicSection } from '@/features/portal/components/clinic-section';
 import { DataUpdateRequest } from '@/features/portal/components/data-update-request';
+import { HealthStats, type HealthStat } from '@/features/portal/components/health-stats';
 import { InfoRow } from '@/features/portal/components/info-row';
 import { ProfileIdentity } from '@/features/portal/components/profile-identity';
-import { ProfileSection } from '@/features/portal/components/profile-section';
+import { ProfileSection, SectionNote } from '@/features/portal/components/profile-section';
 import { loadProfilePage } from '@/features/portal/page-data';
 import { requirePortalClient } from '@/features/portal/session';
 import { defaultCountryCode } from '@/features/whatsapp/config';
@@ -37,11 +35,19 @@ export async function generateMetadata({ params }: ProfilePageProps): Promise<Me
  * nobody told. So there are no edit affordances beside the fields — there is
  * one honest way to correct the record, at the bottom, and it reaches a person.
  *
- * **Three owners, in reading order.** Who you are, what your dietitian has
- * recorded about your health, and who is looking after you. The first two are
- * about the client and the third is about the clinic, which is the order
- * someone opening their own record reads in — and it puts the phone number
- * immediately before the block explaining what to do if something is wrong.
+ * **Two owners, in reading order.** What your dietitian has recorded about your
+ * health, then who is looking after you — the record, then the people behind
+ * it. That order puts the clinic's phone number immediately before the block
+ * explaining what to do if something on the screen is wrong.
+ *
+ * **The identity card is not here any more.** Name, birth date, age, sex and the
+ * two identifiers used to open this screen; they now live at
+ * `/portal/settings/contact`, under `الملف الشخصي`. Nothing in that set is
+ * clinical — none of it feeds a plan, filters a catalog, or was agreed in a
+ * consultation — so leading the medical file with it made the file's first
+ * screenful the least medical part of it. This screen is now only the things a
+ * dietitian wrote, which is the same split `settings/page.tsx` draws from the
+ * other side.
  *
  * **What is deliberately absent.** The dietitian's private notes
  * (`clients.medical_notes`, `clients.notes`) are never selected by
@@ -64,84 +70,112 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   const tClients = await getTranslations('clients');
   const format = await getFormatter();
 
-  const age = profile.dateOfBirth ? calculateAge(profile.dateOfBirth) : null;
+  /*
+    The health record's headline facts, as tiles.
+
+    **The weight is omitted from the list, not passed as null.** A null tile
+    renders "not recorded", and `getSharedWeight` returns null both when no
+    weight exists *and* when the dietitian has chosen not to share one — so a
+    dashed "not recorded" tile would be stating something the page cannot know
+    is true. §11: hidden is hidden, and the screen does not raise the subject.
+    Height, goal and activity carry no such flag and are always offered.
+
+    Three tiles rather than four is the ordinary case, and the grid handles it —
+    it takes its column count from the tile count, so three sit in one row and
+    four square off into two rows of two. Neither leaves a hole.
+  */
+  const healthStats: HealthStat[] = [
+    {
+      label: t('field.goal'),
+      value: enumLabel(CLIENT_GOALS, profile.goal, (key) => tClients(`goal.${key}`)),
+      kind: 'category',
+      icon: 'goalOutline',
+    },
+    {
+      label: t('field.height'),
+      // The figure and its unit are separate here, not `t('cm')`: the tile draws
+      // the number large and the unit under it, so it needs the two apart.
+      value: profile.heightCm === null ? null : format.number(profile.heightCm, 'integer'),
+      unit: t('unitCm'),
+      kind: 'measure',
+      icon: 'heightOutline',
+    },
+    ...(weightKg === null
+      ? []
+      : [
+          {
+            label: t('field.weight'),
+            value: format.number(weightKg, 'plain'),
+            unit: t('unitKg'),
+            kind: 'measure' as const,
+            icon: 'weightOutline' as const,
+          },
+        ]),
+    {
+      label: t('field.activityLevel'),
+      value: enumLabel(CLIENT_ACTIVITY_LEVELS, profile.activityLevel, (key) =>
+        tClients(`activity.${key}`),
+      ),
+      kind: 'category',
+      icon: 'activityOutline',
+    },
+  ];
 
   return (
-    <div className="space-y-4">
+    /*
+      `space-y-6` rather than `space-y-4`: with the header's greeting gone this
+      screen opens on its own heading, and three cards packed at 16px under it
+      read as one long form. The extra 8px is what lets each section be a thing
+      you finished reading before the next one starts.
+    */
+    <div className="space-y-6">
       <ProfileIdentity profile={profile} />
 
-      <ProfileSection icon={UserRound} title={t('section.basic')}>
-        <InfoRow label={t('field.fullName')} value={profile.fullName} />
-        {/*
-          Read as a wall-clock date, not as an instant: a birthday is a
-          calendar fact, and `formatDate` would shift it across a time zone.
-          `formatMediumDate` is the same helper the appointment screens use
-          and for the same reason.
-        */}
-        <InfoRow
-          label={t('field.dateOfBirth')}
-          value={profile.dateOfBirth === null ? null : formatMediumDate(locale, profile.dateOfBirth)}
-        />
-        <InfoRow
-          label={t('field.age')}
-          value={age === null ? null : tClients('yearsOld', { count: age })}
-        />
-        <InfoRow
-          label={t('field.sex')}
-          value={enumLabel(CLIENT_SEXES, profile.sex, (key) => tClients(`sex.${key}`))}
-        />
-        <InfoRow label={t('field.phone')} value={profile.phone} ltr />
-        <InfoRow label={t('field.email')} value={profile.email} ltr />
-      </ProfileSection>
-
       {/*
-        The identifier note sits on this section and nowhere else: the phone
-        and the email above are what a client signs in and receives clinic
-        messages with, so changing one is a verification the clinic runs
-        rather than a field on a page.
+        Two shapes in one section, and the split is by the shape of the answer,
+        not by importance. A height, a goal and an activity level are a figure or
+        one word from a known set, so they are tiles read at a glance; conditions,
+        allergies, medications and the dietitian's note are prose, and a paragraph
+        in a half-width tile is four words wide.
       */}
-      <p className="px-1 text-xs leading-relaxed text-muted-foreground">{t('identifierNote')}</p>
-
       <ProfileSection
-        icon={HeartPulse}
+        icon="heartOutline"
         title={t('section.health')}
         description={t('section.healthDescription')}
+        lead={<HealthStats stats={healthStats} />}
+        /*
+          The note says what the blanks are *for*, which is the one thing the
+          dashed chips above it cannot. It is an invitation to fill the record in
+          rather than a warning that it is incomplete — `infoOutline` and the
+          muted strip, never `attention`, which §Status reserves for something
+          actually owed.
+        */
+        note={<SectionNote>{t('healthNote')}</SectionNote>}
       >
         <InfoRow
-          label={t('field.height')}
-          value={
-            profile.heightCm === null
-              ? null
-              : t('cm', { value: format.number(profile.heightCm, 'integer') })
-          }
-        />
-
-        {/*
-          Absent, not blank. A row reading "hidden" would tell the client
-          there is a number being kept from them, which is worse than not
-          raising the subject at all — §9.8's `hidden-metric` state.
-        */}
-        {weightKg === null ? null : (
-          <InfoRow
-            label={t('field.weight')}
-            value={t('kg', { value: format.number(weightKg, 'plain') })}
-          />
-        )}
-
-        <InfoRow
-          label={t('field.goal')}
-          value={enumLabel(CLIENT_GOALS, profile.goal, (key) => tClients(`goal.${key}`))}
+          label={t('field.conditions')}
+          value={profile.conditions}
+          icon="conditionsOutline"
+          block
         />
         <InfoRow
-          label={t('field.activityLevel')}
-          value={enumLabel(CLIENT_ACTIVITY_LEVELS, profile.activityLevel, (key) =>
-            tClients(`activity.${key}`),
-          )}
+          label={t('field.allergies')}
+          value={profile.allergies}
+          icon="allergiesOutline"
+          block
         />
-        <InfoRow label={t('field.conditions')} value={profile.conditions} block />
-        <InfoRow label={t('field.allergies')} value={profile.allergies} block />
-        <InfoRow label={t('field.medications')} value={profile.medications} block />
-        <InfoRow label={t('field.careNote')} value={profile.careNote} block />
+        <InfoRow
+          label={t('field.medications')}
+          value={profile.medications}
+          icon="medicationsOutline"
+          block
+        />
+        <InfoRow
+          label={t('field.careNote')}
+          value={profile.careNote}
+          icon="careNoteOutline"
+          block
+        />
       </ProfileSection>
 
       {clinic ? (

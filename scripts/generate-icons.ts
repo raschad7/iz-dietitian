@@ -197,16 +197,89 @@ const ICONS = {
   mealSnack: 'donut-bitten-bold',
   mealLunch: 'plate-bold',
   mealDinner: 'moon-stars-bold',
+
+  /**
+   * The same four for the *client's* plan, drawn as line icons — the second
+   * deliberate exception to Solar Bold, for the same reason as the portal tab
+   * bar's outer tabs above: what a filled glyph was doing on that card was
+   * standing out, and on the client's plan it has nothing to stand out
+   * *against*. The meal card is a row you scan five of, and its one loud mark
+   * is the tick that says whether you ate; a solid glyph beside it competed
+   * with that, which is why the filled disc these used to sit on is gone too.
+   *
+   * The staff planner's slot rail keeps the bold set. It compares four icons
+   * stacked in a 24px column, where a 1.5px stroke is exactly the detail that
+   * stops reading, so these are a second entry rather than a swap.
+   *
+   * Solar's `-linear` bodies carry their own `fill="none" stroke="currentColor"`,
+   * so they survive `Icon`'s `fill="currentColor"` on the parent `<svg>` — a
+   * linear glyph that omitted it would paint solid and silently look bold.
+   */
+  mealBreakfastOutline: 'sun-linear',
+  mealSnackOutline: 'donut-bitten-linear',
+  mealLunchOutline: 'plate-linear',
+  mealDinnerOutline: 'moon-stars-linear',
   /** The dish itself, on a meal card. Constant — no dish carries its own icon. */
   dish: 'chef-hat-bold',
   /** A client's requests about an appointment, which are a conversation. */
   chat: 'chat-round-line-bold',
+
+  /**
+   * The client's own record screen — section headers and row markers.
+   *
+   * Line icons, the third exception to Solar Bold and the same reasoning as the
+   * two above: this screen is a stack of read-only facts, and a filled glyph
+   * beside every heading and every second row turned a page you *read* into a
+   * page of marks. The one filled thing on it should be the button that calls
+   * the clinic. The staff side keeps the bold set — `contact` (phone-bold) and
+   * `clock` are still what the dietitian's own panels draw.
+   */
+  personOutline: 'user-linear',
+  heartOutline: 'heart-linear',
+  clinicOutline: 'hospital-linear',
+  phoneOutline: 'phone-linear',
+  emailOutline: 'letter-linear',
+  locationOutline: 'map-point-linear',
+  clockOutline: 'clock-circle-linear',
+  infoOutline: 'info-circle-linear',
+  mapOutline: 'map-linear',
+  chatOutline: 'chat-round-line-linear',
+
+  /**
+   * One glyph per field of the health record, so a row is findable by its mark
+   * rather than only by reading its label.
+   *
+   * **The glyph is what tells these apart, not a colour.** Every tile and badge
+   * on that screen carries the same olive; distinguishing five fields by hue
+   * would need five hues, and this palette has two support colours, both of
+   * which already mean something (amber is "needs follow-up", clay is the only
+   * alarm). It is the argument the meal cards already make — one tone for all of
+   * them, the icon and the label carry the difference.
+   */
+  goalOutline: 'target-linear',
+  heightOutline: 'ruler-linear',
+  activityOutline: 'walking-linear',
+  weightOutline: 'scale-linear',
+  conditionsOutline: 'shield-plus-linear',
+  allergiesOutline: 'leaf-linear',
+  medicationsOutline: 'pill-linear',
+  careNoteOutline: 'notes-linear',
+  /** The clinic as an organisation, on its name row. */
+  clinicNameOutline: 'users-group-rounded-linear',
 
   // Portal settings — destination rows
   help: 'question-circle-bold',
   privacy: 'shield-check-bold',
   /** Terms of service. Distinct glyph from `myPlanFeatured`'s document-text-bold. */
   terms: 'file-text-bold',
+  /**
+   * The closing offer on the help screen — "still stuck? talk to us".
+   *
+   * Not `help`'s question mark, deliberately: that glyph is what the settings
+   * list uses to *get to* the help screen, and repeating it at the bottom of
+   * the page it leads to would mark the exit with the same sign as the entrance.
+   */
+  suggestion: 'lightbulb-bold',
 } as const satisfies Record<string, string>;
 
 type SolarIcon = { body: string; width?: number; height?: number };

@@ -114,7 +114,7 @@ describe('toggleMealCompletion', () => {
     const [first] = dayZero;
     if (!first) throw new Error('fixture failed: no meal on day 0');
 
-    const result = await toggleMealCompletion({ clientId, clinicId }, first, true);
+    const result = await toggleMealCompletion({ clientId, clinicId, today: WEEK_START }, first, true);
 
     expect(result).toEqual({ ok: true, data: { date: WEEK_START, level: 'partial' } });
     expect(await completionExists(clientId, first)).toBe(true);
@@ -129,8 +129,8 @@ describe('toggleMealCompletion', () => {
     const [first, second] = dayZero;
     if (!first || !second) throw new Error('fixture failed: expected two meals on day 0');
 
-    await toggleMealCompletion({ clientId, clinicId }, first, true);
-    const result = await toggleMealCompletion({ clientId, clinicId }, second, true);
+    await toggleMealCompletion({ clientId, clinicId, today: WEEK_START }, first, true);
+    const result = await toggleMealCompletion({ clientId, clinicId, today: WEEK_START }, second, true);
 
     expect(result).toEqual({ ok: true, data: { date: WEEK_START, level: 'full' } });
     expect(await adherenceLevel(clientId, WEEK_START)).toBe('full');
@@ -142,8 +142,8 @@ describe('toggleMealCompletion', () => {
     const [first] = dayZero;
     if (!first) throw new Error('fixture failed: no meal on day 0');
 
-    await toggleMealCompletion({ clientId, clinicId }, first, true);
-    const result = await toggleMealCompletion({ clientId, clinicId }, first, false);
+    await toggleMealCompletion({ clientId, clinicId, today: WEEK_START }, first, true);
+    const result = await toggleMealCompletion({ clientId, clinicId, today: WEEK_START }, first, false);
 
     expect(result).toEqual({ ok: true, data: { date: WEEK_START, level: 'missed' } });
     expect(await completionExists(clientId, first)).toBe(false);
@@ -158,8 +158,8 @@ describe('toggleMealCompletion', () => {
     const [first] = dayZero;
     if (!first) throw new Error('fixture failed: no meal on day 0');
 
-    await toggleMealCompletion({ clientId, clinicId }, first, true);
-    await toggleMealCompletion({ clientId, clinicId }, first, true);
+    await toggleMealCompletion({ clientId, clinicId, today: WEEK_START }, first, true);
+    await toggleMealCompletion({ clientId, clinicId, today: WEEK_START }, first, true);
 
     const rows = await db
       .select({ id: weeklyPlanMealCompletions.id })
@@ -175,7 +175,7 @@ describe('toggleMealCompletion', () => {
     const [one] = dayOne;
     if (!zero || !one) throw new Error('fixture failed: expected meals on both days');
 
-    await toggleMealCompletion({ clientId, clinicId }, zero, true);
+    await toggleMealCompletion({ clientId, clinicId, today: WEEK_START }, zero, true);
 
     const mondayDate = weekDates(WEEK_START)[1];
     if (!mondayDate) throw new Error('fixture failed: could not compute Monday date');
@@ -190,7 +190,7 @@ describe('toggleMealCompletion', () => {
     const [first] = dayZero;
     if (!first) throw new Error('fixture failed: no meal on day 0');
 
-    const result = await toggleMealCompletion({ clientId: otherClientId, clinicId }, first, true);
+    const result = await toggleMealCompletion({ clientId: otherClientId, clinicId, today: WEEK_START }, first, true);
 
     expect(result).toEqual({ ok: false, error: 'errors.notFound' });
     expect(await completionExists(otherClientId, first)).toBe(false);
@@ -201,7 +201,7 @@ describe('toggleMealCompletion', () => {
     const [first] = dayZero;
     if (!first) throw new Error('fixture failed: no meal on day 0');
 
-    const result = await toggleMealCompletion({ clientId: otherClientId, clinicId }, first, true);
+    const result = await toggleMealCompletion({ clientId: otherClientId, clinicId, today: WEEK_START }, first, true);
 
     expect(result).toEqual({ ok: false, error: 'errors.notFound' });
     expect(await completionExists(otherClientId, first)).toBe(false);
@@ -212,8 +212,70 @@ describe('toggleMealCompletion', () => {
     const [first] = dayZero;
     if (!first) throw new Error('fixture failed: no meal on day 0');
 
-    const result = await toggleMealCompletion({ clientId, clinicId: otherClinicId }, first, true);
+    const result = await toggleMealCompletion({ clientId, clinicId: otherClinicId, today: WEEK_START }, first, true);
 
     expect(result).toEqual({ ok: false, error: 'errors.notFound' });
+  });
+
+  /*
+    Only today can be reported on. The portal draws no control on any other day
+    — see `MealCard` — but this is the rule itself: a server action is a public
+    endpoint, so the guard has to hold against a post that never went near the
+    screen.
+
+    The date is taken from the meal, never from the caller, so these two cases
+    are the whole surface: a meal whose day has ended, and one whose day has not
+    arrived.
+  */
+  test('refuses a meal on a day that has already ended', async () => {
+    const { dayZero } = await insertMeals(planId);
+    const [first] = dayZero;
+    if (!first) throw new Error('fixture failed: no meal on day 0');
+
+    // Day zero is WEEK_START; the clinic is a day past it.
+    const result = await toggleMealCompletion(
+      { clientId, clinicId, today: '2026-08-03' },
+      first,
+      true,
+    );
+
+    expect(result).toEqual({ ok: false, error: 'errors.dayLocked' });
+    expect(await completionExists(clientId, first)).toBe(false);
+    expect(await adherenceLevel(clientId, WEEK_START)).toBeNull();
+  });
+
+  test('refuses a meal on a day that has not arrived', async () => {
+    const { dayOne } = await insertMeals(planId);
+    const [monday] = dayOne;
+    if (!monday) throw new Error('fixture failed: no meal on day 1');
+
+    // Monday is 2026-08-03 and the clinic is still on Sunday.
+    const result = await toggleMealCompletion(
+      { clientId, clinicId, today: WEEK_START },
+      monday,
+      true,
+    );
+
+    expect(result).toEqual({ ok: false, error: 'errors.dayLocked' });
+    expect(await completionExists(clientId, monday)).toBe(false);
+  });
+
+  test('unticking is refused on a settled day too, so a record cannot be erased', async () => {
+    const { dayZero } = await insertMeals(planId);
+    const [first] = dayZero;
+    if (!first) throw new Error('fixture failed: no meal on day 0');
+
+    await toggleMealCompletion({ clientId, clinicId, today: WEEK_START }, first, true);
+
+    // The same client, the same meal, one day later.
+    const result = await toggleMealCompletion(
+      { clientId, clinicId, today: '2026-08-03' },
+      first,
+      false,
+    );
+
+    expect(result).toEqual({ ok: false, error: 'errors.dayLocked' });
+    expect(await completionExists(clientId, first)).toBe(true);
+    expect(await adherenceLevel(clientId, WEEK_START)).toBe('partial');
   });
 });

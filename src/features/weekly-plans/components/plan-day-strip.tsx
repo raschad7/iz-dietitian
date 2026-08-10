@@ -209,24 +209,35 @@ export function PlanDayStrip({
               )}
             >
               {/*
-                Today says "today" rather than its weekday, exactly as the
-                adherence strip does — the word is what someone scans this row
-                for, and now the only thing that marks it, since the fill has gone
-                to the selected day. Olive *and* semibold: a signal carried by
-                colour alone is one a colourblind reader does not get.
+                **Every cell says its own weekday, today included.** This row
+                used to replace today's name with the word "اليوم", the way the
+                adherence strip on the home screen still does — and on a strip
+                you *navigate* with, that costs more than it gives. The seven
+                cells are how a client finds a particular day, and swapping one
+                of the seven names for a different kind of word breaks the run
+                they are scanning: الأحد is missing from a row that still has
+                six weekday names in it, and the day you were looking for is the
+                one cell that no longer answers to its name.
+
+                Today is still marked — olive *and* semibold, never colour alone,
+                which is a signal a colourblind reader does not get. What changed
+                is that the mark now sits on the name rather than replacing it.
+                The `aria-label` on the button still spells out both ("الأحد —
+                اليوم"), so nothing is lost to a screen reader, which cannot see
+                the weight or the colour doing the work here.
 
                 `text-caption` is 12px, the scale's floor. `truncate` is a guard
-                rather than a working state at 72px, and the `aria-label` on the
-                button carries the untruncated name regardless.
+                rather than a working state at 72px, and the `aria-label` carries
+                the untruncated name regardless.
 
                 **No `leading-none` here.** `text-caption` already carries its own
                 line height, and that height is looser under `:lang(ar)` (1.5
                 against Latin's 1.45) exactly because Arabic descends below the
                 baseline where Latin does not. Pinning the line box to 1.0 cropped
-                the tail of the ي in "اليوم" against `truncate`'s `overflow:
-                hidden` — the two are only a bug together, which is why the same
-                override survives unnoticed on the adherence strip next door,
-                where nothing clips it.
+                the tail of the ي against `truncate`'s `overflow: hidden` — the
+                two are only a bug together, which is why the same override
+                survives unnoticed on the adherence strip next door, where nothing
+                clips it. Still live: الأربعاء and الخميس both descend the same way.
               */}
               <span
                 className={cn(
@@ -234,7 +245,7 @@ export function PlanDayStrip({
                   day.isToday && 'font-semibold text-primary',
                 )}
               >
-                {day.isToday ? t('today') : name}
+                {name}
               </span>
 
               {/*

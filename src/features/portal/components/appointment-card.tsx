@@ -38,13 +38,20 @@ import { cn } from '@/lib/utils';
  * practitioner's name was under it for a while and came out again, being the
  * same name on every row of a list of one dietitian's appointments.
  *
- * Three weights, one layout. `featured` is the next appointment and fills the
- * whole card with olive — the brand's ink, which §06 treats as a neutral, so this
- * is emphasis and not a second accent. §07's warning about a saturated card
- * pulling attention off its neighbours is the point rather than the cost: this
- * screen is a switch, one next appointment and a list, and the next appointment
- * is what it is opened for. `default` and `past` are ordinary cards, separated
- * from each other by the tone of the date tile and by `past` dimming.
+ * Three weights, one layout, and the emphasis is carried by tone and size
+ * rather than by a fill. `featured` is the next appointment: a sunken card,
+ * flat, with a larger date tile and a larger heading. `default` is an ordinary
+ * raised white card, and `past` is one of those dimmed.
+ *
+ * **Why the featured card recedes instead of shouting.** It filled with olive
+ * for a while, and a solid brand block at the top of a screen that is otherwise
+ * a stack of quiet white cards turned the page into one loud thing and a list of
+ * afterthoughts — including the request button above it, which is the only
+ * control here. The distinction that matters is not "this one is loud" but "this
+ * one is not in the list", and a different plane says that: the list is raised
+ * and white, the next appointment sits in the page. Its own heading, its size
+ * and its `marker` chip carry the rest, and the reader's eye still lands on it
+ * first because it is first.
  *
  * Times go through `src/features/booking/format.ts`, not the general formatters
  * in `src/lib/format.ts`: an appointment stores a wall clock rather than an
@@ -66,14 +73,19 @@ type AppointmentCardProps = {
 };
 
 /**
- * The date tile's fill, per tone.
+ * The date tile's fill, per tone — one step of olive per step of emphasis.
  *
- * On the olive card the tile is a translucent white rather than a token: it has
- * to sit on `primary` and stay a tile, and every fill in the ramp either
- * disappears into the olive or reads as a second card laid on top of it.
+ * `featured` takes olive-100 rather than the olive-50 the other cards use, and
+ * that is a legibility floor before it is emphasis: the featured card's own
+ * surface is n-50 (#F7F5EF) and olive-50 is #F5F8EF, so the two are the same
+ * lightness in different hues and the tile all but vanished on it. olive-50 is
+ * fine where it has always been, on the white card below.
+ *
+ * `past` drops out of the ramp entirely to the neutral pair. That is the tone
+ * doing real work: a finished appointment carries no brand colour anywhere.
  */
 const PANEL_TONES = {
-  featured: 'bg-primary-foreground/15 text-primary-foreground',
+  featured: 'bg-primary-subtle text-secondary-foreground',
   default: 'bg-secondary text-secondary-foreground',
   past: 'bg-muted text-muted-foreground',
 } as const satisfies Record<AppointmentTone, string>;
@@ -100,10 +112,11 @@ export function AppointmentCard({
     <Card
       className={cn(
         past && 'opacity-75',
-        // The olive fill replaces the card's own surface, so its hairline goes
-        // with it: a ring drawn in `foreground/10` over a saturated fill reads
-        // as a seam rather than as an edge.
-        featured && 'bg-primary text-primary-foreground ring-0',
+        // Sunken and flat. The ring and the shadow are what make the cards
+        // below it read as raised, so the card that is deliberately *not* in
+        // that list gives up both — an edge and a lift on a tinted surface
+        // would put it back on the same plane it is trying to leave.
+        featured && 'bg-muted shadow-none ring-0',
       )}
     >
       <CardContent className="flex items-stretch gap-3 sm:gap-4">
@@ -113,7 +126,10 @@ export function AppointmentCard({
         */}
         <div
           className={cn(
-            'flex w-16 shrink-0 flex-col items-center justify-center gap-0.5 rounded-lg px-1 py-2 sm:w-18',
+            'flex shrink-0 flex-col items-center justify-center gap-0.5 rounded-lg px-1 py-2',
+            // The next appointment's tile is wider as well as deeper. It is the
+            // one date on the screen someone is trying to hold in their head.
+            featured ? 'w-18 sm:w-20' : 'w-16 sm:w-18',
             PANEL_TONES[tone],
           )}
         >
@@ -180,11 +196,11 @@ export function AppointmentCard({
             {marker !== null || appointment.hasOpenRequest ? (
               <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
                 {marker !== null ? (
-                  // On the olive card the default chip is olive-100 on olive-500
-                  // and all but disappears; a plain card surface with
-                  // full-strength text on it is the same swap the plan's kcal
-                  // pill makes on its tinted shell.
-                  <Badge className={cn(featured && 'bg-card text-foreground')}>
+                  // The chip steps up with the tile on the featured card, and
+                  // for the same reason: its default olive-50 fill and that
+                  // card's n-50 surface are the same lightness, so the chip
+                  // read as floating text with no pill around it.
+                  <Badge className={cn(featured && 'bg-primary-subtle')}>
                     {t(`appointments.marker.${marker}`)}
                   </Badge>
                 ) : null}
@@ -202,12 +218,11 @@ export function AppointmentCard({
             ) : null}
           </div>
 
-          <p
-            className={cn(
-              'flex flex-wrap items-center gap-x-1.5 text-sm',
-              featured ? 'text-primary-foreground/90' : 'text-muted-foreground',
-            )}
-          >
+          {/*
+            One muted grey for every tone now that no card is saturated. The
+            featured card used to need `primary-foreground/90` to sit on olive.
+          */}
+          <p className="flex flex-wrap items-center gap-x-1.5 text-sm text-muted-foreground">
             <Icon name="clock" className="size-3.5 shrink-0" />
             {/*
               No `dir="ltr"` here, deliberately.

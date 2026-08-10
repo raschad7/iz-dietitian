@@ -36,6 +36,22 @@ const buttonVariants = cva(
         default: "border-transparent bg-primary text-primary-foreground hover:bg-primary-hover",
 
         /**
+         * Primary, quietly — the brand's subtle fill, an olive label, no border.
+         *
+         * For the one action on a screen that is otherwise all reading. The
+         * portal's appointments page is the case: a solid olive bar sat above
+         * the next appointment and outweighed it, which is backwards on a screen
+         * opened to find out when that appointment is. This still reads as the
+         * page's action — it is the only filled thing above the fold — without
+         * being the loudest thing on it.
+         *
+         * Not a replacement for `default`. Where a button closes a decision —
+         * a form's submit, a dialog's confirm — the solid fill is the one that
+         * says so. olive-700 on olive-50 is 7.37:1.
+         */
+        soft: "border-transparent bg-secondary text-secondary-foreground hover:bg-primary-subtle",
+
+        /**
          * Secondary — white box, olive border and label, flipping to lime on
          * hover. The label darkens to olive-950 with it: olive-600 on lime-400
          * is 3.98:1 and fails, olive-950 is 12.04:1.
