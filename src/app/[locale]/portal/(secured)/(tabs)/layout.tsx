@@ -1,8 +1,10 @@
 import { getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
 
+import { weekdayOf } from '@/features/booking/date';
 import { Sidebar } from '@/components/layout/sidebar';
 import { PORTAL_NAV, PORTAL_NAV_ICONS } from '@/features/portal/nav';
+import { HomeGlow } from '@/features/portal/components/home-glow';
 import { PortalHeader } from '@/features/portal/components/portal-header';
 import { PortalTabBar } from '@/features/portal/components/portal-tab-bar';
 import { greetingKey } from '@/features/portal/greeting';
@@ -40,20 +42,47 @@ export default async function PortalTabsLayout({ children, params }: PortalTabsL
 
   return (
     <>
+      {/*
+        The home screen's glow, rendered here rather than by `page.tsx`.
+
+        It has to sit outside `(tabs)/template.tsx` — that wrapper is
+        `.q-route-stage`, whose enter animation puts a `transform` on it, and a
+        transformed ancestor is the containing block for anything `fixed`
+        inside it. From in there the glow could only ever cover `main`'s own
+        box. It decides for itself whether this is the home tab; see the note
+        in `home-glow.tsx`.
+      */}
+      <HomeGlow />
+
       <PortalHeader
         name={context.profile.fullName}
         greeting={greetingKey(context.now.minute)}
-        month={formatDate(locale, context.now.date, { dateStyle: undefined, month: 'short' })}
+        date={formatDate(locale, context.now.date, {
+          dateStyle: undefined,
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+        })}
+        todayDayOfWeek={weekdayOf(context.now.date) ?? 0}
         pendingCount={pendingCount}
         locale={locale}
         showNav
       />
 
-      <div className="flex flex-1">
+      {/*
+        The three `portal-shell-*` hooks are inert on four of the five tabs.
+        They only do anything when the page inside them is the home screen,
+        which marks its own root `.portal-home` — the shell then becomes a
+        viewport-height frame and these three become the flex column that
+        carries its one scrolling region down to the meal list. The rule, and
+        why it is written as a `:has()` selector rather than as a route check
+        up here, is in `globals.css` beside `.portal-home-glow`.
+      */}
+      <div className="portal-shell-row flex flex-1">
         <Sidebar items={PORTAL_NAV} title={t('title')} icons={PORTAL_NAV_ICONS} showMobileBar={false} />
 
-        <main className="min-w-0 flex-1 px-4 pt-5 pb-24 md:px-6 md:pt-6 md:pb-8">
-          <div className="mx-auto w-full max-w-3xl">{children}</div>
+        <main className="portal-shell-main min-w-0 flex-1 px-4 pt-5 pb-24 md:px-6 md:pt-6 md:pb-8">
+          <div className="portal-shell-column mx-auto w-full max-w-3xl">{children}</div>
         </main>
 
         <PortalTabBar />

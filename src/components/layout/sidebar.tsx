@@ -19,7 +19,6 @@ export type NavItem = {
     | '/app/dishes'
     | '/portal'
     | '/portal/appointments'
-    | '/portal/meal-plan'
     | '/portal/profile'
     | '/portal/progress';
   labelKey:
@@ -30,7 +29,6 @@ export type NavItem = {
     | 'dishes'
     | 'portalHome'
     | 'myAppointments'
-    | 'myPlan'
     | 'profile'
     | 'progress';
 };

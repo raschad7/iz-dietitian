@@ -4,8 +4,6 @@ import type { Metadata } from 'next';
 import { AdherenceStreakCard } from '@/features/portal/components/adherence-streak-card';
 import { AdherenceTrendCard } from '@/features/portal/components/adherence-trend-card';
 import { TodayAdherenceCard } from '@/features/portal/components/today-adherence-card';
-import { WeekAdherenceStrip } from '@/features/portal/components/week-adherence-strip';
-import { WeekAdherenceSummary } from '@/features/portal/components/week-adherence-summary';
 import { loadProgressPage } from '@/features/portal/page-data';
 import { requirePortalClient } from '@/features/portal/session';
 import { resolveLocale } from '@/i18n/params';
@@ -31,27 +29,18 @@ export async function generateMetadata({ params }: ProgressPageProps): Promise<M
  * different clinical question from "how are you doing", and a client tracking
  * one should not have to read the other's numbers to find it.
  *
- * Four sections, in the order a client asks them: how today went (and the one
- * place to say so), how this week has gone, how many days running, and the
- * longer four-week arc.
+ * Three sections, in the order a client asks them: how today went (and the
+ * one place to say so), how many days running, and the longer four-week arc.
  */
 export default async function ProgressPage({ params }: ProgressPageProps) {
   const locale = await resolveLocale(params);
 
   const context = await requirePortalClient(locale);
-  const { today, week, streak, continuity, monthlyTrend } = await loadProgressPage(context);
+  const { today, streak, continuity, monthlyTrend } = await loadProgressPage(context);
 
   return (
     <div className="space-y-4">
       <TodayAdherenceCard today={today} locale={locale} />
-
-      <WeekAdherenceSummary
-        averageFraction={week.averageFraction}
-        recordedCount={week.recordedCount}
-        fullyCompletedCount={week.fullyCompletedCount}
-      />
-
-      <WeekAdherenceStrip days={week.days} />
 
       <AdherenceStreakCard streak={streak} continuity={continuity} />
 

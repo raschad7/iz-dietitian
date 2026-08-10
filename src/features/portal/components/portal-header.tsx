@@ -1,12 +1,12 @@
 'use client';
 
-import { Bell, LogOut, Settings, Sun } from 'lucide-react';
+import { Bell, Flame, LogOut, Settings, Sun } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useFormStatus } from 'react-dom';
 
-import { CalendarGlyphIcon } from '@/components/icons';
 import { signOutAction } from '@/features/auth/actions';
 import { type GreetingKey } from '@/features/portal/greeting';
+import { dayKey } from '@/features/weekly-plans/schema';
 import { Link, usePathname } from '@/i18n/navigation';
 import { type Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
@@ -15,12 +15,12 @@ import { cn } from '@/lib/utils';
  * The portal's own header: who you are and what day it is, rather than the
  * app's name.
  *
- * The greeting, the name and the month all show only on the home tab —
+ * The greeting, the name and the date all show only on the home tab —
  * `isHome` below, keyed off `usePathname`. This header is shared chrome
  * across all five portal screens, and the other four are each already
  * identified by their own title or content, so repeating "Good evening,
  * <name>" on every one of them said nothing a screen didn't already say for
- * itself. The month used to live on the week strip's own heading row instead,
+ * itself. The date used to live on the week strip's own heading row instead,
  * one section down; it moved up here so it reads on the same line as the
  * name, matching the current design.
  *
@@ -73,6 +73,47 @@ function HeaderSignOut({ locale }: { locale: Locale }) {
   );
 }
 
+/**
+ * Yesterday, today and tomorrow, read off rather than chosen from. The full
+ * seven-day picker a client actually navigates with is `PlanDayStrip`, one
+ * section down the home screen — this is only the header's own glance at the
+ * moment they opened the app in, so it carries no selection state of its own
+ * and nothing here is a button.
+ *
+ * `aria-hidden`: the weekday it marks is already spoken by the `date` string
+ * one line up ("الاثنين، ١٠ أغسطس"), so a screen reader gets that once rather
+ * than the same day named twice a few pixels apart.
+ *
+ * Today's cell borrows the strip's own flame glyph and its
+ * `status-complete-mark` colour — the one warm accent this screen spends, not
+ * a second orange invented for a header chip.
+ */
+function TodayDayStrip({ todayDayOfWeek }: { todayDayOfWeek: number }) {
+  const tDays = useTranslations('weeklyPlans.days');
+  const yesterday = (todayDayOfWeek + 6) % 7;
+  const tomorrow = (todayDayOfWeek + 1) % 7;
+
+  return (
+    /*
+      A translucent white track rather than an opaque `bg-muted`, which is the
+      `rgba(217, 217, 217, .2)` the design gave it: it sits on the glow, and an
+      opaque cool grey read as a grey bar laid over the wash instead of as a
+      well cut into it. Today's own cell is the one solid surface here, which
+      is what lifts it off the other two.
+    */
+    <div aria-hidden="true" className="mt-3 flex items-center justify-between gap-2 rounded-full bg-white/20 px-4 py-2">
+      <span className="min-w-0 flex-1 truncate text-center text-body-sm text-primary">{tDays(dayKey(yesterday))}</span>
+
+      <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-card px-3.5 py-2">
+        <Flame className="size-4 fill-current text-status-complete-mark" strokeWidth={1.75} />
+        <span className="text-body-sm font-medium text-primary">{tDays(dayKey(todayDayOfWeek))}</span>
+      </span>
+
+      <span className="min-w-0 flex-1 truncate text-center text-body-sm text-primary">{tDays(dayKey(tomorrow))}</span>
+    </div>
+  );
+}
+
 function HeaderSignOutSubmit({ label }: { label: string }) {
   const { pending } = useFormStatus();
 
@@ -91,7 +132,8 @@ function HeaderSignOutSubmit({ label }: { label: string }) {
 export function PortalHeader({
   name,
   greeting,
-  month,
+  date,
+  todayDayOfWeek,
   pendingCount,
   locale,
   showNav,
@@ -99,13 +141,19 @@ export function PortalHeader({
   name: string;
   greeting: GreetingKey;
   /**
-   * The current month, already formatted in the active locale — "أغسطس",
-   * "Aug". Shown beside the name, but only on the home tab — like the
-   * greeting and name themselves, see `isHome` below. Optional because
-   * `set-password`, the one caller outside the tab group, is never the home
-   * route and so never needs to compute it.
+   * Today's date, already formatted in the active locale. Shown beside the
+   * name, but only on the home tab — like the greeting and name themselves,
+   * see `isHome` below. Optional because `set-password`, the one caller
+   * outside the tab group, is never the home route and so never needs to
+   * compute it.
    */
-  month?: string;
+  date?: string;
+  /**
+   * `0`–`6`, `Date#getDay()` numbering — feeds `TodayDayStrip`'s glance at
+   * yesterday/today/tomorrow. Optional for the same reason `date` is: only
+   * the home tab's caller has a day to report.
+   */
+  todayDayOfWeek?: number;
   pendingCount: number;
   locale: Locale;
   /**
@@ -121,15 +169,49 @@ export function PortalHeader({
   const pathname = usePathname();
   const isHome = pathname === '/portal';
 
+  /*
+    **White chrome on home, ordinary foreground everywhere else.**
+
+    The home tab is the only one with the glow behind it, and the bar is
+    unfilled there (see the note on `<header>` below) — so the bell and the
+    gear are sitting on the green wash rather than on a white card, and white
+    is what reads on it. The other four tabs keep `bg-card`, where a white
+    glyph would be a glyph you cannot see; they stay on `text-foreground`.
+
+    The hover fill follows the same split for the same reason: `bg-muted` is a
+    cool grey that shows as a smudge over the wash, so on home the press target
+    tints with white at 15% instead.
+  */
+  const iconTone = isHome
+    ? 'text-white hover:bg-white/15'
+    : 'text-foreground hover:bg-muted';
+
   return (
-    <header className={cn('px-4 pt-3 pb-4', isHome ? '' : 'border-b border-border bg-card')}>
+    /*
+      **On the home tab the bar is unfilled, and that is what lets the glow
+      reach the top of the screen.** `HomeGlow` paints behind everything at
+      `-z-10`; an opaque `bg-card` here was a white band across the first 120px
+      of the page, so the green appeared to start below the greeting rather
+      than behind it. Dropping the fill on that one tab is also what
+      §Navigation already specifies for this bar — "deliberately unfilled: no
+      background, no border, no elevation. The page's own cards carry the
+      weight."
+
+      The other four tabs keep the fill. They have no glow to reveal, so an
+      unfilled bar there would only be a header that had lost the separation
+      from the content underneath.
+    */
+    <header className={cn('px-4 pt-3 pb-4', isHome ? 'bg-transparent' : 'bg-card')}>
       <div className="mx-auto w-full max-w-3xl">
         <div className="flex items-center justify-between">
           <Destination
             href="/portal/notifications"
             enabled={showNav}
             label={pendingCount > 0 ? t('notificationsWaiting', { count: pendingCount }) : t('notifications')}
-            className="relative flex size-11 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted"
+            className={cn(
+              'relative flex size-11 items-center justify-center rounded-full transition-colors',
+              iconTone,
+            )}
           >
             <Bell className="size-5.5" strokeWidth={1.9} aria-hidden="true" />
 
@@ -145,7 +227,7 @@ export function PortalHeader({
               href="/portal/settings"
               enabled
               label={tMenu('settings')}
-              className="flex size-11 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted"
+              className={cn('flex size-11 items-center justify-center rounded-full transition-colors', iconTone)}
             >
               <Settings className="size-5.5" strokeWidth={1.8} aria-hidden="true" />
             </Destination>
@@ -156,27 +238,32 @@ export function PortalHeader({
 
         {isHome ? (
           <div className="mt-2">
-            <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            {/*
+              The greeting and the name go white, against the glow this header
+              is deliberately unfilled over — see `iconTone` above. Only the
+              home tab draws this block at all, so there is no second surface
+              to check them against.
+            */}
+            <p className="flex items-center gap-1.5 text-sm text-white">
               {t(`greeting.${greeting}`)}
               <Sun className="size-4 text-status-complete-mark-soft" strokeWidth={2} aria-hidden="true" />
             </p>
 
             {/*
-              `items-baseline`, not `items-center`: the month chip is much
+              `items-baseline`, not `items-center`: the date chip is much
               smaller than the name, and centring the two vertically would sit
               the chip noticeably above the name's own baseline instead of
               resting on the same line as its text.
             */}
             <p className="flex items-baseline justify-between gap-3">
-              <span className="truncate font-heading text-xl font-semibold text-secondary-foreground">{name}</span>
+              <span className="truncate font-heading text-xl font-semibold text-white">{name}</span>
 
-              {month ? (
-                <span className="shrink-0 text-xs font-medium text-muted-foreground">
-                  <CalendarGlyphIcon className="me-1 inline-block size-3.5 align-[-0.15em]" />
-                  {month}
-                </span>
+              {date ? (
+                <span className="shrink-0 text-xs font-medium text-white">{date}</span>
               ) : null}
             </p>
+
+            {todayDayOfWeek !== undefined ? <TodayDayStrip todayDayOfWeek={todayDayOfWeek} /> : null}
           </div>
         ) : null}
       </div>

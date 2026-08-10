@@ -4,6 +4,8 @@ Repository-wide instructions for coding agents.
 
 ## Read only what the task needs
 
+Important: Before creating any new UI component, check the existing shadcn/ui components first. Reuse and compose the existing components whenever possible (Button, Dialog, Sheet, DropdownMenu, Select, Tabs, Card, Input, etc.). Only create a custom component when there is no suitable existing shadcn component. Do not duplicate or reinvent components that already exist in the project.
+
 - Product boundaries: [`docs/product-scope.md`](docs/product-scope.md)
 - Code structure and security boundaries:
   [`docs/architecture.md`](docs/architecture.md)

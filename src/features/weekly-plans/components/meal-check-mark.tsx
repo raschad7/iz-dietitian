@@ -12,10 +12,11 @@ import { cn } from '@/lib/utils';
  * changes.
  *
  * **No colour of its own.** The tick paints in `currentColor`, so the caller
- * decides: olive-500 against today's neutral shell, olive-700 against the olive
- * one a completed past meal wears. Both pairs are measured — see `MealCheck` and
- * `SETTLED_SHELL` — and neither could be a default here without being wrong on
- * the other surface.
+ * decides — olive-500, on every day this mark appears. `MealCheck` sets it
+ * directly for today's live button; `PortalMealCard`'s `TICK_TONE` sets the
+ * same class for a settled day's `SettledMealCheck`, now that every meal card
+ * wears one shell regardless of standing — see the `--meal-*` note in
+ * `globals.css` for the measured pair this protects.
  *
  * Deliberately **not** a client component, and there is no `'use client'` above:
  * a module without the directive can be imported from both sides, which is what
