@@ -3,6 +3,7 @@
 import * as React from "react"
 import { Select as SelectPrimitive } from "@base-ui/react/select"
 
+import { useDialogContainer } from "@/components/ui/dialog"
 import { Icon } from "@/components/ui/icon"
 import { cn } from "@/lib/utils"
 
@@ -104,8 +105,15 @@ function SelectContent({
     SelectPrimitive.Positioner.Props,
     "align" | "alignOffset" | "side" | "sideOffset" | "alignItemWithTrigger"
   >) {
+  /*
+   * Inside a dialog the list has to be portaled into it, not into `body` —
+   * `useDialogContainer` explains why. `undefined` everywhere else, which is
+   * Base UI's own default.
+   */
+  const container = useDialogContainer()
+
   return (
-    <SelectPrimitive.Portal>
+    <SelectPrimitive.Portal container={container ?? undefined}>
       <SelectPrimitive.Positioner
         side={side}
         sideOffset={sideOffset}

@@ -3,6 +3,7 @@
 import { Combobox as ComboboxPrimitive } from '@base-ui/react/combobox';
 import { type ReactNode } from 'react';
 
+import { useDialogContainer } from '@/components/ui/dialog';
 import { Icon } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 
@@ -66,6 +67,8 @@ export function Combobox<T extends string>({
   inputClassName,
   popupClassName,
 }: ComboboxProps<T>) {
+  const dialogContainer = useDialogContainer();
+
   /*
    * The primitive works in whole option objects, the caller works in ids. The
    * translation happens here so no caller has to hold an object identity
@@ -128,8 +131,18 @@ export function Combobox<T extends string>({
         </ComboboxPrimitive.Trigger>
       </ComboboxPrimitive.InputGroup>
 
-      <ComboboxPrimitive.Portal>
-        <ComboboxPrimitive.Positioner sideOffset={4} className="z-50">
+      {/*
+        Portalled into the dialog when there is one — a modal `<dialog>` is in
+        the browser's top layer and paints above anything portalled to `body`,
+        so the list would be invisible and unclickable inside one. See
+        `useDialogContainer`.
+      */}
+      <ComboboxPrimitive.Portal container={dialogContainer ?? undefined}>
+        <ComboboxPrimitive.Positioner
+          sideOffset={4}
+          positionMethod={dialogContainer ? 'fixed' : undefined}
+          className="z-50"
+        >
           <ComboboxPrimitive.Popup
             // `--anchor-width` is the primitive's own positioner variable, so
             // the list is exactly as wide as the field it drops out of.

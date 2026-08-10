@@ -19,6 +19,35 @@ import { cn } from '@/lib/utils';
  * block-start corners only, because it rises from the bottom edge and its other
  * two are off-screen; the centred card rounds all four like any other surface.
  */
+/**
+ * The open dialog element, for popups that would otherwise be hidden behind it.
+ *
+ * A `<dialog>` opened with `showModal()` sits in the browser's **top layer**,
+ * which paints above every element in the normal document no matter what
+ * `z-index` they carry. A Base UI popup portals to `document.body` by default,
+ * so a select opened inside a dialog rendered *underneath* it: positioned
+ * correctly, painted behind, and `elementFromPoint` over the list returned the
+ * dialog. Unreachable, in every dialog in the app.
+ *
+ * z-index cannot fix it — the top layer is outside the stacking order entirely.
+ * The popup has to be portaled *into* the dialog, which is what this hands it.
+ *
+ * `null` outside a dialog, which is Base UI's own default, so a select on an
+ * ordinary page is unaffected.
+ */
+const DialogContainerContext = React.createContext<HTMLElement | null>(null);
+
+/**
+ * The container a popup opened inside a dialog must portal into.
+ *
+ * Every overlay component in `components/ui` that portals — Select, Popover,
+ * Combobox — reads this and passes it to its own portal. A new one must do the
+ * same or it will not be clickable inside a dialog.
+ */
+function useDialogContainer() {
+  return React.useContext(DialogContainerContext);
+}
+
 type DialogProps = {
   open: boolean;
   onClose: () => void;
@@ -65,6 +94,14 @@ function Dialog({
 }: DialogProps) {
   const ref = React.useRef<HTMLDialogElement>(null);
 
+  /*
+   * The same element as `ref`, held in state as well.
+   *
+   * A ref does not re-render when it attaches, and the context below has to
+   * publish the node to popups that render in the same pass. State does.
+   */
+  const [container, setContainer] = React.useState<HTMLDialogElement | null>(null);
+
   React.useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
@@ -89,7 +126,10 @@ function Dialog({
 
   return (
     <dialog
-      ref={ref}
+      ref={(node) => {
+        ref.current = node;
+        setContainer(node);
+      }}
       dir={dir}
       aria-label={label}
       onClose={onClose}
@@ -119,7 +159,9 @@ function Dialog({
         className,
       )}
     >
-      {children}
+      <DialogContainerContext.Provider value={container}>
+        {children}
+      </DialogContainerContext.Provider>
     </dialog>
   );
 }
@@ -190,4 +232,4 @@ function DialogFooter({ className, ...props }: React.ComponentProps<'div'>) {
   );
 }
 
-export { Dialog, DialogHeader, DialogBody, DialogFooter };
+export { Dialog, DialogHeader, DialogBody, DialogFooter, useDialogContainer };
