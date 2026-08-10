@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { useMemo, useTransition } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
@@ -25,24 +26,30 @@ export function ClientPicker({
 }: {
   clients: readonly PlannableClient[];
   selectedClientId?: string;
-  appearance?: 'field' | 'heading';
+  appearance?: 'field' | 'heading' | 'bar';
 }) {
   const t = useTranslations('weeklyPlans');
   const router = useRouter();
+  const [pending, startTransition] = useTransition();
 
-  const options: ComboboxOption<string>[] = clients.map((client) => ({
-    value: client.id,
-    label: client.fullName,
-    swatch: client.color,
-    meta: <ClientStatus client={client} />,
-  }));
+  const options = useMemo<ComboboxOption<string>[]>(
+    () =>
+      clients.map((client) => ({
+        value: client.id,
+        label: client.fullName,
+        swatch: client.color,
+        meta: <ClientStatus client={client} />,
+      })),
+    [clients],
+  );
 
   return (
     <Combobox
       options={options}
       value={selectedClientId ?? null}
       onValueChange={(clientId) => {
-        if (clientId) router.push(`/app/weekly-plans/${clientId}`);
+        if (!clientId || clientId === selectedClientId) return;
+        startTransition(() => router.push(`/app/weekly-plans/${clientId}`));
       }}
       label={t('clients')}
       placeholder={t('searchClients')}
@@ -50,7 +57,14 @@ export function ClientPicker({
       // Full width on a phone, where it takes the header's first line to
       // itself and everything else wraps under it; a fixed 256px that refuses
       // to shrink is what pushed the rest of the row off the screen.
-      className={appearance === 'heading' ? 'w-full min-w-56 sm:w-80' : 'w-full sm:w-64 sm:shrink-0'}
+      className={cn(
+        appearance === 'heading'
+          ? 'w-full min-w-56 sm:w-80'
+          : appearance === 'bar'
+            ? 'w-full min-w-44'
+            : 'w-full sm:w-64 sm:shrink-0',
+        pending && 'pointer-events-none opacity-60',
+      )}
       /*
        * The heading appearance changes the *type*, and nothing else.
        *
@@ -72,9 +86,13 @@ export function ClientPicker({
        * 16px body size.
        */
       inputClassName={
-        appearance === 'heading' ? 'font-heading text-heading-sm font-semibold' : undefined
+        appearance === 'heading'
+          ? 'font-heading text-heading-sm font-semibold'
+          : appearance === 'bar'
+            ? 'font-heading text-body-md font-semibold'
+            : undefined
       }
-      popupClassName={cn(PLANNER_THEME, appearance === 'heading' && 'min-w-72')}
+      popupClassName={cn(PLANNER_THEME, appearance !== 'field' && 'min-w-72')}
     />
   );
 }

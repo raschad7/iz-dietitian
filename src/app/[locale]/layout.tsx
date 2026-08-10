@@ -11,6 +11,7 @@ import {
 } from 'next/font/google';
 import type { ReactNode } from 'react';
 
+import { Toaster } from '@/components/ui/toast';
 import { resolveLocale } from '@/i18n/params';
 import { getLocaleDirection, routing } from '@/i18n/routing';
 
@@ -216,7 +217,10 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
           be — a second copy pinned to the corner shadowed the real one in dev
           and sat on top of page content.
         */}
-        <NextIntlClientProvider>{children}</NextIntlClientProvider>
+        <NextIntlClientProvider>
+          {children}
+          <Toaster dir={getLocaleDirection(locale)} />
+        </NextIntlClientProvider>
       </body>
     </html>
   );

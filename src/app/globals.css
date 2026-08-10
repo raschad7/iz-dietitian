@@ -412,6 +412,12 @@
   --color-status-complete-bg: var(--status-complete-bg);
   --color-status-complete-mark: var(--status-complete-mark);
   --color-status-complete-mark-soft: var(--status-complete-mark-soft);
+  --color-planner-tag-cheap: var(--planner-tag-cheap);
+  --color-planner-tag-portable: var(--planner-tag-portable);
+  --color-planner-tag-quick: var(--planner-tag-quick);
+  --color-planner-tag-vegetarian: var(--planner-tag-vegetarian);
+  --color-planner-tag-high-protein: var(--planner-tag-high-protein);
+  --color-planner-tag-diabetic-friendly: var(--planner-tag-diabetic-friendly);
   --color-progress-track: var(--progress-track);
   --color-progress-card-border: var(--progress-card-border);
 
@@ -1119,6 +1125,37 @@
   --muted: var(--c-50);                 /* bg.sunken — now the app-wide value too */
   --accent: var(--c-100);               /* ambient hover tint */
   --muted-foreground: var(--c-600);     /* text.secondary — 7.46:1 on white, clears the 6.38:1 floor n-600 set */
+
+  /* Dish tags are identity marks, not statuses. These darker stops keep the
+     two-pixel divider legible without turning the meal card into a badge. */
+  --planner-tag-cheap: var(--amber-700);
+  --planner-tag-portable: var(--n-700);
+  --planner-tag-quick: var(--flame-700);
+  --planner-tag-vegetarian: var(--olive-600);
+  --planner-tag-high-protein: var(--olive-800);
+  --planner-tag-diabetic-friendly: var(--c-600);
+}
+
+/* Each row cell paints one segment of a continuous rule and reaches halfway
+   into the 16px column gutter. The scroll frame clips the two outer reaches. */
+.planner-row-cell {
+  position: relative;
+  min-width: 0;
+}
+
+.planner-row-cell::before {
+  position: absolute;
+  z-index: 0;
+  inset-block-start: 0;
+  inset-inline: -0.5rem;
+  border-block-start: 1px solid var(--border);
+  content: '';
+}
+
+.planner-row-cell > * {
+  position: relative;
+  z-index: 1;
+  height: 100%;
 }
 
 @layer base {

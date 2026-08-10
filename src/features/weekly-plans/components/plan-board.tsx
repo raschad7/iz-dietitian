@@ -1,13 +1,13 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { useLocale, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
+import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from '@/components/ui/popover';
 
-import { getLocaleDirection } from '@/i18n/routing';
-import { isMember } from '@/lib/enum';
+import type { Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 
 import type {
@@ -15,46 +15,39 @@ import type {
   BoardDay,
   CatalogEntry,
   ComparisonPlan,
-  PlannableClient,
   SwapCandidate,
 } from '../queries';
 import { boardRows } from '../board-rows';
-import { railTabsForPlan, type RailTab } from '../rail-state';
-import { dayKey, PLAN_STATUSES } from '../schema';
+import { dayKey } from '../schema';
 import { slotFillKey } from '../skeleton';
 import type { RecentUse } from '../usage';
 
 import { BoardEditor, useEditor } from './board-dnd';
-import { BoardSheet, useCompactPlanner } from './board-sheet';
-import { ClientPicker } from './client-picker';
 import { DayColumn } from './day-column';
 import { SlotRail } from './slot-rail';
-import { DishCatalog } from './dish-catalog';
+import { DishCatalogDrawer } from './dish-catalog-drawer';
 import type { GhostMeal } from './meal-card';
-import { MealDetailPanel } from './meal-detail-panel';
+import { MealInspector } from './meal-inspector';
 import { NewWeekDialog, type NewWeekProps } from './new-week-dialog';
 import { PublishButton } from './publish-button';
-import { RailTabs } from './rail-tabs';
 
 type BoardProps = {
   board: Board;
-  /** Every client with a plannable record, for the header's picker. */
-  clients: readonly PlannableClient[];
   candidates: Record<string, SwapCandidate[]>;
   catalog: readonly CatalogEntry[];
   usage: Record<string, RecentUse>;
   /** The plan immediately before this one, for the compare overlay. */
   previous: ComparisonPlan | null;
-  locale: string;
+  locale: Locale;
   /** The client's earlier weeks, rendered on the server. */
   history: React.ReactNode;
   newWeek: NewWeekProps;
-  /** The context panel, rendered on the server and shown on the client tab. */
+  /** The server-rendered client summary shown between the toolbar and board. */
   children: React.ReactNode;
 };
 
 /**
- * The board: seven day columns, and an end-side rail of panels.
+ * The board: seven day columns with contextual surfaces instead of a side rail.
  *
  * A client component because everything it coordinates is local state — which meal
  * is open, which tab is showing, whether the previous week is overlaid, whether a
@@ -68,6 +61,7 @@ export function PlanBoard(props: BoardProps) {
   // A published plan is read-only until the dietitian says otherwise. Editing what
   // a client is already following should be a decision, not a slip.
   const [allowPublished, setAllowPublished] = useState(false);
+  const [catalogOpen, setCatalogOpen] = useState(false);
 
   const editable =
     props.board.status === 'draft' || (props.board.status === 'published' && allowPublished);
@@ -78,14 +72,20 @@ export function PlanBoard(props: BoardProps) {
       editable={editable}
       allowPublished={allowPublished}
       locale={props.locale}
+      onDishDragStart={() => setCatalogOpen(false)}
     >
-      <BoardBody {...props} allowPublished={allowPublished} onAllowPublished={setAllowPublished} />
+      <BoardBody
+        {...props}
+        allowPublished={allowPublished}
+        onAllowPublished={setAllowPublished}
+        catalogOpen={catalogOpen}
+        onCatalogOpenChange={setCatalogOpen}
+      />
     </BoardEditor>
   );
 }
 
 function BoardBody({
-  clients,
   candidates,
   catalog,
   usage,
@@ -96,36 +96,37 @@ function BoardBody({
   children,
   allowPublished,
   onAllowPublished,
-}: BoardProps & { allowPublished: boolean; onAllowPublished: (value: boolean) => void }) {
+  catalogOpen,
+  onCatalogOpenChange,
+}: BoardProps & {
+  allowPublished: boolean;
+  onAllowPublished: (value: boolean) => void;
+  catalogOpen: boolean;
+  onCatalogOpenChange: (value: boolean) => void;
+}) {
   const t = useTranslations('weeklyPlans');
-  const activeLocale = useLocale();
   // The optimistic board, not the server one: everything below renders the edit
   // just made, before it has finished being written.
-  const { board, editable, pending, error, lastMove, undoLastMove } = useEditor();
+  const { board, editable, pending, error } = useEditor();
 
   const [selectedMealId, setSelectedMealId] = useState<string | null>(null);
-  const [tab, setTab] = useState<RailTab>('client');
+  const [selectedMealAnchor, setSelectedMealAnchor] = useState<HTMLButtonElement | null>(null);
+  const [catalogContextMealId, setCatalogContextMealId] = useState<string | null>(null);
   const [comparing, setComparing] = useState(false);
-  const [sheetOpen, setSheetOpen] = useState(false);
-  /*
-   * Whether the fixed rail is showing in the wide workspace.
-   *
-   * The week is the primary workspace, so the context rail only stays fixed
-   * when the app rail, seven readable day columns and context rail all fit.
-   */
-  const [railOpen, setRailOpen] = useState(true);
   // Which day the phone shows. Sunday until the dietitian says otherwise:
   // "today" would need a helper in the week logic, and this board is planning
   // next week anyway, where no day is today.
   const [selectedDay, setSelectedDay] = useState(0);
 
-  // Which of the two presentations the rail is in. The panels themselves do not
-  // know, and are rendered into exactly one of them.
-  const compactPlanner = useCompactPlanner();
+  const mealsById = useMemo(
+    () => new Map(board.days.flatMap((day) => day.meals).map((meal) => [meal.id, meal])),
+    [board.days],
+  );
+  const selectedMeal = selectedMealId ? mealsById.get(selectedMealId) : undefined;
+  const catalogContextMeal = catalogContextMealId
+    ? mealsById.get(catalogContextMealId)
+    : undefined;
 
-  const selectedMeal = board.days
-    .flatMap((day) => day.meals)
-    .find((meal) => meal.id === selectedMealId);
 
   const dailyTarget = Math.round(board.kcalTargetSnapshot);
 
@@ -183,151 +184,25 @@ function BoardBody({
     return byDay;
   }, [comparing, previous, board.days]);
 
-  /**
-   * The rail's four panels, written once.
-   *
-   * They are rendered into either the fixed rail or the sheet, never both: the
-   * tabs and their panels carry `id`s that `aria-controls` and `aria-labelledby`
-   * point at, and two copies would be two elements answering to one name.
-   */
-  function renderRailContent(collapsed = false) {
-    return (
-      <>
-        <RailTabs
-          className="shrink-0"
-          label={t('title')}
-          active={tab}
-          onSelect={setTab}
-          tabs={railTabsForPlan(true).map((id) => ({ id, label: t(`tabs.${id}`) }))}
-          onToggle={() => {
-            if (compactPlanner) setSheetOpen(false);
-            else setRailOpen((open) => !open);
-          }}
-          toggleLabel={compactPlanner ? t('close') : t(railOpen ? 'hidePanels' : 'showPanels')}
-          collapsed={collapsed}
-        />
-
-        {/* The tabs stay put and the panel under them scrolls. A tab bar that
-            scrolls away with its own panel is a tab bar you have to scroll back
-            up to use. */}
-        {!collapsed ? (
-          <div
-            role="tabpanel"
-            id={`rail-panel-${tab}`}
-            aria-labelledby={`rail-tab-${tab}`}
-            className={cn(
-              'min-h-0 flex-1 overflow-hidden pt-3',
-              !compactPlanner && 'ps-5',
-            )}
-          >
-            {tab === 'dishes' ? (
-              <DishCatalog
-                catalog={catalog}
-                usage={usage}
-                slot={
-                  selectedMeal
-                    ? { slotKey: selectedMeal.slotKey, budgetKcal: selectedMeal.budgetKcal }
-                    : null
-                }
-                editable={editable}
-              />
-            ) : tab === 'meal' ? (
-              selectedMeal ? (
-                <MealDetailPanel
-                  meal={selectedMeal}
-                  candidates={candidates[selectedMeal.id] ?? []}
-                  planId={board.id}
-                  locale={locale}
-                  editable={editable}
-                  model={board.model}
-                  onClose={() => {
-                    setSelectedMealId(null);
-                    setTab('client');
-                  }}
-                  onBrowseDishes={() => setTab('dishes')}
-                />
-              ) : (
-                <p className="text-body-sm text-muted-foreground">{t('selectMeal')}</p>
-              )
-            ) : tab === 'past' ? (
-              <div className="no-scrollbar h-full overflow-y-auto overflow-x-hidden">
-                {history}
-              </div>
-            ) : (
-              <div className="no-scrollbar h-full overflow-y-auto overflow-x-hidden">
-                {children}
-              </div>
-            )}
-          </div>
-        ) : null}
-      </>
-    );
-  }
-
   return (
     <div className="relative flex min-h-0 min-w-0 flex-1 flex-col gap-3">
-      {/*
-        The header wraps rather than clips. Every item in it but the client name
-        was `whitespace-nowrap` or `shrink-0`, so below about 375px the name
-        truncated to nothing and then the row simply ran off the end of the
-        screen — the controls were still there, just not reachable. Wrapping
-        costs a second line on a phone and keeps every control pressable, which
-        is the trade a toolbar should make; hiding a control to save a row means
-        the feature is gone.
-      */}
+      {children}
+
+      {/* Keep every plan action reachable when the toolbar wraps on a phone. */}
       <header className="border-b border-border pb-4">
-        <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-          <div className="min-w-0 flex-1">
-          <span className="block text-caption text-muted-foreground">{t('title')}</span>
-          <h2 className="sr-only">{board.clientName}</h2>
-          <ClientPicker
-            clients={clients}
-            selectedClientId={board.clientId}
-            appearance="heading"
-          />
-            <div className="mt-2 flex flex-wrap items-center gap-y-1 text-label text-muted-foreground">
-              {isMember(PLAN_STATUSES, board.status) && (
-          <span className="inline-flex items-center gap-2 pe-3">
-            <span
-              aria-hidden
-              className={cn(
-                'size-2 rounded-full',
-                board.status === 'published' ? 'bg-primary' : 'bg-muted-foreground',
-              )}
-            />
-            {t(`status.${board.status}`)}
-          </span>
-              )}
-
-        <span className="whitespace-nowrap border-s border-border px-3">
-          {t('weekOf', { date: board.weekStartDate })}
-        </span>
-
-        {/* The one fact here that is printed elsewhere on the same screen — the
-            client panel carries it, and so does every unplanned day column — so
-            it is the one that gives up its place on a phone. */}
-        <span className="hidden whitespace-nowrap border-s border-border ps-3 sm:inline">
-          {t('dailyTargetShort', { value: dailyTarget })}
-        </span>
-
-        {/* Reserved width, so a save does not reflow the row it sits in. Only
-            where there is width to reserve: on a phone the row is already two
-            lines and 96px of held-open blank is a third. */}
-            </div>
-          </div>
-
-          <div className="planner-action-bar flex w-full max-w-full shrink-0 flex-wrap items-center justify-start gap-2 pb-1 sm:w-auto rtl:flex-row-reverse">
+        <h2 className="sr-only">{board.clientName}</h2>
+        <div className="planner-action-bar flex w-full max-w-full flex-wrap items-center justify-start gap-2 pb-1 rtl:flex-row-reverse">
           <Button
             type="button"
             size="sm"
             variant="outline"
             className="planner-compact-trigger max-sm:px-3"
-            aria-label={t('openPanels')}
-            title={t('openPanels')}
-            onClick={() => setSheetOpen(true)}
+            aria-label={t('tabs.dishes')}
+            title={t('tabs.dishes')}
+            onClick={() => onCatalogOpenChange(true)}
           >
-            <Icon name="moreActions" />
-            <span className="max-sm:sr-only">{t('openPanels')}</span>
+            <Icon name="dishes" />
+            <span className="max-sm:sr-only">{t('tabs.dishes')}</span>
           </Button>
           {/*
             Plan actions, in a stable order that does not depend on status.
@@ -408,9 +283,38 @@ function BoardBody({
             </Button>
           )}
 
-          </div>
-        </div>
+          <Popover>
+            <PopoverTrigger
+              className={buttonVariants({ variant: 'neutral', size: 'sm' })}
+            >
+              <Icon name="history" />
+              {t('history')}
+            </PopoverTrigger>
+            <PopoverContent align="end" side="bottom" className="max-h-[min(32rem,70vh)] w-80 overflow-y-auto p-3">
+              <PopoverTitle className="pb-1 text-label font-semibold">{t('history')}</PopoverTitle>
+              {history}
+            </PopoverContent>
+          </Popover>
 
+          <span
+            role="status"
+            aria-live="polite"
+            className={cn(
+              'ms-auto inline-flex min-w-24 items-center justify-end gap-2 text-label',
+              error ? 'text-destructive' : 'text-muted-foreground',
+            )}
+          >
+            {pending || error ? (
+              <>
+                <Icon
+                  name={error ? 'attention' : 'refresh'}
+                  className={cn('size-4', pending && !error && 'motion-safe:animate-spin')}
+                />
+                {error ? t(error) : t('savingIndicator')}
+              </>
+            ) : null}
+          </span>
+        </div>
       </header>
 
       {allowPublished && (
@@ -427,7 +331,7 @@ function BoardBody({
 
       <BoardDayStrip days={board.days} selectedDay={selectedDay} onSelect={setSelectedDay} />
 
-      <div className="flex min-h-0 flex-1 gap-3">
+      <div className="flex min-h-0 flex-1">
         {/* Phones render one selected day. Tablets make the week itself a
             three-column-wide swipe surface, so the day picker no longer spends
             two rows above the work. The seven-column desktop keeps a 64rem
@@ -458,7 +362,7 @@ function BoardBody({
               parent's gutters, and repeating them on the day column would let the
               two drift out of step. */}
           <div
-            className="planner-week-grid grid h-full grid-cols-[auto_minmax(0,1fr)] gap-x-2 gap-y-2 p-2 xl:min-w-[64rem] xl:grid-cols-[auto_repeat(7,minmax(0,1fr))]"
+            className="planner-week-grid grid h-full grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-3 overflow-clip p-2 xl:min-w-[64rem] xl:grid-cols-[auto_repeat(7,minmax(0,1fr))]"
             style={{ gridTemplateRows: rowTemplate }}
           >
             <SlotRail rows={rows} editable={editable} />
@@ -471,23 +375,11 @@ function BoardBody({
                 dailyTarget={dailyTarget}
                 editable={editable}
                 selectedMealId={selectedMealId}
-                onSelectMeal={(mealId) => {
+                onSelectMeal={(mealId, anchor) => {
                   const opening = selectedMealId !== mealId;
                   setSelectedMealId(opening ? mealId : null);
-                  setTab('meal');
-
-                  // Whichever presentation the rail is in has to be showing, or
-                  // the card opens a panel into nothing. Only on the way *open*:
-                  // tapping the selected card again closes it, and reopening the
-                  // rail on that press would fight the press.
-                  if (!opening) return;
-                  // In the compact layout this is the sheet. Setting it
-                  // unconditionally
-                  // left `sheetOpen` stuck true on a desktop that never showed
-                  // the sheet — and narrowing the window afterwards then popped
-                  // it open with nothing having asked.
-                  if (compactPlanner) setSheetOpen(true);
-                  else setRailOpen(true);
+                  setSelectedMealAnchor(opening ? anchor : null);
+                  if (opening) setCatalogContextMealId(mealId);
                 }}
                 ghosts={ghostsByDay?.[day.dayOfWeek]}
                 compareDate={previous?.weekStartDate}
@@ -497,65 +389,42 @@ function BoardBody({
           </div>
         </div>
 
-        {/* The rail collapses into its own 48px edge, so the same control stays
-            attached to the same object. Only the panel content unmounts; the
-            rail itself never jumps into the toolbar. */}
-        <aside
-          aria-label={t('openPanels')}
-          className={cn(
-            'planner-desktop-rail shrink-0 flex-col overflow-hidden border-s border-border',
-            'transition-[width] duration-300 ease-[cubic-bezier(.16,1,.3,1)]',
-            railOpen ? 'w-[22rem]' : 'w-12',
-          )}
-        >
-          {!compactPlanner && renderRailContent(!railOpen)}
-        </aside>
       </div>
 
-      <BoardSheet
-        open={sheetOpen}
-        onClose={() => setSheetOpen(false)}
-        label={t('openPanels')}
-        closeLabel={t('close')}
-        dir={getLocaleDirection(activeLocale)}
-        showDefaultClose={false}
-      >
-        {compactPlanner && renderRailContent()}
-      </BoardSheet>
+      <MealInspector
+        meal={selectedMeal}
+        anchor={selectedMealAnchor}
+        candidates={selectedMeal ? candidates[selectedMeal.id] ?? [] : []}
+        planId={board.id}
+        locale={locale}
+        editable={editable}
+        model={board.model}
+        onClose={() => {
+          setSelectedMealId(null);
+          setSelectedMealAnchor(null);
+        }}
+        onBrowseDishes={() => {
+          if (selectedMeal) setCatalogContextMealId(selectedMeal.id);
+          setSelectedMealId(null);
+          setSelectedMealAnchor(null);
+          onCatalogOpenChange(true);
+        }}
+      />
 
-      {/* Persistence feedback floats above the workspace instead of inserting a
-          new header row. Optimistic edits already move immediately; this quiet
-          indicator confirms the background write without making the tool jump. */}
-      <div
-        role="status"
-        aria-live="polite"
-        aria-hidden={!pending && !error}
-        className={cn(
-          'pointer-events-none fixed bottom-4 end-4 z-50 flex items-center gap-2 rounded-full border bg-card px-3 py-2 text-label shadow-elevated',
-          'transition-[opacity,transform] duration-150 ease-[cubic-bezier(.16,1,.3,1)]',
-          pending || error ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0',
-          error ? 'border-destructive text-destructive' : 'border-border text-muted-foreground',
-        )}
-      >
-        <Icon
-          name={error ? 'attention' : 'refresh'}
-          className={cn('size-4', pending && !error && 'motion-safe:animate-spin')}
-        />
-        {error ? t(error) : t('savingIndicator')}
-      </div>
+      <DishCatalogDrawer
+        open={catalogOpen}
+        onOpenChange={onCatalogOpenChange}
+        catalog={catalog}
+        usage={usage}
+        slot={
+          catalogContextMeal
+            ? { slotKey: catalogContextMeal.slotKey, budgetKcal: catalogContextMeal.budgetKcal }
+            : null
+        }
+        editable={editable}
+        locale={locale}
+      />
 
-      {lastMove && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="fixed bottom-4 start-1/2 z-50 flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-3 rounded-lg border border-border bg-card py-1.5 ps-4 pe-1.5 text-body-sm shadow-overlay rtl:translate-x-1/2"
-        >
-          <span className="min-w-0 truncate">{t('mealMoved', { name: lastMove.dishName })}</span>
-          <Button type="button" size="sm" variant="ghost" disabled={pending} onClick={undoLastMove}>
-            {t('undo')}
-          </Button>
-        </div>
-      )}
     </div>
   );
 }
