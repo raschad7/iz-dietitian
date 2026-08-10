@@ -10,7 +10,7 @@ import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/
 import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
+import { SelectField } from '@/components/ui/select-field';
 import { Textarea } from '@/components/ui/textarea';
 import { ClientFormTrigger } from '@/features/clients/components/client-form-trigger';
 import { Link } from '@/i18n/navigation';
@@ -280,40 +280,41 @@ export function AppointmentDialog({
         {/* 2. Start — whole hours only. */}
         <div className="space-y-1">
           <Label htmlFor="appointment-start">{t('fields.start')}</Label>
-          <Select
+          <SelectField
             id="appointment-start"
             disabled={completed}
             value={String(startMinute)}
-            onChange={(event) => setStartMinute(Number(event.target.value))}
-          >
-            {startChoices(hours, startMinute).map((minute) => (
-              <option key={minute} value={minute} disabled={unavailableStarts.has(minute)}>
-                {minuteToClock(minute)}
-                {unavailableStarts.has(minute) ? ` — ${t('fields.unavailable')}` : ''}
-              </option>
-            ))}
-          </Select>
+            onValueChange={(next) => setStartMinute(Number(next))}
+            options={startChoices(hours, startMinute).map((minute) => ({
+              value: String(minute),
+              label: `${minuteToClock(minute)}${
+                unavailableStarts.has(minute) ? ` — ${t('fields.unavailable')}` : ''
+              }`,
+              disabled: unavailableStarts.has(minute),
+            }))}
+          />
         </div>
 
         {/* 3. Duration — half-hour steps. */}
         <div className="space-y-1">
           <Label htmlFor="appointment-duration">{t('fields.duration')}</Label>
-          <Select
+          <SelectField
             id="appointment-duration"
             disabled={completed}
             value={String(durationMinutes)}
-            onChange={(event) => setDurationMinutes(Number(event.target.value))}
-          >
-            {durationChoices(durationMinutes).map((minutes) => (
-              <option key={minutes} value={minutes}>
-                {formatDuration(minutes, {
-                  hour: (n) => t('duration.hours', { count: n }),
-                  minute: (n) => t('duration.minutes', { count: n }),
-                })}
-                {minutes % DURATION_STEP_MINUTES !== 0 ? ` (${minutes / SLOT_MINUTES}×${SLOT_MINUTES})` : ''}
-              </option>
-            ))}
-          </Select>
+            onValueChange={(next) => setDurationMinutes(Number(next))}
+            options={durationChoices(durationMinutes).map((minutes) => ({
+              value: String(minutes),
+              label: `${formatDuration(minutes, {
+                hour: (n) => t('duration.hours', { count: n }),
+                minute: (n) => t('duration.minutes', { count: n }),
+              })}${
+                minutes % DURATION_STEP_MINUTES !== 0
+                  ? ` (${minutes / SLOT_MINUTES}×${SLOT_MINUTES})`
+                  : ''
+              }`,
+            }))}
+          />
         </div>
 
         {/* 4. Client, with a way through to the full record. */}
@@ -357,22 +358,19 @@ export function AppointmentDialog({
               </Link>
             </div>
           </div>
-          <Select
+          <SelectField
             id="appointment-client"
             disabled={completed}
             value={clientId}
-            onChange={(event) => setClientId(event.target.value)}
-          >
-            {clients.map((client) => (
-              <option key={client.id} value={client.id}>
-                {client.name}
-              </option>
-            ))}
-            {/* The booked client may be archived and so absent from the list. */}
-            {!clients.some((client) => client.id === appointment.clientId) && (
-              <option value={appointment.clientId}>{appointment.clientName}</option>
-            )}
-          </Select>
+            onValueChange={setClientId}
+            options={[
+              ...clients.map((client) => ({ value: client.id, label: client.name })),
+              // The booked client may be archived and so absent from the list.
+              ...(clients.some((client) => client.id === appointment.clientId)
+                ? []
+                : [{ value: appointment.clientId, label: appointment.clientName }]),
+            ]}
+          />
         </div>
 
         {/* 5. Reason — optional, and empty unless someone types something. */}

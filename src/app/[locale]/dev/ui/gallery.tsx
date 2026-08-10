@@ -17,8 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Segmented } from '@/components/ui/segmented';
-import { Select } from '@/components/ui/select';
-import { SelectMenu } from '@/components/ui/select-menu';
+import { SelectField } from '@/components/ui/select-field';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatGrid, StatTile } from '@/components/ui/stat-tile';
 import { Switch } from '@/components/ui/switch';
@@ -317,31 +316,56 @@ export function UiGallery({ locale }: { locale: Locale }) {
 
       <Section
         title="Selects"
-        note="Native select, the custom SelectMenu, and the Base UI combobox. Open each one near the bottom of the viewport."
+        note="Select and combobox, both on Base UI. Open each one near the bottom of the viewport."
       >
         <div className="grid gap-4 sm:grid-cols-2">
           <Field>
-            <Label htmlFor="g-native">Native select</Label>
-            <Select id="g-native" defaultValue="moderate">
-              {SELECT_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </Select>
-            <FieldHint>Renders the browser&rsquo;s own menu.</FieldHint>
-          </Field>
-
-          <Field>
-            <Label htmlFor="g-selectmenu">SelectMenu</Label>
-            <SelectMenu
-              id="g-selectmenu"
+            <Label htmlFor="g-select">Select</Label>
+            <SelectField
+              id="g-select"
               value={activity}
-              onChange={setActivity}
+              onValueChange={setActivity}
               options={SELECT_OPTIONS}
               aria-label="Activity level"
             />
-            <FieldHint>Measures its trigger once on open — the detached-menu bug.</FieldHint>
+            <FieldHint>Base UI: flips, shifts and clamps to the room available.</FieldHint>
+          </Field>
+
+          <Field>
+            <Label htmlFor="g-select-sm">Select, small</Label>
+            <SelectField
+              id="g-select-sm"
+              size="sm"
+              value={activity}
+              onValueChange={setActivity}
+              options={SELECT_OPTIONS}
+              aria-label="Activity level, small"
+            />
+            <FieldHint>Disabled and placeholder states below.</FieldHint>
+          </Field>
+
+          <Field>
+            <Label htmlFor="g-select-placeholder">Placeholder</Label>
+            <SelectField
+              id="g-select-placeholder"
+              value={""}
+              onValueChange={() => {}}
+              placeholder="Nothing chosen"
+              options={SELECT_OPTIONS}
+              aria-label="Placeholder example"
+            />
+          </Field>
+
+          <Field>
+            <Label htmlFor="g-select-disabled">Disabled</Label>
+            <SelectField
+              id="g-select-disabled"
+              disabled
+              value={activity}
+              onValueChange={setActivity}
+              options={SELECT_OPTIONS}
+              aria-label="Disabled example"
+            />
           </Field>
         </div>
 
@@ -423,10 +447,10 @@ export function UiGallery({ locale }: { locale: Locale }) {
 
             <Field>
               <Label htmlFor="g-dialog-activity">Activity level</Label>
-              <SelectMenu
+              <SelectField
                 id="g-dialog-activity"
                 value={activity}
-                onChange={setActivity}
+                onValueChange={setActivity}
                 options={SELECT_OPTIONS}
                 aria-label="Activity level"
               />

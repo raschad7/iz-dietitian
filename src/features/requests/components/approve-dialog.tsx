@@ -8,7 +8,7 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
+import { SelectField } from '@/components/ui/select-field';
 import { Textarea } from '@/components/ui/textarea';
 import { parseDateInput } from '@/features/booking/date';
 import { formatDuration, formatLongDate, formatMinute } from '@/features/booking/format';
@@ -342,32 +342,28 @@ export function ApproveDialog({
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1">
                   <Label htmlFor="approve-start">{tBooking('fields.start')}</Label>
-                  <Select
+                  <SelectField
                     id="approve-start"
-                    value={startMinute}
-                    onChange={(event) => setStartMinute(Number(event.target.value))}
-                  >
-                    {startChoices(hours, startMinute).map((minute) => (
-                      <option key={minute} value={minute}>
-                        {formatMinute(locale, date, minute)}
-                      </option>
-                    ))}
-                  </Select>
+                    value={String(startMinute)}
+                    onValueChange={(next) => setStartMinute(Number(next))}
+                    options={startChoices(hours, startMinute).map((minute) => ({
+                      value: String(minute),
+                      label: formatMinute(locale, date, minute),
+                    }))}
+                  />
                 </div>
 
                 <div className="space-y-1">
                   <Label htmlFor="approve-duration">{tBooking('fields.duration')}</Label>
-                  <Select
+                  <SelectField
                     id="approve-duration"
-                    value={durationMinutes}
-                    onChange={(event) => setDurationMinutes(Number(event.target.value))}
-                  >
-                    {durationChoices(durationMinutes).map((minutes) => (
-                      <option key={minutes} value={minutes}>
-                        {durationLabel(minutes)}
-                      </option>
-                    ))}
-                  </Select>
+                    value={String(durationMinutes)}
+                    onValueChange={(next) => setDurationMinutes(Number(next))}
+                    options={durationChoices(durationMinutes).map((minutes) => ({
+                      value: String(minutes),
+                      label: durationLabel(minutes),
+                    }))}
+                  />
                 </div>
               </div>
 

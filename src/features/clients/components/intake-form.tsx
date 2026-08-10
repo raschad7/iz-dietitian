@@ -11,7 +11,7 @@ import { Field, FieldError } from '@/components/ui/field';
 import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { SelectMenu } from '@/components/ui/select-menu';
+import { SelectField } from '@/components/ui/select-field';
 import { Textarea } from '@/components/ui/textarea';
 import { TimeField } from '@/components/ui/time-field';
 import { saveIntakeAction } from '@/features/clients/actions';
@@ -235,29 +235,40 @@ export function IntakeForm({
             <div className="grid gap-4 sm:grid-cols-2">
               <Field>
                 <Label htmlFor="goal">{t('fields.goal')}</Label>
-                <SelectMenu
+                <SelectField
                   id="goal"
                   name="goal"
                   value={goal}
-                  onChange={setGoal}
+                  onValueChange={setGoal}
                   placeholder={t('notProvided')}
-                  options={CLIENT_GOALS.map((value) => ({ value, label: t(`goal.${value}`) }))}
+                  /*
+                    "Not provided" is a row, not just placeholder text: intake is
+                    a form someone can walk back, and a goal chosen by mistake
+                    has to be un-choosable without reloading the page.
+                  */
+                  options={[
+                    { value: '', label: t('notProvided') },
+                    ...CLIENT_GOALS.map((value) => ({ value, label: t(`goal.${value}`) })),
+                  ]}
                 />
                 <FieldError>{errorFor('goal')}</FieldError>
               </Field>
 
               <Field>
                 <Label htmlFor="activityLevel">{t('fields.activityLevel')}</Label>
-                <SelectMenu
+                <SelectField
                   id="activityLevel"
                   name="activityLevel"
                   value={activityLevel}
-                  onChange={setActivityLevel}
+                  onValueChange={setActivityLevel}
                   placeholder={t('notProvided')}
-                  options={CLIENT_ACTIVITY_LEVELS.map((value) => ({
-                    value,
-                    label: t(`activity.${value}`),
-                  }))}
+                  options={[
+                    { value: '', label: t('notProvided') },
+                    ...CLIENT_ACTIVITY_LEVELS.map((value) => ({
+                      value,
+                      label: t(`activity.${value}`),
+                    })),
+                  ]}
                 />
                 <FieldError>{errorFor('activityLevel')}</FieldError>
               </Field>

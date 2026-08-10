@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 
-import { SelectMenu, type SelectOption } from '@/components/ui/select-menu';
+import { SelectField, type SelectFieldOption } from '@/components/ui/select-field';
 
 /**
  * A wall-clock time, as two lists rather than an `<input type="time">`.
@@ -24,7 +24,7 @@ import { SelectMenu, type SelectOption } from '@/components/ui/select-menu';
  * server side changes.
  */
 
-const HOURS: SelectOption[] = Array.from({ length: 24 }, (_, hour) => {
+const HOURS: SelectFieldOption<string>[] = Array.from({ length: 24 }, (_, hour) => {
   const value = String(hour).padStart(2, '0');
   return { value, label: value };
 });
@@ -40,7 +40,7 @@ const HOURS: SelectOption[] = Array.from({ length: 24 }, (_, hour) => {
  */
 const DEFAULT_MINUTE_STEP = 5;
 
-function minuteOptions(step: number): SelectOption[] {
+function minuteOptions(step: number): SelectFieldOption<string>[] {
   return Array.from({ length: Math.floor(60 / step) }, (_, index) => {
     const value = String(index * step).padStart(2, '0');
     return { value, label: value };
@@ -110,10 +110,10 @@ export function TimeField({
       */}
       <input type="hidden" name={name} value={hour && minute ? `${hour}:${minute}` : ''} />
 
-      <SelectMenu
+      <SelectField
         id={id}
         value={hour}
-        onChange={(next) => {
+        onValueChange={(next) => {
           setHour(next);
           onValueChange?.(next && minute ? `${next}:${minute}` : '');
         }}
@@ -126,9 +126,9 @@ export function TimeField({
         :
       </span>
 
-      <SelectMenu
+      <SelectField
         value={minute}
-        onChange={(next) => {
+        onValueChange={(next) => {
           setMinute(next);
           onValueChange?.(hour && next ? `${hour}:${next}` : '');
         }}

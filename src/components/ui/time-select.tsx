@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 
-import { SelectMenu, type SelectOption } from '@/components/ui/select-menu';
+import { SelectField, type SelectFieldOption } from '@/components/ui/select-field';
 
 /**
  * A wall-clock time as **one** list of whole times — `08:00`, `08:15`, `08:30`.
@@ -37,7 +37,7 @@ import { SelectMenu, type SelectOption } from '@/components/ui/select-menu';
  */
 
 /** Every `HH:MM` from `00:00`, `step` minutes apart. */
-function timeOptions(step: number): SelectOption[] {
+function timeOptions(step: number): SelectFieldOption<string>[] {
   return Array.from({ length: Math.floor((24 * 60) / step) }, (_, index) => {
     const total = index * step;
     const value = `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
@@ -80,11 +80,11 @@ export function TimeSelect({
       kind of error nobody reads twice.
     */
     <div dir="ltr" className={className}>
-      <SelectMenu
+      <SelectField
         id={id}
         name={name}
         value={value}
-        onChange={onChange}
+        onValueChange={onChange}
         options={options}
         disabled={disabled}
         aria-label={ariaLabel}
