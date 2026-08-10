@@ -87,8 +87,33 @@ export function AppShell({ items, title, user, icons, children }: ShellProps) {
   return (
     <SidebarProvider>
       <AppSidebar items={items} title={title} user={user} icons={icons} />
-      <SidebarInset>{children}</SidebarInset>
+      <SidebarInset>
+        {/*
+          Below `md` the rail is a sheet, and a sheet needs an opener that is
+          not inside itself. The trigger in the sidebar's own header is the
+          desktop one — once the rail is a drawer, that trigger is behind the
+          drawer, so closed there is nothing on screen to open it with and the
+          whole of the navigation is unreachable.
+
+          Only when there is a `user`, which is the staff area. The portal has
+          its own header and a bottom tab bar under `md`; a second bar above
+          them would be the third way to get to the same five screens.
+        */}
+        {user ? <MobileBar title={title} /> : null}
+        {children}
+      </SidebarInset>
     </SidebarProvider>
+  );
+}
+
+function MobileBar({ title }: { title: string }) {
+  const t = useTranslations('nav');
+
+  return (
+    <div className="flex h-14 shrink-0 items-center gap-2 border-b border-sidebar-border bg-sidebar px-3 text-sidebar-foreground md:hidden">
+      <SidebarTrigger aria-label={t('openNavigation')} title={t('openNavigation')} />
+      <span className="min-w-0 truncate font-heading text-body-md font-semibold">{title}</span>
+    </div>
   );
 }
 
@@ -108,8 +133,8 @@ function AppSidebar({ items, title, user, icons }: Omit<ShellProps, 'children'>)
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader>
-        <div className="flex items-center justify-between gap-2 px-2 group-data-[collapsible=icon]:px-0">
+      <SidebarHeader className="gap-0 pb-1">
+        <div className="flex h-12 items-center justify-between gap-2 px-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
           <span className="truncate font-heading text-heading-sm font-semibold group-data-[collapsible=icon]:hidden">
             {title}
           </span>
@@ -137,7 +162,14 @@ function AppSidebar({ items, title, user, icons }: Omit<ShellProps, 'children'>)
                       isActive={isActive(item.href)}
                       render={<Link href={item.href} />}
                     >
-                      {icon ? <Icon name={icon} /> : null}
+                      {/*
+                        20px, explicitly. `Icon` ships `size-4` in its own class
+                        list, so the button's `[&_svg:not([class*='size-'])]`
+                        default never reaches it — the glyph has to ask. This is
+                        the rail's one job at 56px wide, and 16px of it was too
+                        little to aim at or to tell apart at a glance.
+                      */}
+                      {icon ? <Icon name={icon} className="size-5" /> : null}
                       <span>{label}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -154,7 +186,7 @@ function AppSidebar({ items, title, user, icons }: Omit<ShellProps, 'children'>)
         empty, which would leave a border with nothing above it.
       */}
       {user ? (
-        <SidebarFooter>
+        <SidebarFooter className="border-t border-sidebar-border">
           <SidebarProfile name={user.name} email={user.email} locale={user.locale} />
         </SidebarFooter>
       ) : null}

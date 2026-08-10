@@ -552,9 +552,11 @@ a `title` on the button itself can never be hovered.
 **`destructive` vs `destructiveGhost`** is about what the control is *among*,
 not how dangerous it is. A destructive action that closes a decision — the
 delete inside a confirm dialog — takes the outlined box that says so.
-A destructive action sitting among other controls takes the ghost: the rail's
-sign-out is stacked under four boxless links and a language switcher, and an
-outline there read as one more destination. Both keep the clay label at rest;
+A destructive action sitting among other controls takes the ghost: the portal
+header's sign-out sits beside a language switcher, and an outline there read as
+one more destination. (The rail's sign-out is no longer a `Button` at all — it
+is a `destructive` menu item, which speaks the same clay-at-rest language one
+level down.) Both keep the clay label at rest;
 neither is ever a solid red block. Like `ghost`, `destructiveGhost` carries 12px
 of padding rather than 20px, so a boxless control does not look like it has a
 gap around it.
@@ -997,30 +999,48 @@ ring and no halo, so the ring itself has to carry the contrast — 15.86:1 on th
 rail and 15.42:1 on the active item's olive-50 surface.
 
 **The rail can end in a profile menu** (`SidebarProfile`, given `user`): one row
-carrying the signed-in name over a muted email, with a chevron that points down
-closed and up open. Pushed to the block-end with `mt-auto` and fenced off with a
+carrying the signed-in name over a muted email, with the avatar leading and a
+stacked chevron pair closing it. It sits in the footer, fenced off with a
 hairline. The dietitian area has no app bar, so this is where account controls
 live.
 
-**It opens upward**, and it does that by rendering the panel *before* the
-trigger in the DOM — the rail's block-end is the floor, so growing the panel
-pushes the trigger down onto its own stack instead of off-screen, and the
-trigger stays put under the pointer that just clicked it. The growth is the
-`0fr` → `1fr` grid-row trick, with the panel `inert` while closed so it stays
-mounted (and keeps the sign-out form's state) without sitting in the tab order.
+**It is a `DropdownMenu`**, the same primitive as the row actions and the
+selects. It used to be a hand-rolled disclosure that grew *inside* the rail — a
+`0fr` → `1fr` grid row, with the panel rendered before the trigger so it opened
+upward. That worked until the rail collapsed to 56px, where there is nothing to
+grow into, and it never had type-ahead, arrow keys, a focus trap or a return of
+focus to the trigger. A menu positions against the *viewport* instead: it opens
+**inline-end** on a desktop — out over the page, away from the rail, in either
+script — and **upward from the bottom** on a phone, where the rail is a sheet
+with no side to open into.
 
-Inside, block-start to block-end: **settings, notifications, WhatsApp,
-security**, then a hairline, then the **language switcher** and **sign-out**.
-The four destinations are *not* in the rail's own nav — the same link in two
-lists is two answers to "where does this live" — and sign-out is last, nearest
-the trigger, as the one item a mis-aimed click most wants to miss. It is
-`destructiveGhost`/`sm`: no box, clay label and glyph throughout, clay-100 fill
-on hover. Settings takes a **gear**, not the person glyph the old rail's Profile
-item used — it is reached from a control that is already a person.
+Inside, block-start to block-end: the identity again (the trigger is behind a
+sheet on a phone, and a bare avatar when collapsed — either way the menu has to
+say whose account it is about to sign out), then **settings, WhatsApp,
+security**, then the **language** radio pair, then **sign-out**. The three
+destinations are *not* in the rail's own nav — the same link in two lists is two
+answers to "where does this live" — and sign-out is last, furthest from them,
+as the one item a mis-aimed click most wants to miss. It is the menu's
+`destructive` variant: clay label and glyph, clay fill on focus. Settings takes
+a **gear**, not the person glyph the old rail's Profile item used — it is
+reached from a control that is already a person.
 
-**Escape and an outside `pointerdown` both close it**, and so does following a
-link — client-side navigation keeps the component mounted, so an open menu
-would otherwise outlive the page it left.
+**Language is two radio items under a label**, not the `group` segmented
+switcher (`LocaleSwitcher variant="menu"`). A boxed chip inside a panel of menu
+rows was the one thing in it that was neither a destination nor an action; as
+radio items it is the same choice in the shape everything around it has, and the
+check mark states which is live without a fill having to out-shout the row above
+it. The endonyms show here, and so does `lang` — the `AR`/`EN` codes exist only
+because the `group` variant has to fit two locales into 40px.
+
+**Sign-out's form lives outside the popup.** Choosing a menu item closes the
+menu, and a form that unmounts in the same tick as its own submit is a race; the
+item calls `requestSubmit()` on a hidden form in the footer, which stays mounted.
+
+**The trigger carries no `tooltip`.** A tooltip wraps its button in a trigger of
+its own, and a button that is already a menu's trigger cannot also be a
+tooltip's — the hover label wins and the menu never opens. Collapsed, the menu
+names the account at its own head instead.
 
 The portal omits `user` and gets no menu, because it still has a header carrying
 sign-out and the language switcher — and below `md`, where the rail is hidden,
@@ -1103,6 +1123,26 @@ bordered space. `Tabs` imports nothing from `@/i18n/navigation`; call sites pair
 
 Staff and portal share `Sidebar`. The portal passes icons (`PORTAL_NAV_ICONS`,
 the same glyphs as its bottom bar); the staff rail is text-only.
+
+**The rail's metrics, and where they leave the registry.** Rows are **40px**
+high (`h-10`) with a **6px** gap between them and a **20px** glyph, on a
+**256px** expanded / **56px** collapsed column. The registry ships 32px rows,
+no gap and 16px glyphs in a 48px collapsed rail — dense enough to read as a
+list of settings rather than as the five places a working day is spent, and a
+16px glyph is too little to aim at or tell apart once the labels are gone.
+Collapsed, a 40px button in a 56px column leaves 8px of air on each side, which
+is where the extra half-rem of width goes.
+
+Two colour departures from the registry, both from this document. **Hover is
+`--sidebar-hover`, not `--sidebar-accent`**: the registry uses one token for
+both, which would paint a hovered row in the exact olive-50 of the *active* one
+and make the rail appear to change page under the pointer. And **the idle glyph
+is `--sidebar-icon`**, the warm neutral, with the active row overriding it —
+olive on olive-50 is the whole of how that state is marked.
+
+`Icon` ships `size-4` in its own class list, so the button's
+`[&_svg:not([class*='size-'])]:size-5` default never reaches it. Rail glyphs
+pass `className="size-5"` explicitly.
 
 ## Spacing, shadows, motion
 
