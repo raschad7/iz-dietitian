@@ -13,6 +13,15 @@ import { extendTailwindMerge } from "tailwind-merge"
  *
  * The names are the ones declared in `globals.css`; `text-xs`/`text-sm` are
  * already stock and stay where they are.
+ *
+ * The same blind spot applies to the olive-tinted shadow ramp. tailwind-merge
+ * knows `shadow-none` and the stock t-shirt sizes, so it filed `shadow-card`
+ * as something else entirely and let the two coexist — `cn('shadow-card',
+ * 'shadow-none')` emitted both, and which one won was down to the order
+ * Tailwind happened to sort them into rather than to the call site. Registering
+ * the ramp here is what makes "this surface carries no shadow" actually
+ * removable at the call site. Add any new shadow token to this list as well as
+ * to `globals.css`.
  */
 const twMerge = extendTailwindMerge({
   extend: {
@@ -32,6 +41,7 @@ const twMerge = extendTailwindMerge({
           ],
         },
       ],
+      shadow: [{ shadow: ["card", "elevated", "overlay"] }],
     },
   },
 })

@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 
 import { MEAL_TOLERANCE, driftState } from '@/features/weekly-plans/drift';
 import { roundForDisplay } from '@/features/weekly-plans/nutrition';
+import { dishTagDividerClass } from '../meal-tag-tone';
 import type { BoardMeal } from '../queries';
 
 import { useEditorActions } from './board-dnd';
@@ -40,7 +41,7 @@ export function MealCard({
 }: {
   meal: BoardMeal;
   selected: boolean;
-  onSelect: () => void;
+  onSelect: (anchor: HTMLButtonElement) => void;
   /** The same slot in the previous plan, when compare is on. */
   ghost?: GhostMeal | null;
   compareDate?: string;
@@ -107,7 +108,7 @@ export function MealCard({
     >
       <button
         type="button"
-        onClick={onSelect}
+        onClick={(event) => onSelect(event.currentTarget)}
         aria-pressed={selected}
         // The budget is not printed on the card — it is the same five figures
         // repeated down every column. It stays reachable here, in the detail
@@ -158,7 +159,12 @@ export function MealCard({
             board of thirty-five cards, and the card is about the dish. 14px is
             the dense-table step, and the UI face is where the tabular figures
             actually live. */}
-        <span className="mt-2 flex shrink-0 items-baseline justify-between gap-2 border-t border-border px-3 pb-2 pt-2">
+        <span
+          className={cn(
+            'mt-2 flex shrink-0 items-baseline justify-between gap-2 border-t-2 px-3 pb-2 pt-2',
+            meal.dish ? dishTagDividerClass(meal.dish.tags) : 'border-border',
+          )}
+        >
           <span
             className={cn(
               'inline-flex items-baseline gap-1 text-body-sm font-semibold tabular-nums',
@@ -244,6 +250,58 @@ export function MealCard({
           </span>
         </span>
       )}
+    </div>
+  );
+}
+
+/**
+ * A presentational copy of the selected card rendered above the inspector's
+ * blurred backdrop. It deliberately has no controls or DnD registration: the
+ * real card remains the anchor and receives focus again when the inspector
+ * closes.
+ */
+export function MealCardSnapshot({ meal }: { meal: BoardMeal }) {
+  const t = useTranslations('weeklyPlans');
+  const kcal = roundForDisplay('kcal', meal.totals.kcal.value);
+  const drift = meal.dish === null ? null : driftState(kcal, meal.budgetKcal, MEAL_TOLERANCE);
+
+  return (
+    <div className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-lg border border-primary bg-card text-start ring-2 ring-primary shadow-elevated">
+      <span className="flex min-h-0 flex-1 items-center justify-center px-3 pt-3">
+        <span
+          className={cn(
+            'line-clamp-2 text-center font-heading text-body-md font-medium leading-relaxed [text-wrap:balance]',
+            meal.dish === null && 'font-normal text-muted-foreground',
+          )}
+          dir="auto"
+        >
+          {meal.dish ? meal.dish.nameAr : t('emptySlot')}
+        </span>
+      </span>
+
+      <span
+        className={cn(
+          'mt-2 flex shrink-0 items-baseline justify-between gap-2 border-t-2 px-3 pb-2 pt-2',
+          meal.dish ? dishTagDividerClass(meal.dish.tags) : 'border-border',
+        )}
+      >
+        <span
+          className={cn(
+            'inline-flex items-baseline gap-1 text-body-sm font-semibold tabular-nums',
+            drift !== null && 'text-status-attention-fg',
+            meal.dish === null && 'font-normal text-muted-foreground',
+          )}
+        >
+          <span dir="ltr">{meal.dish ? kcal : '—'}</span>
+          {meal.dish && <small className="text-caption font-normal text-muted-foreground">kcal</small>}
+        </span>
+
+        {meal.dish && (
+          <span className="text-caption text-muted-foreground">
+            {t('portionShort', { servings: meal.dish.servings })}
+          </span>
+        )}
+      </span>
     </div>
   );
 }

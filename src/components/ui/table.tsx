@@ -4,11 +4,38 @@ import { Icon } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 
 /**
- * The app's data table.
+ * The app's data table — `@shadcn/table`, plus the parts this app needs that
+ * the registry item has no answer for.
  *
  * Seven feature files were hand-rolling the same `<table>` markup with the
  * same padding, the same `bg-muted/50` head and the same hover row, which is
  * how a design system drifts. This is that markup, once.
+ *
+ * ## Where this deliberately differs from the registry item
+ *
+ * Everything here is the registry's structure, slot names and class vocabulary
+ * unless one of these five reasons applies. Re-running `shadcn add table
+ * --overwrite` would undo all five, so check this list before you do.
+ *
+ * 1. **`text-start`, never `text-left`.** The registry's `TableHead` hardcodes
+ *    `text-left`, which flushes every column head to the left of an Arabic
+ *    page while the values under them flush right. Logical properties are not
+ *    optional in a bidirectional app.
+ * 2. **No `"use client"`.** The registry ships the directive defensively; this
+ *    file has no state, no effects and no handlers, and `ClientTable` is a
+ *    server component whose whole point is shipping no JavaScript. Adding the
+ *    directive would pull the register into the client bundle for nothing.
+ * 3. **`TableRoot` is explicit, not folded into `Table`.** The registry wraps
+ *    its own `<table>` in an unstyleable scroll container. Callers here have to
+ *    style that container — a bounded height plus `overflow-y-auto` is what
+ *    makes `TableHeader sticky` work — so the wrapper is a component you pass
+ *    `className` to. It keeps the registry's `table-container` slot name.
+ * 4. **`border-separate` and the rounded header strip.** See `Table` and
+ *    `TableHeader` below; both are design-system decisions with their own
+ *    reasons recorded there.
+ * 5. **Five props the registry has no equivalent for** — `numeric`, `zebra`,
+ *    `linked`, `sticky`, `sorted` — plus `TableSortLabel` and `TableEmpty`.
+ *    Each is documented at its own definition.
  *
  * `TableRoot` owns only the scroll container: a wide table on a phone has to
  * scroll sideways, and that behaviour belongs on the frame rather than on the
@@ -28,7 +55,13 @@ import { cn } from '@/lib/utils';
  * times, IDs and units read left-to-right in both scripts.
  */
 function TableRoot({ className, ...props }: React.ComponentProps<'div'>) {
-  return <div data-slot="table-root" className={cn('w-full overflow-x-auto', className)} {...props} />;
+  return (
+    <div
+      data-slot="table-container"
+      className={cn('relative w-full overflow-x-auto', className)}
+      {...props}
+    />
+  );
 }
 
 /**
@@ -44,7 +77,10 @@ function Table({ className, ...props }: React.ComponentProps<'table'>) {
   return (
     <table
       data-slot="table"
-      className={cn('w-full border-separate border-spacing-0 text-body-md', className)}
+      className={cn(
+        'w-full caption-bottom border-separate border-spacing-0 text-body-md',
+        className,
+      )}
       {...props}
     />
   );
@@ -87,8 +123,62 @@ function TableHeader({
   );
 }
 
-function TableBody({ className, ...props }: React.ComponentProps<'tbody'>) {
-  return <tbody data-slot="table-body" className={className} {...props} />;
+function TableBody({
+  className,
+  linked,
+  ...props
+}: React.ComponentProps<'tbody'> & {
+  /**
+   * Groups several `<tr>`s into one visual row that hovers and navigates as a
+   * unit — `linked` on `TableRow`, one level up.
+   *
+   * For a record whose second line has no column of its own: the dashboard's
+   * register shows name, age and phone across three columns and hangs the next
+   * visit under all three, which is a `colSpan` row and therefore a second
+   * `<tr>`. Several `<tbody>`s in one table is valid, and it is the only
+   * grouping the table model offers between the row and the whole body.
+   *
+   * The hover fill is declared here rather than on the rows so both light
+   * together, and `relative` makes this the positioning context — so the
+   * stretched `<Link>` in the first cell covers the second line too.
+   */
+  linked?: boolean;
+}) {
+  return (
+    <tbody
+      data-slot="table-body"
+      className={cn(
+        linked && 'relative cursor-pointer transition-colors hover:bg-secondary/60',
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
+/** The registry's footer row — a summary strip below the body. */
+function TableFooter({ className, ...props }: React.ComponentProps<'tfoot'>) {
+  return (
+    <tfoot
+      data-slot="table-footer"
+      className={cn('border-t border-border bg-muted font-medium', className)}
+      {...props}
+    />
+  );
+}
+
+/**
+ * The table's accessible caption. `Table` carries `caption-bottom`, so it
+ * renders under the table however it is ordered in the markup.
+ */
+function TableCaption({ className, ...props }: React.ComponentProps<'caption'>) {
+  return (
+    <caption
+      data-slot="table-caption"
+      className={cn('mt-4 text-body-sm text-muted-foreground', className)}
+      {...props}
+    />
+  );
 }
 
 type RowProps = {
@@ -124,7 +214,17 @@ function TableRow({ className, zebra, linked, ...props }: React.ComponentProps<'
         'border-t border-border transition-colors first:border-t-0',
         zebra && 'even:bg-muted',
         linked && 'relative cursor-pointer',
-        'hover:bg-secondary/60 data-[selected=true]:bg-secondary',
+        /*
+         * `has-aria-expanded` is the registry's, and it earns its place here:
+         * a row whose actions menu is open stays lit while the pointer is off
+         * in the menu, so you can still see which record you are acting on.
+         *
+         * Both selection spellings are honoured — the registry writes
+         * `data-state="selected"`, this app's own call sites write
+         * `data-selected="true"`.
+         */
+        'hover:bg-secondary/60 has-aria-expanded:bg-secondary/60',
+        'data-[selected=true]:bg-secondary data-[state=selected]:bg-secondary',
         className,
       )}
       {...props}
@@ -165,7 +265,14 @@ function TableHead({
       dir={numeric ? 'ltr' : undefined}
       aria-sort={sorted === undefined ? undefined : sorted === false ? 'none' : `${sorted}ending`}
       className={cn(
-        'px-3 py-2.5 text-start font-medium',
+        /*
+         * `text-start`, not the registry's `text-left` — see the divergence
+         * list at the top of this file. `whitespace-nowrap` is the registry's:
+         * a column head that wraps makes the header strip taller than the rows
+         * it names. Cells deliberately do *not* inherit it (see `TableCell`).
+         */
+        'px-3 py-2.5 text-start align-middle font-medium whitespace-nowrap',
+        '[&:has([role=checkbox])]:pe-0',
         numeric && 'tabular',
         className,
       )}
@@ -222,7 +329,18 @@ function TableCell({
     <td
       data-slot="table-cell"
       dir={numeric ? 'ltr' : undefined}
-      className={cn('px-3 py-2.5 text-start', numeric && 'tabular', className)}
+      /*
+       * The registry puts `whitespace-nowrap` on cells as well as heads. It is
+       * left off here: the widest column in this app is a person's name, and a
+       * name that cannot wrap forces the table wider than the page instead of
+       * being truncated by the cell that holds it.
+       */
+      className={cn(
+        'px-3 py-2.5 text-start align-middle',
+        '[&:has([role=checkbox])]:pe-0',
+        numeric && 'tabular',
+        className,
+      )}
       {...props}
     />
   );
@@ -251,10 +369,12 @@ export {
   Table,
   TableHeader,
   TableBody,
+  TableFooter,
   TableRow,
   TableHead,
   TableSortLabel,
   TableCell,
+  TableCaption,
   TableEmpty,
 };
 export type { SortDirection };

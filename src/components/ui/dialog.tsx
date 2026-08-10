@@ -19,6 +19,35 @@ import { cn } from '@/lib/utils';
  * block-start corners only, because it rises from the bottom edge and its other
  * two are off-screen; the centred card rounds all four like any other surface.
  */
+/**
+ * The open dialog element, for popups that would otherwise be hidden behind it.
+ *
+ * A `<dialog>` opened with `showModal()` sits in the browser's **top layer**,
+ * which paints above every element in the normal document no matter what
+ * `z-index` they carry. A Base UI popup portals to `document.body` by default,
+ * so a select opened inside a dialog rendered *underneath* it: positioned
+ * correctly, painted behind, and `elementFromPoint` over the list returned the
+ * dialog. Unreachable, in every dialog in the app.
+ *
+ * z-index cannot fix it — the top layer is outside the stacking order entirely.
+ * The popup has to be portaled *into* the dialog, which is what this hands it.
+ *
+ * `null` outside a dialog, which is Base UI's own default, so a select on an
+ * ordinary page is unaffected.
+ */
+const DialogContainerContext = React.createContext<HTMLElement | null>(null);
+
+/**
+ * The container a popup opened inside a dialog must portal into.
+ *
+ * Every overlay component in `components/ui` that portals — Select, Popover,
+ * Combobox — reads this and passes it to its own portal. A new one must do the
+ * same or it will not be clickable inside a dialog.
+ */
+function useDialogContainer() {
+  return React.useContext(DialogContainerContext);
+}
+
 type DialogProps = {
   open: boolean;
   onClose: () => void;
@@ -65,6 +94,14 @@ function Dialog({
 }: DialogProps) {
   const ref = React.useRef<HTMLDialogElement>(null);
 
+  /*
+   * The same element as `ref`, held in state as well.
+   *
+   * A ref does not re-render when it attaches, and the context below has to
+   * publish the node to popups that render in the same pass. State does.
+   */
+  const [container, setContainer] = React.useState<HTMLDialogElement | null>(null);
+
   React.useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
@@ -89,7 +126,10 @@ function Dialog({
 
   return (
     <dialog
-      ref={ref}
+      ref={(node) => {
+        ref.current = node;
+        setContainer(node);
+      }}
       dir={dir}
       aria-label={label}
       onClose={onClose}
@@ -98,9 +138,35 @@ function Dialog({
         if (dismissible) onClose();
       }}
       onClick={(event) => {
-        // A click on the backdrop targets the dialog element itself; a click
-        // on anything inside targets that child instead.
-        if (dismissible && event.target === ref.current) onClose();
+        if (!dismissible) return;
+
+        /*
+         * A click on the backdrop targets the dialog element itself; a click on
+         * anything inside targets that child instead.
+         *
+         * **The target test alone is not enough.** A popup portalled into this
+         * dialog paints over the dialog's own surface, and a press that lands
+         * between two rows of it — or on any part of the popup the browser does
+         * not hit-test — falls through to the dialog element, which the rule
+         * above then reads as "the backdrop was clicked" and closes. Choosing
+         * from a select shut the whole dialog.
+         *
+         * The backdrop is by definition outside the dialog's box, so the
+         * pointer position settles it: inside the rectangle is never a backdrop
+         * click, whatever the event happens to target. Keyboard-synthesised
+         * clicks report 0,0 and are excluded by the same check.
+         */
+        const dialog = ref.current;
+        if (!dialog || event.target !== dialog) return;
+
+        const box = dialog.getBoundingClientRect();
+        const inside =
+          event.clientX >= box.left &&
+          event.clientX <= box.right &&
+          event.clientY >= box.top &&
+          event.clientY <= box.bottom;
+
+        if (!inside) onClose();
       }}
       className={cn(
         'q-dialog',
@@ -119,7 +185,9 @@ function Dialog({
         className,
       )}
     >
-      {children}
+      <DialogContainerContext.Provider value={container}>
+        {children}
+      </DialogContainerContext.Provider>
     </dialog>
   );
 }
@@ -190,4 +258,4 @@ function DialogFooter({ className, ...props }: React.ComponentProps<'div'>) {
   );
 }
 
-export { Dialog, DialogHeader, DialogBody, DialogFooter };
+export { Dialog, DialogHeader, DialogBody, DialogFooter, useDialogContainer };

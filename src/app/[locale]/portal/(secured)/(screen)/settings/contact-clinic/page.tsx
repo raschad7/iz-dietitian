@@ -1,7 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
-import { Card, CardContent } from '@/components/ui/card';
 import { ClinicContactRow } from '@/features/portal/components/clinic-contact-row';
 import { PortalScreenHeader } from '@/features/portal/components/portal-screen-header';
 import { formatClockMinute, formatWorkingDays } from '@/features/portal/clinic-hours';
@@ -49,15 +48,17 @@ export default async function ContactClinicPage({ params }: ContactClinicPagePro
 
       <main className="min-w-0 flex-1 px-4 py-5 md:px-6">
         <div className="mx-auto w-full max-w-3xl">
-          <Card>
-            <CardContent className="space-y-1">
-              <ClinicContactRow clinic={clinic} countryCode={defaultCountryCode()} />
-
-              {hours ? (
-                <p className="border-t border-border pt-2.5 text-sm text-muted-foreground">{hours}</p>
-              ) : null}
-            </CardContent>
-          </Card>
+          {/*
+            The card is `ClinicContactRow`'s own now, rather than one wrapped
+            around it here. The hours were a bare paragraph under a rule, which
+            made them read as a footnote on the clinic's name; they are a band
+            of the card in their own right — see that component.
+          */}
+          <ClinicContactRow
+            clinic={clinic}
+            countryCode={defaultCountryCode()}
+            hours={hours}
+          />
         </div>
       </main>
     </>

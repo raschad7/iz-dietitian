@@ -1,6 +1,7 @@
 'use client';
 
-import { createContext, useContext, useEffect, useOptimistic, useState, useTransition } from 'react';
+import { createContext, useContext, useEffect, useOptimistic, useRef, useState, useTransition } from 'react';
+import { useTranslations } from 'next-intl';
 import {
   DndContext,
   DragOverlay,
@@ -14,6 +15,7 @@ import {
 } from '@dnd-kit/core';
 
 import type { DishDetail } from '@/features/weekly-plans/nutrition';
+import { toast } from '@/components/ui/toast';
 
 import {
   addMealAction,
@@ -50,8 +52,8 @@ type EditErrorKey = Extract<PlanActionState, { status: 'error' }>['messageKey'];
  * ones, not a guess that will be corrected a moment later.
  *
  * A failed edit reverts (React discards the optimistic state when the transition
- * ends) and writes into the header's status region. There is no toast primitive in
- * `src/components/ui/`, and this feature is not a good reason to invent one.
+ * ends) and writes into the board's quiet persistence status region. Completed
+ * moves use the shared toast because they include the reversible Undo action.
  */
 
 type EditorValue = {
@@ -62,8 +64,13 @@ type EditorValue = {
   pending: boolean;
   /** A message key from the last failed edit, or null. */
   error: EditErrorKey | null;
-  lastMove: { dishName: string } | null;
-  undoLastMove: () => void;
+};
+
+type SavedMove = {
+  fromMealId: string;
+  toMealId: string;
+  dishName: string;
+  toastId: string;
 };
 
 const EditorContext = createContext<EditorValue | null>(null);
@@ -94,30 +101,23 @@ export function BoardEditor({
   editable,
   allowPublished,
   locale,
+  onDishDragStart,
   children,
 }: {
   board: Board;
   editable: boolean;
   allowPublished: boolean;
   locale: string;
+  onDishDragStart?: () => void;
   children: React.ReactNode;
 }) {
+  const t = useTranslations('weeklyPlans');
   const [optimisticBoard, applyOptimistic] = useOptimistic(board, applyEdit);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<EditErrorKey | null>(null);
   const [dragging, setDragging] = useState<DragPayload | null>(null);
   const [settledMealId, setSettledMealId] = useState<string | null>(null);
-  const [lastMove, setLastMove] = useState<{
-    fromMealId: string;
-    toMealId: string;
-    dishName: string;
-  } | null>(null);
-
-  useEffect(() => {
-    if (!lastMove) return;
-    const timeout = window.setTimeout(() => setLastMove(null), 8000);
-    return () => window.clearTimeout(timeout);
-  }, [lastMove]);
+  const moveToastSequence = useRef(0);
 
   useEffect(() => {
     if (!settledMealId) return;
@@ -156,6 +156,7 @@ export function BoardEditor({
     edit: BoardEdit,
     action: (state: typeof initialPlanActionState, form: FormData) => Promise<typeof initialPlanActionState>,
     fields: Record<string, string | number>,
+    onSuccess?: () => void,
   ): void {
     setError(null);
 
@@ -163,16 +164,40 @@ export function BoardEditor({
       applyOptimistic(edit);
       const result = await action(initialPlanActionState, formFor(fields));
       if (result.status === 'error') {
-        setLastMove(null);
         setSettledMealId(null);
         setError(result.messageKey);
+        return;
       }
+
+      onSuccess?.();
+    });
+  }
+
+  function undoMove(move: SavedMove): void {
+    toast.dismiss(move.toastId);
+    runAction(
+      { kind: 'move', fromMealId: move.toMealId, toMealId: move.fromMealId, mode: 'move' },
+      moveMealAction,
+      { fromMealId: move.toMealId, toMealId: move.fromMealId, mode: 'move' },
+    );
+  }
+
+  function showMoveToast(move: SavedMove): void {
+    toast.success(t('mealMoved', { name: move.dishName }), {
+      id: move.toastId,
+      description: t('mealMovedHint'),
+      action: {
+        label: t('undo'),
+        onClick: () => undoMove(move),
+      },
     });
   }
 
   function onDragStart(event: DragStartEvent): void {
     setSettledMealId(null);
-    setDragging((event.active.data.current as DragPayload | undefined) ?? null);
+    const payload = (event.active.data.current as DragPayload | undefined) ?? null;
+    setDragging(payload);
+    if (payload?.kind === 'dish') onDishDragStart?.();
   }
 
   function onDragEnd(event: DragEndEvent): void {
@@ -184,7 +209,6 @@ export function BoardEditor({
     if (!target || !payload || !editable) return;
 
     if (payload.kind === 'dish') {
-      setLastMove(null);
       setSettledMealId(target.mealId);
       runAction(
         { kind: 'place', mealId: target.mealId, dish: payload.dish, servings: payload.servings },
@@ -196,28 +220,19 @@ export function BoardEditor({
 
     if (payload.mealId === target.mealId) return;
 
-    setLastMove({
+    const move: SavedMove = {
       fromMealId: payload.mealId,
       toMealId: target.mealId,
       dishName: payload.preview.dishName,
-    });
+      toastId: `${board.id}-move-${++moveToastSequence.current}`,
+    };
     setSettledMealId(target.mealId);
 
     runAction(
       { kind: 'move', fromMealId: payload.mealId, toMealId: target.mealId, mode: 'move' },
       moveMealAction,
       { fromMealId: payload.mealId, toMealId: target.mealId, mode: 'move' },
-    );
-  }
-
-  function undoLastMove(): void {
-    if (!lastMove || pending) return;
-    const move = lastMove;
-    setLastMove(null);
-    runAction(
-      { kind: 'move', fromMealId: move.toMealId, toMealId: move.fromMealId, mode: 'move' },
-      moveMealAction,
-      { fromMealId: move.toMealId, toMealId: move.fromMealId, mode: 'move' },
+      () => showMoveToast(move),
     );
   }
 
@@ -227,8 +242,6 @@ export function BoardEditor({
     allowPublished,
     pending,
     error,
-    lastMove: lastMove ? { dishName: lastMove.dishName } : null,
-    undoLastMove,
   };
 
   return (
@@ -251,22 +264,18 @@ export function BoardEditor({
         <EditorActionsContext.Provider
           value={{
             setServings: (mealId, servings) => {
-              setLastMove(null);
               runAction({ kind: 'servings', mealId, servings }, setServingsAction, {
                 mealId,
                 servings,
               });
             },
             clear: (mealId) => {
-              setLastMove(null);
               runAction({ kind: 'clear', mealId }, clearMealAction, { mealId });
             },
             remove: (mealId) => {
-              setLastMove(null);
               runAction({ kind: 'remove', mealId }, removeMealAction, { mealId });
             },
             add: (dayOfWeek, slotKey, label, timeOfDay) => {
-              setLastMove(null);
               runAction({ kind: 'add', dayOfWeek, slotKey, label, timeOfDay }, addMealAction, {
                 dayOfWeek,
                 slotKey,
@@ -275,11 +284,9 @@ export function BoardEditor({
               });
             },
             removeWeek: (slotKey) => {
-              setLastMove(null);
               runAction({ kind: 'removeWeek', slotKey }, removeWeekMealAction, { slotKey });
             },
             addWeek: (slotKey, label, timeOfDay) => {
-              setLastMove(null);
               runAction({ kind: 'addWeek', slotKey, label, timeOfDay }, addWeekMealAction, {
                 slotKey,
                 label,

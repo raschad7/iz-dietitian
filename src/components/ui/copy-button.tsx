@@ -4,7 +4,7 @@ import * as React from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
-import { Tooltip } from '@/components/ui/tooltip';
+import { TooltipHint } from '@/components/ui/tooltip-hint';
 
 /**
  * Copies one value to the clipboard.
@@ -65,7 +65,7 @@ export function CopyButton({
 
   return (
     <>
-      <Tooltip label={copied ? copiedLabel : label}>
+      <TooltipHint label={copied ? copiedLabel : label}>
         <Button
           type="button"
           variant="ghost"
@@ -81,7 +81,7 @@ export function CopyButton({
           */}
           <Icon name={copied ? 'check' : 'copy'} className="size-4" />
         </Button>
-      </Tooltip>
+      </TooltipHint>
 
       <span role="status" aria-live="polite" className="sr-only">
         {copied ? copiedLabel : ''}

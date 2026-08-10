@@ -1,8 +1,9 @@
 import { getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
 
-import { Sidebar } from '@/components/layout/sidebar';
+import { AppShell } from '@/components/layout/sidebar';
 import { PORTAL_NAV, PORTAL_NAV_ICONS } from '@/features/portal/nav';
+import { HomeGlow } from '@/features/portal/components/home-glow';
 import { PortalHeader } from '@/features/portal/components/portal-header';
 import { PortalTabBar } from '@/features/portal/components/portal-tab-bar';
 import { greetingKey } from '@/features/portal/greeting';
@@ -40,6 +41,18 @@ export default async function PortalTabsLayout({ children, params }: PortalTabsL
 
   return (
     <>
+      {/*
+        The home screen's glow, rendered here rather than by `page.tsx`.
+
+        It has to sit outside `(tabs)/template.tsx` — that wrapper is
+        `.q-route-stage`, whose enter animation puts a `transform` on it, and a
+        transformed ancestor is the containing block for anything `fixed`
+        inside it. From in there the glow could only ever cover `main`'s own
+        box. It decides for itself whether this is the home tab; see the note
+        in `home-glow.tsx`.
+      */}
+      <HomeGlow />
+
       <PortalHeader
         name={context.profile.fullName}
         greeting={greetingKey(context.now.minute)}
@@ -49,15 +62,27 @@ export default async function PortalTabsLayout({ children, params }: PortalTabsL
         showNav
       />
 
-      <div className="flex flex-1">
-        <Sidebar items={PORTAL_NAV} title={t('title')} icons={PORTAL_NAV_ICONS} />
+      {/*
+        `showTitle={false}`: the portal's name is not drawn anywhere in the
+        client's own app. `PortalHeader` directly above already opens the
+        screen with who they are and what day it is, and a second bar naming
+        the product told them which app they had just opened. The string is
+        still the rail's accessible name — see `AppShell`.
 
+        There is no `showMobileBar` any more: `AppShell` renders the phone app
+        bar only where there is a `user`, which is the staff area. This group
+        already has two pieces of navigation under `md` — `PortalTabBar` along
+        the block-end edge with these same five destinations, and
+        `PortalHeader` above with the bell and settings — so the rail's own bar
+        would be a third.
+      */}
+      <AppShell items={PORTAL_NAV} title={t('title')} showTitle={false} icons={PORTAL_NAV_ICONS}>
         <main className="min-w-0 flex-1 px-4 pt-5 pb-24 md:px-6 md:pt-6 md:pb-8">
           <div className="mx-auto w-full max-w-3xl">{children}</div>
         </main>
 
         <PortalTabBar />
-      </div>
+      </AppShell>
     </>
   );
 }

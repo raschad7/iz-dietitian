@@ -8,7 +8,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from '@/components/ui/popover';
-import { Select } from '@/components/ui/select';
+import { SelectField } from '@/components/ui/select-field';
 import {
   CLIENT_FILTERS,
   PORTAL_ACCESS_VALUES,
@@ -174,18 +174,17 @@ export function ClientFilterMenu({ input }: { input: ListClientsInput }) {
             <label htmlFor="client-filter-column" className="text-caption text-muted-foreground">
               {t('filter.column')}
             </label>
-            <Select
+            <SelectField
               id="client-filter-column"
+              size="sm"
               value={column}
-              onChange={(event) => handleColumn(event.target.value as ClientFilter)}
-              className="h-10 ps-4"
-            >
-              {CLIENT_FILTERS.map((option) => (
-                <option key={option} value={option}>
-                  {t(`fields.${option}`)}
-                </option>
-              ))}
-            </Select>
+              onValueChange={(next) => handleColumn(next as ClientFilter)}
+              className="ps-4"
+              options={CLIENT_FILTERS.map((option) => ({
+                value: option,
+                label: t(`fields.${option}`),
+              }))}
+            />
           </div>
 
           <div className="flex flex-col gap-1.5">
@@ -194,18 +193,14 @@ export function ClientFilterMenu({ input }: { input: ListClientsInput }) {
             </label>
 
             {valueOptions ? (
-              <Select
+              <SelectField
                 id="client-filter-value"
+                size="sm"
                 value={value}
-                onChange={(event) => setValue(event.target.value)}
-                className="h-10 ps-4"
-              >
-                {valueOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </Select>
+                onValueChange={setValue}
+                className="ps-4"
+                options={valueOptions}
+              />
             ) : (
               <Input
                 id="client-filter-value"

@@ -1,15 +1,23 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useEffect, useId, useRef, useState } from 'react';
+import { useRef } from 'react';
 
 import { LocaleSwitcher } from '@/components/layout/locale-switcher';
-import { SignOutButton } from '@/components/layout/sign-out-button';
 import { Avatar } from '@/components/ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Icon, type IconName } from '@/components/ui/icon';
+import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar';
+import { signOutAction } from '@/features/auth/actions';
 import { Link } from '@/i18n/navigation';
 import { type Locale } from '@/i18n/routing';
-import { cn } from '@/lib/utils';
 
 /**
  * The rail's account control: who you are signed in as, and everything that is
@@ -17,26 +25,35 @@ import { cn } from '@/lib/utils';
  *
  * It replaced a language switcher and a sign-out button sitting bare at the
  * bottom of the rail. Those two were the only shell controls at the time; the
- * moment settings, notifications, WhatsApp and security joined them, six
- * permanent controls at the foot of a five-item rail outweighed the navigation
- * above them. Folding them behind one row spends that space on the name and
- * puts the rest one click away, which is the right price for things you touch
- * once a week.
+ * moment settings, WhatsApp and security joined them, five permanent controls at
+ * the foot of a five-item rail outweighed the navigation above them. Folding
+ * them behind one row spends that space on the name and puts the rest one click
+ * away, which is the right price for things you touch once a week.
  *
- * **It opens upward.** The panel is rendered *before* the trigger in the DOM,
- * so growing it pushes the trigger down onto its own stack rather than out of
- * the viewport — the rail's block-end is the floor, and a menu at the floor has
- * nowhere to go but up. That also keeps the trigger's position stable relative
- * to the pointer that just clicked it.
+ * ## Why this is a real menu now
+ *
+ * It used to be a hand-rolled disclosure: a `0fr` → `1fr` grid row that grew
+ * *inside* the rail, pushing the trigger down. That works until the rail is
+ * 56px wide — collapsed, there is no room to grow into — and it never had what
+ * a menu is expected to have: type-ahead, arrow keys, a focus trap, a return of
+ * focus to the trigger on close. `DropdownMenu` is the same primitive the row
+ * actions and the selects use, so the panel is positioned against the viewport
+ * rather than against the rail: it opens to the **inline-end** on desktop, out
+ * over the page and away from the sidebar in either script, and upward from the
+ * bottom on a phone, where the rail is a sheet and there is no inline-end to
+ * open into.
+ *
+ * Collapsed, the trigger is just the avatar — a person is the one thing in this
+ * rail that still identifies itself at 40px without a label.
  *
  * The destinations moved out of the rail proper rather than being copied into
  * it: the same link in two lists is two answers to "where does this live".
  *
- * **Notifications are not among them any more.** They are a bell beside the
- * date on the dashboard — see `NotificationsBell`. A feed is something you
- * check, and a menu at the foot of a rail is the wrong place to keep something
- * that has to be *noticed*: nobody opens an account menu to find out whether
- * anything has happened. The full page still exists and the bell links to it.
+ * **Notifications are not among them.** They are a bell beside the date on the
+ * dashboard — see `NotificationsBell`. A feed is something you check, and a menu
+ * at the foot of a rail is the wrong place to keep something that has to be
+ * *noticed*: nobody opens an account menu to find out whether anything has
+ * happened. The full page still exists and the bell links to it.
  */
 
 /** Destinations, block-start to block-end. */
@@ -71,141 +88,153 @@ export function SidebarProfile({
   onNavigate?: () => void;
 }) {
   const t = useTranslations('nav');
-  const [open, setOpen] = useState(false);
-  const panelId = useId();
-  const rootRef = useRef<HTMLDivElement>(null);
+  const tCommon = useTranslations('common');
+  const { isMobile } = useSidebar();
 
   /*
-   * Escape closes, and so does a click anywhere else. Neither is optional for a
-   * menu that covers the thing it opened from: without them the only way out is
-   * to find the trigger again, which is exactly what someone who opened it by
-   * accident cannot do.
-   *
-   * `pointerdown` rather than `click`, so the menu is gone before whatever was
-   * clicked underneath it acts.
+   * Signing out is a POST to a server action, not a client call: the session
+   * cookie is httpOnly and cleared server-side. The form lives out here rather
+   * than inside the popup because choosing a menu item closes the menu, and a
+   * form that unmounts in the same tick as its own submit is a race. The item
+   * asks this one — still mounted, outside the portal — to submit itself.
    */
-  useEffect(() => {
-    if (!open) return;
-
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') setOpen(false);
-    }
-    function onPointerDown(event: PointerEvent) {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
-    }
-
-    document.addEventListener('keydown', onKeyDown);
-    document.addEventListener('pointerdown', onPointerDown);
-    return () => {
-      document.removeEventListener('keydown', onKeyDown);
-      document.removeEventListener('pointerdown', onPointerDown);
-    };
-  }, [open]);
+  const signOutRef = useRef<HTMLFormElement>(null);
 
   return (
-    <div ref={rootRef} className="mt-auto border-t border-sidebar-border p-3">
-      {/*
-        `0fr` → `1fr` on a grid row animates to a height nobody has measured.
-        The panel stays mounted so the locale switcher and the sign-out form
-        keep their state; `inert` takes it out of the tab order while closed,
-        which `display: none` would do at the cost of the animation.
-      */}
-      <div
-        id={panelId}
-        className={cn(
-          'grid transition-[grid-template-rows] duration-200 ease-[cubic-bezier(.2,.6,.2,1)]',
-          open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
-        )}
-      >
-        <div inert={!open} className="overflow-hidden">
-          <ul className="flex flex-col gap-1 pb-2">
-            {LINKS.map((link) => (
-              <li key={link.href}>
-                <Link
-                  href={link.href}
-                  // Client-side navigation keeps this component mounted, so an
-                  // open menu would survive the page it just left.
-                  onClick={() => {
-                    setOpen(false);
-                    onNavigate?.();
-                  }}
-                  className={cn(
-                    'flex items-center gap-3 rounded-md px-3 py-2 text-start text-body-sm',
-                    'transition-colors duration-200 ease-[cubic-bezier(.2,.6,.2,1)]',
-                    'hover:bg-sidebar-hover',
-                    'focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:outline-none',
-                  )}
+    <SidebarMenu>
+      <SidebarMenuItem>
+        <form ref={signOutRef} action={signOutAction} className="hidden">
+          <input type="hidden" name="locale" value={locale} />
+        </form>
+
+        <DropdownMenu>
+          {/*
+            No `tooltip` on this button, unlike the navigation rows above it.
+            The tooltip wraps its button in a trigger of its own, and a button
+            that is already a menu's trigger cannot also be a tooltip's — the
+            hover label wins and the menu never opens. Collapsed, the menu names
+            the account at its own head instead.
+          */}
+          <DropdownMenuTrigger
+            render={
+              <SidebarMenuButton size="lg" aria-label={name}>
+                <Avatar
+                  name={name}
+                  /*
+                    Fixed olive-100 rather than the per-client palette in
+                    `avatar-color.ts`: this is always the same one account.
+                    `text-foreground` overrides the shared component's white,
+                    which assumes a dark, per-record colour.
+                  */
+                  color="var(--olive-100)"
+                  size="sm"
+                  className="size-8 text-foreground"
+                />
+                <ProfileIdentity name={name} email={email} />
+                {/*
+                  Both arrows, stacked: the row opens a menu that goes up on a
+                  phone and sideways on a desktop, so a single chevron would be
+                  pointing the wrong way half the time. Hidden while collapsed,
+                  where the avatar is the whole control.
+                */}
+                <span className="ms-auto flex flex-col text-sidebar-icon group-data-[collapsible=icon]:hidden">
+                  <Icon name="chevronUp" className="size-3" />
+                  <Icon name="chevronDown" className="-mt-0.5 size-3" />
+                </span>
+              </SidebarMenuButton>
+            }
+          />
+
+          <DropdownMenuContent
+            className="min-w-60"
+            // Away from the rail in either script on a desktop; upward from the
+            // bottom of a phone, where the rail is a sheet with no side to open
+            // into.
+            side={isMobile ? 'top' : 'inline-end'}
+            align="end"
+            sideOffset={8}
+          >
+            {/*
+              The identity again, at the head of the panel. On a phone the
+              trigger is behind the sheet that spawned it, and collapsed it is
+              an avatar with no name on it — either way the menu has to say
+              whose account it is acting on before it offers to sign it out.
+            */}
+            <div className="flex items-center gap-2 px-1.5 py-1.5">
+              <Avatar
+                name={name}
+                color="var(--olive-100)"
+                size="sm"
+                className="size-8 text-foreground"
+              />
+              <ProfileIdentity name={name} email={email} />
+            </div>
+
+            <DropdownMenuSeparator />
+
+            <DropdownMenuGroup>
+              {LINKS.map((link) => (
+                <DropdownMenuItem
+                  key={link.href}
+                  render={<Link href={link.href} onClick={onNavigate} />}
                 >
-                  <Icon name={link.icon} className="size-4.5 text-sidebar-icon" />
-                  <span className="min-w-0 truncate">{t(link.labelKey)}</span>
-                </Link>
-              </li>
-            ))}
+                  <Icon name={link.icon} className="size-4.5 text-muted-foreground" />
+                  {t(link.labelKey)}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuGroup>
+
+            <DropdownMenuSeparator />
 
             {/*
-              The two controls that are not destinations, fenced off from the
-              four that are. Language is reversible and sign-out is not, so
-              sign-out sits last — nearest the trigger, which is the one place
-              in this list a mis-aimed click is most likely to land.
+              Not a destination — the one row here that changes the page you are
+              already on rather than taking you to another, which is why it is
+              fenced off from the three above it.
             */}
-            <li className="mt-1 flex flex-col gap-2 border-t border-sidebar-border pt-3">
-              <LocaleSwitcher className="w-full" />
-              <SignOutButton locale={locale} className="w-full" />
-            </li>
-          </ul>
-        </div>
-      </div>
+            <LocaleSwitcher variant="menu" />
 
-      <button
-        type="button"
-        aria-expanded={open}
-        aria-controls={panelId}
-        onClick={() => setOpen((wasOpen) => !wasOpen)}
-        className={cn(
-          'flex w-full items-center gap-3 rounded-md px-3 py-2 text-start',
-          'transition-colors duration-200 ease-[cubic-bezier(.2,.6,.2,1)]',
-          'hover:bg-sidebar-hover',
-          'focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:outline-none',
-          open && 'bg-sidebar-hover',
-        )}
-      >
-        {/*
-          Down when there is more to see, up when there is not — the glyph
-          points at what the click will do. It swaps rather than rotating: these
-          are two drawn arrows in the icon set, and a rotated one lands a half
-          pixel off its own baseline at this size.
+            <DropdownMenuSeparator />
 
-          `aria-expanded` on the button is what actually announces the state;
-          this is the sighted half of the same fact. It sits at the row's
-          leading edge now, opposite the avatar, so the one glyph that
-          actually does something is never confused for part of the identity
-          it sits beside.
-        */}
-        <Icon name={open ? 'chevronUp' : 'chevronDown'} className="size-4 text-sidebar-icon" />
+            {/*
+              Last, and clay. Ending a session is reversible in the sense that
+              you can sign back in, but it is the one row that throws away what
+              you were doing, so it sits furthest from the ones you meant to
+              click.
+            */}
+            <DropdownMenuGroup>
+              <DropdownMenuItem
+                variant="destructive"
+                onClick={() => signOutRef.current?.requestSubmit()}
+              >
+                <Icon name="signOut" className="size-4.5" />
+                {tCommon('signOut')}
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </SidebarMenuItem>
+    </SidebarMenu>
+  );
+}
 
-        {/*
-          Name over email. `min-w-0` on the stack and `truncate` on both lines
-          is what stops a long address from pushing the avatar off the rail.
-        */}
-        <span className="flex min-w-0 flex-1 flex-col">
-          <span className="truncate text-body-sm font-medium" dir="auto">
-            {name}
-          </span>
-          {email ? (
-            <span className="truncate text-caption text-muted-foreground" dir="ltr">
-              {email}
-            </span>
-          ) : null}
+/**
+ * Name over email. `min-w-0` on the stack and `truncate` on both lines is what
+ * stops a long address from pushing the avatar off a 256px rail.
+ *
+ * The email is `dir="ltr"` under an Arabic name: an address is Latin text and a
+ * bidi run would otherwise drag its dot-com to the wrong end.
+ */
+function ProfileIdentity({ name, email }: { name: string; email?: string | null }) {
+  return (
+    <span className="flex min-w-0 flex-1 flex-col text-start leading-tight group-data-[collapsible=icon]:hidden">
+      <span className="truncate text-body-sm font-medium" dir="auto">
+        {name}
+      </span>
+      {email ? (
+        <span className="truncate text-caption text-muted-foreground" dir="ltr">
+          {email}
         </span>
-
-        {/*
-          The trigger's one piece of decoration — fixed olive-100 rather than
-          the per-client palette in `avatar-color.ts`, since this is always the
-          same one account. `text-foreground` overrides the shared component's
-          default white, which assumes a dark, per-record colour.
-        */}
-        <Avatar name={name} color="var(--olive-100)" className="text-foreground" />
-      </button>
-    </div>
+      ) : null}
+    </span>
   );
 }

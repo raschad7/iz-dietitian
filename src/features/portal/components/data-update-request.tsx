@@ -2,7 +2,7 @@
 
 import { Info, PencilLine } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useActionState, useState } from 'react';
+import { useActionState, useRef, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 
 import { Button } from '@/components/ui/button';
@@ -44,11 +44,27 @@ import { formatDate } from '@/lib/format';
  */
 export function DataUpdateRequest({
   topic,
+  showNotice = true,
   openRequest,
   locale,
 }: {
   /** Which part of the record this block sits under; sent with the request so staff can route it. */
   topic: ClientRequestTopic;
+  /**
+   * Whether the introducing paragraph is drawn.
+   *
+   * The health record turns it off: that screen's own module note already
+   * establishes that nothing on it is the client's to edit, and by the time
+   * someone is looking for this control they have found something wrong — the
+   * sentence was explaining a situation they had already worked out. The
+   * contact screen keeps it, because `contactNotice` says something its button
+   * does not: that a phone number and an email have to be *verified*, so the
+   * clinic will call back rather than simply changing them.
+   *
+   * The request itself is unaffected either way; this hides one paragraph, not
+   * the way to correct a record.
+   */
+  showNotice?: boolean;
   openRequest: ClientRequestSummary | null;
   locale: Locale;
 }) {
@@ -61,6 +77,26 @@ export function DataUpdateRequest({
     because the two screens are asking about different things.
   */
   const noticeKey = topic === 'contact' ? 'contactNotice' : 'notice';
+
+  const request = openRequest ? (
+    <PendingRequest request={openRequest} locale={locale} />
+  ) : (
+    <RequestDisclosure topic={topic} locale={locale} />
+  );
+
+  /*
+    **The sunken card is the notice's, not the control's.** Its whole job was to
+    mark that paragraph as an aside — something explaining the screen rather
+    than part of it. With no paragraph to hold, it was a grey panel wrapped
+    around a single button, which reads as a section the button belongs to and
+    makes the one control on it look like a disabled surface.
+
+    So a caller that turns the notice off gets the control bare. The glyph goes
+    the same way, for the same reason: it marks a sentence as a note, and a lone
+    icon over a button is decoration. Nothing about the request itself changes —
+    the disclosure, the form and the pending state are the same in both shapes.
+  */
+  if (!showNotice) return request;
 
   return (
     <Card className="border-transparent bg-muted shadow-none">
@@ -78,11 +114,7 @@ export function DataUpdateRequest({
           </p>
         </div>
 
-        {openRequest ? (
-          <PendingRequest request={openRequest} locale={locale} />
-        ) : (
-          <RequestDisclosure topic={topic} locale={locale} />
-        )}
+        {request}
       </CardContent>
     </Card>
   );
@@ -91,6 +123,7 @@ export function DataUpdateRequest({
 function RequestDisclosure({ topic, locale }: { topic: ClientRequestTopic; locale: Locale }) {
   const t = useTranslations('portal.profile.update');
   const tErrors = useTranslations('portal');
+  const tCommon = useTranslations('common');
 
   const actionKey = topic === 'contact' ? 'contactAction' : 'action';
 
@@ -99,6 +132,23 @@ function RequestDisclosure({ topic, locale }: { topic: ClientRequestTopic; local
   // Mirrored from the `<details>` element's own event rather than replacing it,
   // so the panel still opens when this component has not hydrated yet.
   const [open, setOpen] = useState(false);
+
+  const formRef = useRef<HTMLFormElement>(null);
+
+  /*
+    Closing without sending.
+
+    Opening this panel is one tap and reading it is the moment someone realises
+    they have nothing to report — so there has to be a way out that is not
+    "find the summary again and tap it a second time". It **resets the form**
+    as well as closing it: `<details>` only hides its content, so a draft left
+    in the textarea would still be sitting there on the next visit under a
+    control the client had explicitly cancelled.
+  */
+  function cancel() {
+    formRef.current?.reset();
+    setOpen(false);
+  }
 
   return (
     <details
@@ -116,7 +166,7 @@ function RequestDisclosure({ topic, locale }: { topic: ClientRequestTopic; local
         {t(actionKey)}
       </summary>
 
-      <form action={formAction} className="space-y-3 pt-3">
+      <form ref={formRef} action={formAction} className="space-y-3 pt-3">
         <input type="hidden" name="locale" value={locale} />
         <input type="hidden" name="topic" value={topic} />
 
@@ -144,7 +194,26 @@ function RequestDisclosure({ topic, locale }: { topic: ClientRequestTopic; local
           </p>
         ) : null}
 
-        <SubmitButton label={t('submit')} />
+        {/*
+          §Buttons: siblings sit 12px apart, and the primary takes the
+          inline-start of the group in both locales — source order plus `flex`,
+          so Arabic mirrors it without a `flex-row-reverse`. Send is the
+          decision here and wears the brand colour; cancelling is merely
+          available, so it is the boxless `ghost` rather than a second outlined
+          control competing with it.
+
+          ⚠ Cancel needs JavaScript, where the rest of this panel does not —
+          `<details>` opens on its own and the form posts to a server action
+          either way. Unhydrated, the summary is still the way to close it,
+          which is exactly the behaviour that existed before this button did.
+        */}
+        <div className="flex flex-wrap items-center gap-3">
+          <SubmitButton label={t('submit')} />
+
+          <Button type="button" variant="ghost" size="default" onClick={cancel}>
+            {tCommon('cancel')}
+          </Button>
+        </div>
       </form>
     </details>
   );

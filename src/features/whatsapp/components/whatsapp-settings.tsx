@@ -8,6 +8,7 @@ import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { ConfirmSubmitButton } from '@/components/ui/confirm-submit-button';
 import { Label } from '@/components/ui/label';
 import { formatDateTime } from '@/lib/format';
@@ -306,13 +307,13 @@ function Toggle({
 }) {
   return (
     <div className="flex items-start gap-3">
-      <input
-        id={name}
-        name={name}
-        type="checkbox"
-        defaultChecked={defaultChecked}
-        className="mt-1 size-4 rounded border-input accent-primary"
-      />
+      {/*
+        `Checkbox` renders the real `<input>` for itself when given a `name`,
+        so this stays a plain server-action form — the box was a native input
+        tinted with `accent-primary`, which is the browser's checkmark in the
+        brand colour rather than this system's.
+      */}
+      <Checkbox id={name} name={name} defaultChecked={defaultChecked} className="mt-1" />
       <div className="space-y-1">
         <Label htmlFor={name}>{label}</Label>
         <p className="text-sm text-muted-foreground">{help}</p>

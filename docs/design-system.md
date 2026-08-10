@@ -497,6 +497,33 @@ side missing. The client record's tab body was doing this on all four edges.
 Give the scroller a little padding (`px-1 pt-1 pb-6` there — the block-end needs
 more, because that is where the last card's shadow lands).
 
+## Scrolling
+
+**No surface in this app draws a scrollbar.** `globals.css` sets
+`scrollbar-width: none` on `*` and hides the WebKit bar; everything still
+scrolls by wheel, trackpad, touch, keyboard and drag. This replaced a 14px
+olive-100 bar styled to match the platform's own track and thumb.
+
+**It is also the fix for scroll-induced layout shift, and the only one needed.**
+A classic scrollbar takes its width out of the content box, so a surface that
+grows past its container jumped 14px sideways at the instant the bar appeared —
+the intake dialog does exactly this when a `field-sizing-content` textarea
+expands under typing. A bar with no width cannot move anything, so there is
+nothing left to reserve: **do not add `scrollbar-gutter: stable`**, which would
+now reserve a gutter of zero and read as dead CSS to the next person.
+
+`*` and not `html`, because `scrollbar-width` is not inherited — the root alone
+leaves every nested scroller drawing its own bar.
+
+⚠ **The trade is real and it is now taken everywhere.** A scrollbar is also the
+signal that there is more to see, and the only pointer-driven way to move a long
+way through it. Two things keep this honest and both are load-bearing: a surface
+that can overflow should carry its own affordance — the select's scroll buttons
+are the model — and nothing may depend on a visible bar to tell a reader that
+content continues. `@utility no-scrollbar` still exists and is now redundant; it
+is kept because its call sites (the calendar grid, the dashboard agenda) are
+recording something true about themselves.
+
 **A two-column card grid gaps badly when the columns differ in height.** In a
 `grid-cols-3` holding `col-span-2` cards beside single-column ones, each pair is
 a grid *row*, and a row is as tall as its tallest member — so a short card
@@ -552,9 +579,11 @@ a `title` on the button itself can never be hovered.
 **`destructive` vs `destructiveGhost`** is about what the control is *among*,
 not how dangerous it is. A destructive action that closes a decision — the
 delete inside a confirm dialog — takes the outlined box that says so.
-A destructive action sitting among other controls takes the ghost: the rail's
-sign-out is stacked under four boxless links and a language switcher, and an
-outline there read as one more destination. Both keep the clay label at rest;
+A destructive action sitting among other controls takes the ghost: the portal
+header's sign-out sits beside a language switcher, and an outline there read as
+one more destination. (The rail's sign-out is no longer a `Button` at all — it
+is a `destructive` menu item, which speaks the same clay-at-rest language one
+level down.) Both keep the clay label at rest;
 neither is ever a solid red block. Like `ghost`, `destructiveGhost` carries 12px
 of padding rather than 20px, so a boxless control does not look like it has a
 gap around it.
@@ -727,33 +756,76 @@ own Cancel all close it already; a third exit only crowds the corner the title
 starts from. `DialogHeader` renders the X only when given `onClose` — pass it
 where a dialog has no footer to leave by.
 
+### A popup inside a dialog needs both halves
+
+A dialog is a native `<dialog>` opened with `showModal()`, which the browser
+promotes to the **top layer**. Any popup opened from inside one has to do two
+separate things, and doing only the first is the trap — the popup works,
+positions correctly, and is still wrong.
+
+1. **Portal into the dialog, not into `body`.** A `document.body` portal is not
+   in the top layer, so it paints *behind* the open dialog at any z-index.
+   `useDialogContainer()` publishes the element to portal into; it returns
+   `null` outside a dialog, where Base UI's own `body` default is right.
+2. **Position `fixed`, not `absolute`.** Portalling into the dialog also makes
+   the popup a *child* of it, and a `<dialog>` scrolls its own overflow — so an
+   absolutely positioned popup takes the dialog as its containing block and is
+   clipped at its edge. The phone field's 240-country list was cut off part-way
+   down with no way to reach the rest. A fixed popup's containing block is the
+   viewport, so the dialog's clip no longer applies, and Base UI measures the
+   anchor with `getBoundingClientRect` either way.
+
+Pair (2) with `max-h-(--available-height)` rather than a flat `max-h-*`: the
+positioner reports the room it actually found, so the list is capped by the
+viewport instead of by a guess that can still overrun a short window.
+
+`popover.tsx`, `combobox.tsx`, `select.tsx` and `phone-field.tsx` all do both.
+
 `Select` is a real native `<select>` with `appearance: none` and our own
 chevron — Chrome pins its built-in arrow to the border and ignores
 `padding-inline-end`, so long option text collides with it. Keyboard
 behaviour, screen-reader semantics and the mobile picker still come free.
 
-### Two time controls, and which one
+### One time control
 
-Neither is `<input type="time">`. Chrome's popup is a three-column spinner in
-the OS's own type, which reads as a foreign object inside an Arabic page and
-forces a 12-hour step on a clinic that works in 24.
+**`TimeInput`** — the browser's own segmented time field, with a clock leading
+it. It is the only time control; a meal time and a clinic's opening hour are the
+same control with a different `step`.
 
-- **`TimeField`** — an hour list beside a minute list. For a time on a fine
-  grid, chosen as two independent parts: a meal at 07:35. `minuteStep` sets the
-  minute grid, and it must match whatever validates the value — a control that
-  offers a time its own form rejects is a trap the reader walks into once per
-  visit.
-- **`TimeSelect`** — one list of whole times: `08:00`, `08:15`. For a time on a
-  coarse grid where the *whole* time is the unit of choice. It is controlled,
-  because a caller that wants one time usually also wants to copy it somewhere.
+> Replaced: `TimeField` (an hour list beside a minute list) and `TimeSelect`
+> (one list of whole times). Between them they meant a meal time was two
+> dropdowns you assembled yourself, and the code carried two components, two
+> option-generating loops and two off-grid-value policies for one kind of
+> answer.
 
-The clinic's opening hours are the case that separated them. Seven days of
-`TimeField` meant **twenty-eight** dropdowns, and none of them showed a time —
-you read `08` and `00` in two boxes and assembled `08:00` yourself, twice per
-row. Two `TimeSelect`s per row halve the controls and each one states the
-answer. Both components keep an off-grid stored value as its own entry rather
-than rounding it away; silently moving a clinic's 08:20 to 08:15 on load is data
-loss disguised as tidiness.
+This section used to open "neither is `<input type="time">`", and the reasoning
+was not wrong — so be precise about what changed:
+
+- **The OS popup is gone**, which was the loudest objection: Chrome's
+  three-column spinner is drawn in the operating system's own type and reads as
+  a foreign object dropped into an Arabic page. Hiding
+  `::-webkit-calendar-picker-indicator` removes the button that summons it and
+  leaves the segmented field, which is drawn in the page's own type.
+- **The 12-hour concern stands, and it is the browser's call.** A time input
+  formats to the *browser's* locale, not the page's, so a clinic working in 24
+  can still be shown `08:30 AM` by a browser set to US English. The submitted
+  value is always 24-hour `HH:MM`, which is what `timeOfDaySchema` parses, so
+  this is a display difference and not a data one. If it ever has to be
+  controlled, that is the thing to solve — not the control.
+
+**`step` is in seconds, and it must match whatever validates the value.** A
+quarter hour is `900`, not `15`. Pass it where the form validates to a grid: the
+browser snaps its stepper and reports a typed off-grid value as invalid, instead
+of accepting it and letting the server reject it. A control that offers a time
+its own form refuses is a trap the reader walks into once per visit, and that
+rule outlived the two components it was written for. Never pass `1` — it adds a
+seconds segment, and nothing here stores a time more precisely than the minute.
+
+**It is an LTR island in both scripts**, like the phone field. `dir="ltr"` goes
+on the wrapper and not on the input: the glyph is placed with a logical
+`start-0` and the box clears it with a logical `ps-12`, so setting the direction
+one level in resolves those two against opposite edges and drops the clock on
+top of the digits.
 
 **Where the same value repeats down a list, offer to copy it.** Most clinics
 work the same hours every day, and the schedule made you say so seven times.
@@ -1003,30 +1075,48 @@ ring and no halo, so the ring itself has to carry the contrast — 15.86:1 on th
 rail and 15.42:1 on the active item's olive-50 surface.
 
 **The rail can end in a profile menu** (`SidebarProfile`, given `user`): one row
-carrying the signed-in name over a muted email, with a chevron that points down
-closed and up open. Pushed to the block-end with `mt-auto` and fenced off with a
+carrying the signed-in name over a muted email, with the avatar leading and a
+stacked chevron pair closing it. It sits in the footer, fenced off with a
 hairline. The dietitian area has no app bar, so this is where account controls
 live.
 
-**It opens upward**, and it does that by rendering the panel *before* the
-trigger in the DOM — the rail's block-end is the floor, so growing the panel
-pushes the trigger down onto its own stack instead of off-screen, and the
-trigger stays put under the pointer that just clicked it. The growth is the
-`0fr` → `1fr` grid-row trick, with the panel `inert` while closed so it stays
-mounted (and keeps the sign-out form's state) without sitting in the tab order.
+**It is a `DropdownMenu`**, the same primitive as the row actions and the
+selects. It used to be a hand-rolled disclosure that grew *inside* the rail — a
+`0fr` → `1fr` grid row, with the panel rendered before the trigger so it opened
+upward. That worked until the rail collapsed to 56px, where there is nothing to
+grow into, and it never had type-ahead, arrow keys, a focus trap or a return of
+focus to the trigger. A menu positions against the *viewport* instead: it opens
+**inline-end** on a desktop — out over the page, away from the rail, in either
+script — and **upward from the bottom** on a phone, where the rail is a sheet
+with no side to open into.
 
-Inside, block-start to block-end: **settings, notifications, WhatsApp,
-security**, then a hairline, then the **language switcher** and **sign-out**.
-The four destinations are *not* in the rail's own nav — the same link in two
-lists is two answers to "where does this live" — and sign-out is last, nearest
-the trigger, as the one item a mis-aimed click most wants to miss. It is
-`destructiveGhost`/`sm`: no box, clay label and glyph throughout, clay-100 fill
-on hover. Settings takes a **gear**, not the person glyph the old rail's Profile
-item used — it is reached from a control that is already a person.
+Inside, block-start to block-end: the identity again (the trigger is behind a
+sheet on a phone, and a bare avatar when collapsed — either way the menu has to
+say whose account it is about to sign out), then **settings, WhatsApp,
+security**, then the **language** radio pair, then **sign-out**. The three
+destinations are *not* in the rail's own nav — the same link in two lists is two
+answers to "where does this live" — and sign-out is last, furthest from them,
+as the one item a mis-aimed click most wants to miss. It is the menu's
+`destructive` variant: clay label and glyph, clay fill on focus. Settings takes
+a **gear**, not the person glyph the old rail's Profile item used — it is
+reached from a control that is already a person.
 
-**Escape and an outside `pointerdown` both close it**, and so does following a
-link — client-side navigation keeps the component mounted, so an open menu
-would otherwise outlive the page it left.
+**Language is two radio items under a label**, not the `group` segmented
+switcher (`LocaleSwitcher variant="menu"`). A boxed chip inside a panel of menu
+rows was the one thing in it that was neither a destination nor an action; as
+radio items it is the same choice in the shape everything around it has, and the
+check mark states which is live without a fill having to out-shout the row above
+it. The endonyms show here, and so does `lang` — the `AR`/`EN` codes exist only
+because the `group` variant has to fit two locales into 40px.
+
+**Sign-out's form lives outside the popup.** Choosing a menu item closes the
+menu, and a form that unmounts in the same tick as its own submit is a race; the
+item calls `requestSubmit()` on a hidden form in the footer, which stays mounted.
+
+**The trigger carries no `tooltip`.** A tooltip wraps its button in a trigger of
+its own, and a button that is already a menu's trigger cannot also be a
+tooltip's — the hover label wins and the menu never opens. Collapsed, the menu
+names the account at its own head instead.
 
 The portal omits `user` and gets no menu, because it still has a header carrying
 sign-out and the language switcher — and below `md`, where the rail is hidden,
@@ -1109,6 +1199,26 @@ bordered space. `Tabs` imports nothing from `@/i18n/navigation`; call sites pair
 
 Staff and portal share `Sidebar`. The portal passes icons (`PORTAL_NAV_ICONS`,
 the same glyphs as its bottom bar); the staff rail is text-only.
+
+**The rail's metrics, and where they leave the registry.** Rows are **40px**
+high (`h-10`) with a **6px** gap between them and a **20px** glyph, on a
+**256px** expanded / **56px** collapsed column. The registry ships 32px rows,
+no gap and 16px glyphs in a 48px collapsed rail — dense enough to read as a
+list of settings rather than as the five places a working day is spent, and a
+16px glyph is too little to aim at or tell apart once the labels are gone.
+Collapsed, a 40px button in a 56px column leaves 8px of air on each side, which
+is where the extra half-rem of width goes.
+
+Two colour departures from the registry, both from this document. **Hover is
+`--sidebar-hover`, not `--sidebar-accent`**: the registry uses one token for
+both, which would paint a hovered row in the exact olive-50 of the *active* one
+and make the rail appear to change page under the pointer. And **the idle glyph
+is `--sidebar-icon`**, the warm neutral, with the active row overriding it —
+olive on olive-50 is the whole of how that state is marked.
+
+`Icon` ships `size-4` in its own class list, so the button's
+`[&_svg:not([class*='size-'])]:size-5` default never reaches it. Rail glyphs
+pass `className="size-5"` explicitly.
 
 ## Spacing, shadows, motion
 

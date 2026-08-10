@@ -4,7 +4,7 @@ import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
+import { SelectField } from '@/components/ui/select-field';
 import { type Locale } from '@/i18n/routing';
 
 import { formatLongDate } from '../format';
@@ -88,45 +88,39 @@ export function RepeatField({
       */}
       <div className="space-y-1">
         <Label htmlFor={`${idPrefix}-duration`}>{t('repeat.label')}</Label>
-        <Select
+        <SelectField
           id={`${idPrefix}-duration`}
           value={custom ? CUSTOM : String(weeks)}
-          onChange={(event) => {
-            const next = event.target.value;
+          onValueChange={(next) => {
             setCustom(next === CUSTOM);
             if (next !== CUSTOM) onChange(Number(next));
           }}
-        >
-          {/* The default, and first: an appointment that does not repeat is
-              the overwhelmingly common case, so it is the row already showing
-              and the one the keyboard lands on. */}
-          <option value={NO_REPEAT}>{t('repeat.never')}</option>
-
-          {REPEAT_PRESETS.map((preset) => (
-            <option key={preset.key} value={preset.weeks}>
-              {t(`repeat.presets.${preset.key}`)}
-            </option>
-          ))}
-
-          <option value={CUSTOM}>{t('repeatBooking.custom')}</option>
-        </Select>
+          options={[
+            /* The default, and first: an appointment that does not repeat is
+               the overwhelmingly common case, so it is the row already showing
+               and the one the keyboard lands on. */
+            { value: String(NO_REPEAT), label: t('repeat.never') },
+            ...REPEAT_PRESETS.map((preset) => ({
+              value: String(preset.weeks),
+              label: t(`repeat.presets.${preset.key}`),
+            })),
+            { value: CUSTOM, label: t('repeatBooking.custom') },
+          ]}
+        />
       </div>
 
       {custom ? (
         <div className="space-y-1">
           <Label htmlFor={`${idPrefix}-weeks`}>{t('repeatBooking.customLabel')}</Label>
-          <Select
+          <SelectField
             id={`${idPrefix}-weeks`}
             autoFocus
             value={String(weeks || 1)}
-            onChange={(event) => onChange(Number(event.target.value))}
-          >
-            {Array.from({ length: MAX_REPEAT_WEEKS }, (_, index) => index + 1).map((count) => (
-              <option key={count} value={count}>
-                {t('repeatBooking.weeks', { count })}
-              </option>
-            ))}
-          </Select>
+            onValueChange={(next) => onChange(Number(next))}
+            options={Array.from({ length: MAX_REPEAT_WEEKS }, (_, index) => index + 1).map(
+              (count) => ({ value: String(count), label: t('repeatBooking.weeks', { count }) }),
+            )}
+          />
         </div>
       ) : null}
 
