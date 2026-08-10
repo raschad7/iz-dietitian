@@ -137,6 +137,15 @@ function SelectContent({
         align={align}
         alignOffset={alignOffset}
         alignItemWithTrigger={alignItemWithTrigger}
+        /*
+         * Portalled into the dialog means parented by it, and the dialog clips
+         * its own overflow — so an absolutely positioned popup is cut off at
+         * the dialog's edge. Fixed positioning takes the viewport as the
+         * containing block instead, which is what makes
+         * `max-h-(--available-height)` below measure the room that actually
+         * exists. Same rule as `popover.tsx` and `combobox.tsx`.
+         */
+        positionMethod={container ? "fixed" : undefined}
         className="isolate z-50"
       >
         <SelectPrimitive.Popup

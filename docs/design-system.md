@@ -497,6 +497,33 @@ side missing. The client record's tab body was doing this on all four edges.
 Give the scroller a little padding (`px-1 pt-1 pb-6` there — the block-end needs
 more, because that is where the last card's shadow lands).
 
+## Scrolling
+
+**No surface in this app draws a scrollbar.** `globals.css` sets
+`scrollbar-width: none` on `*` and hides the WebKit bar; everything still
+scrolls by wheel, trackpad, touch, keyboard and drag. This replaced a 14px
+olive-100 bar styled to match the platform's own track and thumb.
+
+**It is also the fix for scroll-induced layout shift, and the only one needed.**
+A classic scrollbar takes its width out of the content box, so a surface that
+grows past its container jumped 14px sideways at the instant the bar appeared —
+the intake dialog does exactly this when a `field-sizing-content` textarea
+expands under typing. A bar with no width cannot move anything, so there is
+nothing left to reserve: **do not add `scrollbar-gutter: stable`**, which would
+now reserve a gutter of zero and read as dead CSS to the next person.
+
+`*` and not `html`, because `scrollbar-width` is not inherited — the root alone
+leaves every nested scroller drawing its own bar.
+
+⚠ **The trade is real and it is now taken everywhere.** A scrollbar is also the
+signal that there is more to see, and the only pointer-driven way to move a long
+way through it. Two things keep this honest and both are load-bearing: a surface
+that can overflow should carry its own affordance — the select's scroll buttons
+are the model — and nothing may depend on a visible bar to tell a reader that
+content continues. `@utility no-scrollbar` still exists and is now redundant; it
+is kept because its call sites (the calendar grid, the dashboard agenda) are
+recording something true about themselves.
+
 **A two-column card grid gaps badly when the columns differ in height.** In a
 `grid-cols-3` holding `col-span-2` cards beside single-column ones, each pair is
 a grid *row*, and a row is as tall as its tallest member — so a short card
@@ -722,6 +749,31 @@ the disclosure cost, and it is why there is no longer one.
 own Cancel all close it already; a third exit only crowds the corner the title
 starts from. `DialogHeader` renders the X only when given `onClose` — pass it
 where a dialog has no footer to leave by.
+
+### A popup inside a dialog needs both halves
+
+A dialog is a native `<dialog>` opened with `showModal()`, which the browser
+promotes to the **top layer**. Any popup opened from inside one has to do two
+separate things, and doing only the first is the trap — the popup works,
+positions correctly, and is still wrong.
+
+1. **Portal into the dialog, not into `body`.** A `document.body` portal is not
+   in the top layer, so it paints *behind* the open dialog at any z-index.
+   `useDialogContainer()` publishes the element to portal into; it returns
+   `null` outside a dialog, where Base UI's own `body` default is right.
+2. **Position `fixed`, not `absolute`.** Portalling into the dialog also makes
+   the popup a *child* of it, and a `<dialog>` scrolls its own overflow — so an
+   absolutely positioned popup takes the dialog as its containing block and is
+   clipped at its edge. The phone field's 240-country list was cut off part-way
+   down with no way to reach the rest. A fixed popup's containing block is the
+   viewport, so the dialog's clip no longer applies, and Base UI measures the
+   anchor with `getBoundingClientRect` either way.
+
+Pair (2) with `max-h-(--available-height)` rather than a flat `max-h-*`: the
+positioner reports the room it actually found, so the list is capped by the
+viewport instead of by a guess that can still overrun a short window.
+
+`popover.tsx`, `combobox.tsx`, `select.tsx` and `phone-field.tsx` all do both.
 
 `Select` is a real native `<select>` with `appearance: none` and our own
 chevron — Chrome pins its built-in arrow to the border and ignores

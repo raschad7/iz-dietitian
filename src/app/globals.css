@@ -1104,31 +1104,39 @@
   }
 
   /*
-   * ── Custom scrollbar ──
-   * Same track/thumb structure the platform default draws — a plain
-   * rectangular thumb inset from the edge, no radius — recoloured to
-   * olive-100. Declared in `@layer base` so `@utility no-scrollbar` (the
-   * calendar grid's opt-out) still wins: Tailwind's utilities layer outranks
-   * base regardless of selector specificity.
+   * ── No scrollbars, anywhere ──
+   *
+   * Every scroller in the app scrolls by wheel, trackpad, touch, keyboard and
+   * drag; none of them draws a bar. This replaced a 14px olive-100 bar styled
+   * to match the platform's own track/thumb structure.
+   *
+   * **This is also what fixes the layout shift**, which is the reason it was
+   * asked for. A classic scrollbar takes its width out of the content box, so
+   * a surface that grows past its container — the intake dialog when a
+   * textarea expands under `field-sizing-content`, the register when it passes
+   * a screenful — lost 14px of content width at the instant the bar appeared,
+   * and everything inside it jumped sideways. A bar with no width cannot do
+   * that, so there is nothing left to reserve space for: `scrollbar-gutter:
+   * stable` would now reserve a gutter of zero and is deliberately not here.
+   *
+   * `*` rather than `html`: `scrollbar-width` is not an inherited property, so
+   * the root alone would leave every nested scroller — dialog bodies, the
+   * register, the planner board, popup lists — drawing bars of their own.
+   *
+   * ⚠ **The trade is real.** A scrollbar is also the signal that there is more
+   * to see and the only pointer-driven way to jump a long way through it, and
+   * this file used to say in as many words: "Do not reach for this on an
+   * ordinary long page." It is now on every page, by request. Two things keep
+   * it honest, and both are worth preserving — surfaces that can overflow
+   * should show their own affordance (the select's scroll buttons are the
+   * model), and nothing may rely on a bar being visible to tell a reader that
+   * content continues.
    */
-  html {
-    scrollbar-width: auto;
-    scrollbar-color: var(--olive-100) transparent;
+  * {
+    scrollbar-width: none;
   }
   ::-webkit-scrollbar {
-    width: 14px;
-    height: 14px;
-  }
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  ::-webkit-scrollbar-thumb {
-    background-color: var(--olive-100);
-    border: 3px solid transparent;
-    background-clip: padding-box;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    background-color: var(--olive-200);
+    display: none;
   }
 
   /*
@@ -1821,18 +1829,12 @@
 /*
  * A scroller with no visible scrollbar.
  *
- * The content still scrolls — by wheel, trackpad, touch and keyboard — only the
- * bar itself is gone. Used by the calendar grid, which is sized to fit its panel
- * and shows a bar only in the cases it cannot: a window too short for the
- * clinic day at a readable slot height, or a week too narrow for seven columns.
- * Also used by the dashboard agenda's appointment list, on request — that one
- * genuinely can overflow with a full day, so the caution below applies to it
- * more than to the calendar.
- *
- * The trade is real and worth stating: hiding the bar also hides the *signal*
- * that there is more to see. It is acceptable on the calendar because it is
- * fitted to the panel in normal use, so the hidden overflow is the exception
- * rather than the resting state. Do not reach for this on an ordinary long page.
+ * **Redundant since scrollbars were hidden app-wide** — see "No scrollbars,
+ * anywhere" in `@layer base`. It is kept because its call sites (the calendar
+ * grid and the dashboard agenda's appointment list) are saying something true
+ * about themselves: these are surfaces deliberately fitted to their panel,
+ * where overflow is the exception rather than the resting state. If the global
+ * rule is ever reconsidered, this is the list of places that still want it.
  */
 @utility no-scrollbar {
   scrollbar-width: none;

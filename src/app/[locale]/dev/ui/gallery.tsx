@@ -32,6 +32,7 @@ import { Field, FieldError, FieldHint } from '@/components/ui/field';
 import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PhoneField } from '@/components/ui/phone-field';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Progress } from '@/components/ui/progress';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -499,6 +500,26 @@ export function UiGallery({ locale }: { locale: Locale }) {
                 options={SELECT_OPTIONS}
                 aria-label="Activity level"
               />
+            </Field>
+
+            {/*
+              The 240-country list is the tallest popup in the app, and this
+              dialog is the surface it was being clipped by. Open it here
+              before trusting a change to `phone-field` or `select`.
+            */}
+            <Field>
+              <Label htmlFor="g-dialog-phone">Phone</Label>
+              <PhoneField id="g-dialog-phone" locale={locale} countryLabel="Country code" />
+            </Field>
+
+            {/*
+              A textarea that grows under `field-sizing-content` is what makes
+              this dialog overflow, which is how the layout shift was found:
+              type several lines and nothing beside it may move sideways.
+            */}
+            <Field>
+              <Label htmlFor="g-dialog-notes">Notes</Label>
+              <Textarea id="g-dialog-notes" placeholder="Type several lines to overflow the dialog" />
             </Field>
           </DialogBody>
           <DialogFooter>
