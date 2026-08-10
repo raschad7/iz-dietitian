@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 
 import { AgendaTimeline } from '@/features/dashboard/components/agenda-timeline';
 import { ClientsCard } from '@/features/dashboard/components/clients-card';
-import { QuickActions } from '@/features/dashboard/components/quick-actions';
+import { StatCards } from '@/features/dashboard/components/stat-cards';
 import { loadDashboard } from '@/features/dashboard/page-data';
 import { NotificationsBell } from '@/features/notifications/components/notifications-bell';
 import { PendingRequestsCard } from '@/features/requests/components/pending-requests-card';
@@ -45,13 +45,26 @@ export async function generateMetadata({ params }: DashboardPageProps): Promise<
  * the wrong edge once the page mirrors, so the grid stays two logical tracks
  * and the columns are declared in the order they should read.
  *
- * Reading order down the working column: the four things you start a session by
- * doing, then one row holding your register beside the clients who have drifted
- * out of it. The four summary counters that used to head this column are gone —
- * every number on them was a count of something one click away in the calendar
- * or the register, and they were costing the page its most valuable row.
+ * Reading order down the working column: two figures that say how the practice
+ * is doing, then the register itself.
  *
  * ## What moved, and why
+ *
+ * **The top of the column is two stat cards, not three shortcut tiles.** The
+ * tiles were links styled as surfaces — new client, book an appointment, weekly
+ * plans — and the sidebar already carried every destination among them, so the
+ * most valuable band on the page was spending itself on a second copy of the
+ * navigation. What was missing at the top of a screen somebody leaves open all
+ * day was not another way to move around it but a reason to look at it. The
+ * cards state the two numbers the practice runs on, draw how each has moved,
+ * and keep one action apiece in the corner: the register card still opens the
+ * new-client dialog, and the diary card opens the week view. See `StatCards`.
+ *
+ * Note that the summary tiles this page carried a year ago were removed for the
+ * opposite reason — they counted things the calendar and the register already
+ * showed. These do not: a six-month intake curve, an eight-week booking
+ * history, and a count of active clients with nothing in the diary are facts no
+ * other screen in the app states.
  *
  * **Requests are under today's agenda, not beside the register.** They belong
  * with the day they are about: an appointment request is a proposal for a slot,
@@ -104,7 +117,7 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
 
       <div className="grid gap-4 xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(0,1fr)_21rem] 2xl:grid-cols-[minmax(0,1fr)_23rem]">
         <div className="flex min-w-0 flex-col gap-4 xl:min-h-0">
-          <QuickActions locale={locale} />
+          <StatCards stats={data.stats} today={data.today} locale={locale} />
 
           {/*
             The register takes the whole row. It briefly shared it with an

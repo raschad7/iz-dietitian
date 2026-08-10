@@ -381,6 +381,32 @@
   --color-viz-cat-2: var(--viz-cat-2);
   --color-viz-cat-none: var(--viz-cat-none);
 
+  /*
+   * `viz-brand-*` is the BRAND pair, and it is a deliberate exception to
+   * everything the block above says.
+   *
+   * The dashboard's two stat cards are drawn in the clinic's own green rather
+   * than in the neutral ramp, by design request. The reasoning that keeps the
+   * rest of the app neutral still holds — olive marks what you can act on —
+   * and these two cards are the case where it costs least: the plots are the
+   * only content in them, nothing inside a plot is clickable, and each card's
+   * one real target is an icon in its corner that is already a different shape
+   * from anything in the chart. The register and the agenda below them keep
+   * their olive for controls, so the page as a whole still separates the two.
+   *
+   * `viz-brand` is the mark — a line, a bar, the value the card is about — and
+   * is the same olive-500 as `--primary`, which is the lightest green in the
+   * ramp that still clears the 3:1 contrast floor a filled mark owes the
+   * reader on white. `viz-brand-soft` is olive-300, for the area fill and for
+   * the bars that are *not* the current week; it sits under that floor and is
+   * only ever used where a darker mark of the same series carries the reading.
+   *
+   * Do not borrow these anywhere else. A third surface drawing data in olive
+   * is the state the neutral ramp exists to prevent.
+   */
+  --color-viz-brand: var(--viz-brand);
+  --color-viz-brand-soft: var(--viz-brand-soft);
+
   --color-ring: var(--ring);
   --color-focus-halo: var(--focus-halo);
   --color-input: var(--input);
@@ -723,6 +749,10 @@
   --viz-cat-2: var(--olive-50);
   --viz-cat-none: var(--n-300);
 
+  /* The dashboard's stat cards. See the note in `@theme` above. */
+  --viz-brand: var(--olive-500);
+  --viz-brand-soft: var(--olive-300);
+
   /*
    * ── Sidebar — a near-white rail ──
    *
@@ -909,6 +939,15 @@
   --viz-cat-none: var(--n-600);
 
   /*
+   * One step lighter than the light theme, for the same reason the sequential
+   * ramp re-anchors rather than flipping: olive-500 on an olive-950 card is
+   * the same dark green reading as a shadow. Olive-400 is the lightest green
+   * the palette has that is still recognisably the brand.
+   */
+  --viz-brand: var(--olive-400);
+  --viz-brand-soft: var(--olive-600);
+
+  /*
    * The dark rail keeps its dark treatment — a pale rail on an olive-950
    * canvas would be the brightest surface on the screen, which is the same
    * mistake the dark rail made in light mode, inverted.
@@ -1008,6 +1047,9 @@
     --viz-band-range: var(--lime-300);
     --viz-band-edge: var(--lime-600);
     --viz-band-marker: var(--olive-900);
+
+    --viz-brand: var(--olive-400);
+    --viz-brand-soft: var(--olive-600);
 
     --sidebar: var(--olive-900);
     --sidebar-foreground: var(--olive-200);

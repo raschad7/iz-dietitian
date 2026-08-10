@@ -1323,10 +1323,11 @@ design decision that has already changed twice.
 
 ## Charts
 
-**No chart is olive.** Olive is the action colour, and a dashboard whose bars,
-donut, tiles and buttons were all the same green had no way left to show which
-of those you could click. Charts are drawn in the warm neutral ramp and the two
-support hues; the brand shows up on the controls around them.
+**No chart is olive, with one scoped exception.** Olive is the action colour,
+and a dashboard whose bars, donut, tiles and buttons were all the same green had
+no way left to show which of those you could click. Charts are drawn in the warm
+neutral ramp and the two support hues; the brand shows up on the controls around
+them. The exception is `viz-brand` — see the note under the table below.
 
 Three scales, each doing one job. All of them are tokens — a hex in a chart
 component is the same bug it is anywhere else.
@@ -1337,6 +1338,17 @@ component is the same bug it is anywhere else.
 | Categorical | `viz-cat-1`, `viz-cat-2` | **identity** — which segment |
 | Neutral | `viz-cat-none` | "not recorded" — an absence, never a third category |
 | Comfort band | `viz-band-range` / `-edge` / `-marker` | the three-stop band the brand defines |
+| Brand | `viz-brand`, `viz-brand-soft` | **the dashboard's two stat cards, and nothing else** |
+
+**`viz-brand` is the exception to the rule at the top of this section, and it
+is scoped to two components.** The dashboard's client-intake and appointment
+cards (`src/features/dashboard/components/stat-charts.tsx`) draw in the clinic's
+green on purpose. It works there because the plot *is* the card — nothing inside
+it is clickable, and the card's one target is a glyph in the corner that no bar
+could be mistaken for. It stops working the moment a third surface borrows it,
+which is the state the neutral ramps exist to prevent. `viz-brand` is olive-500,
+the lightest green that clears the 3:1 mark floor on white; `viz-brand-soft` is
+olive-300 and is only legal beside a `viz-brand` mark of the same series.
 
 **`ComfortBand` is for a value against a *tolerance*, not against a set of
 categories.** It draws one highlighted span and a marker, so whatever that span

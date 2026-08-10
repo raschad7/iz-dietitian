@@ -269,27 +269,39 @@
       "viewDay": "Open the day view",
       "reason": "Reason: {reason}"
     },
+    "stats": {
+      "title": "Practice at a glance",
+      "clients": {
+        "title": "Active clients",
+        "caption": "{count, plural, =0 {No one on your register} one {# person on your register} other {# people on your register}}",
+        "series": "New clients",
+        "action": "Add a client",
+        "noTrend": "Not enough history to show a trend yet",
+        "trend": {
+          "up": "New clients up {percent}% on the months before",
+          "down": "New clients down {percent}% on the months before",
+          "flat": "New clients steady on the months before"
+        }
+      },
+      "appointments": {
+        "title": "This week",
+        "series": "Appointments",
+        "action": "Open the week view",
+        "unbooked": "{count, plural, one {# active client has nothing booked} other {# active clients have nothing booked}}",
+        "noTrend": "Not enough history to show a trend yet",
+        "trend": {
+          "up": "Bookings up {percent}% on the weeks before",
+          "down": "Bookings down {percent}% on the weeks before",
+          "flat": "Bookings steady on the weeks before"
+        }
+      }
+    },
     "clients": {
       "title": "Your clients",
       "nextVisit": "Next: {when}",
       "empty": "No one on your register yet.",
       "emptyCta": "Add your first client",
       "viewAll": "See all clients"
-    },
-    "quickActions": {
-      "title": "Quick actions",
-      "addClient": {
-        "title": "New patient",
-        "hint": "Add someone to your register"
-      },
-      "bookAppointment": {
-        "title": "Book appointment",
-        "hint": "Opens today in the calendar"
-      },
-      "weeklyPlans": {
-        "title": "Weekly plans",
-        "hint": "Opens the plan board"
-      }
     }
   },
   "notifications": {
