@@ -90,18 +90,21 @@ describe('listClients', () => {
     expect((await listClients(clinicId, filters({ q: 'زياد' }))).items).toHaveLength(0);
   });
 
-  test('hides archived clients by default and reveals them on request', async () => {
+  /* The two halves of the register are two routes, not a filter: `/app/clients`
+     passes `active` and `/app/clients/archived` passes `archived`. Neither list
+     ever mixes the two, which is what let the status column go. */
+  test('reads one status at a time, active by default', async () => {
     const { id } = await createClient(clinicId, { fullName: 'أحمد', preferredLocale: 'ar' });
     await createClient(clinicId, { fullName: 'سارة', preferredLocale: 'ar' });
     await archiveClient(clinicId, id);
 
-    expect((await listClients(clinicId, filters())).items).toHaveLength(1);
-    expect(
-      (await listClients(clinicId, filters({ filterBy: 'status', filterValue: 'archived' }))).items,
-    ).toHaveLength(1);
-    expect(
-      (await listClients(clinicId, filters({ filterBy: 'status', filterValue: 'all' }))).items,
-    ).toHaveLength(2);
+    const active = await listClients(clinicId, filters());
+    expect(active.items).toHaveLength(1);
+    expect(active.items[0]?.fullName).toBe('سارة');
+
+    const archived = await listClients(clinicId, filters({ status: 'archived' }));
+    expect(archived.items).toHaveLength(1);
+    expect(archived.items[0]?.fullName).toBe('أحمد');
   });
 
   /* Filtering on any other column leaves the active-only default in place —
@@ -200,11 +203,11 @@ describe('listClients', () => {
 
 describe('getClient', () => {
   test('returns the full record', async () => {
-    const { id } = await createClient(clinicId, { fullName: 'سارة', preferredLocale: 'ar', heightCm: 165 });
+    const { id } = await createClient(clinicId, { fullName: 'سارة', preferredLocale: 'ar', sex: 'female' });
 
     const client = await getClient(clinicId, id);
     expect(client?.fullName).toBe('سارة');
-    expect(client?.heightCm).toBe(165);
+    expect(client?.sex).toBe('female');
     expect(client?.hasPortalAccess).toBe(false);
   });
 

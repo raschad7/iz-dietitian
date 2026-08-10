@@ -1,7 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
-import { Card } from '@/components/ui/card';
 import { NotificationsList } from '@/features/notifications/components/notifications-list';
 import { loadNotifications } from '@/features/notifications/page-data';
 import { resolveLocale } from '@/i18n/params';
@@ -43,20 +42,23 @@ export default async function NotificationsPage({ params }: NotificationsPagePro
 
   return (
     <div className="space-y-4 text-start">
-      <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
+      <div className="space-y-1">
+        <h1 className="font-heading text-heading-lg font-semibold tracking-tight">{t('title')}</h1>
+        <p className="text-body-sm text-muted-foreground">{t('subtitle')}</p>
+      </div>
 
       {/*
-        `p-0` because the list draws its own rows edge to edge — the card is the
-        frame around the feed, not a box with a feed sitting inside it.
+        `max-w-3xl` and not the 2xl this page used to hold itself to: it hands
+        off to `/app/requests`, and two screens a click apart that measure
+        different widths shift the whole column under the reader.
+
+        `me-auto` and not `mx-auto`: centred, the column left a wide band of
+        nothing between the page and the rail while every other staff screen
+        starts at that edge. Capped measure, slack on the far side.
       */}
-      <Card className="mx-auto w-full max-w-2xl overflow-hidden p-0">
-        <NotificationsList
-          items={data.items}
-          pendingRequestCount={data.pendingRequestCount}
-          locale={locale}
-          now={data.now}
-        />
-      </Card>
+      <div className="me-auto w-full max-w-3xl">
+        <NotificationsList data={data} locale={locale} />
+      </div>
     </div>
   );
 }

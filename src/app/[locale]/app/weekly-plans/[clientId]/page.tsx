@@ -104,12 +104,12 @@ export default async function ClientBoardPage({ params, searchParams }: PageProp
   const history = <PlanHistory plans={plans} clientId={clientId} />;
 
   return (
-    <div className={`${PLANNER_THEME} flex h-full min-h-0 flex-col text-start`}>
+    <div className={`${PLANNER_THEME} flex h-full min-h-0 min-w-0 flex-col text-start`}>
       {/* No week pills beside the title: they were the history tab's list, in
           a second place, with room for fewer of them. */}
       <h1 className="sr-only">{t('title')}</h1>
 
-      <div className="flex min-h-0 flex-1 gap-4">
+      <div className="flex min-h-0 min-w-0 flex-1 gap-4">
         {board ? (
           <PlanBoard
             board={board}
@@ -124,7 +124,7 @@ export default async function ClientBoardPage({ params, searchParams }: PageProp
           >
             {/* The generate form moved into the new-week dialog, where the
                 choice to generate is actually made. This tab is the client. */}
-            <ContextPanel context={context} />
+            <ContextPanel context={context} locale={locale} />
           </PlanBoard>
         ) : (
           <EmptyPlanBoard
@@ -134,7 +134,7 @@ export default async function ClientBoardPage({ params, searchParams }: PageProp
             usage={usage}
             locale={locale}
             history={history}
-            profile={<ContextPanel context={context} />}
+            profile={<ContextPanel context={context} locale={locale} />}
             newWeek={newWeek}
           />
         )}

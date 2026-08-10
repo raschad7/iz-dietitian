@@ -83,7 +83,9 @@ export default async function AppLayout({ children, params }: AppLayoutProps) {
         user={{ name: session.user.name, email: session.user.email, locale }}
         icons={NAV_ICONS}
       />
-      <main className="min-h-0 min-w-0 flex-1 overflow-y-auto p-3 md:p-5">{children}</main>
+      <main className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-3 pb-3 pt-[4.25rem] md:p-5">
+        {children}
+      </main>
     </div>
   );
 }

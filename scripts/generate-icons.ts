@@ -70,6 +70,7 @@ const ICONS = {
   chevronUp: 'alt-arrow-up-bold',
   chevronStart: 'alt-arrow-left-bold',
   chevronEnd: 'alt-arrow-right-bold',
+  navigationMenu: 'hamburger-menu-linear',
   signOut: 'logout-2-bold',
 
   // Actions
@@ -193,8 +194,16 @@ const ICONS = {
    * rail's catalog mark, visible beside the board on every wide screen. The same
    * picture meaning two things on one screen is worse than a duller glyph.
    */
-  mealBreakfast: 'sun-bold',
+  mealBreakfast: 'tea-cup-bold',
   mealSnack: 'donut-bitten-bold',
+  /*
+   * ⚠ Lunch is `plate`, **not** `chef-hat`, which `main` briefly had it as.
+   * `dish` below is already `chef-hat-bold` — the mark for the dish itself on a
+   * meal card — so a chef-hat lunch put the same picture twice on one row,
+   * which is exactly what the snack note above refuses to do. It also left the
+   * four-silhouette set described above (rayed disc, plate, bitten ring,
+   * crescent) without its plate or its crescent.
+   */
   mealLunch: 'plate-bold',
   mealDinner: 'moon-stars-bold',
 
@@ -219,6 +228,27 @@ const ICONS = {
   mealSnackOutline: 'donut-bitten-linear',
   mealLunchOutline: 'plate-linear',
   mealDinnerOutline: 'moon-stars-linear',
+
+  /**
+   * The planner's row markers and add-slot picker use the lighter Solar Linear
+   * family. They are deliberately separate from the portal's filled meal marks:
+   * the planner compares four large icons side by side, where the open strokes
+   * stay legible without turning the frozen row header into a dark stripe.
+   *
+   * These are a *different set* from `meal*Outline` above, not a duplicate of
+   * it: those four are the client's plan card, these are the staff planner's
+   * rail and its add-slot picker, which needs four more glyphs the portal has
+   * no use for. `meal-icons.ts` maps slots onto them and is tested.
+   */
+  plannerMealBreakfast: 'tea-cup-linear',
+  plannerMealSnack: 'donut-bitten-linear',
+  plannerMealLunch: 'chef-hat-linear',
+  plannerMealDinner: 'plate-linear',
+  plannerMealHotDrink: 'cup-hot-linear',
+  plannerMealBottle: 'bottle-linear',
+  plannerMealChefHeart: 'chef-hat-heart-linear',
+  plannerMealChefMinimal: 'chef-hat-minimalistic-linear',
+
   /** The dish itself, on a meal card. Constant — no dish carries its own icon. */
   dish: 'chef-hat-bold',
   /** A client's requests about an appointment, which are a conversation. */
@@ -323,7 +353,7 @@ const output = `/**
  * Run \`bun run icons:generate\` to regenerate. The icon list lives in
  * scripts/generate-icons.ts; see that file for how to add one.
  *
- * Source: Solar Bold (https://icon-sets.iconify.design/solar/), MIT.
+ * Source: Solar Bold and Linear (https://icon-sets.iconify.design/solar/), MIT.
  */
 
 export type IconName = keyof typeof QIWAM_ICONS;

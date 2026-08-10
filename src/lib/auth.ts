@@ -24,11 +24,15 @@ import { resolveAuthBaseURL, shouldUseSecureAuthCookies } from './auth-url';
 export type UserRole = 'staff' | 'client';
 
 /**
- * The email-verification gate, ON.
+ * The email-verification gate, OFF for now.
  *
- * A practitioner must prove they can read the address they registered before
- * their account does anything. What this buys, and why it is worth the extra
- * step at sign-up:
+ * Turned off deliberately and temporarily: sign-up signs the practitioner
+ * straight in, and nothing in the app asks them to confirm an address. The
+ * whole flow — mail template, `/verify-email` route, resend form, unverified
+ * purge — is left in place and wired to this one constant, so flipping it back
+ * to `true` restores the gate with no other edit.
+ *
+ * What the gate buys when it is on, and why it is worth turning back on:
  *
  *  - Nobody can register with an address they do not own, which is how an
  *    attacker would otherwise squat on a real dietitian's email before that
@@ -39,16 +43,20 @@ export type UserRole = 'staff' | 'client';
  *    account, so squatted addresses would block their real owner — see
  *    `purgeUnverifiedAccounts`, which sweeps them after 24 hours.
  *
- * REQUIRES A WORKING MAIL TRANSPORT. With `MAIL_TRANSPORT=console` the link is
- * printed to the server console instead of being sent, which is fine for local
- * work — copy it out of the terminal — but would lock out every account a
- * deployment created. Set `MAIL_TRANSPORT=resend` outside development; see
- * `.env.example`.
+ * TURNING IT BACK ON REQUIRES A WORKING MAIL TRANSPORT. With
+ * `MAIL_TRANSPORT=console` the link is printed to the server console instead of
+ * being sent, which is fine for local work — copy it out of the terminal — but
+ * would lock out every account a deployment created. Set
+ * `MAIL_TRANSPORT=resend` outside development; see `.env.example`.
  *
- * This constant drives three settings below and nothing else, so the gate can
- * be reasoned about from one place.
+ * Typed as `boolean` rather than left to infer the literal, so the branches
+ * that read it stay live code under the type checker instead of collapsing into
+ * unreachable ones that rot while the gate is off.
+ *
+ * Read by the two settings below, by `requireStaffSession` in
+ * `src/lib/session.ts`, and by `signUpStaff` in `src/features/auth/actions.ts`.
  */
-export const REQUIRE_EMAIL_VERIFICATION = true;
+export const REQUIRE_EMAIL_VERIFICATION: boolean = false;
 
 /**
  * Whether Google sign-in is configured on this deployment.

@@ -5,15 +5,25 @@ import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
 import { Tooltip } from '@/components/ui/tooltip';
+import { IntakeFormTrigger } from '@/features/clients/components/intake-form-trigger';
 import { CLIENT_ACTIVITY_LEVELS, CLIENT_GOALS } from '@/features/clients/schema';
-import { Link } from '@/i18n/navigation';
+import { type Locale } from '@/i18n/routing';
 import { isMember, membersOf } from '@/lib/enum';
 
 import type { ClientContext } from '../queries';
 import { ALLERGENS } from '../schema';
 
-/** A compact clinical snapshot for decisions made while building the week. */
-export function ContextPanel({ context }: { context: ClientContext }) {
+/**
+ * A compact clinical snapshot for decisions made while building the week.
+ *
+ * **Read-only, and it stays that way.** This panel used to link to a form of
+ * its own at `/app/weekly-plans/[clientId]/profile`, which could write the
+ * weight but not the height — so the "missing fields" message below named
+ * fields its own link could not fix, and the dietitian went to the register and
+ * back. It opens the client's intake dialog now: one destination, and every
+ * field this panel can name is editable in it.
+ */
+export function ContextPanel({ context, locale }: { context: ClientContext; locale: Locale }) {
   const t = useTranslations('weeklyPlans');
   const tGoals = useTranslations('clients.goal');
   const tActivity = useTranslations('clients.activity');
@@ -61,22 +71,24 @@ export function ContextPanel({ context }: { context: ClientContext }) {
         */}
         {profile ? (
           <Tooltip label={t('editProfile')} className="shrink-0">
-            <Link
-              href={`/app/weekly-plans/${context.clientId}/profile`}
+            <IntakeFormTrigger
+              locale={locale}
+              clientId={context.clientId}
               aria-label={t('editProfile')}
               className={buttonVariants({ variant: 'ghost', size: 'icon-sm' })}
             >
               <Icon name="edit" />
-            </Link>
+            </IntakeFormTrigger>
           </Tooltip>
         ) : (
-          <Link
-            href={`/app/weekly-plans/${context.clientId}/profile`}
+          <IntakeFormTrigger
+            locale={locale}
+            clientId={context.clientId}
             className={buttonVariants({ variant: 'outline', size: 'sm', className: 'shrink-0' })}
           >
             <Icon name="add" />
             {t('createProfile')}
-          </Link>
+          </IntakeFormTrigger>
         )}
       </header>
 

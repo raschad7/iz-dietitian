@@ -14,6 +14,7 @@ import {
   createAppointmentAction,
   createClientAndBookAction,
   deleteAppointmentAction,
+  repeatWeeklyAction,
   updateAppointmentAction,
 } from '../actions';
 import { addDays, addMonths, eachDay, endOfMonth, startOfMonth, startOfWeek, toIsoDate } from '../date';
@@ -37,7 +38,6 @@ import { AppointmentDialog } from './appointment-dialog';
 import { CalendarToolbar } from './calendar-toolbar';
 import { ClientPicker, type PendingBooking } from './client-picker';
 import { DayColumn } from './day-column';
-import { GridOverflowCue } from './grid-overflow-cue';
 import { MonthView } from './month-view';
 import { NewClientDialog } from './new-client-dialog';
 
@@ -251,9 +251,18 @@ export function Calendar({
   /** The freshly created booking, highlighted briefly. Creating never opens the dialog. */
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [message, setMessage] = useState<ActionErrorKey | null>(null);
+  /**
+   * Something that went right, said in words the grid cannot: how many of the
+   * requested weekly repeats were actually booked. Kept apart from `message`,
+   * which is only ever a refusal and is drawn in clay.
+   */
+  const [notice, setNotice] = useState<string | null>(null);
 
   const [pendingBooking, setPendingBooking] = useState<PendingBooking | null>(null);
-  const [newClientFor, setNewClientFor] = useState<PendingBooking | null>(null);
+  /** The pending slot plus the repeat span already chosen for it in the picker. */
+  const [newClientFor, setNewClientFor] = useState<{ pending: PendingBooking; weeks: number } | null>(
+    null,
+  );
   const [editing, setEditing] = useState<CalendarAppointment | null>(null);
   /** The two writes that ask first: rescheduling by drag, and deleting. */
   const [pendingMove, setPendingMove] = useState<PendingMove | null>(null);
@@ -607,40 +616,13 @@ export function Calendar({
 
   const belowFold = useMemo(() => new Set(datesBelowFold), [datesBelowFold]);
 
-  /**
-   * The panel-level half of the same answer.
-   *
-   * `belowFold` marks *which* columns are hiding something, which is the useful
-   * question in a week; this is whether any of them are, which is what the cue
-   * across the bottom edge needs. One measurement drives both — a second
-   * observer watching the same scroller for the same fact would be free to
-   * disagree with this one, and eventually would.
-   */
-  const hasMoreBelow = datesBelowFold.length > 0;
-
-  /**
-   * Most of a screen, not all of it. The overlap is the point: a full-screen
-   * jump leaves nothing shared between the two views, so the reader has to find
-   * their place again.
-   */
-  const scrollDown = useCallback(() => {
-    const element = timelineRef.current;
-    if (!element) return;
-
-    element.scrollBy({
-      top: element.clientHeight * 0.8,
-      // Honoured by hand: the global `prefers-reduced-motion` rule collapses
-      // CSS transitions, and a scroll asked for in script is not one.
-      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
-    });
-  }, []);
-
-  function book(clientId: string): void {
+  function book(clientId: string, weeks: number): void {
     const pending = pendingBooking;
     if (!pending) return;
 
     setPendingBooking(null);
     setMessage(null);
+    setNotice(null);
 
     const client = clients.find((row) => row.id === clientId);
 
@@ -681,15 +663,59 @@ export function Calendar({
       // edit dialog — staff asked to book someone, not to edit a booking.
       setHighlightId(result.data.id);
       setSelectedId(result.data.id);
+
+      if (weeks > 0) {
+        await runRepeat({
+          clientId: result.data.clientId,
+          date: pending.date,
+          startMinute: pending.startMinute,
+          durationMinutes: pending.durationMinutes,
+          weeks,
+        });
+      }
     });
   }
 
-  function createClientAndBook(client: { fullName: string; phone?: string }): void {
-    const pending = newClientFor;
+  /**
+   * Books the same slot every week for the span chosen alongside the booking,
+   * and reports what took.
+   *
+   * The span used to be asked for in a modal that opened on every save. It is
+   * a field on the create surfaces now — see `RepeatField` — so this runs only
+   * when someone actually asked for a repeat, and it runs inside the same
+   * transition as the booking it follows.
+   */
+  async function runRepeat(input: {
+    clientId: string;
+    date: string;
+    startMinute: number;
+    durationMinutes: number;
+    weeks: number;
+  }): Promise<void> {
+    const result = await repeatWeeklyAction(locale, input);
+
+    if (!result.ok) {
+      setMessage(result.error);
+      return;
+    }
+
+    // Three answers, not one: every week took, some weeks were refused, or none
+    // were. A repeat that silently booked two of three would leave the doctor
+    // believing in a month of appointments that is not there.
+    const { created, skipped } = result.data;
+
+    if (created === 0) setNotice(t('repeatBooking.none'));
+    else if (skipped > 0) setNotice(t('repeatBooking.partial', { count: created, skipped }));
+    else setNotice(t('repeatBooking.created', { count: created }));
+  }
+
+  function createClientAndBook(client: { fullName: string; phone?: string }, weeks: number): void {
+    const pending = newClientFor?.pending;
     if (!pending) return;
 
     setNewClientFor(null);
     setMessage(null);
+    setNotice(null);
 
     startTransition(async () => {
       const result = await createClientAndBookAction(locale, {
@@ -708,6 +734,16 @@ export function Calendar({
 
       setHighlightId(result.data.id);
       setSelectedId(result.data.id);
+
+      if (weeks > 0) {
+        await runRepeat({
+          clientId: result.data.clientId,
+          date: pending.date,
+          startMinute: pending.startMinute,
+          durationMinutes: pending.durationMinutes,
+          weeks,
+        });
+      }
     });
   }
 
@@ -738,22 +774,22 @@ export function Calendar({
   }
 
   /**
-   * Right-click opens the editor — unless the appointment has finished.
+   * Right-click opens the editor, for a finished appointment too.
    *
-   * A finished appointment is a record of what happened, so the editor does not
-   * open for one at all. It still selects and still says why, because a
-   * right-click that does nothing reads as a broken calendar rather than a rule.
+   * It used to refuse outright — select the block, say "completed", and stop —
+   * which locked away the one thing a finished appointment *can* still do.
+   * `AppointmentDialog` is built for exactly this case: every field disabled,
+   * no Save at all, and Delete the only live control, because deleting is the
+   * sole way to remove a record entered by mistake. Refusing to open it meant
+   * an appointment booked on the wrong client at the wrong hour became
+   * permanent the moment it ended.
    *
-   * The policy lives here rather than in the block, because this is where
-   * `completedIds` is derived; the block would have to be told twice.
+   * The rule it was enforcing is not weakened by this. Editing is still
+   * impossible — the dialog offers nothing to edit with, and
+   * `updateAppointment` refuses the write independently, against the clinic's
+   * own clock rather than the caller's.
    */
   function openAppointment(appointment: CalendarAppointment): void {
-    if (completedIds.has(appointment.id)) {
-      setSelectedId(appointment.id);
-      setMessage('errors.completedLocked');
-      return;
-    }
-
     setMessage(null);
     setEditing(appointment);
   }
@@ -825,6 +861,19 @@ export function Calendar({
         <div className={contentInset}>
           <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
             {t(message)}
+          </p>
+        </div>
+      )}
+
+      {notice && (
+        <div className={contentInset}>
+          {/*
+            `status`, not `alert`: nothing is wrong, and an assertive live
+            region would interrupt whatever a screen reader was saying to
+            announce a success.
+          */}
+          <p role="status" className="rounded-lg bg-secondary px-3 py-2 text-sm text-secondary-foreground" dir="auto">
+            {notice}
           </p>
         </div>
       )}
@@ -906,7 +955,7 @@ export function Calendar({
                 {/* Sticky, so the hour gutter keeps its corner when scrolled. */}
                 <div
                   className={cn(
-                    'sticky start-0 z-30 w-16 shrink-0 border-b border-border bg-background',
+                    'sticky start-0 z-30 w-20 shrink-0 border-b border-border bg-background',
                     HEADER_HEIGHT,
                   )}
                 />
@@ -924,12 +973,30 @@ export function Calendar({
                   const isToday = date === today;
                   const muted = !isWorkingDay(date, hours) || (today !== null && date < today);
 
+                  /*
+                    ⚠ **Both of these were `text-xs`, which is the scale's
+                    12px floor** — a step the design system reserves for
+                    timestamps and helper text with the standing rule that
+                    nothing a reader *needs* may live there. The weekday and
+                    the date are how someone finds the right column before they
+                    can read anything in it; they are the most needed text on
+                    the screen, and they were the smallest.
+
+                    The weekday takes the label step (13px/600 — the extra
+                    weight is what keeps Arabic legible below 14px, see the
+                    scale's own note) and the date takes body-sm, a step above
+                    it. That size difference is also the hierarchy: the number
+                    is what you scan for, the weekday is what confirms it.
+                  */
                   const header = (
                     <>
-                      <span className="text-xs font-medium" dir="auto">
+                      <span className="text-label" dir="auto">
                         {formatWeekday(locale, date)}
                       </span>
-                      <span className={cn('text-xs', isToday && 'font-semibold')} dir="auto">
+                      <span
+                        className={cn('text-body-sm', isToday ? 'font-bold' : 'font-semibold')}
+                        dir="auto"
+                      >
                         {formatDayNumber(locale, date)}
                       </span>
                     </>
@@ -988,7 +1055,7 @@ export function Calendar({
               */}
               <div ref={timelineRef} className="flex min-h-0 flex-1 overflow-y-auto py-3">
                 {/* Hour gutter. Its labels use the same geometry as the blocks. */}
-                <div className="sticky start-0 z-30 w-16 shrink-0 bg-background">
+                <div className="sticky start-0 z-30 w-20 shrink-0 bg-background">
                   {Array.from(
                     { length: Math.floor((hours.closeMinute - hours.openMinute) / 60) + 1 },
                     (_, index) => hours.openMinute + index * 60,
@@ -1011,8 +1078,16 @@ export function Calendar({
                     return (
                       <span
                         key={minute}
+                        /*
+                          The label step, not the 12px floor. Every position on
+                          this grid is read against these — a block means
+                          nothing until you know which hour it is beside — so
+                          the gutter is load-bearing text, not a caption. The
+                          gutter was widened to `w-20` to take it; see the
+                          matching width on the header's corner cell.
+                        */
                         className={cn(
-                          'absolute end-2 text-xs font-medium whitespace-nowrap text-muted-foreground tabular-nums',
+                          'absolute end-2 text-label whitespace-nowrap text-muted-foreground tabular-nums',
                           first ? 'translate-y-0' : last ? '-translate-y-full' : '-translate-y-1/2',
                         )}
                         style={{ top: minuteToY(minute, hours.openMinute, pxPerSlot) }}
@@ -1070,12 +1145,14 @@ export function Calendar({
           </div>
 
           {/*
-            A sibling of the horizontal scroller, not a child of it. Inside, the
-            cue would slide away to the side the moment anyone scrolled a week
-            across; out here it stays pinned to the panel, which is the thing it
-            is describing the bottom edge of.
+            `GridOverflowCue` used to sit here — a fade across the panel's
+            bottom edge with a round chevron button in the middle of it. It is
+            gone, and the per-column count chip in `DayColumn` is the whole
+            answer now. Two cues for one fact meant the reader had to work out
+            whether they were being told the same thing twice, and neither of
+            them could say the thing worth knowing: how much is down there, and
+            on which day.
           */}
-          <GridOverflowCue visible={hasMoreBelow} onScrollDown={scrollDown} />
         </div>
       )}
 
@@ -1090,8 +1167,10 @@ export function Calendar({
           // to false outright — see `allowNewClient` on `CalendarProps`.
           allowNewClient={allowNewClientProp ?? view === 'day'}
           onPick={book}
-          onNewClient={() => {
-            setNewClientFor(pendingBooking);
+          // The repeat chosen in the picker travels with the slot, so stepping
+          // aside to add the person does not quietly reset it.
+          onNewClient={(weeks) => {
+            setNewClientFor({ pending: pendingBooking, weeks });
             setPendingBooking(null);
           }}
           onCancel={() => setPendingBooking(null)}
@@ -1100,7 +1179,8 @@ export function Calendar({
 
       {newClientFor && (
         <NewClientDialog
-          pending={newClientFor}
+          pending={newClientFor.pending}
+          weeks={newClientFor.weeks}
           locale={locale}
           onCreate={createClientAndBook}
           onCancel={() => setNewClientFor(null)}
@@ -1162,6 +1242,18 @@ export function Calendar({
           onCancel={() => setPendingMove(null)}
         />
       )}
+
+      {/*
+        There is no repeat dialog here any more.
+
+        A modal opened on every single save asking whether to repeat the
+        booking. Most appointments do not repeat, so the common path was book →
+        dialog → dismiss, and a prompt dismissed nine times in ten stops being
+        read — by the tenth it is being clicked away before it renders, which is
+        the time it mattered. It also put a modal in front of the calendar at
+        the one moment the calendar had just changed. The span is a field on the
+        create surfaces now; see `RepeatField`.
+      */}
 
       {pendingDelete && (
         <ConfirmDialog

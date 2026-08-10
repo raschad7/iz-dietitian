@@ -82,15 +82,46 @@ Warm neutrals — never pure grey, and the ramp the charts are drawn in.
 | 200 `#E2DFD3` | 300 `#CDC9B9` | 400 `#A8A493` | 500 `#837F6E` |
 | 600 `#605D50` | 700 `#46443B` | 800 `#2F2E28` | 900 `#1C1B17` |
 
-The **cool greys** are the rail — its surface, its hover and its divider
-(`#F9FAFB` / `#F3F4F6` / `#D1D5DB`) — the **weekly planner board**, which adds
-`#E5E7EB` as a hairline and `#4B5563` as secondary text, and the **auth
-screens**, whose page sits on the rail's own `#F9FAFB` as `--auth-canvas`. They
-are not part of this ramp and nothing else may reach for them; a warm neutral
-used as a page surface beside a cool one is how a palette starts looking
-accidental.
+Cool neutrals — the second family, and deliberately only the stops the app
+draws with.
 
-All three are whole surfaces, which is the condition. The board is a grid of
+| | | | |
+|---|---|---|---|
+| 50 `#F9FAFB` | 100 `#F3F4F6` | 200 `#E5E7EB` | 300 `#D1D5DB` |
+| 600 `#4B5563` | | | |
+
+They are `--c-*` primitives, not hexes at the call site. They used to be four
+loose literals — the rail's surface, hover and divider, the board's hairline and
+secondary text — repeated wherever they were needed, which is how a palette
+drifts.
+
+**`--muted` and `--accent` are cool.** The sunken fill is the app's
+most-repeated surface — every table header, every zebra row, every read-only
+field — and drawn in the warm n-50 it laid a cream tint over screens whose
+canvas is plain white. It is **c-100**, and the step matters: c-50 is 1.02:1
+against white, below where a fill still registers as one, and the register's
+header strip disappeared into the card at that value. c-50 is right for the
+*rail*, which has a load-bearing divider doing the separating for it; a strip
+in the middle of a card has only its own fill. c-100 is 1.06:1 — quieter than a
+colour, a hair firmer than the n-50 it replaced.
+
+`--accent`, the ambient hover tint, follows it to **c-200**, one step past.
+It has to: the register's sortable column heads are `hover:bg-accent` drawn
+directly on the `bg-muted` strip, so a warm tint on a cool fill put the two
+families in contact at the same lightness, which reads as a rendering fault
+rather than as a hover.
+
+The rest of the ramp is where it was: the **rail** (c-50 surface, c-100 hover,
+c-300 divider), the **weekly planner board** — which keeps its *own* lighter
+`--muted`/`--accent` of c-50/c-100, because thirty-five hairline cells on a
+clinical white page is a different problem from a strip on a card — and the
+**auth screens** (the rail's c-50 as `--auth-canvas`).
+
+Nothing else may cross between the two families: a warm neutral used as a
+surface beside a cool one is how a palette starts looking accidental.
+
+The rail, the board and the auth page are whole surfaces, which was the original
+condition for reaching over here at all. The board is a grid of
 thirty-five hairline cards, so almost everything drawn on it is an edge — and
 thirty-five warm n-200 edges tint the page even though the page itself is
 `#FFFFFF`. Swapping the four neutrals it actually draws with (`--border`,
@@ -156,6 +187,32 @@ screen spends it on completed days, which is why nothing else there is orange.
 `Badge` has a variant for each. Use them instead of ad-hoc
 `bg-{color}-100 text-{color}-700` pairs. Don't reach for `destructive` to mean
 "bad" in general — reach for the status that describes what actually happened.
+
+### A badge is a state, and it has a budget
+
+**A pill marks a record's state. It is not how you render a fact.** The client
+record is the cautionary case: it carried a status pill in the header, a count
+pill on a tab, goal and activity-level pills in one card header, a meal-count
+pill in another, a "clinic only" pill in a third, and a row of allergen pills in
+a fourth — nine filled shapes on one screen, at which point none of them marked
+anything. Every one of those except the allergens was a *fact* about the client,
+and a fact is words: "الهدف المحافظة على الوزن" reads faster than the same
+string inside a tinted capsule, and costs no ink that a reader has to decode.
+
+Three tests before reaching for one:
+
+- **Is it a state, or a value?** Published / archived / active is a state.
+  A goal, a count, a category and a name are values.
+- **Does it vary?** A pill that reads the same on almost every record marks
+  nothing. The header's status pill said "نشِط" on virtually every client ever
+  opened; it now renders only when the record is *archived*, which is the
+  reading worth interrupting for.
+- **Is it already the loudest thing there?** The allergen pills sat at the top of
+  the allergy card. Clay type in the card's own list says it just as clearly
+  without a second shape around it.
+
+One or two per screen. If a surface needs more than that, the surface is
+describing things, not marking them.
 
 There is **no green-means-go colour**. Calendar drag feedback uses olive for a
 valid drop and clay for an invalid one, for this reason.
@@ -432,6 +489,21 @@ surface, and a child that deliberately squares off against its container
 A panel nested inside a card takes a plain radius with no ring and no shadow of
 its own. It is part of that card, not a second one.
 
+⚠ **A scroll container clips a card's ring and shadow.** Both are drawn outside
+the border box, and setting `overflow-y` to anything but `visible` makes
+`overflow-x` compute to `auto` as well — so a card flush against a scrolling
+parent loses its edge on whichever side it touches, and reads as a card with a
+side missing. The client record's tab body was doing this on all four edges.
+Give the scroller a little padding (`px-1 pt-1 pb-6` there — the block-end needs
+more, because that is where the last card's shadow lands).
+
+**A two-column card grid gaps badly when the columns differ in height.** In a
+`grid-cols-3` holding `col-span-2` cards beside single-column ones, each pair is
+a grid *row*, and a row is as tall as its tallest member — so a short card
+leaves a hole beneath it the size of the difference. `items-start` fixes the
+card heights and not the rows. Where the two columns are independent stacks,
+make them independent: one flex column per side, each with its own `gap`.
+
 ## Buttons
 
 Six variants, matching [buttons.png](design-images/buttons.png):
@@ -486,6 +558,23 @@ outline there read as one more destination. Both keep the clay label at rest;
 neither is ever a solid red block. Like `ghost`, `destructiveGhost` carries 12px
 of padding rather than 20px, so a boxless control does not look like it has a
 gap around it.
+
+**Asking first is `ConfirmDialog`, never `window.confirm()`.** `ConfirmSubmitButton`
+guards a form submit and `ConfirmDialog` guards an arbitrary callback; both draw
+the system's own modal. The native prompt was chosen before there was one, and
+it is browser chrome pinned to the top-left corner of a right-to-left page, in
+the browser's UI language rather than the clinic's, with an OK button styled by
+the operating system.
+
+The exchange is asynchronous where `confirm()` blocked, so `ConfirmSubmitButton`
+cancels the click unconditionally and confirming starts a *new* submit through
+`requestSubmit()` — which dispatches a real submit event, leaving the form's
+`action` and `useFormStatus` behaving exactly as they did. **The confirm button
+carries the action's own words**, not "OK": it is the last chance to notice you
+are on the wrong row. Cancel is first in the DOM so Enter cannot delete
+anything. An action that is one click to undo — archive, restore — passes no
+message and does not ask at all; prompting on a reversible action only trains
+people to dismiss prompts.
 
 ⚠ **White on olive-500 is 3.47:1 — under AA's 4.5:1 for a 16px label.** It
 clears the 3:1 a graphical mark needs, and the *hover* fill (olive-600) is the
@@ -597,21 +686,35 @@ a field olive-50 and focus takes the olive edge, so a field wearing both at rest
 was signalling a pointer that wasn't there, and a freshly opened client card was
 a block of green before anyone had typed a character.
 
-Mark the essential fields by **showing** them — the client card puts its four
-behind nothing and everything else behind a disclosure — or by type and wording.
-Don't spend a state the pointer already owns.
+Mark the essential fields by **showing** them — a form that asks for only what
+it needs needs no emphasis at all — or by type and wording. Don't spend a state
+the pointer already owns.
 
-### The client card
+### The two client dialogs
 
-`ClientFormTrigger` is the **only** surface a client record is
-written on — creating and editing both open it over whatever screen asked, and
-neither has a page of its own. A record is edited from the register, from the
-record itself, and from inside the calendar's appointment card, and in none of
-those places is losing your place a reasonable price for fixing a phone number.
-The four core fields show first; the remaining eight sit behind a centred
-disclosure that grows the card in both directions. An existing record opens
-with the disclosure already open when it has anything in that half — hiding a
-goal and three lines of medical notes reads as the app having lost them.
+A client record is written on **dialogs, never on a page**. Creating and editing
+both open over whatever screen asked, a record is edited from the register, from
+the record itself, from the calendar's appointment card and from the planner's
+context panel, and in none of those is losing your place a reasonable price for
+fixing a phone number or recording a weigh-in.
+
+There are two, and the split is by *what kind of fact*, not by how much room is
+left:
+
+- **`ClientFormTrigger` — the client card.** Identity: name, email, date of
+  birth, phone, sex. Five fields, one column, one width, no disclosure. This is
+  what a walk-in is created from.
+- **`IntakeFormTrigger` — the intake.** Everything clinical, across both
+  `clients` and `client_nutrition_profiles`: measurements, allergies, targets,
+  the meal schedule, and what the portal shows. Read on the client's Nutrition
+  tab, written here.
+
+⚠ **Don't put a clinical field back on the card.** The card used to carry six of
+them behind a "more details" disclosure while the rest lived on a form owned by
+the weekly planner. Neither surface held a whole client, the six inputs the
+calorie formula needs were split five-and-one across them, and the planner's
+"missing fields" banner named fields its own link could not edit. That is what
+the disclosure cost, and it is why there is no longer one.
 
 **Its header has no close button.** Escape, a backdrop click and the footer's
 own Cancel all close it already; a third exit only crowds the corner the title
@@ -622,6 +725,36 @@ where a dialog has no footer to leave by.
 chevron — Chrome pins its built-in arrow to the border and ignores
 `padding-inline-end`, so long option text collides with it. Keyboard
 behaviour, screen-reader semantics and the mobile picker still come free.
+
+### Two time controls, and which one
+
+Neither is `<input type="time">`. Chrome's popup is a three-column spinner in
+the OS's own type, which reads as a foreign object inside an Arabic page and
+forces a 12-hour step on a clinic that works in 24.
+
+- **`TimeField`** — an hour list beside a minute list. For a time on a fine
+  grid, chosen as two independent parts: a meal at 07:35. `minuteStep` sets the
+  minute grid, and it must match whatever validates the value — a control that
+  offers a time its own form rejects is a trap the reader walks into once per
+  visit.
+- **`TimeSelect`** — one list of whole times: `08:00`, `08:15`. For a time on a
+  coarse grid where the *whole* time is the unit of choice. It is controlled,
+  because a caller that wants one time usually also wants to copy it somewhere.
+
+The clinic's opening hours are the case that separated them. Seven days of
+`TimeField` meant **twenty-eight** dropdowns, and none of them showed a time —
+you read `08` and `00` in two boxes and assembled `08:00` yourself, twice per
+row. Two `TimeSelect`s per row halve the controls and each one states the
+answer. Both components keep an off-grid stored value as its own entry rather
+than rounding it away; silently moving a clinic's 08:20 to 08:15 on load is data
+loss disguised as tidiness.
+
+**Where the same value repeats down a list, offer to copy it.** Most clinics
+work the same hours every day, and the schedule made you say so seven times.
+One `neutral` button copying the first open day's hours across the rest turns
+the normal case from twenty actions into three — and it is `neutral` rather
+than `outline` precisely because Save is the decision on that card and only one
+control should be wearing olive.
 
 ## Cards
 
@@ -640,6 +773,16 @@ Props: `size="sm"`, `interactive`, `selected` (the olive ring thickens; the card
 does not change colour), `flagged` (a clay dot in the corner — never a red
 card). `CardTitle` takes an `icon` — a plain glyph beside the title, never a
 badge.
+
+**`CardTitle` renders a `div` unless you ask for a heading.** Pass
+`as="h2"` (or `h3`) where the card genuinely is a *section* of the page; the
+visual scale does not change, only the semantics. The default stays `div`
+because a card title is often a label rather than a section head, and promoting
+all twenty-odd call sites at once would invent a heading outline nobody
+designed. Where a screen is a stack of cards, promote them: the client record
+had one heading across five tabs — the client's name — so the Nutrition tab
+presented six unlabelled regions to a screen reader with no way to jump between
+them.
 
 **A card answers the pointer with its icon, and only a clickable one also gets
 an edge.** A header icon drawn on a disc fills olive with its glyph inverting
@@ -681,6 +824,20 @@ surfaces, and a person is neither. The `color` prop is per-record data, not a to
 renders `aria-hidden` — the name it stands for is always beside it.
 
 ## Tables
+
+**The header strip is a rounded bar**, not a full-bleed band: the control radius
+(10px) on all four corners, applied to the first and last `th` on their *logical*
+sides so Arabic mirrors it for free. It has to go on the end cells rather than on
+the `thead` — a table's fill is painted per cell, and square cells sitting on a
+rounded group clip the corners straight back off. `Table` is
+`border-separate border-spacing-0` for the same reason: the collapsed border
+model drops `border-radius` on everything inside a table. Nothing else changes,
+because only `TableRow` draws an edge and only on its block-start side, so there
+was never a border for the collapsing model to merge.
+
+The dashboard's register card draws the same strip by hand — it is a `div` of
+three columns, not a `<table>` — so it carries the radius itself. Change one and
+change the other; they are meant to be the same bar.
 
 `TableRoot` owns the scroll container and the frame's radius; `Table`, `TableHeader`,
 `TableRow`, `TableHead`, `TableCell` and `TableEmpty` are the rest. Cells
@@ -725,6 +882,69 @@ component and adds nothing to the client bundle.
 string to both. A control whose only label is a tooltip is unusable by keyboard
 and by touch. Use it for icon-only controls — the client table's row actions
 are the reference case.
+
+## Callout
+
+`Callout` — a short statement the reader has to notice, on a tinted surface.
+One shape, three tones, each bringing the glyph that pairs with its status
+token: `neutral` (sunken, `info`) for a fact worth saying out loud, `attention`
+(amber, `attention`) for something someone has to act on, `medical` (clay,
+`medical`) for a real allergy or condition. `icon` overrides the glyph where the
+subject is more specific than the tone — the portal's WhatsApp notice is neutral
+and takes the WhatsApp mark.
+
+**There is no `success` tone**, for the same reason there is no green-means-go
+colour, and a callout that only confirms is usually one that could be deleted.
+
+It exists because four notices were being hand-rolled across two tabs of the
+client record with four different paddings, radii and text sizes, two of them
+with no glyph at all.
+
+## Figures
+
+`StatTile`, inside a `StatGrid` — a label, a tabular figure, its unit, and an
+optional note. The grid is a hairline lattice rather than gapped cards, so a
+column of readings scans as a table instead of as tiles.
+
+**Every figure in a grid is the same size and shares a baseline**, which is the
+whole point: the Nutrition tab was setting numeric facts at `heading-sm` with a
+12px unit beside them and non-numeric facts at `body-sm` in the same grid, so
+one row held three type sizes and nothing lined up with anything. `flagged`
+draws a figure in amber — a reading to check, never clay, which is reserved for
+medical facts. An absent value renders at body size, because an absence is not
+a reading and setting "—" at 24px gives a missing number the weight of one.
+
+**The tile is centred, and the figure is `heading-sm`.** Both changed together.
+Start-aligned, each reading hung off the inline-start edge and the unit trailing
+the figure pulled every optical centre a different distance from the label above
+it; centred, the label sits over its own figure and six tiles scan across as one
+row. The step down from `heading-lg` is about the screen, not the tile: 24px is
+what the client's *name* is set at in the record header, and a height reading
+has no business matching the person it belongs to.
+
+**A tile is a label and a figure.** The `note` slot exists for provenance a
+reader cannot otherwise recover — "saved with the plan" — and it is easy to
+overspend: the Nutrition tab had one on five of six tiles ("محسوب", "مقترح",
+"فوق النطاق الصحي"), and the last of those restated in words the comfort band
+drawn directly beneath it. If the thing under the figure is already on screen,
+it is not a note.
+
+The record header's fact strip is deliberately **not** `StatGrid`: the same
+rules and tabular figures one step down, because a header must not compete with
+the name above it.
+
+## Copy
+
+`CopyButton` — an icon-only ghost control that writes one value to the
+clipboard, swaps to a check for 1.6s and announces through a `role="status"`
+live region. No toast: the system has none, and inventing one for "yes, that
+worked" is a lot of furniture for a message with no consequence.
+
+A denied clipboard permission fails **silently** — the value is still on screen
+and still selectable, which is exactly the behaviour that existed before the
+button did. The one-time portal password is the case that earns this: it is
+shown once, never stored in plaintext, and asking someone to carefully select
+the only unrecoverable value on the page is a poor trade.
 
 ## Navigation
 
@@ -858,6 +1078,29 @@ reads as sitting inside the track rather than as a second track.
 (same page, different view), the login role switch is a `radiogroup` (different
 form). Identical visually, different to a screen reader.
 
+**Tabs** (`Tabs` + `tabLinkVariants` + `TabBadge`) — link tabs, for when each
+option is an **address**. Square, with a 2px olive underline on the active one
+and its label in olive-700 (7.37:1); the rail's active row is olive-500 on
+olive-50 at 2.95:1, and the tabs deliberately do not repeat that. No radius: a
+tab's block-end edge is the container's own hairline, and rounding only the
+block-start corners would single out a side.
+
+**`TabBadge` is a bare numeral, not a pill.** It was a filled chip, which is the
+shape reserved for a *state* — and a count of unfilled fields is a quantity. See
+"A badge is a state" under Colour: the client record was wearing enough of them
+that none of them registered. The digit carries the whole message at a third of
+the ink, and still inherits the tab's active colour so it never looks like it
+belongs to the label beside it.
+
+**Segmented is not the control for routes.** A boxed switch promises "a view of
+this page"; five of them promising pages cost the client record middle-click,
+Cmd-click, open-in-new-tab, a URL in the status bar and working before
+hydration — and, because `Segmented` is `inline-flex`, a `flex-col` parent
+stretched it to the full page width and left the tabs hugging one edge of empty
+bordered space. `Tabs` imports nothing from `@/i18n/navigation`; call sites pair
+`tabLinkVariants` with their own `Link`, the way they already pair
+`buttonVariants` with one.
+
 Staff and portal share `Sidebar`. The portal passes icons (`PORTAL_NAV_ICONS`,
 the same glyphs as its bottom bar); the staff rail is text-only.
 
@@ -865,6 +1108,14 @@ the same glyphs as its bottom bar); the staff rail is text-only.
 
 - Spacing is Tailwind's 4px scale. Card padding is `--card-spacing`, 16px
   mobile / 20px desktop.
+- **A capped page column hangs from the inline-start, never centred.** The staff
+  shell is a rail plus a full-width `main`, and the dashboard and the register
+  both run edge to edge — so `mx-auto max-w-3xl` put three screens (profile,
+  notifications, requests) in a 400px band of nothing beside the rail, with
+  their `h1` indented from an edge every other page starts at. Cap the measure
+  and use `me-auto`: the slack all falls on the far side, where the page ends
+  anyway. Centring is right where there is no rail to be detached from — the
+  onboarding wizard and the auth screens.
 - Shadows are **olive-tinted, never neutral black** — `shadow-card` /
   `shadow-elevated` / `shadow-overlay`. Scrims use `--overlay` (olive-950 at
   45%), not `bg-black/40`, and **blur 4px** with it: the page behind a modal is
@@ -965,6 +1216,21 @@ component is the same bug it is anywhere else.
 | Neutral | `viz-cat-none` | "not recorded" — an absence, never a third category |
 | Comfort band | `viz-band-range` / `-edge` / `-marker` | the three-stop band the brand defines |
 
+**`ComfortBand` is for a value against a *tolerance*, not against a set of
+categories.** It draws one highlighted span and a marker, so whatever that span
+covers is the loudest thing on the track — correct for "today's calories against
+the target", wrong for anything with named bands. The client record's BMI scale
+used it and therefore highlighted the healthy range permanently: a client at BMI
+51.9 got a lime "normal" band and a 3px tick clamped against the far edge, so
+the chart answered "where is normal?" when the question was "where is this
+person?".
+
+A categorical scale draws every band and fills **the one the value is in**, in
+that band's own status colour, with its label emphasised to match. Take the
+boundaries from the same function that classifies the value — the same scale had
+four bands for the five `BMI_CATEGORIES`, so everything above 30 was labelled
+"obese" and `severely_obese` could not be shown at all.
+
 The steps were picked by running the palette validator, not by eye:
 
 - **Sequential is n-400…800, not 200…600.** The light end has to stay visible
@@ -1015,7 +1281,7 @@ fifth and sixth hue; prefer the `viz-*` scales, which are validated.
 
 These are described by the brand but have no caller in the app, so they were
 not scaffolded speculatively: checkbox, radio, slider, number stepper,
-autocomplete, date picker with Hijri/Gregorian toggle, time picker, link tabs,
+autocomplete, date picker with Hijri/Gregorian toggle, time picker,
 breadcrumbs, the Q-arc progress/habit ring, and toast.
 
 When a feature needs one, build it against the rules above rather than

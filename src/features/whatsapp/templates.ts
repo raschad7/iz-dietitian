@@ -21,6 +21,7 @@ import { type Locale } from '@/i18n/routing';
 export type WhatsappTemplateKind =
   | 'appointmentReminder'
   | 'appointmentConfirmation'
+  | 'appointmentSeries'
   | 'appointmentRescheduled'
   | 'appointmentCancelled'
   | 'portalCredentials';
@@ -62,9 +63,36 @@ export type WhatsappTemplateVariables = {
   /** Where a rescheduled appointment used to be. Only the reschedule uses these. */
   previousDate?: string;
   previousTime?: string;
+  /**
+   * A course of appointments, already formatted as one block of lines — see
+   * `formatAppointmentList`. Only `appointmentSeries` uses this and `count`.
+   *
+   * Pre-rendered rather than passed as an array, because a template is a string
+   * with holes in it: giving the renderer a second shape to understand would be
+   * a loop in a file whose whole job is copy.
+   */
+  appointments?: string;
+  /** How many that block lists, so the opening line can say so. */
+  count?: string;
   username?: string;
   password?: string;
 };
+
+/**
+ * One line per appointment, numbered, for {@link WhatsappTemplateVariables.appointments}.
+ *
+ * Numbered rather than bulleted: a patient reading "your four appointments" then
+ * counting bullets to check all four arrived is doing the app's job for it. Each
+ * line carries the date, the time and how long the visit runs, which is every
+ * detail the calendar itself shows about a booking.
+ */
+export function formatAppointmentList(
+  appointments: readonly { date: string; time: string; duration: string }[],
+): string {
+  return appointments
+    .map((appointment, index) => `${index + 1}. 📅 ${appointment.date} — 🕐 ${appointment.time} (${appointment.duration})`)
+    .join('\n');
+}
 
 const COPY = {
   appointmentReminder: {
@@ -105,6 +133,38 @@ const COPY = {
       '🕐 {time}',
       '',
       'See you then. To change it, reply to this message.',
+    ],
+  },
+  /**
+   * A course of appointments booked in one go — the repeat offer the doctor
+   * accepted after making the first booking.
+   *
+   * **One message, not one per appointment.** Four separate "your appointment is
+   * confirmed" texts arriving within a second of each other read as a fault in
+   * the system, bury each other in the thread, and leave the patient to assemble
+   * the schedule themselves. The list is the message.
+   *
+   * `{count}` is stated in the opening line as well as implied by the list, so
+   * the patient can check nothing went missing without counting.
+   */
+  appointmentSeries: {
+    ar: [
+      'مرحباً {clientName} 👋',
+      '',
+      'تم تثبيت {count} مواعيد لك في {clinicName}:',
+      '',
+      '{appointments}',
+      '',
+      'نراك قريباً. لأي تعديل على أي من هذه المواعيد، ردّ على هذه الرسالة.',
+    ],
+    en: [
+      'Hello {clientName} 👋',
+      '',
+      'Your {count} appointments at {clinicName} are confirmed:',
+      '',
+      '{appointments}',
+      '',
+      'See you then. To change any of them, reply to this message.',
     ],
   },
   /**

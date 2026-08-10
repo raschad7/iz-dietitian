@@ -29,19 +29,24 @@ import { cn } from '@/lib/utils';
  * nowhere to go but up. That also keeps the trigger's position stable relative
  * to the pointer that just clicked it.
  *
- * The four destinations moved out of the rail proper rather than being copied
- * into it: the same link in two lists is two answers to "where does this live".
+ * The destinations moved out of the rail proper rather than being copied into
+ * it: the same link in two lists is two answers to "where does this live".
+ *
+ * **Notifications are not among them any more.** They are a bell beside the
+ * date on the dashboard — see `NotificationsBell`. A feed is something you
+ * check, and a menu at the foot of a rail is the wrong place to keep something
+ * that has to be *noticed*: nobody opens an account menu to find out whether
+ * anything has happened. The full page still exists and the bell links to it.
  */
 
 /** Destinations, block-start to block-end. */
 const LINKS = [
   { href: '/app/profile', labelKey: 'settings', icon: 'settings' },
-  { href: '/app/notifications', labelKey: 'notifications', icon: 'notifications' },
   { href: '/app/settings/whatsapp', labelKey: 'whatsapp', icon: 'whatsapp' },
   { href: '/app/settings/security', labelKey: 'security', icon: 'security' },
 ] as const satisfies ReadonlyArray<{
-  href: '/app/profile' | '/app/notifications' | '/app/settings/whatsapp' | '/app/settings/security';
-  labelKey: 'settings' | 'notifications' | 'whatsapp' | 'security';
+  href: '/app/profile' | '/app/settings/whatsapp' | '/app/settings/security';
+  labelKey: 'settings' | 'whatsapp' | 'security';
   icon: IconName;
 }>;
 
@@ -56,11 +61,14 @@ export function SidebarProfile({
   name,
   email,
   locale,
+  onNavigate,
 }: {
   name: string;
   /** Optional only because a session is not obliged to carry one; the row still works. */
   email?: string | null;
   locale: Locale;
+  /** Closes a responsive navigation drawer after choosing a destination. */
+  onNavigate?: () => void;
 }) {
   const t = useTranslations('nav');
   const [open, setOpen] = useState(false);
@@ -117,7 +125,10 @@ export function SidebarProfile({
                   href={link.href}
                   // Client-side navigation keeps this component mounted, so an
                   // open menu would survive the page it just left.
-                  onClick={() => setOpen(false)}
+                  onClick={() => {
+                    setOpen(false);
+                    onNavigate?.();
+                  }}
                   className={cn(
                     'flex items-center gap-3 rounded-md px-3 py-2 text-start text-body-sm',
                     'transition-colors duration-200 ease-[cubic-bezier(.2,.6,.2,1)]',

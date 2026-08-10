@@ -106,6 +106,7 @@ export function BoardEditor({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<EditErrorKey | null>(null);
   const [dragging, setDragging] = useState<DragPayload | null>(null);
+  const [settledMealId, setSettledMealId] = useState<string | null>(null);
   const [lastMove, setLastMove] = useState<{
     fromMealId: string;
     toMealId: string;
@@ -118,12 +119,18 @@ export function BoardEditor({
     return () => window.clearTimeout(timeout);
   }, [lastMove]);
 
+  useEffect(() => {
+    if (!settledMealId) return;
+    const timeout = window.setTimeout(() => setSettledMealId(null), 520);
+    return () => window.clearTimeout(timeout);
+  }, [settledMealId]);
+
   // Pointer covers mouse and pen; Touch is what makes the board work on a tablet;
   // Keyboard is not optional, because every card is a real button today and an
   // editor reachable only by mouse would be a regression.
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 6 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 8 } }),
     useSensor(KeyboardSensor),
   );
 
@@ -157,12 +164,14 @@ export function BoardEditor({
       const result = await action(initialPlanActionState, formFor(fields));
       if (result.status === 'error') {
         setLastMove(null);
+        setSettledMealId(null);
         setError(result.messageKey);
       }
     });
   }
 
   function onDragStart(event: DragStartEvent): void {
+    setSettledMealId(null);
     setDragging((event.active.data.current as DragPayload | undefined) ?? null);
   }
 
@@ -176,6 +185,7 @@ export function BoardEditor({
 
     if (payload.kind === 'dish') {
       setLastMove(null);
+      setSettledMealId(target.mealId);
       runAction(
         { kind: 'place', mealId: target.mealId, dish: payload.dish, servings: payload.servings },
         placeDishAction,
@@ -191,6 +201,7 @@ export function BoardEditor({
       toMealId: target.mealId,
       dishName: payload.preview.dishName,
     });
+    setSettledMealId(target.mealId);
 
     runAction(
       { kind: 'move', fromMealId: payload.mealId, toMealId: target.mealId, mode: 'move' },
@@ -276,12 +287,13 @@ export function BoardEditor({
               });
             },
             dragging,
+            settledMealId,
           }}
         >
           {children}
         </EditorActionsContext.Provider>
 
-        <DragOverlay dropAnimation={{ duration: 180, easing: 'cubic-bezier(.2,.6,.2,1)' }}>
+        <DragOverlay dropAnimation={{ duration: 240, easing: 'cubic-bezier(.16,1,.3,1)' }}>
           {dragging ? <DragPreview payload={dragging} /> : null}
         </DragOverlay>
       </DndContext>
@@ -304,7 +316,7 @@ function DragPreview({ payload }: { payload: DragPayload }) {
      * label and time are gone from it for the same reason they are gone from
      * the card — they belong to the row, and a card in flight is between rows.
      */
-    <div className="w-40 overflow-hidden rounded-lg border border-primary bg-card shadow-overlay">
+    <div className="w-40 rotate-[0.5deg] scale-[1.02] overflow-hidden rounded-lg border border-primary bg-card shadow-overlay">
       <p
         className="line-clamp-2 px-3 pt-3 text-center font-heading text-body-md font-semibold leading-relaxed [text-wrap:balance]"
         dir="auto"
@@ -340,6 +352,8 @@ type EditorActions = {
   removeWeek: (slotKey: string) => void;
   /** What is currently in flight, so drop targets can light up. */
   dragging: DragPayload | null;
+  /** The slot that just received a drop, for one bounded settle animation. */
+  settledMealId: string | null;
 };
 
 const EditorActionsContext = createContext<EditorActions | null>(null);

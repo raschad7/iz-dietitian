@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useActionState, useCallback, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { useLocale, useTranslations } from 'next-intl';
 
@@ -16,6 +16,7 @@ import { newWeekMode, type NewWeekMode } from '../new-week';
 import type { ClientContext } from '../queries';
 
 import { GenerateForm } from './generate-form';
+import { GenerationLoadingScreen } from './generation-loading-screen';
 import type { PlanSummary } from './plan-history';
 
 /** Everything the three doors need that the board itself does not carry. */
@@ -57,6 +58,7 @@ export function NewWeekDialog({
   newWeek,
   triggerLabel,
   triggerVariant = 'ghost',
+  compactTrigger = false,
 }: {
   clientId: string;
   /** The plan on screen, which decides whether generating replaces it. */
@@ -65,13 +67,25 @@ export function NewWeekDialog({
   newWeek: NewWeekProps;
   triggerLabel?: string;
   triggerVariant?: 'default' | 'ghost' | 'neutral';
+  /** Keeps the icon-only form on narrow phones while preserving its name. */
+  compactTrigger?: boolean;
 }) {
   const t = useTranslations('weeklyPlans');
   const tCommon = useTranslations('common');
   const activeLocale = useLocale();
   const [open, setOpen] = useState(false);
+  const [generating, setGenerating] = useState(false);
 
   const mode = newWeekMode(board);
+
+  const close = useCallback(() => {
+    if (!generating) setOpen(false);
+  }, [generating]);
+
+  const finishGeneration = useCallback(() => {
+    setGenerating(false);
+    setOpen(false);
+  }, []);
 
   // A plan cannot be copied into itself, and offering it would be the one row
   // in the list that quietly does nothing.
@@ -79,56 +93,83 @@ export function NewWeekDialog({
 
   return (
     <>
-      <Button type="button" size="sm" variant={triggerVariant} onClick={() => setOpen(true)}>
+      <Button
+        type="button"
+        size="sm"
+        variant={triggerVariant}
+        aria-label={compactTrigger ? (triggerLabel ?? t('newWeek')) : undefined}
+        title={compactTrigger ? (triggerLabel ?? t('newWeek')) : undefined}
+        className={compactTrigger ? 'max-sm:px-3' : undefined}
+        onClick={() => {
+          setGenerating(false);
+          setOpen(true);
+        }}
+      >
         <Icon name="add" />
-        {triggerLabel ?? t('newWeek')}
+        <span className={compactTrigger ? 'max-sm:sr-only' : undefined}>
+          {triggerLabel ?? t('newWeek')}
+        </span>
       </Button>
 
       <Dialog
         open={open}
-        onClose={() => setOpen(false)}
-        label={t('newWeekTitle')}
+        onClose={close}
+        label={
+          generating
+            ? t(mode === 'regenerate' ? 'generationLoading.regenerateTitle' : 'generationLoading.title')
+            : t('newWeekTitle')
+        }
         dir={getLocaleDirection(activeLocale)}
         size="wide"
+        dismissible={!generating}
       >
-        <DialogHeader
-          title={t('newWeekTitle')}
-          description={t('newWeekSubtitle')}
-          onClose={() => setOpen(false)}
-          closeLabel={tCommon('close')}
-        />
+        {/* The choices stay mounted while hidden. The server action and its
+            lifecycle observer belong to that subtree; unmounting it during the
+            request would strand an error behind a loading screen. */}
+        <div hidden={generating} aria-hidden={generating || undefined}>
+          <DialogHeader
+            title={t('newWeekTitle')}
+            description={t('newWeekSubtitle')}
+            onClose={close}
+            closeLabel={tCommon('close')}
+          />
 
-        <DialogBody>
-          {/* Stacked on a phone, three across from `sm` up — the dialog is a
-              full bottom sheet there, and three columns in a phone's width is
-              three columns of nothing. */}
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
-            <GenerateDoor
-              clientId={clientId}
-              locale={locale}
-              mode={mode}
-              weekStartDate={newWeek.weekStartDate}
-              blocked={newWeek.generateBlocked}
-              context={newWeek.context}
-              defaultInstruction={newWeek.defaultInstruction}
-            />
+          <DialogBody>
+            {/* Stacked on a phone, three across from `sm` up — the dialog is a
+                full bottom sheet there, and three columns in a phone's width is
+                three columns of nothing. */}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
+              <GenerateDoor
+                clientId={clientId}
+                locale={locale}
+                mode={mode}
+                weekStartDate={newWeek.weekStartDate}
+                blocked={newWeek.generateBlocked}
+                context={newWeek.context}
+                defaultInstruction={newWeek.defaultInstruction}
+                onPendingChange={setGenerating}
+                onSuccess={finishGeneration}
+              />
 
-            <CopyDoor
-              clientId={clientId}
-              locale={locale}
-              weekStartDate={newWeek.weekStartDate}
-              plans={copyable}
-              blocked={newWeek.blocked}
-            />
+              <CopyDoor
+                clientId={clientId}
+                locale={locale}
+                weekStartDate={newWeek.weekStartDate}
+                plans={copyable}
+                blocked={newWeek.blocked}
+              />
 
-            <EmptyDoor
-              clientId={clientId}
-              locale={locale}
-              weekStartDate={newWeek.weekStartDate}
-              blocked={newWeek.blocked}
-            />
-          </div>
-        </DialogBody>
+              <EmptyDoor
+                clientId={clientId}
+                locale={locale}
+                weekStartDate={newWeek.weekStartDate}
+                blocked={newWeek.blocked}
+              />
+            </div>
+          </DialogBody>
+        </div>
+
+        {generating && <GenerationLoadingScreen mode={mode} />}
       </Dialog>
     </>
   );
@@ -149,6 +190,8 @@ function GenerateDoor({
   blocked,
   context,
   defaultInstruction,
+  onPendingChange,
+  onSuccess,
 }: {
   clientId: string;
   locale: string;
@@ -157,6 +200,8 @@ function GenerateDoor({
   blocked: 'not_configured' | 'profile_incomplete' | null;
   context: ClientContext;
   defaultInstruction: string | null;
+  onPendingChange: (pending: boolean) => void;
+  onSuccess: () => void;
 }) {
   const t = useTranslations('weeklyPlans');
 
@@ -170,6 +215,8 @@ function GenerateDoor({
         blocked={blocked}
         context={context}
         defaultInstruction={defaultInstruction}
+        onPendingChange={onPendingChange}
+        onSuccess={onSuccess}
       />
     </Door>
   );
@@ -209,7 +256,7 @@ function CopyDoor({
           <input type="hidden" name="clientId" value={clientId} />
           <input type="hidden" name="weekStartDate" value={weekStartDate} />
 
-          <fieldset className="flex max-h-64 min-h-0 flex-1 flex-col overflow-y-auto">
+          <fieldset className="no-scrollbar flex max-h-64 min-h-0 flex-1 flex-col overflow-y-auto">
             <legend className="sr-only">{t('newWeekCopy')}</legend>
 
             {plans.map((plan, index) => (

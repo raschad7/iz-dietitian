@@ -1,6 +1,8 @@
 import { toIsoDate } from '@/features/booking/date';
 import { getClinicHours, listAppointments } from '@/features/booking/queries';
 import { type CalendarAppointment } from '@/features/booking/types';
+import { DASHBOARD_ATTENTION_LIMIT, loadStaffAttention } from '@/features/notifications/page-data';
+import { type StaffAttentionNotification } from '@/features/notifications/types';
 import { listPendingAppointmentRequests, listPendingClientRequests } from '@/features/requests/queries';
 import { type PendingRequests } from '@/features/requests/types';
 
@@ -55,6 +57,15 @@ export type DashboardData = {
    * `PendingRequestsCard` for why that matters on this page in particular.
    */
   requests: PendingRequests;
+  /**
+   * Clients the register says have drifted — the notifications feed's own
+   * "worth checking" half, surfaced on the page a dietitian actually keeps
+   * open. Requests are not included: they have their own card on this screen,
+   * with the buttons that answer them.
+   */
+  attention: StaffAttentionNotification[];
+  /** How many there are in total, so the card's count does not lie about its own cap. */
+  attentionTotal: number;
   /** Read once here so every "3 hours ago" on the page measures from one instant. */
   now: Date;
 };
@@ -66,13 +77,15 @@ export async function loadDashboard(clinicId: string): Promise<DashboardData> {
   const today = toIsoDate(now);
   const nowMinute = now.getHours() * 60 + now.getMinutes();
 
-  const [agenda, recentClients, hours, pendingRequests, pendingClientRequests] = await Promise.all([
-    listAppointments(clinicId, today, today),
-    listRecentClients(clinicId, today, RECENT_CLIENTS),
-    getClinicHours(clinicId),
-    listPendingAppointmentRequests(clinicId),
-    listPendingClientRequests(clinicId),
-  ]);
+  const [agenda, recentClients, hours, pendingRequests, pendingClientRequests, attention] =
+    await Promise.all([
+      listAppointments(clinicId, today, today),
+      listRecentClients(clinicId, today, RECENT_CLIENTS),
+      getClinicHours(clinicId),
+      listPendingAppointmentRequests(clinicId),
+      listPendingClientRequests(clinicId),
+      loadStaffAttention(clinicId),
+    ]);
 
   return {
     today,
@@ -80,6 +93,15 @@ export async function loadDashboard(clinicId: string): Promise<DashboardData> {
     agenda,
     workingDays: hours?.workingDays ?? EVERY_WEEKDAY,
     recentClients,
+    /*
+     * The card shows a handful and says how many there are; the whole list is
+     * one link away on `/app/notifications`. Sliced here rather than by asking
+     * the query for fewer, because the count has to be the real one — a card
+     * that says "4" because it fetched 4 is a card that cannot tell a quiet
+     * register from a busy one.
+     */
+    attention: attention.slice(0, DASHBOARD_ATTENTION_LIMIT),
+    attentionTotal: attention.length,
     // The two request reads join this page's single round of parallel queries
     // rather than calling `loadPendingRequests`, which would repeat the
     // `getClinicHours` read the week strip above already needs.

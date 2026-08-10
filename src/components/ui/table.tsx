@@ -31,11 +31,20 @@ function TableRoot({ className, ...props }: React.ComponentProps<'div'>) {
   return <div data-slot="table-root" className={cn('w-full overflow-x-auto', className)} {...props} />;
 }
 
+/**
+ * `border-separate` with zero spacing rather than `border-collapse`.
+ *
+ * The collapsed border model drops `border-radius` on every element inside the
+ * table, which is what kept the header strip square. Separated borders restore
+ * it, and with `border-spacing-0` the rows still sit flush: only `TableRow`
+ * draws an edge, only on its block-start side, so there is nothing for the
+ * collapsing model to have merged in the first place.
+ */
 function Table({ className, ...props }: React.ComponentProps<'table'>) {
   return (
     <table
       data-slot="table"
-      className={cn('w-full border-collapse text-body-md', className)}
+      className={cn('w-full border-separate border-spacing-0 text-body-md', className)}
       {...props}
     />
   );
@@ -62,6 +71,14 @@ function TableHeader({
       data-slot="table-header"
       className={cn(
         'bg-muted text-caption text-muted-foreground',
+        /*
+         * The strip takes the control radius on all four corners, and it takes
+         * it on the end cells rather than on the `thead`: a table's fill is
+         * painted per cell, so a radius on the group is clipped away by the
+         * square cells sitting on top of it. Logical sides, so Arabic rounds
+         * the same two ends without a mirrored rule.
+         */
+        '[&>tr>th:first-child]:rounded-s-[10px] [&>tr>th:last-child]:rounded-e-[10px]',
         sticky && '[&>tr>th]:sticky [&>tr>th]:top-0 [&>tr>th]:z-10 [&>tr>th]:bg-muted',
         className,
       )}

@@ -48,7 +48,7 @@ export function PublishButton({
 
   if (status === 'published') {
     return (
-      <div className="flex flex-col items-end gap-1">
+      <div className="relative flex flex-col items-end gap-1">
         <form action={unpublish}>
           <input type="hidden" name="locale" value={locale} />
           <input type="hidden" name="planId" value={planId} />
@@ -57,6 +57,7 @@ export function PublishButton({
             pendingLabel={t('unpublishing')}
             icon="eyeOff"
             variant="outline"
+            confirmed={publishState.status === 'done'}
           />
         </form>
         <Message state={unpublishState} />
@@ -67,7 +68,7 @@ export function PublishButton({
   if (status !== 'draft') return null;
 
   return (
-    <div className="flex flex-col items-end gap-1">
+    <div className="relative flex flex-col items-end gap-1">
       <form action={publish}>
         <input type="hidden" name="locale" value={locale} />
         <input type="hidden" name="planId" value={planId} />
@@ -91,6 +92,7 @@ function Submit({
   disabled,
   title,
   variant,
+  confirmed,
 }: {
   label: string;
   pendingLabel: string;
@@ -98,15 +100,36 @@ function Submit({
   disabled?: boolean;
   title?: string;
   variant?: 'outline';
+  confirmed?: boolean;
 }) {
   const { pending } = useFormStatus();
 
   return (
-    <Button type="submit" size="sm" variant={variant} disabled={pending || disabled} title={title}>
-      {/* The glyph stays put while the label swaps to "publishing…", so the
-          button does not change width and then change back mid-submit. */}
-      <Icon name={icon} />
-      {pending ? pendingLabel : label}
+    <Button
+      type="submit"
+      size="sm"
+      variant={variant}
+      disabled={pending || disabled}
+      title={title}
+      aria-busy={pending}
+      data-pending={pending}
+      data-confirmed={confirmed || undefined}
+      className="planner-publish-button"
+    >
+      <Icon name={icon} className="planner-publish-icon" />
+      {/* Both labels occupy one grid cell, so submitting never changes the
+          toolbar's width. Opacity communicates state without moving its peers. */}
+      <span className="grid">
+        <span className={pending ? 'invisible col-start-1 row-start-1' : 'col-start-1 row-start-1'}>
+          {label}
+        </span>
+        <span
+          aria-hidden={!pending}
+          className={pending ? 'col-start-1 row-start-1' : 'invisible col-start-1 row-start-1'}
+        >
+          {pendingLabel}
+        </span>
+      </span>
     </Button>
   );
 }
@@ -116,5 +139,9 @@ function Message({ state }: { state: PlanActionState }) {
 
   if (state.status !== 'error') return null;
 
-  return <p className="text-caption text-destructive">{t(state.messageKey)}</p>;
+  return (
+    <p className="absolute end-0 top-full z-20 mt-1 w-max max-w-72 rounded-md bg-card px-2 py-1 text-caption text-destructive shadow-elevated">
+      {t(state.messageKey)}
+    </p>
+  );
 }

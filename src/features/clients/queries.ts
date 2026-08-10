@@ -1,15 +1,12 @@
 import { and, asc, count, desc, eq, ilike, isNotNull, isNull, sql, type AnyColumn, type SQL } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { clients, type Client } from '@/db/schema';
+import { clientNutritionProfiles, clients, type Client } from '@/db/schema';
 
+import { DEFAULT_MEAL_SCHEDULE, mealScheduleSchema } from './nutrition';
 import { normalizeForSearch } from './search';
-import {
-  CLIENT_STATUSES,
-  clientIdSchema,
-  type ClientStatus,
-  type ListClientsInput,
-} from './schema';
+import { clientIdSchema, type ListClientsInput } from './schema';
+import { type ClientIntakeValues, type MealSlotValues } from './types';
 
 /**
  * Reads for the clients feature. Imports nothing from Next.js so that the tests
@@ -22,8 +19,15 @@ export type ClientListItem = {
   id: string;
   fullName: string;
   phone: string | null;
-  email: string | null;
-  status: string;
+  /**
+   * `YYYY-MM-DD`, for the age the register shows.
+   *
+   * The date rather than a computed age, for the same reason the dashboard's
+   * register card takes it: an age is a number about *today*, and computing it
+   * in the query would cache a value that is wrong the morning after someone's
+   * birthday.
+   */
+  dateOfBirth: string | null;
   hasPortalAccess: boolean;
 };
 
@@ -37,29 +41,12 @@ export type ClientListResult = {
 export type ClientDetail = Client & { hasPortalAccess: boolean };
 
 /**
- * Which clients the status rule lets through.
- *
- * The register shows active clients unless it is explicitly told otherwise, so
- * this is the default whenever the reader is filtering on something else — or
- * on nothing. Only `filterBy: 'status'` can change it, and a value outside the
- * set falls back to the default rather than showing the whole register: a
- * mistyped query string should not quietly widen what is on screen.
- */
-function statusRule(input: ListClientsInput): ClientStatus | 'all' {
-  if (input.filterBy !== 'status') return 'active';
-
-  const value = input.filterValue;
-  if (value === 'all') return 'all';
-  return CLIENT_STATUSES.find((status) => status === value) ?? 'active';
-}
-
-/**
  * The one column the reader chose to filter on, if any.
  *
- * `status` is not here — it is the rule above, because it is the one filter
- * that also has a default. A column with no value filters nothing: the popover
- * can be opened and a column picked without a term typed yet, and that state
- * should show the register, not an empty one.
+ * `status` is not here, and is no longer a filter at all — it is a property of
+ * *which page you are on*, and it arrives on `input.status`. A column with no
+ * value filters nothing: the popover can be opened and a column picked without
+ * a term typed yet, and that state should show the register, not an empty one.
  */
 function filterCondition(input: ListClientsInput): SQL | undefined {
   const value = input.filterValue;
@@ -93,10 +80,7 @@ function filterCondition(input: ListClientsInput): SQL | undefined {
  * forgetting it is a type error, not a silent cross-tenant leak.
  */
 function buildFilter(clinicId: string, input: ListClientsInput): SQL | undefined {
-  const conditions: SQL[] = [eq(clients.clinicId, clinicId)];
-
-  const status = statusRule(input);
-  if (status !== 'all') conditions.push(eq(clients.status, status));
+  const conditions: SQL[] = [eq(clients.clinicId, clinicId), eq(clients.status, input.status)];
 
   if (input.q) {
     /*
@@ -136,22 +120,32 @@ function buildFilter(clinicId: string, input: ListClientsInput): SQL | undefined
 const SORT_COLUMNS: Record<ListClientsInput['sort'], AnyColumn | SQL> = {
   fullName: clients.searchName,
   phone: clients.phone,
-  email: clients.email,
-  status: clients.status,
+  /** Ordered by the date behind it; see `INVERTED_SORTS` for the direction. */
+  age: clients.dateOfBirth,
   portalAccess: sql`(${clients.userId} is not null)`,
   createdAt: clients.createdAt,
 };
 
 /**
- * Nullable columns — phone and email — are pushed to the end in **both**
- * directions. A blank is not "smallest"; it is missing, and a reader flipping
- * the direction to find the As is not asking to be shown eleven dashes first.
+ * Nullable columns are pushed to the end in **both** directions. A blank is not
+ * "smallest"; it is missing, and a reader flipping the direction to find the As
+ * is not asking to be shown eleven dashes first.
  */
-const NULLABLE_SORTS = new Set<ListClientsInput['sort']>(['phone', 'email']);
+const NULLABLE_SORTS = new Set<ListClientsInput['sort']>(['phone', 'age']);
+
+/**
+ * Sorts whose column runs the opposite way to the value on screen.
+ *
+ * Age is the only one: the *oldest* client has the *earliest* date of birth, so
+ * ascending age is descending date. Flipped here rather than at the call site,
+ * so the header's arrow means the same thing on this column as on every other.
+ */
+const INVERTED_SORTS = new Set<ListClientsInput['sort']>(['age']);
 
 function buildOrder(input: ListClientsInput): SQL[] {
   const column = SORT_COLUMNS[input.sort];
-  const direction = input.dir === 'asc' ? asc : desc;
+  const ascending = INVERTED_SORTS.has(input.sort) ? input.dir === 'desc' : input.dir === 'asc';
+  const direction = ascending ? asc : desc;
 
   const order: SQL[] = [];
   if (NULLABLE_SORTS.has(input.sort)) order.push(sql`${column} is null`);
@@ -175,8 +169,7 @@ export async function listClients(clinicId: string, input: ListClientsInput): Pr
       id: clients.id,
       fullName: clients.fullName,
       phone: clients.phone,
-      email: clients.email,
-      status: clients.status,
+      dateOfBirth: clients.dateOfBirth,
       userId: clients.userId,
     })
     .from(clients)
@@ -214,4 +207,94 @@ export async function getClient(clinicId: string, id: string): Promise<ClientDet
   if (!row) return null;
 
   return { ...row, hasPortalAccess: row.userId !== null };
+}
+
+/**
+ * Reads the stored schedule, falling back to the default.
+ *
+ * Validated on read and not only on write: `meal_schedule` is jsonb, so a
+ * hand-edited row or a schema change could otherwise put a malformed slot into
+ * a form and crash the render. A bad value degrades to the default rather than
+ * throwing.
+ */
+function readMealSchedule(value: MealSlotValues[] | null): MealSlotValues[] {
+  if (!value) return DEFAULT_MEAL_SCHEDULE;
+  const parsed = mealScheduleSchema.safeParse(value);
+  return parsed.success ? parsed.data : DEFAULT_MEAL_SCHEDULE;
+}
+
+/**
+ * One client's whole intake, across both tables, for the dialog that writes it.
+ *
+ * A left join and not two reads: the profile row does not exist until the first
+ * save, and a client with no profile is the ordinary case rather than an error.
+ * Everything comes back with the defaults the form would have offered anyway, so
+ * a first-time intake and a fifth edit render through the same code path.
+ *
+ * Null for a client of another clinic — indistinguishable from one that does
+ * not exist, the same rule `getClient` follows.
+ */
+export async function getClientIntake(
+  clinicId: string,
+  id: string,
+): Promise<ClientIntakeValues | null> {
+  const parsed = clientIdSchema.safeParse(id);
+  if (!parsed.success) return null;
+
+  const [row] = await db
+    .select({
+      clientId: clients.id,
+      fullName: clients.fullName,
+      dateOfBirth: clients.dateOfBirth,
+      sex: clients.sex,
+      heightCm: clients.heightCm,
+      goal: clients.goal,
+      activityLevel: clients.activityLevel,
+      allergies: clients.allergies,
+      conditions: clients.conditions,
+      medications: clients.medications,
+      medicalNotes: clients.medicalNotes,
+      notes: clients.notes,
+      profileId: clientNutritionProfiles.id,
+      weightKg: clientNutritionProfiles.weightKg,
+      dailyKcalTarget: clientNutritionProfiles.dailyKcalTarget,
+      proteinTargetGrams: clientNutritionProfiles.proteinTargetGrams,
+      allergenTags: clientNutritionProfiles.allergenTags,
+      customAllergens: clientNutritionProfiles.customAllergens,
+      preferences: clientNutritionProfiles.preferences,
+      dislikes: clientNutritionProfiles.dislikes,
+      permanentInstructions: clientNutritionProfiles.permanentInstructions,
+      mealSchedule: clientNutritionProfiles.mealSchedule,
+    })
+    .from(clients)
+    .leftJoin(clientNutritionProfiles, eq(clientNutritionProfiles.clientId, clients.id))
+    .where(and(eq(clients.id, parsed.data), eq(clients.clinicId, clinicId)))
+    .limit(1);
+
+  if (!row) return null;
+
+  return {
+    clientId: row.clientId,
+    fullName: row.fullName,
+    dateOfBirth: row.dateOfBirth,
+    sex: row.sex,
+    heightCm: row.heightCm,
+    goal: row.goal,
+    activityLevel: row.activityLevel,
+    allergies: row.allergies,
+    conditions: row.conditions,
+    medications: row.medications,
+    medicalNotes: row.medicalNotes,
+    notes: row.notes,
+    weightKg: row.weightKg,
+    dailyKcalTarget: row.dailyKcalTarget,
+    proteinTargetGrams: row.proteinTargetGrams,
+    allergenTags: row.allergenTags ?? [],
+    customAllergens: row.customAllergens ?? [],
+    preferences: row.preferences,
+    dislikes: row.dislikes,
+    permanentInstructions: row.permanentInstructions,
+    mealSchedule: readMealSchedule(row.mealSchedule),
+    hasProfile: row.profileId !== null,
+  };
 }

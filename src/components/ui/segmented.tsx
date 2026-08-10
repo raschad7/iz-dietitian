@@ -112,7 +112,8 @@ function Segmented<T extends string>({
             aria-checked={isTablist ? undefined : active}
             onClick={() => onChange(option.value)}
             className={cn(
-              'flex items-center justify-center rounded-md font-medium transition-colors duration-180',
+              'flex items-center justify-center rounded-md font-medium',
+              'transition-[color,background-color,box-shadow,transform] duration-(--duration-label) ease-(--ease-sweep)',
               'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-focus-halo focus-visible:outline-none',
               // `h-full`: the track owns the height (see above), the option
               // owns its inline padding.
@@ -125,13 +126,21 @@ function Segmented<T extends string>({
               // repaint the selected half; it defaults to that same olive, which
               // is what every shape draws unless told otherwise.
               active
-                ? activeClassName
+                ? cn(activeClassName, 'scale-100 shadow-card')
                 : pill
                   ? // The track is white now, so an unselected half can take
                     // `muted-foreground` (6.38:1 there) and let the selected one
                     // hold the colour. On the old cream track that pairing was
                     // the one to avoid — it measured under 4.5:1 — and this half
                     // had to carry full-strength foreground instead.
+                    //
+                    // The `scale-[0.99] hover:scale-100` this line carried on
+                    // `main` is deliberately not merged: it grew the half under
+                    // the pointer, and geometry here does not move (§Shape —
+                    // "hover is carried by the ring and the fill instead"). On
+                    // the cream track it was also compensating for a hover fill
+                    // that barely registered; on the white one the fill does the
+                    // work on its own.
                     'text-muted-foreground hover:bg-muted hover:text-foreground'
                   : 'text-muted-foreground hover:bg-secondary hover:text-secondary-foreground',
             )}

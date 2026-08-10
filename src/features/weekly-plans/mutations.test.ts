@@ -17,12 +17,13 @@ import { toggleMealCompletion } from '@/features/portal/mutations';
 import { createTestClient, createTestClinic, resetDatabase } from '../../../tests/helpers';
 
 import type { ReconciledMeal } from './generate';
+import { saveIntake } from '@/features/clients/mutations';
+
 import {
   createPlanFromGeneration,
   deletePlan,
   publishPlan,
   replaceMeals,
-  saveNutritionProfile,
   swapMealDish,
   unpublishPlan,
 } from './mutations';
@@ -183,40 +184,6 @@ beforeEach(async () => {
   dishIds = await seedDishes();
 });
 
-describe('saveNutritionProfile', () => {
-  test('creates a profile, then updates it in place', async () => {
-    const input = {
-      clientId,
-      allergenTags: ['nuts' as const],
-      weightKg: 84,
-      dailyKcalTarget: 1800,
-      proteinTargetGrams: 130,
-      preferences: 'نباتي',
-      dislikes: 'سمك',
-      permanentInstructions: 'سكري',
-      mealSchedule: DEFAULT_MEAL_SCHEDULE,
-    };
-
-    expect(await saveNutritionProfile(clinicId, input)).toBe(true);
-    expect(await saveNutritionProfile(clinicId, { ...input, weightKg: 82 })).toBe(true);
-
-    const context = await import('./queries').then((m) => m.getClientContext(clinicId, clientId));
-
-    expect(context?.profile?.weightKg).toBe(82);
-    expect(context?.profile?.allergenTags).toEqual(['nuts']);
-  });
-
-  test('refuses a client belonging to another clinic', async () => {
-    const saved = await saveNutritionProfile(otherClinicId, {
-      clientId,
-      allergenTags: [],
-      mealSchedule: DEFAULT_MEAL_SCHEDULE,
-    });
-
-    expect(saved).toBe(false);
-  });
-});
-
 describe('createPlanFromGeneration', () => {
   test('writes the plan, its meals and their options', async () => {
     const planId = await createPlan();
@@ -334,9 +301,10 @@ describe('listPlannableClients', () => {
   test('reports whether a nutrition profile exists', async () => {
     expect((await listPlannableClients(clinicId))[0]?.hasProfile).toBe(false);
 
-    await saveNutritionProfile(clinicId, {
+    await saveIntake(clinicId, {
       clientId,
       allergenTags: [],
+      customAllergens: [],
       mealSchedule: DEFAULT_MEAL_SCHEDULE,
     });
 

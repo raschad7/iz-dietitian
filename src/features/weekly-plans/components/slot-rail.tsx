@@ -1,9 +1,9 @@
 'use client';
 
-import { Icon, type IconName } from '@/components/ui/icon';
+import { Icon } from '@/components/ui/icon';
 
 import type { BoardRow } from '../board-rows';
-import { mealTypeForSlot } from '../schema';
+import { mealIconForSlot } from '../meal-icons';
 
 import { AddSlot, RemoveSlot } from './day-column';
 
@@ -12,17 +12,9 @@ import { AddSlot, RemoveSlot } from './day-column';
  *
  * Keyed off the slot key's own meal type rather than off the label, so a
  * dietitian who renames "غداء" to "الوجبة الرئيسية" keeps the fork. A slot
- * added on the board (`extra_N`) resolves to lunch, which is
- * `mealTypeForSlot`'s fallback and the honest answer for a slot nobody has
- * classified.
+ * added on the board stores the chosen type in its slot key; legacy `extra_N`
+ * slots continue to resolve to lunch through `mealTypeForSlot`'s fallback.
  */
-const SLOT_ICONS = {
-  breakfast: 'mealBreakfast',
-  lunch: 'mealLunch',
-  dinner: 'mealDinner',
-  snack: 'mealSnack',
-} as const satisfies Record<string, IconName>;
-
 /**
  * The week's slots, as the board's row headers.
  *
@@ -50,7 +42,7 @@ export function SlotRail({
        inherit the same tracks the cards do and can never drift out of step with
        them. `sticky` applies to the whole column rather than to each cell,
        because it spans the full template and travels as one. */
-    <div className="sticky start-0 z-20 row-span-full grid w-20 grid-rows-subgrid bg-background">
+    <div className="sticky start-0 z-20 row-span-full grid w-20 grid-rows-subgrid bg-background md:w-24">
       {/* The corner. Blank, and deliberately so: it sits above both the day
           names and the slot labels, and anything written in it would belong to
           neither axis. */}
@@ -62,8 +54,8 @@ export function SlotRail({
           className="group/slot relative flex flex-col items-center justify-center gap-1 px-1.5 text-center"
         >
           <Icon
-            name={SLOT_ICONS[mealTypeForSlot(row.slotKey)]}
-            className="size-6 text-muted-foreground"
+            name={mealIconForSlot(row.slotKey)}
+            className="size-8 text-muted-foreground md:size-9"
           />
           <span className="text-label leading-tight [text-wrap:balance]">{row.label}</span>
           {/* Latin digits inside Arabic keep their own direction. */}

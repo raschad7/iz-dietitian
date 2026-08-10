@@ -17,10 +17,38 @@ export function validateWizardSubmission(formData: FormData): WizardSubmissionDe
     : { submit: false, section: result.section, fieldErrors: result.fieldErrors };
 }
 
+/**
+ * Drops the errors a change to `fieldName` could have fixed.
+ *
+ * Three of the schedule's messages are about something wider than the box that
+ * carries them, so correcting one field has to clear more than its own name:
+ *
+ * - `workingDayRequired` is keyed on `schedule` and answered by turning *any*
+ *   day on.
+ * - `closingAfterOpening` is keyed on `close-N` but is a fact about the pair —
+ *   moving the opening time is just as valid a fix, so either end clears both.
+ * - `schedule` itself is what "apply these hours to every day" reports, and
+ *   that rewrites all seven rows at once, so it clears every time error too.
+ */
 export function clearFieldError(
   fieldErrors: ClinicProfileFieldErrors,
   fieldName: string,
 ): ClinicProfileFieldErrors {
-  const relatedNames = fieldName.startsWith('working-') ? new Set([fieldName, 'schedule']) : new Set([fieldName]);
-  return Object.fromEntries(Object.entries(fieldErrors).filter(([name]) => !relatedNames.has(name)));
+  if (fieldName === 'schedule') {
+    return Object.fromEntries(
+      Object.entries(fieldErrors).filter(([name]) => !/^(?:schedule|open-\d|close-\d)$/.test(name)),
+    );
+  }
+
+  const related = new Set([fieldName]);
+
+  if (fieldName.startsWith('working-')) related.add('schedule');
+
+  const dayPair = /^(?:open|close)-(\d)$/.exec(fieldName);
+  if (dayPair) {
+    related.add(`open-${dayPair[1]}`);
+    related.add(`close-${dayPair[1]}`);
+  }
+
+  return Object.fromEntries(Object.entries(fieldErrors).filter(([name]) => !related.has(name)));
 }

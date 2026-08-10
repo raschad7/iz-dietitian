@@ -1,10 +1,10 @@
 import { and, eq } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { clients, user } from '@/db/schema';
+import { clientNutritionProfiles, clients, user } from '@/db/schema';
 
 import { normalizeForSearch } from './search';
-import { type ClientFormInput } from './schema';
+import { type ClientFormInput, type IntakeInput } from './schema';
 
 /**
  * Every write to the clients table.
@@ -15,7 +15,14 @@ import { type ClientFormInput } from './schema';
  * concerns on top.
  */
 
-/** Maps validated form input onto columns. Optional fields become NULL, not skipped. */
+/**
+ * Maps validated card input onto columns. Optional fields become NULL, not
+ * skipped — a cleared phone number has to actually clear.
+ *
+ * Identity only. The clinical columns this used to carry are written by
+ * {@link saveIntake}, and listing them here as well would mean the card silently
+ * nulled a height every time someone fixed a typo in a name.
+ */
 function toColumns(input: ClientFormInput) {
   return {
     fullName: input.fullName,
@@ -25,12 +32,6 @@ function toColumns(input: ClientFormInput) {
     preferredLocale: input.preferredLocale,
     dateOfBirth: input.dateOfBirth ?? null,
     sex: input.sex ?? null,
-    heightCm: input.heightCm ?? null,
-    goal: input.goal ?? null,
-    activityLevel: input.activityLevel ?? null,
-    medicalNotes: input.medicalNotes ?? null,
-    allergies: input.allergies ?? null,
-    notes: input.notes ?? null,
   };
 }
 
@@ -71,6 +72,77 @@ export async function updateClient(
     .returning({ id: clients.id });
 
   return rows.length > 0;
+}
+
+/**
+ * Writes one intake across both of the tables a client record lives in.
+ *
+ * `clients` takes the columns the rest of the app already reads — height, goal,
+ * the portal-visible prose — and `client_nutrition_profiles` takes the ones only
+ * planning needs. **One transaction**, because a saved height with an unsaved
+ * weight is exactly the half-filled state this whole change exists to remove:
+ * the planner would report a different set of missing fields than the dietitian
+ * had just filled in.
+ *
+ * The profile row is still created lazily, on the first save that reaches here,
+ * so every client who predates this form is valid without a backfill.
+ *
+ * Returns false when this clinic has no client with that id — the same "not
+ * found" a cross-tenant id gets.
+ */
+export async function saveIntake(clinicId: string, input: IntakeInput): Promise<boolean> {
+  return db.transaction(async (tx) => {
+    const rows = await tx
+      .update(clients)
+      .set({
+        heightCm: input.heightCm ?? null,
+        goal: input.goal ?? null,
+        activityLevel: input.activityLevel ?? null,
+        allergies: input.allergies ?? null,
+        conditions: input.conditions ?? null,
+        medications: input.medications ?? null,
+        medicalNotes: input.medicalNotes ?? null,
+        notes: input.notes ?? null,
+        updatedAt: new Date(),
+      })
+      .where(scopedToClinic(clinicId, input.clientId))
+      .returning({ id: clients.id });
+
+    // Checked through the scoped update rather than a separate SELECT: the same
+    // statement that authorises the write performs it, so there is no window
+    // between the two.
+    if (rows.length === 0) return false;
+
+    /*
+     * `clients.care_note` and `client_nutrition_profiles.share_weight_with_client`
+     * are absent from both writes on purpose. The screens that read and wrote
+     * them are gone, and a column left out of an UPDATE keeps whatever it holds
+     * — so removing the UI does not quietly erase notes a dietitian wrote for a
+     * client. Drop the columns in a migration if the feature is never coming
+     * back; until then, leaving them untouched is the reversible option.
+     */
+    const profile = {
+      weightKg: input.weightKg ?? null,
+      dailyKcalTarget: input.dailyKcalTarget ?? null,
+      proteinTargetGrams: input.proteinTargetGrams ?? null,
+      allergenTags: input.allergenTags,
+      customAllergens: input.customAllergens,
+      preferences: input.preferences ?? null,
+      dislikes: input.dislikes ?? null,
+      permanentInstructions: input.permanentInstructions ?? null,
+      mealSchedule: input.mealSchedule,
+    };
+
+    await tx
+      .insert(clientNutritionProfiles)
+      .values({ clinicId, clientId: input.clientId, ...profile })
+      .onConflictDoUpdate({
+        target: clientNutritionProfiles.clientId,
+        set: { ...profile, updatedAt: new Date() },
+      });
+
+    return true;
+  });
 }
 
 async function setStatus(clinicId: string, id: string, status: 'active' | 'archived'): Promise<boolean> {

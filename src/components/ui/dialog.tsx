@@ -42,19 +42,49 @@ type DialogProps = {
    * bottom sheet on a phone like every other dialog.
    */
   size?: 'default' | 'wide';
+  /**
+   * Whether Escape and a backdrop click may close the dialog. Long-running
+   * submissions set this to false so the protected task cannot be hidden while
+   * it is still in flight. Programmatic changes to `open` continue to work.
+   */
+  dismissible?: boolean;
   className?: string;
   children: React.ReactNode;
 };
 
-function Dialog({ open, onClose, label, dir, flat, size = 'default', className, children }: DialogProps) {
+function Dialog({
+  open,
+  onClose,
+  label,
+  dir,
+  flat,
+  size = 'default',
+  dismissible = true,
+  className,
+  children,
+}: DialogProps) {
   const ref = React.useRef<HTMLDialogElement>(null);
 
   React.useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
 
-    if (open && !dialog.open) dialog.showModal();
-    if (!open && dialog.open) dialog.close();
+    if (open) {
+      dialog.removeAttribute('data-closing');
+      if (!dialog.open) dialog.showModal();
+      return;
+    }
+
+    if (!dialog.open) return;
+    dialog.dataset.closing = 'true';
+
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const timeout = window.setTimeout(() => {
+      if (dialog.open) dialog.close();
+      dialog.removeAttribute('data-closing');
+    }, reduceMotion ? 0 : 140);
+
+    return () => window.clearTimeout(timeout);
   }, [open]);
 
   return (
@@ -63,12 +93,17 @@ function Dialog({ open, onClose, label, dir, flat, size = 'default', className, 
       dir={dir}
       aria-label={label}
       onClose={onClose}
+      onCancel={(event) => {
+        event.preventDefault();
+        if (dismissible) onClose();
+      }}
       onClick={(event) => {
         // A click on the backdrop targets the dialog element itself; a click
         // on anything inside targets that child instead.
-        if (event.target === ref.current) ref.current?.close();
+        if (dismissible && event.target === ref.current) onClose();
       }}
       className={cn(
+        'q-dialog',
         'w-full max-w-none p-0 text-start',
         'mt-auto mb-0 rounded-t-2xl',
         'sm:m-auto sm:rounded-lg',
@@ -81,7 +116,6 @@ function Dialog({ open, onClose, label, dir, flat, size = 'default', className, 
         // through custom properties registered on `*`, which `::backdrop` does
         // not inherit in every engine, so the utility silently does nothing.
         'backdrop:bg-[var(--overlay)] backdrop:[backdrop-filter:blur(4px)]',
-        'motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 motion-safe:duration-200',
         className,
       )}
     >

@@ -21,29 +21,45 @@ export type AttentionReason = 'noUpcomingAppointment' | 'noWeeklyPlan' | 'neverS
  * place. Neither variant carries an href — routes are the route layer's
  * business, not the data layer's.
  */
-export type StaffNotification =
-  | {
-      kind: 'request';
-      id: string;
-      clientId: string;
-      clientName: string;
-      requestKind: RequestKind;
-      preferredDate: string | null;
-      preferredStartMinute: number | null;
-      note: string | null;
-      createdAt: Date;
-    }
-  | {
-      kind: 'attention';
-      id: string;
-      clientId: string;
-      clientName: string;
-      reason: AttentionReason;
-    };
+export type StaffRequestNotification = {
+  kind: 'request';
+  id: string;
+  clientId: string;
+  clientName: string;
+  requestKind: RequestKind;
+  preferredDate: string | null;
+  preferredStartMinute: number | null;
+  note: string | null;
+  createdAt: Date;
+};
 
+export type StaffAttentionNotification = {
+  kind: 'attention';
+  id: string;
+  clientId: string;
+  clientName: string;
+  reason: AttentionReason;
+};
+
+export type StaffNotification = StaffRequestNotification | StaffAttentionNotification;
+
+/**
+ * The feed, as two lists rather than one.
+ *
+ * The two kinds are not the same job, however similar they looked stacked in a
+ * popover. A request has a person waiting at the other end and is answered on
+ * `/app/requests`; an attention flag is the system noticing that a client has
+ * drifted, and it is answered — if at all — inside that client's record. Merged
+ * into one array they were told apart only by the tint of a 32px disc, and the
+ * reader had to re-decide what sort of row they were looking at on every line.
+ *
+ * Merging them also cost the ordering: requests were sorted by age and
+ * attention rows by category, so one list ran on two different clocks.
+ */
 export type NotificationsData = {
-  items: StaffNotification[];
-  /** Every pending request, not just the previewed ones — the badge must not lie. */
+  requests: StaffRequestNotification[];
+  attention: StaffAttentionNotification[];
+  /** Every pending request, not just the loaded ones — the count must not lie. */
   pendingRequestCount: number;
   /** The instant every relative timestamp in the feed is measured against. */
   now: Date;

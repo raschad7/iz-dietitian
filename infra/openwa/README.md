@@ -90,6 +90,8 @@ browser reaches it. Inside the container, `localhost` is the container. On Docke
 Desktop (macOS/Windows) use `http://host.docker.internal:3000`; on Linux use the
 host's LAN address, or add
 `extra_hosts: ['host.docker.internal:host-gateway']` to the compose service.
+The bundled compose file allowlists only `host.docker.internal` in OpenWA's SSRF
+guard so this private callback works without disabling webhook protection.
 
 Restart `bun run dev` — the app reads these at request time, but the settings page
 caches nothing and a stale process is the most common cause of "it says disabled".

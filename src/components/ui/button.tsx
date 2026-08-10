@@ -83,6 +83,25 @@ const buttonVariants = cva(
         neutral:
           "border-border bg-card text-foreground hover:bg-accent aria-pressed:border-input aria-pressed:bg-accent aria-expanded:bg-accent",
 
+        /**
+         * Neutral, tertiary — `ghost`'s shape with `neutral`'s colour. No box,
+         * no brand hue, a black glyph.
+         *
+         * For a control that *repeats down a list*. `ghost` draws its label in
+         * olive, which is the system saying "act on me" — fine once, and wrong
+         * twenty times: the register's rows each carry three icon buttons, so
+         * `ghost` put sixty olive marks on a screen whose actual brand accent is
+         * the "New client" button at the top, and the table read as a grid of
+         * links rather than as a list of people. Black glyphs recede into the
+         * row until the pointer is on them, which is what a row action should
+         * do; the neutral hover fill is what says it is pressable.
+         *
+         * The same reasoning as `neutral`, one step quieter — see it above for
+         * why a row of peers must not all wear the brand colour.
+         */
+        neutralGhost:
+          "border-transparent text-foreground hover:bg-accent hover:text-accent-foreground aria-expanded:bg-accent",
+
         /** Accent — the lime fill itself, for a completion action. */
         accent: "border-transparent bg-accent-lime text-on-accent hover:bg-[var(--lime-300)]",
 

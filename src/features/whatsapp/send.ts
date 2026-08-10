@@ -67,6 +67,32 @@ export async function sendWhatsappMessage(request: SendRequest, deps: SendDeps =
   const body = clampMessageBody(request.body);
   if (!body) return { status: 'skipped', reason: 'empty_body' };
 
+  const gateway = deps.gateway ?? createHttpGateway(config);
+
+  // OpenWA can accept an E.164-looking number that WhatsApp does not own, then
+  // spend the whole send timeout trying to resolve its LID. Check first so an
+  // invalid client record is an immediate, explainable skip and never consumes
+  // the dedupe key for an automation.
+  try {
+    const registered = await gateway.checkNumber(settings.sessionId, target.phone);
+    if (!registered) return { status: 'skipped', reason: 'not_on_whatsapp' };
+  } catch (error) {
+    const description = describeSendFailure(error);
+
+    await saveSessionLink(request.clinicId, {
+      lastError: description,
+      ...(error instanceof GatewayError && error.status === 404 ? { status: 'disconnected' as const } : {}),
+    }).catch(() => undefined);
+
+    console.error('[whatsapp] recipient check failed', {
+      clinicId: request.clinicId,
+      kind: request.kind,
+      error: description,
+    });
+
+    return { status: 'failed', messageId: null, error: description };
+  }
+
   const claimed = await claimOutboundMessage({
     clinicId: request.clinicId,
     clientId: request.clientId ?? null,
@@ -81,8 +107,6 @@ export async function sendWhatsappMessage(request: SendRequest, deps: SendDeps =
   // Someone — another cron tick, another instance — already claimed this exact
   // message. That is the dedupe index doing its job, not a failure.
   if (!claimed) return { status: 'skipped', reason: 'duplicate' };
-
-  const gateway = deps.gateway ?? createHttpGateway(config);
 
   try {
     const sent = await gateway.sendText(settings.sessionId, target.chatId, body);
@@ -168,6 +192,18 @@ export function reminderDedupeKey(appointmentId: string, date: string): string {
  */
 export function confirmationDedupeKey(appointmentId: string, date: string, startMinute: number): string {
   return `confirmation:${appointmentId}:${date}:${startMinute}`;
+}
+
+/**
+ * The one message covering a course of appointments booked together.
+ *
+ * Keyed on the appointments themselves, sorted so the key does not depend on
+ * the order they were created in: a retried repeat covering the same set sends
+ * once, while a second course booked later — different ids — is different news
+ * and sends again.
+ */
+export function seriesDedupeKey(appointmentIds: readonly string[]): string {
+  return `series:${[...appointmentIds].sort().join(',')}`;
 }
 
 /**

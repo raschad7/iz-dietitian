@@ -1,5 +1,5 @@
 {
-  "id": "4d5be1e4-a703-41a0-b67c-cb6bfd3f7394",
+  "id": "fc77840a-1748-4694-9827-e7216b312431",
   "prevId": "7241b20d-1598-42b8-bcd7-83c467aaffec",
   "version": "7",
   "dialect": "postgresql",
@@ -1608,11 +1608,7 @@
         },
         "appointment_requests_preferred_matches_kind": {
           "name": "appointment_requests_preferred_matches_kind",
-          "value": "CASE \"appointment_requests\".\"kind\"\n        WHEN 'cancel' THEN \"appointment_requests\".\"preferred_date\" IS NULL AND \"appointment_requests\".\"preferred_start_minute\" IS NULL\n        WHEN 'reschedule' THEN \"appointment_requests\".\"preferred_date\" IS NOT NULL AND \"appointment_requests\".\"preferred_start_minute\" IS NOT NULL\n        ELSE (\"appointment_requests\".\"preferred_date\" IS NULL) = (\"appointment_requests\".\"preferred_start_minute\" IS NULL)\n      END"
-        },
-        "appointment_requests_note_when_no_time": {
-          "name": "appointment_requests_note_when_no_time",
-          "value": "\"appointment_requests\".\"kind\" <> 'new' OR \"appointment_requests\".\"preferred_date\" IS NOT NULL OR \"appointment_requests\".\"note\" IS NOT NULL"
+          "value": "(\"appointment_requests\".\"kind\" = 'cancel') = (\"appointment_requests\".\"preferred_date\" IS NULL AND \"appointment_requests\".\"preferred_start_minute\" IS NULL)"
         },
         "appointment_requests_start_minute_in_day": {
           "name": "appointment_requests_start_minute_in_day",
@@ -2371,6 +2367,13 @@
         },
         "allergen_tags": {
           "name": "allergen_tags",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'"
+        },
+        "custom_allergens": {
+          "name": "custom_allergens",
           "type": "text[]",
           "primaryKey": false,
           "notNull": true,

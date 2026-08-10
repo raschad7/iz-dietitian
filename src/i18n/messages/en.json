@@ -42,7 +42,9 @@
     "weeklyPlans": "Weekly Plans",
     "dishes": "Dish catalog",
     "whatsapp": "WhatsApp",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "openNavigation": "Open navigation",
+    "closeNavigation": "Close navigation"
   },
   "landing": {
     "title": "Run your dietitian practice in one place",
@@ -165,7 +167,6 @@
     "search": {
       "placeholder": "Search clients"
     },
-    "scrollDown": "More appointments below",
     "duration": {
       "hours": "{count, number, integer} hr",
       "minutes": "{count, number, integer} min"
@@ -220,6 +221,26 @@
       "bodyCompleted": "This appointment has already finished. Deleting {name} on {when} removes the record permanently.",
       "confirm": "Delete appointment"
     },
+    "repeat": {
+      "label": "Repeats",
+      "never": "Does not repeat",
+      "presets": {
+        "week1": "Weekly, for 1 week",
+        "week2": "Weekly, for 2 weeks",
+        "week3": "Weekly, for 3 weeks",
+        "month1": "Weekly, for 1 month"
+      }
+    },
+    "repeatBooking": {
+      "custom": "Weekly, custom length…",
+      "customLabel": "Number of weeks",
+      "weeks": "{count, plural, one {1 week} other {# weeks}}",
+      "preview": "Adds {count, plural, one {1 appointment} other {# appointments}}, one a week, ending {until}.",
+      "skipNote": "Any week the clinic is closed, or the hour is already taken, is skipped.",
+      "created": "Booked every week for a month — {count, number, integer} more appointments added.",
+      "partial": "{count, number, integer} weekly appointments added. {skipped, number, integer} were skipped because that slot was not free.",
+      "none": "No weekly repeats were added — that slot is not free on any of the coming weeks."
+    },
     "errors": {
       "tooShort": "The shortest appointment is 15 minutes.",
       "invalidDate": "That date is not valid. Try a format like 2026-08-05 or 8/5/2026.",
@@ -273,11 +294,19 @@
   },
   "notifications": {
     "title": "Notifications",
-    "trigger": "Notifications, {count, plural, =0 {nothing pending} one {# pending request} other {# pending requests}}",
+    "subtitle": "Requests waiting for an answer, and clients whose record has gone quiet.",
     "empty": "Nothing needs you right now",
+    "emptyDescription": "No requests to answer, and no client is overdue a check-in. This page fills itself as things come in.",
     "preferred": "Asked for {when}",
-    "reviewRequests": "Review {count, plural, one {# request} other {# requests}}",
-    "viewClients": "All clients",
+    "reviewRequests": "Review all {count, plural, one {# request} other {# requests}}",
+    "groups": {
+      "requests": "Appointment requests",
+      "requestsDescription": "Clients asking to book, move or cancel a visit. Answered in the requests inbox.",
+      "requestsEmpty": "No requests waiting.",
+      "attention": "Clients to check on",
+      "attentionDescription": "Nobody is waiting on a reply here — these are records that have gone quiet.",
+      "attentionEmpty": "Every client is up to date."
+    },
     "request": {
       "new": "New booking request",
       "reschedule": "Reschedule request",
@@ -287,7 +316,8 @@
       "noUpcomingAppointment": "No upcoming appointment",
       "noWeeklyPlan": "No plan this week",
       "neverSignedIn": "Never signed in to the portal"
-    }
+    },
+    "seeAll": "See all notifications"
   },
   "requests": {
     "title": "Requests",
@@ -347,7 +377,8 @@
       }
     },
     "dashboard": {
-      "title": "Waiting on you ({count, number, integer})",
+      "heading": "Client requests",
+      "empty": "Nothing is waiting on an answer.",
       "openInbox": "All requests"
     },
     "errors": {
@@ -363,8 +394,6 @@
     "new": "New client",
     "createTitle": "Add a client",
     "createHint": "Name, phone, email and date of birth are enough to start.",
-    "moreDetails": "More details",
-    "fewerDetails": "Fewer details",
     "editTitle": "Edit client",
     "edit": "Edit",
     "empty": "No clients yet. Start by adding your first one.",
@@ -389,17 +418,35 @@
     "backToList": "Back to clients",
     "notProvided": "Not provided",
     "yearsOld": "{count, number, integer} years",
+    "openPlanner": "Plan board",
+    "copy": {
+      "copied": "Copied",
+      "phone": "Copy phone number",
+      "email": "Copy email address",
+      "username": "Copy username",
+      "password": "Copy password"
+    },
+    "nextVisit": "Next visit",
+    "noUpcomingVisit": "None booked",
+    "lastVisit": "Last visit",
+    "noPreviousVisit": "No previous visits",
+    "contactActions": {
+      "whatsapp": "Message on WhatsApp",
+      "call": "Call",
+      "emailLink": "Send email"
+    },
     "tabs": {
       "label": "Client sections",
       "info": "Client info",
       "visits": "Visit history",
       "plans": "Meal plans",
-      "portal": "Portal access"
+      "portal": "Portal access",
+      "nutrition": "Nutrition"
     },
     "sections": {
       "contact": "Contact details",
-      "intake": "Intake profile",
-      "notes": "Notes"
+      "demographics": "Demographics",
+      "privateNotes": "Private clinic notes"
     },
     "fields": {
       "fullName": "Full name",
@@ -418,8 +465,19 @@
       "notes": "Notes",
       "status": "Status",
       "createdAt": "Registered",
-      "portalAccess": "Portal access",
-      "actions": "Actions"
+      "portalAccess": "Portal",
+      "actions": "Actions",
+      "conditions": "Conditions",
+      "medications": "Medications and supplements",
+      "weightKg": "Weight (kg)",
+      "dailyKcalTarget": "Daily calories",
+      "proteinTargetGrams": "Protein (g)",
+      "preferences": "Preferences",
+      "dislikes": "Dislikes",
+      "permanentInstructions": "Standing instructions",
+      "slotLabel": "Meal name",
+      "slotTime": "Time",
+      "slotShare": "Share %"
     },
     "status": {
       "active": "Active",
@@ -448,7 +506,9 @@
       "archive": "Archive",
       "restore": "Restore",
       "delete": "Delete",
-      "confirmDelete": "This permanently deletes {name} and their portal account. It cannot be undone. Are you sure?"
+      "more": "More actions",
+      "confirmDeleteTitle": "Delete this record permanently?",
+      "confirmDelete": "This permanently deletes {name} and their portal account. It cannot be undone."
     },
     "clearFilters": "Clear filters",
     "pagination": {
@@ -457,13 +517,16 @@
       "position": "Page {page, number, integer} of {pageCount, number, integer}"
     },
     "portal": {
-      "title": "Portal access",
-      "none": "This client does not have a portal account.",
-      "granted": "This client can sign in to the portal.",
+      "title": "Account",
+      "stateActive": "active",
+      "stateNone": "not set up",
       "username": "Username",
+      "usernameHint": "What the client signs in with. Latin letters and numbers.",
       "issue": "Create sign-in details",
       "reissue": "Issue a new password",
-      "confirmReissue": "This ends the client's current sessions. Continue?",
+      "confirmReissueTitle": "Issue a new password?",
+      "confirmReissue": "This ends the client's current sessions, and their old password stops working.",
+      "confirmRevokeTitle": "Revoke portal access?",
       "revoke": "Revoke portal access",
       "revoked": "Portal access revoked.",
       "confirmRevoke": "This client will immediately lose access to the portal. Are you sure?",
@@ -475,13 +538,123 @@
         "sent": "Sent over WhatsApp.",
         "skipped": "Not sent over WhatsApp — check the number and the connection status.",
         "failed": "WhatsApp delivery failed. Hand the details over in person."
-      }
+      },
+      "state": "Sign-in {state}",
+      "granted": "Yes"
     },
     "errors": {
       "invalid": "Check the fields highlighted in red.",
       "usernameTaken": "That username is already taken. Choose another.",
       "usernameInvalid": "Use 3 to 60 letters, numbers or hyphens.",
-      "unexpected": "Something went wrong. Please try again."
+      "unexpected": "Something went wrong. Please try again.",
+      "clientNotFound": "Client not found."
+    },
+    "intake": {
+      "createTitle": "Complete the nutrition intake",
+      "editTitle": "Edit the nutrition intake",
+      "forClient": "For {name}",
+      "save": "Save intake",
+      "edit": "Edit",
+      "start": "Start now",
+      "sections": {
+        "measurements": "Measurements",
+        "allergies": "Allergies and clinical record",
+        "clinical": "Clinical notes",
+        "planning": "What the plan follows",
+        "private": "Private notes",
+        "targets": "Targets",
+        "schedule": "Meal schedule"
+      },
+      "allergenLegend": "Tick every allergen to exclude",
+      "allergyDetailLabel": "Allergy detail",
+      "fromFormula": "Computed",
+      "suggested": "Suggested",
+      "noAllergens": "No allergens recorded — the catalog is unfiltered.",
+      "removeSlotOf": "Remove the {label} meal",
+      "missingFields": "To generate, add: {fields}",
+      "kcalValue": "{value} kcal",
+      "gramsValue": "{value} g",
+      "override": "Manual",
+      "shareTotal": "Shares total {value}%",
+      "addSlot": "Add a meal",
+      "allergenHint": "Only the ticks above remove dishes from the catalog.",
+      "dailyTarget": "Daily target",
+      "bmi": "BMI",
+      "sectionsLabel": "Intake sections",
+      "hasContent": "Has content",
+      "allergyDetailPlaceholder": "e.g. mild reaction to walnuts but not almonds; lactose-free dairy is fine.",
+      "overrideDivider": "Manual figures",
+      "unsetCount": "{count} fields not filled in",
+      "unsetOne": "1 field not filled in",
+      "complete": "Everything is filled in",
+      "completeness": "Record completeness",
+      "filledOf": "{filled} of {total} fields filled in",
+      "gapsHeading": "{count, plural, =0 {Everything is filled in} one {1 field has no data yet} other {# fields have no data yet}}",
+      "kcalMismatch": "The manual target is far from the computed one",
+      "kcalMismatchDetail": "{manual} kcal was entered by hand, but the measurements and goal give {computed} kcal. Check the number, or clear it to compute it automatically.",
+      "bmiValueText": "{value} — {category}",
+      "bmiLabel": "BMI {category}",
+      "noSchedule": "No meal schedule",
+      "hour": "Hour",
+      "minute": "Minute",
+      "customAllergenLegend": "Other allergies (these do not filter the catalog)",
+      "customAllergenPlaceholder": "Name it",
+      "addAllergen": "Add an allergy",
+      "removeAllergen": "Remove {name}",
+      "goalLine": "Goal",
+      "activityLine": "Activity",
+      "completeShort": "Complete",
+      "editRecord": "Edit record",
+      "scheduleSummary": "{count, plural, one {1 meal} other {# meals}} on {kcal} kcal",
+      "gapsPrompt": "Tap any of them to fill it in",
+      "allergyLine": "Allergies",
+      "privateBadge": "Clinic only"
+    },
+    "allergens": {
+      "nuts": "Nuts",
+      "lactose": "Lactose",
+      "gluten": "Gluten",
+      "egg": "Egg",
+      "fish": "Fish",
+      "sesame": "Sesame"
+    },
+    "bmiCategories": {
+      "underweight": "Underweight",
+      "normal": "Normal",
+      "overweight": "Overweight",
+      "obese": "Obese",
+      "severely_obese": "Severely obese"
+    },
+    "units": {
+      "cm": "cm",
+      "kg": "kg",
+      "kcal": "kcal",
+      "g": "g",
+      "years": "yrs"
+    },
+    "trail": {
+      "title": "Trail",
+      "bookVisit": "Book",
+      "createPlan": "Create",
+      "currentPlan": "Current plan",
+      "noPlan": "No plan yet"
+    },
+    "archive": {
+      "title": "Archived clients",
+      "subtitle": "Restore anyone who should be back on the register.",
+      "empty": "Nothing has been archived."
+    },
+    "visits": {
+      "upcoming": "Upcoming",
+      "past": "Past visits",
+      "totalVisits": "Appointments",
+      "completedVisits": "Visits so far",
+      "lastVisit": "Last visit",
+      "nextVisit": "Next visit",
+      "noUpcoming": "None booked",
+      "noPast": "No visits yet",
+      "empty": "No appointments on this record yet.",
+      "book": "Open the calendar"
     }
   },
   "portal": {
@@ -630,7 +803,6 @@
         "conditions": "Health conditions",
         "allergies": "Food allergies",
         "medications": "Medicines and supplements",
-        "careNote": "Notes from your dietitian",
         "clinicName": "Clinic",
         "clinicPhone": "Clinic phone",
         "clinicAddress": "Clinic address",
@@ -719,6 +891,7 @@
       "today": {
         "heading": "Your commitment today",
         "meals": "{completed, number, integer} of {total, number, integer} {total, plural, one {meal} other {meals}}",
+        "caloriesCompleted": "{value, number, integer} kcal completed",
         "prompt": "Tick off today's meals in My Plan to see your commitment here.",
         "cta": "Update today's adherence",
         "level": {
@@ -744,6 +917,11 @@
           "today": "{day}: today",
           "todayReported": "{day}: today, {percent} — {completed, number, integer} of {total, number, integer} {total, plural, one {meal} other {meals}}",
           "future": "{day}: still to come"
+        },
+        "celebration": {
+          "title": "You earned today's streak!",
+          "claim": "Claim today's fire",
+          "claimed": "Today's streak claimed."
         }
       },
       "streak": {
@@ -773,21 +951,15 @@
       }
     },
     "header": {
-      "menu": "Menu",
-      "profile": "Your profile",
       "notifications": "Notifications",
       "notificationsWaiting": "Notifications, {count, number, integer} request awaiting a reply",
       "greeting": {
         "morning": "Good morning",
         "afternoon": "Good afternoon",
         "evening": "Good evening"
-      },
-      "closeMenu": "Close menu"
+      }
     },
     "menu": {
-      "viewProfile": "View profile",
-      "personalInfo": "My information",
-      "notifications": "Notifications",
       "settings": "Settings"
     },
     "notifications": {
@@ -1000,6 +1172,21 @@
     "noPlanYet": "No week has been planned for this client yet",
     "noPlanHint": "Create the first week when you are ready. The client profile, dish catalog, and earlier plans remain available in the side panel.",
     "current": "Current plan",
+    "currentWeekOf": "Current plan · week of {date}",
+    "openBoard": "Open the board",
+    "openThisWeek": "Open this week",
+    "mealsFilled": "Meals filled",
+    "ofWeek": "of the week",
+    "kcalTarget": "Calorie target",
+    "snapshotNote": "Saved with the plan",
+    "lastEdited": "Last edited",
+    "columns": {
+      "week": "Week",
+      "status": "Status",
+      "meals": "Meals",
+      "target": "Calories",
+      "updated": "Last edited"
+    },
     "history": "Earlier plans",
     "weekOf": "Week of {date}",
     "generatedBy": "Model used",
@@ -1053,6 +1240,19 @@
     "generate": "Generate plan with AI",
     "generating": "Generating…",
     "generatingHint": "A whole week takes about a minute. Do not close the page.",
+    "generationLoading": {
+      "title": "Building the new week",
+      "regenerateTitle": "Rebuilding this week",
+      "description": "AI is matching the client's targets and instructions to dishes in the approved catalog.",
+      "elapsed": "{seconds, plural, one {# second elapsed} other {# seconds elapsed}}",
+      "activity": {
+        "targets": "Reading the client's targets and week instructions…",
+        "catalog": "Matching suitable dishes from the approved catalog…",
+        "balance": "Balancing meals across all seven days…",
+        "draft": "Preparing a draft for your review…"
+      },
+      "review": "The result stays a draft until you review and publish it."
+    },
     "regenerate": "Regenerate",
     "regenerateDay": "Regenerate this day",
     "regenerateMeal": "Regenerate this meal",
@@ -1201,6 +1401,17 @@
     "addMealLabel": "Meal name",
     "addMealPlaceholder": "Evening snack",
     "addMealTime": "Time",
+    "addMealIcon": "Choose a food icon",
+    "mealIconChoices": {
+      "tea": "Tea cup",
+      "hotDrink": "Hot drink",
+      "snack": "Snack",
+      "bottle": "Drink bottle",
+      "chef": "Chef hat",
+      "chefHeart": "Prepared meal",
+      "plate": "Dinner plate",
+      "chefMinimal": "Chef choice"
+    },
     "removeSlotConfirm": "Remove {slot} from all seven days? Any dishes placed in it are removed too.",
     "restoreSlot": "Add {slot} back to this day",
     "removeMeal": "Remove meal",
@@ -1368,6 +1579,7 @@
       "button": "Send",
       "sent": "Message sent.",
       "noPhone": "This client has no usable phone number.",
+      "notOnWhatsapp": "WhatsApp does not recognize this client's phone number.",
       "notConnected": "WhatsApp is not connected right now.",
       "notConfigured": "WhatsApp is not linked yet."
     },
@@ -1381,7 +1593,6 @@
     }
   },
   "clinicProfile": {
-    "eyebrow": "Clinic setup",
     "onboardingTitle": "Set up your clinic",
     "onboardingDescription": "Add the essentials once so appointments and daily work match how your clinic actually operates.",
     "profileTitle": "Clinic profile",
@@ -1408,9 +1619,17 @@
     "professionalPhone": "Professional phone",
     "licenseNumber": "License number",
     "optional": "optional",
+    "day": "Day",
     "opens": "Opens",
     "closes": "Closes",
-    "offDay": "Off day",
+    "hour": "Hour",
+    "minute": "Minute",
+    "applyToAll": "Same hours every day",
+    "applyToAllSource": "Copies {day}'s hours to every open day.",
+    "leaveTitle": "Leave without saving?",
+    "leaveDescription": "This section has changes you have not saved yet. Switching away discards them.",
+    "leaveConfirm": "Discard changes",
+    "leaveCancel": "Keep editing",
     "back": "Back",
     "next": "Continue",
     "finish": "Finish setup",

@@ -5,19 +5,6 @@
  * functions — see the note at the top of `src/features/clients/form-state.ts`.
  */
 
-/** Every way saving the nutrition profile can end. */
-export type ProfileFormState =
-  | { status: 'idle' }
-  | { status: 'saved' }
-  | {
-      status: 'error';
-      messageKey: 'errors.invalid' | 'errors.unexpected' | 'errors.clientNotFound';
-      /** Shaped to match `z.flattenError`, so no cast is needed at either end. */
-      fieldErrors?: Record<string, string[] | undefined>;
-    };
-
-export const initialProfileFormState: ProfileFormState = { status: 'idle' };
-
 /**
  * Every way a generation can end.
  *

@@ -9,13 +9,20 @@ import { pickAvatarColor } from '@/lib/avatar-color';
 import { DISPLAY_TIME_ZONE } from '@/lib/format';
 
 import { hasEnded, wallClockIn } from './completed';
+import { weeklyRepeatDates } from './repeat';
 
-import { type BookingInput, type CreateClientAndBookInput, type UpdateAppointmentInput } from './schema';
+import {
+  type BookingInput,
+  type CreateClientAndBookInput,
+  type RepeatWeeklyInput,
+  type UpdateAppointmentInput,
+} from './schema';
 import {
   type ActionResult,
   type CreatedAppointment,
   type DeletedAppointment,
   type UpdatedAppointment,
+  type WeeklyRepeatSummary,
 } from './types';
 import { validateBooking, type ClinicHours, type ExistingAppointment } from './validation';
 
@@ -194,13 +201,55 @@ export async function createAppointment(
 
       if (!row) return { ok: false, error: 'errors.unexpected' };
 
-      return { ok: true, data: { id: row.id } };
+      return { ok: true, data: { id: row.id, clientId: input.clientId } };
     });
   } catch (error) {
     if (isBookingConflict(error)) return conflictToError(error);
     console.error('[booking] create failed', error);
     return { ok: false, error: 'errors.unexpected' };
   }
+}
+
+/**
+ * Books the same client at the same time every week, for as long as the doctor
+ * asked for.
+ *
+ * Which dates that comes to is `weeklyRepeatDates` in `./repeat.ts`, shared
+ * with the dialog that offered it — so the number previewed before the click is
+ * the number attempted after it.
+ *
+ * Each week is its own `createAppointment` — its own transaction, its own fresh
+ * read, the same five rules. That is what makes this best-effort rather than
+ * all-or-nothing, and the distinction is deliberate: any run of Wednesdays long
+ * enough to be worth booking contains one the clinic is closed for or one where
+ * the hour is already taken, and refusing six months over a single week would
+ * leave the doctor to book the rest by hand. The refused weeks are counted and
+ * reported instead, so nothing is silently dropped.
+ *
+ * Sequential rather than concurrent, because two of these rows can collide with
+ * each other only if the same week is attempted twice — and reading each week
+ * after the last one is committed keeps the validator's view honest.
+ */
+export async function repeatWeekly(
+  context: BookingContext,
+  input: RepeatWeeklyInput,
+): Promise<ActionResult<WeeklyRepeatSummary>> {
+  const ids: string[] = [];
+  let skipped = 0;
+
+  for (const date of weeklyRepeatDates(input.date, input.weeks)) {
+    const result = await createAppointment(context, { ...input, date });
+
+    if (result.ok) ids.push(result.data.id);
+    // A rule refusing one week is an expected answer, not a failure of the
+    // repeat: that week is skipped and the rest still go in. Only a genuine
+    // fault — no opening hours, a client that is not this clinic's — is worth
+    // stopping for, because every remaining week would be refused the same way.
+    else if (result.error === 'errors.unexpected' || result.error === 'errors.notFound') return result;
+    else skipped += 1;
+  }
+
+  return { ok: true, data: { ids, created: ids.length, skipped } };
 }
 
 export async function updateAppointment(
@@ -378,7 +427,7 @@ export async function createClientAndBook(
 
       if (!row) return { ok: false, error: 'errors.unexpected' };
 
-      return { ok: true, data: { id: row.id } };
+      return { ok: true, data: { id: row.id, clientId: client.id } };
     });
   } catch (error) {
     if (isBookingConflict(error)) return conflictToError(error);

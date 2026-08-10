@@ -2,6 +2,8 @@ import { z } from 'zod';
 
 import { defaultLocale, locales } from '@/i18n/routing';
 
+import { ALLERGENS, mealScheduleSchema } from './nutrition';
+
 /**
  * Allowed values for the enum-like text columns. These live here rather than in
  * the database so extending them is a code change, not a migration.
@@ -43,6 +45,20 @@ export const clientIdSchema = z.uuid();
 
 export const localeSchema = z.enum(locales).catch(defaultLocale);
 
+/**
+ * The client card — who this person is, and how to reach them.
+ *
+ * Identity only, and that is the whole point. The clinical half of a client
+ * record used to live behind a disclosure on this same card while the rest of
+ * it lived on a form owned by the weekly planner, so neither surface held a
+ * whole client and the calorie formula's six inputs were split across both. All
+ * of it is {@link intakeSchema} now, and this card is what a walk-in is created
+ * from in one short screen.
+ *
+ * `dateOfBirth` and `sex` stay here rather than moving with the rest: they are
+ * demographics, they do not change, and Mifflin-St Jeor is unanswerable without
+ * them — see `suggestTargets` in `src/features/weekly-plans/targets.ts`.
+ */
 export const clientFormSchema = z.object({
   fullName: z.string().trim().min(2).max(120),
   phone: optionalText(40),
@@ -62,15 +78,105 @@ export const clientFormSchema = z.object({
       .optional(),
   ),
   sex: optionalEnum(CLIENT_SEXES),
-  heightCm: z.preprocess(blankToUndefined, z.coerce.number().int().min(30).max(280).optional()),
-  goal: optionalEnum(CLIENT_GOALS),
-  activityLevel: optionalEnum(CLIENT_ACTIVITY_LEVELS),
-  medicalNotes: optionalText(2000),
-  allergies: optionalText(1000),
-  notes: optionalText(2000),
 });
 
 export type ClientFormInput = z.infer<typeof clientFormSchema>;
+
+/**
+ * The intake form — everything clinical about one client, from both tables.
+ *
+ * One schema over two tables on purpose. `clients` holds the columns the rest
+ * of the app already reads (height, goal, the portal-visible prose) and
+ * `client_nutrition_profiles` holds the ones only planning needs (weight, the
+ * allergen tags, the schedule). That storage split is fine and stays. What was
+ * wrong was asking a dietitian to know about it: they are filling in one
+ * person, so they submit one form, and `saveIntake` fans it out.
+ *
+ * Every field is optional except the schedule. An intake is filled in over
+ * several visits — a client can exist before they have been weighed — and a
+ * form that refuses to save until it is complete is a form that loses the half
+ * someone had already typed. Completeness is reported by `suggestTargets`,
+ * which names what is missing rather than blocking the save.
+ */
+export const intakeSchema = z.object({
+  clientId: clientIdSchema,
+
+  // ── Measurements, from `clients` ─────────────────────────────────────────
+  heightCm: z.preprocess(blankToUndefined, z.coerce.number().int().min(30).max(280).optional()),
+  goal: optionalEnum(CLIENT_GOALS),
+  activityLevel: optionalEnum(CLIENT_ACTIVITY_LEVELS),
+
+  /**
+   * Current weight, from `client_nutrition_profiles`.
+   *
+   * The generous range still catches a slipped decimal: 500 kg is not a client,
+   * it is a typo. One value and not a history — a weight log with a trend chart
+   * is a feature of its own and nobody has asked for it yet.
+   */
+  weightKg: z.preprocess(blankToUndefined, z.coerce.number().min(20).max(400).optional()),
+
+  // ── Allergies: the tags filter, the prose does not ───────────────────────
+  /**
+   * The structured list — the only thing the dish catalog filters on. A
+   * `FormData` with one ticked box yields a string rather than an array, which
+   * is why this coerces before parsing.
+   */
+  allergenTags: z.preprocess(
+    (value) => (value === undefined || value === null ? [] : Array.isArray(value) ? value : [value]),
+    z.array(z.enum(ALLERGENS)),
+  ),
+  /**
+   * Allergens typed by hand, which do **not** filter the catalog.
+   *
+   * Trimmed, de-duplicated case-insensitively and capped, because these are
+   * chips a person types and the same word twice is a mistake rather than a
+   * meaning. Kept well away from `allergenTags`: see the column comment on
+   * `client_nutrition_profiles.custom_allergens` for why that separation is the
+   * safety property, not a modelling preference.
+   */
+  customAllergens: z.preprocess(
+    (value) => {
+      const list = value === undefined || value === null ? [] : Array.isArray(value) ? value : [value];
+
+      const seen = new Set<string>();
+
+      return list
+        .map((entry) => String(entry).trim())
+        .filter((entry) => {
+          if (entry === '' || seen.has(entry.toLowerCase())) return false;
+          seen.add(entry.toLowerCase());
+          return true;
+        });
+    },
+    z.array(z.string().min(1).max(40)).max(20),
+  ),
+
+  /** The detail behind the ticks — "mild reaction to walnuts, not almonds". */
+  allergies: optionalText(1000),
+
+  // ── Clinical record, from `clients`. The first two are portal-visible ────
+  conditions: optionalText(1000),
+  medications: optionalText(1000),
+  /** The dietitian's own working notes. Never shown to the client. */
+  medicalNotes: optionalText(2000),
+  notes: optionalText(2000),
+
+  // ── What generation reads, from `client_nutrition_profiles` ──────────────
+  dailyKcalTarget: z.preprocess(
+    blankToUndefined,
+    z.coerce.number().int().min(800).max(6000).optional(),
+  ),
+  proteinTargetGrams: z.preprocess(
+    blankToUndefined,
+    z.coerce.number().int().min(20).max(400).optional(),
+  ),
+  preferences: optionalText(1000),
+  dislikes: optionalText(1000),
+  permanentInstructions: optionalText(2000),
+  mealSchedule: mealScheduleSchema,
+});
+
+export type IntakeInput = z.infer<typeof intakeSchema>;
 
 /**
  * Columns the client list may be ordered by.
@@ -81,7 +187,7 @@ export type ClientFormInput = z.infer<typeof clientFormSchema>;
  * not a visible column — newest first is what the register means with no
  * explicit sort.
  */
-export const CLIENT_SORTS = ['fullName', 'phone', 'email', 'status', 'portalAccess', 'createdAt'] as const;
+export const CLIENT_SORTS = ['fullName', 'phone', 'age', 'portalAccess', 'createdAt'] as const;
 export type ClientSort = (typeof CLIENT_SORTS)[number];
 
 /**
@@ -97,14 +203,17 @@ export type ClientSort = (typeof CLIENT_SORTS)[number];
  * saved-view feature — and this register is read by someone looking for one
  * thing.
  *
- * `status` is in here rather than as a parameter of its own. It used to be
- * both, which meant the register had a filter nobody could see: the list has
- * always defaulted to active clients only, and the only way to reach an
- * archived one was a hand-typed query string. That default still holds when no
- * filter is set — see `buildFilter` — and "Status → All" is now how you get
- * past it.
+ * **`status` is not one of them any more.** It was in here as a filter value —
+ * "Status → All" — which is how an archived client used to be found. Archived
+ * clients have their own page now (`/app/clients/archived`), and a *place* is a
+ * better answer than a filter for a list you either are or are not looking at:
+ * it can be linked to, it can say what it is at the top, and it puts Restore in
+ * front of you instead of leaving you to spot which rows are grey. Leaving the
+ * filter in as well would be two answers to the same question, and it would let
+ * the register mix the two states in one list, where the status column it
+ * needed has just been removed for saying "active" on every row.
  */
-export const CLIENT_FILTERS = ['phone', 'email', 'status', 'portalAccess'] as const;
+export const CLIENT_FILTERS = ['phone', 'email', 'portalAccess'] as const;
 export type ClientFilter = (typeof CLIENT_FILTERS)[number];
 
 /** What `portalAccess` filters on: the client has a portal login, or has not. */
@@ -121,6 +230,15 @@ export const PORTAL_ACCESS_VALUES = ['yes', 'no'] as const;
  */
 export const listClientsSchema = z.object({
   q: z.preprocess(blankToUndefined, z.string().trim().max(120).optional()),
+  /**
+   * Which half of the register this is.
+   *
+   * Set by the route, not by the reader: `/app/clients` is `active` and
+   * `/app/clients/archived` is `archived`, and both pass it explicitly. It is
+   * still parsed from the same object because both pages share one schema and
+   * one query — the only thing that differs between them is this value.
+   */
+  status: z.enum(CLIENT_STATUSES).catch('active'),
   filterBy: z.preprocess(blankToUndefined, z.enum(CLIENT_FILTERS).optional().catch(undefined)),
   filterValue: z.preprocess(blankToUndefined, z.string().trim().max(120).optional().catch(undefined)),
   sort: z.enum(CLIENT_SORTS).catch('createdAt'),

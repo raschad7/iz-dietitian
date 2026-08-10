@@ -69,19 +69,46 @@ const FLAME: Record<Burn, string> = {
   future: 'text-muted-foreground/35',
 };
 
-export function DayFlame({ day }: { day: AdherenceDay }) {
+/**
+ * Reused by the ring and the glyph so a day that changes burn mid-visit —
+ * today, ticked live off `usePlanDayCompletion()` in `TodayFlameCell` — fades
+ * between them instead of snapping. `220ms`/`cubic-bezier(.2,.6,.2,1)` are
+ * `--duration-arc`/`--ease-sweep` spelled out literally, the same way
+ * `plan-day-strip.tsx` already does it inline rather than through a custom
+ * CSS class. Idle on every other cell: a server-rendered day never changes
+ * props after mount, so the property sits unused.
+ */
+const BURN_TRANSITION = 'transition-[stroke,stroke-width,fill,color] duration-[220ms] ease-[cubic-bezier(.2,.6,.2,1)]';
+
+export function DayFlame({
+  day,
+  className,
+  size = 32,
+}: {
+  day: AdherenceDay;
+  className?: string;
+  /**
+   * The box's side, in px — the strip's cells never pass this, so 32 (the
+   * original fixed `size-8`) stays their result untouched. `TodayFlameCell`
+   * is the one caller that does: its celebration dialog draws the same flame
+   * at hero scale, and the SVG's `viewBox` means a bigger box is a bigger
+   * flame at identical proportions, not a redrawn one.
+   */
+  size?: number;
+}) {
   const burn = burnOf(day);
   const partial = burn === 'partial';
+  const flameSize = size / 2;
 
   return (
-    <span className="relative grid size-8 place-items-center">
+    <span className={cn('relative grid place-items-center', className)} style={{ width: size, height: size }}>
       <svg viewBox="0 0 32 32" className="absolute inset-0 size-full -rotate-90" aria-hidden="true">
         <circle
           cx="16"
           cy="16"
           r={RADIUS}
           strokeWidth={burn === 'full' || partial ? 2.25 : 1.5}
-          className={cn('fill-none', RING[burn])}
+          className={cn('fill-none', BURN_TRANSITION, RING[burn])}
         />
 
         {partial ? (
@@ -97,7 +124,12 @@ export function DayFlame({ day }: { day: AdherenceDay }) {
         ) : null}
       </svg>
 
-      <Flame className={cn('relative size-4', FLAME[burn])} strokeWidth={1.75} aria-hidden="true" />
+      <Flame
+        className={cn('relative', BURN_TRANSITION, FLAME[burn])}
+        style={{ width: flameSize, height: flameSize }}
+        strokeWidth={1.75}
+        aria-hidden="true"
+      />
     </span>
   );
 }

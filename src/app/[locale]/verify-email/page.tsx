@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 
 import { VerifyEmailNotice } from '@/features/auth/components/verify-email-notice';
 import { resolveLocale } from '@/i18n/params';
+import { REQUIRE_EMAIL_VERIFICATION } from '@/lib/auth';
 import { getSession } from '@/lib/session';
 
 type VerifyEmailPageProps = {
@@ -35,8 +36,14 @@ export default async function VerifyEmailPage({ params }: VerifyEmailPageProps) 
   if (session?.user.role === 'client') redirect(`/${locale}/portal`);
   if (session?.user.emailVerified) redirect(`/${locale}/app`);
 
+  // Same, for every staff account while the gate is off: nothing is waiting on
+  // a confirmation, so an unverified session belongs in the app rather than on
+  // a screen asking it to prove an address the app no longer checks. Only ever
+  // reached by typing the URL — nothing links here with the gate off.
+  if (!REQUIRE_EMAIL_VERIFICATION && session) redirect(`/${locale}/app`);
+
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-6 py-16">
+    <main className="q-route-stage mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-6 py-16">
       <VerifyEmailNotice
         locale={locale}
         email={session?.user.email}

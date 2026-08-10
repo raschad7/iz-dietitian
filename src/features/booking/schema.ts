@@ -4,6 +4,7 @@ import { MINUTES_PER_DAY, SLOT_MINUTES } from '@/lib/time-constants';
 import { defaultLocale, locales } from '@/i18n/routing';
 
 import { isIsoDate } from './date';
+import { MAX_REPEAT_WEEKS } from './repeat';
 
 /**
  * Zod schemas for everything crossing the server-action boundary.
@@ -64,6 +65,22 @@ export const updateAppointmentSchema = bookingInputSchema.extend({ id: uuidSchem
 export type UpdateAppointmentInput = z.infer<typeof updateAppointmentSchema>;
 
 export const deleteAppointmentSchema = z.object({ id: uuidSchema });
+
+/**
+ * The weekly repeat: the booking that was just saved, described again, plus how
+ * many weekly appointments to add after it.
+ *
+ * The same shape as a create, and deliberately not an appointment id — the
+ * repeats are new bookings rather than copies of a row, and re-reading the
+ * original to clone it would give the browser a second way to point at another
+ * clinic's appointment. `date` is the *first* one; the server does the
+ * arithmetic for the weeks after it.
+ */
+export const repeatWeeklySchema = bookingInputSchema.extend({
+  weeks: z.coerce.number().int().min(1).max(MAX_REPEAT_WEEKS),
+});
+
+export type RepeatWeeklyInput = z.infer<typeof repeatWeeklySchema>;
 
 /**
  * The picker's "New client" path: the minimum needed to book someone, not the

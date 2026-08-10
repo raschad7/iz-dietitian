@@ -51,8 +51,10 @@ export async function generateMetadata({ params }: ProfilePageProps): Promise<Me
  *
  * **What is deliberately absent.** The dietitian's private notes
  * (`clients.medical_notes`, `clients.notes`) are never selected by
- * `getPortalClient`, and the weight is omitted entirely — not blanked — unless
- * the dietitian shares it (§11 sensitive data; see `getSharedWeight`).
+ * `getPortalClient`. Neither is the weight: it was shown only when a dietitian
+ * ticked a switch that no longer exists, and rather than leave a read that
+ * could never return anything, it is off this screen entirely (§11 sensitive
+ * data). The same goes for the care note the dialog used to write.
  *
  * One of the portal's five tabs, so it renders like the others in this group:
  * no header of its own, just content under the shared greeting header and
@@ -63,8 +65,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   const locale = await resolveLocale(params);
 
   const context = await requirePortalClient(locale);
-  const { profile, weightKg, clinic, practitioner, openUpdateRequest } =
-    await loadProfilePage(context);
+  const { profile, clinic, practitioner, openUpdateRequest } = await loadProfilePage(context);
 
   const t = await getTranslations('portal.profile');
   const tClients = await getTranslations('clients');
@@ -73,16 +74,16 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   /*
     The health record's headline facts, as tiles.
 
-    **The weight is omitted from the list, not passed as null.** A null tile
-    renders "not recorded", and `getSharedWeight` returns null both when no
-    weight exists *and* when the dietitian has chosen not to share one — so a
-    dashed "not recorded" tile would be stating something the page cannot know
-    is true. §11: hidden is hidden, and the screen does not raise the subject.
-    Height, goal and activity carry no such flag and are always offered.
+    **There is no weight tile**, and that is upstream of this screen rather than
+    a layout choice: `09b1f36` dropped the share-weight switch, so the dietitian
+    has no way to publish a weight and `loadProfilePage` no longer returns one.
+    A tile reading "not recorded" would be stating something the page cannot
+    know is true — §11: hidden is hidden, and the screen does not raise the
+    subject. Height, goal and activity carry no such flag and are always
+    offered.
 
-    Three tiles rather than four is the ordinary case, and the grid handles it —
-    it takes its column count from the tile count, so three sit in one row and
-    four square off into two rows of two. Neither leaves a hole.
+    Three tiles is therefore the only case, and the grid takes its column count
+    from the tile count, so they sit in one row with no hole.
   */
   const healthStats: HealthStat[] = [
     {
@@ -100,17 +101,6 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
       kind: 'measure',
       icon: 'heightOutline',
     },
-    ...(weightKg === null
-      ? []
-      : [
-          {
-            label: t('field.weight'),
-            value: format.number(weightKg, 'plain'),
-            unit: t('unitKg'),
-            kind: 'measure' as const,
-            icon: 'weightOutline' as const,
-          },
-        ]),
     {
       label: t('field.activityLevel'),
       value: enumLabel(CLIENT_ACTIVITY_LEVELS, profile.activityLevel, (key) =>
@@ -152,6 +142,12 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
         */
         note={<SectionNote>{t('healthNote')}</SectionNote>}
       >
+        {/*
+          Height and goal are deliberately *not* rows here, though `main` added
+          them as such: they are two of the `healthStats` tiles above. A figure
+          and a one-word category are what that grid is for, and stating them
+          again 40px below it would be the same fact twice in two shapes.
+        */}
         <InfoRow
           label={t('field.conditions')}
           value={profile.conditions}
@@ -168,12 +164,6 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
           label={t('field.medications')}
           value={profile.medications}
           icon="medicationsOutline"
-          block
-        />
-        <InfoRow
-          label={t('field.careNote')}
-          value={profile.careNote}
-          icon="careNoteOutline"
           block
         />
       </ProfileSection>

@@ -12,73 +12,49 @@ import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PhoneField } from '@/components/ui/phone-field';
-import { Select } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { createClientAction, updateClientAction } from '@/features/clients/actions';
 import { initialFormState, type ClientFormState } from '@/features/clients/form-state';
-import {
-  CLIENT_ACTIVITY_LEVELS,
-  CLIENT_GOALS,
-  type ClientSex,
-} from '@/features/clients/schema';
+import { type ClientSex } from '@/features/clients/schema';
 import { type ClientFormValues } from '@/features/clients/types';
 import { type Locale } from '@/i18n/routing';
 import { toIsoDate } from '@/lib/iso-date';
 import { cn } from '@/lib/utils';
 
 /**
- * The body of the client card — the only way into a client record, whether it
- * is being created or edited. `ClientFormTrigger` owns the card around it.
+ * The body of the client card — the only way into a client record's identity,
+ * whether it is being created or edited. `ClientFormTrigger` owns the card.
  *
- * The four facts a record cannot start without are the only fields visible
- * until someone asks for the rest. **Being the only ones on screen is the
- * whole mark** — they used to also carry `.q-field-primary`, an olive edge and
- * olive fill at rest, which made an empty card open as a block of green before
- * anyone had touched it and left olive meaning two things at once: "required"
- * and "you are here". The fields now rest neutral and pick up olive under the
- * pointer like every other field in the app.
+ * **Identity only, and there is no disclosure any more.** This card used to
+ * hide height, goal, activity level and three notes fields behind a "more
+ * details" chevron, while weight, allergen tags and the meal schedule lived on
+ * a form owned by the weekly planner. Neither surface held a whole client:
+ * the six inputs the calorie formula needs were split five-and-one across the
+ * two, so a dietitian could fill either one completely and still be told
+ * something was missing. All of that is the intake dialog now
+ * (`IntakeFormTrigger`), and what is left here is the handful of facts a record
+ * is *created* from — which is what makes a walk-in still take one short screen.
+ *
+ * The fields rest neutral and pick up olive under the pointer like every other
+ * field in the app. They used to carry `.q-field-primary`, an olive edge and
+ * fill at rest, which made an empty card open as a block of green before anyone
+ * had touched it and left olive meaning two things at once: "required" and "you
+ * are here".
  */
-type PrimaryField = 'fullName' | 'phone' | 'email' | 'dateOfBirth' | 'sex';
-
-/** Everything the disclosure hides. Listed so a server-side error can reopen it. */
-const DETAIL_FIELDS = [
-  'heightCm',
-  'goal',
-  'activityLevel',
-  'medicalNotes',
-  'allergies',
-  'notes',
-] as const;
-
-type FieldName = PrimaryField | (typeof DETAIL_FIELDS)[number];
+type FieldName = 'fullName' | 'phone' | 'email' | 'dateOfBirth' | 'sex';
 
 type ClientFormProps = {
   locale: Locale;
   /** Absent when creating. */
   client?: ClientFormValues;
-  /**
-   * Controlled rather than local state: the card's width follows the
-   * disclosure, and the card is this form's parent.
-   */
-  expanded: boolean;
-  onExpandedChange: (expanded: boolean) => void;
   /** Cancelling closes the card rather than navigating away. */
   onCancel: () => void;
   /** An edit saved. Creating redirects instead, so this never fires for one. */
   onSaved: () => void;
 };
 
-export function ClientForm({
-  locale,
-  client,
-  expanded,
-  onExpandedChange,
-  onCancel,
-  onSaved,
-}: ClientFormProps) {
+export function ClientForm({ locale, client, onCancel, onSaved }: ClientFormProps) {
   const t = useTranslations('clients');
   const tCommon = useTranslations('common');
-  const detailsId = useId();
 
   /*
    * The only controlled field on an otherwise uncontrolled form. The picker is
@@ -97,25 +73,11 @@ export function ClientForm({
   const errorFor = (field: FieldName) =>
     state.status === 'error' ? state.fieldErrors?.[field]?.[0] : undefined;
 
-  /*
-   * A rejected field nobody can see is a form that refuses to submit for no
-   * stated reason, so an error anywhere in the hidden half opens it.
-   */
-  const hasHiddenError = DETAIL_FIELDS.some((name) => errorFor(name) !== undefined);
-
-  useEffect(() => {
-    if (hasHiddenError) onExpandedChange(true);
-  }, [hasHiddenError, onExpandedChange]);
-
   useEffect(() => {
     if (state.status === 'success') onSaved();
   }, [state.status, onSaved]);
 
-  /*
-   * One definition per field, keyed so the two halves of the card can pick
-   * from the same set. `col-span` hints ride along with the field they belong
-   * to — they are inert while the card is one column wide.
-   */
+  /* One definition per field, so the layout below reads as the layout. */
   const fields: Record<FieldName, ReactNode> = {
     fullName: (
       <FormField id="fullName" label={t('fields.fullName')} error={errorFor('fullName')}>
@@ -183,89 +145,6 @@ export function ClientForm({
         <SexField defaultValue={client?.sex} />
       </FormField>
     ),
-
-    heightCm: (
-      <FormField id="heightCm" label={t('fields.heightCm')} error={errorFor('heightCm')}>
-        <Input
-          id="heightCm"
-          name="heightCm"
-          type="number"
-          inputMode="numeric"
-          min={30}
-          max={280}
-          dir="ltr"
-          defaultValue={client?.heightCm ?? ''}
-        />
-      </FormField>
-    ),
-
-    goal: (
-      <FormField id="goal" label={t('fields.goal')} error={errorFor('goal')}>
-        <Select id="goal" name="goal" defaultValue={client?.goal ?? ''}>
-          <option value="">{t('notProvided')}</option>
-          {CLIENT_GOALS.map((value) => (
-            <option key={value} value={value}>
-              {t(`goal.${value}`)}
-            </option>
-          ))}
-        </Select>
-      </FormField>
-    ),
-
-    activityLevel: (
-      <FormField
-        id="activityLevel"
-        label={t('fields.activityLevel')}
-        error={errorFor('activityLevel')}
-      >
-        <Select id="activityLevel" name="activityLevel" defaultValue={client?.activityLevel ?? ''}>
-          <option value="">{t('notProvided')}</option>
-          {CLIENT_ACTIVITY_LEVELS.map((value) => (
-            <option key={value} value={value}>
-              {t(`activity.${value}`)}
-            </option>
-          ))}
-        </Select>
-      </FormField>
-    ),
-
-    medicalNotes: (
-      <FormField
-        id="medicalNotes"
-        label={t('fields.medicalNotes')}
-        error={errorFor('medicalNotes')}
-        className="sm:col-span-2"
-      >
-        <Textarea
-          id="medicalNotes"
-          name="medicalNotes"
-          rows={3}
-          defaultValue={client?.medicalNotes ?? ''}
-        />
-      </FormField>
-    ),
-
-    allergies: (
-      <FormField
-        id="allergies"
-        label={t('fields.allergies')}
-        error={errorFor('allergies')}
-        className="sm:col-span-2"
-      >
-        <Textarea id="allergies" name="allergies" rows={2} defaultValue={client?.allergies ?? ''} />
-      </FormField>
-    ),
-
-    notes: (
-      <FormField
-        id="notes"
-        label={t('fields.notes')}
-        error={errorFor('notes')}
-        className="sm:col-span-2"
-      >
-        <Textarea id="notes" name="notes" rows={3} defaultValue={client?.notes ?? ''} />
-      </FormField>
-    ),
   };
 
   return (
@@ -275,75 +154,44 @@ export function ClientForm({
 
       <DialogBody className="min-h-0 flex-1 gap-0 overflow-y-auto p-4 sm:p-5">
         {/*
-          Name, then email, each its own full-width row — the two facts worth
-          reading at a glance rather than scanning across a column for. Date of
-          birth and phone share the row after them: paired rather than each
-          claiming a row of its own, because together they are still one
-          "when and how to reach this person" thought. Sex sits below them,
-          outside the disclosure — a record can't start without it, so it
-          stays visible whether or not the card is expanded.
+          One field per row, top to bottom.
+
+          Email is absent when creating and present when editing. A walk-in is
+          booked from a name and a number, and asking for an address at the
+          counter is a field that gets skipped or filled with something made up
+          — which is worse than empty, because the register can filter on it.
+          The record can still take one later, from the same card in edit mode,
+          which is where the rest of the intake is filled in anyway.
+
+          Date of birth and phone used to share a row, on the reading that they
+          are one "when and how to reach this person" thought. They are not, and
+          the pairing cost both of them: each is a composite control — the picker
+          is a button that opens a popover, the phone is a country menu welded to
+          a number — and halving the card's width left the picker showing a
+          truncated date and the phone's dialling code crowding the digits beside
+          it. The two widest controls on the card were the two sharing the row.
+
+          Sex stays last and stays full width for the reason it always did: its
+          control is a pair of boxes rather than a field, and in a column beside
+          one it reads as a third option.
         */}
         <div className="grid gap-4">
           {fields.fullName}
-          {fields.email}
-          <div className="grid grid-cols-2 gap-4">
-            {fields.dateOfBirth}
-            {fields.phone}
-          </div>
+          {client ? fields.email : null}
+          {fields.dateOfBirth}
+          {fields.phone}
           {fields.sex}
         </div>
 
         {/*
-          `0fr` → `1fr` on a grid row is the one way to animate to a height
-          nobody has measured. The fields stay mounted so a value typed and
-          then hidden is not thrown away; `inert` keeps them out of the tab
-          order while they are not visible.
-
-          The clipper needs no inset gutter: fields mark focus on their own
-          border now, entirely inside their box, so there is nothing left for
-          `overflow-hidden` to crop. It used to carry `-mx-1 px-1 pb-1` so the
-          3px focus halo had somewhere to land.
+          Where the disclosure used to be. Creating a client no longer asks for
+          anything clinical, so there is nothing left to hide — see the note on
+          `ClientForm` above. The next step is offered after the save, not
+          crammed in beneath it: `createClientAction` redirects to the new
+          record, whose Nutrition tab is where the rest is filled in.
         */}
-        <div
-          id={detailsId}
-          className={cn(
-            'grid transition-[grid-template-rows] duration-200 ease-[cubic-bezier(.2,.6,.2,1)]',
-            expanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
-          )}
-        >
-          <div inert={!expanded} className="overflow-hidden">
-            <div className="grid gap-4 pt-4 sm:grid-cols-2">
-              {fields.heightCm}
-              {fields.goal}
-              {fields.activityLevel}
-              {fields.medicalNotes}
-              {fields.allergies}
-              {fields.notes}
-            </div>
-          </div>
-        </div>
-
         <FormMessage state={state} className="pt-4" />
       </DialogBody>
-
-      {/*
-        The disclosure sits on its own row, centred, between the fields and the
-        actions — the one control in the card that changes the card rather than
-        the record.
-      */}
-      <div className="flex justify-center border-t border-border px-4 py-2">
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          aria-expanded={expanded}
-          aria-controls={detailsId}
-          onClick={() => onExpandedChange(!expanded)}
-        >
-          <Icon name={expanded ? 'chevronUp' : 'chevronDown'} />
-          {expanded ? t('fewerDetails') : t('moreDetails')}
-        </Button>
-      </div>
 
       <DialogFooter>
         <Button type="button" variant="ghost" size="sm" onClick={onCancel}>

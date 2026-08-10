@@ -1,7 +1,7 @@
-import { and, asc, between, eq } from 'drizzle-orm';
+import { and, asc, between, desc, eq, gte, lt } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { appointments, clients, clinicWorkingHours } from '@/db/schema';
+import { appointments, clients, clinicWorkingHours, practitioners } from '@/db/schema';
 import { toClinicSchedule } from '@/features/clinic-profile/schedule';
 
 import { type CalendarAppointment, type CalendarClient, type CalendarData } from './types';
@@ -71,6 +71,107 @@ export async function listAppointments(
     .where(and(...conditions))
     // Stable order so two appointments in the same column stack predictably.
     .orderBy(asc(appointments.date), asc(appointments.startMinute), asc(appointments.id));
+}
+
+/** One appointment, as a client's record header and Info tab read it. */
+export type ClientVisit = {
+  id: string;
+  date: string;
+  startMinute: number;
+  reason: string | null;
+};
+
+/** A row of the Visit History tab's record. */
+export type ClientVisitEntry = ClientVisit & {
+  durationMinutes: number;
+  practitionerName: string;
+};
+
+/**
+ * Every appointment this client has, newest first.
+ *
+ * The whole history rather than a page of it. `getClientVisitSummary` above
+ * exists precisely because the *record header* needs two rows and must not read
+ * a hundred to find them — but this is the tab whose subject is the hundred, and
+ * it has to count them, split them at today and show both halves. Even a client
+ * seen weekly for five years is 260 narrow rows on an index that already orders
+ * them; the read that would be worth paginating is one that no longer fits a
+ * page, and a visit history that long has a scrollbar before it has a problem.
+ */
+export async function listClientVisits(
+  clinicId: string,
+  clientId: string,
+): Promise<ClientVisitEntry[]> {
+  return db
+    .select({
+      id: appointments.id,
+      date: appointments.date,
+      startMinute: appointments.startMinute,
+      durationMinutes: appointments.durationMinutes,
+      reason: appointments.reason,
+      practitionerName: practitioners.name,
+    })
+    .from(appointments)
+    .innerJoin(practitioners, eq(practitioners.id, appointments.practitionerId))
+    .where(and(eq(appointments.clinicId, clinicId), eq(appointments.clientId, clientId)))
+    .orderBy(desc(appointments.date), desc(appointments.startMinute));
+}
+
+export type ClientVisitSummary = {
+  /** The soonest appointment from `today` onward, inclusive. */
+  next: ClientVisit | null;
+  /** The most recent one strictly before `today`. */
+  last: ClientVisit | null;
+};
+
+/**
+ * The two appointments a client's record actually shows: the next one and the
+ * one before now.
+ *
+ * Two narrow reads rather than loading a client's history and picking the ends
+ * off it in JavaScript — a client seen fortnightly for two years is a hundred
+ * rows to answer a question about two of them, and the index on
+ * `(clinic_id, date)` already orders both.
+ *
+ * `today` is passed in rather than derived here so that a page rendering both
+ * this and a calendar measures them against the same day. Same reason
+ * `loadDashboard` takes its "now" once at the top.
+ *
+ * An appointment *on* today counts as `next`, not `last`: it has a start minute
+ * this query deliberately does not compare against the clock, because a visit
+ * earlier today is still the thing a dietitian is most likely to be asking
+ * about when they open the record.
+ */
+export async function getClientVisitSummary(
+  clinicId: string,
+  clientId: string,
+  today: string,
+): Promise<ClientVisitSummary> {
+  const columns = {
+    id: appointments.id,
+    date: appointments.date,
+    startMinute: appointments.startMinute,
+    reason: appointments.reason,
+  };
+
+  const scope = and(eq(appointments.clinicId, clinicId), eq(appointments.clientId, clientId));
+
+  const [next, last] = await Promise.all([
+    db
+      .select(columns)
+      .from(appointments)
+      .where(and(scope, gte(appointments.date, today)))
+      .orderBy(asc(appointments.date), asc(appointments.startMinute))
+      .limit(1),
+    db
+      .select(columns)
+      .from(appointments)
+      .where(and(scope, lt(appointments.date, today)))
+      .orderBy(desc(appointments.date), desc(appointments.startMinute))
+      .limit(1),
+  ]);
+
+  return { next: next[0] ?? null, last: last[0] ?? null };
 }
 
 /**

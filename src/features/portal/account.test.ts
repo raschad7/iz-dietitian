@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
 
 import { db } from '@/db';
-import { clientNutritionProfiles, clients } from '@/db/schema';
+import { clients } from '@/db/schema';
 
 import { createTestClient, createTestClinic, resetDatabase } from '../../../tests/helpers';
 import {
@@ -11,15 +11,14 @@ import {
   updateThemePreference,
   withdrawClientRequest,
 } from './mutations';
-import { getClientSettings, getOpenClientRequest, getSharedWeight } from './queries';
+import { getClientSettings, getOpenClientRequest } from './queries';
 
 /**
  * The account screens' write paths, against a real database.
  *
- * These cover the three rules the screens are built on, and each one is a rule
- * the type system cannot hold: settings default rather than requiring a row,
- * a hidden weight never leaves the database, and asking twice does not queue
- * two identical items in the clinic's inbox.
+ * These cover the two rules the screens are built on, and each one is a rule the
+ * type system cannot hold: settings default rather than requiring a row, and
+ * asking twice does not queue two identical items in the clinic's inbox.
  */
 
 let clinicId: string;
@@ -74,41 +73,16 @@ describe('client settings', () => {
   });
 });
 
-describe('getSharedWeight', () => {
-  async function writeProfile(weightKg: number | null, shared: boolean): Promise<void> {
-    await db
-      .insert(clientNutritionProfiles)
-      .values({ clinicId, clientId, weightKg, shareWeightWithClient: shared, mealSchedule: [] })
-      .onConflictDoUpdate({
-        target: clientNutritionProfiles.clientId,
-        set: { weightKg, shareWeightWithClient: shared },
-      });
-  }
-
-  test('is null when there is no nutrition profile at all', async () => {
-    expect(await getSharedWeight(clientId)).toBeNull();
-  });
-
-  test('withholds a recorded weight the dietitian has not shared', async () => {
-    // §11: hidden means hidden everywhere, so the number must not leave the
-    // database — not merely go unrendered.
-    await writeProfile(68.4, false);
-
-    expect(await getSharedWeight(clientId)).toBeNull();
-  });
-
-  test('returns it once the dietitian shares it', async () => {
-    await writeProfile(68.4, true);
-
-    expect(await getSharedWeight(clientId)).toBeCloseTo(68.4, 1);
-  });
-
-  test('sharing an unrecorded weight is still nothing to show', async () => {
-    await writeProfile(null, true);
-
-    expect(await getSharedWeight(clientId)).toBeNull();
-  });
-});
+/*
+ * `getSharedWeight` was covered here, four ways: no profile, a weight withheld,
+ * a weight shared, and a share of nothing. All four are gone with the function.
+ *
+ * They guarded one rule — a weight the dietitian had not shared must not leave
+ * the database — and that rule is now structural rather than conditional: the
+ * portal reads no weight at all, and `PortalProfile` has nowhere to put one. A
+ * test asserting that a function which does not exist returns null would be
+ * testing the type checker.
+ */
 
 describe('client requests', () => {
   test('files a correction the clinic can route', async () => {

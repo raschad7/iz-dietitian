@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useEffect, useRef } from 'react';
 import { useFormStatus } from 'react-dom';
 import { useTranslations } from 'next-intl';
 
@@ -30,6 +30,8 @@ export function GenerateForm({
   blocked,
   context,
   defaultInstruction,
+  onPendingChange,
+  onSuccess,
 }: {
   clientId: string;
   weekStartDate: string;
@@ -44,12 +46,22 @@ export function GenerateForm({
   /** For the placeholders on the target fields — what the profile would give. */
   context: ClientContext;
   defaultInstruction?: string | null;
+  /** Lets the containing dialog replace its choices with a protected wait state. */
+  onPendingChange?: (pending: boolean) => void;
+  /** A generated plan is now on the board, so the containing choice can close. */
+  onSuccess?: () => void;
 }) {
   const t = useTranslations('weeklyPlans');
   const [state, formAction] = useActionState(generateWeekAction, initialGenerateState);
 
   return (
     <form action={formAction} className="flex flex-col gap-2">
+      <GenerationLifecycle
+        state={state}
+        onPendingChange={onPendingChange}
+        onSuccess={onSuccess}
+      />
+
       <input type="hidden" name="locale" value={locale} />
       <input type="hidden" name="clientId" value={clientId} />
       <input type="hidden" name="weekStartDate" value={weekStartDate} />
@@ -80,6 +92,33 @@ export function GenerateForm({
       <Result state={state} />
     </form>
   );
+}
+
+/**
+ * Bridges form status to the dialog without moving the server action out of the
+ * form that owns it. It renders nothing and stays mounted while the dialog's
+ * visible content changes, so an error can always restore the form.
+ */
+function GenerationLifecycle({
+  state,
+  onPendingChange,
+  onSuccess,
+}: {
+  state: GenerateState;
+  onPendingChange?: (pending: boolean) => void;
+  onSuccess?: () => void;
+}) {
+  const { pending } = useFormStatus();
+
+  useEffect(() => {
+    onPendingChange?.(pending);
+  }, [onPendingChange, pending]);
+
+  useEffect(() => {
+    if (state.status === 'done' || state.status === 'partial') onSuccess?.();
+  }, [onSuccess, state]);
+
+  return null;
 }
 
 /**
@@ -163,6 +202,11 @@ function Submit({ mode }: { mode: NewWeekMode }) {
 
 function Result({ state }: { state: GenerateState }) {
   const t = useTranslations('weeklyPlans');
+  const errorRef = useRef<HTMLParagraphElement>(null);
+
+  useEffect(() => {
+    if (state.status === 'error') errorRef.current?.focus();
+  }, [state]);
 
   if (state.status === 'idle' || state.status === 'done') return null;
 
@@ -175,7 +219,12 @@ function Result({ state }: { state: GenerateState }) {
   }
 
   return (
-    <p className="text-caption text-destructive">
+    <p
+      ref={errorRef}
+      role="alert"
+      tabIndex={-1}
+      className="text-caption text-destructive outline-none"
+    >
       {t(state.messageKey)}
       {state.detail && <span className="mt-0.5 block opacity-80">{state.detail}</span>}
     </p>

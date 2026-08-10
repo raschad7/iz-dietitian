@@ -1,8 +1,8 @@
 import { useLocale, useTranslations } from 'next-intl';
 
-import { CalendarGlyphIcon } from '@/components/icons';
 import { type AdherenceDay, type AdherenceDayState } from '@/features/portal/adherence';
 import { DayFlame } from '@/features/portal/components/day-flame';
+import { TodayFlameCell } from '@/features/portal/components/today-flame-celebration';
 import { type Locale } from '@/i18n/routing';
 import { formatDate, formatNumber } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -34,47 +34,32 @@ function labelKeyOf(day: AdherenceDay): AdherenceDayState | 'todayReported' {
 
 export function WeekAdherenceStrip({
   days,
-  month,
+  showTitle = true,
 }: {
   days: AdherenceDay[];
   /**
-   * The current month, already formatted in the active locale — "أغسطس",
-   * "Aug". Optional, and only the home screen passes it: this is where the
-   * month landed after it left the greeting header, because the seven cells
-   * below are the one place in the app where "which month is this" is a
-   * question the reader is actually asking. The progress tab omits it — the
-   * screen there is already dated by its own trend cards.
+   * False on the home screen, which drops this heading — the greeting header
+   * above it now names the month instead, and repeating "days of the week"
+   * right under it said nothing the seven cells don't already show. The
+   * progress tab keeps it: that screen has no header of its own for the
+   * heading to lean on.
    */
-  month?: string;
+  showTitle?: boolean;
 }) {
   const locale = useLocale() as Locale;
   const t = useTranslations('portal.progress.strip');
 
   return (
-    <section aria-labelledby="week-adherence-strip-title" className="space-y-2">
-      {/*
-        Heading and month on one line, one at each end — `justify-between` with
-        no explicit sides, so Arabic puts the title on the right and the month
-        on the left and English mirrors it. `items-baseline` sits the two on the
-        same typographic line rather than centring two different type sizes
-        against each other.
-      */}
-      <div className="flex items-baseline justify-between gap-3">
+    <section
+      aria-labelledby={showTitle ? 'week-adherence-strip-title' : undefined}
+      aria-label={showTitle ? undefined : t('title')}
+      className="space-y-2"
+    >
+      {showTitle ? (
         <h2 id="week-adherence-strip-title" className="font-heading text-sm font-medium">
           {t('title')}
         </h2>
-
-        {month ? (
-          // The icon is inline rather than a flex sibling, so the span's
-          // baseline stays the text's baseline and not the glyph's bottom
-          // edge; the small negative shift is the usual optical correction for
-          // an icon set beside lowercase text.
-          <span className="shrink-0 text-xs font-medium text-muted-foreground">
-            <CalendarGlyphIcon className="me-1 inline-block size-3.5 align-[-0.15em]" />
-            {month}
-          </span>
-        ) : null}
-      </div>
+      ) : null}
 
       <ol className="grid grid-cols-7 gap-1">
         {days.map((day) => (
@@ -111,7 +96,14 @@ export function WeekAdherenceStrip({
                   : formatDate(locale, day.date, { dateStyle: undefined, weekday: 'short' })}
               </span>
 
-              <DayFlame day={day} />
+              {/*
+                Today alone gets the live, reactive cell — it is the only day
+                a client can still change on this visit. `TodayFlameCell`
+                falls back to this same `day` and this same `DayFlame` when
+                there is no `PlanDayCompletionProvider` above it (the
+                progress tab's strip), so it is safe to always use here.
+              */}
+              {day.state === 'today' ? <TodayFlameCell day={day} /> : <DayFlame day={day} />}
             </div>
           </li>
         ))}

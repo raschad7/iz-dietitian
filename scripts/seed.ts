@@ -12,7 +12,8 @@ import { db } from '@/db';
 import { account, appointments, clients, clinics, clinicWorkingHours, practitioners, user } from '@/db/schema';
 import { addDays, toIsoDate } from '@/features/booking/date';
 import { ensurePractitioner } from '@/features/booking/mutations';
-import { createClient } from '@/features/clients/mutations';
+import { createClient, saveIntake } from '@/features/clients/mutations';
+import { DEFAULT_MEAL_SCHEDULE } from '@/features/clients/nutrition';
 import { issuePortalCredentials } from '@/features/clients/portal-credentials';
 import { suggestUsername } from '@/features/clients/transliterate';
 import { defaultClinicScheduleRows } from '@/features/clinic-profile/default-schedule';
@@ -25,13 +26,66 @@ import { seedFoods } from './seed-foods';
 const STAFF_EMAIL = 'dietitian@clinic.ps';
 const STAFF_PASSWORD = 'clinic-dev-password';
 
-const SEED_CLIENTS = [
-  { fullName: 'أحمد خليل', phone: '0599123456', email: 'ahmad@example.ps', preferredLocale: 'ar' as const, dateOfBirth: '1988-04-12', sex: 'male' as const, heightCm: 178, goal: 'weight_loss' as const, activityLevel: 'light' as const, allergies: 'لا يوجد' },
-  { fullName: 'سارة عبد الله', phone: '0598222333', email: 'sara@example.ps', preferredLocale: 'ar' as const, dateOfBirth: '1994-11-03', sex: 'female' as const, heightCm: 165, goal: 'maintenance' as const, activityLevel: 'moderate' as const },
-  { fullName: 'إبراهيم نصّار', phone: '0597444555', preferredLocale: 'ar' as const, dateOfBirth: '1972-01-20', sex: 'male' as const, heightCm: 170, goal: 'medical' as const, activityLevel: 'sedentary' as const, medicalNotes: 'ارتفاع ضغط الدم' },
-  { fullName: 'فاطمة درويش', preferredLocale: 'ar' as const, sex: 'female' as const, goal: 'weight_gain' as const },
-  { fullName: 'Layla Haddad', email: 'layla@example.ps', preferredLocale: 'en' as const, dateOfBirth: '2000-07-09', sex: 'female' as const, heightCm: 160, goal: 'sports' as const, activityLevel: 'very_active' as const },
-] satisfies Parameters<typeof createClient>[1][];
+/**
+ * The seeded clients, in the two halves a client record is written in: the card
+ * that creates them, and the intake that makes them plannable.
+ *
+ * `intake` is optional, and one client deliberately has none — a record with no
+ * nutrition profile is the ordinary starting state, and the planner's blocked
+ * path needs something to be blocked on.
+ */
+type SeedClient = {
+  client: Parameters<typeof createClient>[1];
+  intake?: Omit<Parameters<typeof saveIntake>[1], 'clientId'>;
+};
+
+/** The fields every intake carries, so each seed row states only what differs. */
+const BASE_INTAKE = {
+  allergenTags: [],
+  customAllergens: [],
+  mealSchedule: DEFAULT_MEAL_SCHEDULE,
+} satisfies Partial<Parameters<typeof saveIntake>[1]>;
+
+const SEED_CLIENTS: SeedClient[] = [
+  {
+    client: { fullName: 'أحمد خليل', phone: '0599123456', email: 'ahmad@example.ps', preferredLocale: 'ar', dateOfBirth: '1988-04-12', sex: 'male' },
+    intake: { ...BASE_INTAKE, heightCm: 178, goal: 'weight_loss', activityLevel: 'light', weightKg: 92, allergies: 'لا يوجد' },
+  },
+  {
+    client: { fullName: 'سارة عبد الله', phone: '0598222333', email: 'sara@example.ps', preferredLocale: 'ar', dateOfBirth: '1994-11-03', sex: 'female' },
+    intake: { ...BASE_INTAKE, heightCm: 165, goal: 'maintenance', activityLevel: 'moderate', weightKg: 61 },
+  },
+  {
+    client: { fullName: 'إبراهيم نصّار', phone: '0597444555', preferredLocale: 'ar', dateOfBirth: '1972-01-20', sex: 'male' },
+    intake: {
+      ...BASE_INTAKE,
+      heightCm: 170,
+      goal: 'medical',
+      activityLevel: 'sedentary',
+      weightKg: 88,
+      medicalNotes: 'ارتفاع ضغط الدم',
+      conditions: 'ارتفاع ضغط الدم',
+      medications: 'أملوديبين ٥ ملغ يومياً',
+      permanentInstructions: 'تقليل الملح في كل الوجبات',
+    },
+  },
+  // No intake: the "profile incomplete" path in the planner needs a client to
+  // be incomplete, and a freshly added walk-in is exactly this shape.
+  { client: { fullName: 'فاطمة درويش', preferredLocale: 'ar', sex: 'female' } },
+  {
+    client: { fullName: 'Layla Haddad', email: 'layla@example.ps', preferredLocale: 'en', dateOfBirth: '2000-07-09', sex: 'female' },
+    intake: {
+      ...BASE_INTAKE,
+      heightCm: 160,
+      goal: 'sports',
+      activityLevel: 'very_active',
+      weightKg: 55,
+      allergenTags: ['lactose'],
+      allergies: 'Lactose intolerant — lactose-free dairy is fine',
+      dislikes: 'Okra',
+    },
+  },
+];
 
 async function seed(): Promise<void> {
   if (process.env.NODE_ENV === 'production') {
@@ -138,12 +192,21 @@ async function seed(): Promise<void> {
     await db.delete(user).where(and(eq(user.role, 'client'), inArray(user.id, portalUserIds)));
   }
 
-  const created = await Promise.all(SEED_CLIENTS.map((input) => createClient(clinicId, input)));
+  const created = await Promise.all(SEED_CLIENTS.map((seed) => createClient(clinicId, seed.client)));
+
+  // The clinical half, written the same way the intake dialog writes it: one
+  // call per client, fanning out to both tables. Without this every seeded
+  // client has no nutrition profile and the planner refuses to generate for
+  // all of them, which is not a useful development database.
+  for (const [index, client] of created.entries()) {
+    const intake = SEED_CLIENTS[index]?.intake;
+    if (intake) await saveIntake(clinicId, { ...intake, clientId: client.id });
+  }
 
   // One client gets portal credentials so the granted state — and a working
   // sign-in — is visible in the UI without doing it by hand.
   const [, second] = created;
-  const secondInput = SEED_CLIENTS[1];
+  const secondInput = SEED_CLIENTS[1]?.client;
   if (second && secondInput) {
     const result = await issuePortalCredentials(clinicId, second.id, suggestUsername(secondInput.fullName));
     if (result.ok) {
@@ -154,7 +217,7 @@ async function seed(): Promise<void> {
   // Give every seeded client a distinct avatar colour, the way
   // `createClientAndBook` does for clients added from the picker.
   for (const [index, client] of created.entries()) {
-    const name = SEED_CLIENTS[index]?.fullName ?? client.id;
+    const name = SEED_CLIENTS[index]?.client.fullName ?? client.id;
     await db.update(clients).set({ color: pickAvatarColor(name) }).where(eq(clients.id, client.id));
   }
 

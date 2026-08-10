@@ -181,14 +181,45 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
 function CardTitle({
   className,
   icon,
+  size = "default",
+  as: Tag = "div",
   children,
   ...props
-}: React.ComponentProps<"div"> & { icon?: IconName }) {
+}: React.ComponentProps<"div"> & {
+  icon?: IconName
+  /**
+   * `sm` is the 16px title, for a card that is one panel among several on a
+   * screen rather than the thing the screen is about.
+   *
+   * It is a prop because every call site in the clients feature was reaching
+   * for `className="text-base"` to get it — twelve local patches of the same
+   * value, which is the tell that the default was wrong for that usage rather
+   * than that twelve cards were special. Overriding through `className` also
+   * only worked by accident: `cn` has to know this scale for tailwind-merge to
+   * treat `text-base` as a size rather than a colour.
+   */
+  size?: "default" | "sm"
+  /**
+   * The element to render. Defaults to `div`, which is what it has always
+   * been — a card title is often a label rather than a section heading, and
+   * promoting all twenty-odd call sites at once would invent a heading outline
+   * nobody designed.
+   *
+   * Pass `h2`/`h3` where the card genuinely *is* a section of the page. The
+   * client record is the case that forced this: five tabs of stacked cards had
+   * exactly one heading between them — the client's name — so a screen reader
+   * met six unlabelled regions on the Nutrition tab with no way to jump
+   * between them. The visual scale does not change with the tag; only the
+   * semantics do.
+   */
+  as?: "div" | "h2" | "h3" | "h4"
+}) {
   return (
-    <div
+    <Tag
       data-slot="card-title"
       className={cn(
-        "font-heading text-heading-sm leading-snug font-semibold group-data-[size=sm]/card:text-body-md",
+        "font-heading leading-snug font-semibold group-data-[size=sm]/card:text-body-md",
+        size === "sm" ? "text-body-md" : "text-heading-sm",
         icon && "flex items-center gap-2",
         className
       )}
@@ -201,7 +232,7 @@ function CardTitle({
         />
       ) : null}
       {children}
-    </div>
+    </Tag>
   )
 }
 

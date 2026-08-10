@@ -8,12 +8,24 @@ import { type Locale } from '@/i18n/routing';
 import { notifyPortalCredentials } from '@/features/whatsapp/notify';
 import { requireStaffClinic } from '@/lib/session';
 
-import { archiveClient, createClient, deleteClient, restoreClient, updateClient } from './mutations';
-import { type ClientFormState, type PortalCredentialsState, type RevokePortalAccessState } from './form-state';
+import {
+  archiveClient,
+  createClient,
+  deleteClient,
+  restoreClient,
+  saveIntake,
+  updateClient,
+} from './mutations';
+import {
+  type ClientFormState,
+  type IntakeFormState,
+  type PortalCredentialsState,
+  type RevokePortalAccessState,
+} from './form-state';
 import { issuePortalCredentials, reissuePortalPassword, revokePortalAccess } from './portal-credentials';
-import { getClient } from './queries';
-import { clientFormSchema, clientIdSchema, localeSchema } from './schema';
-import { type ClientFormValues } from './types';
+import { getClient, getClientIntake } from './queries';
+import { clientFormSchema, clientIdSchema, intakeSchema, localeSchema } from './schema';
+import { type ClientFormValues, type ClientIntakeValues } from './types';
 
 /**
  * A server action is a public endpoint. The layout guard protects the page
@@ -32,12 +44,47 @@ function readForm(formData: FormData) {
     preferredLocale: formData.get('preferredLocale'),
     dateOfBirth: formData.get('dateOfBirth'),
     sex: formData.get('sex'),
+  };
+}
+
+/**
+ * Reads the intake dialog's fields.
+ *
+ * The schedule arrives as parallel arrays — one set of inputs per slot, which is
+ * what an HTML form can express — and is zipped back together here rather than
+ * in the schema, so the schema stays about validity and not about form encoding.
+ *
+ * Shares are entered as whole percentages and divided by 100 here for the same
+ * reason: asking a dietitian to type `0.35` would be asking them to think in the
+ * storage format.
+ */
+function readIntakeForm(formData: FormData) {
+  const slotKeys = formData.getAll('slotKey').map(String);
+
+  return {
+    clientId: formData.get('clientId'),
     heightCm: formData.get('heightCm'),
     goal: formData.get('goal'),
     activityLevel: formData.get('activityLevel'),
-    medicalNotes: formData.get('medicalNotes'),
+    weightKg: formData.get('weightKg'),
+    allergenTags: formData.getAll('allergenTags'),
+    customAllergens: formData.getAll('customAllergens'),
     allergies: formData.get('allergies'),
+    conditions: formData.get('conditions'),
+    medications: formData.get('medications'),
+    medicalNotes: formData.get('medicalNotes'),
     notes: formData.get('notes'),
+    dailyKcalTarget: formData.get('dailyKcalTarget'),
+    proteinTargetGrams: formData.get('proteinTargetGrams'),
+    preferences: formData.get('preferences'),
+    dislikes: formData.get('dislikes'),
+    permanentInstructions: formData.get('permanentInstructions'),
+    mealSchedule: slotKeys.map((slotKey, index) => ({
+      slotKey,
+      label: String(formData.getAll('slotLabel')[index] ?? ''),
+      timeOfDay: String(formData.getAll('slotTime')[index] ?? ''),
+      kcalShare: Number(formData.getAll('slotShare')[index] ?? 0) / 100,
+    })),
   };
 }
 
@@ -201,13 +248,68 @@ export async function loadClientFormAction(
     preferredLocale: client.preferredLocale,
     dateOfBirth: client.dateOfBirth,
     sex: client.sex,
-    heightCm: client.heightCm,
-    goal: client.goal,
-    activityLevel: client.activityLevel,
-    medicalNotes: client.medicalNotes,
-    allergies: client.allergies,
-    notes: client.notes,
   };
+}
+
+/**
+ * The whole intake behind the dialog, read when it opens.
+ *
+ * Same reasoning as `loadClientFormAction` above, and more of it: the intake is
+ * offered from the register, the client's own record and the planner's context
+ * panel, and shipping every client's weight, allergens and schedule down with
+ * each of those screens to prefill a dialog that usually is not opened would be
+ * paying for the exception on every visit.
+ */
+export async function loadIntakeAction(
+  rawLocale: string,
+  clientId: string,
+): Promise<ClientIntakeValues | null> {
+  const locale = localeSchema.parse(rawLocale);
+  const { clinicId } = await requireStaffClinic(locale);
+
+  return getClientIntake(clinicId, clientId);
+}
+
+/**
+ * Saves one intake to both tables.
+ *
+ * Revalidates the planner board as well as the client's own pages: the board's
+ * context panel, its calorie target and its catalog filtering are all read from
+ * what this just wrote, and a dietitian who fixes a missing weight and returns
+ * to a board still saying "weight is missing" has been told the save failed.
+ */
+export async function saveIntakeAction(
+  _previousState: IntakeFormState,
+  formData: FormData,
+): Promise<IntakeFormState> {
+  const locale = readLocale(formData);
+  const { clinicId } = await requireStaffClinic(locale);
+
+  const parsed = intakeSchema.safeParse(readIntakeForm(formData));
+
+  if (!parsed.success) {
+    return {
+      status: 'error',
+      messageKey: 'errors.invalid',
+      fieldErrors: z.flattenError(parsed.error).fieldErrors,
+    };
+  }
+
+  try {
+    const saved = await saveIntake(clinicId, parsed.data);
+    if (!saved) return { status: 'error', messageKey: 'errors.clientNotFound' };
+  } catch (error) {
+    console.error('[clients] intake save failed', error);
+    return { status: 'error', messageKey: 'errors.unexpected' };
+  }
+
+  const { clientId } = parsed.data;
+
+  revalidatePath(`/${locale}/app/clients/${clientId}`);
+  revalidatePath(`/${locale}/app/clients/${clientId}/nutrition`);
+  revalidatePath(`/${locale}/app/weekly-plans/${clientId}`);
+
+  return { status: 'success' };
 }
 
 /** Archive and restore share a form; the intent arrives as a field. */

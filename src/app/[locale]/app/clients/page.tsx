@@ -1,11 +1,14 @@
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
+import { buttonVariants } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
 import { ClientPagination } from '@/features/clients/components/client-pagination';
 import { ClientSearch } from '@/features/clients/components/client-search';
 import { ClientTable } from '@/features/clients/components/client-table';
 import { listClients } from '@/features/clients/queries';
 import { listClientsSchema } from '@/features/clients/schema';
+import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/params';
 import { requireStaffClinic } from '@/lib/session';
 
@@ -36,6 +39,9 @@ export default async function ClientsPage({ params, searchParams }: ClientsPageP
     sort: single(raw.sort),
     dir: single(raw.dir),
     page: single(raw.page),
+    // The route decides which half of the register this is; see
+    // `/app/clients/archived` for the other one.
+    status: 'active',
   });
 
   const [result, t] = await Promise.all([listClients(clinicId, input), getTranslations('clients')]);
@@ -54,9 +60,28 @@ export default async function ClientsPage({ params, searchParams }: ClientsPageP
       sticky either way.
     */
     <div className="flex flex-col gap-6 text-start md:h-full md:min-h-0">
-      <div className="shrink-0">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
-        <p className="text-sm text-muted-foreground">{t('resultCount', { total: result.total })}</p>
+      <div className="flex shrink-0 flex-wrap items-start justify-between gap-2">
+        <div>
+          <h1 className="font-heading text-heading-lg font-semibold tracking-tight">{t('title')}</h1>
+          <p className="text-body-sm text-muted-foreground">
+            {t('resultCount', { total: result.total })}
+          </p>
+        </div>
+
+        {/*
+          The way into the archive, and the only one. It is `neutralGhost`
+          because "New client" in the toolbar below is this screen's action and
+          this is a place you may also go — see the note on that variant for why
+          two olive labels on one screen leave neither of them looking like the
+          decision.
+        */}
+        <Link
+          href="/app/clients/archived"
+          className={buttonVariants({ variant: 'neutralGhost', size: 'sm' })}
+        >
+          <Icon name="archive" />
+          {t('archive.title')}
+        </Link>
       </div>
 
       {/* Search, filter and "New client" all live in this row — see ClientSearch. */}

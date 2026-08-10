@@ -7,7 +7,7 @@ import { redirect } from 'next/navigation';
 import { z } from 'zod';
 
 import { replacePortalPassword } from '@/features/clients/portal-credentials';
-import { auth } from '@/lib/auth';
+import { auth, REQUIRE_EMAIL_VERIFICATION } from '@/lib/auth';
 import { requireClientSession, requireStaffSession } from '@/lib/session';
 
 import { purgeUnverifiedAccounts } from './cleanup';
@@ -114,9 +114,11 @@ export async function signInWithPassword(
  *  - Registration is rate limited per IP, so the flow cannot be used to
  *    enumerate, flood, or mass-create.
  *
- * It issues no session. Under `REQUIRE_EMAIL_VERIFICATION` the account exists
- * but cannot be signed into until the mailed link is opened, so this returns the
- * "check your email" state rather than redirecting anywhere.
+ * What happens at the end of it follows `REQUIRE_EMAIL_VERIFICATION`. With the
+ * gate ON it issues no session — the account exists but cannot be signed into
+ * until the mailed link is opened — so it returns the "check your email" state
+ * rather than redirecting anywhere. With the gate OFF (where it stands today)
+ * `autoSignIn` has already issued the session, so it goes straight to the app.
  *
  * `role` is still forced to `staff` server-side and can never be posted — see
  * `input: false` in `src/lib/auth.ts`.
@@ -153,12 +155,22 @@ export async function signUpStaff(
   const limited = await guard('sign_up', null);
   if (limited) return limited;
 
-  // Housekeeping rides along with sign-up rather than a scheduler. It also frees
-  // an address squatted by an unverified account, which would otherwise block
-  // its real owner from signing in with Google.
-  await purgeUnverifiedAccounts().catch((error: unknown) => {
-    console.error('[auth] unverified-account purge failed', error);
-  });
+  /**
+   * Housekeeping rides along with sign-up rather than a scheduler. It also frees
+   * an address squatted by an unverified account, which would otherwise block
+   * its real owner from signing in with Google.
+   *
+   * GATED, and this gate is load-bearing rather than tidiness. The purge deletes
+   * staff accounts that are still unverified after a day. With the verification
+   * gate off, every account is legitimately unverified forever — running the
+   * sweep would delete real practitioners and their clinics roughly a day after
+   * they signed up.
+   */
+  if (REQUIRE_EMAIL_VERIFICATION) {
+    await purgeUnverifiedAccounts().catch((error: unknown) => {
+      console.error('[auth] unverified-account purge failed', error);
+    });
+  }
 
   try {
     await auth.api.signUpEmail({
@@ -177,6 +189,18 @@ export async function signUpStaff(
 
     console.error('[auth] staff sign-up failed', error);
     return { status: 'error', messageKey: 'genericError' };
+  }
+
+  /**
+   * Gate off: `autoSignIn` is its inverse, so the session already exists and
+   * there is nothing to confirm. Straight into the clinic, which is where the
+   * verification link would have landed them anyway — the app layout forwards a
+   * brand new clinic on to onboarding from there.
+   *
+   * Outside any try/catch, because `redirect` signals by throwing.
+   */
+  if (!REQUIRE_EMAIL_VERIFICATION) {
+    redirect(`/${locale}/app`);
   }
 
   /**

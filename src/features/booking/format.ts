@@ -125,6 +125,17 @@ export function formatMonthName(locale: Locale, date: IsoDate): string {
 }
 
 /**
+ * `Aug` — the month abbreviated, for the date tile in a visit row.
+ *
+ * `Intl` rather than truncating {@link formatMonthName}: an abbreviation is not
+ * a prefix. Arabic's short months are their own forms, and slicing three
+ * characters off أغسطس would cut a word in half rather than shorten it.
+ */
+export function formatMonthShort(locale: Locale, date: IsoDate): string {
+  return formatter(locale, { month: 'short' }).format(toUtcInstant(date));
+}
+
+/**
  * `1 hr 30 min`, assembled from translated units rather than `Intl.DurationFormat`,
  * which is not available across the runtimes this project targets.
  */
