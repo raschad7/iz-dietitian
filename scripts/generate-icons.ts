@@ -1,8 +1,23 @@
 /**
  * Generates `src/lib/icons.generated.ts` from the Solar icon set.
  *
- * The app's icon language is Solar Bold — rounded, filled, one weight
- * everywhere. Rather than pull `@iconify/react` into the client bundle (it
+ * The app's icon language is **Solar Linear** — rounded, open strokes, one
+ * weight everywhere.
+ *
+ * It was Solar Bold until now, with three documented exceptions that had grown
+ * up one at a time: the portal's outer tabs, the client's meal cards, and the
+ * client record's row markers had each gone linear because a filled glyph beside
+ * every heading turned a page you read into a page of marks. Three exceptions to
+ * a rule is the rule asking to be rewritten, and it has been: the whole app is
+ * linear now, and the `*Outline` entries below survive only because a hundred
+ * call sites name them — several are now the same glyph as their unsuffixed
+ * twin, which is harmless and is why they are kept rather than swept.
+ *
+ * Linear bodies are lighter on the page than filled ones at the same box size,
+ * which `Icon` compensates for by drawing the artwork slightly larger inside
+ * its box. See `src/components/ui/icon.tsx`.
+ *
+ * Rather than pull `@iconify/react` into the client bundle (it
  * ships an API loader that fetches icons over the network at runtime), this
  * copies the handful of SVG bodies the app actually uses into a generated
  * module. The result is offline, tree-shakeable, and about 6 KB instead of the
@@ -27,65 +42,69 @@ import solar from '@iconify-json/solar/icons.json' with { type: 'json' };
  */
 const ICONS = {
   // Navigation — staff
-  dashboard: 'widget-4-bold',
-  clients: 'users-group-rounded-bold',
-  calendar: 'calendar-bold',
-  weeklyPlans: 'clipboard-list-bold',
-  mealPlans: 'chef-hat-bold',
-  dishes: 'cup-hot-bold',
-  foods: 'donut-bold',
-  whatsapp: 'chat-round-dots-bold',
-  security: 'shield-keyhole-bold',
+  dashboard: 'widget-4-linear',
+  clients: 'users-group-rounded-linear',
+  calendar: 'calendar-linear',
+  weeklyPlans: 'clipboard-list-linear',
+  mealPlans: 'chef-hat-linear',
+  dishes: 'cup-hot-linear',
+  foods: 'donut-linear',
+  whatsapp: 'chat-round-dots-linear',
+  security: 'shield-keyhole-linear',
   // The rail's profile menu. A gear, not the person glyph `profile` uses —
   // that row is reached *from* a control already showing who you are.
-  settings: 'settings-bold',
+  settings: 'settings-linear',
 
   // Client profile card headers
-  contact: 'phone-bold',
-  notes: 'notes-bold',
+  contact: 'phone-linear',
+  notes: 'notes-linear',
 
   // Navigation — client portal
-  portalHome: 'home-2-bold',
-  myAppointments: 'calendar-bold',
-  myPlan: 'chef-hat-bold',
-  progress: 'round-graph-bold',
-  profile: 'user-bold',
+  portalHome: 'home-2-linear',
+  myAppointments: 'calendar-linear',
+  myPlan: 'chef-hat-linear',
+  progress: 'round-graph-linear',
+  profile: 'user-linear',
 
   /**
-   * The client bottom tab bar's own icon language — simple line icons, not the
-   * app's usual Solar Bold. The bar's four outer tabs are a deliberate
-   * exception (see `PortalTabBar`): they frame the featured centre tab, which
-   * stays bold and filled, and a bold outer set would compete with it instead
-   * of receding.
+   * The client bottom tab bar's four outer tabs.
+   *
+   * These were the app's first linear exception, back when everything else was
+   * filled — they frame the featured centre tab and a bold outer set competed
+   * with it. Now that the whole set is linear they are the same glyphs as
+   * `portalHome`/`myAppointments`/`profile` above, and `progressOutline` is the
+   * only one that still differs. They stay as separate names because
+   * `PortalTabBar` reads them by name and because the bar may want its own
+   * glyphs again; nothing breaks while they agree.
    */
   portalHomeOutline: 'home-2-linear',
   myAppointmentsOutline: 'calendar-linear',
   progressOutline: 'chart-2-linear',
   profileOutline: 'user-linear',
   /** The featured centre tab's glyph — a plan on a page. */
-  myPlanFeatured: 'document-text-bold',
+  myPlanFeatured: 'document-text-linear',
 
   // Direction — these mirror in RTL, see DIRECTIONAL in icon.tsx
-  chevronDown: 'alt-arrow-down-bold',
-  chevronUp: 'alt-arrow-up-bold',
-  chevronStart: 'alt-arrow-left-bold',
-  chevronEnd: 'alt-arrow-right-bold',
+  chevronDown: 'alt-arrow-down-linear',
+  chevronUp: 'alt-arrow-up-linear',
+  chevronStart: 'alt-arrow-left-linear',
+  chevronEnd: 'alt-arrow-right-linear',
   navigationMenu: 'hamburger-menu-linear',
-  signOut: 'logout-2-bold',
+  signOut: 'logout-2-linear',
 
   // Actions
-  search: 'rounded-magnifer-bold',
-  add: 'add-circle-bold',
-  close: 'close-circle-bold',
-  trash: 'trash-bin-trash-bold',
-  edit: 'pen-2-bold',
-  copy: 'copy-bold',
-  refresh: 'refresh-bold',
-  archive: 'archive-bold',
-  restore: 'restart-bold',
-  filter: 'filter-bold',
+  search: 'rounded-magnifer-linear',
+  add: 'add-circle-linear',
+  close: 'close-circle-linear',
+  trash: 'trash-bin-trash-linear',
+  edit: 'pen-2-linear',
+  copy: 'copy-linear',
+  refresh: 'refresh-linear',
+  archive: 'archive-linear',
+  restore: 'restart-linear',
+  filter: 'filter-linear',
   /** The "this column can be sorted" affordance, before a direction is chosen. */
-  sort: 'sort-vertical-bold',
+  sort: 'sort-vertical-linear',
 
   /**
    * "There is more you can do to this thing." The calendar's appointment cards
@@ -96,53 +115,53 @@ const ICONS = {
    * one is a grip and this one is a menu, and either can be redrawn without
    * dragging the other with it. Same reasoning as `navNode` / `leaf`.
    */
-  moreActions: 'menu-dots-bold',
+  moreActions: 'menu-dots-linear',
 
   // Weekly plan board
   /** The separate handle that starts a drag, so dragging never steals the click. */
-  dragHandle: 'menu-dots-bold',
+  dragHandle: 'menu-dots-linear',
   /** Empties a slot without removing it from the day. */
-  clearSlot: 'eraser-bold',
+  clearSlot: 'eraser-linear',
   /** A value that overshot its target. */
-  driftUp: 'arrow-up-bold',
+  driftUp: 'arrow-up-linear',
   /** A value that undershot its target. */
-  driftDown: 'arrow-down-bold',
+  driftDown: 'arrow-down-linear',
   /** A dish repeated from the plan being compared against. */
-  repeat: 'restart-bold',
+  repeat: 'restart-linear',
   /** Holding this week against an earlier one. */
-  history: 'history-bold',
-  minus: 'minus-circle-bold',
+  history: 'history-linear',
+  minus: 'minus-circle-linear',
 
   // Field affordances
-  eye: 'eye-bold',
-  eyeOff: 'eye-closed-bold',
-  check: 'check-circle-bold',
+  eye: 'eye-linear',
+  eyeOff: 'eye-closed-linear',
+  check: 'check-circle-linear',
   /** The email field's leading glyph. */
-  email: 'letter-bold',
+  email: 'letter-linear',
   /** The name / username field's leading glyph. */
-  person: 'user-bold',
+  person: 'user-linear',
   /**
    * The password field's leading glyph. A plain padlock, not the keypad-faced
    * `lock-password` — at 20px in a field the keypad dots read as noise rather
    * than as detail.
    */
-  lock: 'lock-bold',
+  lock: 'lock-linear',
   /**
    * Passkey sign-in. Solar has no fingerprint or biometric glyph, so a key
    * stands in — the same association the term "passkey" itself trades on.
    */
-  passkey: 'key-bold',
+  passkey: 'key-linear',
   /** Mars symbol — the male option in the client sex field. */
-  male: 'men-bold',
+  male: 'men-linear',
   /** Venus symbol — the female option in the client sex field. */
-  female: 'women-bold',
+  female: 'women-linear',
 
   /**
    * The navigation node — the mark that travels to the active item. A leaf
    * rather than a plain dot: this is a nutrition product, and the shape is the
    * one place in the chrome where the brand gets to say so.
    */
-  navNode: 'leaf-bold',
+  navNode: 'leaf-linear',
 
   /**
    * The auth screens' illustration — one huge leaf filling the brand panel of
@@ -152,22 +171,22 @@ const ICONS = {
    * is chrome and this is decoration, so either can be redrawn without dragging
    * the other with it.
    */
-  leaf: 'leaf-bold',
+  leaf: 'leaf-linear',
 
   // Status — pairs with the status token of the same name
-  attention: 'danger-triangle-bold',
-  medical: 'danger-circle-bold',
-  info: 'info-circle-bold',
+  attention: 'danger-triangle-linear',
+  medical: 'danger-circle-linear',
+  info: 'info-circle-linear',
 
   // Dashboard
-  notifications: 'bell-bing-bold',
-  topClients: 'cup-star-bold',
-  clock: 'clock-circle-bold',
-  addClient: 'user-plus-bold',
-  bookAppointment: 'calendar-add-bold',
-  trend: 'graph-up-bold',
+  notifications: 'bell-bing-linear',
+  topClients: 'cup-star-linear',
+  clock: 'clock-circle-linear',
+  addClient: 'user-plus-linear',
+  bookAppointment: 'calendar-add-linear',
+  trend: 'graph-up-linear',
   /** A quick-action tile that navigates out to another page. Fixed — points top-left regardless of locale. */
-  linkArrow: 'arrow-left-up-bold',
+  linkArrow: 'arrow-left-up-linear',
 
   /**
    * The client's plan — one mark per meal slot, keyed by `mealTypeForSlot`.
@@ -194,35 +213,35 @@ const ICONS = {
    * rail's catalog mark, visible beside the board on every wide screen. The same
    * picture meaning two things on one screen is worse than a duller glyph.
    */
-  mealBreakfast: 'tea-cup-bold',
-  mealSnack: 'donut-bitten-bold',
+  mealBreakfast: 'tea-cup-linear',
+  mealSnack: 'donut-bitten-linear',
   /*
    * ⚠ Lunch is `plate`, **not** `chef-hat`, which `main` briefly had it as.
-   * `dish` below is already `chef-hat-bold` — the mark for the dish itself on a
+   * `dish` below is already `chef-hat-linear` — the mark for the dish itself on a
    * meal card — so a chef-hat lunch put the same picture twice on one row,
    * which is exactly what the snack note above refuses to do. It also left the
    * four-silhouette set described above (rayed disc, plate, bitten ring,
    * crescent) without its plate or its crescent.
    */
-  mealLunch: 'plate-bold',
-  mealDinner: 'moon-stars-bold',
+  mealLunch: 'plate-linear',
+  mealDinner: 'moon-stars-linear',
 
   /**
-   * The same four for the *client's* plan, drawn as line icons — the second
-   * deliberate exception to Solar Bold, for the same reason as the portal tab
-   * bar's outer tabs above: what a filled glyph was doing on that card was
-   * standing out, and on the client's plan it has nothing to stand out
-   * *against*. The meal card is a row you scan five of, and its one loud mark
-   * is the tick that says whether you ate; a solid glyph beside it competed
-   * with that, which is why the filled disc these used to sit on is gone too.
+   * The same four slots on the *client's* plan card.
    *
-   * The staff planner's slot rail keeps the bold set. It compares four icons
-   * stacked in a 24px column, where a 1.5px stroke is exactly the detail that
-   * stops reading, so these are a second entry rather than a swap.
+   * The second of the old linear exceptions, and the one that still earns its
+   * separate entry on picture alone: breakfast here is a `sun`, not the
+   * planner's `tea-cup`. The client's card is a row you scan five of, and the
+   * sun says "morning" faster than a cup does to someone who is not reading a
+   * schedule.
    *
-   * Solar's `-linear` bodies carry their own `fill="none" stroke="currentColor"`,
-   * so they survive `Icon`'s `fill="currentColor"` on the parent `<svg>` — a
-   * linear glyph that omitted it would paint solid and silently look bold.
+   * Most `-linear` bodies carry their own `fill="none" stroke="currentColor"`
+   * and so survive `Icon`'s `fill="currentColor"` on the parent `<svg>`. A
+   * handful (`phone`, `refresh`, `eye-closed`, `heart`) are drawn instead as
+   * filled outline paths — the stroke is expanded into the path itself — and
+   * render correctly either way. Nothing here needs a special case; the note
+   * exists so the next person does not go looking for a bug when two icons in
+   * this file are built differently.
    */
   mealBreakfastOutline: 'sun-linear',
   mealSnackOutline: 'donut-bitten-linear',
@@ -230,15 +249,15 @@ const ICONS = {
   mealDinnerOutline: 'moon-stars-linear',
 
   /**
-   * The planner's row markers and add-slot picker use the lighter Solar Linear
-   * family. They are deliberately separate from the portal's filled meal marks:
-   * the planner compares four large icons side by side, where the open strokes
-   * stay legible without turning the frozen row header into a dark stripe.
+   * The planner's row markers and add-slot picker.
    *
-   * These are a *different set* from `meal*Outline` above, not a duplicate of
-   * it: those four are the client's plan card, these are the staff planner's
-   * rail and its add-slot picker, which needs four more glyphs the portal has
-   * no use for. `meal-icons.ts` maps slots onto them and is tested.
+   * A *different set* from `meal*Outline` above, not a duplicate of it: those
+   * four are the client's plan card, these are the staff planner's rail and its
+   * add-slot picker, which needs four more glyphs the portal has no use for.
+   * `meal-icons.ts` maps slots onto them and is tested.
+   *
+   * These are the four that are compared side by side rather than glanced at,
+   * so the silhouette rule in the block above applies to them hardest.
    */
   plannerMealBreakfast: 'tea-cup-linear',
   plannerMealSnack: 'donut-bitten-linear',
@@ -250,19 +269,21 @@ const ICONS = {
   plannerMealChefMinimal: 'chef-hat-minimalistic-linear',
 
   /** The dish itself, on a meal card. Constant — no dish carries its own icon. */
-  dish: 'chef-hat-bold',
+  dish: 'chef-hat-linear',
   /** A client's requests about an appointment, which are a conversation. */
-  chat: 'chat-round-line-bold',
+  chat: 'chat-round-line-linear',
 
   /**
    * The client's own record screen — section headers and row markers.
    *
-   * Line icons, the third exception to Solar Bold and the same reasoning as the
-   * two above: this screen is a stack of read-only facts, and a filled glyph
-   * beside every heading and every second row turned a page you *read* into a
-   * page of marks. The one filled thing on it should be the button that calls
-   * the clinic. The staff side keeps the bold set — `contact` (phone-bold) and
-   * `clock` are still what the dietitian's own panels draw.
+   * The third of the old linear exceptions, and the one whose argument the
+   * whole app has now adopted: this screen is a stack of read-only facts, and a
+   * filled glyph beside every heading and every second row turned a page you
+   * *read* into a page of marks.
+   *
+   * Several of these now match their staff-side twin exactly — `phoneOutline`
+   * is `contact`, `chatOutline` is `chat`. Kept as separate names so the two
+   * sides can diverge again without a sweep through the portal.
    */
   personOutline: 'user-linear',
   heartOutline: 'heart-linear',
@@ -298,10 +319,10 @@ const ICONS = {
   clinicNameOutline: 'users-group-rounded-linear',
 
   // Portal settings — destination rows
-  help: 'question-circle-bold',
-  privacy: 'shield-check-bold',
-  /** Terms of service. Distinct glyph from `myPlanFeatured`'s document-text-bold. */
-  terms: 'file-text-bold',
+  help: 'question-circle-linear',
+  privacy: 'shield-check-linear',
+  /** Terms of service. Distinct glyph from `myPlanFeatured`'s document-text-linear. */
+  terms: 'file-text-linear',
   /**
    * The closing offer on the help screen — "still stuck? talk to us".
    *
@@ -309,7 +330,7 @@ const ICONS = {
    * list uses to *get to* the help screen, and repeating it at the bottom of
    * the page it leads to would mark the exit with the same sign as the entrance.
    */
-  suggestion: 'lightbulb-bold',
+  suggestion: 'lightbulb-linear',
 } as const satisfies Record<string, string>;
 
 type SolarIcon = { body: string; width?: number; height?: number };
@@ -353,7 +374,7 @@ const output = `/**
  * Run \`bun run icons:generate\` to regenerate. The icon list lives in
  * scripts/generate-icons.ts; see that file for how to add one.
  *
- * Source: Solar Bold and Linear (https://icon-sets.iconify.design/solar/), MIT.
+ * Source: Solar Linear (https://icon-sets.iconify.design/solar/), MIT.
  */
 
 export type IconName = keyof typeof QIWAM_ICONS;

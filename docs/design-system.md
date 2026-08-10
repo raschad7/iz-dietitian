@@ -422,7 +422,14 @@ would stop matching. `globals.css` zeroes both under `:lang(ar)`.
 
 ## Iconography
 
-One set: **Solar Bold** — rounded, filled, single weight.
+One set: **Solar Linear** — rounded, open strokes, single weight.
+
+The app was Solar Bold until it had accumulated three separate linear
+exceptions (the portal tab bar, the client's meal cards, the client record's
+row markers), each argued on the same grounds: a filled glyph beside every
+heading turns a page you read into a page of marks. The set is now linear
+throughout. The `*Outline` names remain — several are the same glyph as their
+unsuffixed twin now, which is harmless.
 
 Icons are generated offline into
 [`src/lib/icons.generated.ts`](../src/lib/icons.generated.ts) and rendered by
@@ -441,6 +448,11 @@ a build error rather than a blank square.
   `chef-hat`), so swapping a glyph later is a one-line change.
 - Icons never carry their own colour — `fill="currentColor"`, inherited from
   the control.
+- **The glyph is drawn 12% larger than its box** (`GLYPH_SCALE` in `icon.tsx`).
+  Solar's canvas has padding built in that a filled glyph fills out and an open
+  stroke does not, so linear icons read a size smaller than bold ones at
+  identical dimensions. Scaling the artwork inside the `<svg>` rather than the
+  `<svg>` itself fixes that for every call site at once and moves no layout.
 - Icons that encode direction (`chevronStart`, `chevronEnd`, `signOut`) mirror
   in RTL automatically. Everything else — clock, chart, checkmark, logo — must
   not, which is why `DIRECTIONAL` in `icon.tsx` is an allowlist.
