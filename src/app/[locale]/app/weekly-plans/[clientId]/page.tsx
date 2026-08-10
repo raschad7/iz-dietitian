@@ -18,7 +18,7 @@ import {
   listPlannableClients,
   listPlans,
   previousPlanSlots,
-  swapCandidatesByMeal,
+  swapCandidatesByMealFromCatalog,
 } from '@/features/weekly-plans/queries';
 import { PLANNER_THEME } from '@/features/weekly-plans/theme';
 import { recentDishUse } from '@/features/weekly-plans/usage';
@@ -65,10 +65,6 @@ export default async function ClientBoardPage({ params, searchParams }: PageProp
 
   const allergens = context.profile?.allergenTags ?? [];
 
-  // Computed once for the whole board rather than per card, so opening a meal costs
-  // no round trip. Empty when there is no plan yet.
-  const candidates = board ? await swapCandidatesByMeal(board, allergens) : {};
-
   // The catalog ships with its recipes so the board can recompute totals for a
   // dropped dish itself, and the previous week's slots so a repeat is visible
   // without leaving the page.
@@ -77,6 +73,16 @@ export default async function ClientBoardPage({ params, searchParams }: PageProp
     recentDishUse(clinicId, clientId),
     board ? previousPlanSlots(clinicId, clientId, board.weekStartDate) : Promise.resolve(null),
   ]);
+
+  // Derive alternatives from the catalog already loaded for the drawer. This
+  // used to load the complete dish and ingredient set a second time, in a
+  // separate query round, before the drawer's identical read could begin.
+  const candidates = board
+    ? swapCandidatesByMealFromCatalog(
+        board,
+        catalog.filter((dish) => dish.blockedBy.length === 0),
+      )
+    : {};
 
   const blocked = !isLlmConfigured()
     ? ('not_configured' as const)
@@ -113,7 +119,6 @@ export default async function ClientBoardPage({ params, searchParams }: PageProp
         {board ? (
           <PlanBoard
             board={board}
-            clients={clients}
             candidates={candidates}
             catalog={catalog}
             usage={usage}
@@ -124,17 +129,16 @@ export default async function ClientBoardPage({ params, searchParams }: PageProp
           >
             {/* The generate form moved into the new-week dialog, where the
                 choice to generate is actually made. This tab is the client. */}
-            <ContextPanel context={context} locale={locale} />
+            <ContextPanel context={context} clients={clients} locale={locale} />
           </PlanBoard>
         ) : (
           <EmptyPlanBoard
             clientId={clientId}
-            clients={clients}
             catalog={catalog}
             usage={usage}
             locale={locale}
             history={history}
-            profile={<ContextPanel context={context} locale={locale} />}
+            profile={<ContextPanel context={context} clients={clients} locale={locale} />}
             newWeek={newWeek}
           />
         )}

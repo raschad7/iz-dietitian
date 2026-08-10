@@ -7,6 +7,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Dialog, DialogBody, DialogHeader } from '@/components/ui/dialog';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { getLocaleDirection } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 
@@ -259,31 +260,33 @@ function CopyDoor({
           <fieldset className="no-scrollbar flex max-h-64 min-h-0 flex-1 flex-col overflow-y-auto">
             <legend className="sr-only">{t('newWeekCopy')}</legend>
 
-            {plans.map((plan, index) => (
-              // The label is the target, not the 16px dot: a whole row is a
-              // comfortable thing to hit, and clicking it checks the radio.
-              <label
-                key={plan.id}
-                className="flex min-h-10 cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 hover:bg-accent"
-              >
-                <input
-                  type="radio"
-                  name="sourcePlanId"
-                  value={plan.id}
-                  defaultChecked={index === 0}
-                  required
-                  className="size-4 shrink-0 accent-primary"
-                />
+            {/*
+              `RadioGroup` owns the roving focus and the arrow keys the loose
+              inputs never had, and writes the submitted `<input>` itself — so
+              this stays a plain server-action form. Its own `gap-2` is dropped:
+              the rows carry their own padding and a hover fill that has to meet
+              its neighbours, or the list reads as separated cards.
+            */}
+            <RadioGroup name="sourcePlanId" defaultValue={plans[0]?.id} required className="gap-0">
+              {plans.map((plan) => (
+                // The label is the target, not the 16px dot: a whole row is a
+                // comfortable thing to hit, and clicking it checks the radio.
+                <label
+                  key={plan.id}
+                  className="flex min-h-10 cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 hover:bg-accent"
+                >
+                  <RadioGroupItem value={plan.id} className="shrink-0" />
 
-                <span className="min-w-0 flex-1">
-                  <span className="block text-body-sm">{plan.weekStartDate}</span>
-                  <span className="block text-caption text-muted-foreground">
-                    {t('kcalValue', { value: plan.kcalTargetSnapshot })} ·{' '}
-                    {t('planMeals', { count: plan.mealCount })}
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-body-sm">{plan.weekStartDate}</span>
+                    <span className="block text-caption text-muted-foreground">
+                      {t('kcalValue', { value: plan.kcalTargetSnapshot })} ·{' '}
+                      {t('planMeals', { count: plan.mealCount })}
+                    </span>
                   </span>
-                </span>
-              </label>
-            ))}
+                </label>
+              ))}
+            </RadioGroup>
           </fieldset>
 
           {blocked ? (

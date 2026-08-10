@@ -5,6 +5,7 @@ import { useFormStatus } from 'react-dom';
 
 import { type AuthFormState } from '@/features/auth/form-state';
 import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 
 /** Shared between the three auth forms so they report failures identically. */
 export function AuthFormMessage({ state }: { state: AuthFormState }) {
@@ -30,12 +31,19 @@ export function AuthFormMessage({ state }: { state: AuthFormState }) {
 }
 
 export function AuthSubmitButton({ label }: { label: string }) {
-  const tCommon = useTranslations('common');
   const { pending } = useFormStatus();
 
   return (
     <Button type="submit" className="w-full max-w-none" disabled={pending}>
-      {pending ? tCommon('loading') : label}
+      {/*
+        The label stays put and a spinner joins it, rather than the label being
+        replaced by the word "loading". Swapping the text changes the width of
+        the control at the moment it is pressed, and it throws away the one
+        thing that says *what* is being waited for; `disabled` plus a spinner
+        says the same thing without either cost.
+      */}
+      {pending ? <Spinner /> : null}
+      {label}
     </Button>
   );
 }

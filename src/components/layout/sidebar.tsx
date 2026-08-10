@@ -1,14 +1,28 @@
 'use client';
 
-import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 
-import { SidebarProfile } from '@/components/layout/sidebar-profile';
-import { Button } from '@/components/ui/button';
-import { Icon, type IconName } from '@/components/ui/icon';
-import { Link, usePathname } from '@/i18n/navigation';
-import { type Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
+import { Icon, type IconName } from '@/components/ui/icon';
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarRail,
+  SidebarTrigger,
+} from '@/components/ui/sidebar';
+import { Link, usePathname } from '@/i18n/navigation';
+import type { Locale } from '@/i18n/routing';
+
+import { SidebarProfile } from './sidebar-profile';
 
 export type NavItem = {
   href:
@@ -35,13 +49,13 @@ export type NavItem = {
     | 'progress';
 };
 
-type SidebarProps = {
+type ShellProps = {
   items: readonly NavItem[];
   title: string;
   /**
-   * Whether the title is *drawn*. It is always still the drawer's accessible
-   * name — a modal with no name is a modal a screen reader announces as
-   * nothing — so this hides the visible copy, it does not remove the string.
+   * Whether the title is *drawn*. It stays the rail's accessible name either
+   * way — hidden, it is rendered `sr-only` rather than dropped, because a
+   * drawer a screen reader announces as nothing is worse than a redundant one.
    *
    * The portal turns it off. Its own `PortalHeader` already opens every tab
    * screen with the client's name and the day, and each `(screen)` page names
@@ -50,307 +64,157 @@ type SidebarProps = {
    * so it keeps the title.
    */
   showTitle?: boolean;
-  /**
-   * Whether the phone-width app bar — a fixed strip carrying the drawer
-   * trigger — is rendered at all.
-   *
-   * The staff shell needs it: below `md` the rail is hidden and the drawer is
-   * the only navigation there is, which is why `main` there pays for it with
-   * `pt-[4.25rem]`. The portal never paid that rent. Its own chrome already
-   * covers both jobs — `PortalTabBar` carries the same five destinations along
-   * the block-end edge, and `PortalHeader` carries the bell and settings — so
-   * the bar was a third piece of navigation, and being `fixed` in a column
-   * with no offset for it, it sat *on top of* the header's own controls. This
-   * turns it off rather than adding padding to push everything down past it.
-   */
-  showMobileBar?: boolean;
   user?: { name: string; email?: string | null; locale: Locale };
   icons?: Partial<Record<NavItem['labelKey'], IconName>>;
+  children: React.ReactNode;
 };
 
 /**
- * Responsive application navigation.
+ * The application shell: the registry sidebar, and the page beside it.
  *
- * A 256px navigation column is useful beside a desktop workspace and expensive
- * beside a tablet tool. From `md` to `xl` it therefore becomes a 72px icon rail;
- * the full navigation opens over the workspace instead of resizing it. Phones
- * get the same drawer from a compact app bar, so navigation never disappears.
+ * ## What this replaced
+ *
+ * Three hundred lines that rebuilt, by hand, what the registry component
+ * already does — a 72px icon rail, a 256px expanded column, a `<dialog>` drawer
+ * for phones, and a media query deciding between them. Each of those was
+ * correct in isolation and none of them shared state, so the rail's width and
+ * the drawer's open-ness were tracked in two places that could disagree.
+ *
+ * `SidebarProvider` owns that state now, persists the collapsed choice to a
+ * cookie so it survives a reload, and gives the whole app `useSidebar` instead
+ * of a prop drilled down from here. `collapsible="icon"` is the behaviour the
+ * old rail approximated: labels drop away, icons stay, and each button grows a
+ * tooltip only while collapsed.
+ *
+ * ## What it kept
+ *
+ * The props. Three layouts render this — the staff app and the portal's two —
+ * and each passes its own items, title and icons, so the same shell serves a
+ * dietitian and a client without either knowing about the other.
+ *
+ * `SidebarInset` is the page. It is a sibling of the sidebar rather than a
+ * wrapper around it, which is what lets the rail stay put while only the page
+ * scrolls — the property the old shell spent a fixed-height flex row on.
  */
-export function Sidebar({
-  items,
-  title,
-  showTitle = true,
-  showMobileBar = true,
-  user,
-  icons,
-}: SidebarProps) {
+export function AppShell({ items, title, showTitle = true, user, icons, children }: ShellProps) {
+  return (
+    <SidebarProvider>
+      <AppSidebar items={items} title={title} showTitle={showTitle} user={user} icons={icons} />
+      <SidebarInset>
+        {/*
+          Below `md` the rail is a sheet, and a sheet needs an opener that is
+          not inside itself. The trigger in the sidebar's own header is the
+          desktop one — once the rail is a drawer, that trigger is behind the
+          drawer, so closed there is nothing on screen to open it with and the
+          whole of the navigation is unreachable.
+
+          Only when there is a `user`, which is the staff area. The portal has
+          its own header and a bottom tab bar under `md`; a second bar above
+          them would be the third way to get to the same five screens.
+        */}
+        {user ? <MobileBar title={title} /> : null}
+        {children}
+      </SidebarInset>
+    </SidebarProvider>
+  );
+}
+
+function MobileBar({ title }: { title: string }) {
+  const t = useTranslations('nav');
+
+  return (
+    <div className="flex h-14 shrink-0 items-center gap-2 border-b border-sidebar-border bg-sidebar px-3 text-sidebar-foreground md:hidden">
+      <SidebarTrigger aria-label={t('openNavigation')} title={t('openNavigation')} />
+      <span className="min-w-0 truncate font-heading text-body-md font-semibold">{title}</span>
+    </div>
+  );
+}
+
+function AppSidebar({ items, title, showTitle = true, user, icons }: Omit<ShellProps, 'children'>) {
   const t = useTranslations('nav');
   const pathname = usePathname();
-  const [drawerOpen, setDrawerOpen] = useState(false);
 
+  /*
+   * The two index routes have to match exactly. `/app` is a prefix of every
+   * other staff route, so a `startsWith` test would light the dashboard up on
+   * every page in the app.
+   */
   function isActive(href: NavItem['href']): boolean {
     if (href === '/app' || href === '/portal') return pathname === href;
     return pathname === href || pathname.startsWith(`${href}/`);
   }
 
   return (
-    <>
-      {/* Mobile owns a small app bar instead of leaving the signed-in area with
-          no navigation at all. The page starts below it in the app layout —
-          `pt-[4.25rem]` on that `main`, because this strip is `fixed` and so
-          takes no room of its own. A shell that already has phone navigation
-          turns it off (`showMobileBar`) rather than paying that offset. */}
-      {showMobileBar ? (
-        <div className="fixed inset-x-0 top-0 z-40 flex h-14 items-center gap-3 border-b border-sidebar-border bg-sidebar px-3 text-sidebar-foreground md:hidden">
-          <Button
-            type="button"
-            size="icon-sm"
-            variant="ghost"
-            aria-expanded={drawerOpen}
-            aria-label={t('openNavigation')}
-            title={t('openNavigation')}
-            onClick={() => setDrawerOpen(true)}
+    <Sidebar collapsible="icon">
+      <SidebarHeader className="gap-0 pb-1">
+        <div className="flex h-12 items-center justify-between gap-2 px-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+          {/*
+            `sr-only` rather than absent when hidden: the string is the rail's
+            accessible name, and the mobile drawer needs one whether or not
+            anybody is meant to read it on screen. See `showTitle`.
+          */}
+          <span
+            className={cn(
+              'truncate font-heading text-heading-sm font-semibold group-data-[collapsible=icon]:hidden',
+              !showTitle && 'sr-only',
+            )}
           >
-            <Icon name="navigationMenu" className="size-5" />
-          </Button>
-          {showTitle ? (
-            <span className="min-w-0 truncate font-heading text-body-md font-semibold text-sidebar-primary-foreground">
-              {title}
-            </span>
-          ) : null}
+            {title}
+          </span>
+          <SidebarTrigger className="shrink-0" />
         </div>
-      ) : null}
+      </SidebarHeader>
 
-      {/* Tablet tool rail: destinations remain one tap away, while the board
-          receives 184px back. The menu button reveals labels and account tools. */}
-      <aside className="hidden w-18 shrink-0 border-e border-sidebar-border bg-sidebar text-sidebar-foreground md:block xl:hidden">
-        <div className="flex h-full flex-col items-center">
-          <div className="grid h-18 w-full shrink-0 place-items-center">
-            <Button
-              type="button"
-              size="icon-sm"
-              variant="ghost"
-              aria-expanded={drawerOpen}
-              aria-label={t('openNavigation')}
-              title={t('openNavigation')}
-              onClick={() => setDrawerOpen(true)}
-            >
-              <Icon name="navigationMenu" className="size-5" />
-            </Button>
-          </div>
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {items.map((item) => {
+                const icon = icons?.[item.labelKey];
+                const label = t(item.labelKey);
 
-          <nav className="flex min-h-0 w-full flex-col items-center gap-1 overflow-y-auto px-2 py-3">
-            {items.map((item) => {
-              const active = isActive(item.href);
-              const icon = icons?.[item.labelKey];
+                return (
+                  <SidebarMenuItem key={item.href}>
+                    {/*
+                      `tooltip` only shows while the sidebar is collapsed — the
+                      registry hides it otherwise — so the label is never
+                      announced twice to a pointer that can already read it.
+                    */}
+                    <SidebarMenuButton
+                      tooltip={label}
+                      isActive={isActive(item.href)}
+                      render={<Link href={item.href} />}
+                    >
+                      {/*
+                        20px, explicitly. `Icon` ships `size-4` in its own class
+                        list, so the button's `[&_svg:not([class*='size-'])]`
+                        default never reaches it — the glyph has to ask. This is
+                        the rail's one job at 56px wide, and 16px of it was too
+                        little to aim at or to tell apart at a glance.
+                      */}
+                      {icon ? <Icon name={icon} className="size-5" /> : null}
+                      <span>{label}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
 
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  aria-current={active ? 'page' : undefined}
-                  aria-label={t(item.labelKey)}
-                  title={t(item.labelKey)}
-                  className={cn(
-                    'grid size-12 shrink-0 place-items-center rounded-md outline-none',
-                    'transition-[background-color,color,transform] duration-150 ease-[cubic-bezier(.16,1,.3,1)] active:scale-95',
-                    'focus-visible:ring-2 focus-visible:ring-sidebar-ring',
-                    active
-                      ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                      : 'text-sidebar-icon hover:bg-sidebar-hover hover:text-sidebar-foreground',
-                  )}
-                >
-                  {icon ? <Icon name={icon} className="size-5" /> : null}
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
-      </aside>
-
-      {/* A wide monitor can afford the full navigation without taking working
-          room away from the current task. */}
-      <aside className="hidden w-64 shrink-0 border-e border-sidebar-border bg-sidebar text-sidebar-foreground xl:block">
-        <SidebarPanel
-          items={items}
-          title={title}
-          showTitle={showTitle}
-          user={user}
-          icons={icons}
-          isActive={isActive}
-        />
-      </aside>
-
-      <NavigationDrawer
-        open={drawerOpen}
-        title={title}
-        closeLabel={t('closeNavigation')}
-        onClose={() => setDrawerOpen(false)}
-      >
-        <SidebarPanel
-          items={items}
-          title={title}
-          showTitle={showTitle}
-          user={user}
-          icons={icons}
-          isActive={isActive}
-          onNavigate={() => setDrawerOpen(false)}
-          onClose={() => setDrawerOpen(false)}
-          closeLabel={t('closeNavigation')}
-        />
-      </NavigationDrawer>
-    </>
-  );
-}
-
-function SidebarPanel({
-  items,
-  title,
-  showTitle = true,
-  user,
-  icons,
-  isActive,
-  onNavigate,
-  onClose,
-  closeLabel,
-}: SidebarProps & {
-  isActive: (href: NavItem['href']) => boolean;
-  onNavigate?: () => void;
-  onClose?: () => void;
-  closeLabel?: string;
-}) {
-  const t = useTranslations('nav');
-
-  return (
-    <div className="flex h-full min-h-0 flex-col">
       {/*
-        The header row exists for what is *in* it. With no title and no close
-        button — the portal's wide rail — it would be 72px of empty column
-        above the first destination, so it is not rendered at all and the nav
-        starts at the top of its own padding. The drawer still has its close
-        button, and `ms-auto` keeps that button against the inline-end edge
-        once the title beside it is gone.
+        The portal renders this shell without a session user — its identity
+        lives in `PortalHeader` — so the footer is omitted rather than rendered
+        empty, which would leave a border with nothing above it.
       */}
-      {showTitle || onClose ? (
-        <div className="flex h-18 shrink-0 items-center gap-2 px-5">
-          {showTitle ? (
-            <span className="min-w-0 flex-1 truncate font-heading text-heading-sm font-semibold text-sidebar-primary-foreground">
-              {title}
-            </span>
-          ) : null}
-          {onClose ? (
-            <Button
-              type="button"
-              size="icon-sm"
-              variant="ghost"
-              aria-label={closeLabel}
-              title={closeLabel}
-              onClick={onClose}
-              className="ms-auto"
-            >
-              <Icon name="close" />
-            </Button>
-          ) : null}
-        </div>
-      ) : null}
-
-      <nav className="flex min-h-0 flex-col gap-1 overflow-y-auto p-3">
-        {items.map((item) => {
-          const active = isActive(item.href);
-          const icon = icons?.[item.labelKey];
-
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-current={active ? 'page' : undefined}
-              onClick={onNavigate}
-              className={cn(
-                'flex items-center gap-3 rounded-md px-4 py-2.5 text-start text-body-md outline-none',
-                'transition-[background-color,color,transform] duration-150 ease-[cubic-bezier(.16,1,.3,1)] active:translate-y-px',
-                'focus-visible:ring-2 focus-visible:ring-sidebar-ring',
-                active
-                  ? 'bg-sidebar-accent font-semibold text-sidebar-accent-foreground'
-                  : 'hover:bg-sidebar-hover',
-              )}
-            >
-              {icon ? (
-                <Icon
-                  name={icon}
-                  className={cn('size-4.5', active ? 'text-current' : 'text-sidebar-icon')}
-                />
-              ) : null}
-              <span className="min-w-0 truncate">{t(item.labelKey)}</span>
-            </Link>
-          );
-        })}
-      </nav>
-
       {user ? (
-        <SidebarProfile
-          name={user.name}
-          email={user.email}
-          locale={user.locale}
-          onNavigate={onNavigate}
-        />
+        <SidebarFooter className="border-t border-sidebar-border">
+          <SidebarProfile name={user.name} email={user.email} locale={user.locale} />
+        </SidebarFooter>
       ) : null}
-    </div>
-  );
-}
 
-function NavigationDrawer({
-  open,
-  title,
-  closeLabel,
-  onClose,
-  children,
-}: {
-  open: boolean;
-  title: string;
-  closeLabel: string;
-  onClose: () => void;
-  children: ReactNode;
-}) {
-  const ref = useRef<HTMLDialogElement>(null);
-
-  useEffect(() => {
-    const dialog = ref.current;
-    if (!dialog) return;
-
-    if (open) {
-      dialog.removeAttribute('data-closing');
-      if (!dialog.open) dialog.showModal();
-      return;
-    }
-
-    if (!dialog.open) return;
-    dialog.dataset.closing = 'true';
-
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const timeout = window.setTimeout(() => {
-      if (dialog.open) dialog.close();
-      dialog.removeAttribute('data-closing');
-    }, reduceMotion ? 0 : 180);
-
-    return () => window.clearTimeout(timeout);
-  }, [open]);
-
-  return (
-    <dialog
-      ref={ref}
-      aria-label={title}
-      onClose={onClose}
-      onCancel={(event) => {
-        event.preventDefault();
-        onClose();
-      }}
-      onClick={(event) => {
-        if (event.target === ref.current) onClose();
-      }}
-      className="app-navigation-drawer p-0 text-start text-sidebar-foreground backdrop:bg-[var(--overlay)] backdrop:[backdrop-filter:blur(3px)]"
-    >
-      <div className="h-full bg-sidebar shadow-overlay">{children}</div>
-      <span className="sr-only">{closeLabel}</span>
-    </dialog>
+      <SidebarRail />
+    </Sidebar>
   );
 }

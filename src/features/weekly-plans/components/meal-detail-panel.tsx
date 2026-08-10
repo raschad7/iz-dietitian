@@ -1,11 +1,12 @@
 'use client';
 
-import { useActionState } from 'react';
+import * as React from 'react';
 import { useFormStatus } from 'react-dom';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
+import { toast } from '@/components/ui/toast';
 import { cn } from '@/lib/utils';
 
 import { MEAL_TOLERANCE, driftState } from '@/features/weekly-plans/drift';
@@ -40,6 +41,7 @@ export function MealDetailPanel({
   model,
   onClose,
   onBrowseDishes,
+  embedded = false,
 }: {
   meal: BoardMeal;
   candidates: readonly SwapCandidate[];
@@ -49,13 +51,15 @@ export function MealDetailPanel({
   model?: string | null;
   onClose: () => void;
   onBrowseDishes: () => void;
+  /** The anchored inspector owns the close button in its floating frame. */
+  embedded?: boolean;
 }) {
   const t = useTranslations('weeklyPlans');
   const { clear, remove } = useEditorActions();
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
-      <div className="flex shrink-0 items-start justify-between gap-3 border-b border-border pb-3">
+      <div className={cn('flex shrink-0 items-start justify-between gap-3 border-b border-border pb-3', embedded && 'pe-10')}>
         <div className="min-w-0">
           <p className="text-caption text-muted-foreground">
             {meal.label} · {meal.timeOfDay}
@@ -66,9 +70,11 @@ export function MealDetailPanel({
           {meal.dish && <p className="text-caption text-muted-foreground">{meal.dish.nameEn}</p>}
         </div>
 
-        <Button type="button" size="sm" variant="ghost" onClick={onClose}>
-          {t('close')}
-        </Button>
+        {!embedded && (
+          <Button type="button" size="sm" variant="ghost" onClick={onClose}>
+            {t('close')}
+          </Button>
+        )}
       </div>
 
       <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain pt-4">
@@ -324,7 +330,33 @@ function SwapButton({
   children: React.ReactNode;
   flagged?: boolean;
 }) {
-  const [, formAction] = useActionState(swapMealAction, initialPlanActionState);
+  const t = useTranslations('weeklyPlans');
+  /*
+   * The swap revalidates the board, so the new dish is simply *there* on the
+   * next render — which is the problem this reports. A row quietly changing in
+   * a panel the eye has already left is indistinguishable from nothing having
+   * happened, and the failures were worse: the action's result used to be
+   * thrown away entirely, so a swap refused for a published plan looked
+   * exactly like a successful one.
+   *
+   * Awaited here rather than read back through `useActionState` and announced
+   * from an effect: the announcement belongs to *this* submission, and an
+   * effect watching a result object has to be keyed carefully to fire twice
+   * for two identical outcomes. Awaiting has neither problem.
+   */
+  async function formAction(formData: FormData): Promise<void> {
+    const state = await swapMealAction(initialPlanActionState, formData);
+    if (state.status === 'done') {
+      toast.success(t('mealReplaced'), {
+        description: t('mealReplacedHint'),
+      });
+      return;
+    }
+
+    if (state.status === 'error') {
+      toast.error(t(state.messageKey));
+    }
+  }
 
   return (
     <form action={formAction}>

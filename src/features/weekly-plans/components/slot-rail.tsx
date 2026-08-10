@@ -49,21 +49,20 @@ export function SlotRail({
       <div className="sticky top-0 z-10 border-b border-border bg-background" />
 
       {rows.map((row) => (
-        <div
-          key={row.slotKey}
-          className="group/slot relative flex flex-col items-center justify-center gap-1 px-1.5 text-center"
-        >
-          <Icon
-            name={mealIconForSlot(row.slotKey)}
-            className="size-8 text-muted-foreground md:size-9"
-          />
-          <span className="text-label leading-tight [text-wrap:balance]">{row.label}</span>
-          {/* Latin digits inside Arabic keep their own direction. */}
-          <span className="text-caption text-muted-foreground" dir="ltr">
-            {row.timeOfDay}
-          </span>
+        <div key={row.slotKey} className="planner-row-cell">
+          <div className="group/slot relative flex flex-col items-center justify-center gap-1 px-1.5 text-center">
+            <Icon
+              name={mealIconForSlot(row.slotKey)}
+              className="size-8 text-muted-foreground md:size-9"
+            />
+            <span className="text-label leading-tight [text-wrap:balance]">{row.label}</span>
+            {/* Latin digits inside Arabic keep their own direction. */}
+            <span className="text-caption text-muted-foreground" dir="ltr">
+              {row.timeOfDay}
+            </span>
 
-          {editable && <RemoveSlot row={row} />}
+            {editable && <RemoveSlot row={row} />}
+          </div>
         </div>
       ))}
 

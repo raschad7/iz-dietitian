@@ -9,7 +9,7 @@ import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { TimeSelect } from '@/components/ui/time-select';
+import { TimeInput } from '@/components/ui/time-input';
 import { cn } from '@/lib/utils';
 
 import type { ClinicProfileSnapshot } from '../types';
@@ -34,11 +34,16 @@ const DAY_KEYS = ['days.0', 'days.1', 'days.2', 'days.3', 'days.4', 'days.5', 'd
 
 /**
  * The clinic's opening hours are validated in quarter hours
- * (`validation.ts` → `invalidTime`), so the picker offers quarter hours. A
- * control that lists a value its own form rejects is a trap the reader walks
+ * (`validation.ts` → `invalidTime`), so the picker steps in quarter hours. A
+ * control that offers a value its own form rejects is a trap the reader walks
  * into once per visit.
+ *
+ * **Seconds, because that is the unit `<input type="time">`'s `step` takes** —
+ * this used to be `15`, a minute count the old `TimeSelect` read directly, and
+ * handing 15 to a time input would step it by fifteen *seconds* and add a
+ * seconds segment to the field.
  */
-const SCHEDULE_MINUTE_STEP = 15;
+const SCHEDULE_STEP_SECONDS = 15 * 60;
 
 function timeValue(minute: number | null): string {
   if (minute === null) return '08:00';
@@ -268,11 +273,11 @@ export function ScheduleFields({
                   </span>
                 </div>
 
-                <TimeSelect
+                <TimeInput
                   className="w-32"
                   value={day.open}
-                  onChange={(open) => update(weekday, 'open', { open })}
-                  step={SCHEDULE_MINUTE_STEP}
+                  onChange={(event) => update(weekday, 'open', { open: event.target.value })}
+                  step={SCHEDULE_STEP_SECONDS}
                   disabled={!day.isWorking}
                   /*
                     The heading above the column is not the accessible name —
@@ -284,11 +289,11 @@ export function ScheduleFields({
                   aria-label={`${dayName} · ${t('opens')}`}
                 />
 
-                <TimeSelect
+                <TimeInput
                   className="w-32"
                   value={day.close}
-                  onChange={(close) => update(weekday, 'close', { close })}
-                  step={SCHEDULE_MINUTE_STEP}
+                  onChange={(event) => update(weekday, 'close', { close: event.target.value })}
+                  step={SCHEDULE_STEP_SECONDS}
                   disabled={!day.isWorking}
                   aria-label={`${dayName} · ${t('closes')}`}
                 />

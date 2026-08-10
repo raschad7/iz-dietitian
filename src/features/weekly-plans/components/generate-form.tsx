@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
+import { SelectField } from '@/components/ui/select-field';
 import { Textarea } from '@/components/ui/textarea';
 import { CLIENT_GOALS } from '@/features/clients/schema';
 
@@ -168,14 +168,14 @@ function WeekTargets({ context }: { context: ClientContext }) {
 
       <label className="flex flex-col gap-1 text-label">
         <span className="text-muted-foreground">{t('goalLabel')}</span>
-        <Select name="goal" defaultValue="">
-          <option value="">{t('useProfile')}</option>
-          {CLIENT_GOALS.map((goal) => (
-            <option key={goal} value={goal}>
-              {tGoals(goal)}
-            </option>
-          ))}
-        </Select>
+        <SelectField
+          name="goal"
+          defaultValue=""
+          options={[
+            { value: '', label: t('useProfile') },
+            ...CLIENT_GOALS.map((goal) => ({ value: goal as string, label: tGoals(goal) })),
+          ]}
+        />
       </label>
 
       <p className="text-caption text-muted-foreground">{t('targetsHint')}</p>

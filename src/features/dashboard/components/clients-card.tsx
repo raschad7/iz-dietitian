@@ -3,6 +3,15 @@ import { getTranslations } from 'next-intl/server';
 import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRoot,
+  TableRow,
+} from '@/components/ui/table';
 import { formatMediumDate, formatMinute } from '@/features/booking/format';
 import { calculateAge } from '@/features/clients/age';
 import { ClientFormTrigger } from '@/features/clients/components/client-form-trigger';
@@ -88,125 +97,120 @@ export async function ClientsCard({ clients, locale }: ClientsCardProps) {
         ) : (
           <>
             {/*
-              The column heads, styled like `TableHeader`/`TableHead` on the
-              register itself (`bg-muted`, caption-size, muted-foreground):
-              this list is a thinner read of the same table, so it carries the
-              same header rather than starting straight into rows with no
-              labels. Shrinks out of the scroll region below — a header that
-              scrolls away with the rows it names is not a header.
-
-              `rounded-[10px]` is the control radius the register's own strip
-              takes; this is a `div` rather than a real `<thead>`, so it has to
-              say so itself, and the two would drift apart the moment one of
-              them changed.
-            */}
-            <div className="grid shrink-0 grid-cols-3 gap-x-3 rounded-[10px] bg-muted px-3 py-2.5 text-caption font-medium text-muted-foreground">
-              <span className="truncate">{tc('fields.fullName')}</span>
-              <span className="truncate">{tc('fields.age')}</span>
-              <span className="truncate">{tc('fields.phone')}</span>
-            </div>
-
-            {/*
-              `pe-1` leaves the scrollbar somewhere to sit that is not on top of
-              the card's edge; `overscroll-contain` stops a flick at the end of
-              the list from scrolling the shell behind it.
+              This list is a thinner read of the register on `/app/clients`, so
+              it is the same `Table`, not a grid that imitates one. It used to
+              be a `div` header strip over a `ul` of three-column `Link`s,
+              carrying its own copy of the strip's `rounded-[10px]`, the row's
+              `px-3 py-2.5`, its hover tint and a `min-h` hand-computed to match
+              the register's row height — five values kept in sync by a comment
+              asking the next reader to please keep them in sync. They are one
+              component now, and the two views of the same people cannot drift.
 
               `max-h-80` is the fallback ceiling for below `xl`, where nothing
-              else bounds this list's height — `xl:max-h-none` hands sizing
-              back to the `flex-1`/`min-h-0` chain once the card itself is
-              bounded by the one-screen layout.
+              else bounds this list's height — `xl:max-h-none` hands sizing back
+              to the `flex-1`/`min-h-0` chain once the card itself is bounded by
+              the one-screen layout. `overscroll-contain` stops a flick at the
+              end of the list from scrolling the shell behind it.
             */}
-            <ul className="flex max-h-80 flex-col divide-y divide-border overflow-y-auto overscroll-contain pe-1 xl:max-h-none xl:min-h-0 xl:flex-1">
-              {clients.map((client) => {
-                // Same rule as the client record's own profile card: a
-                // corrupt or implausible birth date reads as no age at all
-                // rather than as a number nobody can explain.
-                const age = client.dateOfBirth ? calculateAge(client.dateOfBirth) : null;
+            <TableRoot className="max-h-80 overflow-y-auto overscroll-contain xl:max-h-none xl:min-h-0 xl:flex-1">
+              {/*
+                `table-fixed` with `w-1/3` heads is what the old `grid-cols-3`
+                guaranteed: exactly a third each, so one long name cannot
+                squeeze the figures beside it. It is also what makes `truncate`
+                work in a cell — auto layout treats a percentage as a hint and
+                widens the column to fit instead of clipping.
+              */}
+              <Table className="table-fixed text-body-sm">
+                {/* A header that scrolls away with the rows it names is not a header. */}
+                <TableHeader sticky>
+                  <TableRow>
+                    <TableHead className="w-1/3">{tc('fields.fullName')}</TableHead>
+                    <TableHead className="w-1/3">{tc('fields.age')}</TableHead>
+                    <TableHead className="w-1/3">{tc('fields.phone')}</TableHead>
+                  </TableRow>
+                </TableHeader>
 
-                return (
-                  <li key={client.id}>
-                    {/*
-                      Three equal columns — `grid-cols-3` is
-                      `repeat(3, minmax(0,1fr))`, so each takes exactly a third
-                      and one long name cannot squeeze the figures beside it.
-                      Every cell starts at its own inline-start edge, which is
-                      the left in English and the right in Arabic with no
-                      per-locale branch; the square corners on the hover fill
-                      keep the three columns reading as one ruled row rather
-                      than as a pill floating inside the list.
-                    */}
-                    {/*
-                      `text-body-sm` is set once, on the row, and no cell inside
-                      it names a size of its own — the name used to inherit the
-                      card's 16px while the three facts beside and under it were
-                      12px, which made one row read as a heading with a caption
-                      stuck to it rather than as a line in a list. 14px is the
-                      dense-table size; the columns still separate on weight and
-                      colour, which is what they were separating on anyway.
+                {clients.map((client) => {
+                  // Same rule as the client record's own profile card: a
+                  // corrupt or implausible birth date reads as no age at all
+                  // rather than as a number nobody can explain.
+                  const age = client.dateOfBirth ? calculateAge(client.dateOfBirth) : null;
 
-                      **The box is the register's own row, to the pixel.**
-                      `px-3 py-2.5` and `hover:bg-secondary/60` are lifted from
-                      `TableCell`/`TableRow`, and `2.85rem` is what that row
-                      measures (0.625rem padding twice, plus a 1.6 line) — this
-                      is the same list of the same people, and it had no
-                      business being a third taller here with a different tint
-                      under the pointer. It is a floor rather than a fixed
-                      height because a client with a next visit carries a second
-                      line the register has no column for.
-                    */}
-                    <Link
-                      href={`/app/clients/${client.id}`}
-                      className="grid min-h-[2.85rem] grid-cols-3 items-center gap-x-3 gap-y-0.5 px-3 py-2.5 text-start text-body-sm transition-colors hover:bg-secondary/60"
-                    >
-                      <span className="truncate font-medium" dir="auto">
-                        {client.fullName}
-                      </span>
+                  return (
+                    /*
+                      One `<tbody>` per client rather than one per table: the
+                      next-visit line spans all three columns, which is a second
+                      `<tr>`, and `<tbody linked>` is what makes the pair hover
+                      as one row and share the stretched link. See `TableBody`.
+                    */
+                    <TableBody key={client.id} linked className="border-t border-border">
+                      <TableRow className="border-t-0 hover:bg-transparent">
+                        <TableCell className="font-medium">
+                          {/*
+                            `after:absolute after:inset-0` stretches this link
+                            over the whole `<tbody>` — the three columns and the
+                            next-visit line under them. The focus ring stays on
+                            the name rather than on the stretched `::after`, so
+                            a keyboard reader can see which row they are on.
+                          */}
+                          <Link
+                            href={`/app/clients/${client.id}`}
+                            dir="auto"
+                            className={cn(
+                              'block truncate rounded-sm underline-offset-4',
+                              'after:absolute after:inset-0 after:content-[""]',
+                              'focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-2',
+                            )}
+                          >
+                            {client.fullName}
+                          </Link>
+                        </TableCell>
 
-                      <span className="truncate text-muted-foreground tabular-nums">
-                        {age === null ? <Missing /> : tc('yearsOld', { count: age })}
-                      </span>
+                        <TableCell className="truncate tabular text-muted-foreground">
+                          {age === null ? <Missing /> : tc('yearsOld', { count: age })}
+                        </TableCell>
 
-                      {/*
-                        The cell keeps the page's direction so the number sits
-                        at the column's inline-start like its two neighbours;
-                        `dir` on the inner span isolates the digits and runs
-                        them left-to-right, which is how a phone number is read
-                        in both locales — letting it inherit the Arabic
-                        direction moves a leading `+` to the wrong end of it.
-                      */}
-                      <span className="truncate text-muted-foreground">
-                        {client.phone ? (
-                          <span className="font-mono" dir="ltr">
-                            {client.phone}
-                          </span>
-                        ) : (
-                          <Missing />
-                        )}
-                      </span>
+                        {/*
+                          The cell keeps the page's direction so the number sits
+                          at the column's inline-start like its two neighbours;
+                          `dir` on the inner span isolates the digits and runs
+                          them left-to-right, which is how a phone number is
+                          read in both locales — letting it inherit the Arabic
+                          direction moves a leading `+` to the wrong end of it.
+                        */}
+                        <TableCell className="truncate tabular text-muted-foreground">
+                          {client.phone ? <span dir="ltr">{client.phone}</span> : <Missing />}
+                        </TableCell>
+                      </TableRow>
 
                       {/*
                         The next visit runs under all three, when there is one.
                         Nothing at all when there is not — "Nothing booked"
-                        repeated down the list said the same non-fact about
-                        most of the register and gave every row a line to read
-                        past.
+                        repeated down the list said the same non-fact about most
+                        of the register and gave every row a line to read past.
+
+                        `pt-0` closes the gap the first row's own block-end
+                        padding already left, so the two lines read as one row
+                        rather than as two.
                       */}
                       {client.nextVisit ? (
-                        <span className="col-span-3 truncate text-muted-foreground">
-                          {t('nextVisit', {
-                            when: `${formatMediumDate(locale, client.nextVisit.date)} · ${formatMinute(
-                              locale,
-                              client.nextVisit.date,
-                              client.nextVisit.startMinute,
-                            )}`,
-                          })}
-                        </span>
+                        <TableRow className="border-t-0 hover:bg-transparent">
+                          <TableCell colSpan={3} className="truncate pt-0 text-muted-foreground">
+                            {t('nextVisit', {
+                              when: `${formatMediumDate(locale, client.nextVisit.date)} · ${formatMinute(
+                                locale,
+                                client.nextVisit.date,
+                                client.nextVisit.startMinute,
+                              )}`,
+                            })}
+                          </TableCell>
+                        </TableRow>
                       ) : null}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
+                    </TableBody>
+                  );
+                })}
+              </Table>
+            </TableRoot>
 
             <Link
               href="/app/clients"

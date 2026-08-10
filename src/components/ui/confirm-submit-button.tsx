@@ -7,7 +7,8 @@ import { useFormStatus } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Icon, type IconName } from '@/components/ui/icon';
-import { Tooltip } from '@/components/ui/tooltip';
+import { Spinner } from '@/components/ui/spinner';
+import { TooltipHint } from '@/components/ui/tooltip-hint';
 import { type Locale } from '@/i18n/routing';
 
 type ConfirmSubmitButtonProps = {
@@ -103,8 +104,15 @@ export function ConfirmSubmitButton({
         <Icon name={icon} className="size-5" />
       ) : (
         <>
-          {icon ? <Icon name={icon} /> : null}
-          {pending ? tCommon('loading') : label}
+          {/*
+            The spinner takes the leading glyph's place while pending and the
+            label stays put. Replacing the words with "loading" resized the
+            control at the moment it was pressed and dropped the one thing
+            saying *what* is being waited for — which matters most here, where
+            the action was destructive enough to be confirmed first.
+          */}
+          {pending ? <Spinner /> : icon ? <Icon name={icon} /> : null}
+          {label}
         </>
       )}
     </Button>
@@ -112,7 +120,7 @@ export function ConfirmSubmitButton({
 
   return (
     <>
-      {iconOnly ? <Tooltip label={label}>{button}</Tooltip> : button}
+      {iconOnly ? <TooltipHint label={label}>{button}</TooltipHint> : button}
 
       {asking && confirmMessage ? (
         <ConfirmDialog

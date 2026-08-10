@@ -11,6 +11,9 @@ import {
 } from 'next/font/google';
 import type { ReactNode } from 'react';
 
+import { DirectionProvider } from '@/components/ui/direction';
+import { Toaster } from '@/components/ui/toast';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { resolveLocale } from '@/i18n/params';
 import { getLocaleDirection, routing } from '@/i18n/routing';
 
@@ -216,7 +219,44 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
           be — a second copy pinned to the corner shadowed the real one in dev
           and sat on top of page content.
         */}
-        <NextIntlClientProvider>{children}</NextIntlClientProvider>
+        {/*
+          `dir` on <html> styles the page, but it does not reach Base UI.
+
+          Base UI reads direction from `DirectionProvider` context alone, which
+          defaults to `ltr` — its docs are explicit that the provider "does not
+          affect HTML and CSS" and that the `dir` attribute "must be set
+          additionally by your own application code". The two are separate
+          channels and this app was only feeding one of them, so every Base UI
+          popup has been computing its anchor, its flip and its arrow-key
+          direction as if the page were English, on Arabic too.
+
+          That is why the provider wraps everything rather than sitting beside
+          the components that need it today: the value is a property of the
+          locale, and every popup added from here on reads it.
+        */}
+        <DirectionProvider direction={getLocaleDirection(locale)}>
+          <NextIntlClientProvider>
+            {/*
+              One provider for the app: Base UI shares hover timing across
+              tooltips through it, so moving between two icon buttons opens the
+              second immediately instead of waiting out the delay again.
+            */}
+            <TooltipProvider>{children}</TooltipProvider>
+
+            {/*
+              One viewport for the whole app, mounted once here rather than per
+              screen: `toast()` is called from anywhere and has to land
+              somewhere, and a second viewport would give two of them.
+
+              **It takes `dir` explicitly, unlike every other popup here.**
+              This is sonner, not Base UI, so `DirectionProvider` above means
+              nothing to it — that context is Base UI's own channel. The
+              toaster is outside the page's layout flow, so it cannot inherit
+              the `dir` on <html> the way in-flow content does either.
+            */}
+            <Toaster dir={getLocaleDirection(locale)} />
+          </NextIntlClientProvider>
+        </DirectionProvider>
       </body>
     </html>
   );

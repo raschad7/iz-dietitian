@@ -144,57 +144,33 @@ export function DateCalendar({
         if (date) onSelect?.(date);
       }}
       /*
-        36px cells rather than shadcn's 28px. Three things share that column
-        width — a two-digit day, a weekday abbreviation, and the pointer — and
-        at 28px the widest weekday abbreviation in either language was touching
-        its neighbours. It is also the row height the rest of the app's dense
-        controls use.
-      */
-      className={cn('bg-transparent p-0 [--cell-size:--spacing(9)]', className)}
-      classNames={{
-        /*
-          The caption's two dropdowns are real `<select>`s sitting invisibly
-          over a styled label. Giving the visible half the app's own hover fill
-          and focus ring is what makes it read as pressable rather than as a
-          caption that happens to have a chevron beside it.
-        */
-        dropdown_root:
-          'relative rounded-md transition-colors hover:bg-accent has-[select:focus-visible]:ring-2 has-[select:focus-visible]:ring-ring',
-        caption_label:
-          'flex items-center gap-1 rounded-md px-2 py-1 text-body-sm font-semibold [&>svg]:size-3.5 [&>svg]:text-muted-foreground',
-        /*
-          A gap between the days, and the same gap above the first week.
+        The registry calendar's own theme, unmodified.
 
-          shadcn's grid butts every cell against the next, which is right for a
-          range picker — the run of chosen days has to read as one bar — and
-          wrong for this one, which only ever holds a single date. Flush cells
-          turned the toolbar's "this month is on screen" tint into a solid block
-          of colour with numbers on it, and left the day under the pointer with
-          no edge of its own to light up. `gap-0.5` is enough to separate them
-          and not enough to stop the week reading as a row.
-        */
-        weekdays: 'flex gap-0.5',
-        weekday: 'flex-1 text-caption font-normal text-muted-foreground select-none',
-        week: 'mt-0.5 flex w-full gap-0.5',
-        /*
-          Rewritten rather than extended, to drop two rules from the shadcn
-          default: `[&:first-child[data-selected=true]_button]:rounded-s` and
-          its `last-child` twin. Those exist to square off the ends of a
-          selected *range* so it meets the grid edge — but they key off
-          `data-selected`, which a single date sets too, so the chosen day
-          flattened its outer side whenever it landed in the first or last
-          column. A Sunday and a Saturday came out as half-pills; every day
-          between them was a circle.
-        */
-        day: 'group/day relative aspect-square h-full w-full rounded-full p-0 text-center select-none',
-        /*
-          Same story: the default squares today off when it is also the chosen
-          day, which is the common case here — the picker opens on the date the
-          calendar is already showing. Today's fill just steps aside for the
-          selected one instead.
-        */
-        today: 'rounded-full bg-muted text-foreground data-[selected=true]:bg-transparent',
-      }}
+        This used to carry a block of `classNames` overrides — 36px cells,
+        gapped weeks, fully round days, a restyled caption dropdown — each with
+        a reason, and together they were a second calendar design maintained by
+        hand on top of the one the registry ships. Reverted deliberately: the
+        point of taking components from the registry is that their appearance
+        arrives and stays with them, and the next `add --diff` can now tell us
+        something useful instead of drowning in local edits.
+
+        `p-0` and a transparent fill remain because the popover around it
+        already supplies the surface and the padding, which is how the
+        registry's own date-picker example composes the two.
+
+        The two `--primary` rebindings are the whole of the theming, and they
+        rebind rather than restyle: the registry calendar paints its selected
+        day with `bg-primary`, this app's primary is olive, so a month grid came
+        out as a field of green — a colour the rest of the app spends on one
+        action per screen. Pointing `--primary` at the foreground for this
+        subtree alone produces the registry's own look, a black day on white,
+        and leaves every button on the page untouched.
+      */
+      className={cn(
+        'bg-transparent p-0',
+        '[--primary:var(--foreground)] [--primary-foreground:var(--background)]',
+        className,
+      )}
     />
   );
 }

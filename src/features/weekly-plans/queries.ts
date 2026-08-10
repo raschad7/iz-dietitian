@@ -1,9 +1,10 @@
-import { and, asc, count, desc, eq, ilike, inArray, lt, ne, or, sql, type SQL } from 'drizzle-orm';
+import { and, asc, count, desc, eq, gte, ilike, inArray, lt, ne, or, sql, type SQL } from 'drizzle-orm';
 
 import { db } from '@/db';
 import {
   clientNutritionProfiles,
   clients,
+  appointments,
   dishIngredients,
   dishes,
   foods,
@@ -13,6 +14,7 @@ import {
   type MealSlot,
 } from '@/db/schema';
 import { calculateAge } from '@/features/clients/age';
+import { toIsoDate } from '@/lib/iso-date';
 
 import type { CatalogDish } from './generate';
 import {
@@ -341,6 +343,10 @@ export type PlannableClient = {
   hasProfile: boolean;
   latestPlanStatus: string | null;
   latestWeekStartDate: string | null;
+  /** Soonest booked visit today or later, used to order the planner's first screen. */
+  nextAppointment: { date: string; startMinute: number } | null;
+  /** Most recent visit before today, used when nothing is booked next. */
+  lastAppointment: { date: string; startMinute: number } | null;
 };
 
 /**
@@ -350,19 +356,10 @@ export type PlannableClient = {
  * plan and who has an untouched draft, which is what a dietitian opening the page
  * on a Sunday morning actually wants to know.
  */
-export async function listPlannableClients(clinicId: string): Promise<PlannableClient[]> {
-  const clientRows = await db
-    .select({
-      id: clients.id,
-      fullName: clients.fullName,
-      color: clients.color,
-      profileId: clientNutritionProfiles.id,
-    })
-    .from(clients)
-    .leftJoin(clientNutritionProfiles, eq(clientNutritionProfiles.clientId, clients.id))
-    .where(and(eq(clients.clinicId, clinicId), eq(clients.status, 'active')))
-    .orderBy(asc(clients.fullName));
-
+export async function listPlannableClients(
+  clinicId: string,
+  today = toIsoDate(new Date()),
+): Promise<PlannableClient[]> {
   /**
    * The newest plan per client, via `DISTINCT ON` — PostgreSQL's own answer to
    * "the first row of each group".
@@ -379,17 +376,50 @@ export async function listPlannableClients(clinicId: string): Promise<PlannableC
    * what decides which row wins — newest week, and the most recently touched plan
    * within it.
    */
-  const planRows = await db
-    .selectDistinctOn([weeklyPlans.clientId], {
-      clientId: weeklyPlans.clientId,
-      weekStartDate: weeklyPlans.weekStartDate,
-      status: weeklyPlans.status,
-    })
-    .from(weeklyPlans)
-    .where(eq(weeklyPlans.clinicId, clinicId))
-    .orderBy(asc(weeklyPlans.clientId), desc(weeklyPlans.weekStartDate), desc(weeklyPlans.updatedAt));
+  const [clientRows, planRows, nextAppointmentRows, lastAppointmentRows] = await Promise.all([
+    db
+      .select({
+        id: clients.id,
+        fullName: clients.fullName,
+        color: clients.color,
+        profileId: clientNutritionProfiles.id,
+      })
+      .from(clients)
+      .leftJoin(clientNutritionProfiles, eq(clientNutritionProfiles.clientId, clients.id))
+      .where(and(eq(clients.clinicId, clinicId), eq(clients.status, 'active')))
+      .orderBy(asc(clients.fullName)),
+    db
+      .selectDistinctOn([weeklyPlans.clientId], {
+        clientId: weeklyPlans.clientId,
+        weekStartDate: weeklyPlans.weekStartDate,
+        status: weeklyPlans.status,
+      })
+      .from(weeklyPlans)
+      .where(eq(weeklyPlans.clinicId, clinicId))
+      .orderBy(asc(weeklyPlans.clientId), desc(weeklyPlans.weekStartDate), desc(weeklyPlans.updatedAt)),
+    db
+      .selectDistinctOn([appointments.clientId], {
+        clientId: appointments.clientId,
+        date: appointments.date,
+        startMinute: appointments.startMinute,
+      })
+      .from(appointments)
+      .where(and(eq(appointments.clinicId, clinicId), gte(appointments.date, today)))
+      .orderBy(asc(appointments.clientId), asc(appointments.date), asc(appointments.startMinute)),
+    db
+      .selectDistinctOn([appointments.clientId], {
+        clientId: appointments.clientId,
+        date: appointments.date,
+        startMinute: appointments.startMinute,
+      })
+      .from(appointments)
+      .where(and(eq(appointments.clinicId, clinicId), lt(appointments.date, today)))
+      .orderBy(desc(appointments.clientId), desc(appointments.date), desc(appointments.startMinute)),
+  ]);
 
   const latestByClient = new Map(planRows.map((row) => [row.clientId, row]));
+  const nextAppointmentByClient = new Map(nextAppointmentRows.map((row) => [row.clientId, row]));
+  const lastAppointmentByClient = new Map(lastAppointmentRows.map((row) => [row.clientId, row]));
 
   return clientRows.map((row) => {
     const latest = latestByClient.get(row.id);
@@ -401,6 +431,8 @@ export async function listPlannableClients(clinicId: string): Promise<PlannableC
       hasProfile: row.profileId !== null,
       latestPlanStatus: latest?.status ?? null,
       latestWeekStartDate: latest?.weekStartDate ?? null,
+      nextAppointment: nextAppointmentByClient.get(row.id) ?? null,
+      lastAppointment: lastAppointmentByClient.get(row.id) ?? null,
     };
   });
 }
@@ -968,12 +1000,10 @@ export async function findSwapCandidates({
  * one query. Doing it lazily would mean a round trip every time the dietitian opens
  * a card.
  */
-export async function swapCandidatesByMeal(
+export function swapCandidatesByMealFromCatalog(
   board: Board,
-  allergens: readonly string[],
-): Promise<Record<string, SwapCandidate[]>> {
-  const catalog = await loadCatalog(allergens);
-
+  catalog: readonly DishDetail[],
+): Record<string, SwapCandidate[]> {
   const candidates = catalog.map((dish) => ({
     id: dish.id,
     slug: dish.slug,
@@ -992,7 +1022,7 @@ export async function swapCandidatesByMeal(
         candidates,
         mealType: mealTypeForSlot(meal.slotKey),
         budgetKcal: meal.budgetKcal,
-        allergens,
+        allergens: [],
         // Neither the dish already in the slot nor anything already offered as an
         // alternative — the list must never suggest what is on screen.
         excludeSlugs: [
@@ -1004,6 +1034,13 @@ export async function swapCandidatesByMeal(
   }
 
   return byMeal;
+}
+
+export async function swapCandidatesByMeal(
+  board: Board,
+  allergens: readonly string[],
+): Promise<Record<string, SwapCandidate[]>> {
+  return swapCandidatesByMealFromCatalog(board, await loadCatalog(allergens));
 }
 
 /** Dish slugs used in the client's most recent plan, fed to the prompt for variety. */
