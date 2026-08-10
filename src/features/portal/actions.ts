@@ -76,8 +76,16 @@ function revalidatePortal(locale: string): void {
  * makes each of the three carry exactly the fields it needs.
  *
  * On success the client is sent back to their appointments list, where the
- * request is now listed as pending. That listing is the confirmation, and a
- * truer one than a message — it shows them the thing that now exists.
+ * request is now listed. That listing is part of the confirmation — it shows
+ * them the thing that now exists — but it is not all of it: a note lands in a
+ * section further down the page, and a client who has just pressed send and
+ * been navigated somewhere has to go looking to find out whether it worked.
+ * `?sent=1` is what the destination reads to say so in a sentence at the top.
+ *
+ * A flag in the URL rather than a flash cookie or a client-side store: the
+ * redirect is the only thing carrying state between the two screens, the
+ * message it triggers is not sensitive, and the notice simply stops appearing
+ * the next time the client navigates.
  */
 export async function requestAppointmentAction(
   _previousState: RequestFormState,
@@ -111,7 +119,7 @@ export async function requestAppointmentAction(
 
   // Outside the try/catch shape of the rest: `redirect` works by throwing, so
   // it has to be the last thing this function does.
-  redirect(`/${locale}/portal/appointments`);
+  redirect(`/${locale}/portal/appointments?sent=1`);
 }
 
 /**
@@ -129,12 +137,18 @@ export async function toggleMealCompletionAction(
   input: { mealId: string; completed: boolean; locale: string },
 ): Promise<PortalResult<{ date: string; level: AdherenceLevel | null }>> {
   const locale = localeSchema.parse(input.locale);
-  const { id: clientId, clinicId } = await requirePortalClient(locale);
+  const { id: clientId, clinicId, now } = await requirePortalClient(locale);
 
   const parsed = toggleMealCompletionSchema.safeParse({ mealId: input.mealId, completed: input.completed });
   if (!parsed.success) return { ok: false, error: 'errors.invalid' };
 
-  const result = await toggleMealCompletion({ clientId, clinicId }, parsed.data.mealId, parsed.data.completed);
+  // `now.date` is the clinic's wall-clock day, resolved once per request — the
+  // rule it feeds is in `toggleMealCompletion`: only today can be reported on.
+  const result = await toggleMealCompletion(
+    { clientId, clinicId, today: now.date },
+    parsed.data.mealId,
+    parsed.data.completed,
+  );
 
   if (result.ok) revalidatePortal(locale);
 

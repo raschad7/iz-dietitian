@@ -1,12 +1,16 @@
-import { Building2, MessageCircle, Phone } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
+import { Avatar } from '@/components/ui/avatar';
+import { buttonVariants } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Icon, type IconName } from '@/components/ui/icon';
 import { clinicContactLinks, clinicMapLink } from '@/features/portal/clinic-contact';
 import { formatClockMinute, formatWorkingDays } from '@/features/portal/clinic-hours';
 import { InfoRow } from '@/features/portal/components/info-row';
 import { ProfileSection } from '@/features/portal/components/profile-section';
 import { type PortalClinic, type PortalPractitioner } from '@/features/portal/types';
 import { type Locale } from '@/i18n/routing';
+import { cn } from '@/lib/utils';
 
 /**
  * The clinic and the dietitian looking after this client, plus the one thing
@@ -48,78 +52,136 @@ export function ClinicSection({
 
   return (
     <ProfileSection
-      icon={Building2}
+      icon="clinicOutline"
       title={t('section.clinic')}
       description={t('section.clinicDescription')}
+      lead={practitioner ? <PractitionerTile practitioner={practitioner} /> : null}
       action={
         tel || whatsapp || map ? (
-          <div className="flex flex-wrap items-center gap-2 pt-1">
+          /*
+            **Calling is the action; the other two are alternatives to it.** The
+            phone gets a full-width row of its own and the map and WhatsApp share
+            the one below, so the group says which control answers "I need to
+            reach my clinic" without three identical boxes making the reader pick.
+            §Buttons puts the primary at the inline-start of a group — here it is
+            simply first, which is the same thing one row up.
+
+            Below `sm` the pair stacks too: two 150px buttons on a 375px screen
+            put "عرض على الخريطة" on two lines, and a label that needs two lines
+            is one the system does not allow.
+          */
+          <div className="flex flex-col gap-3 pt-1">
             {/*
               Real links, not buttons: `tel:` and `wa.me` are navigations, and a
               link is what lets someone long-press to copy the number or open
-              the chat in the desktop app.
+              the chat in the desktop app. Styled with `buttonVariants` on a real
+              anchor rather than `<Button render={<Link/>}>` — Base UI's Button
+              warns when it renders anything but a `<button>`, and silently drops
+              the native semantics with it.
             */}
-            {tel ? <ContactLink href={tel} icon={Phone} label={t('callClinic')} primary /> : null}
+            {tel ? <ContactLink href={tel} icon="phoneOutline" label={t('callClinic')} /> : null}
 
-            {whatsapp ? (
-              <ContactLink
-                href={whatsapp}
-                icon={MessageCircle}
-                label={t('whatsappClinic')}
-                // Opens WhatsApp, which is another origin — so it leaves this
-                // tab intact and carries the usual protection against it.
-                external
-              />
-            ) : null}
+            {map || whatsapp ? (
+              <div className="flex flex-col gap-3 sm:flex-row">
+                {map ? (
+                  <ContactLink
+                    href={map}
+                    icon="mapOutline"
+                    label={t('openMap')}
+                    variant="outline"
+                    external
+                  />
+                ) : null}
 
-            {map ? (
-              <a
-                href={map}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex min-h-11 items-center px-1 text-sm font-medium text-primary underline-offset-4 hover:underline"
-              >
-                {t('openMap')}
-              </a>
+                {whatsapp ? (
+                  <ContactLink
+                    href={whatsapp}
+                    icon="chatOutline"
+                    label={t('whatsappClinic')}
+                    variant="neutral"
+                    // Opens WhatsApp, which is another origin — so it leaves
+                    // this tab intact and carries the usual protection with it.
+                    external
+                  />
+                ) : null}
+              </div>
             ) : null}
           </div>
         ) : null
       }
     >
-      <InfoRow label={t('field.clinicName')} value={clinic.name} />
-      <InfoRow label={t('field.practitioner')} value={practitioner?.name ?? null} />
-      <InfoRow label={t('field.specialty')} value={practitioner?.specialty ?? null} />
-      <InfoRow label={t('field.clinicPhone')} value={clinic.phone} ltr />
-      <InfoRow label={t('field.clinicAddress')} value={clinic.address} block />
-      <InfoRow label={t('field.workingHours')} value={hours} block />
+      <InfoRow label={t('field.clinicName')} value={clinic.name} icon="clinicNameOutline" />
+      <InfoRow label={t('field.clinicPhone')} value={clinic.phone} icon="phoneOutline" ltr />
+      <InfoRow
+        label={t('field.clinicAddress')}
+        value={clinic.address}
+        icon="locationOutline"
+        block
+      />
+      <InfoRow label={t('field.workingHours')} value={hours} icon="clockOutline" block />
     </ProfileSection>
+  );
+}
+
+/**
+ * The assigned dietitian, as a person rather than as two more rows.
+ *
+ * A name and a specialty read as record fields in a `<dl>`; the point of this
+ * section is that a person is looking after you, so they get a face and the
+ * space around it. `Card variant="tile"` is the system's "an item inside a card
+ * that is its own thing" — plain radius, muted fill, no second ring or shadow
+ * stacked on the card containing it (§Cards).
+ *
+ * It replaces the `practitioner` / `specialty` rows that used to sit in the list
+ * below, rather than joining them — the same two facts drawn twice would be the
+ * section answering "who is looking after me" in two places.
+ *
+ * Rendered only when someone is assigned: a clinic with nobody assigned yet gets
+ * no tile at all, instead of one saying nobody is.
+ */
+function PractitionerTile({ practitioner }: { practitioner: PortalPractitioner }) {
+  return (
+    <Card variant="tile" className="flex-row items-center gap-3">
+      <Avatar name={practitioner.name} color={practitioner.color} size="lg" />
+
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-heading text-base leading-snug font-semibold">
+          {practitioner.name}
+        </p>
+        {practitioner.specialty ? (
+          <p className="truncate text-sm text-muted-foreground">{practitioner.specialty}</p>
+        ) : null}
+      </div>
+    </Card>
   );
 }
 
 function ContactLink({
   href,
-  icon: Icon,
+  icon,
   label,
-  primary = false,
+  variant = 'default',
   external = false,
 }: {
   href: string;
-  icon: typeof Phone;
+  icon: IconName;
   label: string;
-  primary?: boolean;
+  variant?: 'default' | 'neutral' | 'outline';
   external?: boolean;
 }) {
   return (
     <a
       href={href}
       {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-      className={`inline-flex min-h-11 items-center gap-2 rounded-[10px] rounded-ee-xl px-3.5 text-sm font-medium transition-all duration-200 ease-[cubic-bezier(.2,.6,.2,1)] hover:rounded-ee-[30px] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-focus-halo focus-visible:outline-none ${
-        primary
-          ? 'bg-primary text-primary-foreground hover:bg-primary/80'
-          : 'bg-secondary text-secondary-foreground hover:bg-status-on-track-bg'
-      }`}
+      /*
+        `w-full` fills the row on a phone, which is what the reference draws.
+        §Buttons' `max-w-80` still caps it at 320px on a wide screen — a control
+        stretched across 768px is a target the size of a paragraph, and that cap
+        is the system's answer to it rather than something to override here.
+      */
+      className={cn(buttonVariants({ variant }), 'w-full')}
     >
-      <Icon className="size-4 shrink-0" strokeWidth={1.9} aria-hidden="true" />
+      <Icon name={icon} className="size-5 shrink-0" />
       {label}
     </a>
   );

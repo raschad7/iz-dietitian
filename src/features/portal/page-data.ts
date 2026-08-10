@@ -31,7 +31,7 @@ import {
   listPortalRequests,
 } from './queries';
 import { type RequestSearchInput } from './schema';
-import { selectableDays, REQUEST_WINDOW_DAYS } from './slots';
+import { availableSlots, selectableDays, REQUEST_WINDOW_DAYS } from './slots';
 import { type PortalContext } from './session';
 import {
   type PortalAppointment,
@@ -257,6 +257,15 @@ export type PlanPageData = {
    * ticking a meal on another day means opening it first.
    */
   completedMealIds: string[];
+  /**
+   * The clinic's own wall-clock date, `YYYY-MM-DD`.
+   *
+   * Passed down rather than read again in the component, because "is this day
+   * still open for ticking?" and "which day is marked today in the strip?" have
+   * to be the same answer — a second clock read could land either side of
+   * midnight from the first. See `dayStanding`.
+   */
+  today: string;
 };
 
 /**
@@ -324,7 +333,7 @@ export async function loadPlanPage(
   const selectedMealIds = board.days[selectedDay]?.meals.map((meal) => meal.id) ?? [];
   const completedMealIds = [...(await listMealCompletions(context.id, selectedMealIds))];
 
-  return { board, days, selectedDay, completedMealIds };
+  return { board, days, selectedDay, completedMealIds, today: context.now.date };
 }
 
 /**
@@ -376,17 +385,19 @@ export async function loadProfilePage(context: PortalContext): Promise<ProfilePa
 }
 
 /**
- * Everything the request form needs: which days have room, and which one is
- * open.
+ * Everything the request form needs: which days have room, which one is open,
+ * and the times still free on it.
  *
- * Not which *times* are free — a client asks for a day and the dietitian sets
- * the hour, so the page has no time picker to feed. `selectableDays` still
- * computes each day's `openCount` internally, because "has this day any room at
- * all" is exactly what decides whether it can be chosen.
+ * **One day's times, not the month's.** `selectableDays` already computes every
+ * day's `openCount` — that is what decides whether a day can be chosen at all —
+ * but only the chosen day's actual start times are returned. Sending all thirty
+ * days' times would hand each client a map of when everybody else is booked,
+ * and it is why choosing a day is a navigation rather than a filter applied in
+ * the browser.
  *
- * A cancellation proposes no day either, so it skips the slot work entirely —
- * loading a month of the clinic's bookings to render a form with no date picker
- * on it would be pure waste.
+ * A cancellation proposes neither, so it skips the slot work entirely — loading
+ * a month of the clinic's bookings to render a form with no picker on it would
+ * be pure waste.
  */
 export async function loadRequestPage(
   context: PortalContext,
@@ -401,8 +412,20 @@ export async function loadRequestPage(
   // rather than 404ing keeps a stale link useful.
   const kind: RequestKind = search.kind !== 'new' && appointment ? search.kind : 'new';
 
-  if (kind === 'cancel') {
-    return { kind, appointment, days: [], selectedDate: context.now.date };
+  // Neither of these proposes a time, so neither needs the calendar: a `new`
+  // request is a note the dietitian reads, and a `cancel` names the appointment
+  // it is about and nothing more. Returning early skips the clinic's hours, a
+  // month of bookings and the whole slot computation for the one kind the
+  // portal actually links to.
+  if (kind === 'new' || kind === 'cancel') {
+    return {
+      kind,
+      appointment,
+      days: [],
+      selectedDate: context.now.date,
+      slots: [],
+      selectedStartMinute: null,
+    };
   }
 
   const hours = await requireHours(context.clinicId);
@@ -428,5 +451,20 @@ export async function loadRequestPage(
   const selectedDate =
     (fromUrl ?? days.find((day) => day.openCount > 0) ?? days[0])?.date ?? context.now.date;
 
-  return { kind, appointment, days, selectedDate };
+  // The chosen day's own times, from the same call and the same rules that
+  // produced its `openCount` — so the strip cannot say a day has four times
+  // free while the list below it offers three.
+  const slots = availableSlots({ ...slotInput, date: selectedDate });
+
+  return {
+    kind,
+    appointment,
+    days,
+    selectedDate,
+    slots,
+    // The earliest open time, mirroring how the day above it is chosen. A day
+    // with nothing free selects nothing, and the form refuses to submit rather
+    // than sending an hour the clinic never offered.
+    selectedStartMinute: slots[0] ?? null,
+  };
 }

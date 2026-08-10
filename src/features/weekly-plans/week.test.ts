@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { currentSunday, formatDateParts, nextSunday, weekDates } from './week';
+import { currentSunday, dayStanding, formatDateParts, nextSunday, weekDates } from './week';
 
 describe('nextSunday', () => {
   test('returns today when today is Sunday', () => {
@@ -80,5 +80,42 @@ describe('weekDates', () => {
 
   test('returns nothing for a malformed date rather than Invalid Date strings', () => {
     expect(weekDates('not-a-date')).toEqual([]);
+  });
+});
+
+describe('dayStanding', () => {
+  const TODAY = '2026-08-05';
+
+  test('the clinic’s own date is today', () => {
+    expect(dayStanding(TODAY, TODAY)).toBe('today');
+  });
+
+  test('yesterday is past and tomorrow is future', () => {
+    expect(dayStanding('2026-08-04', TODAY)).toBe('past');
+    expect(dayStanding('2026-08-06', TODAY)).toBe('future');
+  });
+
+  test('compares across months and years without arithmetic', () => {
+    // String comparison on zero-padded ISO is chronological, which is the whole
+    // reason this takes dates rather than Date objects.
+    expect(dayStanding('2026-07-31', '2026-08-01')).toBe('past');
+    expect(dayStanding('2027-01-01', '2026-12-31')).toBe('future');
+    expect(dayStanding('2026-09-01', '2026-08-31')).toBe('future');
+  });
+
+  test('a day either side of today is decided by the date alone', () => {
+    // The guard that matters: `today` is a calendar date with no time in it, so
+    // there is no hour at which yesterday can still read as today. If this ever
+    // takes an instant again, this is the test that will stop it.
+    expect(dayStanding('2026-08-05', '2026-08-05')).toBe('today');
+    expect(dayStanding('2026-08-05', '2026-08-06')).toBe('past');
+    expect(dayStanding('2026-08-05', '2026-08-04')).toBe('future');
+  });
+
+  test('an undatable day is past, never today', () => {
+    // `date` is null only when the plan's week_start_date is unreadable. A day
+    // nobody can place on a calendar must not be the one day that opens for
+    // writing.
+    expect(dayStanding(null, TODAY)).toBe('past');
   });
 });

@@ -1,0 +1,95 @@
+import { Icon } from '@/components/ui/icon';
+import { cn } from '@/lib/utils';
+
+/**
+ * The tick itself, drawn without any opinion about whether it can be pressed.
+ *
+ * It exists because the same mark is now drawn two ways: as the face of a button
+ * on today, and as a plain statement of record on a day that has already
+ * happened. Those are different components — one ships to the browser, one never
+ * does — and a meal a client ticked this morning must not look like a different
+ * kind of tick tomorrow, so the drawing lives in one place and only its wrapper
+ * changes.
+ *
+ * **No colour of its own.** The tick paints in `currentColor`, so the caller
+ * decides: olive-500 against today's neutral shell, olive-700 against the olive
+ * one a completed past meal wears. Both pairs are measured — see `MealCheck` and
+ * `SETTLED_SHELL` — and neither could be a default here without being wrong on
+ * the other surface.
+ *
+ * Deliberately **not** a client component, and there is no `'use client'` above:
+ * a module without the directive can be imported from both sides, which is what
+ * lets a past day's plan reach the phone as pure HTML.
+ */
+export function MealCheckMark({ checked }: { checked: boolean }) {
+  return (
+    /*
+      `check` is `solar:check-circle-bold` — a filled circle with the tick cut
+      *out* of it (`fill-rule="evenodd"`), so the tick paints as whatever sits
+      behind the glyph. White behind it is therefore the only way to get a white
+      tick; against a tinted shell the knockout would be a pale tick on a
+      coloured circle.
+
+      **The white has to be smaller than the circle, not the same size.** That
+      circle is `r=10` in a 24 viewBox, so it covers 20/24 of the glyph's box and
+      leaves an eighth of it empty at the edge — a full-size white disc behind a
+      28px icon showed as a 2px white ring around the green. A 20px disc is
+      comfortably inside the circle's 23.3px and comfortably outside the tick's
+      ~9×7px, so the colour reaches its own edge and the only white left is the
+      tick itself.
+    */
+    <span className="relative grid size-7 place-items-center">
+      {checked ? (
+        <>
+          <span aria-hidden className="absolute size-5 rounded-full bg-card" />
+          <Icon name="check" className="relative size-7" />
+        </>
+      ) : (
+        // Unchecked is an empty ring rather than a faint glyph: an outline reads
+        // as "not yet", where a grey tick reads as a disabled one. 24px against
+        // the checked circle's 23.3px, so the mark does not resize as it is
+        // tapped.
+        <span className="size-6 rounded-full border-2 border-muted-foreground/45 bg-card" />
+      )}
+    </span>
+  );
+}
+
+/**
+ * The same mark on a day that has already happened: a record, not a control.
+ *
+ * **`role="img"`, not a disabled checkbox.** A checkbox — even one marked
+ * read-only — is a widget, and announcing one on a day nobody can change invites
+ * the exact attempt the screen is refusing. This is a picture of what was
+ * reported, so it says so in a sentence and takes no part in the tab order. The
+ * label is the whole state in words, because the difference between a filled
+ * circle and an empty one is the one thing a screen reader cannot infer.
+ *
+ * It keeps the button's 44px footprint even though nothing here is a target. The
+ * tick leads every row at the inline-start precisely so a column of five can be
+ * read straight down the margin, and a settled day whose marks sat 10px further
+ * in would break that line the moment a client stepped back a day.
+ *
+ * No hover, no cursor, no focus ring — the three things that would make it look
+ * pressable are all absent, which is the visual half of the same statement.
+ */
+export function SettledMealCheck({
+  checked,
+  label,
+  className,
+}: {
+  checked: boolean;
+  label: string;
+  /** The tick's colour, which depends on the shell the card is wearing. */
+  className?: string;
+}) {
+  return (
+    <span
+      role="img"
+      aria-label={label}
+      className={cn('grid size-11 shrink-0 place-items-center', className)}
+    >
+      <MealCheckMark checked={checked} />
+    </span>
+  );
+}

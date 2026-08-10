@@ -634,7 +634,8 @@
   --commitment-card-stat: var(--olive-700);
 
   /*
-   * The meal card's surface — one tone for every meal.
+   * The meal card's surface — one tone for every meal, and the day-total tile
+   * above the list takes the same pair so the screen reads as one material.
    *
    * This deliberately does not vary by meal. Colour here would have to come from
    * somewhere, and every categorical palette in this system is spoken for: amber
@@ -644,15 +645,35 @@
    * but read as five weights of importance on five meals that are equally
    * important — so the meals are one surface, and the icon tells them apart.
    *
-   * Measured, not eyeballed: 8.92:1, comfortably AA, which it must be because the
-   * meal name sits on the tint. Inverted for the icon disc, where it is the same
-   * pair the other way round and therefore the same ratio.
+   * **Warm neutral, not olive.** It was olive-100/olive-800, and on a screen that
+   * is a stack of five of these plus the day tile, the tint was most of what you
+   * saw — brand colour used as the page's material rather than as its marking.
+   * §Colour's rule is that olive marks what you can act on, and a plan where the
+   * surface, the total and the tick were all olive had spent it on the two things
+   * you cannot. The neutral ramp gives it back: the tick is now the only olive
+   * left on the list, which is exactly the job olive has.
+   *
+   * **n-50, one step off the canvas.** It went olive-100 → n-100 → here, and the
+   * last step is the one that makes the card read as paper rather than as a
+   * filled block: n-100 is a tint you notice, n-50 is a surface you don't.
+   *
+   * Measured, not eyeballed:
+   *
+   * - n-900 on n-50 is **15.81:1**, up from the olive pair's 8.92:1.
+   * - n-50 on the n-0 canvas is **1.09:1**, so the fill is not what separates the
+   *   card from the page — `Card`'s own `ring-1 ring-foreground/10` hairline is,
+   *   and it is load-bearing here in exactly the way the rail's divider is (§14).
+   *   Lighten this any further and the ring is doing the whole job alone.
+   * - The olive-500 tick on it is **3.19:1**, which clears the 3:1 a graphical
+   *   mark needs — it measured 2.96:1 on olive-100 *and* on n-100, both under.
+   *   Lifting the shell is what finally fixed that, so the one olive left on this
+   *   screen is also the first version of it that passes.
    *
    * Not remapped for dark mode, matching §15's rule for status: only bg, text
    * and border tokens remap, so the verified pair stays intact.
    */
-  --meal-bg: var(--olive-100);
-  --meal-fg: var(--olive-800);
+  --meal-bg: var(--n-50);
+  --meal-fg: var(--n-900);
 
   /* Data visualisation comfort band */
   --viz-band-range: var(--lime-300);

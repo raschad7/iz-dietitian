@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { isoDateSchema, uuidSchema } from '@/features/booking/schema';
+import { isoDateSchema, startMinuteSchema, uuidSchema } from '@/features/booking/schema';
 import { defaultLocale, locales } from '@/i18n/routing';
 
 import {
@@ -30,6 +30,16 @@ function blankToUndefined(value: unknown): unknown {
 const noteSchema = z.preprocess(blankToUndefined, z.string().trim().max(500).optional());
 
 /**
+ * The note on a `new` request, which is the whole request.
+ *
+ * Required rather than optional, and the only required field on that branch: a
+ * client asking for an appointment now writes a sentence instead of picking a
+ * slot, so an empty one would file a row saying nothing at all. `min(1)` after
+ * the trim, so whitespace is not a message.
+ */
+const requiredNoteSchema = z.preprocess(blankToUndefined, z.string().trim().min(1).max(500));
+
+/**
  * A request to book, move, or cancel.
  *
  * Discriminated on `kind`, because the three carry genuinely different payloads
@@ -37,27 +47,31 @@ const noteSchema = z.preprocess(blankToUndefined, z.string().trim().max(500).opt
  * this one need?" question into the mutation, where the database check
  * constraints would be the only thing left enforcing it.
  *
- * **A client names a day, never a time.** Which hour they are seen at is the
- * dietitian's call — it depends on how long the consultation needs, what else
- * is on that day, and who else is waiting, none of which the client can see. So
- * there is no `preferredStartMinute` here, and its absence is the enforcement:
- * a crafted post cannot smuggle one in, because the schema has nowhere to put
- * it. The dietitian sets the time when they approve, from `/app/requests`.
+ * **A `new` request is a note and nothing else.** The client used to pick a day
+ * and an hour from the clinic's real availability; they now write to their
+ * dietitian, who decides when to see them and books it. That is a smaller
+ * promise honestly kept — the old form let a client name a time that the
+ * dietitian was always free to overrule, so the picking was work that produced
+ * a preference rather than an appointment.
  *
- * That is also why `startMinuteSchema` is no longer imported in this module. It
- * still governs the staff side, where a time genuinely is chosen — see
- * `src/features/requests/schema.ts`.
+ * `reschedule` still names a whole time, because naming a different hour is the
+ * entire content of one, and `cancel` still names none.
+ *
+ * Shape only, as everywhere in this file. That a named minute is *still* free —
+ * and that the date is inside the month a client may ask within — are questions
+ * about the clinic's calendar, so `createAppointmentRequest` answers them
+ * against rows read at write time.
  */
 export const appointmentRequestSchema = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal(REQUEST_KINDS[0]),
-    preferredDate: isoDateSchema,
-    note: noteSchema,
+    note: requiredNoteSchema,
   }),
   z.object({
     kind: z.literal(REQUEST_KINDS[1]),
     appointmentId: uuidSchema,
     preferredDate: isoDateSchema,
+    preferredStartMinute: startMinuteSchema,
     note: noteSchema,
   }),
   z.object({

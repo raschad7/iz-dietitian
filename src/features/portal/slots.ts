@@ -48,6 +48,35 @@ export const REQUEST_DURATION_MINUTES = DEFAULT_DURATION_MINUTES;
 /** How far ahead the portal lets a client look. Beyond a month is not a request, it is a guess. */
 export const REQUEST_WINDOW_DAYS = 30;
 
+/**
+ * The last date a client may ask for: today plus the window, inclusive of
+ * today. Thirty days offered means today and the twenty-nine after it.
+ */
+export function lastRequestableDate(today: IsoDate, days = REQUEST_WINDOW_DAYS): IsoDate {
+  return addDays(today, days - 1);
+}
+
+/**
+ * Whether a date falls inside the month a client may ask within.
+ *
+ * **This is the rule, not the date strip.** The strip only renders
+ * {@link selectableDays}, and a form posts whatever it is given — so without a
+ * check on the write, a crafted request could name a date six months out and
+ * land in the dietitian's inbox looking exactly like a real one. Nothing else
+ * would have caught it: `availableSlots` asks whether the clinic is open and
+ * whether the time is free, and a Tuesday next spring is both.
+ *
+ * ISO dates compare lexicographically in date order, which is why this is a
+ * string comparison rather than two `Date` constructions.
+ */
+export function isWithinRequestWindow(
+  date: IsoDate,
+  today: IsoDate,
+  days = REQUEST_WINDOW_DAYS,
+): boolean {
+  return date >= today && date <= lastRequestableDate(today, days);
+}
+
 export type SlotInput = {
   date: IsoDate;
   hours: ClinicHours;

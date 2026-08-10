@@ -8,7 +8,6 @@ import { MealCheck } from '@/features/weekly-plans/components/meal-check';
 import { usePlanDayCompletion } from '@/features/weekly-plans/components/plan-day-completion';
 import { mealTypeForSlot, type MealType } from '@/features/weekly-plans/schema';
 import { type Locale } from '@/i18n/routing';
-import { formatNumber } from '@/lib/format';
 
 /**
  * The home screen's own hero: today's completion figure on the commitment
@@ -100,7 +99,7 @@ const percentageParts =
         part.type === 'percent' ? (
           <span
             key={index} 
-            className="ml-1 align-middle text-2xl font-semibold"
+            className="ms-1 align-middle text-2xl font-semibold"
           >
             {part.value}
           </span>

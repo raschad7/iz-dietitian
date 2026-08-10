@@ -28,14 +28,18 @@ import { cn } from '@/lib/utils';
  * because the options are not a fixed width in two languages and an animated
  * offset would need measuring on every locale change.
  *
- * `shape="pill"` is the phone form: a filled cream track spanning the row with
- * two equal halves inside it, both fully rounded. It exists because a switch
- * that is the *first* thing on a screen — the portal's upcoming/past
- * appointments — is being aimed at with a thumb rather than a pointer, and a
- * 40px control hugging its own labels in the corner is neither findable nor
- * comfortably tappable. The track drops its hairline in this shape: at full
- * width the fill already draws the boundary, and the border only added a second
- * edge around it. Same tokens, same states, same semantics as `default`.
+ * `shape="pill"` is the phone form: a track spanning the row with two equal
+ * halves inside it. It exists because a switch that is the *first* thing on a
+ * screen — the portal's upcoming/past appointments — is being aimed at with a
+ * thumb rather than a pointer, and a 40px control hugging its own labels in the
+ * corner is neither findable nor comfortably tappable.
+ *
+ * The track is a card rather than a sunken well: white, hairline, the card
+ * shadow. A cream track on a white page drew a grey slab across the top of the
+ * screen, and the switch read as a strip of background rather than as the
+ * control it is. Raising it puts it on the same plane as the cards it filters,
+ * which is the truth about what it does. Same tokens, same states, same
+ * semantics as `default`.
  */
 type SegmentedOption<T extends string> = {
   value: T;
@@ -81,7 +85,7 @@ function Segmented<T extends string>({
          * a width on the caller: two equal halves is what makes this shape
          * readable as one switch instead of two chips.
          */
-        pill && 'w-full rounded-full border-transparent bg-muted p-1',
+        pill && 'w-full rounded-lg border-transparent bg-card p-1 shadow-card ring-1 ring-foreground/10',
         /*
          * `sm` is pinned to 40px so the control matches `Button size="sm"` and
          * a 40px field beside it — the height is set on the *track*, and the
@@ -114,19 +118,31 @@ function Segmented<T extends string>({
               // `h-full`: the track owns the height (see above), the option
               // owns its inline padding.
               size === 'sm' ? 'h-full px-4 text-label' : 'px-3 py-2 text-body-md',
-              pill && 'h-11 flex-1 rounded-full px-3 py-0 font-semibold',
+              // 12px, which is the track's 16px less the 4px of padding around
+              // it: concentric, so the half sits inside the track rather than
+              // looking pasted onto it.
+              pill && 'relative h-11 flex-1 rounded-[12px] px-3 py-0 font-semibold',
               // `activeClassName` rather than the olive literal, so a caller can
               // repaint the selected half; it defaults to that same olive, which
               // is what every shape draws unless told otherwise.
               active
                 ? cn(activeClassName, 'scale-100 shadow-card')
                 : pill
-                  ? // An unselected half sits on the track, not on the page, so
-                    // `muted-foreground` on `muted` is the one pairing to avoid
-                    // here — it measures under 4.5:1. Full-strength foreground
-                    // instead, with the weight and the fill carrying the state.
-                    'scale-[0.99] text-foreground hover:scale-100 hover:bg-card'
-                  : 'scale-[0.99] text-muted-foreground hover:scale-100 hover:bg-secondary hover:text-secondary-foreground',
+                  ? // The track is white now, so an unselected half can take
+                    // `muted-foreground` (6.38:1 there) and let the selected one
+                    // hold the colour. On the old cream track that pairing was
+                    // the one to avoid — it measured under 4.5:1 — and this half
+                    // had to carry full-strength foreground instead.
+                    //
+                    // The `scale-[0.99] hover:scale-100` this line carried on
+                    // `main` is deliberately not merged: it grew the half under
+                    // the pointer, and geometry here does not move (§Shape —
+                    // "hover is carried by the ring and the fill instead"). On
+                    // the cream track it was also compensating for a hover fill
+                    // that barely registered; on the white one the fill does the
+                    // work on its own.
+                    'text-muted-foreground hover:bg-muted hover:text-foreground'
+                  : 'text-muted-foreground hover:bg-secondary hover:text-secondary-foreground',
             )}
           >
             {option.label}

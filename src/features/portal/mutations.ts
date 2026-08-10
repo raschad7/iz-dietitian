@@ -27,7 +27,7 @@ import {
   type DataUpdateRequestInput,
   type NotificationSettingInput,
 } from './schema';
-import { availableSlots } from './slots';
+import { availableSlots, isWithinRequestWindow } from './slots';
 import {
   type ClientRequestKind,
   type ContactMethod,
@@ -56,7 +56,13 @@ export type PortalWriteContext = {
 /**
  * Files a request with the dietitian.
  *
- * The preferred time is re-checked here against rows read now, not against
+ * **A `new` request touches the calendar not at all.** It carries a note and
+ * nothing else, so there is no window to check, no slot to prove open and
+ * nothing that could have changed since the form rendered — the whole of it is
+ * the sentence the client wrote. Everything below about times applies to a
+ * `reschedule`, which is the only kind that still names one.
+ *
+ * That preferred time is re-checked here against rows read now, not against
  * whatever the form was rendered from — a slot can be taken between the page
  * loading and the button being pressed. Offering a time and then accepting a
  * request for it that can never be approved would be worse than saying so.
@@ -92,38 +98,38 @@ export async function createAppointmentRequest(
     if (hasEnded(existing, now)) return { ok: false, error: 'errors.pastAppointment' };
   }
 
-  if (input.kind !== 'cancel') {
-    const available = await hasOpenSlot(context, input.preferredDate, {
-      excludeAppointmentId: input.kind === 'reschedule' ? input.appointmentId : null,
+  if (input.kind === 'reschedule') {
+    // The month rule, applied to the write rather than to the strip that
+    // renders it — see `isWithinRequestWindow`. Checked before the calendar is
+    // read, because a date a year out is refused whatever the clinic's rota
+    // says about it.
+    if (!isWithinRequestWindow(input.preferredDate, now.date)) {
+      return { ok: false, error: 'errors.outsideWindow' };
+    }
+
+    // The exact minute, not merely "this day has something free". The client
+    // named an hour, so that hour is what has to still be open — a day with a
+    // free 09:00 is not an answer to someone who asked for 14:00, and letting
+    // it through would file a request the dietitian could not approve as asked.
+    const open = await openSlotsOn(context, input.preferredDate, {
+      excludeAppointmentId: input.appointmentId,
     });
 
-    if (!available) return { ok: false, error: 'errors.slotUnavailable' };
+    if (!open.includes(input.preferredStartMinute)) {
+      return { ok: false, error: 'errors.slotUnavailable' };
+    }
   }
 
-  /**
-   * One open request per day for a brand-new appointment.
-   *
-   * The database index only covers requests that name an appointment, because a
-   * `new` request names none. Without this check a client could fill the
-   * dietitian's inbox with the same ask; with it, the second attempt is told
-   * plainly that the first is still waiting.
-   */
-  if (input.kind === 'new') {
-    const [duplicate] = await db
-      .select({ id: appointmentRequests.id })
-      .from(appointmentRequests)
-      .where(
-        and(
-          eq(appointmentRequests.clientId, clientId),
-          eq(appointmentRequests.status, 'pending'),
-          eq(appointmentRequests.kind, 'new'),
-          eq(appointmentRequests.preferredDate, input.preferredDate),
-        ),
-      )
-      .limit(1);
+  /*
+    No duplicate check on a `new` request any more.
 
-    if (duplicate) return { ok: false, error: 'errors.alreadyRequested' };
-  }
+    There used to be one: a client with a pending request for a given day was
+    refused a second, because two identical asks in the inbox meant the
+    dietitian could approve the same thing twice. A note is not answered, so
+    there is nothing to approve twice — and a client with something else to say
+    a week later is not making a mistake the database should catch. They pile
+    up, oldest to newest, which is what a message to your dietitian should do.
+  */
 
   try {
     const [created] = await db
@@ -133,15 +139,12 @@ export async function createAppointmentRequest(
         clientId,
         kind: input.kind,
         appointmentId: input.kind === 'new' ? null : input.appointmentId,
-        preferredDate: input.kind === 'cancel' ? null : input.preferredDate,
-        /**
-         * Always null from this side. The column stays on the table because the
-         * dietitian's inbox reads it — rows filed before clients stopped naming
-         * a time still carry one — and because the check constraint only
-         * requires that a non-cancellation propose *something*, which the date
-         * above satisfies. See `appointmentRequestSchema`.
-         */
-        preferredStartMinute: null,
+        // Only a reschedule proposes a time — it is the whole content of one,
+        // and it was proved open a few lines above. A `new` request is a note
+        // and a cancellation is an ask about a slot that already exists, so
+        // both write null here, which is what `preferred_matches_kind` expects.
+        preferredDate: input.kind === 'reschedule' ? input.preferredDate : null,
+        preferredStartMinute: input.kind === 'reschedule' ? input.preferredStartMinute : null,
         note: input.note ?? null,
       })
       .returning({ id: appointmentRequests.id });
@@ -446,7 +449,7 @@ export async function recomputeDayAdherence(
  * meal ticked against a day whose level has not caught up with it yet.
  */
 export async function toggleMealCompletion(
-  { clientId, clinicId }: { clientId: string; clinicId: string },
+  { clientId, clinicId, today }: { clientId: string; clinicId: string; today: string },
   mealId: string,
   completed: boolean,
 ): Promise<PortalResult<{ date: string; level: AdherenceLevel | null }>> {
@@ -470,6 +473,21 @@ export async function toggleMealCompletion(
     const date = weekDates(meal.weekStartDate)[meal.dayOfWeek];
     if (!date) return { ok: false, error: 'errors.unexpected' };
 
+    /*
+      Only today may be reported on, and this is where that rule is actually
+      enforced — the portal hides the control on every other day, but a server
+      action is a public endpoint (see the header of `actions.ts`) and a hidden
+      button is a courtesy, not a guard.
+
+      The date compared is the one derived from the meal itself two lines above,
+      never a date the caller sent, so a crafted post cannot claim yesterday's
+      breakfast belongs to today. Both sides are zero-padded ISO calendar dates
+      and `today` is the clinic's wall clock, so the comparison is date-only and
+      does not shift with the hour — the same contract `dayStanding` documents
+      for the screen that draws it.
+    */
+    if (date !== today) return { ok: false, error: 'errors.dayLocked' };
+
     const level = await db.transaction(async (tx) => {
       if (completed) {
         await tx.insert(weeklyPlanMealCompletions).values({ clinicId, clientId, mealId }).onConflictDoNothing();
@@ -490,40 +508,41 @@ export async function toggleMealCompletion(
 }
 
 /**
- * Whether that day still has room for this client, judged by the shared slot
- * rules.
+ * The start times still open to this client on one date, judged by the shared
+ * slot rules.
  *
- * A day rather than a time, because a client names a day and nothing finer —
- * see the header of `appointmentRequestSchema`. This asks the one question that
- * remains answerable: is there any start time on that date this client could be
- * given? A closed day, a fully booked one, a day already past, or one they
- * already have an appointment on all answer no, and each of them would make the
- * request an inbox item the dietitian could only decline.
+ * The times themselves rather than a yes/no, because a client now names an
+ * hour and that hour is what has to be checked. A closed day, a fully booked
+ * one, a day already past, or one they already have an appointment on all come
+ * back empty, and each of them would otherwise make the request an inbox item
+ * the dietitian could only decline.
+ *
+ * The clinic having no opening hours at all is an empty list too: no row means
+ * nothing can be said to be open, and a request against an unknown rota is the
+ * one this refuses rather than waves through.
  *
  * It deliberately does not reserve anything. Two clients may ask for the same
- * day and both be told yes; the dietitian decides who gets which hour, and the
- * booking rules are applied for real at that point.
+ * hour and both be told yes; the dietitian decides who gets it, and the booking
+ * rules are applied for real at that point.
  */
-async function hasOpenSlot(
+async function openSlotsOn(
   { clientId, clinicId, now }: PortalWriteContext,
   date: string,
   { excludeAppointmentId }: { excludeAppointmentId: string | null },
-): Promise<boolean> {
+): Promise<number[]> {
   const [hours, existing] = await Promise.all([
     getClinicHours(clinicId),
     listClinicBookings(clinicId, date, date),
   ]);
 
-  if (!hours) return false;
+  if (!hours) return [];
 
-  return (
-    availableSlots({
-      date,
-      hours: { ...hours, workingDays: [...hours.workingDays] },
-      existing,
-      clientId,
-      now,
-      excludeAppointmentId,
-    }).length > 0
-  );
+  return availableSlots({
+    date,
+    hours: { ...hours, workingDays: [...hours.workingDays] },
+    existing,
+    clientId,
+    now,
+    excludeAppointmentId,
+  });
 }
