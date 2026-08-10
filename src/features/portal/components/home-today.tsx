@@ -86,7 +86,31 @@ const percentageParts =
   );
 
   return (
-<div className="flex min-h-[150px] w-full items-center justify-between rounded-[30px] bg-[linear-gradient(110deg,#F1F3E8_0%,#E7EBD8_45%,#DDE5C8_100%)] px-7 py-8">      <div className="flex flex-col gap-1.5 text-caption text-commitment-card-stat">
+    /*
+      A white surface, not the cream-to-olive wash it carried.
+
+      The wash was three literal hexes in this file — the one thing the palette
+      forbids in a `.tsx` — and it was tinted olive on a screen whose glow is
+      already green behind it, so the card and its ground were the same colour
+      family and the card stopped reading as a card at all. `bg-card` is the
+      system's own surface token, which means it also inverts correctly under
+      the portal's dark theme where a pinned light gradient could not.
+
+      It takes `Card`'s hairline with it. Above `md` the glow is hidden
+      (`HomeGlow` is `md:hidden`) and the canvas is `--n-0`, so a white card on
+      it with no edge would be a card nobody could see. `ring-1
+      ring-foreground/10` is the exact edge every default `Card` draws — the
+      shape, the radius, the padding and the type here are otherwise untouched.
+
+      `mx-3` insets it from the page gutter `main` already provides (16px), so
+      the card floats in the glow with 28px of green either side of it instead
+      of running out to the same edge the heading above it starts from. It is
+      margin rather than extra padding on the column, because the heading and
+      the meal list below deliberately keep the page's own measure — only the
+      card steps in.
+    */
+    <div className="mx-3 flex min-h-[150px] items-center justify-between rounded-[30px] bg-card px-7 py-8 ring-1 ring-foreground/10">
+      <div className="flex flex-col gap-1.5 text-caption text-commitment-card-stat">
         <p>{t('caloriesCompleted', { value: completedCalories })}</p>
         <p>{tCheckIns('progress.days', { count: daysCompleted, total: daysTotal })}</p>
       </div>
@@ -173,7 +197,22 @@ export function HomeToday({
   return (
     <div className="space-y-4">
       <section className="space-y-3">
-        <p className="text-sm font-medium text-muted-foreground">{tToday('heading')}</p>
+        {/*
+          White, because this line sits on the glow rather than on the page.
+
+          ⚠ It is the system's second knowing contrast failure, alongside the
+          white-on-olive-500 button label §Buttons records. `--n-0` on the glow
+          (`#A5D66C`) measures **1.69:1**, well under the 4.5:1 a 14px label
+          needs — the wash is a light green, so white has almost nothing to
+          separate itself from. `font-semibold` is here to give the strokes
+          what weight can give them, and it does not close the gap.
+
+          The fix, if this is revisited, is a dark label rather than a white
+          one: `--secondary-foreground` (olive-700) measures 4.5:1 on the same
+          green and `--foreground` (n-900) measures 10.2:1. Both keep the line
+          on the glow exactly where it is.
+        */}
+        <p className="text-sm font-semibold text-primary-foreground">{tToday('heading')}</p>
         <TodayProgress meals={meals} daysCompleted={daysCompleted} daysTotal={daysTotal} />
       </section>
 

@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 
+import { cn } from '@/lib/utils';
 import { Icon, type IconName } from '@/components/ui/icon';
 import {
   Sidebar,
@@ -51,6 +52,18 @@ export type NavItem = {
 type ShellProps = {
   items: readonly NavItem[];
   title: string;
+  /**
+   * Whether the title is *drawn*. It stays the rail's accessible name either
+   * way — hidden, it is rendered `sr-only` rather than dropped, because a
+   * drawer a screen reader announces as nothing is worse than a redundant one.
+   *
+   * The portal turns it off. Its own `PortalHeader` already opens every tab
+   * screen with the client's name and the day, and each `(screen)` page names
+   * itself; "بوابة المشتركين" sitting above that told a client, on their own
+   * phone, which app they had just opened. The staff shell has no such header,
+   * so it keeps the title.
+   */
+  showTitle?: boolean;
   user?: { name: string; email?: string | null; locale: Locale };
   icons?: Partial<Record<NavItem['labelKey'], IconName>>;
   children: React.ReactNode;
@@ -83,10 +96,10 @@ type ShellProps = {
  * wrapper around it, which is what lets the rail stay put while only the page
  * scrolls — the property the old shell spent a fixed-height flex row on.
  */
-export function AppShell({ items, title, user, icons, children }: ShellProps) {
+export function AppShell({ items, title, showTitle = true, user, icons, children }: ShellProps) {
   return (
     <SidebarProvider>
-      <AppSidebar items={items} title={title} user={user} icons={icons} />
+      <AppSidebar items={items} title={title} showTitle={showTitle} user={user} icons={icons} />
       <SidebarInset>
         {/*
           Below `md` the rail is a sheet, and a sheet needs an opener that is
@@ -117,7 +130,7 @@ function MobileBar({ title }: { title: string }) {
   );
 }
 
-function AppSidebar({ items, title, user, icons }: Omit<ShellProps, 'children'>) {
+function AppSidebar({ items, title, showTitle = true, user, icons }: Omit<ShellProps, 'children'>) {
   const t = useTranslations('nav');
   const pathname = usePathname();
 
@@ -135,7 +148,17 @@ function AppSidebar({ items, title, user, icons }: Omit<ShellProps, 'children'>)
     <Sidebar collapsible="icon">
       <SidebarHeader className="gap-0 pb-1">
         <div className="flex h-12 items-center justify-between gap-2 px-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
-          <span className="truncate font-heading text-heading-sm font-semibold group-data-[collapsible=icon]:hidden">
+          {/*
+            `sr-only` rather than absent when hidden: the string is the rail's
+            accessible name, and the mobile drawer needs one whether or not
+            anybody is meant to read it on screen. See `showTitle`.
+          */}
+          <span
+            className={cn(
+              'truncate font-heading text-heading-sm font-semibold group-data-[collapsible=icon]:hidden',
+              !showTitle && 'sr-only',
+            )}
+          >
             {title}
           </span>
           <SidebarTrigger className="shrink-0" />

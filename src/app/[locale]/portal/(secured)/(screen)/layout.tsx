@@ -34,8 +34,19 @@ export default async function PortalScreenLayout({ children, params }: PortalScr
 
   const t = await getTranslations({ locale, namespace: 'portal' });
 
+  /*
+   * `showTitle={false}`, as in `(tabs)`: each screen in this group renders its
+   * own `PortalScreenHeader` naming itself, so the portal's own name is never
+   * drawn. The string stays as the rail's accessible name.
+   *
+   * The phone app bar is likewise absent, because `AppShell` draws it only
+   * where there is a `user`: nothing in this column offsets a `fixed` strip, so
+   * the bar used to sit on top of each screen's own `PortalScreenHeader` —
+   * including the back control that is how a client leaves a pushed screen. The
+   * header's back link is the phone navigation here.
+   */
   return (
-    <AppShell items={PORTAL_NAV} title={t('title')} icons={PORTAL_NAV_ICONS}>
+    <AppShell items={PORTAL_NAV} title={t('title')} showTitle={false} icons={PORTAL_NAV_ICONS}>
       <div className="flex min-w-0 flex-1 flex-col">{children}</div>
     </AppShell>
   );
