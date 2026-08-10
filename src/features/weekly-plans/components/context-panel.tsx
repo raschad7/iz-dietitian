@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
-import { Tooltip } from '@/components/ui/tooltip';
+import { TooltipHint } from '@/components/ui/tooltip-hint';
 import { IntakeFormTrigger } from '@/features/clients/components/intake-form-trigger';
 import { CLIENT_ACTIVITY_LEVELS, CLIENT_GOALS } from '@/features/clients/schema';
 import { type Locale } from '@/i18n/routing';
@@ -70,7 +70,7 @@ export function ContextPanel({ context, locale }: { context: ClientContext; loca
           a tooltip is unusable by keyboard and by touch alike.
         */}
         {profile ? (
-          <Tooltip label={t('editProfile')} className="shrink-0">
+          <TooltipHint label={t('editProfile')} className="shrink-0">
             <IntakeFormTrigger
               locale={locale}
               clientId={context.clientId}
@@ -79,7 +79,7 @@ export function ContextPanel({ context, locale }: { context: ClientContext; loca
             >
               <Icon name="edit" />
             </IntakeFormTrigger>
-          </Tooltip>
+          </TooltipHint>
         ) : (
           <IntakeFormTrigger
             locale={locale}

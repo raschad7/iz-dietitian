@@ -7,7 +7,7 @@ import { useFormStatus } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Icon, type IconName } from '@/components/ui/icon';
-import { Tooltip } from '@/components/ui/tooltip';
+import { TooltipHint } from '@/components/ui/tooltip-hint';
 import { type Locale } from '@/i18n/routing';
 
 type ConfirmSubmitButtonProps = {
@@ -112,7 +112,7 @@ export function ConfirmSubmitButton({
 
   return (
     <>
-      {iconOnly ? <Tooltip label={label}>{button}</Tooltip> : button}
+      {iconOnly ? <TooltipHint label={label}>{button}</TooltipHint> : button}
 
       {asking && confirmMessage ? (
         <ConfirmDialog

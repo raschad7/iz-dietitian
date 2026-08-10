@@ -13,6 +13,7 @@ import type { ReactNode } from 'react';
 
 import { DirectionProvider } from '@/components/ui/direction';
 import { Toaster } from '@/components/ui/toast';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { resolveLocale } from '@/i18n/params';
 import { getLocaleDirection, routing } from '@/i18n/routing';
 
@@ -235,7 +236,12 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
         */}
         <DirectionProvider direction={getLocaleDirection(locale)}>
           <NextIntlClientProvider>
-            {children}
+            {/*
+              One provider for the app: Base UI shares hover timing across
+              tooltips through it, so moving between two icon buttons opens the
+              second immediately instead of waiting out the delay again.
+            */}
+            <TooltipProvider>{children}</TooltipProvider>
 
             {/*
               One viewport for the whole app, mounted once here rather than per

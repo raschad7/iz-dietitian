@@ -13,7 +13,7 @@ import {
   TableRow,
   TableSortLabel,
 } from '@/components/ui/table';
-import { Tooltip } from '@/components/ui/tooltip';
+import { TooltipHint } from '@/components/ui/tooltip-hint';
 import { calculateAge } from '@/features/clients/age';
 import { ArchiveButton } from '@/features/clients/components/archive-button';
 import { ClientFormTrigger } from '@/features/clients/components/client-form-trigger';
@@ -267,7 +267,7 @@ export function ClientTable({
                 */}
                 <div className="flex items-center justify-end gap-0.5">
                   {/* Straight to this client's board — the client is the route, not a query param. */}
-                  <Tooltip label={tNav('weeklyPlans')}>
+                  <TooltipHint label={tNav('weeklyPlans')}>
                     <Link
                       href={`/app/weekly-plans/${client.id}`}
                       aria-label={tNav('weeklyPlans')}
@@ -275,9 +275,9 @@ export function ClientTable({
                     >
                       <Icon name="weeklyPlans" className="size-5" />
                     </Link>
-                  </Tooltip>
+                  </TooltipHint>
 
-                  <Tooltip label={t('edit')}>
+                  <TooltipHint label={t('edit')}>
                     <ClientFormTrigger
                       locale={locale}
                       clientId={client.id}
@@ -286,7 +286,7 @@ export function ClientTable({
                     >
                       <Icon name="edit" className="size-5" />
                     </ClientFormTrigger>
-                  </Tooltip>
+                  </TooltipHint>
 
 
                   <ArchiveButton locale={locale} clientId={client.id} archived={archived} iconOnly />

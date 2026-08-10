@@ -1,7 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
 
-import { Sidebar } from '@/components/layout/sidebar';
+import { AppShell } from '@/components/layout/sidebar';
 import { PORTAL_NAV, PORTAL_NAV_ICONS } from '@/features/portal/nav';
 import { resolveLocale } from '@/i18n/params';
 
@@ -35,10 +35,8 @@ export default async function PortalScreenLayout({ children, params }: PortalScr
   const t = await getTranslations({ locale, namespace: 'portal' });
 
   return (
-    <div className="flex flex-1">
-      <Sidebar items={PORTAL_NAV} title={t('title')} icons={PORTAL_NAV_ICONS} />
-
+    <AppShell items={PORTAL_NAV} title={t('title')} icons={PORTAL_NAV_ICONS}>
       <div className="flex min-w-0 flex-1 flex-col">{children}</div>
-    </div>
+    </AppShell>
   );
 }

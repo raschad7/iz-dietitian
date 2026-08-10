@@ -59,7 +59,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
-import { Tooltip } from '@/components/ui/tooltip';
+import { TooltipHint } from '@/components/ui/tooltip-hint';
 import type { Locale } from '@/i18n/routing';
 import { AVATAR_PALETTE } from '@/lib/avatar-color';
 
@@ -461,9 +461,9 @@ export function UiGallery({ locale }: { locale: Locale }) {
             </PopoverContent>
           </Popover>
 
-          <Tooltip label="Tooltip copy">
+          <TooltipHint label="Tooltip copy">
             <Button variant="ghost">Hover me</Button>
-          </Tooltip>
+          </TooltipHint>
         </Row>
 
         <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} label="Gallery dialog">

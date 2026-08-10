@@ -2,7 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
-import { Sidebar } from '@/components/layout/sidebar';
+import { AppShell } from '@/components/layout/sidebar';
 import { type IconName } from '@/components/ui/icon';
 import { isClinicOnboardingComplete } from '@/features/clinic-profile/queries';
 import { resolveLocale } from '@/i18n/params';
@@ -76,16 +76,15 @@ export default async function AppLayout({ children, params }: AppLayoutProps) {
       goes back to the page. Each page owns its own heading, which is where the
       `h1` lives.
     */
-    <div className="flex h-dvh overflow-hidden bg-background">
-      <Sidebar
-        items={NAV_ITEMS}
-        title={t('shortName')}
-        user={{ name: session.user.name, email: session.user.email, locale }}
-        icons={NAV_ICONS}
-      />
-      <main className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-3 pb-3 pt-[4.25rem] md:p-5">
+    <AppShell
+      items={NAV_ITEMS}
+      title={t('shortName')}
+      user={{ name: session.user.name, email: session.user.email, locale }}
+      icons={NAV_ICONS}
+    >
+      <main className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-3 md:p-5">
         {children}
       </main>
-    </div>
+    </AppShell>
   );
 }
