@@ -1,6 +1,5 @@
 import { useTranslations } from 'next-intl';
 
-import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
@@ -15,9 +14,9 @@ import {
   TableSortLabel,
 } from '@/components/ui/table';
 import { Tooltip } from '@/components/ui/tooltip';
+import { calculateAge } from '@/features/clients/age';
 import { ArchiveButton } from '@/features/clients/components/archive-button';
 import { ClientFormTrigger } from '@/features/clients/components/client-form-trigger';
-import { StatusBadge } from '@/features/clients/components/status-badge';
 import { type ClientListResult } from '@/features/clients/queries';
 import { type ClientSort, type ListClientsInput } from '@/features/clients/schema';
 import { Link } from '@/i18n/navigation';
@@ -46,19 +45,40 @@ import { cn } from '@/lib/utils';
 /**
  * Columns a reader can order the register by, in the order they appear.
  *
- * **No column is `numeric`, including phone and email.** That prop puts
- * `dir="ltr"` on the cell itself, which does keep the value's characters in
- * Latin order — but it also re-resolves `text-start` against the *cell*, so in
- * Arabic those two columns flushed left while every column beside them flushed
- * right, and the table read as two tables. The order the digits and the address
- * are written in is a property of the value, not of the column, so it is
- * isolated on the value itself below and the cell is left to follow the page.
+ * ## What is here, and what is not
+ *
+ * **Email is gone.** It was the widest column on the table and the least
+ * looked at: this clinic reaches people by phone and by WhatsApp, the portal
+ * invitation is the one thing that ever used the address, and an email is a
+ * value you copy off a record rather than one you scan a list by. It is still
+ * on the client's own card, and it is still a filter — the search toolbar can
+ * find a client by address without the register spending a fifth of its width
+ * showing all of them.
+ *
+ * **Status is gone.** It said "active" on virtually every row, which is the
+ * design system's own test for a column that marks nothing (see "A badge is a
+ * state"). Archived clients have a page of their own now, so which half of the
+ * register you are reading is a property of the page rather than of each line
+ * in it.
+ *
+ * **Age is new**, and it is the column the register was missing. It is the one
+ * fact a dietitian re-derives constantly — targets, plan sizing and what counts
+ * as a healthy range all turn on it — and it was only readable by opening the
+ * record. The dashboard's own register card has shown name, age and phone for
+ * some time; the two lists of the same people now finally agree.
+ *
+ * **No column is `numeric`, including phone.** That prop puts `dir="ltr"` on
+ * the cell itself, which does keep the value's characters in Latin order — but
+ * it also re-resolves `text-start` against the *cell*, so in Arabic that column
+ * flushed left while every column beside it flushed right, and the table read
+ * as two tables. The order the digits are written in is a property of the
+ * value, not of the column, so it is isolated on the value itself below and the
+ * cell is left to follow the page.
  */
 const COLUMNS = [
   { key: 'fullName', numeric: false },
   { key: 'phone', numeric: false },
-  { key: 'email', numeric: false },
-  { key: 'status', numeric: false },
+  { key: 'age', numeric: false },
   { key: 'portalAccess', numeric: false },
 ] as const satisfies ReadonlyArray<{ key: ClientSort; numeric: boolean }>;
 
@@ -67,11 +87,22 @@ export function ClientTable({
   input,
   filtered,
   locale,
+  basePath = '/app/clients',
+  archived = false,
 }: {
   result: ClientListResult;
   input: ListClientsInput;
   filtered: boolean;
   locale: Locale;
+  /**
+   * The route this table's own links point back at — its sort headers and its
+   * "clear filters" way out. The archive is the same table over the other half
+   * of the register, and a sort header there must not navigate to the active
+   * list.
+   */
+  basePath?: '/app/clients' | '/app/clients/archived';
+  /** Archived rows offer Restore where active ones offer Archive. */
+  archived?: boolean;
 }) {
   const t = useTranslations('clients');
   const tNav = useTranslations('nav');
@@ -79,14 +110,14 @@ export function ClientTable({
   if (result.items.length === 0) {
     return (
       <Card variant="empty" className="items-center gap-4 p-8 text-center">
-        <p>{filtered ? t('emptyFiltered') : t('empty')}</p>
+        <p>{filtered ? t('emptyFiltered') : archived ? t('archive.empty') : t('empty')}</p>
 
         {/* An empty list with no way out is a dead end; offer the next step. */}
         {filtered ? (
-          <Link href="/app/clients" className={buttonVariants({ variant: 'outline', size: 'sm' })}>
+          <Link href={basePath} className={buttonVariants({ variant: 'outline', size: 'sm' })}>
             {t('clearFilters')}
           </Link>
-        ) : (
+        ) : archived ? null : (
           <ClientFormTrigger locale={locale} className={buttonVariants({ size: 'sm' })}>
             {t('new')}
           </ClientFormTrigger>
@@ -104,7 +135,7 @@ export function ClientTable({
    * page 3 of a differently ordered list is not the same page 3.
    */
   const sortHref = (key: ClientSort) => ({
-    pathname: '/app/clients' as const,
+    pathname: basePath,
     query: {
       ...(input.q ? { q: input.q } : {}),
       ...(input.filterBy && input.filterValue
@@ -184,14 +215,36 @@ export function ClientTable({
                 Arabic direction moves a leading `+` to the wrong end of it.
               */}
               <TableCell className="tabular">
-                {client.phone ? <span dir="ltr">{client.phone}</span> : '—'}
+                {client.phone ? <span dir="ltr">{client.phone}</span> : <Missing />}
               </TableCell>
-              <TableCell>{client.email ? <span dir="ltr">{client.email}</span> : '—'}</TableCell>
-              <TableCell>
-                <StatusBadge status={client.status} />
+
+              {/*
+                Computed per render, never stored: an age is a number about
+                today, and one written into the row would be wrong the morning
+                after a birthday. A corrupt or implausible birth date reads as
+                no age at all rather than as a number nobody can explain — the
+                same rule the client's own profile card follows.
+              */}
+              <TableCell className="tabular">
+                <Age dateOfBirth={client.dateOfBirth} />
               </TableCell>
+
+              {/*
+                A glyph and a word, not a pill. `Badge` is the shape this system
+                gives a *state* worth interrupting for, and it was carrying a
+                plain yes/no on every row of a twenty-row table — twenty outlined
+                capsules saying "account". The check is the whole message; the
+                word beside it keeps the column readable without one.
+              */}
               <TableCell>
-                {client.hasPortalAccess ? <Badge variant="outline">{t('portal.title')}</Badge> : '—'}
+                {client.hasPortalAccess ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Icon name="check" className="size-4 shrink-0" />
+                    {t('portal.granted')}
+                  </span>
+                ) : (
+                  <Missing />
+                )}
               </TableCell>
 
               {/*
@@ -218,7 +271,7 @@ export function ClientTable({
                     <Link
                       href={`/app/weekly-plans/${client.id}`}
                       aria-label={tNav('weeklyPlans')}
-                      className={buttonVariants({ variant: 'ghost', size: 'icon-sm' })}
+                      className={buttonVariants({ variant: 'neutralGhost', size: 'icon-sm' })}
                     >
                       <Icon name="weeklyPlans" className="size-5" />
                     </Link>
@@ -229,19 +282,14 @@ export function ClientTable({
                       locale={locale}
                       clientId={client.id}
                       aria-label={t('edit')}
-                      className={buttonVariants({ variant: 'ghost', size: 'icon-sm' })}
+                      className={buttonVariants({ variant: 'neutralGhost', size: 'icon-sm' })}
                     >
                       <Icon name="edit" className="size-5" />
                     </ClientFormTrigger>
                   </Tooltip>
 
 
-                  <ArchiveButton
-                    locale={locale}
-                    clientId={client.id}
-                    archived={client.status === 'archived'}
-                    iconOnly
-                  />
+                  <ArchiveButton locale={locale} clientId={client.id} archived={archived} iconOnly />
                 </div>
               </TableCell>
             </TableRow>
@@ -249,5 +297,38 @@ export function ClientTable({
         </TableBody>
       </Table>
     </TableRoot>
+  );
+}
+
+/**
+ * Age from a stored birth date, or nothing.
+ *
+ * `calculateAge` returns `null` for a date it cannot believe — a corrupt row, a
+ * typo'd century — and that reads as no age at all rather than as a number
+ * nobody can explain. The same rule the client's own profile card follows.
+ */
+function Age({ dateOfBirth }: { dateOfBirth: string | null }) {
+  const t = useTranslations('clients');
+
+  const age = dateOfBirth ? calculateAge(dateOfBirth) : null;
+  if (age === null) return <Missing />;
+
+  return <>{t('yearsOld', { count: age })}</>;
+}
+
+/**
+ * A column held open with nothing in it.
+ *
+ * `aria-hidden`, because the dash is a ruling device: a screen reader
+ * announcing "dash" between a name and a phone number is worse than the silence
+ * of an empty cell, and "not recorded" said out loud on every second row would
+ * bury the rows that do have the value. The same mark, for the same reason, as
+ * the dashboard's register card.
+ */
+function Missing() {
+  return (
+    <span aria-hidden className="text-muted-foreground/60">
+      —
+    </span>
   );
 }

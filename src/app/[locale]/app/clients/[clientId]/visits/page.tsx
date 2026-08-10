@@ -1,26 +1,45 @@
-import { redirect } from '@/i18n/navigation';
-import { resolveLocale } from '@/i18n/params';
+import { getTranslations } from 'next-intl/server';
+import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
 
-type ClientVisitsIndexPageProps = {
+import { ClientVisitRecord } from '@/features/booking/components/client-visit-record';
+import { listClientVisits } from '@/features/booking/queries';
+import { getClient } from '@/features/clients/queries';
+import { resolveLocale } from '@/i18n/params';
+import { toIsoDate } from '@/lib/iso-date';
+import { requireStaffClinic } from '@/lib/session';
+
+type ClientVisitsPageProps = {
   params: Promise<{ locale: string; clientId: string }>;
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-/**
- * `/visits` is not a view of its own — day, week and month each have their
- * own address, same as the clinic-wide calendar. This sends the bare path to
- * the week, carrying any query string along.
- */
-export default async function ClientVisitsIndexPage({ params, searchParams }: ClientVisitsIndexPageProps) {
+export async function generateMetadata({ params }: ClientVisitsPageProps): Promise<Metadata> {
   const locale = await resolveLocale(params);
+  const t = await getTranslations({ locale, namespace: 'clients' });
+  return { title: `${t('tabs.visits')} · ${t('title')}` };
+}
+
+/**
+ * The Visit History tab.
+ *
+ * **This used to be a calendar**, and used to be three routes — `/visits/day`,
+ * `/visits/week` and `/visits/month`, each mounting the clinic-wide grid
+ * filtered to one client. A month grid is the wrong shape for the question this
+ * tab is asked; see the note on `ClientVisitRecord`. It is one address again,
+ * because a record has no views.
+ */
+export default async function ClientVisitsPage({ params }: ClientVisitsPageProps) {
+  const locale = await resolveLocale(params);
+  const { clinicId } = await requireStaffClinic(locale);
+
   const { clientId } = await params;
+  const client = await getClient(clinicId, clientId);
+  if (!client) notFound();
 
-  const query = new URLSearchParams();
-  for (const [key, value] of Object.entries(await searchParams)) {
-    if (typeof value === 'string') query.set(key, value);
-  }
+  const visits = await listClientVisits(clinicId, client.id);
+  // Read once here rather than inside the record, so the split between past and
+  // upcoming is measured against the same day the rest of the page is.
+  const today = toIsoDate(new Date());
 
-  const suffix = query.size > 0 ? `?${query.toString()}` : '';
-
-  redirect({ href: `/app/clients/${clientId}/visits/week${suffix}`, locale });
+  return <ClientVisitRecord visits={visits} locale={locale} today={today} />;
 }

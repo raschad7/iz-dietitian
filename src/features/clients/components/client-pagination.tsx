@@ -4,7 +4,16 @@ import { type ClientListResult } from '@/features/clients/queries';
 import { type ListClientsInput } from '@/features/clients/schema';
 import { Link } from '@/i18n/navigation';
 
-export function ClientPagination({ result, input }: { result: ClientListResult; input: ListClientsInput }) {
+export function ClientPagination({
+  result,
+  input,
+  basePath = '/app/clients',
+}: {
+  result: ClientListResult;
+  input: ListClientsInput;
+  /** The list this pager belongs to — the register, or the archive. */
+  basePath?: '/app/clients' | '/app/clients/archived';
+}) {
   const t = useTranslations('clients');
 
   if (result.pageCount <= 1) return null;
@@ -12,7 +21,7 @@ export function ClientPagination({ result, input }: { result: ClientListResult; 
   // Every filter rides along, the sort included — page 2 of a differently
   // ordered list is not the page the reader was on.
   const query = (page: number) => ({
-    pathname: '/app/clients' as const,
+    pathname: basePath,
     query: {
       ...(input.q ? { q: input.q } : {}),
       ...(input.filterBy && input.filterValue

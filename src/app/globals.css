@@ -74,6 +74,28 @@
   --n-800: #2F2E28;
   --n-900: #1C1B17;
 
+  /*
+   * ── Cool neutrals ──
+   *
+   * The second neutral family, and it is deliberately small: only the stops the
+   * app actually draws with exist. It started as four loose hexes — the rail's
+   * surface, hover and divider, plus the planner board's hairline and secondary
+   * text — repeated at the call site each time, which is exactly how a palette
+   * drifts. Naming them makes the family visible and makes a change to it one
+   * edit.
+   *
+   * `--muted` is the reason it is no longer rail-and-planner only. The sunken
+   * fill is the app's most-repeated surface — every table header, every zebra
+   * row, every read-only field — and drawn in the warm n-50 it tinted those
+   * surfaces cream against a white canvas. Cool, it reads as a shade of the
+   * page rather than as a colour on it.
+   */
+  --c-50: #F9FAFB;
+  --c-100: #F3F4F6;
+  --c-200: #E5E7EB;
+  --c-300: #D1D5DB;
+  --c-600: #4B5563;
+
   /* ── Support: amber = attention, clay = medical/destructive (the only alarm) ── */
   --amber-100: #FBF0D8;
   --amber-300: #E8C46A;
@@ -458,7 +480,7 @@
    * It is a token rather than a raw hex at the call site for the usual reason —
    * a second use of a value is where a palette starts drifting.
    */
-  --auth-canvas: #F9FAFB;
+  --auth-canvas: var(--c-50);
 
   --card: var(--n-0);                   /* bg.surface */
   --card-foreground: var(--n-900);
@@ -497,15 +519,31 @@
   --secondary: var(--olive-50);         /* bg.brand.subtle */
   --secondary-foreground: var(--olive-700); /* text.brand — 7.37:1 */
 
-  --muted: var(--n-50);                 /* bg.sunken */
+  /*
+   * bg.sunken — c-100, not c-50.
+   *
+   * c-50 is 1.02:1 against the white canvas, which is below where a fill stops
+   * registering as a fill: the register's header strip all but disappeared. It
+   * is the right value for the *rail*, which has a load-bearing divider doing
+   * the separating for it; a strip sitting in the middle of a card has nothing
+   * but its own fill. c-100 measures 1.06:1 — still quieter than a colour, and
+   * a hair firmer than the warm n-50 (1.04:1) this replaced.
+   */
+  --muted: var(--c-100);
   --muted-foreground: var(--n-600);     /* text.secondary — 6.38:1 floor */
 
 
   /*
    * Ambient hover/highlight tint used by many primitives. This is NOT the
    * brand accent — lime is, and it must never sit behind this token.
+   *
+   * It follows `--muted` into the cool family and one step past it. It has to:
+   * the register's sortable column heads are `hover:bg-accent` drawn directly
+   * on the `bg-muted` strip, so a warm tint on a cool fill put the two
+   * neutral families in contact at the same lightness — which reads as a
+   * rendering fault rather than as a hover.
    */
-  --accent: var(--n-100);
+  --accent: var(--c-200);
   --accent-foreground: var(--n-900);
 
   /* Destructive maps to clay — the system's only true alarm colour. */
@@ -689,14 +727,14 @@
    * glyph is the thing you scan a rail by, and a neutral one reads as a
    * wayfinding mark rather than as brand.
    */
-  --sidebar: #F9FAFB;
+  --sidebar: var(--c-50);
   --sidebar-foreground: var(--olive-800);   /* idle label — 10.02:1 on the rail */
   --sidebar-icon: var(--n-700);             /* idle glyph — #46443B, 9.35:1 */
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: var(--olive-900); /* the wordmark, on a light rail */
   --sidebar-accent: var(--olive-50);        /* the active surface */
   --sidebar-accent-foreground: var(--olive-500); /* on it — 2.95:1, see above */
-  --sidebar-hover: #F3F4F6;                 /* one step down — 9.51:1 with the idle label */
+  --sidebar-hover: var(--c-100);            /* one step down — 9.51:1 with the idle label */
   /*
    * The divider is the darkest of the rail's three greys, and it is the whole
    * separation: #F9FAFB against the white canvas measures 1.02:1, so the two
@@ -710,7 +748,7 @@
    * but well clear of the ~1.3:1 where a hairline stops registering. Go a step
    * darker before you go back to a tint.
    */
-  --sidebar-border: #D1D5DB;
+  --sidebar-border: var(--c-300);
   /*
    * NOT `--ring`. The global focus ring is lime-400, which measured 9.77:1 on
    * the old olive-900 rail and measures 1.28:1 on this one — keeping it would
@@ -1056,10 +1094,10 @@
 }
 
 :root .planner-theme {
-  --border: #E5E7EB;                    /* border.divider — the warm n-200's cool twin */
-  --muted: #F9FAFB;                     /* bg.sunken */
-  --accent: #F3F4F6;                    /* ambient hover tint */
-  --muted-foreground: #4B5563;          /* text.secondary — 7.46:1 on white, clears the 6.38:1 floor n-600 set */
+  --border: var(--c-200);               /* border.divider — the warm n-200's cool twin */
+  --muted: var(--c-50);                 /* bg.sunken — now the app-wide value too */
+  --accent: var(--c-100);               /* ambient hover tint */
+  --muted-foreground: var(--c-600);     /* text.secondary — 7.46:1 on white, clears the 6.38:1 floor n-600 set */
 }
 
 @layer base {
@@ -1477,6 +1515,333 @@
 }
 
 /*
+ * Responsive staff navigation. The tablet rail stays in flow at 72px; this
+ * full drawer enters in the top layer, so opening it never resizes the working
+ * canvas. Logical positioning and direction-specific travel keep Arabic and
+ * English spatially honest.
+ */
+.app-navigation-drawer {
+  position: fixed;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: min(16rem, calc(100vw - 3rem));
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  animation-duration: 260ms;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.app-navigation-drawer:dir(ltr) {
+  animation-name: app-navigation-in-ltr;
+}
+
+.app-navigation-drawer:dir(rtl) {
+  animation-name: app-navigation-in-rtl;
+}
+
+.app-navigation-drawer[data-closing='true']:dir(ltr) {
+  animation: app-navigation-out-ltr 180ms ease-in both;
+}
+
+.app-navigation-drawer[data-closing='true']:dir(rtl) {
+  animation: app-navigation-out-rtl 180ms ease-in both;
+}
+
+.app-navigation-drawer::backdrop {
+  animation: app-navigation-backdrop-in 180ms ease-out;
+}
+
+.app-navigation-drawer[data-closing='true']::backdrop {
+  animation: app-navigation-backdrop-out 180ms ease-in both;
+}
+
+/* Route content enters from the navigation's inline-start edge while the shell
+ * remains still. The near-complete starting state prevents a flash on slower
+ * devices; clip and blur make the gesture read as continuity, not decoration. */
+.q-route-stage {
+  animation: q-route-enter-ltr 190ms var(--ease-sweep) both;
+}
+
+[dir='rtl'] .q-route-stage {
+  animation-name: q-route-enter-rtl;
+}
+
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) {
+  animation: q-dialog-in-sheet 200ms var(--ease-sweep) both;
+}
+
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer)::backdrop {
+  animation: q-dialog-backdrop-in 160ms ease-out both;
+}
+
+.q-dialog[data-closing='true']:not(.planner-context-sheet):not(.app-navigation-drawer) {
+  animation: q-dialog-out-sheet 140ms ease-in both;
+}
+
+.q-dialog[data-closing='true']:not(.planner-context-sheet):not(.app-navigation-drawer)::backdrop {
+  animation: app-navigation-backdrop-out 140ms ease-in both;
+}
+
+@media (min-width: 40rem) {
+  .q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) {
+    animation-name: q-dialog-in-card;
+  }
+
+  .q-dialog[data-closing='true']:not(.planner-context-sheet):not(.app-navigation-drawer) {
+    animation-name: q-dialog-out-card;
+  }
+}
+
+/* The context sheet preserves its relationship to the board: up from the
+ * phone edge, inward from the logical end on tablet. */
+.planner-context-sheet[open] {
+  animation: planner-sheet-up 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.planner-context-sheet[data-closing='true'] {
+  animation: planner-sheet-down 180ms ease-in both;
+}
+
+@media (min-width: 40rem) {
+  .planner-context-sheet[open]:dir(ltr) {
+    animation-name: planner-sheet-in-ltr;
+  }
+
+  .planner-context-sheet[open]:dir(rtl) {
+    animation-name: planner-sheet-in-rtl;
+  }
+
+  .planner-context-sheet[data-closing='true']:dir(ltr) {
+    animation: planner-sheet-out-ltr 180ms ease-in both;
+  }
+
+  .planner-context-sheet[data-closing='true']:dir(rtl) {
+    animation: planner-sheet-out-rtl 180ms ease-in both;
+  }
+}
+
+/* Publishing gets one bounded acknowledgement. The sweep only exists while
+ * the request is pending; the settle runs once when the published state lands. */
+.planner-publish-button {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.planner-publish-button > * {
+  position: relative;
+  z-index: 1;
+}
+
+.planner-publish-button::after {
+  position: absolute;
+  inset-block: -35%;
+  inset-inline-start: -35%;
+  z-index: 0;
+  width: 34%;
+  content: '';
+  background: color-mix(in srgb, var(--accent-lime) 70%, transparent);
+  filter: blur(7px);
+  opacity: 0;
+  transform: translateX(-220%) skewX(-12deg);
+}
+
+.planner-publish-button[data-pending='true']::after {
+  opacity: 0.72;
+  animation: planner-publish-sweep-ltr 900ms ease-in-out infinite;
+}
+
+.planner-publish-button[data-pending='true']:dir(rtl)::after {
+  animation-name: planner-publish-sweep-rtl;
+}
+
+.planner-publish-button[data-pending='true'] .planner-publish-icon {
+  animation: planner-publish-icon 900ms ease-in-out infinite;
+}
+
+.planner-publish-button[data-confirmed='true'] {
+  animation: planner-publish-confirm 480ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.planner-drop-settled {
+  animation: planner-drop-settle 480ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes app-navigation-in-ltr {
+  from {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes app-navigation-in-rtl {
+  from {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes app-navigation-out-ltr {
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes app-navigation-out-rtl {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes app-navigation-backdrop-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes app-navigation-backdrop-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes planner-sheet-up {
+  from {
+    transform: translateY(2rem);
+    opacity: 0.78;
+  }
+}
+
+@keyframes q-route-enter-ltr {
+  from {
+    clip-path: inset(0 1rem 0 0 round var(--qiwam-radius-lg));
+    opacity: 0.88;
+    transform: translateX(-0.5rem);
+  }
+}
+
+@keyframes q-route-enter-rtl {
+  from {
+    clip-path: inset(0 0 0 1rem round var(--qiwam-radius-lg));
+    opacity: 0.88;
+    transform: translateX(0.5rem);
+  }
+}
+
+@keyframes q-dialog-backdrop-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes q-dialog-in-sheet {
+  from {
+    clip-path: inset(0.5rem 0 0 round 1rem);
+    filter: blur(1px);
+    opacity: 0.82;
+    transform: translateY(1rem);
+  }
+}
+
+@keyframes q-dialog-in-card {
+  from {
+    clip-path: inset(0.25rem round var(--qiwam-radius-lg));
+    filter: blur(1px);
+    opacity: 0.82;
+    transform: translateY(0.25rem) scale(0.985);
+  }
+}
+
+@keyframes q-dialog-out-sheet {
+  to {
+    filter: blur(1px);
+    transform: translateY(0.75rem);
+    opacity: 0;
+  }
+}
+
+@keyframes q-dialog-out-card {
+  to {
+    filter: blur(1px);
+    transform: translateY(0.25rem) scale(0.985);
+    opacity: 0;
+  }
+}
+
+@keyframes planner-sheet-down {
+  to {
+    transform: translateY(1.5rem);
+    opacity: 0;
+  }
+}
+
+@keyframes planner-sheet-in-ltr {
+  from {
+    transform: translateX(2rem);
+    opacity: 0.78;
+  }
+}
+
+@keyframes planner-sheet-in-rtl {
+  from {
+    transform: translateX(-2rem);
+    opacity: 0.78;
+  }
+}
+
+@keyframes planner-sheet-out-ltr {
+  to {
+    transform: translateX(1.5rem);
+    opacity: 0;
+  }
+}
+
+@keyframes planner-sheet-out-rtl {
+  to {
+    transform: translateX(-1.5rem);
+    opacity: 0;
+  }
+}
+
+@keyframes planner-publish-sweep-ltr {
+  to {
+    transform: translateX(520%) skewX(-12deg);
+  }
+}
+
+@keyframes planner-publish-sweep-rtl {
+  from {
+    transform: translateX(520%) skewX(-12deg);
+  }
+  to {
+    transform: translateX(-220%) skewX(-12deg);
+  }
+}
+
+@keyframes planner-publish-icon {
+  50% {
+    transform: scale(1.12);
+  }
+}
+
+@keyframes planner-publish-confirm {
+  35% {
+    transform: translateY(-1px) scale(1.015);
+    box-shadow: 0 9px 22px -15px var(--primary);
+  }
+}
+
+@keyframes planner-drop-settle {
+  from {
+    transform: scale(1.018);
+    background: var(--secondary);
+    box-shadow: 0 10px 24px -16px var(--primary);
+  }
+}
+
+/*
  * The planner rail and its compact trigger are one responsive pair. Keeping
  * their breakpoint here prevents a partially generated utility sheet from
  * showing the mobile trigger while hiding the desktop rail.
@@ -1485,21 +1850,29 @@
   display: none;
 }
 
+/* Tablet is a three-day-wide work surface, not a compressed seven-column
+ * desktop. The rest of the week stays one touch swipe away, with the frozen
+ * meal rail preserving row context and no scrollbar consuming canvas space. */
+@media (min-width: 48rem) and (max-width: 79.999rem) {
+  .planner-week-scroll {
+    scroll-snap-type: inline proximity;
+  }
+
+  .planner-week-grid {
+    inline-size: calc(233.333% - 8rem);
+    grid-template-columns: 6rem repeat(7, minmax(0, 1fr));
+  }
+
+  .planner-day-column {
+    scroll-snap-align: start;
+  }
+}
+
 .planner-compact-trigger {
   display: inline-flex;
 }
 
-/*
- * The collapse control is the desktop half of the same pair, and belongs to the
- * same breakpoint for the same reason: below `xl` there is no fixed rail to
- * collapse, so the button would be offering to hide something that is not
- * there.
- */
-.planner-rail-toggle {
-  display: none;
-}
-
-@media (min-width: 80rem) {
+@media (min-width: 112rem) {
   .planner-desktop-rail {
     display: flex;
   }
@@ -1508,8 +1881,28 @@
     display: none;
   }
 
-  .planner-rail-toggle {
-    display: inline-flex;
+}
+
+/*
+ * A drag handle has to behave like a handle on touch hardware, not like hover
+ * chrome that happens to exist in the DOM. The card itself keeps `touch-action`
+ * available for board scrolling; only this explicit grip reserves the gesture
+ * for dnd-kit, and its coarse-pointer target reaches the 44px touch floor.
+ */
+.planner-drag-handle {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+@media (pointer: coarse) {
+  .planner-drag-handle {
+    display: grid;
+    inline-size: 44px;
+    block-size: 44px;
+    place-items: center;
+    padding: 0;
+    opacity: 1;
   }
 }
 

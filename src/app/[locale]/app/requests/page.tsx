@@ -44,7 +44,10 @@ export default async function RequestsPage({ params }: RequestsPageProps) {
         <p className="text-body-sm text-muted-foreground">{t('subtitle')}</p>
       </div>
 
-      <div className="mx-auto w-full max-w-3xl">
+      {/* Start-aligned, like the notifications feed it is reached from — see
+          the note there. Centred, both pages sat in a band of white beside a
+          rail every other screen starts flush against. */}
+      <div className="me-auto w-full max-w-3xl">
         <RequestsInbox data={data} locale={locale} now={new Date()} />
       </div>
     </div>

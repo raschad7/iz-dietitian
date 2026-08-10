@@ -63,11 +63,16 @@ export function PortalTabBar() {
               <Link
                 href={item.href}
                 aria-current={active ? 'page' : undefined}
-                className="flex flex-col items-center gap-1 pt-2.5 pb-1.5 text-label transition-colors"
+                className="group flex flex-col items-center gap-1 pt-2.5 pb-1.5 text-label transition-colors duration-(--duration-label)"
               >
                 <Icon
                   name={PORTAL_NAV_ICONS[item.labelKey]}
-                  className={cn('size-6', active ? 'text-primary' : 'text-muted-foreground')}
+                  className={cn(
+                    'size-6 transition-[color,transform] duration-(--duration-label) ease-(--ease-sweep)',
+                    active
+                      ? '-translate-y-0.5 scale-105 text-primary'
+                      : 'text-muted-foreground group-active:scale-95',
+                  )}
                 />
                 <span className={cn('truncate', active ? 'font-semibold text-primary' : 'text-muted-foreground')}>
                   {t(item.labelKey)}

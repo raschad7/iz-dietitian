@@ -111,6 +111,24 @@ describe('nextSlotKey', () => {
   test('ignores keys that merely look like added slots', () => {
     expect(nextSlotKey(['extra_snack', 'extras', 'extra_'])).toBe('extra_1');
   });
+
+  test.each([
+    ['breakfast', 'breakfast_extra_1'],
+    ['snack', 'snack_extra_1'],
+    ['lunch', 'extra_1'],
+    ['dinner', 'dinner_extra_1'],
+  ] as const)('classifies a new %s row through its slot key', (type, expected) => {
+    expect(nextSlotKey([], type)).toBe(expected);
+  });
+
+  test('allocates each meal type independently', () => {
+    expect(nextSlotKey(['snack_extra_1', 'extra_1'], 'snack')).toBe('snack_extra_2');
+    expect(nextSlotKey(['snack_extra_1', 'extra_1'], 'dinner')).toBe('dinner_extra_1');
+  });
+
+  test('keeps a selected visual icon in the added slot key', () => {
+    expect(nextSlotKey(['lunch_chef_1'], 'lunch', 'lunch_chef')).toBe('lunch_chef_2');
+  });
 });
 
 describe('applyEdit', () => {

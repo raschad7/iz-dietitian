@@ -10,7 +10,7 @@ import type { CatalogEntry, PlannableClient } from '../queries';
 import { railTabsForPlan, type RailTab } from '../rail-state';
 import type { RecentUse } from '../usage';
 
-import { BoardSheet, useBelowXl } from './board-sheet';
+import { BoardSheet, useCompactPlanner } from './board-sheet';
 import { ClientPicker } from './client-picker';
 import { DishCatalog } from './dish-catalog';
 import { NewWeekDialog, type NewWeekProps } from './new-week-dialog';
@@ -42,7 +42,7 @@ export function EmptyPlanBoard({
   const activeLocale = useLocale();
   const [tab, setTab] = useState<RailTab>('client');
   const [sheetOpen, setSheetOpen] = useState(false);
-  const belowXl = useBelowXl();
+  const compactPlanner = useCompactPlanner();
 
   const tabs = railTabsForPlan(false).map((id) => ({ id, label: t(`tabs.${id}`) }));
   const railContent = (
@@ -77,7 +77,7 @@ export function EmptyPlanBoard({
   );
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
       <header className="border-b border-border pb-4">
         <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
           <div className="min-w-0 flex-1">
@@ -123,7 +123,7 @@ export function EmptyPlanBoard({
         </section>
 
         <aside className="planner-desktop-rail w-[22rem] shrink-0 flex-col border-s border-border ps-5">
-          {!belowXl && railContent}
+          {!compactPlanner && railContent}
         </aside>
       </div>
 
@@ -134,7 +134,7 @@ export function EmptyPlanBoard({
         closeLabel={t('close')}
         dir={getLocaleDirection(activeLocale)}
       >
-        {belowXl && railContent}
+        {compactPlanner && railContent}
       </BoardSheet>
     </div>
   );

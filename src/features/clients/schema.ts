@@ -187,7 +187,7 @@ export type IntakeInput = z.infer<typeof intakeSchema>;
  * not a visible column — newest first is what the register means with no
  * explicit sort.
  */
-export const CLIENT_SORTS = ['fullName', 'phone', 'email', 'status', 'portalAccess', 'createdAt'] as const;
+export const CLIENT_SORTS = ['fullName', 'phone', 'age', 'portalAccess', 'createdAt'] as const;
 export type ClientSort = (typeof CLIENT_SORTS)[number];
 
 /**
@@ -203,14 +203,17 @@ export type ClientSort = (typeof CLIENT_SORTS)[number];
  * saved-view feature — and this register is read by someone looking for one
  * thing.
  *
- * `status` is in here rather than as a parameter of its own. It used to be
- * both, which meant the register had a filter nobody could see: the list has
- * always defaulted to active clients only, and the only way to reach an
- * archived one was a hand-typed query string. That default still holds when no
- * filter is set — see `buildFilter` — and "Status → All" is now how you get
- * past it.
+ * **`status` is not one of them any more.** It was in here as a filter value —
+ * "Status → All" — which is how an archived client used to be found. Archived
+ * clients have their own page now (`/app/clients/archived`), and a *place* is a
+ * better answer than a filter for a list you either are or are not looking at:
+ * it can be linked to, it can say what it is at the top, and it puts Restore in
+ * front of you instead of leaving you to spot which rows are grey. Leaving the
+ * filter in as well would be two answers to the same question, and it would let
+ * the register mix the two states in one list, where the status column it
+ * needed has just been removed for saying "active" on every row.
  */
-export const CLIENT_FILTERS = ['phone', 'email', 'status', 'portalAccess'] as const;
+export const CLIENT_FILTERS = ['phone', 'email', 'portalAccess'] as const;
 export type ClientFilter = (typeof CLIENT_FILTERS)[number];
 
 /** What `portalAccess` filters on: the client has a portal login, or has not. */
@@ -227,6 +230,15 @@ export const PORTAL_ACCESS_VALUES = ['yes', 'no'] as const;
  */
 export const listClientsSchema = z.object({
   q: z.preprocess(blankToUndefined, z.string().trim().max(120).optional()),
+  /**
+   * Which half of the register this is.
+   *
+   * Set by the route, not by the reader: `/app/clients` is `active` and
+   * `/app/clients/archived` is `archived`, and both pass it explicitly. It is
+   * still parsed from the same object because both pages share one schema and
+   * one query — the only thing that differs between them is this value.
+   */
+  status: z.enum(CLIENT_STATUSES).catch('active'),
   filterBy: z.preprocess(blankToUndefined, z.enum(CLIENT_FILTERS).optional().catch(undefined)),
   filterValue: z.preprocess(blankToUndefined, z.string().trim().max(120).optional().catch(undefined)),
   sort: z.enum(CLIENT_SORTS).catch('createdAt'),

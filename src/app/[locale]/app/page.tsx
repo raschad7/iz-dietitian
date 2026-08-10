@@ -5,11 +5,11 @@ import { AgendaTimeline } from '@/features/dashboard/components/agenda-timeline'
 import { ClientsCard } from '@/features/dashboard/components/clients-card';
 import { QuickActions } from '@/features/dashboard/components/quick-actions';
 import { loadDashboard } from '@/features/dashboard/page-data';
+import { NotificationsBell } from '@/features/notifications/components/notifications-bell';
 import { PendingRequestsCard } from '@/features/requests/components/pending-requests-card';
 import { formatLongDate } from '@/features/booking/format';
 import { resolveLocale } from '@/i18n/params';
 import { requireStaffClinic } from '@/lib/session';
-import { cn } from '@/lib/utils';
 
 type DashboardPageProps = {
   params: Promise<{ locale: string }>;
@@ -46,24 +46,30 @@ export async function generateMetadata({ params }: DashboardPageProps): Promise<
  * and the columns are declared in the order they should read.
  *
  * Reading order down the working column: the four things you start a session by
- * doing, then one row holding your register beside anything a client is waiting
- * on an answer for. The four summary counters that used to head this column are
- * gone — every number on them was a count of something one click away in the
- * calendar or the register, and they were costing the page its most valuable
- * row.
+ * doing, then one row holding your register beside the clients who have drifted
+ * out of it. The four summary counters that used to head this column are gone —
+ * every number on them was a count of something one click away in the calendar
+ * or the register, and they were costing the page its most valuable row.
  *
- * The requests panel took the column the age and sex charts used to share, and
- * takes the full height both of them added up to. It earns that space precisely
- * because it is not a statistic: it is the request itself, with the two buttons
- * that answer it, and the two charts beside it were consulted once a quarter.
- * Every pending request is listed — the panel scrolls inside itself, like the
- * register and the agenda either side of it — so nothing waits behind a "more"
- * link.
+ * ## What moved, and why
  *
- * It still renders nothing when nothing is pending, which is why the row's two
- * tracks are declared only when there is something to put in the second: a grid
- * column holding a card that returned `null` is a hole in the page, so on a
- * quiet morning the register simply takes the whole row.
+ * **Requests are under today's agenda, not beside the register.** They belong
+ * with the day they are about: an appointment request is a proposal for a slot,
+ * and the panel that shows what the slots already look like is directly above
+ * it. Putting them in the narrow column also let the card stop disappearing —
+ * it used to render nothing at all when nothing was pending, because an empty
+ * card beside the register left a hole in the widest row on the page. A panel
+ * that comes and goes is one nobody learns the position of. See
+ * `PendingRequestsCard`.
+ *
+ * **Notifications are a bell beside the date, not a card.** They lived behind a
+ * menu at the foot of the rail — two deliberate acts from the screen a
+ * dietitian keeps open, and a notification nobody goes looking for is not one.
+ * A panel in this grid was the other extreme: the dashboard is one screen, and
+ * a permanent column listing three names spent real estate on something read
+ * once a morning and then irrelevant until it changes. A bell costs one glyph
+ * when there is nothing and says how many when there is. See
+ * `NotificationsBell`.
  */
 export default async function DashboardPage({ params }: DashboardPageProps) {
   const locale = await resolveLocale(params);
@@ -71,18 +77,29 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
 
   const [t, data] = await Promise.all([getTranslations('dashboard'), loadDashboard(clinicId)]);
 
-  const hasRequests = data.requests.appointments.length + data.requests.clientRequests.length > 0;
-
   return (
     <div className="flex flex-col gap-4 text-start xl:h-full xl:min-h-0">
       <div className="flex flex-wrap items-baseline justify-between gap-2 xl:shrink-0">
         <h1 className="font-heading text-heading-lg font-semibold tracking-tight" dir="auto">
           {t('welcome', { name: session.user.name })}
         </h1>
-        {/* `body-md` (16px) rather than the 12px caption: with no app bar above
-            it this line is the top of the page, and today's date is a fact you
-            read at a glance rather than fine print under something else. */}
-        <p className="text-body-md text-muted-foreground">{formatLongDate(locale, data.today)}</p>
+        {/*
+          The date, and the bell beside it. `body-md` (16px) rather than the
+          12px caption: with no app bar above it this line is the top of the
+          page, and today's date is a fact you read at a glance rather than
+          fine print under something else.
+        */}
+        <div className="flex items-center gap-2">
+          <p className="text-body-md text-muted-foreground">{formatLongDate(locale, data.today)}</p>
+
+          <NotificationsBell
+            items={data.attention}
+            total={data.attentionTotal}
+            pendingRequestCount={
+              data.requests.appointments.length + data.requests.clientRequests.length
+            }
+          />
+        </div>
       </div>
 
       <div className="grid gap-4 xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(0,1fr)_21rem] 2xl:grid-cols-[minmax(0,1fr)_23rem]">
@@ -90,36 +107,31 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
           <QuickActions locale={locale} />
 
           {/*
-            One row, two panels, both ending where the screen does: the register
-            and whatever a client is waiting on an answer for. The second track
-            only exists when there is something pending — `PendingRequestsCard`
-            renders nothing otherwise, and an empty column would leave the
-            register at 1.4fr with dead space beside it.
-
-            Below `xl` the two stack in this order rather than the requests
-            jumping above the register: the panel carries its own `max-h`
-            ceiling there, so the register is a short hop past, and the page
-            reads in the order it is written for every user.
+            The register takes the whole row. It briefly shared it with an
+            attention panel; that list is behind the bell in the header now, so
+            the widest row on the page goes back to the one list that is read
+            all day rather than glanced at once.
           */}
-          <div
-            className={cn(
-              'grid gap-4 xl:min-h-0 xl:flex-1',
-              hasRequests && 'xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]',
-            )}
-          >
-            <ClientsCard clients={data.recentClients} locale={locale} />
-
-            <PendingRequestsCard data={data.requests} locale={locale} now={data.now} />
-          </div>
+          <ClientsCard clients={data.recentClients} locale={locale} />
         </div>
 
-        <AgendaTimeline
-          appointments={data.agenda}
-          locale={locale}
-          today={data.today}
-          nowMinute={data.nowMinute}
-          workingDays={data.workingDays}
-        />
+        {/*
+          Today, and what people are asking of it. The agenda takes whatever
+          height is left after the requests card has taken what it needs, so a
+          quiet morning gives the day view almost the whole column and a busy
+          one splits it.
+        */}
+        <div className="flex min-w-0 flex-col gap-4 xl:min-h-0">
+          <AgendaTimeline
+            appointments={data.agenda}
+            locale={locale}
+            today={data.today}
+            nowMinute={data.nowMinute}
+            workingDays={data.workingDays}
+          />
+
+          <PendingRequestsCard data={data.requests} locale={locale} now={data.now} />
+        </div>
       </div>
     </div>
   );
