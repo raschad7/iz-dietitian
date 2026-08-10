@@ -11,6 +11,7 @@ import {
 } from 'next/font/google';
 import type { ReactNode } from 'react';
 
+import { DirectionProvider } from '@/components/ui/direction';
 import { resolveLocale } from '@/i18n/params';
 import { getLocaleDirection, routing } from '@/i18n/routing';
 
@@ -216,7 +217,24 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
           be — a second copy pinned to the corner shadowed the real one in dev
           and sat on top of page content.
         */}
-        <NextIntlClientProvider>{children}</NextIntlClientProvider>
+        {/*
+          `dir` on <html> styles the page, but it does not reach Base UI.
+
+          Base UI reads direction from `DirectionProvider` context alone, which
+          defaults to `ltr` — its docs are explicit that the provider "does not
+          affect HTML and CSS" and that the `dir` attribute "must be set
+          additionally by your own application code". The two are separate
+          channels and this app was only feeding one of them, so every Base UI
+          popup has been computing its anchor, its flip and its arrow-key
+          direction as if the page were English, on Arabic too.
+
+          That is why the provider wraps everything rather than sitting beside
+          the components that need it today: the value is a property of the
+          locale, and every popup added from here on reads it.
+        */}
+        <DirectionProvider direction={getLocaleDirection(locale)}>
+          <NextIntlClientProvider>{children}</NextIntlClientProvider>
+        </DirectionProvider>
       </body>
     </html>
   );

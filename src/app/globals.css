@@ -1456,12 +1456,38 @@
   animation-name: q-route-enter-rtl;
 }
 
+/*
+ * `backwards`, never `both`, on the way in — and the difference is a bug, not a
+ * preference.
+ *
+ * Both entrance keyframes below declare only a `from`. Under `both` the
+ * forwards fill keeps the animation's properties applied to the element for as
+ * long as it is open, so a settled dialog still computes
+ * `transform: matrix(1, 0, 0, 1, 0, 0)` and `filter: blur(0px)` instead of
+ * `none`. Identity and zero, but *not* `none` — and any transform or filter
+ * other than `none` makes the element the containing block for every
+ * `position: fixed` descendant it has.
+ *
+ * That is what put the select menus and the date picker in the wrong place.
+ * They measure their trigger against the viewport and position themselves
+ * `fixed` at those coordinates; inside an open dialog those coordinates were
+ * being resolved against the dialog instead, so each popup landed offset by
+ * roughly the dialog's own top-left — measured at 408px on a 1280px viewport.
+ *
+ * `backwards` keeps the only thing the fill was wanted for (the from-state
+ * applied before the first frame, so there is no flash on slower devices) and
+ * drops the part that never should have persisted.
+ *
+ * The closing rules below keep `both`: their keyframes declare only a `to`, so
+ * they need the forwards fill to hold the end state until the dialog actually
+ * closes, and a closing dialog has nothing left to mis-anchor.
+ */
 .q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) {
-  animation: q-dialog-in-sheet 200ms var(--ease-sweep) both;
+  animation: q-dialog-in-sheet 200ms var(--ease-sweep) backwards;
 }
 
 .q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer)::backdrop {
-  animation: q-dialog-backdrop-in 160ms ease-out both;
+  animation: q-dialog-backdrop-in 160ms ease-out backwards;
 }
 
 .q-dialog[data-closing='true']:not(.planner-context-sheet):not(.app-navigation-drawer) {
