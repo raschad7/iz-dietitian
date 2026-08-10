@@ -2,7 +2,6 @@ import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
 import { DAYS_PER_WEEK } from '@/features/portal/check-ins';
-import { HomeGlow } from '@/features/portal/components/home-glow';
 import { HomeToday, type HomeTodayMeal } from '@/features/portal/components/home-today';
 import { NextAppointmentPreview } from '@/features/portal/components/next-appointment-preview';
 import { WeekAdherenceStrip } from '@/features/portal/components/week-adherence-strip';
@@ -78,8 +77,6 @@ export default async function PortalPage({ params }: PortalPageProps) {
 
   return (
     <div className="space-y-4">
-      <HomeGlow />
-
       {/*
         One provider over both the strip and today's meals, not one each —
         see `plan-day-completion.tsx`. Today's cell in the strip below needs

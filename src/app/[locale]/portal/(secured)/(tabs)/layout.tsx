@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 
 import { Sidebar } from '@/components/layout/sidebar';
 import { PORTAL_NAV, PORTAL_NAV_ICONS } from '@/features/portal/nav';
+import { HomeGlow } from '@/features/portal/components/home-glow';
 import { PortalHeader } from '@/features/portal/components/portal-header';
 import { PortalTabBar } from '@/features/portal/components/portal-tab-bar';
 import { greetingKey } from '@/features/portal/greeting';
@@ -40,6 +41,18 @@ export default async function PortalTabsLayout({ children, params }: PortalTabsL
 
   return (
     <>
+      {/*
+        The home screen's glow, rendered here rather than by `page.tsx`.
+
+        It has to sit outside `(tabs)/template.tsx` — that wrapper is
+        `.q-route-stage`, whose enter animation puts a `transform` on it, and a
+        transformed ancestor is the containing block for anything `fixed`
+        inside it. From in there the glow could only ever cover `main`'s own
+        box. It decides for itself whether this is the home tab; see the note
+        in `home-glow.tsx`.
+      */}
+      <HomeGlow />
+
       <PortalHeader
         name={context.profile.fullName}
         greeting={greetingKey(context.now.minute)}

@@ -9,6 +9,7 @@ import { signOutAction } from '@/features/auth/actions';
 import { type GreetingKey } from '@/features/portal/greeting';
 import { Link, usePathname } from '@/i18n/navigation';
 import { type Locale } from '@/i18n/routing';
+import { cn } from '@/lib/utils';
 
 /**
  * The portal's own header: who you are and what day it is, rather than the
@@ -121,7 +122,23 @@ export function PortalHeader({
   const isHome = pathname === '/portal';
 
   return (
-    <header className="border-b border-border bg-card px-4 pt-3 pb-4">
+    /*
+      **On the home tab the bar is unfilled, and that is what lets the glow
+      reach the top of the screen.** `HomeGlow` paints behind everything at
+      `-z-10`; an opaque `bg-card` here was a white band across the first 120px
+      of the page, so the green appeared to start below the greeting rather
+      than behind it. Dropping the fill and the hairline on that one tab is
+      also what §Navigation already specifies for this bar — "deliberately
+      unfilled: no background, no border, no elevation. The page's own cards
+      carry the weight."
+
+      The other four tabs keep both. They have no glow to reveal, so an
+      unfilled bar there would only be a header that had lost the rule
+      separating it from the content underneath.
+    */
+    <header
+      className={cn('px-4 pt-3 pb-4', isHome ? 'bg-transparent' : 'border-b border-border bg-card')}
+    >
       <div className="mx-auto w-full max-w-3xl">
         <div className="flex items-center justify-between">
           <Destination
