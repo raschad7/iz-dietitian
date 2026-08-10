@@ -80,10 +80,19 @@ export function WeekAdherenceStrip({
                 completed: day.completedMeals,
                 total: day.totalMeals,
               })}
-              className={cn(
-                'flex flex-col items-center gap-2 rounded-2xl py-2',
-                day.state === 'today' ? 'bg-secondary' : '',
-              )}
+              /*
+                **Today is marked by its type, not by a fill.** It wore an
+                olive-50 pill, which on the home screen's green glow read as a
+                white capsule cut out of the wash — the palest thing on the
+                screen sitting on the one surface it had no contrast against,
+                and a shape loud enough to look like the only tappable cell in
+                a row where nothing is tappable. The label below already
+                carries the state in `--secondary-foreground` semibold against
+                the other six days' `--muted-foreground` regular, and today's
+                flame is the one drawn live, so the cell is still findable at a
+                glance on the green here and on the progress tab's white card.
+              */
+              className="flex flex-col items-center gap-2 rounded-2xl py-2"
             >
               <span
                 className={cn(

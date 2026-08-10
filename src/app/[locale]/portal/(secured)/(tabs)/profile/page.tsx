@@ -7,7 +7,7 @@ import { DataUpdateRequest } from '@/features/portal/components/data-update-requ
 import { HealthStats, type HealthStat } from '@/features/portal/components/health-stats';
 import { InfoRow } from '@/features/portal/components/info-row';
 import { ProfileIdentity } from '@/features/portal/components/profile-identity';
-import { ProfileSection, SectionNote } from '@/features/portal/components/profile-section';
+import { ProfileSection } from '@/features/portal/components/profile-section';
 import { loadProfilePage } from '@/features/portal/page-data';
 import { requirePortalClient } from '@/features/portal/session';
 import { defaultCountryCode } from '@/features/whatsapp/config';
@@ -134,13 +134,13 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
         description={t('section.healthDescription')}
         lead={<HealthStats stats={healthStats} />}
         /*
-          The note says what the blanks are *for*, which is the one thing the
-          dashed chips above it cannot. It is an invitation to fill the record in
-          rather than a warning that it is incomplete — `infoOutline` and the
-          muted strip, never `attention`, which §Status reserves for something
-          actually owed.
+          No `note`. It carried "the more complete your record, the more precise
+          your plan" — an encouragement to fill the record in, on the one screen
+          where the client cannot fill anything in. Every field here is the
+          dietitian's to write (see the module note above), so a nudge to
+          complete them asked for something this screen does not offer, and it
+          spent a sunken strip under the tiles saying it.
         */
-        note={<SectionNote>{t('healthNote')}</SectionNote>}
       >
         {/*
           Height and goal are deliberately *not* rows here, though `main` added
@@ -172,7 +172,22 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
         <ClinicSection clinic={clinic} practitioner={practitioner} countryCode={defaultCountryCode()} />
       ) : null}
 
-      <DataUpdateRequest topic="other" openRequest={openUpdateRequest} locale={locale} />
+      {/*
+        `showNotice={false}`: the paragraph explaining that this is the clinic's
+        record and how to have it corrected is gone from this screen. The module
+        note at the top of this file already says the same thing to anyone
+        reading the code, and to the client the button itself now carries it —
+        "طلب تحديث البيانات" is not a control anyone presses without having
+        found something wrong. The contact screen keeps its own notice, which
+        says something this one does not (that changing a phone or an email
+        needs verifying).
+      */}
+      <DataUpdateRequest
+        topic="other"
+        showNotice={false}
+        openRequest={openUpdateRequest}
+        locale={locale}
+      />
     </div>
   );
 }

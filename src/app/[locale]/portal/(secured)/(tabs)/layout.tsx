@@ -63,7 +63,27 @@ export default async function PortalTabsLayout({ children, params }: PortalTabsL
       />
 
       <div className="flex flex-1">
-        <Sidebar items={PORTAL_NAV} title={t('title')} icons={PORTAL_NAV_ICONS} />
+        {/*
+          `showTitle={false}`: the portal's name is not drawn anywhere in the
+          client's own app. `PortalHeader` directly above already opens the
+          screen with who they are and what day it is, and a second bar naming
+          the product told them which app they had just opened. The string is
+          still the drawer's accessible name — see `Sidebar`.
+
+          `showMobileBar={false}`: below `md` this group already has two pieces
+          of navigation — `PortalTabBar` along the block-end edge with these
+          same five destinations, and `PortalHeader` above with the bell and
+          settings. The rail's own phone bar was a third, and because it is
+          `fixed` and nothing here offsets it, it was covering the header's two
+          controls outright. It is not rendered rather than padded around.
+        */}
+        <Sidebar
+          items={PORTAL_NAV}
+          title={t('title')}
+          showTitle={false}
+          showMobileBar={false}
+          icons={PORTAL_NAV_ICONS}
+        />
 
         <main className="min-w-0 flex-1 px-4 pt-5 pb-24 md:px-6 md:pt-6 md:pb-8">
           <div className="mx-auto w-full max-w-3xl">{children}</div>

@@ -4,8 +4,19 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Icon, type IconName } from '@/components/ui/icon';
 
 /**
- * One section of the client's record: a heading, a ruled list of facts, and
- * optionally a footnote and a row of controls.
+ * One section of the client's record: a heading over a ruled list of facts.
+ *
+ * It used to take a `note` — a sunken `SectionNote` strip closing the section —
+ * and both are gone with the last caller. Each one explained a constraint the
+ * screen already demonstrated: the health record's said "the more complete your
+ * record, the more precise your plan" on a screen where the client can edit
+ * nothing, and the contact screen's said changes go through the clinic, above
+ * the request button that is the only way to make one.
+ *
+ * The clinic section deliberately does **not** use this — it draws each fact as
+ * its own card rather than as a row in one. See the note at the top of
+ * `clinic-section.tsx` for why that is a different composition rather than a
+ * fifth layout mode here.
  *
  * **The heading glyph sits bare, not on a filled disc.** It was a 36px olive
  * chip, and on a screen that is three of these stacked, three olive chips were
@@ -24,8 +35,6 @@ export function ProfileSection({
   description,
   lead,
   children,
-  note,
-  action,
 }: {
   icon: IconName;
   title: string;
@@ -37,10 +46,6 @@ export function ProfileSection({
    */
   lead?: ReactNode;
   children?: ReactNode;
-  /** A footnote under the list — the identifier caveat, for instance. */
-  note?: ReactNode;
-  /** Controls that close the section, below everything else. */
-  action?: ReactNode;
 }) {
   return (
     <Card>
@@ -69,28 +74,7 @@ export function ProfileSection({
         {children ? (
           <dl className="divide-y divide-border rounded-lg border border-border px-4">{children}</dl>
         ) : null}
-
-        {note}
-
-        {action}
       </CardContent>
     </Card>
-  );
-}
-
-/**
- * The muted caveat that closes a section — the mock's info-marked strip.
- *
- * A sunken block rather than a loose paragraph, because it is a note *about* the
- * list above it and needs to read as attached to it. The glyph is `infoOutline`
- * and not `attention`: nothing here has gone wrong, and amber (§Status) would
- * say a correction is owed.
- */
-export function SectionNote({ children }: { children: ReactNode }) {
-  return (
-    <div className="flex items-start gap-2.5 rounded-lg bg-muted px-4 py-3">
-      <Icon name="infoOutline" className="mt-0.5 size-4.5 shrink-0 text-muted-foreground" />
-      <p className="min-w-0 flex-1 text-sm leading-relaxed text-muted-foreground">{children}</p>
-    </div>
   );
 }

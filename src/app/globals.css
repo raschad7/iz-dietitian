@@ -415,8 +415,6 @@
   --color-progress-track: var(--progress-track);
   --color-progress-card-border: var(--progress-card-border);
 
-  --color-commitment-card-from: var(--commitment-card-from);
-  --color-commitment-card-to: var(--commitment-card-to);
   --color-commitment-card-figure: var(--commitment-card-figure);
   --color-commitment-card-stat: var(--commitment-card-stat);
 
@@ -623,13 +621,19 @@
   --progress-card-border: var(--olive-200);
 
   /*
-   * The home screen's "commitment today" hero — a lime-to-olive wash, the
-   * same fill-vs-foreground pairing the streak chart already speaks (lime is
-   * the wash, olive is what reads on top of it), so this card and the ring
-   * above it agree without sharing a component.
+   * The home screen's "commitment today" hero.
+   *
+   * **The surface is `--card`, not a token of its own.** It was a lime-to-olive
+   * wash — a `-from` and a `-to` that lived here for it — and the card sits on
+   * the portal's green home glow, so a tinted card on a tinted ground left the
+   * two the same colour family and the card stopped reading as a surface. It is
+   * plain white with `Card`'s own hairline now, which also means it inverts with
+   * the rest of the portal's dark theme instead of needing the wash restated
+   * twice below. The two ramp stops are gone; only the two foregrounds remain,
+   * and they still need to invert.
+   *
+   * olive-800 and olive-700 on white are 10.4:1 and 6.51:1.
    */
-  --commitment-card-from: var(--lime-100);
-  --commitment-card-to: var(--olive-400);
   --commitment-card-figure: var(--olive-800);
   --commitment-card-stat: var(--olive-700);
 
@@ -867,9 +871,7 @@
   --progress-card-edge: var(--olive-950);
   --progress-card-border: var(--olive-800);
 
-  /* The wash sits lower on the ramp so it stays a card, not a light on the dark canvas; text goes light to keep reading on it. */
-  --commitment-card-from: var(--olive-800);
-  --commitment-card-to: var(--olive-600);
+  /* The card is `--card` here as everywhere; only its two foregrounds go light to keep reading on the dark surface. */
   --commitment-card-figure: var(--n-25);
   --commitment-card-stat: var(--olive-200);
 
@@ -994,8 +996,6 @@
     --progress-card-edge: var(--olive-950);
     --progress-card-border: var(--olive-800);
 
-    --commitment-card-from: var(--olive-800);
-    --commitment-card-to: var(--olive-600);
     --commitment-card-figure: var(--n-25);
     --commitment-card-stat: var(--olive-200);
 
@@ -1251,10 +1251,20 @@
    * `inset-inline-start`, not `left`: the shape is a formless ambient blur, so
    * mirroring it in Arabic costs nothing and keeps the rule that only a
    * genuinely directional asset earns a physical property.
+   *
+   * **It sits 25vw higher than the measured frame**, and only the block-start
+   * offset moved: the size, the blur radius, the rotation and the inline
+   * offset are the ratios above, untouched, so the shape and its proportions
+   * are the design's. At the measured offset the fill's own edge landed at
+   * 105vw and the blur carried visible green another 20vw past that — roughly
+   * three fifths of a phone screen, so the wash ran well below the commitment
+   * card it is meant to sit behind and read as a coloured page rather than as
+   * a glow behind the hero. Raising the offset ends the fade around the card
+   * instead. Still `vw`, so it scales with the frame exactly as the rest does.
    */
   .portal-home-glow {
     position: absolute;
-    inset-block-start: -56.15vw;
+    inset-block-start: -81.15vw;
     inset-inline-start: -47.27vw;
     width: 200.64vw;
     height: 161.54vw;

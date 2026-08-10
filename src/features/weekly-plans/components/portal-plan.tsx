@@ -293,12 +293,20 @@ function MealCard({
 
       `gap-0 p-1.5` replaces `Card`'s own padding: here the padding belongs to the
       panel inside, not to the shell.
+
+      **No shadow, at rest or under the pointer.** `Card`'s olive-tinted
+      `shadow-card` is for a surface floating on the page; a day here is five of
+      these stacked 20px apart, and five lifted shells read as five separate
+      documents rather than as one day. The tinted frame and the ring the
+      variant already draws are what separate a meal from the page — the edge,
+      never a lift, which is the language `Card`'s own `interactive` state
+      speaks. The hover lift went with it rather than being softened: the row
+      inside is the control and it answers with its own fill, so the shell had
+      no business moving too. `shadow-none` genuinely displaces `shadow-card`
+      here — see the shadow group registered on `cn` in `src/lib/utils.ts`.
     */
     <Card
-      className={cn(
-        'gap-0 p-1.5 transition-shadow hover:shadow-elevated',
-        settledAndKept ? SETTLED_SHELL : MEAL_SHELL,
-      )}
+      className={cn('gap-0 p-1.5 shadow-none', settledAndKept ? SETTLED_SHELL : MEAL_SHELL)}
     >
       <details className="q-disclosure group">
         {/*

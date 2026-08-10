@@ -36,7 +36,24 @@ export default async function PortalScreenLayout({ children, params }: PortalScr
 
   return (
     <div className="flex flex-1">
-      <Sidebar items={PORTAL_NAV} title={t('title')} icons={PORTAL_NAV_ICONS} />
+      {/*
+        `showTitle={false}`, as in `(tabs)`: each screen in this group renders
+        its own `PortalScreenHeader` naming itself, so the portal's own name is
+        never drawn. The string stays as the drawer's accessible name.
+
+        `showMobileBar={false}`, as in `(tabs)`: nothing in this column offsets
+        a `fixed` strip, so the bar was sitting on top of each screen's own
+        `PortalScreenHeader` — including the back control that is how a client
+        leaves a pushed screen. The header's back link is the phone navigation
+        here, and it is now reachable.
+      */}
+      <Sidebar
+        items={PORTAL_NAV}
+        title={t('title')}
+        showTitle={false}
+        showMobileBar={false}
+        icons={PORTAL_NAV_ICONS}
+      />
 
       <div className="flex min-w-0 flex-1 flex-col">{children}</div>
     </div>

@@ -38,6 +38,32 @@ export type NavItem = {
 type SidebarProps = {
   items: readonly NavItem[];
   title: string;
+  /**
+   * Whether the title is *drawn*. It is always still the drawer's accessible
+   * name — a modal with no name is a modal a screen reader announces as
+   * nothing — so this hides the visible copy, it does not remove the string.
+   *
+   * The portal turns it off. Its own `PortalHeader` already opens every tab
+   * screen with the client's name and the day, and each `(screen)` page names
+   * itself; "بوابة المشتركين" sitting above that told a client, on their own
+   * phone, which app they had just opened. The staff shell has no such header,
+   * so it keeps the title.
+   */
+  showTitle?: boolean;
+  /**
+   * Whether the phone-width app bar — a fixed strip carrying the drawer
+   * trigger — is rendered at all.
+   *
+   * The staff shell needs it: below `md` the rail is hidden and the drawer is
+   * the only navigation there is, which is why `main` there pays for it with
+   * `pt-[4.25rem]`. The portal never paid that rent. Its own chrome already
+   * covers both jobs — `PortalTabBar` carries the same five destinations along
+   * the block-end edge, and `PortalHeader` carries the bell and settings — so
+   * the bar was a third piece of navigation, and being `fixed` in a column
+   * with no offset for it, it sat *on top of* the header's own controls. This
+   * turns it off rather than adding padding to push everything down past it.
+   */
+  showMobileBar?: boolean;
   user?: { name: string; email?: string | null; locale: Locale };
   icons?: Partial<Record<NavItem['labelKey'], IconName>>;
 };
@@ -50,7 +76,14 @@ type SidebarProps = {
  * the full navigation opens over the workspace instead of resizing it. Phones
  * get the same drawer from a compact app bar, so navigation never disappears.
  */
-export function Sidebar({ items, title, user, icons }: SidebarProps) {
+export function Sidebar({
+  items,
+  title,
+  showTitle = true,
+  showMobileBar = true,
+  user,
+  icons,
+}: SidebarProps) {
   const t = useTranslations('nav');
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -63,23 +96,30 @@ export function Sidebar({ items, title, user, icons }: SidebarProps) {
   return (
     <>
       {/* Mobile owns a small app bar instead of leaving the signed-in area with
-          no navigation at all. The page starts below it in the app layout. */}
-      <div className="fixed inset-x-0 top-0 z-40 flex h-14 items-center gap-3 border-b border-sidebar-border bg-sidebar px-3 text-sidebar-foreground md:hidden">
-        <Button
-          type="button"
-          size="icon-sm"
-          variant="ghost"
-          aria-expanded={drawerOpen}
-          aria-label={t('openNavigation')}
-          title={t('openNavigation')}
-          onClick={() => setDrawerOpen(true)}
-        >
-          <Icon name="navigationMenu" className="size-5" />
-        </Button>
-        <span className="min-w-0 truncate font-heading text-body-md font-semibold text-sidebar-primary-foreground">
-          {title}
-        </span>
-      </div>
+          no navigation at all. The page starts below it in the app layout —
+          `pt-[4.25rem]` on that `main`, because this strip is `fixed` and so
+          takes no room of its own. A shell that already has phone navigation
+          turns it off (`showMobileBar`) rather than paying that offset. */}
+      {showMobileBar ? (
+        <div className="fixed inset-x-0 top-0 z-40 flex h-14 items-center gap-3 border-b border-sidebar-border bg-sidebar px-3 text-sidebar-foreground md:hidden">
+          <Button
+            type="button"
+            size="icon-sm"
+            variant="ghost"
+            aria-expanded={drawerOpen}
+            aria-label={t('openNavigation')}
+            title={t('openNavigation')}
+            onClick={() => setDrawerOpen(true)}
+          >
+            <Icon name="navigationMenu" className="size-5" />
+          </Button>
+          {showTitle ? (
+            <span className="min-w-0 truncate font-heading text-body-md font-semibold text-sidebar-primary-foreground">
+              {title}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
 
       {/* Tablet tool rail: destinations remain one tap away, while the board
           receives 184px back. The menu button reveals labels and account tools. */}
@@ -134,6 +174,7 @@ export function Sidebar({ items, title, user, icons }: SidebarProps) {
         <SidebarPanel
           items={items}
           title={title}
+          showTitle={showTitle}
           user={user}
           icons={icons}
           isActive={isActive}
@@ -149,6 +190,7 @@ export function Sidebar({ items, title, user, icons }: SidebarProps) {
         <SidebarPanel
           items={items}
           title={title}
+          showTitle={showTitle}
           user={user}
           icons={icons}
           isActive={isActive}
@@ -164,6 +206,7 @@ export function Sidebar({ items, title, user, icons }: SidebarProps) {
 function SidebarPanel({
   items,
   title,
+  showTitle = true,
   user,
   icons,
   isActive,
@@ -180,23 +223,36 @@ function SidebarPanel({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex h-18 shrink-0 items-center gap-2 px-5">
-        <span className="min-w-0 flex-1 truncate font-heading text-heading-sm font-semibold text-sidebar-primary-foreground">
-          {title}
-        </span>
-        {onClose ? (
-          <Button
-            type="button"
-            size="icon-sm"
-            variant="ghost"
-            aria-label={closeLabel}
-            title={closeLabel}
-            onClick={onClose}
-          >
-            <Icon name="close" />
-          </Button>
-        ) : null}
-      </div>
+      {/*
+        The header row exists for what is *in* it. With no title and no close
+        button — the portal's wide rail — it would be 72px of empty column
+        above the first destination, so it is not rendered at all and the nav
+        starts at the top of its own padding. The drawer still has its close
+        button, and `ms-auto` keeps that button against the inline-end edge
+        once the title beside it is gone.
+      */}
+      {showTitle || onClose ? (
+        <div className="flex h-18 shrink-0 items-center gap-2 px-5">
+          {showTitle ? (
+            <span className="min-w-0 flex-1 truncate font-heading text-heading-sm font-semibold text-sidebar-primary-foreground">
+              {title}
+            </span>
+          ) : null}
+          {onClose ? (
+            <Button
+              type="button"
+              size="icon-sm"
+              variant="ghost"
+              aria-label={closeLabel}
+              title={closeLabel}
+              onClick={onClose}
+              className="ms-auto"
+            >
+              <Icon name="close" />
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
 
       <nav className="flex min-h-0 flex-col gap-1 overflow-y-auto p-3">
         {items.map((item) => {
