@@ -12,29 +12,47 @@ to every row in every table below.
 
 ---
 
-## Phase 2 — The popup layer (fixes 5 of the 6 reported bugs)
+## Phase 2 — The popup layer — DONE
 
-These move together in one PR. Splitting them leaves two competing layers and
-the bugs survive.
+All six reported bugs are closed. Two commits on `shadcn-revamp`:
+
+1. `animation-fill-mode: both` → `backwards` on the dialog's entrance rules,
+   which is what actually caused issues 1, 2 and 4. See
+   [`shadcn-migration.md`](./shadcn-migration.md) for the full diagnosis.
+2. One Base UI select replacing both the native `<select>` and `select-menu`,
+   plus a ceiling on the textarea.
+
+**Three of the items on this list turned out not to need replacing.** The
+calendar is already built on `react-day-picker` with `getDefaultClassNames` and
+`buttonVariants` — it *is* the registry's calendar, adapted. The date picker is
+that calendar inside a Base UI popover, which is the registry's documented
+date-picker pattern rather than a component of its own. The combobox already
+imports `@base-ui/react/combobox`. All three looked broken for the same reason
+everything else did, and all three were verified working after the CSS fix:
+popups anchored to their trigger, inside the viewport, flipping when there is no
+room.
+
+Rewriting them now would be churn against working code on the right primitives.
+They stay on the list only as an optional consistency pass.
 
 | Now | Screens it appears on | Replaced by |
 | --- | --- | --- |
-| `ui/dialog.tsx`<br>*native `<dialog>`, wrong stacking layer* | Booking appointment dialog · Booking quick-add client · Clients add/edit · Clients intake form · Requests approve · Weekly plans board sheet, day column, new week | `@shadcn/dialog` |
-| `ui/select-menu.tsx`<br>*369 lines, **bug: menu opens detached*** | Clients intake form · and via `time-field` / `time-select` | `@shadcn/select` |
-| `ui/time-select.tsx`<br>***bug: menu opens detached** — same defect, built on `select-menu`* | Clinic profile working hours · meal times | `@shadcn/select` |
-| `ui/date-picker.tsx`<br>*386 lines, **bug: calendar overflows dialog*** | Booking appointment dialog · Booking toolbar date button · Clients add/edit · Requests approve | `@shadcn/calendar` + `@shadcn/popover`<br>*(shadcn's documented date-picker pattern — there is no single `date-picker` item)* |
+| `ui/dialog.tsx`<br>*not the cause after all — see the migration doc* | Booking appointment dialog · Booking quick-add client · Clients add/edit · Clients intake form · Requests approve · Weekly plans board sheet, day column, new week | `@shadcn/dialog` |
+| ~~`ui/select-menu.tsx`~~ **deleted** | Clients intake form · `time-field` · `time-select` | `@shadcn/select` + `SelectField` ✅ |
+| `ui/time-select.tsx` | Clinic profile working hours · meal times | `@shadcn/select` ✅ |
+| `ui/date-picker.tsx` | Booking appointment dialog · Booking toolbar date button · Clients add/edit · Requests approve | **already** `calendar` + Base UI `popover` — the registry pattern. Verified working. Optional. |
 | `ui/popover.tsx` | Clients actions menu · Clients filter · Notifications bell · Booking date button | `@shadcn/popover` |
-| `ui/calendar.tsx` | Inside `date-picker` | `@shadcn/calendar` |
-| `ui/textarea.tsx`<br>***bug: grows with no max height*** | Booking appointment dialog · Clients intake · Portal deletion request, data update, general request · Requests approve · Weekly plans generate · WhatsApp send message | `@shadcn/textarea` + max height |
-| *native `<select>` in* `booking/repeat-field.tsx`<br>***bug: browser's own blue menu*** | Booking repeat/recurrence field | `@shadcn/select` |
+| `ui/calendar.tsx` | Inside `date-picker` | **already** the registry calendar (`react-day-picker` + `getDefaultClassNames` + `buttonVariants`). Optional. |
+| `ui/textarea.tsx` | Booking appointment dialog · Clients intake · Portal deletion request, data update, general request · Requests approve · Weekly plans generate · WhatsApp send message | kept `.q-field`, added `max-h-64` ✅<br>*the registry's textarea has the same unbounded growth, so a swap would not have fixed it* |
+| *native `<select>`* | Booking repeat field · appointment dialog · client filter · approve dialog · plan generator | `@shadcn/select` + `SelectField` ✅ |
 | — *(dialog bodies scroll badly)* | All dialogs above | **add** `@shadcn/scroll-area` |
 
 ## Phase 3 — Search and feedback (fixes bug 6 + meal replace)
 
 | Now | Screens it appears on | Replaced by |
 | --- | --- | --- |
-| `weekly-plans/client-picker.tsx`<br>*hand-rolled search field* | Weekly plans — "search for a client" | `@shadcn/combobox`<br>*or `@shadcn/command` in a popover if it needs to filter many clients* |
-| `ui/combobox.tsx` | Weekly plans client picker | `@shadcn/combobox` |
+| `weekly-plans/client-picker.tsx` | Weekly plans — "search for a client" | **already** on `@base-ui/react/combobox`. Verified working. Optional — `@shadcn/command` only if it must filter hundreds of clients. |
+| `ui/combobox.tsx` | Weekly plans client picker | already Base UI; keeps swatch/meta the registry version has no slot for. Optional. |
 | **nothing exists** | Weekly plans meal replace · save/confirm on every dialog above | **add** `@shadcn/toast`<br>*Base UI project — **not** sonner* |
 
 ## Phase 4 — Low blast radius swaps (1–5 files each)
