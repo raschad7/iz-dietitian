@@ -780,28 +780,46 @@ chevron — Chrome pins its built-in arrow to the border and ignores
 `padding-inline-end`, so long option text collides with it. Keyboard
 behaviour, screen-reader semantics and the mobile picker still come free.
 
-### Two time controls, and which one
+### One time control
 
-Neither is `<input type="time">`. Chrome's popup is a three-column spinner in
-the OS's own type, which reads as a foreign object inside an Arabic page and
-forces a 12-hour step on a clinic that works in 24.
+**`TimeInput`** — the browser's own segmented time field, with a clock leading
+it. It is the only time control; a meal time and a clinic's opening hour are the
+same control with a different `step`.
 
-- **`TimeField`** — an hour list beside a minute list. For a time on a fine
-  grid, chosen as two independent parts: a meal at 07:35. `minuteStep` sets the
-  minute grid, and it must match whatever validates the value — a control that
-  offers a time its own form rejects is a trap the reader walks into once per
-  visit.
-- **`TimeSelect`** — one list of whole times: `08:00`, `08:15`. For a time on a
-  coarse grid where the *whole* time is the unit of choice. It is controlled,
-  because a caller that wants one time usually also wants to copy it somewhere.
+> Replaced: `TimeField` (an hour list beside a minute list) and `TimeSelect`
+> (one list of whole times). Between them they meant a meal time was two
+> dropdowns you assembled yourself, and the code carried two components, two
+> option-generating loops and two off-grid-value policies for one kind of
+> answer.
 
-The clinic's opening hours are the case that separated them. Seven days of
-`TimeField` meant **twenty-eight** dropdowns, and none of them showed a time —
-you read `08` and `00` in two boxes and assembled `08:00` yourself, twice per
-row. Two `TimeSelect`s per row halve the controls and each one states the
-answer. Both components keep an off-grid stored value as its own entry rather
-than rounding it away; silently moving a clinic's 08:20 to 08:15 on load is data
-loss disguised as tidiness.
+This section used to open "neither is `<input type="time">`", and the reasoning
+was not wrong — so be precise about what changed:
+
+- **The OS popup is gone**, which was the loudest objection: Chrome's
+  three-column spinner is drawn in the operating system's own type and reads as
+  a foreign object dropped into an Arabic page. Hiding
+  `::-webkit-calendar-picker-indicator` removes the button that summons it and
+  leaves the segmented field, which is drawn in the page's own type.
+- **The 12-hour concern stands, and it is the browser's call.** A time input
+  formats to the *browser's* locale, not the page's, so a clinic working in 24
+  can still be shown `08:30 AM` by a browser set to US English. The submitted
+  value is always 24-hour `HH:MM`, which is what `timeOfDaySchema` parses, so
+  this is a display difference and not a data one. If it ever has to be
+  controlled, that is the thing to solve — not the control.
+
+**`step` is in seconds, and it must match whatever validates the value.** A
+quarter hour is `900`, not `15`. Pass it where the form validates to a grid: the
+browser snaps its stepper and reports a typed off-grid value as invalid, instead
+of accepting it and letting the server reject it. A control that offers a time
+its own form refuses is a trap the reader walks into once per visit, and that
+rule outlived the two components it was written for. Never pass `1` — it adds a
+seconds segment, and nothing here stores a time more precisely than the minute.
+
+**It is an LTR island in both scripts**, like the phone field. `dir="ltr"` goes
+on the wrapper and not on the input: the glyph is placed with a logical
+`start-0` and the box clears it with a logical `ps-12`, so setting the direction
+one level in resolves those two against opposite edges and drops the clock on
+top of the digits.
 
 **Where the same value repeats down a list, offer to copy it.** Most clinics
 work the same hours every day, and the schedule made you say so seven times.

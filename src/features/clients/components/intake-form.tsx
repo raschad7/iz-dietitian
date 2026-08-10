@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SelectField } from '@/components/ui/select-field';
 import { Textarea } from '@/components/ui/textarea';
-import { TimeField } from '@/components/ui/time-field';
+import { TimeInput } from '@/components/ui/time-input';
 import { saveIntakeAction } from '@/features/clients/actions';
 import { calculateAge } from '@/features/clients/age';
 import { initialIntakeFormState, type IntakeFormState } from '@/features/clients/form-state';
@@ -987,11 +987,14 @@ function MealScheduleField({
             aria-label={t('fields.slotLabel')}
             className="col-span-2 sm:col-span-1"
           />
-          <TimeField
+          {/*
+            No `step`: `timeOfDaySchema` accepts any whole minute, so the
+            control should too. A meal at 07:35 is a real answer.
+          */}
+          <TimeInput
             name="slotTime"
             defaultValue={slot.timeOfDay}
-            hourLabel={t('intake.hour')}
-            minuteLabel={t('intake.minute')}
+            aria-label={t('intake.time')}
           />
           <Input
             name="slotShare"

@@ -60,6 +60,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
+import { TimeInput } from '@/components/ui/time-input';
 import { TooltipHint } from '@/components/ui/tooltip-hint';
 import type { Locale } from '@/i18n/routing';
 import { AVATAR_PALETTE } from '@/lib/avatar-color';
@@ -517,6 +518,20 @@ export function UiGallery({ locale }: { locale: Locale }) {
               this dialog overflow, which is how the layout shift was found:
               type several lines and nothing beside it may move sideways.
             */}
+            {/*
+              Both grids the app validates to: a meal accepts any whole minute,
+              the clinic's opening hours only quarter hours.
+            */}
+            <Field>
+              <Label htmlFor="g-dialog-time">Meal time (any minute)</Label>
+              <TimeInput id="g-dialog-time" defaultValue="07:35" />
+            </Field>
+
+            <Field>
+              <Label htmlFor="g-dialog-time-quarter">Opens (quarter hours)</Label>
+              <TimeInput id="g-dialog-time-quarter" defaultValue="08:00" step={900} />
+            </Field>
+
             <Field>
               <Label htmlFor="g-dialog-notes">Notes</Label>
               <Textarea id="g-dialog-notes" placeholder="Type several lines to overflow the dialog" />
