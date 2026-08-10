@@ -1944,6 +1944,65 @@
 }
 
 /*
+ * ── Patient identity ──
+ *
+ * The colour a person's bookings are drawn in, so a day's grid can be read as
+ * "who" before it is read as "when". One colour per client, everywhere the
+ * schedule shows them: the calendar block, the month chip, the agenda row, and
+ * the initials avatar on each.
+ *
+ * **The element supplies one number and this supplies the rest.**
+ * `src/features/booking/patient-color.ts` sets `--tone-h`, a hue in degrees
+ * derived from the client's id; the four steps below are built from it here.
+ * That split is deliberate. A component computing its own fills would put
+ * colour decisions in a `.tsx` — the thing this file exists to make
+ * unnecessary — and would have no way to answer a theme. This way the ramp is
+ * one edit, and dark mode is the override underneath.
+ *
+ * It has to be a class rather than four `:root` tokens: a custom property is
+ * substituted where it is *declared*, so `--tone-fill` on `:root` would read
+ * `:root`'s hue and ignore whatever the card set. Declaring the ramp on the
+ * element itself is what makes the substitution local.
+ *
+ * **OKLCH, not HSL.** HSL's "lightness" is not lightness — `hsl(60 80% 50%)`
+ * is a bright yellow and `hsl(240 80% 50%)` a dark blue, so a per-client hue
+ * spun through HSL would hand one patient a card whose text fails contrast and
+ * another a card that shouts. OKLCH is perceptually uniform, so fixing L fixes
+ * *apparent* lightness. Measured across all 360 hues: the resting fill holds
+ * n-900 at 14.42–14.70:1, the hover fill at 12.67–13.10:1, and the avatar
+ * holds white at 4.63–5.09:1. Every patient's card carries the same visual
+ * weight, which is the point — colour here says who, never how important.
+ *
+ * The chroma of each step is the most sRGB allows at that lightness across
+ * every hue, so no client's colour is silently clipped into another's.
+ */
+.patient-tone {
+  /* The resting card: barely tinted, so a full day still reads as one grid. */
+  --tone-fill: oklch(0.945 0.025 var(--tone-h));
+  --tone-fill-hover: oklch(0.905 0.042 var(--tone-h));
+  /* The hairline, and the only saturated thing at rest — 3.39:1 on the card. */
+  --tone-edge: oklch(0.62 0.115 var(--tone-h));
+  /* The avatar disc. Deep enough to carry the white initials on it. */
+  --tone-mark: oklch(0.55 0.088 var(--tone-h));
+}
+
+/*
+ * Dark mode re-anchors the ramp rather than inverting it: the fill becomes a
+ * deep tint of the same hue and the mark lightens, so a client keeps their
+ * colour between themes and only the surface changes hands.
+ *
+ * `.dark` alone, not the portal's two `[data-theme]` blocks — these surfaces
+ * live in the practitioner app, which the portal theme never reaches. A patient
+ * colour drawn on a portal screen would need both, per docs/design-system.md.
+ */
+.dark .patient-tone {
+  --tone-fill: oklch(0.27 0.035 var(--tone-h));
+  --tone-fill-hover: oklch(0.33 0.045 var(--tone-h));
+  --tone-edge: oklch(0.62 0.115 var(--tone-h));
+  --tone-mark: oklch(0.68 0.105 var(--tone-h));
+}
+
+/*
  * The planner rail and its compact trigger are one responsive pair. Keeping
  * their breakpoint here prevents a partially generated utility sheet from
  * showing the mobile trigger while hiding the desktop rail.

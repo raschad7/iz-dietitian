@@ -79,6 +79,22 @@ export type DateCalendarProps = {
   classNames?: React.ComponentProps<typeof Calendar>['classNames'];
   /** Part overrides, chiefly `Nav` for a caller adding its own month controls. */
   components?: React.ComponentProps<typeof Calendar>['components'];
+  /**
+   * What colour the chosen day is filled with.
+   *
+   * `neutral` — the default — is the registry's own look, a black day on white,
+   * reached by pointing `--primary` at the foreground for this subtree. That
+   * exists because the registry calendar paints the selected day with
+   * `bg-primary`, this app's primary is olive, and a form's month grid came out
+   * as a field of green — a colour the rest of the app spends on one action per
+   * screen.
+   *
+   * `primary` opts back into the olive. The toolbar's date picker is not a
+   * field in a form: it is the control that says where the calendar is, the
+   * chosen day is the answer to the only question the panel asks, and one green
+   * cell in a popover is the single accent that screen was already spending.
+   */
+  selectedTone?: 'neutral' | 'primary';
 };
 
 /**
@@ -106,6 +122,7 @@ export function DateCalendar({
   onMonthChange,
   classNames,
   components,
+  selectedTone = 'neutral',
 }: DateCalendarProps) {
   const formatters = useMemo(() => {
     const intlLocale = toIntlLocale(locale);
@@ -114,22 +131,35 @@ export function DateCalendar({
 
     const day = format({ day: 'numeric' });
     /*
-      Narrow weekdays in Arabic, short ones in English.
-      `short` in Arabic is not short: `Intl` returns the whole word — الأربعاء,
-      eight letters — and seven of those in a 36px column each is not a header
-      row, it is one unbroken line of Arabic running across the top of the grid
-      with nothing above the column it names. Narrow is the single letter
-      (ح ن ث ر خ ج س), which is what a column that size can hold. English keeps
-      `short`: "Wed" fits, and "S M T W T F S" makes a reader count.
+      Two-letter weekdays in Arabic, `short` in English.
+
+      Neither of `Intl`'s Arabic widths is usable here. `short` is not short —
+      it returns the whole word, الأربعاء, eight letters — and seven of those in
+      a 34px column is not a header row, it is one unbroken line of Arabic
+      across the top of the grid with nothing above the column it names.
+      `narrow` is a single letter, which fits but does not identify: it gives
+      ث for both الاثنين and الثلاثاء, and ح for الأحد against ج for الجمعة, so
+      the reader is left counting columns.
+
+      The pairs below are the clinic's own, and they are the shortest form that
+      still tells the days apart: the first letters of each name, plus a second
+      wherever the first is shared. English keeps `short`, where "Wed" fits and
+      "S M T W T F S" is the version that makes a reader count.
     */
-    const weekday = format({ weekday: locale === 'ar' ? 'narrow' : 'short' });
+    const arabicWeekdays = ['اح', 'اث', 'ثل', 'ار', 'خم', 'جم', 'سب'];
+    const weekday = format({ weekday: 'short' });
     const monthName = format({ month: 'long' });
     const year = format({ year: 'numeric' });
     const caption = format({ month: 'long', year: 'numeric' });
 
     return {
       formatDay: (date: Date) => day.format(date),
-      formatWeekdayName: (date: Date) => weekday.format(date),
+      // Indexed by `getDay()`, which is 0 for Sunday — the same column the grid
+      // starts on, so the pair and the column cannot drift apart. The fallback
+      // is for the type only: `getDay()` is 0–6, but nothing in the type system
+      // says so, and `Intl` is the right answer if that ever stops being true.
+      formatWeekdayName: (date: Date) =>
+        (locale === 'ar' ? arabicWeekdays[date.getDay()] : undefined) ?? weekday.format(date),
       formatMonthDropdown: (date: Date) => monthName.format(date),
       formatYearDropdown: (date: Date) => year.format(date),
       formatCaption: (date: Date) => caption.format(date),
@@ -167,39 +197,6 @@ export function DateCalendar({
       /*
         The registry calendar's own theme, unmodified.
 
-<<<<<<< HEAD
-          shadcn's grid butts every cell against the next, which is right for a
-          range picker — the run of chosen days has to read as one bar — and
-          wrong for this one, which only ever holds a single date. Flush cells
-          turned the toolbar's "this month is on screen" tint into a solid block
-          of colour with numbers on it, and left the day under the pointer with
-          no edge of its own to light up. `gap-0.5` is enough to separate them
-          and not enough to stop the week reading as a row.
-        */
-        weekdays: 'flex gap-0.5',
-        weekday: 'flex-1 text-caption font-normal text-muted-foreground select-none',
-        week: 'mt-0.5 flex w-full gap-0.5',
-        /*
-          Rewritten rather than extended, to drop two rules from the shadcn
-          default: `[&:first-child[data-selected=true]_button]:rounded-s` and
-          its `last-child` twin. Those exist to square off the ends of a
-          selected *range* so it meets the grid edge — but they key off
-          `data-selected`, which a single date sets too, so the chosen day
-          flattened its outer side whenever it landed in the first or last
-          column. A Sunday and a Saturday came out as half-pills; every day
-          between them was a circle.
-        */
-        day: 'group/day relative aspect-square h-full w-full rounded-full p-0 text-center select-none',
-        /*
-          Same story: the default squares today off when it is also the chosen
-          day, which is the common case here — the picker opens on the date the
-          calendar is already showing. Today's fill just steps aside for the
-          selected one instead.
-        */
-        today: 'rounded-full bg-muted text-foreground data-[selected=true]:bg-transparent',
-        ...classNames,
-      }}
-=======
         This used to carry a block of `classNames` overrides — 36px cells,
         gapped weeks, fully round days, a restyled caption dropdown — each with
         a reason, and together they were a second calendar design maintained by
@@ -219,13 +216,19 @@ export function DateCalendar({
         action per screen. Pointing `--primary` at the foreground for this
         subtree alone produces the registry's own look, a black day on white,
         and leaves every button on the page untouched.
+
+        A caller can decline it — see `selectedTone`. Handled here rather than
+        left to the caller's `className`, because two `[--primary:…]` arbitrary
+        properties at equal specificity are decided by the order Tailwind
+        happens to emit them in, which is not something to depend on.
       */
       className={cn(
         'bg-transparent p-0',
-        '[--primary:var(--foreground)] [--primary-foreground:var(--background)]',
+        selectedTone === 'neutral' &&
+          '[--primary:var(--foreground)] [--primary-foreground:var(--background)]',
         className,
       )}
->>>>>>> 46b01788670120b95bba6290cf81ba898193a4c1
+      classNames={classNames}
     />
   );
 }

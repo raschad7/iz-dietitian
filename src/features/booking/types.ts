@@ -32,12 +32,20 @@ export type CalendarAppointment = {
    * person's avatar in the picker are recognisably the same person.
    */
   clientColor: string;
+  /**
+   * The client's position in their clinic, counted from 0 — what their calendar
+   * colour is derived from. See `clientSeq` in `./queries.ts` for why it is a
+   * position and not a hash of the id.
+   */
+  clientSeq: number;
 };
 
 export type CalendarClient = {
   id: string;
   name: string;
   color: string;
+  /** See `CalendarAppointment.clientSeq`. */
+  seq: number;
 };
 
 /**

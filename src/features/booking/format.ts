@@ -85,11 +85,31 @@ export function formatMinuteRangeLatin(date: IsoDate, startMinute: number, endMi
   );
 }
 
-/** `5 – 11 August 2026`, collapsed by the locale's own range rules. */
-export function formatMediumDateRange(locale: Locale, from: IsoDate, to: IsoDate): string {
-  return withStableSpaces(
-    formatter(locale, { dateStyle: 'medium' }).formatRange(toUtcInstant(from), toUtcInstant(to)),
-  );
+/**
+ * `August 10, 2026 – August 16, 2026` / `10 أغسطس 2026 – 16 أغسطس 2026`.
+ *
+ * Both ends in full, each formatted on its own and joined here.
+ *
+ * This replaced a `dateStyle: 'medium'` range, and neither half of that was
+ * right. "Medium" is not the same idea in the two locales: English medium is
+ * `Aug 15, 2026`, a month *name*, while Arabic medium is `15‏/08‏/2026`, all
+ * digits — so the toolbar read `10‏/8‏/2026 – 16‏/8‏/2026`, two numbers to
+ * decode before you know which week is on screen, in the one control whose job
+ * is to say where you are.
+ *
+ * And `formatRange` collapses what the two ends share, giving `10–16 أغسطس
+ * 2026`. That is the tighter typography, but it makes the two dates read as one
+ * smeared thing rather than as a start and an end; spelled out, the label says
+ * plainly what the first day is and what the last day is.
+ *
+ * No `withStableSpaces` here, and none needed: that guard exists for the
+ * separator `formatRange` inserts, which differs between the server's ICU and
+ * the browser's. The separator below is ours, and the single-value formatter
+ * either side of it agrees byte for byte on both runtimes.
+ */
+export function formatLongDateRange(locale: Locale, from: IsoDate, to: IsoDate): string {
+  const format = formatter(locale, { dateStyle: 'long' });
+  return `${format.format(toUtcInstant(from))} – ${format.format(toUtcInstant(to))}`;
 }
 
 /** `5 August 2026` — the long form the appointment popup header shows. */

@@ -165,7 +165,10 @@
       "nextMonth": "Next month",
       "previousYear": "Previous year",
       "nextYear": "Next year",
-      "pickMonth": "Choose a month"
+      "pickMonth": "Choose a month",
+      "pickYear": "Choose a year",
+      "previousYears": "Previous years",
+      "nextYears": "Next years"
     },
     "search": {
       "placeholder": "Search clients"

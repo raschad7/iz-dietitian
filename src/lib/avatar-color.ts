@@ -27,14 +27,17 @@ export function isHexColor(value: string): boolean {
 }
 
 /**
- * A stable colour for a name.
+ * FNV-1a over a string's code points.
  *
- * FNV-1a over the string's code points: tiny, deterministic, and spreads
- * similar names (‏"أحمد خليل" / "أحمد خالد") across different buckets, which a
- * length- or first-letter-based choice would not. `>>> 0` keeps the value
- * unsigned so the modulo cannot return a negative index.
+ * Tiny, deterministic, and it spreads similar names (‏"أحمد خليل" / "أحمد
+ * خالد") across different buckets, which a length- or first-letter-based
+ * choice would not. `>>> 0` keeps the value unsigned so a modulo of it cannot
+ * return a negative index.
+ *
+ * Shared with the calendar's patient colours (`src/features/booking/patient-color.ts`)
+ * so the two never drift into two different notions of "stable for this seed".
  */
-export function pickAvatarColor(seed: string): string {
+export function hashSeed(seed: string): number {
   let hash = 0x811c9dc5;
 
   for (let index = 0; index < seed.length; index += 1) {
@@ -42,7 +45,12 @@ export function pickAvatarColor(seed: string): string {
     hash = Math.imul(hash, 0x01000193);
   }
 
-  return AVATAR_PALETTE[(hash >>> 0) % AVATAR_PALETTE.length] ?? AVATAR_PALETTE[0];
+  return hash >>> 0;
+}
+
+/** A stable colour for a name. */
+export function pickAvatarColor(seed: string): string {
+  return AVATAR_PALETTE[hashSeed(seed) % AVATAR_PALETTE.length] ?? AVATAR_PALETTE[0];
 }
 
 /**

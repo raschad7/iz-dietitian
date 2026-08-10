@@ -21,9 +21,8 @@ import { addDays, addMonths, eachDay, endOfMonth, startOfMonth, startOfWeek, toI
 import {
   formatDayNumber,
   formatLongDate,
-  formatMediumDateRange,
+  formatLongDateRange,
   formatMinute,
-  formatMonthYear,
   formatWeekday,
 } from '../format';
 import { hasEnded, isCompleted, localWallClock } from '../completed';
@@ -649,6 +648,10 @@ export function Calendar({
             reason: null,
             clientName: client.name,
             clientColor: client.color,
+            // Carried on `CalendarClient` for exactly this: the optimistic
+            // block is drawn in the client's own colour, so it does not change
+            // colour a moment later when the real row arrives.
+            clientSeq: client.seq,
           },
         });
       }
@@ -800,16 +803,6 @@ export function Calendar({
     setEditing(appointment);
   }
 
-  const rangeLabel =
-    view === 'month'
-      ? formatMonthYear(locale, anchorDate)
-      : view === 'day'
-        ? formatLongDate(locale, anchorDate)
-        : // The medium range, not two long dates joined by a dash: this is a
-          // button label now, and `Intl` collapses the shared month and year
-          // itself rather than saying "2026" twice.
-          formatMediumDateRange(locale, days[0] ?? anchorDate, days[days.length - 1] ?? anchorDate);
-
   /** The gutter the grid gives up and everything above it keeps. Nothing to put back when embedded. */
   const contentInset = fullBleed ? TOOLBAR_INSET : undefined;
 
@@ -823,6 +816,28 @@ export function Calendar({
     view === 'month'
       ? { from: startOfMonth(anchorDate), to: endOfMonth(anchorDate) }
       : { from: days[0] ?? anchorDate, to: days[days.length - 1] ?? anchorDate };
+
+  /**
+   * The picker's label: the first day on screen and the last, both in full.
+   *
+   * It is built from `visibleRange` rather than from the view, so the label and
+   * the days the picker tints as "on screen" are read off one value and cannot
+   * disagree. The month view says `1 August 2026 – 31 August 2026` for the same
+   * reason the week view says `10 August 2026 – 16 August 2026`: the control
+   * names the span it moves, and a month is a span like any other.
+   *
+   * It used to say `August 2026` there — the month named, not bounded. That is
+   * shorter, and it is a different claim: it tells you which month you are in
+   * without saying what the view actually covers, which is the question the
+   * picker beside it answers.
+   *
+   * The day view keeps a single date, because a span of one day printed at both
+   * ends would say the same thing twice.
+   */
+  const rangeLabel =
+    view === 'day'
+      ? formatLongDate(locale, anchorDate)
+      : formatLongDateRange(locale, visibleRange.from, visibleRange.to);
 
   return (
     /*

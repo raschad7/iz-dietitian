@@ -165,7 +165,10 @@
       "nextMonth": "الشهر التالي",
       "previousYear": "السنة السابقة",
       "nextYear": "السنة التالية",
-      "pickMonth": "اختر الشهر"
+      "pickMonth": "اختر الشهر",
+      "pickYear": "اختر السنة",
+      "previousYears": "السنوات السابقة",
+      "nextYears": "السنوات التالية"
     },
     "search": {
       "placeholder": "ابحث عن مشترك"
