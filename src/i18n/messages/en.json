@@ -1251,6 +1251,7 @@
     "targetDifference": "{value} kcal",
     "browseAllDishes": "Browse all dishes",
     "replaceMeal": "Replace",
+    "mealReplaced": "Meal replaced",
     "originalPosition": "Original position",
     "swapWith": "Swap with",
     "moveHere": "Move here",

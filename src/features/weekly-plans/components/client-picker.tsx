@@ -3,7 +3,14 @@
 import { useTranslations } from 'next-intl';
 
 import { Badge } from '@/components/ui/badge';
-import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from '@/components/ui/combobox';
 import { useRouter } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
 
@@ -17,6 +24,11 @@ import { PLANNER_THEME } from '../theme';
  * clients in a sitting, and each one being its own URL means the back button, a
  * bookmark and a shared link all do the obvious thing — which is what the rail
  * this replaces was for.
+ *
+ * Composed from the registry combobox rather than the wrapper this used to
+ * call. The wrapper existed to carry the swatch and the status badge, which the
+ * registry has no props for — but `ComboboxItem` takes children, so the row is
+ * simply written out here, where the thing being described lives.
  */
 export function ClientPicker({
   clients,
@@ -30,52 +42,58 @@ export function ClientPicker({
   const t = useTranslations('weeklyPlans');
   const router = useRouter();
 
-  const options: ComboboxOption<string>[] = clients.map((client) => ({
-    value: client.id,
-    label: client.fullName,
-    swatch: client.color,
-    meta: <ClientStatus client={client} />,
-  }));
+  const selected = clients.find((client) => client.id === selectedClientId) ?? null;
 
   return (
     <Combobox
-      options={options}
-      value={selectedClientId ?? null}
-      onValueChange={(clientId) => {
-        if (clientId) router.push(`/app/weekly-plans/${clientId}`);
-      }}
-      label={t('clients')}
-      placeholder={t('searchClients')}
-      emptyMessage={t('noClients')}
-      // Full width on a phone, where it takes the header's first line to
-      // itself and everything else wraps under it; a fixed 256px that refuses
-      // to shrink is what pushed the rest of the row off the screen.
-      className={appearance === 'heading' ? 'w-full min-w-56 sm:w-80' : 'w-full sm:w-64 sm:shrink-0'}
+      items={clients as PlannableClient[]}
+      value={selected}
       /*
-       * The heading appearance changes the *type*, and nothing else.
-       *
-       * It used to strip the box as well — transparent border, transparent
-       * fill, no shadow, `ps-0` — which left the client's name sitting on the
-       * page as if it were the title, with a chevron stranded 200px away at the
-       * far edge of an invisible 320px control. Nobody reads that as "you can
-       * change who this is"; they read it as a heading and a stray arrow.
-       *
-       * So the box comes back. `.q-field` gives it the neutral resting edge,
-       * the olive-50 hover fill and the 20px inset that ties the name to the
-       * chevron at the other end — the same language every other control in the
-       * app speaks. It is still unmistakably the subject of the page, because
-       * the name inside it is still heading type; it just also looks like
-       * something you can open.
-       *
-       * `text-heading-sm`, not `heading-md`: the scale has no `md` step, so that
-       * class emitted nothing and the name was rendering at the field's own
-       * 16px body size.
+       * Compare by id, not by reference: any caller deriving its list inside
+       * render rebuilds the objects each keystroke, and identity comparison
+       * would drop the selection every time it did.
        */
-      inputClassName={
-        appearance === 'heading' ? 'font-heading text-heading-sm font-semibold' : undefined
-      }
-      popupClassName={cn(PLANNER_THEME, appearance === 'heading' && 'min-w-72')}
-    />
+      isItemEqualToValue={(a, b) => a?.id === b?.id}
+      itemToStringLabel={(client) => client.fullName}
+      onValueChange={(client) => {
+        if (client) router.push(`/app/weekly-plans/${client.id}`);
+      }}
+    >
+      <ComboboxInput
+        aria-label={t('clients')}
+        placeholder={t('searchClients')}
+        // Full width on a phone, where it takes the header's first line to
+        // itself and everything else wraps under it; a fixed 256px that refuses
+        // to shrink is what pushed the rest of the row off the screen.
+        className={cn(
+          appearance === 'heading' ? 'w-full min-w-56 sm:w-80' : 'w-full sm:w-64 sm:shrink-0',
+          // The heading appearance changes the *type*, and nothing else — the
+          // box stays, so it still reads as something you can open rather than
+          // as a title with a stray chevron beside it.
+          appearance === 'heading' && '[&_input]:font-heading [&_input]:text-heading-sm [&_input]:font-semibold',
+        )}
+      />
+
+      <ComboboxContent className={cn(PLANNER_THEME, appearance === 'heading' && 'min-w-72')}>
+        <ComboboxEmpty>{t('noClients')}</ComboboxEmpty>
+
+        <ComboboxList>
+          {(client: PlannableClient) => (
+            <ComboboxItem key={client.id} value={client}>
+              <span
+                aria-hidden
+                className="size-2.5 shrink-0 rounded-full"
+                style={{ background: client.color }}
+              />
+              <span className="min-w-0 flex-1 truncate" dir="auto">
+                {client.fullName}
+              </span>
+              <ClientStatus client={client} />
+            </ComboboxItem>
+          )}
+        </ComboboxList>
+      </ComboboxContent>
+    </Combobox>
   );
 }
 

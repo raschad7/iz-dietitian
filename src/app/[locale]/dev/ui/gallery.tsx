@@ -7,7 +7,14 @@ import { Badge, StatusDot } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Callout } from '@/components/ui/callout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Combobox } from '@/components/ui/combobox';
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from '@/components/ui/combobox';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/dialog';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -75,11 +82,13 @@ const SELECT_OPTIONS = [
   { value: 'veryActive', label: 'Very active' },
 ] as const;
 
-const CLIENT_OPTIONS = [
+type ClientOption = { value: 'hamza' | 'rani' | 'lina'; label: string; meta?: React.ReactNode };
+
+const CLIENT_OPTIONS: ClientOption[] = [
   { value: 'hamza', label: 'Hamza Al-Taweel', meta: <Badge size="sm">Draft</Badge> },
   { value: 'rani', label: 'Rani Shweiki', meta: <Badge size="sm">Draft</Badge> },
   { value: 'lina', label: 'Lina Haddad' },
-] as const;
+];
 
 /** A titled block with a rule above it, so the page reads as a list of groups. */
 function Section({
@@ -371,13 +380,25 @@ export function UiGallery({ locale }: { locale: Locale }) {
 
         <div className="max-w-sm">
           <Combobox
-            options={CLIENT_OPTIONS}
-            value={client}
-            onValueChange={setClient}
-            label="Search for a client"
-            placeholder="Search for a client"
-            emptyMessage="No clients match."
-          />
+            items={CLIENT_OPTIONS}
+            value={CLIENT_OPTIONS.find((option) => option.value === client) ?? null}
+            isItemEqualToValue={(a, b) => a?.value === b?.value}
+            itemToStringLabel={(option) => option.label}
+            onValueChange={(option) => setClient(option ? option.value : null)}
+          >
+            <ComboboxInput aria-label="Search for a client" placeholder="Search for a client" />
+            <ComboboxContent>
+              <ComboboxEmpty>No clients match.</ComboboxEmpty>
+              <ComboboxList>
+                {(option: ClientOption) => (
+                  <ComboboxItem key={option.value} value={option}>
+                    <span className="min-w-0 flex-1 truncate">{option.label}</span>
+                    {option.meta}
+                  </ComboboxItem>
+                )}
+              </ComboboxList>
+            </ComboboxContent>
+          </Combobox>
         </div>
       </Section>
 

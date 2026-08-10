@@ -1,11 +1,13 @@
 'use client';
 
+import * as React from 'react';
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
+import { toast } from '@/components/ui/toast';
 import { cn } from '@/lib/utils';
 
 import { MEAL_TOLERANCE, driftState } from '@/features/weekly-plans/drift';
@@ -324,7 +326,30 @@ function SwapButton({
   children: React.ReactNode;
   flagged?: boolean;
 }) {
-  const [, formAction] = useActionState(swapMealAction, initialPlanActionState);
+  const t = useTranslations('weeklyPlans');
+  const [state, formAction] = useActionState(swapMealAction, initialPlanActionState);
+
+  /*
+   * The swap revalidates the board, so the new dish is simply *there* on the
+   * next render — which is the problem this reports. A row quietly changing in a
+   * panel the eye has already left is indistinguishable from nothing having
+   * happened, and the failures were worse: `state` was being thrown away
+   * entirely, so a swap refused for a published plan looked exactly like a
+   * successful one.
+   *
+   * Keyed on the state object rather than its status: two swaps in a row both
+   * land on `done`, and comparing status alone would announce only the first.
+   */
+  React.useEffect(() => {
+    if (state.status === 'done') {
+      toast.add({ type: 'success', title: t('mealReplaced') });
+      return;
+    }
+
+    if (state.status === 'error') {
+      toast.add({ type: 'error', title: t(state.messageKey) });
+    }
+  }, [state, t]);
 
   return (
     <form action={formAction}>

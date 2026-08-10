@@ -12,6 +12,7 @@ import {
 import type { ReactNode } from 'react';
 
 import { DirectionProvider } from '@/components/ui/direction';
+import { Toaster } from '@/components/ui/toast';
 import { resolveLocale } from '@/i18n/params';
 import { getLocaleDirection, routing } from '@/i18n/routing';
 
@@ -233,7 +234,16 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
           locale, and every popup added from here on reads it.
         */}
         <DirectionProvider direction={getLocaleDirection(locale)}>
-          <NextIntlClientProvider>{children}</NextIntlClientProvider>
+          <NextIntlClientProvider>
+            {children}
+
+            {/*
+              One viewport for the whole app, mounted once here rather than per
+              screen: `toast()` is called from anywhere and has to land
+              somewhere, and a second viewport would give two of them.
+            */}
+            <Toaster />
+          </NextIntlClientProvider>
         </DirectionProvider>
       </body>
     </html>

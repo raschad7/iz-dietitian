@@ -1251,6 +1251,7 @@
     "targetDifference": "{value} kcal",
     "browseAllDishes": "تصفح جميع الأطباق",
     "replaceMeal": "استبدال",
+    "mealReplaced": "تم استبدال الوجبة",
     "originalPosition": "المكان الأصلي",
     "swapWith": "تبديل مع",
     "moveHere": "نقل إلى هنا",
