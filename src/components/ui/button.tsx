@@ -24,8 +24,31 @@ const buttonVariants = cva(
     // Lime ring + olive-950 halo. Fields deliberately use a different focus
     // treatment — see the note in globals.css.
     "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-focus-halo",
-    // n-500 on the sunken fill is 4.0:1.
-    "disabled:pointer-events-none disabled:border-transparent disabled:bg-muted disabled:text-[var(--n-500)] disabled:shadow-none",
+    /*
+     * Disabled is a fade, not a fill.
+     *
+     * It used to repaint the control: `bg-muted`, a transparent border and an
+     * n-500 label, so every disabled button became the same gray box whatever
+     * it had been a moment earlier. That box is a *different control* rather
+     * than the same one unavailable — a ghost button, which has no background
+     * at all, grew one when it was turned off, which is the loudest a ghost
+     * button ever got. A pager sitting on page one drew two gray slabs around
+     * its own chevrons.
+     *
+     * Opacity keeps the control's own identity: the solid one stays olive, the
+     * ghost one stays transparent, the outline one keeps its border, and all
+     * three read as unavailable at the same glance. It is also what every other
+     * primitive in this system already does — `Segmented`, `Switch`, the
+     * calendar's day cells and `Label`'s peer state are all `opacity-50`, and
+     * this was the one control disagreeing with them.
+     *
+     * ⚠ Contrast is deliberately traded here. 50% takes a 5.46:1 label under
+     * the 4.5:1 floor, which is the standard exemption for disabled controls
+     * (WCAG 1.4.3) and the reason a disabled control must never be the only
+     * carrier of information. `disabled:pointer-events-none` keeps it out of
+     * the pointer's way; `disabled` itself keeps it out of the tab order.
+     */
+    "disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none",
     "aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20",
     "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   ],

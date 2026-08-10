@@ -591,7 +591,13 @@ hover go *lighter* to olive-400 (6.87:1) — which is exactly what `.dark`
 already does with this fill. Darkening the fill back to olive-600 is the other
 fix, and it is the one that gives up the lighter brand green.
 
-Disabled drops to the sunken fill with n-500 text (4.0:1).
+Disabled is the button at 50% opacity — its own fill, border and label, faded.
+It is **not** a repaint to the sunken fill: a ghost button has no background,
+and giving it one when it is turned off made the disabled state louder than the
+enabled one. Opacity is what `Segmented`, `Switch` and the calendar's day cells
+already use, so all four now say "unavailable" the same way. The contrast
+trade is deliberate and is the standard disabled-control exemption; a disabled
+control must never be the only thing carrying a piece of information.
 
 **Every enabled `<button>` shows the pointer cursor.** Tailwind's v4 preflight
 resets `button` to `cursor: default`, which makes a control feel inert next to

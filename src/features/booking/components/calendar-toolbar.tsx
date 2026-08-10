@@ -141,11 +141,27 @@ export function CalendarToolbar({
           </div>
         )}
 
+        {/*
+          Day / week / month, with the selected one in the light gray surface
+          rather than in the primary olive `Segmented` draws by default.
+
+          `bg-muted text-foreground` — the sunken neutral from globals.css,
+          paired with the body text colour so the label keeps full contrast.
+          Which view you are in is load-bearing state, but it is *navigation*,
+          not the action of the page; a quiet gray fill marks the current
+          segment without competing with the buttons beside it or with the grid
+          underneath.
+
+          Local to this call site rather than a change to `Segmented`'s default:
+          the login role switch and the portal's upcoming/past filter are also
+          segmented controls and keep the primary fill.
+        */}
         <Segmented
           label={t('nav.view')}
           size="sm"
           value={view}
           onChange={onViewChange}
+          activeClassName="bg-muted text-foreground"
           options={CALENDAR_VIEWS.map((candidate) => ({
             value: candidate,
             label: t(`nav.${candidate}`),
