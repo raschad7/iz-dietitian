@@ -9,6 +9,7 @@ import { signOutAction } from '@/features/auth/actions';
 import { type GreetingKey } from '@/features/portal/greeting';
 import { Link, usePathname } from '@/i18n/navigation';
 import { type Locale } from '@/i18n/routing';
+import { cn } from '@/lib/utils';
 
 /**
  * The portal's own header: who you are and what day it is, rather than the
@@ -121,7 +122,7 @@ export function PortalHeader({
   const isHome = pathname === '/portal';
 
   return (
-    <header className="border-b border-border bg-card px-4 pt-3 pb-4">
+    <header className={cn('px-4 pt-3 pb-4', isHome ? '' : 'border-b border-border bg-card')}>
       <div className="mx-auto w-full max-w-3xl">
         <div className="flex items-center justify-between">
           <Destination

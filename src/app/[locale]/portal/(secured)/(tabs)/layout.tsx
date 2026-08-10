@@ -50,7 +50,7 @@ export default async function PortalTabsLayout({ children, params }: PortalTabsL
       />
 
       <div className="flex flex-1">
-        <Sidebar items={PORTAL_NAV} title={t('title')} icons={PORTAL_NAV_ICONS} />
+        <Sidebar items={PORTAL_NAV} title={t('title')} icons={PORTAL_NAV_ICONS} showMobileBar={false} />
 
         <main className="min-w-0 flex-1 px-4 pt-5 pb-24 md:px-6 md:pt-6 md:pb-8">
           <div className="mx-auto w-full max-w-3xl">{children}</div>

@@ -36,7 +36,7 @@ export default async function PortalScreenLayout({ children, params }: PortalScr
 
   return (
     <div className="flex flex-1">
-      <Sidebar items={PORTAL_NAV} title={t('title')} icons={PORTAL_NAV_ICONS} />
+      <Sidebar items={PORTAL_NAV} title={t('title')} icons={PORTAL_NAV_ICONS} showMobileBar={false} />
 
       <div className="flex min-w-0 flex-1 flex-col">{children}</div>
     </div>

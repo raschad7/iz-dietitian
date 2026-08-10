@@ -40,6 +40,13 @@ type SidebarProps = {
   title: string;
   user?: { name: string; email?: string | null; locale: Locale };
   icons?: Partial<Record<NavItem['labelKey'], IconName>>;
+  /**
+   * Off for the portal, which owns its own mobile header (`PortalHeader` /
+   * `PortalScreenHeader`) and a bottom tab bar that already lists every item
+   * this bar's drawer would. Left on elsewhere, where this fixed bar is the
+   * only mobile navigation there is.
+   */
+  showMobileBar?: boolean;
 };
 
 /**
@@ -50,7 +57,7 @@ type SidebarProps = {
  * the full navigation opens over the workspace instead of resizing it. Phones
  * get the same drawer from a compact app bar, so navigation never disappears.
  */
-export function Sidebar({ items, title, user, icons }: SidebarProps) {
+export function Sidebar({ items, title, user, icons, showMobileBar = true }: SidebarProps) {
   const t = useTranslations('nav');
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -64,22 +71,24 @@ export function Sidebar({ items, title, user, icons }: SidebarProps) {
     <>
       {/* Mobile owns a small app bar instead of leaving the signed-in area with
           no navigation at all. The page starts below it in the app layout. */}
-      <div className="fixed inset-x-0 top-0 z-40 flex h-14 items-center gap-3 border-b border-sidebar-border bg-sidebar px-3 text-sidebar-foreground md:hidden">
-        <Button
-          type="button"
-          size="icon-sm"
-          variant="ghost"
-          aria-expanded={drawerOpen}
-          aria-label={t('openNavigation')}
-          title={t('openNavigation')}
-          onClick={() => setDrawerOpen(true)}
-        >
-          <Icon name="navigationMenu" className="size-5" />
-        </Button>
-        <span className="min-w-0 truncate font-heading text-body-md font-semibold text-sidebar-primary-foreground">
-          {title}
-        </span>
-      </div>
+      {showMobileBar ? (
+        <div className="fixed inset-x-0 top-0 z-40 flex h-14 items-center gap-3 border-b border-sidebar-border bg-sidebar px-3 text-sidebar-foreground md:hidden">
+          <Button
+            type="button"
+            size="icon-sm"
+            variant="ghost"
+            aria-expanded={drawerOpen}
+            aria-label={t('openNavigation')}
+            title={t('openNavigation')}
+            onClick={() => setDrawerOpen(true)}
+          >
+            <Icon name="navigationMenu" className="size-5" />
+          </Button>
+          <span className="min-w-0 truncate font-heading text-body-md font-semibold text-sidebar-primary-foreground">
+            {title}
+          </span>
+        </div>
+      ) : null}
 
       {/* Tablet tool rail: destinations remain one tap away, while the board
           receives 184px back. The menu button reveals labels and account tools. */}
