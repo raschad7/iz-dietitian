@@ -96,9 +96,26 @@ function SelectContent({
   children,
   side = "bottom",
   sideOffset = 4,
-  align = "center",
+  align = "start",
   alignOffset = 0,
-  alignItemWithTrigger = true,
+  /*
+   * `false`, against the registry's default.
+   *
+   * `alignItemWithTrigger` is Base UI imitating a native macOS `<select>`: the
+   * list opens *over* the trigger with the current row under the pointer, and
+   * it is driven by pointer capture — press, drag to a row, release. A plain
+   * click on a row is not how that control is meant to be operated, so a value
+   * could only be changed by holding the mouse down.
+   *
+   * It also puts the list on top of the trigger, which inside a dialog means on
+   * top of the dialog's own surface. A press that landed between rows went to
+   * the dialog underneath, and the dialog reads a click on itself as a click on
+   * its backdrop — so choosing from a select closed the whole dialog.
+   *
+   * `false` is an ordinary dropdown: anchored below the trigger, chosen with a
+   * click.
+   */
+  alignItemWithTrigger = false,
   ...props
 }: SelectPrimitive.Popup.Props &
   Pick<

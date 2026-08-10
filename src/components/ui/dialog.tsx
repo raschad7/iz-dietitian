@@ -138,9 +138,35 @@ function Dialog({
         if (dismissible) onClose();
       }}
       onClick={(event) => {
-        // A click on the backdrop targets the dialog element itself; a click
-        // on anything inside targets that child instead.
-        if (dismissible && event.target === ref.current) onClose();
+        if (!dismissible) return;
+
+        /*
+         * A click on the backdrop targets the dialog element itself; a click on
+         * anything inside targets that child instead.
+         *
+         * **The target test alone is not enough.** A popup portalled into this
+         * dialog paints over the dialog's own surface, and a press that lands
+         * between two rows of it — or on any part of the popup the browser does
+         * not hit-test — falls through to the dialog element, which the rule
+         * above then reads as "the backdrop was clicked" and closes. Choosing
+         * from a select shut the whole dialog.
+         *
+         * The backdrop is by definition outside the dialog's box, so the
+         * pointer position settles it: inside the rectangle is never a backdrop
+         * click, whatever the event happens to target. Keyboard-synthesised
+         * clicks report 0,0 and are excluded by the same check.
+         */
+        const dialog = ref.current;
+        if (!dialog || event.target !== dialog) return;
+
+        const box = dialog.getBoundingClientRect();
+        const inside =
+          event.clientX >= box.left &&
+          event.clientX <= box.right &&
+          event.clientY >= box.top &&
+          event.clientY <= box.bottom;
+
+        if (!inside) onClose();
       }}
       className={cn(
         'q-dialog',

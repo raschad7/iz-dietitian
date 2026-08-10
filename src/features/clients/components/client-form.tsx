@@ -252,12 +252,26 @@ function SexField({ defaultValue }: { defaultValue?: string | null }) {
             htmlFor={inputId}
             className={cn(
               'flex h-12 cursor-pointer items-center justify-center gap-2 rounded-[10px] border border-input',
-              'text-body-md font-medium text-foreground transition-colors duration-180 ease-out',
-              // Same hover treatment as `.q-field` (globals.css) — the box
-              // fills and its edge picks up olive, exactly like hovering a
-              // text field. Scoped to the unchecked state so hovering a
-              // selected option doesn't dim its own selected colour.
-              'not-has-checked:hover:border-(--input-hover) not-has-checked:hover:bg-secondary',
+              // Muted at rest: neither answer is chosen yet, and two options in
+              // full-strength text read as though one of them already is.
+              'text-body-md font-medium text-muted-foreground transition-colors duration-180 ease-out',
+              /*
+               * Hover thickens the edge and brings the label up to full
+               * strength. No fill: this used to take `.q-field`'s olive hover
+               * background, which put a block of colour behind whichever option
+               * the pointer crossed on the way to the other one.
+               *
+               * The second pixel is an inset outline rather than
+               * `border-2`. Growing the border keeps the box the same size but
+               * takes a pixel off the content on every side, so the label and
+               * its icon shift as the pointer arrives; an outline pulled 1px
+               * inwards paints over the border's own inner edge in the same
+               * colour, reads as one 2px line, and is outside layout entirely.
+               * `.q-field` draws its focus edge the same way and for the same
+               * reason — see globals.css.
+               */
+              'not-has-checked:hover:text-foreground',
+              'not-has-checked:hover:outline not-has-checked:hover:outline-1 not-has-checked:hover:-outline-offset-1 not-has-checked:hover:outline-(--input)',
               'has-checked:border-primary has-checked:bg-secondary has-checked:text-secondary-foreground',
             )}
           >

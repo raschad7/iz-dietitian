@@ -129,7 +129,22 @@ export function PhoneField({
         </Select.Trigger>
 
         <Select.Portal container={portalContainerRef}>
-          <Select.Positioner sideOffset={4} className="z-50" alignItemWithTrigger={false}>
+          {/*
+            `align="start"`, not the positioner's centred default.
+
+            The trigger is a 5.5rem dial-code chip and the list is 18rem wide,
+            so centring hung roughly 6rem of it off the side of a control it is
+            supposed to belong to — and on a narrow window that overhang is what
+            decides whether the list appears left or right of the field, which
+            is not a decision the pointer can predict. Anchored to the field's
+            own inline-start edge it grows in one direction, in both scripts.
+          */}
+          <Select.Positioner
+            sideOffset={4}
+            align="start"
+            className="z-50"
+            alignItemWithTrigger={false}
+          >
             <Select.Popup
               className={cn(
                 'max-h-72 w-72 overflow-y-auto rounded-lg border border-border bg-popover p-1 shadow-elevated',

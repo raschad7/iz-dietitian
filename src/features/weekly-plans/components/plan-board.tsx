@@ -1,10 +1,12 @@
 'use client';
 
+import * as React from 'react';
 import { useMemo, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
+import { toast } from '@/components/ui/toast';
 
 import { getLocaleDirection } from '@/i18n/routing';
 import { isMember } from '@/lib/enum';
@@ -544,20 +546,52 @@ function BoardBody({
         {error ? t(error) : t('savingIndicator')}
       </div>
 
-      {lastMove && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="fixed bottom-4 start-1/2 z-50 flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-3 rounded-lg border border-border bg-card py-1.5 ps-4 pe-1.5 text-body-sm shadow-overlay rtl:translate-x-1/2"
-        >
-          <span className="min-w-0 truncate">{t('mealMoved', { name: lastMove.dishName })}</span>
-          <Button type="button" size="sm" variant="ghost" disabled={pending} onClick={undoLastMove}>
-            {t('undo')}
-          </Button>
-        </div>
-      )}
+      <MoveToast lastMove={lastMove} pending={pending} undoLastMove={undoLastMove} />
+
     </div>
   );
+}
+
+/**
+ * "Moved X", with the way back.
+ *
+ * This used to be a fixed bar this component drew for itself, pinned to the
+ * bottom of the viewport with its own shadow, radius and translate. It is a
+ * toast — an transient status message with one action — so it is now the app's
+ * toast, and there is one fewer floating surface to keep in step with the rest.
+ *
+ * Keyed on the move rather than on its existence: dragging a second meal while
+ * the first announcement is still up has to replace it, and an effect watching
+ * a truthy `lastMove` would not fire again.
+ */
+function MoveToast({
+  lastMove,
+  pending,
+  undoLastMove,
+}: {
+  lastMove: { dishName: string } | null;
+  pending: boolean;
+  undoLastMove: () => void;
+}) {
+  const t = useTranslations('weeklyPlans');
+
+  React.useEffect(() => {
+    if (!lastMove) return;
+
+    toast.add({
+      title: t('mealMoved', { name: lastMove.dishName }),
+      actionProps: {
+        children: t('undo'),
+        disabled: pending,
+        onClick: undoLastMove,
+      },
+    });
+    // `pending` is deliberately not a dependency: it flips while the move is
+    // saving, and re-running on it would post the same toast twice.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastMove, t]);
+
+  return null;
 }
 
 /**

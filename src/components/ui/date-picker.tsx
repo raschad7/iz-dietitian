@@ -157,8 +157,20 @@ export function DateCalendar({
         `p-0` and a transparent fill remain because the popover around it
         already supplies the surface and the padding, which is how the
         registry's own date-picker example composes the two.
+
+        The two `--primary` rebindings are the whole of the theming, and they
+        rebind rather than restyle: the registry calendar paints its selected
+        day with `bg-primary`, this app's primary is olive, so a month grid came
+        out as a field of green — a colour the rest of the app spends on one
+        action per screen. Pointing `--primary` at the foreground for this
+        subtree alone produces the registry's own look, a black day on white,
+        and leaves every button on the page untouched.
       */
-      className={cn('bg-transparent p-0', className)}
+      className={cn(
+        'bg-transparent p-0',
+        '[--primary:var(--foreground)] [--primary-foreground:var(--background)]',
+        className,
+      )}
     />
   );
 }
