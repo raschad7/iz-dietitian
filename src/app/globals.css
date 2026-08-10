@@ -1382,16 +1382,20 @@
       border-color var(--duration-label) ease-out;
   }
   /*
-   * `--input-hover` is olive-500, which is now the same stop `--primary` sits
-   * on, so hover and focus share an edge colour. What separates them is this
-   * rule's tinted fill against focus's empty one, plus the 1px/2px difference
-   * in edge weight. 3.47:1 against the page, over the 3:1 a control boundary
-   * needs.
+   * **A field has no hover state.** It used to take an olive edge and a tinted
+   * fill under the pointer, sharing its colour with focus and separated from it
+   * only by a 1px/2px difference in edge weight — which meant a form read as
+   * lighting up green wherever the mouse happened to rest, and the one field
+   * that was actually focused had to compete with it.
+   *
+   * A text field is not a button. Hovering it promises nothing that clicking it
+   * does not already deliver, and the state that matters — which box the
+   * keystrokes are going into — is focus. That one still colours its edge, and
+   * now it is the only thing on the form that does.
+   *
+   * `--input-hover` is kept as a token: the intake form's option cards are
+   * genuine targets and still use it.
    */
-  .q-field:hover:not(:disabled):not(:focus) {
-    background-color: var(--secondary);
-    border-color: var(--input-hover);
-  }
   /*
    * `:focus`, not `:focus-visible`: a field earns its focus ring by being
    * focused at all, however you got there. Clicking into a box and seeing

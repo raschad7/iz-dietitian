@@ -679,19 +679,19 @@ Every field is `.q-field` — one class in `globals.css` shared by `Input`,
 `Textarea` and `Select`, so the three cannot drift and a change to the shape
 language is one edit.
 
-**Hover fills, focus empties.** Those are the only two moving parts, and only
-`background-color` and `border-color` ever move — a field never changes shape,
-size or position under the pointer.
+**A field has no hover state. Focus is the only thing that moves**, and only
+`border-color` ever moves — a field never changes shape, size or position under
+the pointer.
 
-- **Hover** — olive-50 fill, olive-500 edge (`--input-hover`). The box is
-  *offering* itself, and the tint is what makes it look reachable.
-- **Focus** — fill back to the page, same olive-500 edge **but 2px thick**. The
-  box is *taken*, and it goes quiet because there is about to be text in it.
-  The two states no longer differ in edge *colour* — `--primary` moved onto
-  olive-500 and nothing quieter clears 3:1 — so the fill and the 1px/2px
-  weight carry the difference. Keyed off `:focus`, not `:focus-visible`: clicking into a box and
-  seeing nothing change is the one case where a mouse user needs what a keyboard
-  user gets.
+- **Hover** — nothing. Fields used to take an olive-50 fill and an olive-500
+  edge, which meant a form lit up green wherever the mouse rested and the field
+  that was actually focused had to compete with it for attention. A text input
+  is not a button: hovering promises nothing that clicking does not deliver.
+  `--input-hover` survives as a token because the intake form's option cards are
+  genuine targets and still use it.
+- **Focus** — the olive-500 edge, **2px thick**. The box is *taken*. Keyed off
+  `:focus`, not `:focus-visible`: clicking into a box and seeing nothing change
+  is the one case where a mouse user needs what a keyboard user gets.
 - That second pixel is **1px border + 1px outline at `outline-offset: -1px`**,
   never `border-width: 2px`. A thicker border keeps the outer box still but
   steals a pixel from the content box, so the text nudges as you click into it;

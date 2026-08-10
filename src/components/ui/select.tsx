@@ -50,9 +50,15 @@ function SelectValue({ className, ...props }: SelectPrimitive.Value.Props) {
 }
 
 /**
- * `.q-field` carries the box, the hover fill, the 2px focus edge, the invalid
- * treatment and the disabled state, so none of that is restated here — the
- * trigger is the same control Input is, wearing a chevron.
+ * `.q-field` carries the box, the 2px focus edge, the invalid treatment and the
+ * disabled state, so none of that is restated here — the trigger is the same
+ * control Input is, wearing a chevron.
+ *
+ * That inheritance now includes having no hover state, which is a real choice
+ * rather than an oversight: this trigger *is* clickable in a way a text input
+ * is not, but it shares a row with text inputs in every form in the app, and a
+ * select that lit up while the fields beside it stayed flat read as the odd one
+ * out rather than as the interactive one. The chevron is what says it opens.
  */
 function SelectTrigger({
   className,
