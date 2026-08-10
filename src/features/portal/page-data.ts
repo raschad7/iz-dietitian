@@ -74,6 +74,12 @@ export type DashboardData = {
   planTitle: string | null;
   /** Today's meals from that plan. Null when there is no plan or today is unplanned. */
   today: BoardDay | null;
+  /**
+   * Which of today's meals (`today.meals`) are already ticked — the home
+   * screen's own ring and meal list read this, the same shape
+   * {@link loadPlanPage} reads for its selected day.
+   */
+  todayCompletedMealIds: string[];
   /** Requests still waiting on the dietitian. */
   pending: PortalRequest[];
   /**
@@ -113,11 +119,23 @@ export async function loadDashboard(context: PortalContext): Promise<DashboardDa
   // shares today's weekday number but is a week away, which is not today's
   // plan by any definition a client would recognise.
   const todayIndexInPlan = plan ? planWeekDates(plan.weekStartDate).indexOf(context.now.date) : -1;
+  const today = plan && todayIndexInPlan !== -1 ? (plan.days[todayIndexInPlan] ?? null) : null;
+
+  // Second read rather than part of the batch above: it needs `today`'s own
+  // meal ids, which only exist once `plan` has come back. Same shape
+  // `loadPlanPage` reads for its selected day.
+  const todayCompletedMealIds = [
+    ...(await listMealCompletions(
+      context.id,
+      today?.meals.map((meal) => meal.id) ?? [],
+    )),
+  ];
 
   return {
     next: nextAppointment(appointmentRows, context.now),
     planTitle: plan?.weekStartDate ?? null,
-    today: plan && todayIndexInPlan !== -1 ? (plan.days[todayIndexInPlan] ?? null) : null,
+    today,
+    todayCompletedMealIds,
     pending: requests.filter((request) => request.status === 'pending'),
     week: summariseAdherenceWeek(adherenceRows, context.now.date),
     streak: currentAdherenceStreak(adherenceRows, context.now.date),

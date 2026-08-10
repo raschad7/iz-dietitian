@@ -877,6 +877,7 @@
       "today": {
         "heading": "Your commitment today",
         "meals": "{completed, number, integer} of {total, number, integer} {total, plural, one {meal} other {meals}}",
+        "caloriesCompleted": "{value, number, integer} kcal completed",
         "prompt": "Tick off today's meals in My Plan to see your commitment here.",
         "cta": "Update today's adherence",
         "level": {
@@ -902,6 +903,11 @@
           "today": "{day}: today",
           "todayReported": "{day}: today, {percent} — {completed, number, integer} of {total, number, integer} {total, plural, one {meal} other {meals}}",
           "future": "{day}: still to come"
+        },
+        "celebration": {
+          "title": "You earned today's streak!",
+          "claim": "Claim today's fire",
+          "claimed": "Today's streak claimed."
         }
       },
       "streak": {
@@ -931,21 +937,15 @@
       }
     },
     "header": {
-      "menu": "Menu",
-      "profile": "Your profile",
       "notifications": "Notifications",
       "notificationsWaiting": "Notifications, {count, number, integer} request awaiting a reply",
       "greeting": {
         "morning": "Good morning",
         "afternoon": "Good afternoon",
         "evening": "Good evening"
-      },
-      "closeMenu": "Close menu"
+      }
     },
     "menu": {
-      "viewProfile": "View profile",
-      "personalInfo": "My information",
-      "notifications": "Notifications",
       "settings": "Settings"
     },
     "notifications": {

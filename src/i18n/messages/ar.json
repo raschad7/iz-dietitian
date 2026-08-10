@@ -877,6 +877,7 @@
       "today": {
         "heading": "التزامك اليوم",
         "meals": "{completed, number, integer} من {total, number, integer} {total, plural, one {وجبة} two {وجبتين} few {وجبات} many {وجبة} other {وجبة}}",
+        "caloriesCompleted": "{value, number, integer} سعرة حرارية مكتملة",
         "prompt": "أتمّي وجبات اليوم في خطتي ليظهر التزامك هنا.",
         "cta": "تحديث التزامك اليوم",
         "level": {
@@ -902,6 +903,11 @@
           "today": "{day}: اليوم",
           "todayReported": "{day}: اليوم، {percent} — {completed, number, integer} من {total, number, integer} {total, plural, one {وجبة} two {وجبتين} few {وجبات} many {وجبة} other {وجبة}}",
           "future": "{day}: لم يأتِ بعد"
+        },
+        "celebration": {
+          "title": "كسبتِ شعلة اليوم!",
+          "claim": "احصلي على شعلة اليوم",
+          "claimed": "تم تأكيد شعلة اليوم."
         }
       },
       "streak": {
@@ -931,21 +937,15 @@
       }
     },
     "header": {
-      "menu": "القائمة",
-      "profile": "الملف الشخصي",
       "notifications": "الإشعارات",
       "notificationsWaiting": "الإشعارات، {count, number, integer} طلب بانتظار الردّ",
       "greeting": {
         "morning": "صباح الخير",
         "afternoon": "مساء الخير",
         "evening": "مساء الخير"
-      },
-      "closeMenu": "إغلاق القائمة"
+      }
     },
     "menu": {
-      "viewProfile": "عرض الملف الشخصي",
-      "personalInfo": "معلوماتي الشخصية",
-      "notifications": "الإشعارات",
       "settings": "الإعدادات"
     },
     "notifications": {
