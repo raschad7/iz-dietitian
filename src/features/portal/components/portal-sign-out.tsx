@@ -17,10 +17,16 @@ import { type Locale } from '@/i18n/routing';
  * dashboard's chrome. The behaviour — a real form posting to the same server
  * action — is deliberately identical; only the surface differs.
  *
- * **Not clay.** The design supplied this row in red alongside "delete my
- * account", but clay is the system's only true alarm colour and signing out is
- * an everyday, reversible act. It reads as ordinary ink; the row underneath it
- * is the one that earns the warning.
+ * **Clay, in the `destructiveGhost` register.** Clay label and glyph at rest,
+ * clay-100 fill on hover, and no box at any point — which is exactly what
+ * §Buttons specifies for a destructive action that sits *among* other controls
+ * rather than closing a decision, and exactly what the practitioner rail's own
+ * sign-out already wears. It is a tint on a label, not a red block: signing out
+ * is still an everyday, reversible act, and the row beneath it — deleting an
+ * account — is the one that would earn an outlined `destructive`.
+ *
+ * clay-600 is 6.84:1 on the card and 5.81:1 on its own hover fill, so the pair
+ * holds in both states.
  */
 export function PortalSignOut({ locale }: { locale: Locale }) {
   return (
@@ -39,9 +45,12 @@ function PortalSignOutSubmit() {
     <button
       type="submit"
       disabled={pending}
-      className="flex w-full items-center gap-3 rounded-md px-2 py-2.5 text-start text-sm transition-colors hover:bg-muted disabled:opacity-50"
+      className="flex w-full items-center gap-3 rounded-md px-2 py-2.5 text-start text-sm text-destructive transition-colors hover:bg-destructive-subtle disabled:opacity-50"
     >
-      <LogOut className="size-5 shrink-0 text-muted-foreground rtl:-scale-x-100" strokeWidth={1.7} aria-hidden="true" />
+      {/* The glyph takes the label's colour rather than staying neutral —
+          `destructiveGhost` is clay "throughout", and a grey icon beside a clay
+          word reads as one of them having been missed. */}
+      <LogOut className="size-5 shrink-0 rtl:-scale-x-100" strokeWidth={1.7} aria-hidden="true" />
       {pending ? t('loading') : t('signOut')}
     </button>
   );

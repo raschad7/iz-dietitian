@@ -820,8 +820,7 @@
         "withdraw": "Withdraw request",
         "contactNotice": "Your phone number and email are held by the clinic, and changing either one needs to be verified. Ask for the change and the clinic will confirm it with you.",
         "contactAction": "Request a phone or email change"
-      },
-      "healthNote": "The more complete your record, the more precise and effective your plan can be."
+      }
     },
     "errors": {
       "invalid": "Check what you entered and try again.",
@@ -1044,9 +1043,8 @@
         "title": "Account",
         "profileRow": "Personal profile",
         "profileRowDescription": "Your name, date of birth, and the contact details the clinic holds.",
-        "identifierNote": "Both are how you sign in and how the clinic reaches you; changing either goes through the clinic.",
         "security": "Password and security",
-        "securityDescription": "Change your password, and the address you sign in with."
+        "securityDescription": "Change your password."
       },
       "support": {
         "title": "Support and help",
@@ -1063,8 +1061,6 @@
       },
       "security": {
         "title": "Password and security",
-        "signInAddress": "Sign-in address",
-        "signInAddressNote": "This is the email you sign in with. To change it, contact the clinic.",
         "passwordTitle": "Change your password",
         "passwordBody": "Enter your current password, then choose a new one.",
         "currentPasswordLabel": "Current password",

@@ -42,9 +42,18 @@ export function SettingsArticleBlock({ title, children }: { title: string; child
  * it a mark to be found by *without reading* — which is the whole point on a
  * screen someone is scanning rather than studying.
  *
- * It is not the better shape in general, which is why help, terms and security
- * keep the article: those are read in order, and four cards there would be four
- * boxes pretending to be independent when they are chapters.
+ * **Terms uses it too.** That screen is four statements about how the portal
+ * behaves — what an account is, what the plan is and is not, how the clinic
+ * reaches you, and that the page may change — and each is looked up rather than
+ * read in sequence, which is the same condition privacy meets. Help and
+ * security keep `SettingsArticle`: those genuinely are chapters, and four cards
+ * there would be four boxes pretending to be independent.
+ *
+ * **The disc, the rule, then the claim.** The hairline between the glyph and
+ * the text is what makes the mark read as a *marker* for the block rather than
+ * as the first thing in it — without it, on a card whose title is already
+ * olive, the disc and the heading ran together as one coloured lump at the
+ * start of every card.
  *
  * The heading colour is `secondary-foreground` — olive-700, the palette's
  * `text.brand` at 7.37:1 — and not `text-primary`. Olive-500 is 3.47:1 and would
@@ -68,16 +77,24 @@ export function SettingsPoint({
         centred mark reads as belonging to the whole claim. On anything longer it
         would float mid-paragraph and `items-start` would be right instead.
       */}
-      <CardContent className="flex items-center gap-3">
+      <CardContent className="flex items-center gap-4">
         <span
           aria-hidden="true"
-          className="grid size-10 shrink-0 place-items-center rounded-xl bg-secondary text-primary"
+          className="grid size-12 shrink-0 place-items-center rounded-full bg-secondary text-primary"
         >
-          <Icon name={icon} className="size-5" />
+          <Icon name={icon} className="size-6" />
         </span>
 
+        {/*
+          `self-stretch` against the parent's `items-center`: the rule runs the
+          height of whichever is taller, the disc or the claim, so a two-line
+          card and a four-line one both read as the same component rather than
+          as one with a longer line drawn down it.
+        */}
+        <span aria-hidden="true" className="w-px self-stretch bg-border" />
+
         <div className="min-w-0 flex-1 space-y-1">
-          <h2 className="font-heading text-sm leading-snug font-medium text-secondary-foreground">
+          <h2 className="font-heading text-base leading-snug font-semibold text-secondary-foreground">
             {title}
           </h2>
           <div className="space-y-2 text-sm leading-relaxed text-muted-foreground">{children}</div>

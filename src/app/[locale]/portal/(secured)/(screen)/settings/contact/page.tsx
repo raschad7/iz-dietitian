@@ -7,7 +7,7 @@ import { CLIENT_SEXES } from '@/features/clients/schema';
 import { DataUpdateRequest } from '@/features/portal/components/data-update-request';
 import { InfoRow } from '@/features/portal/components/info-row';
 import { PortalScreenHeader } from '@/features/portal/components/portal-screen-header';
-import { ProfileSection, SectionNote } from '@/features/portal/components/profile-section';
+import { ProfileSection } from '@/features/portal/components/profile-section';
 import { getOpenClientRequest } from '@/features/portal/queries';
 import { requirePortalClient } from '@/features/portal/session';
 import { resolveLocale } from '@/i18n/params';
@@ -76,11 +76,13 @@ export default async function ContactPage({ params }: ContactPageProps) {
             place. The screen header names the destination; this names the group
             inside it.
           */}
-          <ProfileSection
-            icon="personOutline"
-            title={tProfile('section.basic')}
-            note={<SectionNote>{t('identifierNote')}</SectionNote>}
-          >
+          {/*
+            No `note`. It read "both are how you sign in and how the clinic
+            reaches you; changing either goes through the clinic" — which the
+            request control at the foot of this screen already says by being
+            the only way to change them.
+          */}
+          <ProfileSection icon="personOutline" title={tProfile('section.basic')}>
             <InfoRow label={tProfile('field.fullName')} value={profile.fullName} />
 
             {/*
@@ -116,7 +118,19 @@ export default async function ContactPage({ params }: ContactPageProps) {
             />
           </ProfileSection>
 
-          <DataUpdateRequest topic="contact" openRequest={openUpdateRequest} locale={locale} />
+          {/*
+            `showNotice={false}`, as on the health record. The paragraph said the
+            phone and email are held by the clinic and that changing either
+            needs verifying — and with the section's own note gone too, that
+            left the screen explaining the same constraint twice above a button
+            that states it by existing. The control is the message now.
+          */}
+          <DataUpdateRequest
+            topic="contact"
+            showNotice={false}
+            openRequest={openUpdateRequest}
+            locale={locale}
+          />
         </div>
       </main>
     </>
