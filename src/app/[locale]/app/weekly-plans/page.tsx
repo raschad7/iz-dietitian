@@ -37,7 +37,10 @@ export default async function WeeklyPlansPage({ params }: PageProps) {
   ]);
 
   return (
-    <div className={`${PLANNER_THEME} flex h-full min-h-0 min-w-0 flex-col text-start`}>
+    /* Same height rule as the client board — see `[clientId]/page.tsx`. */
+    <div
+      className={`${PLANNER_THEME} flex min-h-full min-w-0 flex-col text-start md:h-full md:min-h-0`}
+    >
       <h1 className="sr-only">{t('title')}</h1>
 
       <div className="flex min-h-0 min-w-0 flex-1 gap-4">
