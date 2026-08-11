@@ -1,8 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
-import { AgendaTimeline } from '@/features/dashboard/components/agenda-timeline';
-import { ClientsCard } from '@/features/dashboard/components/clients-card';
+import { AppointmentsPanel } from '@/features/dashboard/components/appointments-panel';
 import { StatCards } from '@/features/dashboard/components/stat-cards';
 import { loadDashboard } from '@/features/dashboard/page-data';
 import { NotificationsBell } from '@/features/notifications/components/notifications-bell';
@@ -29,60 +28,47 @@ export async function generateMetadata({ params }: DashboardPageProps): Promise<
  * That is the constraint everything else on this page answers to: it is the
  * screen a dietitian leaves open all day, and a number you have to scroll to
  * find is a number you stop checking. The page claims the shell's full height
- * (`xl:h-full`), every row is sized or flexible rather than intrinsic, and the
- * one list that can grow without limit — today's appointments — scrolls inside
- * its own card instead of pushing the page taller.
+ * (`xl:h-full`), the top band is sized and the panel below it flexes, and the
+ * one list that can grow without limit — a day's appointments — scrolls inside
+ * its own table instead of pushing the page taller.
  *
- * Below `xl` the columns stack and the page scrolls normally: one screen is a
- * desktop promise, and honouring it on a phone would mean four nested scrolls.
+ * Below `xl` the bands stack and the page scrolls normally: one screen is a
+ * desktop promise, and honouring it on a phone would mean nested scrolls.
  *
- * **The working column sits beside the sidebar; today's agenda sits at the far
- * edge.** The agenda is read-only — every row just links out to the real day
- * view — so it is the one panel on this page that is looked at rather than
- * acted on, and it now sits furthest from the rail that is all about acting.
- * Swapping the grid's two tracks (rather than only reordering the JSX) is what
- * keeps this correct in Arabic: a physical `21rem_1fr` would put the agenda on
- * the wrong edge once the page mirrors, so the grid stays two logical tracks
- * and the columns are declared in the order they should read.
+ * ## The page is a stack now, not two columns
  *
- * Reading order down the working column: two figures that say how the practice
- * is doing, then the register itself.
+ * It was a working column beside a narrow rail: stat cards over the register on
+ * one side, today's timeline over the requests card on the other. Both panels
+ * in that layout are gone, and with them the reason for the layout.
  *
- * ## What moved, and why
+ * **The register card went because the sidebar already goes there.** It listed
+ * name, age and phone for the eight newest clients — a thinner copy of
+ * `/app/clients`, sitting in the widest row on the page. That is the same fault
+ * the three quick-action tiles were removed for a release earlier: the most
+ * valuable band on the screen spending itself on a second route to somewhere
+ * the rail already reaches. A dashboard should say what needs doing, not
+ * enumerate what exists.
  *
- * **The top of the column is two stat cards, not three shortcut tiles.** The
- * tiles were links styled as surfaces — new client, book an appointment, weekly
- * plans — and the sidebar already carried every destination among them, so the
- * most valuable band on the page was spending itself on a second copy of the
- * navigation. What was missing at the top of a screen somebody leaves open all
- * day was not another way to move around it but a reason to look at it. The
- * cards state the two numbers the practice runs on, draw how each has moved,
- * and keep one action apiece in the corner: the register card still opens the
- * new-client dialog, and the diary card opens the week view. See `StatCards`.
+ * **Today's timeline went because the appointments panel covers it.** A
+ * vertical column read top to bottom answered one day; the panel answers that
+ * day and the four around it, in a table, with the live appointment marked and
+ * the next one pointed at. Keeping both would have put today on the screen
+ * twice.
  *
- * Note that the summary tiles this page carried a year ago were removed for the
- * opposite reason — they counted things the calendar and the register already
- * showed. These do not: a six-month intake curve, an eight-week booking
- * history, and a count of active clients with nothing in the diary are facts no
- * other screen in the app states.
+ * So the page reads as three bands: who you are and what is waiting, then the
+ * two numbers the practice runs on plus anything a client has asked for, then
+ * the diary.
  *
- * **Requests are under today's agenda, not beside the register.** They belong
- * with the day they are about: an appointment request is a proposal for a slot,
- * and the panel that shows what the slots already look like is directly above
- * it. Putting them in the narrow column also let the card stop disappearing —
- * it used to render nothing at all when nothing was pending, because an empty
- * card beside the register left a hole in the widest row on the page. A panel
- * that comes and goes is one nobody learns the position of. See
- * `PendingRequestsCard`.
+ * **Requests moved into the top row as the third card.** It used to sit under
+ * the timeline in the narrow column, where an empty panel left a hole — which
+ * is why the card was written never to disappear, and why the hole was the
+ * price of that. As one of three equal cards it holds a fixed position with
+ * nothing beneath it to leave empty. See `PendingRequestsCard`.
  *
- * **Notifications are a bell beside the date, not a card.** They lived behind a
- * menu at the foot of the rail — two deliberate acts from the screen a
- * dietitian keeps open, and a notification nobody goes looking for is not one.
- * A panel in this grid was the other extreme: the dashboard is one screen, and
- * a permanent column listing three names spent real estate on something read
- * once a morning and then irrelevant until it changes. A bell costs one glyph
- * when there is nothing and says how many when there is. See
- * `NotificationsBell`.
+ * **Notifications stay a bell beside the date.** Unchanged, and for the reason
+ * recorded when it moved there: a permanent column listing three names spends
+ * real estate on something read once a morning, while a bell costs one glyph
+ * when there is nothing and says how many when there is.
  */
 export default async function DashboardPage({ params }: DashboardPageProps) {
   const locale = await resolveLocale(params);
@@ -122,36 +108,34 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
         </div>
       </div>
 
-      <div className="grid gap-4 xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(0,1fr)_21rem] 2xl:grid-cols-[minmax(0,1fr)_23rem]">
-        <div className="flex min-w-0 flex-col gap-4 xl:min-h-0">
-          <StatCards stats={data.stats} today={data.today} locale={locale} />
+      {/*
+        Three cards across, all the same height. The two stat cards used to
+        share this band alone at half the width each; the requests card joining
+        them is what let it stop being a panel that vanished when there was
+        nothing in it.
+      */}
+      <div className="grid gap-4 xl:shrink-0 lg:grid-cols-3">
+        <StatCards stats={data.stats} today={data.today} locale={locale} />
+        <PendingRequestsCard data={data.requests} locale={locale} now={data.now} />
+      </div>
 
-          {/*
-            The register takes the whole row. It briefly shared it with an
-            attention panel; that list is behind the bell in the header now, so
-            the widest row on the page goes back to the one list that is read
-            all day rather than glanced at once.
-          */}
-          <ClientsCard clients={data.recentClients} locale={locale} />
-        </div>
-
-        {/*
-          Today, and what people are asking of it. The agenda takes whatever
-          height is left after the requests card has taken what it needs, so a
-          quiet morning gives the day view almost the whole column and a busy
-          one splits it.
-        */}
-        <div className="flex min-w-0 flex-col gap-4 xl:min-h-0">
-          <AgendaTimeline
-            appointments={data.agenda}
-            locale={locale}
-            today={data.today}
-            nowMinute={data.nowMinute}
-            workingDays={data.workingDays}
-          />
-
-          <PendingRequestsCard data={data.requests} locale={locale} now={data.now} />
-        </div>
+      {/*
+        The diary takes everything the band above it leaves, and stops exactly
+        at the bottom of the screen: `min-h-0` here, `h-full` on the card, and
+        the table inside taking the rest and scrolling. Without the `min-h-0` a
+        flex child refuses to shrink below its content, and a busy Tuesday would
+        push the card's own footer off the viewport — which is precisely the
+        "have to scroll a bit" this replaced.
+      */}
+      <div className="flex min-w-0 flex-col xl:min-h-0 xl:flex-1">
+        <AppointmentsPanel
+          appointments={data.weekAppointments}
+          weekStart={data.weekStart}
+          workingDays={data.workingDays}
+          today={data.today}
+          nowMinute={data.nowMinute}
+          locale={locale}
+        />
       </div>
     </div>
   );

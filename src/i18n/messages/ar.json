@@ -23,7 +23,18 @@
   },
   "datePicker": {
     "open": "اختر تاريخًا",
-    "empty": "اختر تاريخًا"
+    "empty": "اختر تاريخًا",
+    "pickDate": "اختر تاريخًا",
+    "pickDay": "اختر اليوم",
+    "pickMonth": "اختر الشهر",
+    "pickYear": "اختر السنة",
+    "today": "اليوم",
+    "previousMonth": "الشهر السابق",
+    "nextMonth": "الشهر التالي",
+    "previousYear": "السنة السابقة",
+    "nextYear": "السنة التالية",
+    "previousYears": "السنوات السابقة",
+    "nextYears": "السنوات التالية"
   },
   "nav": {
     "dashboard": "لوحة التحكم",
@@ -151,6 +162,8 @@
     "openClientProfile": "فتح ملف المشترك",
     "openActions": "إجراءات الموعد",
     "monthMore": "+{count, number, integer} أخرى",
+    "hiddenBelow": "+{count, number, integer} أخرى",
+    "hiddenBelowAction": "انزل إلى {count, number, integer} مواعيد أخرى في هذا اليوم",
     "monthReadOnly": "عرض الشهر للاطّلاع فقط. انقر على أي يوم للحجز أو التعديل.",
     "nav": {
       "today": "اليوم",
@@ -159,16 +172,7 @@
       "view": "طريقة العرض",
       "day": "يوم",
       "week": "أسبوع",
-      "month": "شهر",
-      "pickDate": "اختر تاريخًا",
-      "previousMonth": "الشهر السابق",
-      "nextMonth": "الشهر التالي",
-      "previousYear": "السنة السابقة",
-      "nextYear": "السنة التالية",
-      "pickMonth": "اختر الشهر",
-      "pickYear": "اختر السنة",
-      "previousYears": "السنوات السابقة",
-      "nextYears": "السنوات التالية"
+      "month": "شهر"
     },
     "search": {
       "placeholder": "ابحث عن مشترك"
@@ -196,8 +200,7 @@
       "clients": "المشتركون",
       "noMatches": "لا نتائج مطابقة.",
       "alreadyBookedAt": "لديه موعد في هذا اليوم الساعة {time}.",
-      "newClient": "مشترك جديد",
-      "newClientInDayView": "لإضافة مشترك جديد، افتح عرض اليوم."
+      "newClient": "مشترك جديد"
     },
     "newClient": {
       "title": "إضافة مشترك وحجز الموعد",
@@ -265,15 +268,21 @@
   "dashboard": {
     "title": "لوحة التحكم",
     "welcome": "أهلًا {name}",
-    "agenda": {
-      "title": "اليوم",
+    "appointments": {
+      "title": "المواعيد",
+      "previousDay": "اليوم السابق",
+      "nextDay": "اليوم التالي",
+      "today": "اليوم",
       "count": "{count, plural, =0 {لا مواعيد} one {موعد واحد} two {موعدان} few {# مواعيد} many {# موعدًا} other {# موعد}}",
-      "next": "التالي",
+      "time": "الوقت",
+      "client": "المشترك",
+      "reason": "سبب الزيارة",
+      "status": "الحالة",
+      "done": "انتهى",
       "live": "الآن",
-      "empty": "لا مواعيد محجوزة اليوم",
-      "emptyCta": "حجز موعد",
-      "viewDay": "فتح عرض اليوم",
-      "reason": "السبب: {reason}"
+      "next": "التالي",
+      "empty": "لا مواعيد في هذا اليوم",
+      "emptyCta": "حجز موعد"
     },
     "stats": {
       "title": "نظرة سريعة على العيادة",
@@ -301,13 +310,6 @@
           "flat": "الحجوزات مستقرة مقارنة بالأسابيع السابقة"
         }
       }
-    },
-    "clients": {
-      "title": "مشتركوك",
-      "nextVisit": "التالي: {when}",
-      "empty": "لا مشتركين في سجلك بعد.",
-      "emptyCta": "أضف أول مشترك",
-      "viewAll": "عرض كل المشتركين"
     }
   },
   "notifications": {
@@ -490,6 +492,7 @@
       "status": "الحالة",
       "createdAt": "تاريخ التسجيل",
       "portalAccess": "البوابة",
+      "plan": "الخطة",
       "actions": "إجراءات",
       "conditions": "الحالات الصحية",
       "medications": "الأدوية والمكمّلات",
@@ -532,13 +535,23 @@
       "delete": "حذف نهائي",
       "more": "إجراءات أخرى",
       "confirmDeleteTitle": "حذف السجل نهائيًا؟",
-      "confirmDelete": "سيُحذف سجل «{name}» نهائيًا مع حسابه في البوابة، ولا يمكن التراجع."
+      "confirmDelete": "سيُحذف سجل «{name}» نهائيًا مع حسابه في البوابة، ولا يمكن التراجع.",
+      "confirmArchiveTitle": "أرشفة هذا العميل؟",
+      "confirmArchive": "سيُزال من السجل، ويمكنك استعادته في أي وقت من صفحة الأرشيف."
+    },
+    "plan": {
+      "published": "خطة نشطة",
+      "draft": "مسودة",
+      "none": "لا توجد خطة"
     },
     "clearFilters": "مسح الفلاتر",
     "pagination": {
       "previous": "السابق",
       "next": "التالي",
-      "position": "صفحة {page, number, integer} من {pageCount, number, integer}"
+      "position": "الصفحة {page, number, integer} من {pageCount, number, integer}",
+      "label": "صفحات السجل",
+      "showing": "عرض {from, number, integer}–{to, number, integer} من {total, number, integer}",
+      "page": "الصفحة {page, number, integer}"
     },
     "portal": {
       "title": "الحساب",
@@ -564,7 +577,8 @@
         "failed": "تعذّر الإرسال عبر واتساب. سلّم البيانات يدويًا."
       },
       "state": "الدخول {state}",
-      "granted": "مُفعّل"
+      "granted": "مفعّل",
+      "none": "لا يوجد حساب"
     },
     "errors": {
       "invalid": "تحقّق من الحقول المميّزة بالأحمر.",
@@ -582,7 +596,7 @@
       "start": "ابدأ الآن",
       "sections": {
         "measurements": "القياسات",
-        "allergies": "الحساسية والحالة الصحية",
+        "allergies": "الحساسية",
         "clinical": "الملاحظات الطبية",
         "planning": "ما تلتزم به الخطة",
         "private": "ملاحظات خاصة",
@@ -613,7 +627,7 @@
       "complete": "كل الحقول مُدخلة",
       "completeness": "اكتمال السجل",
       "filledOf": "{filled} من {total} حقلاً مُدخلة",
-      "gapsHeading": "{count, plural, =0 {كل الحقول مُدخلة} one {حقل واحد بلا بيانات} two {حقلان بلا بيانات} few {# حقول بلا بيانات} many {# حقلاً بلا بيانات} other {# حقل بلا بيانات}}",
+      "gapsHeading": "أكمل بيانات المريض من هذه الأقسام",
       "kcalMismatch": "الهدف اليدوي بعيد عن المحسوب",
       "kcalMismatchDetail": "أُدخل {manual} kcal يدويًا، بينما القياسات والهدف يعطيان {computed} kcal. راجعي الرقم أو احذفيه ليُحسب تلقائيًا.",
       "bmiValueText": "{value} — {category}",
@@ -629,9 +643,10 @@
       "completeShort": "مكتمل",
       "editRecord": "تعديل السجل",
       "scheduleSummary": "{count, plural, one {وجبة واحدة} two {وجبتان} few {# وجبات} many {# وجبة} other {# وجبة}} على {kcal} سعرة",
-      "gapsPrompt": "اضغط أيًّا منها لإكماله",
+      "gapsPrompt": "{count, plural, =0 {كل الحقول مُدخلة} one {حقل واحد بلا بيانات} two {حقلان بلا بيانات} few {# حقول بلا بيانات} many {# حقلاً بلا بيانات} other {# حقل بلا بيانات}}",
       "allergyLine": "الحساسية",
-      "privateBadge": "خاص بالعيادة"
+      "privateBadge": "خاص بالعيادة",
+      "notesDivider": "ملاحظات"
     },
     "allergens": {
       "nuts": "مكسرات",
@@ -1206,6 +1221,7 @@
       "updated": "آخر تعديل"
     },
     "history": "الخطط السابقة",
+    "moreActions": "المزيد من إجراءات الخطة",
     "weekOf": "أسبوع {date}",
     "generatedBy": "النموذج المستخدم",
     "kcalValue": "{value} kcal",
@@ -1367,6 +1383,8 @@
     "createWeek": "إنشاء أسبوع",
     "newWeekTitle": "إعداد أسبوع جديد",
     "newWeekSubtitle": "اختر طريقة البدء لتخطيط الوجبات لهذا الأسبوع.",
+    "weekStartLabel": "تاريخ بداية الأسبوع",
+    "weekStartHint": "تبدأ الخطة من هذا اليوم وتستمر سبعة أيام.",
     "newWeekGenerate": {
       "create": "توليد بالذكاء الاصطناعي",
       "regenerate": "إعادة التوليد بالذكاء الاصطناعي"
@@ -1611,6 +1629,7 @@
       "disabled": "ميزة واتساب غير مفعّلة على هذا التثبيت.",
       "gateway": "لم تستجب بوّابة واتساب. تأكد من أنها تعمل ثم أعد المحاولة.",
       "invalid": "تحقّق من الحقول المميّزة بالأحمر.",
+      "misconfigured": "واتساب مُفعّل لكن إعداده على الخادم غير مكتمل. يحتاج من ثبّت التطبيق إلى إضافة بيانات اعتماد البوّابة — والإعداد الناقص مذكور في سجل الخادم.",
       "notLinked": "اربط واتساب أولاً ثم اضبط الرسائل التلقائية.",
       "sendFailed": "تعذّر إرسال الرسالة. راجع سجل الرسائل.",
       "unexpected": "حدث خطأ غير متوقع. حاول مجددًا."

@@ -12,7 +12,7 @@ import { recomputeDayAdherence } from '@/features/portal/mutations';
 
 import type { GenerationOutcome, ReconciledMeal } from './generate';
 import type { GenerationScope } from './schema';
-import { weekDates } from './week';
+import { planWeekDays, weekDateForDay } from './week';
 
 /**
  * Writes for the weekly-plans feature.
@@ -206,7 +206,7 @@ export async function createPlanFromGeneration(input: {
 
     await insertOptions(tx, inserted, input.outcome.meals);
 
-    for (const [dayOfWeek, date] of weekDates(input.weekStartDate).entries()) {
+    for (const { dayOfWeek, date } of planWeekDays(input.weekStartDate)) {
       await recomputeDayAdherence(tx, {
         clinicId: input.clinicId,
         clientId: input.clientId,
@@ -248,7 +248,6 @@ export async function replaceMeals(
   if (!plan || plan.status !== 'draft') return false;
   if (!meals.length) return false;
 
-  const dates = weekDates(plan.weekStartDate);
   const affectedDays = [...new Set(meals.map((meal) => meal.dayOfWeek))];
 
   await db.transaction(async (tx) => {
@@ -281,7 +280,7 @@ export async function replaceMeals(
       .where(eq(weeklyPlans.id, planId));
 
     for (const dayOfWeek of affectedDays) {
-      const date = dates[dayOfWeek];
+      const date = weekDateForDay(plan.weekStartDate, dayOfWeek);
       if (!date) continue;
 
       await recomputeDayAdherence(tx, { clinicId, clientId: plan.clientId, planId, dayOfWeek, date });
@@ -459,7 +458,7 @@ export async function deletePlan(clinicId: string, planId: string): Promise<bool
   await db.transaction(async (tx) => {
     await tx.delete(weeklyPlans).where(eq(weeklyPlans.id, planId));
 
-    for (const [dayOfWeek, date] of weekDates(plan.weekStartDate).entries()) {
+    for (const { dayOfWeek, date } of planWeekDays(plan.weekStartDate)) {
       await recomputeDayAdherence(tx, { clinicId, clientId: plan.clientId, planId, dayOfWeek, date });
     }
   });

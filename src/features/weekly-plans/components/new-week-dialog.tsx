@@ -5,10 +5,12 @@ import { useFormStatus } from 'react-dom';
 import { useLocale, useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Icon } from '@/components/ui/icon';
 import { Dialog, DialogBody, DialogHeader } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { getLocaleDirection } from '@/i18n/routing';
+import { getLocaleDirection, type Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 
 import { startEmptyWeekAction, startWeekFromPlanAction } from '../editor-actions';
@@ -64,7 +66,7 @@ export function NewWeekDialog({
   clientId: string;
   /** The plan on screen, which decides whether generating replaces it. */
   board: { id: string; status: string } | null;
-  locale: string;
+  locale: Locale;
   newWeek: NewWeekProps;
   triggerLabel?: string;
   triggerVariant?: 'default' | 'ghost' | 'neutral';
@@ -76,6 +78,7 @@ export function NewWeekDialog({
   const activeLocale = useLocale();
   const [open, setOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [weekStartDate, setWeekStartDate] = useState(newWeek.weekStartDate);
 
   const mode = newWeekMode(board);
 
@@ -100,14 +103,17 @@ export function NewWeekDialog({
         variant={triggerVariant}
         aria-label={compactTrigger ? (triggerLabel ?? t('newWeek')) : undefined}
         title={compactTrigger ? (triggerLabel ?? t('newWeek')) : undefined}
-        className={compactTrigger ? 'max-sm:px-3' : undefined}
+        className={
+          compactTrigger ? 'px-3 2xl:size-10 2xl:rounded-full 2xl:px-0' : undefined
+        }
         onClick={() => {
           setGenerating(false);
+          setWeekStartDate(newWeek.weekStartDate);
           setOpen(true);
         }}
       >
         <Icon name="add" />
-        <span className={compactTrigger ? 'max-sm:sr-only' : undefined}>
+        <span className={compactTrigger ? '2xl:sr-only' : undefined}>
           {triggerLabel ?? t('newWeek')}
         </span>
       </Button>
@@ -136,6 +142,21 @@ export function NewWeekDialog({
           />
 
           <DialogBody>
+            <div className="mb-5 grid gap-3 rounded-lg bg-muted px-4 py-3 sm:grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)] sm:items-center">
+              <div>
+                <Label htmlFor="new-week-start">{t('weekStartLabel')}</Label>
+                <p className="mt-1 text-caption leading-relaxed text-muted-foreground">
+                  {t('weekStartHint')}
+                </p>
+              </div>
+              <DatePicker
+                id="new-week-start"
+                value={weekStartDate}
+                onChange={setWeekStartDate}
+                locale={locale}
+              />
+            </div>
+
             {/* Stacked on a phone, three across from `sm` up — the dialog is a
                 full bottom sheet there, and three columns in a phone's width is
                 three columns of nothing. */}
@@ -144,7 +165,7 @@ export function NewWeekDialog({
                 clientId={clientId}
                 locale={locale}
                 mode={mode}
-                weekStartDate={newWeek.weekStartDate}
+                weekStartDate={weekStartDate}
                 blocked={newWeek.generateBlocked}
                 context={newWeek.context}
                 defaultInstruction={newWeek.defaultInstruction}
@@ -155,7 +176,7 @@ export function NewWeekDialog({
               <CopyDoor
                 clientId={clientId}
                 locale={locale}
-                weekStartDate={newWeek.weekStartDate}
+                weekStartDate={weekStartDate}
                 plans={copyable}
                 blocked={newWeek.blocked}
               />
@@ -163,7 +184,7 @@ export function NewWeekDialog({
               <EmptyDoor
                 clientId={clientId}
                 locale={locale}
-                weekStartDate={newWeek.weekStartDate}
+                weekStartDate={weekStartDate}
                 blocked={newWeek.blocked}
               />
             </div>

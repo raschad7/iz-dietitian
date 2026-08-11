@@ -1,6 +1,16 @@
 import { describe, expect, test } from 'bun:test';
 
-import { currentSunday, dayStanding, formatDateParts, nextSunday, weekDates } from './week';
+import {
+  currentSunday,
+  dayOfWeekForDate,
+  dayStanding,
+  formatDateParts,
+  nextSunday,
+  orderedWeekdays,
+  planWeekDays,
+  weekDateForDay,
+  weekDates,
+} from './week';
 
 describe('nextSunday', () => {
   test('returns today when today is Sunday', () => {
@@ -80,6 +90,35 @@ describe('weekDates', () => {
 
   test('returns nothing for a malformed date rather than Invalid Date strings', () => {
     expect(weekDates('not-a-date')).toEqual([]);
+    expect(weekDates('2026-02-31')).toEqual([]);
+  });
+});
+
+describe('flexible plan starts', () => {
+  test('reads the weekday from a date without a UTC conversion', () => {
+    expect(dayOfWeekForDate('2026-08-05')).toBe(3);
+    expect(dayOfWeekForDate('not-a-date')).toBeNull();
+  });
+
+  test('orders a Wednesday-starting plan through the following Tuesday', () => {
+    expect(orderedWeekdays('2026-08-05')).toEqual([3, 4, 5, 6, 0, 1, 2]);
+  });
+
+  test('pairs consecutive dates with their absolute weekday ids', () => {
+    expect(planWeekDays('2026-08-05')).toEqual([
+      { dayOfWeek: 3, date: '2026-08-05' },
+      { dayOfWeek: 4, date: '2026-08-06' },
+      { dayOfWeek: 5, date: '2026-08-07' },
+      { dayOfWeek: 6, date: '2026-08-08' },
+      { dayOfWeek: 0, date: '2026-08-09' },
+      { dayOfWeek: 1, date: '2026-08-10' },
+      { dayOfWeek: 2, date: '2026-08-11' },
+    ]);
+  });
+
+  test('looks up a date by weekday after the order wraps', () => {
+    expect(weekDateForDay('2026-08-05', 0)).toBe('2026-08-09');
+    expect(weekDateForDay('2026-08-05', 2)).toBe('2026-08-11');
   });
 });
 

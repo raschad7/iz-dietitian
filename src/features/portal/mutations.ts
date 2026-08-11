@@ -16,7 +16,7 @@ import {
 } from '@/db/schema';
 import { hasEnded, type WallClock } from '@/features/booking/completed';
 import { getClinicHours } from '@/features/booking/queries';
-import { weekDates } from '@/features/weekly-plans/week';
+import { weekDateForDay } from '@/features/weekly-plans/week';
 import { type Locale } from '@/i18n/routing';
 
 import { deriveAdherenceLevel, type AdherenceLevel } from './adherence';
@@ -470,7 +470,7 @@ export async function toggleMealCompletion(
 
     if (!meal) return { ok: false, error: 'errors.notFound' };
 
-    const date = weekDates(meal.weekStartDate)[meal.dayOfWeek];
+    const date = weekDateForDay(meal.weekStartDate, meal.dayOfWeek);
     if (!date) return { ok: false, error: 'errors.unexpected' };
 
     /*

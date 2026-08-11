@@ -157,18 +157,46 @@ describe('the appointment series', () => {
   ];
 
   test('lists every appointment, numbered, one per line', () => {
-    const list = formatAppointmentList(course);
+    const list = formatAppointmentList(course, 'en');
 
     expect(list.split('\n')).toHaveLength(4);
-    expect(list).toContain('1. 📅 12 August 2026 — 🕐 10:00 AM (30 min)');
-    expect(list).toContain('4. 📅 2 September 2026 — 🕐 10:00 AM (30 min)');
+    expect(list).toContain('1. 12 August 2026 — 10:00 AM (30 min)');
+    expect(list).toContain('4. 2 September 2026 — 10:00 AM (30 min)');
+  });
+
+  /**
+   * The invisible half of the list.
+   *
+   * Asserted because it cannot be seen in review: a dropped `‏` looks
+   * identical in the diff, in the editor and in this file, and only shows up as
+   * a mangled list on a patient's phone. See `formatAppointmentList`.
+   */
+  test('the Arabic list anchors each line right-to-left and isolates the values', () => {
+    const [first] = formatAppointmentList(course, 'ar').split('\n');
+
+    // The line opens with the mark, before the number, or the digit decides the
+    // direction for it.
+    expect(first!.startsWith('‏1.')).toBe(true);
+    expect(first).toContain('⁨ 12 August 2026⁩'.trimStart());
+    expect(first).toContain('⁨10:00 AM⁩');
+
+    // The duration is Arabic in production, so it is deliberately left bare —
+    // it is already strong right-to-left and needs no isolate.
+    expect(first).toContain('(30 min)');
+  });
+
+  test('English carries no directional marks — there is nothing to correct', () => {
+    const list = formatAppointmentList(course, 'en');
+
+    expect(list).not.toContain('‏');
+    expect(list).not.toContain('⁨');
   });
 
   test('the message states the count and carries every date', () => {
     const body = renderWhatsappMessage('appointmentSeries', 'ar', {
       ...variables,
       count: String(course.length),
-      appointments: formatAppointmentList(course),
+      appointments: formatAppointmentList(course, 'ar'),
     });
 
     expect(body).toContain('4');
@@ -189,11 +217,11 @@ describe('the appointment series', () => {
       const body = renderWhatsappMessage('appointmentSeries', 'en', {
         ...variables,
         count: String(size),
-        appointments: formatAppointmentList(many),
+        appointments: formatAppointmentList(many, 'en'),
       });
 
       expect(body).toContain(`Your ${size} appointments`);
-      expect(body).toContain(`${size}. 📅 date-${size - 1}`);
+      expect(body).toContain(`${size}. date-${size - 1}`);
       expect(body).not.toContain('{');
     }
   });

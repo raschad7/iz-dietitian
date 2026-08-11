@@ -114,7 +114,7 @@ function Submit({
       aria-busy={pending}
       data-pending={pending}
       data-confirmed={confirmed || undefined}
-      className="planner-publish-button"
+      className="planner-publish-button px-3"
     >
       <Icon name={icon} className="planner-publish-icon" />
       {/* Both labels occupy one grid cell, so submitting never changes the

@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { type Locale } from '@/i18n/routing';
 import { requireStaffClinic } from '@/lib/session';
 
-import { isWhatsappEnabled } from './config';
+import { isWhatsappEnabled, WhatsappConfigError } from './config';
 import { connectClinic, disconnectClinic, readConnection, refreshConnection } from './connection';
 import {
   type AutomationActionState,
@@ -30,6 +30,13 @@ import { type ConnectionView } from './types';
  * `errors.gateway` is deliberately a distinct outcome from `errors.unexpected`.
  * "The WhatsApp gateway is not answering" is something the dietitian can act on
  * (start it, check the URL); "something went wrong" is not.
+ *
+ * `errors.misconfigured` is there for the same reason and was learnt the hard
+ * way. An install with `WHATSAPP_ENABLED=true` and an empty `WHATSAPP_API_KEY`
+ * threw out of `readConfig` on every Connect, landed in the generic branch, and
+ * told the clinic to try again — which cannot work, because no number of
+ * retries sets an environment variable. The variable's name goes to the log for
+ * whoever runs the install; the screen says the install is unfinished.
  */
 
 function settingsPath(locale: Locale): string {
@@ -40,11 +47,18 @@ function readLocale(formData: FormData): Locale {
   return localeSchema.parse(formData.get('locale'));
 }
 
-/** Both gateway-facing actions fail the same three ways. */
+/** Both gateway-facing actions fail the same four ways. */
 function toConnectionError(error: unknown, operation: string): ConnectionActionState {
   if (error instanceof GatewayError) {
     console.error(`[whatsapp] ${operation} failed`, { status: error.status, detail: error.detail });
     return { status: 'error', messageKey: 'errors.gateway' };
+  }
+
+  // Checked before the generic branch because it is the one failure here that
+  // nothing at the clinic's end can fix — see the note at the top of the file.
+  if (error instanceof WhatsappConfigError) {
+    console.error(`[whatsapp] ${operation} failed: ${error.message}`);
+    return { status: 'error', messageKey: 'errors.misconfigured' };
   }
 
   console.error(`[whatsapp] ${operation} failed`, error);
@@ -186,6 +200,14 @@ export async function sendWhatsappMessageAction(
 
     return { status: 'skipped', messageKey: 'send.notConfigured' };
   } catch (error) {
+    // The same half-finished install reaches here through `getWhatsappConfig`,
+    // and deserves the same answer it gets on the settings page rather than a
+    // second, vaguer name for one problem.
+    if (error instanceof WhatsappConfigError) {
+      console.error(`[whatsapp] manual send failed: ${error.message}`);
+      return { status: 'error', messageKey: 'errors.misconfigured' };
+    }
+
     console.error('[whatsapp] manual send failed', error);
     return { status: 'error', messageKey: 'errors.unexpected' };
   }

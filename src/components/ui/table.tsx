@@ -79,6 +79,17 @@ function Table({ className, ...props }: React.ComponentProps<'table'>) {
       data-slot="table"
       className={cn(
         'w-full caption-bottom border-separate border-spacing-0 text-body-md',
+        /*
+         * No rule above the very first body row — the header strip is already
+         * the edge it sits under, and a line there would double it.
+         *
+         * Declared on the table rather than as `first:` on the row, because a
+         * table may have several `<tbody>`s (see `TableBody`'s `linked`) and
+         * `tr:first-child` is true once per group. Only the first group's first
+         * row is the top of the table; the rest are group boundaries and should
+         * keep their rule.
+         */
+        '[&>tbody:first-of-type>tr:first-child>td]:border-t-0',
         className,
       )}
       {...props}
@@ -106,7 +117,15 @@ function TableHeader({
     <thead
       data-slot="table-header"
       className={cn(
-        'bg-muted text-caption text-muted-foreground',
+        /*
+         * 14px, one step up from the 12px `--text-caption` this used to be.
+         * A column name is not helper text: it is the label the whole column
+         * is read against, and at caption size it sat below the muted phone
+         * numbers underneath it — the quietest thing in the table naming the
+         * loudest. It stays a step under the 16px body so the values still
+         * lead, and `TableHead`'s `font-medium` does the rest.
+         */
+        'bg-muted text-body-sm text-muted-foreground',
         /*
          * The strip takes the control radius on all four corners, and it takes
          * it on the end cells rather than on the `thead`: a table's fill is
@@ -148,7 +167,14 @@ function TableBody({
     <tbody
       data-slot="table-body"
       className={cn(
-        linked && 'relative cursor-pointer transition-colors hover:bg-secondary/60',
+        linked && 'relative cursor-pointer transition-colors hover:bg-accent/50',
+        /*
+         * The rows inside one group are one record, so only the group's first
+         * row draws the rule that separates it from the record above. Without
+         * this, the dashboard's register would draw a line between a client's
+         * name and the next-visit line hanging under it.
+         */
+        linked && '[&>tr:not(:first-child)>td]:border-t-0',
         className,
       )}
       {...props}
@@ -211,7 +237,22 @@ function TableRow({ className, zebra, linked, ...props }: React.ComponentProps<'
     <tr
       data-slot="table-row"
       className={cn(
-        'border-t border-border transition-colors first:border-t-0',
+        /*
+         * ⚠ The rule is on the row's **cells**, not on the row.
+         *
+         * This said `border-t border-border` on the `<tr>` itself for a long
+         * time and drew nothing at all: `Table` is `border-separate`, and in
+         * the separated border model the spec has borders on rows, row groups,
+         * columns and column groups *ignored outright* — only cells may draw
+         * one. So the register had no rules between its rows and nobody could
+         * see why the class was there. The app's own design guide already had
+         * this right: `border-top: 1px solid` on `td`.
+         *
+         * If this ever moves back to `border-collapse`, the row-level version
+         * starts working again and this becomes the wrong place for it.
+         */
+        '[&>td]:border-t [&>td]:border-border',
+        'transition-colors',
         zebra && 'even:bg-muted',
         linked && 'relative cursor-pointer',
         /*
@@ -223,7 +264,15 @@ function TableRow({ className, zebra, linked, ...props }: React.ComponentProps<'
          * `data-state="selected"`, this app's own call sites write
          * `data-selected="true"`.
          */
-        'hover:bg-secondary/60 has-aria-expanded:bg-secondary/60',
+        /*
+         * The hover fill is `--accent` at half strength — the system's ambient
+         * hover tint, lightened so the rule between the rows still reads
+         * through it. It used to be `--secondary/60`, the olive brand fill,
+         * which made pointing at a row look like selecting it: `data-[selected]`
+         * below is that same olive at full strength, so hover and selection
+         * differed only in opacity.
+         */
+        'hover:bg-accent/50 has-aria-expanded:bg-accent/50',
         'data-[selected=true]:bg-secondary data-[state=selected]:bg-secondary',
         className,
       )}

@@ -26,10 +26,12 @@ export function ContextPanel({
   context,
   clients,
   locale,
+  embedded = false,
 }: {
   context: ClientContext;
   clients: readonly PlannableClient[];
   locale: Locale;
+  embedded?: boolean;
 }) {
   const t = useTranslations('weeklyPlans');
   const tGoals = useTranslations('clients.goal');
@@ -63,12 +65,15 @@ export function ContextPanel({
   return (
     <section
       aria-label={t('planningSnapshot')}
-      className="rounded-lg border border-border bg-card px-3 py-2.5 shadow-card motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-2 motion-safe:duration-(--duration-sweep)"
+      className={cn(
+        'bg-card px-4 py-3',
+        !embedded && 'rounded-lg border border-border shadow-card',
+      )}
     >
-      <div className="flex flex-wrap items-stretch gap-y-2">
-        <div className="flex min-w-full flex-[1.4] flex-wrap items-center gap-2 pe-3 sm:min-w-64">
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center xl:grid-cols-[minmax(17rem,1.05fr)_minmax(34rem,2fr)_auto]">
+        <div className="flex min-w-0 flex-wrap items-center gap-3 xl:flex-nowrap">
           {selectedClient ? (
-            <Avatar name={selectedClient.fullName} color={selectedClient.color} />
+            <Avatar name={selectedClient.fullName} color={selectedClient.color} size="lg" />
           ) : null}
 
           <div className="min-w-44 flex-1">
@@ -77,21 +82,9 @@ export function ContextPanel({
               selectedClientId={context.clientId}
               appearance="bar"
             />
-            <p className="text-caption text-muted-foreground">{t('planningSnapshot')}</p>
           </div>
 
-          {profile ? (
-            <TooltipHint label={t('editProfile')}>
-              <IntakeFormTrigger
-                locale={locale}
-                clientId={context.clientId}
-                aria-label={t('editProfile')}
-                className={buttonVariants({ variant: 'ghost', size: 'icon-sm' })}
-              >
-                <Icon name="edit" />
-              </IntakeFormTrigger>
-            </TooltipHint>
-          ) : (
+          {!profile ? (
             <IntakeFormTrigger
               locale={locale}
               clientId={context.clientId}
@@ -100,39 +93,48 @@ export function ContextPanel({
               <Icon name="add" />
               {t('createProfile')}
             </IntakeFormTrigger>
-          )}
+          ) : null}
         </div>
 
-        <SummaryFact label={t('dailyTarget')} numeric>
-          {context.effectiveKcal === null ? t('unset') : t('kcalValue', { value: context.effectiveKcal })}
-        </SummaryFact>
-        <SummaryFact label={t('fields.proteinTargetGrams')} numeric>
-          {context.effectiveProteinGrams === null
-            ? t('unset')
-            : t('grams', { value: context.effectiveProteinGrams })}
-        </SummaryFact>
-        <SummaryFact label={t('bmi')} numeric>
-          {targets.bmi === null ? t('unset') : targets.bmi.toFixed(1)}
-        </SummaryFact>
-        <SummaryFact label={t('goal')}>
-          {isMember(CLIENT_GOALS, context.goal) ? tGoals(context.goal) : t('unset')}
-        </SummaryFact>
-        <SummaryFact
-          label={t('allergies')}
-          className={cn(
-            allergyText ? 'text-status-medical-fg' : 'text-status-attention-fg',
-            'min-w-44 flex-[1.25]',
-          )}
-        >
-          {allergyText || t('allergiesMissing')}
-        </SummaryFact>
+        <div className="grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-3 lg:col-span-2 lg:grid-cols-5 xl:col-span-1 xl:col-start-2 xl:row-start-1">
+          <SummaryFact label={t('dailyTarget')} numeric>
+            {context.effectiveKcal === null ? t('unset') : t('kcalValue', { value: context.effectiveKcal })}
+          </SummaryFact>
+          <SummaryFact label={t('fields.proteinTargetGrams')} numeric>
+            {context.effectiveProteinGrams === null
+              ? t('unset')
+              : t('grams', { value: context.effectiveProteinGrams })}
+          </SummaryFact>
+          <SummaryFact label={t('bmi')} numeric>
+            {targets.bmi === null ? t('unset') : targets.bmi.toFixed(1)}
+          </SummaryFact>
+          <SummaryFact label={t('goal')}>
+            {isMember(CLIENT_GOALS, context.goal) ? tGoals(context.goal) : t('unset')}
+          </SummaryFact>
+          <SummaryFact
+            label={t('allergies')}
+            wrap
+            className={cn(
+              allergyText ? 'text-status-medical-fg' : 'text-status-attention-fg',
+              'col-span-2 sm:col-span-1',
+            )}
+          >
+            {allergyText || t('allergiesMissing')}
+          </SummaryFact>
+        </div>
 
-        <Popover>
+        <div className="flex items-center gap-1 rounded-lg bg-muted/70 p-1 lg:col-start-2 lg:row-start-1 xl:col-start-3 xl:flex-col">
+          <Popover>
           <PopoverTrigger
-            className={buttonVariants({ variant: 'neutral', size: 'sm', className: 'self-center' })}
+            aria-label={t('planningNotes')}
+            title={t('planningNotes')}
+            className={buttonVariants({
+              variant: 'neutral',
+              size: 'icon-sm',
+            })}
           >
             <Icon name="info" />
-            {t('planningNotes')}
+            <span className="sr-only">{t('planningNotes')}</span>
           </PopoverTrigger>
           <PopoverContent align="end" side="bottom" className="max-h-[min(32rem,70vh)] w-80 overflow-y-auto p-4">
             <PopoverTitle className="text-label font-semibold">{t('planningNotes')}</PopoverTitle>
@@ -167,7 +169,22 @@ export function ContextPanel({
               ))}
             </div>
           </PopoverContent>
-        </Popover>
+          </Popover>
+
+          {profile ? (
+            <TooltipHint label={t('editProfile')}>
+              <IntakeFormTrigger
+                locale={locale}
+                clientId={context.clientId}
+                aria-label={t('editProfile')}
+                className={buttonVariants({ variant: 'neutral', size: 'icon-sm' })}
+              >
+                <Icon name="edit" />
+                <span className="sr-only">{t('editProfile')}</span>
+              </IntakeFormTrigger>
+            </TooltipHint>
+          ) : null}
+        </div>
       </div>
     </section>
   );
@@ -176,18 +193,32 @@ export function ContextPanel({
 function SummaryFact({
   label,
   numeric,
+  wrap,
   className,
   children,
 }: {
   label: string;
   numeric?: boolean;
+  wrap?: boolean;
   className?: string;
   children: React.ReactNode;
 }) {
   return (
-    <div className={cn('min-w-28 border-s border-border px-3', className)}>
-      <p className="text-caption text-muted-foreground">{label}</p>
-      <p className="truncate text-label font-semibold" dir={numeric ? 'ltr' : 'auto'} title={String(children)}>
+    <div
+      className={cn(
+        'flex min-h-14 min-w-0 flex-col items-center justify-center rounded-md bg-muted/70 px-2 py-2 text-center',
+        className,
+      )}
+    >
+      <p className="text-body-sm text-muted-foreground">{label}</p>
+      <p
+        className={cn(
+          'mt-0.5 w-full text-body-md font-semibold',
+          wrap ? 'leading-snug xl:truncate xl:leading-normal' : 'truncate',
+        )}
+        dir={numeric ? 'ltr' : 'auto'}
+        title={String(children)}
+      >
         {children}
       </p>
     </div>

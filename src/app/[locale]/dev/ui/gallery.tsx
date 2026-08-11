@@ -64,6 +64,7 @@ import { TimeInput } from '@/components/ui/time-input';
 import { TooltipHint } from '@/components/ui/tooltip-hint';
 import type { Locale } from '@/i18n/routing';
 import { AVATAR_PALETTE } from '@/lib/avatar-color';
+import { toIsoDate } from '@/lib/iso-date';
 
 const BUTTON_VARIANTS = [
   'default',
@@ -483,12 +484,17 @@ export function UiGallery({ locale }: { locale: Locale }) {
 
             <Field>
               <Label htmlFor="g-dialog-date">Date of birth</Label>
+              {/* The counter form's own picker: a month list and a year list
+                  rather than the caption ring. See `ClientIdentityFields`. */}
               <DatePicker
                 id="g-dialog-date"
                 value={date}
                 onChange={(next) => setDate(next)}
                 locale={locale}
                 placeholder="Pick a date"
+                caption="dropdowns"
+                selectedTone="primary"
+                max={toIsoDate(new Date())}
               />
             </Field>
 

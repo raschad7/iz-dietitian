@@ -46,10 +46,14 @@ export function SlotRail({
       {/* The corner. Blank, and deliberately so: it sits above both the day
           names and the slot labels, and anything written in it would belong to
           neither axis. */}
-      <div className="sticky top-0 z-10 border-b border-border bg-background" />
+      <div className="sticky top-0 z-10 bg-background" />
 
-      {rows.map((row) => (
-        <div key={row.slotKey} className="planner-row-cell">
+      {rows.map((row, rowIndex) => (
+        <div
+          key={row.slotKey}
+          className="planner-row-cell"
+          data-first-row={rowIndex === 0 || undefined}
+        >
           <div className="group/slot relative flex flex-col items-center justify-center gap-1 px-1.5 text-center">
             <Icon
               name={mealIconForSlot(row.slotKey)}

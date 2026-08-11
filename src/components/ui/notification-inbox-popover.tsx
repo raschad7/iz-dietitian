@@ -90,6 +90,7 @@ function NotificationInboxPopover<T extends string>({
   triggerLabel,
   triggerIcon = 'notifications',
   count = 0,
+  unread,
   tabs,
   activeTab,
   onTabChange,
@@ -106,8 +107,19 @@ function NotificationInboxPopover<T extends string>({
   /** The trigger's accessible name. Falls back to `title`. */
   triggerLabel?: string;
   triggerIcon?: IconName;
-  /** How many things are waiting. Drawn on the trigger and beside the title. */
+  /** How many things are waiting. Drawn beside the title, and on the trigger. */
   count?: number;
+  /**
+   * How many of those the reader has not looked at — the disc on the trigger,
+   * when the two differ.
+   *
+   * They differ for a caller that treats opening the panel as reading it: the
+   * count beside the title is about the *clinic* and stays lit while anything is
+   * outstanding, and the disc on the bell is about the *reader* and goes quiet
+   * once they have seen the list. Omit it and one number does both, which is
+   * right for an inbox with no read state at all.
+   */
+  unread?: number;
   /** Omit for a single-list inbox — the filter strip disappears with it. */
   tabs?: readonly InboxTab<T>[];
   activeTab?: T;
@@ -124,6 +136,7 @@ function NotificationInboxPopover<T extends string>({
   /** The rows — `<li>` elements. */
   children?: React.ReactNode;
 }) {
+  const triggerCount = unread ?? count;
   const hasTabs = tabs !== undefined && tabs.length > 0;
   const isEmpty = empty !== undefined && React.Children.count(children) === 0;
 
@@ -157,7 +170,7 @@ function NotificationInboxPopover<T extends string>({
           olive disc is another piece of furniture; clay is the only alarm in the
           scale and appears nowhere else above the fold.
         */}
-        {count > 0 ? (
+        {triggerCount > 0 ? (
           <span
             aria-hidden
             className={cn(
@@ -165,7 +178,7 @@ function NotificationInboxPopover<T extends string>({
               'bg-destructive text-[0.625rem] leading-4 font-semibold text-destructive-foreground tabular-nums',
             )}
           >
-            {count > 9 ? '9+' : count}
+            {triggerCount > 9 ? '9+' : triggerCount}
           </span>
         ) : null}
       </PopoverTrigger>
@@ -194,13 +207,47 @@ function NotificationInboxPopover<T extends string>({
               rules say never to ship, so the overflow is contained here, the way
               `Tabs` already handles its own five-tab strip.
             */
-            <div className="-m-0.5 overflow-x-auto p-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="-m-0.5 flex overflow-x-auto p-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <Segmented
                 role="tablist"
                 size="sm"
                 label={tabsLabel ?? title}
                 value={activeTab}
                 onChange={onTabChange}
+                /*
+                  Light grey, not the segmented control's default olive.
+
+                  Everywhere else that control picks between *views of a page*
+                  and the olive half is the one thing the screen is doing. This
+                  strip sits inside a popover whose whole job is a list of
+                  things to act on, and a filled brand-coloured chip at the top
+                  of it outranked every row underneath — the loudest mark in the
+                  panel was the filter, not the news. Grey still says which of
+                  the three is on (it is the only filled one, and it holds
+                  `shadow-card`), and leaves the colour to the rows.
+                */
+                activeClassName="bg-muted text-foreground"
+                /*
+                  No hover fill on the other two.
+
+                  A hover tint is how a control says "this is pressable", and it
+                  earns that where the segments are the screen's own switch. In
+                  here it was a third grey rectangle appearing under the pointer
+                  in a strip whose *selected* segment is now also grey — two marks
+                  in the same colour, one meaning "you are here" and one meaning
+                  "you are over this", a few pixels apart. The label coming up to
+                  full strength says the same thing without another block of
+                  colour. Focus is untouched: the ring is in the base classes.
+                */
+                inactiveClassName="text-muted-foreground hover:text-foreground"
+                /*
+                  And the strip takes the panel's whole width, three equal
+                  thirds. It used to hug its labels, which left a ragged gap at
+                  the inline-end of a 380px header — and, worse, moved the tabs
+                  sideways as the counts beside them changed. Filling the row
+                  pins each one where it was last seen.
+                */
+                className="w-full [&>button]:flex-1"
                 options={tabs.map((tab) => ({
                   value: tab.value,
                   label: <TabLabel label={tab.label} count={tab.count ?? 0} />,

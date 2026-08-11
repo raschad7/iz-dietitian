@@ -8,6 +8,12 @@ import { StatGrid, StatTile } from '@/components/ui/stat-tile';
 import { calculateAge } from '@/features/clients/age';
 import { IntakeFormTrigger } from '@/features/clients/components/intake-form-trigger';
 import { INTAKE_FIELD_COUNT, intakeGaps } from '@/features/clients/intake-gaps';
+import {
+  type IntakeSectionId,
+  isGroupedGapSection,
+  sectionForField,
+} from '@/features/clients/intake-sections';
+import { mergedNotes } from '@/features/clients/notes';
 import { ALLERGENS } from '@/features/clients/nutrition';
 import { CLIENT_ACTIVITY_LEVELS, CLIENT_GOALS } from '@/features/clients/schema';
 import { type ClientIntakeValues } from '@/features/clients/types';
@@ -93,6 +99,38 @@ export function ClientNutrition({
 
   const gaps = intakeGaps(intake);
   const filled = INTAKE_FIELD_COUNT - gaps.length;
+
+  /*
+   * The chips the gaps card offers, which are not one per missing field.
+   *
+   * A gap in a grouped section collapses into a single chip named after the
+   * section — `GROUPED_GAP_SECTIONS` says which, and why. Everything else still
+   * names the field it takes you to, and every chip opens the dialog on the
+   * panel that actually holds it.
+   *
+   * Built by walking `gaps`, so a group chip appears where its first missing
+   * field would have: the card keeps the order the intake itself is worked
+   * through rather than hoisting the groups to the front.
+   */
+  const gapChips: { key: string; label: string; section: IntakeSectionId }[] = [];
+  const grouped = new Set<IntakeSectionId>();
+
+  for (const field of gaps) {
+    const section = sectionForField(field);
+
+    if (!isGroupedGapSection(section)) {
+      gapChips.push({ key: field, label: t(`fields.${field}`), section });
+      continue;
+    }
+
+    if (grouped.has(section)) continue;
+    grouped.add(section);
+    gapChips.push({
+      key: section,
+      label: t(`intake.sections.${section}`),
+      section,
+    });
+  }
 
   /*
    * A manual target more than a fifth away from what the measurements imply.
@@ -446,13 +484,18 @@ export function ClientNutrition({
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
+                  {/*
+                    One entry, merged: a record saved before the two note
+                    fields became one can still hold text in both, and reading
+                    them out as two labelled notes would put the split back on
+                    screen after the dialog stopped drawing it.
+                  */}
                   <Notes
                     items={[
                       {
-                        label: t('fields.medicalNotes'),
-                        value: intake.medicalNotes,
+                        label: t('intake.notesDivider'),
+                        value: mergedNotes(intake.medicalNotes, intake.notes),
                       },
-                      { label: t('fields.notes'), value: intake.notes },
                     ]}
                   />
                 </CardContent>
@@ -478,16 +521,23 @@ export function ClientNutrition({
               counting the header's own control.
             */}
             <p className="text-body-md text-foreground">
-              {t('intake.gapsHeading', { count: gaps.length })}
+              {/*
+                The instruction leads and the count follows it, which is the
+                reverse of how this read before. The chips are sections now
+                rather than fields, so "# حقول بلا بيانات" no longer describes
+                what is under it — it is the size of the job, not the name of
+                it, and belongs in the muted half.
+              */}
+              {t('intake.gapsHeading')}
               {' — '}
               <span className="text-muted-foreground">
-                {t('intake.gapsPrompt')}
+                {t('intake.gapsPrompt', { count: gaps.length })}
               </span>
             </p>
 
             <ul className="flex flex-wrap gap-2">
-              {gaps.map((field) => (
-                <li key={field}>
+              {gapChips.map((chip) => (
+                <li key={chip.key}>
                   {/*
                     `h-10`, the design system's floor for a control. These were
                     26px tall — below the smallest size the button scale admits,
@@ -496,10 +546,11 @@ export function ClientNutrition({
                   <IntakeFormTrigger
                     locale={locale}
                     clientId={intake.clientId}
+                    section={chip.section}
                     className="inline-flex h-10 items-center gap-2 rounded-full border border-dashed border-input px-4 text-label text-muted-foreground transition-colors hover:border-solid hover:border-primary hover:bg-secondary hover:text-secondary-foreground"
                   >
                     <Icon name="edit" className="size-4" />
-                    {t(`fields.${field}`)}
+                    {chip.label}
                   </IntakeFormTrigger>
                 </li>
               ))}
