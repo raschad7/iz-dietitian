@@ -110,7 +110,23 @@ export default async function ClientBoardPage({ params, searchParams }: PageProp
   const history = <PlanHistory plans={plans} clientId={clientId} />;
 
   return (
-    <div className={`${PLANNER_THEME} flex h-full min-h-0 min-w-0 flex-col text-start`}>
+    /*
+      Full height from `md` up, a growing page below it.
+
+      The board claims the shell's height so the toolbar and the client summary
+      stay put while the week scrolls under them — which is right on a desktop
+      and wrong on a phone, where those two are 370px of a 812px screen and the
+      board is left a 219px porthole onto 688px of meals. Below `md` the page
+      grows and `main` scrolls it, the same trade the dashboard makes: one
+      screen is a desktop promise.
+
+      `md` and not some other stop because it is already the line this feature
+      turns on: below it the day strip appears and the board renders a single
+      day, above it the week becomes the tablet swipe surface.
+    */
+    <div
+      className={`${PLANNER_THEME} flex min-h-full min-w-0 flex-col text-start md:h-full md:min-h-0`}
+    >
       {/* No week pills beside the title: they were the history tab's list, in
           a second place, with room for fewer of them. */}
       <h1 className="sr-only">{t('title')}</h1>

@@ -67,6 +67,20 @@ export default async function AppLayout({ children, params }: AppLayoutProps) {
       page that manages its own scrolling — the calendar — can claim the full
       height with `h-full` and keep its toolbar fixed.
 
+      **`h-svh overflow-hidden` is what makes that true, and it was missing.**
+      The registry's shell is `min-h-svh`, so the box grew to whatever its
+      content came to and `main`'s `overflow-y-auto` had nothing to clip — the
+      *document* scrolled instead, and `main` sat there as a scroll container
+      that could never scroll. Every screen that hands its overflow to an inner
+      panel broke on that: a `1fr` row with no definite height to divide, an
+      `overscroll-contain` list that could not scroll and, because containment
+      also stops the wheel reaching anything behind it, would not let the page
+      scroll either. The board and the dashboard cards were dead to the wheel;
+      the rail, a scroller of its own, was the only place it worked.
+
+      `svh` rather than `dvh`: the shell never scrolls, so a phone's address bar
+      never retracts, and `dvh` would only add a resize the layout cannot use.
+
       The rail is a full-bleed column separated by a hairline, not an inset
       card — it is the wall the app hangs on, not a surface you act on.
 
@@ -81,6 +95,7 @@ export default async function AppLayout({ children, params }: AppLayoutProps) {
       title={t('shortName')}
       user={{ name: session.user.name, email: session.user.email, locale }}
       icons={NAV_ICONS}
+      className="h-svh overflow-hidden"
     >
       <main className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-3 md:p-5">
         {children}

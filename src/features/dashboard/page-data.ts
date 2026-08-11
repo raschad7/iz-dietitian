@@ -1,4 +1,4 @@
-import { toIsoDate } from '@/features/booking/date';
+import { addDays, addMonths, isoToLocalDate, startOfMonth, startOfWeek, toIsoDate } from '@/features/booking/date';
 import { getClinicHours, listAppointments } from '@/features/booking/queries';
 import { type CalendarAppointment } from '@/features/booking/types';
 import { DASHBOARD_ATTENTION_LIMIT, loadStaffAttention } from '@/features/notifications/page-data';
@@ -6,7 +6,15 @@ import { type StaffAttentionNotification } from '@/features/notifications/types'
 import { listPendingAppointmentRequests, listPendingClientRequests } from '@/features/requests/queries';
 import { type PendingRequests } from '@/features/requests/types';
 
-import { listRecentClients, type DashboardClient } from './queries';
+import {
+  countActiveClients,
+  countAppointmentsByDay,
+  countClientsByMonth,
+  countClientsWithoutNextVisit,
+  listRecentClients,
+  type DashboardClient,
+} from './queries';
+import { monthlySeries, weeklySeries, type MonthlyClients, type WeeklyAppointments } from './trends';
 
 /**
  * The server-side work behind `/app` — the dietitian's morning page.
@@ -19,14 +27,6 @@ import { listRecentClients, type DashboardClient } from './queries';
  * rather than a waterfall.
  */
 
-/**
- * How many clients the register card shows.
- *
- * Enough to fill the card's height on the dashboard's bottom row without the
- * list becoming a second, worse version of the clients page — that is one click
- * away, and the card's footer points at it.
- */
-const RECENT_CLIENTS = 8;
 
 /**
  * What the week strip falls back to when the clinic has no usable schedule.
@@ -37,6 +37,27 @@ const RECENT_CLIENTS = 8;
  * is shown whole and the calendar is left to say which days are really open.
  */
 const EVERY_WEEKDAY = [0, 1, 2, 3, 4, 5, 6] as const;
+
+/**
+ * How many clients the register card shows.
+ *
+ * Enough to fill the card's height on the dashboard's bottom row without the
+ * list becoming a second, worse version of the clients page — that is one click
+ * away, and the card's footer points at it.
+ */
+const RECENT_CLIENTS = 8;
+
+/**
+ * How far back the two stat cards look.
+ *
+ * Six months and eight weeks, because both windows have to fit legibly across
+ * half the working column on a laptop: six area points keep a readable month
+ * label under each, and eight bars stay wide enough to aim a pointer at. They
+ * are also honest windows for a dietetics practice — a season of intake, and a
+ * clear two months of diary.
+ */
+const TREND_MONTHS = 6;
+const TREND_WEEKS = 8;
 
 export type DashboardData = {
   /** Clinic-local `YYYY-MM-DD`, the day the agenda is anchored to. */
@@ -51,6 +72,25 @@ export type DashboardData = {
   workingDays: readonly number[];
   /** Newest first, active only, at most {@link RECENT_CLIENTS}. */
   recentClients: DashboardClient[];
+  /**
+   * What the two stat cards at the top of the working column draw.
+   *
+   * Both series are complete — every month and every week in the window has a
+   * point, including the empty ones, which is the whole reason the shaping in
+   * `./trends.ts` exists.
+   */
+  stats: {
+    /** Active clients on the register right now. */
+    activeClients: number;
+    /** New clients per month, oldest first, {@link TREND_MONTHS} long. */
+    clientsByMonth: MonthlyClients[];
+    /** Appointments in the current week — the last point of `appointmentsByWeek`. */
+    appointmentsThisWeek: number;
+    /** Appointments per week, oldest first, {@link TREND_WEEKS} long. */
+    appointmentsByWeek: WeeklyAppointments[];
+    /** Active clients with nothing booked from today on — the card's one call to action. */
+    clientsWithoutNextVisit: number;
+  };
   /**
    * What clients are waiting on an answer for. Both lists are usually empty,
    * and the panel that renders them draws nothing when they are — see
@@ -77,15 +117,46 @@ export async function loadDashboard(clinicId: string): Promise<DashboardData> {
   const today = toIsoDate(now);
   const nowMinute = now.getHours() * 60 + now.getMinutes();
 
-  const [agenda, recentClients, hours, pendingRequests, pendingClientRequests, attention] =
-    await Promise.all([
-      listAppointments(clinicId, today, today),
-      listRecentClients(clinicId, today, RECENT_CLIENTS),
-      getClinicHours(clinicId),
-      listPendingAppointmentRequests(clinicId),
-      listPendingClientRequests(clinicId),
-      loadStaffAttention(clinicId),
-    ]);
+  // The windows the two stat cards read over. Both are derived here so the
+  // query and the series that fills its gaps are cut from the same "today".
+  const firstMonth = addMonths(startOfMonth(today), -(TREND_MONTHS - 1));
+  const firstWeek = addDays(startOfWeek(today), -7 * (TREND_WEEKS - 1));
+  const lastWeekDay = addDays(startOfWeek(today), 6);
+  // `firstMonth` is derived from a valid date and so always parses; the
+  // fallback is there because the helper is honest about returning null and
+  // `now` is the one instant on this page that is certainly real.
+  const clientsSince = isoToLocalDate(firstMonth) ?? now;
+
+  const [
+    agenda,
+    recentClients,
+    hours,
+    pendingRequests,
+    pendingClientRequests,
+    attention,
+    activeClients,
+    clientMonths,
+    appointmentDays,
+    clientsWithoutNextVisit,
+  ] = await Promise.all([
+    listAppointments(clinicId, today, today),
+    listRecentClients(clinicId, today, RECENT_CLIENTS),
+    getClinicHours(clinicId),
+    listPendingAppointmentRequests(clinicId),
+    listPendingClientRequests(clinicId),
+    loadStaffAttention(clinicId),
+    countActiveClients(clinicId),
+    // `created_at` is a timestamp, so the window opens at local midnight on the
+    // first of the earliest month rather than at that date as a bare string.
+    countClientsByMonth(clinicId, clientsSince),
+    // Through the end of the current week, not through today: the current bar
+    // should count everything already booked into this week, including the
+    // appointments still ahead of it.
+    countAppointmentsByDay(clinicId, firstWeek, lastWeekDay),
+    countClientsWithoutNextVisit(clinicId, today),
+  ]);
+
+  const appointmentsByWeek = weeklySeries(today, TREND_WEEKS, appointmentDays);
 
   return {
     today,
@@ -93,6 +164,15 @@ export async function loadDashboard(clinicId: string): Promise<DashboardData> {
     agenda,
     workingDays: hours?.workingDays ?? EVERY_WEEKDAY,
     recentClients,
+    stats: {
+      activeClients,
+      clientsByMonth: monthlySeries(today, TREND_MONTHS, clientMonths),
+      // Read off the series rather than counted again, so the headline figure
+      // and the bar it sits above can never disagree.
+      appointmentsThisWeek: appointmentsByWeek[appointmentsByWeek.length - 1]?.appointments ?? 0,
+      appointmentsByWeek,
+      clientsWithoutNextVisit,
+    },
     /*
      * The card shows a handful and says how many there are; the whole list is
      * one link away on `/app/notifications`. Sliced here rather than by asking

@@ -252,6 +252,11 @@ export async function ClientVisitRecord({
             component as children — it decides how many of them to show, and
             nothing about a visit has to cross the boundary as data for it to do
             that.
+
+            This list used to scroll inside a `max-h`, which is what the branch
+            this merged from was fixing. Pagination removes the question: five
+            rows at a time never overflow, so there is no inner scroll port to
+            get stuck against the page's own.
           */
           <PaginatedVisits heading={t('past')} perPage={PAST_VISITS_PER_PAGE}>
             {past.map((visit) => (

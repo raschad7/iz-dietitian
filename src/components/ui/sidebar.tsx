@@ -307,9 +307,23 @@ function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
   )
 }
 
-function SidebarInset({ className, ...props }: React.ComponentProps<"main">) {
+/**
+ * The column beside the rail.
+ *
+ * **A `<div>`, where the registry ships a `<main>`.** Every layout that mounts
+ * this already renders its own `<main>` inside it — the staff shell's scroller,
+ * the portal's tab column, each account screen — so the registry's tag put a
+ * `main` landmark inside a `main` landmark on every page in the app. A document
+ * gets one, and a screen reader offered two has no way to tell which is the
+ * page.
+ *
+ * The inner element is the one that should keep it, not this one: this box also
+ * holds the phone app bar, and a landmark that says "the main content" while
+ * containing the site navigation is worse than the nesting it would fix.
+ */
+function SidebarInset({ className, ...props }: React.ComponentProps<"div">) {
   return (
-    <main
+    <div
       data-slot="sidebar-inset"
       className={cn(
         "relative flex w-full flex-1 flex-col bg-background md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ms-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ms-2",

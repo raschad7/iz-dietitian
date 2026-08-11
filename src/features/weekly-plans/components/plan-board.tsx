@@ -336,16 +336,23 @@ function BoardBody({
         {/* Phones render one selected day. Tablets make the week itself a
             three-column-wide swipe surface, so the day picker no longer spends
             two rows above the work. The seven-column desktop keeps a 64rem
-            readable floor and lets this wrapper own exceptional overflow.
-            `h-full` keeps the row template's `1fr` working: the fr unit needs a
-            definite height to share out. */}
+            readable floor and lets this wrapper own exceptional overflow. */}
         {/* The canvas under the cards is `canvas` — n-25, one stop off white —
             so a white card reads as a surface sitting on the board rather than
             as a bordered box on the page. Not `muted` (n-50): that is the
             *sunken* fill, and a board-sized expanse of it reads as beige rather
             than as white with the cards lifted off it. */}
+        {/* `overscroll-x-contain`, not `overscroll-contain`. The board is the
+            one two-axis scroller in the app: sideways it holds the week, and
+            containment there is what stops a swipe past Saturday from being
+            read as a browser back-gesture. On the block axis it had nothing to
+            contain — the grid usually fits — and containment applies to the box
+            whether or not it can scroll, so the wheel died on the largest
+            surface of the screen and the rail was the only place the page would
+            move from. Naming the axis keeps the gesture guard and gives the
+            wheel back. */}
         <div
-          className="planner-week-scroll no-scrollbar min-w-0 flex-1 overflow-auto rounded-lg bg-background overscroll-contain"
+          className="planner-week-scroll no-scrollbar min-w-0 flex-1 overflow-auto rounded-lg bg-background overscroll-x-contain"
           tabIndex={0}
           aria-label={t('title')}
         >
@@ -361,9 +368,28 @@ function BoardBody({
 
               The row gap is declared here and only here: a subgrid inherits its
               parent's gutters, and repeating them on the day column would let the
-              two drift out of step. */}
+              two drift out of step.
+
+              **`min-h-full`, not `h-full`, and the clip is on one axis.** The
+              `1fr` rows do need a definite height to share out, which is what
+              `h-full` was for — but it also pinned the grid to the frame, and
+              `overflow-clip` then cut off whatever would not fit. On a 720px
+              window that was a whole row of seven meals: drawn nowhere,
+              reachable by nothing, with no scrollbar to suggest they existed.
+              `min-h-full` keeps the fr distribution when the week fits and lets
+              the grid grow past the frame when the `minmax(6rem, …)`
+              readability floor says it must — which is the case the frame's own
+              `overflow-auto` was always there to handle.
+
+              The clip stays on the inline axis, because that is the one it was
+              for: `.planner-row-cell::before` reaches half into the column
+              gutter to draw a continuous rule, and the outermost two reaches
+              have to be cut off the board's edge. `overflow-x: clip` beside
+              `overflow-y: visible` is a legal pair — unlike `hidden`, `clip`
+              does not force the other axis to become a scroll container — so
+              the block overflow travels up to the frame the way it should. */}
           <div
-            className="planner-week-grid grid h-full grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-3 overflow-clip p-2 xl:min-w-[64rem] xl:grid-cols-[auto_repeat(7,minmax(0,1fr))]"
+            className="planner-week-grid grid min-h-full grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-3 overflow-x-clip p-2 xl:min-w-[64rem] xl:grid-cols-[auto_repeat(7,minmax(0,1fr))]"
             style={{ gridTemplateRows: rowTemplate }}
           >
             <SlotRail rows={rows} editable={editable} />
