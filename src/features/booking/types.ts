@@ -28,14 +28,14 @@ export type CalendarAppointment = {
   reason: string | null;
   clientName: string;
   /**
-   * Colour-codes the block. The client's own colour, so a block and that
-   * person's avatar in the picker are recognisably the same person.
-   */
-  clientColor: string;
-  /**
-   * The client's position in their clinic, counted from 0 — what their calendar
-   * colour is derived from. See `clientSeq` in `./queries.ts` for why it is a
-   * position and not a hash of the id.
+   * The client's position in their clinic, counted from 0 — what their colour
+   * is derived from, here and on every other surface that draws them. See
+   * `clientSeq` in `@/features/clients/seq` for why it is a position and not a
+   * hash of the id, and `../patient-color` for what is built from it.
+   *
+   * It is the *only* colour input a client carries. `clients.color`, the stored
+   * hex, was selected alongside it for a while and rendered nowhere — a second
+   * answer to "what colour is this patient?" riding along in the payload.
    */
   clientSeq: number;
 };
@@ -43,7 +43,6 @@ export type CalendarAppointment = {
 export type CalendarClient = {
   id: string;
   name: string;
-  color: string;
   /** See `CalendarAppointment.clientSeq`. */
   seq: number;
 };

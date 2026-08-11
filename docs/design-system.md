@@ -1312,11 +1312,21 @@ mirrored — that is a bug in the layout.
 
 ## Arbitrary colour, not a token
 
-A client's calendar colour (`clients.color`), a practitioner's colour, and
-`src/lib/avatar-color.ts` store a genuinely arbitrary hex per record. These
+A practitioner's colour and the palette it comes from
+(`src/lib/avatar-color.ts`) store a genuinely arbitrary hex per record. These
 were never meant to come from the brand palette — they exist so people are
 distinguishable from one another. That's why the no-raw-hex rule is scoped to
 `.tsx`/`.jsx`: those values live in `.ts` data files.
+
+**A patient is not one of them.** Their colour is a hue derived from their
+position in the clinic — `patientToneStyle` in
+`src/features/booking/patient-color.ts`, drawn through the `.patient-tone` ramp
+— so it is unique per client, defined in both themes, and the same on every
+surface that shows them: the register, the record header, both client pickers,
+the planner rail, and every appointment block. Wrap the element in
+`.patient-tone` with that style and read `--tone-fill` / `--tone-edge` /
+`--tone-mark`; never colour a patient from a stored hex. `clients.color` is the
+old stored hex and is legacy — see the note on the column.
 
 A **brand** colour hardcoded in a component is a bug. Replace it with the
 token; don't add it to this exemption.

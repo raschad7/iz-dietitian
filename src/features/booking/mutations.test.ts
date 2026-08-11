@@ -3,6 +3,7 @@ import { and, eq } from 'drizzle-orm';
 
 import { db } from '@/db';
 import { appointments, clients, clinicWorkingHours, practitioners } from '@/db/schema';
+import { getClient } from '@/features/clients/queries';
 import { DISPLAY_TIME_ZONE } from '@/lib/format';
 
 import { createTestClient, createTestClinic, createTestPractitioner, resetDatabase } from '../../../tests/helpers';
@@ -17,6 +18,8 @@ import {
   updateAppointment,
   type BookingContext,
 } from './mutations';
+import { patientHue } from './patient-color';
+import { listAppointments } from './queries';
 import { weeklyRepeatDates } from './repeat';
 
 /**
@@ -538,11 +541,29 @@ describe('createClientAndBook', () => {
     expect(await countAppointments()).toBe(1);
   });
 
-  test('assigns the new client an avatar colour', async () => {
-    await createClientAndBook(context, pending());
+  /*
+    The colour is not written anywhere — it is the client's position in the
+    clinic, so it exists the moment the row does. What this proves is that the
+    two surfaces read the same one: the register colours the new client from the
+    `seq` on their record, the calendar colours the block from the `clientSeq`
+    that travels with the appointment, and a patient whose card did not match
+    their register disc is exactly the bug this shape removes.
 
-    const [created] = await db.select().from(clients).where(eq(clients.fullName, newClient.fullName));
-    expect(created?.color).toMatch(/^#[0-9a-f]{6}$/i);
+    Position 1, not 0: `beforeEach` registers أحمد خليل first, so a new client
+    landing on 0 would mean the numbering collided rather than appended — and
+    two patients on one hue is the other half of the same bug.
+  */
+  test('gives the new client the colour their appointment card is drawn in', async () => {
+    const result = await createClientAndBook(context, pending());
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    const record = await getClient(context.clinicId, result.data.clientId);
+    const [block] = await listAppointments(context.clinicId, WEDNESDAY, WEDNESDAY);
+
+    expect(record?.seq).toBe(1);
+    expect(block?.clientSeq).toBe(record?.seq);
+    expect(patientHue(block!.clientSeq)).toBe(patientHue(record!.seq));
   });
 
   test('writes the normalised search name so the client is findable', async () => {

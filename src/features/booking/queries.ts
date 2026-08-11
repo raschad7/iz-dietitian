@@ -66,7 +66,6 @@ export async function listAppointments(
       durationMinutes: appointments.durationMinutes,
       reason: appointments.reason,
       clientName: clients.fullName,
-      clientColor: clients.color,
       clientSeq,
     })
     .from(appointments)
@@ -189,7 +188,7 @@ export async function listBookableClients(clinicId: string): Promise<CalendarCli
     // `seq` travels with the client so a just-booked appointment can be drawn
     // optimistically in that person's own colour, before the row exists to be
     // read back.
-    .select({ id: clients.id, name: clients.fullName, color: clients.color, seq: clientSeq })
+    .select({ id: clients.id, name: clients.fullName, seq: clientSeq })
     .from(clients)
     .where(and(eq(clients.clinicId, clinicId), eq(clients.status, 'active')))
     .orderBy(asc(clients.fullName));
@@ -244,7 +243,7 @@ export async function getClientCalendarData(
   const [appointmentRows, clientRows, hours] = await Promise.all([
     listAppointments(clinicId, fromDate, toDate, clientId),
     db
-      .select({ id: clients.id, name: clients.fullName, color: clients.color, seq: clientSeq })
+      .select({ id: clients.id, name: clients.fullName, seq: clientSeq })
       .from(clients)
       .where(and(eq(clients.clinicId, clinicId), eq(clients.id, clientId), eq(clients.status, 'active'))),
     getClinicHours(clinicId),

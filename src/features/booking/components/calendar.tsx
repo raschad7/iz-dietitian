@@ -688,7 +688,6 @@ export function Calendar({
             durationMinutes: pending.durationMinutes,
             reason: null,
             clientName: client.name,
-            clientColor: client.color,
             // Carried on `CalendarClient` for exactly this: the optimistic
             // block is drawn in the client's own colour, so it does not change
             // colour a moment later when the real row arrives.

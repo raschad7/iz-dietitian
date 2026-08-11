@@ -5,6 +5,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { Icon } from '@/components/ui/icon';
 import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from '@/components/ui/popover';
 import { TooltipHint } from '@/components/ui/tooltip-hint';
+import { patientToneStyle } from '@/features/booking/patient-color';
 import { IntakeFormTrigger } from '@/features/clients/components/intake-form-trigger';
 import { CLIENT_ACTIVITY_LEVELS, CLIENT_GOALS } from '@/features/clients/schema';
 import { type Locale } from '@/i18n/routing';
@@ -72,8 +73,16 @@ export function ContextPanel({
     >
       <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center xl:grid-cols-[minmax(17rem,1.05fr)_minmax(34rem,2fr)_auto]">
         <div className="flex min-w-0 flex-wrap items-center gap-3 xl:flex-nowrap">
+          {/*
+            The client's calendar colour — the disc heading the week being
+            planned is the one their appointments are drawn in. See
+            `patient-color.ts`; `contents` keeps this scope out of the row's
+            own layout.
+          */}
           {selectedClient ? (
-            <Avatar name={selectedClient.fullName} color={selectedClient.color} size="lg" />
+            <span className="patient-tone contents" style={patientToneStyle(selectedClient.seq)}>
+              <Avatar name={selectedClient.fullName} color="var(--tone-mark)" size="lg" />
+            </span>
           ) : null}
 
           <div className="min-w-44 flex-1">

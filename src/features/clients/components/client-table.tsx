@@ -16,6 +16,7 @@ import {
   TableSortLabel,
 } from '@/components/ui/table';
 import { TooltipHint } from '@/components/ui/tooltip-hint';
+import { patientToneStyle } from '@/features/booking/patient-color';
 import { calculateAge } from '@/features/clients/age';
 import { ArchiveButton } from '@/features/clients/components/archive-button';
 import { ClientFormTrigger } from '@/features/clients/components/client-form-trigger';
@@ -222,13 +223,22 @@ export function ClientTable({
               <TableCell>
                 <div className="flex items-center gap-3">
                   {/*
-                    The client's own stored colour, the same one the calendar
-                    and the planner rail show them in — a disc whose hue changed
-                    between screens would be worse than no disc at all. The
-                    component is `aria-hidden`: the name it stands for is right
-                    beside it, and announcing both says the person twice.
+                    The client's calendar colour — the same disc their record
+                    header, the booking picker and every appointment block draw
+                    them in. A hue that changed between screens would be worse
+                    than no disc at all, and this is the screen you *find* a
+                    person on before going anywhere else.
+
+                    `.patient-tone` builds the ramp from the one hue
+                    `patientToneStyle` sets; `contents` keeps the wrapper out of
+                    the flex row's own layout, so the span is a scope for the
+                    variables and nothing else. The component is `aria-hidden`:
+                    the name it stands for is right beside it, and announcing
+                    both says the person twice.
                   */}
-                  <Avatar name={client.fullName} color={client.color} />
+                  <span className="patient-tone contents" style={patientToneStyle(client.seq)}>
+                    <Avatar name={client.fullName} color="var(--tone-mark)" />
+                  </span>
 
                   {/* `min-w-0` so a long name wraps inside the cell instead of
                       pushing the table wider than the page. */}

@@ -58,13 +58,24 @@ export const clients = pgTable(
     status: text('status').notNull().default('active'),
 
     /**
-     * Backs the generated initials avatar in the calendar's client picker.
+     * **Legacy. Nothing reads this, and nothing writes it any more.**
      *
-     * Stored rather than hashed from the name at render time: renaming a client
-     * would otherwise change their colour, and the whole point of the colour is
-     * that staff learn to recognise it. Assigned on create from the palette in
-     * `src/lib/avatar-color.ts`; the default here only covers rows that predate
-     * this column.
+     * A client's colour is now their position in the clinic — `clientSeq` in
+     * `src/features/clients/seq.ts` — turned into a hue by
+     * `src/features/booking/patient-color.ts` and drawn through the
+     * `.patient-tone` ramp. That is what the register, the record header, both
+     * client pickers, the planner rail and every appointment block use, so a
+     * patient is one colour everywhere.
+     *
+     * This column was the other answer: a hash of the name into a fixed
+     * ten-colour palette, which wrapped on the eleventh client, and a grey
+     * default behind it for every row nobody assigned one to — including every
+     * client added from the register, which never wrote it at all. Two colours
+     * for one patient is the bug; this is the half that lost.
+     *
+     * Kept rather than dropped so no data goes with the change. Dropping it is
+     * a `db:generate` away once that is wanted, along with `clients_color_hex`
+     * below and the `.color` writes in `scripts/seed.ts`.
      */
     color: text('color').notNull().default('#64748b'),
 

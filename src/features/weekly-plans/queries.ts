@@ -14,6 +14,7 @@ import {
   type MealSlot,
 } from '@/db/schema';
 import { calculateAge } from '@/features/clients/age';
+import { clientSeq } from '@/features/clients/seq';
 import { toIsoDate } from '@/lib/iso-date';
 
 import type { CatalogDish } from './generate';
@@ -338,7 +339,13 @@ export async function listMealTypes(): Promise<string[]> {
 export type PlannableClient = {
   id: string;
   fullName: string;
-  color: string;
+  /**
+   * The client's position in their clinic — what the rail's disc and the
+   * picker's dot are coloured from, through `patientHue`. The same number the
+   * calendar draws their appointments from, so the person you pick here is the
+   * colour you will see them in on the grid. See `@/features/clients/seq`.
+   */
+  seq: number;
   /** Whether a plan can be generated at all, so the rail can say so. */
   hasProfile: boolean;
   latestPlanStatus: string | null;
@@ -381,7 +388,7 @@ export async function listPlannableClients(
       .select({
         id: clients.id,
         fullName: clients.fullName,
-        color: clients.color,
+        seq: clientSeq,
         profileId: clientNutritionProfiles.id,
       })
       .from(clients)
@@ -427,7 +434,7 @@ export async function listPlannableClients(
     return {
       id: row.id,
       fullName: row.fullName,
-      color: row.color,
+      seq: row.seq,
       hasProfile: row.profileId !== null,
       latestPlanStatus: latest?.status ?? null,
       latestWeekStartDate: latest?.weekStartDate ?? null,

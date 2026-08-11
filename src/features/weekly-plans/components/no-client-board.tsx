@@ -8,6 +8,7 @@ import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
 import { formatMediumDate, formatMinute } from '@/features/booking/format';
+import { patientToneStyle } from '@/features/booking/patient-color';
 import { Link } from '@/i18n/navigation';
 import type { Locale } from '@/i18n/routing';
 
@@ -106,7 +107,12 @@ function SuggestedClientCard({
     >
       <Card interactive size="sm" className="h-full min-h-40 justify-center shadow-none">
         <CardHeader className="grid-cols-1 justify-items-center gap-y-2 text-center">
-          <Avatar name={client.fullName} color={client.color} size="lg" />
+          {/* The client's calendar colour, so a suggestion card and the block
+              their next appointment sits in are the same person in the same
+              hue. `contents` keeps this scope out of the header's grid. */}
+          <span className="patient-tone contents" style={patientToneStyle(client.seq)}>
+            <Avatar name={client.fullName} color="var(--tone-mark)" size="lg" />
+          </span>
           <CardTitle size="sm" className="w-full truncate text-center" dir="auto">
             {client.fullName}
           </CardTitle>

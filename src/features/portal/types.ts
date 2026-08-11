@@ -103,10 +103,14 @@ export type PortalPractitioner = {
   name: string;
   specialty: string | null;
   /**
-   * Their stored hex, for the initials `Avatar` on the profile screen — genuinely
-   * per-record data rather than a token, the same exemption `clients.color` has
-   * (§Arbitrary colour). It is the one colour on this screen that is about a
-   * person rather than about the brand.
+   * Their stored hex, for the initials `Avatar` on the profile screen —
+   * genuinely per-record data rather than a token, which is the exemption
+   * §Arbitrary colour grants a practitioner's colour. It is the one colour on
+   * this screen that is about a person rather than about the brand.
+   *
+   * A hex and not a `.patient-tone` hue, because this is staff rather than a
+   * patient — and because the ramp is defined for `.dark` only, which the
+   * portal's two `[data-theme]` blocks never reach.
    */
   color: string;
 };
