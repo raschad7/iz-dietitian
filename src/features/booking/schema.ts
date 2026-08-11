@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { MINUTES_PER_DAY, SLOT_MINUTES } from '@/lib/time-constants';
 import { defaultLocale, locales } from '@/i18n/routing';
 
+import { clientFormSchema } from '@/features/clients/schema';
+
 import { isIsoDate } from './date';
 import { MAX_REPEAT_WEEKS } from './repeat';
 
@@ -105,14 +107,27 @@ export const repeatWeeklySchema = bookingInputSchema.extend({
 export type RepeatWeeklyInput = z.infer<typeof repeatWeeklySchema>;
 
 /**
- * The picker's "New client" path: the minimum needed to book someone, not the
- * full intake form. The rest of the record is filled in later from the clients
- * area — the point of this dialog is that staff are mid-booking and have a
- * person in front of them.
+ * The picker's "New client" path — **the same fields the clients page asks
+ * for**, picked off its own schema rather than restated here.
+ *
+ * It used to be a name and a phone number, on the reasoning that staff are
+ * mid-booking with someone in front of them and the rest could be filled in
+ * later from the clients area. What that produced was two kinds of client
+ * record from one act: a person added at the counter had no date of birth or
+ * sex, so the calorie formula could not run for them until somebody noticed and
+ * opened their card. "Later" is doing a lot of work in that sentence.
+ *
+ * Picking from `clientFormSchema` rather than redeclaring the fields is what
+ * keeps the two paths honestly identical — including the parts that are easy to
+ * get subtly wrong, like the date's `YYYY-MM-DD` shape and the blank-to-
+ * undefined preprocessing. `email` and `preferredLocale` are left out because
+ * the create form does not show them either.
  */
-export const newClientSchema = z.object({
-  fullName: z.string().trim().min(2).max(120),
-  phone: z.preprocess(blankToUndefined, z.string().trim().max(40).optional()),
+export const newClientSchema = clientFormSchema.pick({
+  fullName: true,
+  phone: true,
+  dateOfBirth: true,
+  sex: true,
 });
 
 export type NewClientInput = z.infer<typeof newClientSchema>;

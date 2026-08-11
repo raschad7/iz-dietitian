@@ -43,11 +43,12 @@ export type ClientPickerProps = {
   /** Everything on the pending date, for the already-booked warnings. */
   existing: readonly ExistingAppointment[];
   /**
-   * Whether this view may create a client as well as book one.
+   * Whether this surface may create a client as well as book one.
    *
-   * False in the week view: booking there picks from people already on the
-   * register, and taking someone's details is a day-view job where there is room
-   * to do it properly. With no button there is nothing to press by mistake —
+   * True in the day and week views alike — see the note at the call site for
+   * why the week stopped being an exception. It is false only for a calendar
+   * scoped to one client, where every booking is already for the person whose
+   * page it is; there the button would be an offer the screen cannot honour, so
    * the capability is absent rather than merely discouraged.
    */
   allowNewClient: boolean;
@@ -367,16 +368,20 @@ export function ClientPicker({
         })}
       </ul>
 
+      {/*
+        Nothing in the other branch, where there used to be "to add someone new,
+        open the day view". That line was directions out of the week view, and
+        the week no longer needs directing anywhere. The only surface left
+        without the button is a calendar scoped to a single client, where the
+        sentence would be actively wrong — the day view of that page cannot add
+        anyone either, because the page is about one person by construction.
+      */}
       {allowNewClient ? (
         <Button type="button" variant="outline" size="sm" onClick={() => onNewClient(weeks)} className="justify-start">
           <Icon name="add" data-icon="inline-start" />
           {t('picker.newClient')}
         </Button>
-      ) : (
-        // Says where to go rather than leaving a dead end, for the case that
-        // matters: the person in front of you is not on the register yet.
-        <p className="text-label text-muted-foreground">{t('picker.newClientInDayView')}</p>
-      )}
+      ) : null}
     </div>
   );
 }

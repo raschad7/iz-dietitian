@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useOptimistic, useRef, useState, useTransition } from 'react';
 
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { Icon } from '@/components/ui/icon';
 import { useRouter } from '@/i18n/navigation';
 import { type Locale } from '@/i18n/routing';
 import { normalizeForSearch } from '@/features/clients/search';
@@ -27,7 +28,7 @@ import {
 } from '../format';
 import { hasEnded, isCompleted, localWallClock } from '../completed';
 import { PX_PER_SLOT, minuteToY } from '../geometry';
-import { type CalendarView } from '../schema';
+import { type CalendarView, type NewClientInput } from '../schema';
 import { type ActionErrorKey, type CalendarAppointment, type CalendarClient } from '../types';
 import { useCalendarClock } from '../use-calendar-clock';
 import { useCalendarGestures, type BookingRequest } from '../use-calendar-gestures';
@@ -130,7 +131,9 @@ function verticalScrollbarWidth(): number {
  * own border as the last thing on screen. No amount of padding *inside* the
  * scroller fixes that: it adds room under the last hour and the panel still
  * ends at the floor. Leaving the shell's block-end padding alone is what puts
- * the calendar on the page rather than against its edge.
+ * the calendar on the page rather than against its edge — and it is also the
+ * clearance the below-fold marker sits above, which is the other reason it is
+ * back: a control glued into the corner of the window has nothing around it.
  *
  * Keep the inline halves in step with the layout's padding.
  */
@@ -161,9 +164,9 @@ export type CalendarProps = {
    */
   basePath?: string;
   /**
-   * Whether the day view's booking picker offers "add a new client". Defaults
-   * to the ordinary day-view rule. A client-scoped calendar passes `false`:
-   * every booking made there is already for the one person the page is
+   * Whether the booking picker offers "add a new client". Defaults to true on
+   * any view that opens a picker at all. A client-scoped calendar passes
+   * `false`: every booking made there is already for the one person the page is
    * about, so an "add someone else" button would be a false offer.
    */
   allowNewClient?: boolean;
@@ -440,17 +443,19 @@ export function Calendar({
   }, [gestures.dragPreview, optimisticAppointments]);
 
   /**
-   * The dates whose next appointment starts below the fold — the ones a doctor
-   * would have to scroll to find.
+   * The dates whose next appointment starts below the fold, and how many each is
+   * hiding — the bookings a doctor would have to scroll to find.
    *
-   * A *set of dates* rather than the raw scroll offset, deliberately: storing
-   * the offset would re-render seven columns and every block on them on each
-   * scroll frame, whereas this only changes when a column actually crosses the
-   * threshold. `datesBelowFold` is compared before it is stored, so a scroll
-   * that changes nothing renders nothing.
+   * A *summary per date* rather than the raw scroll offset, deliberately:
+   * storing the offset would re-render seven columns and every block on them on
+   * each scroll frame, whereas this only changes when a column actually crosses
+   * the threshold or the number under it changes. It is compared before it is
+   * stored, so a scroll that changes nothing renders nothing.
    */
   const timelineRef = useRef<HTMLDivElement>(null);
-  const [datesBelowFold, setDatesBelowFold] = useState<readonly string[]>([]);
+  const [datesBelowFold, setDatesBelowFold] = useState<readonly { date: string; count: number }[]>(
+    [],
+  );
 
   /**
    * How wide the timeline's own vertical scrollbar is, in pixels.
@@ -524,14 +529,22 @@ export function Calendar({
       // Measured against each block's *top*, not its bottom. A booking whose
       // header row is on screen has already been seen; one that starts below
       // the fold is the one there is no way to know about.
-      const next = days.filter((date) =>
-        previewedAppointments.some(
-          (row) => row.date === date && minuteToY(row.startMinute, openMinute, pxPerSlot) >= fold,
-        ),
-      );
+      const next = days
+        .map((date) => ({
+          date,
+          count: previewedAppointments.filter(
+            (row) => row.date === date && minuteToY(row.startMinute, openMinute, pxPerSlot) >= fold,
+          ).length,
+        }))
+        .filter((entry) => entry.count > 0);
 
       setDatesBelowFold((previous) =>
-        previous.length === next.length && previous.every((date, index) => date === next[index]) ? previous : next,
+        previous.length === next.length &&
+        previous.every(
+          (entry, index) => entry.date === next[index]?.date && entry.count === next[index]?.count,
+        )
+          ? previous
+          : next,
       );
     }
 
@@ -619,7 +632,35 @@ export function Calendar({
     scheduleRead.current();
   });
 
-  const belowFold = useMemo(() => new Set(datesBelowFold), [datesBelowFold]);
+  const belowFold = useMemo(
+    () => new Map(datesBelowFold.map((entry) => [entry.date, entry.count])),
+    [datesBelowFold],
+  );
+
+  /**
+   * Takes the timeline to its last appointment, which is what the marker at the
+   * foot of a column promises when it is pressed.
+   *
+   * To the end of the scroller rather than to the first hidden block: the marker
+   * says how many are down there, and stopping at the first of them would leave
+   * the rest still hidden and the marker still showing — a control that does
+   * *some* of what it just offered. The scroller's own bottom padding keeps the
+   * last block clear of the edge once it arrives.
+   *
+   * `smooth`, and deliberately: the point of the animation is that the reader
+   * keeps their bearings — a grid that jumps to a different set of hours has to
+   * be re-read from scratch to work out where it landed. `matchMedia` is checked
+   * rather than left to CSS, because `scroll-behavior` in a stylesheet does not
+   * reach a programmatic `scrollTo` with an explicit `behavior`.
+   */
+  const revealBelowFold = useCallback(() => {
+    const element = timelineRef.current;
+    if (!element) return;
+
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    element.scrollTo({ top: element.scrollHeight, behavior: reduced ? 'auto' : 'smooth' });
+  }, []);
 
   function book(clientId: string, weeks: number): void {
     const pending = pendingBooking;
@@ -731,7 +772,17 @@ export function Calendar({
     else setNotice(t('repeatBooking.created', { count: created }));
   }
 
-  function createClientAndBook(client: { fullName: string; phone?: string }, weeks: number): void {
+  /**
+   * `NewClientInput`, not a hand-written shape.
+   *
+   * This was `{ fullName, phone? }` while the dialog asked for those two. It
+   * still compiled when the dialog grew — parameter bivariance lets a narrower
+   * handler satisfy a wider callback — so the date of birth and sex travelled
+   * through at runtime while the types said they did not exist. Naming the
+   * schema's own type is what makes the next field either arrive here or fail
+   * the build, rather than arriving silently.
+   */
+  function createClientAndBook(client: NewClientInput, weeks: number): void {
     const pending = newClientFor?.pending;
     if (!pending) return;
 
@@ -989,7 +1040,14 @@ export function Calendar({
             scrollbar instead of two.
           */}
           <div className="no-scrollbar flex min-h-0 flex-1 flex-col overflow-x-auto">
-            <div className="flex min-h-0 min-w-max flex-1 flex-col">
+            {/*
+              `relative` for the below-fold markers at the end of this block.
+              They belong to this box rather than to the timeline inside it —
+              this one does not scroll vertically, which is the whole point, and
+              it *does* scroll horizontally, which keeps each marker under its
+              own day.
+            */}
+            <div className="relative flex min-h-0 min-w-max flex-1 flex-col">
               {/*
                 `paddingInlineEnd` reserves exactly the width the timeline's
                 scrollbar takes out of the row below — see `scrollbarWidth`.
@@ -1190,7 +1248,6 @@ export function Calendar({
                         pending={gestures.pending}
                         isClosed={closed}
                         isPast={today !== null && date < today}
-                        hasHiddenBelow={belowFold.has(date)}
                         onCreateGesture={gestures.beginCreate}
                         onSelect={setSelectedId}
                         onOpen={openAppointment}
@@ -1207,18 +1264,58 @@ export function Calendar({
                 })}
                 </div>
               </div>
+
+              {/*
+                The below-fold markers: one per day that is hiding bookings,
+                each under its own column, all on one line at the foot of the
+                panel.
+
+                **They sit outside the timeline, not inside it.** They were
+                `sticky` chips inside each `DayColumn`, which put them at the
+                mercy of the scroller they were marking: a sticky element can
+                only travel inside its own containing block, so a column whose
+                grid ran out early released its chip and let it ride up with the
+                content while its neighbours stayed pinned — a row of markers at
+                three different heights, none of them reliably the bottom of the
+                screen. Out here there is no vertical scrolling to be at the
+                mercy of. The row is positioned against the box that holds the
+                header and the timeline, so it is on the last line of the panel
+                from the first paint, before anything has been scrolled, and it
+                does not move afterwards.
+
+                It stays *inside* the horizontal scroller, though, which is what
+                keeps each marker over the day it counts as the week is scrolled
+                sideways. The leading spacer matches the hour gutter, and the
+                `paddingInlineEnd` the timeline's scrollbar, for the same reason
+                the header row carries both: three rows dividing identical space
+                is what lines their columns up.
+
+                `bottom-3` is the shell's own gutter — the marker keeps the same
+                clearance from the floor of the window that the rest of the page
+                does, rather than being glued into the corner.
+
+                `pointer-events-none` on the row, restored per chip: it spans the
+                full width of the grid, and a transparent strip across the bottom
+                of the calendar would otherwise swallow every drag-to-book
+                gesture that reached the last hour on screen.
+              */}
+              <div
+                className="pointer-events-none absolute inset-x-0 bottom-3 z-30 flex"
+                style={{ paddingInlineEnd: scrollbarWidth }}
+              >
+                <div className="w-20 shrink-0" />
+
+                {days.map((date) => (
+                  <div key={date} className={cn('flex flex-1 justify-center', DAY_MIN_WIDTH)}>
+                    <BelowFoldMarker
+                      count={belowFold.get(date) ?? 0}
+                      onClick={revealBelowFold}
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-
-          {/*
-            `GridOverflowCue` used to sit here — a fade across the panel's
-            bottom edge with a round chevron button in the middle of it. It is
-            gone, and the per-column count chip in `DayColumn` is the whole
-            answer now. Two cues for one fact meant the reader had to work out
-            whether they were being told the same thing twice, and neither of
-            them could say the thing worth knowing: how much is down there, and
-            on which day.
-          */}
         </div>
       )}
 
@@ -1228,10 +1325,23 @@ export function Calendar({
           locale={locale}
           clients={clients}
           existing={existingByDate(pendingBooking.date)}
-          // Only the day view takes someone's details; the week books people
-          // already on the register. A client-scoped calendar overrides this
-          // to false outright — see `allowNewClient` on `CalendarProps`.
-          allowNewClient={allowNewClientProp ?? view === 'day'}
+          /*
+            Wherever a slot can be dragged out, the person in it can be new.
+
+            The week used to book only from the register, on the reasoning that
+            taking someone's details belonged in the day view where there was
+            room to do it properly. The room turned out not to be the issue —
+            the dialog is the same size either way — and the restriction landed
+            on the view staff actually plan in, so the common case was: drag the
+            slot, find they are not listed, throw the slot away, change view,
+            drag it again.
+
+            `month` is excluded because it opens no picker at all; naming it
+            keeps that true if the month view ever gains one. A client-scoped
+            calendar still overrides this outright — see `allowNewClient` on
+            `CalendarProps`.
+          */
+          allowNewClient={allowNewClientProp ?? view !== 'month'}
           onPick={book}
           // The repeat chosen in the picker travels with the slot, so stepping
           // aside to add the person does not quietly reset it.
@@ -1343,5 +1453,63 @@ export function Calendar({
         />
       )}
     </div>
+  );
+}
+
+/**
+ * "There are 3 more of this day below" — and the way down to them.
+ *
+ * ⚠ **This is the only cue for that fact.** There were two: a short accent rule
+ * at the foot of each column, and a fade with a round chevron button across the
+ * panel's bottom edge (`GridOverflowCue`, now deleted). Two marks for one fact
+ * left the reader working out whether they were being told the same thing twice,
+ * and the panel-wide one could not say the part worth knowing — *which* of seven
+ * days was hiding something, and how much, which is the only version of the
+ * question a week view raises.
+ *
+ * **It says how many, and it is pressable.** The rule said neither. That held
+ * while it was only a cue; it does not hold for a control, which has to name
+ * what it does before it is pressed — and "something is below" leaves the reader
+ * to decide whether it is worth the scroll when the answer is entirely in the
+ * number. One straggler at six o'clock and four bookings stacked past the fold
+ * are different afternoons.
+ *
+ * `+3` rather than "see 3 more": the column is a seventh of a week and the chip
+ * has to survive that width in both languages, and its position on the last line
+ * of the panel already says "below". The full sentence is the accessible name,
+ * where there is room for it.
+ *
+ * Lime-600 (`viz-band-edge`), the same stop as the now-line — the palette
+ * defines the darker step for exactly this, marking a boundary, and it is the
+ * one value in the lime ramp that can carry white text.
+ *
+ * It does not pulse. A marker that animates for as long as the state holds is
+ * animating for most of a working afternoon, which is both tiring at the edge of
+ * vision and a promise of change from something that is not changing.
+ * `animate-pulse` is also the app's skeleton vocabulary — it means "waiting for
+ * this", and a booking that exists and is merely out of sight is not waiting for
+ * anything.
+ */
+function BelowFoldMarker({ count, onClick }: { count: number; onClick: () => void }) {
+  const t = useTranslations('booking');
+
+  if (count <= 0) return null;
+
+  return (
+    <button
+      type="button"
+      aria-label={t('hiddenBelowAction', { count })}
+      onClick={onClick}
+      className={cn(
+        'pointer-events-auto flex h-6 items-center gap-0.5 rounded-full px-2',
+        'bg-viz-band-edge text-label font-semibold text-background tabular-nums shadow-card',
+        'transition-transform duration-(--duration-label) ease-(--ease-sweep)',
+        'hover:scale-105 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-focus-halo focus-visible:outline-none',
+        'motion-reduce:transition-none motion-reduce:hover:scale-100',
+      )}
+    >
+      {t('hiddenBelow', { count })}
+      <Icon name="chevronDown" className="size-3.5" />
+    </button>
   );
 }

@@ -21,8 +21,20 @@ import { cn } from "@/lib/utils"
  * and surfaces, and an avatar is a person, not either of those. The glyph is
  * square, so the circle has to clip it.
  */
+/*
+  The disc is the client's *card*, and the glyph on it is their mark.
+
+  `--tone-fill` is the exact colour their appointments are drawn in, so the
+  avatar beside a name and the block on the calendar are the same colour rather
+  than two shades of one hue — the style's own opaque white ground is stripped
+  in `glyphAvatarSvg` precisely so this can show through.
+
+  The `white` fallback is for the callers outside a `.patient-tone` subtree — the
+  component gallery, the weekly-plan rails — where the variable is not defined
+  and the mark keeps the ground the style shipped with.
+*/
 const avatarVariants = cva(
-  "flex shrink-0 items-center justify-center overflow-hidden rounded-full [&>svg]:size-full",
+  "flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--tone-fill,white)] [&>svg]:size-full",
   {
     variants: {
       size: {

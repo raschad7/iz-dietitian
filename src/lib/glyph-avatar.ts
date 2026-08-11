@@ -66,6 +66,32 @@ const marks = new Map<string, string>();
 /** Matches the accent the style painted the glyph's stroke with. */
 const ACCENT = /stroke="(#[0-9a-fA-F]{3,8})"/;
 
+/** The full-bleed square the style lays down before anything else. */
+const GROUND = /<path fill="white"[^>]*\/>/;
+
+/**
+ * Drops the opaque white square the style paints under the glyph.
+ *
+ * It is what kept the mark from ever agreeing with the appointment card: the
+ * card is a tint of the client's hue and the disc was white with a 20% wash of
+ * it, so the two shared a hue and nothing else. With the ground gone the
+ * element's own background shows through, and `Avatar` sets that to
+ * `--tone-fill` — the card's exact colour — so the disc reads as a small piece
+ * of the same card.
+ *
+ * **Only the one after the mask.** The style paints an identical white square
+ * *inside* `<mask>`, where white means "show everything"; removing that one
+ * would mask the glyph out entirely and leave an empty disc. Slicing at
+ * `</mask>` is what keeps the two apart, and is why this is not a plain
+ * `replace` on the whole string.
+ */
+function dropOpaqueGround(svg: string): string {
+  const maskEnd = svg.indexOf('</mask>');
+  if (maskEnd === -1) return svg;
+
+  return svg.slice(0, maskEnd) + svg.slice(maskEnd).replace(GROUND, '');
+}
+
 /**
  * The mark for a seed, as an SVG string, with its accent handed to `currentColor`.
  *
@@ -81,7 +107,8 @@ export function glyphAvatarSvg(seed: string): string {
 
   const raw = new Avatar(style, { seed }).toString();
   const accent = ACCENT.exec(raw)?.[1];
-  const svg = accent === undefined ? raw : raw.split(accent).join('currentColor');
+  const tinted = accent === undefined ? raw : raw.split(accent).join('currentColor');
+  const svg = dropOpaqueGround(tinted);
 
   marks.set(seed, svg);
   return svg;

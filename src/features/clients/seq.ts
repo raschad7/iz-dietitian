@@ -9,8 +9,8 @@ import { clients } from '@/db/schema';
  * used to be hashed from the client id, and a hash cannot promise what a colour
  * code has to: two ids can land a fraction of a degree apart on the wheel, which
  * is not a near-miss but the same colour. An index cannot — distinct clients
- * have distinct positions, so they have distinct hues, and `patientHue` spaces
- * those positions as far apart as a sequence can be spaced.
+ * hold distinct positions, so `patientHue` can hand out the ten palette colours
+ * and then the mixes between them without ever repeating one.
  *
  * **Ordered by `created_at, id`, so the numbering only ever appends.** A client
  * registered today is given the next free position and nobody else moves. Any
@@ -41,9 +41,37 @@ import { clients } from '@/db/schema';
  * `booking` already reads from this feature (`./search`), so the dependency runs
  * the way it already ran.
  */
+/**
+ * ## The outer columns are qualified by hand, and have to be
+ *
+ * `${clients.clinicId}` looks like the right way to name the outer row and is
+ * not: Drizzle renders a column reference *unqualified* — plain `"clinic_id"` —
+ * whenever the surrounding statement has only one table it could belong to. In
+ * ordinary SQL that is fine. Inside this subquery it is silently catastrophic,
+ * because there are now two tables in scope and the unqualified name binds to
+ * the nearest one, which is `seq_peer`:
+ *
+ * ```sql
+ * where seq_peer.clinic_id = "clinic_id"                            -- seq_peer's own
+ *   and (seq_peer.created_at, seq_peer.id) < ("created_at", "id")   -- itself
+ * ```
+ *
+ * Every row is then compared against itself, the predicate is never true, and
+ * the count is `0` for every client in the clinic. It does not error, return
+ * null, or fail a type check — it returns a number, the right shape, and the
+ * same one every time. That shipped, and the whole patient-colour scheme
+ * quietly collapsed onto hue 0: every card, every avatar, every glyph the same
+ * colour, which reads as "the colours don't work" rather than as a broken join.
+ *
+ * Spelling `"clients"` out is what forces the outer binding. It holds for every
+ * caller because none of them alias the table — `getClient` and
+ * `listBookableClients` select from it directly, and `listAppointments` joins it
+ * under its own name. A caller that aliased `clients` would break this, and
+ * would do so the same silent way, so alias it here too if that ever happens.
+ */
 export const clientSeq = sql<number>`(
   select count(*)
   from ${clients} as seq_peer
-  where seq_peer.clinic_id = ${clients.clinicId}
-    and (seq_peer.created_at, seq_peer.id) < (${clients.createdAt}, ${clients.id})
+  where seq_peer.clinic_id = "clients"."clinic_id"
+    and (seq_peer.created_at, seq_peer.id) < ("clients"."created_at", "clients"."id")
 )`.mapWith(Number);
