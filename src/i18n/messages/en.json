@@ -798,16 +798,13 @@
       "unitKg": "kg",
       "callClinic": "Call",
       "whatsappClinic": "WhatsApp",
-      "openMap": "Open in maps",
       "photo": {
         "changeSoon": "Change photo — coming soon"
       },
       "section": {
         "basic": "Basic information",
         "health": "My health profile",
-        "healthDescription": "What your dietitian recorded to build your plan.",
-        "clinic": "Clinic and dietitian",
-        "clinicDescription": "Who holds your record."
+        "clinic": "Clinic and dietitian"
       },
       "field": {
         "fullName": "Full name",
@@ -1074,8 +1071,6 @@
         "helpDescription": "Common questions about your plan and appointments.",
         "contactClinic": "Contact the clinic",
         "contactClinicDescription": "Call or WhatsApp your clinic directly.",
-        "callAction": "Phone call",
-        "whatsappAction": "WhatsApp chat",
         "terms": "Terms and conditions",
         "termsDescription": "Terms for using the client portal."
       },
@@ -1105,10 +1100,6 @@
         "rights": {
           "title": "Your data",
           "body": "You can ask for any detail to be corrected from your profile screen, or ask for your account to be closed at the bottom of this settings screen. A person at the clinic answers both."
-        },
-        "assurance": {
-          "title": "Your privacy matters",
-          "body": "We don't share your data with anyone outside the app without your consent."
         }
       },
       "help": {
@@ -1128,10 +1119,6 @@
         "signIn": {
           "title": "I forgot my password",
           "body": "On the \"Password and security\" screen, send a link to your email and set a new one."
-        },
-        "noAnswer": {
-          "title": "Didn't find an answer to your question?",
-          "body": "Get in touch and we'll help you as soon as we can."
         }
       },
       "deletion": {

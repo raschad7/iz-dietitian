@@ -182,7 +182,7 @@ export function AdherenceStreakCard({
             A chip, not a second surface: one tail per card, and this sits
             inside one that already carries it.
           */}
-          <span className="grid size-9 place-items-center rounded-2xl bg-secondary text-primary" aria-hidden="true">
+          <span className="grid size-9 place-items-center rounded-2xl bg-icon-chip text-icon-chip-foreground" aria-hidden="true">
             <Icon name="streak" className="size-5" />
           </span>
         </CardAction>

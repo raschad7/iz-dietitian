@@ -67,7 +67,7 @@ function NotificationRow({ item }: { item: PortalNotification }) {
         <CardContent className="flex items-start gap-3">
           <span
             aria-hidden="true"
-            className="grid size-10 shrink-0 place-items-center rounded-xl bg-secondary text-primary"
+            className="grid size-10 shrink-0 place-items-center rounded-xl bg-icon-chip text-icon-chip-foreground"
           >
             <Icon name={ICON[item.kind]} className="size-4.5" />
           </span>

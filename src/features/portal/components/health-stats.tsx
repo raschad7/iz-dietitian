@@ -94,7 +94,7 @@ export function HealthStats({ stats }: { stats: readonly HealthStat[] }) {
               className={
                 empty
                   ? 'grid size-9 place-items-center rounded-full bg-muted text-muted-foreground sm:size-11'
-                  : 'grid size-9 place-items-center rounded-full bg-secondary text-primary sm:size-11'
+                  : 'grid size-9 place-items-center rounded-full bg-icon-chip text-icon-chip-foreground sm:size-11'
               }
             >
               <Icon name={stat.icon} className="size-4.5 sm:size-5.5" />

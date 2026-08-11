@@ -457,6 +457,8 @@
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
   --color-muted: var(--muted);
+  --color-icon-chip-foreground: var(--icon-chip-foreground);
+  --color-icon-chip: var(--icon-chip);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
@@ -561,6 +563,30 @@
    */
   --muted: var(--c-100);
   --muted-foreground: var(--n-600);     /* text.secondary — 6.38:1 floor */
+
+  /*
+   * ── The icon disc ──
+   *
+   * The tinted round or squared plate a glyph sits on: settings sections, the
+   * clinic's contact actions, notification rows, preview cards, info rows.
+   *
+   * It used to be the brand pair (`bg-secondary` + `text-primary`, olive-50
+   * under olive-500), which put a saturated olive dot beside every heading on
+   * every screen — a dozen of them down a settings page, all saying nothing
+   * about the row they belong to. A disc is a *place* for a glyph, not a
+   * status, so it is drawn in the warm neutral ramp and brand colour is left
+   * to the things that actually mean something by being olive.
+   *
+   * n-600 on n-50 is 6.15:1 — above the 4.5:1 the glyph needs, and the same
+   * ink as `--muted-foreground`, so a disc icon and the secondary text beside
+   * it read as one weight.
+   *
+   * ⚠ Not for a disc sitting on a tinted or sunken ground. n-50 is a hair off
+   * white and vanishes on anything that is not `--card`; `SettingsAssurance`
+   * keeps `primary-subtle` for exactly that reason and says so in place.
+   */
+  --icon-chip: var(--n-50);             /* bg.icon — the plate */
+  --icon-chip-foreground: var(--n-600); /* the glyph on it — 6.15:1 */
 
 
   /*
@@ -868,6 +894,12 @@
   --muted: var(--olive-900);
   --muted-foreground: var(--olive-200);
 
+  /* The plate cannot be `--muted` here: dark's muted and card are both
+     olive-900, so the disc would draw nothing at all. olive-800 is the stop
+     that separates from the card it sits on. */
+  --icon-chip: var(--olive-800);
+  --icon-chip-foreground: var(--olive-200);
+
   --accent: var(--olive-800);
   --accent-foreground: var(--n-25);
 
@@ -1013,6 +1045,10 @@
 
     --muted: var(--olive-900);
     --muted-foreground: var(--olive-200);
+
+    /* See the `.dark` block — muted and card are the same stop here. */
+    --icon-chip: var(--olive-800);
+    --icon-chip-foreground: var(--olive-200);
 
     --accent: var(--olive-800);
     --accent-foreground: var(--n-25);

@@ -1,10 +1,12 @@
+import { type DayHours } from './clinic-hours';
 import { type SelectableDay } from './slots';
 
 /**
  * Plain data shapes shared with client components.
  *
- * This module imports from `./slots` and nothing else, because `./slots` is
- * pure. With `verbatimModuleSyntax` on, `import { type X } from './queries'` in
+ * This module imports from `./slots` and `./clinic-hours` and nothing else,
+ * because both are pure. With
+ * `verbatimModuleSyntax` on, `import { type X } from './queries'` in
  * a client component still emits a real `import {} from './queries'`, which
  * would drag `@/db` and the Postgres driver into the browser bundle — a build
  * error, and the reason `RequestPageData` lives here rather than beside the
@@ -81,8 +83,19 @@ export type PortalClinic = {
   address: string | null;
   /** Weekday numbers, 0 = Sunday … 6 = Saturday. */
   workingDays: readonly number[];
+  /**
+   * The week's **envelope** — the earliest open and the latest close across
+   * every working day, not a range any single day necessarily keeps. Read
+   * `schedule` when the question is "what time on this day?".
+   */
   openMinute: number;
   closeMinute: number;
+  /**
+   * The real per-weekday hours, or `null` for a clinic whose
+   * `clinic_working_hours` rows are missing or incomplete — older clinics
+   * predate that table, and the envelope above is all they have.
+   */
+  schedule: readonly DayHours[] | null;
 };
 
 /** The dietitian this client is assigned to. Null when nobody has been assigned yet. */

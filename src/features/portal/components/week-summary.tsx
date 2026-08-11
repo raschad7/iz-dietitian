@@ -139,7 +139,9 @@ export function WeekSummary({ metrics }: { metrics: MetricSummary[] }) {
               <li key={metric.metric} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
                 <span
                   className={`flex size-9 shrink-0 items-center justify-center rounded-xl ${
-                    attention ? 'bg-status-attention-bg text-status-attention-fg' : 'bg-secondary text-secondary-foreground'
+                    attention
+                      ? 'bg-status-attention-bg text-status-attention-fg'
+                      : 'bg-icon-chip text-icon-chip-foreground'
                   }`}
                 >
                   <Icon name={ICONS[metric.metric]} className="size-4.5" />

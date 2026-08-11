@@ -39,7 +39,7 @@ export function PreviewCard({
       <CardContent className="flex items-center gap-3">
         <span
           aria-hidden="true"
-          className="grid size-11 shrink-0 place-items-center rounded-xl bg-secondary text-primary"
+          className="grid size-11 shrink-0 place-items-center rounded-xl bg-icon-chip text-icon-chip-foreground"
         >
           <Icon name={icon} className="size-5.5" />
         </span>

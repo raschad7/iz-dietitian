@@ -1,12 +1,9 @@
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
-import { ClinicContactPanel } from '@/features/portal/components/clinic-contact-panel';
 import { PortalScreenHeader } from '@/features/portal/components/portal-screen-header';
-import { SettingsAssurance, SettingsPoint } from '@/features/portal/components/settings-detail';
-import { getPortalClinic } from '@/features/portal/queries';
+import { SettingsPoint } from '@/features/portal/components/settings-detail';
 import { requirePortalClient } from '@/features/portal/session';
-import { defaultCountryCode } from '@/features/whatsapp/config';
 import { resolveLocale } from '@/i18n/params';
 
 type HelpPageProps = {
@@ -30,8 +27,13 @@ export async function generateMetadata({ params }: HelpPageProps): Promise<Metad
  * system rather than generic help-centre filler, and each one heads off a phone
  * call.
  *
- * The last block is the clinic itself, because every question this page cannot
- * answer ends there.
+ * **The page is the four answers and nothing else.** It used to end on the
+ * clinic — a tinted panel with the number and a WhatsApp action, then a sunken
+ * line offering the same clinic again in plainer words. Both are gone. Reaching
+ * the clinic is its own row in the settings list this screen was opened from
+ * (`/portal/settings/contact-clinic`), one back press away, so the way out is
+ * still one tap from here and is no longer duplicated on a screen whose job is
+ * to answer the question instead.
  *
  * **A card each, and a glyph each**, the same shape the privacy screen takes —
  * see `SettingsPoint` for why these two screens left the article form and why
@@ -43,15 +45,19 @@ export async function generateMetadata({ params }: HelpPageProps): Promise<Metad
  * a plan, a calendar, a record, a password — so the mark is a signpost rather
  * than a picture of being stuck.
  *
- * Then the clinic, then one line offering it again in plainer words. Two ways
- * out and not one, because a client who did not recognise their problem in any
- * of the four cards has no reason to think the panel above is meant for them.
+ * Then the clinic, and the page ends there. A sunken line under the panel used
+ * to offer the same clinic a second time in plainer words, on the argument that
+ * a client who recognised none of the four cards might not realise the panel
+ * was meant for them. It sat directly beneath a panel headed "تواصل مع العيادة"
+ * with the number under it — the restatement was never reaching anyone the
+ * panel had not already reached.
  */
 export default async function HelpPage({ params }: HelpPageProps) {
   const locale = await resolveLocale(params);
 
-  const context = await requirePortalClient(locale);
-  const clinic = await getPortalClinic(context.clinicId);
+  // Still guarded, but nothing on the screen is the client's own any more: the
+  // four answers are the same for everyone, so no clinic is loaded for them.
+  await requirePortalClient(locale);
 
   const t = await getTranslations({ locale, namespace: 'portal.settings.help' });
 
@@ -76,12 +82,6 @@ export default async function HelpPage({ params }: HelpPageProps) {
           <SettingsPoint icon="edit" title={t('signIn.title')}>
             <p>{t('signIn.body')}</p>
           </SettingsPoint>
-
-          <ClinicContactPanel clinic={clinic} countryCode={defaultCountryCode()} />
-
-          <SettingsAssurance icon="suggestion" title={t('noAnswer.title')}>
-            {t('noAnswer.body')}
-          </SettingsAssurance>
         </div>
       </main>
     </>

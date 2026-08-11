@@ -123,7 +123,7 @@ export function InfoRow({
         {icon ? (
           <span
             aria-hidden
-            className="grid size-9 shrink-0 place-items-center rounded-full bg-secondary text-primary"
+            className="grid size-9 shrink-0 place-items-center rounded-full bg-icon-chip text-icon-chip-foreground"
           >
             <Icon name={icon} className="size-4.5" />
           </span>

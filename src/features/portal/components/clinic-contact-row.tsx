@@ -124,7 +124,7 @@ function ContactDisc({ children }: { children: React.ReactNode }) {
   return (
     <span
       aria-hidden="true"
-      className="grid size-12 shrink-0 place-items-center rounded-full bg-secondary text-primary"
+      className="grid size-12 shrink-0 place-items-center rounded-full bg-icon-chip text-icon-chip-foreground"
     >
       {children}
     </span>
@@ -155,7 +155,7 @@ function ContactAction({
       href={href}
       aria-label={label}
       {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-      className="grid size-11 place-items-center rounded-full bg-secondary text-primary transition-colors hover:bg-status-on-track-bg focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-focus-halo focus-visible:outline-none"
+      className="grid size-11 place-items-center rounded-full bg-icon-chip text-icon-chip-foreground transition-colors hover:bg-status-on-track-bg focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-focus-halo focus-visible:outline-none"
     >
       {children}
     </a>

@@ -82,7 +82,7 @@ export default async function ContactPage({ params }: ContactPageProps) {
             request control at the foot of this screen already says by being
             the only way to change them.
           */}
-          <ProfileSection icon="personOutline" title={tProfile('section.basic')}>
+          <ProfileSection title={tProfile('section.basic')}>
             <InfoRow label={tProfile('field.fullName')} value={profile.fullName} />
 
             {/*
