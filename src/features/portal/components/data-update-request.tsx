@@ -1,12 +1,12 @@
 'use client';
 
-import { Info, PencilLine } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useActionState, useRef, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Icon } from '@/components/ui/icon';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { requestDataUpdateAction, withdrawClientRequestAction } from '@/features/portal/actions';
@@ -106,7 +106,7 @@ export function DataUpdateRequest({
             aria-hidden="true"
             className="grid size-9 shrink-0 place-items-center rounded-xl bg-card text-muted-foreground"
           >
-            <Info className="size-4.5" strokeWidth={1.8} />
+            <Icon name="info" className="size-4.5" />
           </span>
 
           <p className="min-w-0 flex-1 text-sm leading-relaxed text-muted-foreground">
@@ -162,7 +162,7 @@ function RequestDisclosure({ topic, locale }: { topic: ClientRequestTopic; local
         button renders with a stray disclosure arrow inside it.
       */}
       <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-[10px] rounded-ee-xl bg-card px-3.5 text-sm font-medium text-secondary-foreground ring-1 ring-border transition-all duration-200 ease-[cubic-bezier(.2,.6,.2,1)] hover:rounded-ee-[30px] hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-focus-halo focus-visible:outline-none [&::-webkit-details-marker]:hidden">
-        <PencilLine className="size-4 shrink-0" strokeWidth={1.9} aria-hidden="true" />
+        <Icon name="edit" className="size-4 shrink-0" />
         {t(actionKey)}
       </summary>
 

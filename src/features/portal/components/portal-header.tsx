@@ -1,9 +1,9 @@
 'use client';
 
-import { Bell, Flame, LogOut, Settings, Sun } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useFormStatus } from 'react-dom';
 
+import { Icon } from '@/components/ui/icon';
 import { signOutAction } from '@/features/auth/actions';
 import { type GreetingKey } from '@/features/portal/greeting';
 import { dayKey } from '@/features/weekly-plans/schema';
@@ -105,7 +105,7 @@ function TodayDayStrip({ todayDayOfWeek }: { todayDayOfWeek: number }) {
       <span className="min-w-0 flex-1 truncate text-center text-body-sm text-primary">{tDays(dayKey(yesterday))}</span>
 
       <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-card px-3.5 py-2">
-        <Flame className="size-4 fill-current text-status-complete-mark" strokeWidth={1.75} />
+        <Icon name="dayComplete" className="size-4 text-status-complete-mark" />
         <span className="text-body-sm font-medium text-primary">{tDays(dayKey(todayDayOfWeek))}</span>
       </span>
 
@@ -124,7 +124,8 @@ function HeaderSignOutSubmit({ label }: { label: string }) {
       aria-label={label}
       className="flex size-11 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted disabled:opacity-50"
     >
-      <LogOut className="size-5.5 rtl:-scale-x-100" strokeWidth={1.8} aria-hidden="true" />
+      {/* `signOut` mirrors itself — see DIRECTIONAL in `icon.tsx`. */}
+      <Icon name="signOut" className="size-5.5" />
     </button>
   );
 }
@@ -213,7 +214,7 @@ export function PortalHeader({
               iconTone,
             )}
           >
-            <Bell className="size-5.5" strokeWidth={1.9} aria-hidden="true" />
+            <Icon name="notifications" className="size-5.5" />
 
             {pendingCount > 0 ? (
               // Ring in the surface colour, so the dot reads as a separate
@@ -229,7 +230,7 @@ export function PortalHeader({
               label={tMenu('settings')}
               className={cn('flex size-11 items-center justify-center rounded-full transition-colors', iconTone)}
             >
-              <Settings className="size-5.5" strokeWidth={1.8} aria-hidden="true" />
+              <Icon name="settings" className="size-5.5" />
             </Destination>
           ) : (
             <HeaderSignOut locale={locale} />
@@ -246,7 +247,7 @@ export function PortalHeader({
             */}
             <p className="flex items-center gap-1.5 text-sm text-white">
               {t(`greeting.${greeting}`)}
-              <Sun className="size-4 text-status-complete-mark-soft" strokeWidth={2} aria-hidden="true" />
+              <Icon name="greetingSun" className="size-4 text-status-complete-mark-soft" />
             </p>
 
             {/*

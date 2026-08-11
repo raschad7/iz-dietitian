@@ -1,6 +1,5 @@
-import { ChevronRight, type LucideIcon } from 'lucide-react';
-
 import { Card, CardContent } from '@/components/ui/card';
+import { Icon, type IconName } from '@/components/ui/icon';
 import { Link } from '@/i18n/navigation';
 
 /**
@@ -18,13 +17,14 @@ import { Link } from '@/i18n/navigation';
  */
 export function PreviewCard({
   href,
-  icon: Icon,
+  icon,
   title,
   lines,
   action,
 }: {
   href: '/portal/appointments' | '/portal/appointments/request';
-  icon: LucideIcon;
+  /** A name from the Solar registry — the app has one icon set. */
+  icon: IconName;
   title: string;
   /**
    * One or two supporting lines. `emphasis` marks the one that carries the
@@ -41,7 +41,7 @@ export function PreviewCard({
           aria-hidden="true"
           className="grid size-11 shrink-0 place-items-center rounded-xl bg-secondary text-primary"
         >
-          <Icon className="size-5.5" strokeWidth={1.7} />
+          <Icon name={icon} className="size-5.5" />
         </span>
 
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -73,8 +73,9 @@ export function PreviewCard({
           className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-muted px-3 py-1.5 text-xs font-medium text-secondary-foreground transition-colors hover:bg-status-on-track-bg"
         >
           {action}
-          {/* Directional: it points the way the reader travels, so it mirrors. */}
-          <ChevronRight className="size-3.5 opacity-70 rtl:-scale-x-100" aria-hidden="true" />
+          {/* Directional: it points the way the reader travels, so it mirrors —
+              `chevronEnd` does that itself, see DIRECTIONAL in `icon.tsx`. */}
+          <Icon name="chevronEnd" className="size-3.5 opacity-70" />
         </Link>
       </CardContent>
     </Card>

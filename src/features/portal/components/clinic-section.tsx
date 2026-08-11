@@ -1,4 +1,3 @@
-import { Sunrise, Sunset } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
 import { Avatar } from '@/components/ui/avatar';
@@ -197,14 +196,15 @@ export function ClinicSection({
                 the row. Source order is open-then-close, which reads
                 start-to-end in both scripts with no override.
 
-                Lucide rather than the generated Solar set, as the portal's
-                header already does for its own sun — there is no sunrise or
-                sunset in `ICONS`, and adding two glyphs to a build step for one
-                row is more machinery than the row is worth.
+                These were lucide, on the argument that two glyphs were not
+                worth a build step. That reasoning is what let a second icon
+                family back into the app one row at a time; they are `opensAt`
+                and `closesAt` in `scripts/generate-icons.ts` now, and the
+                build step costs nothing per glyph after the first.
               */}
               <p className="flex items-center justify-center gap-3 text-base font-semibold tabular-nums">
                 <span className="inline-flex items-center gap-2">
-                  <Sunrise className="size-5 shrink-0 text-primary" strokeWidth={1.8} aria-hidden="true" />
+                  <Icon name="opensAt" className="size-5 shrink-0 text-primary" />
                   <bdi>{formatClockMinute(locale, clinic.openMinute)}</bdi>
                 </span>
 
@@ -213,7 +213,7 @@ export function ClinicSection({
                 </span>
 
                 <span className="inline-flex items-center gap-2">
-                  <Sunset className="size-5 shrink-0 text-primary" strokeWidth={1.8} aria-hidden="true" />
+                  <Icon name="closesAt" className="size-5 shrink-0 text-primary" />
                   <bdi>{formatClockMinute(locale, clinic.closeMinute)}</bdi>
                 </span>
               </p>

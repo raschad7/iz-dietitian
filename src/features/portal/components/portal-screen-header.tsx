@@ -1,9 +1,9 @@
 'use client';
 
-import { ArrowLeft, Settings } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { MouseEvent } from 'react';
 
+import { Icon } from '@/components/ui/icon';
 import { Link, useRouter } from '@/i18n/navigation';
 
 /**
@@ -73,7 +73,7 @@ export function PortalScreenHeader({
           aria-label={t('back')}
           className="flex size-11 shrink-0 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-focus-halo focus-visible:outline-none"
         >
-          <ArrowLeft className="size-5.5 rtl:-scale-x-100" strokeWidth={1.9} aria-hidden="true" />
+          <Icon name="back" className="size-5.5" />
         </Link>
 
         {/*
@@ -92,7 +92,7 @@ export function PortalScreenHeader({
             aria-label={t('settings')}
             className="flex size-11 shrink-0 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-focus-halo focus-visible:outline-none"
           >
-            <Settings className="size-5.5" strokeWidth={1.8} aria-hidden="true" />
+            <Icon name="settings" className="size-5.5" />
           </Link>
         ) : (
           // Keeps the title centred when there is no action, without giving the
