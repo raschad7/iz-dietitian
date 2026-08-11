@@ -39,25 +39,13 @@ export function EmptyPlanBoard({
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
-      {profile}
-
-      <header className="border-b border-border pb-4">
-        <div className="flex flex-wrap items-center justify-end gap-2">
+      <header className="overflow-hidden rounded-lg border border-border bg-card shadow-card">
+        {profile}
+        <div className="flex flex-wrap items-center gap-2 border-t border-border bg-muted/50 px-4 py-3">
             <Button type="button" size="sm" variant="outline" onClick={() => setCatalogOpen(true)}>
               <Icon name="dishes" />
               {t('tabs.dishes')}
             </Button>
-
-            <Popover>
-              <PopoverTrigger className={buttonVariants({ variant: 'neutral', size: 'sm' })}>
-                <Icon name="history" />
-                {t('history')}
-              </PopoverTrigger>
-              <PopoverContent align="end" side="bottom" className="max-h-[min(32rem,70vh)] w-80 overflow-y-auto p-3">
-                <PopoverTitle className="pb-1 text-label font-semibold">{t('history')}</PopoverTitle>
-                {history}
-              </PopoverContent>
-            </Popover>
 
             <NewWeekDialog
               clientId={clientId}
@@ -67,10 +55,25 @@ export function EmptyPlanBoard({
               triggerLabel={t('createWeek')}
               triggerVariant="default"
             />
+
+            <Popover>
+              <PopoverTrigger
+                aria-label={t('moreActions')}
+                title={t('moreActions')}
+                className={buttonVariants({ variant: 'neutral', size: 'icon-sm' })}
+              >
+                <Icon name="moreActions" />
+                <span className="sr-only">{t('moreActions')}</span>
+              </PopoverTrigger>
+              <PopoverContent align="end" side="bottom" className="max-h-[min(32rem,70vh)] w-80 overflow-y-auto p-3">
+                <PopoverTitle className="pb-1 text-label font-semibold">{t('history')}</PopoverTitle>
+                {history}
+              </PopoverContent>
+            </Popover>
         </div>
       </header>
 
-      <section className="flex min-h-64 min-w-0 flex-1 items-center justify-center border-y border-dashed border-border px-6 py-16 text-center">
+      <section className="flex min-h-64 min-w-0 flex-1 items-center justify-center px-6 py-16 text-center">
         <div className="max-w-md">
           <h2 className="font-heading text-heading-sm font-semibold">{t('noPlanYet')}</h2>
           <p className="mt-2 text-body-sm leading-relaxed text-muted-foreground">{t('noPlanHint')}</p>

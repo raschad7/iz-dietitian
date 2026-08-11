@@ -11,16 +11,16 @@ export function primaryDishTag(tags: readonly string[]): DishTag | null {
   return tags.find((tag): tag is DishTag => isMember(DISH_TAGS, tag)) ?? null;
 }
 
-export const DISH_TAG_DIVIDER_CLASS: Record<DishTag, string> = {
-  cheap: 'border-planner-tag-cheap',
-  portable: 'border-planner-tag-portable',
-  quick: 'border-planner-tag-quick',
-  vegetarian: 'border-planner-tag-vegetarian',
-  high_protein: 'border-planner-tag-high-protein',
-  diabetic_friendly: 'border-planner-tag-diabetic-friendly',
+export const DISH_TAG_ACCENT_CLASS: Record<DishTag, string> = {
+  cheap: 'bg-planner-tag-cheap',
+  portable: 'bg-planner-tag-portable',
+  quick: 'bg-planner-tag-quick',
+  vegetarian: 'bg-planner-tag-vegetarian',
+  high_protein: 'bg-planner-tag-high-protein',
+  diabetic_friendly: 'bg-planner-tag-diabetic-friendly',
 };
 
-export function dishTagDividerClass(tags: readonly string[]): string {
+export function dishTagAccentClass(tags: readonly string[]): string {
   const tag = primaryDishTag(tags);
-  return tag ? DISH_TAG_DIVIDER_CLASS[tag] : 'border-border';
+  return tag ? DISH_TAG_ACCENT_CLASS[tag] : 'bg-border';
 }

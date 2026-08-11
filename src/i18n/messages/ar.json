@@ -1233,6 +1233,7 @@
       "updated": "آخر تعديل"
     },
     "history": "الخطط السابقة",
+    "moreActions": "المزيد من إجراءات الخطة",
     "weekOf": "أسبوع {date}",
     "generatedBy": "النموذج المستخدم",
     "kcalValue": "{value} kcal",
@@ -1394,6 +1395,8 @@
     "createWeek": "إنشاء أسبوع",
     "newWeekTitle": "إعداد أسبوع جديد",
     "newWeekSubtitle": "اختر طريقة البدء لتخطيط الوجبات لهذا الأسبوع.",
+    "weekStartLabel": "تاريخ بداية الأسبوع",
+    "weekStartHint": "تبدأ الخطة من هذا اليوم وتستمر سبعة أيام.",
     "newWeekGenerate": {
       "create": "توليد بالذكاء الاصطناعي",
       "regenerate": "إعادة التوليد بالذكاء الاصطناعي"

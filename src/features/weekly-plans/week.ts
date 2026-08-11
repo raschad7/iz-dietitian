@@ -55,6 +55,29 @@ export function formatDateParts(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
+/** The weekday carried by an ISO calendar date, without converting it to UTC. */
+export function dayOfWeekForDate(date: string): number | null {
+  const parts = date.split('-').map(Number);
+  const [year, month, day] = parts;
+
+  if (parts.length !== 3 || !year || !month || !day) return null;
+
+  const localDate = new Date(year, month - 1, day);
+
+  // `new Date(2026, 1, 31)` silently rolls into March. A plan start is a real
+  // calendar date, so reject that normalisation instead of assigning it a day.
+  if (formatDateParts(localDate) !== date) return null;
+
+  return localDate.getDay();
+}
+
+/** Weekday ids in the order a plan starting on `weekStartDate` is experienced. */
+export function orderedWeekdays(weekStartDate: string): number[] {
+  const firstDay = dayOfWeekForDate(weekStartDate) ?? SUNDAY;
+
+  return Array.from({ length: 7 }, (_, offset) => (firstDay + offset) % 7);
+}
+
 /**
  * One day of a plan's week, reduced to what a day picker needs to draw it.
  *
@@ -114,12 +137,27 @@ export function dayStanding(date: string | null, today: string): DayStanding {
 
 /** The seven dates a plan covers, for the portal's day headings. */
 export function weekDates(weekStartDate: string): string[] {
-  const parts = weekStartDate.split('-').map(Number);
-  const [year, month, day] = parts;
+  const firstDay = dayOfWeekForDate(weekStartDate);
+  const [year, month, day] = weekStartDate.split('-').map(Number);
 
-  if (parts.length !== 3 || !year || !month || !day) return [];
+  if (firstDay === null || !year || !month || !day) return [];
 
   return Array.from({ length: 7 }, (_, offset) =>
     formatDateParts(new Date(year, month - 1, day + offset)),
   );
+}
+
+/** The seven plan dates paired with their absolute Sunday-to-Saturday ids. */
+export function planWeekDays(weekStartDate: string): { dayOfWeek: number; date: string }[] {
+  const weekdays = orderedWeekdays(weekStartDate);
+
+  return weekDates(weekStartDate).map((date, index) => ({
+    dayOfWeek: weekdays[index] ?? SUNDAY,
+    date,
+  }));
+}
+
+/** The calendar date belonging to one weekday in a possibly rotated plan. */
+export function weekDateForDay(weekStartDate: string, dayOfWeek: number): string | null {
+  return planWeekDays(weekStartDate).find((day) => day.dayOfWeek === dayOfWeek)?.date ?? null;
 }

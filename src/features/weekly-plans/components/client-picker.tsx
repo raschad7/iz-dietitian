@@ -71,22 +71,23 @@ export function ClientPicker({
       <ComboboxInput
         aria-label={t('clients')}
         placeholder={t('searchClients')}
+        focusTone={appearance === 'field' ? 'neutral' : appearance === 'bar' ? 'borderless' : 'brand'}
         // Full width on a phone, where it takes the header's first line to
         // itself and everything else wraps under it; a fixed 256px that refuses
         // to shrink is what pushed the rest of the row off the screen.
         className={cn(
           appearance === 'heading'
-            ? 'w-full min-w-56 sm:w-80'
+            ? 'h-12 w-full min-w-56 sm:w-80'
             : appearance === 'bar'
-              ? 'w-full min-w-44'
-              : 'w-full sm:w-64 sm:shrink-0',
-          // `heading` and `bar` change the *type*, and nothing else — the box
-          // stays, so it still reads as something you can open rather than as
-          // a title with a stray chevron beside it.
+              ? 'h-11 w-full min-w-44 border-transparent bg-transparent'
+              : 'h-12 w-full',
+          // The header selector is the client's title. The chevron is enough
+          // affordance here: opening the list must not redraw the title as a
+          // nested field inside the planner header.
           appearance === 'heading' &&
             '[&_input]:font-heading [&_input]:text-heading-sm [&_input]:font-semibold',
           appearance === 'bar' &&
-            '[&_input]:font-heading [&_input]:text-body-md [&_input]:font-semibold',
+            '[&_input]:text-center [&_input]:font-heading [&_input]:text-heading-sm [&_input]:font-semibold',
           pending && 'pointer-events-none opacity-60',
         )}
       />
