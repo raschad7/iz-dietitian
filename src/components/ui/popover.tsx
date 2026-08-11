@@ -3,6 +3,7 @@
 import * as React from "react"
 import { Popover as PopoverPrimitive } from "@base-ui/react/popover"
 
+import { useDialogContainer } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 
 function Popover({ ...props }: PopoverPrimitive.Root.Props) {
@@ -48,15 +49,24 @@ function PopoverContent({
    * spill. A fixed popup's containing block is the viewport instead, so the
    * dialog's clip no longer applies to it, and Base UI measures the anchor
    * with `getBoundingClientRect` either way. Still overridable per call.
+   *
+   * **It now defaults to the dialog rather than waiting to be handed one.**
+   * Every caller inside a dialog needed this and each had to find the element
+   * for itself; `useDialogContainer` publishes it from the dialog that owns the
+   * subtree, so a popover added tomorrow gets it without knowing to ask. An
+   * explicit `container` still wins.
    */
+  const dialogContainer = useDialogContainer()
+  const resolvedContainer = container ?? dialogContainer ?? undefined
+
   return (
-    <PopoverPrimitive.Portal container={container}>
+    <PopoverPrimitive.Portal container={resolvedContainer}>
       <PopoverPrimitive.Positioner
         align={align}
         alignOffset={alignOffset}
         side={side}
         sideOffset={sideOffset}
-        positionMethod={positionMethod ?? (container ? "fixed" : undefined)}
+        positionMethod={positionMethod ?? (resolvedContainer ? "fixed" : undefined)}
         className="isolate z-50"
       >
         <PopoverPrimitive.Popup

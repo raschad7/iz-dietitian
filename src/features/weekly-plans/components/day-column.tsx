@@ -58,7 +58,7 @@ export function DayColumn({
   dailyTarget: number;
   editable: boolean;
   selectedMealId: string | null;
-  onSelectMeal: (mealId: string) => void;
+  onSelectMeal: (mealId: string, anchor: HTMLButtonElement) => void;
   /**
    * Whether this is the day the phone is showing. Below `md` the week is one
    * column chosen from the strip above it.
@@ -159,18 +159,21 @@ export function DayColumn({
       {rows.map((row) => {
         const meal = row.mealByDay.get(day.dayOfWeek);
 
-        return meal ? (
-          <MealCard
-            key={row.slotKey}
-            meal={meal}
-            selected={meal.id === selectedMealId}
-            onSelect={() => onSelectMeal(meal.id)}
-            ghost={ghosts?.[meal.slotKey] ?? null}
-            compareDate={compareDate}
-            editable={editable}
-          />
-        ) : (
-          <SkippedSlot key={row.slotKey} row={row} dayOfWeek={day.dayOfWeek} editable={editable} />
+        return (
+          <div key={row.slotKey} className="planner-row-cell">
+            {meal ? (
+              <MealCard
+                meal={meal}
+                selected={meal.id === selectedMealId}
+                onSelect={(anchor) => onSelectMeal(meal.id, anchor)}
+                ghost={ghosts?.[meal.slotKey] ?? null}
+                compareDate={compareDate}
+                editable={editable}
+              />
+            ) : (
+              <SkippedSlot row={row} dayOfWeek={day.dayOfWeek} editable={editable} />
+            )}
+          </div>
         );
       })}
     </div>

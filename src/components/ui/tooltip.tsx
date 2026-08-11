@@ -1,69 +1,66 @@
-import * as React from "react"
+"use client"
+
+import { Tooltip as TooltipPrimitive } from "@base-ui/react/tooltip"
 
 import { cn } from "@/lib/utils"
 
-/**
- * The label an icon-only control shows when you point at it.
- *
- * Pure CSS — it wraps its trigger in a `group` and reveals the bubble on
- * `:hover` or `:focus-within`, so it works inside a server component and adds
- * nothing to the client bundle. The dashboard's charts already reveal their
- * tips the same way; this is that pattern with the positioning built in,
- * because every caller anchors a tooltip in the same place and a chart mark
- * does not.
- *
- * **The tooltip is never the accessible name.** It is `aria-hidden`, exactly
- * like `ChartTip`: the trigger inside carries its own `aria-label`, and a
- * screen reader that heard both would say everything twice. A control whose
- * only label is a tooltip is unusable by keyboard and touch alike, so the
- * `label` here is a *reminder* of the name, not the name itself — pass the
- * same string to both.
- *
- * Centred with a full-width flex row rather than `left-1/2 -translate-x-1/2`:
- * `left-*` is a physical property and would need mirroring in Arabic, while a
- * centred flex row is direction-agnostic and lets the bubble grow past the
- * trigger on either side.
- */
-function Tooltip({
-  label,
-  className,
-  children,
+function TooltipProvider({
+  delay = 0,
   ...props
-}: React.ComponentProps<"span"> & { label: React.ReactNode }) {
+}: TooltipPrimitive.Provider.Props) {
   return (
-    <span
-      data-slot="tooltip"
-      className={cn("group/tooltip relative inline-flex", className)}
+    <TooltipPrimitive.Provider
+      data-slot="tooltip-provider"
+      delay={delay}
       {...props}
-    >
-      {children}
-
-      <span
-        aria-hidden
-        className={cn(
-          // Sits above the trigger, out of the way of the row below it. The
-          // wrapper is `inline-flex` and this is `absolute`, so it takes the
-          // trigger's width as its centring line and no more.
-          "pointer-events-none absolute inset-x-0 bottom-full z-30 mb-1.5 flex justify-center",
-          "translate-y-1 scale-95 opacity-0 transition-all duration-200 ease-[cubic-bezier(.2,.6,.2,1)]",
-          "group-hover/tooltip:translate-y-0 group-hover/tooltip:scale-100 group-hover/tooltip:opacity-100",
-          "group-focus-within/tooltip:translate-y-0 group-focus-within/tooltip:scale-100 group-focus-within/tooltip:opacity-100"
-        )}
-      >
-        <span
-          className={cn(
-            // Same bubble as ChartTip — inverted, Arc-shaped, elevated — so a
-            // hint over a table button and a hint over a chart mark read as
-            // one thing.
-            "w-max max-w-44 rounded-md bg-foreground px-2.5 py-1.5",
-            "text-center text-label leading-tight text-background shadow-elevated"
-          )}
-        >
-          {label}
-        </span>
-      </span>
-    </span>
+    />
   )
 }
 
-export { Tooltip }
+function Tooltip({ ...props }: TooltipPrimitive.Root.Props) {
+  return <TooltipPrimitive.Root data-slot="tooltip" {...props} />
+}
+
+function TooltipTrigger({ ...props }: TooltipPrimitive.Trigger.Props) {
+  return <TooltipPrimitive.Trigger data-slot="tooltip-trigger" {...props} />
+}
+
+function TooltipContent({
+  className,
+  side = "top",
+  sideOffset = 4,
+  align = "center",
+  alignOffset = 0,
+  children,
+  ...props
+}: TooltipPrimitive.Popup.Props &
+  Pick<
+    TooltipPrimitive.Positioner.Props,
+    "align" | "alignOffset" | "side" | "sideOffset"
+  >) {
+  return (
+    <TooltipPrimitive.Portal>
+      <TooltipPrimitive.Positioner
+        align={align}
+        alignOffset={alignOffset}
+        side={side}
+        sideOffset={sideOffset}
+        className="isolate z-50"
+      >
+        <TooltipPrimitive.Popup
+          data-slot="tooltip-content"
+          className={cn(
+            "z-50 inline-flex w-fit max-w-xs origin-(--transform-origin) items-center gap-1.5 rounded-md bg-foreground px-3 py-1.5 text-xs text-background has-data-[slot=kbd]:pe-1.5 data-[side=bottom]:slide-in-from-top-2 data-[side=inline-end]:slide-in-from-start-2 data-[side=inline-start]:slide-in-from-end-2 data-[side=top]:slide-in-from-bottom-2 **:data-[slot=kbd]:relative **:data-[slot=kbd]:isolate **:data-[slot=kbd]:z-50 **:data-[slot=kbd]:rounded-sm data-[state=delayed-open]:animate-in data-[state=delayed-open]:fade-in-0 data-[state=delayed-open]:zoom-in-95 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+            className
+          )}
+          {...props}
+        >
+          {children}
+          <TooltipPrimitive.Arrow className="z-50 size-2.5 translate-y-[calc(-50%-2px)] rotate-45 rounded-[2px] bg-foreground fill-foreground data-[side=bottom]:top-1 data-[side=inline-end]:top-1/2! data-[side=inline-end]:-start-1 data-[side=inline-end]:-translate-y-1/2 data-[side=inline-start]:top-1/2! data-[side=inline-start]:-end-1 data-[side=inline-start]:-translate-y-1/2 data-[side=top]:-bottom-2.5" />
+        </TooltipPrimitive.Popup>
+      </TooltipPrimitive.Positioner>
+    </TooltipPrimitive.Portal>
+  )
+}
+
+export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider }

@@ -1,33 +1,48 @@
 import { useTranslations } from 'next-intl';
 
-import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Avatar } from '@/components/ui/avatar';
 import { Icon } from '@/components/ui/icon';
-import { Tooltip } from '@/components/ui/tooltip';
+import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from '@/components/ui/popover';
+import { TooltipHint } from '@/components/ui/tooltip-hint';
 import { IntakeFormTrigger } from '@/features/clients/components/intake-form-trigger';
 import { CLIENT_ACTIVITY_LEVELS, CLIENT_GOALS } from '@/features/clients/schema';
 import { type Locale } from '@/i18n/routing';
 import { isMember, membersOf } from '@/lib/enum';
+import { cn } from '@/lib/utils';
 
-import type { ClientContext } from '../queries';
+import type { ClientContext, PlannableClient } from '../queries';
 import { ALLERGENS } from '../schema';
 
+import { ClientPicker } from './client-picker';
+
 /**
- * A compact clinical snapshot for decisions made while building the week.
- *
- * **Read-only, and it stays that way.** This panel used to link to a form of
- * its own at `/app/weekly-plans/[clientId]/profile`, which could write the
- * weight but not the height — so the "missing fields" message below named
- * fields its own link could not fix, and the dietitian went to the register and
- * back. It opens the client's intake dialog now: one destination, and every
- * field this panel can name is editable in it.
+ * The client facts needed while planning, now part of the board header instead
+ * of a permanent side tab. The short strip answers the common questions; the
+ * popover keeps the longer clinical notes one action away without narrowing the
+ * seven-day workspace.
  */
-export function ContextPanel({ context, locale }: { context: ClientContext; locale: Locale }) {
+export function ContextPanel({
+  context,
+  clients,
+  locale,
+}: {
+  context: ClientContext;
+  clients: readonly PlannableClient[];
+  locale: Locale;
+}) {
   const t = useTranslations('weeklyPlans');
   const tGoals = useTranslations('clients.goal');
   const tActivity = useTranslations('clients.activity');
   const { targets, profile } = context;
+
+  const allergenTags = profile ? membersOf(ALLERGENS, profile.allergenTags) : [];
+  const allergyText = [
+    ...allergenTags.map((tag) => t(`allergens.${tag}`)),
+    context.allergies?.trim(),
+  ]
+    .filter(Boolean)
+    .join('، ');
 
   const notes = [
     { key: 'permanentInstructions', label: t('permanentInstructions'), body: profile?.permanentInstructions },
@@ -38,204 +53,152 @@ export function ContextPanel({ context, locale }: { context: ClientContext; loca
 
   const measurements = [
     profile?.weightKg !== null && profile?.weightKg !== undefined
-      ? { key: 'weight', value: t('kg', { value: profile.weightKg }) }
+      ? t('kg', { value: profile.weightKg })
       : null,
-    context.heightCm !== null ? { key: 'height', value: t('cm', { value: context.heightCm }) } : null,
-    context.age !== null ? { key: 'age', value: t('years', { value: context.age }) } : null,
-  ].filter((entry): entry is { key: string; value: string } => entry !== null);
-
-  const allergenTags = profile ? membersOf(ALLERGENS, profile.allergenTags) : [];
-  const hasAllergyRecord = allergenTags.length > 0 || Boolean(context.allergies?.trim());
+    context.heightCm !== null ? t('cm', { value: context.heightCm }) : null,
+    context.age !== null ? t('years', { value: context.age }) : null,
+  ].filter((entry): entry is string => entry !== null);
+  const selectedClient = clients.find((client) => client.id === context.clientId);
 
   return (
-    <div className="flex flex-col gap-5 text-body-sm">
-      <header className="flex items-start justify-between gap-3 border-b border-border pb-3">
-        <div className="min-w-0">
-          <h3 className="truncate font-heading text-heading-sm font-semibold" dir="auto">
-            {context.fullName}
-          </h3>
-          <p className="mt-0.5 text-caption text-muted-foreground">{t('planningSnapshot')}</p>
-        </div>
-        {/*
-          Two different jobs, so two different controls.
+    <section
+      aria-label={t('planningSnapshot')}
+      className="rounded-lg border border-border bg-card px-3 py-2.5 shadow-card motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-2 motion-safe:duration-(--duration-sweep)"
+    >
+      <div className="flex flex-wrap items-stretch gap-y-2">
+        <div className="flex min-w-full flex-[1.4] flex-wrap items-center gap-2 pe-3 sm:min-w-64">
+          {selectedClient ? (
+            <Avatar name={selectedClient.fullName} color={selectedClient.color} />
+          ) : null}
 
-          With a profile on file this is a quiet "go and change something"
-          affordance sitting beside a name — a pen is enough, and a five-word
-          link there competed with the client's own name for the corner. Without
-          one it is the single most important thing on the panel: nothing can be
-          generated until it exists, so it keeps its words and takes a box.
+          <div className="min-w-44 flex-1">
+            <ClientPicker
+              clients={clients}
+              selectedClientId={context.clientId}
+              appearance="bar"
+            />
+            <p className="text-caption text-muted-foreground">{t('planningSnapshot')}</p>
+          </div>
 
-          The pen is icon-only, so it carries a real `aria-label` and a tooltip
-          reminding a pointer of the same string — a control whose only label is
-          a tooltip is unusable by keyboard and by touch alike.
-        */}
-        {profile ? (
-          <Tooltip label={t('editProfile')} className="shrink-0">
+          {profile ? (
+            <TooltipHint label={t('editProfile')}>
+              <IntakeFormTrigger
+                locale={locale}
+                clientId={context.clientId}
+                aria-label={t('editProfile')}
+                className={buttonVariants({ variant: 'ghost', size: 'icon-sm' })}
+              >
+                <Icon name="edit" />
+              </IntakeFormTrigger>
+            </TooltipHint>
+          ) : (
             <IntakeFormTrigger
               locale={locale}
               clientId={context.clientId}
-              aria-label={t('editProfile')}
-              className={buttonVariants({ variant: 'ghost', size: 'icon-sm' })}
+              className={buttonVariants({ variant: 'outline', size: 'sm' })}
             >
-              <Icon name="edit" />
+              <Icon name="add" />
+              {t('createProfile')}
             </IntakeFormTrigger>
-          </Tooltip>
-        ) : (
-          <IntakeFormTrigger
-            locale={locale}
-            clientId={context.clientId}
-            className={buttonVariants({ variant: 'outline', size: 'sm', className: 'shrink-0' })}
-          >
-            <Icon name="add" />
-            {t('createProfile')}
-          </IntakeFormTrigger>
-        )}
-      </header>
-
-      {targets.missing.length > 0 && (
-        <p className="rounded-md bg-status-attention-bg px-3 py-2.5 leading-relaxed text-status-attention-fg">
-          {t('missingFields', {
-            fields: targets.missing.map((field) => t(`fields.${field}`)).join('، '),
-          })}
-        </p>
-      )}
-
-      <div className="grid grid-cols-2 gap-2.5">
-        <Stat label={t('dailyTarget')}>
-          {context.effectiveKcal === null ? (
-            <Unset label={t('notComputable')} />
-          ) : (
-            <>
-              <strong className="font-heading text-heading-sm font-semibold tabular-nums" dir="ltr">
-                {t('kcalValue', { value: context.effectiveKcal })}
-              </strong>
-              {context.effectiveProteinGrams !== null && (
-                <span className="text-caption text-muted-foreground">
-                  {t('proteinTarget', { value: context.effectiveProteinGrams })}
-                </span>
-              )}
-              {profile?.dailyKcalTarget !== null && profile?.dailyKcalTarget !== undefined && (
-                <span className="text-caption text-primary">{t('override')}</span>
-              )}
-            </>
           )}
-        </Stat>
-
-        <Stat label={t('bmi')}>
-          {targets.bmi === null ? (
-            <Unset />
-          ) : (
-            <>
-              <strong className="font-heading text-heading-sm font-semibold tabular-nums" dir="ltr">
-                {targets.bmi.toFixed(1)}
-              </strong>
-              {targets.bmiCategory && (
-                <span className="text-caption text-muted-foreground">
-                  {t(`bmiCategories.${targets.bmiCategory}`)}
-                </span>
-              )}
-            </>
-          )}
-        </Stat>
-      </div>
-
-      <section className="border-y border-border py-3.5">
-        <h4 className="text-label font-semibold text-muted-foreground">{t('allergies')}</h4>
-        {hasAllergyRecord ? (
-          <div className="mt-2 flex flex-col gap-2">
-            {allergenTags.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {allergenTags.map((tag) => (
-                  <Badge key={tag} variant="medical">
-                    {t(`allergens.${tag}`)}
-                  </Badge>
-                ))}
-              </div>
-            )}
-            {context.allergies && <p className="leading-relaxed">{context.allergies}</p>}
-          </div>
-        ) : (
-          <p className="mt-2 rounded-md bg-status-attention-bg px-3 py-2 leading-relaxed text-status-attention-fg">
-            {t('allergiesMissing')}
-          </p>
-        )}
-      </section>
-
-      <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-        <Section label={t('goal')}>
-          {isMember(CLIENT_GOALS, context.goal) ? tGoals(context.goal) : <Unset />}
-        </Section>
-        <Section label={t('activityLevel')}>
-          {isMember(CLIENT_ACTIVITY_LEVELS, context.activityLevel) ? (
-            tActivity(context.activityLevel)
-          ) : (
-            <Unset />
-          )}
-        </Section>
-      </div>
-
-      <Section label={t('measurements')}>
-        {measurements.length > 0 ? (
-          <div className="mt-1.5 flex flex-wrap gap-1.5">
-            {measurements.map((measurement) => (
-              <span
-                key={measurement.key}
-                className="rounded-md bg-muted px-2.5 py-1.5 text-label text-muted-foreground"
-                dir="auto"
-              >
-                {measurement.value}
-              </span>
-            ))}
-          </div>
-        ) : (
-          <Unset />
-        )}
-      </Section>
-
-      <section>
-        <h4 className="mb-2 text-label font-semibold text-muted-foreground">
-          {t('sections.preferences')}
-        </h4>
-        <div className="divide-y divide-border border-y border-border">
-          {notes.map((note) => (
-            <div key={note.key} className="py-3 first:pt-2.5 last:pb-2.5">
-              <p className="text-label font-semibold text-muted-foreground">{note.label}</p>
-              {note.body ? (
-                <p className="mt-1 leading-relaxed [overflow-wrap:anywhere]" dir="auto">
-                  {note.body}
-                </p>
-              ) : (
-                <Unset />
-              )}
-            </div>
-          ))}
         </div>
-      </section>
-    </div>
-  );
-}
 
-function Stat({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <Card variant="tinted" size="sm" className="min-h-28 shadow-none">
-      <CardContent className="flex h-full flex-col items-start gap-1.5">
-        <span className="text-label font-medium text-muted-foreground">{label}</span>
-        {children}
-      </CardContent>
-    </Card>
-  );
-}
+        <SummaryFact label={t('dailyTarget')} numeric>
+          {context.effectiveKcal === null ? t('unset') : t('kcalValue', { value: context.effectiveKcal })}
+        </SummaryFact>
+        <SummaryFact label={t('fields.proteinTargetGrams')} numeric>
+          {context.effectiveProteinGrams === null
+            ? t('unset')
+            : t('grams', { value: context.effectiveProteinGrams })}
+        </SummaryFact>
+        <SummaryFact label={t('bmi')} numeric>
+          {targets.bmi === null ? t('unset') : targets.bmi.toFixed(1)}
+        </SummaryFact>
+        <SummaryFact label={t('goal')}>
+          {isMember(CLIENT_GOALS, context.goal) ? tGoals(context.goal) : t('unset')}
+        </SummaryFact>
+        <SummaryFact
+          label={t('allergies')}
+          className={cn(
+            allergyText ? 'text-status-medical-fg' : 'text-status-attention-fg',
+            'min-w-44 flex-[1.25]',
+          )}
+        >
+          {allergyText || t('allergiesMissing')}
+        </SummaryFact>
 
-function Section({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <section>
-      <h4 className="text-label font-semibold text-muted-foreground">{label}</h4>
-      <div className="mt-1">{children}</div>
+        <Popover>
+          <PopoverTrigger
+            className={buttonVariants({ variant: 'neutral', size: 'sm', className: 'self-center' })}
+          >
+            <Icon name="info" />
+            {t('planningNotes')}
+          </PopoverTrigger>
+          <PopoverContent align="end" side="bottom" className="max-h-[min(32rem,70vh)] w-80 overflow-y-auto p-4">
+            <PopoverTitle className="text-label font-semibold">{t('planningNotes')}</PopoverTitle>
+
+            {targets.missing.length > 0 && (
+              <p className="rounded-md bg-status-attention-bg px-3 py-2 text-body-sm text-status-attention-fg">
+                {t('missingFields', {
+                  fields: targets.missing.map((field) => t(`fields.${field}`)).join('، '),
+                })}
+              </p>
+            )}
+
+            <dl className="grid grid-cols-2 gap-3 border-y border-border py-3 text-body-sm">
+              <DetailFact label={t('activityLevel')}>
+                {isMember(CLIENT_ACTIVITY_LEVELS, context.activityLevel)
+                  ? tActivity(context.activityLevel)
+                  : t('unset')}
+              </DetailFact>
+              <DetailFact label={t('measurements')}>
+                {measurements.length ? measurements.join(' · ') : t('unset')}
+              </DetailFact>
+            </dl>
+
+            <div className="divide-y divide-border">
+              {notes.map((note) => (
+                <div key={note.key} className="py-2.5 first:pt-0 last:pb-0">
+                  <p className="text-caption font-semibold text-muted-foreground">{note.label}</p>
+                  <p className="mt-1 text-body-sm leading-relaxed [overflow-wrap:anywhere]" dir="auto">
+                    {note.body || t('unset')}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
+      </div>
     </section>
   );
 }
 
-function Unset({ label }: { label?: string }) {
-  const t = useTranslations('weeklyPlans');
-  return <span className="text-label text-muted-foreground">{label ?? t('unset')}</span>;
+function SummaryFact({
+  label,
+  numeric,
+  className,
+  children,
+}: {
+  label: string;
+  numeric?: boolean;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={cn('min-w-28 border-s border-border px-3', className)}>
+      <p className="text-caption text-muted-foreground">{label}</p>
+      <p className="truncate text-label font-semibold" dir={numeric ? 'ltr' : 'auto'} title={String(children)}>
+        {children}
+      </p>
+    </div>
+  );
+}
+
+function DetailFact({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <dt className="text-caption text-muted-foreground">{label}</dt>
+      <dd className="mt-1" dir="auto">{children}</dd>
+    </div>
+  );
 }

@@ -595,8 +595,7 @@
       "bmiValueText": "{value} — {category}",
       "bmiLabel": "كتلة الجسم {category}",
       "noSchedule": "لا يوجد جدول وجبات",
-      "hour": "الساعة",
-      "minute": "الدقيقة",
+      "time": "الوقت",
       "customAllergenLegend": "حساسيات أخرى (لا تُصفّي الكتالوج)",
       "customAllergenPlaceholder": "اسم المادة",
       "addAllergen": "إضافة حساسية",
@@ -821,8 +820,7 @@
         "withdraw": "سحب الطلب",
         "contactNotice": "رقم الهاتف والبريد الإلكتروني مسجّلان لدى العيادة، ويحتاج تغييرهما إلى تحقّق. اطلبي التغيير وستتواصل معكِ العيادة لتأكيده.",
         "contactAction": "طلب تغيير رقم الهاتف أو البريد"
-      },
-      "healthNote": "كلما كانت معلوماتك مكتملة، كانت خطتك الغذائية أكثر دقة وفعالية."
+      }
     },
     "errors": {
       "invalid": "تحقّق مما أدخلته وحاول مجددًا.",
@@ -1046,9 +1044,8 @@
         "title": "الحساب",
         "profileRow": "الملف الشخصي",
         "profileRowDescription": "اسمك وتاريخ ميلادك ووسيلتا التواصل المسجّلتان لدى العيادة.",
-        "identifierNote": "يُستخدمان للدخول والتواصل، ويحتاج تغييرهما إلى تحقّق من العيادة.",
         "security": "كلمة المرور والأمان",
-        "securityDescription": "تغيير كلمة المرور، وعنوان الدخول."
+        "securityDescription": "تغيير كلمة المرور."
       },
       "support": {
         "title": "الدعم والمساعدة",
@@ -1065,8 +1062,6 @@
       },
       "security": {
         "title": "كلمة المرور والأمان",
-        "signInAddress": "عنوان الدخول",
-        "signInAddressNote": "هذا هو البريد الذي تدخلين به إلى التطبيق. لتغييره، تواصلي مع العيادة.",
         "passwordTitle": "تغيير كلمة المرور",
         "passwordBody": "أدخل كلمة مرورك الحالية، ثم اختر كلمة مرور جديدة.",
         "currentPasswordLabel": "كلمة المرور الحالية",
@@ -1167,12 +1162,21 @@
   "weeklyPlans": {
     "title": "الخطط الأسبوعية",
     "clients": "المشتركين",
-    "noClientTitle": "اختر مشتركاً للبدء",
-    "noClientHint": "ستظهر خطة الأسبوع هنا بمجرد اختيار مشترك. كتالوج الأطباق متاح في اللوحة الجانبية الآن.",
+    "noClientTitle": "لمن ستُعدّ الخطة؟",
+    "noClientHint": "ابحث في قائمة المشتركين أو تابع مع مشترك اقترب موعده.",
     "searchClients": "ابحث عن مشترك",
     "noClients": "لا يوجد مشتركون نشطون",
+    "suggestedClientsTitle": "مشتركون مقترحون",
+    "suggestedClientsHint": "المواعيد القادمة أولاً، ثم أحدث الزيارات السابقة.",
+    "suggestionReason": {
+      "nextAppointment": "الموعد القادم {when}",
+      "lastAppointment": "آخر موعد {when}",
+      "activeClient": "مشترك نشط"
+    },
+    "noActiveClientsHint": "أضف مشتركًا نشطًا قبل إعداد خطة أسبوعية.",
+    "browseClients": "فتح المشتركين",
     "noPlanYet": "لم يُخطط أسبوع لهذا المشترك بعد",
-    "noPlanHint": "أنشئ الأسبوع الأول عندما تكون جاهزاً. يبقى ملف المشترك وكتالوج الأطباق والخطط السابقة متاحة في اللوحة الجانبية.",
+    "noPlanHint": "أنشئ الأسبوع الأول عندما تكون جاهزًا. يبقى ملخص المشترك في الأعلى، ويُفتح الكتالوج والخطط السابقة من الشريط العلوي.",
     "current": "الخطة الحالية",
     "currentWeekOf": "الخطة الحالية · أسبوع {date}",
     "openBoard": "فتح اللوحة",
@@ -1229,6 +1233,9 @@
     "profileTitle": "الملف الغذائي",
     "profileSubtitle": "بيانات {name} التي تُبنى عليها الخطة",
     "planningSnapshot": "ملخص سريع للتخطيط",
+    "planningNotes": "ملاحظات التخطيط",
+    "dishCatalog": "كتالوج الأطباق",
+    "dishCatalogHint": "اسحب طبقًا إلى وجبة. يُغلق الكتالوج عند بدء السحب.",
     "allergiesMissing": "لم تُسجّل معلومات الحساسية. تأكد منها قبل نشر الخطة.",
     "suggested": "المقترح: {value}",
     "shareTotal": "مجموع النسب {value}%",
@@ -1276,10 +1283,13 @@
     "targetDifference": "{value} kcal",
     "browseAllDishes": "تصفح جميع الأطباق",
     "replaceMeal": "استبدال",
+    "mealReplaced": "تم استبدال الوجبة",
+    "mealReplacedHint": "تم حفظ البديل في خانة الوجبة هذه.",
     "originalPosition": "المكان الأصلي",
     "swapWith": "تبديل مع",
     "moveHere": "نقل إلى هنا",
     "mealMoved": "تم نقل {name}",
+    "mealMovedHint": "حُفظت الوجبة في موضعها الجديد.",
     "undo": "تراجع",
     "offBudget": "خارج نطاق السعرات",
     "status": {
@@ -1624,8 +1634,6 @@
     "day": "اليوم",
     "opens": "من",
     "closes": "إلى",
-    "hour": "الساعة",
-    "minute": "الدقيقة",
     "applyToAll": "الساعات نفسها كل يوم",
     "applyToAllSource": "ينسخ ساعات {day} إلى كل أيام العمل.",
     "leaveTitle": "الخروج دون حفظ؟",

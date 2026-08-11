@@ -138,10 +138,12 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
           </SettingsSection>
 
           {/*
-            The two ways out, in one card and in this order. Sign-out is ordinary
-            ink because it is an everyday, reversible act; the row beneath it is
-            the one that earns clay. `portal-sign-out.tsx` makes the same
-            argument from the other side.
+            The two ways out, in one card and in this order. Both are clay, and
+            the difference between them is the register rather than the hue:
+            sign-out is `destructiveGhost` — a clay label with no box, the shape
+            §Buttons gives a destructive action sitting *among* other controls —
+            while deleting an account is the one that closes a decision. See
+            `portal-sign-out.tsx`.
           */}
           <Card>
             <CardContent className="flex flex-col divide-y divide-border">

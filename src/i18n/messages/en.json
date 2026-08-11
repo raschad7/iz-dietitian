@@ -595,8 +595,7 @@
       "bmiValueText": "{value} — {category}",
       "bmiLabel": "BMI {category}",
       "noSchedule": "No meal schedule",
-      "hour": "Hour",
-      "minute": "Minute",
+      "time": "Time",
       "customAllergenLegend": "Other allergies (these do not filter the catalog)",
       "customAllergenPlaceholder": "Name it",
       "addAllergen": "Add an allergy",
@@ -821,8 +820,7 @@
         "withdraw": "Withdraw request",
         "contactNotice": "Your phone number and email are held by the clinic, and changing either one needs to be verified. Ask for the change and the clinic will confirm it with you.",
         "contactAction": "Request a phone or email change"
-      },
-      "healthNote": "The more complete your record, the more precise and effective your plan can be."
+      }
     },
     "errors": {
       "invalid": "Check what you entered and try again.",
@@ -1046,9 +1044,8 @@
         "title": "Account",
         "profileRow": "Personal profile",
         "profileRowDescription": "Your name, date of birth, and the contact details the clinic holds.",
-        "identifierNote": "Both are how you sign in and how the clinic reaches you; changing either goes through the clinic.",
         "security": "Password and security",
-        "securityDescription": "Change your password, and the address you sign in with."
+        "securityDescription": "Change your password."
       },
       "support": {
         "title": "Support and help",
@@ -1065,8 +1062,6 @@
       },
       "security": {
         "title": "Password and security",
-        "signInAddress": "Sign-in address",
-        "signInAddressNote": "This is the email you sign in with. To change it, contact the clinic.",
         "passwordTitle": "Change your password",
         "passwordBody": "Enter your current password, then choose a new one.",
         "currentPasswordLabel": "Current password",
@@ -1167,12 +1162,21 @@
   "weeklyPlans": {
     "title": "Weekly Plans",
     "clients": "Clients",
-    "noClientTitle": "Choose a client to start",
-    "noClientHint": "The week's plan appears here once a client is chosen. The dish catalog is browsable in the side panel already.",
+    "noClientTitle": "Who are you planning for?",
+    "noClientHint": "Search the client list or continue with someone whose appointment is coming up.",
     "searchClients": "Search clients",
     "noClients": "No active clients",
+    "suggestedClientsTitle": "Suggested clients",
+    "suggestedClientsHint": "Upcoming appointments first, followed by the most recent visits.",
+    "suggestionReason": {
+      "nextAppointment": "Next appointment {when}",
+      "lastAppointment": "Last appointment {when}",
+      "activeClient": "Active client"
+    },
+    "noActiveClientsHint": "Add an active client before building a weekly plan.",
+    "browseClients": "Open clients",
     "noPlanYet": "No week has been planned for this client yet",
-    "noPlanHint": "Create the first week when you are ready. The client profile, dish catalog, and earlier plans remain available in the side panel.",
+    "noPlanHint": "Create the first week when you are ready. The client summary stays above, while the catalog and earlier plans open from the header.",
     "current": "Current plan",
     "currentWeekOf": "Current plan · week of {date}",
     "openBoard": "Open the board",
@@ -1229,6 +1233,9 @@
     "profileTitle": "Nutrition profile",
     "profileSubtitle": "The data {name}'s plan is built from",
     "planningSnapshot": "Planning snapshot",
+    "planningNotes": "Planning notes",
+    "dishCatalog": "Dish catalog",
+    "dishCatalogHint": "Drag a dish onto a meal. The catalog closes when the drag begins.",
     "allergiesMissing": "Allergy information has not been recorded. Confirm it before publishing.",
     "suggested": "Suggested: {value}",
     "shareTotal": "Shares total {value}%",
@@ -1276,10 +1283,13 @@
     "targetDifference": "{value} kcal",
     "browseAllDishes": "Browse all dishes",
     "replaceMeal": "Replace",
+    "mealReplaced": "Meal replaced",
+    "mealReplacedHint": "The alternative is now saved in this meal slot.",
     "originalPosition": "Original position",
     "swapWith": "Swap with",
     "moveHere": "Move here",
     "mealMoved": "Moved {name}",
+    "mealMovedHint": "The meal was saved in its new position.",
     "undo": "Undo",
     "offBudget": "Outside the calorie band",
     "status": {
@@ -1624,8 +1634,6 @@
     "day": "Day",
     "opens": "Opens",
     "closes": "Closes",
-    "hour": "Hour",
-    "minute": "Minute",
     "applyToAll": "Same hours every day",
     "applyToAllSource": "Copies {day}'s hours to every open day.",
     "leaveTitle": "Leave without saving?",

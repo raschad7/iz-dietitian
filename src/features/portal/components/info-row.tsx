@@ -15,11 +15,13 @@ import { cn } from '@/lib/utils';
  * happens once for the whole record, and it lives at the bottom of the screen.
  *
  * **Not provided is a state, not an empty string.** An unfilled field reads
- * `غير مسجل` in a dashed neutral chip — `Badge variant="incomplete"`, whose own
- * note says an incomplete is "an absence rather than an event". It is the same
- * dashed language the unrecorded stat tiles above it use, so one glance down the
- * screen says which parts of the record are still blank. The value is never
- * invented to fill the space.
+ * `غير مسجل` in a dashed amber chip — `Badge variant="unrecorded"`, which keeps
+ * the dashed edge that says "absence rather than event" and takes §Status's
+ * "needs follow-up" fill for the colour. It is the same dashed language the
+ * unrecorded stat tiles above it use, so one glance down the screen says which
+ * parts of the record are still blank — and now says it warmly enough to be
+ * seen. The value is never invented to fill the space. See the variant's own
+ * note for why this is amber and deliberately not clay.
  *
  * **Three shapes, chosen by the content rather than by the caller's taste.**
  * A short value sits at the inline-end of its own label's line; prose — an
@@ -71,7 +73,7 @@ export function InfoRow({
   const stacked = block && !empty;
 
   const content = empty ? (
-    <Badge variant="incomplete">{t('notRecorded')}</Badge>
+    <Badge variant="unrecorded">{t('notRecorded')}</Badge>
   ) : ltr ? (
     /*
       `<bdi>` and not `dir` on the `dd`. Both set the internal order, but `dir`
@@ -90,9 +92,34 @@ export function InfoRow({
       line without a wrapper around the label — `<dl>` grouping allows a `div`
       holding a `dt`/`dd` pair, but only as their *direct* parent, so nesting one
       around the label alone would be invalid markup.
+
+      **It wraps only when it is meant to.** `flex-wrap` was on every row, so an
+      inline value that outgrew the space left beside its label dropped onto a
+      line of its own — the working hours did exactly that, and the row then
+      read as a label with an orphaned string under it instead of as a pair.
+      Wrapping belongs to the `stacked` shape, which asks for it; an inline row
+      keeps its two parts on one line and lets a long value wrap *inside* the
+      value column, against the row's own inline-end edge.
     */
-    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 py-3">
-      <dt className="flex min-w-0 items-center gap-2.5 text-sm text-muted-foreground">
+    <div
+      className={cn(
+        'flex items-center justify-between gap-x-3 gap-y-2 py-3',
+        stacked && 'flex-wrap',
+      )}
+    >
+      {/*
+        `shrink-0` on an inline row: the label is the shorter, fixed half of the
+        pair, so when something has to give it should be the value wrapping
+        inside its own column, not the label breaking across two lines beside a
+        value that fits on one. A `stacked` row keeps the label shrinkable — the
+        value is on its own line there and is not competing for the space.
+      */}
+      <dt
+        className={cn(
+          'flex items-center gap-2.5 text-sm text-muted-foreground',
+          stacked ? 'min-w-0' : 'shrink-0',
+        )}
+      >
         {icon ? (
           <span
             aria-hidden

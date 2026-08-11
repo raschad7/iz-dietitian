@@ -2,7 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
 
 import { weekdayOf } from '@/features/booking/date';
-import { Sidebar } from '@/components/layout/sidebar';
+import { AppShell } from '@/components/layout/sidebar';
 import { PORTAL_NAV, PORTAL_NAV_ICONS } from '@/features/portal/nav';
 import { HomeGlow } from '@/features/portal/components/home-glow';
 import { PortalHeader } from '@/features/portal/components/portal-header';
@@ -70,23 +70,35 @@ export default async function PortalTabsLayout({ children, params }: PortalTabsL
       />
 
       {/*
-        The three `portal-shell-*` hooks are inert on four of the five tabs.
-        They only do anything when the page inside them is the home screen,
-        which marks its own root `.portal-home` — the shell then becomes a
-        viewport-height frame and these three become the flex column that
-        carries its one scrolling region down to the meal list. The rule, and
-        why it is written as a `:has()` selector rather than as a route check
-        up here, is in `globals.css` beside `.portal-home-glow`.
-      */}
-      <div className="portal-shell-row flex flex-1">
-        <Sidebar items={PORTAL_NAV} title={t('title')} icons={PORTAL_NAV_ICONS} showMobileBar={false} />
+        `showTitle={false}`: the portal's name is not drawn anywhere in the
+        client's own app. `PortalHeader` directly above already opens the
+        screen with who they are and what day it is, and a second bar naming
+        the product told them which app they had just opened. The string is
+        still the rail's accessible name — see `AppShell`.
 
+        There is no `showMobileBar` any more: `AppShell` renders the phone app
+        bar only where there is a `user`, which is the staff area. This group
+        already has two pieces of navigation under `md` — `PortalTabBar` along
+        the block-end edge with these same five destinations, and
+        `PortalHeader` above with the bell and settings — so the rail's own bar
+        would be a third.
+
+        `portal-shell-main`/`portal-shell-column` are inert on four of the
+        five tabs. They only do anything when the page inside them is the home
+        screen, which marks its own root `.portal-home` — the shell then
+        becomes a viewport-height frame and these two become part of the flex
+        column that carries its one scrolling region down to the meal list.
+        The rule, why it also reaches into `AppShell`'s own `data-slot`
+        wrappers, and why it is written as a `:has()` selector rather than as
+        a route check up here, is in `globals.css` beside `.portal-home-glow`.
+      */}
+      <AppShell items={PORTAL_NAV} title={t('title')} showTitle={false} icons={PORTAL_NAV_ICONS}>
         <main className="portal-shell-main min-w-0 flex-1 px-4 pt-5 pb-24 md:px-6 md:pt-6 md:pb-8">
           <div className="portal-shell-column mx-auto w-full max-w-3xl">{children}</div>
         </main>
 
         <PortalTabBar />
-      </div>
+      </AppShell>
     </>
   );
 }

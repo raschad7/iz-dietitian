@@ -1,8 +1,9 @@
 'use client';
 
 import { Select } from '@base-ui/react/select';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 
+import { useDialogContainer } from '@/components/ui/dialog';
 import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { type Locale } from '@/i18n/routing';
@@ -78,10 +79,13 @@ export function PhoneField({
    * behind the open dialog no matter its z-index — the popup would "work"
    * and be entirely invisible. Portaling into a node that is itself a
    * descendant of the dialog keeps the popup in the same top-layer subtree.
-   * `display: contents` on that node keeps it out of this row's flex layout
-   * — it holds no content of its own until the popup opens.
+   *
+   * This used to be a local `display: contents` div held by a ref. It is the
+   * shared `useDialogContainer()` now, which is the same element every other
+   * popup in the app portals into, and it returns `null` outside a dialog —
+   * where Base UI's `document.body` default is correct.
    */
-  const portalContainerRef = useRef<HTMLDivElement>(null);
+  const container = useDialogContainer();
 
   function update(next: { country: CountryCode; national: string }): void {
     setValue(next);
@@ -90,7 +94,6 @@ export function PhoneField({
 
   return (
     <div className="flex items-center gap-2">
-      <div ref={portalContainerRef} className="contents" />
       {/*
         The field the form actually submits. The two visible controls carry no
         `name`, so a server action goes on reading one `phone` value and needs
@@ -128,11 +131,48 @@ export function PhoneField({
           </Select.Icon>
         </Select.Trigger>
 
-        <Select.Portal container={portalContainerRef}>
-          <Select.Positioner sideOffset={4} className="z-50" alignItemWithTrigger={false}>
+        <Select.Portal container={container ?? undefined}>
+          {/*
+            `align="start"`, not the positioner's centred default.
+
+            The trigger is a 5.5rem dial-code chip and the list is 18rem wide,
+            so centring hung roughly 6rem of it off the side of a control it is
+            supposed to belong to — and on a narrow window that overhang is what
+            decides whether the list appears left or right of the field, which
+            is not a decision the pointer can predict. Anchored to the field's
+            own inline-start edge it grows in one direction, in both scripts.
+          */}
+          <Select.Positioner
+            sideOffset={4}
+            align="start"
+            className="z-50"
+            alignItemWithTrigger={false}
+            /*
+              **Inside a dialog the list has to position itself `fixed`.**
+              Being portalled into the dialog also means being a child of it,
+              and the dialog scrolls its own overflow — so an absolutely
+              positioned popup takes the dialog as its containing block and is
+              clipped at the dialog's edge. With 240 countries the list is
+              taller than the card that holds it, so it was cut off part-way
+              down with no way to reach the rest.
+
+              A fixed popup's containing block is the viewport, so the dialog's
+              clip no longer applies and the list is capped by the room the
+              positioner actually found. `popover.tsx` and `combobox.tsx`
+              already did this; this field and `select.tsx` were the two that
+              never got it.
+            */
+            positionMethod={container ? 'fixed' : undefined}
+          >
             <Select.Popup
               className={cn(
-                'max-h-72 w-72 overflow-y-auto rounded-lg border border-border bg-popover p-1 shadow-elevated',
+                /*
+                  `max-h-(--available-height)` rather than a flat `max-h-72`:
+                  the positioner reports the space it found, so the list is
+                  capped by the viewport instead of by a guess that can still
+                  overrun a short window.
+                */
+                'max-h-(--available-height) w-72 overflow-y-auto rounded-lg border border-border bg-popover p-1 shadow-elevated',
                 'motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 motion-safe:duration-200',
               )}
             >

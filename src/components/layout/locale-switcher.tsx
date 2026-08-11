@@ -3,23 +3,37 @@
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useId, useRef, useState, useTransition } from 'react';
 
+import {
+  DropdownMenuGroup,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+} from '@/components/ui/dropdown-menu';
 import { Icon } from '@/components/ui/icon';
 import { usePathname, useRouter } from '@/i18n/navigation';
 import { locales, type Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 
 /**
- * Two shapes, one control.
+ * Three shapes, one control.
  *
- * `group` is the rail's and the portal bar's: both locales visible at once, in
- * 40px of a rail's width. `dropdown` is the auth screens', where the switcher
- * sits alone in the corner of a wide, otherwise empty page — there is room for
- * the endonyms there, and a page with one card on it should not carry a second
- * segmented control above the one that picks who is signing in.
+ * `group` is the portal bar's: both locales visible at once, in 40px of width.
+ * `dropdown` is the auth screens', where the switcher sits alone in the corner
+ * of a wide, otherwise empty page — there is room for the endonyms there, and a
+ * page with one card on it should not carry a second segmented control above
+ * the one that picks who is signing in. `menu` is the rail's, and it is not a
+ * control of its own at all: it returns menu items, to be spread into the
+ * account menu's popup alongside the destinations and the sign-out.
+ *
+ * The rail used to take `group` — a segmented control wedged into a panel of
+ * menu rows, the one thing in it that was neither a destination nor an action.
+ * As two radio items it is the same choice in the shape everything around it
+ * already has, and the check mark says which one is live without a filled chip
+ * having to out-shout the row above it.
  */
 type LocaleSwitcherProps = {
   className?: string;
-  variant?: 'group' | 'dropdown';
+  variant?: 'group' | 'dropdown' | 'menu';
 };
 
 export function LocaleSwitcher({ className, variant = 'group' }: LocaleSwitcherProps) {
@@ -37,6 +51,18 @@ export function LocaleSwitcher({ className, variant = 'group' }: LocaleSwitcherP
     });
   }
 
+  if (variant === 'menu') {
+    return (
+      <LocaleMenuItems
+        activeLocale={activeLocale}
+        disabled={isPending}
+        label={t('label')}
+        name={(locale) => t(`${locale}Name`)}
+        onSelect={switchTo}
+      />
+    );
+  }
+
   if (variant === 'dropdown') {
     return (
       <LocaleDropdown
@@ -49,7 +75,7 @@ export function LocaleSwitcher({ className, variant = 'group' }: LocaleSwitcherP
   }
 
   return (
-    // `h-10` matches the sign-out button stacked below it in the rail — both
+    // `h-10` matches the sign-out button beside it in the portal's bar — both
     // are the 40px compact size, and a switcher two thirds that height made the
     // pair read as ragged.
     <div
@@ -100,6 +126,48 @@ export function LocaleSwitcher({ className, variant = 'group' }: LocaleSwitcherP
         </button>
       ))}
     </div>
+  );
+}
+
+/**
+ * The rail's account menu, as two radio items under a label.
+ *
+ * The endonyms, not the `AR` / `EN` codes: the codes exist because the `group`
+ * variant has to fit two locales into 40px, and a menu row is as wide as the
+ * menu. `lang` follows the glyphs — it is on here, where the label really is
+ * "العربية", and off in `group`, where tagging Latin `AR` as Arabic would have
+ * a screen reader spell two letters in the wrong language.
+ *
+ * A radio group rather than items that toggle: exactly one is true at a time,
+ * and the check mark is a state, not an action you just took.
+ */
+function LocaleMenuItems({
+  activeLocale,
+  disabled,
+  label,
+  name,
+  onSelect,
+}: {
+  activeLocale: Locale;
+  disabled: boolean;
+  label: string;
+  name: (locale: Locale) => string;
+  onSelect: (locale: Locale) => void;
+}) {
+  return (
+    <DropdownMenuGroup>
+      <DropdownMenuLabel>{label}</DropdownMenuLabel>
+      <DropdownMenuRadioGroup
+        value={activeLocale}
+        onValueChange={(next) => onSelect(next as Locale)}
+      >
+        {locales.map((locale) => (
+          <DropdownMenuRadioItem key={locale} value={locale} disabled={disabled}>
+            <span lang={locale}>{name(locale)}</span>
+          </DropdownMenuRadioItem>
+        ))}
+      </DropdownMenuRadioGroup>
+    </DropdownMenuGroup>
   );
 }
 

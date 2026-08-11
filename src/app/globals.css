@@ -412,11 +412,15 @@
   --color-status-complete-bg: var(--status-complete-bg);
   --color-status-complete-mark: var(--status-complete-mark);
   --color-status-complete-mark-soft: var(--status-complete-mark-soft);
+  --color-planner-tag-cheap: var(--planner-tag-cheap);
+  --color-planner-tag-portable: var(--planner-tag-portable);
+  --color-planner-tag-quick: var(--planner-tag-quick);
+  --color-planner-tag-vegetarian: var(--planner-tag-vegetarian);
+  --color-planner-tag-high-protein: var(--planner-tag-high-protein);
+  --color-planner-tag-diabetic-friendly: var(--planner-tag-diabetic-friendly);
   --color-progress-track: var(--progress-track);
   --color-progress-card-border: var(--progress-card-border);
 
-  --color-commitment-card-from: var(--commitment-card-from);
-  --color-commitment-card-to: var(--commitment-card-to);
   --color-commitment-card-figure: var(--commitment-card-figure);
   --color-commitment-card-stat: var(--commitment-card-stat);
 
@@ -623,13 +627,19 @@
   --progress-card-border: var(--olive-200);
 
   /*
-   * The home screen's "commitment today" hero — a lime-to-olive wash, the
-   * same fill-vs-foreground pairing the streak chart already speaks (lime is
-   * the wash, olive is what reads on top of it), so this card and the ring
-   * above it agree without sharing a component.
+   * The home screen's "commitment today" hero.
+   *
+   * **The surface is `--card`, not a token of its own.** It was a lime-to-olive
+   * wash — a `-from` and a `-to` that lived here for it — and the card sits on
+   * the portal's green home glow, so a tinted card on a tinted ground left the
+   * two the same colour family and the card stopped reading as a surface. It is
+   * plain white with `Card`'s own hairline now, which also means it inverts with
+   * the rest of the portal's dark theme instead of needing the wash restated
+   * twice below. The two ramp stops are gone; only the two foregrounds remain,
+   * and they still need to invert.
+   *
+   * olive-800 and olive-700 on white are 10.4:1 and 6.51:1.
    */
-  --commitment-card-from: var(--lime-100);
-  --commitment-card-to: var(--olive-400);
   --commitment-card-figure: var(--olive-800);
   --commitment-card-stat: var(--olive-700);
 
@@ -874,9 +884,7 @@
   --progress-card-edge: var(--olive-950);
   --progress-card-border: var(--olive-800);
 
-  /* The wash sits lower on the ramp so it stays a card, not a light on the dark canvas; text goes light to keep reading on it. */
-  --commitment-card-from: var(--olive-800);
-  --commitment-card-to: var(--olive-600);
+  /* The card is `--card` here as everywhere; only its two foregrounds go light to keep reading on the dark surface. */
   --commitment-card-figure: var(--n-25);
   --commitment-card-stat: var(--olive-200);
 
@@ -1001,8 +1009,6 @@
     --progress-card-edge: var(--olive-950);
     --progress-card-border: var(--olive-800);
 
-    --commitment-card-from: var(--olive-800);
-    --commitment-card-to: var(--olive-600);
     --commitment-card-figure: var(--n-25);
     --commitment-card-stat: var(--olive-200);
 
@@ -1126,6 +1132,37 @@
   --muted: var(--c-50);                 /* bg.sunken — now the app-wide value too */
   --accent: var(--c-100);               /* ambient hover tint */
   --muted-foreground: var(--c-600);     /* text.secondary — 7.46:1 on white, clears the 6.38:1 floor n-600 set */
+
+  /* Dish tags are identity marks, not statuses. These darker stops keep the
+     two-pixel divider legible without turning the meal card into a badge. */
+  --planner-tag-cheap: var(--amber-700);
+  --planner-tag-portable: var(--n-700);
+  --planner-tag-quick: var(--flame-700);
+  --planner-tag-vegetarian: var(--olive-600);
+  --planner-tag-high-protein: var(--olive-800);
+  --planner-tag-diabetic-friendly: var(--c-600);
+}
+
+/* Each row cell paints one segment of a continuous rule and reaches halfway
+   into the 16px column gutter. The scroll frame clips the two outer reaches. */
+.planner-row-cell {
+  position: relative;
+  min-width: 0;
+}
+
+.planner-row-cell::before {
+  position: absolute;
+  z-index: 0;
+  inset-block-start: 0;
+  inset-inline: -0.5rem;
+  border-block-start: 1px solid var(--border);
+  content: '';
+}
+
+.planner-row-cell > * {
+  position: relative;
+  z-index: 1;
+  height: 100%;
 }
 
 @layer base {
@@ -1168,31 +1205,39 @@
   }
 
   /*
-   * ── Custom scrollbar ──
-   * Same track/thumb structure the platform default draws — a plain
-   * rectangular thumb inset from the edge, no radius — recoloured to
-   * olive-100. Declared in `@layer base` so `@utility no-scrollbar` (the
-   * calendar grid's opt-out) still wins: Tailwind's utilities layer outranks
-   * base regardless of selector specificity.
+   * ── No scrollbars, anywhere ──
+   *
+   * Every scroller in the app scrolls by wheel, trackpad, touch, keyboard and
+   * drag; none of them draws a bar. This replaced a 14px olive-100 bar styled
+   * to match the platform's own track/thumb structure.
+   *
+   * **This is also what fixes the layout shift**, which is the reason it was
+   * asked for. A classic scrollbar takes its width out of the content box, so
+   * a surface that grows past its container — the intake dialog when a
+   * textarea expands under `field-sizing-content`, the register when it passes
+   * a screenful — lost 14px of content width at the instant the bar appeared,
+   * and everything inside it jumped sideways. A bar with no width cannot do
+   * that, so there is nothing left to reserve space for: `scrollbar-gutter:
+   * stable` would now reserve a gutter of zero and is deliberately not here.
+   *
+   * `*` rather than `html`: `scrollbar-width` is not an inherited property, so
+   * the root alone would leave every nested scroller — dialog bodies, the
+   * register, the planner board, popup lists — drawing bars of their own.
+   *
+   * ⚠ **The trade is real.** A scrollbar is also the signal that there is more
+   * to see and the only pointer-driven way to jump a long way through it, and
+   * this file used to say in as many words: "Do not reach for this on an
+   * ordinary long page." It is now on every page, by request. Two things keep
+   * it honest, and both are worth preserving — surfaces that can overflow
+   * should show their own affordance (the select's scroll buttons are the
+   * model), and nothing may rely on a bar being visible to tell a reader that
+   * content continues.
    */
-  html {
-    scrollbar-width: auto;
-    scrollbar-color: var(--olive-100) transparent;
+  * {
+    scrollbar-width: none;
   }
   ::-webkit-scrollbar {
-    width: 14px;
-    height: 14px;
-  }
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  ::-webkit-scrollbar-thumb {
-    background-color: var(--olive-100);
-    border: 3px solid transparent;
-    background-clip: padding-box;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    background-color: var(--olive-200);
+    display: none;
   }
 
   /*
@@ -1287,9 +1332,9 @@
    * chose is a control you have to go back for, and the day's own total
    * belongs above the meals it totals rather than somewhere up the scrollback.
    *
-   * **Why a `:has()` rule and not four conditional class names.** The frame is
-   * assembled by four files that cannot see the route — `portal/layout.tsx`
-   * owns the shell, `(tabs)/layout.tsx` owns the row, the main column and the
+   * **Why a `:has()` rule and not conditional class names.** The frame is
+   * assembled by files that cannot see the route — `portal/layout.tsx` owns
+   * the shell, `(tabs)/layout.tsx` owns `AppShell`, the main column and the
    * measure, `(tabs)/template.tsx` owns the route-enter stage every page
    * mounts inside, and only `(tabs)/page.tsx` knows it is the home screen.
    * That page marks its own root `.portal-home`, and the shell reacts. The
@@ -1305,6 +1350,28 @@
    * overflow would climb straight back out to the document — the exact
    * scrolling this replaces, only now with the shell clipping it.
    *
+   * **Two of the steps are `AppShell`'s own, targeted by `data-slot` rather
+   * than a class of ours.** `[data-slot="sidebar-wrapper"]` is
+   * `SidebarProvider`'s row (rail beside the page) and carries its own
+   * `min-h-svh`, which fights a fixed-height shell exactly the way an
+   * unset `min-height` would; `[data-slot="sidebar-inset"]` is the `<main>`
+   * shadcn's sidebar renders as the page itself, already `flex flex-1
+   * flex-col`. Neither exposes a `className` through `AppShell`'s own props,
+   * so `data-slot` — which the primitive sets regardless — is the only hook
+   * available. Both are still scoped under `.portal-shell:has(.portal-home)`,
+   * so the staff app's own `AppShell` usage, built on the same primitives, is
+   * untouched.
+   *
+   * **`[data-slot="sidebar-inset"]` also loses its own `bg-background`.**
+   * That `<main>` is shadcn's, opaque by default, and it sits directly under
+   * the header — which is exactly where `.portal-home-glow` is meant to still
+   * be fading. Before `AppShell` there was no background on this wrapper at
+   * all, so the blur trailed off on its own math; with one restored, the glow
+   * gets clipped hard at the header's lower edge instead of fading, and reads
+   * as a flat green band rather than a wash. Made transparent again, scoped
+   * the same way, so the other four tabs keep the opaque page behind them.
+   *
+
    * ⚠ **`.q-route-stage` is the one wrapper this chain does not own.**
    * `template.tsx` renders it with no flex or height classes of its own — it
    * exists purely for the route-enter animation — so left alone it sits
@@ -1313,8 +1380,8 @@
    * broke every step below it: the meal list never received a bounded height
    * to overflow *within*, so nothing scrolled and the tail of the day's meals
    * was simply clipped by this rule's own `overflow: hidden` instead of
-   * reachable. It gets the same treatment as the other three wrappers, scoped
-   * the same way.
+   * reachable. It gets the same treatment as the other wrappers, scoped the
+   * same way.
    *
    * The other four tabs are untouched: no `.portal-home` inside them, so the
    * shell keeps `min-h-dvh` and the window scrolls as it always has.
@@ -1324,8 +1391,13 @@
     overflow: hidden;
   }
 
-  .portal-shell:has(.portal-home) .portal-shell-row {
+  .portal-shell:has(.portal-home) [data-slot='sidebar-wrapper'] {
     min-height: 0;
+  }
+
+  .portal-shell:has(.portal-home) [data-slot='sidebar-inset'] {
+    min-height: 0;
+    background: transparent;
   }
 
   .portal-shell:has(.portal-home) .portal-shell-main {
@@ -1675,12 +1747,38 @@
   animation-name: q-route-enter-rtl;
 }
 
+/*
+ * `backwards`, never `both`, on the way in — and the difference is a bug, not a
+ * preference.
+ *
+ * Both entrance keyframes below declare only a `from`. Under `both` the
+ * forwards fill keeps the animation's properties applied to the element for as
+ * long as it is open, so a settled dialog still computes
+ * `transform: matrix(1, 0, 0, 1, 0, 0)` and `filter: blur(0px)` instead of
+ * `none`. Identity and zero, but *not* `none` — and any transform or filter
+ * other than `none` makes the element the containing block for every
+ * `position: fixed` descendant it has.
+ *
+ * That is what put the select menus and the date picker in the wrong place.
+ * They measure their trigger against the viewport and position themselves
+ * `fixed` at those coordinates; inside an open dialog those coordinates were
+ * being resolved against the dialog instead, so each popup landed offset by
+ * roughly the dialog's own top-left — measured at 408px on a 1280px viewport.
+ *
+ * `backwards` keeps the only thing the fill was wanted for (the from-state
+ * applied before the first frame, so there is no flash on slower devices) and
+ * drops the part that never should have persisted.
+ *
+ * The closing rules below keep `both`: their keyframes declare only a `to`, so
+ * they need the forwards fill to hold the end state until the dialog actually
+ * closes, and a closing dialog has nothing left to mis-anchor.
+ */
 .q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) {
-  animation: q-dialog-in-sheet 200ms var(--ease-sweep) both;
+  animation: q-dialog-in-sheet 200ms var(--ease-sweep) backwards;
 }
 
 .q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer)::backdrop {
-  animation: q-dialog-backdrop-in 160ms ease-out both;
+  animation: q-dialog-backdrop-in 160ms ease-out backwards;
 }
 
 .q-dialog[data-closing='true']:not(.planner-context-sheet):not(.app-navigation-drawer) {
@@ -2014,18 +2112,12 @@
 /*
  * A scroller with no visible scrollbar.
  *
- * The content still scrolls — by wheel, trackpad, touch and keyboard — only the
- * bar itself is gone. Used by the calendar grid, which is sized to fit its panel
- * and shows a bar only in the cases it cannot: a window too short for the
- * clinic day at a readable slot height, or a week too narrow for seven columns.
- * Also used by the dashboard agenda's appointment list, on request — that one
- * genuinely can overflow with a full day, so the caution below applies to it
- * more than to the calendar.
- *
- * The trade is real and worth stating: hiding the bar also hides the *signal*
- * that there is more to see. It is acceptable on the calendar because it is
- * fitted to the panel in normal use, so the hidden overflow is the exception
- * rather than the resting state. Do not reach for this on an ordinary long page.
+ * **Redundant since scrollbars were hidden app-wide** — see "No scrollbars,
+ * anywhere" in `@layer base`. It is kept because its call sites (the calendar
+ * grid and the dashboard agenda's appointment list) are saying something true
+ * about themselves: these are surfaces deliberately fitted to their panel,
+ * where overflow is the exception rather than the resting state. If the global
+ * rule is ever reconsidered, this is the list of places that still want it.
  */
 @utility no-scrollbar {
   scrollbar-width: none;

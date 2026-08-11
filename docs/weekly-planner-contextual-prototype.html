@@ -1,0 +1,1626 @@
+<!doctype html>
+<!--
+THESIS: The week is the workspace; secondary tools appear from the object being edited instead of occupying a permanent side rail.
+OWN-WORLD: Qiwam olive actions, lime emphasis, quiet warm-neutral canvas, white working cells, Tajawal-first typography, and precise rounded surfaces.
+STORY: Switch client from the identity strip, inspect a meal in place, adjust its portion, then open a contextual dish dock and drag a replacement onto the board.
+FIRST VIEWPORT: A compact clinical client strip sits above a full-width seven-day board. History and the dish dock live in the board toolbar; no secondary rail appears.
+FORM: Contextual workspace extension. The signature moment is the meal inspector growing from its source card, then yielding to a draggable bottom dish dock.
+-->
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>قوام — نموذج المخطط الأسبوعي السياقي</title>
+    <style>
+      :root {
+        --canvas: #ffffff;
+        --surface: #ffffff;
+        --surface-soft: #f0f1e9;
+        --surface-strong: #e5e8d8;
+        --ink: #22251e;
+        --muted: #6e7267;
+        --line: #dfe1d7;
+        --olive: #59663d;
+        --olive-deep: #3d482b;
+        --olive-soft: #e4ead4;
+        --lime: #dfe98b;
+        --attention: #98631e;
+        --attention-soft: #f5e8cf;
+        --danger: #a64237;
+        --danger-soft: #f7e7e3;
+        --tag-cheap: #c8d293;
+        --tag-portable: #b8c9d2;
+        --tag-quick: #d6df77;
+        --tag-vegetarian: #aac9a1;
+        --tag-high-protein: #e1bf78;
+        --tag-diabetic-friendly: #d2aa98;
+        --shadow: 0 18px 50px rgba(60, 72, 43, 0.17), 0 3px 10px rgba(60, 72, 43, 0.09);
+        --shadow-small: 0 8px 24px rgba(60, 72, 43, 0.12), 0 2px 5px rgba(60, 72, 43, 0.07);
+        --ease: cubic-bezier(.2, .6, .2, 1);
+      }
+
+      * { box-sizing: border-box; }
+
+      html { color-scheme: light; }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: var(--canvas);
+        color: var(--ink);
+        font-family: Tajawal, "Segoe UI", Arial, sans-serif;
+        font-size: 15px;
+      }
+
+      button, input { font: inherit; }
+      button { color: inherit; }
+      button, [draggable="true"] { -webkit-tap-highlight-color: transparent; }
+
+      button:focus-visible,
+      input:focus-visible,
+      [tabindex]:focus-visible {
+        outline: 3px solid rgba(89, 102, 61, .28);
+        outline-offset: 2px;
+      }
+
+      .app {
+        min-height: 100vh;
+        display: grid;
+        grid-template-rows: auto 1fr;
+      }
+
+      .topbar {
+        min-height: 62px;
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        padding: 10px 22px;
+        background: var(--surface);
+        border-block-end: 1px solid var(--line);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-inline-size: max-content;
+      }
+
+      .brand-mark {
+        inline-size: 38px;
+        block-size: 38px;
+        display: grid;
+        place-items: center;
+        border-radius: 12px;
+        background: var(--olive);
+        color: white;
+        font-size: 22px;
+        font-weight: 700;
+      }
+
+      .brand-name { font-size: 18px; font-weight: 700; }
+      .prototype-tag { color: var(--muted); font-size: 12px; }
+
+      .top-actions {
+        margin-inline-start: auto;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .button {
+        min-block-size: 40px;
+        border: 1px solid transparent;
+        border-radius: 10px;
+        padding: 8px 13px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        background: var(--olive);
+        color: #fff;
+        cursor: pointer;
+        font-weight: 650;
+        transition: transform 140ms var(--ease), background 180ms var(--ease), border-color 180ms var(--ease);
+      }
+
+      .button:hover { background: var(--olive-deep); }
+      .button:active { transform: translateY(1px); }
+      .button.secondary { background: var(--surface); color: var(--ink); border-color: var(--line); }
+      .button.secondary:hover { background: var(--surface-soft); border-color: #c9ccbe; }
+      .button.ghost { background: transparent; color: var(--muted); }
+      .button.ghost:hover { background: var(--surface-soft); color: var(--ink); }
+      .button.small { min-block-size: 34px; padding: 6px 10px; font-size: 13px; }
+      .button.icon { inline-size: 40px; padding: 0; border-radius: 999px; }
+
+      .icon {
+        inline-size: 18px;
+        block-size: 18px;
+        flex: none;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.9;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .workspace {
+        min-inline-size: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        padding: 0 6px 26px;
+      }
+
+      .client-strip {
+        position: relative;
+        display: flex;
+        align-items: stretch;
+        gap: 0;
+        min-block-size: 76px;
+        border-block-end: 1px solid var(--line);
+        overflow: visible;
+        background: var(--surface);
+      }
+
+      .client-switch {
+        min-inline-size: 255px;
+        border: 0;
+        border-inline-end: 1px solid var(--line);
+        background: var(--surface);
+        padding: 12px 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-align: start;
+        cursor: pointer;
+      }
+
+      .client-switch:hover { background: #fafbf7; }
+
+      .avatar {
+        inline-size: 46px;
+        block-size: 46px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: var(--client-color, #d4a68a);
+        color: #fff;
+        font-size: 17px;
+        font-weight: 750;
+      }
+
+      .client-copy { min-inline-size: 0; flex: 1; }
+      .client-name { display: block; font-size: 18px; font-weight: 750; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .client-hint { display: flex; align-items: center; gap: 5px; color: var(--muted); font-size: 12px; }
+
+      .metric {
+        min-inline-size: 124px;
+        flex: 1;
+        padding: 11px 15px;
+        background: var(--surface);
+        border-inline-end: 1px solid var(--line);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+
+      .metric-label { color: var(--muted); font-size: 12px; }
+      .metric-value { margin-block-start: 3px; font-size: 16px; font-weight: 750; font-variant-numeric: tabular-nums; }
+      .metric-value small { font-size: 12px; font-weight: 500; color: var(--muted); }
+
+      .safety-metric {
+        min-inline-size: 180px;
+        border-inline-end: 0;
+        background: var(--attention-soft);
+      }
+
+      .safety-metric .metric-label,
+      .safety-metric .metric-value { color: #6f4919; }
+
+      .client-popover,
+      .history-popover {
+        position: absolute;
+        z-index: 40;
+        display: none;
+        inline-size: min(360px, calc(100vw - 32px));
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      .client-popover.open,
+      .history-popover.open { display: block; animation: pop 180ms var(--ease) both; }
+
+      .client-popover { inset-block-start: calc(100% + 8px); inset-inline-start: 0; }
+      .history-popover { inset-block-start: calc(100% + 8px); inset-inline-start: 0; }
+
+      .popover-head { padding: 14px; border-block-end: 1px solid var(--line); }
+      .popover-title { margin: 0 0 9px; font-size: 15px; }
+
+      .search {
+        inline-size: 100%;
+        min-block-size: 42px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--canvas);
+        color: var(--ink);
+        padding: 8px 11px;
+      }
+
+      .search:focus { border-color: var(--olive); background: var(--surface); }
+      .popover-list { max-block-size: 280px; overflow: auto; padding: 7px; }
+
+      .client-option,
+      .history-option {
+        inline-size: 100%;
+        border: 0;
+        border-radius: 10px;
+        background: transparent;
+        padding: 10px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        text-align: start;
+        cursor: pointer;
+      }
+
+      .client-option:hover,
+      .history-option:hover { background: var(--surface-soft); }
+
+      .client-dot { inline-size: 10px; block-size: 10px; border-radius: 50%; background: var(--dot); }
+      .option-main { flex: 1; font-weight: 650; }
+      .option-sub { color: var(--muted); font-size: 12px; }
+
+      .board-shell {
+        min-block-size: 590px;
+        display: flex;
+        flex-direction: column;
+        background: var(--surface);
+        overflow: visible;
+      }
+
+      .board-toolbar {
+        position: relative;
+        min-block-size: 64px;
+        padding: 10px 12px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        border-block-end: 1px solid var(--line);
+      }
+
+      .week-button {
+        border: 0;
+        border-radius: 10px;
+        background: transparent;
+        padding: 7px 9px;
+        text-align: start;
+        cursor: pointer;
+      }
+
+      .week-button:hover { background: var(--surface-soft); }
+      .week-label { display: block; font-size: 12px; color: var(--muted); }
+      .week-value { display: flex; align-items: center; gap: 7px; font-weight: 750; }
+
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        min-block-size: 28px;
+        padding: 4px 9px;
+        border-radius: 999px;
+        background: var(--olive-soft);
+        color: var(--olive-deep);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .status::before { content: ""; inline-size: 7px; block-size: 7px; border-radius: 50%; background: var(--olive); }
+      .toolbar-actions { margin-inline-start: auto; display: flex; gap: 8px; align-items: center; }
+
+      .catalog-button[data-active="true"] {
+        background: var(--lime);
+        color: var(--olive-deep);
+        border-color: #ceda70;
+      }
+
+      .board-wrap {
+        min-inline-size: 0;
+        flex: 1;
+        overflow: auto;
+        background: var(--surface);
+        scrollbar-color: #c6c9bc transparent;
+      }
+
+      .planner-grid {
+        --column-gap: 16px;
+        min-inline-size: 1190px;
+        display: grid;
+        grid-template-columns: 116px repeat(7, minmax(145px, 1fr));
+        grid-auto-rows: minmax(64px, auto);
+        column-gap: var(--column-gap);
+        row-gap: 0;
+        padding-inline: 4px;
+        background: var(--surface);
+        overflow: clip;
+      }
+
+      .corner,
+      .day-head,
+      .slot-head,
+      .meal-cell { background: var(--surface); }
+
+      .corner {
+        position: sticky;
+        inset-inline-start: 0;
+        inset-block-start: 0;
+        z-index: 8;
+        padding: 13px;
+        display: flex;
+        align-items: flex-end;
+        color: var(--muted);
+        font-size: 12px;
+        border-block-end: 1px solid var(--line);
+      }
+
+      .day-head {
+        position: sticky;
+        inset-block-start: 0;
+        z-index: 7;
+        min-block-size: 70px;
+        padding: 10px;
+        text-align: center;
+        border-block-end: 1px solid var(--line);
+      }
+
+      .day-name { font-weight: 800; }
+      .day-total { margin-block-start: 3px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+
+      .slot-head {
+        position: sticky;
+        inset-inline-start: 0;
+        z-index: 6;
+        min-block-size: 106px;
+        padding: 16px 12px 8px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+
+      .slot-name { font-size: 13px; font-weight: 800; }
+      .slot-time { margin-block-start: 4px; color: var(--muted); font-size: 12px; direction: ltr; text-align: start; }
+
+      .meal-cell {
+        position: relative;
+        min-block-size: 106px;
+        padding: 8px 0 7px;
+        transition: background 160ms var(--ease), box-shadow 160ms var(--ease);
+      }
+
+      .slot-head::before,
+      .meal-cell::before {
+        content: "";
+        position: absolute;
+        z-index: 0;
+        inset-block-start: 0;
+        inset-inline: calc(var(--column-gap) / -2);
+        block-size: 1px;
+        background: var(--line);
+        pointer-events: none;
+      }
+
+      .slot-head > *,
+      .meal-cell > * { position: relative; z-index: 1; }
+
+      .meal-cell.drop-ready { background: var(--olive-soft); box-shadow: inset 0 0 0 2px var(--olive); }
+      .meal-cell.targeted { background: #f0f4dc; box-shadow: inset 0 0 0 2px var(--olive); }
+      .meal-cell.compatible::after {
+        content: "";
+        position: absolute;
+        inset: 5px;
+        border: 2px dashed rgba(89, 102, 61, .55);
+        border-radius: 12px;
+        pointer-events: none;
+      }
+
+      .meal-card {
+        inline-size: 100%;
+        block-size: 100%;
+        min-block-size: 91px;
+        border: 1px solid #e7e8df;
+        border-radius: 13px;
+        background: var(--surface);
+        padding: 10px;
+        display: flex;
+        flex-direction: column;
+        text-align: start;
+        cursor: pointer;
+        box-shadow: 0 1px 2px rgba(60, 72, 43, .04);
+        transition: transform 150ms var(--ease), border-color 160ms var(--ease), box-shadow 160ms var(--ease);
+      }
+
+      .meal-card:hover { border-color: #bdc5a8; box-shadow: var(--shadow-small); transform: translateY(-1px); }
+      .meal-card.dragging { opacity: .45; transform: scale(.98); }
+      .meal-card.open-source { border-color: var(--olive); box-shadow: 0 0 0 3px rgba(89, 102, 61, .15); }
+      .meal-drag { align-self: flex-end; color: #9ca091; font-size: 15px; line-height: 1; cursor: grab; }
+      .dish-name { margin-block: 2px auto; font-size: 14px; font-weight: 650; line-height: 1.45; }
+      .meal-meta { display: flex; justify-content: space-between; gap: 8px; border-block-start: 2px solid var(--tag-line, #ecece5); padding-block-start: 6px; color: var(--muted); font-size: 11px; }
+      .meal-card[data-tag="cheap"] { --tag-line: var(--tag-cheap); }
+      .meal-card[data-tag="portable"] { --tag-line: var(--tag-portable); }
+      .meal-card[data-tag="quick"] { --tag-line: var(--tag-quick); }
+      .meal-card[data-tag="vegetarian"] { --tag-line: var(--tag-vegetarian); }
+      .meal-card[data-tag="high_protein"] { --tag-line: var(--tag-high-protein); }
+      .meal-card[data-tag="diabetic_friendly"] { --tag-line: var(--tag-diabetic-friendly); }
+      .meal-kcal { font-weight: 750; color: var(--ink); font-variant-numeric: tabular-nums; }
+
+      .empty-card {
+        inline-size: 100%;
+        block-size: 100%;
+        min-block-size: 91px;
+        border: 1.5px dashed #c9ccbf;
+        border-radius: 13px;
+        background: transparent;
+        color: var(--muted);
+        cursor: pointer;
+      }
+
+      .empty-card:hover { border-color: var(--olive); background: var(--olive-soft); color: var(--olive-deep); }
+
+      .overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 80;
+        display: none;
+        padding: 0;
+        background: rgba(255, 255, 255, .34);
+        backdrop-filter: blur(4px) saturate(.88);
+      }
+
+      .overlay.open { display: block; animation: focus-board 240ms cubic-bezier(.16, 1, .3, 1) both; }
+
+      .meal-dialog {
+        position: fixed;
+        z-index: 2;
+        inline-size: min(500px, calc(100vw - 32px));
+        max-block-size: calc(100vh - 32px);
+        overflow: auto;
+        visibility: hidden;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+        transform-origin: center;
+      }
+
+      .meal-dialog.positioned { visibility: visible; }
+
+      .meal-origin {
+        position: fixed !important;
+        z-index: 1;
+        margin: 0;
+        border-color: var(--olive);
+        box-shadow: 0 0 0 3px rgba(255, 255, 255, .92), 0 10px 28px rgba(34, 37, 30, .16);
+        pointer-events: none;
+        cursor: default;
+      }
+
+      .dialog-head {
+        position: sticky;
+        inset-block-start: 0;
+        z-index: 2;
+        padding: 17px 18px 13px;
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        background: var(--surface);
+        border-block-end: 1px solid var(--line);
+      }
+
+      .dialog-title-wrap { min-inline-size: 0; flex: 1; }
+      .dialog-kicker { color: var(--muted); font-size: 12px; }
+      .dialog-title { margin: 2px 0 0; font-size: 22px; line-height: 1.35; }
+      .dialog-body { padding: 18px; }
+
+      .portion-band {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: 14px;
+        padding: 14px;
+        border-radius: 14px;
+        background: var(--surface-soft);
+      }
+
+      .portion-kcal { margin-block-start: 2px; font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; }
+      .portion-kcal small { font-size: 12px; color: var(--muted); font-weight: 500; }
+      .stepper { display: flex; align-items: center; gap: 9px; direction: ltr; }
+      .stepper button { inline-size: 38px; block-size: 38px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); cursor: pointer; font-size: 20px; }
+      .step-value { min-inline-size: 48px; text-align: center; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+      .section-title { margin: 22px 0 9px; font-size: 14px; }
+      .nutrition-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+      .nutrition-item { padding: 10px; border-block-start: 2px solid var(--line); }
+      .nutrition-value { display: block; font-weight: 800; font-variant-numeric: tabular-nums; }
+      .nutrition-label { color: var(--muted); font-size: 11px; }
+
+      .alternatives { display: flex; flex-direction: column; gap: 7px; }
+      .alternative {
+        padding: 10px 11px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .alternative-copy { flex: 1; }
+      .alternative-name { display: block; font-weight: 700; }
+      .alternative-meta { color: var(--muted); font-size: 12px; }
+      .dialog-actions { margin-block-start: 18px; display: flex; flex-wrap: wrap; gap: 8px; }
+
+      .dish-dock {
+        position: fixed;
+        z-index: 70;
+        inset-block: 16px;
+        left: 16px;
+        inline-size: min(380px, calc(100vw - 32px));
+        display: grid;
+        grid-template-rows: auto 1fr;
+        border: 1px solid #cdd2bf;
+        border-radius: 18px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+        transform: translateX(calc(-100% - 32px));
+        visibility: hidden;
+        pointer-events: none;
+        transition: transform 220ms var(--ease), visibility 0s linear 220ms;
+      }
+
+      .dish-dock.open {
+        transform: translateX(0);
+        visibility: visible;
+        pointer-events: auto;
+        transition-delay: 0s;
+      }
+
+      .dock-head {
+        padding: 16px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: start;
+        gap: 10px;
+        border-block-end: 1px solid var(--line);
+      }
+
+      .dock-title-wrap { min-inline-size: 0; }
+      .dock-title { margin: 0; font-size: 16px; }
+      .dock-context { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
+      .dock-search { grid-column: 1 / -1; inline-size: 100%; max-inline-size: none; }
+      .dock-filters { grid-column: 1 / -1; display: flex; gap: 6px; overflow-x: auto; padding-block-end: 2px; }
+
+      .chip {
+        min-block-size: 34px;
+        white-space: nowrap;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--surface);
+        padding: 5px 10px;
+        cursor: pointer;
+        font-size: 12px;
+      }
+
+      .chip.active { border-color: var(--olive); background: var(--olive-soft); color: var(--olive-deep); font-weight: 700; }
+      .dock-close { grid-column: 2; grid-row: 1; }
+
+      .dish-list {
+        min-inline-size: 0;
+        min-block-size: 0;
+        display: grid;
+        grid-auto-rows: max-content;
+        gap: 10px;
+        overflow-x: hidden;
+        overflow-y: auto;
+        padding: 12px;
+      }
+
+      .dish-card {
+        position: relative;
+        min-inline-size: 0;
+        max-inline-size: none;
+        min-block-size: 154px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--surface);
+        padding: 13px;
+        display: flex;
+        flex-direction: column;
+        cursor: grab;
+      }
+
+      .dish-card:hover { border-color: var(--olive); box-shadow: var(--shadow-small); }
+      .dish-card.blocked { opacity: .55; cursor: not-allowed; background: #faf6f4; }
+      .dish-top { display: flex; align-items: flex-start; gap: 8px; }
+      .dish-card-name { margin: 0; flex: 1; font-size: 15px; line-height: 1.4; }
+      .drag-mark { color: var(--muted); }
+      .dish-card-meta { margin-block-start: 5px; color: var(--muted); font-size: 12px; }
+      .dish-tags { margin-block-start: 8px; display: flex; gap: 5px; flex-wrap: wrap; }
+      .dish-tag { border-radius: 999px; background: var(--surface-soft); padding: 3px 7px; font-size: 11px; color: #5e6258; }
+      .dish-card-actions { margin-block-start: auto; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+      .recent { color: var(--attention); font-size: 11px; }
+
+      .toast {
+        position: fixed;
+        z-index: 120;
+        inset-inline-end: 16px;
+        inset-block-end: 16px;
+        inline-size: min(384px, calc(100vw - 32px));
+        min-block-size: 66px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        transform: translateY(150%);
+        opacity: 0;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: var(--surface);
+        color: var(--ink);
+        padding: 14px 16px;
+        box-shadow: 0 14px 36px rgba(34, 37, 30, .16), 0 3px 10px rgba(34, 37, 30, .08);
+        pointer-events: none;
+        transition: opacity 500ms cubic-bezier(.22, 1, .36, 1), transform 500ms cubic-bezier(.22, 1, .36, 1);
+      }
+
+      .toast.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+      .toast-icon { inline-size: 18px; block-size: 18px; flex: none; color: var(--olive); }
+      .toast-copy { min-inline-size: 0; flex: 1; }
+      .toast-title { display: block; font-size: 14px; font-weight: 650; line-height: 1.45; }
+      .toast-action {
+        min-block-size: 34px;
+        flex: none;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        background: var(--surface);
+        padding: 6px 10px;
+        color: var(--ink);
+        cursor: pointer;
+      }
+      .toast-action:hover { background: var(--surface-soft); }
+      .toast-action[hidden] { display: none; }
+      .toast-close {
+        inline-size: 34px;
+        block-size: 34px;
+        flex: none;
+        border: 0;
+        border-radius: 9px;
+        background: transparent;
+        color: var(--muted);
+        cursor: pointer;
+      }
+      .toast-close:hover { background: var(--surface-soft); color: var(--ink); }
+
+      .pointer-ghost {
+        position: fixed;
+        z-index: 200;
+        inline-size: 210px;
+        min-block-size: 70px;
+        padding: 12px;
+        border: 1px solid var(--olive);
+        border-radius: 13px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+        color: var(--ink);
+        font-weight: 750;
+        pointer-events: none;
+        opacity: .96;
+        transform: rotate(-1deg) scale(1.02);
+      }
+
+      @keyframes pop {
+        from { opacity: 0; transform: translateY(-7px) scale(.98); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+      }
+
+      @keyframes focus-board {
+        from { background: rgba(255, 255, 255, 0); backdrop-filter: blur(0) saturate(1); }
+        to { background: rgba(255, 255, 255, .34); backdrop-filter: blur(4px) saturate(.88); }
+      }
+
+      @media (max-width: 900px) {
+        .topbar { padding-inline: 14px; }
+        .prototype-tag { display: none; }
+        .workspace { padding: 12px; }
+        .client-strip { overflow-x: auto; }
+        .client-switch { min-inline-size: 230px; }
+        .metric { min-inline-size: 112px; }
+        .board-toolbar { flex-wrap: wrap; }
+        .toolbar-actions { inline-size: 100%; margin-inline-start: 0; }
+        .dish-dock { inset-block: 8px; left: 8px; inline-size: min(380px, calc(100vw - 16px)); }
+      }
+
+      @media (max-width: 620px) {
+        .brand-name { display: none; }
+        .topbar { gap: 8px; }
+        .top-actions { gap: 4px; }
+        .top-actions .button span { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+        .top-actions .button { inline-size: 40px; padding: 0; }
+        .nutrition-row { grid-template-columns: repeat(2, 1fr); }
+        .client-popover { position: fixed; inset-inline: 12px; inset-block-start: 74px; inline-size: auto; }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">ق</div>
+          <div>
+            <div class="brand-name">قوام</div>
+            <div class="prototype-tag" data-i18n="prototype">نموذج تفاعلي · بيانات تجريبية</div>
+          </div>
+        </div>
+
+        <div class="top-actions">
+          <button class="button ghost icon" id="langButton" type="button" aria-label="English">EN</button>
+          <button class="button secondary" type="button" id="newWeekButton">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            <span data-i18n="newWeek">أسبوع جديد</span>
+          </button>
+          <button class="button" type="button" id="publishButton">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.7"/></svg>
+            <span data-i18n="publish">نشر الخطة</span>
+          </button>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <section class="client-strip" aria-label="ملخص العميل">
+          <button class="client-switch" id="clientSwitch" type="button" aria-haspopup="listbox" aria-expanded="false">
+            <span class="avatar" id="clientAvatar">سل</span>
+            <span class="client-copy">
+              <span class="client-name" id="clientName">سارة الخطيب</span>
+              <span class="client-hint">
+                <span data-i18n="switchClient">اضغط للتبديل بين العملاء</span>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 10 4 4 4-4"/></svg>
+              </span>
+            </span>
+          </button>
+
+          <div class="metric"><span class="metric-label" data-i18n="dailyEnergy">الطاقة اليومية</span><span class="metric-value"><span id="kcalMetric">1850</span> <small data-i18n="kcal">سعرة</small></span></div>
+          <div class="metric"><span class="metric-label" data-i18n="protein">البروتين</span><span class="metric-value"><span id="proteinMetric">112</span> <small data-i18n="grams">غ</small></span></div>
+          <div class="metric"><span class="metric-label">BMI</span><span class="metric-value" id="bmiMetric">24.8</span></div>
+          <div class="metric"><span class="metric-label" data-i18n="goal">اتجاه الخطة</span><span class="metric-value" id="goalMetric">خفض الوزن</span></div>
+          <div class="metric safety-metric"><span class="metric-label" data-i18n="safety">السلامة</span><span class="metric-value" id="allergyMetric">حساسية المكسرات</span></div>
+
+          <div class="client-popover" id="clientPopover" role="dialog" aria-label="تبديل العميل">
+            <div class="popover-head">
+              <h3 class="popover-title" data-i18n="chooseClient">اختر عميلاً</h3>
+              <input class="search" id="clientSearch" type="search" data-i18n-placeholder="searchClients" placeholder="ابحث بالاسم" />
+            </div>
+            <div class="popover-list" id="clientList" role="listbox"></div>
+          </div>
+        </section>
+
+        <section class="board-shell">
+          <div class="board-toolbar">
+            <button class="week-button" id="weekButton" type="button" aria-haspopup="listbox" aria-expanded="false">
+              <span class="week-label" data-i18n="week">الأسبوع</span>
+              <span class="week-value">
+                <span id="weekValue">10–16 أغسطس 2026</span>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 10 4 4 4-4"/></svg>
+              </span>
+            </button>
+            <span class="status" id="planStatus">مسودة</span>
+
+            <div class="history-popover" id="historyPopover" role="dialog" aria-label="الخطط السابقة">
+              <div class="popover-head"><h3 class="popover-title" data-i18n="plansHistory">الخطط السابقة</h3></div>
+              <div class="popover-list" id="historyList"></div>
+            </div>
+
+            <div class="toolbar-actions">
+              <button class="button secondary small" type="button" id="compareButton">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+                <span data-i18n="compare">مقارنة بالسابق</span>
+              </button>
+              <button class="button secondary small catalog-button" type="button" id="catalogButton" data-active="false">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h16M4 12h16M4 18.5h16"/><circle cx="8" cy="5.5" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="10" cy="18.5" r="1.5"/></svg>
+                <span data-i18n="dishCatalog">مكتبة الأطباق</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="board-wrap" id="boardWrap">
+            <div class="planner-grid" id="plannerGrid"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div class="overlay" id="mealOverlay" aria-hidden="true">
+      <section class="meal-dialog" id="mealDialog" role="region" aria-labelledby="mealDialogTitle">
+        <header class="dialog-head">
+          <div class="dialog-title-wrap">
+            <div class="dialog-kicker" id="mealDialogKicker">الغداء · الثلاثاء · 13:30</div>
+            <h2 class="dialog-title" id="mealDialogTitle">مسخّن الدجاج</h2>
+          </div>
+          <button class="button ghost icon" id="closeMealDialog" type="button" aria-label="إغلاق">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+          </button>
+        </header>
+        <div class="dialog-body">
+          <div class="portion-band">
+            <div>
+              <div class="metric-label" data-i18n="portionEnergy">طاقة الحصة</div>
+              <div class="portion-kcal"><span id="portionKcal">510</span> <small data-i18n="kcal">سعرة</small></div>
+            </div>
+            <div class="stepper" aria-label="حجم الحصة">
+              <button type="button" id="portionMinus" aria-label="تقليل الحصة">−</button>
+              <span class="step-value" id="portionValue">1.00×</span>
+              <button type="button" id="portionPlus" aria-label="زيادة الحصة">+</button>
+            </div>
+          </div>
+
+          <h3 class="section-title" data-i18n="nutritionSummary">ملخص التغذية</h3>
+          <div class="nutrition-row">
+            <div class="nutrition-item"><span class="nutrition-value" id="proteinValue">34غ</span><span class="nutrition-label" data-i18n="protein">البروتين</span></div>
+            <div class="nutrition-item"><span class="nutrition-value" id="carbsValue">48غ</span><span class="nutrition-label" data-i18n="carbs">الكربوهيدرات</span></div>
+            <div class="nutrition-item"><span class="nutrition-value" id="fatValue">18غ</span><span class="nutrition-label" data-i18n="fat">الدهون</span></div>
+            <div class="nutrition-item"><span class="nutrition-value" id="fiberValue">7غ</span><span class="nutrition-label" data-i18n="fiber">الألياف</span></div>
+          </div>
+
+          <h3 class="section-title" data-i18n="quickAlternatives">بدائل سريعة</h3>
+          <div class="alternatives" id="alternativesList"></div>
+
+          <div class="dialog-actions">
+            <button class="button" type="button" id="savePortion" data-i18n="savePortion">حفظ الحصة</button>
+            <button class="button secondary" type="button" id="openMealCatalog">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h16M4 12h16M4 18.5h16"/></svg>
+              <span data-i18n="exploreDishes">استكشف أطباقاً مشابهة</span>
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <section class="dish-dock" id="dishDock" aria-label="مكتبة الأطباق" aria-hidden="true">
+      <header class="dock-head">
+        <div class="dock-title-wrap">
+          <h2 class="dock-title" data-i18n="dishDock">رصيف الأطباق</h2>
+          <p class="dock-context" id="dockContext">اسحب طبقاً إلى أي خانة في الأسبوع</p>
+        </div>
+        <input class="search dock-search" id="dishSearch" type="search" data-i18n-placeholder="searchDishes" placeholder="ابحث عن طبق" />
+        <div class="dock-filters" id="dockFilters">
+          <button class="chip active" type="button" data-filter="all" data-i18n="all">الكل</button>
+          <button class="chip" type="button" data-filter="fit" data-i18n="fitsTarget">يناسب الهدف</button>
+          <button class="chip" type="button" data-filter="fresh" data-i18n="notRecent">غير مكرر</button>
+          <button class="chip" type="button" data-filter="quick" data-i18n="quick">سريع</button>
+        </div>
+        <button class="button ghost icon dock-close" id="closeDock" type="button" aria-label="إغلاق">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </header>
+      <div class="dish-list" id="dishList"></div>
+    </section>
+
+    <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true">
+      <svg class="toast-icon icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>
+      <div class="toast-copy"><span class="toast-title" id="toastTitle"></span></div>
+      <button class="toast-action" id="toastAction" type="button" hidden></button>
+      <button class="toast-close" id="toastClose" type="button" aria-label="إغلاق">×</button>
+    </div>
+
+    <script>
+      const copy = {
+        ar: {
+          prototype: "نموذج تفاعلي · بيانات تجريبية", newWeek: "أسبوع جديد", publish: "نشر الخطة",
+          switchClient: "اضغط للتبديل بين العملاء", dailyEnergy: "الطاقة اليومية", kcal: "سعرة", protein: "البروتين", grams: "غ",
+          goal: "اتجاه الخطة", safety: "السلامة", chooseClient: "اختر عميلاً", searchClients: "ابحث بالاسم",
+          week: "الأسبوع", plansHistory: "الخطط السابقة", compare: "مقارنة بالسابق", dishCatalog: "مكتبة الأطباق",
+          portionEnergy: "طاقة الحصة", nutritionSummary: "ملخص التغذية", carbs: "الكربوهيدرات", fat: "الدهون", fiber: "الألياف",
+          quickAlternatives: "بدائل سريعة", savePortion: "حفظ الحصة", exploreDishes: "استكشف أطباقاً مشابهة", dishDock: "رصيف الأطباق",
+          searchDishes: "ابحث عن طبق", all: "الكل", fitsTarget: "يناسب الهدف", notRecent: "غير مكرر", quick: "سريع",
+          meals: "الوجبات", draft: "مسودة", published: "منشورة", select: "اختيار", recent: "استُخدم الأسبوع الماضي",
+          blocked: "يحتوي على مكوّن محظور", globalDock: "اسحب طبقاً إلى أي خانة في الأسبوع", targetDock: "مفلتر للوجبة المحددة — اسحب بديلاً أو اختره",
+          close: "إغلاق", decrease: "تقليل الحصة", increase: "زيادة الحصة", portionSize: "حجم الحصة", clientSummary: "ملخص العميل", switchClientDialog: "تبديل العميل", historyLabel: "الخطط السابقة", dishLibrary: "مكتبة الأطباق",
+          empty: "أضف طبقاً", placed: "تم وضع الطبق", mealMoved: "تم نقل الوجبة", undo: "تراجع", portionSaved: "تم حفظ حجم الحصة", switched: "تم التبديل إلى", armed: "اختر خانة مناسبة في الجدول",
+          weekdays: ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"]
+        },
+        en: {
+          prototype: "Interactive prototype · mock data", newWeek: "New week", publish: "Publish plan",
+          switchClient: "Click to switch clients", dailyEnergy: "Daily energy", kcal: "kcal", protein: "Protein", grams: "g",
+          goal: "Plan direction", safety: "Safety", chooseClient: "Choose a client", searchClients: "Search by name",
+          week: "Week", plansHistory: "Plan history", compare: "Compare previous", dishCatalog: "Dish library",
+          portionEnergy: "Portion energy", nutritionSummary: "Nutrition summary", carbs: "Carbs", fat: "Fat", fiber: "Fiber",
+          quickAlternatives: "Quick alternatives", savePortion: "Save portion", exploreDishes: "Explore similar dishes", dishDock: "Dish dock",
+          searchDishes: "Search dishes", all: "All", fitsTarget: "Fits target", notRecent: "Not recent", quick: "Quick",
+          meals: "Meals", draft: "Draft", published: "Published", select: "Choose", recent: "Used last week",
+          blocked: "Contains a blocked ingredient", globalDock: "Drag a dish onto any slot in the week", targetDock: "Filtered for the selected meal — drag or choose a replacement",
+          close: "Close", decrease: "Decrease portion", increase: "Increase portion", portionSize: "Portion size", clientSummary: "Client summary", switchClientDialog: "Switch client", historyLabel: "Plan history", dishLibrary: "Dish library",
+          empty: "Add a dish", placed: "Dish placed", mealMoved: "Meal moved", undo: "Undo", portionSaved: "Portion saved", switched: "Switched to", armed: "Choose a compatible slot on the board",
+          weekdays: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+        }
+      };
+
+      const clients = [
+        { id: "sara", name: { ar: "سارة الخطيب", en: "Sara Al-Khatib" }, initials: { ar: "سل", en: "SK" }, color: "#c98f76", kcal: 1850, protein: 112, bmi: 24.8, goal: { ar: "خفض الوزن", en: "Weight loss" }, allergy: { ar: "حساسية المكسرات", en: "Nut allergy" } },
+        { id: "layan", name: { ar: "ليان منصور", en: "Layan Mansour" }, initials: { ar: "لم", en: "LM" }, color: "#78929f", kcal: 2100, protein: 128, bmi: 22.1, goal: { ar: "أداء رياضي", en: "Sports performance" }, allergy: { ar: "لا توجد حساسية مسجلة", en: "No recorded allergens" } },
+        { id: "omar", name: { ar: "عمر جرادات", en: "Omar Jaradat" }, initials: { ar: "عج", en: "OJ" }, color: "#8a9d65", kcal: 1680, protein: 104, bmi: 29.3, goal: { ar: "خفض الوزن", en: "Weight loss" }, allergy: { ar: "حساسية الحليب", en: "Milk allergy" } }
+      ];
+
+      const slots = [
+        { id: "breakfast", name: { ar: "الفطور", en: "Breakfast" }, time: "08:00", type: "breakfast" },
+        { id: "snack", name: { ar: "وجبة خفيفة", en: "Snack" }, time: "11:00", type: "snack" },
+        { id: "lunch", name: { ar: "الغداء", en: "Lunch" }, time: "13:30", type: "lunch" },
+        { id: "dinner", name: { ar: "العشاء", en: "Dinner" }, time: "19:30", type: "dinner" }
+      ];
+
+      const dishes = [
+        { id: "musakhan", name: { ar: "مسخّن الدجاج", en: "Chicken musakhan" }, type: "lunch", kcal: 510, protein: 34, carbs: 48, fat: 18, fiber: 7, tags: ["high_protein", "portable"], quick: false, recent: true },
+        { id: "maqluba", name: { ar: "مقلوبة بالخضار والدجاج", en: "Chicken vegetable maqluba" }, type: "lunch", kcal: 525, protein: 32, carbs: 58, fat: 17, fiber: 8, tags: ["cheap"], quick: false, recent: false },
+        { id: "freekeh", name: { ar: "فريكة بالدجاج واللبن", en: "Freekeh with chicken" }, type: "lunch", kcal: 495, protein: 38, carbs: 49, fat: 14, fiber: 9, tags: ["diabetic_friendly", "high_protein"], quick: false, recent: false },
+        { id: "lentils", name: { ar: "مجدرة العدس البني", en: "Brown lentil mujaddara" }, type: "lunch", kcal: 470, protein: 21, carbs: 72, fat: 11, fiber: 13, tags: ["vegetarian", "quick"], quick: true, recent: true },
+        { id: "eggs", name: { ar: "بيض وخضار مع خبز قمح", en: "Eggs, vegetables and wheat bread" }, type: "breakfast", kcal: 390, protein: 24, carbs: 35, fat: 17, fiber: 6, tags: ["quick"], quick: true, recent: false },
+        { id: "labneh", name: { ar: "لبنة وزعتر وخضار", en: "Labneh, zaatar and vegetables" }, type: "breakfast", kcal: 360, protein: 18, carbs: 38, fat: 15, fiber: 5, tags: ["portable", "quick"], quick: true, recent: true },
+        { id: "fruit", name: { ar: "فاكهة موسمية مع لبن", en: "Seasonal fruit with yogurt" }, type: "snack", kcal: 230, protein: 10, carbs: 34, fat: 6, fiber: 5, tags: ["diabetic_friendly", "quick"], quick: true, recent: false },
+        { id: "nuts", name: { ar: "مكسرات وفاكهة مجففة", en: "Nuts and dried fruit" }, type: "snack", kcal: 260, protein: 8, carbs: 23, fat: 17, fiber: 4, tags: ["portable", "quick"], quick: true, recent: false, blocked: true },
+        { id: "soup", name: { ar: "شوربة عدس وسلطة", en: "Lentil soup and salad" }, type: "dinner", kcal: 410, protein: 22, carbs: 61, fat: 9, fiber: 15, tags: ["vegetarian", "quick"], quick: true, recent: false },
+        { id: "salad", name: { ar: "سلطة فتوش مع دجاج مشوي", en: "Fattoush with grilled chicken" }, type: "dinner", kcal: 430, protein: 36, carbs: 32, fat: 16, fiber: 8, tags: ["high_protein", "quick"], quick: true, recent: true }
+      ];
+
+      const weekHistory = [
+        { ar: "10–16 أغسطس 2026", en: "10–16 Aug 2026", status: "draft", kcal: 1850 },
+        { ar: "3–9 أغسطس 2026", en: "3–9 Aug 2026", status: "published", kcal: 1850 },
+        { ar: "27 يوليو–2 أغسطس 2026", en: "27 Jul–2 Aug 2026", status: "published", kcal: 1780 }
+      ];
+
+      let locale = "ar";
+      let currentClient = clients[0];
+      let currentWeek = weekHistory[0];
+      let selectedMealKey = null;
+      let selectedMealElement = null;
+      let portionDraft = 1;
+      let targetMealKey = null;
+      let activeFilter = "all";
+      let armedDishId = null;
+      let draggingPayload = null;
+      let pointerDrag = null;
+      let toastTimer = null;
+      let toastActionHandler = null;
+
+      const mealPattern = {
+        breakfast: ["eggs", "labneh", "eggs", "labneh", "eggs", "labneh", "eggs"],
+        snack: ["fruit", "fruit", null, "fruit", "fruit", "fruit", null],
+        lunch: ["musakhan", "maqluba", "freekeh", "lentils", "maqluba", "musakhan", "freekeh"],
+        dinner: ["soup", "salad", "soup", "salad", "soup", "salad", "soup"]
+      };
+
+      const meals = new Map();
+      slots.forEach(slot => {
+        mealPattern[slot.id].forEach((dishId, day) => {
+          meals.set(`${slot.id}:${day}`, { dishId, portion: 1 });
+        });
+      });
+
+      const $ = selector => document.querySelector(selector);
+      const $$ = selector => [...document.querySelectorAll(selector)];
+      const tr = key => copy[locale][key];
+      const local = value => value?.[locale] ?? value;
+      const dishById = id => dishes.find(dish => dish.id === id);
+      const slotByKey = key => slots.find(slot => slot.id === key.split(":")[0]);
+      const dayByKey = key => Number(key.split(":")[1]);
+      const tagLabels = {
+        cheap: { ar: "اقتصادي", en: "Low cost" },
+        portable: { ar: "سهل الحمل", en: "Portable" },
+        quick: { ar: "سريع", en: "Quick" },
+        vegetarian: { ar: "نباتي", en: "Vegetarian" },
+        high_protein: { ar: "عالي البروتين", en: "High protein" },
+        diabetic_friendly: { ar: "ملائم للسكري", en: "Diabetic friendly" }
+      };
+      const tagLabel = tag => local(tagLabels[tag]) ?? tag;
+
+      function updateTranslations() {
+        document.documentElement.lang = locale;
+        document.documentElement.dir = locale === "ar" ? "rtl" : "ltr";
+        document.title = locale === "ar" ? "قوام — نموذج المخطط الأسبوعي السياقي" : "Qiwam — Contextual weekly planner prototype";
+        $$('[data-i18n]').forEach(node => { node.textContent = tr(node.dataset.i18n); });
+        $$('[data-i18n-placeholder]').forEach(node => { node.placeholder = tr(node.dataset.i18nPlaceholder); });
+        document.querySelector(".client-strip").setAttribute("aria-label", tr("clientSummary"));
+        $("#clientPopover").setAttribute("aria-label", tr("switchClientDialog"));
+        $("#historyPopover").setAttribute("aria-label", tr("historyLabel"));
+        $("#closeMealDialog").setAttribute("aria-label", tr("close"));
+        document.querySelector(".stepper").setAttribute("aria-label", tr("portionSize"));
+        $("#portionMinus").setAttribute("aria-label", tr("decrease"));
+        $("#portionPlus").setAttribute("aria-label", tr("increase"));
+        $("#dishDock").setAttribute("aria-label", tr("dishLibrary"));
+        $("#closeDock").setAttribute("aria-label", tr("close"));
+        $("#langButton").textContent = locale === "ar" ? "EN" : "ع";
+        $("#langButton").setAttribute("aria-label", locale === "ar" ? "English" : "العربية");
+        renderClientSummary();
+        renderClients();
+        renderHistory();
+        renderBoard();
+        renderDishes();
+        updateDockContext();
+      }
+
+      function renderClientSummary() {
+        $("#clientName").textContent = local(currentClient.name);
+        $("#clientAvatar").textContent = local(currentClient.initials);
+        $("#clientAvatar").style.setProperty("--client-color", currentClient.color);
+        $("#kcalMetric").textContent = currentClient.kcal;
+        $("#proteinMetric").textContent = currentClient.protein;
+        $("#bmiMetric").textContent = currentClient.bmi;
+        $("#goalMetric").textContent = local(currentClient.goal);
+        $("#allergyMetric").textContent = local(currentClient.allergy);
+      }
+
+      function renderClients(query = "") {
+        const normalized = query.trim().toLowerCase();
+        const visible = clients.filter(client => Object.values(client.name).some(name => name.toLowerCase().includes(normalized)));
+        $("#clientList").innerHTML = visible.map(client => `
+          <button class="client-option" type="button" role="option" data-client="${client.id}" aria-selected="${client.id === currentClient.id}">
+            <span class="client-dot" style="--dot:${client.color}"></span>
+            <span class="option-main">${local(client.name)}</span>
+            <span class="option-sub">${client.kcal} ${tr("kcal")}</span>
+          </button>
+        `).join("");
+        $$(".client-option").forEach(button => button.addEventListener("click", () => switchClient(button.dataset.client)));
+      }
+
+      function switchClient(id) {
+        currentClient = clients.find(client => client.id === id) ?? currentClient;
+        closePopovers();
+        renderClientSummary();
+        renderDishes();
+        showToast(`${tr("switched")} ${local(currentClient.name)}`);
+      }
+
+      function renderHistory() {
+        $("#weekValue").textContent = local(currentWeek);
+        $("#planStatus").textContent = tr(currentWeek.status);
+        $("#historyList").innerHTML = weekHistory.map((week, index) => `
+          <button class="history-option" type="button" data-week="${index}">
+            <span class="option-main">${local(week)}</span>
+            <span class="option-sub">${week.kcal} ${tr("kcal")} · ${tr(week.status)}</span>
+          </button>
+        `).join("");
+        $$(".history-option").forEach(button => button.addEventListener("click", () => {
+          currentWeek = weekHistory[Number(button.dataset.week)];
+          closePopovers();
+          renderHistory();
+        }));
+      }
+
+      function dayTotal(day) {
+        return slots.reduce((sum, slot) => {
+          const meal = meals.get(`${slot.id}:${day}`);
+          const dish = meal?.dishId ? dishById(meal.dishId) : null;
+          return sum + (dish ? Math.round(dish.kcal * meal.portion) : 0);
+        }, 0);
+      }
+
+      function renderBoard() {
+        const grid = $("#plannerGrid");
+        let html = `<div class="corner">${tr("meals")}</div>`;
+        copy[locale].weekdays.forEach((day, index) => {
+          html += `<div class="day-head"><div class="day-name">${day}</div><div class="day-total">${dayTotal(index)} ${tr("kcal")}</div></div>`;
+        });
+
+        slots.forEach(slot => {
+          html += `<div class="slot-head"><span class="slot-name">${local(slot.name)}</span><span class="slot-time">${slot.time}</span></div>`;
+          for (let day = 0; day < 7; day += 1) {
+            const key = `${slot.id}:${day}`;
+            const meal = meals.get(key);
+            const dish = meal?.dishId ? dishById(meal.dishId) : null;
+            const targeted = targetMealKey === key ? " targeted" : "";
+            const compatible = armedDishId && dishById(armedDishId)?.type === slot.type ? " compatible" : "";
+            html += `<div class="meal-cell${targeted}${compatible}" data-meal-key="${key}" data-slot-type="${slot.type}">`;
+            if (dish) {
+              html += `
+                <button class="meal-card" type="button" draggable="true" data-meal-card="${key}" data-tag="${dish.tags[0] ?? "quick"}">
+                  <span class="meal-drag" aria-hidden="true">⠿</span>
+                  <span class="dish-name">${local(dish.name)}</span>
+                  <span class="meal-meta"><span class="meal-kcal">${Math.round(dish.kcal * meal.portion)} ${tr("kcal")}</span><span dir="ltr">×${meal.portion.toFixed(2)}</span></span>
+                </button>`;
+            } else {
+              html += `<button class="empty-card" type="button" data-empty-card="${key}">＋ ${tr("empty")}</button>`;
+            }
+            html += `</div>`;
+          }
+        });
+        grid.innerHTML = html;
+        wireBoardInteractions();
+      }
+
+      function wireBoardInteractions() {
+        $$('[data-meal-card]').forEach(card => {
+          card.addEventListener("click", event => {
+            if (card.dataset.dragged === "true") { card.dataset.dragged = "false"; return; }
+            const key = card.dataset.mealCard;
+            if (armedDishId) { placeDish(key, armedDishId); return; }
+            openMeal(key, card);
+          });
+          card.addEventListener("dragstart", event => {
+            card.dataset.dragged = "true";
+            card.classList.add("dragging");
+            draggingPayload = { kind: "meal", key: card.dataset.mealCard };
+            event.dataTransfer.effectAllowed = "move";
+            event.dataTransfer.setData("text/plain", JSON.stringify(draggingPayload));
+          });
+          card.addEventListener("dragend", () => { card.classList.remove("dragging"); draggingPayload = null; });
+          card.querySelector(".meal-drag")?.addEventListener("pointerdown", event => {
+            beginPointerDrag(event, { kind: "meal", key: card.dataset.mealCard }, card.querySelector(".dish-name")?.textContent ?? "", card);
+          });
+        });
+
+        $$('[data-empty-card]').forEach(card => card.addEventListener("click", () => {
+          const key = card.dataset.emptyCard;
+          if (armedDishId) { placeDish(key, armedDishId); return; }
+          openDock(key);
+        }));
+
+        $$(".meal-cell").forEach(cell => {
+          cell.addEventListener("dragover", event => { event.preventDefault(); cell.classList.add("drop-ready"); });
+          cell.addEventListener("dragleave", () => cell.classList.remove("drop-ready"));
+          cell.addEventListener("drop", event => {
+            event.preventDefault();
+            cell.classList.remove("drop-ready");
+            let payload = draggingPayload;
+            try { payload ||= JSON.parse(event.dataTransfer.getData("text/plain")); } catch {}
+            if (!payload) return;
+            const target = cell.dataset.mealKey;
+            if (payload.kind === "dish") placeDish(target, payload.id);
+            if (payload.kind === "meal") moveMeal(payload.key, target);
+          });
+        });
+      }
+
+      function moveMeal(sourceKey, targetKey) {
+        if (sourceKey === targetKey) return;
+        const source = meals.get(sourceKey);
+        const target = meals.get(targetKey);
+        if (!source?.dishId || !target) return;
+        const sourceSnapshot = { ...source };
+        const targetSnapshot = { ...target };
+        meals.set(sourceKey, { ...target });
+        meals.set(targetKey, sourceSnapshot);
+        renderBoard();
+        showToast(tr("mealMoved"), {
+          actionLabel: tr("undo"),
+          onAction: () => {
+            meals.set(sourceKey, sourceSnapshot);
+            meals.set(targetKey, targetSnapshot);
+            renderBoard();
+          }
+        });
+      }
+
+      function openMeal(key, sourceElement) {
+        const meal = meals.get(key);
+        const dish = dishById(meal?.dishId);
+        if (!dish) { openDock(key); return; }
+        selectedMealKey = key;
+        selectedMealElement = sourceElement;
+        portionDraft = meal.portion;
+        sourceElement.classList.add("open-source");
+        refreshMealDialog();
+        const overlay = $("#mealOverlay");
+        const dialog = $("#mealDialog");
+        dialog.classList.remove("positioned");
+        showMealOrigin(sourceElement);
+        overlay.classList.add("open");
+        overlay.setAttribute("aria-hidden", "false");
+        document.body.style.overflow = "hidden";
+        requestAnimationFrame(() => {
+          positionMealInspector(sourceElement);
+          animateDialogFrom(sourceElement);
+          $("#closeMealDialog").focus();
+        });
+      }
+
+      function refreshMealDialog() {
+        const meal = meals.get(selectedMealKey);
+        const dish = dishById(meal?.dishId);
+        if (!dish) return;
+        const slot = slotByKey(selectedMealKey);
+        const day = dayByKey(selectedMealKey);
+        $("#mealDialogKicker").textContent = `${local(slot.name)} · ${copy[locale].weekdays[day]} · ${slot.time}`;
+        $("#mealDialogTitle").textContent = local(dish.name);
+        $("#portionValue").textContent = `${portionDraft.toFixed(2)}×`;
+        $("#portionKcal").textContent = Math.round(dish.kcal * portionDraft);
+        $("#proteinValue").textContent = `${Math.round(dish.protein * portionDraft)}${tr("grams")}`;
+        $("#carbsValue").textContent = `${Math.round(dish.carbs * portionDraft)}${tr("grams")}`;
+        $("#fatValue").textContent = `${Math.round(dish.fat * portionDraft)}${tr("grams")}`;
+        $("#fiberValue").textContent = `${Math.round(dish.fiber * portionDraft)}${tr("grams")}`;
+        const alternatives = dishes.filter(item => item.type === dish.type && item.id !== dish.id && !item.blocked).slice(0, 3);
+        $("#alternativesList").innerHTML = alternatives.map(item => `
+          <div class="alternative">
+            <div class="alternative-copy"><span class="alternative-name">${local(item.name)}</span><span class="alternative-meta">${item.kcal} ${tr("kcal")} · ${item.protein}${tr("grams")} ${tr("protein")}</span></div>
+            <button class="button secondary small" type="button" data-alternative="${item.id}">${tr("select")}</button>
+          </div>
+        `).join("");
+        $$('[data-alternative]').forEach(button => button.addEventListener("click", () => {
+          placeDish(selectedMealKey, button.dataset.alternative, false);
+          portionDraft = 1;
+          refreshMealDialog();
+        }));
+      }
+
+      function showMealOrigin(source) {
+        $(".meal-origin")?.remove();
+        const rect = source.getBoundingClientRect();
+        const origin = source.cloneNode(true);
+        origin.classList.add("meal-origin");
+        origin.removeAttribute("data-meal-card");
+        origin.setAttribute("aria-hidden", "true");
+        origin.setAttribute("tabindex", "-1");
+        origin.setAttribute("draggable", "false");
+        origin.style.left = `${rect.left}px`;
+        origin.style.top = `${rect.top}px`;
+        origin.style.inlineSize = `${rect.width}px`;
+        origin.style.blockSize = `${rect.height}px`;
+        $("#mealOverlay").prepend(origin);
+        if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          origin.animate([
+            { opacity: .72, filter: "blur(4px)" },
+            { opacity: 1, filter: "blur(0)" }
+          ], { duration: 180, easing: "cubic-bezier(.16,1,.3,1)" });
+        }
+      }
+
+      function positionMealInspector(source) {
+        const dialog = $("#mealDialog");
+        const sourceRect = source.getBoundingClientRect();
+        const safe = 16;
+        const gap = 14;
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        const mobile = viewportWidth <= 620;
+        const width = mobile ? viewportWidth - safe : Math.min(500, viewportWidth - safe * 2);
+        dialog.style.inlineSize = `${width}px`;
+        const centerX = sourceRect.left + sourceRect.width / 2;
+        const centerY = sourceRect.top + sourceRect.height / 2;
+        const spaceLeft = sourceRect.left - safe - gap;
+        const spaceRight = viewportWidth - sourceRect.right - safe - gap;
+        const spaceAbove = sourceRect.top - safe - gap;
+        const spaceBelow = viewportHeight - sourceRect.bottom - safe - gap;
+        let placement;
+        let dialogHeight;
+
+        if (mobile) {
+          placement = centerY > viewportHeight / 2 ? "above" : "below";
+          const available = placement === "above" ? spaceAbove : spaceBelow;
+          dialog.style.maxBlockSize = `${Math.max(180, available)}px`;
+          dialogHeight = Math.min(dialog.scrollHeight, Math.max(180, available));
+        } else {
+          dialog.style.maxBlockSize = `${Math.min(690, viewportHeight - safe * 2)}px`;
+          dialogHeight = Math.min(dialog.scrollHeight, viewportHeight - safe * 2);
+        }
+
+        const dialogWidth = dialog.offsetWidth;
+
+        if (!mobile) {
+          if (centerY > viewportHeight * .68 && spaceAbove >= Math.min(dialogHeight, 420)) placement = "above";
+          else if (centerX > viewportWidth * .62 && spaceLeft >= dialogWidth) placement = "left";
+          else if (centerX < viewportWidth * .38 && spaceRight >= dialogWidth) placement = "right";
+          else if (spaceBelow >= dialogHeight) placement = "below";
+          else if (spaceAbove >= Math.min(dialogHeight, 420)) placement = "above";
+          else placement = spaceLeft > spaceRight ? "left" : "right";
+        }
+
+        let left;
+        let top;
+        if (mobile) {
+          left = safe / 2;
+          top = placement === "above" ? sourceRect.top - gap - dialogHeight : sourceRect.bottom + gap;
+        } else if (placement === "left" || placement === "right") {
+          left = placement === "left" ? sourceRect.left - gap - dialogWidth : sourceRect.right + gap;
+          top = Math.max(safe, Math.min(centerY - dialogHeight / 2, viewportHeight - safe - dialogHeight));
+        } else {
+          left = Math.max(safe, Math.min(centerX - dialogWidth / 2, viewportWidth - safe - dialogWidth));
+          top = placement === "above" ? sourceRect.top - gap - dialogHeight : sourceRect.bottom + gap;
+        }
+
+        dialog.style.left = `${Math.round(left)}px`;
+        dialog.style.top = `${Math.round(Math.max(safe, top))}px`;
+        dialog.dataset.placement = placement;
+        dialog.classList.add("positioned");
+      }
+
+      function animateDialogFrom(source) {
+        const dialog = $("#mealDialog");
+        const sourceRect = source.getBoundingClientRect();
+        const dialogRect = dialog.getBoundingClientRect();
+        const dx = sourceRect.left + sourceRect.width / 2 - (dialogRect.left + dialogRect.width / 2);
+        const dy = sourceRect.top + sourceRect.height / 2 - (dialogRect.top + dialogRect.height / 2);
+        dialog.animate([
+          { opacity: .35, transform: `translate(${dx}px, ${dy}px) scale(.22)`, filter: "blur(7px)", borderRadius: "13px", clipPath: "inset(0 0 74% 0 round 13px)" },
+          { opacity: 1, transform: "translate(0, 0) scale(1)", filter: "blur(0)", borderRadius: "16px", clipPath: "inset(0 0 0 0 round 16px)" }
+        ], { duration: 340, easing: "cubic-bezier(.16,1,.3,1)" });
+      }
+
+      function closeMeal() {
+        $("#mealOverlay").classList.remove("open");
+        $("#mealOverlay").setAttribute("aria-hidden", "true");
+        document.body.style.overflow = "";
+        selectedMealElement?.classList.remove("open-source");
+        selectedMealElement?.focus();
+        selectedMealElement = null;
+        $(".meal-origin")?.remove();
+        $("#mealDialog").classList.remove("positioned");
+      }
+
+      function openDock(key = null) {
+        closeMeal();
+        targetMealKey = key;
+        armedDishId = null;
+        $("#dishDock").classList.add("open");
+        $("#dishDock").setAttribute("aria-hidden", "false");
+        $("#catalogButton").dataset.active = "true";
+        document.body.classList.add("dock-open");
+        activeFilter = "all";
+        $$(".chip").forEach(chip => chip.classList.toggle("active", chip.dataset.filter === "all"));
+        updateDockContext();
+        renderBoard();
+        renderDishes();
+      }
+
+      function closeDock() {
+        $("#dishDock").classList.remove("open");
+        $("#dishDock").setAttribute("aria-hidden", "true");
+        $("#catalogButton").dataset.active = "false";
+        document.body.classList.remove("dock-open");
+        targetMealKey = null;
+        armedDishId = null;
+        renderBoard();
+      }
+
+      function updateDockContext() {
+        if (!targetMealKey) { $("#dockContext").textContent = tr("globalDock"); return; }
+        const slot = slotByKey(targetMealKey);
+        const day = copy[locale].weekdays[dayByKey(targetMealKey)];
+        $("#dockContext").textContent = `${tr("targetDock")} · ${local(slot.name)} · ${day}`;
+      }
+
+      function renderDishes() {
+        const query = $("#dishSearch")?.value.trim().toLowerCase() ?? "";
+        const targetSlot = targetMealKey ? slotByKey(targetMealKey) : null;
+        const targetMeal = targetMealKey ? meals.get(targetMealKey) : null;
+        const targetDish = targetMeal?.dishId ? dishById(targetMeal.dishId) : null;
+        const targetKcal = targetDish?.kcal ?? (targetSlot?.type === "snack" ? 240 : targetSlot?.type === "breakfast" ? 380 : 500);
+        let visible = dishes.filter(dish => {
+          const nameMatch = Object.values(dish.name).some(name => name.toLowerCase().includes(query));
+          const typeMatch = targetSlot ? dish.type === targetSlot.type : true;
+          const filterMatch = activeFilter === "all" ||
+            (activeFilter === "fit" && Math.abs(dish.kcal - targetKcal) / targetKcal <= .15) ||
+            (activeFilter === "fresh" && !dish.recent) ||
+            (activeFilter === "quick" && dish.quick);
+          return nameMatch && typeMatch && filterMatch;
+        });
+        visible.sort((a, b) => Math.abs(a.kcal - targetKcal) - Math.abs(b.kcal - targetKcal));
+        $("#dishList").innerHTML = visible.map(dish => `
+          <article class="dish-card${dish.blocked ? " blocked" : ""}" draggable="${!dish.blocked}" data-dish-card="${dish.id}">
+            <div class="dish-top"><h3 class="dish-card-name">${local(dish.name)}</h3><span class="drag-mark" aria-hidden="true">⠿</span></div>
+            <div class="dish-card-meta">${dish.kcal} ${tr("kcal")} · ${dish.protein}${tr("grams")} ${tr("protein")}</div>
+            <div class="dish-tags">${dish.tags.slice(0, 2).map(tag => `<span class="dish-tag">${tagLabel(tag)}</span>`).join("")}</div>
+            <div class="dish-card-actions">
+              <span class="recent">${dish.blocked ? tr("blocked") : dish.recent ? tr("recent") : ""}</span>
+              ${dish.blocked ? "" : `<button class="button secondary small" type="button" data-choose-dish="${dish.id}">${tr("select")}</button>`}
+            </div>
+          </article>
+        `).join("");
+        $$('[data-dish-card][draggable="true"]').forEach(card => {
+          card.addEventListener("dragstart", event => {
+            draggingPayload = { kind: "dish", id: card.dataset.dishCard };
+            event.dataTransfer.effectAllowed = "copy";
+            event.dataTransfer.setData("text/plain", JSON.stringify(draggingPayload));
+            closeDock();
+          });
+          card.addEventListener("dragend", () => { draggingPayload = null; });
+          card.addEventListener("pointerdown", event => {
+            if (event.target.closest("button")) return;
+            beginPointerDrag(event, { kind: "dish", id: card.dataset.dishCard }, card.querySelector(".dish-card-name")?.textContent ?? "", card);
+          });
+        });
+        $$('[data-choose-dish]').forEach(button => button.addEventListener("click", () => {
+          if (targetMealKey) placeDish(targetMealKey, button.dataset.chooseDish);
+          else {
+            armedDishId = button.dataset.chooseDish;
+            renderBoard();
+            showToast(tr("armed"));
+          }
+        }));
+      }
+
+      function placeDish(key, dishId, closeAfter = true) {
+        const meal = meals.get(key);
+        const dish = dishById(dishId);
+        if (!meal || !dish || dish.blocked) return;
+        const targetSlot = slotByKey(key);
+        if (dish.type !== targetSlot.type) {
+          showToast(locale === "ar" ? "هذا الطبق غير مناسب لنوع الوجبة" : "This dish does not match the meal type");
+          return;
+        }
+        meal.dishId = dishId;
+        meal.portion = 1;
+        meals.set(key, meal);
+        targetMealKey = closeAfter ? null : targetMealKey;
+        armedDishId = null;
+        renderBoard();
+        if (closeAfter) closeDock(); else renderDishes();
+        showToast(`${tr("placed")}: ${local(dish.name)}`);
+      }
+
+      function beginPointerDrag(event, payload, label, source) {
+        if (event.button !== 0) return;
+        event.preventDefault();
+        pointerDrag = {
+          payload,
+          label,
+          source,
+          startX: event.clientX,
+          startY: event.clientY,
+          active: false,
+          ghost: null,
+          target: null,
+          holdTimer: null
+        };
+        if (payload.kind === "dish") {
+          pointerDrag.holdTimer = setTimeout(() => {
+            if (pointerDrag && !pointerDrag.active) closeDock();
+          }, 180);
+        }
+      }
+
+      function clearPointerTarget() {
+        pointerDrag?.target?.classList.remove("drop-ready");
+        if (pointerDrag) pointerDrag.target = null;
+      }
+
+      document.addEventListener("pointermove", event => {
+        if (!pointerDrag) return;
+        const distance = Math.hypot(event.clientX - pointerDrag.startX, event.clientY - pointerDrag.startY);
+        if (!pointerDrag.active && distance < 7) return;
+
+        if (!pointerDrag.active) {
+          clearTimeout(pointerDrag.holdTimer);
+          pointerDrag.active = true;
+          pointerDrag.source.classList.add("dragging");
+          pointerDrag.ghost = document.createElement("div");
+          pointerDrag.ghost.className = "pointer-ghost";
+          pointerDrag.ghost.textContent = pointerDrag.label;
+          document.body.appendChild(pointerDrag.ghost);
+          if (pointerDrag.payload.kind === "dish") closeDock();
+        }
+
+        pointerDrag.ghost.style.left = `${Math.min(event.clientX + 14, window.innerWidth - 224)}px`;
+        pointerDrag.ghost.style.top = `${Math.min(event.clientY + 14, window.innerHeight - 90)}px`;
+
+        const target = document.elementFromPoint(event.clientX, event.clientY)?.closest(".meal-cell");
+        if (target !== pointerDrag.target) {
+          clearPointerTarget();
+          if (target) {
+            pointerDrag.target = target;
+            target.classList.add("drop-ready");
+          }
+        }
+      });
+
+      document.addEventListener("pointerup", () => {
+        if (!pointerDrag) return;
+        const { active, payload, source, ghost, target, holdTimer } = pointerDrag;
+        clearTimeout(holdTimer);
+        source.classList.remove("dragging");
+        ghost?.remove();
+        target?.classList.remove("drop-ready");
+        pointerDrag = null;
+        if (!active || !target) return;
+        const key = target.dataset.mealKey;
+        if (payload.kind === "dish") placeDish(key, payload.id);
+        if (payload.kind === "meal") moveMeal(payload.key, key);
+      });
+
+      function closePopovers() {
+        $("#clientPopover").classList.remove("open");
+        $("#historyPopover").classList.remove("open");
+        $("#clientSwitch").setAttribute("aria-expanded", "false");
+        $("#weekButton").setAttribute("aria-expanded", "false");
+      }
+
+      function hideToast() {
+        clearTimeout(toastTimer);
+        $("#toast").classList.remove("show");
+        toastActionHandler = null;
+      }
+
+      function showToast(message, options = {}) {
+        clearTimeout(toastTimer);
+        const toast = $("#toast");
+        const action = $("#toastAction");
+        $("#toastTitle").textContent = message;
+        toastActionHandler = options.onAction ?? null;
+        action.hidden = !options.actionLabel;
+        action.textContent = options.actionLabel ?? "";
+        toast.classList.add("show");
+        toastTimer = setTimeout(hideToast, 4200);
+      }
+
+      $("#toastAction").addEventListener("click", () => {
+        const handler = toastActionHandler;
+        hideToast();
+        handler?.();
+      });
+      $("#toastClose").addEventListener("click", hideToast);
+
+      $("#clientSwitch").addEventListener("click", event => {
+        event.stopPropagation();
+        const popover = $("#clientPopover");
+        const open = !popover.classList.contains("open");
+        closePopovers();
+        popover.classList.toggle("open", open);
+        $("#clientSwitch").setAttribute("aria-expanded", String(open));
+        if (open) setTimeout(() => $("#clientSearch").focus(), 0);
+      });
+      $("#clientSearch").addEventListener("input", event => renderClients(event.target.value));
+      $("#clientPopover").addEventListener("click", event => event.stopPropagation());
+
+      $("#weekButton").addEventListener("click", event => {
+        event.stopPropagation();
+        const popover = $("#historyPopover");
+        const open = !popover.classList.contains("open");
+        closePopovers();
+        popover.classList.toggle("open", open);
+        $("#weekButton").setAttribute("aria-expanded", String(open));
+      });
+      $("#historyPopover").addEventListener("click", event => event.stopPropagation());
+      document.addEventListener("click", closePopovers);
+
+      $("#langButton").addEventListener("click", () => { locale = locale === "ar" ? "en" : "ar"; updateTranslations(); });
+      $("#catalogButton").addEventListener("click", () => $("#dishDock").classList.contains("open") ? closeDock() : openDock());
+      $("#closeDock").addEventListener("click", closeDock);
+      $("#dishSearch").addEventListener("input", renderDishes);
+      $$(".chip").forEach(chip => chip.addEventListener("click", () => {
+        activeFilter = chip.dataset.filter;
+        $$(".chip").forEach(item => item.classList.toggle("active", item === chip));
+        renderDishes();
+      }));
+
+      $("#closeMealDialog").addEventListener("click", closeMeal);
+      $("#mealOverlay").addEventListener("click", event => { if (event.target === $("#mealOverlay")) closeMeal(); });
+      $("#portionMinus").addEventListener("click", () => { portionDraft = Math.max(.25, portionDraft - .25); refreshMealDialog(); });
+      $("#portionPlus").addEventListener("click", () => { portionDraft = Math.min(3, portionDraft + .25); refreshMealDialog(); });
+      $("#savePortion").addEventListener("click", () => {
+        const meal = meals.get(selectedMealKey);
+        if (meal) { meal.portion = portionDraft; meals.set(selectedMealKey, meal); }
+        renderBoard();
+        closeMeal();
+        showToast(tr("portionSaved"));
+      });
+      $("#openMealCatalog").addEventListener("click", () => openDock(selectedMealKey));
+
+      $("#compareButton").addEventListener("click", event => {
+        const active = event.currentTarget.dataset.active === "true";
+        event.currentTarget.dataset.active = String(!active);
+        event.currentTarget.classList.toggle("catalog-button", !active);
+        showToast(locale === "ar" ? (!active ? "تم إظهار تكرار الأسبوع السابق" : "تم إخفاء المقارنة") : (!active ? "Previous-week repeats shown" : "Comparison hidden"));
+      });
+      $("#publishButton").addEventListener("click", () => { currentWeek.status = "published"; renderHistory(); showToast(locale === "ar" ? "تم نشر الخطة" : "Plan published"); });
+      $("#newWeekButton").addEventListener("click", () => showToast(locale === "ar" ? "هنا تُفتح خيارات الأسبوع الجديد" : "New-week choices would open here"));
+
+      document.addEventListener("keydown", event => {
+        if (event.key !== "Escape") return;
+        if ($("#mealOverlay").classList.contains("open")) closeMeal();
+        else if ($("#dishDock").classList.contains("open")) closeDock();
+        else closePopovers();
+      });
+
+      updateTranslations();
+    </script>
+  </body>
+</html>

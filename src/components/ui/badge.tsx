@@ -30,6 +30,24 @@ const badgeVariants = cva(
          */
         incomplete:
           "border-dashed border-status-incomplete-fg/40 bg-status-incomplete-bg text-status-incomplete-fg",
+        /*
+         * A blank that somebody should fill — the client portal's `غير مسجل`
+         * on a record field nobody has written yet.
+         *
+         * `incomplete`'s dashed edge, because it is still an absence, over
+         * `attention`'s amber, because unlike a missed day this one is owed to
+         * someone: an allergy list with nothing in it is a question the clinic
+         * has not answered. Amber is §Status's "needs follow-up" and it is the
+         * warmest this scale goes before clay.
+         *
+         * ⚠ **Not clay, and this is the one place that matters most.** Clay is
+         * the system's only true alarm colour and §Status reserves it for a real
+         * allergy, condition or contraindication — so a clay chip on the
+         * *allergies* row would state the opposite of what "not recorded" means.
+         * Amber says the field is waiting; clay would say the client has one.
+         */
+        unrecorded:
+          "border-dashed border-status-attention-fg/40 bg-status-attention-bg text-status-attention-fg",
         medical: "border-transparent bg-status-medical-bg text-status-medical-fg",
         rest: "border-transparent bg-status-rest-bg text-status-rest-fg",
       },
