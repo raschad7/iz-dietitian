@@ -341,10 +341,27 @@ export function NotificationsBell({
       tabsLabel={t('tabs.label')}
       activeTab={filter}
       onTabChange={setFilter}
+      /*
+       * Each tab counts what *exists*, not what this panel happens to be
+       * holding.
+       *
+       * "Clients" read `attention.length` and "All" read `rows.length`, which
+       * are the rows after `loadStaffAttention`'s cap — four. So a clinic with
+       * four clients needing attention and a clinic with thirty both showed a 4,
+       * and the number stopped moving no matter what changed underneath: a
+       * figure that looks hardcoded because it effectively is. `attentionTotal`
+       * is the count the query actually found, which is why it is passed down
+       * separately from the rows.
+       *
+       * It leaves the counts able to exceed the list under them — the "Clients"
+       * tab can say 12 over four rows. That is the honest way round: the footer
+       * says where the rest are, and the alternative is a number that quietly
+       * under-reports the clinic's workload.
+       */
       tabs={[
-        { value: 'all', label: t('tabs.all'), count: rows.length },
+        { value: 'all', label: t('tabs.all'), count: requestCount + attentionTotal },
         { value: 'requests', label: t('tabs.requests'), count: requestCount },
-        { value: 'clients', label: t('tabs.clients'), count: attention.length },
+        { value: 'clients', label: t('tabs.clients'), count: attentionTotal },
       ]}
       empty={t('empty')}
       footer={
