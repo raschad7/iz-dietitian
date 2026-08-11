@@ -184,8 +184,6 @@ function RequestDisclosure({ topic, locale }: { topic: ClientRequestTopic; local
             aria-describedby={state.status === 'error' ? 'update-error' : undefined}
             className="bg-card"
           />
-
-          <p className="text-xs leading-relaxed text-muted-foreground">{t('messageHelp')}</p>
         </div>
 
         {state.status === 'error' ? (

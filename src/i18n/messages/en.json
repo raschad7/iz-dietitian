@@ -707,15 +707,12 @@
         "upcoming": "Upcoming",
         "past": "Past"
       },
-      "next": "Next appointment",
       "upcoming": "Upcoming appointments",
       "history": "Past appointments",
       "requests": "Your requests",
       "defaultTitle": "Routine follow-up",
       "noneUpcomingTitle": "No upcoming appointments",
       "noneUpcoming": "Nothing booked yet. Ask your dietitian for an appointment.",
-      "noMoreUpcomingTitle": "No other upcoming appointments",
-      "noMoreUpcoming": "A new booking will appear here.",
       "nonePast": "No past appointments yet.",
       "reschedule": "Ask to reschedule",
       "cancel": "Ask to cancel",
@@ -763,7 +760,6 @@
         "cancel": "Cancellation"
       },
       "status": {
-        "sent": "Sent",
         "pending": "Waiting",
         "approved": "Approved",
         "declined": "Declined",
@@ -837,7 +833,6 @@
         "action": "Request a data update",
         "messageLabel": "What needs updating?",
         "messagePlaceholder": "For example: my phone number changed, or the height on file is not right.",
-        "messageHelp": "The request reaches the clinic. Nothing on your record changes until your dietitian reviews it.",
         "submit": "Send request",
         "pending": "Your update request is with the clinic.",
         "pendingSince": "Sent {date}",

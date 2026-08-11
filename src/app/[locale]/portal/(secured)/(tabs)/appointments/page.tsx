@@ -78,9 +78,22 @@ export default async function AppointmentsPage({ params, searchParams }: Appoint
 
   const t = await getTranslations('portal');
 
-  // Withdrawn requests are the client's own change of mind; keeping them on the
-  // page would be a list of things they decided not to do.
-  const visibleRequests = requests.filter((request) => request.status !== 'withdrawn');
+  /*
+    Only what is still waiting on the dietitian.
+
+    This used to be everything except `withdrawn` — the client's own change of
+    mind, which would have been a list of things they decided not to do. The
+    same argument turned out to cover the answered ones: an approved request
+    becomes an appointment, which is already on this page in the half above, and
+    a declined one is a closed question. Leaving both on screen meant the
+    section only ever grew, so a client who had asked three times read three
+    settled rows to find the one that was not.
+
+    `pending` is now the whole list, which is what makes the section disappear
+    by itself once the dietitian has answered — the behaviour `request-list.tsx`
+    already describes.
+  */
+  const visibleRequests = requests.filter((request) => request.status === 'pending');
 
   /*
     The button is always offered.
@@ -105,47 +118,47 @@ export default async function AppointmentsPage({ params, searchParams }: Appoint
         />
       ) : (
         <>
-          <PortalSection icon="calendar" title={t('appointments.next')}>
-            <AppointmentCard
-              appointment={next}
-              tone="featured"
-              marker={appointmentMarker(next, 0, context.now)}
-            />
-          </PortalSection>
+          {/*
+            No section heading over this one. `appointmentMarker` always returns
+            a marker at position 0 — today, tomorrow, or next — so the card
+            opens with a chip that says the same thing the heading did, under a
+            fourth calendar glyph in a row that already had three. The card is
+            built to lead a page (see `appointment-card.tsx`); a label above it
+            only pushed it further down one.
+          */}
+          <AppointmentCard
+            appointment={next}
+            tone="featured"
+            marker={appointmentMarker(next, 0, context.now)}
+          />
 
-          <PortalSection icon="calendar" title={t('appointments.upcoming')} count={later.length}>
-            <div className="space-y-3">
-              {later.length > 0 ? (
-                <ul className="space-y-3">
-                  {later.map((appointment, index) => (
-                    <li key={appointment.id}>
-                      <AppointmentCard
-                        appointment={appointment}
-                        // `index + 1`: these start after the featured one, and
-                        // `appointmentMarker` reads position 0 as "next".
-                        marker={appointmentMarker(appointment, index + 1, context.now)}
-                      />
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
+          {/*
+            Nothing at all when there is no second appointment — not an empty
+            state saying so.
 
-              {/*
-                The list says where it ends. Without it the upcoming half just
-                stops, and a client who has one appointment after the next one
-                cannot tell the difference between "that is all of them" and a
-                list that failed to finish loading — the page is a scroll, not a
-                count. It renders under a populated list and in place of one, so
-                the answer to "is there more?" is in the same spot either way.
-              */}
-              <EmptyState
-                layout="row"
-                icon="calendar"
-                title={t('appointments.noMoreUpcomingTitle')}
-                description={t('appointments.noMoreUpcoming')}
-              />
-            </div>
-          </PortalSection>
+            There was one, and it stated the obvious twice over: the client is
+            looking at their next appointment, and the only thing under it was a
+            card explaining that there was nothing under it. A screen that ends
+            is not a screen that failed; the featured card above is a complete
+            answer to "when am I next seen?", and the request button in the
+            header is already the thing to press if the answer is not enough.
+          */}
+          {later.length > 0 ? (
+            <PortalSection icon="calendar" title={t('appointments.upcoming')} count={later.length}>
+              <ul className="space-y-3">
+                {later.map((appointment, index) => (
+                  <li key={appointment.id}>
+                    <AppointmentCard
+                      appointment={appointment}
+                      // `index + 1`: these start after the featured one, and
+                      // `appointmentMarker` reads position 0 as "next".
+                      marker={appointmentMarker(appointment, index + 1, context.now)}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </PortalSection>
+          ) : null}
         </>
       )}
 

@@ -38,20 +38,33 @@ import { cn } from '@/lib/utils';
  * practitioner's name was under it for a while and came out again, being the
  * same name on every row of a list of one dietitian's appointments.
  *
- * Three weights, one layout, and the emphasis is carried by tone and size
- * rather than by a fill. `featured` is the next appointment: a sunken card,
- * flat, with a larger date tile and a larger heading. `default` is an ordinary
- * raised white card, and `past` is one of those dimmed.
+ * **Two compositions, not one row at three sizes.** `featured` is the next
+ * appointment and it is built differently: the marker chip opens the card, the
+ * reason follows at `heading-sm`, and the time is a line you can read at a
+ * glance instead of 14px of grey microcopy. `default` and `past` share a
+ * compact row — tile, heading, one muted line — because a list is scanned
+ * rather than read.
  *
- * **Why the featured card recedes instead of shouting.** It filled with olive
+ * That split *is* the emphasis. This was one layout parameterised by size, so
+ * the card everyone opens the page for was the same object as the rows beneath
+ * it, half a step larger — and half a step is invisible on a phone. Three plain
+ * tiers inside the card (when · what · at what time) do what a size bump could
+ * not, and they cost no colour.
+ *
+ * **The featured card still recedes rather than shouts.** It filled with olive
  * for a while, and a solid brand block at the top of a screen that is otherwise
  * a stack of quiet white cards turned the page into one loud thing and a list of
  * afterthoughts — including the request button above it, which is the only
  * control here. The distinction that matters is not "this one is loud" but "this
  * one is not in the list", and a different plane says that: the list is raised
- * and white, the next appointment sits in the page. Its own heading, its size
- * and its `marker` chip carry the rest, and the reader's eye still lands on it
- * first because it is first.
+ * and white, the next appointment sits in the page. Composition and type carry
+ * it from there; nothing was filled in to buy the emphasis.
+ *
+ * **`past` is not dimmed with `opacity`.** It carried `opacity-75`, which pulls
+ * every line on the card — the reason included — under the contrast floor for
+ * the sake of a mood. The neutral date tile and a muted heading say "finished"
+ * without taking legibility off whoever needed it, and the panel the card sits
+ * in has already said which half of the page this is.
  *
  * Times go through `src/features/booking/format.ts`, not the general formatters
  * in `src/lib/format.ts`: an appointment stores a wall clock rather than an
@@ -108,138 +121,176 @@ export function AppointmentCard({
     minute: (count) => tBooking('duration.minutes', { count }),
   });
 
-  return (
-    <Card
+  const title = appointment.reason ?? t('appointments.defaultTitle');
+  /*
+    No `dir="ltr"` on the range, deliberately.
+
+    `formatMinuteRange` returns it in logical order — start, dash, end. Forcing
+    the span to LTR pins the start time to the left, so an Arabic reader coming
+    from the right meets the *end* time first and reads the appointment
+    backwards. Left to inherit the page direction instead: each clock time is
+    European digits and stays internally LTR on its own (8:15 never becomes
+    15:8), while the two of them are ordered by the paragraph, which puts the
+    start time first in both languages.
+  */
+  const range = formatMinuteRange(locale, date, startMinute, startMinute + durationMinutes);
+
+  const dateTile = (
+    /*
+      A plain rounded panel — a tinted block inside the card, not a second card,
+      so it takes no ring and no shadow of its own.
+
+      The two word lines keep the leading `text-caption` gives them, which is
+      looser under `:lang(ar)` than in Latin because Arabic descends below the
+      baseline. `leading-none` cropped the tails of الأربعاء and أغسطس against
+      the `truncate`. Only the numeral is pinned — digits have no descender, and
+      it is the line the tile is measured by.
+
+      The month is the quietest line and the one most likely to be long —
+      أغسطس, سبتمبر, September. `truncate` rather than a smaller step:
+      `text-caption` is the floor (§Typography), and a month clipped to its stem
+      still reads as a month.
+    */
+    <div
       className={cn(
-        past && 'opacity-75',
-        // Sunken and flat. The ring and the shadow are what make the cards
-        // below it read as raised, so the card that is deliberately *not* in
-        // that list gives up both — an edge and a lift on a tinted surface
-        // would put it back on the same plane it is trying to leave.
-        featured && 'bg-muted shadow-none ring-0',
+        'flex shrink-0 flex-col items-center justify-center gap-0.5 px-1',
+        // The next appointment's tile is the one date on the screen someone is
+        // trying to hold in their head, so it gets the room to be that.
+        featured ? 'w-18 rounded-lg py-2.5 sm:w-20' : 'w-16 rounded-lg py-2 sm:w-18',
+        PANEL_TONES[tone],
       )}
     >
+      <span className="text-caption">{formatWeekday(locale, date)}</span>
+
+      <span
+        className={cn(
+          'font-heading leading-none font-semibold tabular-nums',
+          featured ? 'text-heading-lg' : 'text-heading-sm',
+        )}
+      >
+        {formatDayNumber(locale, date)}
+      </span>
+
+      <span className="w-full truncate text-center text-caption">
+        {formatMonthName(locale, date)}
+      </span>
+    </div>
+  );
+
+  /*
+    No "scheduled" / "ended" badge. Every card already sits in a panel that says
+    which it is — a badge repeating the tab is noise, not status. What earns one
+    here is what the tab cannot say: how soon this is, and whether anything is
+    still outstanding on it.
+  */
+  const markerBadge =
+    marker === null ? null : (
+      // The chip steps up on the featured card: its default olive-50 fill and
+      // that card's sunken surface are the same lightness, so at rest it read
+      // as floating text with no pill around it.
+      <Badge className={cn(featured && 'bg-primary-subtle')}>
+        {t(`appointments.marker.${marker}`)}
+      </Badge>
+    );
+
+  /*
+    A request the client has filed about *this* appointment that the dietitian
+    has not answered — the one status on the card about something outstanding
+    rather than about the slot itself.
+  */
+  const pendingBadge = appointment.hasOpenRequest ? (
+    <Badge variant="attention">{t('appointments.requestPending')}</Badge>
+  ) : null;
+
+  if (featured) {
+    return (
+      <Card
+        /*
+          Sunken and flat. The ring and the shadow are what make the cards below
+          it read as raised, so the card that is deliberately *not* in that list
+          gives up both — an edge and a lift on a tinted surface would put it
+          back on the same plane it is trying to leave.
+        */
+        className="bg-muted shadow-none ring-0"
+      >
+        <CardContent className="flex items-stretch gap-3 sm:gap-4">
+          {dateTile}
+
+          {/*
+            Three tiers, read in the order the questions arrive: how soon, what
+            it is, at what time.
+
+            Every step here sits exactly one rung above the list row beside it —
+            24px numeral to its 20, a 20px reason to its 16, a 16px time to its
+            14 — and no further. It was a rung higher again on each, which on a
+            phone made one card most of the first screenful; the composition is
+            what marks this card out, and the type only has to agree with it.
+          */}
+          <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5">
+            {markerBadge !== null || pendingBadge !== null ? (
+              <div className="flex flex-wrap items-center gap-1.5">
+                {markerBadge}
+                {pendingBadge}
+              </div>
+            ) : null}
+
+            {/*
+              `reason` is free text the dietitian typed and is routinely left
+              empty, so the fallback is what most cards actually show.
+
+              There is no practitioner line under it. A client's appointments
+              are with their own dietitian, whose name is on the profile screen
+              and rarely changes.
+            */}
+            <p className="font-heading text-heading-sm leading-snug">{title}</p>
+
+            {/*
+              The time at `body-md` in the foreground colour, not 14px of grey.
+              "What time?" is the second question anyone brings to this card and
+              it was set in the same microcopy as the duration beside it — which
+              is the one figure here nobody needs to read twice. The step
+              between the two is what separates them now, so the clock glyph
+              that used to label the line is gone with it.
+            */}
+            <p className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+              <span className="text-body-md tabular-nums">{range}</span>
+              <span className="text-sm text-muted-foreground">{duration}</span>
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
       <CardContent className="flex items-stretch gap-3 sm:gap-4">
-        {/*
-          A plain rounded panel — a tinted block inside the card, not a second
-          card, so it takes no ring and no shadow of its own.
-        */}
-        <div
-          className={cn(
-            'flex shrink-0 flex-col items-center justify-center gap-0.5 rounded-lg px-1 py-2',
-            // The next appointment's tile is wider as well as deeper. It is the
-            // one date on the screen someone is trying to hold in their head.
-            featured ? 'w-18 sm:w-20' : 'w-16 sm:w-18',
-            PANEL_TONES[tone],
-          )}
-        >
-          {/*
-            The two word lines keep the leading `text-caption` gives them, which
-            is looser under `:lang(ar)` than in Latin because Arabic descends
-            below the baseline. `leading-none` here cropped the tails of
-            الأربعاء and أغسطس against the `truncate` below. Only the numeral is
-            pinned — digits have no descender, and it is the line the tile is
-            measured by.
-          */}
-          <span className="text-caption">{formatWeekday(locale, date)}</span>
-
-          <span
-            className={cn(
-              'font-heading leading-none font-semibold tabular-nums',
-              featured ? 'text-2xl' : 'text-xl',
-            )}
-          >
-            {formatDayNumber(locale, date)}
-          </span>
-
-          {/*
-            The month is the tile's quietest line and the one most likely to be
-            a long word — أغسطس, سبتمبر, September. `truncate` rather than a
-            smaller step: `text-caption` is the floor (§Typography), and a month
-            clipped to its stem still reads as a month.
-          */}
-          <span className="w-full truncate text-center text-caption">
-            {formatMonthName(locale, date)}
-          </span>
-        </div>
+        {dateTile}
 
         <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5">
           <div className="flex flex-wrap items-start justify-between gap-x-2 gap-y-1.5">
-            <div className="min-w-0">
-              {/*
-                `reason` is free text the dietitian typed and is routinely left
-                empty, so the fallback is what most cards actually show — see
-                `appointments.defaultTitle`.
+            <p
+              className={cn(
+                'min-w-0 font-heading text-base leading-snug font-semibold',
+                // A finished appointment goes quiet in the type rather than
+                // behind an opacity that takes the whole card with it.
+                past && 'text-muted-foreground',
+              )}
+            >
+              {title}
+            </p>
 
-                There is no practitioner line under it. A client's appointments
-                are with their own dietitian, whose name is on the profile screen
-                and rarely changes, so repeating it on every card in the list
-                spent a line on the one fact that never varies.
-              */}
-              <p
-                className={cn(
-                  'font-heading leading-snug font-semibold',
-                  featured ? 'text-base sm:text-lg' : 'text-base',
-                )}
-              >
-                {appointment.reason ?? t('appointments.defaultTitle')}
-              </p>
-            </div>
-
-            {/*
-              No "scheduled" / "ended" badge. Every card already sits in a panel
-              that says which it is, and the past ones are dimmed on top of that
-              — a badge repeating the tab is noise, not status. What earns a badge
-              here is what the tab cannot say: how soon this one is, and whether
-              anything is still outstanding on it.
-            */}
-            {marker !== null || appointment.hasOpenRequest ? (
+            {markerBadge !== null || pendingBadge !== null ? (
               <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
-                {marker !== null ? (
-                  // The chip steps up with the tile on the featured card, and
-                  // for the same reason: its default olive-50 fill and that
-                  // card's n-50 surface are the same lightness, so the chip
-                  // read as floating text with no pill around it.
-                  <Badge className={cn(featured && 'bg-primary-subtle')}>
-                    {t(`appointments.marker.${marker}`)}
-                  </Badge>
-                ) : null}
-
-                {/*
-                  A request the client has filed about *this* appointment and
-                  the dietitian has not answered. It is the one status on the
-                  card that is about something outstanding rather than about the
-                  slot itself, which is why it earns a badge here.
-                */}
-                {appointment.hasOpenRequest ? (
-                  <Badge variant="attention">{t('appointments.requestPending')}</Badge>
-                ) : null}
+                {markerBadge}
+                {pendingBadge}
               </div>
             ) : null}
           </div>
 
-          {/*
-            One muted grey for every tone now that no card is saturated. The
-            featured card used to need `primary-foreground/90` to sit on olive.
-          */}
           <p className="flex flex-wrap items-center gap-x-1.5 text-sm text-muted-foreground">
             <Icon name="clock" className="size-3.5 shrink-0" />
-            {/*
-              No `dir="ltr"` here, deliberately.
-
-              `formatMinuteRange` returns the range in logical order — start,
-              dash, end. Forcing the span to LTR pins the start time to the
-              left, so an Arabic reader coming from the right meets the *end*
-              time first and reads the appointment backwards.
-
-              Left to inherit the page direction instead: each clock time is
-              European digits and stays internally LTR on its own (8:15 never
-              becomes 15:8), while the two of them are ordered by the
-              paragraph, which puts the start time first in both languages.
-            */}
-            <span className="tabular-nums">
-              {formatMinuteRange(locale, date, startMinute, startMinute + durationMinutes)}
-            </span>
+            <span className="tabular-nums">{range}</span>
             <span aria-hidden>·</span>
             <span>{duration}</span>
           </p>

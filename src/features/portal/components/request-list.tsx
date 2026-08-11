@@ -27,12 +27,16 @@ import { cn } from '@/lib/utils';
  * ## Reading the list at a glance
  *
  * These rows used to be identical white boxes distinguished only by a chip in
- * the corner, so finding "the one still waiting" meant reading every card. Each
- * row now states its status three times over in one hue and three weights — a
- * rule down the inline-start edge, a tinted disc behind the glyph, and the chip
- * that carries the words. One colour per card, so a list of four is four
- * colours rather than twelve; and the words are always there, so the colour is
- * never the only channel.
+ * the corner, so finding "the one still waiting" meant reading every card. A
+ * row now states its status in one hue across up to three weights — a rule down
+ * the inline-start edge, a tinted disc behind the glyph, and a chip carrying the
+ * words. One colour per card, so a list of four is four colours rather than
+ * twelve.
+ *
+ * **A note is the exception, and carries no chip.** Its status never changes, so
+ * the words channel had nothing to say; the rule and the disc go neutral and the
+ * row is left as a title and the client's message. Colour is never the only
+ * channel on the rows that *do* vary, which is where that rule earns its keep.
  *
  * The rule is a positioned span rather than a `border-s-*`, because `Card` is
  * already `relative` and `overflow-hidden`: the span gets clipped to the card's
@@ -159,9 +163,24 @@ export function RequestList({ requests }: { requests: readonly PortalRequest[] }
                     <span className="font-heading text-body-md leading-snug font-semibold">
                       {note ? t('request.kind.note') : t(`request.kind.${request.kind}`)}
                     </span>
-                    <Badge variant={tone}>
-                      {note ? t('request.status.sent') : t(`request.status.${request.status}`)}
-                    </Badge>
+
+                    {/*
+                      A note carries no chip.
+
+                      It had one reading "sent", and it failed the badge test in
+                      §Colour: a pill marks a state, and a state has to vary.
+                      Nothing ever moves a note out of `pending`, so that chip
+                      said the same word on every note row a client had ever
+                      written — three identical pills down a list of three. The
+                      row's own title already says it is a message, and the disc
+                      beside it already carries the neutral tone.
+
+                      A real ask still gets one, because there the word does
+                      change: it is what the client opens this section to read.
+                    */}
+                    {note ? null : (
+                      <Badge variant={tone}>{t(`request.status.${request.status}`)}</Badge>
+                    )}
                   </div>
 
                   {/*
@@ -220,20 +239,23 @@ export function RequestList({ requests }: { requests: readonly PortalRequest[] }
                   ) : null}
 
                   {/*
-                    The client's own words, kept in the sunken fill so they read
-                    as quoted rather than as another line the app wrote. No
-                    label above it: on a `note` row the card's title already
-                    says "message" and the box under it is plainly the message,
-                    and on the other kinds the sentence explains itself.
+                    The client's own words, set plainly.
 
-                    The hairline is what makes it a box in the portal's dark
-                    theme, where `--muted` and `--card` are both olive-900 and
-                    the fill alone draws nothing at all.
+                    They sat in a sunken fill with a hairline round it, on the
+                    argument that a box makes them read as quoted rather than as
+                    another line the app wrote. On a `note` row that argument
+                    collapses: the row is *nothing but* the message, so the box
+                    was a container drawn around the only content there —
+                    a second card inside the card, which §Shape rules out
+                    anyway. Nesting it also put a filled panel inside a panel on
+                    every row of a list read on a phone.
+
+                    No label above it either: the card's title already says this
+                    is a message, and on the other kinds the sentence explains
+                    itself.
                   */}
                   {request.note ? (
-                    <p className="rounded-md bg-muted px-3 py-2 text-sm leading-relaxed ring-1 ring-border whitespace-pre-line">
-                      {request.note}
-                    </p>
+                    <p className="text-sm leading-relaxed whitespace-pre-line">{request.note}</p>
                   ) : null}
                 </div>
               </CardContent>
