@@ -1222,6 +1222,7 @@
       "updated": "Last edited"
     },
     "history": "Earlier plans",
+    "moreActions": "More plan actions",
     "weekOf": "Week of {date}",
     "generatedBy": "Model used",
     "kcalValue": "{value} kcal",
@@ -1383,6 +1384,8 @@
     "createWeek": "Create week",
     "newWeekTitle": "Start a new week",
     "newWeekSubtitle": "Choose how to start planning this week's meals.",
+    "weekStartLabel": "Week start date",
+    "weekStartHint": "The planner begins on this day and continues for seven days.",
     "newWeekGenerate": {
       "create": "Generate with AI",
       "regenerate": "Regenerate with AI"

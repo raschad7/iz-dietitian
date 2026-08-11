@@ -2,7 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
 import { NoClientBoard } from '@/features/weekly-plans/components/no-client-board';
-import { listCatalogForBoard, listPlannableClients } from '@/features/weekly-plans/queries';
+import { listPlannableClients } from '@/features/weekly-plans/queries';
 import { PLANNER_THEME } from '@/features/weekly-plans/theme';
 import { resolveLocale } from '@/i18n/params';
 import { requireStaffClinic } from '@/lib/session';
@@ -23,16 +23,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
  * their board, where the header, the picker and the rail are already in the
  * places this page put them, so nothing jumps.
  *
- * The catalog is loaded with no allergens because there is no client to have
- * any: every dish is browsable and none is blocked.
  */
 export default async function WeeklyPlansPage({ params }: PageProps) {
   const locale = await resolveLocale(params);
   const { clinicId } = await requireStaffClinic(locale);
 
-  const [clients, catalog, t] = await Promise.all([
+  const [clients, t] = await Promise.all([
     listPlannableClients(clinicId),
-    listCatalogForBoard([]),
     getTranslations('weeklyPlans'),
   ]);
 
@@ -44,7 +41,7 @@ export default async function WeeklyPlansPage({ params }: PageProps) {
       <h1 className="sr-only">{t('title')}</h1>
 
       <div className="flex min-h-0 min-w-0 flex-1 gap-4">
-        <NoClientBoard clients={clients} catalog={catalog} locale={locale} />
+        <NoClientBoard clients={clients} locale={locale} />
       </div>
     </div>
   );

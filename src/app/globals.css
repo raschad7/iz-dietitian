@@ -1169,17 +1169,17 @@
   --muted-foreground: var(--c-600);     /* text.secondary — 7.46:1 on white, clears the 6.38:1 floor n-600 set */
 
   /* Dish tags are identity marks, not statuses. These darker stops keep the
-     two-pixel divider legible without turning the meal card into a badge. */
-  --planner-tag-cheap: var(--amber-700);
-  --planner-tag-portable: var(--n-700);
-  --planner-tag-quick: var(--flame-700);
-  --planner-tag-vegetarian: var(--olive-600);
-  --planner-tag-high-protein: var(--olive-800);
+     short accent legible without turning the meal card into a badge. */
+  --planner-tag-cheap: var(--amber-600);
+  --planner-tag-portable: var(--n-500);
+  --planner-tag-quick: var(--flame-500);
+  --planner-tag-vegetarian: var(--olive-500);
+  --planner-tag-high-protein: var(--lime-600);
   --planner-tag-diabetic-friendly: var(--c-600);
 }
 
-/* Each row cell paints one segment of a continuous rule and reaches halfway
-   into the 16px column gutter. The scroll frame clips the two outer reaches. */
+/* Each row cell paints one segment of a continuous rule, reaching halfway
+   across the responsive column gutter without becoming the card's own edge. */
 .planner-row-cell {
   position: relative;
   min-width: 0;
@@ -1188,16 +1188,32 @@
 .planner-row-cell::before {
   position: absolute;
   z-index: 0;
-  inset-block-start: 0;
-  inset-inline: -0.5rem;
-  border-block-start: 1px solid var(--border);
+  inset-block-start: -0.5rem;
+  inset-inline: -0.375rem;
+  border-block-start: 2px solid var(--border);
   content: '';
+}
+
+.planner-row-cell[data-first-row]::before {
+  display: none;
 }
 
 .planner-row-cell > * {
   position: relative;
   z-index: 1;
   height: 100%;
+}
+
+@media (min-width: 80rem) {
+  .planner-row-cell::before {
+    inset-inline: -0.5rem;
+  }
+}
+
+@media (min-width: 96rem) {
+  .planner-row-cell::before {
+    inset-inline: -0.75rem;
+  }
 }
 
 @layer base {
@@ -2078,15 +2094,6 @@
   --tone-mark: oklch(0.68 0.105 var(--tone-h));
 }
 
-/*
- * The planner rail and its compact trigger are one responsive pair. Keeping
- * their breakpoint here prevents a partially generated utility sheet from
- * showing the mobile trigger while hiding the desktop rail.
- */
-.planner-desktop-rail {
-  display: none;
-}
-
 /* Tablet is a three-day-wide work surface, not a compressed seven-column
  * desktop. The rest of the week stays one touch swipe away, with the frozen
  * meal rail preserving row context and no scrollbar consuming canvas space. */
@@ -2103,21 +2110,6 @@
   .planner-day-column {
     scroll-snap-align: start;
   }
-}
-
-.planner-compact-trigger {
-  display: inline-flex;
-}
-
-@media (min-width: 112rem) {
-  .planner-desktop-rail {
-    display: flex;
-  }
-
-  .planner-compact-trigger {
-    display: none;
-  }
-
 }
 
 /*

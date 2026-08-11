@@ -2,7 +2,7 @@ import { addDays } from '@/features/booking/date';
 import { getClinicHours } from '@/features/booking/queries';
 import { type ClinicHours } from '@/features/booking/validation';
 import { getPublishedBoard, type Board, type BoardDay } from '@/features/weekly-plans/queries';
-import { weekDates as planWeekDates, type PlanDaySummary } from '@/features/weekly-plans/week';
+import { planWeekDays, type PlanDaySummary } from '@/features/weekly-plans/week';
 
 import {
   adherenceDaysFor,
@@ -118,8 +118,12 @@ export async function loadDashboard(context: PortalContext): Promise<DashboardDa
   // it by `weekdayOf(context.now.date)` would silently hand back a day that
   // shares today's weekday number but is a week away, which is not today's
   // plan by any definition a client would recognise.
-  const todayIndexInPlan = plan ? planWeekDates(plan.weekStartDate).indexOf(context.now.date) : -1;
-  const today = plan && todayIndexInPlan !== -1 ? (plan.days[todayIndexInPlan] ?? null) : null;
+  const todayPlanDay = plan
+    ? planWeekDays(plan.weekStartDate).find((day) => day.date === context.now.date)
+    : undefined;
+  const today = plan && todayPlanDay
+    ? (plan.days.find((day) => day.dayOfWeek === todayPlanDay.dayOfWeek) ?? null)
+    : null;
 
   // Second read rather than part of the batch above: it needs `today`'s own
   // meal ids, which only exist once `plan` has come back. Same shape
@@ -295,7 +299,8 @@ export async function loadPlanPage(
 
   if (!board) return null;
 
-  const dates = planWeekDates(board.weekStartDate);
+  const planDays = planWeekDays(board.weekStartDate);
+  const dates = planDays.map((day) => day.date);
 
   // Second read rather than part of `loadCurrentPlan`: the board is the
   // dietitian's published plan and this is the client's own reporting against
@@ -311,17 +316,18 @@ export async function loadPlanPage(
     adherenceDaysFor(dates, adherenceRows, context.now.date).map((day) => [day.date, day]),
   );
 
-  // `getPublishedBoard` builds one entry per weekday, in order, so the index is
-  // the day of week and every day is present even when it holds no meals.
-  const days: PlanDaySummary[] = board.days.map((day, index) => {
-    const date = dates[index] ?? null;
+  // Keep the strip chronological even when this client's plan begins midweek.
+  // Meal rows retain their absolute weekday id, so each date is paired by id
+  // rather than by the board array's Sunday-first index.
+  const days: PlanDaySummary[] = planDays.map(({ dayOfWeek, date }) => {
+    const day = board.days.find((candidate) => candidate.dayOfWeek === dayOfWeek);
 
     return {
-      dayOfWeek: day.dayOfWeek,
+      dayOfWeek,
       date,
-      mealCount: day.meals.length,
+      mealCount: day?.meals.length ?? 0,
       isToday: date === context.now.date,
-      adherence: date === null ? null : (adherenceByDate.get(date) ?? null),
+      adherence: adherenceByDate.get(date) ?? null,
     };
   });
 
@@ -330,7 +336,8 @@ export async function loadPlanPage(
   // Only the day actually rendered — a whole week of meal ids to check
   // completion against would be the same over-fetch `PortalPlan` already
   // avoids for dishes and ingredients.
-  const selectedMealIds = board.days[selectedDay]?.meals.map((meal) => meal.id) ?? [];
+  const selectedMealIds =
+    board.days.find((day) => day.dayOfWeek === selectedDay)?.meals.map((meal) => meal.id) ?? [];
   const completedMealIds = [...(await listMealCompletions(context.id, selectedMealIds))];
 
   return { board, days, selectedDay, completedMealIds, today: context.now.date };
