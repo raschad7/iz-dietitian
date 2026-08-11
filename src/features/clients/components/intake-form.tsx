@@ -17,8 +17,14 @@ import { TimeInput } from '@/components/ui/time-input';
 import { saveIntakeAction } from '@/features/clients/actions';
 import { calculateAge } from '@/features/clients/age';
 import { initialIntakeFormState, type IntakeFormState } from '@/features/clients/form-state';
+import { mergedNotes } from '@/features/clients/notes';
 import { ALLERGENS } from '@/features/clients/nutrition';
 import { CLIENT_ACTIVITY_LEVELS, CLIENT_GOALS } from '@/features/clients/schema';
+import {
+  FIELDS_BY_SECTION,
+  INTAKE_SECTIONS,
+  type IntakeSectionId,
+} from '@/features/clients/intake-sections';
 import { type ClientIntakeValues, type MealSlotValues } from '@/features/clients/types';
 import { suggestProteinGrams, suggestTargets } from '@/features/weekly-plans/targets';
 import { type Locale } from '@/i18n/routing';
@@ -56,9 +62,9 @@ import { cn } from '@/lib/utils';
  * displayed them; the columns are still in the database and are simply no longer
  * read or written, so nothing already recorded was destroyed to remove a screen.
  */
-const SECTIONS = ['measurements', 'allergies', 'clinical', 'planning', 'schedule'] as const;
+const SECTIONS = INTAKE_SECTIONS;
 
-type SectionId = (typeof SECTIONS)[number];
+type SectionId = IntakeSectionId;
 
 /** The icon that stands for each section in the rail. */
 const SECTION_ICONS = {
@@ -72,11 +78,18 @@ const SECTION_ICONS = {
 export function IntakeForm({
   intake,
   locale,
+  section: initialSection = 'measurements',
   onCancel,
   onSaved,
 }: {
   intake: ClientIntakeValues;
   locale: Locale;
+  /**
+   * Which panel the dialog opens on. The gap chips on the Nutrition tab pass
+   * the section that holds the field they name, so a chip reading "الحساسية"
+   * lands on الحساسية والحالة الصحية rather than on القياسات.
+   */
+  section?: SectionId;
   onCancel: () => void;
   onSaved: () => void;
 }) {
@@ -84,7 +97,13 @@ export function IntakeForm({
   const tCommon = useTranslations('common');
 
   const [state, formAction] = useActionState(saveIntakeAction, initialIntakeFormState);
-  const [section, setSection] = useState<SectionId>('measurements');
+  /*
+   * The opening panel is an initial value, not a controlled one: the dialog is
+   * mounted fresh each time it opens, and after that the rail owns which
+   * section is showing. Syncing it to the prop would yank someone back to where
+   * they came in from on an unrelated re-render.
+   */
+  const [section, setSection] = useState<SectionId>(initialSection);
 
   /*
    * The four values the readout is computed from are controlled; everything else
@@ -322,23 +341,28 @@ export function IntakeForm({
               />
             </div>
 
-            <Divider label={t('intake.privateBadge')} />
+            {/*
+              One note, not two.
 
+              These were `medicalNotes` and `notes`: two textareas under one
+              heading, both private to the clinic, both free prose, told apart
+              only by their labels — "ملاحظات طبية" over "ملاحظات". Nothing said
+              which one a note belonged in, so the answer was whichever the
+              dietitian's eye landed on first, and reading a record meant
+              reading both boxes to be sure.
+
+              The heading names the group and the field is the group, so the
+              divider goes with the second box: a labelled rule above a single
+              field is a section of one. Text already in `notes` is merged into
+              the value below — see `mergedNotes`.
+            */}
             <TextField
               name="medicalNotes"
-              label={t('fields.medicalNotes')}
-              rows={3}
-              maxLength={2000}
-              defaultValue={intake.medicalNotes}
+              label={t('intake.notesDivider')}
+              rows={5}
+              maxLength={4000}
+              defaultValue={mergedNotes(intake.medicalNotes, intake.notes)}
               error={errorFor('medicalNotes')}
-            />
-            <TextField
-              name="notes"
-              label={t('fields.notes')}
-              rows={2}
-              maxLength={2000}
-              defaultValue={intake.notes}
-              error={errorFor('notes')}
             />
           </Panel>
 
@@ -422,15 +446,6 @@ export function IntakeForm({
     </form>
   );
 }
-
-/** Which fields belong to which section, so a server error can open the right one. */
-const FIELDS_BY_SECTION: Record<SectionId, readonly string[]> = {
-  measurements: ['heightCm', 'weightKg', 'goal', 'activityLevel'],
-  allergies: ['allergenTags', 'allergies'],
-  clinical: ['conditions', 'medications', 'medicalNotes', 'notes'],
-  planning: ['permanentInstructions', 'preferences', 'dislikes', 'dailyKcalTarget', 'proteinTargetGrams'],
-  schedule: ['mealSchedule'],
-};
 
 /** `''` from an untouched number input is "not provided", not zero. */
 function toNumberOrNull(value: string): number | null {
