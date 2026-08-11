@@ -932,6 +932,8 @@
   --sidebar-ring: var(--ring);
 }
 
+
+
 /*
  * `تلقائي` — the client portal's "follow the phone" theme.
  *
@@ -1969,21 +1971,101 @@
  * spun through HSL would hand one patient a card whose text fails contrast and
  * another a card that shouts. OKLCH is perceptually uniform, so fixing L fixes
  * *apparent* lightness. Measured across all 360 hues: the resting fill holds
- * n-900 at 14.42–14.70:1, the hover fill at 12.67–13.10:1, and the avatar
- * holds white at 4.63–5.09:1. Every patient's card carries the same visual
- * weight, which is the point — colour here says who, never how important.
+ * n-900 at 12.02–12.67:1, the hover fill at 10.39–10.99:1, and the avatar
+ * holds white at 5.17–8.93:1. Every patient's *card* carries the same visual
+ * weight, which is the point — colour here says who, never how important. The
+ * avatar disc trades that for vividness; see `--tone-mark`.
  *
- * The chroma of each step is the most sRGB allows at that lightness across
- * every hue, so no client's colour is silently clipped into another's.
+ * The chroma of the two fills is the most sRGB allows at that lightness across
+ * every hue, so no client's colour is silently clipped into another's. The
+ * avatar disc is the deliberate exception and takes each hue's own maximum —
+ * see the note on `--tone-mark`.
+ *
+ * **The fill is tinted enough to actually tell two patients apart.** It used to
+ * sit at `0.945 0.025`, which was the most chroma sRGB allows *at that
+ * lightness* — and that turned out to be the wrong thing to maximise. Two hues
+ * 137° apart separate by only twice the chroma, so at 0.025 the closest pair on
+ * a day with eight clients differed by an OKLab ΔE of 0.014, under the ~0.02
+ * that is just-noticeable on a flat area. The colours were distinct by
+ * construction and identical to look at, which is the whole job undone.
+ *
+ * Chroma at a fixed lightness was the wrong lever: pushing it to 0.04 at
+ * L=0.945 puts 172 of the 360 hues outside sRGB, where they clip and collapse
+ * back into each other. Lightness had to come down with it. At `0.876 0.06` the
+ * gap on that same eight-client day is 0.034 and twelve clients still clear the
+ * threshold at 0.021, with every hue in gamut and the text still far above AAA.
  */
 .patient-tone {
-  /* The resting card: barely tinted, so a full day still reads as one grid. */
-  --tone-fill: oklch(0.945 0.025 var(--tone-h));
-  --tone-fill-hover: oklch(0.905 0.042 var(--tone-h));
+  /*
+    The resting card: `oklch(0.8888 0.0569 h)`, a chosen colour with only the
+    hue left free.
+
+    Lightness and chroma are fixed on purpose and are not a derived pair — they
+    were picked from a sample the clinic settled on, and the whole of a client's
+    identity is the third number. Holding the first two is what keeps every
+    patient's card the same weight on the grid; see the note above on why that
+    matters more here than on the avatar disc, which does the opposite.
+
+    The pair has moved a lot: 0.945 → 0.876 → 0.8 → 0.8888 on lightness, and
+    0.025 → 0.06 → 0.035 → 0.0999 → 0.0569 on chroma. The version that mattered
+    was 0.025, where the fill was the only thing carrying identity and could
+    not — every patient came out the same near-white. It no longer has to: the
+    disc says who now, so this is free to be whatever reads well behind text.
+
+    Opaque. It carried a 0.6 alpha briefly so the hour rules would show through,
+    and that was reverted — the cards stopped reading as cards.
+
+    Measured, not assumed: n-900 holds 12.02–12.67:1 on the resting fill and
+    10.39–10.99:1 on hover.
+
+    **43 of 360 hues clip here** — blues from 247° to 289°, where sRGB has less
+    room at this lightness than the chroma asks for. It is survivable rather
+    than free: the blue channel pins at 255, so those cards come out a little
+    paler and a little off their true hue, but neighbouring hues stay apart
+    (258° and 272° render `rgb(196,220,255)` and `rgb(205,217,255)`), so no two
+    clients collapse into one colour. Roughly one client in eight lands in that
+    band. Dropping the lightness to 0.88 — under a hundredth — clips nothing at
+    all, and is the change to make if those blues ever look wrong.
+
+    Hover differs by lightness alone, so the deeper step cannot drift into a
+    different colour from the card it belongs to.
+  */
+  --tone-fill: oklch(0.8888 0.0569 var(--tone-h));
+  --tone-fill-hover: oklch(0.8438 0.0569 var(--tone-h));
   /* The hairline, and the only saturated thing at rest — 3.39:1 on the card. */
   --tone-edge: oklch(0.62 0.115 var(--tone-h));
-  /* The avatar disc. Deep enough to carry the white initials on it. */
-  --tone-mark: oklch(0.55 0.088 var(--tone-h));
+  /*
+    The avatar disc — the one step that is *not* held to a uniform chroma.
+
+    A single chroma across every hue is a chroma every hue can reach, and that
+    is the weakest hue's ceiling: at this lightness teal runs out at 0.098 while
+    violet could carry 0.292 and red 0.222. Holding one number dragged all of
+    them down to teal's limit, so six clients came out as six barely different
+    mauves — distinct in the data and indistinguishable on screen, which is the
+    only thing this disc exists to do.
+
+    The chroma asked for is past every hue's ceiling, so each one is brought
+    back to what sRGB actually has for it. Red lands around `rgb(242 0 0)`,
+    violet around `rgb(84 0 255)`, teal at its honest `rgb(0 148 149)`.
+
+    **The lightness is set from measured pixels, not from the model.** Browsers
+    do not gamut-map this the way CSS Color 4 describes — they clip per channel,
+    which is why those values are full of 0s and 255s. Clipping does not preserve
+    lightness, so the tidy assumption that "L fixes apparent lightness, therefore
+    contrast is safe" is simply false here: asking for this chroma at L=0.5
+    measured 3.68:1 on teal against white, under the 4.5:1 the initials need,
+    while the model predicted 5.60:1. At 0.42 the worst hue measures 5.17:1 and
+    the best 8.93:1, checked by rasterising all 360 hues rather than computing
+    them.
+
+    What that costs is the uniform weight the fills keep: a clipped disc is not
+    the lightness it asked for, so one client's disc does sit a little heavier
+    than another's. On 20–44px of flat colour carrying two letters that is worth
+    paying for colours that are actually told apart. The fill above is a large
+    area behind body text and keeps its uniform chroma for exactly the opposite
+    reason.
+  */
+  --tone-mark: oklch(0.42 0.4 var(--tone-h));
 }
 
 /*
@@ -1996,10 +2078,25 @@
  * colour drawn on a portal screen would need both, per docs/design-system.md.
  */
 .dark .patient-tone {
-  --tone-fill: oklch(0.27 0.035 var(--tone-h));
-  --tone-fill-hover: oklch(0.33 0.045 var(--tone-h));
+  /*
+    Same correction as the light ramp, against a tighter ceiling: a dark colour
+    holds less chroma before it leaves sRGB, so 0.057 at L=0.34 is the most
+    available here — enough to separate the hues, and n-25 still sits on it at
+    11.04–11.68:1.
+  */
+  --tone-fill: oklch(0.34 0.035 var(--tone-h));
+  --tone-fill-hover: oklch(0.40 0.045 var(--tone-h));
   --tone-edge: oklch(0.62 0.115 var(--tone-h));
-  --tone-mark: oklch(0.68 0.105 var(--tone-h));
+  /*
+    The same disc as the light theme, and deliberately the same value: it is a
+    saturated shape with white letters on it either way, and the surface behind
+    it is dark enough in both that nothing needs re-anchoring.
+
+    It also settles a contrast bug. The previous `0.68 0.105` put white initials
+    at 2.74–3.04:1 — under the 4.5:1 they need, and no darker text was ever
+    going to work on a disc that saturated.
+  */
+  --tone-mark: oklch(0.42 0.4 var(--tone-h));
 }
 
 /*

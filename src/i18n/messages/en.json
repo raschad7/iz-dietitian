@@ -167,6 +167,7 @@
       "nextYear": "Next year",
       "pickMonth": "Choose a month",
       "pickYear": "Choose a year",
+      "pickDay": "Choose a day",
       "previousYears": "Previous years",
       "nextYears": "Next years"
     },
@@ -1609,6 +1610,7 @@
       "disabled": "WhatsApp is not enabled on this installation.",
       "gateway": "The WhatsApp gateway did not answer. Make sure it is running, then try again.",
       "invalid": "Check the highlighted fields.",
+      "misconfigured": "WhatsApp is switched on but not finished being set up on this server. Whoever installed the app needs to add the gateway credentials — the server log names the missing setting.",
       "notLinked": "Connect WhatsApp first, then set the automations up.",
       "sendFailed": "The message could not be sent. Check the message log.",
       "unexpected": "Something went wrong. Try again."

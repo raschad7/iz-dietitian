@@ -74,9 +74,17 @@ describe('dateAtX', () => {
 });
 
 describe('anchorPopover', () => {
-  test('opens away from the pointer in LTR', () => {
-    const { insetInlineStart } = anchorPopover({ x: 400, y: 300 }, POPOVER, VIEWPORT, 'ltr');
-    expect(insetInlineStart).toBe(400);
+  test('centres on the pointer in LTR', () => {
+    const { insetInlineStart, insetBlockStart } = anchorPopover(
+      { x: 400, y: 300 },
+      POPOVER,
+      VIEWPORT,
+      'ltr',
+    );
+
+    // The pointer sits in the middle of the panel on both axes, not on a corner.
+    expect(insetInlineStart + 320 / 2).toBe(400);
+    expect(insetBlockStart + 400 / 2).toBe(300);
   });
 
   test('mirrors in RTL — the same pointer lands the same distance from the *other* edge', () => {
@@ -91,19 +99,34 @@ describe('anchorPopover', () => {
     const ltr = anchorPopover({ x: 400, y: 300 }, POPOVER, VIEWPORT, 'ltr');
     const rtl = anchorPopover({ x: 400, y: 300 }, POPOVER, VIEWPORT, 'rtl');
 
-    expect(ltr.insetBlockStart).toBe(300);
-    expect(rtl.insetBlockStart).toBe(300);
+    expect(ltr.insetBlockStart).toBe(100);
+    expect(rtl.insetBlockStart).toBe(100);
   });
 
-  test('clamps to the inline end edge in LTR', () => {
-    const { insetInlineStart } = anchorPopover({ x: 980, y: 300 }, POPOVER, VIEWPORT, 'ltr');
-    expect(insetInlineStart).toBe(1000 - 320 - 8);
+  /**
+   * Near an edge the panel gives up the centre rather than the viewport.
+   *
+   * This is the whole of the edge behaviour — there is no separate rule for it.
+   * A slot at the bottom of the day would centre below the screen, gets pushed
+   * back inside, and so lands *above* the pointer, which is what someone
+   * booking the last hour of the day is asking for.
+   */
+  test('a slot at the bottom of the day pushes the panel above the pointer', () => {
+    const { insetBlockStart } = anchorPopover({ x: 400, y: 790 }, POPOVER, VIEWPORT, 'ltr');
+
+    expect(insetBlockStart).toBe(800 - 400 - 8);
+    // Entirely above the click, not hanging past the bottom of the screen.
+    expect(insetBlockStart + 400).toBeLessThanOrEqual(800 - 8);
   });
 
-  test('clamps to the inline end edge in RTL too — measured from the right', () => {
-    // Pointer near the left edge in RTL is near the *end* of the inline axis.
-    const { insetInlineStart } = anchorPopover({ x: 20, y: 300 }, POPOVER, VIEWPORT, 'rtl');
-    expect(insetInlineStart).toBe(1000 - 320 - 8);
+  test('the inline end edge pushes it back in, in both directions', () => {
+    expect(anchorPopover({ x: 980, y: 300 }, POPOVER, VIEWPORT, 'ltr').insetInlineStart).toBe(
+      1000 - 320 - 8,
+    );
+    // A pointer near the left edge in RTL is near the *end* of the inline axis.
+    expect(anchorPopover({ x: 20, y: 300 }, POPOVER, VIEWPORT, 'rtl').insetInlineStart).toBe(
+      1000 - 320 - 8,
+    );
   });
 
   test('clamps to the inline start edge', () => {
@@ -111,9 +134,35 @@ describe('anchorPopover', () => {
     expect(anchorPopover({ x: 998, y: 300 }, POPOVER, VIEWPORT, 'rtl').insetInlineStart).toBe(8);
   });
 
-  test('clamps the bottom so a popover opened low is fully visible', () => {
-    const { insetBlockStart } = anchorPopover({ x: 400, y: 790 }, POPOVER, VIEWPORT, 'ltr');
+  test('a click with room all round stays centred on both axes', () => {
+    const { insetInlineStart, insetBlockStart } = anchorPopover(
+      { x: 500, y: 400 },
+      POPOVER,
+      VIEWPORT,
+      'ltr',
+    );
+
+    expect(insetInlineStart + 160).toBe(500);
+    expect(insetBlockStart + 200).toBe(400);
+  });
+
+  test('the bottom-end corner is pushed in on both axes at once', () => {
+    const { insetInlineStart, insetBlockStart } = anchorPopover(
+      { x: 980, y: 790 },
+      POPOVER,
+      VIEWPORT,
+      'ltr',
+    );
+
+    expect(insetInlineStart).toBe(1000 - 320 - 8);
     expect(insetBlockStart).toBe(800 - 400 - 8);
+  });
+
+  test('keeps the start edge on screen when the popover is taller than the viewport', () => {
+    const tall = { width: 320, height: 900 };
+    const { insetBlockStart } = anchorPopover({ x: 400, y: 400 }, tall, VIEWPORT, 'ltr');
+
+    expect(insetBlockStart).toBe(8);
   });
 
   test('keeps the start edge on screen when the popover is wider than the viewport', () => {

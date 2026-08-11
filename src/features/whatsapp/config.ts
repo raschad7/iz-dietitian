@@ -69,8 +69,30 @@ function trimTrailingSlash(value: string): string {
   return value.replace(/\/+$/, '');
 }
 
+/**
+ * The feature is switched on and its environment is incomplete.
+ *
+ * A type rather than a plain `Error` so a call site can tell this apart from a
+ * gateway that is down or a query that failed. It is not a bug and it is not a
+ * transient fault: it is a deployment half-finished, and the person looking at
+ * the settings page deserves to be told that rather than "something went wrong,
+ * try again" — advice that cannot work, because trying again does not set an
+ * environment variable.
+ *
+ * The message names the variable and stays in the log for whoever runs the
+ * install. What reaches the screen is `errors.misconfigured`, which says the
+ * shape of the problem without putting server internals in front of a
+ * dietitian.
+ */
+export class WhatsappConfigError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'WhatsappConfigError';
+  }
+}
+
 function missing(name: string): never {
-  throw new Error(`WHATSAPP_ENABLED is true but ${name} is not set. See .env.example.`);
+  throw new WhatsappConfigError(`WHATSAPP_ENABLED is true but ${name} is not set. See .env.example.`);
 }
 
 /**
@@ -98,12 +120,14 @@ function readConfig(): WhatsappConfig {
 
   const countryCode = (process.env.WHATSAPP_DEFAULT_COUNTRY_CODE ?? DEFAULT_COUNTRY_CODE).replace(/\D/g, '');
   if (!countryCode) {
-    throw new Error('WHATSAPP_DEFAULT_COUNTRY_CODE must be digits, e.g. 970. Leave it unset for the default.');
+    throw new WhatsappConfigError(
+      'WHATSAPP_DEFAULT_COUNTRY_CODE must be digits, e.g. 970. Leave it unset for the default.',
+    );
   }
 
   const timeout = Number(process.env.WHATSAPP_TIMEOUT_MS ?? DEFAULT_TIMEOUT_MS);
   if (!Number.isFinite(timeout) || timeout < 1_000) {
-    throw new Error('WHATSAPP_TIMEOUT_MS must be a number of milliseconds >= 1000.');
+    throw new WhatsappConfigError('WHATSAPP_TIMEOUT_MS must be a number of milliseconds >= 1000.');
   }
 
   return {
@@ -140,7 +164,9 @@ export function requireWhatsappConfig(): WhatsappConfig {
   const config = getWhatsappConfig();
 
   if (!config) {
-    throw new Error('WhatsApp is disabled. Set WHATSAPP_ENABLED=true and configure the gateway. See .env.example.');
+    throw new WhatsappConfigError(
+      'WhatsApp is disabled. Set WHATSAPP_ENABLED=true and configure the gateway. See .env.example.',
+    );
   }
 
   return config;

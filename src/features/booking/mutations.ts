@@ -232,7 +232,13 @@ export async function createAppointment(
  */
 export async function repeatWeekly(
   context: BookingContext,
-  input: RepeatWeeklyInput,
+  /**
+   * The booking to repeat and how long for — not the action's whole payload,
+   * which also carries the first appointment's id. That id is for the patient's
+   * message and this function writes rows; taking it would say the weeks are
+   * copies of that row, which is exactly what they are not.
+   */
+  input: BookingInput & Pick<RepeatWeeklyInput, 'weeks'>,
 ): Promise<ActionResult<WeeklyRepeatSummary>> {
   const ids: string[] = [];
   let skipped = 0;

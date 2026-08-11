@@ -79,60 +79,121 @@ export type WhatsappTemplateVariables = {
 };
 
 /**
+ * Unicode's own directional marks, which is all the control a plain-text message
+ * has over how it is laid out.
+ *
+ * WhatsApp renders no markup, but the OS text engine underneath it runs the
+ * bidirectional algorithm, and these steer it. They are invisible, so they are
+ * named here rather than pasted into the copy where nobody could see them.
+ */
+/** U+200F. Makes a line's base direction RTL even when it opens with a digit. */
+const RTL_MARK = '‏';
+/** U+2068 / U+2069. Seals a run so its direction cannot leak into the line. */
+const ISOLATE_START = '⁨';
+const ISOLATE_END = '⁩';
+
+/**
  * One line per appointment, numbered, for {@link WhatsappTemplateVariables.appointments}.
  *
  * Numbered rather than bulleted: a patient reading "your four appointments" then
  * counting bullets to check all four arrived is doing the app's job for it. Each
  * line carries the date, the time and how long the visit runs, which is every
  * detail the calendar itself shows about a booking.
+ *
+ * **The Arabic list needs its directional marks stated, not assumed.** A line
+ * reading `1. 5 August 2026 — 9:15 AM (30 دقيقة)` is a run of Latin digits and
+ * Latin month names with one Arabic word at the end, dropped into a right-to-left
+ * message. Left alone, the bidi algorithm takes the line's direction from its
+ * first strong character — the `A` of August — lays the whole line out
+ * left-to-right against a right-aligned message, and throws the duration to the
+ * far end where it reads as belonging to the next appointment. The leading `1.`
+ * lands wherever the surrounding text pushes it, so the numbers stop forming a
+ * column at all.
+ *
+ * `RTL_MARK` fixes the line to the paragraph's direction, so every number starts
+ * at the right edge and the list reads as a list. The isolates then keep the date
+ * and the time as intact left-to-right runs *inside* it, which is what stops
+ * `2026` and `9:15` swapping ends.
  */
 export function formatAppointmentList(
   appointments: readonly { date: string; time: string; duration: string }[],
+  locale: Locale,
 ): string {
+  const rtl = locale === 'ar';
+
   return appointments
-    .map((appointment, index) => `${index + 1}. 📅 ${appointment.date} — 🕐 ${appointment.time} (${appointment.duration})`)
+    .map((appointment, index) => {
+      const date = rtl ? `${ISOLATE_START}${appointment.date}${ISOLATE_END}` : appointment.date;
+      const time = rtl ? `${ISOLATE_START}${appointment.time}${ISOLATE_END}` : appointment.time;
+      const line = `${index + 1}. ${date} — ${time} (${appointment.duration})`;
+
+      return rtl ? `${RTL_MARK}${line}` : line;
+    })
     .join('\n');
 }
 
+/**
+ * Labels, not pictograms.
+ *
+ * Every line that carries a value used to open with an emoji — 📅 for the date,
+ * 🕐 for the time — and both jobs it was doing are done better by the word. A
+ * clinic confirming a medical appointment is not writing a text to a friend, and
+ * a calendar glyph is decoration standing where the label belongs: 📅 does not
+ * say whether the date is the old one or the new one, which is exactly the
+ * question a rescheduled patient has.
+ *
+ * The alignment follows from the same change. An emoji is directionally neutral,
+ * so an Arabic line opening with one takes its direction from whatever comes
+ * next — usually the Latin digits of the date — and lays itself out
+ * left-to-right inside a right-to-left message. `التاريخ:` is a strong
+ * right-to-left word, so the line is anchored by its first character and the
+ * values line up under each other down the right edge.
+ *
+ * The greeting keeps its comma and loses its 👋 for the same reason.
+ */
 const COPY = {
   appointmentReminder: {
     ar: [
-      'مرحباً {clientName} 👋',
+      'مرحباً {clientName}،',
       '',
-      'نذكّرك بموعدك في {clinicName}:',
-      '📅 {date}',
-      '🕐 {time}',
+      'نذكّرك بموعدك في {clinicName}.',
       '',
-      'إذا احتجت تغيير الموعد، ردّ على هذه الرسالة.',
+      'التاريخ: {date}',
+      'الوقت: {time}',
+      '',
+      'بانتظارك. لتغيير الموعد يرجى الرد على هذه الرسالة.',
     ],
     en: [
-      'Hello {clientName} 👋',
+      'Hello {clientName},',
       '',
-      'A reminder of your appointment at {clinicName}:',
-      '📅 {date}',
-      '🕐 {time}',
+      'A reminder of your appointment at {clinicName}.',
       '',
-      'If you need to change it, just reply to this message.',
+      'Date: {date}',
+      'Time: {time}',
+      '',
+      'We look forward to seeing you. To change it, reply to this message.',
     ],
   },
   appointmentConfirmation: {
     ar: [
-      'مرحباً {clientName} 👋',
+      'مرحباً {clientName}،',
       '',
-      'تم تثبيت موعدك في {clinicName}:',
-      '📅 {date}',
-      '🕐 {time}',
+      'تم تأكيد موعدك في {clinicName}.',
       '',
-      'نراك قريباً. لأي تعديل، ردّ على هذه الرسالة.',
+      'التاريخ: {date}',
+      'الوقت: {time}',
+      '',
+      'بانتظارك. لأي تعديل يرجى الرد على هذه الرسالة.',
     ],
     en: [
-      'Hello {clientName} 👋',
+      'Hello {clientName},',
       '',
-      'Your appointment at {clinicName} is confirmed:',
-      '📅 {date}',
-      '🕐 {time}',
+      'Your appointment at {clinicName} is confirmed.',
       '',
-      'See you then. To change it, reply to this message.',
+      'Date: {date}',
+      'Time: {time}',
+      '',
+      'We look forward to seeing you. To change it, reply to this message.',
     ],
   },
   /**
@@ -147,24 +208,45 @@ const COPY = {
    * `{count}` is stated in the opening line as well as implied by the list, so
    * the patient can check nothing went missing without counting.
    */
+  /**
+   * **The Arabic states its count after the list, not inside the sentence.**
+   *
+   * Arabic numbers agree with the noun they count, and in three different ways:
+   * two appointments are `موعدان`, three to ten are `مواعيد`, and eleven or more
+   * are `موعداً`. A single template cannot satisfy all three, and this one read
+   * `{count} مواعيد` — right for a four-week repeat, wrong for the two-week and
+   * three-month spans the dialog offers just as prominently, which went out as
+   * `2 مواعيد` and `13 مواعيد`.
+   *
+   * Naming the total on its own line sidesteps the agreement entirely and holds
+   * a plural noun that is always correct because it is never counted. It also
+   * puts the number where it is actually used: the count exists so a patient can
+   * check nothing went missing, which is something they do *after* reading the
+   * list, not before.
+   *
+   * English has no such agreement, so it keeps the count in the opening line
+   * where it reads more naturally.
+   */
   appointmentSeries: {
     ar: [
-      'مرحباً {clientName} 👋',
+      'مرحباً {clientName}،',
       '',
-      'تم تثبيت {count} مواعيد لك في {clinicName}:',
+      'تم تأكيد المواعيد التالية لك في {clinicName}:',
       '',
       '{appointments}',
       '',
-      'نراك قريباً. لأي تعديل على أي من هذه المواعيد، ردّ على هذه الرسالة.',
+      'إجمالي المواعيد: {count}',
+      '',
+      'بانتظارك. لأي تعديل على أحد هذه المواعيد يرجى الرد على هذه الرسالة.',
     ],
     en: [
-      'Hello {clientName} 👋',
+      'Hello {clientName},',
       '',
       'Your {count} appointments at {clinicName} are confirmed:',
       '',
       '{appointments}',
       '',
-      'See you then. To change any of them, reply to this message.',
+      'We look forward to seeing you. To change any of them, reply to this message.',
     ],
   },
   /**
@@ -174,54 +256,46 @@ const COPY = {
    */
   appointmentRescheduled: {
     ar: [
-      'مرحباً {clientName} 👋',
+      'مرحباً {clientName}،',
       '',
       'تم تغيير موعدك في {clinicName}.',
       '',
-      'الموعد السابق:',
-      '📅 {previousDate}',
-      '🕐 {previousTime}',
+      'الموعد السابق: {previousDate} — {previousTime}',
+      'الموعد الجديد: {date} — {time}',
       '',
-      'الموعد الجديد:',
-      '📅 {date}',
-      '🕐 {time}',
-      '',
-      'نراك حينها. لأي تعديل، ردّ على هذه الرسالة.',
+      'بانتظارك. لأي تعديل يرجى الرد على هذه الرسالة.',
     ],
     en: [
-      'Hello {clientName} 👋',
+      'Hello {clientName},',
       '',
       'Your appointment at {clinicName} has been changed.',
       '',
-      'Previously:',
-      '📅 {previousDate}',
-      '🕐 {previousTime}',
+      'Previously: {previousDate} — {previousTime}',
+      'Now: {date} — {time}',
       '',
-      'Now:',
-      '📅 {date}',
-      '🕐 {time}',
-      '',
-      'See you then. To change it, reply to this message.',
+      'We look forward to seeing you. To change it, reply to this message.',
     ],
   },
   appointmentCancelled: {
     ar: [
-      'مرحباً {clientName} 👋',
+      'مرحباً {clientName}،',
       '',
-      'تم إلغاء موعدك في {clinicName}:',
-      '📅 {date}',
-      '🕐 {time}',
+      'تم إلغاء موعدك في {clinicName}.',
       '',
-      'لحجز موعد جديد، ردّ على هذه الرسالة.',
+      'التاريخ: {date}',
+      'الوقت: {time}',
+      '',
+      'لحجز موعد جديد يرجى الرد على هذه الرسالة.',
     ],
     en: [
-      'Hello {clientName} 👋',
+      'Hello {clientName},',
       '',
-      'Your appointment at {clinicName} has been cancelled:',
-      '📅 {date}',
-      '🕐 {time}',
+      'Your appointment at {clinicName} has been cancelled.',
       '',
-      'To book a new one, reply to this message.',
+      'Date: {date}',
+      'Time: {time}',
+      '',
+      'To book a new appointment, reply to this message.',
     ],
   },
   /**
@@ -234,22 +308,24 @@ const COPY = {
    */
   portalCredentials: {
     ar: [
-      'مرحباً {clientName} 👋',
+      'مرحباً {clientName}،',
       '',
-      'تم إنشاء حسابك في بوابة {clinicName}:',
-      '👤 اسم المستخدم: {username}',
-      '🔑 كلمة المرور المؤقتة: {password}',
+      'تم إنشاء حسابك في بوابة {clinicName}.',
       '',
-      'سيُطلب منك تغيير كلمة المرور عند أول دخول. لا تشارك هذه الرسالة مع أحد.',
+      'اسم المستخدم: {username}',
+      'كلمة المرور المؤقتة: {password}',
+      '',
+      'سيُطلب منك تغيير كلمة المرور عند أول تسجيل دخول. يرجى عدم مشاركة هذه الرسالة مع أحد.',
     ],
     en: [
-      'Hello {clientName} 👋',
+      'Hello {clientName},',
       '',
-      'Your {clinicName} portal account is ready:',
-      '👤 Username: {username}',
-      '🔑 Temporary password: {password}',
+      'Your {clinicName} portal account is ready.',
       '',
-      'You will be asked to change the password on first sign-in. Do not share this message.',
+      'Username: {username}',
+      'Temporary password: {password}',
+      '',
+      'You will be asked to change the password when you first sign in. Please do not share this message.',
     ],
   },
 } as const satisfies Record<WhatsappTemplateKind, Record<Locale, readonly string[]>>;
@@ -266,12 +342,31 @@ const PLACEHOLDER = /\{(\w+)\}/g;
 /**
  * Fills a template. Throws on a placeholder with no value, rather than sending a
  * patient a message containing the literal `{time}`.
+ *
+ * **Every value interpolated into an Arabic message is isolated.** The copy is
+ * right-to-left and almost everything dropped into it is not: dates and times
+ * are Latin digits by the project's `nu-latn` rule, a username is ASCII, and a
+ * client may well be recorded under a Latin spelling of their name. Each is a
+ * left-to-right island in a right-to-left line, and without a boundary the
+ * algorithm lets one island's direction reach across the punctuation between
+ * them — which is how `الوقت: 9:15 AM` becomes `AM 9:15` and how a trailing
+ * colon ends up on the wrong side of the label.
+ *
+ * Done here rather than in the copy so the templates stay legible. Invisible
+ * characters sprinkled through thirty translated strings are impossible to
+ * proofread and the first person to edit one would drop them.
+ *
+ * A multi-line value brings its own marks — `formatAppointmentList` sets the
+ * direction of each of its lines, and an isolate cannot span the paragraph
+ * breaks between them anyway, so it is left alone.
  */
 export function renderWhatsappMessage(
   kind: WhatsappTemplateKind,
   locale: Locale,
   variables: WhatsappTemplateVariables,
 ): string {
+  const rtl = locale === 'ar';
+
   const body = COPY[kind][locale]
     .join('\n')
     .replace(PLACEHOLDER, (_match, name: string) => {
@@ -281,7 +376,9 @@ export function renderWhatsappMessage(
         throw new Error(`WhatsApp template "${kind}" needs a value for {${name}}.`);
       }
 
-      return value;
+      if (!rtl || value.includes('\n')) return value;
+
+      return `${ISOLATE_START}${value}${ISOLATE_END}`;
     });
 
   return body.length > MAX_BODY_LENGTH ? `${body.slice(0, MAX_BODY_LENGTH - 1)}…` : body;

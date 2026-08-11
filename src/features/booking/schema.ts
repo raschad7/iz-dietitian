@@ -58,7 +58,22 @@ export const bookingInputSchema = z.object({
 
 export type BookingInput = z.infer<typeof bookingInputSchema>;
 
-export const createAppointmentSchema = bookingInputSchema;
+/**
+ * Whether a weekly repeat was chosen alongside this booking.
+ *
+ * It changes nothing about what gets written — the repeat is still its own
+ * action, run afterwards — and exists only so the create knows to **stay
+ * quiet**. A repeat's patient message names every appointment in the course
+ * including this one, so a confirmation sent from here would be the first line
+ * of a message the patient is about to receive in full, seconds earlier and
+ * with three quarters of it missing.
+ *
+ * A boolean rather than the span, because the number is the repeat action's
+ * business and the create has one decision to make with it.
+ */
+const repeatsSchema = z.boolean().optional();
+
+export const createAppointmentSchema = bookingInputSchema.extend({ repeats: repeatsSchema });
 
 export const updateAppointmentSchema = bookingInputSchema.extend({ id: uuidSchema });
 
@@ -70,13 +85,20 @@ export const deleteAppointmentSchema = z.object({ id: uuidSchema });
  * The weekly repeat: the booking that was just saved, described again, plus how
  * many weekly appointments to add after it.
  *
- * The same shape as a create, and deliberately not an appointment id — the
- * repeats are new bookings rather than copies of a row, and re-reading the
- * original to clone it would give the browser a second way to point at another
- * clinic's appointment. `date` is the *first* one; the server does the
- * arithmetic for the weeks after it.
+ * The same shape as a create: the repeats are new bookings rather than copies of
+ * a row, so nothing here is read back off the original. `date` is the *first*
+ * one; the server does the arithmetic for the weeks after it.
+ *
+ * `appointmentId` is the one thing that does name the original, and it is for
+ * the patient's message rather than for the writing: the course goes out as a
+ * single message listing every appointment in it, and the first of them is this
+ * row. It is never cloned, never written to, and only ever read through
+ * `getAppointmentSeriesTarget`, which is scoped to the session's clinic and
+ * refuses a set spanning two clients — so an id the browser made up resolves to
+ * nothing, and the worst it can produce is no message.
  */
 export const repeatWeeklySchema = bookingInputSchema.extend({
+  appointmentId: uuidSchema,
   weeks: z.coerce.number().int().min(1).max(MAX_REPEAT_WEEKS),
 });
 
@@ -99,6 +121,8 @@ export type NewClientInput = z.infer<typeof newClientSchema>;
 export const createClientAndBookSchema = z.object({
   client: newClientSchema,
   booking: bookingInputSchema.omit({ clientId: true }),
+  /** Same silence as the plain create — see {@link repeatsSchema}. */
+  repeats: repeatsSchema,
 });
 
 export type CreateClientAndBookInput = z.infer<typeof createClientAndBookSchema>;

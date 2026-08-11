@@ -661,6 +661,10 @@ export function Calendar({
         date: pending.date,
         startMinute: pending.startMinute,
         durationMinutes: pending.durationMinutes,
+        // Told up front that a repeat is coming, so it holds the patient's
+        // confirmation back and `runRepeat` sends one message covering the
+        // whole course — this appointment included.
+        repeats: weeks > 0,
       });
 
       if (!result.ok) {
@@ -675,6 +679,7 @@ export function Calendar({
 
       if (weeks > 0) {
         await runRepeat({
+          appointmentId: result.data.id,
           clientId: result.data.clientId,
           date: pending.date,
           startMinute: pending.startMinute,
@@ -693,8 +698,16 @@ export function Calendar({
    * a field on the create surfaces now — see `RepeatField` — so this runs only
    * when someone actually asked for a repeat, and it runs inside the same
    * transition as the booking it follows.
+   *
+   * It also carries the patient's message for the *whole* course, the booking
+   * above included — which is why `appointmentId` is passed and why the create
+   * was told to stay quiet. Awaited inside the same transition rather than left
+   * to float: if this never reaches the server, nobody has been told about an
+   * appointment that exists.
    */
   async function runRepeat(input: {
+    /** The booking the repeat counts forward from — the first of the course. */
+    appointmentId: string;
     clientId: string;
     date: string;
     startMinute: number;
@@ -734,6 +747,7 @@ export function Calendar({
           startMinute: pending.startMinute,
           durationMinutes: pending.durationMinutes,
         },
+        repeats: weeks > 0,
       });
 
       if (!result.ok) {
@@ -746,6 +760,7 @@ export function Calendar({
 
       if (weeks > 0) {
         await runRepeat({
+          appointmentId: result.data.id,
           clientId: result.data.clientId,
           date: pending.date,
           startMinute: pending.startMinute,

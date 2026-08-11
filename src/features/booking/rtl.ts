@@ -64,13 +64,37 @@ export type AnchorRect = { width: number; height: number };
 export type Viewport = { width: number; height: number };
 
 /**
+ * One axis of {@link anchorPopover}: centre the element on the pointer, then
+ * push it back inside the viewport if that hangs it over an edge.
+ *
+ * **Centred, not cornered.** Two earlier versions put the element's leading
+ * corner on the pointer, so the panel hung down and away from the click and the
+ * cursor ended up on the outside of it. Centred, the click is *inside* the thing
+ * it opened, which is what "it should appear where I clicked" means when the
+ * element is 320px wide and the click is a point.
+ *
+ * Clamping is then the whole of the edge behaviour, and it produces what folding
+ * was written to produce: a slot at the bottom of the day centres below the
+ * viewport, gets pushed up, and lands above the pointer. The same at the inline
+ * end. There is no case left that needs its own branch.
+ *
+ * `clamp` pins to the start edge when the element is larger than the viewport,
+ * so a panel taller than a phone screen stays anchored at the top rather than
+ * running off the bottom.
+ */
+function placeOnAxis(at: number, size: number, extent: number, margin: number): number {
+  return clamp(at - size / 2, margin, extent - size - margin);
+}
+
+/**
  * Where to pin a popover opened at a pointer, as logical offsets.
  *
- * The element opens *away* from the inline start edge — rightwards in English,
- * leftwards in Arabic — which is the direction reading continues in, and is what
- * `inset-inline-start` gives for free once the coordinate is converted. Both
- * axes are clamped so the popover cannot be opened partly off screen near an
- * edge.
+ * The element is centred on the pointer and held inside the viewport — see
+ * {@link placeOnAxis}. What survives from the mirroring is the coordinate
+ * itself: `inset-inline-start` measures from the left in English and the right
+ * in Arabic, so a raw `clientX` would put an Arabic popover on the opposite side
+ * of the screen from the pointer that opened it. `toInlineOffset` converts once,
+ * here, and the arithmetic below needs no direction branch of its own.
  */
 export function anchorPopover(
   pointer: { x: number; y: number },
@@ -82,8 +106,8 @@ export function anchorPopover(
   const inline = toInlineOffset(pointer.x, viewport.width, direction);
 
   return {
-    insetInlineStart: clamp(inline, margin, viewport.width - element.width - margin),
+    insetInlineStart: placeOnAxis(inline, element.width, viewport.width, margin),
     // The block axis runs top-to-bottom in both directions, so no mirroring.
-    insetBlockStart: clamp(pointer.y, margin, viewport.height - element.height - margin),
+    insetBlockStart: placeOnAxis(pointer.y, element.height, viewport.height, margin),
   };
 }

@@ -248,9 +248,9 @@ function ChooserHeader({
   caption: ReactNode;
   captionLabel: string;
   /**
-   * Whether the caption's own chooser is the one on screen. It turns the caret
-   * over: down means "this opens something", up means "this closes what you are
-   * looking at".
+   * Whether this is the last rung — the year grid, where the caption's press
+   * ends the ring rather than opening the next thing. It turns the caret over:
+   * down means "this opens something", up means "this puts the days back".
    */
   expanded: boolean;
   onCaption: () => void;
@@ -379,11 +379,15 @@ function ChooserCell({
  * than covering it: the popover keeps its width, its padding and its top row,
  * and only what the grid holds changes.
  *
- * The captions are a ladder, and each rung names what it will open: the day
+ * The captions are a ring, not a ladder with a landing at the top: the day
  * grid's says "August 2026" and gives you months, the month grid's says "2026"
- * and gives you years, the year grid's says "2022 – 2030" and takes you back
- * down. The step arrows move by whatever the grid is made of — a year at a
- * time among months, a page of nine among years.
+ * and gives you years, and the year grid's says "2022 – 2030" and puts you back
+ * on the days. Three presses of the same spot return the panel to where it
+ * opened, so the caption is one control with one gesture rather than a way in
+ * that has to be unwound press by press — and getting out of the year grid
+ * costs one press from either direction instead of two going back up. The step
+ * arrows move by whatever the grid is made of — a year at a time among months,
+ * a page of nine among years.
  *
  * `grid-cols-3` throughout. Twelve months want a shape that divides evenly and
  * stays legible at this width: four across leaves 55px per cell, which cuts
@@ -398,12 +402,19 @@ function MonthGridPanel({
   value,
   today,
   onSelect,
+  onBackToDays,
 }: {
   locale: Locale;
   /** The month the day grid is on — its year is the one shown. */
   value: Date;
   today: Date | undefined;
   onSelect: (month: Date) => void;
+  /**
+   * Closes the chooser and hands the panel back to the day grid, on whatever
+   * month it was already on. What the year grid's caption does — the last step
+   * of the ring, and the only one that leaves this component.
+   */
+  onBackToDays: () => void;
 }) {
   const t = useTranslations('booking');
   const [year, setYear] = useState(value.getFullYear());
@@ -442,9 +453,17 @@ function MonthGridPanel({
           caption={
             <span dir="ltr">{`${yearPage} – ${yearPage + YEARS_PER_PAGE - 1}`}</span>
           }
-          captionLabel={t('nav.pickYear')}
+          /*
+            "Choose a day", because that is where this press lands — the label
+            names the destination, the way the other two rungs do. It is the
+            one caption whose grid and whose label disagree, and deliberately:
+            the years are already on screen and do not need announcing, and a
+            button labelled after the thing under it would say nothing about
+            what pressing it does.
+          */
+          captionLabel={t('nav.pickDay')}
           expanded
-          onCaption={() => setPickingYear(false)}
+          onCaption={onBackToDays}
           previousLabel={t('nav.previousYears')}
           nextLabel={t('nav.nextYears')}
           onPrevious={() => setYearPage((current) => current - YEARS_PER_PAGE)}
@@ -637,6 +656,9 @@ export function DatePickerButton({ locale, value, range, today, label, onSelect 
               setMonth(picked);
               setPickingMonth(false);
             }}
+            // Closing the ring. The month stays where it was — the caption is
+            // how you look around, and only a cell moves the calendar.
+            onBackToDays={() => setPickingMonth(false)}
           />
         ) : (
         <CaptionContext.Provider value={() => setPickingMonth(true)}>

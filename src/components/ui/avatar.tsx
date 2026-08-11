@@ -1,23 +1,28 @@
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 
-import { initialsOf } from "@/lib/initials"
+import { glyphAvatarSvg } from "@/lib/glyph-avatar"
 import { cn } from "@/lib/utils"
 
 /**
- * The generated initials avatar.
+ * The generated avatar: an abstract glyph, one per person.
+ *
+ * It drew two initials until recently. See `src/lib/glyph-avatar.ts` for why a
+ * shape identifies better than letters here, and for the licence the style
+ * carries.
  *
  * `color` is per-record data, not a brand token, which is why it arrives as an
  * inline style rather than a class (see "Arbitrary colour" in
- * docs/design-system.md). Two things supply it: the client's stored hex from
- * `src/lib/avatar-color.ts`, and the calendar's `--tone-mark`, the deep step of
- * the patient's own hue. Both are chosen to carry white text at these sizes.
+ * docs/design-system.md). It sets `currentColor`, which is what the mark's wash
+ * and stroke are painted with — so passing `var(--tone-mark)` puts the glyph in
+ * the same hue as the appointment card the client's bookings are drawn in.
  *
  * A circle, deliberately: a rounded box is the shape this system gives controls
- * and surfaces, and an avatar is a person, not either of those.
+ * and surfaces, and an avatar is a person, not either of those. The glyph is
+ * square, so the circle has to clip it.
  */
 const avatarVariants = cva(
-  "flex shrink-0 items-center justify-center rounded-full font-semibold text-white",
+  "flex shrink-0 items-center justify-center overflow-hidden rounded-full [&>svg]:size-full",
   {
     variants: {
       size: {
@@ -40,8 +45,9 @@ const avatarVariants = cva(
 
 type AvatarProps = Omit<React.ComponentProps<"span">, "color" | "children"> &
   VariantProps<typeof avatarVariants> & {
+    /** Chooses the glyph, and is never drawn — see `glyphAvatarSvg`. */
     name: string
-    /** Any CSS colour: the record's stored hex, or a `var()` the caller sets. */
+    /** Any CSS colour: what the glyph's wash and stroke are painted with. */
     color: string
   }
 
@@ -53,11 +59,18 @@ function Avatar({ name, color, size, className, ...props }: AvatarProps) {
       // announcing both makes a screen reader say the person twice.
       aria-hidden
       className={cn(avatarVariants({ size }), className)}
-      style={{ background: color }}
+      style={{ color }}
       {...props}
-    >
-      {initialsOf(name)}
-    </span>
+      /*
+        Safe because the mark contains nothing of the seed: Glyphs draws no
+        text, so a client's name only ever picks a shape. `glyphAvatarSvg` says
+        so at more length, and it is the assumption to re-check before pointing
+        this at a style that renders letters.
+
+        Last, so a caller cannot pass children that would silently lose to it.
+      */
+      dangerouslySetInnerHTML={{ __html: glyphAvatarSvg(name) }}
+    />
   )
 }
 

@@ -166,7 +166,30 @@ export function AppointmentBlock({
           replaces managed, so the colour survives at the 20px a half-hour
           booking is drawn at.
         */
-        !accent && 'border-(--tone-edge) bg-(--tone-fill) hover:bg-(--tone-fill-hover)',
+        /*
+          **The edge is the selection.** At rest it is the fill, so the card is
+          one flat block of the client's colour with no outline at all; selected,
+          it becomes the saturated step and a hairline appears around it.
+
+          This is the reverse of what it did a moment ago, and the reverse is
+          right: an outline on every card spends a line on a fact — whose
+          booking this is — that the fill and the glyph already carry, and forty
+          outlined cards on a day make a grid of boxes rather than a schedule.
+          Kept for the one card that needs to stand out, the same line says
+          something no other card is saying.
+
+          Both border classes are chosen in one expression rather than layered
+          as `selected && …` after the resting one: they are the same property at
+          the same specificity, so which of them won would come down to the order
+          Tailwind happened to emit them in.
+        */
+        !accent &&
+          cn(
+            'bg-(--tone-fill) hover:bg-(--tone-fill-hover)',
+            selected
+              ? 'border-(--tone-edge)'
+              : 'border-(--tone-fill) hover:border-(--tone-fill-hover)',
+          ),
         // The cursor is the honest signal that a finished appointment is fixed.
         draggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-default',
         /*
@@ -174,10 +197,19 @@ export function AppointmentBlock({
           and the edge olive too, which meant that selecting a booking erased
           the one thing on it saying whose it was — and on a grid where you
           select a card in order to move it, that is exactly the moment the
-          answer matters. The ring sits outside the card's own edge, so the two
-          marks stack instead of competing.
+          answer matters.
+
+          **No ring.** It was olive, then the card's own colour, and now the
+          appearing edge above does the whole job — a ring on top of that would
+          be two marks for one state, and the outer one would be the louder of
+          the two while saying the less specific thing.
+
+          Left as a comment rather than deleted quietly, because the ring is the
+          obvious thing to reach for the next time selection reads as too faint.
+          The cheaper move before adding one back is the border's width: the
+          card is `border-box`, so going to 2px on the selected state costs no
+          layout shift and no second shape.
         */
-        selected && 'ring-2 ring-(--olive-500) ring-offset-1 ring-offset-background',
         // Clipped normally so a long name cannot spill into the next slot, but
         // opened up while dragging so the time chip below can escape a block too
         // short to contain it.
