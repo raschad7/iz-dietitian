@@ -38,8 +38,10 @@ export const INTAKE_GAP_FIELDS = [
   'permanentInstructions',
   'preferences',
   'dislikes',
+  // `notes` was here beside `medicalNotes` and is gone with the textarea that
+  // wrote it: the dialog keeps one note field now, so counting two would report
+  // a gap no control can close. See `mergedNotes`.
   'medicalNotes',
-  'notes',
 ] as const;
 
 export type IntakeGapField = (typeof INTAKE_GAP_FIELDS)[number];

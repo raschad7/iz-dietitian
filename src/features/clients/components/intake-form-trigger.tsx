@@ -7,6 +7,7 @@ import { createPortal } from 'react-dom';
 import { Dialog, DialogHeader } from '@/components/ui/dialog';
 import { loadIntakeAction } from '@/features/clients/actions';
 import { IntakeForm } from '@/features/clients/components/intake-form';
+import { type IntakeSectionId } from '@/features/clients/intake-sections';
 import { type ClientIntakeValues } from '@/features/clients/types';
 import { useRouter } from '@/i18n/navigation';
 import { getLocaleDirection, type Locale } from '@/i18n/routing';
@@ -28,12 +29,15 @@ import { getLocaleDirection, type Locale } from '@/i18n/routing';
 export function IntakeFormTrigger({
   locale,
   clientId,
+  section,
   children,
   className,
   'aria-label': ariaLabel,
 }: {
   locale: Locale;
   clientId: string;
+  /** Which panel the dialog opens on. Defaults to the form's first section. */
+  section?: IntakeSectionId;
   children: React.ReactNode;
   className?: string;
   'aria-label'?: string;
@@ -138,6 +142,7 @@ export function IntakeFormTrigger({
               <IntakeForm
                 intake={intake}
                 locale={locale}
+                section={section}
                 onCancel={close}
                 onSaved={closeSaved}
               />

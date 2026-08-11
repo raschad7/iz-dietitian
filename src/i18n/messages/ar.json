@@ -585,7 +585,7 @@
       "start": "ابدأ الآن",
       "sections": {
         "measurements": "القياسات",
-        "allergies": "الحساسية والحالة الصحية",
+        "allergies": "الحساسية",
         "clinical": "الملاحظات الطبية",
         "planning": "ما تلتزم به الخطة",
         "private": "ملاحظات خاصة",
@@ -616,7 +616,7 @@
       "complete": "كل الحقول مُدخلة",
       "completeness": "اكتمال السجل",
       "filledOf": "{filled} من {total} حقلاً مُدخلة",
-      "gapsHeading": "{count, plural, =0 {كل الحقول مُدخلة} one {حقل واحد بلا بيانات} two {حقلان بلا بيانات} few {# حقول بلا بيانات} many {# حقلاً بلا بيانات} other {# حقل بلا بيانات}}",
+      "gapsHeading": "أكمل بيانات المريض من هذه الأقسام",
       "kcalMismatch": "الهدف اليدوي بعيد عن المحسوب",
       "kcalMismatchDetail": "أُدخل {manual} kcal يدويًا، بينما القياسات والهدف يعطيان {computed} kcal. راجعي الرقم أو احذفيه ليُحسب تلقائيًا.",
       "bmiValueText": "{value} — {category}",
@@ -632,9 +632,10 @@
       "completeShort": "مكتمل",
       "editRecord": "تعديل السجل",
       "scheduleSummary": "{count, plural, one {وجبة واحدة} two {وجبتان} few {# وجبات} many {# وجبة} other {# وجبة}} على {kcal} سعرة",
-      "gapsPrompt": "اضغط أيًّا منها لإكماله",
+      "gapsPrompt": "{count, plural, =0 {كل الحقول مُدخلة} one {حقل واحد بلا بيانات} two {حقلان بلا بيانات} few {# حقول بلا بيانات} many {# حقلاً بلا بيانات} other {# حقل بلا بيانات}}",
       "allergyLine": "الحساسية",
-      "privateBadge": "خاص بالعيادة"
+      "privateBadge": "خاص بالعيادة",
+      "notesDivider": "ملاحظات"
     },
     "allergens": {
       "nuts": "مكسرات",

@@ -157,8 +157,15 @@ export const intakeSchema = z.object({
   // ── Clinical record, from `clients`. The first two are portal-visible ────
   conditions: optionalText(1000),
   medications: optionalText(1000),
-  /** The dietitian's own working notes. Never shown to the client. */
-  medicalNotes: optionalText(2000),
+  /**
+   * The dietitian's own working notes. Never shown to the client.
+   *
+   * 4000 rather than 2000: this field absorbed `notes`, so a record that held
+   * two full boxes has to be saveable as one. `notes` stays in the schema so a
+   * form that still submits it validates, and is written empty — see
+   * `mergedNotes`.
+   */
+  medicalNotes: optionalText(4000),
   notes: optionalText(2000),
 
   // ── What generation reads, from `client_nutrition_profiles` ──────────────
