@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { MINUTES_PER_DAY, SLOT_MINUTES } from '@/lib/time-constants';
 import { defaultLocale, locales } from '@/i18n/routing';
 
+import { clientFormSchema } from '@/features/clients/schema';
+
 import { isIsoDate } from './date';
 import { MAX_REPEAT_WEEKS } from './repeat';
 
@@ -58,7 +60,22 @@ export const bookingInputSchema = z.object({
 
 export type BookingInput = z.infer<typeof bookingInputSchema>;
 
-export const createAppointmentSchema = bookingInputSchema;
+/**
+ * Whether a weekly repeat was chosen alongside this booking.
+ *
+ * It changes nothing about what gets written — the repeat is still its own
+ * action, run afterwards — and exists only so the create knows to **stay
+ * quiet**. A repeat's patient message names every appointment in the course
+ * including this one, so a confirmation sent from here would be the first line
+ * of a message the patient is about to receive in full, seconds earlier and
+ * with three quarters of it missing.
+ *
+ * A boolean rather than the span, because the number is the repeat action's
+ * business and the create has one decision to make with it.
+ */
+const repeatsSchema = z.boolean().optional();
+
+export const createAppointmentSchema = bookingInputSchema.extend({ repeats: repeatsSchema });
 
 export const updateAppointmentSchema = bookingInputSchema.extend({ id: uuidSchema });
 
@@ -70,27 +87,47 @@ export const deleteAppointmentSchema = z.object({ id: uuidSchema });
  * The weekly repeat: the booking that was just saved, described again, plus how
  * many weekly appointments to add after it.
  *
- * The same shape as a create, and deliberately not an appointment id — the
- * repeats are new bookings rather than copies of a row, and re-reading the
- * original to clone it would give the browser a second way to point at another
- * clinic's appointment. `date` is the *first* one; the server does the
- * arithmetic for the weeks after it.
+ * The same shape as a create: the repeats are new bookings rather than copies of
+ * a row, so nothing here is read back off the original. `date` is the *first*
+ * one; the server does the arithmetic for the weeks after it.
+ *
+ * `appointmentId` is the one thing that does name the original, and it is for
+ * the patient's message rather than for the writing: the course goes out as a
+ * single message listing every appointment in it, and the first of them is this
+ * row. It is never cloned, never written to, and only ever read through
+ * `getAppointmentSeriesTarget`, which is scoped to the session's clinic and
+ * refuses a set spanning two clients — so an id the browser made up resolves to
+ * nothing, and the worst it can produce is no message.
  */
 export const repeatWeeklySchema = bookingInputSchema.extend({
+  appointmentId: uuidSchema,
   weeks: z.coerce.number().int().min(1).max(MAX_REPEAT_WEEKS),
 });
 
 export type RepeatWeeklyInput = z.infer<typeof repeatWeeklySchema>;
 
 /**
- * The picker's "New client" path: the minimum needed to book someone, not the
- * full intake form. The rest of the record is filled in later from the clients
- * area — the point of this dialog is that staff are mid-booking and have a
- * person in front of them.
+ * The picker's "New client" path — **the same fields the clients page asks
+ * for**, picked off its own schema rather than restated here.
+ *
+ * It used to be a name and a phone number, on the reasoning that staff are
+ * mid-booking with someone in front of them and the rest could be filled in
+ * later from the clients area. What that produced was two kinds of client
+ * record from one act: a person added at the counter had no date of birth or
+ * sex, so the calorie formula could not run for them until somebody noticed and
+ * opened their card. "Later" is doing a lot of work in that sentence.
+ *
+ * Picking from `clientFormSchema` rather than redeclaring the fields is what
+ * keeps the two paths honestly identical — including the parts that are easy to
+ * get subtly wrong, like the date's `YYYY-MM-DD` shape and the blank-to-
+ * undefined preprocessing. `email` and `preferredLocale` are left out because
+ * the create form does not show them either.
  */
-export const newClientSchema = z.object({
-  fullName: z.string().trim().min(2).max(120),
-  phone: z.preprocess(blankToUndefined, z.string().trim().max(40).optional()),
+export const newClientSchema = clientFormSchema.pick({
+  fullName: true,
+  phone: true,
+  dateOfBirth: true,
+  sex: true,
 });
 
 export type NewClientInput = z.infer<typeof newClientSchema>;
@@ -99,6 +136,8 @@ export type NewClientInput = z.infer<typeof newClientSchema>;
 export const createClientAndBookSchema = z.object({
   client: newClientSchema,
   booking: bookingInputSchema.omit({ clientId: true }),
+  /** Same silence as the plain create — see {@link repeatsSchema}. */
+  repeats: repeatsSchema,
 });
 
 export type CreateClientAndBookInput = z.infer<typeof createClientAndBookSchema>;

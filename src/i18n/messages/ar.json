@@ -23,7 +23,18 @@
   },
   "datePicker": {
     "open": "اختر تاريخًا",
-    "empty": "اختر تاريخًا"
+    "empty": "اختر تاريخًا",
+    "pickDate": "اختر تاريخًا",
+    "pickDay": "اختر اليوم",
+    "pickMonth": "اختر الشهر",
+    "pickYear": "اختر السنة",
+    "today": "اليوم",
+    "previousMonth": "الشهر السابق",
+    "nextMonth": "الشهر التالي",
+    "previousYear": "السنة السابقة",
+    "nextYear": "السنة التالية",
+    "previousYears": "السنوات السابقة",
+    "nextYears": "السنوات التالية"
   },
   "nav": {
     "dashboard": "لوحة التحكم",
@@ -151,6 +162,8 @@
     "openClientProfile": "فتح ملف المشترك",
     "openActions": "إجراءات الموعد",
     "monthMore": "+{count, number, integer} أخرى",
+    "hiddenBelow": "+{count, number, integer} أخرى",
+    "hiddenBelowAction": "انزل إلى {count, number, integer} مواعيد أخرى في هذا اليوم",
     "monthReadOnly": "عرض الشهر للاطّلاع فقط. انقر على أي يوم للحجز أو التعديل.",
     "nav": {
       "today": "اليوم",
@@ -159,16 +172,7 @@
       "view": "طريقة العرض",
       "day": "يوم",
       "week": "أسبوع",
-      "month": "شهر",
-      "pickDate": "اختر تاريخًا",
-      "previousMonth": "الشهر السابق",
-      "nextMonth": "الشهر التالي",
-      "previousYear": "السنة السابقة",
-      "nextYear": "السنة التالية",
-      "pickMonth": "اختر الشهر",
-      "pickYear": "اختر السنة",
-      "previousYears": "السنوات السابقة",
-      "nextYears": "السنوات التالية"
+      "month": "شهر"
     },
     "search": {
       "placeholder": "ابحث عن مشترك"
@@ -196,8 +200,7 @@
       "clients": "المشتركون",
       "noMatches": "لا نتائج مطابقة.",
       "alreadyBookedAt": "لديه موعد في هذا اليوم الساعة {time}.",
-      "newClient": "مشترك جديد",
-      "newClientInDayView": "لإضافة مشترك جديد، افتح عرض اليوم."
+      "newClient": "مشترك جديد"
     },
     "newClient": {
       "title": "إضافة مشترك وحجز الموعد",
@@ -593,7 +596,7 @@
       "start": "ابدأ الآن",
       "sections": {
         "measurements": "القياسات",
-        "allergies": "الحساسية والحالة الصحية",
+        "allergies": "الحساسية",
         "clinical": "الملاحظات الطبية",
         "planning": "ما تلتزم به الخطة",
         "private": "ملاحظات خاصة",
@@ -624,7 +627,7 @@
       "complete": "كل الحقول مُدخلة",
       "completeness": "اكتمال السجل",
       "filledOf": "{filled} من {total} حقلاً مُدخلة",
-      "gapsHeading": "{count, plural, =0 {كل الحقول مُدخلة} one {حقل واحد بلا بيانات} two {حقلان بلا بيانات} few {# حقول بلا بيانات} many {# حقلاً بلا بيانات} other {# حقل بلا بيانات}}",
+      "gapsHeading": "أكمل بيانات المريض من هذه الأقسام",
       "kcalMismatch": "الهدف اليدوي بعيد عن المحسوب",
       "kcalMismatchDetail": "أُدخل {manual} kcal يدويًا، بينما القياسات والهدف يعطيان {computed} kcal. راجعي الرقم أو احذفيه ليُحسب تلقائيًا.",
       "bmiValueText": "{value} — {category}",
@@ -640,9 +643,10 @@
       "completeShort": "مكتمل",
       "editRecord": "تعديل السجل",
       "scheduleSummary": "{count, plural, one {وجبة واحدة} two {وجبتان} few {# وجبات} many {# وجبة} other {# وجبة}} على {kcal} سعرة",
-      "gapsPrompt": "اضغط أيًّا منها لإكماله",
+      "gapsPrompt": "{count, plural, =0 {كل الحقول مُدخلة} one {حقل واحد بلا بيانات} two {حقلان بلا بيانات} few {# حقول بلا بيانات} many {# حقلاً بلا بيانات} other {# حقل بلا بيانات}}",
       "allergyLine": "الحساسية",
-      "privateBadge": "خاص بالعيادة"
+      "privateBadge": "خاص بالعيادة",
+      "notesDivider": "ملاحظات"
     },
     "allergens": {
       "nuts": "مكسرات",
@@ -789,6 +793,7 @@
       "dailyTarget": "الهدف اليومي: {value} kcal",
       "chooseDay": "اختر اليوم",
       "today": "اليوم",
+      "chooseDayHeading": "اختر يومًا لرؤية الوجبات",
       "dayEnergyLabel": "طاقة هذا اليوم",
       "mealEnergyLabel": "طاقة الوجبة",
       "emptyDayTitle": "لا توجد وجبات لهذا اليوم",
@@ -923,8 +928,9 @@
     "progress": {
       "today": {
         "heading": "التزامك اليوم",
-        "meals": "{completed, number, integer} من {total, number, integer} {total, plural, one {وجبة} two {وجبتين} few {وجبات} many {وجبة} other {وجبة}}",
-        "caloriesCompleted": "{value, number, integer} سعرة حرارية مكتملة",
+        "meals": "تم إكمال {completed, number, integer} من {total, number, integer} {total, plural, one {وجبة} two {وجبتين} few {وجبات} many {وجبة} other {وجبة}}",
+        "caloriesCompleted": "{value, number, integer} سعرة مكتملة",
+        "caloriesRemaining": "{value, number, integer} سعرة متبقية",
         "prompt": "أتمّي وجبات اليوم في خطتي ليظهر التزامك هنا.",
         "cta": "تحديث التزامك اليوم",
         "level": {
@@ -1641,6 +1647,7 @@
       "disabled": "ميزة واتساب غير مفعّلة على هذا التثبيت.",
       "gateway": "لم تستجب بوّابة واتساب. تأكد من أنها تعمل ثم أعد المحاولة.",
       "invalid": "تحقّق من الحقول المميّزة بالأحمر.",
+      "misconfigured": "واتساب مُفعّل لكن إعداده على الخادم غير مكتمل. يحتاج من ثبّت التطبيق إلى إضافة بيانات اعتماد البوّابة — والإعداد الناقص مذكور في سجل الخادم.",
       "notLinked": "اربط واتساب أولاً ثم اضبط الرسائل التلقائية.",
       "sendFailed": "تعذّر إرسال الرسالة. راجع سجل الرسائل.",
       "unexpected": "حدث خطأ غير متوقع. حاول مجددًا."

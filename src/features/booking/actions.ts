@@ -103,6 +103,10 @@ function notifyBooked(clinicId: string, appointmentId: string): void {
  * The repeat's counterpart to {@link notifyBooked}, and deliberately not a loop
  * over it: a month of weekly visits is one schedule, and it arrives as one
  * message. Same `after()` reasoning, same indifference to failure.
+ *
+ * `appointmentIds` is the *whole* course — the booking the doctor started from
+ * as well as the weeks added after it. Nothing else sends anything about any of
+ * them.
  */
 function notifySeriesBooked(clinicId: string, appointmentIds: string[]): void {
   after(async () => {
@@ -163,7 +167,10 @@ export async function createAppointmentAction(
 
   if (result.ok) {
     revalidateCalendar(locale);
-    notifyBooked(context.clinicId, result.data.id);
+    // Silent when a repeat was chosen: `repeatWeeklyAction` is about to send one
+    // message naming this appointment and every other one in the course. See
+    // `repeatsSchema`.
+    if (!parsed.data.repeats) notifyBooked(context.clinicId, result.data.id);
   }
 
   return result;
@@ -225,17 +232,29 @@ export async function deleteAppointmentAction(rawLocale: string, input: unknown)
 }
 
 /**
- * The offer made straight after a booking is saved: the same slot, every week,
- * for the rest of the month.
+ * The repeat chosen alongside a booking: the same slot, every week, for the span
+ * the doctor picked.
  *
  * A separate action rather than a flag on the create, because it answers a
- * separate question. The first booking is already written and already confirmed
- * to the patient by the time this is called, so a week the calendar refuses
- * cannot take the appointment down with it — see `repeatWeekly`, which skips
- * those weeks and counts them.
+ * separate question. The first booking is already written by the time this is
+ * called, so a week the calendar refuses cannot take the appointment down with
+ * it — see `repeatWeekly`, which skips those weeks and counts them.
  *
- * Each repeat is a real appointment, so each gets its own confirmation message,
- * on the same terms as any other booking.
+ * **The whole course is one message, and this action is the only one that sends
+ * it.** The create stayed quiet on the way in (see `createAppointmentAction`),
+ * so the list here opens with the appointment that anchored the repeat and runs
+ * through every week that took. Booking the 1st and repeating it produces one
+ * message naming the 1st, the 8th, the 15th and the 22nd — not a confirmation
+ * for the 1st followed by a second message about the other three, which told the
+ * patient the same schedule twice and neither time in full.
+ *
+ * Which is why the send is unconditional, where it used to require at least one
+ * repeat to have been written. The anchor's confirmation is now owed from here:
+ * a repeat that every week refused, or that failed outright, must still leave
+ * the patient told about the appointment they actually have. A course of one is
+ * exactly the ordinary confirmation, which `notifyAppointmentSeriesBooked`
+ * delegates back to — including its dedupe key, so nothing is sent twice if the
+ * doctor repeats the same booking again.
  */
 export async function repeatWeeklyAction(
   rawLocale: string,
@@ -248,13 +267,13 @@ export async function repeatWeeklyAction(
   if (!parsed.success) return { ok: false, error: 'errors.invalid' };
 
   const result = await repeatWeekly(context, parsed.data);
+  const created = result.ok ? result.data.ids : [];
 
-  if (result.ok && result.data.created > 0) {
-    revalidateCalendar(locale);
-    // One message listing the whole course, not one per appointment — see
-    // `notifyAppointmentSeriesBooked`.
-    notifySeriesBooked(context.clinicId, result.data.ids);
-  }
+  if (created.length > 0) revalidateCalendar(locale);
+
+  // The anchor first: `getAppointmentSeriesTarget` reads in date order anyway,
+  // so this is about the set being complete rather than about the order.
+  notifySeriesBooked(context.clinicId, [parsed.data.appointmentId, ...created]);
 
   return result;
 }
@@ -279,7 +298,8 @@ export async function createClientAndBookAction(
     revalidateCalendar(locale);
     // The register gained a client, so its list is stale too.
     revalidatePath(`/${locale}/app/clients`);
-    notifyBooked(context.clinicId, result.data.id);
+    // Silent when a repeat follows, exactly as `createAppointmentAction` is.
+    if (!parsed.data.repeats) notifyBooked(context.clinicId, result.data.id);
   }
 
   return result;

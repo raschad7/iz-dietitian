@@ -77,7 +77,17 @@ function isPast(slot: { date: string; startMinute: number }): boolean {
  * date and start minute, so a moved appointment is a new fact the patient needs,
  * while re-saving the same slot changes nothing and sends nothing.
  */
-export async function notifyAppointmentBooked(clinicId: string, appointmentId: string): Promise<SendResult> {
+export async function notifyAppointmentBooked(
+  clinicId: string,
+  appointmentId: string,
+  /**
+   * Injectable for the same reason {@link notifyAppointmentSeriesBooked}'s is,
+   * and chiefly for its sake: a course of one delegates here, so without this
+   * the one branch that has to send *something* is the one branch a test cannot
+   * watch. Production passes nothing.
+   */
+  deps: Pick<SendDeps, 'gateway'> = {},
+): Promise<SendResult> {
   const settings = await getSettings(clinicId);
 
   if (!settings?.confirmationsEnabled) return { status: 'skipped', reason: 'not_configured' };
@@ -110,12 +120,12 @@ export async function notifyAppointmentBooked(clinicId: string, appointmentId: s
       phone: target.phone,
       dedupeKey: confirmationDedupeKey(target.appointmentId, target.date, target.startMinute),
     },
-    { settings },
+    { ...deps, settings },
   );
 }
 
 /**
- * Confirms a whole course of appointments — a repeat the doctor accepted — in
+ * Confirms a whole course of appointments — a repeat the doctor chose — in
  * **one** message.
  *
  * The alternative, which this replaced, was calling
@@ -124,6 +134,15 @@ export async function notifyAppointmentBooked(clinicId: string, appointmentId: s
  * second: it reads as a malfunction, buries the rest of the thread, and is the
  * kind of volume a gateway rate-limits or a recipient blocks. It also left the
  * patient to assemble their own schedule from twenty-six bubbles.
+ *
+ * **`appointmentIds` is the whole course, the booking it started from
+ * included.** The repeat is chosen in the booking form and written by a second
+ * action afterwards, so for a while the patient got a confirmation for the first
+ * appointment and then a second message listing only the weeks added after it —
+ * the same schedule described twice and neither time in full. The first booking
+ * now holds its confirmation back (see `createAppointmentAction`) and arrives
+ * here as the head of the list, so booking the 1st and repeating it weekly says
+ * "your 4 appointments" and names all four.
  *
  * The count in the message is the count of appointments actually written, not
  * the number the doctor asked for — weeks the clinic is closed or the hour was
@@ -137,7 +156,10 @@ export async function notifyAppointmentBooked(clinicId: string, appointmentId: s
  *
  * A single appointment is delegated to {@link notifyAppointmentBooked}: "your 1
  * appointments are confirmed" is a list of one, and the ordinary confirmation is
- * both better written and dedupes on the key that message already uses.
+ * both better written and dedupes on the key that message already uses. That
+ * branch is load-bearing now rather than tidy-minded — a repeat every week of
+ * which was refused arrives here as the anchor alone, and it is the only thing
+ * left that will tell the patient about the appointment they do have.
  */
 export async function notifyAppointmentSeriesBooked(
   clinicId: string,
@@ -150,7 +172,7 @@ export async function notifyAppointmentSeriesBooked(
   deps: Pick<SendDeps, 'gateway'> = {},
 ): Promise<SendResult> {
   if (appointmentIds.length === 0) return { status: 'skipped', reason: 'not_configured' };
-  if (appointmentIds.length === 1) return notifyAppointmentBooked(clinicId, appointmentIds[0]!);
+  if (appointmentIds.length === 1) return notifyAppointmentBooked(clinicId, appointmentIds[0]!, deps);
 
   const settings = await getSettings(clinicId);
 
@@ -166,7 +188,7 @@ export async function notifyAppointmentSeriesBooked(
 
   // Down to one after the past ones were dropped — the same list-of-one
   // reasoning as above, reached the other way.
-  if (upcoming.length === 1) return notifyAppointmentBooked(clinicId, upcoming[0]!.appointmentId);
+  if (upcoming.length === 1) return notifyAppointmentBooked(clinicId, upcoming[0]!.appointmentId, deps);
 
   return sendWhatsappTemplate(
     {
@@ -185,6 +207,7 @@ export async function notifyAppointmentSeriesBooked(
               minute: (count) => `${count} دقيقة`,
             }),
           })),
+          PATIENT_MESSAGE_LOCALE,
         ),
         // Unused by this template — the list carries the dates — but the
         // variable type is shared. Supplying them keeps the renderer's

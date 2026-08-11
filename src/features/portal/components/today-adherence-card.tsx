@@ -21,8 +21,10 @@ import { cn } from '@/lib/utils';
  * out of ten that only ever showed 0, 5 or 10, because a three-level `level`
  * was all it had: two meals of four and three of four both printed "5 من ١٠".
  * It now prints the exact fraction of today's meals ticked — 25%, 33%, 75% —
- * with the pair it came from underneath, so the headline and the meals agree
  * and the ring is drawn to the same number the client can count themselves.
+ * The meals pair it came from used to print underneath, inside the ring; it's
+ * gone now — the ring is small and a bilingual "X of Y meals" line no longer
+ * fit inside it without wrapping past the edge.
  *
  * There used to be a three-way segmented control here — "missed" / "partial"
  * / "full" — for the client to pick themselves. It is gone: adherence is
@@ -37,7 +39,6 @@ const RADIUS = 44;
 const RING_LENGTH = 2 * Math.PI * RADIUS;
 
 function TodayRing({ today, locale }: { today: TodayAdherence | null; locale: Locale }) {
-  const t = useTranslations('portal.progress.today');
   const fraction = today?.fraction ?? null;
   const drawn = fraction !== null && fraction > 0;
   const full = fraction !== null && fraction >= 1;
@@ -71,14 +72,6 @@ function TodayRing({ today, locale }: { today: TodayAdherence | null; locale: Lo
         >
           {today === null ? '—' : formatNumber(locale, today.fraction, { style: 'percent' })}
         </span>
-        {today !== null ? (
-          // The meals under the percentage, because a percentage alone does
-          // not tell a client what to do next: "2 of 4" names the two still
-          // waiting for them on the screen this card links to.
-          <span className="text-caption leading-none text-muted-foreground">
-            {t('meals', { completed: today.completedMeals, total: today.totalMeals })}
-          </span>
-        ) : null}
       </span>
     </span>
   );
@@ -108,12 +101,13 @@ export function TodayAdherenceCard({ today, locale }: { today: TodayAdherence | 
         </div>
 
         {/*
-          `/portal/meal-plan`, not `/${locale}/portal/meal-plan`: `Link` here
-          is the locale-aware one from `@/i18n/navigation`, which prefixes the
-          active locale itself — see the same pattern in
-          `pending-requests-card.tsx`.
+          `/portal`, not `/${locale}/portal`: `Link` here is the locale-aware
+          one from `@/i18n/navigation`, which prefixes the active locale
+          itself — see the same pattern in `pending-requests-card.tsx`. The
+          plan now lives on the home screen itself, below today's progress,
+          rather than its own tab.
         */}
-        <Link href="/portal/meal-plan" className={buttonVariants({ variant: 'outline', className: 'w-full' })}>
+        <Link href="/portal" className={buttonVariants({ variant: 'outline', className: 'w-full max-w-none' })}>
           {t('cta')}
           <Icon name="chevronEnd" />
         </Link>

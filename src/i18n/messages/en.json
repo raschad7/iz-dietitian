@@ -23,7 +23,18 @@
   },
   "datePicker": {
     "open": "Pick a date",
-    "empty": "Pick a date"
+    "empty": "Pick a date",
+    "pickDate": "Pick a date",
+    "pickDay": "Choose a day",
+    "pickMonth": "Choose a month",
+    "pickYear": "Choose a year",
+    "today": "Today",
+    "previousMonth": "Previous month",
+    "nextMonth": "Next month",
+    "previousYear": "Previous year",
+    "nextYear": "Next year",
+    "previousYears": "Previous years",
+    "nextYears": "Next years"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -151,6 +162,8 @@
     "openClientProfile": "Open client profile",
     "openActions": "Appointment actions",
     "monthMore": "+{count, number, integer} more",
+    "hiddenBelow": "+{count, number, integer} more",
+    "hiddenBelowAction": "Scroll down to {count, number, integer} more appointments on this day",
     "monthReadOnly": "Month view is an overview. Click a day to book or edit.",
     "nav": {
       "today": "Today",
@@ -159,16 +172,7 @@
       "view": "View",
       "day": "Day",
       "week": "Week",
-      "month": "Month",
-      "pickDate": "Pick a date",
-      "previousMonth": "Previous month",
-      "nextMonth": "Next month",
-      "previousYear": "Previous year",
-      "nextYear": "Next year",
-      "pickMonth": "Choose a month",
-      "pickYear": "Choose a year",
-      "previousYears": "Previous years",
-      "nextYears": "Next years"
+      "month": "Month"
     },
     "search": {
       "placeholder": "Search clients"
@@ -196,8 +200,7 @@
       "clients": "Clients",
       "noMatches": "No matching clients.",
       "alreadyBookedAt": "Already booked that day at {time}.",
-      "newClient": "New client",
-      "newClientInDayView": "To add someone new, open the day view."
+      "newClient": "New client"
     },
     "newClient": {
       "title": "Add a client and book",
@@ -593,7 +596,7 @@
       "start": "Start now",
       "sections": {
         "measurements": "Measurements",
-        "allergies": "Allergies and clinical record",
+        "allergies": "Allergies",
         "clinical": "Clinical notes",
         "planning": "What the plan follows",
         "private": "Private notes",
@@ -624,7 +627,7 @@
       "complete": "Everything is filled in",
       "completeness": "Record completeness",
       "filledOf": "{filled} of {total} fields filled in",
-      "gapsHeading": "{count, plural, =0 {Everything is filled in} one {1 field has no data yet} other {# fields have no data yet}}",
+      "gapsHeading": "Fill in the patient's information from these sections",
       "kcalMismatch": "The manual target is far from the computed one",
       "kcalMismatchDetail": "{manual} kcal was entered by hand, but the measurements and goal give {computed} kcal. Check the number, or clear it to compute it automatically.",
       "bmiValueText": "{value} — {category}",
@@ -640,9 +643,10 @@
       "completeShort": "Complete",
       "editRecord": "Edit record",
       "scheduleSummary": "{count, plural, one {1 meal} other {# meals}} on {kcal} kcal",
-      "gapsPrompt": "Tap any of them to fill it in",
+      "gapsPrompt": "{count, plural, =0 {Everything is filled in} one {1 field has no data yet} other {# fields have no data yet}}",
       "allergyLine": "Allergies",
-      "privateBadge": "Clinic only"
+      "privateBadge": "Clinic only",
+      "notesDivider": "Notes"
     },
     "allergens": {
       "nuts": "Nuts",
@@ -789,6 +793,7 @@
       "dailyTarget": "Daily target: {value} kcal",
       "chooseDay": "Choose a day",
       "today": "Today",
+      "chooseDayHeading": "Pick a day to see its meals",
       "dayEnergyLabel": "Energy for this day",
       "mealEnergyLabel": "Meal energy",
       "emptyDayTitle": "Nothing planned for this day",
@@ -923,8 +928,9 @@
     "progress": {
       "today": {
         "heading": "Your commitment today",
-        "meals": "{completed, number, integer} of {total, number, integer} {total, plural, one {meal} other {meals}}",
+        "meals": "Completed {completed, number, integer} of {total, number, integer} {total, plural, one {meal} other {meals}}",
         "caloriesCompleted": "{value, number, integer} kcal completed",
+        "caloriesRemaining": "{value, number, integer} kcal remaining",
         "prompt": "Tick off today's meals in My Plan to see your commitment here.",
         "cta": "Update today's adherence",
         "level": {
@@ -1641,6 +1647,7 @@
       "disabled": "WhatsApp is not enabled on this installation.",
       "gateway": "The WhatsApp gateway did not answer. Make sure it is running, then try again.",
       "invalid": "Check the highlighted fields.",
+      "misconfigured": "WhatsApp is switched on but not finished being set up on this server. Whoever installed the app needs to add the gateway credentials — the server log names the missing setting.",
       "notLinked": "Connect WhatsApp first, then set the automations up.",
       "sendFailed": "The message could not be sent. Check the message log.",
       "unexpected": "Something went wrong. Try again."

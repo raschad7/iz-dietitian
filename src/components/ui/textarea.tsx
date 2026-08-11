@@ -18,13 +18,22 @@ import { cn } from "@/lib/utils"
  *
  * A caller that genuinely needs more can raise it; `max-h-*` from `className`
  * wins on tailwind-merge, so passing one replaces this rather than fighting it.
+ *
+ * **No drag handle.** A textarea is resizable by default, and with
+ * `field-sizing-content` above that grabber has nothing left to do — the box
+ * already grows as it is typed into, between the floor and the ceiling this
+ * component sets. What it does instead is let someone drag the field out of the
+ * layout it belongs to: past the edge of the dialog holding it, or taller than
+ * the `max-h` that exists to keep a footer on screen, which the handle overrides
+ * outright. The corner notch is also the one piece of unstyled browser chrome
+ * left on `.q-field`, sitting inside a rounded box it does not match.
  */
 function Textarea({ className, ...props }: React.ComponentProps<"textarea">) {
   return (
     <textarea
       data-slot="textarea"
       className={cn(
-        "q-field field-sizing-content min-h-24 max-h-64 px-5 py-3",
+        "q-field field-sizing-content min-h-24 max-h-64 resize-none px-5 py-3",
         "placeholder:text-muted-foreground",
         className
       )}

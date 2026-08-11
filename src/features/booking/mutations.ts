@@ -232,7 +232,13 @@ export async function createAppointment(
  */
 export async function repeatWeekly(
   context: BookingContext,
-  input: RepeatWeeklyInput,
+  /**
+   * The booking to repeat and how long for — not the action's whole payload,
+   * which also carries the first appointment's id. That id is for the patient's
+   * message and this function writes rows; taking it would say the weeks are
+   * copies of that row, which is exactly what they are not.
+   */
+  input: BookingInput & Pick<RepeatWeeklyInput, 'weeks'>,
 ): Promise<ActionResult<WeeklyRepeatSummary>> {
   const ids: string[] = [];
   let skipped = 0;
@@ -399,6 +405,13 @@ export async function createClientAndBook(
       const failure = validateBooking({ ...input.booking, practitionerId, earliestDate: null }, existing, hours);
       if (failure) return { ok: false, error: failure };
 
+      /*
+        Every field the dialog collects is written here, not just the two it
+        used to. See `newClientSchema`: the calendar asks for exactly what the
+        clients page asks for now, and dropping half of it on the way to the
+        table would recreate the split it was widened to close — a record that
+        looks complete on the form and comes back missing its demographics.
+      */
       const [client] = await tx
         .insert(clients)
         .values({
@@ -406,6 +419,8 @@ export async function createClientAndBook(
           fullName: input.client.fullName,
           searchName: normalizeForSearch(input.client.fullName),
           phone: input.client.phone ?? null,
+          dateOfBirth: input.client.dateOfBirth ?? null,
+          sex: input.client.sex ?? null,
           color: pickAvatarColor(input.client.fullName),
         })
         .returning({ id: clients.id });

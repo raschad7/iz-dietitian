@@ -102,6 +102,17 @@ export async function saveIntake(clinicId: string, input: IntakeInput): Promise<
         conditions: input.conditions ?? null,
         medications: input.medications ?? null,
         medicalNotes: input.medicalNotes ?? null,
+        /*
+         * Written null on every intake save, because the dialog no longer has a
+         * control for it: the two note fields are one, and what the form
+         * submits as `medicalNotes` is the merged text of both. Clearing the
+         * column here is what makes a legacy record converge instead of keeping
+         * a second copy of prose that is already in `medical_notes`.
+         *
+         * Unlike `care_note` below, this is a deliberate write rather than an
+         * omission — the content survives the clear because `mergedNotes` put
+         * it in the field above first.
+         */
         notes: input.notes ?? null,
         updatedAt: new Date(),
       })

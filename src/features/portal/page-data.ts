@@ -66,12 +66,6 @@ async function requireHours(clinicId: string): Promise<ClinicHours> {
 
 export type DashboardData = {
   next: PortalAppointment | null;
-  /**
-   * The week the published plan covers (`YYYY-MM-DD`), or null when nothing has been
-   * published yet. Weekly plans have no title of their own — the week they are for is
-   * the thing that identifies them to a client.
-   */
-  planTitle: string | null;
   /** Today's meals from that plan. Null when there is no plan or today is unplanned. */
   today: BoardDay | null;
   /**
@@ -137,7 +131,6 @@ export async function loadDashboard(context: PortalContext): Promise<DashboardDa
 
   return {
     next: nextAppointment(appointmentRows, context.now),
-    planTitle: plan?.weekStartDate ?? null,
     today,
     todayCompletedMealIds,
     pending: requests.filter((request) => request.status === 'pending'),

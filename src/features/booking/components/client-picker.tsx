@@ -4,13 +4,15 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Icon } from '@/components/ui/icon';
 
+import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { getLocaleDirection, type Locale } from '@/i18n/routing';
 import { normalizeForSearch } from '@/features/clients/search';
 import { cn } from '@/lib/utils';
 
-import { formatDuration, formatLongDate, formatMinute, formatMinuteRange, initialsOf } from '../format';
+import { formatDuration, formatLongDate, formatMinute, formatMinuteRange } from '../format';
+import { patientToneStyle } from '../patient-color';
 import { anchorPopover } from '../rtl';
 import { type CalendarClient } from '../types';
 import { findClientBooking, type ExistingAppointment } from '../validation';
@@ -41,11 +43,12 @@ export type ClientPickerProps = {
   /** Everything on the pending date, for the already-booked warnings. */
   existing: readonly ExistingAppointment[];
   /**
-   * Whether this view may create a client as well as book one.
+   * Whether this surface may create a client as well as book one.
    *
-   * False in the week view: booking there picks from people already on the
-   * register, and taking someone's details is a day-view job where there is room
-   * to do it properly. With no button there is nothing to press by mistake —
+   * True in the day and week views alike — see the note at the call site for
+   * why the week stopped being an exception. It is false only for a calendar
+   * scoped to one client, where every booking is already for the person whose
+   * page it is; there the button would be an offer the screen cannot honour, so
    * the capability is absent rather than merely discouraged.
    */
   allowNewClient: boolean;
@@ -136,7 +139,37 @@ export function ClientPicker({
 
     const timer = setTimeout(() => {
       const handlePointerDown = (event: PointerEvent) => {
-        if (!popoverRef.current?.contains(event.target as Node)) onCancel();
+        const target = event.target as Element | null;
+
+        /*
+          A click on the repeat list is not a click outside.
+
+          That list portals onto `document.body` — `useDialogContainer` is null
+          outside a dialog, and this popover is a plain `div`, not one — so its
+          options are not descendants of `popoverRef` and the containment check
+          below read choosing "every week" as a click away. It threw the booking
+          out before anyone had picked a client, which is the one thing this
+          popover exists to do. The same field inside `NewClientDialog` was
+          always fine: there the list portals into the dialog.
+
+          Containment, not merely "is a list mounted?" — Base UI leaves the
+          popup in the DOM once it has been opened, so presence stays true for
+          the rest of the popover's life and would disable this handler
+          entirely. A closed popup is `display: none` on its positioner and
+          `pointer-events: none`, so a real click can only land in an open one.
+        */
+        if (target?.closest('[data-slot="select-content"]')) return;
+
+        /*
+          And while that list is open, a click anywhere else belongs to it: it
+          dismisses the list and leaves the half-made booking standing, so one
+          click dismisses one thing. `aria-expanded` is the trigger's own live
+          state, and the trigger is inside this popover, which keeps the
+          question scoped to the list this popover opened.
+        */
+        if (popoverRef.current?.querySelector('[data-slot="select-trigger"][aria-expanded="true"]')) return;
+
+        if (!popoverRef.current?.contains(target)) onCancel();
       };
 
       window.addEventListener('pointerdown', handlePointerDown);
@@ -297,12 +330,27 @@ export function ClientPicker({
                 onPointerEnter={() => setHighlight(index)}
                 onClick={() => commit(client)}
               >
-                <span
-                  aria-hidden
-                  className="flex size-7 shrink-0 items-center justify-center rounded-full text-label font-semibold text-white"
-                  style={{ background: client.color }}
-                >
-                  {initialsOf(client.name)}
+                {/*
+                  The client's calendar colour, not the hex on their record.
+
+                  `clients.color` is a stored `#rrggbb` and predates the tone
+                  ramp. Every other surface in this feature — the week block, the
+                  month chip, the agenda row — draws a person from `clientSeq`
+                  through `.patient-tone`, whose four steps are OKLCH, so the
+                  picker was the one place a client appeared in a different
+                  colour from the appointment it was about to create. Sitting in
+                  the list you book from, that is the worst place for it: the
+                  colour is how you recognise the person, and it changed the
+                  moment you clicked.
+
+                  `--tone-mark` is the deep step, built for exactly this disc and
+                  measured to hold white initials at 4.63–5.09:1 across all 360
+                  hues — see the note in `globals.css`. The hex has no such
+                  guarantee; nothing constrains it to a lightness that white
+                  survives.
+                */}
+                <span className="patient-tone contents" style={patientToneStyle(client.seq)}>
+                  <Avatar name={client.name} color="var(--tone-mark)" size="sm" />
                 </span>
 
                 <span className="min-w-0 flex-1 truncate text-sm" dir="auto">
@@ -320,16 +368,20 @@ export function ClientPicker({
         })}
       </ul>
 
+      {/*
+        Nothing in the other branch, where there used to be "to add someone new,
+        open the day view". That line was directions out of the week view, and
+        the week no longer needs directing anywhere. The only surface left
+        without the button is a calendar scoped to a single client, where the
+        sentence would be actively wrong — the day view of that page cannot add
+        anyone either, because the page is about one person by construction.
+      */}
       {allowNewClient ? (
         <Button type="button" variant="outline" size="sm" onClick={() => onNewClient(weeks)} className="justify-start">
           <Icon name="add" data-icon="inline-start" />
           {t('picker.newClient')}
         </Button>
-      ) : (
-        // Says where to go rather than leaving a dead end, for the case that
-        // matters: the person in front of you is not on the register yet.
-        <p className="text-label text-muted-foreground">{t('picker.newClientInDayView')}</p>
-      )}
+      ) : null}
     </div>
   );
 }
