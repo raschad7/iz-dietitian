@@ -331,6 +331,85 @@ const ICONS = {
    * the page it leads to would mark the exit with the same sign as the entrance.
    */
   suggestion: 'lightbulb-linear',
+
+  /**
+   * ── Client portal ──
+   *
+   * These replaced the last fourteen `lucide-react` imports in the portal. The
+   * design system allows the app **one** icon set, and a second family had grown
+   * back one glyph at a time — a lucide flame beside a Solar chevron on the same
+   * row, at a different optical weight and on a different grid.
+   *
+   * Named for the role, like everything above: `dayComplete` rather than
+   * `flame`, so the picture can be redrawn without touching a call site.
+   */
+
+  /** A day the client finished — the week strip's mark and the header's count. */
+  dayComplete: 'fire-linear',
+  /**
+   * The greeting header's daytime mark, beside the client's name.
+   *
+   * `sun-linear`, the same body as `mealBreakfastOutline`. Both mean "morning",
+   * they never appear on the same row, and a separate entry lets the greeting
+   * change without dragging the plan card's breakfast with it.
+   */
+  greetingSun: 'sun-linear',
+
+  /**
+   * The adherence card's growth mark — one leaf for the streak it is counting.
+   *
+   * `leaf-linear` again, after `navNode` and `leaf`. Three names on one body is
+   * the same trade those two already make: chrome, decoration and this are
+   * three things that happen to look alike today.
+   */
+  streak: 'leaf-linear',
+  /** The "you are keeping this up" chip under the streak figure. */
+  encouragement: 'shield-check-linear',
+
+  /**
+   * The clinic's opening and closing time, on the hours row.
+   *
+   * ⚠ The `mealBreakfast` note above rejects `sunrise` for the planner's slot
+   * rail, because a sun over a horizon bar reads as a sun in a box at 24px in a
+   * column of four. It is the right glyph *here*: these two are a pair, read
+   * side by side against each other rather than against three other meals, and
+   * the horizon is exactly what distinguishes rising from setting.
+   */
+  opensAt: 'sunrise-linear',
+  closesAt: 'sunset-linear',
+
+  /**
+   * The five daily check-in metrics on the progress tab.
+   *
+   * Solar has no cutlery, so appetite takes `plate` — the same body as
+   * `mealLunch`. The rule the snack note sets is "not the same picture twice on
+   * one screen", and the planner's slot rail is a staff screen the client never
+   * sees.
+   */
+  checkInEnergy: 'bolt-linear',
+  checkInSleep: 'moon-linear',
+  checkInAppetite: 'plate-linear',
+  checkInMood: 'smile-circle-linear',
+  checkInWater: 'waterdrop-linear',
+
+  /**
+   * The settings screen's three section headers.
+   *
+   * ⚠ Support is **not** `question-circle`, which is already `help` — the row
+   * *inside* this section that opens the help screen. Marking a section with
+   * the same glyph as one of its own rows is the mistake the `suggestion` note
+   * above spells out.
+   */
+  settingsAccount: 'user-circle-linear',
+  settingsPreferences: 'tuning-4-linear',
+  settingsSupport: 'headphones-round-linear',
+
+  /**
+   * The pushed screen's back control. A full arrow rather than `chevronStart`:
+   * the chevrons are affordances on a row you can open, and this is the way
+   * out of a screen. Mirrors in RTL — see DIRECTIONAL in `icon.tsx`.
+   */
+  back: 'arrow-left-linear',
 } as const satisfies Record<string, string>;
 
 type SolarIcon = { body: string; width?: number; height?: number };

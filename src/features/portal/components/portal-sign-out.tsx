@@ -1,9 +1,9 @@
 'use client';
 
-import { LogOut } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useFormStatus } from 'react-dom';
 
+import { Icon } from '@/components/ui/icon';
 import { signOutAction } from '@/features/auth/actions';
 import { type Locale } from '@/i18n/routing';
 
@@ -50,7 +50,9 @@ function PortalSignOutSubmit() {
       {/* The glyph takes the label's colour rather than staying neutral —
           `destructiveGhost` is clay "throughout", and a grey icon beside a clay
           word reads as one of them having been missed. */}
-      <LogOut className="size-5 shrink-0 rtl:-scale-x-100" strokeWidth={1.7} aria-hidden="true" />
+      {/* No `rtl:-scale-x-100` here: `signOut` is on `Icon`'s DIRECTIONAL list
+          and mirrors itself, so a second flip would cancel it out. */}
+      <Icon name="signOut" className="size-5 shrink-0" />
       {pending ? t('loading') : t('signOut')}
     </button>
   );

@@ -1,16 +1,17 @@
-import { Sunrise, Sunset } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Icon, type IconName } from '@/components/ui/icon';
-import { clinicContactLinks, clinicMapLink } from '@/features/portal/clinic-contact';
-import { formatClockMinute, formatWorkingDays } from '@/features/portal/clinic-hours';
+import {
+  formatClockMinute,
+  formatWeekdayRun,
+  formatWorkingDays,
+  workingHourRuns,
+} from '@/features/portal/clinic-hours';
 import { type PortalClinic, type PortalPractitioner } from '@/features/portal/types';
 import { type Locale } from '@/i18n/routing';
-import { cn } from '@/lib/utils';
 
 /**
  * The clinic and the dietitian looking after this client, plus the one thing
@@ -46,18 +47,12 @@ import { cn } from '@/lib/utils';
 export function ClinicSection({
   clinic,
   practitioner,
-  countryCode,
 }: {
   clinic: PortalClinic;
   practitioner: PortalPractitioner | null;
-  /** For reading `clinic.phone`; supplied by the page so this stays render-only. */
-  countryCode: string;
 }) {
   const locale = useLocale() as Locale;
   const t = useTranslations('portal.profile');
-
-  const { tel, whatsapp } = clinicContactLinks(clinic.phone, countryCode);
-  const map = clinicMapLink(clinic.address);
 
   /*
     `formatWorkingDays` returns the **empty string** for a clinic with no open
@@ -69,54 +64,49 @@ export function ClinicSection({
   const days = formatWorkingDays(locale, clinic.workingDays);
   const hasHours = days.trim() !== '';
 
+  /*
+    The lines the hours card draws: one per stretch of days sharing a clock.
+
+    A clinic with a full seven-row schedule gets the truth. One without falls
+    back to `workingDays` and the envelope — the vaguer single line this card
+    has always drawn — because the alternative is inventing per-day hours the
+    database does not have. Both shapes are the same `{ days, open, close }`, so
+    the card below does not branch on which one it got, only on how many lines
+    came back.
+  */
+  const runs = clinic.schedule ? workingHourRuns(clinic.schedule) : [];
+
+  const hourRows =
+    runs.length > 0
+      ? runs.map((run) => ({ ...run, days: formatWeekdayRun(locale, run) }))
+      : hasHours
+        ? [
+            {
+              from: 0,
+              to: 6,
+              openMinute: clinic.openMinute,
+              closeMinute: clinic.closeMinute,
+              days,
+            },
+          ]
+        : [];
+
   return (
     <section className="space-y-4">
       {/*
-        The section's own heading, on the page rather than inside a card — there
-        is no outer card here for it to sit in. The glyph takes a filled disc,
-        which `ProfileSection`'s deliberately does not: that one is bare because
-        three stacked sections put three olive chips down the screen, and this
-        is one heading with cards under it rather than one of three peers.
+        The section's own heading, on the page rather than inside a card — the
+        same place `ProfileSection` now puts its own, so the two halves of the
+        profile screen are labelled identically.
+
+        It is bare type: no disc, no glyph, no supporting line. The disc was
+        64px and the line under it read "the people who hold your file", which
+        is what the four cards immediately below it demonstrate by being a
+        name, an address, a phone number and a set of opening hours. `text-base`
+        matches `ProfileSection`'s heading exactly — these are two peers on one
+        screen, and the earlier `heading-sm` made this half look like the more
+        important one.
       */}
-      <header className="flex items-start gap-3">
-        {/*
-          64px, with the glyph at 32px — half the disc, which is the proportion
-          the smaller discs on the cards below already keep (20px in 44px is
-          close enough that the two read as one family). At 48px the disc was
-          shorter than the two lines of type beside it, so the heading looked
-          like text with a mark tacked on rather than a mark the heading hangs
-          off.
-        */}
-        <span
-          aria-hidden="true"
-          className="grid size-16 shrink-0 place-items-center rounded-full bg-secondary text-primary"
-        >
-          <Icon name="clinicOutline" className="size-8" />
-        </span>
-
-        <div className="min-w-0 flex-1">
-          {/*
-            `heading-sm` (20px), one step down the scale from `heading-lg`.
-
-            At 24px this section heading was set at exactly the size of the
-            page's own `h1` — the client's name in `ProfileIdentity` — so a
-            section was competing with the person the whole screen is about.
-            It is the same argument §Figures makes for the record header's stat
-            tiles. One step down keeps it clearly the heading that owns the
-            cards below it without matching the title above it.
-          */}
-          <h2 className="font-heading text-heading-sm leading-snug font-semibold">
-            {t('section.clinic')}
-          </h2>
-
-          <p className="mt-1 flex items-center gap-2 text-sm leading-relaxed text-muted-foreground">
-            {/* The reference's olive pip. Decorative — the sentence reads the
-                same without it, so it is `aria-hidden` and not a list marker. */}
-            <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-primary" />
-            {t('section.clinicDescription')}
-          </p>
-        </div>
-      </header>
+      <h2 className="font-heading text-base leading-snug font-semibold">{t('section.clinic')}</h2>
 
       {/*
         The name, full width and set large: it is the one fact here that is a
@@ -127,15 +117,17 @@ export function ClinicSection({
           <FactLabel icon="personOutline" label={t('field.clinicName')} />
 
           {/*
-            `heading-sm` too — the scale's card-title step, which is what this
-            is. At `heading-lg` a clinic name long enough to wrap set two 24px
-            lines inside a card whose own label is 14px, and the card read as a
-            banner rather than as one fact among four.
+            `text-base` — the same step as the practitioner's name in the tile
+            below and as the section heading above.
 
-            A step, not a size with its weight overridden: `heading-sm` is
-            20px/600 as declared, so this stays one class (§Typography).
+            This came down from `heading-lg` to `heading-sm` once already, on
+            the argument that a wrapping clinic name set two 24px lines in a
+            card whose own label is 14px and read as a banner. 20px was still
+            the largest type on the screen: the name of the clinic was being
+            announced louder than the client's own record, in a card that is
+            one of four equal facts. At 16px it is a fact, stated plainly.
           */}
-          <p className="font-heading text-heading-sm leading-snug font-semibold text-balance">
+          <p className="font-heading text-base leading-snug font-semibold text-balance">
             {clinic.name}
           </p>
         </CardContent>
@@ -167,57 +159,61 @@ export function ClinicSection({
       </div>
 
       {/*
-        The hours are two facts, so the card states them as two. Joined onto one
-        line they were long enough at phone width to choose their own break
-        point, which landed mid-range — "الأحد - الخميس · 8:00" over "ص – 6:00
-        م". Days above, clock below, separated by the rule.
+        One line per set of hours, and usually that is one line.
+
+        **The shape follows the data rather than being fixed.** A clinic that
+        keeps the same hours all week is a single fact — the days and the clock
+        belong on one line, and splitting them across a rule made two facts out
+        of one. A clinic whose Saturday closes early is genuinely several, and
+        the old card could not say so: it drew `clinics.open_minute` and
+        `close_minute`, which are the *envelope* — earliest open, latest close —
+        so Sunday 08:00–14:00 beside Monday 10:00–18:00 rendered as 08:00–18:00,
+        a range the clinic is never actually open for. `workingHourRuns` splits
+        on a change of hours as well as a gap in the days, so each line is true
+        of every day it names.
+
+        **No sunrise and sunset glyphs.** They sat beside the two figures to
+        tell open from close, which the order and the dash between them already
+        do; against a column of times they would have been two marks per row
+        repeating the same thing down the card.
       */}
       <Card>
         <CardContent className="space-y-4">
           <FactLabel icon="clockOutline" label={t('field.workingHours')} />
 
-          {!hasHours ? (
+          {hourRows.length === 0 ? (
             <Badge variant="unrecorded">{t('notRecorded')}</Badge>
+          ) : hourRows.length === 1 && hourRows[0] ? (
+            /*
+              Days and clock on one line, centred like the fact it is. `gap-x-3`
+              with `flex-wrap` rather than a nowrap line: "الأحد – الخميس" and
+              the range together can outrun a 320px card, and wrapping between
+              the two halves is the one break that does not land mid-range.
+            */
+            <p className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center font-heading text-base leading-snug font-semibold">
+              <span>{hourRows[0].days}</span>
+              <Clock open={hourRows[0].openMinute} close={hourRows[0].closeMinute} locale={locale} />
+            </p>
           ) : (
-            <>
-              <p className="text-center font-heading text-lg leading-snug font-semibold">{days}</p>
-
-              {/* A rule with the section's pip resting in it — the same mark the
-                  heading uses, so the card reads as belonging to it. */}
-              <div className="flex items-center gap-3" aria-hidden="true">
-                <span className="h-px flex-1 bg-border" />
-                <span className="size-1.5 shrink-0 rounded-full bg-primary" />
-                <span className="h-px flex-1 bg-border" />
-              </div>
-
-              {/*
-                Opening beside a sunrise and closing beside a sunset: the two
-                figures are the same shape and the same length, so a glyph is
-                what tells them apart at a glance rather than their position in
-                the row. Source order is open-then-close, which reads
-                start-to-end in both scripts with no override.
-
-                Lucide rather than the generated Solar set, as the portal's
-                header already does for its own sun — there is no sunrise or
-                sunset in `ICONS`, and adding two glyphs to a build step for one
-                row is more machinery than the row is worth.
-              */}
-              <p className="flex items-center justify-center gap-3 text-base font-semibold tabular-nums">
-                <span className="inline-flex items-center gap-2">
-                  <Sunrise className="size-5 shrink-0 text-primary" strokeWidth={1.8} aria-hidden="true" />
-                  <bdi>{formatClockMinute(locale, clinic.openMinute)}</bdi>
-                </span>
-
-                <span aria-hidden="true" className="text-muted-foreground">
-                  —
-                </span>
-
-                <span className="inline-flex items-center gap-2">
-                  <Sunset className="size-5 shrink-0 text-primary" strokeWidth={1.8} aria-hidden="true" />
-                  <bdi>{formatClockMinute(locale, clinic.closeMinute)}</bdi>
-                </span>
-              </p>
-            </>
+            /*
+              Days at the reading edge, hours at the far one, divided — a table
+              of two columns without being a `<table>`, which for two to four
+              rows would be more structure than the content earns. `gap-3` keeps
+              the two apart when a long day range pushes them together.
+            */
+            <ul className="divide-y divide-border">
+              {hourRows.map((row) => (
+                <li
+                  key={`${row.from}-${row.to}`}
+                  className="flex items-center justify-between gap-3 py-2 text-sm first:pt-0 last:pb-0"
+                >
+                  <span className="min-w-0 font-heading leading-snug font-semibold">
+                    {row.days}
+                  </span>
+                  <Clock open={row.openMinute} close={row.closeMinute} locale={locale} />
+                </li>
+              ))}
+            </ul>
           )}
         </CardContent>
       </Card>
@@ -225,63 +221,34 @@ export function ClinicSection({
       {/*
         The dietitian closes the section rather than opening it. The heading
         names the clinic *and* the practitioner, and the reference opens on the
-        clinic's own name — so the person comes after the place, immediately
-        above the controls for reaching them.
+        clinic's own name — so the person comes after the place, and the section
+        ends on them.
       */}
       {practitioner ? <PractitionerTile practitioner={practitioner} /> : null}
-
-      {tel || whatsapp || map ? (
-        /*
-          **Calling is the action; the other two are alternatives to it.** The
-          phone gets a full-width row of its own and the map and WhatsApp share
-          the one below, so the group says which control answers "I need to
-          reach my clinic" without three identical boxes making the reader pick.
-          §Buttons puts the primary at the inline-start of a group — here it is
-          simply first, which is the same thing one row up.
-
-          Below `sm` the pair stacks too: two 150px buttons on a 375px screen
-          put "عرض على الخريطة" on two lines, and a label that needs two lines
-          is one the system does not allow.
-        */
-        <div className="flex flex-col gap-3 pt-1">
-          {/*
-            Real links, not buttons: `tel:` and `wa.me` are navigations, and a
-            link is what lets someone long-press to copy the number or open
-            the chat in the desktop app. Styled with `buttonVariants` on a real
-            anchor rather than `<Button render={<Link/>}>` — Base UI's Button
-            warns when it renders anything but a `<button>`, and silently drops
-            the native semantics with it.
-          */}
-          {tel ? <ContactLink href={tel} icon="phoneOutline" label={t('callClinic')} /> : null}
-
-          {map || whatsapp ? (
-            <div className="flex flex-col gap-3 sm:flex-row">
-              {map ? (
-                <ContactLink
-                  href={map}
-                  icon="mapOutline"
-                  label={t('openMap')}
-                  variant="outline"
-                  external
-                />
-              ) : null}
-
-              {whatsapp ? (
-                <ContactLink
-                  href={whatsapp}
-                  icon="chatOutline"
-                  label={t('whatsappClinic')}
-                  variant="neutral"
-                  // Opens WhatsApp, which is another origin — so it leaves
-                  // this tab intact and carries the usual protection with it.
-                  external
-                />
-              ) : null}
-            </div>
-          ) : null}
-        </div>
-      ) : null}
     </section>
+  );
+}
+
+/**
+ * `8:00 ص – 6:00 م`.
+ *
+ * Each time is its own `<bdi>`: a clock is Latin digits with an Arabic marker
+ * beside it, and left to the paragraph's direction the two halves of `6:00 م`
+ * can reorder around the dash. Isolating each keeps every figure internally
+ * correct while the paragraph still orders open-before-close in both scripts.
+ *
+ * Size is inherited rather than set, so the one-line form and the rows below it
+ * can each choose their own step and the clock matches the days beside it.
+ */
+function Clock({ open, close, locale }: { open: number; close: number; locale: Locale }) {
+  return (
+    <span className="shrink-0 font-semibold tabular-nums">
+      <bdi>{formatClockMinute(locale, open)}</bdi>
+      <span aria-hidden="true" className="mx-1 font-normal text-muted-foreground">
+        –
+      </span>
+      <bdi>{formatClockMinute(locale, close)}</bdi>
+    </span>
   );
 }
 
@@ -291,7 +258,7 @@ function FactLabel({ icon, label }: { icon: IconName; label: string }) {
     <div className="flex items-center gap-3">
       <span
         aria-hidden="true"
-        className="grid size-11 shrink-0 place-items-center rounded-full bg-secondary text-primary"
+        className="grid size-11 shrink-0 place-items-center rounded-full bg-icon-chip text-icon-chip-foreground"
       >
         <Icon name={icon} className="size-5" />
       </span>
@@ -334,7 +301,7 @@ function FactTile({
       <CardContent className="flex flex-col items-center gap-2 text-center">
         <span
           aria-hidden="true"
-          className="grid size-11 shrink-0 place-items-center rounded-full bg-secondary text-primary"
+          className="grid size-11 shrink-0 place-items-center rounded-full bg-icon-chip text-icon-chip-foreground"
         >
           <Icon name={icon} className="size-5" />
         </span>
@@ -387,43 +354,16 @@ function PractitionerTile({ practitioner }: { practitioner: PortalPractitioner }
   );
 }
 
-function ContactLink({
-  href,
-  icon,
-  label,
-  variant = 'default',
-  external = false,
-}: {
-  href: string;
-  icon: IconName;
-  label: string;
-  variant?: 'default' | 'neutral' | 'outline';
-  external?: boolean;
-}) {
-  return (
-    <a
-      href={href}
-      {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-      /*
-        `w-full max-w-none` — these three fill the section's width rather than
-        stopping at §Buttons' 320px cap.
-
-        ⚠ That cap is deliberate and this is a knowing exception to it. The rule
-        exists because a control stretched across a desktop measure is a target
-        the size of a paragraph; here the requirement is the opposite and
-        specific — the row has to end where the cards above it end, and at 320px
-        on a 390px phone it stopped ~48px short on each of three stacked
-        buttons, which read as a column that had failed to line up rather than
-        as a deliberate width. The page's own `max-w-3xl` is what bounds it on a
-        desktop.
-
-        It is scoped to this component. `max-w-80` stays on `buttonVariants`,
-        and nothing else should reach for `max-w-none` without the same reason.
-      */
-      className={cn(buttonVariants({ variant }), 'w-full max-w-none')}
-    >
-      <Icon name={icon} className="size-5 shrink-0" />
-      {label}
-    </a>
-  );
-}
+/*
+ * `ContactLink` used to live here — the three full-width links this section
+ * ended on: اتصال, عرض على الخريطة and واتساب, styled with `buttonVariants` on
+ * real anchors so a `tel:` or `wa.me` could still be long-pressed.
+ *
+ * It took a knowing exception to §Buttons' 320px cap to do it, because three
+ * stacked buttons capped at 320px on a 390px phone read as a column that had
+ * failed to line up. That exception goes with them: nothing else here reaches
+ * for `max-w-none`, and `max-w-80` stays the rule on `buttonVariants`.
+ *
+ * Reaching the clinic is its own settings row (`/portal/settings/contact-clinic`),
+ * which draws the same number through `ClinicContactRow`.
+ */

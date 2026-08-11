@@ -1,4 +1,4 @@
-import { ShieldCheck, Sprout } from 'lucide-react';
+import { Icon } from '@/components/ui/icon';
 import { useLocale, useTranslations } from 'next-intl';
 
 import {
@@ -182,8 +182,8 @@ export function AdherenceStreakCard({
             A chip, not a second surface: one tail per card, and this sits
             inside one that already carries it.
           */}
-          <span className="grid size-9 place-items-center rounded-2xl bg-secondary text-primary" aria-hidden="true">
-            <Sprout className="size-5" strokeWidth={1.9} />
+          <span className="grid size-9 place-items-center rounded-2xl bg-icon-chip text-icon-chip-foreground" aria-hidden="true">
+            <Icon name="streak" className="size-5" />
           </span>
         </CardAction>
       </CardHeader>
@@ -195,14 +195,14 @@ export function AdherenceStreakCard({
               {formatNumber(locale, streak)}
             </span>
 
-            <Sprout className="mt-1 size-5 shrink-0 text-primary/60" strokeWidth={1.7} aria-hidden="true" />
+            <Icon name="streak" className="mt-1 size-5 shrink-0 text-primary/60" />
           </div>
 
           {streak === 0 ? <p className="text-sm font-medium text-secondary-foreground">{t('empty')}</p> : null}
 
           {streak > 0 ? (
             <p className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground ring-1 ring-primary/15 ring-inset">
-              <ShieldCheck className="size-3.5 shrink-0 text-primary" strokeWidth={1.9} aria-hidden="true" />
+              <Icon name="encouragement" className="size-3.5 shrink-0 text-primary" />
               {t(streak < 3 ? 'encouragement.starting' : 'encouragement.steady')}
             </p>
           ) : null}

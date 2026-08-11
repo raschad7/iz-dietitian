@@ -2,7 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
 import { PortalScreenHeader } from '@/features/portal/components/portal-screen-header';
-import { SettingsAssurance, SettingsPoint } from '@/features/portal/components/settings-detail';
+import { SettingsPoint } from '@/features/portal/components/settings-detail';
 import { resolveLocale } from '@/i18n/params';
 
 type PrivacyPageProps = {
@@ -64,10 +64,6 @@ export default async function PrivacyPage({ params }: PrivacyPageProps) {
           <SettingsPoint icon="notes" title={t('rights.title')}>
             <p>{t('rights.body')}</p>
           </SettingsPoint>
-
-          <SettingsAssurance icon="lock" title={t('assurance.title')}>
-            {t('assurance.body')}
-          </SettingsAssurance>
         </div>
       </main>
     </>

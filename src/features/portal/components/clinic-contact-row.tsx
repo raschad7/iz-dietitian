@@ -1,4 +1,3 @@
-import { MessageCircle, Phone } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Card, CardContent } from '@/components/ui/card';
@@ -75,7 +74,7 @@ export function ClinicContactRow({
             <div className="flex shrink-0 items-center gap-2">
               {tel ? (
                 <ContactAction href={tel} label={tProfile('callClinic')}>
-                  <Phone className="size-5" strokeWidth={1.9} aria-hidden="true" />
+                  <Icon name="phoneOutline" className="size-5" />
                 </ContactAction>
               ) : null}
 
@@ -87,7 +86,9 @@ export function ClinicContactRow({
                   // tab intact and carries the usual protection with it.
                   external
                 >
-                  <MessageCircle className="size-5" strokeWidth={1.9} aria-hidden="true" />
+                  {/* The registry's own WhatsApp mark, which the staff area's
+                      rail already uses for the gateway. */}
+                  <Icon name="whatsapp" className="size-5" />
                 </ContactAction>
               ) : null}
             </div>
@@ -123,7 +124,7 @@ function ContactDisc({ children }: { children: React.ReactNode }) {
   return (
     <span
       aria-hidden="true"
-      className="grid size-12 shrink-0 place-items-center rounded-full bg-secondary text-primary"
+      className="grid size-12 shrink-0 place-items-center rounded-full bg-icon-chip text-icon-chip-foreground"
     >
       {children}
     </span>
@@ -154,7 +155,7 @@ function ContactAction({
       href={href}
       aria-label={label}
       {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-      className="grid size-11 place-items-center rounded-full bg-secondary text-primary transition-colors hover:bg-status-on-track-bg focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-focus-halo focus-visible:outline-none"
+      className="grid size-11 place-items-center rounded-full bg-icon-chip text-icon-chip-foreground transition-colors hover:bg-status-on-track-bg focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-focus-halo focus-visible:outline-none"
     >
       {children}
     </a>

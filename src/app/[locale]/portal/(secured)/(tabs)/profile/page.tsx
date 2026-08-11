@@ -10,7 +10,6 @@ import { ProfileIdentity } from '@/features/portal/components/profile-identity';
 import { ProfileSection } from '@/features/portal/components/profile-section';
 import { loadProfilePage } from '@/features/portal/page-data';
 import { requirePortalClient } from '@/features/portal/session';
-import { defaultCountryCode } from '@/features/whatsapp/config';
 import { resolveLocale } from '@/i18n/params';
 
 type ProfilePageProps = {
@@ -117,8 +116,21 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
       screen opens on its own heading, and three cards packed at 16px under it
       read as one long form. The extra 8px is what lets each section be a thing
       you finished reading before the next one starts.
+
+      **Every card on this screen is flat.** The lift is what separates a card from the page behind it, and this screen
+      is nothing but cards — the record, the clinic's four facts, the contact
+      pair, the correction block. A dozen shadows stacked down a phone reads as
+      texture rather than as a dozen separate planes, and the hairline ring each
+      card already carries draws its edge perfectly well without one.
+
+      Set here rather than on each `Card`, because it is a property of *this
+      page* and not of the components: `ClinicSection` and `HealthStats` are
+      used with their shadows intact elsewhere, so a `shadow-none` inside them
+      would take the lift off screens that never asked. `**:` reaches every
+      descendant, so a card nested inside a feature component is covered
+      without that component knowing about it.
     */
-    <div className="space-y-6">
+    <div className="space-y-6 **:data-[slot=card]:shadow-none">
       <ProfileIdentity profile={profile} />
 
       {/*
@@ -129,9 +141,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
         in a half-width tile is four words wide.
       */}
       <ProfileSection
-        icon="heartOutline"
         title={t('section.health')}
-        description={t('section.healthDescription')}
         lead={<HealthStats stats={healthStats} />}
         /*
           No `note`. It carried "the more complete your record, the more precise
@@ -169,7 +179,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
       </ProfileSection>
 
       {clinic ? (
-        <ClinicSection clinic={clinic} practitioner={practitioner} countryCode={defaultCountryCode()} />
+        <ClinicSection clinic={clinic} practitioner={practitioner} />
       ) : null}
 
       {/*

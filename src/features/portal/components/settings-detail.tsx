@@ -80,7 +80,7 @@ export function SettingsPoint({
       <CardContent className="flex items-center gap-4">
         <span
           aria-hidden="true"
-          className="grid size-12 shrink-0 place-items-center rounded-full bg-secondary text-primary"
+          className="grid size-12 shrink-0 place-items-center rounded-full bg-icon-chip text-icon-chip-foreground"
         >
           <Icon name={icon} className="size-6" />
         </span>
@@ -104,46 +104,14 @@ export function SettingsPoint({
   );
 }
 
-/**
- * The line a list of `SettingsPoint`s ends on: the one sentence the whole screen
- * adds up to.
+/*
+ * `SettingsAssurance` used to live here — the sunken strip that closed the help
+ * and privacy screens with one reassuring sentence ("لم تجد إجابة لسؤالك؟",
+ * "خصوصيتك تهمنا"). Both are gone with their last callers.
  *
- * Sunken rather than raised, and deliberately not a fifth card. Every card above
- * it answers a specific question; this answers none of them, it is the summary —
- * and a fifth identical surface would read as a fifth topic somebody forgot to
- * give a proper heading. Dropping it onto the page's own plane is what says the
- * list is over. Same reason it is a `<p>` and not an `<h2>`: it does not belong
- * in the outline as a peer of the sections it closes.
- *
- * **Its disc is `primary-subtle`, not `secondary`.** olive-50 on the n-50 fill is
- * #F5F8EF on #F7F5EF — two surfaces that do not differ, so the disc that reads
- * clearly on the white cards above simply disappears here. olive-100 is the stop
- * the palette keeps for a fill that has to hold against a tinted ground.
+ * Each restated what the screen above it had already demonstrated: the help
+ * page's repeated the contact panel directly above it, offering the same clinic
+ * a second time in plainer words, and the privacy page's summarised four points
+ * that were already four short sentences. A summary earns its place when the
+ * thing above it is long; these screens are four cards you can read in full.
  */
-export function SettingsAssurance({
-  icon,
-  title,
-  children,
-}: {
-  icon: IconName;
-  title: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="flex items-center gap-3 rounded-lg bg-muted px-4 py-3.5">
-      <span
-        aria-hidden="true"
-        className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary-subtle text-secondary-foreground"
-      >
-        <Icon name={icon} className="size-5" />
-      </span>
-
-      <div className="min-w-0 flex-1 space-y-0.5">
-        <p className="font-heading text-sm leading-snug font-medium text-secondary-foreground">
-          {title}
-        </p>
-        <p className="text-xs leading-relaxed text-muted-foreground">{children}</p>
-      </div>
-    </div>
-  );
-}

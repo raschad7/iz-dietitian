@@ -1,5 +1,4 @@
-import { Flame } from 'lucide-react';
-
+import { Icon } from '@/components/ui/icon';
 import { type AdherenceDay } from '@/features/portal/adherence';
 import { cn } from '@/lib/utils';
 
@@ -124,11 +123,10 @@ export function DayFlame({
         ) : null}
       </svg>
 
-      <Flame
+      <Icon
+        name="dayComplete"
         className={cn('relative', BURN_TRANSITION, FLAME[burn])}
         style={{ width: flameSize, height: flameSize }}
-        strokeWidth={1.75}
-        aria-hidden="true"
       />
     </span>
   );

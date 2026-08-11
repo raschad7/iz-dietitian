@@ -555,4 +555,79 @@ export const QIWAM_ICONS = {
     viewBox: '0 0 24 24',
     body: "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><path d=\"M14.5 19.5h-5m5 0c0-.713 0-1.07.038-1.307c.123-.763.144-.812.631-1.412c.151-.186.711-.688 1.832-1.692A7.5 7.5 0 1 0 7 15.09c1.12 1.004 1.68 1.505 1.832 1.692c.487.6.508.649.63 1.412c.039.237.039.593.039 1.307m5 0c0 .935 0 1.402-.201 1.75a1.5 1.5 0 0 1-.549.549c-.349.2-.816.2-1.751.2s-1.402 0-1.75-.201a1.5 1.5 0 0 1-.549-.549c-.201-.348-.201-.815-.201-1.75\"/><path stroke-linecap=\"round\" d=\"M12 17v-2m1.732-1a2 2 0 0 1-3.464 0\"/></g>",
   },
+  dayComplete: {
+    // solar:fire-linear
+    viewBox: '0 0 24 24',
+    body: "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><path d=\"M20 13.111C20 20.222 13.956 22 10.933 22C8.29 22 3 20.222 3 13.111c0-2.782 1.461-4.65 2.86-5.716c.778-.594 1.77-.003 1.87.971l.086.838c.105 1.02 1.033 1.857 1.893 1.298C11.394 9.407 12 6.775 12 5.333V5.01c0-1.43 1.444-2.35 2.602-1.512C17.165 5.35 20 8.584 20 13.11Z\"/><path d=\"M8 18.445C8 21.289 10.489 22 11.733 22c1.09 0 3.267-.711 3.267-3.555c0-1.102-.59-1.845-1.16-2.274c-.398-.299-.957-.03-1.094.449c-.178.624-.823 1.016-1.152.456c-.3-.512-.3-1.28-.3-1.743c0-.636-.64-1.048-1.155-.674C9.106 15.409 8 16.68 8 18.445Z\"/></g>",
+  },
+  greetingSun: {
+    // solar:sun-linear
+    viewBox: '0 0 24 24',
+    body: "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><circle cx=\"12\" cy=\"12\" r=\"6\"/><path stroke-linecap=\"round\" d=\"M12 2v1m0 18v1m10-10h-1M3 12H2m17.07-7.07l-.392.393M5.322 18.678l-.393.393m14.141-.001l-.392-.393M5.322 5.322l-.393-.393\"/></g>",
+  },
+  streak: {
+    // solar:leaf-linear
+    viewBox: '0 0 24 24',
+    body: "<path fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" d=\"m12 9l4.5-4.5m-4.5 10L18.5 8M12 19.5l7.5-7.5M12 22c4.418 0 8-3.646 8-8.143c0-4.462-2.553-9.67-6.537-11.531A3.45 3.45 0 0 0 12 2m0 20c-4.418 0-8-3.646-8-8.143c0-4.462 2.553-9.67 6.537-11.531A3.45 3.45 0 0 1 12 2m0 20V2\"/>",
+  },
+  encouragement: {
+    // solar:shield-check-linear
+    viewBox: '0 0 24 24',
+    body: "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><path d=\"M3 10.417c0-3.198 0-4.797.378-5.335c.377-.537 1.88-1.052 4.887-2.081l.573-.196C10.405 2.268 11.188 2 12 2s1.595.268 3.162.805l.573.196c3.007 1.029 4.51 1.544 4.887 2.081C21 5.62 21 7.22 21 10.417v1.574c0 5.638-4.239 8.375-6.899 9.536C13.38 21.842 13.02 22 12 22s-1.38-.158-2.101-.473C7.239 20.365 3 17.63 3 11.991z\"/><path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"m9.5 12.4l1.429 1.6l3.571-4\"/></g>",
+  },
+  opensAt: {
+    // solar:sunrise-linear
+    viewBox: '0 0 24 24',
+    body: "<g fill=\"none\"><path stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\" d=\"M8 22h8M5 19h14M2 16h20\"/><path stroke=\"currentColor\" stroke-width=\"1.5\" d=\"M12 6a6 6 0 0 0-4.5 9.969h9A6 6 0 0 0 12 6Z\"/><path fill=\"currentColor\" d=\"m12 10l.53-.53a.75.75 0 0 0-1.06 0zm1.47 2.53a.75.75 0 1 0 1.06-1.06zm-4-1.06a.75.75 0 1 0 1.06 1.06zM12.75 16v-6h-1.5v6zm-1.28-5.47l2 2l1.06-1.06l-2-2zm0-1.06l-2 2l1.06 1.06l2-2z\"/><path stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\" d=\"M12 2v1m10 9h-1M3 12H2m17.07-7.07l-.392.393M5.322 5.322l-.393-.393\"/></g>",
+  },
+  closesAt: {
+    // solar:sunset-linear
+    viewBox: '0 0 24 24',
+    body: "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M8 22h8M5 19h14M2 16h20\"/><path d=\"M12 6a6 6 0 0 0-4.5 9.969h9A6 6 0 0 0 12 6Z\"/><path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M12 6v7m0 0l2-2m-2 2l-2-2\"/><path stroke-linecap=\"round\" d=\"M12 2v1m10 9h-1M3 12H2m17.07-7.07l-.392.393M5.322 5.322l-.393-.393\"/></g>",
+  },
+  checkInEnergy: {
+    // solar:bolt-linear
+    viewBox: '0 0 24 24',
+    body: "<path fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" d=\"m5.67 9.914l3.062-4.143c1.979-2.678 2.969-4.017 3.892-3.734s.923 1.925.923 5.21v.31c0 1.185 0 1.777.379 2.148l.02.02c.387.363 1.003.363 2.236.363c2.22 0 3.329 0 3.704.673l.018.034c.354.683-.289 1.553-1.574 3.29l-3.062 4.144c-1.98 2.678-2.969 4.017-3.892 3.734s-.923-1.925-.923-5.21v-.31c0-1.185 0-1.777-.379-2.148l-.02-.02c-.387-.363-1.003-.363-2.236-.363c-2.22 0-3.329 0-3.703-.673l-.019-.034c-.354-.683.289-1.552 1.574-3.29Z\"/>",
+  },
+  checkInSleep: {
+    // solar:moon-linear
+    viewBox: '0 0 24 24',
+    body: "<path fill=\"currentColor\" d=\"m21.067 11.857l-.642-.388zm-8.924-8.924l-.388-.642zM21.25 12A9.25 9.25 0 0 1 12 21.25v1.5c5.937 0 10.75-4.813 10.75-10.75zM12 21.25A9.25 9.25 0 0 1 2.75 12h-1.5c0 5.937 4.813 10.75 10.75 10.75zM2.75 12A9.25 9.25 0 0 1 12 2.75v-1.5C6.063 1.25 1.25 6.063 1.25 12zm12.75 2.25A5.75 5.75 0 0 1 9.75 8.5h-1.5a7.25 7.25 0 0 0 7.25 7.25zm4.925-2.781A5.75 5.75 0 0 1 15.5 14.25v1.5a7.25 7.25 0 0 0 6.21-3.505zM9.75 8.5a5.75 5.75 0 0 1 2.781-4.925l-.776-1.284A7.25 7.25 0 0 0 8.25 8.5zM12 2.75a.38.38 0 0 1-.268-.118a.3.3 0 0 1-.082-.155c-.004-.031-.002-.121.105-.186l.776 1.284c.503-.304.665-.861.606-1.299c-.062-.455-.42-1.026-1.137-1.026zm9.71 9.495c-.066.107-.156.109-.187.105a.3.3 0 0 1-.155-.082a.38.38 0 0 1-.118-.268h1.5c0-.717-.571-1.075-1.026-1.137c-.438-.059-.995.103-1.299.606z\"/>",
+  },
+  checkInAppetite: {
+    // solar:plate-linear
+    viewBox: '0 0 24 24',
+    body: "<path fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\" d=\"M15 4.001c3.114.01 4.765.108 5.828 1.17C22 6.344 22 8.23 22 12s0 5.657-1.172 6.828S17.771 20 14 20h-4c-3.771 0-5.657 0-6.828-1.172S2 15.771 2 12s0-5.657 1.172-6.828C4.235 4.109 5.886 4.01 9 4m3 1V3m-4 7.5h8M8 14h5.5\"/>",
+  },
+  checkInMood: {
+    // solar:smile-circle-linear
+    viewBox: '0 0 24 24',
+    body: "<g fill=\"none\"><circle cx=\"12\" cy=\"12\" r=\"10\" stroke=\"currentColor\" stroke-width=\"1.5\"/><path stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\" d=\"M9 16c.85.63 1.885 1 3 1s2.15-.37 3-1\"/><path fill=\"currentColor\" d=\"M16 10.5c0 .828-.448 1.5-1 1.5s-1-.672-1-1.5s.448-1.5 1-1.5s1 .672 1 1.5\"/><ellipse cx=\"9\" cy=\"10.5\" fill=\"currentColor\" rx=\"1\" ry=\"1.5\"/></g>",
+  },
+  checkInWater: {
+    // solar:waterdrop-linear
+    viewBox: '0 0 24 24',
+    body: "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><path d=\"M3 13.193C3 18.057 6.855 22 11.612 22h.777C17.145 22 21 18.057 21 13.193v-.265c0-4.611-2.729-8.765-6.903-10.507a5.43 5.43 0 0 0-4.194 0C5.73 4.163 3 8.317 3 12.928z\"/><path stroke-linecap=\"round\" d=\"M7.615 10.724c.634-2.006 2.016-3.636 3.77-4.448\"/></g>",
+  },
+  settingsAccount: {
+    // solar:user-circle-linear
+    viewBox: '0 0 24 24',
+    body: "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><circle cx=\"12\" cy=\"9\" r=\"3\"/><circle cx=\"12\" cy=\"12\" r=\"10\"/><path stroke-linecap=\"round\" d=\"M17.97 20c-.16-2.892-1.045-5-5.97-5s-5.81 2.108-5.97 5\"/></g>",
+  },
+  settingsPreferences: {
+    // solar:tuning-4-linear
+    viewBox: '0 0 24 24',
+    body: "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><circle cx=\"12\" cy=\"12\" r=\"2\" transform=\"rotate(-90 12 12)\"/><circle cx=\"10\" cy=\"20\" r=\"2\" transform=\"rotate(-90 10 20)\"/><circle cx=\"2\" cy=\"2\" r=\"2\" transform=\"matrix(0 -1 -1 0 16 6)\"/><path stroke-linecap=\"round\" d=\"M16 12h3m-5 8h5M10 4H5m0 8h3m-3 8h1M19 4h-1\"/></g>",
+  },
+  settingsSupport: {
+    // solar:headphones-round-linear
+    viewBox: '0 0 24 24',
+    body: "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><path d=\"M21 17v-5a9 9 0 1 0-18 0v5\"/><path stroke-linecap=\"round\" d=\"M22 15.5v2m-20-2v2\"/><path d=\"M8 13.845c0-.765 0-1.147-.175-1.413a1 1 0 0 0-.34-.322c-.271-.156-.637-.12-1.368-.048c-1.232.121-1.848.182-2.29.514a2.1 2.1 0 0 0-.55.63C3 13.697 3 14.34 3 15.629v1.565c0 1.275 0 1.913.282 2.406q.16.277.392.492c.413.38 1.014.5 2.218.736c.847.167 1.271.251 1.584.075a1 1 0 0 0 .3-.259C8 20.356 8 19.908 8 19.01zm8 0c0-.765 0-1.147.175-1.413c.088-.133.204-.244.34-.322c.271-.156.637-.12 1.368-.048c1.232.121 1.848.182 2.29.514c.223.169.41.383.55.63c.277.49.277 1.133.277 2.422v1.565c0 1.275 0 1.913-.282 2.406q-.16.277-.392.492c-.413.38-1.014.5-2.218.736c-.847.167-1.271.251-1.584.075a1 1 0 0 1-.3-.259C16 20.356 16 19.908 16 19.01z\"/></g>",
+  },
+  back: {
+    // solar:arrow-left-linear
+    viewBox: '0 0 24 24',
+    body: "<path fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\" d=\"M20 12H4m0 0l6-6m-6 6l6 6\"/>",
+  },
 } as const satisfies Record<string, { viewBox: string; body: string }>;

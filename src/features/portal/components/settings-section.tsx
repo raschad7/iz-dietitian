@@ -1,7 +1,7 @@
-import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import { Card, CardContent } from '@/components/ui/card';
+import { Icon, type IconName } from '@/components/ui/icon';
 
 /**
  * One group of settings: a heading and the rows under it.
@@ -18,12 +18,13 @@ import { Card, CardContent } from '@/components/ui/card';
  * element trees to emit.
  */
 export function SettingsSection({
-  icon: Icon,
+  icon,
   title,
   description,
   children,
 }: {
-  icon: LucideIcon;
+  /** A name from the Solar registry — the app has one icon set. */
+  icon: IconName;
   title: string;
   description?: string;
   children: ReactNode;
@@ -34,9 +35,9 @@ export function SettingsSection({
         <div className="flex items-start gap-3 pb-2">
           <span
             aria-hidden="true"
-            className="grid size-9 shrink-0 place-items-center rounded-xl bg-secondary text-primary"
+            className="grid size-9 shrink-0 place-items-center rounded-xl bg-icon-chip text-icon-chip-foreground"
           >
-            <Icon className="size-4.5" strokeWidth={1.8} />
+            <Icon name={icon} className="size-4.5" />
           </span>
 
           <div className="min-w-0 flex-1">

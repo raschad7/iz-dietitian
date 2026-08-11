@@ -1,11 +1,11 @@
 'use client';
 
-import { RotateCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Icon } from '@/components/ui/icon';
 import { Link } from '@/i18n/navigation';
 
 /**
@@ -51,7 +51,7 @@ export default function ScreenError({
 
           <div className="flex flex-wrap items-center gap-2">
             <Button type="button" size="default" onClick={reset}>
-              <RotateCw className="size-4" strokeWidth={1.9} aria-hidden="true" />
+              <Icon name="refresh" className="size-4" />
               {t('retry')}
             </Button>
 

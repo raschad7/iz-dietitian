@@ -1,4 +1,3 @@
-import { ChevronRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Icon, type IconName } from '@/components/ui/icon';
@@ -110,7 +109,8 @@ export function SettingsLinkRow({
         ) : null}
       </div>
 
-      <ChevronRight className="size-4 shrink-0 text-border rtl:-scale-x-100" aria-hidden="true" />
+      {/* `chevronEnd` mirrors itself — see DIRECTIONAL in `icon.tsx`. */}
+      <Icon name="chevronEnd" className="size-4 shrink-0 text-border" />
     </Link>
   );
 }

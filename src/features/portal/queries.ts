@@ -9,6 +9,7 @@ import {
   clientRequests,
   clientSettings,
   clients,
+  clinicWorkingHours,
   clinics,
   defaultClientSettings,
   practitioners,
@@ -131,7 +132,35 @@ export async function getPortalClinic(clinicId: string): Promise<PortalClinic | 
     .where(eq(clinics.id, clinicId))
     .limit(1);
 
-  return row ?? null;
+  if (!row) return null;
+
+  /*
+    The real per-day hours, alongside the envelope above.
+
+    `clinics.open_minute` / `close_minute` are the minimum open and maximum
+    close across the week, so a clinic that opens 08:00–14:00 on Sunday and
+    10:00–18:00 on Monday has an envelope of 08:00–18:00 — a range true of no
+    day it is actually open. The portal reads the seven rows so it can state
+    each day's own hours.
+
+    **All seven or none.** `getClinicHours` in the booking feature applies the
+    same rule: a partial set means the clinic predates this table or a write
+    failed halfway, and a schedule missing Wednesday would quietly render as a
+    clinic that is shut on Wednesday. Falling back to the envelope keeps the
+    old, vaguer line rather than inventing a closure.
+  */
+  const scheduleRows = await db
+    .select({
+      weekday: clinicWorkingHours.weekday,
+      isWorking: clinicWorkingHours.isWorking,
+      openMinute: clinicWorkingHours.openMinute,
+      closeMinute: clinicWorkingHours.closeMinute,
+    })
+    .from(clinicWorkingHours)
+    .where(eq(clinicWorkingHours.clinicId, clinicId))
+    .orderBy(asc(clinicWorkingHours.weekday));
+
+  return { ...row, schedule: scheduleRows.length === 7 ? scheduleRows : null };
 }
 
 /**

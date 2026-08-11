@@ -1,8 +1,8 @@
-import { Droplet, Moon, Smile, Utensils, Zap, type LucideIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Icon, type IconName } from '@/components/ui/icon';
 import { type CheckInMetric } from '@/db/schema';
 import { metricFraction, type MetricStatus, type MetricSummary } from '@/features/portal/check-ins';
 
@@ -22,12 +22,16 @@ import { metricFraction, type MetricStatus, type MetricSummary } from '@/feature
  * them identically.
  */
 
-const ICONS: Record<CheckInMetric, LucideIcon> = {
-  energy: Zap,
-  sleep: Moon,
-  appetite: Utensils,
-  mood: Smile,
-  water: Droplet,
+/**
+ * Metric → glyph. The names are roles in `scripts/generate-icons.ts`, so a
+ * picture can be swapped there without touching this map or the rows below.
+ */
+const ICONS: Record<CheckInMetric, IconName> = {
+  energy: 'checkInEnergy',
+  sleep: 'checkInSleep',
+  appetite: 'checkInAppetite',
+  mood: 'checkInMood',
+  water: 'checkInWater',
 };
 
 /**
@@ -129,17 +133,18 @@ export function WeekSummary({ metrics }: { metrics: MetricSummary[] }) {
       <CardContent>
         <ul className="divide-y divide-border">
           {metrics.map((metric) => {
-            const Icon = ICONS[metric.metric];
             const attention = metric.status === 'attention';
 
             return (
               <li key={metric.metric} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
                 <span
                   className={`flex size-9 shrink-0 items-center justify-center rounded-xl ${
-                    attention ? 'bg-status-attention-bg text-status-attention-fg' : 'bg-secondary text-secondary-foreground'
+                    attention
+                      ? 'bg-status-attention-bg text-status-attention-fg'
+                      : 'bg-icon-chip text-icon-chip-foreground'
                   }`}
                 >
-                  <Icon className="size-4.5" strokeWidth={1.8} aria-hidden="true" />
+                  <Icon name={ICONS[metric.metric]} className="size-4.5" />
                 </span>
 
                 <span className="min-w-0 flex-1 truncate font-medium">{t(`metric.${metric.metric}`)}</span>

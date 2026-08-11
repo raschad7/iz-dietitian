@@ -65,9 +65,16 @@ function centeredScale(viewBox: string): string {
  * blanket `rtl:-scale-x-100` on the component.
  *
  * `signOut` is here because the Solar glyph is an arrow leaving a door; in RTL
- * "leaving" runs the other way.
+ * "leaving" runs the other way. `back` is the portal's own exit arrow, and
+ * "back" points right in Arabic.
+ *
+ * Being on this list is what makes the mirroring automatic, so a call site must
+ * **not** add its own `rtl:-scale-x-100` — the two cancel out and the glyph ends
+ * up pointing the wrong way in Arabic. Several portal components carried that
+ * manual flip while they were still drawing lucide glyphs, which mirror nothing
+ * by themselves.
  */
-const DIRECTIONAL = new Set<IconName>(['chevronStart', 'chevronEnd', 'signOut']);
+const DIRECTIONAL = new Set<IconName>(['chevronStart', 'chevronEnd', 'signOut', 'back']);
 
 type IconProps = Omit<ComponentProps<'svg'>, 'children' | 'dangerouslySetInnerHTML'> & {
   name: IconName;

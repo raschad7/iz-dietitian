@@ -1,4 +1,3 @@
-import { LifeBuoy, SlidersHorizontal, UserCog } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
@@ -65,7 +64,7 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
 
       <main className="min-w-0 flex-1 px-4 py-5 md:px-6">
         <div className="mx-auto w-full max-w-3xl space-y-4">
-          <SettingsSection icon={UserCog} title={t('account.title')}>
+          <SettingsSection icon="settingsAccount" title={t('account.title')}>
             {/*
               A person, not a phone. The row used to be "email and phone number"
               and carried the handset glyph to say so; it now holds the whole of
@@ -88,7 +87,7 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
             />
           </SettingsSection>
 
-          <SettingsSection icon={SlidersHorizontal} title={t('preferences.title')}>
+          <SettingsSection icon="settingsPreferences" title={t('preferences.title')}>
             <SettingsLinkRow
               href="/portal/settings/notifications"
               icon="notifications"
@@ -107,7 +106,7 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
             />
           </SettingsSection>
 
-          <SettingsSection icon={LifeBuoy} title={t('support.title')}>
+          <SettingsSection icon="settingsSupport" title={t('support.title')}>
             <SettingsLinkRow
               href="/portal/settings/help"
               icon="help"

@@ -91,6 +91,18 @@ export function weekdayRuns(workingDays: readonly number[]): WeekdayRun[] {
   return runs;
 }
 
+/**
+ * `الأحد – الخميس`, or `الأحد` for a single day.
+ *
+ * An en dash rather than a hyphen: this is a range, and the glyph reads the
+ * same in both scripts.
+ */
+export function formatWeekdayRun(locale: Locale, run: { from: number; to: number }): string {
+  return run.from === run.to
+    ? weekdayName(locale, run.from)
+    : `${weekdayName(locale, run.from)} – ${weekdayName(locale, run.to)}`;
+}
+
 /** `الأحد – الخميس`, or `الأحد` for a single day. Empty when the clinic lists no open days. */
 export function formatWorkingDays(locale: Locale, workingDays: readonly number[]): string {
   const runs = weekdayRuns(workingDays);
@@ -102,12 +114,95 @@ export function formatWorkingDays(locale: Locale, workingDays: readonly number[]
   // reads as a sentence in both.
   return formatList(
     locale,
-    runs.map(({ from, to }) =>
-      from === to
-        ? weekdayName(locale, from)
-        : // An en dash rather than a hyphen: this is a range, and the glyph
-          // reads the same in both scripts.
-          `${weekdayName(locale, from)} – ${weekdayName(locale, to)}`,
-    ),
+    runs.map((run) => formatWeekdayRun(locale, run)),
   );
+}
+
+/**
+ * One weekday's opening range, shaped structurally rather than imported from
+ * `@/features/clinic-profile/types`, so this module stays pure and dependency
+ * free — the same reason the rest of the file takes plain numbers.
+ */
+export type DayHours = {
+  weekday: number;
+  isWorking: boolean;
+  openMinute: number | null;
+  closeMinute: number | null;
+};
+
+/** A stretch of consecutive open days that all keep the *same* hours. */
+export type HoursRun = { from: number; to: number; openMinute: number; closeMinute: number };
+
+/**
+ * Collapses a seven-day schedule into the fewest lines that state it exactly.
+ *
+ * `weekdayRuns` above answers "which days is the clinic open?" and is used
+ * where a single envelope is all there is. This answers the question a client
+ * actually asks — "when am I seen, on the day I am coming?" — which the
+ * envelope cannot: `clinics.open_minute` and `close_minute` are the *minimum
+ * open and maximum close across the week* (see `scheduleEnvelope`), so a clinic
+ * open 08:00–14:00 on Sunday and 10:00–18:00 on Monday reports 08:00–18:00, a
+ * range that describes neither day. Splitting by hours is what stops the screen
+ * stating a time the clinic is shut.
+ *
+ * A run breaks on a gap in the days **or** on a change of hours, so
+ * Sunday–Thursday at one time is one line, and a Saturday that closes early is
+ * its own. Closed days are dropped rather than listed: the card names the days
+ * it is open, and the absent ones are the answer to the rest.
+ *
+ * The week wraps exactly as `weekdayRuns` describes — a run ending Saturday
+ * joins one starting Sunday, but only when the hours match too.
+ */
+export function workingHourRuns(days: readonly DayHours[]): HoursRun[] {
+  const open = days
+    .filter(
+      (day): day is DayHours & { openMinute: number; closeMinute: number } =>
+        day.isWorking &&
+        day.openMinute !== null &&
+        day.closeMinute !== null &&
+        Number.isInteger(day.weekday) &&
+        day.weekday >= 0 &&
+        day.weekday <= 6,
+    )
+    .sort((a, b) => a.weekday - b.weekday);
+
+  const runs: HoursRun[] = [];
+
+  for (const day of open) {
+    const last = runs.at(-1);
+
+    if (
+      last &&
+      day.weekday === last.to + 1 &&
+      day.openMinute === last.openMinute &&
+      day.closeMinute === last.closeMinute
+    ) {
+      last.to = day.weekday;
+    } else {
+      runs.push({
+        from: day.weekday,
+        to: day.weekday,
+        openMinute: day.openMinute,
+        closeMinute: day.closeMinute,
+      });
+    }
+  }
+
+  const first = runs[0];
+  const last = runs.at(-1);
+
+  if (
+    runs.length > 1 &&
+    first &&
+    last &&
+    first.from === 0 &&
+    last.to === 6 &&
+    first.openMinute === last.openMinute &&
+    first.closeMinute === last.closeMinute
+  ) {
+    first.from = last.from;
+    runs.pop();
+  }
+
+  return runs;
 }
