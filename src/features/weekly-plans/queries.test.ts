@@ -40,7 +40,9 @@ describe('listPlannableClients', () => {
       {
         id: clientId,
         fullName: 'Test Client',
-        color: '#64748b',
+        // The clinic's first client, so position 0 — the number the rail's disc
+        // and the calendar both colour this person from.
+        seq: 0,
         hasProfile: false,
         latestPlanStatus: 'draft',
         latestWeekStartDate: '2026-07-26',

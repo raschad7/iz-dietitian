@@ -12,6 +12,7 @@ import {
   ComboboxItem,
   ComboboxList,
 } from '@/components/ui/combobox';
+import { patientToneStyle } from '@/features/booking/patient-color';
 import { useRouter } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
 
@@ -98,10 +99,17 @@ export function ClientPicker({
         <ComboboxList>
           {(client: PlannableClient) => (
             <ComboboxItem key={client.id} value={client}>
+              {/*
+                The client's calendar colour, not the hex on their record — the
+                dot here and the appointment block on the grid are the same
+                person, so they are the same colour. `--tone-mark` is the deep
+                step of the ramp, which is what a 10px dot needs: the pale card
+                fill at that size reads as no colour at all.
+              */}
               <span
                 aria-hidden
-                className="size-2.5 shrink-0 rounded-full"
-                style={{ background: client.color }}
+                className="patient-tone size-2.5 shrink-0 rounded-full bg-(--tone-mark)"
+                style={patientToneStyle(client.seq)}
               />
               <span className="min-w-0 flex-1 truncate" dir="auto">
                 {client.fullName}

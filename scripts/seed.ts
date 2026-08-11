@@ -18,7 +18,7 @@ import { issuePortalCredentials } from '@/features/clients/portal-credentials';
 import { suggestUsername } from '@/features/clients/transliterate';
 import { defaultClinicScheduleRows } from '@/features/clinic-profile/default-schedule';
 import { auth } from '@/lib/auth';
-import { paletteColorAt, pickAvatarColor } from '@/lib/avatar-color';
+import { paletteColorAt } from '@/lib/avatar-color';
 
 import { seedDishes } from './seed-dishes';
 import { seedFoods } from './seed-foods';
@@ -214,12 +214,10 @@ async function seed(): Promise<void> {
     }
   }
 
-  // Give every seeded client a distinct avatar colour, the way
-  // `createClientAndBook` does for clients added from the picker.
-  for (const [index, client] of created.entries()) {
-    const name = SEED_CLIENTS[index]?.client.fullName ?? client.id;
-    await db.update(clients).set({ color: pickAvatarColor(name) }).where(eq(clients.id, client.id));
-  }
+  // No colour pass. A seeded client's colour is their position in the clinic —
+  // `clientSeq` — so they have one the moment they are inserted, the same as a
+  // client added from the register or the booking picker. `clients.color` is
+  // legacy and read by nothing; see the note on the column.
 
   // One archived client so the status filter has something to filter.
   const [first] = created;

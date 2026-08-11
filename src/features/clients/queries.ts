@@ -47,15 +47,18 @@ export type ClientListItem = {
   dateOfBirth: string | null;
   hasPortalAccess: boolean;
   /**
-   * The client's stored avatar colour, for the initials disc in the register's
-   * first column.
+   * The client's position in their clinic — what the register's avatar disc is
+   * coloured from, through `patientHue`.
    *
-   * Read from the row rather than derived from the name here, for the reason
-   * `src/lib/avatar-color.ts` records: renaming a client must not change the
-   * colour staff have learned to recognise them by. It is the same value the
-   * calendar and the planner rail already show them in.
+   * Not `clients.color`, the stored hex. That column came from a fixed
+   * ten-colour palette with a grey default behind it, so the register drew a
+   * patient in a colour that was either shared with somebody else, or nobody's
+   * at all, while the calendar drew the same patient in a hue that was
+   * genuinely theirs. The register is the list you pick a person *out of*; a
+   * disc that changes colour on the way to their appointment is worse there
+   * than anywhere. See `./seq`.
    */
-  color: string;
+  seq: number;
   /**
    * The status of this client's most recent plan that still stands, or `null`
    * for a client who has none.
@@ -229,7 +232,7 @@ export async function listClients(clinicId: string, input: ListClientsInput): Pr
       phone: clients.phone,
       dateOfBirth: clients.dateOfBirth,
       userId: clients.userId,
-      color: clients.color,
+      seq: clientSeq,
     })
     .from(clients)
     .where(where)

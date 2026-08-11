@@ -5,7 +5,6 @@ import { isBookingConflict, pgConstraintName } from '@/db/errors';
 import { appointments, clients, clinicWorkingHours, practitioners } from '@/db/schema';
 import { normalizeForSearch } from '@/features/clients/search';
 import { toClinicSchedule } from '@/features/clinic-profile/schedule';
-import { pickAvatarColor } from '@/lib/avatar-color';
 import { DISPLAY_TIME_ZONE } from '@/lib/format';
 
 import { hasEnded, wallClockIn } from './completed';
@@ -412,6 +411,14 @@ export async function createClientAndBook(
         table would recreate the split it was widened to close — a record that
         looks complete on the form and comes back missing its demographics.
       */
+      /*
+        No `color`. The client's colour is their position in the clinic, read
+        back as `clientSeq` and turned into a hue by `./patient-color` — so it
+        exists the instant this row does, and the block written on the next
+        line is already drawn in it. Writing a hex here handed the same person a
+        second colour from a different palette, and the register showed them in
+        that one while the calendar showed them in this one.
+      */
       const [client] = await tx
         .insert(clients)
         .values({
@@ -421,7 +428,6 @@ export async function createClientAndBook(
           phone: input.client.phone ?? null,
           dateOfBirth: input.client.dateOfBirth ?? null,
           sex: input.client.sex ?? null,
-          color: pickAvatarColor(input.client.fullName),
         })
         .returning({ id: clients.id });
 

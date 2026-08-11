@@ -1,10 +1,18 @@
 /**
- * Colours for generated initials avatars and practitioner colour-coding.
+ * The practitioner palette: a colour per member of staff.
  *
  * Picked to stay distinguishable from one another and to carry white text at
  * the weights used in the calendar. Stored on the row rather than derived at
- * render time, so renaming a client does not change the colour staff have
+ * render time, so renaming a practitioner does not change the colour staff have
  * learned to recognise — this module only chooses the initial value.
+ *
+ * **Patients are not coloured from here.** They were, and that was the bug: a
+ * name hashed into ten colours wraps on the eleventh person and has no relation
+ * to the hue their appointments are drawn in. A patient's colour is their
+ * position in the clinic (`src/features/clients/seq.ts`) turned into a hue by
+ * `src/features/booking/patient-color.ts`, which is unique per client and is
+ * what every surface that draws a patient reads. Don't point a patient at this
+ * file again.
  */
 
 export const AVATAR_PALETTE = [
@@ -20,44 +28,12 @@ export const AVATAR_PALETTE = [
   '#84cc16', // lime
 ] as const;
 
-export const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
-
-export function isHexColor(value: string): boolean {
-  return HEX_COLOR_PATTERN.test(value);
-}
-
-/**
- * FNV-1a over a string's code points.
- *
- * Tiny, deterministic, and it spreads similar names (‏"أحمد خليل" / "أحمد
- * خالد") across different buckets, which a length- or first-letter-based
- * choice would not. `>>> 0` keeps the value unsigned so a modulo of it cannot
- * return a negative index.
- *
- * Shared with the calendar's patient colours (`src/features/booking/patient-color.ts`)
- * so the two never drift into two different notions of "stable for this seed".
- */
-export function hashSeed(seed: string): number {
-  let hash = 0x811c9dc5;
-
-  for (let index = 0; index < seed.length; index += 1) {
-    hash ^= seed.charCodeAt(index);
-    hash = Math.imul(hash, 0x01000193);
-  }
-
-  return hash >>> 0;
-}
-
-/** A stable colour for a name. */
-export function pickAvatarColor(seed: string): string {
-  return AVATAR_PALETTE[hashSeed(seed) % AVATAR_PALETTE.length] ?? AVATAR_PALETTE[0];
-}
-
 /**
  * Distinct colours for a list, falling back to the palette in order.
  *
- * Used when seeding practitioners: with a handful of them, "never two the same"
- * matters more than "stable for this name".
+ * With a handful of practitioners, "never two the same" matters more than
+ * "stable for this name" — which is the other reason this is the wrong shape for
+ * a register of hundreds of patients.
  */
 export function paletteColorAt(index: number): string {
   return AVATAR_PALETTE[index % AVATAR_PALETTE.length] ?? AVATAR_PALETTE[0];

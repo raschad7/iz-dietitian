@@ -10,7 +10,7 @@ function client(
   return {
     id,
     fullName: id,
-    color: '#223414',
+    seq: 0,
     hasProfile: true,
     latestPlanStatus: null,
     latestWeekStartDate: null,
