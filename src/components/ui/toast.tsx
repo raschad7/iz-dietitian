@@ -19,18 +19,25 @@ function Toaster({ className, ...props }: ComponentProps<typeof SonnerToaster>) 
     <SonnerToaster
       position="bottom-center"
       visibleToasts={3}
-      gap={12}
+      gap={10}
       className={cn('toaster group', className)}
       toastOptions={{
+        unstyled: true,
         classNames: {
           toast:
-            'group rounded-lg border border-border bg-popover text-popover-foreground shadow-overlay',
-          title: 'text-body-sm font-semibold',
-          description: 'text-caption text-muted-foreground',
+            'group/toast flex w-full items-center gap-3 rounded-lg border border-border bg-card p-3.5 text-foreground shadow-elevated',
+          content: 'min-w-0 flex-1',
+          icon: 'grid size-8 shrink-0 place-items-center rounded-full bg-secondary text-primary [&>svg]:size-4',
+          title: 'text-body-sm font-semibold leading-5',
+          description: 'mt-0.5 text-caption leading-5 text-muted-foreground',
+          error:
+            '[&_[data-icon]]:bg-destructive-subtle [&_[data-icon]]:text-destructive',
+          warning:
+            '[&_[data-icon]]:bg-status-attention-bg [&_[data-icon]]:text-status-attention-fg',
           actionButton:
-            'rounded-[10px] border border-primary bg-card px-3 text-label font-semibold text-secondary-foreground hover:bg-accent-lime hover:text-on-accent',
+            'ms-auto inline-flex h-8 shrink-0 items-center rounded-[10px] border border-primary bg-card px-3 text-label font-semibold text-secondary-foreground transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
           cancelButton:
-            'rounded-[10px] border border-border bg-card px-3 text-label font-semibold text-foreground',
+            'ms-auto inline-flex h-8 shrink-0 items-center rounded-[10px] border border-border bg-card px-3 text-label font-semibold text-foreground transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
         },
       }}
       {...props}

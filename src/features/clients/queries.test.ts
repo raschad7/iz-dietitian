@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
 
+import { db } from '@/db';
+import { weeklyPlans } from '@/db/schema';
+
 import { createTestClinic, resetDatabase } from '../../../tests/helpers';
 import { archiveClient, createClient } from './mutations';
 import { issuePortalCredentials } from './portal-credentials';
@@ -198,6 +201,117 @@ describe('listClients', () => {
 
     const result = await listClients(clinicId, filters({ sort: 'password); drop table clients--' }));
     expect(result.items.map((client) => client.fullName)).toEqual(['الثاني', 'الأول']);
+  });
+});
+
+describe('listClients plan status', () => {
+  /** A plan for one client's week. Only the columns this column reads matter. */
+  const addPlan = (
+    clientId: string,
+    weekStartDate: string,
+    status: string,
+    clinic = clinicId,
+    updatedAt?: Date,
+  ) =>
+    db.insert(weeklyPlans).values({
+      clinicId: clinic,
+      clientId,
+      weekStartDate,
+      status,
+      kcalTargetSnapshot: 2000,
+      ...(updatedAt ? { updatedAt } : {}),
+    });
+
+  test('is null for a client who has never had a plan', async () => {
+    await createClient(clinicId, { fullName: 'سارة', preferredLocale: 'ar' });
+
+    const result = await listClients(clinicId, filters());
+    expect(result.items[0]?.latestPlanStatus).toBeNull();
+  });
+
+  /**
+   * The point of the column: it reports where the client stands *now*, not
+   * whether they have ever been planned for. A dietitian scanning the register
+   * on a Sunday is looking for the drafts they left open, and a client whose
+   * newest week is a draft must not read as live because an older week was
+   * published.
+   */
+  test('reports the newest week, not an older published one', async () => {
+    const { id } = await createClient(clinicId, { fullName: 'سارة', preferredLocale: 'ar' });
+    await addPlan(id, '2026-01-04', 'published');
+    await addPlan(id, '2026-01-11', 'draft');
+
+    const result = await listClients(clinicId, filters());
+    expect(result.items[0]?.latestPlanStatus).toBe('draft');
+  });
+
+  test('reports a published newest week as published', async () => {
+    const { id } = await createClient(clinicId, { fullName: 'سارة', preferredLocale: 'ar' });
+    await addPlan(id, '2026-01-04', 'draft');
+    await addPlan(id, '2026-01-11', 'published');
+
+    const result = await listClients(clinicId, filters());
+    expect(result.items[0]?.latestPlanStatus).toBe('published');
+  });
+
+  test('resolves the status per client rather than sharing one across the page', async () => {
+    const planned = await createClient(clinicId, { fullName: 'أحمد', preferredLocale: 'ar' });
+    await createClient(clinicId, { fullName: 'زياد', preferredLocale: 'ar' });
+    await addPlan(planned.id, '2026-01-11', 'published');
+
+    const result = await listClients(clinicId, filters({ sort: 'fullName', dir: 'asc' }));
+    const byName = new Map(result.items.map((item) => [item.fullName, item.latestPlanStatus]));
+    expect(byName.get('أحمد')).toBe('published');
+    expect(byName.get('زياد')).toBeNull();
+  });
+
+  /**
+   * Publishing a plan archives whatever was published for the same week, and
+   * both writes happen inside one transaction — `publishPlan` calls `new Date()`
+   * for the archived sibling and again for the plan it is publishing, which in a
+   * fast transaction is the same millisecond. So `updatedAt` cannot be relied on
+   * to separate them, and a register row that resolved to the archived sibling
+   * would tell the dietitian "No plan" about a client whose plan is live.
+   *
+   * The two rows are given the same `updatedAt` deliberately: that is the state
+   * the publish path actually produces, and with it the ordering is a coin toss
+   * unless the query rules archived rows out.
+   */
+  test('reports the live plan when an archived sibling shares its week and timestamp', async () => {
+    const { id } = await createClient(clinicId, { fullName: 'سارة', preferredLocale: 'ar' });
+    const sameInstant = new Date('2026-01-12T09:00:00.000Z');
+    await addPlan(id, '2026-01-11', 'archived', clinicId, sameInstant);
+    await addPlan(id, '2026-01-11', 'published', clinicId, sameInstant);
+
+    const result = await listClients(clinicId, filters());
+    expect(result.items[0]?.latestPlanStatus).toBe('published');
+  });
+
+  /**
+   * An archived plan is a superseded one, so it says nothing about where the
+   * client stands. The newest week that still counts is the older draft.
+   */
+  test('looks past an archived newest week to the newest week that counts', async () => {
+    const { id } = await createClient(clinicId, { fullName: 'سارة', preferredLocale: 'ar' });
+    await addPlan(id, '2026-01-04', 'draft');
+    await addPlan(id, '2026-01-11', 'archived');
+
+    const result = await listClients(clinicId, filters());
+    expect(result.items[0]?.latestPlanStatus).toBe('draft');
+  });
+
+  /**
+   * The id list passed to the lookup is not a tenancy check on its own. A plan
+   * row carries its own `clinic_id`, and a client id colliding across clinics
+   * must not pull another clinic's plan into this register.
+   */
+  test('ignores a plan belonging to another clinic', async () => {
+    const otherClinicId = await createTestClinic('Other Clinic');
+    const { id } = await createClient(clinicId, { fullName: 'سارة', preferredLocale: 'ar' });
+    await addPlan(id, '2026-01-11', 'published', otherClinicId);
+
+    const result = await listClients(clinicId, filters());
+    expect(result.items[0]?.latestPlanStatus).toBeNull();
   });
 });
 

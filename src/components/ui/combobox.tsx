@@ -54,15 +54,17 @@ function ComboboxInput({
   className,
   children,
   disabled = false,
+  focusTone = "brand",
   showTrigger = true,
   showClear = false,
   ...props
 }: ComboboxPrimitive.Input.Props & {
   showTrigger?: boolean
   showClear?: boolean
+  focusTone?: "brand" | "neutral" | "borderless"
 }) {
   return (
-    <InputGroup className={cn("w-auto", className)}>
+    <InputGroup focusTone={focusTone} className={cn("w-auto", className)}>
       <ComboboxPrimitive.Input
         render={<InputGroupInput disabled={disabled} />}
         {...props}
@@ -74,7 +76,7 @@ function ComboboxInput({
             variant="ghost"
             render={<ComboboxTrigger />}
             data-slot="input-group-button"
-            className="group-has-data-[slot=combobox-clear]/input-group:hidden data-pressed:bg-transparent"
+            className="group-has-data-[slot=combobox-clear]/input-group:hidden data-pressed:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
             disabled={disabled}
           />
         )}

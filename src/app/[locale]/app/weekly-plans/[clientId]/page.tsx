@@ -134,6 +134,7 @@ export default async function ClientBoardPage({ params, searchParams }: PageProp
       <div className="flex min-h-0 min-w-0 flex-1 gap-4">
         {board ? (
           <PlanBoard
+            key={board.id}
             board={board}
             candidates={candidates}
             catalog={catalog}
@@ -145,7 +146,7 @@ export default async function ClientBoardPage({ params, searchParams }: PageProp
           >
             {/* The generate form moved into the new-week dialog, where the
                 choice to generate is actually made. This tab is the client. */}
-            <ContextPanel context={context} clients={clients} locale={locale} />
+            <ContextPanel context={context} clients={clients} locale={locale} embedded />
           </PlanBoard>
         ) : (
           <EmptyPlanBoard
@@ -154,7 +155,7 @@ export default async function ClientBoardPage({ params, searchParams }: PageProp
             usage={usage}
             locale={locale}
             history={history}
-            profile={<ContextPanel context={context} clients={clients} locale={locale} />}
+            profile={<ContextPanel context={context} clients={clients} locale={locale} embedded />}
             newWeek={newWeek}
           />
         )}

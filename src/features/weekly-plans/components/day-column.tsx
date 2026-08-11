@@ -106,7 +106,7 @@ export function DayColumn({
           paying for the smear. `px-3` matches the cards below it, so the day
           name and every meal label share one inline-start edge down the
           column — at `px-2` they were 4px out of line. */}
-      <div className="sticky top-0 z-10 border-b border-border bg-background px-3 pb-2 pt-1">
+      <div className="sticky top-0 z-10 bg-background px-3 pb-1 pt-0">
         <div className="flex items-center justify-center gap-1.5">
           {/* A step above the total under it. Both were within 1px and both
               semibold, so the week had nothing to be scanned by.
@@ -156,11 +156,15 @@ export function DayColumn({
           meals in their own order. That is what keeps the slot rail honest: row
           three is غداء in all seven columns because every column renders row
           three, whether or not this particular day carries it. */}
-      {rows.map((row) => {
+      {rows.map((row, rowIndex) => {
         const meal = row.mealByDay.get(day.dayOfWeek);
 
         return (
-          <div key={row.slotKey} className="planner-row-cell">
+          <div
+            key={row.slotKey}
+            className="planner-row-cell"
+            data-first-row={rowIndex === 0 || undefined}
+          >
             {meal ? (
               <MealCard
                 meal={meal}
@@ -272,9 +276,9 @@ export function AddSlot({ rows }: { rows: readonly BoardRow[] }) {
         type="button"
         onClick={() => setOpen(true)}
         style={LAST_ROW}
-        className="mx-1 mb-1 grid place-items-center gap-0.5 rounded-lg border border-dashed border-border py-2 text-caption text-muted-foreground transition-colors hover:border-primary hover:bg-secondary hover:text-secondary-foreground"
+        className="mx-1 mb-1 grid place-items-center rounded-lg border border-dashed border-border py-1 text-caption text-muted-foreground transition-colors hover:border-primary hover:bg-secondary hover:text-secondary-foreground"
       >
-        <Icon name="add" className="size-5" />
+        <Icon name="add" className="size-4" />
         {t('addMeal')}
       </button>
 

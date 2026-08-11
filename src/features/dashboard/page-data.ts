@@ -11,8 +11,6 @@ import {
   countAppointmentsByDay,
   countClientsByMonth,
   countClientsWithoutNextVisit,
-  listRecentClients,
-  type DashboardClient,
 } from './queries';
 import { monthlySeries, weeklySeries, type MonthlyClients, type WeeklyAppointments } from './trends';
 
@@ -29,23 +27,14 @@ import { monthlySeries, weeklySeries, type MonthlyClients, type WeeklyAppointmen
 
 
 /**
- * What the week strip falls back to when the clinic has no usable schedule.
+ * What the day switcher falls back to when the clinic has no usable schedule.
  *
  * `getClinicHours` returns null unless all seven weekdays are on file, which is
- * a half-written clinic rather than one that opens every day — but a strip with
- * nothing in it would be a worse answer than a strip with too much, so the week
+ * a half-written clinic rather than one that opens every day — but a switcher
+ * with nothing in it would be a worse answer than one with too much, so the week
  * is shown whole and the calendar is left to say which days are really open.
  */
 const EVERY_WEEKDAY = [0, 1, 2, 3, 4, 5, 6] as const;
-
-/**
- * How many clients the register card shows.
- *
- * Enough to fill the card's height on the dashboard's bottom row without the
- * list becoming a second, worse version of the clients page — that is one click
- * away, and the card's footer points at it.
- */
-const RECENT_CLIENTS = 8;
 
 /**
  * How far back the two stat cards look.
@@ -60,18 +49,27 @@ const TREND_MONTHS = 6;
 const TREND_WEEKS = 8;
 
 export type DashboardData = {
-  /** Clinic-local `YYYY-MM-DD`, the day the agenda is anchored to. */
+  /** Clinic-local `YYYY-MM-DD`, the day the appointments panel opens on. */
   today: string;
   /** Minutes from local midnight at render time — what marks an appointment as past, live or next. */
   nowMinute: number;
-  agenda: CalendarAppointment[];
+  /**
+   * Every appointment in the current Sunday-to-Saturday week, unsorted.
+   *
+   * The whole week rather than today alone, because the panel that draws it
+   * switches days in the browser. One query for seven days costs what one query
+   * for one day cost, and it buys a day switcher that never touches the network
+   * — see `AppointmentsPanel`.
+   */
+  weekAppointments: CalendarAppointment[];
+  /** That week's Sunday, and the Saturday six days after it. */
+  weekStart: string;
+  weekEnd: string;
   /**
    * Clinic-local weekdays the clinic opens on, `0` = Sunday, ascending. The
-   * agenda's week strip shows these and nothing else.
+   * appointments panel's day switcher shows these and nothing else.
    */
   workingDays: readonly number[];
-  /** Newest first, active only, at most {@link RECENT_CLIENTS}. */
-  recentClients: DashboardClient[];
   /**
    * What the two stat cards at the top of the working column draw.
    *
@@ -121,15 +119,18 @@ export async function loadDashboard(clinicId: string): Promise<DashboardData> {
   // query and the series that fills its gaps are cut from the same "today".
   const firstMonth = addMonths(startOfMonth(today), -(TREND_MONTHS - 1));
   const firstWeek = addDays(startOfWeek(today), -7 * (TREND_WEEKS - 1));
-  const lastWeekDay = addDays(startOfWeek(today), 6);
+  // The current week, which both the appointments panel and the diary card's
+  // last bar are about. Derived once so the two cannot disagree about where the
+  // week starts.
+  const weekStart = startOfWeek(today);
+  const lastWeekDay = addDays(weekStart, 6);
   // `firstMonth` is derived from a valid date and so always parses; the
   // fallback is there because the helper is honest about returning null and
   // `now` is the one instant on this page that is certainly real.
   const clientsSince = isoToLocalDate(firstMonth) ?? now;
 
   const [
-    agenda,
-    recentClients,
+    weekAppointments,
     hours,
     pendingRequests,
     pendingClientRequests,
@@ -139,8 +140,7 @@ export async function loadDashboard(clinicId: string): Promise<DashboardData> {
     appointmentDays,
     clientsWithoutNextVisit,
   ] = await Promise.all([
-    listAppointments(clinicId, today, today),
-    listRecentClients(clinicId, today, RECENT_CLIENTS),
+    listAppointments(clinicId, weekStart, lastWeekDay),
     getClinicHours(clinicId),
     listPendingAppointmentRequests(clinicId),
     listPendingClientRequests(clinicId),
@@ -161,9 +161,10 @@ export async function loadDashboard(clinicId: string): Promise<DashboardData> {
   return {
     today,
     nowMinute,
-    agenda,
+    weekAppointments,
+    weekStart,
+    weekEnd: lastWeekDay,
     workingDays: hours?.workingDays ?? EVERY_WEEKDAY,
-    recentClients,
     stats: {
       activeClients,
       clientsByMonth: monthlySeries(today, TREND_MONTHS, clientMonths),

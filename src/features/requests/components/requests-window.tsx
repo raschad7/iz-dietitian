@@ -92,7 +92,7 @@ export function RequestsWindow({
         // holds whether or not the box has anywhere to scroll, so on a queue of
         // three or fewer — which the effect above leaves unbounded — it would
         // stop the wheel without moving anything, making the card a dead patch
-        // of the page. Same reasoning as `dashboard/components/clients-card.tsx`.
+        // of the page.
         count > visible && 'overscroll-contain',
         className,
       )}

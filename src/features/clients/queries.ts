@@ -6,15 +6,18 @@ import {
   eq,
   getTableColumns,
   ilike,
+  inArray,
   isNotNull,
   isNull,
+  ne,
   sql,
   type AnyColumn,
   type SQL,
 } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { clientNutritionProfiles, clients, type Client } from '@/db/schema';
+import { clientNutritionProfiles, clients, weeklyPlans, type Client } from '@/db/schema';
+import { type PlanStatus } from '@/features/weekly-plans/schema';
 
 import { DEFAULT_MEAL_SCHEDULE, mealScheduleSchema } from './nutrition';
 import { normalizeForSearch } from './search';
@@ -43,7 +46,41 @@ export type ClientListItem = {
    */
   dateOfBirth: string | null;
   hasPortalAccess: boolean;
+  /**
+   * The client's stored avatar colour, for the initials disc in the register's
+   * first column.
+   *
+   * Read from the row rather than derived from the name here, for the reason
+   * `src/lib/avatar-color.ts` records: renaming a client must not change the
+   * colour staff have learned to recognise them by. It is the same value the
+   * calendar and the planner rail already show them in.
+   */
+  color: string;
+  /**
+   * The status of this client's most recent plan that still stands, or `null`
+   * for a client who has none.
+   *
+   * The *latest* plan rather than "a published plan exists": what the register
+   * answers is "where does this person stand right now", and a client whose
+   * newest week is still a draft is in a different position from one whose
+   * newest week is live — even if both have a published plan somewhere in their
+   * history.
+   *
+   * Archived is not among the answers, which is why this is narrower than
+   * `PlanStatus`. See {@link latestPlanStatuses}.
+   */
+  latestPlanStatus: LivePlanStatus | null;
 };
+
+/**
+ * A plan status the register can report: everything a plan can be except
+ * archived, which {@link latestPlanStatuses} filters out before ranking.
+ *
+ * Narrowed rather than reusing `PlanStatus` so the badge that renders this has
+ * a case for every value it can receive, instead of an `archived` that would
+ * fall through to whatever its last branch happens to be.
+ */
+export type LivePlanStatus = Exclude<PlanStatus, 'archived'>;
 
 export type ClientListResult = {
   items: ClientListItem[];
@@ -192,6 +229,7 @@ export async function listClients(clinicId: string, input: ListClientsInput): Pr
       phone: clients.phone,
       dateOfBirth: clients.dateOfBirth,
       userId: clients.userId,
+      color: clients.color,
     })
     .from(clients)
     .where(where)
@@ -199,12 +237,80 @@ export async function listClients(clinicId: string, input: ListClientsInput): Pr
     .limit(CLIENTS_PAGE_SIZE)
     .offset((input.page - 1) * CLIENTS_PAGE_SIZE);
 
+  const latestPlanByClient = await latestPlanStatuses(
+    clinicId,
+    rows.map((row) => row.id),
+  );
+
   return {
-    items: rows.map(({ userId, ...rest }) => ({ ...rest, hasPortalAccess: userId !== null })),
+    items: rows.map(({ userId, ...rest }) => ({
+      ...rest,
+      hasPortalAccess: userId !== null,
+      latestPlanStatus: latestPlanByClient.get(rest.id) ?? null,
+    })),
     total,
     page: input.page,
     pageCount: Math.max(1, Math.ceil(total / CLIENTS_PAGE_SIZE)),
   };
+}
+
+/**
+ * The newest plan's status for each of the given clients.
+ *
+ * A second query rather than a join onto the page above, for two reasons. A
+ * `LEFT JOIN` against `weekly_plans` multiplies the client rows by their plan
+ * history before anything can pick the newest one, which breaks both the
+ * `LIMIT` and the `count()` the pager runs on. And `DISTINCT ON` — PostgreSQL's
+ * own "first row of each group" — cannot be expressed as a joined subquery
+ * through Drizzle without the aliased aggregate coming out unqualified; the
+ * planner rail hit exactly that and settled on the same shape (see
+ * `listPlannableClients`).
+ *
+ * Scoped to the ids actually on screen rather than to the whole clinic, so a
+ * register of two thousand clients still reads at most twenty plans. Still
+ * filtered by `clinicId` as well: an id list is not a tenancy check, and every
+ * read in this app carries one.
+ *
+ * Archived plans are excluded rather than ranked. An archived plan is one that
+ * publishing superseded, so it never describes where a client stands — and
+ * including them makes the answer unstable as well as wrong. `publishPlan`
+ * archives the outgoing plan and publishes the incoming one in a single
+ * transaction, calling `new Date()` for each; in a fast transaction both land on
+ * the same millisecond, and two rows sharing a week and a timestamp leave the
+ * `ORDER BY` below with nothing to separate them. The register would then report
+ * "no plan" for a client whose plan is live, depending on which row PostgreSQL
+ * happened to reach first. Filtering them out settles it at the source.
+ *
+ * The `ORDER BY` must lead with the `DISTINCT ON` expression; what follows is
+ * what decides which row wins — newest week first, then the most recently
+ * touched plan within that week.
+ */
+async function latestPlanStatuses(
+  clinicId: string,
+  clientIds: string[],
+): Promise<Map<string, LivePlanStatus>> {
+  if (clientIds.length === 0) return new Map();
+
+  const rows = await db
+    .selectDistinctOn([weeklyPlans.clientId], {
+      clientId: weeklyPlans.clientId,
+      status: weeklyPlans.status,
+    })
+    .from(weeklyPlans)
+    .where(
+      and(
+        eq(weeklyPlans.clinicId, clinicId),
+        inArray(weeklyPlans.clientId, clientIds),
+        ne(weeklyPlans.status, 'archived'),
+      ),
+    )
+    .orderBy(
+      asc(weeklyPlans.clientId),
+      desc(weeklyPlans.weekStartDate),
+      desc(weeklyPlans.updatedAt),
+    );
+
+  return new Map(rows.map((row) => [row.clientId, row.status as LivePlanStatus]));
 }
 
 /**

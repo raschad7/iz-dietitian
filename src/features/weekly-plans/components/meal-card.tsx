@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 
 import { MEAL_TOLERANCE, driftState } from '@/features/weekly-plans/drift';
 import { roundForDisplay } from '@/features/weekly-plans/nutrition';
-import { dishTagDividerClass } from '../meal-tag-tone';
+import { dishTagAccentClass } from '../meal-tag-tone';
 import type { BoardMeal } from '../queries';
 
 import { useEditorActions } from './board-dnd';
@@ -134,10 +134,10 @@ export function MealCard({
             takes the free space and centres the name in it; the name keeps the
             clamp. A one-line name now sits in the middle of the card instead of
             hanging off its top edge. */}
-        <span className="flex min-h-0 flex-1 items-center justify-center px-3 pt-3">
+        <span className="flex min-h-0 flex-1 items-center justify-center px-2 pt-2">
           <span
             className={cn(
-              'line-clamp-2 text-center font-heading text-body-md font-medium leading-relaxed [text-wrap:balance]',
+              'line-clamp-2 text-center font-heading text-body-md font-medium leading-snug [text-wrap:balance]',
               meal.dish === null && 'font-normal text-muted-foreground',
             )}
           >
@@ -161,10 +161,16 @@ export function MealCard({
             actually live. */}
         <span
           className={cn(
-            'mt-2 flex shrink-0 items-baseline justify-between gap-2 border-t-2 px-3 pb-2 pt-2',
-            meal.dish ? dishTagDividerClass(meal.dish.tags) : 'border-border',
+            'relative mt-1 flex shrink-0 items-baseline justify-between gap-2 px-2 pb-1.5 pt-2.5',
           )}
         >
+          <span
+            aria-hidden
+            className={cn(
+              'absolute start-4 end-4 top-0 h-[3px] rounded-full',
+              meal.dish ? dishTagAccentClass(meal.dish.tags) : 'bg-border',
+            )}
+          />
           <span
             className={cn(
               'inline-flex items-baseline gap-1 text-body-sm font-semibold tabular-nums',
@@ -267,10 +273,10 @@ export function MealCardSnapshot({ meal }: { meal: BoardMeal }) {
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-lg border border-primary bg-card text-start ring-2 ring-primary shadow-elevated">
-      <span className="flex min-h-0 flex-1 items-center justify-center px-3 pt-3">
+      <span className="flex min-h-0 flex-1 items-center justify-center px-2 pt-2">
         <span
           className={cn(
-            'line-clamp-2 text-center font-heading text-body-md font-medium leading-relaxed [text-wrap:balance]',
+            'line-clamp-2 text-center font-heading text-body-md font-medium leading-snug [text-wrap:balance]',
             meal.dish === null && 'font-normal text-muted-foreground',
           )}
           dir="auto"
@@ -281,10 +287,16 @@ export function MealCardSnapshot({ meal }: { meal: BoardMeal }) {
 
       <span
         className={cn(
-          'mt-2 flex shrink-0 items-baseline justify-between gap-2 border-t-2 px-3 pb-2 pt-2',
-          meal.dish ? dishTagDividerClass(meal.dish.tags) : 'border-border',
+          'relative mt-1 flex shrink-0 items-baseline justify-between gap-2 px-2 pb-1.5 pt-2.5',
         )}
       >
+        <span
+          aria-hidden
+          className={cn(
+            'absolute start-4 end-4 top-0 h-[3px] rounded-full',
+            meal.dish ? dishTagAccentClass(meal.dish.tags) : 'bg-border',
+          )}
+        />
         <span
           className={cn(
             'inline-flex items-baseline gap-1 text-body-sm font-semibold tabular-nums',

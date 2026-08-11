@@ -59,7 +59,7 @@ export function PortalPlan({
 }) {
   const t = useTranslations('portal.plan');
 
-  const day = board.days[selectedDay];
+  const day = board.days.find((candidate) => candidate.dayOfWeek === selectedDay);
 
   const meals = day?.meals ?? [];
   const dayKcal = day ? roundForDisplay('kcal', day.totals.kcal.value) : 0;

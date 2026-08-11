@@ -1,48 +1,36 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 
 import { Avatar } from '@/components/ui/avatar';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
 import { formatMediumDate, formatMinute } from '@/features/booking/format';
 import { Link } from '@/i18n/navigation';
 import type { Locale } from '@/i18n/routing';
-import { cn } from '@/lib/utils';
 
 import { plannerClientSuggestions, type PlannerClientSuggestion } from '../client-suggestions';
-import type { CatalogEntry, PlannableClient } from '../queries';
+import type { PlannableClient } from '../queries';
 
 import { ClientPicker } from './client-picker';
-import { DishCatalogDrawer } from './dish-catalog-drawer';
 
 /** A useful first screen: search plus clients whose plans are most time-sensitive. */
 export function NoClientBoard({
   clients,
-  catalog,
   locale,
 }: {
   clients: readonly PlannableClient[];
-  catalog: readonly CatalogEntry[];
   locale: Locale;
 }) {
   const t = useTranslations('weeklyPlans');
-  const [catalogOpen, setCatalogOpen] = useState(false);
-  const suggestions = useMemo(() => plannerClientSuggestions(clients), [clients]);
+  const suggestions = useMemo(() => plannerClientSuggestions(clients).slice(0, 4), [clients]);
 
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
-      <div className="flex justify-end border-b border-border pb-4">
-        <Button type="button" size="sm" variant="outline" onClick={() => setCatalogOpen(true)}>
-          <Icon name="dishes" />
-          {t('tabs.dishes')}
-        </Button>
-      </div>
-
-      <section className="flex min-h-0 min-w-0 flex-1 items-center justify-center overflow-y-auto px-3 py-8 sm:px-6 sm:py-12">
-        <div className="w-full max-w-4xl motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-(--duration-sweep)">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <section className="flex min-h-0 min-w-0 flex-1 justify-center overflow-y-auto px-4 py-12 sm:px-6 lg:py-20">
+        <div className="w-full max-w-3xl">
           <div className="mx-auto max-w-xl text-center">
             <h2 className="font-heading text-heading-lg font-semibold [text-wrap:balance]">
               {t('noClientTitle')}
@@ -50,25 +38,23 @@ export function NoClientBoard({
             <p className="mt-2 text-body-sm leading-relaxed text-muted-foreground">
               {t('noClientHint')}
             </p>
-            <div className="mt-5 text-start">
+            <div className="mx-auto mt-6 max-w-lg text-start">
               <ClientPicker clients={clients} />
             </div>
           </div>
 
           {suggestions.length > 0 ? (
-            <div className="mt-9">
-              <div className="mb-3 flex items-end justify-between gap-4">
-                <div>
+            <div className="mt-12">
+              <div className="mb-4 text-center">
                   <h3 className="font-heading text-heading-sm font-semibold">
                     {t('suggestedClientsTitle')}
                   </h3>
                   <p className="mt-1 text-caption text-muted-foreground">
                     {t('suggestedClientsHint')}
                   </p>
-                </div>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-2">
                 {suggestions.map((suggestion) => (
                   <SuggestedClientCard key={suggestion.client.id} suggestion={suggestion} locale={locale} />
                 ))}
@@ -91,15 +77,6 @@ export function NoClientBoard({
         </div>
       </section>
 
-      <DishCatalogDrawer
-        open={catalogOpen}
-        onOpenChange={setCatalogOpen}
-        catalog={catalog}
-        usage={{}}
-        slot={null}
-        editable={false}
-        locale={locale}
-      />
     </div>
   );
 }
@@ -127,18 +104,15 @@ function SuggestedClientCard({
       href={`/app/weekly-plans/${client.id}`}
       className="rounded-lg outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
     >
-      <Card interactive size="sm" className="h-full">
-        <CardHeader className="grid-cols-[auto_1fr] items-center gap-x-3">
-          <Avatar name={client.fullName} color={client.color} />
-          <CardTitle size="sm" className="truncate" dir="auto">
+      <Card interactive size="sm" className="h-full min-h-40 justify-center shadow-none">
+        <CardHeader className="grid-cols-1 justify-items-center gap-y-2 text-center">
+          <Avatar name={client.fullName} color={client.color} size="lg" />
+          <CardTitle size="sm" className="w-full truncate text-center" dir="auto">
             {client.fullName}
           </CardTitle>
         </CardHeader>
         <CardContent
-          className={cn(
-            'flex items-center gap-2 text-caption',
-            reason === 'nextAppointment' ? 'text-primary' : 'text-muted-foreground',
-          )}
+          className="flex items-center justify-center gap-2 text-center text-caption text-muted-foreground"
         >
           <Icon name={reason === 'activeClient' ? 'clients' : 'calendar'} className="size-4 shrink-0" />
           <span className="truncate">

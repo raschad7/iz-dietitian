@@ -268,15 +268,21 @@
   "dashboard": {
     "title": "لوحة التحكم",
     "welcome": "أهلًا {name}",
-    "agenda": {
-      "title": "اليوم",
+    "appointments": {
+      "title": "المواعيد",
+      "previousDay": "اليوم السابق",
+      "nextDay": "اليوم التالي",
+      "today": "اليوم",
       "count": "{count, plural, =0 {لا مواعيد} one {موعد واحد} two {موعدان} few {# مواعيد} many {# موعدًا} other {# موعد}}",
-      "next": "التالي",
+      "time": "الوقت",
+      "client": "المشترك",
+      "reason": "سبب الزيارة",
+      "status": "الحالة",
+      "done": "انتهى",
       "live": "الآن",
-      "empty": "لا مواعيد محجوزة اليوم",
-      "emptyCta": "حجز موعد",
-      "viewDay": "فتح عرض اليوم",
-      "reason": "السبب: {reason}"
+      "next": "التالي",
+      "empty": "لا مواعيد في هذا اليوم",
+      "emptyCta": "حجز موعد"
     },
     "stats": {
       "title": "نظرة سريعة على العيادة",
@@ -304,13 +310,6 @@
           "flat": "الحجوزات مستقرة مقارنة بالأسابيع السابقة"
         }
       }
-    },
-    "clients": {
-      "title": "مشتركوك",
-      "nextVisit": "التالي: {when}",
-      "empty": "لا مشتركين في سجلك بعد.",
-      "emptyCta": "أضف أول مشترك",
-      "viewAll": "عرض كل المشتركين"
     }
   },
   "notifications": {
@@ -493,6 +492,7 @@
       "status": "الحالة",
       "createdAt": "تاريخ التسجيل",
       "portalAccess": "البوابة",
+      "plan": "الخطة",
       "actions": "إجراءات",
       "conditions": "الحالات الصحية",
       "medications": "الأدوية والمكمّلات",
@@ -535,13 +535,23 @@
       "delete": "حذف نهائي",
       "more": "إجراءات أخرى",
       "confirmDeleteTitle": "حذف السجل نهائيًا؟",
-      "confirmDelete": "سيُحذف سجل «{name}» نهائيًا مع حسابه في البوابة، ولا يمكن التراجع."
+      "confirmDelete": "سيُحذف سجل «{name}» نهائيًا مع حسابه في البوابة، ولا يمكن التراجع.",
+      "confirmArchiveTitle": "أرشفة هذا العميل؟",
+      "confirmArchive": "سيُزال من السجل، ويمكنك استعادته في أي وقت من صفحة الأرشيف."
+    },
+    "plan": {
+      "published": "خطة نشطة",
+      "draft": "مسودة",
+      "none": "لا توجد خطة"
     },
     "clearFilters": "مسح الفلاتر",
     "pagination": {
       "previous": "السابق",
       "next": "التالي",
-      "position": "صفحة {page, number, integer} من {pageCount, number, integer}"
+      "position": "الصفحة {page, number, integer} من {pageCount, number, integer}",
+      "label": "صفحات السجل",
+      "showing": "عرض {from, number, integer}–{to, number, integer} من {total, number, integer}",
+      "page": "الصفحة {page, number, integer}"
     },
     "portal": {
       "title": "الحساب",
@@ -567,7 +577,8 @@
         "failed": "تعذّر الإرسال عبر واتساب. سلّم البيانات يدويًا."
       },
       "state": "الدخول {state}",
-      "granted": "مُفعّل"
+      "granted": "مفعّل",
+      "none": "لا يوجد حساب"
     },
     "errors": {
       "invalid": "تحقّق من الحقول المميّزة بالأحمر.",
@@ -1228,6 +1239,7 @@
       "updated": "آخر تعديل"
     },
     "history": "الخطط السابقة",
+    "moreActions": "المزيد من إجراءات الخطة",
     "weekOf": "أسبوع {date}",
     "generatedBy": "النموذج المستخدم",
     "kcalValue": "{value} kcal",
@@ -1389,6 +1401,8 @@
     "createWeek": "إنشاء أسبوع",
     "newWeekTitle": "إعداد أسبوع جديد",
     "newWeekSubtitle": "اختر طريقة البدء لتخطيط الوجبات لهذا الأسبوع.",
+    "weekStartLabel": "تاريخ بداية الأسبوع",
+    "weekStartHint": "تبدأ الخطة من هذا اليوم وتستمر سبعة أيام.",
     "newWeekGenerate": {
       "create": "توليد بالذكاء الاصطناعي",
       "regenerate": "إعادة التوليد بالذكاء الاصطناعي"

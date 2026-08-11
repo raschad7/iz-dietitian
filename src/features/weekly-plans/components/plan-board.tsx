@@ -22,6 +22,7 @@ import { boardRows } from '../board-rows';
 import { dayKey } from '../schema';
 import { slotFillKey } from '../skeleton';
 import type { RecentUse } from '../usage';
+import { dayOfWeekForDate, orderedWeekdays } from '../week';
 
 import { BoardEditor, useEditor } from './board-dnd';
 import { DayColumn } from './day-column';
@@ -114,10 +115,17 @@ function BoardBody({
   const [selectedMealAnchor, setSelectedMealAnchor] = useState<HTMLButtonElement | null>(null);
   const [catalogContextMealId, setCatalogContextMealId] = useState<string | null>(null);
   const [comparing, setComparing] = useState(false);
-  // Which day the phone shows. Sunday until the dietitian says otherwise:
-  // "today" would need a helper in the week logic, and this board is planning
-  // next week anyway, where no day is today.
-  const [selectedDay, setSelectedDay] = useState(0);
+  const firstDay = dayOfWeekForDate(board.weekStartDate) ?? 0;
+  const [selectedDay, setSelectedDay] = useState(firstDay);
+
+  const orderedDays = useMemo(() => {
+    const byWeekday = new Map(board.days.map((day) => [day.dayOfWeek, day]));
+
+    return orderedWeekdays(board.weekStartDate).flatMap((dayOfWeek) => {
+      const day = byWeekday.get(dayOfWeek);
+      return day ? [day] : [];
+    });
+  }, [board.days, board.weekStartDate]);
 
   const mealsById = useMemo(
     () => new Map(board.days.flatMap((day) => day.meals).map((meal) => [meal.id, meal])),
@@ -145,14 +153,14 @@ function BoardBody({
 
   /*
    * One row template for the week: a header row, a row per meal slot, and — only
-   * while the plan is editable, or the columns would end on a row nothing is ever
-   * placed in — a row for the add control.
+   * as a stable footer track for the add control. That footer remains reserved
+   * after publishing so hiding the control cannot resize every meal row.
    *
-   * The explicit floor is the readability contract. Metadata and the nutrition
-   * shelf may never squeeze the dish name out of the card; when the viewport is
-   * shorter than the week, the board scrolls instead of collapsing its content.
+   * The real remaining canvas, not the viewport, distributes the flexible rows.
+   * The 4.5rem floor protects the dish name and nutrition shelf when an unusually
+   * long schedule still needs to scroll.
    */
-  const rowTemplate = `auto repeat(${slotRows}, minmax(6rem, 1fr))${editable ? ' auto' : ''}`;
+  const rowTemplate = `auto repeat(${slotRows}, minmax(4.5rem, 1fr)) 2.75rem`;
 
   /**
    * The previous plan's dish for each slot, marked where it repeats.
@@ -187,32 +195,23 @@ function BoardBody({
 
   return (
     <div className="relative flex min-h-0 min-w-0 flex-1 flex-col gap-3">
-      {children}
-
-      {/* Keep every plan action reachable when the toolbar wraps on a phone. */}
-      <header className="border-b border-border pb-4">
+      <header className="grid overflow-hidden rounded-lg border border-border bg-card shadow-card 2xl:grid-cols-[minmax(0,1fr)_auto]">
         <h2 className="sr-only">{board.clientName}</h2>
-        <div className="planner-action-bar flex w-full max-w-full flex-wrap items-center justify-start gap-2 pb-1 rtl:flex-row-reverse">
+        <div className="min-w-0">{children}</div>
+
+        <div className="planner-action-bar mx-2 mb-2 flex max-w-full flex-wrap items-center justify-end gap-1.5 rounded-lg bg-muted/70 p-1.5 2xl:my-2 2xl:me-2 2xl:ms-0 2xl:w-auto 2xl:self-center 2xl:flex-nowrap 2xl:justify-center">
           <Button
             type="button"
             size="sm"
-            variant="outline"
-            className="planner-compact-trigger max-sm:px-3"
+            variant="neutral"
+            className="px-3 2xl:size-10 2xl:rounded-full 2xl:px-0"
             aria-label={t('tabs.dishes')}
             title={t('tabs.dishes')}
             onClick={() => onCatalogOpenChange(true)}
           >
             <Icon name="dishes" />
-            <span className="max-sm:sr-only">{t('tabs.dishes')}</span>
+            <span className="2xl:sr-only">{t('tabs.dishes')}</span>
           </Button>
-          {/*
-            Plan actions, in a stable order that does not depend on status.
-
-            The panels control is first in source order. `rtl:flex-row-reverse`
-            keeps it on the physical left in both languages while the button's
-            own text retains the document direction. The row wraps instead of
-            scrolling, so every action remains reachable on a narrow screen.
-          */}
           <PublishButton
             planId={board.id}
             status={board.status}
@@ -229,83 +228,80 @@ function BoardBody({
             compactTrigger
           />
 
-          {/*
-            Always rendered, disabled until there is a published plan to edit.
-
-            It used to appear on publish, which pushed every control after it
-            sideways at the exact moment the dietitian was looking somewhere
-            else. A control that is *going* to exist should hold its place: the
-            row's shape then never changes, and the greyed-out button doubles as
-            a note that this becomes available once the week is live.
-          */}
-          {/* The hint rides on a wrapping span, not on the button. `Button`
-              carries `disabled:pointer-events-none`, and an element that takes
-              no pointer events never fires the hover a native `title` needs —
-              so the one explanation of *why* it is greyed out would have been
-              unreachable exactly when it was wanted. */}
-          <span title={board.status === 'published' ? undefined : t('editPublishedDisabled')}>
-          <Button
-            type="button"
-            size="sm"
-            variant="neutral"
-            disabled={board.status !== 'published'}
-            aria-pressed={allowPublished}
-            onClick={() => {
-              if (allowPublished) {
-                onAllowPublished(false);
-                return;
-              }
-
-              // One confirmation for the mode, not one per drop. Confirming every
-              // drag would make the editor unusable.
-              if (window.confirm(t('editPublishedConfirm'))) onAllowPublished(true);
-            }}
-          >
-            <Icon name="edit" />
-            {t('editPublished')}
-          </Button>
-          </span>
-
-          {previous && (
-            <Button
-              type="button"
-              size="sm"
-              variant="neutral"
-              aria-pressed={comparing}
-              // The week being compared against is in the label's own tooltip
-              // rather than in the label. A date is ten characters that change
-              // nothing about what the button does, and it was the longest
-              // string in a row that has to survive four other controls.
-              title={t('compareWith', { date: previous.weekStartDate })}
-              onClick={() => setComparing((value) => !value)}
-            >
-              <Icon name="history" />
-              {t('compareShort')}
-            </Button>
-          )}
-
           <Popover>
             <PopoverTrigger
-              className={buttonVariants({ variant: 'neutral', size: 'sm' })}
+              aria-label={t('moreActions')}
+              title={t('moreActions')}
+              className={buttonVariants({ variant: 'neutral', size: 'icon-sm' })}
             >
-              <Icon name="history" />
-              {t('history')}
+              <Icon name="moreActions" />
+              <span className="sr-only">{t('moreActions')}</span>
             </PopoverTrigger>
-            <PopoverContent align="end" side="bottom" className="max-h-[min(32rem,70vh)] w-80 overflow-y-auto p-3">
-              <PopoverTitle className="pb-1 text-label font-semibold">{t('history')}</PopoverTitle>
-              {history}
+            <PopoverContent
+              align="end"
+              side="bottom"
+              className="max-h-[min(36rem,75vh)] w-80 overflow-y-auto p-3"
+            >
+              <PopoverTitle className="pb-2 text-label font-semibold">
+                {t('moreActions')}
+              </PopoverTitle>
+
+              <div className="space-y-1">
+                {previous && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    aria-pressed={comparing}
+                    className="w-full max-w-none justify-start"
+                    title={t('compareWith', { date: previous.weekStartDate })}
+                    onClick={() => setComparing((value) => !value)}
+                  >
+                    <Icon name="history" />
+                    {t('compareShort')}
+                  </Button>
+                )}
+
+                {board.status === 'published' && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    aria-pressed={allowPublished}
+                    className="w-full max-w-none justify-start"
+                    onClick={() => {
+                      if (allowPublished) {
+                        onAllowPublished(false);
+                        return;
+                      }
+
+                      if (window.confirm(t('editPublishedConfirm'))) onAllowPublished(true);
+                    }}
+                  >
+                    <Icon name="edit" />
+                    {t('editPublished')}
+                  </Button>
+                )}
+              </div>
+
+              <div className="mt-2 border-t border-border pt-2">
+                <p className="pb-1 text-caption font-semibold text-muted-foreground">
+                  {t('history')}
+                </p>
+                {history}
+              </div>
             </PopoverContent>
           </Popover>
 
-          <span
-            role="status"
-            aria-live="polite"
-            className={cn(
-              'ms-auto inline-flex min-w-24 items-center justify-end gap-2 text-label',
-              error ? 'text-destructive' : 'text-muted-foreground',
-            )}
-          >
-            {pending || error ? (
+          {pending || error ? (
+            <span
+              role="status"
+              aria-live="polite"
+              className={cn(
+                'ms-auto inline-flex items-center justify-end gap-2 text-label',
+                error ? 'text-destructive' : 'text-muted-foreground',
+              )}
+            >
               <>
                 <Icon
                   name={error ? 'attention' : 'refresh'}
@@ -313,8 +309,8 @@ function BoardBody({
                 />
                 {error ? t(error) : t('savingIndicator')}
               </>
-            ) : null}
-          </span>
+            </span>
+          ) : null}
         </div>
       </header>
 
@@ -330,13 +326,13 @@ function BoardBody({
         </p>
       )}
 
-      <BoardDayStrip days={board.days} selectedDay={selectedDay} onSelect={setSelectedDay} />
+      <BoardDayStrip days={orderedDays} selectedDay={selectedDay} onSelect={setSelectedDay} />
 
       <div className="flex min-h-0 flex-1">
         {/* Phones render one selected day. Tablets make the week itself a
             three-column-wide swipe surface, so the day picker no longer spends
-            two rows above the work. The seven-column desktop keeps a 64rem
-            readable floor and lets this wrapper own exceptional overflow. */}
+            two rows above the work. The seven-column desktop uses the available
+            width; only unusually long schedules need exceptional overflow. */}
         {/* The canvas under the cards is `canvas` — n-25, one stop off white —
             so a white card reads as a surface sitting on the board rather than
             as a bordered box on the page. Not `muted` (n-50): that is the
@@ -377,8 +373,8 @@ function BoardBody({
               window that was a whole row of seven meals: drawn nowhere,
               reachable by nothing, with no scrollbar to suggest they existed.
               `min-h-full` keeps the fr distribution when the week fits and lets
-              the grid grow past the frame when the `minmax(6rem, …)`
-              readability floor says it must — which is the case the frame's own
+              the grid grow past the frame when the readability floor says it
+              must — which is the case the frame's own
               `overflow-auto` was always there to handle.
 
               The clip stays on the inline axis, because that is the one it was
@@ -389,12 +385,12 @@ function BoardBody({
               does not force the other axis to become a scroll container — so
               the block overflow travels up to the frame the way it should. */}
           <div
-            className="planner-week-grid grid min-h-full grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-3 overflow-x-clip p-2 xl:min-w-[64rem] xl:grid-cols-[auto_repeat(7,minmax(0,1fr))]"
+            className="planner-week-grid grid min-h-full grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-4 overflow-x-clip p-2 xl:grid-cols-[auto_repeat(7,minmax(0,1fr))] xl:gap-x-4 2xl:gap-x-6"
             style={{ gridTemplateRows: rowTemplate }}
           >
             <SlotRail rows={rows} editable={editable} />
 
-            {board.days.map((day) => (
+            {orderedDays.map((day) => (
               <DayColumn
                 key={day.dayOfWeek}
                 day={day}
