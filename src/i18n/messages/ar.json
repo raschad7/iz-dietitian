@@ -692,7 +692,20 @@
       "noUpcoming": "لا يوجد موعد",
       "noPast": "لا توجد زيارات بعد",
       "empty": "لا توجد مواعيد في هذا السجل بعد.",
-      "book": "افتح التقويم"
+      "book": "افتح التقويم",
+      "details": "السجل",
+      "firstVisit": "أول زيارة",
+      "typicalGap": "الفاصل المعتاد",
+      "totalTime": "الوقت المحجوز",
+      "everyDays": "كل {days, number, integer} يوم",
+      "noneRecorded": "لا يوجد",
+      "noReason": "لا يوجد سبب مسجل",
+      "views": {
+        "label": "طرق عرض سجل الزيارات",
+        "timeline": "المسار الزمني",
+        "upcoming": "القادمة",
+        "past": "السابقة"
+      }
     }
   },
   "portal": {

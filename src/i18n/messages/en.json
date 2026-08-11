@@ -692,7 +692,20 @@
       "noUpcoming": "None booked",
       "noPast": "No visits yet",
       "empty": "No appointments on this record yet.",
-      "book": "Open the calendar"
+      "book": "Open the calendar",
+      "details": "Record",
+      "firstVisit": "First visit",
+      "typicalGap": "Typical gap",
+      "totalTime": "Time booked",
+      "everyDays": "Every {days, number, integer} days",
+      "noneRecorded": "None",
+      "noReason": "No reason recorded",
+      "views": {
+        "label": "Visit record views",
+        "timeline": "Timeline",
+        "upcoming": "Upcoming",
+        "past": "Past"
+      }
     }
   },
   "portal": {

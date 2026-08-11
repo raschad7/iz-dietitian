@@ -41,5 +41,7 @@ export default async function ClientVisitsPage({ params }: ClientVisitsPageProps
   // upcoming is measured against the same day the rest of the page is.
   const today = toIsoDate(new Date());
 
-  return <ClientVisitRecord visits={visits} locale={locale} today={today} />;
+  // `client` goes down as well as `visits`: the record's summary rail leads with
+  // who this is, and the row has already been read here to prove it exists.
+  return <ClientVisitRecord client={client} visits={visits} locale={locale} today={today} />;
 }
