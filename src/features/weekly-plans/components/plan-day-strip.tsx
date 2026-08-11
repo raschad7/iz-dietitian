@@ -1,10 +1,11 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useEffect, useRef, useTransition } from 'react';
+import { useTransition } from 'react';
 
 import { adherenceFraction, type AdherenceDay } from '@/features/portal/adherence';
 import { DayFlame } from '@/features/portal/components/day-flame';
+import { TodayFlameCell } from '@/features/portal/components/today-flame-celebration';
 import { usePathname, useRouter } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
 
@@ -44,11 +45,9 @@ import { type PlanDaySummary } from '../week';
  * are gone with the redesign; the week's dates are stated in the page header
  * above, and an empty day still dims.
  *
- * The row scrolls sideways rather than squeezing seven cells into a phone, which
- * means the open day can start off screen — so it is scrolled into view. Both
- * the ref and the effect are here rather than in a hook: this is nine lines
- * about one row, and `use-scroll-to-match.ts` next door is a different problem
- * (a debounced search over a two-dimensional grid), not a generalisation of it.
+ * A fixed seven-column grid, never a scrolling row: every day sits in its own
+ * column at every width, so the one being read is never off screen and there
+ * is nothing to scroll into view.
  */
 export function PlanDayStrip({
   days,
@@ -65,35 +64,6 @@ export function PlanDayStrip({
   const [isPending, startTransition] = useTransition();
   const completion = usePlanDayCompletion();
 
-  const rowRef = useRef<HTMLDivElement | null>(null);
-  const selectedRef = useRef<HTMLButtonElement | null>(null);
-
-  useEffect(() => {
-    const row = rowRef.current;
-    const cell = selectedRef.current;
-
-    // Nothing to do when the whole week already fits, which is every desktop and
-    // most tablets — `scrollIntoView` on a row that does not scroll is a no-op
-    // horizontally but can still nudge the page vertically, so it is skipped
-    // outright rather than relied on to do nothing.
-    if (!row || !cell || row.scrollWidth <= row.clientWidth) return;
-
-    cell.scrollIntoView({
-      // Scrolls asked for in script are not covered by the global
-      // `prefers-reduced-motion` rule in `globals.css` — that collapses CSS
-      // transitions, and this is neither. It has to be honoured by hand, the
-      // same way `use-scroll-to-match.ts` does it.
-      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
-      // `nearest` in the block axis so the page never scrolls vertically to
-      // satisfy a sideways move; `center` inline so the chosen day lands with
-      // its neighbours either side of it rather than flush against an edge.
-      // Neither needs an RTL branch — the browser resolves both against the
-      // laid-out box, which is already mirrored.
-      block: 'nearest',
-      inline: 'center',
-    });
-  }, [selectedDay]);
-
   function selectDay(dayOfWeek: number) {
     if (dayOfWeek === selectedDay) return;
 
@@ -106,8 +76,6 @@ export function PlanDayStrip({
 
   return (
     <div className="space-y-3">
-      <p className="font-heading text-base font-medium">{t('chooseDay')}</p>
-
       <div
         role="group"
         aria-label={t('chooseDay')}
@@ -115,26 +83,18 @@ export function PlanDayStrip({
         // without this the whole row goes inert on tap with nothing to show for
         // it, which reads as a dead control rather than a loading one.
         aria-busy={isPending}
-        ref={rowRef}
         className={cn(
           /*
-            One row, scrolling when it has to.
-
-            A seven-column grid fitted every day into about 45px on a phone, which
-            is enough for the flame and not enough for الأربعاء — the cells ended
-            up touching, and the names went right to their edges. Arabic weekday
-            names are full words (Intl's `short` form for `ar` is identical to
-            `long`, not a three-letter abbreviation), so the fix is to stop
-            fitting: each cell takes a real minimum width and the row scrolls
-            sideways when seven of them do not fit.
-
-            `flex-1` with `min-w-18` is what makes that one rule instead of two —
-            the cells grow to fill a desktop's width and refuse to shrink past
-            72px on a phone, and `min-width` beating `flex-shrink` is what turns
-            the overflow into a scroll. `py-1` keeps the focus ring from being
-            clipped by that scroll container.
+            A fixed seven-column grid, all seven always on screen — the same
+            shape `WeekAdherenceStrip` draws. A `flex-1`/`min-w-18` row that
+            scrolled once it ran out of room used to live here, but a picker
+            a client scrolls sideways to find "today" in trades a solved
+            problem (fitting الأربعاء) for a worse one (today off-screen on a
+            narrow phone). `gap-1`, not `gap-2`: the columns already share
+            the row evenly, so the second pixel was only pushing the
+            narrowest phones closer to needing that scroll back.
           */
-          'no-scrollbar flex gap-2 overflow-x-auto px-0.5 py-1 transition-opacity duration-200',
+          'grid grid-cols-7 gap-1 px-0.5 py-1 transition-opacity duration-200',
           isPending && 'opacity-60',
         )}
       >
@@ -176,12 +136,10 @@ export function PlanDayStrip({
               aria-pressed={active}
               aria-label={day.isToday ? `${name} — ${t('today')}` : name}
               onClick={() => selectDay(day.dayOfWeek)}
-              ref={active ? selectedRef : null}
               className={cn(
-                // 72px minimum and growing, so a weekday name has room to sit
-                // inside its own cell rather than running edge to edge, and every
-                // day clears the 44px touch minimum comfortably.
-                'flex min-w-18 flex-1 cursor-pointer flex-col items-center gap-2 rounded-2xl px-1 py-2 outline-none transition-all duration-200 ease-[cubic-bezier(.2,.6,.2,1)]',
+                // Fills its own grid column rather than a fixed width, so all
+                // seven sit edge to edge with no row wider than the screen.
+                'flex cursor-pointer flex-col items-center gap-2 rounded-2xl px-1 py-2 outline-none transition-all duration-200 ease-[cubic-bezier(.2,.6,.2,1)]',
                 // The same focus and press treatment `buttonVariants` gives every
                 // other control: a raw <button> otherwise falls back to the UA
                 // outline, which is not this system's ring, and to no press cue
@@ -254,8 +212,14 @@ export function PlanDayStrip({
                 plan never covered has no report to draw, so it falls back to the
                 unlit `empty` mark rather than to a gap that would make the row
                 ragged.
+
+                Today alone gets the live, reactive cell with its claim
+                celebration — `TodayFlameCell` falls back to this same
+                `adherence` value and reads `usePlanDayCompletion()` for the
+                live count, the same as `WeekAdherenceStrip`'s own today cell
+                did before this picker took over drawing the week.
               */}
-              <DayFlame day={adherence} />
+              {day.isToday ? <TodayFlameCell day={adherence} /> : <DayFlame day={adherence} />}
             </button>
           );
         })}

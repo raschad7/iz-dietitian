@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl';
 
 import { Icon } from '@/components/ui/icon';
-import { PORTAL_NAV, PORTAL_NAV_ICONS, type PortalLabelKey } from '@/features/portal/nav';
+import { PORTAL_NAV, PORTAL_NAV_ICONS } from '@/features/portal/nav';
 import { Link, usePathname } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
 
@@ -17,33 +17,24 @@ import { cn } from '@/lib/utils';
  * bar so the fill still reaches the bottom of the display on a notched phone
  * while the labels stay clear of the home indicator.
  *
- * Five equal columns, one style throughout — no tab is raised above the
+ * Four equal columns, one style throughout — no tab is raised above the
  * others. Icons come from `PORTAL_NAV_ICONS`, the same map the desktop
  * sidebar reads, so a client learns one glyph per destination rather than a
- * phone-only set for four tabs and a bespoke mark for the fifth.
+ * phone-only set.
  *
- * Display order is fixed here rather than read straight off `PORTAL_NAV`
- * (home, plan, appointments, progress, profile) so "my plan" lands third,
- * between appointments and progress, without touching `PORTAL_NAV`'s own
- * order, which also drives the desktop sidebar.
- *
- * The same destinations appear in the sidebar above `md` — both read
- * `PORTAL_NAV`, so the routes and labels cannot drift. This bar is hidden
- * from `md` up, and the page reserves room for it with `pb-*` so the last
- * card is never trapped underneath.
+ * Read straight off `PORTAL_NAV`, in that list's own order — the same
+ * destinations appear in the sidebar above `md`, so the routes and labels
+ * cannot drift. This bar is hidden from `md` up, and the page reserves room
+ * for it with `pb-*` so the last card is never trapped underneath.
  *
  * A client component because the active item is decided by the current path,
  * and `usePathname` from `@/i18n/navigation` returns it with the locale
  * prefix already stripped.
  */
 
-const TAB_ORDER: readonly PortalLabelKey[] = ['portalHome', 'myAppointments', 'myPlan', 'progress', 'profile'];
-
 export function PortalTabBar() {
   const t = useTranslations('portal.tabs');
   const pathname = usePathname();
-
-  const items = TAB_ORDER.map((labelKey) => PORTAL_NAV.find((item) => item.labelKey === labelKey)!);
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card md:hidden">
@@ -53,8 +44,8 @@ export function PortalTabBar() {
         bottom of the usable screen. It is padding, not a margin, so the fill
         behind it still runs to the very edge.
       */}
-      <ul className="grid grid-cols-5 px-1 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
-        {items.map((item) => {
+      <ul className="grid grid-cols-4 px-1 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+        {PORTAL_NAV.map((item) => {
           // `/portal` is a prefix of the others, so it matches only exactly.
           const active = item.href === '/portal' ? pathname === item.href : pathname.startsWith(item.href);
 

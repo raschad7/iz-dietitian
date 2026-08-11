@@ -670,8 +670,10 @@
   --commitment-card-stat: var(--olive-700);
 
   /*
-   * The meal card's surface — one tone for every meal, and the day-total tile
-   * above the list takes the same pair so the screen reads as one material.
+   * The meal card's surface — one tone for every meal, so the list reads as one
+   * material. (The day-total line above it used to take the same pair and no
+   * longer does: unfilled, it stopped reading as a sixth card — see
+   * `portal-plan.tsx`.)
    *
    * This deliberately does not vary by meal. Colour here would have to come from
    * somewhere, and every categorical palette in this system is spoken for: amber
@@ -689,18 +691,23 @@
    * you cannot. The neutral ramp gives it back: the tick is now the only olive
    * left on the list, which is exactly the job olive has.
    *
-   * **n-50, one step off the canvas.** It went olive-100 → n-100 → here, and the
-   * last step is the one that makes the card read as paper rather than as a
-   * filled block: n-100 is a tint you notice, n-50 is a surface you don't.
+   * **One step off the canvas, and untinted.** It went olive-100 → n-100 → n-50
+   * → here, and the last step is the one that makes the card read as paper
+   * rather than as a filled block: n-100 is a tint you notice, this is a surface
+   * you don't. `#F7F7F7` rather than n-50's `#F7F5EF` — the same lightness with
+   * the last of the warm cast taken out, which is the grey the home screen's
+   * design specifies for these cards.
    *
    * Measured, not eyeballed:
    *
-   * - n-900 on n-50 is **15.81:1**, up from the olive pair's 8.92:1.
-   * - n-50 on the n-0 canvas is **1.09:1**, so the fill is not what separates the
+   * - n-900 on it is **15.86:1**, up from the olive pair's 8.92:1.
+   * - It is **1.08:1** on the n-0 canvas, so the fill is not what separates the
    *   card from the page — `Card`'s own `ring-1 ring-foreground/10` hairline is,
    *   and it is load-bearing here in exactly the way the rail's divider is (§14).
-   *   Lighten this any further and the ring is doing the whole job alone.
-   * - The olive-500 tick on it is **3.19:1**, which clears the 3:1 a graphical
+   *   The meal cards drop their shadow on the home screen, so that ring is now
+   *   the only edge they have; lighten this any further and there is nothing
+   *   left holding the card off the page.
+   * - The olive-500 tick on it is **3.20:1**, which clears the 3:1 a graphical
    *   mark needs — it measured 2.96:1 on olive-100 *and* on n-100, both under.
    *   Lifting the shell is what finally fixed that, so the one olive left on this
    *   screen is also the first version of it that passes.
@@ -708,7 +715,7 @@
    * Not remapped for dark mode, matching §15's rule for status: only bg, text
    * and border tokens remap, so the verified pair stays intact.
    */
-  --meal-bg: var(--n-50);
+  --meal-bg: #F7F7F7;
   --meal-fg: var(--n-900);
 
   /* Data visualisation comfort band */
@@ -1369,25 +1376,120 @@
    * mirroring it in Arabic costs nothing and keeps the rule that only a
    * genuinely directional asset earns a physical property.
    *
-   * **It sits 25vw higher than the measured frame**, and only the block-start
-   * offset moved: the size, the blur radius, the rotation and the inline
-   * offset are the ratios above, untouched, so the shape and its proportions
-   * are the design's. At the measured offset the fill's own edge landed at
-   * 105vw and the blur carried visible green another 20vw past that — roughly
-   * three fifths of a phone screen, so the wash ran well below the commitment
-   * card it is meant to sit behind and read as a coloured page rather than as
-   * a glow behind the hero. Raising the offset ends the fade around the card
-   * instead. Still `vw`, so it scales with the frame exactly as the rest does.
+   * Two things outside this rule are what make it *visible*, and both are
+   * documented where they live: `HomeGlow` renders from `(tabs)/layout.tsx`
+   * rather than from the page, because the page sits inside `.q-route-stage`
+   * and a transformed ancestor is the containing block for anything `fixed`;
+   * and `PortalTheme` carries `isolate`, because a `-z-10` layer otherwise
+   * paints beneath that wrapper's own `bg-background`.
    */
   .portal-home-glow {
     position: absolute;
-    inset-block-start: -81.15vw;
+    inset-block-start: -56.15vw;
     inset-inline-start: -47.27vw;
     width: 200.64vw;
     height: 161.54vw;
     background: var(--portal-home-glow);
     filter: blur(19.92vw);
     transform: rotate(1.81deg);
+  }
+
+  /*
+   * ── The home screen's fixed frame ──
+   *
+   * On the client's home tab the page does not scroll: the greeting, the
+   * commitment card, the day picker and the day's energy line all hold still,
+   * and the meal list underneath them is the only thing that moves. A picker
+   * that scrolls off the top of the screen the moment you read the day it
+   * chose is a control you have to go back for, and the day's own total
+   * belongs above the meals it totals rather than somewhere up the scrollback.
+   *
+   * **Why a `:has()` rule and not conditional class names.** The frame is
+   * assembled by files that cannot see the route — `portal/layout.tsx` owns
+   * the shell, `(tabs)/layout.tsx` owns `AppShell`, the main column and the
+   * measure, `(tabs)/template.tsx` owns the route-enter stage every page
+   * mounts inside, and only `(tabs)/page.tsx` knows it is the home screen.
+   * That page marks its own root `.portal-home`, and the shell reacts. The
+   * alternative was another `usePathname()` client component in the layout,
+   * the trick `HomeGlow` is forced into because it renders an element of its
+   * own; here there is no element to render, only ancestors to constrain, so
+   * the declarative version is both smaller and immune to the route and the
+   * class disagreeing.
+   *
+   * **`min-height: 0` on every step, and it is load-bearing.** A flex item's
+   * automatic minimum size is its content, so without this each wrapper would
+   * refuse to shrink under the height of the meal list inside it and the
+   * overflow would climb straight back out to the document — the exact
+   * scrolling this replaces, only now with the shell clipping it.
+   *
+   * **Two of the steps are `AppShell`'s own, targeted by `data-slot` rather
+   * than a class of ours.** `[data-slot="sidebar-wrapper"]` is
+   * `SidebarProvider`'s row (rail beside the page) and carries its own
+   * `min-h-svh`, which fights a fixed-height shell exactly the way an
+   * unset `min-height` would; `[data-slot="sidebar-inset"]` is the `<main>`
+   * shadcn's sidebar renders as the page itself, already `flex flex-1
+   * flex-col`. Neither exposes a `className` through `AppShell`'s own props,
+   * so `data-slot` — which the primitive sets regardless — is the only hook
+   * available. Both are still scoped under `.portal-shell:has(.portal-home)`,
+   * so the staff app's own `AppShell` usage, built on the same primitives, is
+   * untouched.
+   *
+   * **`[data-slot="sidebar-inset"]` also loses its own `bg-background`.**
+   * That `<main>` is shadcn's, opaque by default, and it sits directly under
+   * the header — which is exactly where `.portal-home-glow` is meant to still
+   * be fading. Before `AppShell` there was no background on this wrapper at
+   * all, so the blur trailed off on its own math; with one restored, the glow
+   * gets clipped hard at the header's lower edge instead of fading, and reads
+   * as a flat green band rather than a wash. Made transparent again, scoped
+   * the same way, so the other four tabs keep the opaque page behind them.
+   *
+
+   * ⚠ **`.q-route-stage` is the one wrapper this chain does not own.**
+   * `template.tsx` renders it with no flex or height classes of its own — it
+   * exists purely for the route-enter animation — so left alone it sits
+   * between `.portal-shell-column` and `.portal-home` as a plain block flex
+   * item with an automatic (content-sized) minimum height. That silently
+   * broke every step below it: the meal list never received a bounded height
+   * to overflow *within*, so nothing scrolled and the tail of the day's meals
+   * was simply clipped by this rule's own `overflow: hidden` instead of
+   * reachable. It gets the same treatment as the other wrappers, scoped the
+   * same way.
+   *
+   * The other four tabs are untouched: no `.portal-home` inside them, so the
+   * shell keeps `min-h-dvh` and the window scrolls as it always has.
+   */
+  .portal-shell:has(.portal-home) {
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  .portal-shell:has(.portal-home) [data-slot='sidebar-wrapper'] {
+    min-height: 0;
+  }
+
+  .portal-shell:has(.portal-home) [data-slot='sidebar-inset'] {
+    min-height: 0;
+    background: transparent;
+  }
+
+  .portal-shell:has(.portal-home) .portal-shell-main {
+    display: flex;
+    min-height: 0;
+    flex-direction: column;
+  }
+
+  .portal-shell:has(.portal-home) .portal-shell-column {
+    display: flex;
+    min-height: 0;
+    flex: 1;
+    flex-direction: column;
+  }
+
+  .portal-shell:has(.portal-home) .q-route-stage {
+    display: flex;
+    min-height: 0;
+    flex: 1;
+    flex-direction: column;
   }
 
   /*
@@ -1599,11 +1701,10 @@
   /*
    * ── Streak celebration ──
    * `TodayFlameCell` reaches for these once today crosses from under 100% to
-   * exactly 100%: `.q-flame-celebrate` plays on the dialog's own hero flame
-   * the moment it opens, then again on the strip's flame the moment the
-   * claimed one lands on it, alongside `.q-flame-glow` and
-   * `.q-flame-particle` — both of which play only on that landing, not in the
-   * dialog. Nothing here spends a second orange: the glow and the particles
+   * exactly 100%: `.q-flame-celebrate`, `.q-flame-glow` and
+   * `.q-flame-particle` all play together on the dialog's own hero flame the
+   * moment it opens, then the same trio plays again on the strip's flame the
+   * moment the claimed one lands on it. Nothing here spends a second orange: the glow and the particles
    * read off the same `--flame-*`/`--status-complete-*` pair the ring itself
    * turns the moment it is complete (§ design-system "Status is not a
    * traffic light" — flame is a one-per-screen accent, and this is the same

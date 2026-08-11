@@ -23,7 +23,7 @@ export function PreviewCard({
   lines,
   action,
 }: {
-  href: '/portal/meal-plan' | '/portal/appointments' | '/portal/appointments/request';
+  href: '/portal/appointments' | '/portal/appointments/request';
   icon: LucideIcon;
   title: string;
   /**
