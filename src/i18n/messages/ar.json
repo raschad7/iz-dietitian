@@ -276,27 +276,39 @@
       "viewDay": "فتح عرض اليوم",
       "reason": "السبب: {reason}"
     },
+    "stats": {
+      "title": "نظرة سريعة على العيادة",
+      "clients": {
+        "title": "المشتركون النشطون",
+        "caption": "{count, plural, =0 {لا أحد في سجلك} one {شخص واحد في سجلك} two {شخصان في سجلك} few {# أشخاص في سجلك} many {# شخصًا في سجلك} other {# شخص في سجلك}}",
+        "series": "مشتركون جدد",
+        "action": "إضافة مشترك",
+        "noTrend": "لا يوجد سجل كافٍ لعرض اتجاه بعد",
+        "trend": {
+          "up": "المشتركون الجدد بزيادة {percent}% عن الأشهر السابقة",
+          "down": "المشتركون الجدد بانخفاض {percent}% عن الأشهر السابقة",
+          "flat": "المشتركون الجدد مستقرون مقارنة بالأشهر السابقة"
+        }
+      },
+      "appointments": {
+        "title": "هذا الأسبوع",
+        "series": "المواعيد",
+        "action": "فتح عرض الأسبوع",
+        "unbooked": "{count, plural, one {مشترك نشط واحد بلا موعد قادم} two {مشتركان نشطان بلا موعد قادم} few {# مشتركين نشطين بلا موعد قادم} many {# مشتركًا نشطًا بلا موعد قادم} other {# مشترك نشط بلا موعد قادم}}",
+        "noTrend": "لا يوجد سجل كافٍ لعرض اتجاه بعد",
+        "trend": {
+          "up": "الحجوزات بزيادة {percent}% عن الأسابيع السابقة",
+          "down": "الحجوزات بانخفاض {percent}% عن الأسابيع السابقة",
+          "flat": "الحجوزات مستقرة مقارنة بالأسابيع السابقة"
+        }
+      }
+    },
     "clients": {
       "title": "مشتركوك",
       "nextVisit": "التالي: {when}",
       "empty": "لا مشتركين في سجلك بعد.",
       "emptyCta": "أضف أول مشترك",
       "viewAll": "عرض كل المشتركين"
-    },
-    "quickActions": {
-      "title": "إجراءات سريعة",
-      "addClient": {
-        "title": "مشترك جديد",
-        "hint": "أضف شخصًا إلى سجلك"
-      },
-      "bookAppointment": {
-        "title": "حجز موعد",
-        "hint": "يفتح اليوم في التقويم"
-      },
-      "weeklyPlans": {
-        "title": "الخطط الأسبوعية",
-        "hint": "يفتح لوحة الخطط"
-      }
     }
   },
   "notifications": {
@@ -767,6 +779,7 @@
       "dailyTarget": "الهدف اليومي: {value} kcal",
       "chooseDay": "اختر اليوم",
       "today": "اليوم",
+      "chooseDayHeading": "اختر يومًا لرؤية الوجبات",
       "dayEnergyLabel": "طاقة هذا اليوم",
       "mealEnergyLabel": "طاقة الوجبة",
       "emptyDayTitle": "لا توجد وجبات لهذا اليوم",
@@ -901,8 +914,9 @@
     "progress": {
       "today": {
         "heading": "التزامك اليوم",
-        "meals": "{completed, number, integer} من {total, number, integer} {total, plural, one {وجبة} two {وجبتين} few {وجبات} many {وجبة} other {وجبة}}",
-        "caloriesCompleted": "{value, number, integer} سعرة حرارية مكتملة",
+        "meals": "تم إكمال {completed, number, integer} من {total, number, integer} {total, plural, one {وجبة} two {وجبتين} few {وجبات} many {وجبة} other {وجبة}}",
+        "caloriesCompleted": "{value, number, integer} سعرة مكتملة",
+        "caloriesRemaining": "{value, number, integer} سعرة متبقية",
         "prompt": "أتمّي وجبات اليوم في خطتي ليظهر التزامك هنا.",
         "cta": "تحديث التزامك اليوم",
         "level": {
@@ -1168,7 +1182,13 @@
   "errors": {
     "notFound": "الصفحة غير موجودة",
     "notFoundDescription": "الرابط الذي فتحته غير صحيح أو تم نقله.",
-    "unexpected": "حدث خطأ غير متوقع"
+    "unexpected": "حدث خطأ غير متوقع",
+    "screen": {
+      "title": "تعذّر عرض هذه الشاشة",
+      "body": "لم يتأثر شيء من بياناتك. أعد المحاولة، أو ارجع إلى لوحة التحكم.",
+      "retry": "إعادة المحاولة",
+      "dashboard": "لوحة التحكم"
+    }
   },
   "weeklyPlans": {
     "title": "الخطط الأسبوعية",

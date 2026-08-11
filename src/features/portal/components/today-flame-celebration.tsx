@@ -2,6 +2,7 @@
 
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { createPortal } from 'react-dom';
 
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
@@ -38,6 +39,22 @@ const PARTICLES = Array.from({ length: 6 }, (_, index) => {
   };
 });
 
+/** Same burst, scaled to `HERO_SIZE` — `DayFlame`'s `viewBox` makes the hero
+ * flame a 3x redraw of the strip's, not a new shape, so its one-time burst on
+ * the dialog's own open travels 3x as far for the same reason. */
+const HERO_PARTICLES = Array.from({ length: 6 }, (_, index) => {
+  const angle = (index * 60 * Math.PI) / 180;
+  const scale = HERO_SIZE / 32;
+  return {
+    key: index,
+    style: {
+      '--q-tx': `${Math.round(Math.cos(angle) * 18 * scale)}px`,
+      '--q-ty': `${Math.round(Math.sin(angle) * 18 * scale)}px`,
+      animationDelay: `${index * 25}ms`,
+    } as CSSProperties,
+  };
+});
+
 type Phase = 'idle' | 'awaitingClaim' | 'claiming' | 'done';
 
 /**
@@ -47,9 +64,8 @@ type Phase = 'idle' | 'awaitingClaim' | 'claiming' | 'done';
  * **The live fraction.** The same trick `PlanDayStrip` already plays:
  * `usePlanDayCompletion()` is read directly rather than waiting on the
  * `router.refresh()` `toggle()` fires once the write lands. Outside a
- * `PlanDayCompletionProvider` (the progress tab's plain `WeekAdherenceStrip`)
- * `completion` is null and this falls back to the server's own `day`, same
- * as every other cell.
+ * `PlanDayCompletionProvider` `completion` is null and this falls back to the
+ * server's own `day`, same as every other cell.
  *
  * **The celebration is a claim, not a toast.** Reaching 100% does not light
  * the strip's flame by itself — the last-known *incomplete* shape is held in
@@ -62,10 +78,9 @@ type Phase = 'idle' | 'awaitingClaim' | 'claiming' | 'done';
  * hero flame the instant it is pressed — still mounted, since `dialog.close()`
  * has not run yet — and the layout effect below turns that into a start
  * transform on a fixed clone sized and positioned to the strip's own cell.
- * `position: fixed` reaches the viewport from here the same way
- * `home-glow.tsx` already relies on with no portal underneath it; the one
- * thing that would break it is a transformed ancestor, and this tree has
- * none between here and `<body>`.
+ * `position: fixed` reaches the viewport from here with no portal underneath
+ * it; the one thing that would break it is a transformed ancestor, and this
+ * tree has none between here and `<body>`.
  *
  * **`heldDay` and the `false -> true` edge that opens the dialog are both
  * adjusted during render, not in an effect** — the pattern the React docs
@@ -189,27 +204,59 @@ export function TodayFlameCell({ day }: { day: AdherenceDay }) {
         swiped away. `onClose` stays a no-op because `open` — not this
         callback — is what drives the dialog; the callback only exists to
         satisfy `Dialog`'s contract for a real `close` event.
+
+        Portalled to `<body>` — this cell can now sit inside the plan day
+        picker's own `<button>`, and a same-tree `<dialog>` would nest its
+        "claim" button inside that button, which is invalid HTML and would
+        let a claim tap bubble into `selectDay`. Gated on `phase`, not a
+        mounted flag: `phase` only ever leaves `'idle'` from a client-side
+        completion update (see the render-time check below), never on the
+        first render, so `document` is always available by the time this
+        branch is reached — no SSR guard required.
       */}
-      <Dialog
-        open={phase === 'awaitingClaim'}
-        onClose={() => {}}
-        dismissible={false}
-        label={t('celebration.title')}
-        dir={getLocaleDirection(locale)}
-        className="m-auto w-[min(22rem,calc(100vw-2rem))] max-w-none rounded-2xl"
-      >
-        <div className="flex flex-col items-center gap-5 px-6 py-10 text-center">
-          <span ref={heroRef} className="relative isolate grid place-items-center">
-            <DayFlame day={liveDay} size={HERO_SIZE} className="q-flame-celebrate" />
-          </span>
+      {phase !== 'idle'
+        ? createPortal(
+            <Dialog
+              open={phase === 'awaitingClaim'}
+              onClose={() => {}}
+              dismissible={false}
+              label={t('celebration.title')}
+              dir={getLocaleDirection(locale)}
+              className="m-auto w-[min(22rem,calc(100vw-2rem))] max-w-none rounded-2xl"
+            >
+              <div className="flex flex-col items-center gap-5 px-6 py-10 text-center">
+                <span ref={heroRef} className="relative isolate grid place-items-center">
+                  <DayFlame day={liveDay} size={HERO_SIZE} className="q-flame-celebrate" />
 
-          <h2 className="font-heading text-heading-sm font-semibold text-balance">{t('celebration.title')}</h2>
+                  {/*
+                    The same glow/burst `TodayFlameCell` plays when the claimed
+                    flame lands in the strip, played once here instead on the
+                    dialog's own open — one celebration, reused where it is
+                    earned, not a second effect invented for the card. This
+                    span mounts once per day's claim (see the portal gate
+                    above), so the animations fire on that mount and never
+                    replay while the dialog is merely re-opened by React.
+                  */}
+                  <span aria-hidden="true" className="q-flame-glow pointer-events-none absolute -inset-6 -z-10" />
+                  <span aria-hidden="true" className="pointer-events-none absolute inset-0">
+                    {HERO_PARTICLES.map((particle) => (
+                      <span key={particle.key} className="q-flame-particle" style={particle.style} />
+                    ))}
+                  </span>
+                </span>
 
-          <Button type="button" size="default" className="w-full" onClick={handleClaim}>
-            {t('celebration.claim')}
-          </Button>
-        </div>
-      </Dialog>
+                <h2 className="font-heading text-heading-sm font-semibold text-balance">
+                  {t('celebration.title')}
+                </h2>
+
+                <Button type="button" size="default" className="w-full" onClick={handleClaim}>
+                  {t('celebration.claim')}
+                </Button>
+              </div>
+            </Dialog>,
+            document.body,
+          )
+        : null}
 
       {phase === 'claiming' ? (
         <span

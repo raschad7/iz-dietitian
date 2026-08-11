@@ -422,7 +422,14 @@ would stop matching. `globals.css` zeroes both under `:lang(ar)`.
 
 ## Iconography
 
-One set: **Solar Bold** — rounded, filled, single weight.
+One set: **Solar Linear** — rounded, open strokes, single weight.
+
+The app was Solar Bold until it had accumulated three separate linear
+exceptions (the portal tab bar, the client's meal cards, the client record's
+row markers), each argued on the same grounds: a filled glyph beside every
+heading turns a page you read into a page of marks. The set is now linear
+throughout. The `*Outline` names remain — several are the same glyph as their
+unsuffixed twin now, which is harmless.
 
 Icons are generated offline into
 [`src/lib/icons.generated.ts`](../src/lib/icons.generated.ts) and rendered by
@@ -441,6 +448,11 @@ a build error rather than a blank square.
   `chef-hat`), so swapping a glyph later is a one-line change.
 - Icons never carry their own colour — `fill="currentColor"`, inherited from
   the control.
+- **The glyph is drawn 12% larger than its box** (`GLYPH_SCALE` in `icon.tsx`).
+  Solar's canvas has padding built in that a filled glyph fills out and an open
+  stroke does not, so linear icons read a size smaller than bold ones at
+  identical dimensions. Scaling the artwork inside the `<svg>` rather than the
+  `<svg>` itself fixes that for every call site at once and moves no layout.
 - Icons that encode direction (`chevronStart`, `chevronEnd`, `signOut`) mirror
   in RTL automatically. Everything else — clock, chart, checkmark, logo — must
   not, which is why `DIRECTIONAL` in `icon.tsx` is an allowlist.
@@ -673,19 +685,19 @@ Every field is `.q-field` — one class in `globals.css` shared by `Input`,
 `Textarea` and `Select`, so the three cannot drift and a change to the shape
 language is one edit.
 
-**Hover fills, focus empties.** Those are the only two moving parts, and only
-`background-color` and `border-color` ever move — a field never changes shape,
-size or position under the pointer.
+**A field has no hover state. Focus is the only thing that moves**, and only
+`border-color` ever moves — a field never changes shape, size or position under
+the pointer.
 
-- **Hover** — olive-50 fill, olive-500 edge (`--input-hover`). The box is
-  *offering* itself, and the tint is what makes it look reachable.
-- **Focus** — fill back to the page, same olive-500 edge **but 2px thick**. The
-  box is *taken*, and it goes quiet because there is about to be text in it.
-  The two states no longer differ in edge *colour* — `--primary` moved onto
-  olive-500 and nothing quieter clears 3:1 — so the fill and the 1px/2px
-  weight carry the difference. Keyed off `:focus`, not `:focus-visible`: clicking into a box and
-  seeing nothing change is the one case where a mouse user needs what a keyboard
-  user gets.
+- **Hover** — nothing. Fields used to take an olive-50 fill and an olive-500
+  edge, which meant a form lit up green wherever the mouse rested and the field
+  that was actually focused had to compete with it for attention. A text input
+  is not a button: hovering promises nothing that clicking does not deliver.
+  `--input-hover` survives as a token because the intake form's option cards are
+  genuine targets and still use it.
+- **Focus** — the olive-500 edge, **2px thick**. The box is *taken*. Keyed off
+  `:focus`, not `:focus-visible`: clicking into a box and seeing nothing change
+  is the one case where a mouse user needs what a keyboard user gets.
 - That second pixel is **1px border + 1px outline at `outline-offset: -1px`**,
   never `border-width: 2px`. A thicker border keeps the outer box still but
   steals a pixel from the content box, so the text nudges as you click into it;
@@ -1317,10 +1329,11 @@ design decision that has already changed twice.
 
 ## Charts
 
-**No chart is olive.** Olive is the action colour, and a dashboard whose bars,
-donut, tiles and buttons were all the same green had no way left to show which
-of those you could click. Charts are drawn in the warm neutral ramp and the two
-support hues; the brand shows up on the controls around them.
+**No chart is olive, with one scoped exception.** Olive is the action colour,
+and a dashboard whose bars, donut, tiles and buttons were all the same green had
+no way left to show which of those you could click. Charts are drawn in the warm
+neutral ramp and the two support hues; the brand shows up on the controls around
+them. The exception is `viz-brand` — see the note under the table below.
 
 Three scales, each doing one job. All of them are tokens — a hex in a chart
 component is the same bug it is anywhere else.
@@ -1331,6 +1344,17 @@ component is the same bug it is anywhere else.
 | Categorical | `viz-cat-1`, `viz-cat-2` | **identity** — which segment |
 | Neutral | `viz-cat-none` | "not recorded" — an absence, never a third category |
 | Comfort band | `viz-band-range` / `-edge` / `-marker` | the three-stop band the brand defines |
+| Brand | `viz-brand`, `viz-brand-soft` | **the dashboard's two stat cards, and nothing else** |
+
+**`viz-brand` is the exception to the rule at the top of this section, and it
+is scoped to two components.** The dashboard's client-intake and appointment
+cards (`src/features/dashboard/components/stat-charts.tsx`) draw in the clinic's
+green on purpose. It works there because the plot *is* the card — nothing inside
+it is clickable, and the card's one target is a glyph in the corner that no bar
+could be mistaken for. It stops working the moment a third surface borrows it,
+which is the state the neutral ramps exist to prevent. `viz-brand` is olive-500,
+the lightest green that clears the 3:1 mark floor on white; `viz-brand-soft` is
+olive-300 and is only legal beside a `viz-brand` mark of the same series.
 
 **`ComfortBand` is for a value against a *tolerance*, not against a set of
 categories.** It draws one highlighted span and a marker, so whatever that span

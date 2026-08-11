@@ -174,11 +174,15 @@ export async function AgendaTimeline({
             `no-scrollbar`: the bar competed with the rail beside it for the
             one thing on this card that is allowed to be a line down the
             edge. The list still scrolls by wheel, trackpad, touch and
-            keyboard — only the bar itself is gone. `overscroll-contain`
-            stops a flick at the end of the day from scrolling the shell
-            behind it.
+            keyboard — only the bar itself is gone.
+
+            It no longer carries `overscroll-contain`. Below `xl` nothing
+            bounds this list at all, so it is a scroll container that can
+            never scroll — and containment applies to the box whether or not
+            it has anywhere to go, which made the tallest panel on the
+            dashboard swallow the wheel outright. See `clients-card.tsx`.
           */
-          <ol className="flex flex-col overflow-y-auto overscroll-contain no-scrollbar xl:min-h-0 xl:flex-1">
+          <ol className="flex flex-col overflow-y-auto no-scrollbar xl:min-h-0 xl:flex-1">
             {ordered.map((appointment, index) => {
               const isFirst = index === 0;
               const isLast = index === ordered.length - 1;

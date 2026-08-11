@@ -86,7 +86,16 @@ export function RequestsWindow({
   return (
     <ul
       ref={listRef}
-      className={cn('flex flex-col gap-2 overflow-y-auto overscroll-contain pe-1', className)}
+      className={cn(
+        'flex flex-col gap-2 overflow-y-auto pe-1',
+        // Contained only when there is something to contain. `overscroll-contain`
+        // holds whether or not the box has anywhere to scroll, so on a queue of
+        // three or fewer — which the effect above leaves unbounded — it would
+        // stop the wheel without moving anything, making the card a dead patch
+        // of the page. Same reasoning as `dashboard/components/clients-card.tsx`.
+        count > visible && 'overscroll-contain',
+        className,
+      )}
     >
       {children}
     </ul>

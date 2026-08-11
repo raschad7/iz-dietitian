@@ -50,8 +50,14 @@ export default async function PortalLayout({ children, params }: PortalLayoutPro
       tab bar at `z-40`, the flame celebration at `z-50`) keep their order:
       they are both inside this wrapper, so they are only ever ranked against
       each other.
+
+      `portal-shell` is the other hat this wrapper wears: on the home tab alone
+      it stops being a `min-h-dvh` column that grows and becomes a `100dvh`
+      frame that clips, so the meal list inside it is the only thing that
+      scrolls. The rule lives in `globals.css` beside `.portal-home-glow` and
+      keys off the home page marking its own root — see the note there.
     */
-    <PortalTheme className="isolate flex min-h-dvh flex-col bg-background text-foreground">
+    <PortalTheme className="portal-shell isolate flex min-h-dvh flex-col bg-background text-foreground">
       {children}
     </PortalTheme>
   );
