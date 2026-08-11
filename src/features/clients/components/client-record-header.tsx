@@ -4,6 +4,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
+import { patientToneStyle } from '@/features/booking/patient-color';
 import { ClientActionsMenu } from '@/features/clients/components/client-actions-menu';
 import { ClientFormTrigger } from '@/features/clients/components/client-form-trigger';
 import { type ClientDetail } from '@/features/clients/queries';
@@ -54,17 +55,28 @@ export async function ClientRecordHeader({
     <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
       <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
         {/*
-          The record's own avatar, in the colour the row is stored with — the
-          same disc the client table and the rail draw, so the person you picked
-          from a list is recognisably the person you are now looking at. It is
-          `aria-hidden` inside the component: the name is right beside it, and
-          announcing both says the person twice.
+          The record's avatar, in the client's *calendar* colour — the same disc
+          the booking picker and every appointment block draw, so the person you
+          picked from a list is recognisably the person you are now looking at.
+          It is `aria-hidden` inside the component: the name is right beside it,
+          and announcing both says the person twice.
+
+          Not `client.color`, which is the stored hex from a fixed ten-colour
+          palette and had a default of `#64748b` behind it. That default is the
+          reason this changed: a palette of ten wraps on the eleventh client, and
+          any row that never got one drew grey — so the profile showed a colour
+          that was either shared with somebody else or nobody's at all, while the
+          calendar showed the same patient in a hue that was genuinely theirs.
+          Two answers to "what colour is Hamza?" is one too many, and the
+          calendar's is the one staff actually learn.
 
           `lg` (44px) rather than the default 36px, because it is paired with a
           24px heading here and a disc smaller than its own label reads as a
           bullet point rather than as a portrait.
         */}
-        <Avatar name={client.fullName} color={client.color} size="lg" />
+        <span className="patient-tone contents" style={patientToneStyle(client.seq)}>
+          <Avatar name={client.fullName} color="var(--tone-mark)" size="lg" />
+        </span>
 
         <h1 className="font-heading text-heading-lg font-semibold" dir="auto">
           {client.fullName}

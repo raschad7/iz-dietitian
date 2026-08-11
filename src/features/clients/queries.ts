@@ -1,10 +1,24 @@
-import { and, asc, count, desc, eq, ilike, isNotNull, isNull, sql, type AnyColumn, type SQL } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  getTableColumns,
+  ilike,
+  isNotNull,
+  isNull,
+  sql,
+  type AnyColumn,
+  type SQL,
+} from 'drizzle-orm';
 
 import { db } from '@/db';
 import { clientNutritionProfiles, clients, type Client } from '@/db/schema';
 
 import { DEFAULT_MEAL_SCHEDULE, mealScheduleSchema } from './nutrition';
 import { normalizeForSearch } from './search';
+import { clientSeq } from './seq';
 import { clientIdSchema, type ListClientsInput } from './schema';
 import { type ClientIntakeValues, type MealSlotValues } from './types';
 
@@ -38,7 +52,14 @@ export type ClientListResult = {
   pageCount: number;
 };
 
-export type ClientDetail = Client & { hasPortalAccess: boolean };
+export type ClientDetail = Client & {
+  hasPortalAccess: boolean;
+  /**
+   * The client's position in their clinic — what their colour is derived from.
+   * See `./seq`, and `patientHue` for what the record's header does with it.
+   */
+  seq: number;
+};
 
 /**
  * The one column the reader chose to filter on, if any.
@@ -198,8 +219,11 @@ export async function getClient(clinicId: string, id: string): Promise<ClientDet
   const parsed = clientIdSchema.safeParse(id);
   if (!parsed.success) return null;
 
+  // Every column, plus the position the record's colour comes from. Spelled out
+  // with `getTableColumns` because a bare `select()` cannot carry an extra
+  // expression alongside the row.
   const [row] = await db
-    .select()
+    .select({ ...getTableColumns(clients), seq: clientSeq })
     .from(clients)
     .where(and(eq(clients.id, parsed.data), eq(clients.clinicId, clinicId)))
     .limit(1);

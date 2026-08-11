@@ -23,7 +23,18 @@
   },
   "datePicker": {
     "open": "Pick a date",
-    "empty": "Pick a date"
+    "empty": "Pick a date",
+    "pickDate": "Pick a date",
+    "pickDay": "Choose a day",
+    "pickMonth": "Choose a month",
+    "pickYear": "Choose a year",
+    "today": "Today",
+    "previousMonth": "Previous month",
+    "nextMonth": "Next month",
+    "previousYear": "Previous year",
+    "nextYear": "Next year",
+    "previousYears": "Previous years",
+    "nextYears": "Next years"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -151,6 +162,8 @@
     "openClientProfile": "Open client profile",
     "openActions": "Appointment actions",
     "monthMore": "+{count, number, integer} more",
+    "hiddenBelow": "+{count, number, integer} more",
+    "hiddenBelowAction": "Scroll down to {count, number, integer} more appointments on this day",
     "monthReadOnly": "Month view is an overview. Click a day to book or edit.",
     "nav": {
       "today": "Today",
@@ -159,16 +172,7 @@
       "view": "View",
       "day": "Day",
       "week": "Week",
-      "month": "Month",
-      "pickDate": "Pick a date",
-      "previousMonth": "Previous month",
-      "nextMonth": "Next month",
-      "previousYear": "Previous year",
-      "nextYear": "Next year",
-      "pickMonth": "Choose a month",
-      "pickYear": "Choose a year",
-      "previousYears": "Previous years",
-      "nextYears": "Next years"
+      "month": "Month"
     },
     "search": {
       "placeholder": "Search clients"
@@ -196,8 +200,7 @@
       "clients": "Clients",
       "noMatches": "No matching clients.",
       "alreadyBookedAt": "Already booked that day at {time}.",
-      "newClient": "New client",
-      "newClientInDayView": "To add someone new, open the day view."
+      "newClient": "New client"
     },
     "newClient": {
       "title": "Add a client and book",
@@ -1629,6 +1632,7 @@
       "disabled": "WhatsApp is not enabled on this installation.",
       "gateway": "The WhatsApp gateway did not answer. Make sure it is running, then try again.",
       "invalid": "Check the highlighted fields.",
+      "misconfigured": "WhatsApp is switched on but not finished being set up on this server. Whoever installed the app needs to add the gateway credentials — the server log names the missing setting.",
       "notLinked": "Connect WhatsApp first, then set the automations up.",
       "sendFailed": "The message could not be sent. Check the message log.",
       "unexpected": "Something went wrong. Try again."

@@ -12,7 +12,10 @@
 
 export type ConnectionActionState =
   | { status: 'idle' }
-  | { status: 'error'; messageKey: 'errors.disabled' | 'errors.gateway' | 'errors.unexpected' }
+  | {
+      status: 'error';
+      messageKey: 'errors.disabled' | 'errors.gateway' | 'errors.misconfigured' | 'errors.unexpected';
+    }
   | { status: 'success'; messageKey: 'connection.started' | 'connection.disconnected' };
 
 export type AutomationActionState =
@@ -27,7 +30,10 @@ export type AutomationActionState =
  */
 export type SendMessageActionState =
   | { status: 'idle' }
-  | { status: 'error'; messageKey: 'errors.invalid' | 'errors.sendFailed' | 'errors.unexpected' }
+  | {
+      status: 'error';
+      messageKey: 'errors.invalid' | 'errors.sendFailed' | 'errors.misconfigured' | 'errors.unexpected';
+    }
   | {
       status: 'skipped';
       messageKey: 'send.noPhone' | 'send.notOnWhatsapp' | 'send.notConnected' | 'send.notConfigured';

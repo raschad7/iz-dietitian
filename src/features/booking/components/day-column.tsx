@@ -68,13 +68,14 @@ export type DayColumnProps = {
    * clinic's hours.
    */
   isPast: boolean;
-  /**
-   * This day has an appointment starting below the visible part of the
-   * timeline. Drawn as the short accent rule at the foot of the column — see
-   * the marker at the end of this file, and `datesBelowFold` in `./calendar`,
-   * which is what works it out.
+  /*
+   * There is no "this day is hiding bookings" prop here, and there was one.
+   *
+   * The marker for that lives in `./calendar` now — `BelowFoldMarker`, in a row
+   * pinned outside the timeline. A column cannot draw it: the mark has to hold
+   * the bottom of the *viewport*, and everything in here is inside the scroller
+   * whose position it is meant to be independent of.
    */
-  hasHiddenBelow: boolean;
   onCreateGesture: (date: string, event: ReactPointerEvent<HTMLDivElement>) => void;
   onSelect: (id: string) => void;
   onOpen: (appointment: CalendarAppointment, pointer: { x: number; y: number }) => void;
@@ -99,7 +100,6 @@ export function DayColumn({
   pending,
   isClosed,
   isPast,
-  hasHiddenBelow,
   onCreateGesture,
   onSelect,
   onOpen,
@@ -353,49 +353,6 @@ export function DayColumn({
         </div>
       )}
 
-      {/*
-        There is more of this day below the fold.
-
-        ⚠ **This is the only cue for that fact now.** There were two: this rule,
-        and a fade with a round chevron button across the panel's bottom edge
-        (`GridOverflowCue`, now deleted). Two marks for one fact left the reader
-        working out whether they were being told the same thing twice, and the
-        panel-wide one could not say the part worth knowing — *which* of seven
-        days was hiding something, which is the only version of the question a
-        week view raises.
-
-        Half the column's width, centred, at 60% — quieter than the full-width
-        solid rule it replaces. A cue for something merely out of sight should
-        be findable in peripheral vision without competing with the bookings
-        themselves, and at full width and full strength it read as a border on
-        the column rather than as a mark on it.
-
-        A badge or a count was tried here and taken back out: it is a second
-        thing to read at the moment someone is looking for a first.
-
-        `sticky bottom-0` inside a full-height wrapper is what pins it to the
-        bottom of the *visible* area rather than to the end of the day: the
-        wrapper gives the chip a resting place at y = grid height, and sticky
-        pulls it up to the scroller's edge for as long as that is above it. No
-        scroll offset is written into the layout, so scrolling costs no paint
-        beyond the browser's own.
-
-        Lime-600 (`viz-band-edge`), the same stop as the now-line — the palette
-        defines the darker step for exactly this, marking a boundary, and it is
-        the one value in the lime ramp that can carry white text.
-
-        It does not pulse. A marker that animates for as long as the state holds
-        is animating for most of a working afternoon, which is both tiring at
-        the edge of vision and a promise of change from something that is not
-        changing. `animate-pulse` is also the app's skeleton vocabulary — it
-        means "waiting for this", and a booking that exists and is merely out of
-        sight is not waiting for anything.
-      */}
-      {hasHiddenBelow && (
-        <div aria-hidden className="pointer-events-none absolute inset-0 z-30 flex flex-col justify-end">
-          <div className="sticky bottom-0 mx-auto h-1 w-1/2 rounded-full bg-viz-band-edge/60" />
-        </div>
-      )}
     </div>
   );
 }
