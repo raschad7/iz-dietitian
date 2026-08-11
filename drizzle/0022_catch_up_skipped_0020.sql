@@ -1,0 +1,28 @@
+-- Catch-up migration for 0020_numerous_odin.
+--
+-- The same failure as 0017, from the other direction. There, two migrations
+-- carried `when` timestamps older than an already-applied one. Here the journal
+-- is in order and the *database* holds a record that the journal does not:
+--
+--   0020_numerous_odin   2026-08-06T11:43:50Z
+--   (recorded row)       2026-08-09T08:48:43Z  <-- 3 days after 0020
+--   0021_tense_chat      2026-08-10T06:04:20Z
+--
+-- That row is 0021, applied before the `Resolve conflicts` merge regenerated it
+-- with a later timestamp. drizzle's migrator only applies migrations newer than
+-- the newest one recorded, so any database that applied 0021 in its first form
+-- put its high-water mark three days past 0020 and skipped it — while still
+-- reporting success. The visible symptom is a runtime crash on the client
+-- intake dialog and the weekly planner's profile tab:
+-- `column "custom_allergens" does not exist`.
+--
+-- Renumbering 0020 does not repair those databases: any timestamp that keeps it
+-- in order is still older than the row that overtook it. Only a *new* migration
+-- runs everywhere, which is what this is.
+--
+-- Idempotent, so this is a no-op on databases that applied 0020 normally (a
+-- fresh database, or CI). 0021 was made idempotent in the same change, because
+-- its own timestamp is newer than the row above and it therefore re-runs on
+-- exactly the databases this migration exists for.
+
+ALTER TABLE "client_nutrition_profiles" ADD COLUMN IF NOT EXISTS "custom_allergens" text[] DEFAULT '{}' NOT NULL;
