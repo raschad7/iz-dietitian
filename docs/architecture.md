@@ -113,6 +113,15 @@ Arabic is the default locale and English is also supported. Locale routing and
 messages live in `src/i18n/`. Components must work in both RTL and LTR without
 separate layout implementations.
 
+A locale prefix is authoritative everywhere except `/{locale}/portal/**`. The
+portal's language is an account setting — a client picks it in Settings, and it
+is stored on `clients.preferred_locale` — so `src/proxy.ts` redirects a portal
+request whose prefix disagrees with the client's choice to the same path in the
+chosen locale. Without that, every history entry, bookmark and restored tab from
+before a language switch would still open in the old language. The rule is GET
+only and scoped to the portal; the staff area and the auth screens keep plain
+prefix-wins routing.
+
 Use logical CSS and Tailwind properties such as `ms-*`, `pe-*`, `text-start`,
 and `border-s-*`. Physical left/right utilities are rejected by the custom
 lint rule. See [Design system](design-system.md) for the complete UI contract.

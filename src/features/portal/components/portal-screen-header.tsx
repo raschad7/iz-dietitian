@@ -3,25 +3,8 @@
 import { ArrowLeft, Settings } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { MouseEvent } from 'react';
-import { useEffect } from 'react';
 
-import { getPreviousPortalPath, recordPortalVisit } from '@/features/portal/nav-history';
-import { Link, usePathname, useRouter } from '@/i18n/navigation';
-
-/**
- * Set for a few seconds by `updateLanguageAction`, right after it changes the
- * client's language. `goBack` below reads and clears it.
- */
-const LOCALE_SWITCH_COOKIE = 'PORTAL_LOCALE_SWITCH';
-
-/** True the first time this runs after a language switch; clears the marker either way. */
-function consumeLocaleSwitchMarker(): boolean {
-  const present = document.cookie.split('; ').some((entry) => entry.startsWith(`${LOCALE_SWITCH_COOKIE}=`));
-  if (present) {
-    document.cookie = `${LOCALE_SWITCH_COOKIE}=; Max-Age=0; path=/`;
-  }
-  return present;
-}
+import { Link, useRouter } from '@/i18n/navigation';
 
 /**
  * The top of a pushed screen: the way back, what this is, and at most one
@@ -41,17 +24,15 @@ function consumeLocaleSwitchMarker(): boolean {
  * is history to step through. Tapping the avatar on the home screen and then
  * backing out lands where the client was, not on a fixed page.
  *
- * **Except for the one hop right after a language switch.** The screen the
- * client had open before Settings is still in history as it looked in the old
- * language — that entry was created before the switch, so a real
- * `history.back()` would step onto it and show the client their language
- * flipping back the moment they leave. The cookie `updateLanguageAction` sets
- * catches exactly that one press: instead of stepping through history, it
- * reopens whatever path `nav-history.ts` recorded as the one open right before
- * Settings — in the language that is active now — and real "back" resumes on
- * the next one. That path is looked up rather than fixed, so this lands the
- * client back where they actually came from (the drawer menu reaches Settings
- * from every tab, not only the profile screen that used to be assumed here).
+ * **A language switch needs no special case here, and used to have one.** Every
+ * entry already in history was rendered in the old language and keeps its old
+ * locale prefix, so stepping back onto one would show the client their language
+ * flipping back. This file used to catch the first such press with a cookie and
+ * reopen the previous path in the new language — which fixed one hop by pushing
+ * a fresh copy on top of the stale one, leaving the old copy for the *next*
+ * press to land on. `proxy.ts` now corrects the locale on the way in instead, so
+ * back is plain back at every depth and the browser's own arrow behaves the same
+ * as this one.
  *
  * The arrow mirrors: it encodes direction, so in Arabic "back" points right.
  * The gear does not — a cog has no handedness.
@@ -69,13 +50,6 @@ export function PortalScreenHeader({
 }) {
   const t = useTranslations('portal.screen');
   const router = useRouter();
-  const pathname = usePathname();
-
-  // Every portal screen's header runs this, so the log has an entry for
-  // wherever the client was before this one — see `nav-history.ts`.
-  useEffect(() => {
-    recordPortalVisit(pathname);
-  }, [pathname]);
 
   function goBack(event: MouseEvent<HTMLAnchorElement>) {
     // Let the browser handle a modified click — it is someone deliberately
@@ -85,16 +59,6 @@ export function PortalScreenHeader({
     // A fresh load has one entry, so there is nothing behind this screen and the
     // link's own destination is the honest answer.
     if (window.history.length <= 1) return;
-
-    // The one exception to "step back through history" — see the note above.
-    if (consumeLocaleSwitchMarker()) {
-      const previousPath = getPreviousPortalPath();
-      if (previousPath && previousPath !== pathname) {
-        event.preventDefault();
-        router.replace(previousPath);
-      }
-      return;
-    }
 
     event.preventDefault();
     router.back();

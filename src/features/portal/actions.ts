@@ -208,16 +208,14 @@ export async function updateLanguageAction(formData: FormData): Promise<void> {
     cookieStore.set(routing.localeCookie.name ?? 'NEXT_LOCALE', next, routing.localeCookie);
   }
 
-  // A short-lived marker for `PortalScreenHeader`'s back arrow. `'replace'`
-  // below stops the switch from leaving a duplicate of *this* screen behind in
-  // the old language, but whatever screen was open before the client ever
-  // opened Settings is still there in whichever language it was rendered in —
-  // real `history.back()` would step onto it and flip the language back the
-  // moment the client leaves. The header reads and clears this on its very
-  // next back press so that one hop is safe; ten seconds is generous for a tap
-  // that follows almost immediately, and it costs nothing if it's never read.
-  cookieStore.set('PORTAL_LOCALE_SWITCH', '1', { maxAge: 10, path: '/', sameSite: 'lax' });
-
+  // The cookie above is the whole handover. Every screen already in history was
+  // rendered in the old language and still carries its prefix, and nothing here
+  // can rewrite those entries — so `proxy.ts` corrects them on the way back in,
+  // for any depth and for the browser's own back arrow as much as ours. This
+  // used to also set a ten-second `PORTAL_LOCALE_SWITCH` marker that
+  // `PortalScreenHeader` spent on the next back press; it covered one hop, and
+  // it did it by pushing a fresh copy of the previous screen on top of the old
+  // one, which is what made the language flip on the *second* press instead.
   revalidatePortal(locale);
   revalidatePortal(next);
 
