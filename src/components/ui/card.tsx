@@ -182,11 +182,30 @@ function CardTitle({
   className,
   icon,
   size = "default",
+  tone = "default",
   as: Tag = "div",
   children,
   ...props
 }: React.ComponentProps<"div"> & {
   icon?: IconName
+  /**
+   * `muted` is the panel-heading treatment: secondary text at rest, full
+   * strength when the pointer is anywhere on the card.
+   *
+   * It exists because a screen of panels reads better when no one of them
+   * shouts. The dashboard is the case that forced it — three cards side by
+   * side, one titled in full-strength 20px with an icon on a filled disc and
+   * two in muted 16px with a bare glyph, which made the loudest heading on the
+   * page belong to the card with the least on it. Naming the quiet treatment
+   * here rather than pasting `text-muted-foreground` at each call site is what
+   * keeps the next panel from picking a third look.
+   *
+   * The darkening on hover is the title joining a response the card already
+   * had: `icon` below has always gone olive on `group-hover/card`. A muted
+   * heading that stayed muted while its own glyph lit up read as two pieces of
+   * one line disagreeing about whether they had been pointed at.
+   */
+  tone?: "default" | "muted"
   /**
    * `sm` is the 16px title, for a card that is one panel among several on a
    * screen rather than the thing the screen is about.
@@ -220,6 +239,8 @@ function CardTitle({
       className={cn(
         "font-heading leading-snug font-semibold group-data-[size=sm]/card:text-body-md",
         size === "sm" ? "text-body-md" : "text-heading-sm",
+        tone === "muted" &&
+          "text-muted-foreground transition-colors duration-(--duration-label) group-hover/card:text-foreground",
         icon && "flex items-center gap-2",
         className
       )}

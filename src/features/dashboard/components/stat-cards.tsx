@@ -99,7 +99,7 @@ function StatCard({
   return (
     <Card className="min-w-0 gap-3">
       <CardHeader>
-        <CardTitle as="h2" size="sm" icon={icon} className="text-muted-foreground">
+        <CardTitle as="h2" size="sm" tone="muted" icon={icon}>
           {title}
         </CardTitle>
         <CardAction>{action}</CardAction>
@@ -183,7 +183,10 @@ export async function StatCards({ stats, today, locale }: StatCardsProps) {
   const weekStart = stats.appointmentsByWeek[stats.appointmentsByWeek.length - 1]?.weekStart ?? today;
 
   return (
-    <section aria-label={t('title')} className="grid gap-4 shrink-0 sm:grid-cols-2">
+    // Two cards inside their own grid, taking two of the page's three columns —
+    // so a stat card and the requests card beside it end up the same width. See
+    // the band comment in `src/app/[locale]/app/page.tsx`.
+    <section aria-label={t('title')} className="grid gap-4 shrink-0 sm:grid-cols-2 lg:col-span-2">
       <StatCard
         icon="clients"
         title={t('clients.title')}

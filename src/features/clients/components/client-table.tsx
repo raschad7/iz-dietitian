@@ -1,5 +1,7 @@
 import { useTranslations } from 'next-intl';
 
+import { Avatar } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
@@ -19,6 +21,7 @@ import { ArchiveButton } from '@/features/clients/components/archive-button';
 import { ClientFormTrigger } from '@/features/clients/components/client-form-trigger';
 import { type ClientListResult } from '@/features/clients/queries';
 import { type ClientSort, type ListClientsInput } from '@/features/clients/schema';
+import { type PlanStatus } from '@/features/weekly-plans/schema';
 import { Link } from '@/i18n/navigation';
 import { type Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
@@ -74,13 +77,33 @@ import { cn } from '@/lib/utils';
  * as two tables. The order the digits are written in is a property of the
  * value, not of the column, so it is isolated on the value itself below and the
  * cell is left to follow the page.
+ *
+ * **Phone is no longer a column of its own.** It rides under the name in the
+ * first cell instead — a phone number is not something anyone scans a list
+ * *by*, it is something you read off the row you have already found, and as its
+ * own column it cost the register a full column's width to say so. Stacking it
+ * under the name also gives the row two lines to sit against the 36px initials
+ * disc beside it, which is what makes the first column read as a person rather
+ * than as two unrelated facts. It is still a filter, and still sortable by URL;
+ * only the header is gone.
+ *
+ * **Plan is new, and it is the one column here that cannot be sorted.** It is
+ * not a column on `clients` — it is the status of the newest row in
+ * `weekly_plans` for this person (see `latestPlanStatuses`), merged in after the
+ * page has already been chosen. Ordering by it would mean moving that lookup
+ * into the `ORDER BY` of the paged query, which is the join that breaks both the
+ * `LIMIT` and the pager's `count()`. It carries no `sorted` prop at all rather
+ * than `sorted={false}`: the latter sets `aria-sort="none"`, which tells a
+ * screen reader the column *can* be sorted and this one cannot.
  */
 const COLUMNS = [
-  { key: 'fullName', numeric: false },
-  { key: 'phone', numeric: false },
-  { key: 'age', numeric: false },
-  { key: 'portalAccess', numeric: false },
-] as const satisfies ReadonlyArray<{ key: ClientSort; numeric: boolean }>;
+  { key: 'fullName', sortable: true },
+  { key: 'age', sortable: true },
+  { key: 'plan', sortable: false },
+  { key: 'portalAccess', sortable: true },
+] as const satisfies ReadonlyArray<
+  { key: ClientSort; sortable: true } | { key: 'plan'; sortable: false }
+>;
 
 export function ClientTable({
   result,
@@ -159,10 +182,16 @@ export function ClientTable({
         <TableHeader sticky>
           <TableRow>
             {COLUMNS.map((column) => {
+              // Plain text, no link and no `aria-sort` — see the note on
+              // `COLUMNS` for why this one column cannot be ordered by.
+              if (!column.sortable) {
+                return <TableHead key={column.key}>{t(`fields.${column.key}`)}</TableHead>;
+              }
+
               const active = input.sort === column.key ? input.dir : false;
 
               return (
-                <TableHead key={column.key} numeric={column.numeric} sorted={active} className="p-0">
+                <TableHead key={column.key} sorted={active} className="p-0">
                   {/*
                     The link fills the cell rather than sitting inside it, so
                     the whole header is the target and not just the words.
@@ -186,36 +215,63 @@ export function ClientTable({
         <TableBody>
           {result.items.map((client) => (
             <TableRow key={client.id} linked>
-              <TableCell>
-                {/*
-                  `after:absolute after:inset-0` is what stretches this link
-                  over the whole row — see the `linked` prop on TableRow.
-                */}
-                <Link
-                  href={`/app/clients/${client.id}`}
-                  /*
-                    The focus ring stays on the words, not on the stretched
-                    `::after` — a keyboard reader tabbing down the list needs to
-                    see *which* name they are on, and a ring drawn around the
-                    whole row is the same shape as the row's hover fill.
-                  */
-                  className={cn(
-                    'rounded-sm font-medium underline-offset-4 after:absolute after:inset-0 after:content-[""]',
-                    'focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-2',
-                  )}
-                >
-                  {client.fullName}
-                </Link>
-              </TableCell>
               {/*
-                The cell keeps the page's direction so the column flushes with
-                its neighbours; `dir` on the inner span isolates the value and
-                runs it left-to-right, which is how a phone number and an email
-                address are read in both locales. Letting the number inherit the
-                Arabic direction moves a leading `+` to the wrong end of it.
+                Who this is: the disc, the name, and the number under it. One
+                cell rather than three, so the three parts of an identity move
+                together and the row has a single place the eye starts from.
               */}
-              <TableCell className="tabular">
-                {client.phone ? <span dir="ltr">{client.phone}</span> : <Missing />}
+              <TableCell>
+                <div className="flex items-center gap-3">
+                  {/*
+                    The client's own stored colour, the same one the calendar
+                    and the planner rail show them in — a disc whose hue changed
+                    between screens would be worse than no disc at all. The
+                    component is `aria-hidden`: the name it stands for is right
+                    beside it, and announcing both says the person twice.
+                  */}
+                  <Avatar name={client.fullName} color={client.color} />
+
+                  {/* `min-w-0` so a long name wraps inside the cell instead of
+                      pushing the table wider than the page. */}
+                  <div className="flex min-w-0 flex-col">
+                    {/*
+                      `after:absolute after:inset-0` is what stretches this link
+                      over the whole row — see the `linked` prop on TableRow.
+                    */}
+                    <Link
+                      href={`/app/clients/${client.id}`}
+                      /*
+                        The focus ring stays on the words, not on the stretched
+                        `::after` — a keyboard reader tabbing down the list needs
+                        to see *which* name they are on, and a ring drawn around
+                        the whole row is the same shape as the row's hover fill.
+                      */
+                      className={cn(
+                        'rounded-sm font-medium underline-offset-4 after:absolute after:inset-0 after:content-[""]',
+                        'focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-2',
+                      )}
+                    >
+                      {client.fullName}
+                    </Link>
+
+                    {/*
+                      The outer span keeps the page's direction, so this line
+                      flushes to the same edge as the name above it; `dir` on the
+                      inner one isolates the value and runs it left-to-right,
+                      which is how a phone number is read in both locales.
+                      Letting the number inherit the Arabic direction moves a
+                      leading `+` to the wrong end of it.
+
+                      Quieter than the name and a size down: it is how you reach
+                      this person once you have found them, never how you find
+                      them, and at full weight two lines of equal voice would
+                      leave the column with no subject.
+                    */}
+                    <span className="tabular text-caption text-muted-foreground">
+                      {client.phone ? <span dir="ltr">{client.phone}</span> : <Missing />}
+                    </span>
+                  </div>
+                </div>
               </TableCell>
 
               {/*
@@ -230,20 +286,37 @@ export function ClientTable({
               </TableCell>
 
               {/*
-                A glyph and a word, not a pill. `Badge` is the shape this system
-                gives a *state* worth interrupting for, and it was carrying a
-                plain yes/no on every row of a twenty-row table — twenty outlined
-                capsules saying "account". The check is the whole message; the
-                word beside it keeps the column readable without one.
+                Where this person stands in the planner — the one column here
+                that earns a chip, because it is the only one whose value
+                actually differs down the page. See `PlanBadge`.
+              */}
+              <TableCell>
+                <PlanBadge status={client.latestPlanStatus} />
+              </TableCell>
+
+              {/*
+                Whether this person can sign in. A chip like the plan beside
+                it — the two columns answer the same shape of question about a
+                client, and one as a pill and the other as a bare glyph read as
+                two different kinds of fact.
+
+                Both states are drawn, and neither is green. `default` is the
+                brand's quiet olive, not `onTrack`: a portal account is a
+                *setting*, not progress, and putting the plan column's success
+                colour on it would give a row with no plan and a login the same
+                one flash of green as a row with a live plan. `muted` for the
+                absence rather than the em dash the other columns use — a dash
+                is a value nobody has recorded, and "no portal account" is a
+                definite answer.
               */}
               <TableCell>
                 {client.hasPortalAccess ? (
-                  <span className="inline-flex items-center gap-1.5">
-                    <Icon name="check" className="size-4 shrink-0" />
+                  <Badge variant="default">
+                    <Icon name="check" />
                     {t('portal.granted')}
-                  </span>
+                  </Badge>
                 ) : (
-                  <Missing />
+                  <Badge variant="muted">{t('portal.none')}</Badge>
                 )}
               </TableCell>
 
@@ -298,6 +371,37 @@ export function ClientTable({
       </Table>
     </TableRoot>
   );
+}
+
+/**
+ * Where this client stands in the planner, as a chip.
+ *
+ * Three states, from the status of their newest plan — not from "has ever had
+ * one". A client whose latest week is still a draft is in a different position
+ * from one whose latest week is live, and the register's job is to say which
+ * without anyone opening the board.
+ *
+ * ## The colours are not a traffic light
+ *
+ * `onTrack` is the only fill here, and it goes on the one state that needs
+ * nothing done to it. The other two are absences, and the design system has a
+ * shape for an absence: `incomplete`'s dashed edge on neutral, never amber and
+ * never clay. A draft is not a *problem* — it is work in progress, and half a
+ * register wearing warning colours on a Sunday morning would make the colour
+ * mean "this clinic has clients" rather than "look here".
+ *
+ * An `archived` plan reads as no plan, which is what it is: the row exists, but
+ * nothing about it is live and nobody is being fed by it. It shares `none`'s
+ * chip rather than getting a fourth state, because the answer to "what does
+ * this person need" is the same for both — a plan.
+ */
+function PlanBadge({ status }: { status: PlanStatus | null }) {
+  const t = useTranslations('clients');
+
+  if (status === 'published') return <Badge variant="onTrack">{t('plan.published')}</Badge>;
+  if (status === 'draft') return <Badge variant="incomplete">{t('plan.draft')}</Badge>;
+
+  return <Badge variant="muted">{t('plan.none')}</Badge>;
 }
 
 /**

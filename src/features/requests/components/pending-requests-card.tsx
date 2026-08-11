@@ -25,34 +25,34 @@ import { RequestsWindow } from './requests-window';
  *
  * What made the old trade look necessary was the card's *place*: it sat beside
  * the register, so an empty one left a hole in the widest row on the page. It
- * now sits under today's agenda in the narrow column, where an empty state is
- * one line and the row above it takes back the height.
+ * spent a release under today's agenda in the narrow column, and now sits in the
+ * dashboard's top band as the third card beside the two stat cards — a row where
+ * every card is the same width and the same height, so an empty one leaves no
+ * hole at all and the panel below takes the rest of the page.
  *
  * **Every pending request is here, and the list scrolls inside the card.** It
  * used to show three and hand the rest to the inbox, because it was then a
- * banner squeezed between the quick actions and the register; it now owns a
- * column of its own and is bounded by the one-screen layout the way the agenda
- * and the register are, so a busy morning is a scroll rather than a link to
- * somewhere else. The link to the inbox stays for the answered history, which
- * this panel never shows.
+ * banner squeezed between the quick actions and the register. The link to the
+ * inbox stays for the answered history, which this panel never shows.
  *
- * **The window is three requests deep.** {@link VISIBLE_REQUESTS} is a bound on
- * height, not a slice — every pending request is rendered and the rest are a
- * scroll away, because a list that renders three and stops cannot be scrolled to
- * the fourth. `RequestsWindow` reads the block-end edge of the third tile from
- * the real layout rather than taking a hand-tuned rem, which is the only way the
- * count holds: inside this card a tile's content box is only ~296px wide, so a
- * message wraps to more lines than it would anywhere else — and in Arabic, to
- * more again. The tile helps by running tighter here than in the inbox (8px gaps
- * rather than 12px) and clamping a message to two lines, but even then three
- * tiles are ~600–640px depending on what is in them, and a fixed height that
- * fits one of those shows two-and-a-bit of the other.
+ * **The window is one request deep**, and that number is a consequence of the
+ * band it now lives in. {@link VISIBLE_REQUESTS} is a bound on height, not a
+ * slice — every pending request is rendered and the rest are a scroll away,
+ * because a list that renders one and stops cannot be scrolled to the second.
+ * `RequestsWindow` reads the block-end edge of the Nth tile from the real layout
+ * rather than taking a hand-tuned rem, which is the only way the count holds:
+ * inside this card a tile's content box is narrow, so a message wraps to more
+ * lines than it would anywhere else — and in Arabic, to more again.
  *
- * ⚠ That is still a big card, and what remains is inherent to the tile rather
- * than to this window: every request carries its own Accept and Decline, so a
- * request is a panel and not a row. Three of them is most of the column. If the
- * one-screen dashboard matters more than the third request,
- * {@link VISIBLE_REQUESTS} is now the only number to change.
+ * ⚠ **Why one and not three.** A request tile is ~195–207px, because every
+ * request carries its own Accept and Decline and is therefore a panel rather
+ * than a row. Three of them is ~600px; the two stat cards it now sits beside are
+ * ~230px, and a grid row is as tall as its tallest card. Three would have made
+ * the top band nearly three times the height of its own content on every morning
+ * a request happened to be waiting — and taken it straight out of the
+ * appointments panel, which is the part of this page that is actually worked
+ * from. One tile matches the cards either side of it; the count in the header
+ * says how many more, and the list scrolls to them.
  *
  * **The way to the inbox is a labelled link in the header's block-start
  * inline-start corner, not a button under the list.** At the foot it was a
@@ -88,7 +88,7 @@ import { RequestsWindow } from './requests-window';
  * cannot size a box to its first N children when those children differ in
  * height, which is why that measurement exists at all.
  */
-const VISIBLE_REQUESTS = 3;
+const VISIBLE_REQUESTS = 1;
 
 export async function PendingRequestsCard({
   data,
@@ -110,22 +110,23 @@ export async function PendingRequestsCard({
 
   return (
     /*
-      `shrink-0`, so the card is never squeezed below its own contents. It is
-      bounded already — the queue inside it stops at `22rem` and scrolls — so
-      "what it needs" is a small, known number, and the agenda above takes the
-      rest of the column. Without this the flex column was free to compress the
-      card while its padded empty state stayed full size, which put the text
-      out through the bottom edge.
+      `min-h-0` so the queue inside can be the thing that scrolls. The card no
+      longer needs the `xl:shrink-0` it carried in the narrow column: it is a
+      grid item now, not a flex child, and nothing is trying to compress it.
     */
-    <Card className="min-h-0 xl:shrink-0">
+    <Card className="min-h-0">
       {/* The register's header, disc and all — the same neutral mark, because
           the card is not a target and has nothing to promise the pointer. The
           count beside the title is what says this one is waiting on you. */}
-      <CardHeader className="shrink-0 grid-cols-[auto_1fr_auto] items-start gap-x-2 gap-y-0">
-        <span className="flex size-8 items-center justify-center rounded-full bg-muted text-muted-foreground">
-          <Icon name="chat" className="size-4" />
-        </span>
-
+      {/*
+        Two columns, not three. The disc that used to head this card — a 32px
+        muted circle with the glyph inside it — went with the dashboard's other
+        two panel headings: `CardTitle`'s own `icon` draws a bare glyph, and
+        three cards in one row cannot each pick their own way of marking a
+        heading. The disc was matching the register card's header, and the
+        register card no longer exists.
+      */}
+      <CardHeader className="shrink-0 grid-cols-[1fr_auto] items-start gap-x-2 gap-y-0">
         {/*
           Title, and the way to the inbox directly under it at the block-start
           inline-start corner of the card.
@@ -156,7 +157,9 @@ export async function PendingRequestsCard({
           rather than duplicating it.
         */}
         <div className="min-w-0">
-          <CardTitle>{t('dashboard.heading')}</CardTitle>
+          <CardTitle as="h2" size="sm" tone="muted" icon="chat">
+            {t('dashboard.heading')}
+          </CardTitle>
           <Link
             href="/app/requests"
             className="-ms-1 mt-0.5 inline-flex items-center gap-0.5 rounded-sm px-1 py-0.5 text-label font-medium text-muted-foreground transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
@@ -200,24 +203,19 @@ export async function PendingRequestsCard({
           </div>
         ) : (
           /*
-            The whole queue, scrolled rather than truncated, in a window three
-            requests deep.
+            The whole queue, scrolled rather than truncated, in a window one
+            request deep.
 
-            The height comes from `RequestsWindow`, which measures where the
-            third tile ends. A tile is ~195px with no message and ~207px with a
-            two-line one, so three of them plus two 8px gaps is anywhere between
-            601px and 637px — the reason this is measured rather than declared.
-            The fourth is a scroll away, and the third sitting flush against the
+            The height comes from `RequestsWindow`, which measures where the Nth
+            tile ends. A tile is ~195px with no message and ~207px with a
+            two-line one — the reason this is measured rather than declared.
+            The second is a scroll away, and the first sitting flush against the
             bottom edge is what the fade below is drawn over.
 
-            `max-h-[70vh]` is the guard on top of it: on a short laptop screen
-            three tiles would be most of the viewport, and the card would stop
-            being a panel on a dashboard. On a normal desktop the measurement is
-            the smaller of the two and the window really is three deep.
-
-            ⚠ This card is `shrink-0` inside the dashboard's one-screen column,
-            so this height comes straight out of the agenda above it. See the
-            note on `VISIBLE_REQUESTS` if that trade needs revisiting.
+            `max-h-[70vh]` is the guard on top of it, and with one tile it is now
+            the looser of the two on any normal screen; it stays as the floor
+            under a future {@link VISIBLE_REQUESTS} rather than as the value in
+            effect.
 
             `pe-1` leaves the scrollbar somewhere to sit that is not on top of
             the tiles, and `overscroll-contain` keeps a flick at the end of the
