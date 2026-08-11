@@ -9,6 +9,7 @@ import {
   inArray,
   isNotNull,
   isNull,
+  ne,
   sql,
   type AnyColumn,
   type SQL,
@@ -56,17 +57,30 @@ export type ClientListItem = {
    */
   color: string;
   /**
-   * The status of this client's most recent plan, or `null` for a client who
-   * has never had one.
+   * The status of this client's most recent plan that still stands, or `null`
+   * for a client who has none.
    *
    * The *latest* plan rather than "a published plan exists": what the register
    * answers is "where does this person stand right now", and a client whose
    * newest week is still a draft is in a different position from one whose
    * newest week is live — even if both have a published plan somewhere in their
    * history.
+   *
+   * Archived is not among the answers, which is why this is narrower than
+   * `PlanStatus`. See {@link latestPlanStatuses}.
    */
-  latestPlanStatus: PlanStatus | null;
+  latestPlanStatus: LivePlanStatus | null;
 };
+
+/**
+ * A plan status the register can report: everything a plan can be except
+ * archived, which {@link latestPlanStatuses} filters out before ranking.
+ *
+ * Narrowed rather than reusing `PlanStatus` so the badge that renders this has
+ * a case for every value it can receive, instead of an `archived` that would
+ * fall through to whatever its last branch happens to be.
+ */
+export type LivePlanStatus = Exclude<PlanStatus, 'archived'>;
 
 export type ClientListResult = {
   items: ClientListItem[];
@@ -257,6 +271,16 @@ export async function listClients(clinicId: string, input: ListClientsInput): Pr
  * filtered by `clinicId` as well: an id list is not a tenancy check, and every
  * read in this app carries one.
  *
+ * Archived plans are excluded rather than ranked. An archived plan is one that
+ * publishing superseded, so it never describes where a client stands — and
+ * including them makes the answer unstable as well as wrong. `publishPlan`
+ * archives the outgoing plan and publishes the incoming one in a single
+ * transaction, calling `new Date()` for each; in a fast transaction both land on
+ * the same millisecond, and two rows sharing a week and a timestamp leave the
+ * `ORDER BY` below with nothing to separate them. The register would then report
+ * "no plan" for a client whose plan is live, depending on which row PostgreSQL
+ * happened to reach first. Filtering them out settles it at the source.
+ *
  * The `ORDER BY` must lead with the `DISTINCT ON` expression; what follows is
  * what decides which row wins — newest week first, then the most recently
  * touched plan within that week.
@@ -264,7 +288,7 @@ export async function listClients(clinicId: string, input: ListClientsInput): Pr
 async function latestPlanStatuses(
   clinicId: string,
   clientIds: string[],
-): Promise<Map<string, PlanStatus>> {
+): Promise<Map<string, LivePlanStatus>> {
   if (clientIds.length === 0) return new Map();
 
   const rows = await db
@@ -273,14 +297,20 @@ async function latestPlanStatuses(
       status: weeklyPlans.status,
     })
     .from(weeklyPlans)
-    .where(and(eq(weeklyPlans.clinicId, clinicId), inArray(weeklyPlans.clientId, clientIds)))
+    .where(
+      and(
+        eq(weeklyPlans.clinicId, clinicId),
+        inArray(weeklyPlans.clientId, clientIds),
+        ne(weeklyPlans.status, 'archived'),
+      ),
+    )
     .orderBy(
       asc(weeklyPlans.clientId),
       desc(weeklyPlans.weekStartDate),
       desc(weeklyPlans.updatedAt),
     );
 
-  return new Map(rows.map((row) => [row.clientId, row.status as PlanStatus]));
+  return new Map(rows.map((row) => [row.clientId, row.status as LivePlanStatus]));
 }
 
 /**

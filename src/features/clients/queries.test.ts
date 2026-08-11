@@ -206,13 +206,20 @@ describe('listClients', () => {
 
 describe('listClients plan status', () => {
   /** A plan for one client's week. Only the columns this column reads matter. */
-  const addPlan = (clientId: string, weekStartDate: string, status: string, clinic = clinicId) =>
+  const addPlan = (
+    clientId: string,
+    weekStartDate: string,
+    status: string,
+    clinic = clinicId,
+    updatedAt?: Date,
+  ) =>
     db.insert(weeklyPlans).values({
       clinicId: clinic,
       clientId,
       weekStartDate,
       status,
       kcalTargetSnapshot: 2000,
+      ...(updatedAt ? { updatedAt } : {}),
     });
 
   test('is null for a client who has never had a plan', async () => {
@@ -256,6 +263,41 @@ describe('listClients plan status', () => {
     const byName = new Map(result.items.map((item) => [item.fullName, item.latestPlanStatus]));
     expect(byName.get('أحمد')).toBe('published');
     expect(byName.get('زياد')).toBeNull();
+  });
+
+  /**
+   * Publishing a plan archives whatever was published for the same week, and
+   * both writes happen inside one transaction — `publishPlan` calls `new Date()`
+   * for the archived sibling and again for the plan it is publishing, which in a
+   * fast transaction is the same millisecond. So `updatedAt` cannot be relied on
+   * to separate them, and a register row that resolved to the archived sibling
+   * would tell the dietitian "No plan" about a client whose plan is live.
+   *
+   * The two rows are given the same `updatedAt` deliberately: that is the state
+   * the publish path actually produces, and with it the ordering is a coin toss
+   * unless the query rules archived rows out.
+   */
+  test('reports the live plan when an archived sibling shares its week and timestamp', async () => {
+    const { id } = await createClient(clinicId, { fullName: 'سارة', preferredLocale: 'ar' });
+    const sameInstant = new Date('2026-01-12T09:00:00.000Z');
+    await addPlan(id, '2026-01-11', 'archived', clinicId, sameInstant);
+    await addPlan(id, '2026-01-11', 'published', clinicId, sameInstant);
+
+    const result = await listClients(clinicId, filters());
+    expect(result.items[0]?.latestPlanStatus).toBe('published');
+  });
+
+  /**
+   * An archived plan is a superseded one, so it says nothing about where the
+   * client stands. The newest week that still counts is the older draft.
+   */
+  test('looks past an archived newest week to the newest week that counts', async () => {
+    const { id } = await createClient(clinicId, { fullName: 'سارة', preferredLocale: 'ar' });
+    await addPlan(id, '2026-01-04', 'draft');
+    await addPlan(id, '2026-01-11', 'archived');
+
+    const result = await listClients(clinicId, filters());
+    expect(result.items[0]?.latestPlanStatus).toBe('draft');
   });
 
   /**

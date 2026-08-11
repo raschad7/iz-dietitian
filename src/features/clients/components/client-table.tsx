@@ -19,9 +19,8 @@ import { TooltipHint } from '@/components/ui/tooltip-hint';
 import { calculateAge } from '@/features/clients/age';
 import { ArchiveButton } from '@/features/clients/components/archive-button';
 import { ClientFormTrigger } from '@/features/clients/components/client-form-trigger';
-import { type ClientListResult } from '@/features/clients/queries';
+import { type ClientListResult, type LivePlanStatus } from '@/features/clients/queries';
 import { type ClientSort, type ListClientsInput } from '@/features/clients/schema';
-import { type PlanStatus } from '@/features/weekly-plans/schema';
 import { Link } from '@/i18n/navigation';
 import { type Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
@@ -390,12 +389,15 @@ export function ClientTable({
  * register wearing warning colours on a Sunday morning would make the colour
  * mean "this clinic has clients" rather than "look here".
  *
- * An `archived` plan reads as no plan, which is what it is: the row exists, but
- * nothing about it is live and nobody is being fed by it. It shares `none`'s
- * chip rather than getting a fourth state, because the answer to "what does
- * this person need" is the same for both — a plan.
+ * There is no `archived` case because this never receives one: `listClients`
+ * rules archived plans out before ranking, so a client is described by the
+ * newest plan that still stands. This used to fold archived into `none`, which
+ * read correctly for a client whose only plan was archived but hid one whose
+ * newest week was archived over an earlier week still in draft — that person
+ * has work outstanding, and the register said they had nothing. `LivePlanStatus`
+ * is what makes the omission a guarantee rather than a missing branch.
  */
-function PlanBadge({ status }: { status: PlanStatus | null }) {
+function PlanBadge({ status }: { status: LivePlanStatus | null }) {
   const t = useTranslations('clients');
 
   if (status === 'published') return <Badge variant="onTrack">{t('plan.published')}</Badge>;
