@@ -1307,116 +1307,28 @@
 }
 
 /*
- * ── The home screen's fixed frame ──
+ * ── Letting the home glow show through `AppShell`'s own `<main>` ──
  *
- * On the client's home tab the page does not scroll: the greeting, the
- * commitment card, the day picker and the day's energy line all hold still,
- * and the meal list underneath them is the only thing that moves. A picker
- * that scrolls off the top of the screen the moment you read the day it
- * chose is a control you have to go back for, and the day's own total
- * belongs above the meals it totals rather than somewhere up the scrollback.
+ * `[data-slot="sidebar-inset"]` is the `<main>` shadcn's sidebar renders as
+ * the page itself, opaque `bg-background` by default (`sidebar.tsx`), and it
+ * sits directly under the header — exactly where `HomeGlow`'s ambient wash
+ * (`-z-10`, `position: fixed`, rendered from `(tabs)/layout.tsx`) is meant to
+ * still be fading. Left opaque, that `<main>` paints flat white starting at
+ * the header's lower edge on every tab, clipping the glow into a hard band on
+ * the home tab instead of letting it fade the way `.portal-home-glow`'s own
+ * blur intends.
  *
- * ⚠ **Unlayered, and that is the whole reason this block sits here rather
- * than in `@layer components` with the rest of the app's own classes.** Two
- * of the six rules below override a Tailwind utility written on the very
- * element they target — `min-h-svh` and `bg-background`, both baked into
- * `src/components/ui/sidebar.tsx`. Cascade layers are decided by layer order
- * *before* specificity is ever consulted, and Tailwind emits
- * `@layer utilities` after `@layer components`, so a component-layer rule
- * loses to any utility no matter how many `:has()` and attribute selectors
- * it carries. These two spent time in that layer and silently did nothing:
- * `bg-background` kept painting the shell opaque white over the home glow,
- * leaving green only in the strip behind the unfilled header — the exact
- * "flat green band rather than a wash" this rule was written to prevent —
- * and `min-h-svh` kept fighting the fixed-height frame. Unlayered beats
- * every layer, which is the same mechanism the `:lang(ar)` font swap above
- * depends on and for the same reason. **Do not fold this back into a layer.**
+ * Made transparent everywhere rather than scoped to the home route: the
+ * other four tabs have no glow behind them to reveal, so this just lets
+ * `.portal-shell`'s own `bg-background` (`portal/layout.tsx`) show through
+ * instead — the same white, one layer down.
  *
- * **Why a `:has()` rule and not conditional class names.** The frame is
- * assembled by files that cannot see the route — `portal/layout.tsx` owns
- * the shell, `(tabs)/layout.tsx` owns `AppShell`, the main column and the
- * measure, `(tabs)/template.tsx` owns the route-enter stage every page
- * mounts inside, and only `(tabs)/page.tsx` knows it is the home screen.
- * That page marks its own root `.portal-home`, and the shell reacts. The
- * alternative was another `usePathname()` client component in the layout,
- * the trick `HomeGlow` is forced into because it renders an element of its
- * own; here there is no element to render, only ancestors to constrain, so
- * the declarative version is both smaller and immune to the route and the
- * class disagreeing.
- *
- * **`min-height: 0` on every step, and it is load-bearing.** A flex item's
- * automatic minimum size is its content, so without this each wrapper would
- * refuse to shrink under the height of the meal list inside it and the
- * overflow would climb straight back out to the document — the exact
- * scrolling this replaces, only now with the shell clipping it.
- *
- * **Two of the steps are `AppShell`'s own, targeted by `data-slot` rather
- * than a class of ours.** `[data-slot="sidebar-wrapper"]` is
- * `SidebarProvider`'s row (rail beside the page) and carries its own
- * `min-h-svh`, which fights a fixed-height shell exactly the way an
- * unset `min-height` would; `[data-slot="sidebar-inset"]` is the `<main>`
- * shadcn's sidebar renders as the page itself, already `flex flex-1
- * flex-col`. Neither exposes a `className` through `AppShell`'s own props,
- * so `data-slot` — which the primitive sets regardless — is the only hook
- * available. Both are still scoped under `.portal-shell:has(.portal-home)`,
- * so the staff app's own `AppShell` usage, built on the same primitives, is
- * untouched.
- *
- * **`[data-slot="sidebar-inset"]` also loses its own `bg-background`.**
- * That `<main>` is shadcn's, opaque by default, and it sits directly under
- * the header — which is exactly where `.portal-home-glow` is meant to still
- * be fading. Before `AppShell` there was no background on this wrapper at
- * all, so the blur trailed off on its own math; with one restored, the glow
- * gets clipped hard at the header's lower edge instead of fading, and reads
- * as a flat green band rather than a wash. Made transparent again, scoped
- * the same way, so the other four tabs keep the opaque page behind them.
- *
- * ⚠ **`.q-route-stage` is the one wrapper this chain does not own.**
- * `template.tsx` renders it with no flex or height classes of its own — it
- * exists purely for the route-enter animation — so left alone it sits
- * between `.portal-shell-column` and `.portal-home` as a plain block flex
- * item with an automatic (content-sized) minimum height. That silently
- * broke every step below it: the meal list never received a bounded height
- * to overflow *within*, so nothing scrolled and the tail of the day's meals
- * was simply clipped by this rule's own `overflow: hidden` instead of
- * reachable. It gets the same treatment as the other wrappers, scoped the
- * same way.
- *
- * The other four tabs are untouched: no `.portal-home` inside them, so the
- * shell keeps `min-h-dvh` and the window scrolls as it always has.
+ * ⚠ Unlayered, not `@layer components`: this overrides a Tailwind utility
+ * baked onto the same element, and Tailwind's own `@layer utilities` always
+ * beats a component-layer rule on layer order alone, specificity aside.
  */
-.portal-shell:has(.portal-home) {
-  height: 100dvh;
-  overflow: hidden;
-}
-
-.portal-shell:has(.portal-home) [data-slot='sidebar-wrapper'] {
-  min-height: 0;
-}
-
-.portal-shell:has(.portal-home) [data-slot='sidebar-inset'] {
-  min-height: 0;
+.portal-shell [data-slot='sidebar-inset'] {
   background: transparent;
-}
-
-.portal-shell:has(.portal-home) .portal-shell-main {
-  display: flex;
-  min-height: 0;
-  flex-direction: column;
-}
-
-.portal-shell:has(.portal-home) .portal-shell-column {
-  display: flex;
-  min-height: 0;
-  flex: 1;
-  flex-direction: column;
-}
-
-.portal-shell:has(.portal-home) .q-route-stage {
-  display: flex;
-  min-height: 0;
-  flex: 1;
-  flex-direction: column;
 }
 
 @layer base {
@@ -1605,17 +1517,6 @@
     filter: blur(19.92vw);
     transform: rotate(1.81deg);
   }
-
-  /*
-   * ── The home screen's fixed frame ──
-   *
-   * ⚠ **Moved out of this layer.** `.portal-shell:has(.portal-home)` and its
-   * five companions are now unlayered, just above `@layer base` in this file.
-   * Two of the six override a Tailwind utility on the element they target, and
-   * a rule in `@layer components` loses to `@layer utilities` on layer order
-   * alone no matter how specific it is. The whole reasoning — including what
-   * broke while they sat here — is in the block there.
-   */
 
   /*
    * ── The shared field box ──

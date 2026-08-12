@@ -110,20 +110,14 @@ export default async function PortalPage({ params, searchParams }: PortalPagePro
 
   return (
     /*
-      **`.portal-home` is what makes this screen hold still.** The portal shell
-      and the layout between it and here carry inert `portal-shell-*` hooks;
-      this marker is the one thing that switches them on, because this file is
-      the only one in the chain that knows which tab it is. The shell then
-      becomes a `100dvh` frame and this column the flex chain down to
-      `PortalPlan`'s meal list, which is the single scrolling region on the
-      screen — the greeting, the day picker and the commitment card all stay
-      put. The rule and its reasoning are in `globals.css`, beside
-      `.portal-home-glow`.
+      The home screen scrolls with the rest of the page now, like the other
+      four portal tabs — no fixed `100dvh` frame, no separate scroll region
+      inside `PortalPlan`'s meal list.
 
       `gap-4` rather than `space-y-4`: same rhythm, in the unit a flex column
       distributes.
     */
-    <div className="portal-home flex min-h-0 flex-1 flex-col gap-4">
+    <div className="flex flex-col gap-4">
       {/*
         One provider over the strip, the ring, and the plan section below —
         see the module doc above and `plan-day-completion.tsx`. Today's cell
