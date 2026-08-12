@@ -1527,10 +1527,20 @@
   "dishes": {
     "title": "كتالوج الأطباق",
     "subtitle": "{count} طبقاً معتمداً — هذه وحدها ما يختار منه الذكاء الاصطناعي",
-    "empty": "لا أطباق مطابقة",
-    "search": "بحث",
-    "apply": "تطبيق",
+    "empty": "لا توجد أطباق في الكتالوج بعد",
+    "emptyHint": "تظهر هنا الأطباق المعتمدة بعد إضافتها.",
+    "emptyFiltered": "لا أطباق مطابقة",
+    "emptyFilteredHint": "جرّب اسماً آخر، أو وقت وجبة مختلفاً.",
+    "searchPlaceholder": "ابحث باسم الطبق",
+    "clearFilters": "مسح الفلاتر",
     "allMealTypes": "كل الأوقات",
+    "moreTags": "+{count, number, integer}",
+    "pagination": {
+      "previous": "السابق",
+      "next": "التالي",
+      "page": "الصفحة {page, number, integer}",
+      "showing": "عرض {from, number, integer}–{to, number, integer} من {total, number, integer}"
+    },
     "columns": {
       "name": "الطبق",
       "mealTypes": "وقت الوجبة",

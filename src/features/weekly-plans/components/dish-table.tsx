@@ -1,6 +1,7 @@
 import { useTranslations } from 'next-intl';
 
 import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -20,25 +21,66 @@ import { ALLERGENS, DISH_TAGS, MEAL_TYPES } from '../schema';
  * The read-only catalog browser.
  *
  * Exists to answer "what was the AI choosing from", which is the first question
- * anyone asks when a generated plan looks wrong. The numbers here come from the same
- * loader a plan uses, so what this page shows is what a plan would compute.
+ * anyone asks when a generated plan looks wrong. The numbers here come from the
+ * same loader a plan uses, so what this page shows is what a plan would compute.
  *
  * There is no dish editor in this cut. Adding one is a whole feature — form,
- * validation, actions, tests — and it sits between the dietitian and seeing a plan.
+ * validation, actions, tests — and it sits between the dietitian and seeing a
+ * plan.
+ *
+ * ## What the rows are shaped for
+ *
+ * Meal times, tags and allergens are chips rather than comma-joined runs of
+ * text. Joined, all three columns were the same grey sentence at the same size,
+ * and telling a meal time from a tag meant reading the header above it; as
+ * chips the eye sorts them by shape before it reads a word — and allergens keep
+ * the medical status, because they are the one thing on the row that is a
+ * clinical fact rather than a label.
+ *
+ * The ingredients column is clamped to two lines. It used to print every
+ * ingredient on its own line, which let a single ten-ingredient dish set the
+ * height of a row whose neighbours needed one line, and a page of twenty of
+ * those is not a table you can scan. The full list stays reachable in the
+ * cell's `title`.
  */
-export function DishTable({ result }: { result: DishListResult }) {
+
+/** How many tags a row prints before it counts the rest. */
+const TAG_LIMIT = 3;
+
+export function DishTable({ result, filtered }: { result: DishListResult; filtered: boolean }) {
   const t = useTranslations('dishes');
 
   if (!result.items.length) {
-    return <p className="py-8 text-center text-muted-foreground">{t('empty')}</p>;
+    return (
+      /*
+        An empty list with no way out is a dead end — and the way out of this
+        one is the "Clear filters" button in the toolbar directly above, which
+        is on screen for exactly the same condition that makes this card say
+        `emptyFiltered`. So the card names what happened and what to try; a
+        second button repeating the word "Clear filters" two rows under the
+        first would be the noisier half of one control.
+      */
+      <Card variant="empty" className="items-center gap-2 p-8 text-center">
+        <p>{filtered ? t('emptyFiltered') : t('empty')}</p>
+        <p className="text-body-sm text-muted-foreground">
+          {filtered ? t('emptyFilteredHint') : t('emptyHint')}
+        </p>
+      </Card>
+    );
   }
 
   return (
-    /* The table scrolls inside its own container: at this column count a phone
-       would otherwise scroll the whole page sideways. */
-    <TableRoot>
+    /*
+      From `md` up this is the only part of the page that scrolls: the page
+      hands it a bounded height and the rows move inside it, so the heading, the
+      toolbar and the pager stay where the reader left them. Below that the page
+      scrolls as one — see the page component — and the sticky header simply
+      pins itself to the top of the app shell instead. At this column count a
+      phone scrolls the table sideways rather than the whole page.
+    */
+    <TableRoot className="md:min-h-0 md:flex-1 md:overflow-y-auto">
       <Table className="min-w-3xl">
-        <TableHeader>
+        <TableHeader sticky>
           <TableRow>
             <TableHead>{t('columns.name')}</TableHead>
             <TableHead>{t('columns.mealTypes')}</TableHead>
@@ -54,59 +96,91 @@ export function DishTable({ result }: { result: DishListResult }) {
         </TableHeader>
 
         <TableBody>
-          {result.items.map((dish) => (
-            <TableRow key={dish.id} className="align-top">
-              <TableCell>
-                <span className="block font-medium">{dish.nameAr}</span>
-                <span className="block text-caption text-muted-foreground">{dish.nameEn}</span>
-                {dish.allergenTags.length > 0 && (
-                  <span className="mt-1 flex flex-wrap gap-1">
-                    {/*
-                      Allergens are the one thing on this row that is a medical
-                      fact rather than a label, so they take the medical status
-                      rather than a plain outline chip.
-                    */}
-                    {membersOf(ALLERGENS, dish.allergenTags).map((tag) => (
-                      <Badge key={tag} variant="medical">
-                        {t(`allergens.${tag}`)}
+          {result.items.map((dish) => {
+            const tags = membersOf(DISH_TAGS, dish.tags);
+            const shownTags = tags.slice(0, TAG_LIMIT);
+            const restTags = tags.slice(TAG_LIMIT);
+
+            const ingredients = dish.ingredients.map(
+              (ingredient) =>
+                `${roundForDisplay('protein', ingredient.quantityGrams)} g · ${ingredient.food.description}`,
+            );
+
+            return (
+              <TableRow key={dish.id} className="align-top">
+                <TableCell>
+                  {/* `dir="auto"`: a dish named in Arabic and one named in
+                      English sit in the same column, and each should run the
+                      way its own script does. */}
+                  <span className="block font-medium" dir="auto">
+                    {dish.nameAr}
+                  </span>
+                  <span className="block text-caption text-muted-foreground" dir="auto">
+                    {dish.nameEn}
+                  </span>
+
+                  {dish.allergenTags.length > 0 && (
+                    <span className="mt-1.5 flex flex-wrap gap-1">
+                      {membersOf(ALLERGENS, dish.allergenTags).map((tag) => (
+                        <Badge key={tag} variant="medical" size="sm">
+                          {t(`allergens.${tag}`)}
+                        </Badge>
+                      ))}
+                    </span>
+                  )}
+                </TableCell>
+
+                <TableCell>
+                  <span className="flex flex-wrap gap-1">
+                    {membersOf(MEAL_TYPES, dish.mealTypes).map((type) => (
+                      <Badge key={type} variant="muted" size="sm">
+                        {t(`mealTypes.${type}`)}
                       </Badge>
                     ))}
                   </span>
-                )}
-              </TableCell>
+                </TableCell>
 
-              <TableCell className="text-caption text-muted-foreground">
-                {membersOf(MEAL_TYPES, dish.mealTypes)
-                  .map((type) => t(`mealTypes.${type}`))
-                  .join('، ')}
-              </TableCell>
+                <TableCell>
+                  <span className="flex flex-wrap gap-1">
+                    {shownTags.map((tag) => (
+                      <Badge key={tag} variant="outline" size="sm">
+                        {t(`tags.${tag}`)}
+                      </Badge>
+                    ))}
 
-              <TableCell className="text-caption text-muted-foreground">
-                {membersOf(DISH_TAGS, dish.tags)
-                  .map((tag) => t(`tags.${tag}`))
-                  .join('، ')}
-              </TableCell>
+                    {/* The overflow counts rather than wraps: four tags on one
+                        dish would otherwise set the height of the whole row.
+                        The names it stands for are in the `title`. */}
+                    {restTags.length > 0 && (
+                      <Badge
+                        variant="outline"
+                        size="sm"
+                        className="text-muted-foreground"
+                        title={restTags.map((tag) => t(`tags.${tag}`)).join('، ')}
+                      >
+                        {t('moreTags', { count: restTags.length })}
+                      </Badge>
+                    )}
+                  </span>
+                </TableCell>
 
-              <TableCell numeric className="text-end">
-                {roundForDisplay('kcal', dish.baseKcal)}
-              </TableCell>
+                <TableCell numeric className="text-end font-medium">
+                  {roundForDisplay('kcal', dish.baseKcal)}
+                </TableCell>
 
-              <TableCell numeric className="text-end">
-                {roundForDisplay('protein', dish.totals.protein.value)}
-              </TableCell>
+                <TableCell numeric className="text-end">
+                  {roundForDisplay('protein', dish.totals.protein.value)}
+                </TableCell>
 
-              <TableCell className="text-caption text-muted-foreground">
-                <ul className="flex flex-col gap-0.5">
-                  {dish.ingredients.map((ingredient) => (
-                    <li key={ingredient.food.id}>
-                      {roundForDisplay('protein', ingredient.quantityGrams)} g ·{' '}
-                      {ingredient.food.description}
-                    </li>
-                  ))}
-                </ul>
-              </TableCell>
-            </TableRow>
-          ))}
+                <TableCell
+                  className="max-w-xs text-caption text-muted-foreground"
+                  title={ingredients.join(' · ')}
+                >
+                  <span className="line-clamp-2">{ingredients.join(' · ')}</span>
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </TableRoot>

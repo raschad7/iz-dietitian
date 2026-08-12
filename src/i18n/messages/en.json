@@ -1527,10 +1527,20 @@
   "dishes": {
     "title": "Dish catalog",
     "subtitle": "{count} approved dishes — the only thing the AI may choose from",
-    "empty": "No matching dishes",
-    "search": "Search",
-    "apply": "Apply",
+    "empty": "No dishes in the catalog yet",
+    "emptyHint": "Approved dishes appear here once they are added.",
+    "emptyFiltered": "No matching dishes",
+    "emptyFilteredHint": "Try another name, or a different meal time.",
+    "searchPlaceholder": "Search by dish name",
+    "clearFilters": "Clear filters",
     "allMealTypes": "All meal times",
+    "moreTags": "+{count, number, integer}",
+    "pagination": {
+      "previous": "Previous",
+      "next": "Next",
+      "page": "Page {page, number, integer}",
+      "showing": "Showing {from, number, integer}–{to, number, integer} of {total, number, integer}"
+    },
     "columns": {
       "name": "Dish",
       "mealTypes": "Meal time",

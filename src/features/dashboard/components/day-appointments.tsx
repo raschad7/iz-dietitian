@@ -174,7 +174,7 @@ function NowLine({ label }: { label: string }) {
   return (
     // Not a data row: no hairline above it and no hover, so it reads as a mark
     // laid across the table rather than as an appointment with nothing in it.
-    <TableRow className="border-t-0 hover:bg-transparent">
+    <TableRow className="border-t-0 hover:[&>td]:bg-transparent">
       <TableCell colSpan={4} className="py-0">
         <span className="flex items-center gap-2">
           <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-primary" />
@@ -444,33 +444,29 @@ export function DayAppointments({
                           /*
                             **The pointer is grey; olive means the clock.**
 
-                            `TableRow` hovers to `bg-secondary/60`, which is
-                            right on every other table in the app and wrong on
-                            this one: it is the only table with a row that is
-                            *permanently* olive, so pointing at any row produced
-                            the same tint that marks the appointment happening
-                            now — a state you cannot change answering the pointer
-                            exactly like one you can.
+                            The grey hover is now `TableRow`'s own default —
+                            `bg-accent/50` painted on the cells as a rounded pill,
+                            the same one the client register uses — so this table
+                            no longer overrides it. It used to force a stronger
+                            `bg-accent` here because this is the only table with a
+                            row that is *permanently* olive (the live one), and
+                            pointing at any row must not produce the tint that
+                            marks the appointment happening now. The cool neutral
+                            is what `--accent` exists for and cannot be confused
+                            with a status, because nothing in this system says
+                            anything in grey.
 
-                            The cool neutral is what `--accent` exists for
-                            ("ambient hover/highlight tint", `globals.css`), and
-                            it cannot be confused with a status because nothing
-                            in this system says anything in grey.
+                            **Fill means happening; the caret means next.** Only
+                            the live row is filled; the next one is marked by the
+                            amber caret at its start. Under the pointer the live
+                            row deepens by one step of its own hue rather than
+                            taking the grey, so it keeps saying "now" while it
+                            answers you. Both fills are set on `[&>td]` so they
+                            round with the shared pill and out-rank the grey the
+                            base row paints on the same cells.
                           */
-                          'hover:bg-accent',
-                          /*
-                            **Fill means happening; the caret means next.** Two
-                            olive tints on adjacent rows would have said the same
-                            thing twice and told you nothing about which was
-                            which, so only the live row is filled and the next
-                            one is marked by the amber caret at its start.
-
-                            Under the pointer it deepens by one step of its own
-                            hue rather than taking the grey — the row keeps
-                            saying "now" while it answers you. Same call the
-                            calendar's patient-tone blocks make.
-                          */
-                          row.status === 'live' && 'bg-secondary hover:bg-primary-subtle',
+                          row.status === 'live' &&
+                            '[&>td]:bg-secondary hover:[&>td]:bg-primary-subtle',
                           // Past rows step back rather than disappear: the
                           // morning you have already worked is still information.
                           row.status === 'done' && 'text-muted-foreground',
