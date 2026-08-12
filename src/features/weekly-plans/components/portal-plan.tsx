@@ -101,12 +101,6 @@ export function PortalPlan({
 
   return (
     /*
-      **A section that holds still, with one scrolling part.** On the home
-      screen this is the bottom half of a frame the page has already sized to
-      the viewport — see the `.portal-home` note in `globals.css`. `min-h-0`
-      is load-bearing: a flex item will not shrink below its content without
-      it, and the scrollbar would appear on the document instead of here.
-
       `todayMealsHeading` names the block rather than restating the day: it
       used to repeat the selected day's name and full date directly under
       `PlanDayPicker`'s strip, one section up — and the strip marks its
@@ -117,45 +111,19 @@ export function PortalPlan({
       on the page's own white column, not on the home glow that heading
       answers to.
     */
-    <section className="flex min-h-0 flex-1 flex-col gap-4 text-start">
+    <section className="flex flex-col gap-4 text-start">
       <p className="text-sm font-medium text-muted-foreground">{t('todayMealsHeading')}</p>
 
       {meals.length === 0 ? (
         <EmptyState icon="dish" title={t('emptyDayTitle')} description={t('emptyDayHint')} />
       ) : (
-        <>
-          {/*
-            **The one thing on the home screen that scrolls.** A day is five
-            meal cards and the frame around it — greeting, commitment card,
-            day picker — is all fixed, so the list carries the day's overflow
-            by itself instead of pushing the picker off the top of a
-            scrolling page.
-
-            The day's own energy total used to sit above this list too — it
-            now shows once, on the commitment card above (`home-today.tsx`),
-            so the list starts directly on the meals rather than restating a
-            figure that screen already states.
-
-            `-mx-1 px-1` gives the cards' focus rings and hairlines room
-            against the scroll edge, which `overflow-y-auto` would otherwise
-            clip.
-
-            `overflow-x-hidden` is explicit rather than left to default:
-            setting only `overflow-y` still leaves `overflow-x` computing to
-            `auto` per the CSS Overflow spec's visible/non-visible pairing
-            rule, so a single card that measured a pixel wider than this
-            column — a long badge, an untranslated string — would put a
-            second, horizontal scrollbar on the list. Pinning it closed
-            instead means that pixel clips rather than growing a bar.
-          */}
-          <ul className="-mx-1 min-h-0 flex-1 space-y-2 overflow-x-hidden overflow-y-auto px-1 pb-1">
-            {meals.map((meal) => (
-              <li key={meal.id}>
-                <PortalMealCard meal={meal} standing={standing} completed={completed.has(meal.id)} />
-              </li>
-            ))}
-          </ul>
-        </>
+        <ul className="space-y-2">
+          {meals.map((meal) => (
+            <li key={meal.id}>
+              <PortalMealCard meal={meal} standing={standing} completed={completed.has(meal.id)} />
+            </li>
+          ))}
+        </ul>
       )}
     </section>
   );

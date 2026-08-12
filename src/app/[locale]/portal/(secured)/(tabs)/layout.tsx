@@ -81,18 +81,10 @@ export default async function PortalTabsLayout({ children, params }: PortalTabsL
         `PortalHeader` above with the bell and settings — so the rail's own bar
         would be a third.
 
-        `portal-shell-main`/`portal-shell-column` are inert on four of the
-        five tabs. They only do anything when the page inside them is the home
-        screen, which marks its own root `.portal-home` — the shell then
-        becomes a viewport-height frame and these two become part of the flex
-        column that carries its one scrolling region down to the meal list.
-        The rule, why it also reaches into `AppShell`'s own `data-slot`
-        wrappers, and why it is written as a `:has()` selector rather than as
-        a route check up here, is in `globals.css` beside `.portal-home-glow`.
       */}
       <AppShell items={PORTAL_NAV} title={t('title')} showTitle={false} icons={PORTAL_NAV_ICONS}>
-        <main className="portal-shell-main min-w-0 flex-1 px-4 pt-5 pb-24 md:px-6 md:pt-6 md:pb-8">
-          <div className="portal-shell-column mx-auto w-full max-w-3xl">{children}</div>
+        <main className="min-w-0 flex-1 px-4 pt-5 pb-24 md:px-6 md:pt-6 md:pb-8">
+          <div className="mx-auto w-full max-w-3xl">{children}</div>
         </main>
 
         <PortalTabBar />
