@@ -253,8 +253,24 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
               nothing to it — that context is Base UI's own channel. The
               toaster is outside the page's layout flow, so it cannot inherit
               the `dir` on <html> the way in-flow content does either.
+
+              **The block-end offset is a variable, because one screen needs a
+              different one.** The client portal has a fixed tab bar along the
+              bottom edge until `lg`, and a bottom-centre toast lands straight
+              on top of it — over the app's own navigation, at the moment a
+              client is most likely to want it. Sonner writes these offsets as
+              *inline* styles on the viewport, so no stylesheet can override
+              them without `!important`; handing it a `var()` instead moves the
+              decision into CSS, where the portal can answer it (see
+              `--q-toast-offset-bottom` in globals.css). Everywhere else the
+              fallback is sonner's own default — 24px, and 16px below 600px,
+              which is why the two are written separately.
             */}
-            <Toaster dir={getLocaleDirection(locale)} />
+            <Toaster
+              dir={getLocaleDirection(locale)}
+              offset={{ bottom: 'var(--q-toast-offset-bottom, 24px)' }}
+              mobileOffset={{ bottom: 'var(--q-toast-offset-bottom, 16px)' }}
+            />
           </NextIntlClientProvider>
         </DirectionProvider>
       </body>

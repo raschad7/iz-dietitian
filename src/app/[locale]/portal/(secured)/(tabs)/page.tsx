@@ -100,20 +100,17 @@ export default async function PortalPage({ params, searchParams }: PortalPagePro
 
   return (
     /*
-      **`.portal-home` is what makes this screen hold still.** The portal shell
-      and the layout between it and here carry inert `portal-shell-*` hooks;
-      this marker is the one thing that switches them on, because this file is
-      the only one in the chain that knows which tab it is. The shell then
-      becomes a `100dvh` frame and this column the flex chain down to
-      `PortalPlan`'s meal list, which is the single scrolling region on the
-      screen — the greeting, the commitment card, the day picker and the day's
-      energy line all stay put. The rule and its reasoning are in `globals.css`,
-      beside `.portal-home-glow`.
+      **`.portal-home` marks this screen for the shell above it**, which is the
+      only file in the chain that cannot see the route: it unpaints the shell's
+      own `<main>` so the fixed green wash shows through the page. The rule and
+      its reasoning are in `globals.css`, beside `.portal-home-glow`.
 
-      `gap-4` rather than `space-y-4`: same rhythm, in the unit a flex column
-      distributes.
+      **The page scrolls as one document**, like the other four tabs. It used to
+      be a `100dvh` frame with `PortalPlan`'s meal list as the only scrolling
+      region and everything above it pinned — that is gone; the ⚠ note beside
+      the rule in `globals.css` records what it took and why it went.
     */
-    <div className="portal-home flex min-h-0 flex-1 flex-col gap-4">
+    <div className="portal-home space-y-4">
       {/*
         One provider over the strip, today's ring, and the plan section below
         — see the module doc above and `plan-day-completion.tsx`. Today's cell
@@ -129,8 +126,6 @@ export default async function PortalPage({ params, searchParams }: PortalPagePro
         <HomeToday meals={todayMeals} />
 
         {plan ? (
-          // The one section allowed to take the leftover height and scroll
-          // inside it; everything above and below it is fixed chrome.
           <PortalPlan
             board={plan.board}
             days={plan.days}

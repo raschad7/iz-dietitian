@@ -82,20 +82,17 @@ export function PortalPlan({
 
   return (
     /*
-      **A column that holds still, with one scrolling part.** On the home screen
-      this is the bottom half of a frame the page has already sized to the
-      viewport — see the `.portal-home` note in `globals.css`.
-      Everything down to the day's energy line is fixed chrome: the picker has
-      to stay reachable while the day it chose is being read, which is the whole
-      reason the page stopped scrolling as one document. `min-h-0` at every step
-      is what lets the list below actually shrink; without it a flex item refuses
-      to go under its content's height and the overflow moves back up to the
-      page.
+      **An ordinary block that grows to its content.** This section used to be
+      the bottom half of a frame the home page sized to the viewport, with the
+      meal list scrolling inside it and the picker pinned above — `flex min-h-0
+      flex-1` here, matching `min-h-0` on every wrapper up to the shell, and an
+      `overflow-y-auto` on the list. It scrolls with the page now; the ⚠ note
+      beside the `.portal-home` rule in `globals.css` has the reasoning.
 
-      `gap-8`, not `space-y-8`: the same rhythm, expressed in a way the flex
-      column can distribute.
+      `space-y-8` rather than the `gap-8` the flex column took, for the same
+      rhythm without the column.
     */
-    <div className="flex min-h-0 flex-1 flex-col gap-8 text-start">
+    <div className="space-y-8 text-start">
       {/*
         The picker says what it is for. It is the one control on the home screen
         that changes what the screen shows, and unlabelled it read as a week
@@ -118,7 +115,7 @@ export function PortalPlan({
         heading restated, one line lower, the only two facts already drawn above
         it. What follows the strip is the day's meals, and they start immediately.
       */}
-      <section className="flex min-h-0 flex-1 flex-col gap-4">
+      <section className="space-y-4">
         {meals.length === 0 ? (
           <EmptyState icon="dish" title={t('emptyDayTitle')} description={t('emptyDayHint')} />
         ) : (
@@ -142,7 +139,7 @@ export function PortalPlan({
               against it, which is the one thing the label says it is not. With
               no surface left there is nothing to tint at all.
             */}
-            <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-1 px-1">
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-1">
               <span className="text-sm">{t('dayEnergyLabel')}</span>
               <span className="font-heading text-lg font-semibold tabular-nums">
                 {t('kcalValue', { value: dayKcal })}
@@ -150,27 +147,18 @@ export function PortalPlan({
             </div>
 
             {/*
-              **The one thing on the home screen that scrolls.** A day is five
-              meal cards and the frame around it — greeting, commitment card,
-              day picker, this day's energy — is all fixed, so the list carries
-              the day's overflow by itself instead of pushing the picker off the
-              top of a scrolling page. `min-h-0` is load-bearing: a flex item
-              will not shrink below its content without it, and the scrollbar
-              would appear on the document instead of here.
+              The day's meals, in the page's own scroll.
 
-              `-mx-1 px-1` gives the cards' focus rings and hairlines room
-              against the scroll edge, which `overflow-y-auto` would otherwise
-              clip.
+              This used to be the single scrolling region on the home screen —
+              `min-h-0 flex-1 overflow-y-auto`, carrying the day's overflow so
+              the picker above it could stay pinned. It does not any more: the
+              list is as tall as the day is long and the window scrolls past it.
 
-              `overflow-x-hidden` is explicit rather than left to default:
-              setting only `overflow-y` still leaves `overflow-x` computing to
-              `auto` per the CSS Overflow spec's visible/non-visible pairing
-              rule, so a single card that measured a pixel wider than this
-              column — a long badge, an untranslated string — would put a
-              second, horizontal scrollbar on the list. Pinning it closed
-              instead means that pixel clips rather than growing a bar.
+              `-mx-1 px-1` stays. It is not scroll-edge padding — it gives the
+              cards' focus rings and hairlines room to paint outside the column
+              without being clipped by anything upstream.
             */}
-            <ul className="-mx-1 min-h-0 flex-1 space-y-2 overflow-x-hidden overflow-y-auto px-1 pb-1">
+            <ul className="-mx-1 space-y-2 px-1 pb-1">
               {meals.map((meal) => (
                 <li key={meal.id}>
                   <PortalMealCard meal={meal} standing={standing} completed={completed.has(meal.id)} />

@@ -69,30 +69,52 @@ function TodayProgress({ meals }: { meals: HomeTodayMeal[] }) {
   );
   const remainingCalories = totalCalories - completedCalories;
 
+  /*
+    **Nothing to report on says so, in words.**
+
+    `adherenceFraction` returns null when the day had no meals to tick, which is
+    a real and ordinary state: no plan published yet, a plan whose week has not
+    started, or a day the dietitian left empty. This branch used to print an em
+    dash at `text-5xl` in `text-black` — and on a card whose only content is one
+    large figure, a 48px black em dash reads as an unexplained black bar rather
+    than as "no data". It was also the visible end of a bug rather than the
+    normal case it was written for: `getPublishedBoard` was serving plans for
+    weeks that had already ended, so accounts with a stale plan hit this branch
+    every day.
+
+    A sentence instead of a placeholder, at body size and in the muted token, so
+    the card explains itself and the calorie legend — which would otherwise
+    read "0 kcal completed / 0 kcal remaining" against a day nobody was asked
+    about — stands down with it.
+  */
+  if (percentageParts === null) {
+    return (
+      <div className="flex min-h-[150px] w-full items-center rounded-[30px] bg-white px-7 py-8">
+        <p className="text-sm text-muted-foreground">{t('noMeals')}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-[150px] w-full items-center justify-between rounded-[30px] bg-white px-7 py-8">
       <div className="flex shrink-0 flex-col items-start gap-1.5">
         <span className="font-heading leading-none font-bold tabular-nums">
-          {percentageParts ? (
-            percentageParts.map((part, index) =>
-              part.type === 'percent' ? (
-                <span key={index} className="ms-1 align-middle text-sm font-semibold text-black">
-                  {part.value}
-                </span>
-              ) : (
-                <span key={index} className="text-5xl text-primary">
-                  {part.value}
-                </span>
-              ),
-            )
-          ) : (
-            <span className="text-5xl text-black">—</span>
+          {percentageParts.map((part, index) =>
+            part.type === 'percent' ? (
+              <span key={index} className="ms-1 align-middle text-sm font-semibold text-black">
+                {part.value}
+              </span>
+            ) : (
+              <span key={index} className="text-5xl text-primary">
+                {part.value}
+              </span>
+            ),
           )}
         </span>
 
-        {total > 0 ? (
-          <span className="text-caption leading-none text-muted-foreground">{t('meals', { completed, total })}</span>
-        ) : null}
+        <span className="text-caption leading-none text-muted-foreground">
+          {t('meals', { completed, total })}
+        </span>
       </div>
 
       <div className="flex flex-col gap-2.5 text-caption text-black">

@@ -55,10 +55,15 @@ export function SettingsArticleBlock({ title, children }: { title: string; child
  * olive, the disc and the heading ran together as one coloured lump at the
  * start of every card.
  *
- * The heading colour is `secondary-foreground` — olive-700, the palette's
- * `text.brand` at 7.37:1 — and not `text-primary`. Olive-500 is 3.47:1 and would
- * fail on a heading; this is also what the article's headings already use, so
- * the two shapes read as the same voice.
+ * **The heading is ink, not brand.** It was olive-700 — the palette's
+ * `text.brand`, contrast-safe at 7.37:1 and never `text-primary`, which is
+ * olive-500 at 3.47:1 and fails outright on a heading. Safe was not the
+ * question. These four screens are the help, privacy and terms pages: every
+ * card on them opens with one of these headings, so the olive was not marking
+ * anything out — it was the colour of *all* the headings, four to a screen,
+ * with the glyph disc beside each one already olive. n-900 at 16.64:1 and a
+ * bold weight is what makes a heading read as a heading; the disc keeps the
+ * brand colour, which is enough of it per card.
  */
 export function SettingsPoint({
   icon,
@@ -94,7 +99,7 @@ export function SettingsPoint({
         <span aria-hidden="true" className="w-px self-stretch bg-border" />
 
         <div className="min-w-0 flex-1 space-y-1">
-          <h2 className="font-heading text-base leading-snug font-semibold text-secondary-foreground">
+          <h2 className="font-heading text-base leading-snug font-bold text-foreground">
             {title}
           </h2>
           <div className="space-y-2 text-sm leading-relaxed text-muted-foreground">{children}</div>

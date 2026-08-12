@@ -34,12 +34,17 @@ import { cn } from '@/lib/utils';
  * thumb rather than a pointer, and a 40px control hugging its own labels in the
  * corner is neither findable nor comfortably tappable.
  *
- * The track is a card rather than a sunken well: white, hairline, the card
- * shadow. A cream track on a white page drew a grey slab across the top of the
- * screen, and the switch read as a strip of background rather than as the
- * control it is. Raising it puts it on the same plane as the cards it filters,
- * which is the truth about what it does. Same tokens, same states, same
- * semantics as `default`.
+ * **The track is the well and the selected half is the raised thumb** — the
+ * shadcn tab shape: a quiet neutral groove with a white, shadowed segment
+ * sitting in it. That inverts what this shape used to draw, which was a white
+ * card track with an olive-tinted half inside; a raised track holding a tinted
+ * segment reads as two surfaces at the same height with one of them coloured
+ * in, and it spent the brand hue on a filter. Here the *elevation* carries the
+ * state instead of the colour, so nothing on the screen has to compete with it,
+ * and the label goes to full-strength foreground where it was olive.
+ *
+ * `default` keeps its own treatment: it is bordered rather than filled and is
+ * used inside toolbars where a grey well would be a third box.
  */
 type SegmentedOption<T extends string> = {
   value: T;
@@ -99,7 +104,9 @@ function Segmented<T extends string>({
          * a width on the caller: two equal halves is what makes this shape
          * readable as one switch instead of two chips.
          */
-        pill && 'w-full rounded-lg border-transparent bg-card p-1 shadow-card ring-1 ring-foreground/10',
+        // The neutral well. No ring and no shadow — the track is the recess,
+        // and the selected half is the only thing on this control that lifts.
+        pill && 'w-full rounded-[14px] border-transparent bg-muted p-1',
         /*
          * `sm` is pinned to 40px so the control matches `Button size="sm"` and
          * a 40px field beside it — the height is set on the *track*, and the
@@ -135,7 +142,10 @@ function Segmented<T extends string>({
               // 12px, which is the track's 16px less the 4px of padding around
               // it: concentric, so the half sits inside the track rather than
               // looking pasted onto it.
-              pill && 'relative h-11 flex-1 rounded-[12px] px-3 py-0 font-semibold',
+              // 10px against the track's 14px less its 4px of padding:
+              // concentric, so the half sits inside the well rather than
+              // looking pasted onto it.
+              pill && 'relative h-11 flex-1 rounded-[10px] px-3 py-0 font-semibold',
               // `activeClassName` rather than the olive literal, so a caller can
               // repaint the selected half; it defaults to that same olive, which
               // is what every shape draws unless told otherwise.
@@ -144,20 +154,18 @@ function Segmented<T extends string>({
                 : inactiveClassName
                   ? inactiveClassName
                   : pill
-                  ? // The track is white now, so an unselected half can take
-                    // `muted-foreground` (6.38:1 there) and let the selected one
-                    // hold the colour. On the old cream track that pairing was
-                    // the one to avoid — it measured under 4.5:1 — and this half
-                    // had to carry full-strength foreground instead.
+                  ? // Label colour alone, with no hover fill of its own: the
+                    // track *is* a fill, so tinting a half on hover puts a
+                    // second grey inside the first and reads as a half that has
+                    // half-selected itself. Darkening the label is the whole
+                    // hover, which is what leaves the white thumb as the only
+                    // thing that ever marks the selection.
                     //
                     // The `scale-[0.99] hover:scale-100` this line carried on
                     // `main` is deliberately not merged: it grew the half under
                     // the pointer, and geometry here does not move (§Shape —
-                    // "hover is carried by the ring and the fill instead"). On
-                    // the cream track it was also compensating for a hover fill
-                    // that barely registered; on the white one the fill does the
-                    // work on its own.
-                    'text-muted-foreground hover:bg-muted hover:text-foreground'
+                    // "hover is carried by the ring and the fill instead").
+                    'text-muted-foreground hover:text-foreground'
                   : 'text-muted-foreground hover:bg-secondary hover:text-secondary-foreground',
             )}
           >
@@ -187,9 +195,22 @@ export { Segmented };
  * what is actually here, and Tab and Enter behave as a keyboard user expects
  * with no key handling invented.
  *
- * The shell and the active segment each carry a swept corner — §9.3's own
- * drawing, and not a nested-surface violation: the segment is the control's
- * moving part, not a card inside a card.
+ * ⚠ **No swept corner, and no olive.** Both were here: the shell and the
+ * selected segment each drew one corner at roughly twice the radius of the
+ * other three (§9.3's own motif), and the selection was a solid olive fill.
+ *
+ * The sweep is gone because the corner it lands on is `inset-block-end
+ * inset-inline-end` — logical, so in Arabic it resolves to the *bottom left*,
+ * and on the settings screen it read as one corner of a two-button strip having
+ * come unstuck rather than as a deliberate mark. A motif that only announces
+ * itself as a mistake is not carrying its own weight at this size.
+ *
+ * The olive is gone because this control is a *preference*, not an action. A
+ * solid brand fill is the loudest thing the system has, and spending it on
+ * "which language is on" put the settings screen's strongest colour on the one
+ * row nobody came for. The selection is now the same white-thumb-in-a-grey-well
+ * shape `Segmented shape="pill"` draws above — elevation carrying the state
+ * instead of hue — so the portal's two switches are one control in two places.
  */
 export function SegmentedGroup({
   label,
@@ -204,7 +225,11 @@ export function SegmentedGroup({
       className={cn(
         // `max-w-full` so a long option set wraps inside its row rather than
         // pushing the page into a horizontal scroll on a narrow phone.
-        'inline-flex max-w-full gap-1 rounded-md rounded-ee-xl border border-border bg-muted p-1',
+        //
+        // One radius on all four corners, and no border: the grey fill is
+        // already the edge of the well, so a hairline around it drew a second
+        // one a pixel outside the first.
+        'inline-flex max-w-full gap-1 rounded-[14px] bg-muted p-1',
         className,
       )}
       {...props}
@@ -222,13 +247,17 @@ export function SegmentedOption({
       aria-pressed={selected}
       data-slot="segmented-option"
       className={cn(
-        'min-h-10 min-w-0 rounded-[9px] rounded-ee-[18px] px-3 text-sm font-semibold whitespace-nowrap',
+        // 10px against the well's 14px less its 4px of padding — concentric,
+        // and the same pair `shape="pill"` above uses.
+        'min-h-10 min-w-0 rounded-[10px] px-3 text-sm font-semibold whitespace-nowrap',
         'transition-all duration-[180ms] ease-[cubic-bezier(.2,.6,.2,1)] motion-reduce:transition-none',
         'outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-focus-halo',
         'disabled:pointer-events-none disabled:opacity-50',
         selected
-          ? 'bg-primary text-primary-foreground shadow-card'
-          : 'text-muted-foreground hover:bg-card hover:text-foreground',
+          ? 'bg-card text-foreground shadow-card'
+          : // No hover fill — see the pill above: a tint inside the well is a
+            // second grey, and it reads as a half-selected segment.
+            'text-muted-foreground hover:text-foreground',
         className,
       )}
       {...props}
