@@ -1022,7 +1022,6 @@ it is not a note.
 The record header's fact strip is deliberately **not** `StatGrid`: the same
 rules and tabular figures one step down, because a header must not compete with
 the name above it.
-
 ## Copy
 
 `CopyButton` — an icon-only ghost control that writes one value to the
@@ -1208,6 +1207,27 @@ stretched it to the full page width and left the tabs hugging one edge of empty
 bordered space. `Tabs` imports nothing from `@/i18n/navigation`; call sites pair
 `tabLinkVariants` with their own `Link`, the way they already pair
 `buttonVariants` with one.
+
+**PanelTabs** (`PanelTabs` + `PanelTabsList` + `PanelTabsTrigger` +
+`PanelTabsPanel`) — the other half of that split: a tablist for when each option
+is a **view of the page you are already on**. A sunken `bg-muted` track with the
+selected tab lifted out of it as a `bg-card` pill carrying `shadow-card` and an
+olive-700 label. Ported from the shadcn admin template's `users/view` tab bar,
+which the client record is built on, and mapped onto these tokens rather than
+copied. **The selected tab is not a solid olive fill**: olive marks what you can
+act on, and a tab bar says which view you are in — the same argument the visit
+record's `Segmented` makes for its neutral thumb.
+
+**It fits its column from `md` up and scrolls below it.** The tabs are
+`flex-auto`, so they share the track between them and keep their relative
+widths; below `md` the track goes `w-max` inside a scroller instead, because a
+full tab set squeezed into a phone would be a row of ellipses. A bar that wraps
+onto two lines stops reading as one control, and one that runs off the edge
+makes its last view a thing you have to know is there.
+
+Three controls, three jobs, and the difference is what the option *is*: `Tabs`
+for an address, `PanelTabs` for a view with a panel under it, `Segmented` for a
+view with no panel and few enough options to sit on one line.
 
 Staff and portal share `Sidebar`. The portal passes icons (`PORTAL_NAV_ICONS`,
 the same glyphs as its bottom bar); the staff rail is text-only.
@@ -1457,6 +1477,14 @@ The switch's 30px track sits inside a 48px button so the target meets §9.3
 without the shape growing. Its accessible name comes from `aria-labelledby`
 pointing at the row's own label, because a `<label for>` cannot wrap a
 `role="switch"` button.
+
+**`knob="round"` drops the leaf.** The default knob carries the 9px Arc sweep
+and rotates −45° as it lands, which is §9.3's own drawing and right for a single
+switch on a form. A *column* of them is a different object: the client record's
+notification view stacks four, two rows apart, and four leaves rotating in and
+out of alignment made a settings list read as unsettled. The round variant is a
+plain disc that slides and does not turn — same size, same travel, same tokens.
+Reach for it where the switches are a list; keep the leaf where one is a detail.
 
 **Segments use `aria-pressed`, not `role="radio"`.** A radio group promises
 arrow-key navigation that plain buttons don't provide; a labelled group of

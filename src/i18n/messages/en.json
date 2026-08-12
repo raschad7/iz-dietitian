@@ -461,13 +461,17 @@
       "call": "Call",
       "emailLink": "Send email"
     },
-    "tabs": {
-      "label": "Client sections",
-      "info": "Client info",
-      "visits": "Visit history",
-      "plans": "Meal plans",
-      "portal": "Portal access",
-      "nutrition": "Nutrition"
+    "profile": {
+      "viewsLabel": "Record views",
+      "details": "Details",
+      "visitsSoFar": "Visits so far",
+      "plansWritten": "Plans written",
+      "tabs": {
+        "account": "Account",
+        "nutrition": "Nutrition",
+        "security": "Security",
+        "billing": "Billing & Plans"
+      }
     },
     "sections": {
       "contact": "Contact details",
@@ -683,6 +687,7 @@
       "empty": "Nothing has been archived."
     },
     "visits": {
+      "title": "Patient visits",
       "upcoming": "Upcoming",
       "past": "Past visits",
       "totalVisits": "Appointments",
@@ -702,9 +707,8 @@
       "noReason": "No reason recorded",
       "views": {
         "label": "Visit record views",
-        "timeline": "Timeline",
         "upcoming": "Upcoming",
-        "past": "Past"
+        "past": "Previous"
       }
     }
   },

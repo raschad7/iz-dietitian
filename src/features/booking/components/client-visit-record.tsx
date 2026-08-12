@@ -1,21 +1,8 @@
 import { getTranslations } from 'next-intl/server';
 
-import { Avatar } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Icon, type IconName } from '@/components/ui/icon';
-import { Separator } from '@/components/ui/separator';
-import {
-  Timeline,
-  TimelineContent,
-  TimelineDot,
-  TimelineHeading,
-  TimelineItem,
-} from '@/components/ui/timeline';
-import { isMember } from '@/lib/enum';
-import { CLIENT_GOALS } from '@/features/clients/schema';
-import { type ClientDetail } from '@/features/clients/queries';
+import { Icon } from '@/components/ui/icon';
 import { Link } from '@/i18n/navigation';
 import { type Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
@@ -29,60 +16,48 @@ import {
   formatMonthShort,
   formatWeekday,
 } from '../format';
-import { patientToneStyle } from '../patient-color';
 import { type ClientVisitEntry } from '../queries';
 import { visitStats, type VisitStats } from '../visit-stats';
 
 import { VisitViews, type VisitViewOption } from './visit-views';
 
 /**
- * The Visit History tab: what this client has actually been seen for, as a
+ * The Visit history view: what this client has actually been seen for, as a
  * record.
  *
  * **It used to be a calendar** — the clinic-wide grid, filtered to one person.
- * That is the wrong instrument for the question this tab is asked. A calendar
+ * That is the wrong instrument for the question this view is asked. A calendar
  * answers "what is happening on this date"; a client's history is asked "when
  * did I last see them, how often, and what is booked next", and a month grid
  * makes all three of those a counting exercise across empty cells.
  *
  * ## The shape of it
  *
- * **A summary rail, and three views of the record beside it** — the structure of
- * the shadcn admin template's `users/view` page, which is what this tab was
- * asked to adopt. The rail on the inline-start edge holds who this is and what
- * the record adds up to; the column beside it holds the history itself, switched
- * between a timeline, what is booked, and the paged past.
+ * **A strip of facts, and two views of the record under it** — what is booked,
+ * and what has already happened.
  *
- * ⚠ **The rail repeats the patient's avatar and name, and the record header two
- * rows above already carries both.** That duplication is deliberate and was
- * asked for: the template's page leads with an identity card and this is a port
- * of that page. It is the one thing to reconsider first if this tab ever feels
- * top-heavy — the rail's figures and details stand on their own without it.
- *
- * **The rail is sticky from `lg` up.** It is a summary of the thing being
- * scrolled, so it has no business scrolling away from it; below `lg` it becomes
- * the first block in one column, because a sticky panel on a phone is a panel
- * that eats the screen.
+ * ⚠ **This used to be a rail beside the views, and that rail led with the
+ * patient's avatar, name and goal.** It was a port of the template's left panel,
+ * made while this was still a route of its own. It is a view of the profile now,
+ * and the profile has that panel — permanently, beside every view — so the rail
+ * had become the same person drawn a second time, in a column that also cost the
+ * history a third of its width. What the rail knew that the panel does not is
+ * the *shape of the attendance*, and those five facts are what survived, set
+ * across one line where they take a row rather than a column.
  *
  * **Three views, not three stacked cards.** The record used to draw the figures,
  * the upcoming panel and the past table one under another, which put the most
  * recent visit below two screens of summary on a laptop. See `VisitViews` for
- * why the switch is a `Segmented` and not a second row of link tabs.
+ * why the switch is a `Segmented` and not a second row of tabs.
  *
- * **Green is spent on what is next and nothing else** — the rail's next-visit
- * figure, today's date mark, the current dot on the timeline, and the one button
- * that leads to the calendar. Every other mark on the tab is a neutral, which is
- * what makes those read as chosen.
+ * **Green is spent on what you can press and what is not here yet** — today's
+ * date mark, the current dot beside a booked visit, and the button that leads to
+ * the calendar. The facts themselves are black: they are reference, and a
+ * coloured value in a row of plain ones reads as the others having been greyed
+ * out rather than as that one being chosen.
  */
 
 export type ClientVisitRecordProps = {
-  /**
-   * The patient themselves, for the summary rail's identity block.
-   *
-   * The page has already read this row to prove the record exists, so it is
-   * handed down rather than read a second time here.
-   */
-  client: ClientDetail;
   visits: ClientVisitEntry[];
   locale: Locale;
   /**
@@ -94,23 +69,9 @@ export type ClientVisitRecordProps = {
 
 type DurationLabels = { hour: (n: number) => string; minute: (n: number) => string };
 
-/**
- * The goal values that have a label. `clients.goal` is a validated `text`
- * column, so a row written by an older build can hold something this app has no
- * message for — `isMember` is what narrows to the ones it does. See
- * `src/lib/enum.ts`.
- */
-type ClientGoal = (typeof CLIENT_GOALS)[number];
-
-export async function ClientVisitRecord({
-  client,
-  visits,
-  locale,
-  today,
-}: ClientVisitRecordProps) {
-  const [t, tClients, tBooking] = await Promise.all([
+export async function ClientVisitRecord({ visits, locale, today }: ClientVisitRecordProps) {
+  const [t, tBooking] = await Promise.all([
     getTranslations('clients.visits'),
-    getTranslations('clients'),
     getTranslations('booking'),
   ]);
 
@@ -123,8 +84,8 @@ export async function ClientVisitRecord({
   };
 
   /*
-    A record with nothing in it is one statement and one way out, not a rail of
-    zeroes beside three empty views. The same dashed box the dashboard's empty
+    A record with nothing in it is one statement and one way out, not a strip of
+    dashes above three empty views. The same dashed box the dashboard's empty
     panels use, so a "nothing here yet" reads the same wherever it appears.
   */
   if (visits.length === 0) {
@@ -149,43 +110,22 @@ export async function ClientVisitRecord({
   const [next, ...laterUpcoming] = upcoming;
 
   const viewOptions: readonly VisitViewOption[] = [
-    { value: 'timeline', label: t('views.timeline'), count: visits.length },
     { value: 'upcoming', label: t('views.upcoming'), count: upcoming.length },
     { value: 'past', label: t('views.past'), count: past.length },
   ];
 
   return (
     /*
-      **Two shapes, and the breakpoint is the whole difference.**
-
-      From `lg` up this fills the record shell's bounded box: `h-full` on a grid
-      whose one row is `minmax(0,1fr)`, so the views card takes every pixel the
-      screen has and scrolls its own content. The rail opts out with `self-start`
-      — a stretched summary would put its one button halfway down an empty panel
-      — and sticks, so it stays beside whatever the history is scrolled to.
-
-      Below `lg` it is an ordinary flex column at natural height and the record
-      shell scrolls it, because filling a phone's viewport with a 500px rail and
-      a card leaves a scroll port too short to read a list in.
-
-      `19.5rem` rather than a fraction: the rail holds label/value pairs at a
-      fixed type size, and a percentage track re-wraps those rows at every window
-      width.
+      One column, and from `lg` up it is the height of the view it sits in: the
+      facts hold their natural height and the views card takes what is left and
+      scrolls its own content. `min-h-0` at every level is what lets that flex
+      child actually shrink instead of growing the page.
     */
-    <div
-      className={cn(
-        'flex flex-col gap-4',
-        'lg:grid lg:h-full lg:min-h-0 lg:grid-cols-[19.5rem_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)]',
-      )}
-    >
-      <SummaryRail
-        client={client}
+    <div className="flex flex-col gap-4 lg:h-full lg:min-h-0">
+      <VisitFacts
         stats={stats}
         locale={locale}
         labels={{
-          details: t('details'),
-          total: t('totalVisits'),
-          completed: t('completedVisits'),
           firstVisit: t('firstVisit'),
           lastVisit: t('lastVisit'),
           nextVisit: t('nextVisit'),
@@ -193,24 +133,15 @@ export async function ClientVisitRecord({
           totalTime: t('totalTime'),
           none: t('noneRecorded'),
           book: t('book'),
-          goal: (value: ClientGoal) => tClients(`goal.${value}`),
           everyDays: (days: number) => t('everyDays', { days }),
         }}
         durationLabels={durationLabels}
       />
 
       <VisitViews
+        title={t('title')}
         label={t('views.label')}
         options={viewOptions}
-        timeline={
-          <VisitTimelineView
-            visits={visits}
-            locale={locale}
-            today={today}
-            durationLabels={durationLabels}
-            noReason={t('noReason')}
-          />
-        }
         upcoming={
           next ? (
             <div className="flex flex-col gap-1">
@@ -252,12 +183,9 @@ export async function ClientVisitRecord({
   );
 }
 
-/* ── The rail ────────────────────────────────────────────────────────────── */
+/* ── The facts ───────────────────────────────────────────────────────────── */
 
-type RailLabels = {
-  details: string;
-  total: string;
-  completed: string;
+type FactLabels = {
   firstVisit: string;
   lastVisit: string;
   nextVisit: string;
@@ -265,52 +193,52 @@ type RailLabels = {
   totalTime: string;
   none: string;
   book: string;
-  goal: (value: ClientGoal) => string;
   everyDays: (days: number) => string;
 };
 
 /**
- * Who this is, and what the record adds up to.
+ * What the attendance adds up to, on one line.
  *
- * The template's left panel, carrying this product's facts: its "Task Done /
- * Project Done" pair becomes the two counts a visit record has, and its
- * eight-row account detail list becomes five rows that are all about *visits*.
+ * The five facts the summary rail used to stack down the inline-start edge —
+ * when it started, when it last happened, what is booked, how often, and how
+ * much time it comes to. They are the one thing on this view that no other view
+ * of the record states, which is why they survived the rail being cut.
  *
- * Deliberately not a second Info tab. Phone, age, sex and goal are one tab away
- * and already laid out there; repeating them here would make the rail a worse
- * copy of a screen that exists, and the one thing this panel can say that no
- * other screen does is the shape of the attendance — when it started, when it
- * last happened, how often, and how much time it adds up to.
+ * **A wrapped row of label/value pairs, not a `StatGrid`.** Three of the five
+ * are dates, and a lattice sets its figures at 20px: five dates at that size
+ * across this column would be a second heading strip competing with the history
+ * under it. Set small, with the label above the value, they read as reference —
+ * which is what they are.
  *
- * **One action, not the template's two.** Its second button is "Suspend"; the
- * equivalent here is archiving the client, which already lives in the record's
- * own overflow menu and in the register's row actions. A third way to archive
- * somebody, on the tab about their appointments, is a button invented to fill a
- * slot.
+ * **The button is here rather than in the views card's header.** That header
+ * already carries the view's name, its count and the switch between three
+ * panels; a fourth control on the same line is where a header stops being
+ * scannable. It also belongs with these five: every one of them is about *when*,
+ * and this is the one thing that changes a when.
  */
-function SummaryRail({
-  client,
+function VisitFacts({
   stats,
   locale,
   labels,
   durationLabels,
 }: {
-  client: ClientDetail;
   stats: VisitStats;
   locale: Locale;
-  labels: RailLabels;
+  labels: FactLabels;
   durationLabels: DurationLabels;
 }) {
-  const goal = isMember(CLIENT_GOALS, client.goal) ? client.goal : null;
-
-  const rows = [
-    { label: labels.firstVisit, value: stats.firstVisit && formatMediumDate(locale, stats.firstVisit) },
-    { label: labels.lastVisit, value: stats.lastVisit && formatMediumDate(locale, stats.lastVisit) },
+  const facts = [
+    {
+      label: labels.firstVisit,
+      value: stats.firstVisit && formatMediumDate(locale, stats.firstVisit),
+    },
+    {
+      label: labels.lastVisit,
+      value: stats.lastVisit && formatMediumDate(locale, stats.lastVisit),
+    },
     {
       label: labels.nextVisit,
       value: stats.nextVisit && formatMediumDate(locale, stats.nextVisit),
-      /* The one accented row: what is coming is the fact this tab is opened for. */
-      accent: true,
     },
     {
       label: labels.typicalGap,
@@ -323,112 +251,40 @@ function SummaryRail({
   ];
 
   return (
-    /*
-      **The rail is the full height of the row, matching the views card beside
-      it.** It stretches rather than sitting at its natural height, so the two
-      panels are one pair of equal columns instead of a tall card next to a short
-      one — which is what a summary *rail* should look like, and what the
-      template this ports draws.
+    <Card size="sm" className="shrink-0">
+      <CardContent className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
+        <dl className="flex min-w-0 flex-wrap items-baseline gap-x-8 gap-y-3">
+          {facts.map((fact) => (
+            <div key={fact.label} className="flex min-w-0 flex-col gap-0.5">
+              <dt className="text-caption text-muted-foreground">{fact.label}</dt>
+              {/*
+                `<bdi>` isolates the value's own direction. A formatted date has
+                no strong character to set a block's direction from, so
+                `dir="auto"` would resolve it LTR and drag its alignment with it.
+              */}
+              {/*
+                Every value is full-strength foreground, the next visit included.
+                It carried olive-700 as "the one accented fact", which put a
+                coloured date in a row of black ones and made the strip read as
+                though the other four had been greyed out. The row is reference;
+                olive stays on the things you press.
+              */}
+              <dd
+                className={cn(
+                  'truncate text-body-sm font-semibold tabular-nums',
+                  fact.value === null && 'font-normal text-muted-foreground',
+                )}
+              >
+                <bdi>{fact.value ?? labels.none}</bdi>
+              </dd>
+            </div>
+          ))}
+        </dl>
 
-      It briefly did the opposite (`self-start`, sticky) so its one button would
-      not be stranded in empty space. Filling is the better trade: the button
-      sits at the foot of its own column, which is where a panel's action
-      belongs, and the empty space between the details and it is the rail's
-      breathing room rather than a gap.
-
-      Sticky is gone with it — a box already as tall as its scrollport has
-      nothing to stick to, so the property was doing nothing but promising it
-      did. `min-h-0` plus the scrolling content below is what handles the other
-      direction: a rail *taller* than the screen scrolls inside itself instead of
-      pushing the card past the shell's floor.
-    */
-    <Card className="lg:flex lg:min-h-0 lg:flex-col">
-      {/*
-        **`justify-between`, so the leftover height is shared out instead of
-        pooling at the foot.** Filling the row left this column's four blocks
-        stacked at the top with a card's worth of empty white under the button —
-        which reads as a panel that failed to load its last section rather than
-        as a panel with room to breathe.
-
-        It works *with* `gap-6` rather than instead of it: in a flex column the
-        gap is the floor and `justify-between` distributes only what is left over
-        on top of it, so a short viewport falls back to the tight 24px rhythm and
-        a tall one opens up evenly. Nothing is centred and nothing is pinned —
-        the avatar still starts at the top and the button still ends at the
-        bottom, which is where a panel's subject and its action belong.
-
-        `lg:overflow-y-auto` is the safety valve on the other side: a short
-        viewport, or a client whose name runs to three lines, makes this column
-        taller than the row it is in, and without it the card would grow past the
-        shell's floor and take the page's own scrollbar with it.
-        `overscroll-contain` keeps the wheel here rather than handing it to the
-        record behind once this reaches its end.
-      */}
-      <CardContent className="flex flex-col gap-6 lg:min-h-0 lg:flex-1 lg:justify-between lg:overflow-y-auto lg:overscroll-contain">
-        <div className="flex flex-col items-center text-center">
-          {/* The patient's calendar colour — the disc heading this rail is the
-              one their appointments are drawn in. See `../patient-color`. */}
-          <span className="patient-tone contents" style={patientToneStyle(client.seq)}>
-            <Avatar name={client.fullName} color="var(--tone-mark)" size="xl" />
-          </span>
-
-          <h2 className="mt-3 font-heading text-heading-sm font-semibold" dir="auto">
-            {client.fullName}
-          </h2>
-
-          {/* Only when there is one. A chip reading "—" is a chip with nothing
-              to say, and the template's role badge has no blank state here. */}
-          {goal ? (
-            <Badge variant="muted" className="mt-2">
-              {labels.goal(goal)}
-            </Badge>
-          ) : null}
-        </div>
-
-        {/*
-          Stacked, each on its own full-width line, rather than two halves of a
-          row. Side by side they were a pair of 140px boxes with a centred
-          numeral in each, which wasted the rail's width on padding and set two
-          figures at the size of a tile that had no room to be one.
-
-          **Visits so far leads.** It is the answer to "have I been seeing this
-          person", which is the question the rail is read for; the total number
-          of appointments is the context for it, so it follows.
-        */}
-        <div className="flex flex-col gap-3">
-          <RailFigure icon="check" value={stats.completed} label={labels.completed} />
-          <RailFigure icon="calendar" value={stats.total} label={labels.total} />
-        </div>
-
-        <div className="flex flex-col gap-3">
-          <h3 className="text-body-sm font-semibold">{labels.details}</h3>
-          <Separator />
-
-          <dl className="flex flex-col gap-2.5">
-            {rows.map((row) => (
-              <div key={row.label} className="flex items-baseline justify-between gap-3">
-                <dt className="shrink-0 text-body-sm text-muted-foreground">{row.label}</dt>
-                {/*
-                  `<bdi>` isolates the value's own direction. A formatted date
-                  has no strong character to set a block's direction from, so
-                  `dir="auto"` would resolve it LTR and drag its alignment with
-                  it — the same trap the figure tiles below document.
-                */}
-                <dd
-                  className={cn(
-                    'min-w-0 truncate text-end text-body-sm font-medium tabular-nums',
-                    row.value === null && 'font-normal text-muted-foreground',
-                    row.value !== null && row.accent && 'text-secondary-foreground',
-                  )}
-                >
-                  <bdi>{row.value ?? labels.none}</bdi>
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-
-        <Link href="/app/calendar/day" className={buttonVariants({ className: 'w-full' })}>
+        <Link
+          href="/app/calendar/day"
+          className={buttonVariants({ variant: 'outline', size: 'sm' })}
+        >
           <Icon name="bookAppointment" />
           {labels.book}
         </Link>
@@ -437,112 +293,7 @@ function SummaryRail({
   );
 }
 
-/**
- * One of the rail's two counts, as a full-width row.
- *
- * A muted tile rather than a bordered box: it sits inside a card, and the
- * nesting rule in docs/design-system.md gives an item inside a card a fill, not
- * a second ring and shadow. The glyph is bare on that fill for the same reason —
- * a chip under it would be a third surface stacked inside the second.
- *
- * **The figure is on the end edge, not centred.** Spanning the rail, a centred
- * numeral floats in the middle of its own row with the label stranded under it;
- * pushed to the far edge it lands in a column with the values in the details
- * list below, so the whole rail reads down one line of figures. That is also
- * what earns the extra width: the row is a label and a number at opposite ends,
- * which is a shape that *wants* to be wide.
- */
-function RailFigure({ icon, value, label }: { icon: IconName; value: number; label: string }) {
-  return (
-    <div className="flex w-full items-center gap-3 rounded-lg bg-muted/60 px-3 py-2.5">
-      <Icon name={icon} className="size-[1.125rem] shrink-0 text-muted-foreground" aria-hidden />
-      <span className="min-w-0 flex-1 truncate text-body-sm text-muted-foreground">{label}</span>
-      <span className="shrink-0 font-heading text-heading-sm font-semibold tabular-nums">
-        {value}
-      </span>
-    </div>
-  );
-}
-
-/* ── The three views ─────────────────────────────────────────────────────── */
-
-/**
- * The whole record as one run, newest first.
- *
- * The template's activity timeline, and the reason this port is worth making:
- * a visit history is a sequence where the spacing between entries is itself the
- * information, and a flat table states every row as though it were independent
- * of the ones around it. The rail says "roughly every 21 days"; this is where
- * that number is visible as a shape.
- *
- * Upcoming entries are on the same rail as past ones rather than in a section of
- * their own — the run does not stop at today, and the dot is what marks where
- * today falls in it.
- */
-function VisitTimelineView({
-  visits,
-  locale,
-  today,
-  durationLabels,
-  noReason,
-}: {
-  visits: ClientVisitEntry[];
-  locale: Locale;
-  today: string;
-  durationLabels: DurationLabels;
-  noReason: string;
-}) {
-  return (
-    <Timeline>
-      {visits.map((visit, index) => {
-        const isUpcoming = visit.date >= today;
-
-        return (
-          <TimelineItem
-            key={visit.id}
-            connected={index < visits.length - 1}
-            marker={<TimelineDot tone={isUpcoming ? 'current' : 'done'} />}
-          >
-            <Link
-              href={`/app/calendar/day?date=${visit.date}`}
-              className="group -mx-2 block rounded-lg px-2 py-1 transition-colors hover:bg-muted/70"
-            >
-              <TimelineHeading>
-                <span className="min-w-0 truncate text-body-sm font-semibold">
-                  {formatWeekday(locale, visit.date, 'long')}
-                  <span className="ms-2 font-normal text-muted-foreground">
-                    <bdi>{formatMediumDate(locale, visit.date)}</bdi>
-                  </span>
-                </span>
-
-                <span className="shrink-0 text-caption whitespace-nowrap text-muted-foreground tabular-nums">
-                  <bdi>
-                    {formatMinuteRange(
-                      locale,
-                      visit.date,
-                      visit.startMinute,
-                      visit.startMinute + visit.durationMinutes,
-                    )}
-                  </bdi>
-                </span>
-              </TimelineHeading>
-
-              <TimelineContent>
-                <span className="flex flex-wrap items-baseline gap-x-2 text-caption text-muted-foreground">
-                  <span>{formatDuration(visit.durationMinutes, durationLabels)}</span>
-                  <DotSeparator />
-                  <span className="min-w-0 truncate" dir="auto">
-                    {visit.reason ?? noReason}
-                  </span>
-                </span>
-              </TimelineContent>
-            </Link>
-          </TimelineItem>
-        );
-      })}
-    </Timeline>
-  );
-}
+/* ── The two views ─────────────────────────────────────────────────────── */
 
 /* ── Shared parts ────────────────────────────────────────────────────────── */
 
