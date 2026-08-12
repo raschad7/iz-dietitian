@@ -51,22 +51,23 @@ export default async function PortalLayout({ children, params }: PortalLayoutPro
       they are both inside this wrapper, so they are only ever ranked against
       each other.
 
-      `relative` is the other half of that: the glow is `absolute`, not `fixed`
-      — it belongs to the top of the *page* and scrolls away with the header
-      rather than staying welded to the top of the screen while the meal cards
-      slide up through it. This wrapper is what it measures `top-0` against.
-      Stacking context and containing block are separate mechanisms, so both
-      declarations are needed and neither implies the other.
+      `relative` is the other half of that: it gives `HomeGlow` a containing
+      block to be `absolute` against — see the note there on why it moved off
+      `position: fixed`, and why the wash now belongs to the top of the *page*
+      rather than staying welded to the top of the screen while the cards slide
+      up through it. Stacking context and containing block are separate
+      mechanisms, so both declarations are needed and neither implies the other.
 
       `portal-shell` is the other hat this wrapper wears: it is the scope for
       the two portal-only rules in `globals.css` — the rail held back to `lg`,
-      and, on the home tab alone, the shell's own `<main>` unpainted so the
-      glow above can show through it. Both live beside `.portal-home-glow`.
+      and the shell's own `<main>` unpainted so the glow can show through it.
+      Both live beside `.portal-home-glow`.
 
-      This wrapper stays a `min-h-dvh` column that grows on every tab. It was a
-      `100dvh` frame on the home tab for a while, so that the meal list inside
-      it could be the only thing scrolling; see the ⚠ note beside that rule for
-      why the screen went back to scrolling as one document.
+      This wrapper is a `min-h-dvh` column that grows on every tab, home
+      included, and the window does the scrolling. It was a clipped `100dvh`
+      frame on the home tab for a while, so that the meal list inside it could
+      be the only thing that scrolled; the ⚠ note beside that rule records why
+      the screen went back to scrolling as one document.
     */
     <PortalTheme className="portal-shell relative isolate flex min-h-dvh flex-col bg-background text-foreground">
       {children}

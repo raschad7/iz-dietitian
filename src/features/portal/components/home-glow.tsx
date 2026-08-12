@@ -48,7 +48,10 @@ import { usePathname } from '@/i18n/navigation';
  * its bell, gear, greeting and name white at every width too — one rule, rather
  * than a pair of breakpoints that have to be kept in step. Getting that pairing
  * wrong is what made those controls invisible on an iPad: the glow stopped at
- * `md` and the white did not.
+ * `md` and the white did not. ⚠ That is the trap to remember if `md:hidden`
+ * is ever proposed again — it has to move together with `PortalHeader`'s
+ * `iconTone` and the greeting's own white, or the bell, the gear, the greeting
+ * and the client's name go white on a white page from 768px up.
  *
  * ## Why it is rendered from the layout, and why it knows its own route
  *
@@ -56,22 +59,21 @@ import { usePathname } from '@/i18n/navigation';
  * quietly broken: `(tabs)/template.tsx` is `.q-route-stage`, which carries
  * `animation: q-route-enter-* … both` — and that animation's `from` frame sets
  * a `transform`. **An ancestor with a transform becomes the containing block
- * for positioned descendants**, so `inset-0` stopped meaning "the whole shell"
- * and started meaning "the template's box": the glow began exactly where
- * `main`'s content began, left a gutter down each side the width of `main`'s
- * own `px-4`, and no amount of unfilling the header above it could make the
- * green reach the top, because the green was never up there to begin with.
+ * for `position: absolute`/`fixed` descendants**, so `inset-0` stopped meaning
+ * "the page" and started meaning "the template's box": the glow began exactly
+ * where `main`'s content began, left a gutter down each side the width of
+ * `main`'s own `px-4`, and no amount of unfilling the header above it could
+ * make the green reach the top, because the green was never up there to begin
+ * with. A transform captures both kinds of positioning, so this still applies
+ * now the wash is `absolute` rather than `fixed`.
  *
- * That still applies now the wash is `absolute` rather than `fixed` — a
- * transform captures both — so this must keep being rendered from the layout
- * and not from the page.
- *
- * Rendering it from `(tabs)/layout.tsx` puts it *outside* that stage, where
- * the offsets mean what they say. The cost is that the layout is shared by all
- * five tabs and cannot ask the router which one it is serving, so this reads
- * the path itself — the same `usePathname() === '/portal'` test `PortalHeader`
- * already makes to decide whether to draw the greeting, so the glow and the
- * unfilled header can never disagree about which screen is home.
+ * Rendering it from `(tabs)/layout.tsx` puts it *outside* that stage, where its
+ * own `relative` ancestor (`PortalTheme`) is the containing block instead. The
+ * cost is that the layout is shared by all five tabs and cannot ask the router
+ * which one it is serving, so this reads the path itself — the same
+ * `usePathname() === '/portal'` test `PortalHeader` already makes to decide
+ * whether to draw the greeting, so the glow and the unfilled header can never
+ * disagree about which screen is home.
  *
  * The other half of the fix is on the portal's own root: `PortalTheme` carries
  * `isolate`. Without a stacking context there, a `-z-10` element paints below
@@ -85,6 +87,11 @@ export function HomeGlow() {
   if (pathname !== '/portal') return null;
 
   return (
+    // `top-0 h-dvh`, not `inset-0`: the shell this is measured against is the
+    // whole document column, so `inset-0` would stretch the clip box the
+    // length of the page. One viewport tall from the top is the same box the
+    // old `fixed inset-0` gave it, which is what reproduces the original
+    // geometry exactly before the first scroll.
     <div
       aria-hidden="true"
       className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-dvh overflow-hidden"

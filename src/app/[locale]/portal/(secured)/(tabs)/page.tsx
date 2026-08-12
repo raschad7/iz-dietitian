@@ -110,19 +110,20 @@ export default async function PortalPage({ params, searchParams }: PortalPagePro
 
   return (
     /*
-      **`.portal-home` marks this screen for the shell above it**, which is the
-      only file in the chain that cannot see the route: it unpaints the shell's
-      own `<main>` so the green wash shows through the page. The rule and its
-      reasoning are in `globals.css`, beside `.portal-home-glow`.
+      **The page scrolls as one document**, like the other four portal tabs —
+      no `100dvh` frame, no separate scroll region inside `PortalPlan`'s meal
+      list.
 
-      **The page scrolls as one document**, like the other four tabs. It used to
-      be a `100dvh` frame — the marker switched on `portal-shell-*` hooks down
-      the whole chain and `PortalPlan`'s meal list was the single scrolling
-      region, with the picker and the commitment card pinned above it. That is
-      gone, hooks and all; the ⚠ note beside the rule in `globals.css` records
-      what it took and why it went.
+      It used to be both. This root carried a `.portal-home` marker that
+      switched on `portal-shell-*` hooks down the whole chain, so the shell
+      became a viewport-height frame and the meal list was the only thing that
+      moved, with the picker and the commitment card pinned above it. The
+      marker is gone with the frame — the one rule that still needed it, the
+      shell's own `<main>` going transparent so the glow shows through, applies
+      to every portal tab now rather than to this one. The ⚠ note beside that
+      rule in `globals.css` records what the frame took and why it went.
     */
-    <div className="portal-home space-y-4">
+    <div className="flex flex-col gap-4">
       {/*
         One provider over the strip, the ring, and the plan section below —
         see the module doc above and `plan-day-completion.tsx`. Today's cell

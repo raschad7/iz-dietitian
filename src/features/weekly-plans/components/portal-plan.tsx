@@ -104,12 +104,14 @@ export function PortalPlan({
       **An ordinary section that grows to its content.**
 
       ⚠ This was the bottom half of a frame the home page sized to the viewport:
-      `flex min-h-0 flex-1` here, `min-h-0` on every wrapper up to the shell,
-      and an `overflow-y-auto` on the list below, so the meals scrolled inside
+      `flex min-h-0 flex-1` here, `min-h-0` on every wrapper up to the shell, and
+      an `overflow-y-auto` on the list below, so the meals scrolled inside
       themselves while the picker and the commitment card above stayed pinned.
       That frame is gone — the home tab scrolls as one document like the other
-      four — and the ⚠ note beside the `.portal-home` rule in `globals.css` has
-      the reasoning. Nothing here sizes itself to anything now.
+      four — and the ⚠ note in `globals.css`, beside the rule that unpaints the
+      shell's `<main>`, has the reasoning. Nothing here sizes itself to anything
+      now, and the list below carries no overflow rules of its own: the window
+      does the scrolling.
 
       `todayMealsHeading` names the block rather than restating the day: it used
       to repeat the selected day's name and full date directly under
@@ -120,32 +122,16 @@ export function PortalPlan({
       above it (`home-today.tsx`) but not white — this section sits on the
       page's own white column, not on the home glow that heading answers to.
     */
-    <section className="space-y-4 text-start">
+    <section className="flex flex-col gap-4 text-start">
       <p className="text-sm font-medium text-muted-foreground">{t('todayMealsHeading')}</p>
 
       {meals.length === 0 ? (
         <EmptyState icon="dish" title={t('emptyDayTitle')} description={t('emptyDayHint')} />
       ) : (
-        /*
-          The day's meals, in the page's own scroll.
-
-          This used to be the single scrolling region on the home screen —
-          `min-h-0 flex-1 overflow-y-auto overflow-x-hidden`, carrying the day's
-          overflow so the picker above it could stay pinned. It does not any
-          more: the list is as tall as the day is long and the window scrolls
-          past it, which also retires the `overflow-x-hidden` that was there
-          only to stop the CSS Overflow spec's visible/non-visible pairing rule
-          growing a second, horizontal bar beside the vertical one.
-
-          The day's own energy total is not here either. It shows once, on the
-          commitment card above (`home-today.tsx`), so the list starts directly
-          on the meals rather than restating a figure that card already states.
-
-          `-mx-1 px-1` stays. It is not scroll-edge padding — it gives the
-          cards' focus rings and hairlines room to paint outside the column
-          without being clipped by anything upstream.
-        */
-        <ul className="-mx-1 space-y-2 px-1 pb-1">
+        // The day's own energy total is not here. It shows once, on the
+        // commitment card above (`home-today.tsx`), so the list starts directly
+        // on the meals rather than restating a figure that card already states.
+        <ul className="space-y-2">
           {meals.map((meal) => (
             <li key={meal.id}>
               <PortalMealCard meal={meal} standing={standing} completed={completed.has(meal.id)} />

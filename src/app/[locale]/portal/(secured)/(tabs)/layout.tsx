@@ -71,10 +71,11 @@ export default async function PortalTabsLayout({ children, params }: PortalTabsL
         They existed to make the home tab a viewport-height frame with the meal
         list as its one scrolling region; that screen scrolls as an ordinary
         document now, and the classes were left naming a rule that no longer
-        exists. What survives of that chain is a single `:has(.portal-home)`
-        rule unpainting `AppShell`'s own `<main>` so the glow shows through —
-        in `globals.css`, beside `.portal-home-glow`, with the ⚠ note on what
-        was removed.
+        exists. What survives of that chain is one rule unpainting `AppShell`'s
+        own `<main>` so the glow shows through — in `globals.css`, beside
+        `.portal-home-glow`, with the ⚠ note on what was removed. It applies to
+        every portal tab rather than only the home route, which is why the page
+        no longer marks its own root either.
       */}
       <AppShell items={PORTAL_NAV} title={t('title')} showTitle={false} icons={PORTAL_NAV_ICONS}>
         {/*

@@ -1307,65 +1307,6 @@
 }
 
 /*
- * ── The home glow shows through the page ──
- *
- * On the client's home tab the shell's own `<main>` goes transparent, so the
- * fixed green wash behind the page is visible through it.
- *
- * `[data-slot="sidebar-inset"]` is the `<main>` shadcn's sidebar renders as the
- * page itself. It is opaque by default, and it is the box the glow has to show
- * through — which means the whole of it, header included: `PortalHeader` sits
- * inside this wrapper so that its column and `main`'s are centred against the
- * same box and the `fixed` rail stops painting over the bar's inline-start
- * 256px (see `(tabs)/layout.tsx`). With the background left in place the glow is
- * clipped hard instead of fading, and reads as a flat green band rather than a
- * wash. The primitive exposes no `className` through `AppShell`'s own props, so
- * `data-slot` — which it sets regardless — is the only hook available.
- *
- * ⚠ **Unlayered, and that is the whole reason this sits here rather than in
- * `@layer components` with the rest of the app's own classes.** It overrides
- * `bg-background`, a Tailwind utility written on the very element it targets,
- * baked into `src/components/ui/sidebar.tsx`. Cascade layers are decided by
- * layer order *before* specificity is ever consulted, and Tailwind emits
- * `@layer utilities` after `@layer components` — so a component-layer rule
- * loses to any utility no matter how many `:has()` and attribute selectors it
- * carries. This one spent time in that layer and silently did nothing: the
- * shell kept painting opaque white over the glow, leaving green only in the
- * strip behind the unfilled header — the exact "flat green band rather than a
- * wash" it was written to prevent. Unlayered beats every layer, which is the
- * same mechanism the `:lang(ar)` font swap above depends on and for the same
- * reason. **Do not fold this back into a layer.**
- *
- * **Why a `:has()` rule and not a conditional class name.** The wrapper is
- * rendered by files that cannot see the route — `portal/layout.tsx` owns the
- * shell and `(tabs)/layout.tsx` owns `AppShell` — and only `(tabs)/page.tsx`
- * knows it is the home screen. That page marks its own root `.portal-home`, and
- * the shell reacts. The alternative was another `usePathname()` client
- * component in the layout, the trick `HomeGlow` is forced into because it
- * renders an element of its own; here there is no element to render, only an
- * ancestor to unpaint, so the declarative version is both smaller and immune to
- * the route and the class disagreeing. It is scoped to `.portal-shell` as well,
- * so the staff app's own `AppShell` — same primitive — is untouched.
- *
- * ⚠ **This screen used to be a fixed `100dvh` frame**, with the meal list as
- * the only scrolling region and everything above it — greeting, commitment
- * card, day picker, the day's energy line — held still. That took a `height`
- * and an `overflow: hidden` here, `min-height: 0` on every wrapper between this
- * and the list, and `flex` columns forced onto `.portal-shell-main`,
- * `.portal-shell-column` and `.q-route-stage`.
- *
- * It is gone. A screen that scrolls in two places is a screen a client has to
- * work out — a swipe over the cards moved the list, the same swipe over the
- * card above it moved nothing — and on a short phone the frame left the list a
- * few rows tall underneath chrome that would not get out of its way. The home
- * tab now scrolls as one document, like the other four. Nothing was gained by
- * pinning the picker that a scroll back up does not also give.
- *
- * Rebuilding it means rebuilding that whole chain: the class hooks it needed
- * are gone from `(tabs)/layout.tsx` too, and `portal-plan.tsx` no longer sizes
- * its list to the space left over.
- */
-/*
  * ── The portal keeps the phone layout until `lg` ──
  *
  * `Sidebar` turns its rail on at `md` (768px), which is the right breakpoint
@@ -1435,7 +1376,57 @@
   }
 }
 
-.portal-shell:has(.portal-home) [data-slot='sidebar-inset'] {
+/*
+ * ── Letting the home glow show through `AppShell`'s own `<main>` ──
+ *
+ * `[data-slot="sidebar-inset"]` is the `<main>` shadcn's sidebar renders as the
+ * page itself, opaque `bg-background` by default (`sidebar.tsx`), and it is the
+ * box the glow has to show through — the whole of it, header included, because
+ * `PortalHeader` sits *inside* this wrapper so that its column and `main`'s are
+ * centred against the same box and the fixed rail stops painting over the bar's
+ * inline-start 256px (see `(tabs)/layout.tsx`). Left opaque it paints flat white
+ * from the header's lower edge down, clipping the wash into a hard band instead
+ * of letting it fade the way `.portal-home-glow`'s own blur intends.
+ *
+ * **Transparent everywhere rather than scoped to the home route.** The other
+ * four tabs have no glow behind them to reveal, so this only lets
+ * `.portal-shell`'s own `bg-background` (`portal/layout.tsx`) show through
+ * instead — the same white, one layer down. That is also what retires the
+ * `.portal-home` marker the page used to set for this rule's benefit.
+ *
+ * The primitive exposes no `className` through `AppShell`'s own props, so
+ * `data-slot` — which it sets regardless — is the only hook available.
+ *
+ * ⚠ **Unlayered, and that is the whole reason this sits here rather than in
+ * `@layer components` with the rest of the app's own classes.** It overrides
+ * `bg-background`, a Tailwind utility written on the very element it targets.
+ * Cascade layers are decided by layer order *before* specificity is ever
+ * consulted, and Tailwind emits `@layer utilities` after `@layer components` —
+ * so a component-layer rule loses to any utility no matter how many attribute
+ * selectors it carries. This one spent time in that layer and silently did
+ * nothing: the shell kept painting opaque white over the glow, leaving green
+ * only in the strip behind the unfilled header — the exact "flat green band
+ * rather than a wash" it was written to prevent. Unlayered beats every layer,
+ * which is the same mechanism the `:lang(ar)` font swap above depends on and
+ * for the same reason. **Do not fold this back into a layer.**
+ *
+ * ⚠ **The home screen used to be a fixed `100dvh` frame**, and a much larger
+ * block lived here to build it: a `height` and an `overflow: hidden` on the
+ * shell, `min-height: 0` on every wrapper down to the meal list, and `flex`
+ * columns forced onto `.portal-shell-main`, `.portal-shell-column` and
+ * `.q-route-stage`. The list was the only thing that scrolled; the picker and
+ * the commitment card above it were pinned.
+ *
+ * It is gone. A screen that scrolls in two places is a screen a client has to
+ * work out — a swipe over the cards moved the list, the same swipe over the
+ * card above it moved nothing — and on a short phone the frame left the list a
+ * few rows tall underneath chrome that would not get out of its way. The home
+ * tab now scrolls as one document, like the other four. Rebuilding it means
+ * rebuilding that whole chain: the class hooks it needed are gone from
+ * `(tabs)/layout.tsx` too, and `portal-plan.tsx` no longer sizes its list to
+ * the space left over.
+ */
+.portal-shell [data-slot='sidebar-inset'] {
   background: transparent;
 }
 
@@ -1672,14 +1663,14 @@
   }
 
   /*
-   * ── The home screen's transparent shell ──
+   * ── The portal shell's transparent `<main>` ──
    *
-   * ⚠ **Moved out of this layer.** `.portal-shell:has(.portal-home)` is
-   * unlayered, just above `@layer base` in this file. It overrides a Tailwind
-   * utility on the element it targets, and a rule in `@layer components` loses
-   * to `@layer utilities` on layer order alone no matter how specific it is.
-   * The whole reasoning — including what broke while it sat here — is in the
-   * block there.
+   * ⚠ **Moved out of this layer.** `.portal-shell [data-slot='sidebar-inset']`
+   * is unlayered, just above `@layer base` in this file. It overrides a
+   * Tailwind utility on the element it targets, and a rule in
+   * `@layer components` loses to `@layer utilities` on layer order alone no
+   * matter how specific it is. The whole reasoning — including what broke while
+   * it sat here — is in the block there.
    */
 
   /*
