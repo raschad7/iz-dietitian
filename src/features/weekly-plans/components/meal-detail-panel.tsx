@@ -20,9 +20,11 @@ import { SERVING_STEP, snapServings } from '../similar';
 
 import { swapMealAction } from '../actions';
 import { initialPlanActionState } from '../form-state';
-import type { BoardMeal, SwapCandidate } from '../queries';
+import type { BoardMeal, CatalogEntry, SwapCandidate } from '../queries';
+import type { RecentUse } from '../usage';
 
 import { useEditorActions } from './board-dnd';
+import { DishCatalog } from './dish-catalog';
 
 /**
  * Everything about one meal: what it is, what it contains, why it was chosen, and
@@ -35,6 +37,8 @@ import { useEditorActions } from './board-dnd';
 export function MealDetailPanel({
   meal,
   candidates,
+  catalog,
+  usage,
   planId,
   locale,
   editable,
@@ -45,6 +49,9 @@ export function MealDetailPanel({
 }: {
   meal: BoardMeal;
   candidates: readonly SwapCandidate[];
+  /** The whole catalog, so an empty slot can be filled without leaving the panel. */
+  catalog: readonly CatalogEntry[];
+  usage: Record<string, RecentUse>;
   planId: string;
   locale: string;
   editable: boolean;
@@ -55,7 +62,59 @@ export function MealDetailPanel({
   embedded?: boolean;
 }) {
   const t = useTranslations('weeklyPlans');
-  const { clear, remove } = useEditorActions();
+  const { clear, place, remove } = useEditorActions();
+
+  /*
+   * An empty slot opens straight onto the catalog.
+   *
+   * The panel used to answer the click with a title, a short list and a button
+   * that opened the catalog *somewhere else* — two steps and two surfaces to
+   * answer the only question an empty slot asks. The catalog already defaults
+   * its filters to the open slot's meal type and ranks by fit to its budget, so
+   * dropping it in here loses nothing and removes the step: click the slot, pick
+   * the dish, done. Filling it closes the panel, because the question is
+   * answered.
+   */
+  if (editable && !meal.dish) {
+    return (
+      <div className="flex h-full min-h-0 flex-col overflow-hidden">
+        <div className={cn('shrink-0 border-b border-border pb-3', embedded && 'pe-10')}>
+          <p className="text-caption text-muted-foreground">
+            {meal.label} · {meal.timeOfDay}
+          </p>
+          <h3 className="mt-1 font-heading text-heading-sm font-semibold leading-snug">
+            {t('fillSlot')}
+          </h3>
+        </div>
+
+        <div className="min-h-0 flex-1 pt-3">
+          <DishCatalog
+            catalog={catalog}
+            usage={usage}
+            slot={{ slotKey: meal.slotKey, budgetKcal: meal.budgetKcal }}
+            editable={editable}
+            onPick={(dish, servings) => {
+              place(meal.id, dish, servings);
+              onClose();
+            }}
+          />
+        </div>
+
+        <section className="flex shrink-0 gap-3 border-t border-border pt-3">
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            className="min-w-0 flex-1"
+            onClick={() => remove(meal.id)}
+          >
+            <Icon name="trash" />
+            {t('removeMeal')}
+          </Button>
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
@@ -80,6 +139,8 @@ export function MealDetailPanel({
       <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain pt-4">
         {meal.dish && <Portion meal={meal} editable={editable} />}
 
+        {/* Only a filled slot gets here: an empty one is answered by the catalog
+            above, which is the same question asked earlier. */}
         {editable && meal.dish && (
           <section className="mt-5">
             <div className="flex items-baseline justify-between gap-2 pb-2">
@@ -94,6 +155,7 @@ export function MealDetailPanel({
             )}
 
             <Button type="button" variant="outline" className="mt-3 w-full" onClick={onBrowseDishes}>
+              <Icon name="dishes" />
               {t('browseAllDishes')}
             </Button>
           </section>
@@ -372,7 +434,13 @@ function SwapButton({
   );
 }
 
-function SwapSubmit({ children, flagged }: { children: React.ReactNode; flagged?: boolean }) {
+function SwapSubmit({
+  children,
+  flagged,
+}: {
+  children: React.ReactNode;
+  flagged?: boolean;
+}) {
   const { pending } = useFormStatus();
   const t = useTranslations('weeklyPlans');
 

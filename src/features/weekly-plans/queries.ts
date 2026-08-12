@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, gte, ilike, inArray, lt, ne, or, sql, type SQL } from 'drizzle-orm';
+import { and, asc, count, desc, eq, gt, gte, ilike, inArray, lt, ne, or, sql, type SQL } from 'drizzle-orm';
 
 import { db } from '@/db';
 import {
@@ -13,9 +13,10 @@ import {
   weeklyPlans,
   type MealSlot,
 } from '@/db/schema';
+import { wallClockIn, type WallClock } from '@/features/booking/completed';
 import { calculateAge } from '@/features/clients/age';
 import { clientSeq } from '@/features/clients/seq';
-import { toIsoDate } from '@/lib/iso-date';
+import { DISPLAY_TIME_ZONE } from '@/lib/format';
 
 import type { CatalogDish } from './generate';
 import {
@@ -357,9 +358,9 @@ export type PlannableClient = {
   hasProfile: boolean;
   latestPlanStatus: string | null;
   latestWeekStartDate: string | null;
-  /** Soonest booked visit today or later, used to order the planner's first screen. */
+  /** Soonest visit that has not started yet, used to order the planner's first screen. */
   nextAppointment: { date: string; startMinute: number } | null;
-  /** Most recent visit before today, used when nothing is booked next. */
+  /** Most recent visit that has already started, used when nothing is booked next. */
   lastAppointment: { date: string; startMinute: number } | null;
 };
 
@@ -372,8 +373,31 @@ export type PlannableClient = {
  */
 export async function listPlannableClients(
   clinicId: string,
-  today = toIsoDate(new Date()),
+  /**
+   * The clinic's wall clock, not the server's date alone.
+   *
+   * The split between "next" and "last" is a *moment*, not a day: a 09:00 visit
+   * read at 17:00 is over, and calling it the next appointment on the planner's
+   * first screen is the one thing on that card a dietitian can check against
+   * their own morning — so getting it wrong makes the whole suggestion look
+   * invented. Read in the clinic's zone for the same reason the calendar is:
+   * appointments are clinic-local, and the server may be anywhere.
+   */
+  now: WallClock = wallClockIn(DISPLAY_TIME_ZONE),
 ): Promise<PlannableClient[]> {
+  const { date: today, minute } = now;
+
+  // Not started yet: any later day, or today at or after this minute.
+  const upcoming = or(
+    gt(appointments.date, today),
+    and(eq(appointments.date, today), gte(appointments.startMinute, minute)),
+  );
+  // Its exact complement, so every appointment falls in one bucket or the other.
+  const past = or(
+    lt(appointments.date, today),
+    and(eq(appointments.date, today), lt(appointments.startMinute, minute)),
+  );
+
   /**
    * The newest plan per client, via `DISTINCT ON` — PostgreSQL's own answer to
    * "the first row of each group".
@@ -418,7 +442,7 @@ export async function listPlannableClients(
         startMinute: appointments.startMinute,
       })
       .from(appointments)
-      .where(and(eq(appointments.clinicId, clinicId), gte(appointments.date, today)))
+      .where(and(eq(appointments.clinicId, clinicId), upcoming))
       .orderBy(asc(appointments.clientId), asc(appointments.date), asc(appointments.startMinute)),
     db
       .selectDistinctOn([appointments.clientId], {
@@ -427,13 +451,20 @@ export async function listPlannableClients(
         startMinute: appointments.startMinute,
       })
       .from(appointments)
-      .where(and(eq(appointments.clinicId, clinicId), lt(appointments.date, today)))
+      .where(and(eq(appointments.clinicId, clinicId), past))
       .orderBy(desc(appointments.clientId), desc(appointments.date), desc(appointments.startMinute)),
   ]);
 
   const latestByClient = new Map(planRows.map((row) => [row.clientId, row]));
-  const nextAppointmentByClient = new Map(nextAppointmentRows.map((row) => [row.clientId, row]));
-  const lastAppointmentByClient = new Map(lastAppointmentRows.map((row) => [row.clientId, row]));
+  // The date and the minute only: the row also carries the client id it was
+  // grouped by, and leaving it on the value would put a field in the returned
+  // shape that the type never promised and the card has no use for.
+  const visit = (row: { date: string; startMinute: number }): { date: string; startMinute: number } => ({
+    date: row.date,
+    startMinute: row.startMinute,
+  });
+  const nextAppointmentByClient = new Map(nextAppointmentRows.map((row) => [row.clientId, visit(row)]));
+  const lastAppointmentByClient = new Map(lastAppointmentRows.map((row) => [row.clientId, visit(row)]));
 
   return clientRows.map((row) => {
     const latest = latestByClient.get(row.id);

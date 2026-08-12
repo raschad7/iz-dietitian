@@ -16,6 +16,7 @@ import {
 
 import type { DishDetail } from '@/features/weekly-plans/nutrition';
 import { toast } from '@/components/ui/toast';
+import { cn } from '@/lib/utils';
 
 import {
   addMealAction,
@@ -116,6 +117,17 @@ export function BoardEditor({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<EditErrorKey | null>(null);
   const [dragging, setDragging] = useState<DragPayload | null>(null);
+  /**
+   * The size of the card that was lifted, so the thing under the pointer is the
+   * size of the thing it came from.
+   *
+   * The overlay used to be a fixed `w-40` regardless of source: lifting a board
+   * card in a wide column visibly shrank it, and a catalog row — a full-width
+   * strip — became a small card the moment it left the drawer. dnd-kit measures
+   * the source node at drag start, so the real dimensions are already there for
+   * the asking.
+   */
+  const [dragSize, setDragSize] = useState<{ width: number; height: number } | null>(null);
   const [settledMealId, setSettledMealId] = useState<string | null>(null);
   const moveToastSequence = useRef(0);
 
@@ -197,14 +209,33 @@ export function BoardEditor({
     setSettledMealId(null);
     const payload = (event.active.data.current as DragPayload | undefined) ?? null;
     setDragging(payload);
+
+    const rect = event.active.rect.current.initial;
+    setDragSize(rect ? { width: rect.width, height: rect.height } : null);
+
     if (payload?.kind === 'dish') onDishDragStart?.();
   }
 
-  function onDragEnd(event: DragEndEvent): void {
+  function endDrag(): void {
     setDragging(null);
+    setDragSize(null);
+  }
 
+  function onDragEnd(event: DragEndEvent): void {
+    /*
+     * The payload captured at drag start, not `event.active.data.current`.
+     *
+     * dnd-kit reads that through the source node's own ref, and a dish drag
+     * closes the catalog — so by the time the drop lands the row that was lifted
+     * has unmounted and the ref holds an empty object. That is not a missing
+     * payload the guard below catches: `{}` is truthy, fails the `dish` test,
+     * and fell through to the meal branch, where reading `preview.dishName` threw
+     * and the dish was never placed. The drag we started is the drag we finish.
+     */
+    const payload = dragging;
     const target = event.over?.data.current as { mealId: string } | undefined;
-    const payload = event.active.data.current as DragPayload | undefined;
+
+    endDrag();
 
     if (!target || !payload || !editable) return;
 
@@ -259,7 +290,7 @@ export function BoardEditor({
         sensors={sensors}
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
-        onDragCancel={() => setDragging(null)}
+        onDragCancel={endDrag}
       >
         <EditorActionsContext.Provider
           value={{
@@ -268,6 +299,14 @@ export function BoardEditor({
                 mealId,
                 servings,
               });
+            },
+            place: (mealId, dish, servings) => {
+              runAction({ kind: 'place', mealId, dish, servings }, placeDishAction, {
+                mealId,
+                dishId: dish.id,
+                servings,
+              });
+              setSettledMealId(mealId);
             },
             clear: (mealId) => {
               runAction({ kind: 'clear', mealId }, clearMealAction, { mealId });
@@ -301,16 +340,30 @@ export function BoardEditor({
         </EditorActionsContext.Provider>
 
         <DragOverlay dropAnimation={{ duration: 240, easing: 'cubic-bezier(.16,1,.3,1)' }}>
-          {dragging ? <DragPreview payload={dragging} /> : null}
+          {dragging ? <DragPreview payload={dragging} size={dragSize} /> : null}
         </DragOverlay>
       </DndContext>
     </EditorContext.Provider>
   );
 }
 
-function DragPreview({ payload }: { payload: DragPayload }) {
+function DragPreview({
+  payload,
+  size,
+}: {
+  payload: DragPayload;
+  size: { width: number; height: number } | null;
+}) {
   const isMeal = payload.kind === 'meal';
   const name = isMeal ? payload.preview.dishName : payload.dish.nameAr;
+
+  /*
+   * A lifted card keeps the size it had in its column; a dish lifted out of the
+   * catalog does not, because the row it came from is a full-width strip and the
+   * thing it is about to become is a card. So the meal drag is measured and the
+   * dish drag falls back to the card's own width.
+   */
+  const measured = isMeal && size ? { width: size.width, height: size.height } : undefined;
 
   return (
     /*
@@ -323,24 +376,39 @@ function DragPreview({ payload }: { payload: DragPayload }) {
      * label and time are gone from it for the same reason they are gone from
      * the card — they belong to the row, and a card in flight is between rows.
      */
-    <div className="w-40 rotate-[0.5deg] scale-[1.02] overflow-hidden rounded-lg border border-primary bg-card shadow-overlay">
-      <p
-        className="line-clamp-2 px-3 pt-3 text-center font-heading text-body-md font-semibold leading-relaxed [text-wrap:balance]"
-        dir="auto"
-      >
-        {name}
-      </p>
+    /*
+     * No rotation and no scale either. Both were the same mistake as the fixed
+     * width in a different register: the card the pointer picked up has to be
+     * the card it put down, and a tilt is a second, smaller lie about what is
+     * being moved. What says "lifted" now is the shadow, which is what depth is
+     * for.
+     */
+    <div
+      style={measured}
+      className={cn(
+        'flex cursor-grabbing flex-col overflow-hidden rounded-lg border border-primary bg-card shadow-overlay',
+        !measured && 'w-40',
+      )}
+    >
+      <span className="flex min-h-0 flex-1 items-center justify-center px-2 pt-2">
+        <span
+          className="line-clamp-2 text-center font-heading text-body-md font-medium leading-snug [text-wrap:balance]"
+          dir="auto"
+        >
+          {name}
+        </span>
+      </span>
 
       {isMeal && (
-        <div className="mt-2 flex items-baseline justify-between border-t border-border px-3 pb-2 pt-2">
-          <strong className="text-body-sm font-semibold tabular-nums" dir="ltr">
-            {payload.preview.kcal}{' '}
+        <span className="mt-1 flex shrink-0 items-baseline justify-between gap-2 px-2 pb-1.5 pt-2.5">
+          <span className="inline-flex items-baseline gap-1 text-body-sm font-semibold tabular-nums" dir="ltr">
+            {payload.preview.kcal}
             <small className="text-caption font-normal text-muted-foreground">kcal</small>
-          </strong>
-          <span className="text-caption text-muted-foreground" dir="ltr">
+          </span>
+          <span className="shrink-0 text-caption text-muted-foreground" dir="ltr">
             ×{payload.preview.servings}
           </span>
-        </div>
+        </span>
       )}
     </div>
   );
@@ -348,6 +416,14 @@ function DragPreview({ payload }: { payload: DragPayload }) {
 
 /** The edits a card or column can trigger without a drag. */
 type EditorActions = {
+  /**
+   * Puts a dish in a slot without a drag.
+   *
+   * The same edit the drop handler runs, reachable by a click — which is what
+   * the catalog inside the meal inspector needs, and what a keyboard has always
+   * needed.
+   */
+  place: (mealId: string, dish: DishDetail, servings: number) => void;
   setServings: (mealId: string, servings: number) => void;
   clear: (mealId: string) => void;
   remove: (mealId: string) => void;

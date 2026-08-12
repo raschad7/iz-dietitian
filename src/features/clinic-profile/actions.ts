@@ -39,7 +39,7 @@ export async function saveClinicInformationAction(
 
   try {
     if (!(await saveClinicInformation(clinicId, parsed.data.clinic!))) return { status: 'error', messageKey: 'unexpected' };
-    revalidatePath(`/${locale}/app/profile`);
+    revalidatePath(`/${locale}/app/settings/clinic`);
     return { status: 'success', messageKey: 'saved' };
   } catch (error) {
     console.error('[clinic-profile] clinic information save failed', error);
@@ -60,7 +60,7 @@ export async function saveWeeklyScheduleAction(
     const schedule = parsed.data.schedule!;
     const conflictCount = await countFutureScheduleConflicts(clinicId, schedule.days, today());
     await saveWeeklySchedule(clinicId, schedule);
-    revalidatePath(`/${locale}/app/profile`);
+    revalidatePath(`/${locale}/app/settings/clinic`);
     revalidatePath(`/${locale}/app/calendar`);
     return conflictCount > 0
       ? { status: 'warning', messageKey: 'scheduleConflict', conflictCount }
@@ -84,7 +84,7 @@ export async function saveProfessionalProfileAction(
     if (!(await saveProfessionalProfile(clinicId, session.user.id, parsed.data.professional!))) {
       return { status: 'error', messageKey: 'unexpected' };
     }
-    revalidatePath(`/${locale}/app/profile`);
+    revalidatePath(`/${locale}/app/settings/profile`);
     return { status: 'success', messageKey: 'saved' };
   } catch (error) {
     console.error('[clinic-profile] professional profile save failed', error);
