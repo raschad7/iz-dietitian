@@ -3,11 +3,11 @@ import type { Metadata } from 'next';
 
 import { EmptyState } from '@/components/ui/empty-state';
 import { HomeToday, type HomeTodayMeal } from '@/features/portal/components/home-today';
-import { loadDashboard, loadPlanPage } from '@/features/portal/page-data';
+import { loadPlanPage } from '@/features/portal/page-data';
 import { planSearchSchema } from '@/features/portal/schema';
 import { requirePortalClient } from '@/features/portal/session';
 import { PlanDayCompletionProvider } from '@/features/weekly-plans/components/plan-day-completion';
-import { PortalPlan } from '@/features/weekly-plans/components/portal-plan';
+import { PlanDayPicker, PortalPlan } from '@/features/weekly-plans/components/portal-plan';
 import { roundForDisplay } from '@/features/weekly-plans/nutrition';
 import { resolveLocale } from '@/i18n/params';
 
@@ -26,9 +26,14 @@ export async function generateMetadata({ params }: PortalPageProps): Promise<Met
  * The portal's landing page: how the week is going, the plan behind it, and
  * when the client is next seen.
  *
- * **Two sections, in one order.** Today's own commitment figure, then the
- * plan itself — both about what the client is doing today, read in the order
- * a phone screen naturally scrolls.
+ * **Three pieces, in one order.** Which day is being read, then that day's
+ * own commitment figure, then that day's meals — `PlanDayPicker` chooses,
+ * and everything under it, including the ring, answers for whichever day it
+ * chose. `PlanDayPicker` sits where a three-day yesterday/today/tomorrow
+ * glance used to live in the header above this page (`portal-header.tsx`,
+ * still shared chrome for the other four tabs) — that glance chose nothing
+ * and duplicated names this picker already states, so it is gone rather than
+ * kept beside the picker that actually does the choosing.
  *
  * The week's own average-adherence card is gone from here — it repeated the
  * same fraction `WeekAdherenceSummary` already owns on the progress tab, once
@@ -46,32 +51,35 @@ export async function generateMetadata({ params }: PortalPageProps): Promise<Met
  * The pending-request note is gone too — the bell's dot and the drawer's count
  * both carry it now, and a third copy on the page said nothing new.
  *
- * **The plan lives here now, not on its own tab.** `PortalPlan`, directly
- * under `HomeToday`'s ring, is the exact component the standalone meal-plan
- * screen used to render: the same day strip (`?day=` chooses today, yesterday
- * or a day ahead), the same read-only-past/editable-today/read-only-future
- * rule (`dayStanding`), and the same meal cards. Nothing about that logic was
- * copied — the component just moved, and the tab that used to point at it is
- * gone.
+ * **The plan lives here now, not on its own tab.** `PlanDayPicker` and
+ * `PortalPlan` together are the exact component the standalone meal-plan
+ * screen used to render, since split around the commitment card — the same
+ * day strip (`?day=` chooses today, yesterday or a day ahead), the same
+ * read-only-past/editable-today/read-only-future rule (`dayStanding`), and
+ * the same meal cards. Nothing about that logic was copied — the component
+ * just moved (and later split), and the tab that used to point at it is gone.
  *
  * **One week strip, not two.** The standalone `WeekAdherenceStrip` that used
- * to sit above `HomeToday` is gone from this screen — `PortalPlan`'s own day
- * strip (`plan-day-strip.tsx`) drew the same seven days one section down, and
- * a client moving between them in one glance was reading the same week
+ * to sit above `HomeToday` is gone from this screen — `PlanDayPicker`'s own
+ * day strip (`plan-day-strip.tsx`) drew the same seven days one section down,
+ * and a client moving between them in one glance was reading the same week
  * twice, only one copy of it clickable. `PlanDayStrip`'s today cell now
  * renders `TodayFlameCell`, the same live/celebrating flame the old top
  * strip drew, so nothing about that mark — the claim dialog, the flight
  * animation — was lost in the merge, only its second, non-interactive copy.
  *
  * **One completion provider for the whole page, not one per section.** The
- * plan's own day strip, `HomeToday`'s ring, and `PortalPlan`'s meal list
- * (when it is showing today) all read the same `PlanDayCompletionProvider`,
- * keyed to today's own day — see `plan-day-completion.tsx`. `PortalPlan` no
- * longer mounts a provider of its own for exactly this reason: a second,
- * independent one would let a tick inside the plan's meal list and the ring
- * above it drift out of sync. When the plan section is showing a day other
- * than today, this same provider is simply unused by it — `MealCheck` never
- * renders on a past or future day, so there is nothing there to reach for it.
+ * picker's own day strip, `HomeToday`'s ring, and `PortalPlan`'s meal list
+ * all read the same `PlanDayCompletionProvider`, keyed to the *open* day —
+ * `plan?.selectedDay`, remounted (`key={plan?.selectedDay}`) each time it
+ * changes — see `plan-day-completion.tsx`. Neither component mounts a
+ * provider of its own for exactly this reason: a second, independent one
+ * would let a tick inside the plan's meal list and the ring above it drift
+ * out of sync. Ticking only ever happens on today's own day regardless of
+ * which one is open — `MealCheck` never renders on a past or future day, so
+ * `toggle` is simply unused by the provider on any other day, while the
+ * ring and the strip still read its live completed/total counts for
+ * whichever day that is.
  */
 export default async function PortalPage({ params, searchParams }: PortalPageProps) {
   const locale = await resolveLocale(params);
@@ -80,17 +88,19 @@ export default async function PortalPage({ params, searchParams }: PortalPagePro
 
   const { day } = planSearchSchema.parse(await searchParams);
 
-  const [{ today, todayCompletedMealIds }, plan] = await Promise.all([
-    loadDashboard(context),
-    loadPlanPage(context, day),
-  ]);
+  const plan = await loadPlanPage(context, day);
 
   const t = await getTranslations('portal');
+
+  // The open day's own board row, not always today's — `HomeToday`'s ring
+  // now answers for whichever day `PlanDayPicker` chose, the same day
+  // `PortalPlan` renders meals for below it.
+  const selectedBoardDay = plan?.board.days.find((candidate) => candidate.dayOfWeek === plan.selectedDay);
 
   // Only the shape `HomeToday` draws crosses into its client bundle — the
   // dish, options and rationale on each `BoardMeal` stay server-side, same
   // reasoning `portal-plan.tsx` documents for the plan section itself.
-  const todayMeals: HomeTodayMeal[] = (today?.meals ?? []).map((meal) => ({
+  const selectedMeals: HomeTodayMeal[] = (selectedBoardDay?.meals ?? []).map((meal) => ({
     id: meal.id,
     slotKey: meal.slotKey,
     label: meal.label,
@@ -106,27 +116,37 @@ export default async function PortalPage({ params, searchParams }: PortalPagePro
       the only one in the chain that knows which tab it is. The shell then
       becomes a `100dvh` frame and this column the flex chain down to
       `PortalPlan`'s meal list, which is the single scrolling region on the
-      screen — the greeting, the commitment card, the day picker and the day's
-      energy line all stay put. The rule and its reasoning are in `globals.css`,
-      beside `.portal-home-glow`.
+      screen — the greeting, the day picker and the commitment card all stay
+      put. The rule and its reasoning are in `globals.css`, beside
+      `.portal-home-glow`.
 
       `gap-4` rather than `space-y-4`: same rhythm, in the unit a flex column
       distributes.
     */
     <div className="portal-home flex min-h-0 flex-1 flex-col gap-4">
       {/*
-        One provider over the strip, today's ring, and the plan section below
-        — see the module doc above and `plan-day-completion.tsx`. Today's cell
+        One provider over the strip, the ring, and the plan section below —
+        see the module doc above and `plan-day-completion.tsx`. Today's cell
         in the strip needs the same live completed/total counts the ring and
         the plan's own meal list read, so that ticking the last meal moves all
         three the instant it happens rather than waiting on `router.refresh()`.
+
+        `key={plan?.selectedDay}`: scoped to the *open* day now, not always
+        today, so switching days has to remount rather than patch — the
+        `Set` inside starts from `initialCompletedMealIds` only on mount, and
+        without a fresh key a day switch would keep showing the previous
+        day's ticks until the next full reload. See the "Reset by key" note
+        in `plan-day-completion.tsx`.
       */}
       <PlanDayCompletionProvider
-        dayOfWeek={today?.dayOfWeek ?? 0}
-        mealIds={todayMeals.map((meal) => meal.id)}
-        initialCompletedMealIds={todayCompletedMealIds}
+        key={plan?.selectedDay ?? 0}
+        dayOfWeek={plan?.selectedDay ?? 0}
+        mealIds={selectedMeals.map((meal) => meal.id)}
+        initialCompletedMealIds={plan?.completedMealIds ?? []}
       >
-        <HomeToday meals={todayMeals} />
+        {plan ? <PlanDayPicker days={plan.days} selectedDay={plan.selectedDay} /> : null}
+
+        <HomeToday meals={selectedMeals} />
 
         {plan ? (
           // The one section allowed to take the leftover height and scroll

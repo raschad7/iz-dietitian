@@ -47,11 +47,10 @@ export function MealCheck({ mealId, label }: { mealId: string; label: string }) 
         event.stopPropagation();
         toggle();
       }}
-      // `text-primary`: olive-500 measures 3.19:1 on the neutral meal shell,
-      // which clears the 3:1 a graphical mark needs. It is the pairing the
-      // `--meal-*` note in `globals.css` was written to protect — do not put
-      // this tick on an olive fill, where it drops to 2.96:1.
-      className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-full text-primary outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-focus-halo"
+      // `text-meal-check-fill`, not `text-primary`: a design reference asked
+      // for the same bright green the home hero uses — see that token's own
+      // comment in `globals.css` for the contrast this trades away.
+      className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-full text-meal-check-fill outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-focus-halo"
     >
       <MealCheckMark checked={checked} />
     </button>

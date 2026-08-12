@@ -344,8 +344,26 @@ const ICONS = {
    * `flame`, so the picture can be redrawn without touching a call site.
    */
 
-  /** A day the client finished — the week strip's mark and the header's count. */
-  dayComplete: 'fire-linear',
+  /**
+   * A day the client finished — the week strip's mark and the header's count.
+   *
+   * `fire-bold`, not `-linear` like the rest of the app: a deliberate, single
+   * exception to the "Solar Linear everywhere" rule above, matching a design
+   * reference that wanted the flame filled and solid rather than outlined.
+   * Still one colour (`currentColor`, via `status-complete-mark`) — only the
+   * weight departs, not a second hue.
+   */
+  dayComplete: 'fire-bold',
+  /**
+   * The meal card's own tick, filled — a second, deliberate exception beside
+   * `dayComplete` above. `check-circle-bold`, not the shared `check` (which
+   * stays `-linear` for every checkbox and select in the app): this is the
+   * one glyph whose fill *is* the mark — `MealCheckMark` cuts the tick out of
+   * it with `fill-rule="evenodd"` and shows a white disc through the hole, a
+   * knockout that only works on a filled circle. A separate name so that
+   * technique never has to be redone if `check` itself changes.
+   */
+  mealCheckMark: 'check-circle-bold',
   /**
    * The greeting header's daytime mark, beside the client's name.
    *

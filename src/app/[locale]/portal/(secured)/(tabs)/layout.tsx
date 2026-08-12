@@ -1,7 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
 
-import { weekdayOf } from '@/features/booking/date';
 import { AppShell } from '@/components/layout/sidebar';
 import { PORTAL_NAV, PORTAL_NAV_ICONS } from '@/features/portal/nav';
 import { HomeGlow } from '@/features/portal/components/home-glow';
@@ -63,7 +62,6 @@ export default async function PortalTabsLayout({ children, params }: PortalTabsL
           day: 'numeric',
           month: 'long',
         })}
-        todayDayOfWeek={weekdayOf(context.now.date) ?? 0}
         pendingCount={pendingCount}
         locale={locale}
         showNav
