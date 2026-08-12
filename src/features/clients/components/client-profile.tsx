@@ -1,125 +1,248 @@
-import { useFormatter, useTranslations } from 'next-intl';
+import { getTranslations } from 'next-intl/server';
 
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { CopyButton } from '@/components/ui/copy-button';
-import { Icon, type IconName } from '@/components/ui/icon';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Icon } from '@/components/ui/icon';
 import { formatMediumDate } from '@/features/booking/format';
-import { type ClientVisitSummary } from '@/features/booking/queries';
+import { ClientVisitRecord } from '@/features/booking/components/client-visit-record';
+import { type ClientVisitEntry, type ClientVisitSummary } from '@/features/booking/queries';
+import { ClientNutrition } from '@/features/clients/components/client-nutrition';
+import { ClientProfilePanel } from '@/features/clients/components/client-profile-panel';
+import {
+  ClientProfileTabs,
+  type ProfileTab,
+} from '@/features/clients/components/client-profile-tabs';
+import { PortalCredentialsCard } from '@/features/clients/components/portal-credentials-card';
+import { intakeGaps } from '@/features/clients/intake-gaps';
 import { type ClientDetail } from '@/features/clients/queries';
+import { type ClientIntakeValues } from '@/features/clients/types';
+import { ClientPlansCard } from '@/features/weekly-plans/components/client-plans-card';
+import { type PlanListEntry } from '@/features/weekly-plans/queries';
 import { PLAN_STATUSES } from '@/features/weekly-plans/schema';
 import { Link } from '@/i18n/navigation';
 import { type Locale } from '@/i18n/routing';
 import { isMember } from '@/lib/enum';
+import { type IsoDate } from '@/lib/iso-date';
 
 /**
- * Who this client is, and where their record goes next.
+ * A client's whole record, on the shadcn admin template's `users/view` layout.
  *
- * ## What this tab stopped carrying
+ * **A panel that does not move, and four views that do.** The identity column on
+ * the inline-start edge carries who this person is and the reference facts about
+ * them; the column beside it is one card switched between Account, Nutrition,
+ * Security and Billing &amp; Plans.
  *
- * It used to be a summary of the other four tabs: a health-alerts card
- * duplicating the Nutrition tab's allergens, the same amber "missing fields" and
- * "target is far from computed" callouts that tab already draws — derived a
- * second time, from a second copy of the arithmetic — and a four-item activity
- * card in which three items read "none" and the fourth restated the Portal tab.
- * Opening a client therefore showed the same warning twice and the same allergy
- * twice, and the largest card on the screen was mostly the word "لا".
+ * ## What the template's tabs became
  *
- * **The clinical record has one owner now, and it is the Nutrition tab.** What is
- * left here is the person: how to reach them, the reference facts about them, and
- * the two things that are genuinely about to happen.
+ * The template is a generic user administration screen. Each surviving view
+ * keeps its name and its shape and is filled with what this product holds:
  *
- * **The WhatsApp conversation is deliberately not here.** It used to hang below
- * this tab whenever the clinic had a linked session, which quietly made a
- * client's identity screen into a messaging screen as well.
+ * | Template | Here |
+ * |---|---|
+ * | Account — projects table + activity timeline | What is next for this client, and their whole visit record under it |
+ * | Security — password, 2FA, devices | The portal sign-in: issuing, reissuing, revoking |
+ * | Billing &amp; Plans — plan, invoices | The weekly plans: the live week, and every week before it |
+ *
+ * **Nothing was invented to fill a view.** This product has no billing, so the
+ * Billing &amp; Plans view is the *plans* half of its own name and says nothing
+ * about money; the Security view has no device list because the app keeps no
+ * per-device sessions to list. A view that would have to be mocked up is a view
+ * that states something untrue about a patient.
+ *
+ * **Two of the template's tabs are gone rather than thinned.** Notifications was
+ * the four switches on `client_settings`, and Connections was the phone, the
+ * WhatsApp thread, the email address and the portal account as four rows with
+ * their state and their action. Both were real, and both were a *tab* spent on
+ * something a dietitian opens a patient record for roughly never — while the two
+ * facts worth keeping from them, whether there is a sign-in and how to reach
+ * this person, are already on the identity panel beside every view. A bar is
+ * only as scannable as its narrowest entry: four tabs read at a glance where
+ * seven had to be searched.
+ *
+ * ## Five routes moved in here
+ *
+ * Nutrition, Visit history, Meal Plans and Portal Access were addresses of their
+ * own, reached from a strip of link tabs above this screen; Visit history has
+ * since moved again, into the Account view. All four routes redirect to the
+ * `?tab=` that replaced them. The record therefore has **one** tab bar rather
+ * than two stacked ones, which is what it looked like while this port was
+ * half-finished: a link strip asking which section you were in, and a panel
+ * strip a row below asking the same thing in a different visual language.
+ *
+ * The identity strip above the bar went at the same time. It carried the avatar
+ * and the name, and the panel on the inline-start edge carries both beside every
+ * view — so the record was drawing one person twice, one directly above the
+ * other. What is left up there is the breadcrumb and the two controls the panel
+ * does not have: see `ClientRecordActions`.
  */
-export function ClientProfile({
-  client,
-  visits,
-  currentPlan,
-  locale,
-}: {
+export type ClientProfileProps = {
   client: ClientDetail;
-  visits: ClientVisitSummary;
-  currentPlan: { weekStartDate: string; status: string } | null;
   locale: Locale;
-}) {
-  const t = useTranslations('clients');
-  const tPlans = useTranslations('weeklyPlans');
-  const format = useFormatter();
+  /** Resolved once by the page, so every view splits past from upcoming on the same day. */
+  today: IsoDate;
+  /** Which view to open on, from `?tab=`. See `ClientProfileTabs`. */
+  defaultTab: ProfileTab;
+  visits: {
+    /** The next appointment, which the Account view leads with. */
+    summary: ClientVisitSummary;
+    /** The whole history, for the Account view's visit record and the panel's count. */
+    entries: ClientVisitEntry[];
+  };
+  plans: PlanListEntry[];
+  /**
+   * The clinical record — the Nutrition view's whole subject, and the source of
+   * the meal-slot denominator the plans card counts a week against.
+   */
+  intake: ClientIntakeValues;
+  portal: {
+    /** What they already sign in with, or null when there is no account. */
+    username: string | null;
+    /** Server-computed suggestion, editable before the account is created. */
+    suggestedUsername: string;
+  };
+  /**
+   * Whether issuing a sign-in will actually reach this client over WhatsApp: the
+   * clinic has a live gateway session *and* this client has a number.
+   */
+  canSendWhatsapp: boolean;
+};
+
+export async function ClientProfile({
+  client,
+  locale,
+  today,
+  defaultTab,
+  visits,
+  plans,
+  intake,
+  portal,
+  canSendWhatsapp,
+}: ClientProfileProps) {
+  const t = await getTranslations('clients');
+
+  const labels: Record<ProfileTab, string> = {
+    account: t('profile.tabs.account'),
+    nutrition: t('profile.tabs.nutrition'),
+    security: t('profile.tabs.security'),
+    billing: t('profile.tabs.billing'),
+  };
 
   return (
-    <div className="grid items-start gap-4 lg:grid-cols-3">
-      <Card className="lg:col-span-2">
-        <CardHeader>
-          <CardTitle as="h2" icon="contact" size="sm">
-            {t('sections.contact')}
-          </CardTitle>
-        </CardHeader>
+    /*
+      **Two shapes, and the breakpoint is the whole difference.**
 
-        {/*
-          `gap-2` between rows rather than a rule under each. The card was
-          drawing three horizontal lines that each stopped short of its own
-          edge — two row separators inside the content padding and an inset
-          `CardDivider` — which together read as a border that had broken
-          rather than as structure. There is one rule on this card now, and it
-          is the footer's, which is full-bleed.
-        */}
-        <CardContent className="flex flex-col gap-2">
-          <ContactRow
-            icon="contact"
-            label={t('fields.phone')}
-            value={client.phone}
-            href={client.phone ? `tel:${client.phone}` : null}
-            copyLabel={t('copy.phone')}
-            copiedLabel={t('copy.copied')}
-            emptyText={t('notProvided')}
-            numeric
-          />
-          <ContactRow
-            icon="email"
-            label={t('fields.email')}
-            value={client.email}
-            href={client.email ? `mailto:${client.email}` : null}
-            copyLabel={t('copy.email')}
-            copiedLabel={t('copy.copied')}
-            emptyText={t('notProvided')}
-          />
-        </CardContent>
+      From `lg` up this fills the record shell: one grid row of `minmax(0,1fr)`,
+      so both columns are exactly as tall as the space there is and each scrolls
+      its own content. Below it, an ordinary column at natural height, because
+      filling a phone's viewport with a 500px identity panel leaves a scroll port
+      too short to read anything in.
 
-        {/*
-          Reference, not headline — but not fine print either. These were at
-          12px, the size the design system reserves for text nobody needs;
-          a date of birth is something a dietitian actually reads.
+      `17.5rem` and not a fraction: the panel holds label/value pairs at a fixed
+      type size, and a percentage track re-wraps every one of those rows at every
+      window width.
+    */
+    <div className="flex flex-col gap-3 lg:grid lg:h-full lg:min-h-0 lg:grid-cols-[17.5rem_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)]">
+      <ClientProfilePanel
+        client={client}
+        locale={locale}
+        visitCount={visits.entries.filter((visit) => visit.date < today).length}
+        planCount={plans.length}
+      />
 
-          **Both dates are set in the same style**, which they were not: the date
-          of birth printed as a bare ISO string (`1973-08-07`) beside a
-          localised registration date (`2026/08/06`), so one row held two date
-          formats. They still go through two different formatters, and have to:
-          a date of birth is a wall clock and is pinned to UTC by
-          `formatMediumDate`, while `createdAt` is a real instant and is rendered
-          in the clinic's display zone. Only the *style* is shared.
-        */}
-        <CardFooter className="flex-wrap gap-x-8 gap-y-2 text-body-sm">
-          <Reference label={t('fields.preferredLocale')}>
-            {client.preferredLocale === 'ar' ? 'العربية' : 'English'}
-          </Reference>
-          <Reference label={t('fields.dateOfBirth')}>
-            {client.dateOfBirth ? formatMediumDate(locale, client.dateOfBirth) : t('notProvided')}
-          </Reference>
-          <Reference label={t('fields.createdAt')}>
-            {format.dateTime(client.createdAt, { dateStyle: 'medium' })}
-          </Reference>
-        </CardFooter>
-      </Card>
+      <ClientProfileTabs
+        label={t('profile.viewsLabel')}
+        labels={labels}
+        defaultTab={defaultTab}
+        nutritionGaps={intakeGaps(intake).length}
+        panels={{
+          account: (
+            <AccountView
+              client={client}
+              locale={locale}
+              today={today}
+              visits={visits}
+              plans={plans}
+            />
+          ),
+          nutrition: <ClientNutrition intake={intake} locale={locale} />,
+          security: (
+            <PortalCredentialsCard
+              locale={locale}
+              clientId={client.id}
+              hasPortalAccess={client.hasPortalAccess}
+              username={portal.username}
+              suggestedUsername={portal.suggestedUsername}
+              canSendWhatsapp={canSendWhatsapp}
+            />
+          ),
+          billing: (
+            <ClientPlansCard
+              clientId={client.id}
+              plans={plans}
+              slotsPerDay={intake.mealSchedule.length}
+              locale={locale}
+            />
+          ),
+        }}
+      />
+    </div>
+  );
+}
 
-      {/*
-        Two facts, both of them about what happens next, and both of them a link
-        to the place that changes it. This replaces a four-item grid of static
-        text in which "last visit", "current plan" and "portal access" were a
-        tab's own subject restated — and in which an empty row was a dead end
-        rather than an invitation.
-      */}
-      <Card>
+/* ── Account ─────────────────────────────────────────────────────────────── */
+
+/**
+ * What is about to happen, and the whole record of what already has.
+ *
+ * The template's account tab is a table of the user's projects above a timeline
+ * of their activity. What leads here is the pair of facts that are genuinely
+ * *ahead* of the reader — the next visit and the live plan — each of them a link
+ * to the screen that changes it, so an empty row is somewhere to go rather than
+ * a sentence saying no.
+ *
+ * **Under it is the visit record, entire.** It was a view of its own on the bar
+ * for one release, and before that a route; it is here because this is the tab
+ * that answers "how is this person doing", and a visit history is most of that
+ * answer. What it replaced was first a merged run of appointments, plans and the
+ * registration date — three kinds of entry on one rail, so every row had to name
+ * its own kind before it said anything — and then a six-entry window on the
+ * visits with a link to the rest. The window was the right subject and the wrong
+ * size: a link that says "there is more of this elsewhere" is worth less than
+ * the more itself, once "elsewhere" is a tab the reader now has to hunt for.
+ *
+ * `ClientVisitRecord` brings its own facts strip, its own three views and its
+ * own empty state, so nothing here wraps it: a card around it would be a card
+ * around two cards.
+ */
+async function AccountView({
+  client,
+  locale,
+  today,
+  visits,
+  plans,
+}: {
+  client: ClientDetail;
+  locale: Locale;
+  today: IsoDate;
+  visits: ClientProfileProps['visits'];
+  plans: PlanListEntry[];
+}) {
+  const [t, tPlans] = await Promise.all([
+    getTranslations('clients'),
+    getTranslations('weeklyPlans'),
+  ]);
+
+  // Newest week first is already the read's order — see `listPlans` — so the
+  // head of the list *is* the current plan.
+  const [currentPlan] = plans;
+
+  return (
+    /*
+      The trail holds its natural height and the record takes what is left: from
+      `lg` up this panel is a bounded box, and the visit record is built to fill
+      one and scroll its own history inside it.
+    */
+    <div className="flex flex-col gap-3 lg:h-full lg:min-h-0">
+      <Card className="shrink-0">
         <CardHeader>
           <CardTitle as="h2" icon="history" size="sm">
             {t('trail.title')}
@@ -130,10 +253,19 @@ export function ClientProfile({
           <TrailRow
             icon="bookAppointment"
             label={t('nextVisit')}
-            value={visits.next ? formatMediumDate(locale, visits.next.date) : null}
+            value={visits.summary.next ? formatMediumDate(locale, visits.summary.next.date) : null}
             emptyText={t('noUpcomingVisit')}
-            note={visits.next?.reason ?? null}
-            href={`/app/clients/${client.id}/visits`}
+            note={visits.summary.next?.reason ?? null}
+            /*
+              Into the calendar, on the day itself. It used to point at the Visit
+              history tab, which is the panel directly below this row now — a
+              link to what you are already looking at.
+            */
+            href={
+              visits.summary.next
+                ? `/app/calendar/day?date=${visits.summary.next.date}`
+                : '/app/calendar/day'
+            }
             emptyAction={t('trail.bookVisit')}
           />
 
@@ -158,85 +290,9 @@ export function ClientProfile({
           />
         </CardContent>
       </Card>
+
+      <ClientVisitRecord visits={visits.entries} locale={locale} today={today} />
     </div>
-  );
-}
-
-/**
- * One way of reaching this person: the value, and the two things you do with it.
- *
- * The phone number and the email address are the only facts on a client record
- * that are instructions to act *outside* the app, which is why they are the only
- * two drawn as rows with their own affordances rather than as text in a grid.
- *
- * ⚠ **The value is isolated, the link is not.** `dir="ltr"` used to sit on the
- * `<a>` itself — which is a flex item here, so it is blockified, so the
- * attribute re-resolved `text-align: start` against the *value's* direction and
- * flushed the phone number to the opposite edge of the card from the label above
- * it. In Arabic the label sat right and the number sat left, while the email
- * row beside it (whose empty state carries no `dir`) stayed right; two rows of
- * one card, aligned two different ways. `<bdi>` keeps the digits in Latin order
- * and leaves the box in the page's direction. See "RTL" in
- * docs/design-system.md — `Table`'s `numeric` prop documents the same trap.
- */
-function ContactRow({
-  icon,
-  label,
-  value,
-  href,
-  copyLabel,
-  copiedLabel,
-  emptyText,
-  numeric = false,
-}: {
-  icon: IconName;
-  label: string;
-  value: string | null;
-  href: string | null;
-  copyLabel: string;
-  copiedLabel: string;
-  emptyText: string;
-  numeric?: boolean;
-}) {
-  return (
-    <div className="flex items-center gap-3 rounded-md bg-muted px-3 py-2.5">
-      {/*
-        A neutral disc, not an olive one. Olive marks what you can act on and
-        this glyph is not a target — the row's own link is. The Trail card's
-        discs beside it were already neutral, so the two cards on this tab were
-        drawing the same 36px shape two different ways.
-      */}
-      <span className="grid size-9 shrink-0 place-items-center rounded-full bg-card">
-        <Icon name={icon} className="size-4 text-muted-foreground" />
-      </span>
-
-      <span className="flex min-w-0 flex-1 flex-col">
-        <span className="text-label text-muted-foreground">{label}</span>
-        {value && href ? (
-          <a
-            href={href}
-            className="truncate text-body-md font-medium underline-offset-4 hover:text-secondary-foreground hover:underline"
-          >
-            <bdi dir="ltr" className={numeric ? 'tabular-nums' : undefined}>
-              {value}
-            </bdi>
-          </a>
-        ) : (
-          <span className="text-body-md text-muted-foreground">{emptyText}</span>
-        )}
-      </span>
-
-      {value ? <CopyButton value={value} label={copyLabel} copiedLabel={copiedLabel} /> : null}
-    </div>
-  );
-}
-
-function Reference({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <span className="inline-flex items-center gap-2">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="font-semibold text-foreground">{children}</span>
-    </span>
   );
 }
 
@@ -244,8 +300,8 @@ function Reference({ label, children }: { label: string; children: React.ReactNo
  * Something that is about to happen, and the way to change it.
  *
  * The whole row is the link, so an empty one is somewhere to go rather than a
- * sentence saying no. `emptyAction` names what the click will do — a row reading
- * "no plan yet" is only useful next to the word "create".
+ * dead end. `emptyAction` names what the click will do — a row reading "no plan
+ * yet" is only useful next to the word "create".
  */
 function TrailRow({
   icon,
@@ -256,7 +312,7 @@ function TrailRow({
   href,
   emptyAction,
 }: {
-  icon: IconName;
+  icon: 'bookAppointment' | 'mealPlans';
   label: string;
   value: string | null;
   emptyText: string;
@@ -278,7 +334,7 @@ function TrailRow({
         {value === null ? (
           <span className="text-body-md text-muted-foreground">{emptyText}</span>
         ) : (
-          // No `dir="ltr"` anywhere near this: the value is a *formatted* date
+          // No `dir="ltr"` anywhere near this: the value is a *formatted* date,
           // and `auto` is what keeps "7 أغسطس 2026" in the right order.
           <span className="text-body-md font-semibold text-foreground" dir="auto">
             {value}

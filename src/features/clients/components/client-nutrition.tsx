@@ -821,7 +821,7 @@ function MealSchedule({
  * therefore rendered hard against the opposite edge of the card from the Arabic
  * label naming it, a full card-width away, with nothing between them. `<bdi>`
  * isolates the run so mixed scripts still order correctly while the block stays
- * in the page's direction. Same trap as the phone number in `ClientProfile`.
+ * in the page's direction. Same trap as the phone number in `ClientProfilePanel`.
  */
 function Notes({
   items,
