@@ -25,19 +25,12 @@ import { cn } from '@/lib/utils';
 export function MealCheckMark({ checked }: { checked: boolean }) {
   return (
     /*
-      `mealCheckMark` is `solar:check-circle-bold` — a filled circle with the
-      tick cut *out* of it (`fill-rule="evenodd"`), so the tick paints as whatever sits
-      behind the glyph. White behind it is therefore the only way to get a white
-      tick; against a tinted shell the knockout would be a pale tick on a
-      coloured circle.
-
-      **The white has to be smaller than the circle, not the same size.** That
-      circle is `r=10` in a 24 viewBox, so it covers 20/24 of the glyph's box and
-      leaves an eighth of it empty at the edge — a full-size white disc behind a
-      28px icon showed as a 2px white ring around the green. A 20px disc is
-      comfortably inside the circle's 23.3px and comfortably outside the tick's
-      ~9×7px, so the colour reaches its own edge and the only white left is the
-      tick itself.
+      `mealCheckMark` is a lucide stroke glyph, so the circle reads as a ring
+      rather than a filled disc. The `bg-card` disc behind it keeps the ring
+      interior matching the card even when the mark sits on a tinted shell, and
+      it is deliberately smaller than the ring: the circle covers 20/24 of the
+      glyph box, so a full-size disc behind a 28px icon showed as a 2px halo
+      around the stroke. A 20px disc sits comfortably inside the ring 23.3px.
     */
     <span className="relative grid size-7 place-items-center">
       {checked ? (

@@ -96,11 +96,29 @@ export function ClientIdentityFields({
 
   const error = (field: FieldName) => errorFor?.(field);
 
-  /* One definition per field, so the layout below reads as the layout. */
+  /*
+    One definition per field, so the layout below reads as the layout.
+
+    Each free-text field carries a placeholder, because the label alone leaves
+    two of them genuinely ambiguous at the counter: "Phone" beside a country
+    menu does not say whether the dialling code belongs in the digits, and the
+    empty box under "Full name" does not say whether the register wants the
+    first name it will be searched by or the whole name on the document.
+
+    They are examples and hints, never a second label — the `Label` above each
+    field stays, and a placeholder that repeats it is a field that looks filled
+    in until you click into it.
+  */
   const fields: Record<FieldName, ReactNode> = {
     fullName: (
       <FormField id="fullName" label={t('fields.fullName')} error={error('fullName')}>
-        <Input id="fullName" name="fullName" required defaultValue={client?.fullName ?? ''} />
+        <Input
+          id="fullName"
+          name="fullName"
+          required
+          placeholder={t('placeholders.fullName')}
+          defaultValue={client?.fullName ?? ''}
+        />
       </FormField>
     ),
 
@@ -112,13 +130,21 @@ export function ClientIdentityFields({
           locale={locale}
           defaultValue={client?.phone}
           countryLabel={t('fields.phoneCountry')}
+          placeholder={t('placeholders.phone')}
         />
       </FormField>
     ),
 
     email: (
       <FormField id="email" label={t('fields.email')} error={error('email')}>
-        <Input id="email" name="email" type="email" dir="ltr" defaultValue={client?.email ?? ''} />
+        <Input
+          id="email"
+          name="email"
+          type="email"
+          dir="ltr"
+          placeholder={t('placeholders.email')}
+          defaultValue={client?.email ?? ''}
+        />
       </FormField>
     ),
 
