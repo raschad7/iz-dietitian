@@ -6,9 +6,10 @@ analysis live in [`shadcn-migration.md`](./shadcn-migration.md).
 Format: **what you have now** → **where it appears in the app** → **what
 replaces it**.
 
-Every replacement arrives importing `lucide-react`. Those imports get rewritten
-to the local `Icon` with **Solar Linear** variants on the way in. This applies
-to every row in every table below.
+Every replacement arrives importing `lucide-react` — the same set the app draws
+now. Those imports still get rewritten to the local `Icon`, so the call site
+asks for a role rather than a glyph. This applies to every row in every table
+below.
 
 ---
 
@@ -113,7 +114,7 @@ Pure additions. Nothing breaks.
 
 | Keep | Files | Why |
 | --- | ---: | --- |
-| `ui/icon.tsx` | **76** | Your Solar icon system. Highest blast radius in the repo. Everything else adapts to it. |
+| `ui/icon.tsx` | **76** | The icon system, lucide behind an app-name registry. Highest blast radius in the repo. Everything else adapts to it. |
 | `ui/stat-tile.tsx` | 2 | Domain KPI tile |
 | `ui/chart-tip.tsx` | 1 | Domain chart tooltip |
 

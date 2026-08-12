@@ -9,7 +9,7 @@ Working document for the `shadcn-revamp` branch.
 | Base library | **Base UI** (`base: "base"`, `@base-ui/react` ^1.6.0). Not Radix. |
 | Style / preset | `base-nova`, preset code `b2fA`, baseColor `neutral`, radius default |
 | RTL | `rtl: true` in `components.json` — registry components ship RTL-aware |
-| Icons | `lucide` per config, but the app actually uses a local Solar-based `Icon` |
+| Icons | **lucide**, per config, reached through the local `Icon` and its `APP_ICONS` registry |
 | Registry UI items available | 63 |
 | Local UI components today | 33 (~4,500 lines) |
 | Total `.tsx` in `src/` | 221 |
@@ -91,7 +91,7 @@ Ordered by blast radius — the number of files importing it.
 
 | Local | Importers | Why it stays |
 | --- | ---: | --- |
-| `icon.tsx` | **76** | Your Solar icon system. Highest blast radius in the repo; do not touch. |
+| `icon.tsx` | **76** | The icon system, lucide behind an app-name registry. Highest blast radius in the repo; do not touch. |
 | `stat-tile.tsx` | 2 | Domain KPI tile. Could rebase onto `@shadcn/item`. |
 | `chart-tip.tsx` | 1 | Pairs with `@shadcn/chart` if charts get migrated. |
 | `comfort-band.tsx` | **0** | Domain viz — **and nothing imports it.** Dead code; delete or justify. |
@@ -156,10 +156,11 @@ remembered.
 
 ## Decisions — settled
 
-**1. Icons: keep `icon.tsx`, Solar Linear.** Every registry component arrives
-importing `lucide-react`. Each one gets its icons rewritten to the local `Icon`
-with Solar Linear variants on the way in. This is a required step on **every**
-component added — it is not optional cleanup.
+**1. Icons: keep `icon.tsx`, now backed by lucide.** The set is lucide itself,
+so a registry component arriving with `lucide-react` imports is already drawing
+from the right family. Rewrite those imports to the local `Icon` anyway: what a
+call site asks for is the role (`addClient`, not `user-plus`), which is what
+lets a glyph be re-pointed in one place. Required on **every** component added.
 
 **2. Native `<dialog>` → Base UI Dialog: yes.** Decided by the reported bugs,
 not by preference. See below.

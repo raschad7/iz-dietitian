@@ -478,6 +478,11 @@
       "demographics": "Demographics",
       "privateNotes": "Private clinic notes"
     },
+    "placeholders": {
+      "fullName": "Ahmad Khaled",
+      "email": "name@example.com",
+      "phone": "Number without the country code"
+    },
     "fields": {
       "fullName": "Full name",
       "phone": "Phone",
@@ -624,7 +629,17 @@
       "bmi": "BMI",
       "sectionsLabel": "Intake sections",
       "hasContent": "Has content",
-      "allergyDetailPlaceholder": "e.g. mild reaction to walnuts but not almonds; lactose-free dairy is fine.",
+      "allergyDetailPlaceholder": "Mild reaction to walnuts but not almonds",
+      "placeholders": {
+        "heightCm": "170",
+        "weightKg": "70",
+        "conditions": "Diabetes",
+        "medications": "Metformin 500mg twice daily",
+        "medicalNotes": "What the clinic should remember about this client",
+        "permanentInstructions": "No dairy after 6pm",
+        "preferences": "Grilled chicken",
+        "dislikes": "Liver"
+      },
       "overrideDivider": "Manual figures",
       "unsetCount": "{count} fields not filled in",
       "unsetOne": "1 field not filled in",

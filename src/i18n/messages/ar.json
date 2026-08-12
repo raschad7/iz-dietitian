@@ -478,6 +478,11 @@
       "demographics": "بيانات أساسية",
       "privateNotes": "ملاحظات خاصة بالعيادة"
     },
+    "placeholders": {
+      "fullName": "أحمد خالد",
+      "email": "name@example.com",
+      "phone": "الرقم دون رمز الدولة"
+    },
     "fields": {
       "fullName": "الاسم الكامل",
       "phone": "رقم الهاتف",
@@ -624,7 +629,17 @@
       "bmi": "مؤشر كتلة الجسم",
       "sectionsLabel": "أقسام بيانات التغذية",
       "hasContent": "يحتوي على بيانات",
-      "allergyDetailPlaceholder": "مثال: حساسية خفيفة من الجوز دون اللوز، والألبان الخالية من اللاكتوز مقبولة.",
+      "allergyDetailPlaceholder": "حساسية خفيفة من الجوز دون اللوز",
+      "placeholders": {
+        "heightCm": "170",
+        "weightKg": "70",
+        "conditions": "سكري",
+        "medications": "ميتفورمين 500 ملغ مرتين يوميًا",
+        "medicalNotes": "ما تحتاج العيادة إلى تذكّره عن هذا المشترك",
+        "permanentInstructions": "لا ألبان بعد السادسة مساءً",
+        "preferences": "دجاج مشوي",
+        "dislikes": "كبدة"
+      },
       "overrideDivider": "أرقام يدوية",
       "unsetCount": "{count} حقول غير مُدخلة",
       "unsetOne": "حقل واحد غير مُدخل",

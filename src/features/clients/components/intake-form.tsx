@@ -8,8 +8,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DialogFooter } from '@/components/ui/dialog';
 import { Field, FieldError } from '@/components/ui/field';
-import { Icon } from '@/components/ui/icon';
+import { Icon, type IconName } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group';
 import { Label } from '@/components/ui/label';
 import { SelectField } from '@/components/ui/select-field';
 import { Textarea } from '@/components/ui/textarea';
@@ -230,7 +231,8 @@ export function IntakeForm({
               <NumberField
                 name="heightCm"
                 label={t('fields.heightCm')}
-                unit={t('units.cm')}
+                icon="heightOutline"
+                placeholder={t('intake.placeholders.heightCm')}
                 min={30}
                 max={280}
                 step={1}
@@ -241,7 +243,8 @@ export function IntakeForm({
               <NumberField
                 name="weightKg"
                 label={t('fields.weightKg')}
-                unit={t('units.kg')}
+                icon="weightOutline"
+                placeholder={t('intake.placeholders.weightKg')}
                 min={20}
                 max={400}
                 step={0.5}
@@ -326,6 +329,7 @@ export function IntakeForm({
               <TextField
                 name="conditions"
                 label={t('fields.conditions')}
+                placeholder={t('intake.placeholders.conditions')}
                 rows={3}
                 maxLength={1000}
                 defaultValue={intake.conditions}
@@ -334,6 +338,7 @@ export function IntakeForm({
               <TextField
                 name="medications"
                 label={t('fields.medications')}
+                placeholder={t('intake.placeholders.medications')}
                 rows={3}
                 maxLength={1000}
                 defaultValue={intake.medications}
@@ -359,6 +364,7 @@ export function IntakeForm({
             <TextField
               name="medicalNotes"
               label={t('intake.notesDivider')}
+              placeholder={t('intake.placeholders.medicalNotes')}
               rows={5}
               maxLength={4000}
               defaultValue={mergedNotes(intake.medicalNotes, intake.notes)}
@@ -370,6 +376,7 @@ export function IntakeForm({
             <TextField
               name="permanentInstructions"
               label={t('fields.permanentInstructions')}
+              placeholder={t('intake.placeholders.permanentInstructions')}
               rows={3}
               maxLength={2000}
               defaultValue={intake.permanentInstructions}
@@ -380,6 +387,7 @@ export function IntakeForm({
               <TextField
                 name="preferences"
                 label={t('fields.preferences')}
+                placeholder={t('intake.placeholders.preferences')}
                 rows={3}
                 maxLength={1000}
                 defaultValue={intake.preferences}
@@ -388,6 +396,7 @@ export function IntakeForm({
               <TextField
                 name="dislikes"
                 label={t('fields.dislikes')}
+                placeholder={t('intake.placeholders.dislikes')}
                 rows={3}
                 maxLength={1000}
                 defaultValue={intake.dislikes}
@@ -401,7 +410,7 @@ export function IntakeForm({
               <NumberField
                 name="dailyKcalTarget"
                 label={t('fields.dailyKcalTarget')}
-                unit={t('units.kcal')}
+                icon="calories"
                 min={800}
                 max={6000}
                 step={50}
@@ -415,7 +424,7 @@ export function IntakeForm({
               <NumberField
                 name="proteinTargetGrams"
                 label={t('fields.proteinTargetGrams')}
-                unit={t('units.g')}
+                icon="protein"
                 min={20}
                 max={400}
                 step={5}
@@ -607,18 +616,19 @@ function Divider({ label }: { label: string }) {
 }
 
 /**
- * A number field with its unit inside the box.
+ * A number field as an `InputGroup`, with a glyph at its reading edge.
  *
- * The unit rides in the field rather than in the label — "الطول" with `cm` at
- * the far edge reads faster than "الطول (سم)", and it leaves the label free to
- * be one word. `dir="ltr"` on the input only: the digits are Latin-ordered
- * inside an Arabic form, and the unit is positioned logically so it sits at the
- * trailing edge in both scripts.
+ * **The unit is not in the box.** It used to sit at the far edge as a second
+ * addon — `cm`, `kg`, `g`, `kcal` — which said twice what the label above
+ * already says: every one of these fields is named "Height (cm)", "Weight
+ * (kg)", "Protein (g)". A box holding a number and its own unit reads as a
+ * composite control and invites the unit to be typed into it. The digits have
+ * the box to themselves now.
  */
 function NumberField({
   name,
   label,
-  unit,
+  icon,
   min,
   max,
   step,
@@ -630,7 +640,14 @@ function NumberField({
 }: {
   name: string;
   label: string;
-  unit: string;
+  /**
+   * A glyph at the group's inline-start, on the reading edge.
+   *
+   * Decorative: the `Label` above names the field, and a ruler announced
+   * beside "Height" says it twice. It is there to tell four boxes of digits
+   * apart at a glance in a panel where that is all they are.
+   */
+  icon?: IconName;
   min: number;
   max: number;
   step: number;
@@ -644,24 +661,36 @@ function NumberField({
     <Field>
       <Label htmlFor={name}>{label}</Label>
       {/*
-        `dir="ltr"` on the WRAPPER, not only on the input.
+        No direction lock on the group.
 
-        Without it the two halves of this control resolve their edges against
-        different directions: the input renders its digits left-to-right, while
-        `end-3` on the unit resolves against the Arabic document and lands on the
-        left — directly on top of the number. "171" and "سم" were printing over
-        each other.
+        It used to carry `dir="ltr"`, which laid the whole control out from the
+        left in Arabic as well: the placeholder and the value started at the far
+        edge from the one the form is read from, with the glyph beside them. The
+        group follows the document instead, so in Arabic the icon, the
+        placeholder and the digits all begin on the right, and in English the
+        same arrangement mirrors back.
 
-        Pinning the wrapper puts both in one coordinate system: digits flow from
-        the inline-start edge, `pe-12` reserves room at the inline-end, and the
-        unit sits in it. A number and its unit are one LTR run in both scripts —
-        Arabic writes "171 سم" with the digits in this order too — so this is a
-        genuine direction lock rather than a layout that merely looks wrong
-        mirrored. The label above is outside the wrapper and still follows the
-        document.
+        Only the *box* mirrors. The digits inside it are a number, and a number
+        is a left-to-right run under the bidi algorithm in either script — 171
+        is written 171 in Arabic too — so the value still reads in the same
+        order, it is simply aligned to the reading edge.
+
+        `focusTone="neutral"`: the group draws its own focus treatment, and the
+        brand default is the lime ring that `.q-field` deliberately refuses —
+        a form is a column of fields and lime firing on each one as it is
+        tabbed through turns the accent into noise.
+
+        48px and the system's control radius, so the group matches the fields
+        above and below it rather than the component's own 32px default.
       */}
-      <div className="relative" dir="ltr">
-        <Input
+      <InputGroup focusTone="neutral" className="h-12 rounded-(--radius-control)">
+        {icon ? (
+          <InputGroupAddon align="inline-start" className="ps-4">
+            <Icon name={icon} />
+          </InputGroupAddon>
+        ) : null}
+
+        <InputGroupInput
           id={name}
           name={name}
           type="number"
@@ -670,14 +699,16 @@ function NumberField({
           max={max}
           step={step}
           className={cn(
-            'pe-12',
+            // The field's own inline padding, which `InputGroupInput` strips
+            // back to nothing so a group can decide it per addon.
+            'px-5',
             /*
-              The browser's own spinners are drawn at the inline-end edge — the
-              same 48px the unit above is pinned into — so on hover Chrome puts
-              its up/down arrows straight through "kg". Suppressed here rather
-              than in `.q-field`, because a number field with no unit beside it
-              (the share column in the schedule) has room for them and loses
-              nothing by keeping them.
+              The browser's own spinners are drawn at the inline-end edge, and
+              they appear on hover over a box whose whole content is a two- or
+              three-digit number — a control nobody asked for, arriving on top
+              of the value. Suppressed here rather than in `.q-field`, because
+              the share column in the meal schedule is a number field that keeps
+              them and loses nothing by it.
             */
             '[appearance:textfield]',
             '[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
@@ -687,25 +718,31 @@ function NumberField({
             ? { value: value ?? '', onChange: (event) => onChange(event.target.value) }
             : { defaultValue })}
         />
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-y-0 end-4 flex items-center text-caption text-muted-foreground"
-        >
-          {unit}
-        </span>
-      </div>
+      </InputGroup>
       <FieldError>{error}</FieldError>
     </Field>
   );
 }
 
-/** A labelled textarea. */
+/**
+ * A labelled textarea.
+ *
+ * The placeholder is an example of the kind of thing that belongs in the box,
+ * not a restatement of the label above it: "Notes" over an empty field says
+ * what the box is called and nothing about what a useful note looks like, and
+ * these are the boxes a record is actually read from later.
+ *
+ * It carries no direction of its own, so it starts at the reading edge in both
+ * scripts — right in Arabic, left in English — the way the prose typed into it
+ * will.
+ */
 function TextField({
   name,
   label,
   rows,
   maxLength,
   defaultValue,
+  placeholder,
   error,
 }: {
   name: string;
@@ -713,6 +750,7 @@ function TextField({
   rows: number;
   maxLength: number;
   defaultValue: string | null;
+  placeholder?: string;
   error?: string;
 }) {
   return (
@@ -723,6 +761,7 @@ function TextField({
         name={name}
         rows={rows}
         maxLength={maxLength}
+        placeholder={placeholder}
         defaultValue={defaultValue ?? ''}
       />
       <FieldError>{error}</FieldError>

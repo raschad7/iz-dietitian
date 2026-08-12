@@ -32,7 +32,13 @@ function Input({ className, type, icon, ...props }: InputProps) {
         // the button that submits it sit in the same row and must be the same
         // height, and the touch-target floor applies to both.
         "q-field h-12 px-5 py-1",
-        "placeholder:text-muted-foreground",
+        /*
+          One step under the value it stands in for, and under the `Label`
+          above it. The placeholder is an example, not the answer and not the
+          name of the field: at the same 16px as both it competed with them,
+          and an empty form read as a column of filled-in boxes.
+        */
+        "placeholder:text-body-sm placeholder:text-muted-foreground",
         "file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-caption file:font-medium file:text-foreground",
         // The well below is 48px, so the text starts where a field with no icon
         // would have its 20px of padding, plus the glyph and a gap.

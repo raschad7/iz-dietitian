@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { useDialogContainer } from '@/components/ui/dialog';
 import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
-import { type Locale } from '@/i18n/routing';
+import { getLocaleDirection, type Locale } from '@/i18n/routing';
 import { COUNTRIES, COUNTRY_ORDER, type CountryCode } from '@/lib/phone-countries';
 import { countryForDial, joinPhone, splitPhone } from '@/lib/phone-format';
 import { cn } from '@/lib/utils';
@@ -44,6 +44,13 @@ export type PhoneFieldProps = {
   onChange?: (phone: string) => void;
   /** Translated. The trigger has no visible label of its own. */
   countryLabel: string;
+  /**
+   * Shown in the digits half only. The country half is a menu with a value in
+   * it from the first render, so it has nothing to stand in for — and the
+   * digits are the half where "does the dialling code go in here too?" is a
+   * real question a label above the pair cannot answer.
+   */
+  placeholder?: string;
   disabled?: boolean;
   /**
    * Applied to both halves — a compound field has to carry any styling across
@@ -59,6 +66,7 @@ export function PhoneField({
   defaultValue,
   onChange,
   countryLabel,
+  placeholder,
   disabled,
   className,
 }: PhoneFieldProps) {
@@ -204,9 +212,24 @@ export function PhoneField({
         type="tel"
         inputMode="tel"
         autoComplete="tel-national"
-        // Digits read left-to-right in Arabic too, as the rest of the app's
-        // phone fields already do.
-        dir="ltr"
+        placeholder={placeholder}
+        /*
+          Digits read left-to-right in Arabic too, as the rest of the app's
+          phone fields already do — but only once there are digits.
+
+          An empty field is showing a sentence, not a number, and `dir="ltr"`
+          laid that Arabic sentence out from the left edge, reading away from
+          the field's own reading edge. While the field is empty the direction
+          is the *locale's*, so the hint starts on the right in Arabic and on
+          the left in English; the first keystroke pins the value back to ltr,
+          which is where a phone number belongs.
+
+          Taken from `locale` rather than left to inherit: this control is
+          dropped into dialogs and wrappers that lock themselves to `ltr` for
+          their own digits, and an inherited direction would follow whichever
+          of them happens to be the parent.
+        */
+        dir={national ? 'ltr' : getLocaleDirection(locale)}
         disabled={disabled}
         className={className}
         value={national}

@@ -34,7 +34,8 @@ function Textarea({ className, ...props }: React.ComponentProps<"textarea">) {
       data-slot="textarea"
       className={cn(
         "q-field field-sizing-content min-h-24 max-h-64 resize-none px-5 py-3",
-        "placeholder:text-muted-foreground",
+        // One step under the prose it stands in for, as `Input`'s is.
+        "placeholder:text-body-sm placeholder:text-muted-foreground",
         className
       )}
       {...props}
