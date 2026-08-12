@@ -2,6 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
 import { WhatsappSettings } from '@/features/whatsapp/components/whatsapp-settings';
+import { SettingsPageHeader } from '@/features/settings/components/settings-page-header';
 import { readConnection } from '@/features/whatsapp/connection';
 import { listRecentMessages } from '@/features/whatsapp/queries';
 import { resolveLocale } from '@/i18n/params';
@@ -30,12 +31,12 @@ export default async function WhatsappSettingsPage({ params }: WhatsappPageProps
   const [connection, messages, t] = await Promise.all([
     readConnection(clinicId),
     listRecentMessages(clinicId),
-    getTranslations('whatsapp'),
+    getTranslations('settingsWorkspace.whatsapp'),
   ]);
 
   return (
-    <div className="space-y-6 text-start">
-      <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
+    <div className="space-y-5">
+      <SettingsPageHeader title={t('title')} description={t('description')} />
       <WhatsappSettings locale={locale} connection={connection} messages={messages} />
     </div>
   );

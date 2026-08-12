@@ -132,6 +132,43 @@
   --portal-home-glow: #A5D66C;
 
   /*
+   * ── Home hero progress ring ──
+   * The "today" ring on the portal home screen's commitment card — pinned to
+   * Figma values exactly like `--portal-home-glow` above, for the same
+   * reason: a single decorative fill and its own two-stop track, not a step
+   * in the olive/lime ramp. Nothing else may reach for these.
+   *
+   * `--portal-progress-fill` lands on the same hex as `--portal-home-glow` —
+   * the badge floats on that wash and is meant to read as cut from the same
+   * green — but it is its own token because the two are different concerns
+   * (an ambient blur vs. a solid, shadowed disc) and the glow's own comment
+   * reserves it for that one use.
+   */
+  --portal-progress-fill: #A5D66C;
+  --portal-progress-track: #DBFDB4;
+  --portal-progress-track-soft: rgba(219, 253, 180, .34);
+  --portal-progress-figure: #F3FFE5;
+  --portal-progress-caption: #DBFDB4;
+
+  /*
+   * ── Meal check tick ──
+   * `MealCheckMark`'s filled circle, on a design reference asking for the
+   * same bright green as the home hero above rather than `--primary`'s
+   * olive-500. A third pinned duplicate of that hex, not a reach for
+   * `--portal-progress-fill` — that token's own comment reserves it for the
+   * ring and the glow, and this is a different surface (a small mark on a
+   * meal card, not the home screen's decorative wash).
+   *
+   * ⚠ Lower contrast than `--primary` was. The white tick this fill is cut
+   * out around (see `MealCheckMark`) measures ~1.7:1 against it, under the
+   * 3:1 WCAG asks of a graphical mark — `--primary` cleared 3.47:1 here. Kept
+   * anyway because the mark is checked-state-only, sits inside an otherwise
+   * unambiguous checkbox row, and the reference explicitly asked for this
+   * exact green; flag before reusing this token anywhere contrast is load-bearing.
+   */
+  --meal-check-fill: #A5D66C;
+
+  /*
    * ── Leading, per script ──
    *
    * Every step of the type scale ships two line heights: the looser one for
@@ -450,6 +487,14 @@
   --color-commitment-card-figure: var(--commitment-card-figure);
   --color-commitment-card-stat: var(--commitment-card-stat);
 
+  --color-portal-progress-fill: var(--portal-progress-fill);
+  --color-portal-progress-track: var(--portal-progress-track);
+  --color-portal-progress-track-soft: var(--portal-progress-track-soft);
+  --color-portal-progress-figure: var(--portal-progress-figure);
+  --color-portal-progress-caption: var(--portal-progress-caption);
+
+  --color-meal-check-fill: var(--meal-check-fill);
+
   --color-meal-bg: var(--meal-bg);
   --color-meal-fg: var(--meal-fg);
 
@@ -720,20 +765,20 @@
    * **One step off the canvas, and untinted.** It went olive-100 → n-100 → n-50
    * → here, and the last step is the one that makes the card read as paper
    * rather than as a filled block: n-100 is a tint you notice, this is a surface
-   * you don't. `#F7F7F7` rather than n-50's `#F7F5EF` — the same lightness with
+   * you don't. `#FBFBFB` rather than n-50's `#F7F5EF` — the same lightness with
    * the last of the warm cast taken out, which is the grey the home screen's
    * design specifies for these cards.
    *
    * Measured, not eyeballed:
    *
-   * - n-900 on it is **15.86:1**, up from the olive pair's 8.92:1.
-   * - It is **1.08:1** on the n-0 canvas, so the fill is not what separates the
+   * - n-900 on it is **15.5:1**, up from the olive pair's 8.92:1.
+   * - It is **1.03:1** on the n-0 canvas, so the fill is not what separates the
    *   card from the page — `Card`'s own `ring-1 ring-foreground/10` hairline is,
    *   and it is load-bearing here in exactly the way the rail's divider is (§14).
    *   The meal cards drop their shadow on the home screen, so that ring is now
    *   the only edge they have; lighten this any further and there is nothing
    *   left holding the card off the page.
-   * - The olive-500 tick on it is **3.20:1**, which clears the 3:1 a graphical
+   * - The olive-500 tick on it is **3.35:1**, which clears the 3:1 a graphical
    *   mark needs — it measured 2.96:1 on olive-100 *and* on n-100, both under.
    *   Lifting the shell is what finally fixed that, so the one olive left on this
    *   screen is also the first version of it that passes.
@@ -741,7 +786,7 @@
    * Not remapped for dark mode, matching §15's rule for status: only bg, text
    * and border tokens remap, so the verified pair stays intact.
    */
-  --meal-bg: #F7F7F7;
+  --meal-bg: #FBFBFB;
   --meal-fg: var(--n-900);
 
   /* Data visualisation comfort band */

@@ -57,6 +57,54 @@
     "openNavigation": "فتح التنقل",
     "closeNavigation": "إغلاق التنقل"
   },
+  "settingsWorkspace": {
+    "title": "الإعدادات",
+    "description": "أدر ملفك الشخصي وبيانات العيادة والتواصل وأمان الحساب من مكان واحد.",
+    "tabsLabel": "أقسام الإعدادات",
+    "tabs": {
+      "profile": "الملف الشخصي",
+      "clinic": "العيادة",
+      "whatsapp": "واتساب",
+      "security": "الأمان"
+    },
+    "leaveTitle": "المغادرة دون حفظ؟",
+    "leaveDescription": "توجد تغييرات لم تحفظها بعد. سيؤدي تبديل التبويب إلى تجاهلها.",
+    "leaveConfirm": "تجاهل التغييرات",
+    "leaveCancel": "متابعة التعديل",
+    "unsaved": "غير محفوظ",
+    "profile": {
+      "title": "الملف الشخصي",
+      "description": "معلوماتك المهنية وحسابك الشخصي داخل العيادة.",
+      "staffMember": "عضو في فريق العيادة",
+      "active": "نشط",
+      "formTitle": "المعلومات المهنية",
+      "formDescription": "حدّث البيانات التي تعرّف بك داخل فريق العيادة.",
+      "accountEmail": "البريد الإلكتروني للحساب",
+      "accountEmailHint": "تتم إدارة هذا البريد من خلال حساب تسجيل الدخول."
+    },
+    "clinic": {
+      "title": "العيادة",
+      "description": "بيانات التواصل وساعات العمل المستخدمة في الحجز والتواصل مع المشتركين.",
+      "formTitle": "بيانات العيادة",
+      "formDescription": "بيانات التواصل الأساسية التي يعتمد عليها الفريق والمشتركون.",
+      "hoursTitle": "ساعات العمل",
+      "hoursDescription": "حدّد الأيام والأوقات المتاحة لحجز المواعيد."
+    },
+    "whatsapp": {
+      "title": "واتساب",
+      "description": "أدر اتصال العيادة والرسائل التلقائية وآخر النشاطات."
+    },
+    "security": {
+      "title": "الأمان وتسجيل الدخول",
+      "description": "راجع الطرق التي يمكنك استخدامها للوصول إلى حسابك بأمان.",
+      "safetyNote": "احتفظ دائمًا بطريقة دخول بديلة واحدة على الأقل حتى لا تفقد الوصول إلى حسابك.",
+      "methodsDescription": "الطرق المرتبطة حاليًا بحسابك.",
+      "passwordTitle": "كلمة المرور",
+      "enabled": "مفعّلة",
+      "notConnected": "غير مرتبط",
+      "createdAt": "أضيف في {date}"
+    }
+  },
   "landing": {
     "title": "إدارة عيادتك الغذائية في مكان واحد",
     "description": "متابعة الحالات، وبناء الخطط الغذائية، وجدولة المواعيد، وتسجيل المدفوعات — بالعربية والإنجليزية.",
@@ -461,13 +509,17 @@
       "call": "اتصال",
       "emailLink": "إرسال بريد"
     },
-    "tabs": {
-      "label": "أقسام المشترك",
-      "info": "بيانات المشترك",
-      "visits": "سجل الزيارات",
-      "plans": "الخطط الغذائية",
-      "portal": "الدخول إلى البوابة",
-      "nutrition": "التغذية"
+    "profile": {
+      "viewsLabel": "أقسام السجل",
+      "details": "التفاصيل",
+      "visitsSoFar": "الزيارات حتى الآن",
+      "plansWritten": "الخطط المكتوبة",
+      "tabs": {
+        "account": "الحساب",
+        "nutrition": "التغذية",
+        "security": "الأمان",
+        "billing": "الفوترة والخطط"
+      }
     },
     "sections": {
       "contact": "بيانات التواصل",
@@ -683,6 +735,7 @@
       "empty": "لا يوجد أي مشترك مؤرشف."
     },
     "visits": {
+      "title": "زيارات المشترك",
       "upcoming": "القادمة",
       "past": "الزيارات السابقة",
       "totalVisits": "المواعيد",
@@ -692,7 +745,19 @@
       "noUpcoming": "لا يوجد موعد",
       "noPast": "لا توجد زيارات بعد",
       "empty": "لا توجد مواعيد في هذا السجل بعد.",
-      "book": "افتح التقويم"
+      "book": "افتح التقويم",
+      "details": "السجل",
+      "firstVisit": "أول زيارة",
+      "typicalGap": "الفاصل المعتاد",
+      "totalTime": "الوقت المحجوز",
+      "everyDays": "كل {days, number, integer} يوم",
+      "noneRecorded": "لا يوجد",
+      "noReason": "لا يوجد سبب مسجل",
+      "views": {
+        "label": "طرق عرض سجل الزيارات",
+        "upcoming": "القادمة",
+        "past": "السابقة"
+      }
     }
   },
   "portal": {
@@ -790,8 +855,7 @@
       "dailyTarget": "الهدف اليومي: {value} kcal",
       "chooseDay": "اختر اليوم",
       "today": "اليوم",
-      "chooseDayHeading": "اختر يومًا لرؤية الوجبات",
-      "dayEnergyLabel": "طاقة هذا اليوم",
+      "todayMealsHeading": "وجباتك لهذا اليوم",
       "mealEnergyLabel": "طاقة الوجبة",
       "emptyDayTitle": "لا توجد وجبات لهذا اليوم",
       "emptyDayHint": "ترك أخصائي التغذية هذا اليوم مفتوحًا. اختر يومًا آخر من الأعلى.",
@@ -921,9 +985,11 @@
     "progress": {
       "today": {
         "heading": "التزامك اليوم",
-        "meals": "تم إكمال {completed, number, integer} من {total, number, integer} {total, plural, one {وجبة} two {وجبتين} few {وجبات} many {وجبة} other {وجبة}}",
+        "meals": "{completed, number, integer} من {total, number, integer} {total, plural, one {وجبة} two {وجبتين} few {وجبات} many {وجبة} other {وجبة}}",
         "caloriesCompleted": "{value, number, integer} سعرة مكتملة",
         "caloriesRemaining": "{value, number, integer} سعرة متبقية",
+        "energyTodayLabel": "طاقة اليوم",
+        "energyTodayValue": "{value, number, integer} سعرة",
         "prompt": "أتمّ وجبات اليوم في خطتي ليظهر التزامك هنا.",
         "noMeals": "لا توجد وجبات مجدولة لليوم، فلا شيء لتتبعه بعد.",
         "cta": "تحديث التزامك اليوم",
@@ -1194,6 +1260,7 @@
     "noClientTitle": "لمن ستُعدّ الخطة؟",
     "noClientHint": "ابحث في قائمة المشتركين أو تابع مع مشترك اقترب موعده.",
     "searchClients": "ابحث عن مشترك",
+    "selectClient": "اختر مشتركًا",
     "noClients": "لا يوجد مشتركون نشطون",
     "suggestedClientsTitle": "مشتركون مقترحون",
     "suggestedClientsHint": "المواعيد القادمة أولاً، ثم أحدث الزيارات السابقة.",
@@ -1312,6 +1379,8 @@
     "closestFirst": "الأقرب للسعرات أولاً",
     "targetDifference": "{value} kcal",
     "browseAllDishes": "تصفح جميع الأطباق",
+    "fillSlot": "اختر طبقًا",
+    "addToSlot": "إضافة {name} إلى هذه الوجبة",
     "replaceMeal": "استبدال",
     "mealReplaced": "تم استبدال الوجبة",
     "mealReplacedHint": "تم حفظ البديل في خانة الوجبة هذه.",

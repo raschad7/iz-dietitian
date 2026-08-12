@@ -8,6 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { ArchiveButton } from '@/features/clients/components/archive-button';
 import { DeleteClientButton } from '@/features/clients/components/delete-client-button';
 import { type Locale } from '@/i18n/routing';
+import { cn } from '@/lib/utils';
 
 /**
  * Archive and delete, behind one glyph.
@@ -32,11 +33,19 @@ export function ClientActionsMenu({
   clientId,
   clientName,
   archived,
+  triggerClassName,
 }: {
   locale: Locale;
   clientId: string;
   clientName: string;
   archived: boolean;
+  /**
+   * Restyles the glyph the menu hangs from. The default is the round ghost
+   * chip every icon-only control in the app wears; the record's identity panel
+   * pairs it with a full-width Edit and squares it off to match, which is a
+   * property of *that row* rather than of this menu.
+   */
+  triggerClassName?: string;
 }) {
   const t = useTranslations('clients');
 
@@ -44,7 +53,7 @@ export function ClientActionsMenu({
     <Popover>
       <PopoverTrigger
         aria-label={t('actions.more')}
-        className={buttonVariants({ variant: 'ghost', size: 'icon-sm' })}
+        className={cn(buttonVariants({ variant: 'ghost', size: 'icon-sm' }), triggerClassName)}
       >
         <Icon name="moreActions" className="size-5" />
       </PopoverTrigger>

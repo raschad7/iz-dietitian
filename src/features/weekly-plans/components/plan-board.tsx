@@ -109,7 +109,7 @@ function BoardBody({
   const t = useTranslations('weeklyPlans');
   // The optimistic board, not the server one: everything below renders the edit
   // just made, before it has finished being written.
-  const { board, editable, pending, error } = useEditor();
+  const { board, editable, error } = useEditor();
 
   const [selectedMealId, setSelectedMealId] = useState<string | null>(null);
   const [selectedMealAnchor, setSelectedMealAnchor] = useState<HTMLButtonElement | null>(null);
@@ -195,7 +195,11 @@ function BoardBody({
 
   return (
     <div className="relative flex min-h-0 min-w-0 flex-1 flex-col gap-3">
-      <header className="grid overflow-hidden rounded-lg border border-border bg-card shadow-card 2xl:grid-cols-[minmax(0,1fr)_auto]">
+      {/* No `shadow-card`. The header is a full-width band pinned to the top of
+          the workspace, not a card floating on it, and a shadow under something
+          that spans the frame reads as a seam rather than as depth. The border
+          is what separates it from the board. */}
+      <header className="grid overflow-hidden rounded-lg border border-border bg-card 2xl:grid-cols-[minmax(0,1fr)_auto]">
         <h2 className="sr-only">{board.clientName}</h2>
         <div className="min-w-0">{children}</div>
 
@@ -293,22 +297,27 @@ function BoardBody({
             </PopoverContent>
           </Popover>
 
-          {pending || error ? (
+          {/*
+            Only failures are announced here now.
+
+            The "saving" line used to appear in this row for the few hundred
+            milliseconds an edit takes and then leave again, and because it is a
+            flex item the whole action bar jumped sideways twice per edit — so
+            replacing a meal made the header look unstable at exactly the moment
+            the dietitian was watching the board redraw. A spinner that costs a
+            layout shift is worse than no spinner: the edit is already visible
+            optimistically on the card, which is the real feedback. An error
+            still has to be said out loud, and that is rare enough to be worth
+            the reflow.
+          */}
+          {error ? (
             <span
               role="status"
               aria-live="polite"
-              className={cn(
-                'ms-auto inline-flex items-center justify-end gap-2 text-label',
-                error ? 'text-destructive' : 'text-muted-foreground',
-              )}
+              className="ms-auto inline-flex items-center justify-end gap-2 text-label text-destructive"
             >
-              <>
-                <Icon
-                  name={error ? 'attention' : 'refresh'}
-                  className={cn('size-4', pending && !error && 'motion-safe:animate-spin')}
-                />
-                {error ? t(error) : t('savingIndicator')}
-              </>
+              <Icon name="attention" className="size-4" />
+              {t(error)}
             </span>
           ) : null}
         </div>
@@ -418,6 +427,8 @@ function BoardBody({
         meal={selectedMeal}
         anchor={selectedMealAnchor}
         candidates={selectedMeal ? candidates[selectedMeal.id] ?? [] : []}
+        catalog={catalog}
+        usage={usage}
         planId={board.id}
         locale={locale}
         editable={editable}

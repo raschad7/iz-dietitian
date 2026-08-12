@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import { Icon, type IconName } from '@/components/ui/icon';
+import { cn } from '@/lib/utils';
 
 import { publishPlanAction, unpublishPlanAction } from '../actions';
 import { initialPlanActionState, type PlanActionState } from '../form-state';
@@ -46,6 +47,18 @@ export function PublishButton({
   const [publishState, publish] = useActionState(publishPlanAction, initialPlanActionState);
   const [unpublishState, unpublish] = useActionState(unpublishPlanAction, initialPlanActionState);
 
+  /*
+   * Every label the control can ever show, in both states.
+   *
+   * The width of this button is decided by the longest of them and never by
+   * whichever one is on screen. "Publish for the client" and "Unpublish" are not
+   * the same length in either language, so publishing used to shrink the button
+   * under the pointer and shove the whole action bar sideways — in the same
+   * moment the plan went live, which is exactly when the dietitian is watching
+   * that row rather than the button. One footprint, four captions.
+   */
+  const labels = [t('publish'), t('publishing'), t('unpublish'), t('unpublishing')];
+
   if (status === 'published') {
     return (
       <div className="relative flex flex-col items-end gap-1">
@@ -55,6 +68,7 @@ export function PublishButton({
           <Submit
             label={t('unpublish')}
             pendingLabel={t('unpublishing')}
+            labels={labels}
             icon="eyeOff"
             variant="outline"
             confirmed={publishState.status === 'done'}
@@ -75,6 +89,7 @@ export function PublishButton({
         <Submit
           label={t('publish')}
           pendingLabel={t('publishing')}
+          labels={labels}
           icon="eye"
           disabled={unfilled > 0}
           title={unfilled > 0 ? t('errors.unfilled') : undefined}
@@ -88,6 +103,7 @@ export function PublishButton({
 function Submit({
   label,
   pendingLabel,
+  labels,
   icon,
   disabled,
   title,
@@ -96,6 +112,8 @@ function Submit({
 }: {
   label: string;
   pendingLabel: string;
+  /** Every caption this control can show, so its width never depends on state. */
+  labels: readonly string[];
   icon: IconName;
   disabled?: boolean;
   title?: string;
@@ -117,18 +135,27 @@ function Submit({
       className="planner-publish-button px-3"
     >
       <Icon name={icon} className="planner-publish-icon" />
-      {/* Both labels occupy one grid cell, so submitting never changes the
-          toolbar's width. Opacity communicates state without moving its peers. */}
+      {/* All four captions occupy one grid cell, so neither submitting nor
+          publishing changes the toolbar's width — the cell is as wide as the
+          longest of them in whatever language is loaded. Only one is ever
+          visible; the rest are `invisible`, which reserves their box without
+          drawing them or announcing them. */}
       <span className="grid">
-        <span className={pending ? 'invisible col-start-1 row-start-1' : 'col-start-1 row-start-1'}>
-          {label}
-        </span>
-        <span
-          aria-hidden={!pending}
-          className={pending ? 'col-start-1 row-start-1' : 'invisible col-start-1 row-start-1'}
-        >
-          {pendingLabel}
-        </span>
+        {labels.map((caption, index) => {
+          // By index, so two states that happen to share a caption still render
+          // exactly one visible label rather than two stacked on each other.
+          const shown = index === labels.indexOf(pending ? pendingLabel : label);
+
+          return (
+            <span
+              key={index}
+              aria-hidden={!shown}
+              className={cn('col-start-1 row-start-1 text-center', !shown && 'invisible')}
+            >
+              {caption}
+            </span>
+          );
+        })}
       </span>
     </Button>
   );

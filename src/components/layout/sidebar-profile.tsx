@@ -58,12 +58,10 @@ import { cn } from '@/lib/utils';
 
 /** Destinations, block-start to block-end. */
 const LINKS = [
-  { href: '/app/profile', labelKey: 'settings', icon: 'settings' },
-  { href: '/app/settings/whatsapp', labelKey: 'whatsapp', icon: 'whatsapp' },
-  { href: '/app/settings/security', labelKey: 'security', icon: 'security' },
+  { href: '/app/settings/profile', labelKey: 'settings', icon: 'settings' },
 ] as const satisfies ReadonlyArray<{
-  href: '/app/profile' | '/app/settings/whatsapp' | '/app/settings/security';
-  labelKey: 'settings' | 'whatsapp' | 'security';
+  href: '/app/settings/profile';
+  labelKey: 'settings';
   icon: IconName;
 }>;
 

@@ -229,15 +229,16 @@ export function TodayFlameCell({ day }: { day: AdherenceDay }) {
                   <DayFlame day={liveDay} size={HERO_SIZE} className="q-flame-celebrate" />
 
                   {/*
-                    The same glow/burst `TodayFlameCell` plays when the claimed
-                    flame lands in the strip, played once here instead on the
+                    The burst `TodayFlameCell` plays when the claimed flame
+                    lands in the strip, played once here instead on the
                     dialog's own open — one celebration, reused where it is
-                    earned, not a second effect invented for the card. This
-                    span mounts once per day's claim (see the portal gate
-                    above), so the animations fire on that mount and never
-                    replay while the dialog is merely re-opened by React.
+                    earned, not a second effect invented for the card. No
+                    `q-flame-glow` here: the dialog's hero flame already sits
+                    on its own card surface, and the orange radial behind it
+                    read as a stray shadow rather than a glow at this size —
+                    the strip's landing glow (below, in `TodayFlameCell`) is
+                    unaffected.
                   */}
-                  <span aria-hidden="true" className="q-flame-glow pointer-events-none absolute -inset-6 -z-10" />
                   <span aria-hidden="true" className="pointer-events-none absolute inset-0">
                     {HERO_PARTICLES.map((particle) => (
                       <span key={particle.key} className="q-flame-particle" style={particle.style} />

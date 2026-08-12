@@ -1,7 +1,6 @@
 import { useTranslations } from 'next-intl';
 
 import { EmptyState } from '@/components/ui/empty-state';
-import { roundForDisplay } from '@/features/weekly-plans/nutrition';
 
 import { PortalMealCard } from './portal-meal-card';
 import { PlanDayStrip } from './plan-day-strip';
@@ -9,14 +8,18 @@ import type { Board } from '../queries';
 import { dayStanding, type PlanDaySummary } from '../week';
 
 /**
- * The client's own view of their published week — rendered on the home
- * screen, directly below today's progress.
+ * The client's own view of their published week — `PlanDayPicker` and
+ * `PortalPlan` below, mounted on the home screen around today's progress
+ * card: the picker above it, where the old three-day header glance used to
+ * sit, and the meal list beneath it.
  *
- * Three movements, each given room to be one thing: what the week is for, which
- * day is being read, and what that day holds. The dietitian's board is a planning
- * tool that shows a whole week at once; this is a shopping list and a daily
- * reminder, read on a phone, so it shows one day properly rather than seven
- * badly.
+ * Two components rather than one, so `page.tsx` can put the commitment card
+ * between them; the day chosen up here is what `PortalPlan` reads down there.
+ * Together they are still the same three movements: what the week is for,
+ * which day is being read, and what that day holds. The dietitian's board is
+ * a planning tool that shows a whole week at once; this is a shopping list
+ * and a daily reminder, read on a phone, so it shows one day properly rather
+ * than seven badly.
  *
  * **Separated by surface, not by rule.** Almost nothing here draws a border. The
  * page is a stack of filled cards and tinted blocks on a sunken canvas, which is
@@ -31,17 +34,34 @@ import { dayStanding, type PlanDaySummary } from '../week';
  * Everything is drawn from the board. A day with no meals renders as a day with
  * no meals; nothing is invented to fill the space.
  *
- * **No completion provider of its own.** The home screen already wraps today's
- * progress ring and the week strip above it in one `PlanDayCompletionProvider`
- * keyed to today — see `plan-day-completion.tsx` and the home page's own doc
- * comment. Mounting a second, independent provider here whenever the selected
- * day is today would let a tick inside this component's meal list and the ring
- * above it drift out of sync, each holding its own copy of "which meals are
- * done". So this component never mounts one itself: `MealCheck`, rendered only
- * when `standing === 'today'`, reaches straight up to that ambient provider,
- * which is only ever mounted for today's own day — the one day this component
- * can also legally be showing `MealCheck` for.
+ * **No completion provider of its own.** The home screen already wraps the
+ * picker, today's progress ring and the meal list in one
+ * `PlanDayCompletionProvider` keyed to today — see `plan-day-completion.tsx`
+ * and the home page's own doc comment. Mounting a second, independent
+ * provider here whenever the selected day is today would let a tick inside
+ * `PortalPlan`'s meal list and the ring above it drift out of sync, each
+ * holding its own copy of "which meals are done". So neither component
+ * mounts one itself: `MealCheck`, rendered only when `standing === 'today'`,
+ * reaches straight up to that ambient provider, which is only ever mounted
+ * for today's own day — the one day `PortalPlan` can also legally be showing
+ * `MealCheck` for.
  */
+/**
+ * The week picker, on its own: `PlanDayStrip`, unlabelled. Split out of
+ * `PortalPlan` so `page.tsx` can mount it above `HomeToday` — where the old
+ * three-day header glance used to sit, itself unlabelled — while `PortalPlan`
+ * keeps only the day it resolves to and that day's meals.
+ */
+export function PlanDayPicker({
+  days,
+  selectedDay,
+}: {
+  days: readonly PlanDaySummary[];
+  selectedDay: number;
+}) {
+  return <PlanDayStrip days={days} selectedDay={selectedDay} />;
+}
+
 export function PortalPlan({
   board,
   days,
@@ -62,7 +82,6 @@ export function PortalPlan({
   const day = board.days.find((candidate) => candidate.dayOfWeek === selectedDay);
 
   const meals = day?.meals ?? [];
-  const dayKcal = day ? roundForDisplay('kcal', day.totals.kcal.value) : 0;
 
   /*
     Which of the three days this is, and therefore what a meal card may offer.
@@ -82,92 +101,58 @@ export function PortalPlan({
 
   return (
     /*
-      **An ordinary block that grows to its content.** This section used to be
-      the bottom half of a frame the home page sized to the viewport, with the
-      meal list scrolling inside it and the picker pinned above — `flex min-h-0
-      flex-1` here, matching `min-h-0` on every wrapper up to the shell, and an
-      `overflow-y-auto` on the list. It scrolls with the page now; the ⚠ note
-      beside the `.portal-home` rule in `globals.css` has the reasoning.
+      **An ordinary section that grows to its content.**
 
-      `space-y-8` rather than the `gap-8` the flex column took, for the same
-      rhythm without the column.
+      ⚠ This was the bottom half of a frame the home page sized to the viewport:
+      `flex min-h-0 flex-1` here, `min-h-0` on every wrapper up to the shell,
+      and an `overflow-y-auto` on the list below, so the meals scrolled inside
+      themselves while the picker and the commitment card above stayed pinned.
+      That frame is gone — the home tab scrolls as one document like the other
+      four — and the ⚠ note beside the `.portal-home` rule in `globals.css` has
+      the reasoning. Nothing here sizes itself to anything now.
+
+      `todayMealsHeading` names the block rather than restating the day: it used
+      to repeat the selected day's name and full date directly under
+      `PlanDayPicker`'s strip, one section up — and the strip marks its
+      selection with a solid olive fill and its today with a badge, so that
+      restated, one section lower, the only two facts already drawn above it.
+      This is a quiet label instead, the same size as the commitment heading
+      above it (`home-today.tsx`) but not white — this section sits on the
+      page's own white column, not on the home glow that heading answers to.
     */
-    <div className="space-y-8 text-start">
-      {/*
-        The picker says what it is for. It is the one control on the home screen
-        that changes what the screen shows, and unlabelled it read as a week
-        report — seven days with flames on them, next to a card that is a week
-        report. Same treatment as the commitment heading one section up
-        (`home-today.tsx`), because they are the same kind of line: a quiet
-        label naming the block under it.
-      */}
-      <div className="space-y-3">
-        <p className="text-sm font-medium text-muted-foreground">{t('chooseDayHeading')}</p>
-        <PlanDayStrip days={days} selectedDay={selectedDay} />
-      </div>
+    <section className="space-y-4 text-start">
+      <p className="text-sm font-medium text-muted-foreground">{t('todayMealsHeading')}</p>
 
-      {/*
-        No day heading here, deliberately.
+      {meals.length === 0 ? (
+        <EmptyState icon="dish" title={t('emptyDayTitle')} description={t('emptyDayHint')} />
+      ) : (
+        /*
+          The day's meals, in the page's own scroll.
 
-        It used to repeat the selected day's name and full date directly under
-        the strip that had just been tapped to choose them — and the strip marks
-        its selection with a solid olive fill and its today with a badge, so the
-        heading restated, one line lower, the only two facts already drawn above
-        it. What follows the strip is the day's meals, and they start immediately.
-      */}
-      <section className="space-y-4">
-        {meals.length === 0 ? (
-          <EmptyState icon="dish" title={t('emptyDayTitle')} description={t('emptyDayHint')} />
-        ) : (
-          <>
-            {/*
-              The day's own totals, stated rather than plotted. This is what the
-              dietitian planned for the day, not what anyone has eaten — so it is
-              labelled as the day's energy and never framed as progress against a
-              goal the client has not been measured on.
+          This used to be the single scrolling region on the home screen —
+          `min-h-0 flex-1 overflow-y-auto overflow-x-hidden`, carrying the day's
+          overflow so the picker above it could stay pinned. It does not any
+          more: the list is as tall as the day is long and the window scrolls
+          past it, which also retires the `overflow-x-hidden` that was there
+          only to stop the CSS Overflow spec's visible/non-visible pairing rule
+          growing a second, horizontal bar beside the vertical one.
 
-              **Unfilled.** It sat on the meal surface (`MEAL_SHELL`) and read as
-              a sixth card at the top of a list of five — the same material and
-              the same radius as the meals under it, but nothing you can open or
-              tick. Bare on the page it is what it says it is: a line of type
-              stating the day's energy, above the cards that make it up.
+          The day's own energy total is not here either. It shows once, on the
+          commitment card above (`home-today.tsx`), so the list starts directly
+          on the meals rather than restating a figure that card already states.
 
-              That also settles what used to be a question here: it never tints
-              with how the day went, on any day. This is the dietitian's plan for
-              the day — a figure that was true before anyone ate anything and
-              stays true after — so colouring it by adherence would be reporting
-              against it, which is the one thing the label says it is not. With
-              no surface left there is nothing to tint at all.
-            */}
-            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-1">
-              <span className="text-sm">{t('dayEnergyLabel')}</span>
-              <span className="font-heading text-lg font-semibold tabular-nums">
-                {t('kcalValue', { value: dayKcal })}
-              </span>
-            </div>
-
-            {/*
-              The day's meals, in the page's own scroll.
-
-              This used to be the single scrolling region on the home screen —
-              `min-h-0 flex-1 overflow-y-auto`, carrying the day's overflow so
-              the picker above it could stay pinned. It does not any more: the
-              list is as tall as the day is long and the window scrolls past it.
-
-              `-mx-1 px-1` stays. It is not scroll-edge padding — it gives the
-              cards' focus rings and hairlines room to paint outside the column
-              without being clipped by anything upstream.
-            */}
-            <ul className="-mx-1 space-y-2 px-1 pb-1">
-              {meals.map((meal) => (
-                <li key={meal.id}>
-                  <PortalMealCard meal={meal} standing={standing} completed={completed.has(meal.id)} />
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
-      </section>
-    </div>
+          `-mx-1 px-1` stays. It is not scroll-edge padding — it gives the
+          cards' focus rings and hairlines room to paint outside the column
+          without being clipped by anything upstream.
+        */
+        <ul className="-mx-1 space-y-2 px-1 pb-1">
+          {meals.map((meal) => (
+            <li key={meal.id}>
+              <PortalMealCard meal={meal} standing={standing} completed={completed.has(meal.id)} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }

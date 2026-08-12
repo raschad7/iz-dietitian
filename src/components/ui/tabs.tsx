@@ -37,11 +37,17 @@ import { cn } from '@/lib/utils';
  * </Tabs>
  * ```
  */
-function Tabs({ label, className, ...props }: React.ComponentProps<'nav'> & { label: string }) {
+function Tabs({
+  label,
+  appearance = 'line',
+  className,
+  ...props
+}: React.ComponentProps<'nav'> & { label: string; appearance?: 'line' | 'contained' }) {
   return (
     <nav
       aria-label={label}
       data-slot="tabs"
+      data-appearance={appearance}
       className={cn(
         /*
          * `overflow-x-auto` and not a wrap: five tabs on a phone are a strip you
@@ -50,7 +56,10 @@ function Tabs({ label, className, ...props }: React.ComponentProps<'nav'> & { la
          * so the active underline replaces that line rather than sitting under a
          * second one.
          */
-        'flex shrink-0 gap-0.5 overflow-x-auto border-b border-border',
+        'flex shrink-0 overflow-x-auto',
+        appearance === 'line'
+          ? 'gap-0.5 border-b border-border'
+          : 'w-fit max-w-full gap-1 rounded-lg bg-muted p-1',
         // Hides the horizontal scrollbar's track on the platforms that draw one
         // permanently; the strip still scrolls by wheel, drag and keyboard.
         '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
@@ -84,23 +93,48 @@ const tabLinkVariants = cva(
      * block-end edge is the container's own hairline rather than a free corner,
      * so there is nothing here for a radius to round.
      */
-    'relative px-4 pt-3 pb-3.5 -mb-px border-b-2',
     'text-body-sm font-medium no-underline',
     'transition-colors duration-(--duration-label) ease-(--ease-sweep)',
-    'after:pointer-events-none after:absolute after:inset-x-4 after:bottom-[-1px] after:h-0.5 after:origin-center after:scale-x-0 after:bg-primary after:transition-transform after:duration-(--duration-label) after:ease-(--ease-sweep)',
     'outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-focus-halo',
   ],
   {
     variants: {
       active: {
-        true: 'border-b-transparent text-secondary-foreground font-semibold after:scale-x-100',
+        true: 'text-secondary-foreground font-semibold',
         // The hover fill stops at the label rather than reaching the hairline,
         // which is why it is the sunken neutral and not a brand tint: a tint
         // here would read as a second active state.
-        false: 'border-b-transparent text-muted-foreground hover:bg-muted hover:text-foreground',
+        false: 'text-muted-foreground hover:text-foreground',
+      },
+      appearance: {
+        line: [
+          'relative -mb-px border-b-2 border-b-transparent px-4 pt-3 pb-3.5',
+          'after:pointer-events-none after:absolute after:inset-x-4 after:bottom-[-1px] after:h-0.5 after:origin-center after:scale-x-0 after:bg-primary after:transition-transform after:duration-(--duration-label) after:ease-(--ease-sweep)',
+        ],
+        contained: [
+          'h-10 rounded-md border border-transparent px-3',
+          'data-[active=true]:border-border data-[active=true]:bg-card data-[active=true]:shadow-card',
+        ],
       },
     },
-    defaultVariants: { active: false },
+    compoundVariants: [
+      {
+        appearance: 'line',
+        active: true,
+        class: 'after:scale-x-100',
+      },
+      {
+        appearance: 'contained',
+        active: true,
+        class: 'border-border bg-card shadow-card',
+      },
+      {
+        appearance: 'contained',
+        active: false,
+        class: 'hover:bg-accent',
+      },
+    ],
+    defaultVariants: { active: false, appearance: 'line' },
   },
 );
 
