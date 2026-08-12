@@ -25,8 +25,8 @@ import { cn } from '@/lib/utils';
 export function MealCheckMark({ checked }: { checked: boolean }) {
   return (
     /*
-      `check` is `solar:check-circle-bold` — a filled circle with the tick cut
-      *out* of it (`fill-rule="evenodd"`), so the tick paints as whatever sits
+      `mealCheckMark` is `solar:check-circle-bold` — a filled circle with the
+      tick cut *out* of it (`fill-rule="evenodd"`), so the tick paints as whatever sits
       behind the glyph. White behind it is therefore the only way to get a white
       tick; against a tinted shell the knockout would be a pale tick on a
       coloured circle.
@@ -43,7 +43,7 @@ export function MealCheckMark({ checked }: { checked: boolean }) {
       {checked ? (
         <>
           <span aria-hidden className="absolute size-5 rounded-full bg-card" />
-          <Icon name="check" className="relative size-7" />
+          <Icon name="mealCheckMark" className="relative size-7" />
         </>
       ) : (
         // Unchecked is an empty ring rather than a faint glyph: an outline reads

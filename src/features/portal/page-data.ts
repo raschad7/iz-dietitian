@@ -1,7 +1,7 @@
 import { addDays } from '@/features/booking/date';
 import { getClinicHours } from '@/features/booking/queries';
 import { type ClinicHours } from '@/features/booking/validation';
-import { getPublishedBoard, type Board, type BoardDay } from '@/features/weekly-plans/queries';
+import { getPublishedBoard, type Board } from '@/features/weekly-plans/queries';
 import { planWeekDays, type PlanDaySummary } from '@/features/weekly-plans/week';
 
 import {
@@ -16,7 +16,7 @@ import {
   type TodayAdherence,
   type WeekAdherence,
 } from './adherence';
-import { nextAppointment, splitAppointments, type SplitAppointments } from './appointments';
+import { splitAppointments, type SplitAppointments } from './appointments';
 import { weekDates, STREAK_WINDOW_DAYS } from './check-ins';
 import { buildNotifications, type PortalNotification } from './notifications';
 import {
@@ -34,7 +34,6 @@ import { type RequestSearchInput } from './schema';
 import { availableSlots, selectableDays, REQUEST_WINDOW_DAYS } from './slots';
 import { type PortalContext } from './session';
 import {
-  type PortalAppointment,
   type PortalRequest,
   type ProfilePageData,
   type RequestKind,
@@ -64,81 +63,6 @@ async function requireHours(clinicId: string): Promise<ClinicHours> {
   return { ...hours, workingDays: [...hours.workingDays] };
 }
 
-export type DashboardData = {
-  next: PortalAppointment | null;
-  /** Today's meals from that plan. Null when there is no plan or today is unplanned. */
-  today: BoardDay | null;
-  /**
-   * Which of today's meals (`today.meals`) are already ticked — the home
-   * screen's own ring and meal list read this, the same shape
-   * {@link loadPlanPage} reads for its selected day.
-   */
-  todayCompletedMealIds: string[];
-  /** Requests still waiting on the dietitian. */
-  pending: PortalRequest[];
-  /**
-   * This week's plan adherence, already derived into what the home screen
-   * draws — the same `client_plan_adherence` rows and the same summarising
-   * function the progress tab reads, so the two screens can never disagree
-   * about how the week has gone. See {@link loadProgressPage}.
-   */
-  week: WeekAdherence;
-  /** Consecutive days kept at least partially, ending today or yesterday. */
-  streak: number;
-};
-
-export async function loadDashboard(context: PortalContext): Promise<DashboardData> {
-  // The clinic week `now` falls in. Read once here so the strip and the ring
-  // are describing the same seven days.
-  const dates = weekDates(context.now.date);
-  const to = dates[dates.length - 1] ?? context.now.date;
-
-  // The streak reaches back further than the week the strip draws, so one read
-  // covers both. `summariseAdherenceWeek` documents that it ignores dates
-  // outside the week, which is what makes the over-fetch safe rather than a
-  // second query.
-  const from = addDays(context.now.date, -(STREAK_WINDOW_DAYS - 1));
-
-  const [appointmentRows, requests, plan, adherenceRows] = await Promise.all([
-    listPortalAppointments(context.id),
-    listPortalRequests(context.id),
-    loadCurrentPlan(context),
-    listPlanAdherence(context.id, from, to),
-  ]);
-
-  // The plan's own week, not today's — a dietitian who has published next
-  // week's plan already means `plan.weekStartDate` is not the week `today`
-  // falls in, and `plan.days` is ordered by *that* week's weekday. Indexing
-  // it by `weekdayOf(context.now.date)` would silently hand back a day that
-  // shares today's weekday number but is a week away, which is not today's
-  // plan by any definition a client would recognise.
-  const todayPlanDay = plan
-    ? planWeekDays(plan.weekStartDate).find((day) => day.date === context.now.date)
-    : undefined;
-  const today = plan && todayPlanDay
-    ? (plan.days.find((day) => day.dayOfWeek === todayPlanDay.dayOfWeek) ?? null)
-    : null;
-
-  // Second read rather than part of the batch above: it needs `today`'s own
-  // meal ids, which only exist once `plan` has come back. Same shape
-  // `loadPlanPage` reads for its selected day.
-  const todayCompletedMealIds = [
-    ...(await listMealCompletions(
-      context.id,
-      today?.meals.map((meal) => meal.id) ?? [],
-    )),
-  ];
-
-  return {
-    next: nextAppointment(appointmentRows, context.now),
-    today,
-    todayCompletedMealIds,
-    pending: requests.filter((request) => request.status === 'pending'),
-    week: summariseAdherenceWeek(adherenceRows, context.now.date),
-    streak: currentAdherenceStreak(adherenceRows, context.now.date),
-  };
-}
-
 export type ProgressPageData = {
   /**
    * Today's own report — its exact fraction and the meals behind it — or null
@@ -165,9 +89,8 @@ export type ProgressPageData = {
  * correctly.
  *
  * One read of the last {@link STREAK_WINDOW_DAYS} covers the week strip, the
- * streak, the continuity curve and the four-week trend — the same "read once,
- * derive everything" shape `loadDashboard` uses for its own, shorter window
- * over the same table.
+ * streak, the continuity curve and the four-week trend — a "read once,
+ * derive everything" shape over the same table.
  */
 export async function loadProgressPage(context: PortalContext): Promise<ProgressPageData> {
   const dates = weekDates(context.now.date);

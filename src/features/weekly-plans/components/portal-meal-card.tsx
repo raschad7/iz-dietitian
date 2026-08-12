@@ -47,14 +47,13 @@ const MEAL_SHELL = 'bg-meal-bg text-meal-fg';
 
 /**
  * The tick's colour on a day this component does not let you edit — past or
- * future's empty ring. The same olive-500 `MealCheck` wears on the live
- * button, verified at 3.20:1 on `MEAL_SHELL` in the `--meal-*` note in
- * `globals.css`. There used to be a second, darker olive kept in reserve for
- * a completed past meal's tick, paired to the olive-tinted shell that meal
- * alone wore; with every card on the same shell now, one colour covers every
- * day this mark can appear on.
+ * future's empty ring. The same `--meal-check-fill` green `MealCheck` wears
+ * on the live button — see that token's comment in `globals.css` for why it
+ * replaced olive-500 here. A meal ticked today must not look like a
+ * different kind of tick tomorrow, so this stays in lockstep with
+ * `MealCheck`'s own colour rather than drifting back to `text-primary`.
  */
-const TICK_TONE = 'text-primary';
+const TICK_TONE = 'text-meal-check-fill';
 
 /**
  * One meal: a closed card that opens.

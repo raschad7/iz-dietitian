@@ -6,12 +6,20 @@ import { adherenceFraction } from '@/features/portal/adherence';
 import { usePlanDayCompletion } from '@/features/weekly-plans/components/plan-day-completion';
 import { type Locale } from '@/i18n/routing';
 
+import { TodayRing } from './today-ring';
+
 /**
- * The home screen's own hero: today's completion figure on the commitment
- * card, plus today's completed and remaining calories beside it. Today's
- * actual meals are read and ticked one section down, in the plan the home
- * page mounts below this — see that page's own doc comment.
+ * The home screen's own hero: the *open* day's completion figure on the
+ * commitment card, plus that day's completed and remaining calories beside
+ * it. Despite the name, this is not always today — `page.tsx` now passes
+ * whichever day `PlanDayPicker` has selected, so the ring changes when the
+ * client steps to another day, the same way `PortalPlan`'s meal list one
+ * section down already did. `HomeToday`/`HomeTodayMeal` keep their names
+ * because ticking only ever happens on today's own day regardless of which
+ * one is open, so "today" still names what this card is *for*, if not
+ * always which day it is currently drawing.
  *
+
  * **Reuses the meal-plan screen's own completion state, not a copy of it.**
  * `usePlanDayCompletion()` below reads the same `PlanDayCompletionProvider`
  * that the plan section's `MealCheck` writes through — see
@@ -22,10 +30,11 @@ import { type Locale } from '@/i18n/routing';
  * state, so this card's figure updates the instant a meal is checked, with no
  * second source of truth to keep in sync.
  *
- * **Only the day's shape crosses into this client component.** `today.meals`
- * carries dish, options and rationale nobody on this screen reads — see the
- * same reasoning in `portal-plan.tsx` for why that stays server-only. The page
- * maps each meal down to {@link HomeTodayMeal} before handing it here.
+ * **Only the day's shape crosses into this client component.** The open
+ * day's `BoardMeal[]` carries dish, options and rationale nobody on this
+ * screen reads — see the same reasoning in `portal-plan.tsx` for why that
+ * stays server-only. The page maps each meal down to {@link HomeTodayMeal}
+ * before handing it here.
  */
 export type HomeTodayMeal = {
   id: string;
@@ -37,9 +46,9 @@ export type HomeTodayMeal = {
 };
 
 /**
- * The commitment card: today's completion figure beside a completed/remaining
+ * The commitment card: today's completion ring beside a completed/remaining
  * calorie breakdown. A client component reading the completion context
- * directly — not server props — which is what lets the figure and the
+ * directly — not server props — which is what lets the ring and the
  * calorie counts update the instant `MealCheck` flips a meal below, rather
  * than waiting on the next navigation.
  */
@@ -51,13 +60,6 @@ function TodayProgress({ meals }: { meals: HomeTodayMeal[] }) {
   const total = context?.totalCount ?? 0;
   const completed = context?.completedCount ?? 0;
   const fraction = adherenceFraction(completed, total);
-  const percentageParts =
-    fraction === null
-      ? null
-      : new Intl.NumberFormat(locale, {
-          style: 'percent',
-          maximumFractionDigits: 0,
-        }).formatToParts(fraction);
 
   // Today's full planned energy, not a separate target — the two dots below
   // split the same total the meal cards already show, into what's ticked and
@@ -70,39 +72,34 @@ function TodayProgress({ meals }: { meals: HomeTodayMeal[] }) {
   const remainingCalories = totalCalories - completedCalories;
 
   return (
-    <div className="flex min-h-[150px] w-full items-center justify-between rounded-[30px] bg-white px-7 py-8">
-      <div className="flex shrink-0 flex-col items-start gap-1.5">
-        <span className="font-heading leading-none font-bold tabular-nums">
-          {percentageParts ? (
-            percentageParts.map((part, index) =>
-              part.type === 'percent' ? (
-                <span key={index} className="ms-1 align-middle text-sm font-semibold text-black">
-                  {part.value}
-                </span>
-              ) : (
-                <span key={index} className="text-5xl text-primary">
-                  {part.value}
-                </span>
-              ),
-            )
-          ) : (
-            <span className="text-5xl text-black">—</span>
-          )}
-        </span>
-
-        {total > 0 ? (
-          <span className="text-caption leading-none text-muted-foreground">{t('meals', { completed, total })}</span>
-        ) : null}
-      </div>
+    // `rtl:flex-row-reverse`, not source order: the ring stays on the
+    // physical left in both locales rather than mirroring to inline-start.
+    // `px-4`, not the card's old `px-7`: `PlanDayPicker`'s strip sits almost
+    // flush with the page edge (`px-0.5` on its own grid) directly above
+    // this card now, and the wider inset read as a second, offset column
+    // once the two were stacked — pulling the ring's edge in closer to the
+    // day cells' own is what lines the two back up.
+    <div className="flex min-h-[150px] w-full items-center justify-between rounded-[30px] bg-card px-4 py-4 rtl:flex-row-reverse">
+      <TodayRing fraction={fraction} completed={completed} total={total} locale={locale} />
 
       <div className="flex flex-col gap-2.5 text-caption text-black">
+        {/* Same pair the ring itself is drawn in — the fill for what's done, the soft track for what's left. */}
         <span className="flex items-center gap-2">
-          <span className="size-2.5 shrink-0 rounded-full bg-primary" />
+          <span className="size-2.5 shrink-0 rounded-full bg-portal-progress-fill" />
           {t('caloriesCompleted', { value: completedCalories })}
         </span>
         <span className="flex items-center gap-2">
-          <span className="size-2.5 shrink-0 rounded-full bg-border" />
+          <span className="size-2.5 shrink-0 rounded-full bg-portal-progress-track-soft" />
           {t('caloriesRemaining', { value: remainingCalories })}
+        </span>
+
+        {/* The day's planned total, not a third split — no dot, at the same
+            caption size as the two rows above rather than a heavier one.
+            `mt-2` on top of the column's own `gap-2.5`, so it reads as a
+            separate total rather than a third item in the same list. */}
+        <span className="mt-2 flex items-center justify-between gap-4">
+          <span>{t('energyTodayLabel')}</span>
+          <span className="tabular-nums">{t('energyTodayValue', { value: totalCalories })}</span>
         </span>
       </div>
     </div>

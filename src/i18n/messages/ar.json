@@ -789,8 +789,7 @@
       "dailyTarget": "الهدف اليومي: {value} kcal",
       "chooseDay": "اختر اليوم",
       "today": "اليوم",
-      "chooseDayHeading": "اختر يومًا لرؤية الوجبات",
-      "dayEnergyLabel": "طاقة هذا اليوم",
+      "todayMealsHeading": "وجباتك لهذا اليوم",
       "mealEnergyLabel": "طاقة الوجبة",
       "emptyDayTitle": "لا توجد وجبات لهذا اليوم",
       "emptyDayHint": "ترك أخصائي التغذية هذا اليوم مفتوحًا. اختر يومًا آخر من الأعلى.",
@@ -920,9 +919,11 @@
     "progress": {
       "today": {
         "heading": "التزامك اليوم",
-        "meals": "تم إكمال {completed, number, integer} من {total, number, integer} {total, plural, one {وجبة} two {وجبتين} few {وجبات} many {وجبة} other {وجبة}}",
+        "meals": "{completed, number, integer} من {total, number, integer} {total, plural, one {وجبة} two {وجبتين} few {وجبات} many {وجبة} other {وجبة}}",
         "caloriesCompleted": "{value, number, integer} سعرة مكتملة",
         "caloriesRemaining": "{value, number, integer} سعرة متبقية",
+        "energyTodayLabel": "طاقة اليوم",
+        "energyTodayValue": "{value, number, integer} سعرة",
         "prompt": "أتمّي وجبات اليوم في خطتي ليظهر التزامك هنا.",
         "cta": "تحديث التزامك اليوم",
         "level": {

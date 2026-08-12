@@ -162,8 +162,14 @@ export function PlanDayStrip({
                   ring for a while and the ring is gone: a border around a cell
                   that already contains a ringed flame was two rings inside 72px.
                 */
-                active ? 'bg-secondary text-secondary-foreground' : 'hover:bg-muted',
-                !planned && !active && 'text-muted-foreground',
+                // White, not the ambient dark foreground: the strip moved up
+                // to sit on the home glow (`page.tsx`), directly under the
+                // greeting, rather than on the white page column it used to
+                // share with the meal list. `active`'s own `bg-secondary`
+                // fill still carries its own opaque pair regardless of what
+                // it sits on, so it is the one state left untouched.
+                active ? 'bg-secondary text-secondary-foreground' : 'text-white hover:bg-white/10',
+                !planned && !active && 'text-white/45',
               )}
             >
               {/*
@@ -177,12 +183,16 @@ export function PlanDayStrip({
                 six weekday names in it, and the day you were looking for is the
                 one cell that no longer answers to its name.
 
-                Today is still marked — olive *and* semibold, never colour alone,
-                which is a signal a colourblind reader does not get. What changed
-                is that the mark now sits on the name rather than replacing it.
-                The `aria-label` on the button still spells out both ("الأحد —
-                اليوم"), so nothing is lost to a screen reader, which cannot see
-                the weight or the colour doing the work here.
+                Today is still marked — it used to be olive *and* semibold,
+                never colour alone, so a colourblind reader still got the
+                weight even where the colour did not read. Now that every
+                label is white on the glow (see the button's own colour note
+                above), semibold is the one signal left carrying it, which is
+                the same signal the old pairing already leaned on. The mark
+                now sits on the name rather than replacing it. The
+                `aria-label` on the button still spells out both ("الأحد —
+                اليوم"), so nothing is lost to a screen reader, which cannot
+                see the weight doing the work here.
 
                 `text-caption` is 12px, the scale's floor. `truncate` is a guard
                 rather than a working state at 72px, and the `aria-label` carries
@@ -200,7 +210,7 @@ export function PlanDayStrip({
               <span
                 className={cn(
                   'w-full truncate text-center text-caption',
-                  day.isToday && 'font-semibold text-primary',
+                  day.isToday && 'font-semibold',
                 )}
               >
                 {name}
