@@ -39,12 +39,37 @@ export function EmptyPlanBoard({
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
-      <header className="overflow-hidden rounded-lg border border-border bg-card shadow-card">
-        {profile}
-        <div className="flex flex-wrap items-center gap-2 border-t border-border bg-muted/50 px-4 py-3">
-            <Button type="button" size="sm" variant="outline" onClick={() => setCatalogOpen(true)}>
+      {/*
+        The same header the board has, because it is the same header.
+
+        This used to be its own shape — the client strip with a second full-width
+        toolbar bar stacked under it, on a card with a shadow — so choosing a
+        client who happens to have no week yet redrew the top of the screen into
+        a different object, and creating the first week redrew it back. The state
+        that changed is whether a plan exists; the frame around the client is not
+        part of that. Same grid, same action bar, same absence of a shadow: see
+        `plan-board.tsx`, which this deliberately mirrors.
+
+        What is legitimately different is which control is filled. There, publish
+        is the decision and "new week" is a thing you may also do; here there is
+        nothing to publish and the first week is the only reason to be on this
+        screen, so that button keeps the solid fill.
+      */}
+      <header className="grid overflow-hidden rounded-lg border border-border bg-card 2xl:grid-cols-[minmax(0,1fr)_auto]">
+        <div className="min-w-0">{profile}</div>
+
+        <div className="planner-action-bar mx-2 mb-2 flex max-w-full flex-wrap items-center justify-end gap-1.5 rounded-lg bg-muted/70 p-1.5 2xl:my-2 2xl:me-2 2xl:ms-0 2xl:w-auto 2xl:self-center 2xl:flex-nowrap 2xl:justify-center">
+            <Button
+              type="button"
+              size="sm"
+              variant="neutral"
+              className="px-3 2xl:size-10 2xl:rounded-full 2xl:px-0"
+              aria-label={t('tabs.dishes')}
+              title={t('tabs.dishes')}
+              onClick={() => setCatalogOpen(true)}
+            >
               <Icon name="dishes" />
-              {t('tabs.dishes')}
+              <span className="2xl:sr-only">{t('tabs.dishes')}</span>
             </Button>
 
             <NewWeekDialog

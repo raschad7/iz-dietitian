@@ -9,8 +9,9 @@ import { Icon } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 
 import { preferredInspectorSide, type InspectorSide } from '../meal-inspector-position';
-import type { BoardMeal, SwapCandidate } from '../queries';
+import type { BoardMeal, CatalogEntry, SwapCandidate } from '../queries';
 import { PLANNER_THEME } from '../theme';
+import type { RecentUse } from '../usage';
 
 import { MealCardSnapshot } from './meal-card';
 import { MealDetailPanel } from './meal-detail-panel';
@@ -29,6 +30,8 @@ export function MealInspector({
   meal,
   anchor,
   candidates,
+  catalog,
+  usage,
   planId,
   locale,
   editable,
@@ -39,6 +42,8 @@ export function MealInspector({
   meal: BoardMeal | undefined;
   anchor: HTMLButtonElement | null;
   candidates: readonly SwapCandidate[];
+  catalog: readonly CatalogEntry[];
+  usage: Record<string, RecentUse>;
   planId: string;
   locale: string;
   editable: boolean;
@@ -211,6 +216,8 @@ export function MealInspector({
               <MealDetailPanel
                 meal={inspected.meal}
                 candidates={candidates}
+                catalog={catalog}
+                usage={usage}
                 planId={planId}
                 locale={locale}
                 editable={editable}

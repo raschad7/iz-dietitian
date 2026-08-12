@@ -72,7 +72,14 @@ export function ContextPanel({
       )}
     >
       <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center xl:grid-cols-[minmax(17rem,1.05fr)_minmax(34rem,2fr)_auto]">
-        <div className="flex min-w-0 flex-wrap items-center gap-3 xl:flex-nowrap">
+        {/* `gap-2`, not `gap-3`. The disc and the name are one thing — a person
+            — and the same gutter that separates them from the profile button
+            made them read as two items in a toolbar. */}
+        {/* Two things, always: the disc and the name. Nothing else joins this
+            row — the profile control lives in the action column with the other
+            profile control, so the header keeps one layout whatever state the
+            client is in. */}
+        <div className="flex min-w-0 flex-wrap items-center gap-2 xl:flex-nowrap">
           {/*
             The client's calendar colour — the disc heading the week being
             planned is the one their appointments are drawn in. See
@@ -81,7 +88,7 @@ export function ContextPanel({
           */}
           {selectedClient ? (
             <span className="patient-tone contents" style={patientToneStyle(selectedClient.seq)}>
-              <Avatar name={selectedClient.fullName} color="var(--tone-mark)" size="lg" />
+              <Avatar name={selectedClient.fullName} color="var(--tone-mark)" size="xl" />
             </span>
           ) : null}
 
@@ -93,16 +100,6 @@ export function ContextPanel({
             />
           </div>
 
-          {!profile ? (
-            <IntakeFormTrigger
-              locale={locale}
-              clientId={context.clientId}
-              className={buttonVariants({ variant: 'outline', size: 'sm' })}
-            >
-              <Icon name="add" />
-              {t('createProfile')}
-            </IntakeFormTrigger>
-          ) : null}
         </div>
 
         <div className="grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-3 lg:col-span-2 lg:grid-cols-5 xl:col-span-1 xl:col-start-2 xl:row-start-1">
@@ -180,19 +177,30 @@ export function ContextPanel({
           </PopoverContent>
           </Popover>
 
-          {profile ? (
-            <TooltipHint label={t('editProfile')}>
-              <IntakeFormTrigger
-                locale={locale}
-                clientId={context.clientId}
-                aria-label={t('editProfile')}
-                className={buttonVariants({ variant: 'neutral', size: 'icon-sm' })}
-              >
-                <Icon name="edit" />
-                <span className="sr-only">{t('editProfile')}</span>
-              </IntakeFormTrigger>
-            </TooltipHint>
-          ) : null}
+          {/*
+            One control in two states, in one place — the same rule the publish
+            button follows.
+
+            Creating the first profile and editing an existing one open the same
+            form and mean the same thing to the layout, so they are the same
+            button: a plus until there is a profile, a pencil after. It used to
+            be two different controls in two different places — a labelled
+            "create profile" button wedged in beside the client's name, and a
+            pencil down here — so filling in a profile moved a control across
+            the header and changed its shape on the way. The header now has one
+            layout, whatever state the client is in.
+          */}
+          <TooltipHint label={profile ? t('editProfile') : t('createProfile')}>
+            <IntakeFormTrigger
+              locale={locale}
+              clientId={context.clientId}
+              aria-label={profile ? t('editProfile') : t('createProfile')}
+              className={buttonVariants({ variant: 'neutral', size: 'icon-sm' })}
+            >
+              <Icon name={profile ? 'edit' : 'add'} />
+              <span className="sr-only">{profile ? t('editProfile') : t('createProfile')}</span>
+            </IntakeFormTrigger>
+          </TooltipHint>
         </div>
       </div>
     </section>
