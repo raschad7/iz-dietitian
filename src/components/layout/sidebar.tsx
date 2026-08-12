@@ -16,7 +16,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
-  SidebarRail,
   SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { Link, usePathname } from '@/i18n/navigation';
@@ -236,8 +235,6 @@ function AppSidebar({ items, title, showTitle = true, user, icons }: Omit<ShellP
           <SidebarProfile name={user.name} email={user.email} locale={user.locale} />
         </SidebarFooter>
       ) : null}
-
-      <SidebarRail />
     </Sidebar>
   );
 }

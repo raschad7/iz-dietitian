@@ -292,6 +292,18 @@ export async function listDishes(input: {
 
   const [totals] = await db.select({ value: count() }).from(dishes).where(where);
   const total = totals?.value ?? 0;
+  const pageCount = Math.max(1, Math.ceil(total / DISHES_PAGE_SIZE));
+
+  /*
+   * Clamped, not trusted. A page number can outlive the list it was written
+   * for — a bookmarked `?page=4`, a shared link, the back button after a
+   * filter narrowed the catalog — and an offset past the end returns no rows
+   * at all. That reads as an empty catalog, and the pager under it computes a
+   * range from the page it was asked for: "Showing 21–20 of 18". Landing on
+   * the last real page instead shows the reader the end of the list they
+   * asked for, which is the nearest true answer to the request.
+   */
+  const currentPage = Math.min(Math.max(input.page, 1), pageCount);
 
   const page = await db
     .select({ id: dishes.id })
@@ -299,7 +311,7 @@ export async function listDishes(input: {
     .where(where)
     .orderBy(asc(dishes.nameAr))
     .limit(DISHES_PAGE_SIZE)
-    .offset((input.page - 1) * DISHES_PAGE_SIZE);
+    .offset((currentPage - 1) * DISHES_PAGE_SIZE);
 
   const ids = new Set(page.map((row) => row.id));
   // Recipes come from the same loader the rest of the feature uses, so the
@@ -315,12 +327,7 @@ export async function listDishes(input: {
     }))
     .sort((a, b) => a.nameAr.localeCompare(b.nameAr, 'ar'));
 
-  return {
-    items,
-    total,
-    page: input.page,
-    pageCount: Math.max(1, Math.ceil(total / DISHES_PAGE_SIZE)),
-  };
+  return { items, total, page: currentPage, pageCount };
 }
 
 export async function listMealTypes(): Promise<string[]> {

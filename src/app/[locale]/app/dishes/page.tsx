@@ -1,11 +1,12 @@
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
+import { DishFilters } from '@/features/weekly-plans/components/dish-filters';
+import { DishPagination } from '@/features/weekly-plans/components/dish-pagination';
 import { DishTable } from '@/features/weekly-plans/components/dish-table';
 import { listDishes, listMealTypes } from '@/features/weekly-plans/queries';
 import { MEAL_TYPES } from '@/features/weekly-plans/schema';
 import { membersOf } from '@/lib/enum';
-import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/params';
 import { requireStaffClinic } from '@/lib/session';
 
@@ -38,78 +39,38 @@ export default async function DishesPage({ params, searchParams }: PageProps) {
   ]);
 
   return (
-    <div className="space-y-4 text-start">
-      <div>
-        <h1 className="text-xl font-semibold tracking-tight">{t('title')}</h1>
-        <p className="text-sm text-muted-foreground">
+    /*
+      The page fills the shell and does not scroll; the catalog does, inside
+      itself. A long list otherwise pushes the search field and the pager off
+      the top and bottom of the screen, and the two controls you reach for
+      *because* the list is long are the two the list hides.
+
+      Below `md` the page scrolls as a whole, the way the register does: on a
+      phone the chrome and a usable number of rows do not both fit. The column
+      names still stay put — the table header is sticky either way.
+    */
+    <div className="flex flex-col gap-6 text-start md:h-full md:min-h-0">
+      <div className="shrink-0">
+        <h1 className="font-heading text-heading-lg font-semibold tracking-tight">{t('title')}</h1>
+        <p className="text-body-sm text-muted-foreground">
           {t('subtitle', { count: result.total })}
         </p>
       </div>
 
-      <form className="flex flex-wrap items-end gap-3" method="get">
-        <div className="min-w-48">
-          <label htmlFor="q" className="block pb-1 text-xs font-medium">
-            {t('search')}
-          </label>
-          <input
-            id="q"
-            name="q"
-            defaultValue={q ?? ''}
-            className="h-9 w-full rounded-md border border-border bg-transparent px-3 text-sm"
-          />
-        </div>
+      <DishFilters
+        q={q}
+        mealType={mealType}
+        // Narrowed against the enum rather than passed as strings: the labels
+        // are looked up as `mealTypes.${type}`, and a `text[]` column is not
+        // proof its contents are still valid meal times.
+        mealTypes={membersOf(MEAL_TYPES, mealTypes)}
+      />
 
-        <div>
-          <label htmlFor="mealType" className="block pb-1 text-xs font-medium">
-            {t('columns.mealTypes')}
-          </label>
-          <select
-            id="mealType"
-            name="mealType"
-            defaultValue={mealType ?? ''}
-            className="h-9 rounded-md border border-border bg-transparent px-3 text-sm"
-          >
-            <option value="">{t('allMealTypes')}</option>
-            {membersOf(MEAL_TYPES, mealTypes).map((type) => (
-              <option key={type} value={type}>
-                {t(`mealTypes.${type}`)}
-              </option>
-            ))}
-          </select>
-        </div>
+      <DishTable result={result} filtered={Boolean(q) || Boolean(mealType)} />
 
-        <button
-          type="submit"
-          className="h-9 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground"
-        >
-          {t('apply')}
-        </button>
-      </form>
-
-      <DishTable result={result} />
-
-      {result.pageCount > 1 && (
-        <nav className="flex items-center justify-center gap-2 text-sm">
-          {Array.from({ length: result.pageCount }, (_, index) => index + 1).map((number) => (
-            <Link
-              key={number}
-              href={`/app/dishes?${new URLSearchParams({
-                ...(q ? { q } : {}),
-                ...(mealType ? { mealType } : {}),
-                page: String(number),
-              })}`}
-              aria-current={number === result.page ? 'page' : undefined}
-              className={
-                number === result.page
-                  ? 'rounded bg-accent px-2 py-1 font-medium'
-                  : 'rounded px-2 py-1 text-muted-foreground hover:bg-accent/60'
-              }
-            >
-              {number}
-            </Link>
-          ))}
-        </nav>
-      )}
+      {/* Renders nothing on an empty catalog, so it is a direct child: an empty
+          wrapper here would still cost the page a row's worth of gap. */}
+      <DishPagination result={result} q={q} mealType={mealType} />
     </div>
   );
 }
