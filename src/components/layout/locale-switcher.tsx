@@ -3,13 +3,14 @@
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useId, useRef, useState, useTransition } from 'react';
 
-import {
-  DropdownMenuGroup,
-  DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-} from '@/components/ui/dropdown-menu';
 import { Icon } from '@/components/ui/icon';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { usePathname, useRouter } from '@/i18n/navigation';
 import { locales, type Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
@@ -53,7 +54,7 @@ export function LocaleSwitcher({ className, variant = 'group' }: LocaleSwitcherP
 
   if (variant === 'menu') {
     return (
-      <LocaleMenuItems
+      <LocaleSelect
         activeLocale={activeLocale}
         disabled={isPending}
         label={t('label')}
@@ -130,18 +131,24 @@ export function LocaleSwitcher({ className, variant = 'group' }: LocaleSwitcherP
 }
 
 /**
- * The rail's account menu, as two radio items under a label.
+ * The rail's account menu, as a Select.
  *
- * The endonyms, not the `AR` / `EN` codes: the codes exist because the `group`
- * variant has to fit two locales into 40px, and a menu row is as wide as the
- * menu. `lang` follows the glyphs — it is on here, where the label really is
- * "العربية", and off in `group`, where tagging Latin `AR` as Arabic would have
- * a screen reader spell two letters in the wrong language.
+ * A `Select`, not the two radio rows this used to be: the account menu already
+ * carries a stack of destinations and a sign-out, and a second bare list of
+ * choices inside it read as more navigation. A single labelled control that
+ * names the current language and opens the other on demand is one row instead
+ * of two and looks like the choice it is. It is the app's own `Select`, so it
+ * matches every other one in the product.
  *
- * A radio group rather than items that toggle: exactly one is true at a time,
- * and the check mark is a state, not an action you just took.
+ * The parts are composed by hand rather than through `SelectField` for one
+ * reason: each endonym carries `lang`, so a screen reader gives "العربية" its
+ * Arabic voice and "English" its English one. `SelectField` takes plain string
+ * labels and has nowhere to hang that attribute.
+ *
+ * The host menu is `modal={false}` (see `SidebarProfile`) precisely so this
+ * Select's own popup — portalled to the body, outside the menu — stays live.
  */
-function LocaleMenuItems({
+function LocaleSelect({
   activeLocale,
   disabled,
   label,
@@ -154,20 +161,61 @@ function LocaleMenuItems({
   name: (locale: Locale) => string;
   onSelect: (locale: Locale) => void;
 }) {
+  const labelId = useId();
+
   return (
-    <DropdownMenuGroup>
-      <DropdownMenuLabel>{label}</DropdownMenuLabel>
-      <DropdownMenuRadioGroup
+    /*
+      Label and control on **one** row, not a caption stacked over a full-width
+      box. Stacked, the switcher was two rows tall and the widest, tallest,
+      darkest thing in a panel whose actual subject is the three destinations
+      above it — a setting nobody opens this menu for, out-shouting the reasons
+      they did. As a settings row it is one line, the label carries the meaning
+      and the control is only as wide as the longest language name.
+    */
+    <div className="flex items-center justify-between gap-3 px-2 py-1.5">
+      <span id={labelId} className="text-body-sm text-muted-foreground">
+        {label}
+      </span>
+
+      <Select
         value={activeLocale}
         onValueChange={(next) => onSelect(next as Locale)}
+        disabled={disabled}
       >
-        {locales.map((locale) => (
-          <DropdownMenuRadioItem key={locale} value={locale} disabled={disabled}>
-            <span lang={locale}>{name(locale)}</span>
-          </DropdownMenuRadioItem>
-        ))}
-      </DropdownMenuRadioGroup>
-    </DropdownMenuGroup>
+        {/*
+          Overrides on three of `.q-field`'s form-field defaults, because this is
+          a menu row rather than a field in a form: `h-8!` against the `sm`
+          size's 40px (the `!` is needed — the size rule is an attribute
+          selector and out-ranks a plain utility), `w-auto` against its
+          `w-full`, and the divider border against `--input`, which is tuned to
+          carry a lone text box on a white page and here framed the one control
+          nobody came for. Utilities beat `.q-field` on layer order alone; only
+          the height needs the flag.
+        */}
+        <SelectTrigger
+          size="sm"
+          aria-labelledby={labelId}
+          className="h-8! w-auto gap-1.5 border-border ps-2.5 pe-2 text-body-sm"
+        >
+          {/*
+            A function child rather than a bare `SelectValue`: it lets the
+            selected language keep its own `lang`, the same as the rows below.
+          */}
+          <SelectValue>
+            {(value) => <span lang={value as string}>{name(value as Locale)}</span>}
+          </SelectValue>
+        </SelectTrigger>
+
+        {/* Anchored to the trigger's own end edge, in both scripts. */}
+        <SelectContent align="end">
+          {locales.map((locale) => (
+            <SelectItem key={locale} value={locale}>
+              <span lang={locale}>{name(locale)}</span>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   );
 }
 

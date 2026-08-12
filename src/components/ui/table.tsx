@@ -252,9 +252,21 @@ function TableRow({ className, zebra, linked, ...props }: React.ComponentProps<'
          * starts working again and this becomes the wrong place for it.
          */
         '[&>td]:border-t [&>td]:border-border',
-        'transition-colors',
+        'transition-colors [&>td]:transition-colors',
         zebra && 'even:bg-muted',
         linked && 'relative cursor-pointer',
+        /*
+         * The hover and selection fills below are rounded pills, and the radius
+         * is what forces them onto the cells rather than the row. `Table` is
+         * `border-separate`, and in that model a `<tr>` background paints as a
+         * square layer *behind* the cells that no `border-radius` can clip —
+         * only cells round (the same reason `TableHeader`'s strip rounds its end
+         * cells, not the `thead`). So the corner cells carry the radius on all
+         * four corners, on logical sides so Arabic rounds the same two ends, and
+         * every row fill is set on `[&>td]`. The radius sits on transparent cells
+         * at rest and only shows when a fill appears under the pointer.
+         */
+        '[&>td:first-child]:rounded-s-lg [&>td:last-child]:rounded-e-lg',
         /*
          * `has-aria-expanded` is the registry's, and it earns its place here:
          * a row whose actions menu is open stays lit while the pointer is off
@@ -272,8 +284,14 @@ function TableRow({ className, zebra, linked, ...props }: React.ComponentProps<'
          * below is that same olive at full strength, so hover and selection
          * differed only in opacity.
          */
-        'hover:bg-accent/50 has-aria-expanded:bg-accent/50',
-        'data-[selected=true]:bg-secondary data-[state=selected]:bg-secondary',
+        /*
+         * A whisper, not a fill: `--accent` (n-200) at a quarter strength lands
+         * around #F8F9FA on white — enough to follow the pointer down a long
+         * register without any single row looking *selected*. Selection below is
+         * the olive at full strength, and the gap between the two is the point.
+         */
+        'hover:[&>td]:bg-accent/25 has-aria-expanded:[&>td]:bg-accent/25',
+        'data-[selected=true]:[&>td]:bg-secondary data-[state=selected]:[&>td]:bg-secondary',
         className,
       )}
       {...props}
