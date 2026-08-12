@@ -110,12 +110,18 @@ export default async function PortalPage({ params, searchParams }: PortalPagePro
 
   return (
     /*
-      The home screen scrolls with the rest of the page now, like the other
-      four portal tabs — no fixed `100dvh` frame, no separate scroll region
-      inside `PortalPlan`'s meal list.
+      **The page scrolls as one document**, like the other four portal tabs —
+      no `100dvh` frame, no separate scroll region inside `PortalPlan`'s meal
+      list.
 
-      `gap-4` rather than `space-y-4`: same rhythm, in the unit a flex column
-      distributes.
+      It used to be both. This root carried a `.portal-home` marker that
+      switched on `portal-shell-*` hooks down the whole chain, so the shell
+      became a viewport-height frame and the meal list was the only thing that
+      moved, with the picker and the commitment card pinned above it. The
+      marker is gone with the frame — the one rule that still needed it, the
+      shell's own `<main>` going transparent so the glow shows through, applies
+      to every portal tab now rather than to this one. The ⚠ note beside that
+      rule in `globals.css` records what the frame took and why it went.
     */
     <div className="flex flex-col gap-4">
       {/*
@@ -143,8 +149,6 @@ export default async function PortalPage({ params, searchParams }: PortalPagePro
         <HomeToday meals={selectedMeals} />
 
         {plan ? (
-          // The one section allowed to take the leftover height and scroll
-          // inside it; everything above and below it is fixed chrome.
           <PortalPlan
             board={plan.board}
             days={plan.days}

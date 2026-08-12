@@ -134,9 +134,17 @@ export function PortalHeader({
     cool grey that shows as a smudge over the wash, so on home the press target
     tints with white at 15% instead.
   */
-  const iconTone = isHome
-    ? 'text-white hover:bg-white/15'
-    : 'text-foreground hover:bg-muted';
+  /*
+    ⚠ **The white only holds while the glow is behind it**, and that is the one
+    thing to check before adding a breakpoint here. `HomeGlow` was `md:hidden`
+    for a while and this was not, so from 768px up the bell and the gear
+    rendered, took their space, stayed keyboard-reachable — and were white on a
+    white page. The only trace was the bell's own antialiasing.
+
+    The glow now runs at every width, so this does too: no `md:`/`lg:` variant
+    on either, which is what keeps them impossible to get out of step.
+  */
+  const iconTone = isHome ? 'text-white hover:bg-white/15' : 'text-foreground hover:bg-muted';
 
   return (
     /*
@@ -153,7 +161,24 @@ export function PortalHeader({
       unfilled bar there would only be a header that had lost the separation
       from the content underneath.
     */
-    <header className={cn('px-4 pt-3 pb-4', isHome ? 'bg-transparent' : 'bg-card')}>
+    /*
+      `md:px-6` matches `main`'s own `px-4 md:px-6` in `(tabs)/layout.tsx`.
+      Both cap at `max-w-3xl` and centre, and they now share the same parent
+      box — but until the box is wider than the cap plus its padding, the
+      column's position still depends on that padding. Matching it is what
+      keeps the greeting sitting exactly over the cards at every tablet width
+      rather than only once both columns reach 768px.
+    */
+    <header
+      className={cn(
+        'px-4 pt-3 pb-4 md:px-6',
+        // Unfilled on home at every width, so the glow reaches the top of the
+        // screen. The other four tabs have no glow to reveal, so an unfilled
+        // bar there would only be a header that lost its separation from the
+        // content underneath.
+        isHome ? 'bg-transparent' : 'bg-card',
+      )}
+    >
       <div className="mx-auto w-full max-w-3xl">
         <div className="flex items-center justify-between">
           <Destination

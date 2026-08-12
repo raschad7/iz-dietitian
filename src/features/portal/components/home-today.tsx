@@ -71,6 +71,33 @@ function TodayProgress({ meals }: { meals: HomeTodayMeal[] }) {
   );
   const remainingCalories = totalCalories - completedCalories;
 
+  /*
+    **Nothing to report on says so, in words.**
+
+    `adherenceFraction` returns null when the day had no meals to tick, which is
+    a real and ordinary state: no plan published yet, a plan whose week has not
+    started, or a day the dietitian left empty.
+
+    `TodayRing` does have a null branch of its own — it prints an em dash inside
+    the disc — and on the ring that is a far quieter placeholder than the one
+    this replaced, which was the same dash at `text-5xl` in `text-black` on an
+    otherwise empty white card and read as an unexplained black bar. But a dash
+    still only says "no number"; it does not say why, and the calorie legend
+    beside it would go on reading "0 kcal completed / 0 kcal remaining / 0 kcal
+    planned" about a day nobody was asked about.
+
+    So the whole card stands down together: one sentence, at body size in the
+    muted token, in the card shell the ring version uses. The ring's own dash
+    still covers the progress tab, which has no legend to contradict.
+  */
+  if (fraction === null) {
+    return (
+      <div className="flex min-h-[150px] w-full items-center rounded-[30px] bg-card px-4 py-4">
+        <p className="text-sm text-muted-foreground">{t('noMeals')}</p>
+      </div>
+    );
+  }
+
   return (
     // `rtl:flex-row-reverse`, not source order: the ring stays on the
     // physical left in both locales rather than mirroring to inline-start.

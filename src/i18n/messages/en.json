@@ -782,7 +782,8 @@
       "title": "Appointments",
       "subtitle": "Everything your dietitian has booked for you.",
       "book": "Request an appointment",
-      "requestSent": "Your request has been sent. Your dietitian will see it with your appointments.",
+      "requestSent": "Your request has been sent.",
+      "requestSentDetail": "Your dietitian will see it with your appointments.",
       "tabs": {
         "upcoming": "Upcoming",
         "past": "Past"
@@ -990,6 +991,7 @@
         "energyTodayLabel": "Today's energy",
         "energyTodayValue": "{value, number, integer} kcal",
         "prompt": "Tick off today's meals in My Plan to see your commitment here.",
+        "noMeals": "No meals are planned for today, so there is nothing to track yet.",
         "cta": "Update today's adherence",
         "level": {
           "missed": "That's alright — tomorrow is a fresh start.",

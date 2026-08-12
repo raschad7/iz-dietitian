@@ -27,6 +27,14 @@ import { type Locale } from '@/i18n/routing';
  *
  * clay-600 is 6.84:1 on the card and 5.81:1 on its own hover fill, so the pair
  * holds in both states.
+ *
+ * **Centred, because it is the only thing in its card.** It used to be
+ * `text-start` — correct when it was the first of two rows, with the deletion
+ * request under it, because a list is read down one edge. That row is gone (see
+ * `settings/page.tsx`), and a lone label pinned to the inline-start of an empty
+ * surface reads as a list whose remaining rows failed to load. The glyph and
+ * the word travel together to the middle; the button still fills the card, so
+ * the target is the whole width either way.
  */
 export function PortalSignOut({ locale }: { locale: Locale }) {
   return (
@@ -45,7 +53,7 @@ function PortalSignOutSubmit() {
     <button
       type="submit"
       disabled={pending}
-      className="flex w-full items-center gap-3 rounded-md px-2 py-2.5 text-start text-sm text-destructive transition-colors hover:bg-destructive-subtle disabled:opacity-50"
+      className="flex w-full items-center justify-center gap-3 rounded-md px-2 py-2.5 text-center text-sm font-medium text-destructive transition-colors hover:bg-destructive-subtle disabled:opacity-50"
     >
       {/* The glyph takes the label's colour rather than staying neutral —
           `destructiveGhost` is clay "throughout", and a grey icon beside a clay

@@ -161,9 +161,15 @@ export async function loadNotificationsPage(context: PortalContext): Promise<Not
  * copy, and a client following a plan that is still being edited is the failure this
  * whole status column exists to prevent — so there is deliberately no fallback to
  * the newest plan of any status.
+ *
+ * The clinic's own `today` goes with the read because the week is the second
+ * half of the same rule: only the published plan covering today is returned, so
+ * a plan whose week has ended or has not begun reads as no plan at all. That is
+ * what keeps "there is a plan on screen" and "its meals can be ticked" the same
+ * statement — see `getPublishedBoard`.
  */
 export async function loadCurrentPlan(context: PortalContext): Promise<Board | null> {
-  return getPublishedBoard(context.id);
+  return getPublishedBoard(context.id, context.now.date);
 }
 
 export type PlanPageData = {
@@ -203,9 +209,11 @@ export type PlanPageData = {
  * The day picker draws the same adherence flame the home screen and the progress
  * tab do, so this reads `client_plan_adherence` too — but over **the plan's**
  * seven dates rather than today's week, which is why it calls
- * `adherenceDaysFor` and not `summariseAdherenceWeek`. A plan for next week comes
- * back as seven `future` days, which is the honest answer rather than an empty
- * one.
+ * `adherenceDaysFor` and not `summariseAdherenceWeek`. The two runs coincide
+ * whenever a board is returned at all, since `getPublishedBoard` only returns
+ * the week containing today; they are still not the same call, because the
+ * plan's week may start on any weekday and `summariseAdherenceWeek` is
+ * hardcoded to Sunday-first.
  */
 export async function loadPlanPage(
   context: PortalContext,

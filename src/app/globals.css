@@ -1307,25 +1307,124 @@
 }
 
 /*
+ * ── The portal keeps the phone layout until `lg` ──
+ *
+ * `Sidebar` turns its rail on at `md` (768px), which is the right breakpoint
+ * for the practitioner app and the wrong one here. An iPad portrait *is*
+ * 768px, so the portal spent a third of the screen on a 256px rail carrying
+ * four destinations that the bottom tab bar already carries, and left the
+ * content column 464px wide — narrower than the reading measure it is capped
+ * at, with the page's own white filling everything below it.
+ *
+ * Scoped to `.portal-shell`, so the staff area's own `AppShell` — same
+ * primitive, same `md:block` — is untouched. `[data-slot='sidebar']` is the
+ * wrapper holding both the in-flow gap that reserves the 256px and the fixed
+ * panel that fills it, so hiding it reclaims the width and removes the rail
+ * together.
+ *
+ * Nothing becomes unreachable: `PortalTabBar` now runs to the same breakpoint
+ * and carries every destination the rail does, and the header carries the
+ * bell and settings.
+ *
+ * `:not([data-mobile='true'])` spares the Sheet the same primitive renders
+ * below `md`, which carries this identical `data-slot`. The portal mounts no
+ * `SidebarTrigger` today so that sheet can never be opened — but a rule that
+ * would silently swallow it if one were ever added is a trap, and excluding
+ * it costs one selector.
+ *
+ * `PortalTabBar`, `HomeGlow`, `PortalHeader`'s white-on-glow tones and
+ * `main`'s bottom padding all pivot on this same `lg`. They describe one
+ * layout; move one and move all of them.
+ */
+@media (width < 64rem) {
+  .portal-shell [data-slot='sidebar']:not([data-mobile='true']) {
+    display: none;
+  }
+
+  /*
+   * ── Toasts clear the portal's tab bar ──
+   *
+   * `Toaster` is bottom-centre and mounted once, in the locale layout, for the
+   * whole app. In the portal that lands it exactly on `PortalTabBar` — a fixed
+   * bar the client navigates with — so the confirmation covers the way out of
+   * the screen it is confirming.
+   *
+   * `body:has(...)` rather than a rule on the shell itself, because the toaster
+   * is a *sibling* of the page: it hangs off <body>, outside the portal tree
+   * entirely. Setting the variable on <body> is the nearest common ancestor
+   * that can reach it, and a custom property inherits the rest of the way down.
+   * Sonner reads it through the `offset` props in `layout.tsx` — it writes its
+   * own offsets inline, so there is nothing here to override, only a value to
+   * supply.
+   *
+   * It asks for `.portal-tab-bar`, not `.portal-shell`: the shell wraps the
+   * whole portal, and the `(screen)` group inside it — profile, settings, the
+   * request route — renders no tab bar. Keying off the bar itself means the
+   * toast is lifted exactly where there is something to clear.
+   *
+   * 5rem is the bar (62px of content) plus a gap; `env(safe-area-inset-bottom)`
+   * tracks the padding the bar itself carries on a notched phone, so the toast
+   * rises with it rather than sinking into it. It is `0px` on every screen
+   * without one, which is why the fallback is spelled out — `env()` with no
+   * fallback invalidates the whole `calc()` where the variable is unsupported.
+   *
+   * Held to the same `lg` as the rule above: from `lg` the bar is gone and the
+   * toast goes back to the app-wide 24px.
+   */
+  body:has(.portal-tab-bar) {
+    --q-toast-offset-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/*
  * ── Letting the home glow show through `AppShell`'s own `<main>` ──
  *
- * `[data-slot="sidebar-inset"]` is the `<main>` shadcn's sidebar renders as
- * the page itself, opaque `bg-background` by default (`sidebar.tsx`), and it
- * sits directly under the header — exactly where `HomeGlow`'s ambient wash
- * (`-z-10`, `position: fixed`, rendered from `(tabs)/layout.tsx`) is meant to
- * still be fading. Left opaque, that `<main>` paints flat white starting at
- * the header's lower edge on every tab, clipping the glow into a hard band on
- * the home tab instead of letting it fade the way `.portal-home-glow`'s own
- * blur intends.
+ * `[data-slot="sidebar-inset"]` is the `<main>` shadcn's sidebar renders as the
+ * page itself, opaque `bg-background` by default (`sidebar.tsx`), and it is the
+ * box the glow has to show through — the whole of it, header included, because
+ * `PortalHeader` sits *inside* this wrapper so that its column and `main`'s are
+ * centred against the same box and the fixed rail stops painting over the bar's
+ * inline-start 256px (see `(tabs)/layout.tsx`). Left opaque it paints flat white
+ * from the header's lower edge down, clipping the wash into a hard band instead
+ * of letting it fade the way `.portal-home-glow`'s own blur intends.
  *
- * Made transparent everywhere rather than scoped to the home route: the
- * other four tabs have no glow behind them to reveal, so this just lets
+ * **Transparent everywhere rather than scoped to the home route.** The other
+ * four tabs have no glow behind them to reveal, so this only lets
  * `.portal-shell`'s own `bg-background` (`portal/layout.tsx`) show through
- * instead — the same white, one layer down.
+ * instead — the same white, one layer down. That is also what retires the
+ * `.portal-home` marker the page used to set for this rule's benefit.
  *
- * ⚠ Unlayered, not `@layer components`: this overrides a Tailwind utility
- * baked onto the same element, and Tailwind's own `@layer utilities` always
- * beats a component-layer rule on layer order alone, specificity aside.
+ * The primitive exposes no `className` through `AppShell`'s own props, so
+ * `data-slot` — which it sets regardless — is the only hook available.
+ *
+ * ⚠ **Unlayered, and that is the whole reason this sits here rather than in
+ * `@layer components` with the rest of the app's own classes.** It overrides
+ * `bg-background`, a Tailwind utility written on the very element it targets.
+ * Cascade layers are decided by layer order *before* specificity is ever
+ * consulted, and Tailwind emits `@layer utilities` after `@layer components` —
+ * so a component-layer rule loses to any utility no matter how many attribute
+ * selectors it carries. This one spent time in that layer and silently did
+ * nothing: the shell kept painting opaque white over the glow, leaving green
+ * only in the strip behind the unfilled header — the exact "flat green band
+ * rather than a wash" it was written to prevent. Unlayered beats every layer,
+ * which is the same mechanism the `:lang(ar)` font swap above depends on and
+ * for the same reason. **Do not fold this back into a layer.**
+ *
+ * ⚠ **The home screen used to be a fixed `100dvh` frame**, and a much larger
+ * block lived here to build it: a `height` and an `overflow: hidden` on the
+ * shell, `min-height: 0` on every wrapper down to the meal list, and `flex`
+ * columns forced onto `.portal-shell-main`, `.portal-shell-column` and
+ * `.q-route-stage`. The list was the only thing that scrolled; the picker and
+ * the commitment card above it were pinned.
+ *
+ * It is gone. A screen that scrolls in two places is a screen a client has to
+ * work out — a swipe over the cards moved the list, the same swipe over the
+ * card above it moved nothing — and on a short phone the frame left the list a
+ * few rows tall underneath chrome that would not get out of its way. The home
+ * tab now scrolls as one document, like the other four. Rebuilding it means
+ * rebuilding that whole chain: the class hooks it needed are gone from
+ * `(tabs)/layout.tsx` too, and `portal-plan.tsx` no longer sizes its list to
+ * the space left over.
  */
 .portal-shell [data-slot='sidebar-inset'] {
   background: transparent;
@@ -1493,21 +1592,29 @@
    * 629.99 at -184.36/-219 on a 390×844 frame, blurred 77.7px, rotated 1.81deg.
    * Written in `vw` at that same ratio (value / 390 × 100) rather than fixed
    * px, so it holds its proportions on any phone width instead of matching
-   * only the one frame it was measured on — `HomeGlow` renders it `md:hidden`,
-   * where phone widths stay in the range that ratio was tuned for.
+   * only the one frame it was measured on. Above `md` the vertical is re-based
+   * on `vh` instead — see the block below for why that is what lets the glow
+   * run at every width rather than being switched off on a tablet.
    *
    * `inset-inline-start`, not `left`: the shape is a formless ambient blur, so
    * mirroring it in Arabic costs nothing and keeps the rule that only a
    * genuinely directional asset earns a physical property.
    *
-   * Two things outside this rule are what make it *visible*, and both are
+   * Three things outside this rule are what make it *visible*, and all are
    * documented where they live: `HomeGlow` renders from `(tabs)/layout.tsx`
    * rather than from the page, because the page sits inside `.q-route-stage`
-   * and a transformed ancestor is the containing block for anything `fixed`;
-   * and `PortalTheme` carries `isolate`, because a `-z-10` layer otherwise
-   * paints beneath that wrapper's own `bg-background`.
+   * and a transformed ancestor is the containing block for anything positioned
+   * inside it; and `PortalTheme` carries both `isolate` — a `-z-10` layer
+   * otherwise paints beneath that wrapper's own `bg-background` — and
+   * `relative`, which is what the wash's own `absolute` box is measured from so
+   * that it scrolls with the page instead of hanging in front of it.
    */
   .portal-home-glow {
+    /*
+     * The phone shape, exactly as measured on the 390×844 reference frame and
+     * written as ratios of the viewport width so it holds across phone widths.
+     * Untouched — every number here is the original.
+     */
     position: absolute;
     inset-block-start: -56.15vw;
     inset-inline-start: -47.27vw;
@@ -1517,6 +1624,54 @@
     filter: blur(19.92vw);
     transform: rotate(1.81deg);
   }
+
+  /*
+   * ── The same wash, on a screen that is wider than it is tall ──
+   *
+   * ⚠ **Only the vertical is re-based, and that is the whole fix.**
+   *
+   * Horizontally the `vw` ratios already do the right thing at any width: the
+   * rect is twice the viewport and starts half a viewport before it, so both
+   * blurred side edges stay off screen and the green spans the full width. That
+   * is as true at 1440px as at 390px, so those two declarations are not
+   * repeated here.
+   *
+   * Vertically they are tied to the wrong axis. `height: 161.54vw` is 630px on
+   * the reference phone — about three quarters of its 844px viewport, ending
+   * just under halfway down — but 2326px at 1440px wide, against a viewport
+   * around 900px tall. Every blurred edge lands off screen and the page paints
+   * flat green rather than a wash. That is why the glow was switched off above
+   * `md` in the first place, and switching it back on without this would only
+   * restore the green page.
+   *
+   * The replacements are the reference frame's own proportions, read against
+   * its height instead of its width: -219/844, 630/844 and 78/844. On the phone
+   * that reproduces the original pixels exactly; on any other screen it keeps
+   * the wash covering the top half and fading out, which is what the shape
+   * means rather than what it happened to measure.
+   *
+   * From `md` rather than at every width, so no phone — including a short one,
+   * where `vh` and `vw` disagree most — renders a single pixel differently than
+   * it did before.
+   */
+  @media (width >= 48rem) {
+    .portal-home-glow {
+      inset-block-start: -25.94vh;
+      height: 74.64vh;
+      filter: blur(9.24vh);
+    }
+  }
+
+  /*
+   * ── The portal shell's transparent `<main>` ──
+   *
+   * ⚠ **Moved out of this layer.** `.portal-shell [data-slot='sidebar-inset']`
+   * is unlayered, just above `@layer base` in this file. It overrides a
+   * Tailwind utility on the element it targets, and a rule in
+   * `@layer components` loses to `@layer utilities` on layer order alone no
+   * matter how specific it is. The whole reasoning — including what broke while
+   * it sat here — is in the block there.
+   */
 
   /*
    * ── The shared field box ──

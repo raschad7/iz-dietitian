@@ -41,8 +41,8 @@ export default async function PortalLayout({ children, params }: PortalLayoutPro
   return (
     /*
       `isolate` makes this wrapper a stacking context, which is what the home
-      screen's glow needs to be visible at all. It is a `-z-10` layer, and
-      a negative-z element paints below the *background* of every ancestor
+      screen's glow needs to be visible at all. It is a `-z-10` layer, and a
+      negative-z element paints below the *background* of every ancestor
       between it and the nearest stacking context — so without one here it would
       land under this wrapper's own `bg-background` and disappear. Inside a
       context it paints above that fill and below every in-flow surface, which
@@ -51,12 +51,23 @@ export default async function PortalLayout({ children, params }: PortalLayoutPro
       they are both inside this wrapper, so they are only ever ranked against
       each other.
 
-      `relative` gives `HomeGlow` a containing block to be `absolute` against
-      — see the note there on why it moved off `position: fixed`.
+      `relative` is the other half of that: it gives `HomeGlow` a containing
+      block to be `absolute` against — see the note there on why it moved off
+      `position: fixed`, and why the wash now belongs to the top of the *page*
+      rather than staying welded to the top of the screen while the cards slide
+      up through it. Stacking context and containing block are separate
+      mechanisms, so both declarations are needed and neither implies the other.
 
-      `portal-shell` no longer switches into a clipped `100dvh` frame on the
-      home tab — every portal tab, home included, is a `min-h-dvh` column
-      that grows and lets the window scroll.
+      `portal-shell` is the other hat this wrapper wears: it is the scope for
+      the two portal-only rules in `globals.css` — the rail held back to `lg`,
+      and the shell's own `<main>` unpainted so the glow can show through it.
+      Both live beside `.portal-home-glow`.
+
+      This wrapper is a `min-h-dvh` column that grows on every tab, home
+      included, and the window does the scrolling. It was a clipped `100dvh`
+      frame on the home tab for a while, so that the meal list inside it could
+      be the only thing that scrolled; the ⚠ note beside that rule records why
+      the screen went back to scrolling as one document.
     */
     <PortalTheme className="portal-shell relative isolate flex min-h-dvh flex-col bg-background text-foreground">
       {children}
