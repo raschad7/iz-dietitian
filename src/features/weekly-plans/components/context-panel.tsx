@@ -88,7 +88,7 @@ export function ContextPanel({
           */}
           {selectedClient ? (
             <span className="patient-tone contents" style={patientToneStyle(selectedClient.seq)}>
-              <Avatar name={selectedClient.fullName} color="var(--tone-mark)" size="xl" />
+              <Avatar name={selectedClient.fullName} color="var(--tone-mark)" size="planner" />
             </span>
           ) : null}
 

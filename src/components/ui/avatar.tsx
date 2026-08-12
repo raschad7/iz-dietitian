@@ -56,7 +56,15 @@ const avatarVariants = cva(
           front of a label; at the height of the fact tiles beside it, it reads
           as whose week this is.
         */
-        xl: "size-14 text-body-md",
+        planner: "size-14 text-body-md",
+        /**
+         * 64px — a portrait rather than a mark, for a panel whose subject *is*
+         * the person: the visit record's summary rail, where the disc leads a
+         * centred column with the name under it. `lg` is the size a disc takes
+         * when it sits beside a heading; at the head of its own column that
+         * reads as a bullet point with a name after it.
+         */
+        xl: "size-16 text-heading-sm",
       },
     },
     defaultVariants: { size: "default" },

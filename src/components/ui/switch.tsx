@@ -19,13 +19,31 @@ import { cn } from '@/lib/utils';
  *
  * The knob moves on `inset-inline-start`, which is a logical property: in
  * Arabic it travels right-to-left with no RTL override. Its own corner sweep is
- * 9px, the Arc at knob scale.
+ * 9px, the Arc at knob scale — see `knob` below for the plain disc, and for why
+ * a column of these wants one.
  */
 export function Switch({
   checked,
+  knob = 'leaf',
   className,
   ...props
-}: Omit<React.ComponentProps<'button'>, 'role' | 'aria-checked'> & { checked: boolean }) {
+}: Omit<React.ComponentProps<'button'>, 'role' | 'aria-checked'> & {
+  checked: boolean;
+  /**
+   * The shape of the moving part.
+   *
+   * `leaf` is §9.3's own drawing and the default: a 9px sweep on the
+   * block-end/inline-end corner that rotates into the leaf angle as the knob
+   * lands. `round` is a plain disc that slides and does not turn.
+   *
+   * It is a prop rather than a second switch because a list of them is a
+   * different object from a single one: on the record's notification rows, four
+   * knobs sit in a column two rows apart, and four leaves rotating in and out of
+   * alignment turned a settings list into something that flickers as you read
+   * down it. One switch on a form is a detail; four in a stack is a texture.
+   */
+  knob?: 'leaf' | 'round';
+}) {
   return (
     <button
       type="button"
@@ -52,11 +70,14 @@ export function Switch({
           className={cn(
             'absolute top-[3px] block size-6 rounded-full bg-card shadow-card',
             // The Arc at knob scale — logical, so it mirrors in Arabic.
-            'rounded-ee-[9px]',
+            knob === 'leaf' && 'rounded-ee-[9px]',
             'transition-[inset-inline-start,transform] duration-[220ms] ease-[cubic-bezier(.2,.6,.2,1)] motion-reduce:transition-none',
             // `start-*` is `inset-inline-start`: the knob's travel is described
-            // once and runs the correct way in both scripts.
-            checked ? 'start-[25px] -rotate-45' : 'start-[3px]',
+            // once and runs the correct way in both scripts. The rotation goes
+            // with the sweep — there is nothing to turn on a disc, and turning
+            // it anyway would cost a repaint to move nothing.
+            checked ? 'start-[25px]' : 'start-[3px]',
+            checked && knob === 'leaf' && '-rotate-45',
           )}
         />
       </span>

@@ -3,10 +3,7 @@ import { notFound } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 import { Icon } from '@/components/ui/icon';
-import { ClientRecordHeader } from '@/features/clients/components/client-record-header';
-import { ClientTabs } from '@/features/clients/components/client-tabs';
-import { intakeGaps } from '@/features/clients/intake-gaps';
-import { getClient, getClientIntake } from '@/features/clients/queries';
+import { getClient } from '@/features/clients/queries';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/params';
 import { requireStaffClinic } from '@/lib/session';
@@ -17,24 +14,27 @@ type ClientLayoutProps = {
 };
 
 /**
- * The chrome every tab of a client's record shares: who they are, the
- * record-level actions, and the tab bar.
+ * The chrome a client's record shares: the way back.
  *
- * Fetching the client here rather than in each tab page means a bad id 404s
- * once, before any tab-specific data is read, and the header never has to be
- * rebuilt five times over. Each tab page still reads what it needs for itself —
- * a second indexed lookup by primary key is cheap, and it keeps every page
- * independently correct rather than trusting data smuggled down from a layout
- * Next.js does not actually let a page receive props from.
+ * **The tab bar left this file.** The record's sections used to be five routes
+ * with a strip of link tabs here; they are four views of one page now, switched
+ * by the record's own tablist, and every one of the old routes redirects into
+ * it. Two bars — link tabs here and panel tabs a row below — was the arrangement
+ * that made this screen ask twice which section you were in.
  *
- * **Everything on this strip is paid for five times over**, which is the whole
- * argument for keeping it short. It carries only what no tab repeats.
+ * **The identity strip left with it.** The avatar, the name and the archived
+ * badge are the identity panel's subject, and that panel is beside every view; a
+ * second portrait directly above it was the same person drawn twice on one
+ * screen. Edit and the overflow menu followed it down there — see
+ * `ClientRecordActions`.
+ *
+ * What remains is one breadcrumb and the record under it. Fetching the client
+ * here rather than in the page means a bad id 404s once, before any of the
+ * record's reads run.
  *
  * `h-full`/`min-h-0` on the shell, with only the middle strip scrolling: the
- * same shape `/app/calendar` uses, and it is what lets the Visit History tab
- * mount that page's own `Calendar` — which expects to fill a bounded parent
- * and scroll its own grid — without a second, page-level scrollbar fighting
- * it for the same content.
+ * same shape `/app/calendar` uses, and it is what lets the record's views fill a
+ * bounded parent and scroll their own content rather than the page.
  */
 export default async function ClientLayout({ children, params }: ClientLayoutProps) {
   const locale = await resolveLocale(params);
@@ -55,30 +55,14 @@ export default async function ClientLayout({ children, params }: ClientLayoutPro
     notFound();
   }
 
-  // The intake is read here for one reason only: the count on the Nutrition
-  // tab, which has to be right on all five tabs including the four that never
-  // touch the clinical record. The header itself no longer needs it — see
-  // `ClientRecordHeader` for why the summary band is gone.
-  const [intake, t] = await Promise.all([
-    getClientIntake(clinicId, client.id),
-    getTranslations('clients'),
-  ]);
-
-  // `getClient` has already proved the row exists and belongs to this clinic,
-  // and the intake read is that same lookup with a left join — so a null here
-  // means the record was deleted between the two. 404 rather than render a
-  // header full of dashes for somebody who is gone.
-  if (!intake) {
-    notFound();
-  }
+  const t = await getTranslations('clients');
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-4 text-start">
       {/*
-        A breadcrumb above the title rather than a link below the content: the
-        content below can be the Visit History tab's `Calendar`, which fills
-        this shell to its own bottom edge, so anything meant to sit under it
-        has to live outside that bounded area instead.
+        The way back, and nothing else. Edit and the overflow menu were here for
+        one release; they are at the foot of the identity panel now, which is the
+        column they act on — see `ClientRecordActions`.
       */}
       <Link
         href="/app/clients"
@@ -88,18 +72,14 @@ export default async function ClientLayout({ children, params }: ClientLayoutPro
         {t('backToList')}
       </Link>
 
-      <ClientRecordHeader client={client} locale={locale} />
-
-      <ClientTabs clientId={client.id} nutritionGaps={intakeGaps(intake).length} />
-
       {/*
         ⚠ **The padding is what stops the cards looking sliced.** Setting
         `overflow-y` to anything but `visible` forces `overflow-x` to compute to
         `auto` as well, so this box clips on all four edges — and a `Card` draws
         a 1px ring plus an olive-tinted shadow *outside* its border box. Flush
         against the clip, that ring vanished on whichever edge the card touched:
-        the inline edges always, the block-start edge at rest, the block-end
-        edge once scrolled. The result read as cards with a side missing.
+        the inline edges always, the block-start edge at rest, the block-end edge
+        once scrolled. The result read as cards with a side missing.
 
         `pb-6` rather than `pb-1` because the block-end edge is also where the
         last card's shadow lands when the list is scrolled to the bottom, and a

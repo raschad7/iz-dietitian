@@ -1,8 +1,8 @@
 import { getTranslations } from 'next-intl/server';
 
 import { buttonVariants } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Icon, type IconName } from '@/components/ui/icon';
+import { Card, CardContent } from '@/components/ui/card';
+import { Icon } from '@/components/ui/icon';
 import { Link } from '@/i18n/navigation';
 import { type Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
@@ -17,104 +17,75 @@ import {
   formatWeekday,
 } from '../format';
 import { type ClientVisitEntry } from '../queries';
+import { visitStats, type VisitStats } from '../visit-stats';
 
-import { PaginatedVisits } from './paginated-visits';
+import { VisitViews, type VisitViewOption } from './visit-views';
 
 /**
- * The Visit History tab: what this client has actually been seen for, as a
+ * The Visit history view: what this client has actually been seen for, as a
  * record.
  *
  * **It used to be a calendar** — the clinic-wide grid, filtered to one person.
- * That is the wrong instrument for the question this tab is asked. A calendar
+ * That is the wrong instrument for the question this view is asked. A calendar
  * answers "what is happening on this date"; a client's history is asked "when
  * did I last see them, how often, and what is booked next", and a month grid
- * makes all three of those a counting exercise across empty cells. A client
- * seen fortnightly showed two chips in thirty squares, and finding the visit
- * before last meant paging backwards through months to look for one.
- *
- * A dated list answers all three at a glance and costs a fraction of the
- * height. The grid has not gone anywhere — it is the clinic calendar, which is
- * where a booking is made and moved, and every row here links into the day it
- * belongs to.
- *
- * **Four figures, then two lists.** The figures are the summary a dietitian
- * opens this tab for; the lists are what is coming and what has been. Upcoming
- * reads forwards, because the next thing is the near one; past reads backwards,
- * for exactly the same reason.
+ * makes all three of those a counting exercise across empty cells.
  *
  * ## The shape of it
  *
- * **Four cards, not one band.** The figures were a single wide container of
- * four label/value pairs, which made the summary read as one object with four
- * properties rather than as four facts of equal standing — and left the tab's
- * widest element carrying its lightest content. Each is now its own card with a
- * glyph, so the row scans as four tiles and the icon does the work of saying
- * which is which before the label is read.
+ * **A strip of facts, and two views of the record under it** — what is booked,
+ * and what has already happened.
  *
- * **The next visit is a panel, not a row in a list.** It is the single thing a
- * dietitian opens this tab to find, and it was the first item of a list headed
- * "Upcoming" — the same weight as the fourth one. It now leads that card at
- * full size with the date as a badge, the hour beside it and the length under
- * that; anything else booked follows underneath as ordinary rows, so nothing is
- * hidden and the important one is still obviously the important one.
+ * ⚠ **This used to be a rail beside the views, and that rail led with the
+ * patient's avatar, name and goal.** It was a port of the template's left panel,
+ * made while this was still a route of its own. It is a view of the profile now,
+ * and the profile has that panel — permanently, beside every view — so the rail
+ * had become the same person drawn a second time, in a column that also cost the
+ * history a third of its width. What the rail knew that the panel does not is
+ * the *shape of the attendance*, and those five facts are what survived, set
+ * across one line where they take a row rather than a column.
  *
- * **The past is a paged table of five.** A client of two years has forty rows,
- * and forty rows of anything is not a summary. `PaginatedVisits` shows five and
- * pages through the rest, which keeps this card one fixed height whatever the
- * record holds — see that component for why paging beat both folding it behind
- * a "show more" and scrolling it inside the card.
+ * **Three views, not three stacked cards.** The record used to draw the figures,
+ * the upcoming panel and the past table one under another, which put the most
+ * recent visit below two screens of summary on a laptop. See `VisitViews` for
+ * why the switch is a `Segmented` and not a second row of tabs.
  *
- * **Green is spent on four things and nothing else**, per the request that set
- * this design: the active tab, the next-visit glyph, today's date mark, and the
- * link to the calendar in the empty state. Every other mark on the tab is a
- * neutral, which is what makes those four read as chosen.
+ * **Green is spent on what you can press and what is not here yet** — today's
+ * date mark, the current dot beside a booked visit, and the button that leads to
+ * the calendar. The facts themselves are black: they are reference, and a
+ * coloured value in a row of plain ones reads as the others having been greyed
+ * out rather than as that one being chosen.
  */
 
-/**
- * Everything the tab needs about the clock, resolved once by the page.
- *
- * `today` is passed in rather than read here so that the split between past and
- * upcoming is measured against the same day the rest of the record is — the
- * same contract `getClientVisitSummary` states.
- */
 export type ClientVisitRecordProps = {
   visits: ClientVisitEntry[];
   locale: Locale;
+  /**
+   * Resolved once by the page, so the split between past and upcoming is
+   * measured against the same day the rest of the record is.
+   */
   today: string;
 };
 
-/** How many past visits fit one page of the history. */
-const PAST_VISITS_PER_PAGE = 5;
+type DurationLabels = { hour: (n: number) => string; minute: (n: number) => string };
 
-export async function ClientVisitRecord({
-  visits,
-  locale,
-  today,
-}: ClientVisitRecordProps) {
+export async function ClientVisitRecord({ visits, locale, today }: ClientVisitRecordProps) {
   const [t, tBooking] = await Promise.all([
     getTranslations('clients.visits'),
     getTranslations('booking'),
   ]);
 
-  /*
-    A visit *on* today counts as upcoming, not past — the same rule the record
-    header uses, and for the same reason: an appointment earlier this morning is
-    still the one a dietitian is asking about when they open the record.
-
-    `visits` arrives newest first, so the upcoming half has to be reversed to
-    read forwards while the past half is already in the order it wants.
-  */
   const upcoming = visits.filter((visit) => visit.date >= today).reverse();
   const past = visits.filter((visit) => visit.date < today);
 
-  const durationLabels = {
+  const durationLabels: DurationLabels = {
     hour: (count: number) => tBooking('duration.hours', { count }),
     minute: (count: number) => tBooking('duration.minutes', { count }),
   };
 
   /*
-    A record with nothing in it is one statement and one way out, not a band of
-    four zeroes over two empty lists. The same dashed box the dashboard's empty
+    A record with nothing in it is one statement and one way out, not a strip of
+    dashes above three empty views. The same dashed box the dashboard's empty
     panels use, so a "nothing here yet" reads the same wherever it appears.
   */
   if (visits.length === 0) {
@@ -135,236 +106,258 @@ export async function ClientVisitRecord({
     );
   }
 
+  const stats = visitStats(visits, today);
   const [next, ...laterUpcoming] = upcoming;
+
+  const viewOptions: readonly VisitViewOption[] = [
+    { value: 'upcoming', label: t('views.upcoming'), count: upcoming.length },
+    { value: 'past', label: t('views.past'), count: past.length },
+  ];
 
   return (
     /*
-      `h-full` inside the record shell's bounded, scrolling content box. The
-      summary row and the upcoming panel take what they need; the history card
-      below takes everything left, so the tab fills the screen it was given
-      rather than ending in a band of empty page under the last card. On a
-      viewport too short to hold all three, the shell's own scroll takes over —
-      nothing here is clipped.
+      One column, and from `lg` up it is the height of the view it sits in: the
+      facts hold their natural height and the views card takes what is left and
+      scrolls its own content. `min-h-0` at every level is what lets that flex
+      child actually shrink instead of growing the page.
     */
-    <div className="flex h-full min-h-0 flex-col gap-4">
-      {/*
-        The four figures, one card each.
+    <div className="flex flex-col gap-4 lg:h-full lg:min-h-0">
+      <VisitFacts
+        stats={stats}
+        locale={locale}
+        labels={{
+          firstVisit: t('firstVisit'),
+          lastVisit: t('lastVisit'),
+          nextVisit: t('nextVisit'),
+          typicalGap: t('typicalGap'),
+          totalTime: t('totalTime'),
+          none: t('noneRecorded'),
+          book: t('book'),
+          everyDays: (days: number) => t('everyDays', { days }),
+        }}
+        durationLabels={durationLabels}
+      />
 
-        `gap-3` and `lg:grid-cols-4`: four cards two-up on a phone and a tablet,
-        four across from the width a record is actually read at. The band they
-        replace used hairlines to divide one container; separate cards need no
-        divider, and the gap between them is the same 12px that separates every
-        other pair of panels on this tab.
-      */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <FigureCard
-          icon="calendar"
-          label={t('totalVisits')}
-          value={String(visits.length)}
-        />
-        <FigureCard
-          icon="check"
-          label={t('completedVisits')}
-          value={String(past.length)}
-        />
-        <FigureCard
-          icon="history"
-          label={t('lastVisit')}
-          value={past[0] ? formatMediumDate(locale, past[0].date) : null}
-          empty={t('noPast')}
-        />
-        <FigureCard
-          icon="clock"
-          label={t('nextVisit')}
-          value={next ? formatMediumDate(locale, next.date) : null}
-          empty={t('noUpcoming')}
-          /* The one glyph in the row that is olive: what is *coming* is the
-             figure this tab is opened for. The value stays the body colour like
-             the other three — a set of four figures is read across, and one of
-             them in a colour of its own reads as a link. */
-          accentIcon
-        />
-      </div>
-
-      {/* What is booked. */}
-      <Card>
-        <CardHeader className="grid-cols-[1fr_auto] items-baseline gap-2">
-          <CardTitle>{t('upcoming')}</CardTitle>
-          {upcoming.length > 0 ? <Count value={upcoming.length} /> : null}
-        </CardHeader>
-
-        <CardContent>
-          {next ? (
+      <VisitViews
+        title={t('title')}
+        label={t('views.label')}
+        options={viewOptions}
+        upcoming={
+          next ? (
             <div className="flex flex-col gap-1">
               <NextVisitPanel
                 visit={next}
                 locale={locale}
                 today={today}
                 durationLabels={durationLabels}
-                /* The arrow at the end of the panel says "there are others" only
-                   when there are — on a single booking it would point at the
-                   same row the panel already is. */
                 hasMore={laterUpcoming.length > 0}
               />
 
               {laterUpcoming.length > 0 ? (
-                /*
-                  Everything else booked, bounded the same way the past list is
-                  when it opens: a client with a course of eight sessions booked
-                  would otherwise make this card taller than the screen and push
-                  the history off the bottom of it. `18rem` is about five rows —
-                  the next visit's own panel sits above this, so what is here is
-                  already the secondary half of a secondary panel.
-                */
-                <ul className="max-h-[18rem] divide-y divide-border/60 overflow-y-auto overscroll-contain pe-1">
-                  {laterUpcoming.map((visit) => (
-                    <VisitRow
-                      key={visit.id}
-                      visit={visit}
-                      locale={locale}
-                      today={today}
-                      durationLabels={durationLabels}
-                    />
-                  ))}
-                </ul>
+                <VisitList
+                  visits={laterUpcoming}
+                  locale={locale}
+                  today={today}
+                  durationLabels={durationLabels}
+                />
               ) : null}
             </div>
           ) : (
-            <p className="text-body-sm text-muted-foreground">{t('noUpcoming')}</p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* What has been — the card that takes the leftover height. */}
-      <Card className="flex min-h-0 flex-1 flex-col">
-        {past.length === 0 ? (
-          <>
-            <CardHeader>
-              <CardTitle>{t('past')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-body-sm text-muted-foreground">{t('noPast')}</p>
-            </CardContent>
-          </>
-        ) : (
-          /*
-            The rows are rendered here, on the server, and handed to the client
-            component as children — it decides how many of them to show, and
-            nothing about a visit has to cross the boundary as data for it to do
-            that.
-
-            This list used to scroll inside a `max-h`, which is what the branch
-            this merged from was fixing. Pagination removes the question: five
-            rows at a time never overflow, so there is no inner scroll port to
-            get stuck against the page's own.
-          */
-          <PaginatedVisits heading={t('past')} perPage={PAST_VISITS_PER_PAGE}>
-            {past.map((visit) => (
-              <VisitRow
-                key={visit.id}
-                visit={visit}
-                locale={locale}
-                today={today}
-                durationLabels={durationLabels}
-              />
-            ))}
-          </PaginatedVisits>
-        )}
-      </Card>
+            <EmptyView label={t('noUpcoming')} />
+          )
+        }
+        past={
+          past.length === 0 ? (
+            <EmptyView label={t('noPast')} />
+          ) : (
+            <VisitList
+              visits={past}
+              locale={locale}
+              today={today}
+              durationLabels={durationLabels}
+            />
+          )
+        }
+      />
     </div>
   );
 }
 
-/** The count beside a section heading: a bare numeral, never a pill. See
-    "A badge is a state" in docs/design-system.md — this is a quantity. */
-function Count({ value }: { value: number }) {
-  return (
-    <span className="text-body-md font-semibold tabular-nums text-muted-foreground">{value}</span>
-  );
-}
+/* ── The facts ───────────────────────────────────────────────────────────── */
+
+type FactLabels = {
+  firstVisit: string;
+  lastVisit: string;
+  nextVisit: string;
+  typicalGap: string;
+  totalTime: string;
+  none: string;
+  book: string;
+  everyDays: (days: number) => string;
+};
 
 /**
- * One figure in the summary row: a glyph, a caption, and a numeral or a date.
+ * What the attendance adds up to, on one line.
  *
- * The glyph sits in a rounded square rather than a disc. A disc is the shape
- * this system gives a *person* — the avatar in the header two rows above is one
- * — and four discs under it would read as four more people.
+ * The five facts the summary rail used to stack down the inline-start edge —
+ * when it started, when it last happened, what is booked, how often, and how
+ * much time it comes to. They are the one thing on this view that no other view
+ * of the record states, which is why they survived the rail being cut.
+ *
+ * **A wrapped row of label/value pairs, not a `StatGrid`.** Three of the five
+ * are dates, and a lattice sets its figures at 20px: five dates at that size
+ * across this column would be a second heading strip competing with the history
+ * under it. Set small, with the label above the value, they read as reference —
+ * which is what they are.
+ *
+ * **The button is here rather than in the views card's header.** That header
+ * already carries the view's name, its count and the switch between three
+ * panels; a fourth control on the same line is where a header stops being
+ * scannable. It also belongs with these five: every one of them is about *when*,
+ * and this is the one thing that changes a when.
  */
-function FigureCard({
-  icon,
-  label,
-  value,
-  empty,
-  accentIcon = false,
+function VisitFacts({
+  stats,
+  locale,
+  labels,
+  durationLabels,
 }: {
-  icon: IconName;
-  label: string;
-  /** `null` renders `empty` in the muted colour — "none" is not a value. */
-  value: string | null;
-  empty?: string;
-  accentIcon?: boolean;
+  stats: VisitStats;
+  locale: Locale;
+  labels: FactLabels;
+  durationLabels: DurationLabels;
 }) {
-  return (
-    <Card size="sm" className="shadow-xs">
-      <CardContent className="flex items-start gap-3">
-        <span
-          className={cn(
-            'flex size-9 shrink-0 items-center justify-center rounded-lg',
-            accentIcon
-              ? 'bg-primary-subtle text-secondary-foreground'
-              : 'bg-muted text-muted-foreground',
-          )}
-        >
-          <Icon name={icon} className="size-[1.125rem]" aria-hidden />
-        </span>
+  const facts = [
+    {
+      label: labels.firstVisit,
+      value: stats.firstVisit && formatMediumDate(locale, stats.firstVisit),
+    },
+    {
+      label: labels.lastVisit,
+      value: stats.lastVisit && formatMediumDate(locale, stats.lastVisit),
+    },
+    {
+      label: labels.nextVisit,
+      value: stats.nextVisit && formatMediumDate(locale, stats.nextVisit),
+    },
+    {
+      label: labels.typicalGap,
+      value: stats.typicalGapDays === null ? null : labels.everyDays(stats.typicalGapDays),
+    },
+    {
+      label: labels.totalTime,
+      value: stats.totalMinutes === 0 ? null : formatDuration(stats.totalMinutes, durationLabels),
+    },
+  ];
 
-        <span className="flex min-w-0 flex-col gap-0.5">
-          <span className="truncate text-caption text-muted-foreground">{label}</span>
-          {/*
-            `<bdi>` rather than `dir="auto"`. `dir="auto"` on a block takes its
-            direction from the first strong character, and "7" or "09/08/2026"
-            has none — the paragraph resolved to LTR and its `text-align: start`
-            became *left*, so in Arabic the number sat under the neighbouring
-            label instead of its own. `bdi` isolates the value's own direction,
-            which is what was wanted, without touching the block's alignment.
-          */}
-          <span
-            className={cn(
-              'truncate font-heading text-heading-sm font-semibold tabular-nums',
-              value === null && 'text-body-md font-normal text-muted-foreground',
-            )}
-          >
-            <bdi>{value ?? empty}</bdi>
-          </span>
-        </span>
+  return (
+    <Card size="sm" className="shrink-0">
+      <CardContent className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
+        <dl className="flex min-w-0 flex-wrap items-baseline gap-x-8 gap-y-3">
+          {facts.map((fact) => (
+            <div key={fact.label} className="flex min-w-0 flex-col gap-0.5">
+              <dt className="text-caption text-muted-foreground">{fact.label}</dt>
+              {/*
+                `<bdi>` isolates the value's own direction. A formatted date has
+                no strong character to set a block's direction from, so
+                `dir="auto"` would resolve it LTR and drag its alignment with it.
+              */}
+              {/*
+                Every value is full-strength foreground, the next visit included.
+                It carried olive-700 as "the one accented fact", which put a
+                coloured date in a row of black ones and made the strip read as
+                though the other four had been greyed out. The row is reference;
+                olive stays on the things you press.
+              */}
+              <dd
+                className={cn(
+                  'truncate text-body-sm font-semibold tabular-nums',
+                  fact.value === null && 'font-normal text-muted-foreground',
+                )}
+              >
+                <bdi>{fact.value ?? labels.none}</bdi>
+              </dd>
+            </div>
+          ))}
+        </dl>
+
+        <Link
+          href="/app/calendar/day"
+          className={buttonVariants({ variant: 'outline', size: 'sm' })}
+        >
+          <Icon name="bookAppointment" />
+          {labels.book}
+        </Link>
       </CardContent>
     </Card>
   );
+}
+
+/* ── The two views ─────────────────────────────────────────────────────── */
+
+/* ── Shared parts ────────────────────────────────────────────────────────── */
+
+/**
+ * A ruled list of visits.
+ *
+ * **It scrolls rather than pages.** This was a `PaginatedVisits` — five rows at a
+ * time under a Previous/Next pair — which existed to stop a two-year client
+ * making the card forty rows tall back when the card sized itself to its
+ * content. The card is now a fixed height that fills the screen and scrolls its
+ * own content, so the constraint the pager was answering is gone, and paging
+ * through history you can simply scroll is a control asking to be pressed for
+ * nothing.
+ *
+ * `-mx-2` lets each row's hover fill reach the card's own padding, so a row
+ * reads as a row rather than as a chip floating inside a box.
+ */
+function VisitList({
+  visits,
+  locale,
+  today,
+  durationLabels,
+}: {
+  visits: ClientVisitEntry[];
+  locale: Locale;
+  today: string;
+  durationLabels: DurationLabels;
+}) {
+  return (
+    <ul className="-mx-2 divide-y divide-border/60">
+      {visits.map((visit) => (
+        <VisitRow
+          key={visit.id}
+          visit={visit}
+          locale={locale}
+          today={today}
+          durationLabels={durationLabels}
+        />
+      ))}
+    </ul>
+  );
+}
+
+/** A view with nothing in it. The card around it already carries the heading. */
+function EmptyView({ label }: { label: string }) {
+  return <p className="text-body-sm text-muted-foreground">{label}</p>;
 }
 
 /**
  * The date a visit falls on: the day, and the month under it.
  *
  * **There is no tile.** Both lists used to open with the date in a bordered,
- * filled square — 40px in a row, 56px in the next-visit panel — and the square
- * was the problem, not its size. Arabic's month names are words rather than
- * three-letter abbreviations (أغسطس, سبتمبر), so the label either broke out
- * over the border or had to be clipped to fit a box whose only job was to look
- * like a calendar page. Widening the box to suit the longest month makes every
- * other row's box wrong.
+ * filled square, and the square was the problem, not its size. Arabic's month
+ * names are words rather than three-letter abbreviations (أغسطس, سبتمبر), so the
+ * label either broke out over the border or had to be clipped to fit a box whose
+ * only job was to look like a calendar page.
  *
  * A date is not a control and not a status; it is the label a dated list is
  * scanned by. So it is set as type: the day number at the size of a figure, the
  * month directly under it as a caption, both centred on one axis and nothing
- * drawn around them. The column has a minimum width so the numbers still form a
- * line down the list, and no maximum, so no month in any locale can overflow
- * anything — there is nothing left to overflow.
+ * drawn around them.
  *
  * **The one surviving disc means "today".** It sits around the numeral alone,
  * where two digits are a known width, and the month stays outside it in olive.
- * The mark now carries information rather than decorating every row with the
- * same chrome, which is what makes today findable in a list of forty dates at a
- * glance.
  */
 function DateMark({
   locale,
@@ -393,8 +386,6 @@ function DateMark({
         className={cn(
           'flex items-center justify-center tabular-nums',
           large ? 'font-heading text-heading-sm font-semibold' : 'text-body-sm font-semibold',
-          // The disc only exists on today, so it is sized to the numeral rather
-          // than to the whole mark: two digits at either type size clear 28px.
           isToday &&
             cn(
               'rounded-full bg-primary-subtle text-secondary-foreground',
@@ -425,10 +416,6 @@ function DateMark({
  * changes size with the text around it, sits on a different optical centre in
  * Arabic than in Latin, and inherits a colour it was never designed for at 4px.
  * A 4px circle is the same mark at every font size in both scripts.
- *
- * `self-center` because the lines it appears in are baseline-aligned, and an
- * empty inline box baselines on its bottom edge — the dot would hang below the
- * text it separates.
  */
 function DotSeparator() {
   return <span aria-hidden className="size-1 shrink-0 self-center rounded-full bg-border" />;
@@ -453,7 +440,7 @@ function NextVisitPanel({
   visit: ClientVisitEntry;
   locale: Locale;
   today: string;
-  durationLabels: { hour: (n: number) => string; minute: (n: number) => string };
+  durationLabels: DurationLabels;
   hasMore: boolean;
 }) {
   const isToday = visit.date === today;
@@ -527,7 +514,7 @@ function VisitRow({
   visit: ClientVisitEntry;
   locale: Locale;
   today: string;
-  durationLabels: { hour: (n: number) => string; minute: (n: number) => string };
+  durationLabels: DurationLabels;
 }) {
   const isToday = visit.date === today;
 
@@ -567,13 +554,6 @@ function VisitRow({
                 )}
               </bdi>
             </span>
-            {/*
-              A dot, not a third gap. Three fragments separated by equal spaces
-              read as three separate things; one punctuated line reads as one
-              line of detail. Drawn rather than typed, and `aria-hidden` — it is
-              punctuation for the eye, and a screen reader gets the spans either
-              side of it.
-            */}
             <DotSeparator />
             <span className="whitespace-nowrap">
               {formatDuration(visit.durationMinutes, durationLabels)}
@@ -593,10 +573,9 @@ function VisitRow({
         {/*
           Drawn at the weight of a hint and firmed up under the pointer: it is
           an affordance for a row that is entirely a link, not a control of its
-          own. At full strength on every row it was a column of arrows running
-          down the card competing with the dates. Opacity rather than a hidden
-          element, so the rows do not shift on hover and touch — where there is
-          no hover to reveal anything — never loses it.
+          own. Opacity rather than a hidden element, so the rows do not shift on
+          hover and touch — where there is no hover to reveal anything — never
+          loses it.
         */}
         <Icon
           name="chevronEnd"
