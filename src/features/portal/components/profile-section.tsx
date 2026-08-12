@@ -54,19 +54,22 @@ export function ProfileSection({
           {lead}
 
           {/*
-            The rows sit in their own bordered box rather than under a single
-            rule. A section is now two kinds of thing — the tiles or the
-            practitioner above, and the labelled facts below — and a bare
-            divider between them left the facts looking like the tail of
-            whatever came first. A panel fences them as one list. Plain radius,
-            hairline, no shadow: it is a panel inside a card, not a second card
-            (§Cards).
+            ⚠ **The rows are not fenced in a box of their own.** They were:
+            `rounded-lg border border-border px-4`, on the argument that a
+            section holding two kinds of thing — the tiles or the practitioner
+            above, the labelled facts below — needed the second group drawn as
+            one list rather than as the tail of the first.
+
+            It cost more than it bought. A bordered, radiused panel filling a
+            card *is* a second card by every cue anyone reads one by, whatever
+            §Cards is told about shadows, and on the profile screen — where the
+            card holds nothing but this list — it was a box drawn a few pixels
+            inside an identical box. One surface is enough.
+
+            The rules between rows still group them; where a `lead` sits above,
+            the section's own `space-y-4` is the separation.
           */}
-          {children ? (
-            <dl className="divide-y divide-border rounded-lg border border-border px-4">
-              {children}
-            </dl>
-          ) : null}
+          {children ? <dl className="divide-y divide-border">{children}</dl> : null}
         </CardContent>
       </Card>
     </section>

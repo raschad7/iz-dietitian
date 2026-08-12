@@ -1,6 +1,5 @@
 import { useTranslations } from 'next-intl';
 
-import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
@@ -8,12 +7,11 @@ import { cn } from '@/lib/utils';
 /**
  * One measured fact from the health record, as a tile.
  *
- * `kind` is what the value *is*, not how it should look — a category takes the
- * pill and a measurement takes a figure. The distinction earns itself: a
- * category is one of a known few and reads as a label, where a height is a
- * quantity you compare against another one, and tabular digits are what make
- * that possible. Deciding it per value would leave the grid pilled wherever the
- * caller happened to feel like it.
+ * `kind` is what the value *is*, not how it should look — a category is a word
+ * from a known few, a measurement is a quantity you compare against another
+ * one. Only the second gets tabular digits and a unit under it; both are drawn
+ * in the same ink, at the same weight, one step apart on the scale. Deciding it
+ * per value would leave the grid styled wherever the caller felt like it.
  */
 export type HealthStat = {
   label: string;
@@ -115,17 +113,27 @@ export function HealthStats({ stats }: { stats: readonly HealthStat[] }) {
                 <span className="text-xs sm:text-sm">{t('notRecorded')}</span>
               ) : stat.kind === 'category' ? (
                 /*
-                  Default `Badge` — brand-subtle olive, which carries no status
-                  meaning. A status variant here would be claiming an activity
-                  level is on track or needs follow-up, and neither is something
-                  this screen knows (§Status is not a traffic light).
+                  **A stated value, not a pill.**
 
-                  `whitespace-normal` is the one override the narrow tile needs:
-                  the pill defaults to never wrapping, which at a third of a
-                  phone's width pushes "Moderately active" straight out of the
-                  tile. A pill that takes two lines is still plainly a pill.
+                  It was a default `Badge` — olive label on the brand's subtle
+                  fill. Two problems with that on this grid. The pill is a
+                  *chip*, and a chip beside two tiles whose values are bare
+                  figures made the goal and the activity level look like a
+                  different class of fact — something tagged rather than
+                  something measured. And it was the only olive text in the
+                  three tiles, which on a screen with no status to report read
+                  as the record's one coloured judgement.
+
+                  So a category is now drawn the way a measurement is: the
+                  heading face, semibold, in full-strength ink, with nothing
+                  behind it. It sits one step down the scale from a figure
+                  because "زيادة الوزن" is two words where "170" is three
+                  digits, and `text-balance` splits those two words evenly
+                  rather than leaving one alone on the second line.
                 */
-                <Badge className="whitespace-normal px-2 sm:px-2.5">{stat.value}</Badge>
+                <span className="block font-heading text-sm leading-snug font-semibold text-balance sm:text-base">
+                  {stat.value}
+                </span>
               ) : (
                 /*
                   The figure leads and the unit sits under it, per the reference:

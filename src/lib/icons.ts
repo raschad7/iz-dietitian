@@ -247,6 +247,7 @@ export const APP_ICONS = {
 
   /* The portal's home screen */
   dayComplete: CircleCheck,
+  mealCheckMark: CircleCheck,
   greetingSun: Sun,
   streak: Flame,
   encouragement: Sparkles,

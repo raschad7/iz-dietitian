@@ -2,8 +2,13 @@ import { beforeEach, describe, expect, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { dishIngredients, dishes, foods, weeklyPlanMeals, weeklyPlans } from '@/db/schema';
-import { createTestClient, createTestClinic, resetDatabase } from '../../../tests/helpers';
+import { appointments, dishIngredients, dishes, foods, weeklyPlanMeals, weeklyPlans } from '@/db/schema';
+import {
+  createTestClient,
+  createTestClinic,
+  createTestPractitioner,
+  resetDatabase,
+} from '../../../tests/helpers';
 
 import { getBoard, listPlannableClients, planDishesBySlot } from './queries';
 import { slotFillKey } from './skeleton';
@@ -50,6 +55,31 @@ describe('listPlannableClients', () => {
         lastAppointment: null,
       },
     ]);
+  });
+
+  /**
+   * The planner's first screen prints this date under the client's name, and it
+   * is the one fact on that card the dietitian can check against their own
+   * morning — so a visit that has already happened must not be offered as the
+   * next one. The boundary is a moment, not a day.
+   */
+  test('splits today by the clock, not by the date', async () => {
+    const practitionerId = await createTestPractitioner(clinicId);
+
+    await db.insert(appointments).values([
+      { clinicId, practitionerId, clientId, date: '2026-08-12', startMinute: 9 * 60, durationMinutes: 30 },
+      { clinicId, practitionerId, clientId, date: '2026-08-13', startMinute: 10 * 60, durationMinutes: 30 },
+    ]);
+
+    const morning = await listPlannableClients(clinicId, { date: '2026-08-12', minute: 8 * 60 });
+    expect(morning[0]?.nextAppointment).toEqual({ date: '2026-08-12', startMinute: 9 * 60 });
+    expect(morning[0]?.lastAppointment).toBeNull();
+
+    // Same day, after that appointment started: it is now the last visit, and
+    // tomorrow's is the next one.
+    const evening = await listPlannableClients(clinicId, { date: '2026-08-12', minute: 17 * 60 });
+    expect(evening[0]?.nextAppointment).toEqual({ date: '2026-08-13', startMinute: 10 * 60 });
+    expect(evening[0]?.lastAppointment).toEqual({ date: '2026-08-12', startMinute: 9 * 60 });
   });
 });
 

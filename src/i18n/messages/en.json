@@ -57,6 +57,54 @@
     "openNavigation": "Open navigation",
     "closeNavigation": "Close navigation"
   },
+  "settingsWorkspace": {
+    "title": "Settings",
+    "description": "Manage your personal profile, clinic, communication and account security in one place.",
+    "tabsLabel": "Settings sections",
+    "tabs": {
+      "profile": "Personal profile",
+      "clinic": "Clinic",
+      "whatsapp": "WhatsApp",
+      "security": "Security"
+    },
+    "leaveTitle": "Leave without saving?",
+    "leaveDescription": "This page has changes you have not saved yet. Switching tabs will discard them.",
+    "leaveConfirm": "Discard changes",
+    "leaveCancel": "Keep editing",
+    "unsaved": "Unsaved",
+    "profile": {
+      "title": "Personal profile",
+      "description": "Your professional information and personal account inside the clinic.",
+      "staffMember": "Clinic team member",
+      "active": "Active",
+      "formTitle": "Professional information",
+      "formDescription": "Update the details that identify you within the clinic team.",
+      "accountEmail": "Account email",
+      "accountEmailHint": "This email is managed through your sign-in account."
+    },
+    "clinic": {
+      "title": "Clinic",
+      "description": "Contact details and working hours used for booking and client communication.",
+      "formTitle": "Clinic details",
+      "formDescription": "Essential contact information used by the team and clients.",
+      "hoursTitle": "Working hours",
+      "hoursDescription": "Choose the days and times available for appointments."
+    },
+    "whatsapp": {
+      "title": "WhatsApp",
+      "description": "Manage the clinic connection, automated messages and recent activity."
+    },
+    "security": {
+      "title": "Security and sign-in",
+      "description": "Review the methods you can use to access your account securely.",
+      "safetyNote": "Always keep at least one alternative sign-in method so you do not lose access to your account.",
+      "methodsDescription": "Methods currently linked to your account.",
+      "passwordTitle": "Password",
+      "enabled": "Enabled",
+      "notConnected": "Not connected",
+      "createdAt": "Added {date}"
+    }
+  },
   "landing": {
     "title": "Run your dietitian practice in one place",
     "description": "Follow up on clients, build nutrition plans, schedule appointments and record payments — in Arabic and English.",
@@ -749,7 +797,8 @@
       "title": "Appointments",
       "subtitle": "Everything your dietitian has booked for you.",
       "book": "Request an appointment",
-      "requestSent": "Your request has been sent. Your dietitian will see it with your appointments.",
+      "requestSent": "Your request has been sent.",
+      "requestSentDetail": "Your dietitian will see it with your appointments.",
       "tabs": {
         "upcoming": "Upcoming",
         "past": "Past"
@@ -821,8 +870,7 @@
       "dailyTarget": "Daily target: {value} kcal",
       "chooseDay": "Choose a day",
       "today": "Today",
-      "chooseDayHeading": "Pick a day to see its meals",
-      "dayEnergyLabel": "Energy for this day",
+      "todayMealsHeading": "Your meals for today",
       "mealEnergyLabel": "Meal energy",
       "emptyDayTitle": "Nothing planned for this day",
       "emptyDayHint": "Your dietitian left this day open. Pick another day above.",
@@ -952,10 +1000,13 @@
     "progress": {
       "today": {
         "heading": "Your commitment today",
-        "meals": "Completed {completed, number, integer} of {total, number, integer} {total, plural, one {meal} other {meals}}",
+        "meals": "{completed, number, integer} of {total, number, integer} {total, plural, one {meal} other {meals}}",
         "caloriesCompleted": "{value, number, integer} kcal completed",
         "caloriesRemaining": "{value, number, integer} kcal remaining",
+        "energyTodayLabel": "Today's energy",
+        "energyTodayValue": "{value, number, integer} kcal",
         "prompt": "Tick off today's meals in My Plan to see your commitment here.",
+        "noMeals": "No meals are planned for today, so there is nothing to track yet.",
         "cta": "Update today's adherence",
         "level": {
           "missed": "That's alright — tomorrow is a fresh start.",
@@ -1224,6 +1275,7 @@
     "noClientTitle": "Who are you planning for?",
     "noClientHint": "Search the client list or continue with someone whose appointment is coming up.",
     "searchClients": "Search clients",
+    "selectClient": "Choose a client",
     "noClients": "No active clients",
     "suggestedClientsTitle": "Suggested clients",
     "suggestedClientsHint": "Upcoming appointments first, followed by the most recent visits.",
@@ -1342,6 +1394,8 @@
     "closestFirst": "Closest calories first",
     "targetDifference": "{value} kcal",
     "browseAllDishes": "Browse all dishes",
+    "fillSlot": "Choose a dish",
+    "addToSlot": "Add {name} to this meal",
     "replaceMeal": "Replace",
     "mealReplaced": "Meal replaced",
     "mealReplacedHint": "The alternative is now saved in this meal slot.",

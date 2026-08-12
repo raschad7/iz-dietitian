@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, gte, ilike, inArray, lt, ne, or, sql, type SQL } from 'drizzle-orm';
+import { and, asc, count, desc, eq, gt, gte, ilike, inArray, lt, ne, or, sql, type SQL } from 'drizzle-orm';
 
 import { db } from '@/db';
 import {
@@ -13,9 +13,10 @@ import {
   weeklyPlans,
   type MealSlot,
 } from '@/db/schema';
+import { wallClockIn, type WallClock } from '@/features/booking/completed';
 import { calculateAge } from '@/features/clients/age';
 import { clientSeq } from '@/features/clients/seq';
-import { toIsoDate } from '@/lib/iso-date';
+import { DISPLAY_TIME_ZONE } from '@/lib/format';
 
 import type { CatalogDish } from './generate';
 import {
@@ -38,6 +39,7 @@ import {
   type MealScheduleInput,
 } from './schema';
 import { slotBudgets, suggestProteinGrams, suggestTargets, type SlotBudget, type SuggestedTargets } from './targets';
+import { weekDates } from './week';
 
 /**
  * Reads for the weekly-plans feature.
@@ -357,9 +359,9 @@ export type PlannableClient = {
   hasProfile: boolean;
   latestPlanStatus: string | null;
   latestWeekStartDate: string | null;
-  /** Soonest booked visit today or later, used to order the planner's first screen. */
+  /** Soonest visit that has not started yet, used to order the planner's first screen. */
   nextAppointment: { date: string; startMinute: number } | null;
-  /** Most recent visit before today, used when nothing is booked next. */
+  /** Most recent visit that has already started, used when nothing is booked next. */
   lastAppointment: { date: string; startMinute: number } | null;
 };
 
@@ -372,8 +374,31 @@ export type PlannableClient = {
  */
 export async function listPlannableClients(
   clinicId: string,
-  today = toIsoDate(new Date()),
+  /**
+   * The clinic's wall clock, not the server's date alone.
+   *
+   * The split between "next" and "last" is a *moment*, not a day: a 09:00 visit
+   * read at 17:00 is over, and calling it the next appointment on the planner's
+   * first screen is the one thing on that card a dietitian can check against
+   * their own morning — so getting it wrong makes the whole suggestion look
+   * invented. Read in the clinic's zone for the same reason the calendar is:
+   * appointments are clinic-local, and the server may be anywhere.
+   */
+  now: WallClock = wallClockIn(DISPLAY_TIME_ZONE),
 ): Promise<PlannableClient[]> {
+  const { date: today, minute } = now;
+
+  // Not started yet: any later day, or today at or after this minute.
+  const upcoming = or(
+    gt(appointments.date, today),
+    and(eq(appointments.date, today), gte(appointments.startMinute, minute)),
+  );
+  // Its exact complement, so every appointment falls in one bucket or the other.
+  const past = or(
+    lt(appointments.date, today),
+    and(eq(appointments.date, today), lt(appointments.startMinute, minute)),
+  );
+
   /**
    * The newest plan per client, via `DISTINCT ON` — PostgreSQL's own answer to
    * "the first row of each group".
@@ -418,7 +443,7 @@ export async function listPlannableClients(
         startMinute: appointments.startMinute,
       })
       .from(appointments)
-      .where(and(eq(appointments.clinicId, clinicId), gte(appointments.date, today)))
+      .where(and(eq(appointments.clinicId, clinicId), upcoming))
       .orderBy(asc(appointments.clientId), asc(appointments.date), asc(appointments.startMinute)),
     db
       .selectDistinctOn([appointments.clientId], {
@@ -427,13 +452,20 @@ export async function listPlannableClients(
         startMinute: appointments.startMinute,
       })
       .from(appointments)
-      .where(and(eq(appointments.clinicId, clinicId), lt(appointments.date, today)))
+      .where(and(eq(appointments.clinicId, clinicId), past))
       .orderBy(desc(appointments.clientId), desc(appointments.date), desc(appointments.startMinute)),
   ]);
 
   const latestByClient = new Map(planRows.map((row) => [row.clientId, row]));
-  const nextAppointmentByClient = new Map(nextAppointmentRows.map((row) => [row.clientId, row]));
-  const lastAppointmentByClient = new Map(lastAppointmentRows.map((row) => [row.clientId, row]));
+  // The date and the minute only: the row also carries the client id it was
+  // grouped by, and leaving it on the value would put a field in the returned
+  // shape that the type never promised and the card has no use for.
+  const visit = (row: { date: string; startMinute: number }): { date: string; startMinute: number } => ({
+    date: row.date,
+    startMinute: row.startMinute,
+  });
+  const nextAppointmentByClient = new Map(nextAppointmentRows.map((row) => [row.clientId, visit(row)]));
+  const lastAppointmentByClient = new Map(lastAppointmentRows.map((row) => [row.clientId, visit(row)]));
 
   return clientRows.map((row) => {
     const latest = latestByClient.get(row.id);
@@ -807,15 +839,45 @@ export async function getLatestBoard(clinicId: string, clientId: string): Promis
 }
 
 /**
- * The client's own view: the published plan for the latest week.
+ * The client's own view: the published plan for the week they are standing in,
+ * and nothing else.
  *
  * Scoped by `client_id` and `status` only — a portal session has no clinic, and
  * adding one would mean trusting a value the client's session does not carry. The
  * plan is reachable because it belongs to them, which is the actual authorisation
  * rule.
+ *
+ * **Two conditions, and both are absolute: published, and covering `today`.**
+ *
+ * `published` is the dietitian's decision to show it at all. A draft is their
+ * working copy, and a client following a plan that is still being edited is the
+ * failure the status column exists to prevent.
+ *
+ * The week is what makes the screen behave. The tick on a meal card renders
+ * only for `dayStanding === 'today'`, and the home screen's commitment figure
+ * counts only today's meals — so a plan whose week does not contain today gives
+ * a client seven days they cannot report on and a percentage with no
+ * denominator. Requiring the week means the rule is simple to state in both
+ * directions: **if a plan is on screen, its meals can be ticked today.**
+ *
+ * Two consequences worth knowing, because both were chosen rather than fallen
+ * into:
+ *
+ * - Unpublishing this week's plan clears the client's home screen at once, even
+ *   when an older plan is still marked published. An expired plan surfacing
+ *   from underneath a take-down is what made unpublishing look like it had done
+ *   nothing.
+ * - A plan published for a week that has not started yet is not shown either.
+ *   It appears on the first day of its own week. `loadPlanPage` used to treat a
+ *   future plan's seven `future` days as the honest answer; the honest answer
+ *   now is that the client has no plan for *this* week.
  */
-export async function getPublishedBoard(clientId: string): Promise<Board | null> {
-  const [plan] = await db
+export async function getPublishedBoard(clientId: string, today: string): Promise<Board | null> {
+  // Every published plan's header row, newest week first. The rows are small —
+  // no meals, no dishes — and a client accumulates one per week, so reading
+  // them and choosing here costs less than a second round trip and keeps the
+  // rule readable instead of buried in a WHERE clause of date arithmetic.
+  const candidates = await db
     .select({
       id: weeklyPlans.id,
       clientId: weeklyPlans.clientId,
@@ -834,10 +896,16 @@ export async function getPublishedBoard(clientId: string): Promise<Board | null>
     .from(weeklyPlans)
     .innerJoin(clients, eq(clients.id, weeklyPlans.clientId))
     .where(and(eq(weeklyPlans.clientId, clientId), eq(weeklyPlans.status, 'published')))
-    .orderBy(desc(weeklyPlans.weekStartDate))
-    .limit(1);
+    .orderBy(desc(weeklyPlans.weekStartDate));
 
-  return plan ? assembleBoard(plan) : null;
+  // `weekDates` walks the plan's own seven dates from its `week_start_date`, so
+  // this holds for a plan starting on any weekday — the same reckoning
+  // `planWeekDays` gives the day strip, rather than a second guess at it. No
+  // fallback: a plan that does not cover today is not this week's plan, and
+  // there is nothing else for the portal to mean by "your plan".
+  const covering = candidates.find((plan) => weekDates(plan.weekStartDate).includes(today));
+
+  return covering ? assembleBoard(covering) : null;
 }
 
 type PlanRow = Omit<Board, 'days' | 'totals' | 'unfilled'>;

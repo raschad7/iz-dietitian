@@ -52,25 +52,23 @@ export function AppointmentTabs({
         value={view}
         onChange={setView}
         /*
-          A tinted half, and nothing else — not the solid olive fill the control
-          draws by default, and no mark under the label either.
+          A white half on the grey well — the raised thumb `shape="pill"` is
+          built around, stated here rather than left to the default because the
+          default is the solid olive every other segmented control wears.
 
           This switch sits directly under the page's one button and directly
-          above the next appointment, and a filled olive half there was a third
-          brand-coloured block in a 200px stack — the eye had nowhere to land.
-          It then carried a 3px olive rule along its block-end edge, which read
-          as an underlined *link* rather than as the state of a switch: the one
-          decoration on this page that looked pressable and was not.
+          above the next appointment. Every tinted version of it — the solid
+          olive, then an olive-100 fill with a 3px olive rule, then that fill
+          alone — was a brand-coloured block competing with the two things
+          around it for the same 200px, and the rule at one point read as an
+          underlined *link*: the one decoration on the page that looked
+          pressable and was not.
 
-          So the state is the fill alone, at olive-100 rather than the olive-50
-          `bg-secondary` the rule used to accompany. On a white track olive-50 is
-          within a hair of the surface it sits on and needed the mark to be seen
-          at all; olive-100 is visible on its own, and the olive-700 label rides
-          on it at 6.51:1 — the same pairing `Button variant="primarySubtle"`
-          ships. Fill and label colour are still two channels, which is what a
-          control whose two states are both plausible needs.
+          Elevation instead of hue settles it. n-900 on white is 16.64:1, so the
+          selected label is the strongest text on the screen while the control
+          itself is the quietest thing on it.
         */
-        activeClassName="bg-primary-subtle text-secondary-foreground"
+        activeClassName="bg-card text-foreground"
         options={[
           { value: 'upcoming', label: upcomingLabel },
           { value: 'past', label: pastLabel },

@@ -22,7 +22,7 @@ import {
 } from '@/features/weekly-plans/queries';
 import { PLANNER_THEME } from '@/features/weekly-plans/theme';
 import { recentDishUse } from '@/features/weekly-plans/usage';
-import { nextSunday } from '@/features/weekly-plans/week';
+import { currentSunday, formatDateParts, nextSunday, weekDates } from '@/features/weekly-plans/week';
 
 /**
  * A 90-second generation runs as a server action, which exceeds the default
@@ -90,7 +90,31 @@ export default async function ClientBoardPage({ params, searchParams }: PageProp
       ? ('profile_incomplete' as const)
       : null;
 
-  const weekStartDate = nextSunday();
+  /*
+    Which week the three "new week" doors open on.
+
+    **The week the client is actually in, unless they already have one.**
+    `nextSunday()` alone was the default, and on any day but Sunday it meant a
+    dietitian sitting down to build a plan for a client who has *nothing* this
+    week produced a plan for the week after — published, correct, and invisible
+    to that client until the following Sunday, because the portal only shows the
+    plan covering today (see `getPublishedBoard`). Every plan built midweek
+    landed in that gap, which is why it looked like the portal was broken for
+    every account except the one whose plan happened to have been started on a
+    day when `nextSunday()` named the current week.
+
+    Once this week is covered, planning ahead is the real intent again, so the
+    default returns to next Sunday. Either way it is only a default: the dialog
+    carries a `DatePicker` and the dietitian can put the week wherever they want.
+
+    Sunday-aligned rather than starting today, even though a plan may begin on
+    any weekday. The progress tab's `summariseAdherenceWeek` reads a Sunday-first
+    calendar week, so a plan cutting across two of them would report against a
+    span its own day strip does not draw.
+  */
+  const today = formatDateParts(new Date());
+  const plannedThisWeek = plans.some((plan) => weekDates(plan.weekStartDate).includes(today));
+  const weekStartDate = plannedThisWeek ? nextSunday() : currentSunday();
 
   // The copy and empty doors do not call a model, so an unconfigured OpenAI key
   // does not block them. Only a missing profile does, because all three build

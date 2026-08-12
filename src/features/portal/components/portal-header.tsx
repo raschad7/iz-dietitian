@@ -6,7 +6,6 @@ import { useFormStatus } from 'react-dom';
 import { Icon } from '@/components/ui/icon';
 import { signOutAction } from '@/features/auth/actions';
 import { type GreetingKey } from '@/features/portal/greeting';
-import { dayKey } from '@/features/weekly-plans/schema';
 import { Link, usePathname } from '@/i18n/navigation';
 import { type Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
@@ -73,47 +72,6 @@ function HeaderSignOut({ locale }: { locale: Locale }) {
   );
 }
 
-/**
- * Yesterday, today and tomorrow, read off rather than chosen from. The full
- * seven-day picker a client actually navigates with is `PlanDayStrip`, one
- * section down the home screen — this is only the header's own glance at the
- * moment they opened the app in, so it carries no selection state of its own
- * and nothing here is a button.
- *
- * `aria-hidden`: the weekday it marks is already spoken by the `date` string
- * one line up ("الاثنين، ١٠ أغسطس"), so a screen reader gets that once rather
- * than the same day named twice a few pixels apart.
- *
- * Today's cell borrows the strip's own flame glyph and its
- * `status-complete-mark` colour — the one warm accent this screen spends, not
- * a second orange invented for a header chip.
- */
-function TodayDayStrip({ todayDayOfWeek }: { todayDayOfWeek: number }) {
-  const tDays = useTranslations('weeklyPlans.days');
-  const yesterday = (todayDayOfWeek + 6) % 7;
-  const tomorrow = (todayDayOfWeek + 1) % 7;
-
-  return (
-    /*
-      A translucent white track rather than an opaque `bg-muted`, which is the
-      `rgba(217, 217, 217, .2)` the design gave it: it sits on the glow, and an
-      opaque cool grey read as a grey bar laid over the wash instead of as a
-      well cut into it. Today's own cell is the one solid surface here, which
-      is what lifts it off the other two.
-    */
-    <div aria-hidden="true" className="mt-3 flex items-center justify-between gap-2 rounded-full bg-white/20 px-4 py-2">
-      <span className="min-w-0 flex-1 truncate text-center text-body-sm text-primary">{tDays(dayKey(yesterday))}</span>
-
-      <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-card px-3.5 py-2">
-        <Icon name="dayComplete" className="size-4 text-status-complete-mark" />
-        <span className="text-body-sm font-medium text-primary">{tDays(dayKey(todayDayOfWeek))}</span>
-      </span>
-
-      <span className="min-w-0 flex-1 truncate text-center text-body-sm text-primary">{tDays(dayKey(tomorrow))}</span>
-    </div>
-  );
-}
-
 function HeaderSignOutSubmit({ label }: { label: string }) {
   const { pending } = useFormStatus();
 
@@ -134,7 +92,6 @@ export function PortalHeader({
   name,
   greeting,
   date,
-  todayDayOfWeek,
   pendingCount,
   locale,
   showNav,
@@ -149,12 +106,6 @@ export function PortalHeader({
    * compute it.
    */
   date?: string;
-  /**
-   * `0`–`6`, `Date#getDay()` numbering — feeds `TodayDayStrip`'s glance at
-   * yesterday/today/tomorrow. Optional for the same reason `date` is: only
-   * the home tab's caller has a day to report.
-   */
-  todayDayOfWeek?: number;
   pendingCount: number;
   locale: Locale;
   /**
@@ -183,9 +134,17 @@ export function PortalHeader({
     cool grey that shows as a smudge over the wash, so on home the press target
     tints with white at 15% instead.
   */
-  const iconTone = isHome
-    ? 'text-white hover:bg-white/15'
-    : 'text-foreground hover:bg-muted';
+  /*
+    ⚠ **The white only holds while the glow is behind it**, and that is the one
+    thing to check before adding a breakpoint here. `HomeGlow` was `md:hidden`
+    for a while and this was not, so from 768px up the bell and the gear
+    rendered, took their space, stayed keyboard-reachable — and were white on a
+    white page. The only trace was the bell's own antialiasing.
+
+    The glow now runs at every width, so this does too: no `md:`/`lg:` variant
+    on either, which is what keeps them impossible to get out of step.
+  */
+  const iconTone = isHome ? 'text-white hover:bg-white/15' : 'text-foreground hover:bg-muted';
 
   return (
     /*
@@ -202,7 +161,24 @@ export function PortalHeader({
       unfilled bar there would only be a header that had lost the separation
       from the content underneath.
     */
-    <header className={cn('px-4 pt-3 pb-4', isHome ? 'bg-transparent' : 'bg-card')}>
+    /*
+      `md:px-6` matches `main`'s own `px-4 md:px-6` in `(tabs)/layout.tsx`.
+      Both cap at `max-w-3xl` and centre, and they now share the same parent
+      box — but until the box is wider than the cap plus its padding, the
+      column's position still depends on that padding. Matching it is what
+      keeps the greeting sitting exactly over the cards at every tablet width
+      rather than only once both columns reach 768px.
+    */
+    <header
+      className={cn(
+        'px-4 pt-3 pb-4 md:px-6',
+        // Unfilled on home at every width, so the glow reaches the top of the
+        // screen. The other four tabs have no glow to reveal, so an unfilled
+        // bar there would only be a header that lost its separation from the
+        // content underneath.
+        isHome ? 'bg-transparent' : 'bg-card',
+      )}
+    >
       <div className="mx-auto w-full max-w-3xl">
         <div className="flex items-center justify-between">
           <Destination
@@ -263,8 +239,6 @@ export function PortalHeader({
                 <span className="shrink-0 text-xs font-medium text-white">{date}</span>
               ) : null}
             </p>
-
-            {todayDayOfWeek !== undefined ? <TodayDayStrip todayDayOfWeek={todayDayOfWeek} /> : null}
           </div>
         ) : null}
       </div>

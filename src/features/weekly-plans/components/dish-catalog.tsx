@@ -45,6 +45,7 @@ export function DishCatalog({
   usage,
   slot,
   editable,
+  onPick,
 }: {
   catalog: readonly CatalogEntry[];
   /** How recently this client had each dish, keyed by dish id. */
@@ -52,6 +53,16 @@ export function DishCatalog({
   /** The open meal, if there is one. Drives the default filter and the portions. */
   slot: { slotKey: string; budgetKcal: number } | null;
   editable: boolean;
+  /**
+   * Given, the rows become buttons that fill a known slot instead of drag
+   * sources.
+   *
+   * Which is what the catalog is when it lives *inside* the meal inspector: the
+   * slot is already chosen, the panel is modal, and there is nowhere to drag to.
+   * In the drawer it stays absent and the rows stay draggable, because there the
+   * dietitian is choosing the slot as well as the dish.
+   */
+  onPick?: (dish: CatalogEntry, servings: number) => void;
 }) {
   const t = useTranslations('weeklyPlans');
   const [query, setQuery] = useState('');
@@ -276,17 +287,23 @@ export function DishCatalog({
         </div>
       ) : (
         <ul className="no-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
-          {shown.map((dish) => (
-            <li key={dish.id}>
-              <CatalogRow
-                dish={dish}
-                usage={usage[dish.id]}
-                servings={slot ? (bestServings(dish.baseKcal, slot.budgetKcal) ?? 1) : 1}
-                budgetKcal={slot?.budgetKcal ?? null}
-                draggable={editable && dish.blockedBy.length === 0}
-              />
-            </li>
-          ))}
+          {shown.map((dish) => {
+            const servings = slot ? (bestServings(dish.baseKcal, slot.budgetKcal) ?? 1) : 1;
+            const allowed = editable && dish.blockedBy.length === 0;
+
+            return (
+              <li key={dish.id}>
+                <CatalogRow
+                  dish={dish}
+                  usage={usage[dish.id]}
+                  servings={servings}
+                  budgetKcal={slot?.budgetKcal ?? null}
+                  draggable={allowed && !onPick}
+                  onPick={allowed && onPick ? () => onPick(dish, servings) : undefined}
+                />
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>
@@ -373,12 +390,15 @@ function CatalogRow({
   servings,
   budgetKcal,
   draggable,
+  onPick,
 }: {
   dish: CatalogEntry;
   usage: RecentUse | undefined;
   servings: number;
   budgetKcal: number | null;
   draggable: boolean;
+  /** Given, the row is a button that fills the open slot. Never both. */
+  onPick?: () => void;
 }) {
   const t = useTranslations('weeklyPlans');
 
@@ -393,20 +413,24 @@ function CatalogRow({
   const delta = budgetKcal === null ? null : kcal - budgetKcal;
   const deltaLabel = delta === null ? null : `${delta > 0 ? '+' : ''}${delta}`;
 
-  return (
-    <div
-      ref={setNodeRef}
-      {...(draggable ? listeners : {})}
-      {...(draggable ? attributes : {})}
-      aria-disabled={blocked || undefined}
-      className={cn(
-        'grid min-h-16 grid-cols-[1.25rem_minmax(0,1fr)_auto] items-center gap-2 border-b border-border py-2.5 text-start transition-colors',
-        draggable && 'cursor-grab hover:bg-accent/50',
-        blocked && 'bg-muted/50 opacity-70',
-        isDragging && 'opacity-40',
-      )}
-    >
-      <Icon name="dragHandle" className="size-4 text-muted-foreground" />
+  // One row, two ways to use it: a grab surface in the drawer, a real button in
+  // the inspector. The shape is identical so the catalog is recognisably the
+  // same list in both places; only the leading mark changes, because the gesture
+  // it promises is what changed.
+  const shape = cn(
+    'grid min-h-16 w-full grid-cols-[1.25rem_minmax(0,1fr)_auto] items-center gap-2 border-b border-border py-2.5 text-start transition-colors',
+    draggable && 'cursor-grab hover:bg-accent/50',
+    onPick && !blocked && 'cursor-pointer hover:bg-accent/50',
+    blocked && 'bg-muted/50 opacity-70',
+    isDragging && 'opacity-40',
+  );
+
+  const body = (
+    <>
+      <Icon
+        name={onPick ? 'add' : 'dragHandle'}
+        className={cn('size-4 text-muted-foreground', onPick && !blocked && 'text-primary')}
+      />
       <span className="min-w-0">
         <span className="block truncate font-heading text-body-sm font-semibold" dir="auto">
           {dish.nameAr}
@@ -447,6 +471,35 @@ function CatalogRow({
       <span className="text-label font-semibold tabular-nums" dir="ltr">
         {kcal}
       </span>
+    </>
+  );
+
+  if (onPick) {
+    return (
+      <button
+        type="button"
+        onClick={onPick}
+        // Shown and refused, not hidden: the same rule the list follows for a
+        // dish the client is allergic to. `disabled` is the honest control state
+        // and the row already says why.
+        disabled={blocked}
+        title={blocked ? undefined : t('addToSlot', { name: dish.nameAr })}
+        className={cn(shape, 'outline-none focus-visible:bg-accent/60')}
+      >
+        {body}
+      </button>
+    );
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      {...(draggable ? listeners : {})}
+      {...(draggable ? attributes : {})}
+      aria-disabled={blocked || undefined}
+      className={shape}
+    >
+      {body}
     </div>
   );
 }

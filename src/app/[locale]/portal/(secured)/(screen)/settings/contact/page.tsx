@@ -104,18 +104,19 @@ export default async function ContactPage({ params }: ContactPageProps) {
               value={age === null ? null : tClients('yearsOld', { count: age })}
             />
             <InfoRow label={tProfile('field.sex')} value={sex} />
-            <InfoRow
-              label={tProfile('field.phone')}
-              value={profile.phone}
-              icon="phoneOutline"
-              ltr
-            />
-            <InfoRow
-              label={tProfile('field.email')}
-              value={profile.email}
-              icon="emailOutline"
-              ltr
-            />
+
+            {/*
+              No glyph on either. `InfoRow`'s `icon` draws a disc before the
+              label, and it earns that on the health record where fifteen facts
+              are scanned for one — a mark is faster to find than a word. Here
+              there are six rows, four of which carry no disc, so the handset
+              and the envelope were not marking these two out of a crowd; they
+              were putting two coloured circles in the middle of a short list
+              and making the phone and the email look like a different kind of
+              row from the name above them.
+            */}
+            <InfoRow label={tProfile('field.phone')} value={profile.phone} ltr />
+            <InfoRow label={tProfile('field.email')} value={profile.email} ltr />
           </ProfileSection>
 
           {/*
