@@ -137,6 +137,66 @@ export const clientNutritionProfiles = pgTable(
      */
     permanentInstructions: text('permanent_instructions'),
 
+    // ── Nutrition assessment form ────────────────────────────────────────────
+    /*
+     * The clinic's paper intake questionnaire ("نموذج التقييم التغذوي"), which a
+     * dietitian used to fill in on a sheet and file away. Columns rather than one
+     * jsonb blob: each answer is asked once, has a fixed meaning, and several of
+     * them are closed vocabularies the UI draws as a select — a blob would make
+     * every one of those a free-text field that nothing can validate or count.
+     *
+     * All nullable. The sheet is worked through over several visits, and the
+     * intake form has never required anything but the meal schedule.
+     */
+
+    /** One of `CLIENT_MARITAL_STATUSES`. Free of clinical meaning on its own. */
+    maritalStatus: text('marital_status'),
+    /** How many children, when the answer to "يوجد أطفال" is yes. */
+    childrenCount: integer('children_count'),
+    /** One of `BLOOD_TYPES`. */
+    bloodType: text('blood_type'),
+    occupation: text('occupation'),
+
+    /** "سبب زيارة عيادة التغذية" — the client's own words for why they came. */
+    visitReason: text('visit_reason'),
+    /** Previous diets, and when. */
+    dietHistory: text('diet_history'),
+    /** Drug allergies. Kept apart from `allergen_tags`, which is food only. */
+    drugAllergies: text('drug_allergies'),
+    /** Hereditary disease or obesity in the family. */
+    familyHistory: text('family_history'),
+
+    /**
+     * How the client actually moves, in prose — not `clients.activity_level`.
+     *
+     * The enum is the multiplier Mifflin-St Jeor needs; this is "walks 40
+     * minutes most evenings, desk job", which is what a dietitian reads back.
+     */
+    activityNotes: text('activity_notes'),
+    /** What stops them — an injury, hours, a knee. */
+    activityBarriers: text('activity_barriers'),
+    sleepHours: real('sleep_hours'),
+    /** One of `SMOKING_HABITS`. */
+    smoking: text('smoking'),
+
+    /*
+     * Six food-frequency answers, each one of `INTAKE_FREQUENCIES`.
+     *
+     * A closed scale rather than a number: the paper form asks "كم مرة يوميا"
+     * and gets "٢-٣" or "أحيانا" written in a margin. A five-point scale is what
+     * the answer actually carries, it renders as one select, and two records are
+     * comparable — which a free-text count is not.
+     *
+     * The daily/weekly split is per question and fixed, matching the sheet; the
+     * label the UI shows says which.
+     */
+    caffeineFrequency: text('caffeine_frequency'),
+    fastFoodFrequency: text('fast_food_frequency'),
+    produceFrequency: text('produce_frequency'),
+    dairyFrequency: text('dairy_frequency'),
+    proteinFoodFrequency: text('protein_food_frequency'),
+    sweetsFrequency: text('sweets_frequency'),
+
     /**
      * The day's slots, as {@link MealSlot}[].
      *

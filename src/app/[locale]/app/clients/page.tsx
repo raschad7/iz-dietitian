@@ -48,18 +48,26 @@ export default async function ClientsPage({ params, searchParams }: ClientsPageP
 
   return (
     /*
-      The page fills the shell and does not scroll; the register does, inside
-      itself. A long list otherwise pushes the search field and the pager off
-      the top and bottom of the screen, and the two controls you reach for
-      *because* the list is long are the two the list hides.
+      The page flows; nothing inside it is a scroller. It used to pin itself to
+      the shell from `md` up and hand the register a bounded height to scroll
+      its rows in, because a page held twenty clients and a list that long
+      otherwise pushes the search field and the pager off the top and bottom of
+      the screen — the two controls you reach for *because* the list is long.
 
-      Below `md` the page scrolls as a whole, the way the dashboard does: on a
-      phone the chrome and a usable number of rows do not both fit, and a
-      pinned frame there would leave a two-row window to scroll a hundred
-      clients through. The column names still stay put — the table header is
-      sticky either way.
+      `CLIENTS_PAGE_SIZE` is now set so that a page fits, so there is nothing
+      for a frame to bound: the register is drawn whole and the pager under it
+      is the way to the rest.
+
+      `min-h-full` rather than the old `h-full`, and it is what keeps the pager
+      still. The column is at least as tall as `main`, so the pager's `mt-auto`
+      pushes it to the foot of the screen and it stays there whether the page
+      holds a full page or the last page's two — a control that moves half a screen
+      depending on which page you are on is one you have to find again after
+      every step. `min-h-` and not `h-`, so a short window lets the column grow
+      past the frame and `main` scrolls it, instead of the overflow spilling out
+      from under a pager pinned to a height the content no longer fits.
     */
-    <div className="flex flex-col gap-6 text-start md:h-full md:min-h-0">
+    <div className="flex min-h-full flex-col gap-6 text-start">
       <div className="flex shrink-0 flex-wrap items-start justify-between gap-2">
         <div>
           <h1 className="font-heading text-heading-lg font-semibold tracking-tight">{t('title')}</h1>
@@ -94,9 +102,11 @@ export default async function ClientsPage({ params, searchParams }: ClientsPageP
         locale={locale}
       />
 
-      {/* Renders nothing on a single-page list, so it is a direct child: an
-          empty wrapper here would still cost the register a row's worth of gap. */}
-      <ClientPagination result={result} input={input} />
+      {/* Renders nothing on an empty register, so it is a direct child: an
+          empty wrapper here would still cost the register a row's worth of gap.
+          `mt-auto` is what puts it at the foot of the screen — see the note on
+          `min-h-full` above. */}
+      <ClientPagination result={result} input={input} className="mt-auto" />
     </div>
   );
 }

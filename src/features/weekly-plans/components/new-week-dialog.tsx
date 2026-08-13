@@ -1,15 +1,14 @@
 'use client';
 
 import { useActionState, useCallback, useState } from 'react';
-import { useFormStatus } from 'react-dom';
 import { useLocale, useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Icon } from '@/components/ui/icon';
 import { Dialog, DialogBody, DialogHeader } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { getLocaleDirection, type Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 
@@ -129,11 +128,16 @@ export function NewWeekDialog({
         dir={getLocaleDirection(activeLocale)}
         size="wide"
         dismissible={!generating}
+        className="sm:h-[min(52rem,calc(100dvh-1rem))] sm:max-h-none sm:overflow-hidden"
       >
         {/* The choices stay mounted while hidden. The server action and its
             lifecycle observer belong to that subtree; unmounting it during the
             request would strand an error behind a loading screen. */}
-        <div hidden={generating} aria-hidden={generating || undefined}>
+        <div
+          hidden={generating}
+          aria-hidden={generating || undefined}
+          className="sm:flex sm:h-full sm:min-h-0 sm:flex-col"
+        >
           <DialogHeader
             title={t('newWeekTitle')}
             description={t('newWeekSubtitle')}
@@ -141,11 +145,13 @@ export function NewWeekDialog({
             closeLabel={tCommon('close')}
           />
 
-          <DialogBody>
-            <div className="mb-5 grid gap-3 rounded-lg bg-muted px-4 py-3 sm:grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)] sm:items-center">
+          <DialogBody className="sm:min-h-0 sm:flex-1 sm:overflow-hidden">
+            <div className="grid shrink-0 gap-3 rounded-lg bg-muted px-4 py-3 sm:grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)] sm:items-center">
               <div>
-                <Label htmlFor="new-week-start">{t('weekStartLabel')}</Label>
-                <p className="mt-1 text-caption leading-relaxed text-muted-foreground">
+                <Label htmlFor="new-week-start" className="text-body-md font-medium">
+                  {t('weekStartLabel')}
+                </Label>
+                <p className="mt-1 text-body-sm leading-relaxed text-muted-foreground">
                   {t('weekStartHint')}
                 </p>
               </div>
@@ -168,17 +174,12 @@ export function NewWeekDialog({
             {/* Stacked on a phone, three across from `sm` up — the dialog is a
                 full bottom sheet there, and three columns in a phone's width is
                 three columns of nothing. */}
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
-              <GenerateDoor
+            <div className="grid gap-4 sm:min-h-0 sm:flex-1 sm:grid-cols-3 sm:items-stretch">
+              <EmptyDoor
                 clientId={clientId}
                 locale={locale}
-                mode={mode}
                 weekStartDate={weekStartDate}
-                blocked={newWeek.generateBlocked}
-                context={newWeek.context}
-                defaultInstruction={newWeek.defaultInstruction}
-                onPendingChange={setGenerating}
-                onSuccess={finishGeneration}
+                blocked={newWeek.blocked}
               />
 
               <CopyDoor
@@ -189,11 +190,16 @@ export function NewWeekDialog({
                 blocked={newWeek.blocked}
               />
 
-              <EmptyDoor
+              <GenerateDoor
                 clientId={clientId}
                 locale={locale}
+                mode={mode}
                 weekStartDate={weekStartDate}
-                blocked={newWeek.blocked}
+                blocked={newWeek.generateBlocked}
+                context={newWeek.context}
+                defaultInstruction={newWeek.defaultInstruction}
+                onPendingChange={setGenerating}
+                onSuccess={finishGeneration}
               />
             </div>
           </DialogBody>
@@ -236,7 +242,12 @@ function GenerateDoor({
   const t = useTranslations('weeklyPlans');
 
   return (
-    <Door featured title={t(`newWeekGenerate.${mode}`)} hint={t(`newWeekGenerateHint.${mode}`)}>
+    <Door
+      featured
+      icon="refresh"
+      title={t(`newWeekGenerate.${mode}`)}
+      hint={t(`newWeekGenerateHint.${mode}`)}
+    >
       <GenerateForm
         clientId={clientId}
         weekStartDate={weekStartDate}
@@ -277,57 +288,46 @@ function CopyDoor({
   const [state, formAction] = useActionState(startWeekFromPlanAction, initialNewWeekState);
 
   return (
-    <Door title={t('newWeekCopy')} hint={t('newWeekFromHint')}>
+    <Door icon="history" title={t('newWeekCopy')} hint={t('newWeekFromHint')}>
       {plans.length === 0 ? (
-        <p className="text-caption text-muted-foreground">{t('noEarlierPlans')}</p>
+        <p className="flex flex-1 items-center justify-center py-8 text-center text-body-sm text-muted-foreground">
+          {t('noEarlierPlans')}
+        </p>
       ) : (
-        <form action={formAction} className="flex min-h-0 flex-1 flex-col gap-3">
-          <input type="hidden" name="locale" value={locale} />
-          <input type="hidden" name="clientId" value={clientId} />
-          <input type="hidden" name="weekStartDate" value={weekStartDate} />
-
-          <fieldset className="no-scrollbar flex max-h-64 min-h-0 flex-1 flex-col overflow-y-auto">
-            <legend className="sr-only">{t('newWeekCopy')}</legend>
-
-            {/*
-              `RadioGroup` owns the roving focus and the arrow keys the loose
-              inputs never had, and writes the submitted `<input>` itself — so
-              this stays a plain server-action form. Its own `gap-2` is dropped:
-              the rows carry their own padding and a hover fill that has to meet
-              its neighbours, or the list reads as separated cards.
-            */}
-            <RadioGroup name="sourcePlanId" defaultValue={plans[0]?.id} required className="gap-0">
-              {plans.map((plan) => (
-                // The label is the target, not the 16px dot: a whole row is a
-                // comfortable thing to hit, and clicking it checks the radio.
-                <label
-                  key={plan.id}
-                  className="flex min-h-10 cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 hover:bg-accent"
+        <div className="flex min-h-0 flex-1 flex-col gap-3">
+          <div className="no-scrollbar min-h-0 flex-1 space-y-1 overflow-y-auto rounded-md bg-muted/35 p-1">
+            {plans.map((plan) => (
+              <form key={plan.id} action={formAction}>
+                <input type="hidden" name="locale" value={locale} />
+                <input type="hidden" name="clientId" value={clientId} />
+                <input type="hidden" name="weekStartDate" value={weekStartDate} />
+                <Button
+                  type="submit"
+                  name="sourcePlanId"
+                  value={plan.id}
+                  variant="neutral"
+                  disabled={blocked}
+                  className="h-auto min-h-14 w-full max-w-none justify-between px-3 py-2 text-start whitespace-normal"
                 >
-                  <RadioGroupItem value={plan.id} className="shrink-0" />
-
                   <span className="min-w-0 flex-1">
-                    <span className="block text-body-sm">{plan.weekStartDate}</span>
-                    <span className="block text-caption text-muted-foreground">
+                    <span className="block text-body-sm font-medium">{plan.weekStartDate}</span>
+                    <span className="mt-0.5 block text-caption font-normal text-muted-foreground">
                       {t('kcalValue', { value: plan.kcalTargetSnapshot })} ·{' '}
                       {t('planMeals', { count: plan.mealCount })}
                     </span>
                   </span>
-                </label>
-              ))}
-            </RadioGroup>
-          </fieldset>
+                  <Icon name="chevronEnd" className="size-4 text-muted-foreground" />
+                </Button>
+              </form>
+            ))}
+          </div>
 
-          {blocked ? (
-            <Unavailable messageKey="errors.profileIncomplete" />
-          ) : (
-            <DoorSubmit label={t('copyIntoWeek', { date: weekStartDate })} />
-          )}
+          {blocked && <Unavailable messageKey="errors.profileIncomplete" />}
 
           {state.status === 'error' && (
             <p className="text-caption text-destructive">{t(state.messageKey)}</p>
           )}
-        </form>
+        </div>
       )}
     </Door>
   );
@@ -349,23 +349,37 @@ function EmptyDoor({
   const [state, formAction] = useActionState(startEmptyWeekAction, initialNewWeekState);
 
   return (
-    <Door title={t('newWeekEmpty')} hint={t('newWeekEmptyHint')}>
-      <form action={formAction} className="flex flex-1 flex-col justify-end gap-3">
-        <input type="hidden" name="locale" value={locale} />
-        <input type="hidden" name="clientId" value={clientId} />
-        <input type="hidden" name="weekStartDate" value={weekStartDate} />
-
-        {blocked ? (
-          <Unavailable messageKey="errors.profileIncomplete" />
-        ) : (
-          <DoorSubmit label={t('newWeekEmptyAction')} />
+    <form action={formAction} className="min-h-0 sm:h-full">
+      <input type="hidden" name="locale" value={locale} />
+      <input type="hidden" name="clientId" value={clientId} />
+      <input type="hidden" name="weekStartDate" value={weekStartDate} />
+      <Button
+        type="submit"
+        variant="neutral"
+        disabled={blocked}
+        className="h-full min-h-56 w-full max-w-none flex-col justify-start gap-1.5 rounded-lg border-transparent px-5 pb-6 pt-4 text-center whitespace-normal shadow-none ring-1 ring-foreground/10 hover:ring-primary sm:min-h-0"
+      >
+        <span className="grid size-10 place-items-center rounded-md border border-border bg-card text-heading-lg font-normal leading-none text-foreground">
+          +
+        </span>
+        <span className="font-heading text-heading-sm font-medium text-foreground">
+          {t('newWeekEmpty')}
+        </span>
+        <span className="max-w-64 text-body-sm font-normal leading-relaxed text-muted-foreground">
+          {t('newWeekEmptyHint')}
+        </span>
+        {blocked && (
+          <span className="mt-auto text-caption font-normal text-muted-foreground">
+            {t('errors.profileIncomplete')}
+          </span>
         )}
-
         {state.status === 'error' && (
-          <p className="text-caption text-destructive">{t(state.messageKey)}</p>
+          <span className="mt-auto text-caption font-normal text-destructive">
+            {t(state.messageKey)}
+          </span>
         )}
-      </form>
-    </Door>
+      </Button>
+    </form>
   );
 }
 
@@ -378,33 +392,46 @@ function EmptyDoor({
  */
 function Door({
   featured,
+  icon,
+  iconContent,
   title,
   hint,
   children,
 }: {
   featured?: boolean;
+  icon?: React.ComponentProps<typeof Icon>['name'];
+  iconContent?: React.ReactNode;
   title: string;
   hint: string;
   children: React.ReactNode;
 }) {
   return (
-    <section
+    <Card
+      variant="default"
+      selected={featured}
       className={cn(
-        'flex min-w-0 flex-1 flex-col gap-3 rounded-lg p-4',
-        featured ? 'border-2 border-primary' : 'border border-border',
+        'min-h-0 min-w-0 gap-0 py-0 shadow-none ring-border sm:h-full',
+        featured && 'ring-primary',
       )}
     >
-      <div className="flex flex-col gap-1">
-        <h3 className="text-body-md font-semibold" dir="auto">
+      <div
+        className={cn(
+          'flex shrink-0 flex-col items-center gap-1.5 px-5 pb-3 pt-4 text-center',
+        )}
+      >
+        <span className="grid size-10 place-items-center rounded-md border border-border bg-card text-foreground">
+          {iconContent ?? (icon ? <Icon name={icon} className="size-5" /> : null)}
+        </span>
+        <h3 className="font-heading text-heading-sm font-medium" dir="auto">
           {title}
         </h3>
-        <p className="text-caption text-muted-foreground" dir="auto">
+        <p className="max-w-64 text-body-sm leading-relaxed text-muted-foreground" dir="auto">
           {hint}
         </p>
       </div>
 
-      {children}
-    </section>
+      <div className="flex min-h-0 flex-1 flex-col px-4 pb-3">{children}</div>
+    </Card>
   );
 }
 
@@ -423,15 +450,5 @@ function Unavailable({ messageKey }: { messageKey: 'errors.profileIncomplete' | 
     <p className="rounded-md bg-muted px-3 py-2 text-caption text-muted-foreground">
       {t(messageKey)}
     </p>
-  );
-}
-
-function DoorSubmit({ label }: { label: string }) {
-  const { pending } = useFormStatus();
-
-  return (
-    <Button type="submit" variant="outline" size="sm" className="w-full" disabled={pending}>
-      {label}
-    </Button>
   );
 }

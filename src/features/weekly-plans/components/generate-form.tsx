@@ -55,7 +55,7 @@ export function GenerateForm({
   const [state, formAction] = useActionState(generateWeekAction, initialGenerateState);
 
   return (
-    <form action={formAction} className="flex flex-col gap-2">
+    <form action={formAction} className="flex h-full min-h-0 flex-col gap-1.5">
       <GenerationLifecycle
         state={state}
         onPendingChange={onPendingChange}
@@ -75,7 +75,8 @@ export function GenerateForm({
       <Textarea
         id="instruction"
         name="instruction"
-        rows={3}
+        rows={2}
+        className="min-h-16 max-h-16"
         maxLength={600}
         defaultValue={defaultInstruction ?? ''}
         placeholder={t('instructionPlaceholder')}
@@ -135,7 +136,7 @@ function WeekTargets({ context }: { context: ClientContext }) {
   const tGoals = useTranslations('clients.goal');
 
   return (
-    <fieldset className="flex flex-col gap-1.5 rounded-md border border-border p-2.5">
+    <fieldset className="flex flex-col gap-1 rounded-md border border-border p-2">
       <legend className="px-1 text-label">{t('weekTargets')}</legend>
 
       <div className="grid grid-cols-2 gap-2">
@@ -147,6 +148,7 @@ function WeekTargets({ context }: { context: ClientContext }) {
             min={800}
             max={6000}
             inputMode="numeric"
+            className="h-10 px-3"
             placeholder={context.effectiveKcal === null ? '' : String(context.effectiveKcal)}
           />
         </label>
@@ -159,6 +161,7 @@ function WeekTargets({ context }: { context: ClientContext }) {
             min={20}
             max={400}
             inputMode="numeric"
+            className="h-10 px-3"
             placeholder={
               context.effectiveProteinGrams === null ? '' : String(context.effectiveProteinGrams)
             }
@@ -171,6 +174,7 @@ function WeekTargets({ context }: { context: ClientContext }) {
         <SelectField
           name="goal"
           defaultValue=""
+          size="sm"
           options={[
             { value: '', label: t('useProfile') },
             ...CLIENT_GOALS.map((goal) => ({ value: goal as string, label: tGoals(goal) })),

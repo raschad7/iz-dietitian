@@ -500,6 +500,7 @@
 
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
+  --color-placeholder: var(--placeholder);
   --color-muted-foreground: var(--muted-foreground);
   --color-muted: var(--muted);
   --color-icon-chip-foreground: var(--icon-chip-foreground);
@@ -608,6 +609,22 @@
    */
   --muted: var(--c-100);
   --muted-foreground: var(--n-600);     /* text.secondary — 6.38:1 floor */
+
+  /*
+   * Placeholder text — a hint, not an answer.
+   *
+   * It used to borrow `--muted-foreground`, which is the stop for text that
+   * *is* content: a caption, a unit, a secondary label. At n-600 an empty
+   * field read as already answered, and the intake dialog — twenty of them
+   * down one column — was twenty lines of warm olive ink saying nothing. One
+   * stop lighter takes the chroma down with it and settles the hint level
+   * with the edge it sits inside, `--input` being the same n-500: box and
+   * hint read as one piece of chrome, and the typed value is the only content
+   * in the field. 4.02:1 on white — past the 3:1 a non-essential hint needs,
+   * and well clear of the 2.2:1 n-400 would have faded to.
+   */
+  --placeholder: var(--n-500);
+
 
   /*
    * ── The icon disc ──
@@ -938,6 +955,10 @@
 
   --muted: var(--olive-900);
   --muted-foreground: var(--olive-200);
+  /* The same step down, taken in the neutral family: olive-200 is a tinted
+     light stop, so a hint drawn in it reads as green rather than as absent.
+     n-400 is the warm gray this scope already draws the field edge in. */
+  --placeholder: var(--n-400);
 
   /* The plate cannot be `--muted` here: dark's muted and card are both
      olive-900, so the disc would draw nothing at all. olive-800 is the stop
@@ -1092,6 +1113,10 @@
 
     --muted: var(--olive-900);
     --muted-foreground: var(--olive-200);
+    /* The same step down, taken in the neutral family: olive-200 is a tinted
+       light stop, so a hint drawn in it reads as green rather than as absent.
+       n-400 is the warm gray this scope already draws the field edge in. */
+    --placeholder: var(--n-400);
 
     /* See the `.dark` block — muted and card are the same stop here. */
     --icon-chip: var(--olive-800);

@@ -217,10 +217,10 @@ export function ScheduleFields({
           being columns; the controls keep their own `aria-label` either way, so
           nothing depends on the headings being on screen.
         */}
-        <div className="hidden items-center gap-3 border-b border-border bg-muted py-2 pe-4 ps-2 text-caption font-medium text-muted-foreground sm:flex">
-          <span className="flex-1">{t('day')}</span>
-          <span className="w-32">{t('opens')}</span>
-          <span className="w-32">{t('closes')}</span>
+        <div className="hidden grid-cols-[minmax(9rem,1fr)_9rem_9rem] items-center gap-4 border-b border-border bg-muted px-3 py-2 text-label text-muted-foreground sm:grid">
+          <span>{t('day')}</span>
+          <span>{t('opens')}</span>
+          <span>{t('closes')}</span>
         </div>
 
         <div className="divide-y divide-border">
@@ -235,12 +235,18 @@ export function ScheduleFields({
               <div
                 key={weekday}
                 /*
-                  A short inline-start inset, because `Switch` draws its track
-                  inside a 48px target: padding the row to 16px as well would
-                  push the day names a whole switch-width off the card's edge
-                  and out of line with every other field on the page.
+                  **A grid, and one row per day.** This was `flex flex-wrap`
+                  with a `min-w-[10rem]` day column and two `w-32` fields — at
+                  any width under about 26rem the two times wrapped under the
+                  day name, so inside a dialog the seven-row table rendered as
+                  twenty-one rows that had to be scrolled. The columns are
+                  declared once, here and on the heading above, so a row cannot
+                  reflow out of alignment with its own headings.
+
+                  It still collapses below `sm`, where the columns genuinely
+                  stop fitting and stacking is the honest answer.
                 */
-                className="flex flex-wrap items-center gap-3 py-1 pe-4 ps-2"
+                className="grid grid-cols-1 items-center gap-x-4 gap-y-2 px-3 py-1.5 sm:grid-cols-[minmax(9rem,1fr)_9rem_9rem]"
               >
                 {/*
                   The switch posts through a hidden input rather than carrying
@@ -253,7 +259,7 @@ export function ScheduleFields({
                 <input type="hidden" name={`open-${weekday}`} value={day.open} />
                 <input type="hidden" name={`close-${weekday}`} value={day.close} />
 
-                <div className="flex min-w-[10rem] flex-1 items-center gap-2">
+                <div className="flex min-w-0 items-center gap-2">
                   <Switch
                     id={switchId}
                     checked={day.isWorking}
@@ -273,8 +279,17 @@ export function ScheduleFields({
                   </span>
                 </div>
 
+                {/*
+                  `icon={false}`: the clock costs 48px of a 128px field, which
+                  left about 60px for the value and clipped `06:00 PM` to
+                  `06:00 P` in any browser rendering 12-hour time. The columns
+                  are already headed "opens" and "closes", so fourteen clocks
+                  down this table label nothing those two headings have not
+                  said once — the same reason the repeated من/إلى labels went.
+                */}
                 <TimeInput
-                  className="w-32"
+                  className="w-full"
+                  icon={false}
                   value={day.open}
                   onChange={(event) => update(weekday, 'open', { open: event.target.value })}
                   step={SCHEDULE_STEP_SECONDS}
@@ -290,7 +305,8 @@ export function ScheduleFields({
                 />
 
                 <TimeInput
-                  className="w-32"
+                  className="w-full"
+                  icon={false}
                   value={day.close}
                   onChange={(event) => update(weekday, 'close', { close: event.target.value })}
                   step={SCHEDULE_STEP_SECONDS}

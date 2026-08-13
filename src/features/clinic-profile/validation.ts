@@ -14,11 +14,12 @@ export type ValidationMessageKey =
   | 'invalidPhone'
   | 'invalidTime'
   | 'closingAfterOpening'
-  | 'workingDayRequired';
+  | 'workingDayRequired'
+  | 'invalidImage';
 export type ClinicProfileFieldErrors = Record<string, ValidationMessageKey>;
 
 export type ClinicProfileRaw = {
-  clinic: { name: unknown; phone: unknown; contactEmail: unknown; address: unknown };
+  clinic: { name: unknown; phone: unknown; contactEmail: unknown; address: unknown; logoUrl?: unknown };
   schedule: { days: Array<{ weekday: number; isWorking: boolean; openMinute: number | null; closeMinute: number | null }> };
   professional: {
     name: unknown;
@@ -62,6 +63,7 @@ function validateClinic(raw: ClinicProfileRaw['clinic']): ClinicProfileValidatio
     if (field === 'contactEmail') fieldErrors.contactEmail = 'invalidEmail';
     if (field === 'name') fieldErrors.clinicName = 'required';
     if (field === 'address') fieldErrors.address = 'required';
+    if (field === 'logoUrl') fieldErrors.clinicLogoUrl = 'invalidImage';
   }
   return { success: false, section: 'clinic', fieldErrors };
 }

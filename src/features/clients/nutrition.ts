@@ -86,3 +86,40 @@ export const DEFAULT_MEAL_SCHEDULE: MealScheduleInput = [
   { slotKey: 'snack_2', label: 'سناك عصر', timeOfDay: '17:00', kcalShare: 0.1 },
   { slotKey: 'dinner', label: 'عشاء', timeOfDay: '20:00', kcalShare: 0.2 },
 ];
+
+/**
+ * The nutrition assessment vocabularies — the closed answers on the clinic's
+ * intake questionnaire.
+ *
+ * Here rather than in `schema.ts` for the same reason `ALLERGENS` is: they are
+ * the vocabulary both the form and everything that reads a record validates
+ * against, and this module imports no database and no framework.
+ *
+ * Every one of them is stored as text and validated in code, not as a Postgres
+ * enum — extending a list stays a code change rather than a migration, which is
+ * the rule the rest of `schema.ts` already follows.
+ */
+
+export const CLIENT_MARITAL_STATUSES = ['single', 'married', 'divorced', 'widowed'] as const;
+export type ClientMaritalStatus = (typeof CLIENT_MARITAL_STATUSES)[number];
+
+export const BLOOD_TYPES = ['a_pos', 'a_neg', 'b_pos', 'b_neg', 'ab_pos', 'ab_neg', 'o_pos', 'o_neg'] as const;
+export type BloodType = (typeof BLOOD_TYPES)[number];
+
+/** Tobacco use. One answer, because the sheet asks it as one question. */
+export const SMOKING_HABITS = ['none', 'cigarettes', 'shisha', 'both'] as const;
+export type SmokingHabit = (typeof SMOKING_HABITS)[number];
+
+/**
+ * How often, on the five-point scale every food-frequency question uses.
+ *
+ * One scale for all six questions, not a number per question. The sheet asks
+ * "كم مرة يوميا" and gets "٢-٣" or "أحيانا" written in the margin; a five-point
+ * scale is what that answer actually carries, it draws as a single select, and
+ * two records taken a month apart are comparable — which free text is not.
+ *
+ * Whether a question is per day or per week is fixed per field and said in its
+ * label, so the scale itself carries no period.
+ */
+export const INTAKE_FREQUENCIES = ['none', 'rarely', 'one_two', 'three_four', 'five_plus'] as const;
+export type IntakeFrequency = (typeof INTAKE_FREQUENCIES)[number];

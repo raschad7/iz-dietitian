@@ -17,6 +17,24 @@ export async function isClinicOnboardingComplete(clinicId: string): Promise<bool
   return row?.completedAt !== null && row?.completedAt !== undefined;
 }
 
+/**
+ * Just enough of the clinic to draw the rail's head.
+ *
+ * Two columns, not `select()`. The app layout runs this on **every** staff page
+ * load, and `logo_url` holds a data URI of roughly 40 KB — worth fetching for
+ * the row that draws it, not worth dragging the opening hours and the
+ * onboarding timestamp along with it.
+ */
+export async function getClinicBrand(clinicId: string): Promise<{ logoUrl: string | null; name: string } | null> {
+  const [row] = await db
+    .select({ logoUrl: clinics.logoUrl, name: clinics.name })
+    .from(clinics)
+    .where(eq(clinics.id, clinicId))
+    .limit(1);
+
+  return row ?? null;
+}
+
 export async function getClinicProfile(clinicId: string, userId: string): Promise<ClinicProfileSnapshot | null> {
   const [clinicRows, scheduleRows, professionalRows, userRows] = await Promise.all([
     db.select().from(clinics).where(eq(clinics.id, clinicId)).limit(1),
@@ -48,6 +66,7 @@ export async function getClinicProfile(clinicId: string, userId: string): Promis
       phone: clinic.phone ?? '',
       contactEmail: clinic.contactEmail ?? '',
       address: clinic.address ?? '',
+      logoUrl: clinic.logoUrl,
     },
     schedule: toClinicSchedule(scheduleRows),
     professional: {

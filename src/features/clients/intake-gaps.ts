@@ -26,6 +26,12 @@ import { type ClientIntakeValues } from './types';
  * `dailyKcalTarget` and `proteinTargetGrams` are also absent, and that is not an
  * oversight: both fall back to a computed suggestion, so an empty column there
  * is a value the record already has rather than one it is missing.
+ *
+ * The nutrition assessment questions are absent too, and deliberately: they are
+ * eighteen answers on a sheet worked through in conversation, and folding them
+ * into an eleven-field meter would drop a filled-in record to a third complete
+ * the day the section shipped. The meter measures what planning needs; the
+ * assessment is history the dietitian reads, not an input a plan waits on.
  */
 export const INTAKE_GAP_FIELDS = [
   'heightCm',

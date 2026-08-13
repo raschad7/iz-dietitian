@@ -3,19 +3,23 @@ import { useTranslations } from 'next-intl';
 import {
   Pagination,
   PaginationContent,
-  PaginationEllipsis,
   PaginationItem,
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
-import { CLIENTS_PAGE_SIZE, type ClientListResult } from '@/features/clients/queries';
+import { type ClientListResult } from '@/features/clients/queries';
 import { type ListClientsInput } from '@/features/clients/schema';
 import { Link } from '@/i18n/navigation';
-import { pageWindow } from '@/lib/pagination';
+import { cn } from '@/lib/utils';
 
 /**
- * The register's pager: what you are looking at, and the pages you can reach.
+ * The register's pager: a step back, the page you are on, a step forward.
+ *
+ * A stepper rather than a row of page numbers — see the note on the numeral
+ * below for why the register walks where the dish catalogue jumps. That is the
+ * one structural difference from `DishPagination`, which is otherwise this same
+ * component over a different list and still draws the full `pageWindow`.
  *
  * Built on `@/components/ui/pagination` — the shadcn item, composed the way
  * that file's header describes: every link is a typed `<Link>` handed in
@@ -28,8 +32,8 @@ import { pageWindow } from '@/lib/pagination';
  * true, and which also meant a clinic under twenty-one clients never saw a
  * pager at all and had no way to tell whether the register had one. A control
  * that vanishes is indistinguishable from a control that is broken. On a single
- * page the steps are inert and the lone `1` is marked current, which says "this
- * is all of them" rather more plainly than an empty space does.
+ * page both steps are inert and the numeral reads `1`, which says "this is all
+ * of them" rather more plainly than an empty space does.
  *
  * The empty register is still the exception: `ClientTable` draws its own empty
  * card there, and a pager under it would be a control for moving through
@@ -39,11 +43,18 @@ export function ClientPagination({
   result,
   input,
   basePath = '/app/clients',
+  className,
 }: {
   result: ClientListResult;
   input: ListClientsInput;
   /** The list this pager belongs to — the register, or the archive. */
   basePath?: '/app/clients' | '/app/clients/archived';
+  /**
+   * The page positions its own pager — see the register, which pushes it to the
+   * foot of the screen with `mt-auto` so it does not ride up under a short last
+   * page.
+   */
+  className?: string;
 }) {
   const t = useTranslations('clients');
 
@@ -64,26 +75,33 @@ export function ClientPagination({
     },
   });
 
-  const from = (result.page - 1) * CLIENTS_PAGE_SIZE + 1;
-  const to = from + result.items.length - 1;
-
   const atStart = result.page <= 1;
   const atEnd = result.page >= result.pageCount;
 
   return (
     /*
-      The range and the controls are the two ends of one bar. They wrap onto
-      separate lines below `sm` rather than shrinking, and the pager gives up
-      its `mx-auto` here — it is the inline-end of a strip on this screen, not a
-      block centred under a list.
-    */
-    <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-3">
-      {/* `tabular` so the range does not jitter as the digits change under it. */}
-      <p className="tabular text-body-sm text-muted-foreground">
-        {t('pagination.showing', { from, to, total: result.total })}
-      </p>
+      The controls alone. This bar used to carry "Showing 1–10 of 17" at its
+      inline-start, which is the count the heading above already gives — the
+      register's subtitle says "17 clients" — restated with arithmetic nobody
+      asked for. What it did add was a *second* place the current page was
+      stated, in words, which is how a pager ends up needing a sentence to
+      explain what its own highlighted numeral should be saying. The numeral
+      says it now (see `PaginationLink`), and it is the only thing that does.
 
-      <Pagination className="mx-0 w-auto justify-end">
+      Centred. It sat at the inline-end while it shared the bar with the
+      "showing" line — two things at the two ends of one strip. It is the only
+      thing on the bar now, and three controls totalling a couple of hundred
+      pixels pushed against one edge of a full-width register read as something
+      left over rather than as the way through it. Centred, it is the foot of
+      the list.
+
+      `justify-center` on the row and the pager's own `mx-auto` restored, so the
+      centring holds whether or not the page hands this a `className`.
+    */
+    <div
+      className={cn('flex shrink-0 flex-wrap items-center justify-center gap-x-4 gap-y-3', className)}
+    >
+      <Pagination className="w-auto">
         <PaginationContent>
           <PaginationItem>
             {/*
@@ -99,30 +117,40 @@ export function ClientPagination({
             />
           </PaginationItem>
 
-          {pageWindow(result.page, result.pageCount).map((token, index) =>
-            token === 'gap' ? (
-              // Keyed by index because a gap has no identity of its own — and
-              // there are only ever two, at fixed positions.
-              <PaginationItem key={`gap-${index}`}>
-                <PaginationEllipsis />
-              </PaginationItem>
-            ) : (
-              <PaginationItem key={token}>
-                <PaginationLink
-                  isActive={token === result.page}
-                  aria-label={t('pagination.page', { page: token })}
-                  /*
-                    The current page goes nowhere: `aria-current` on a link that
-                    reloads the page you are on is a step to nowhere with a
-                    focus stop attached.
-                  */
-                  render={token === result.page ? <span /> : <Link href={query(token)} />}
-                >
-                  {token}
-                </PaginationLink>
-              </PaginationItem>
-            ),
-          )}
+          {/*
+            One numeral: where you are, and nothing else.
+
+            It was a row of reachable page numbers — first, three around the
+            reader, last, with `…` for what was elided. That is the right
+            control for a catalogue you jump around in, and the wrong one for a
+            register you walk: the numbers were five targets that all looked
+            alike, and the only one that mattered was the one you were standing
+            on.
+
+            So the only page drawn is the current one, and it is never a link —
+            it goes nowhere by definition, and `aria-current` on a link that
+            reloads the page you are on is a step to nowhere with a focus stop
+            attached. Previous and Next are the whole of the movement, and the
+            numeral between them is what tells you they worked.
+
+            The count of pages goes with the numbers, which does cost something:
+            you can no longer see that there are four pages without stepping to
+            the end of them. It survives as the accessible name — `position` is
+            "Page 1 of 4" — so the fact is still there for anyone listening to
+            the control rather than looking at it.
+          */}
+          <PaginationItem>
+            <PaginationLink
+              isActive
+              aria-label={t('pagination.position', {
+                page: result.page,
+                pageCount: result.pageCount,
+              })}
+              render={<span />}
+            >
+              {result.page}
+            </PaginationLink>
+          </PaginationItem>
 
           <PaginationItem>
             <PaginationNext

@@ -2,9 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
 import { WhatsappSettings } from '@/features/whatsapp/components/whatsapp-settings';
-import { SettingsPageHeader } from '@/features/settings/components/settings-page-header';
 import { readConnection } from '@/features/whatsapp/connection';
-import { listRecentMessages } from '@/features/whatsapp/queries';
 import { resolveLocale } from '@/i18n/params';
 import { requireStaffClinic } from '@/lib/session';
 
@@ -27,17 +25,7 @@ export async function generateMetadata({ params }: WhatsappPageProps): Promise<M
 export default async function WhatsappSettingsPage({ params }: WhatsappPageProps) {
   const locale = await resolveLocale(params);
   const { clinicId } = await requireStaffClinic(locale);
+  const connection = await readConnection(clinicId);
 
-  const [connection, messages, t] = await Promise.all([
-    readConnection(clinicId),
-    listRecentMessages(clinicId),
-    getTranslations('settingsWorkspace.whatsapp'),
-  ]);
-
-  return (
-    <div className="space-y-5">
-      <SettingsPageHeader title={t('title')} description={t('description')} />
-      <WhatsappSettings locale={locale} connection={connection} messages={messages} />
-    </div>
-  );
+  return <WhatsappSettings locale={locale} connection={connection} />;
 }
