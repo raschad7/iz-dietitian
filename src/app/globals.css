@@ -119,7 +119,7 @@
    */
   --flame-100: #FBEBD9;
   --flame-300: #F2A03D;
-  --flame-500: #E4761B;
+  --flame-500: oklch(0.852 0.199 91.936);
   --flame-700: #93490D;
 
   /*
@@ -129,7 +129,7 @@
    * decorative fill, not a step in a scale, and no other surface may reach
    * for it. See `.portal-home-glow` in `@layer components`.
    */
-  --portal-home-glow: #A5D66C;
+  --portal-home-glow: #72AE34;
 
   /*
    * ── Home hero progress ring ──
@@ -144,29 +144,22 @@
    * (an ambient blur vs. a solid, shadowed disc) and the glow's own comment
    * reserves it for that one use.
    */
-  --portal-progress-fill: #A5D66C;
-  --portal-progress-track: #DBFDB4;
-  --portal-progress-track-soft: rgba(219, 253, 180, .34);
+  --portal-progress-fill: #72AE34;
+  /* The dashed arc drawn to the completed fraction — see `TodayRing`. */
+  --portal-progress-track: #76CB26;
+  /* The full background track behind it, standing for what's not yet complete. */
+  --portal-progress-track-soft: rgba(92, 150, 38, .16);
   --portal-progress-figure: #F3FFE5;
   --portal-progress-caption: #DBFDB4;
 
   /*
    * ── Meal check tick ──
-   * `MealCheckMark`'s filled circle, on a design reference asking for the
-   * same bright green as the home hero above rather than `--primary`'s
-   * olive-500. A third pinned duplicate of that hex, not a reach for
-   * `--portal-progress-fill` — that token's own comment reserves it for the
-   * ring and the glow, and this is a different surface (a small mark on a
-   * meal card, not the home screen's decorative wash).
-   *
-   * ⚠ Lower contrast than `--primary` was. The white tick this fill is cut
-   * out around (see `MealCheckMark`) measures ~1.7:1 against it, under the
-   * 3:1 WCAG asks of a graphical mark — `--primary` cleared 3.47:1 here. Kept
-   * anyway because the mark is checked-state-only, sits inside an otherwise
-   * unambiguous checkbox row, and the reference explicitly asked for this
-   * exact green; flag before reusing this token anywhere contrast is load-bearing.
+   * `MealCheckMark`'s filled circle, pinned to the same hex as the home hero
+   * and the home glow above rather than `--primary`'s olive-500 — it happens
+   * to equal `--olive-600` today, but stays its own pinned literal rather
+   * than a reach for that token, matching the other two above it.
    */
-  --meal-check-fill: #A5D66C;
+  --meal-check-fill: #72AE34;
 
   /*
    * ── Leading, per script ──
@@ -576,16 +569,15 @@
   --overlay: rgba(22, 34, 13, .45);     /* scrim — olive-950, never black */
 
   /*
-   * action.primary.bg. White on olive-500 is 3.47:1 — it clears the 3:1 floor
-   * a graphical mark needs but is under AA's 4.5:1 for a 16px label, and the
-   * hover fill (olive-600, 5.46:1) is the state that passes. This is a
-   * deliberate brand choice; don't "fix" it by darkening the fill back to
-   * olive-600 without raising it first. `.dark` pairs this same fill with an
-   * olive-950 label instead, which is the accessible way to carry olive-500.
+   * action.primary.bg — pinned to the brand's own #72AE34 rather than a step
+   * of the olive ramp. White does not hold on it (~2.68:1), so
+   * `--primary-foreground` is n-900 instead, the same "dark label on a light
+   * fill" pairing `.dark` already used for olive-500 (~6.42:1 here,
+   * comfortably over AA's 4.5:1).
    */
-  --primary: var(--olive-500);
+  --primary: #72AE34;
   --primary-hover: var(--olive-600);
-  --primary-foreground: var(--n-0);
+  --primary-foreground: var(--n-900);
   /*
    * The brand's quiet fill, mirroring `--destructive-subtle`. For a surface
    * that is *about* to be primary — the agenda's next session at rest, before
@@ -793,13 +785,11 @@
 
   /*
    * ── Meal shell, checked ──
-   * Today's card once its own `MealCheck` toggle is on — a darker border and
-   * a slightly deeper fill than `--meal-bg`'s resting tone, so a meal marked
-   * eaten reads as settled without a second colour entering the list. Mixed
-   * relative to `--meal-bg`/`--meal-fg` rather than pinned to a literal, for
-   * the same reason `--meal-bg` itself is not remapped for dark mode.
+   * Today's card once its own `MealCheck` toggle is on — a flat #EFEFEF fill
+   * and a darker border, so a meal marked eaten reads as settled without a
+   * second colour entering the list.
    */
-  --meal-bg-checked: color-mix(in srgb, var(--meal-bg) 92%, var(--meal-fg) 8%);
+  --meal-bg-checked: #EFEFEF;
   --meal-border-checked: color-mix(in srgb, var(--meal-fg) 30%, transparent);
 
   /* Data visualisation comfort band */
@@ -941,7 +931,7 @@
   --popover-foreground: var(--n-25);
   --overlay: rgba(10, 16, 6, .6);
 
-  --primary: var(--olive-500);
+  --primary: #72AE34;
   --primary-hover: var(--olive-400);
   --primary-foreground: var(--olive-950);
   --primary-subtle: var(--olive-800);
@@ -1097,8 +1087,8 @@
     --popover: var(--olive-900);
     --popover-foreground: var(--n-25);
 
-    --primary: var(--olive-600);
-    --primary-foreground: var(--n-25);
+    --primary: #72AE34;
+    --primary-foreground: var(--olive-950);
 
     --secondary: var(--olive-800);
     --secondary-foreground: var(--n-25);

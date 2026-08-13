@@ -4,6 +4,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 
 import { PortalMealCard } from './portal-meal-card';
 import { PlanDayStrip } from './plan-day-strip';
+import { roundForDisplay } from '../nutrition';
 import type { Board } from '../queries';
 import { dayStanding, type PlanDaySummary } from '../week';
 
@@ -78,10 +79,15 @@ export function PortalPlan({
   today: string;
 }) {
   const t = useTranslations('portal.plan');
+  // The card's own commitment ring no longer states the day's planned total
+  // — see `home-today.tsx` — so it reads here instead, beside the heading
+  // that already names this block, rather than on its own restated row.
+  const tToday = useTranslations('portal.progress.today');
 
   const day = board.days.find((candidate) => candidate.dayOfWeek === selectedDay);
 
   const meals = day?.meals ?? [];
+  const totalKcal = day ? roundForDisplay('kcal', day.totals.kcal.value) : 0;
 
   /*
     Which of the three days this is, and therefore what a meal card may offer.
@@ -123,7 +129,15 @@ export function PortalPlan({
       page's own white column, not on the home glow that heading answers to.
     */
     <section className="flex flex-col gap-4 text-start">
-      <p className="text-sm font-medium text-muted-foreground">{t('todayMealsHeading')}</p>
+      <div className="flex items-center justify-between gap-4">
+        <p className="text-sm font-medium text-muted-foreground">{t('todayMealsHeading')}</p>
+
+        {meals.length > 0 ? (
+          <span className="text-sm font-medium text-muted-foreground tabular-nums">
+            {tToday('energyTodayValue', { value: totalKcal })}
+          </span>
+        ) : null}
+      </div>
 
       {meals.length === 0 ? (
         <EmptyState icon="dish" title={t('emptyDayTitle')} description={t('emptyDayHint')} />

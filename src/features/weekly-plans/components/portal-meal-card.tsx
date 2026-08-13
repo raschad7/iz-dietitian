@@ -115,8 +115,8 @@ export function PortalMealCard({
     <Card
       className={cn(
     'gap-0 p-1.5 shadow-none ring-0 transition-colors duration-(--duration-label)',
-    'group-open:bg-[#F0F0F0] group-open:ring-1 group-open:ring-meal-border-checked',
-    'has-[[aria-checked=true]]:bg-[#F0F0F0] has-[[aria-checked=true]]:ring-1 has-[[aria-checked=true]]:ring-meal-border-checked',
+    'group-open:bg-meal-bg-checked group-open:ring-1 group-open:ring-meal-border-checked',
+    'has-[[aria-checked=true]]:bg-meal-bg-checked has-[[aria-checked=true]]:ring-1 has-[[aria-checked=true]]:ring-meal-border-checked',
     MEAL_SHELL, 
   )} 
     >
@@ -172,8 +172,8 @@ export function PortalMealCard({
               bakes its own leading and weight, so it replaces
               `leading-snug font-semibold` rather than joining them.
             */}
-            <span className="block font-heading text-heading-sm">{meal.label}</span>
-            <span className="block truncate text-sm">
+            <span className="block font-heading text-heading-sm text-meal-fg/70">{meal.label}</span>
+            <span className="block truncate text-sm text-meal-fg/70">
               {/* `dir="ltr"`: a clock time reads the same way in both languages. */}
               <span dir="ltr" className="tabular-nums">
                 {meal.timeOfDay}
@@ -186,10 +186,12 @@ export function PortalMealCard({
             `chevronDown` is not in `DIRECTIONAL`, and correctly so: it points
             down in both scripts, and mirroring it would be mirroring nothing.
             The rotation rides the system's sweep tokens rather than a literal.
+            `opacity-70`, along with the label and the meal icon beside it —
+            the row's chrome sits a little quieter than the tick that leads it.
           */}
           <Icon
             name="chevronDown"
-            className="size-4 shrink-0 transition-transform duration-(--duration-sweep) ease-(--ease-sweep) group-open:rotate-180"
+            className="size-4 shrink-0 opacity-70 transition-transform duration-(--duration-sweep) ease-(--ease-sweep) group-open:rotate-180"
           />
 
           {/*
@@ -198,9 +200,9 @@ export function PortalMealCard({
             inherits `text-meal-fg`, the measured pair for this surface, and sits
             beside the chevron because the two together are now the row's quiet end
             — everything that identifies the meal is at the start, everything that
-            is chrome is here.
+            is chrome is here. `opacity-70` to match the label and chevron beside it.
           */}
-          <Icon name={mealIcon} className="size-5 shrink-0" />
+          <Icon name={mealIcon} className="size-5 shrink-0 opacity-70" />
         </summary>
 
         {/*

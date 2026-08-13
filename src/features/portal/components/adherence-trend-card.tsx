@@ -2,7 +2,7 @@ import { useLocale, useTranslations } from 'next-intl';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { type MonthlyTrendWeek } from '@/features/portal/adherence';
-import { type Locale } from '@/i18n/routing';
+import { getLocaleDirection, type Locale } from '@/i18n/routing';
 import { formatNumber } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
@@ -19,6 +19,14 @@ export function AdherenceTrendCard({ weeks }: { weeks: MonthlyTrendWeek[] }) {
   const locale = useLocale() as Locale;
   const t = useTranslations('portal.progress.trend');
 
+  const rtl = getLocaleDirection(locale) === 'rtl';
+  // `weeks` arrives oldest first. `dir="ltr"` below pins the row to a fixed
+  // physical order regardless of the page's own direction, so the bars
+  // cannot silently flip with it; the array itself is reversed for Arabic
+  // instead, which is what puts the oldest week — "the first week" — at the
+  // physical right, where a right-to-left reader starts.
+  const orderedWeeks = rtl ? [...weeks].reverse() : weeks;
+
   return (
     <Card>
       <CardHeader>
@@ -27,8 +35,8 @@ export function AdherenceTrendCard({ weeks }: { weeks: MonthlyTrendWeek[] }) {
       </CardHeader>
 
       <CardContent>
-        <div className="flex items-end justify-between gap-3">
-          {weeks.map((week) => {
+        <div dir="ltr" className="flex items-end justify-between gap-3">
+          {orderedWeeks.map((week) => {
             const percent = week.averageFraction ?? 0;
             const heightPercent = Math.max(percent * 100, week.averageFraction === null ? 0 : 6);
 
