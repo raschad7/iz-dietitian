@@ -566,7 +566,25 @@
       "permanentInstructions": "Standing instructions",
       "slotLabel": "Meal name",
       "slotTime": "Time",
-      "slotShare": "Share %"
+      "slotShare": "Share %",
+      "maritalStatus": "Marital status",
+      "childrenCount": "Children",
+      "bloodType": "Blood type",
+      "occupation": "Occupation",
+      "visitReason": "Reason for visit",
+      "dietHistory": "Previous diets",
+      "drugAllergies": "Drug allergies",
+      "familyHistory": "Family history",
+      "activityNotes": "Physical activity",
+      "activityBarriers": "What limits activity",
+      "sleepHours": "Hours of sleep",
+      "smoking": "Smoking / shisha",
+      "caffeineFrequency": "Caffeine and sweetened drinks (daily)",
+      "fastFoodFrequency": "Fast food (weekly)",
+      "produceFrequency": "Vegetables and fruit (daily)",
+      "dairyFrequency": "Milk and dairy (daily)",
+      "proteinFoodFrequency": "Meat, chicken and fish (weekly)",
+      "sweetsFrequency": "Sweets and sugar (weekly)"
     },
     "status": {
       "active": "Active",
@@ -576,6 +594,35 @@
     "sex": {
       "female": "Female",
       "male": "Male"
+    },
+    "maritalStatus": {
+      "single": "Single",
+      "married": "Married",
+      "divorced": "Divorced",
+      "widowed": "Widowed"
+    },
+    "bloodType": {
+      "a_pos": "A+",
+      "a_neg": "A−",
+      "b_pos": "B+",
+      "b_neg": "B−",
+      "ab_pos": "AB+",
+      "ab_neg": "AB−",
+      "o_pos": "O+",
+      "o_neg": "O−"
+    },
+    "smoking": {
+      "none": "Non-smoker",
+      "cigarettes": "Cigarettes",
+      "shisha": "Shisha",
+      "both": "Cigarettes and shisha"
+    },
+    "frequency": {
+      "none": "Never",
+      "rarely": "Rarely",
+      "one_two": "1–2 times",
+      "three_four": "3–4 times",
+      "five_plus": "5 or more"
     },
     "goal": {
       "weight_loss": "Weight loss",
@@ -611,9 +658,7 @@
       "previous": "Previous",
       "next": "Next",
       "position": "Page {page, number, integer} of {pageCount, number, integer}",
-      "label": "Register pages",
-      "showing": "Showing {from, number, integer}–{to, number, integer} of {total, number, integer}",
-      "page": "Page {page, number, integer}"
+      "label": "Register pages"
     },
     "portal": {
       "title": "Account",
@@ -658,6 +703,8 @@
       "start": "Start now",
       "sections": {
         "measurements": "Measurements",
+        "background": "Background",
+        "habits": "Lifestyle and habits",
         "allergies": "Allergies",
         "clinical": "Clinical notes",
         "planning": "What the plan follows",
@@ -674,6 +721,7 @@
       "missingFields": "To generate, add: {fields}",
       "kcalValue": "{value} kcal",
       "gramsValue": "{value} g",
+      "hoursValue": "{value} h",
       "override": "Manual",
       "shareTotal": "Shares total {value}%",
       "addSlot": "Add a meal",
@@ -691,7 +739,16 @@
         "medicalNotes": "What the clinic should remember about this client",
         "permanentInstructions": "No dairy after 6pm",
         "preferences": "Grilled chicken",
-        "dislikes": "Liver"
+        "dislikes": "Liver",
+        "occupation": "Teacher",
+        "childrenCount": "2",
+        "sleepHours": "7",
+        "visitReason": "Weight loss before a set date",
+        "dietHistory": "Keto for two months, a year ago",
+        "drugAllergies": "Penicillin",
+        "familyHistory": "Diabetes on the father's side, obesity in the family",
+        "activityNotes": "Walks 40 minutes most evenings, desk job",
+        "activityBarriers": "Knee pain"
       },
       "overrideDivider": "Manual figures",
       "unsetCount": "{count} fields not filled in",
@@ -718,7 +775,11 @@
       "gapsPrompt": "{count, plural, =0 {Everything is filled in} one {1 field has no data yet} other {# fields have no data yet}}",
       "allergyLine": "Allergies",
       "privateBadge": "Clinic only",
-      "notesDivider": "Notes"
+      "notesDivider": "Notes",
+      "backgroundHint": "General details, recorded once at the first visit.",
+      "habitsHint": "Daily and weekly habits — pick the closest answer; detail goes in the notes.",
+      "frequencyLegend": "How often",
+      "assessmentEmpty": "The nutrition assessment has not been recorded yet."
     },
     "allergens": {
       "nuts": "Nuts",

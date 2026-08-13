@@ -36,6 +36,15 @@ export type StaffAppointmentRequest = {
   id: string;
   clientId: string;
   clientName: string;
+  /**
+   * The client's position in the clinic — what their colour is built from.
+   *
+   * Carried on the request so a queue can draw the same disc the register, the
+   * agenda and every appointment block draw that person in. See `clientSeq` in
+   * `src/features/clients/seq.ts` for why a position and not a hash, and
+   * `patientHue` for the wheel it maps onto.
+   */
+  clientSeq: number;
   kind: RequestKind;
   status: RequestStatus;
   /** What the client asked for. Null for a cancellation, which proposes no time. */
@@ -59,6 +68,15 @@ export type StaffClientRequest = {
   id: string;
   clientId: string;
   clientName: string;
+  /**
+   * The client's position in the clinic — what their colour is built from.
+   *
+   * Carried on the request so a queue can draw the same disc the register, the
+   * agenda and every appointment block draw that person in. See `clientSeq` in
+   * `src/features/clients/seq.ts` for why a position and not a hash, and
+   * `patientHue` for the wheel it maps onto.
+   */
+  clientSeq: number;
   kind: ClientRequestKind;
   topic: ClientRequestTopic | null;
   message: string | null;

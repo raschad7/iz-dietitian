@@ -72,7 +72,10 @@ export default async function ArchivedClientsPage({ params, searchParams }: Arch
   const [result, t] = await Promise.all([listClients(clinicId, input), getTranslations('clients')]);
 
   return (
-    <div className="flex flex-col gap-6 text-start md:h-full md:min-h-0">
+    // Not a scroll frame, and `min-h-full` so the pager below sits at the foot
+    // of the screen rather than riding up under a short last page — both for the
+    // reasons the active register spells out.
+    <div className="flex min-h-full flex-col gap-6 text-start">
       <div className="shrink-0 space-y-1">
         {/*
           The way back, above the title rather than beside it: this page is a
@@ -107,7 +110,12 @@ export default async function ArchivedClientsPage({ params, searchParams }: Arch
         archived
       />
 
-      <ClientPagination result={result} input={input} basePath="/app/clients/archived" />
+      <ClientPagination
+        result={result}
+        input={input}
+        basePath="/app/clients/archived"
+        className="mt-auto"
+      />
     </div>
   );
 }

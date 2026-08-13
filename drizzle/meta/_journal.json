@@ -169,6 +169,13 @@
       "when": 1786532008693,
       "tag": "0023_mushy_magneto",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1786606458782,
+      "tag": "0024_public_blizzard",
+      "breakpoints": true
     }
   ]
 }

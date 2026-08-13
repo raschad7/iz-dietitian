@@ -16,8 +16,10 @@ import { type IntakeGapField } from './intake-gaps';
  */
 export const INTAKE_SECTIONS = [
   'measurements',
+  'background',
   'allergies',
   'clinical',
+  'habits',
   'planning',
   'schedule',
 ] as const;
@@ -27,8 +29,33 @@ export type IntakeSectionId = (typeof INTAKE_SECTIONS)[number];
 /** Which fields belong to which section, so a server error can open the right one. */
 export const FIELDS_BY_SECTION: Record<IntakeSectionId, readonly string[]> = {
   measurements: ['heightCm', 'weightKg', 'goal', 'activityLevel'],
-  allergies: ['allergenTags', 'allergies'],
+  background: [
+    'maritalStatus',
+    'childrenCount',
+    'bloodType',
+    'occupation',
+    'visitReason',
+    'dietHistory',
+    'familyHistory',
+  ],
+  /*
+   * Drug allergies sit with the food ones rather than in `background`: someone
+   * looking for what a client reacts to should find every answer in one panel.
+   */
+  allergies: ['allergenTags', 'allergies', 'drugAllergies'],
   clinical: ['conditions', 'medications', 'medicalNotes'],
+  habits: [
+    'activityNotes',
+    'activityBarriers',
+    'sleepHours',
+    'smoking',
+    'caffeineFrequency',
+    'fastFoodFrequency',
+    'produceFrequency',
+    'dairyFrequency',
+    'proteinFoodFrequency',
+    'sweetsFrequency',
+  ],
   planning: [
     'permanentInstructions',
     'preferences',

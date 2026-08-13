@@ -1,6 +1,7 @@
 import { aliasedTable, and, asc, desc, eq, inArray } from 'drizzle-orm';
 
 import { db } from '@/db';
+import { clientSeq } from '@/features/clients/seq';
 import { appointmentRequests, appointments, clientRequests, clients } from '@/db/schema';
 
 import {
@@ -42,6 +43,8 @@ const APPOINTMENT_REQUEST_COLUMNS = {
   id: appointmentRequests.id,
   clientId: appointmentRequests.clientId,
   clientName: clients.fullName,
+  // The client's colour, as the position it is built from — see clientSeq.
+  clientSeq,
   kind: appointmentRequests.kind,
   status: appointmentRequests.status,
   preferredDate: appointmentRequests.preferredDate,
@@ -67,6 +70,7 @@ type AppointmentRequestRow = {
   id: string;
   clientId: string;
   clientName: string;
+  clientSeq: number;
   kind: string;
   status: string;
   preferredDate: string | null;
@@ -90,6 +94,7 @@ function toStaffAppointmentRequest(row: AppointmentRequestRow): StaffAppointment
     id: row.id,
     clientId: row.clientId,
     clientName: row.clientName,
+    clientSeq: row.clientSeq,
     kind: row.kind as RequestKind,
     status: row.status as RequestStatus,
     preferredDate: row.preferredDate,
@@ -199,6 +204,7 @@ export async function listPendingClientRequests(clinicId: string): Promise<Staff
       id: clientRequests.id,
       clientId: clientRequests.clientId,
       clientName: clients.fullName,
+      clientSeq,
       kind: clientRequests.kind,
       topic: clientRequests.topic,
       message: clientRequests.message,
