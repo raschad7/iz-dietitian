@@ -100,6 +100,12 @@ const ICONS = {
   edit: 'pen-2-linear',
   copy: 'copy-linear',
   refresh: 'refresh-linear',
+  /**
+   * Choosing a file to send, not a download. The tray-with-rising-arrow reads
+   * as "put something in" in both scripts — the arrow points block-start, which
+   * has no direction to mirror, so it stays out of `DIRECTIONAL`.
+   */
+  upload: 'upload-linear',
   archive: 'archive-linear',
   restore: 'restart-linear',
   filter: 'filter-linear',
