@@ -114,7 +114,7 @@ export function ClinicSection({
       */}
       <Card>
         <CardContent className="space-y-3">
-          <FactLabel icon="personOutline" label={t('field.clinicName')} />
+          <FactLabel icon="clinicNameOutline" label={t('field.clinicName')} />
 
           {/*
             `text-base` — the same step as the practitioner's name in the tile

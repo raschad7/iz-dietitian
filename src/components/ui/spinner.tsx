@@ -2,7 +2,8 @@ import { Icon } from "@/components/ui/icon"
 import { cn } from "@/lib/utils"
 
 /**
- * The loading glyph, on this project's Solar set rather than lucide's.
+ * The loading glyph, reached through `Icon` so it is the same `refresh` mark
+ * the rest of the app spins.
  *
  * `name` is omitted from the props: an `<svg>` has a `name` attribute of its
  * own, so a caller spreading svg props could hand this component a string where

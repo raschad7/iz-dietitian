@@ -1,7 +1,11 @@
 import { addDays } from '@/features/booking/date';
 import { getClinicHours } from '@/features/booking/queries';
 import { type ClinicHours } from '@/features/booking/validation';
-import { getPublishedBoard, type Board } from '@/features/weekly-plans/queries';
+import {
+  getPublishedBoard,
+  getPublishedPlanWeekStart,
+  type Board,
+} from '@/features/weekly-plans/queries';
 import { planWeekDays, type PlanDaySummary } from '@/features/weekly-plans/week';
 
 import {
@@ -22,6 +26,7 @@ import { buildNotifications, type PortalNotification } from './notifications';
 import {
   getAssignedPractitioner,
   getOpenClientRequest,
+  getPortalAllergens,
   getPortalAppointment,
   getPortalClinic,
   listClinicBookings,
@@ -126,28 +131,48 @@ export type NotificationsPageData = {
 };
 
 /**
- * The standalone notifications screen: every item derived from data another
- * screen already owns (an appointment, this week's plan, today's adherence, a
- * request the dietitian answered) — see `./notifications.ts` for why there is
- * no notifications table behind this.
+ * The feed itself: every item derived from data another screen already owns (an
+ * appointment, this week's plan, today's adherence, a request the dietitian
+ * answered) — see `./notifications.ts` for why there is no notifications table
+ * behind this.
+ *
+ * **Lifted out of `loadNotificationsPage` because the bell counts it too.** The
+ * portal header's badge is the number of unread items in exactly this list, and
+ * a badge computed from a different query than the screen it opens is a badge
+ * that will eventually disagree with it. One loader, two readers.
+ *
+ * That is also why the plan is read through `getPublishedPlanWeekStart` rather
+ * than `loadCurrentPlan`. `buildNotifications` wants one field off the plan —
+ * the week it covers — and `loadCurrentPlan` assembles a whole costed board to
+ * hand it over: every meal, every dish, for a boolean. Tolerable on one screen;
+ * not on a header that renders on all five tabs. The lighter read answers the
+ * same question by the same rule, and the note on it says so.
+ *
+ * Four reads, all parallel, none of them large. This runs in
+ * `(tabs)/layout.tsx` on every portal page.
  */
-export async function loadNotificationsPage(context: PortalContext): Promise<NotificationsPageData> {
-  const [appointmentRows, requests, plan, todayAdherence] = await Promise.all([
+export async function loadPortalNotifications(
+  context: PortalContext,
+): Promise<PortalNotification[]> {
+  const [appointmentRows, requests, currentWeekPlanStartDate, todayAdherence] = await Promise.all([
     listPortalAppointments(context.id),
     listPortalRequests(context.id),
-    loadCurrentPlan(context),
+    getPublishedPlanWeekStart(context.id, context.now.date),
     listPlanAdherence(context.id, context.now.date, context.now.date),
   ]);
 
-  return {
-    items: buildNotifications({
-      now: context.now,
-      todayAdherenceLevel: todayAdherence[0]?.level ?? null,
-      appointments: appointmentRows,
-      requests,
-      currentWeekPlanStartDate: plan?.weekStartDate ?? null,
-    }),
-  };
+  return buildNotifications({
+    now: context.now,
+    todayAdherenceLevel: todayAdherence[0]?.level ?? null,
+    appointments: appointmentRows,
+    requests,
+    currentWeekPlanStartDate,
+  });
+}
+
+/** The standalone notifications screen. The feed is `loadPortalNotifications`. */
+export async function loadNotificationsPage(context: PortalContext): Promise<NotificationsPageData> {
+  return { items: await loadPortalNotifications(context) };
 }
 
 /**
@@ -306,13 +331,14 @@ export function pickPlanDay(
  * what stops a later change quietly making a clinic-owned field look editable.
  */
 export async function loadProfilePage(context: PortalContext): Promise<ProfilePageData> {
-  const [clinic, practitioner, openUpdateRequest] = await Promise.all([
+  const [clinic, practitioner, openUpdateRequest, allergens] = await Promise.all([
     getPortalClinic(context.clinicId),
     getAssignedPractitioner(context.clinicId, context.assignedDietitianId),
     getOpenClientRequest(context.id, 'data_update'),
+    getPortalAllergens(context.id),
   ]);
 
-  return { profile: context.profile, clinic, practitioner, openUpdateRequest };
+  return { profile: context.profile, clinic, practitioner, openUpdateRequest, allergens };
 }
 
 /**

@@ -1,5 +1,4 @@
 import {
-  Activity,
   Apple,
   Archive,
   ArchiveRestore,
@@ -13,6 +12,8 @@ import {
   CalendarCheck,
   CalendarPlus,
   CalendarRange,
+  CalendarSync,
+  CalendarX,
   ChartLine,
   Check,
   ChefHat,
@@ -35,8 +36,10 @@ import {
   Eraser,
   Eye,
   EyeOff,
+  FileLock,
   FileText,
   Flame,
+  Footprints,
   GripVertical,
   Heart,
   HelpCircle,
@@ -195,6 +198,16 @@ export const APP_ICONS = {
   clock: Clock,
   addClient: UserPlus,
   bookAppointment: CalendarPlus,
+  /*
+    The portal's request rows, which read as a set: asked for a slot, asked to
+    move one, asked to drop one. They were `refresh` and `close` — the generic
+    reload and dismiss glyphs — beside `bookAppointment`'s calendar, so one
+    third of the set said "appointment" and the rest said nothing in
+    particular. Their own names, rather than re-pointing `refresh` and `close`,
+    which the whole app draws with (`Spinner` is `refresh`).
+  */
+  rescheduleRequest: CalendarSync,
+  cancelRequest: CalendarX,
   trend: TrendingUp,
   driftUp: TrendingUp,
   driftDown: TrendingDown,
@@ -233,7 +246,12 @@ export const APP_ICONS = {
   chatOutline: MessageSquare,
   goalOutline: Target,
   heightOutline: Ruler,
-  activityOutline: Activity,
+  /*
+    Footprints, not `Activity`'s pulse line. This draws the activity *level* on
+    the portal's health record — how much someone moves — and a heart-rate
+    trace beside a height and a goal reads as a vital sign the clinic measured.
+  */
+  activityOutline: Footprints,
   weightOutline: Weight,
   conditionsOutline: Stethoscope,
   allergiesOutline: TriangleAlert,
@@ -243,7 +261,13 @@ export const APP_ICONS = {
 
   /* Support and legal */
   help: HelpCircle,
-  privacy: ShieldCheck,
+  /*
+    Not a second shield. `security` is `ShieldCheck`, and the two sit six rows
+    apart in the portal's one settings list — same shape, same weight, at 20px.
+    A locked document separates it and pairs with `terms`'s plain one: both are
+    things the clinic wrote about you, one of them about what it keeps.
+  */
+  privacy: FileLock,
   terms: FileText,
   suggestion: Lightbulb,
 
