@@ -25,10 +25,14 @@ import { cn } from '@/lib/utils';
  *
  * **Three shapes, chosen by the content rather than by the caller's taste.**
  * A short value sits at the inline-end of its own label's line; prose — an
- * allergy list, a note from the dietitian — drops to a panel on the line below,
- * because a paragraph squeezed into the end of a phone row is four words wide;
- * and an empty field takes the chip, on one line, whichever of the two it was
- * declared as.
+ * allergy list, a note from the dietitian — drops to the line below under a
+ * semibold label, because a paragraph squeezed into the end of a phone row is
+ * four words wide; and an empty field takes the chip, on one line, whichever of
+ * the two it was declared as.
+ *
+ * The stacked value used to sit on a sunken fill. It does not any more — the
+ * label's weight draws the boundary instead. See the `dt` and `dd` below for
+ * why the fill was the wrong tool on a screen of flat cards.
  */
 export function InfoRow({
   label,
@@ -117,7 +121,22 @@ export function InfoRow({
       <dt
         className={cn(
           'flex items-center gap-2.5 text-sm text-muted-foreground',
-          stacked ? 'min-w-0' : 'shrink-0',
+          /*
+            **Semibold on a stacked row, regular on an inline one**, and the two
+            shapes want opposite things here.
+
+            Stacked, the label is a heading over a block of prose and it is now
+            the only thing separating one field from the next — the fill that
+            used to draw that boundary is gone (see the `dd` below). Weight is
+            what replaces it.
+
+            Inline, the label is the quiet half of a pair whose *value* carries
+            the emphasis (`font-medium`, at the row's inline-end). Bolding it
+            there would put two competing weights on one line and make
+            "الاسم الكامل" louder than the name beside it. The contact settings
+            screen is six of those rows, so this is not hypothetical.
+          */
+          stacked ? 'min-w-0 font-semibold' : 'shrink-0',
         )}
       >
         {icon ? (
@@ -139,16 +158,49 @@ export function InfoRow({
           'min-w-0 whitespace-pre-line text-sm',
           stacked
             ? /*
-                Prose sits on the sunken fill rather than loose under its label.
-                An allergy list and a note from the dietitian are the only things
-                on this screen that are *written* rather than recorded, and a
-                paragraph with nothing around it reads as another table cell that
-                happened to run long. The panel is the same nested-surface
-                language `Card variant="tile"` speaks — plain radius, no ring, no
-                shadow (§Cards).
+                **Prose sits loose under its label — no fill, no radius, no
+                inset.**
+
+                It used to sit on a sunken `bg-muted` panel, on the argument that
+                a paragraph with nothing around it reads as a table cell that
+                happened to run long. That argument was answered by the screen
+                rather than by the panel: the profile page draws every card flat
+                (`**:data-[slot=card]:shadow-none`), so a grey slab inside a
+                flat white card was the only filled surface on the screen, and
+                three of them stacked read as three disabled fields — the same
+                mistake the update-request card made when its notice left and it
+                became a grey box around one button.
+
+                The label above it now carries the boundary in weight instead,
+                which costs no ink. The `gap-y-2` on the row is what keeps the
+                two apart; the panel's own `px-4 py-3` went with the fill,
+                because padding with nothing behind it is an indent nobody asked
+                for and it left the value hanging inside an invisible box.
               */
-              'w-full rounded-lg bg-muted px-4 py-3 leading-relaxed text-foreground'
+              'w-full leading-relaxed text-foreground'
             : 'text-end font-medium',
+          /*
+            **The value starts where the label's text starts, not where the row
+            does.**
+
+            The glyph disc owns a gutter at the row's inline-start, so the label
+            begins 46px in while a `w-full` value below it began at 0 — the two
+            halves of one field starting from two different edges, which on three
+            stacked rows reads as the text having slipped out from under its own
+            heading. Everything in the row now measures from the same line and
+            the disc is the only thing outside it.
+
+            46px is the disc and its gap, and it is written as `ps-11.5` for the
+            arithmetic to stay visible: `size-9` is 2.25rem, `gap-2.5` is
+            0.625rem, and 11.5 × 0.25rem is their sum. ⚠ Change either and this
+            has to change with it — they are three numbers describing one gutter.
+
+            `ps-` is `padding-inline-start`, so the indent is on the right in
+            Arabic and the left in English, following the disc. Only applied when
+            there *is* a disc: a stacked row without one has no gutter to clear,
+            and indenting it would be inventing one.
+          */
+          stacked && icon ? 'ps-11.5' : '',
         )}
       >
         {content}

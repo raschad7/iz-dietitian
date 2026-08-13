@@ -18,6 +18,11 @@ import { cn } from '@/lib/utils';
  * Bottom sheet on a phone, centred card from `sm` up. The sheet rounds its
  * block-start corners only, because it rises from the bottom edge and its other
  * two are off-screen; the centred card rounds all four like any other surface.
+ *
+ * `placement="center"` opts out of the sheet half and is centred at every width
+ * — for a short modal that asks one thing rather than a surface you work in.
+ * See the prop for when that is the right call, and for the entrance it takes
+ * with it.
  */
 /**
  * The open dialog element, for popups that would otherwise be hidden behind it.
@@ -72,6 +77,30 @@ type DialogProps = {
    */
   size?: 'default' | 'wide';
   /**
+   * Where the surface sits on a phone. From `sm` up both are the same centred
+   * card, so this only decides what happens below that.
+   *
+   * `sheet` is the default and the app's ordinary modal: full width, risen from
+   * the block-end edge, block-start corners rounded. It is right for a surface
+   * you *work in* — the client form, the intake panels, the meal inspector —
+   * where the sheet buys the full height of the screen and the thumb starts near
+   * the controls.
+   *
+   * `center` is a card floating in the middle at every width. It is for a short
+   * modal that asks one thing and leaves: at four or five rows tall a bottom
+   * sheet is a strip along the bottom edge with two-thirds of a blurred page
+   * above it, which reads as a surface that failed to finish opening rather than
+   * as a small one. Centred, the same content reads as a card that is simply
+   * short.
+   *
+   * ⚠ It also changes the entrance, and that is not decoration: a sheet
+   * animates *up* from the edge it belongs to, and a centred card that slid up
+   * from nowhere would be describing a movement it did not make. The keyframe
+   * swap is driven by the `q-dialog-centered` class this adds — see the block
+   * beside `.q-dialog[open]` in `globals.css`.
+   */
+  placement?: 'sheet' | 'center';
+  /**
    * Whether Escape and a backdrop click may close the dialog. Long-running
    * submissions set this to false so the protected task cannot be hidden while
    * it is still in flight. Programmatic changes to `open` continue to work.
@@ -88,6 +117,7 @@ function Dialog({
   dir,
   flat,
   size = 'default',
+  placement = 'sheet',
   dismissible = true,
   className,
   children,
@@ -170,10 +200,44 @@ function Dialog({
       }}
       className={cn(
         'q-dialog',
-        'w-full max-w-none p-0 text-start',
-        'mt-auto mb-0 rounded-t-2xl',
-        'sm:m-auto sm:rounded-lg',
-        size === 'wide' ? 'sm:w-[min(64rem,calc(100vw-4rem))]' : 'sm:w-[min(28rem,calc(100vw-2rem))]',
+        /*
+          `max-w-none` in both placements, and it is doing real work: the UA
+          stylesheet caps a `<dialog>` at `calc(100% - 6px - 2em)`, so without it
+          the width below is a ceiling the browser has already lowered.
+        */
+        'max-w-none p-0 text-start',
+
+        placement === 'center'
+          ? [
+              /*
+                Centred at every width. `m-auto` is what does it — a modal
+                `<dialog>` is `position: fixed` with `inset: 0` under the UA
+                stylesheet, so auto margins on all four sides centre a box with a
+                definite width in both axes. That is the same mechanism the
+                `sm:m-auto` below has always used; this placement simply stops
+                waiting for `sm` to use it.
+
+                The width is stated once here rather than as a `sm:` step,
+                because a centred card is the shape at every size — on a phone
+                `calc(100vw-2rem)` is the whole screen less a 16px gutter, which
+                is what keeps the scrim visible around all four edges and stops
+                the card reading as a full-bleed page.
+              */
+              'q-dialog-centered m-auto rounded-lg',
+              size === 'wide'
+                ? 'w-[min(64rem,calc(100vw-4rem))]'
+                : 'w-[min(28rem,calc(100vw-2rem))]',
+            ]
+          : [
+              // The sheet: full width, pinned to the block-end edge, only its
+              // block-start corners rounded — the other two are off-screen.
+              'w-full mt-auto mb-0 rounded-t-2xl',
+              'sm:m-auto sm:rounded-lg',
+              size === 'wide'
+                ? 'sm:w-[min(64rem,calc(100vw-4rem))]'
+                : 'sm:w-[min(28rem,calc(100vw-2rem))]',
+            ],
+
         'bg-popover text-popover-foreground ring-1',
         flat ? 'ring-primary/25' : 'shadow-overlay ring-foreground/10',
         // The scrim dims *and* blurs: the page behind a modal is context, not

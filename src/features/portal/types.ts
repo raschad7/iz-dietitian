@@ -177,6 +177,15 @@ export type ClientRequestSummary = {
  */
 export type ProfilePageData = {
   profile: PortalProfile;
+  /**
+   * The ticked and typed allergens, from `client_nutrition_profiles`.
+   *
+   * Beside `profile` rather than inside it: `PortalProfile` is the `clients`
+   * row the shell loads for every page, and these two arrays are read once, for
+   * the profile screen. `getPortalAllergens` has the whole argument, including
+   * why the screen is wrong without them.
+   */
+  allergens: { allergenTags: string[]; customAllergens: string[] };
   /** Null when the clinic row has gone — the section is omitted rather than blanked. */
   clinic: PortalClinic | null;
   practitioner: PortalPractitioner | null;

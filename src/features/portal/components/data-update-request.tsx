@@ -83,7 +83,19 @@ export function DataUpdateRequest({
   const request = openRequest ? (
     <PendingRequest request={openRequest} locale={locale} />
   ) : (
-    <RequestDialogTrigger topic={topic} locale={locale} noticeKey={noticeKey} />
+    <RequestDialogTrigger
+      topic={topic}
+      locale={locale}
+      noticeKey={noticeKey}
+      /*
+        The two shapes want two buttons. Inside the notice card the control is
+        the last thing in a paragraph's block, so it starts where the paragraph
+        does and takes an edge to separate itself from the grey it sits on. Bare
+        at the foot of the health record it has neither a paragraph to align to
+        nor a fill to stand out from — see the trigger for what it becomes.
+      */
+      standalone={!showNotice}
+    />
   );
 
   /*
@@ -164,11 +176,19 @@ function RequestDialogTrigger({
   topic,
   locale,
   noticeKey,
+  standalone = false,
 }: {
   topic: ClientRequestTopic;
   locale: Locale;
   /** The same sentence the card shows, repeated inside — see below. */
   noticeKey: 'notice' | 'contactNotice';
+  /**
+   * Whether the trigger stands on its own rather than closing a notice card.
+   *
+   * Only the button's drawing changes; the dialog it opens is identical. See
+   * the button itself for why the bare shape gives up its border.
+   */
+  standalone?: boolean;
 }) {
   const t = useTranslations('portal.profile.update');
   const tErrors = useTranslations('portal');
@@ -197,12 +217,43 @@ function RequestDialogTrigger({
     setOpen(false);
   }
 
+  const trigger = (
+    <Button
+      type="button"
+      /*
+        `ghost` when it stands alone — no border, no box until you touch it,
+        the olive label and glyph left to carry it.
+
+        `outline`'s edge is what tells a control apart from the surface behind
+        it, and at the foot of the health record there is nothing to be told
+        apart from: the button is the last thing on the page, on the page's own
+        background, with white cards above it. The box read as an empty field
+        rather than as a control, and it was the one outlined object on a screen
+        of borderless cards. Inside the notice card the edge still earns its
+        keep — there it sits on a grey fill with a paragraph above it.
+
+        Still `Button` and still 48px tall, so nothing is given up but the line.
+      */
+      variant={standalone ? 'ghost' : 'outline'}
+      onClick={() => setOpen(true)}
+    >
+      <Icon name="edit" />
+      {t(actionKey)}
+    </Button>
+  );
+
   return (
     <>
-      <Button type="button" variant="outline" onClick={() => setOpen(true)}>
-        <Icon name="edit" />
-        {t(actionKey)}
-      </Button>
+      {/*
+        Centred when standalone, and centred by a wrapper rather than by
+        `mx-auto` on the button: `buttonVariants` caps its width at 320px but
+        does not set one, so the control is only as wide as its label — a margin
+        can centre that, but a flex row is what says the *row* is centred, which
+        is what a closing action at the foot of a page wants. In the notice card
+        it is returned bare and keeps its inline-start alignment under the
+        paragraph.
+      */}
+      {standalone ? <div className="flex justify-center">{trigger}</div> : trigger}
 
       <Dialog
         open={open}
@@ -210,6 +261,23 @@ function RequestDialogTrigger({
         label={t(actionKey)}
         dir={getLocaleDirection(locale)}
         flat
+        /*
+          Centred on a phone, not risen from the bottom edge.
+
+          This is the app's shortest modal — a sentence, one textarea and two
+          buttons — and as a bottom sheet it was a strip along the block-end
+          edge under two-thirds of a blurred page, which reads as a surface that
+          stopped halfway open rather than as a small one. The sheet shape earns
+          its keep where the content wants the screen's full height; here there
+          is nothing to fill it with, and stretching the form to justify the
+          shape would be inventing work for the client.
+
+          Both screens that open this get it: the health record's
+          "طلب تحديث البيانات" and the contact settings' request to change a
+          phone or an email are the same component, so this is one decision, not
+          two that have to be kept in step.
+        */
+        placement="center"
         // `open:` rather than a bare `flex`: a `display` utility on a
         // <dialog> outranks the UA rule that hides it while closed.
         className="open:flex open:flex-col max-h-[90dvh] overflow-hidden"

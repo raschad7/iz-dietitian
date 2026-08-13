@@ -452,6 +452,14 @@ build error rather than a blank square.
   must not, which is why `DIRECTIONAL` in `icon.tsx` is an allowlist.
 - Import glyphs through the registry, not into a component. `lucide-react` in a
   feature file is one screen quietly leaving the set.
+- **Two names may share a glyph; two rows of one screen may not.** Sharing is
+  fine across the app — `dish` and `mealDinner` are both `Utensils` and never
+  meet. It stops being fine when the duplicates land in the same list, where the
+  glyph is what the reader is scanning by: `privacy` and `security` were both
+  `ShieldCheck` six rows apart in the portal's settings. Give one of them its own
+  name and its own picture rather than re-pointing a shared one — `refresh` and
+  `close` are drawn by the whole app, so the portal's request rows got
+  `rescheduleRequest` and `cancelRequest` instead.
 
 ## Shape
 
@@ -1455,9 +1463,22 @@ approximating it with a generic library component.
 ## Controls built from §9.3, and how they submit
 
 `switch.tsx` and `segmented.tsx` were built against §9.3 when the client
-portal's account settings needed them — the switch at 52×30 with a 24px knob
-that slides on `inset-inline-start` and rotates −45° into the leaf angle, the
-segmented control as a 48px sunken shell holding 40px segments.
+portal's account settings needed them — the segmented control as a 48px sunken
+shell holding 40px segments, and the switch as a 52×30 track with a 24px knob
+carrying the 9px Arc sweep, rotating −45° into the leaf angle as it landed.
+
+**The switch's drawing is no longer §9.3's.** It is shadcn/ui's: a 44×24 track
+with a plain 20px disc, `bg-primary` on and `bg-input/60` off, the 2px
+transparent border upstream uses to inset the disc rather than to edge the
+track. The leaf went with it, and so did the `knob` prop that chose between the
+leaf and a disc — there is one drawing now, so there is nothing to choose.
+
+Two departures from upstream, both about this app rather than about taste. The
+off fill is `bg-input/60`, not a flat `bg-input`: `--input` is `n-500` here and
+is a *border* colour picked to read as a 1px line, so poured into a 44×24 slab
+it made the off state heavier than the on state. And the disc travels on
+`inset-inline-start` rather than upstream's `translate-x`, which is a physical
+direction and would slide the wrong way in Arabic (§RTL).
 
 Both are **submit buttons, not inputs**, and that is load-bearing rather than
 incidental. Every setting in the portal saves to the server, so each control is
@@ -1468,18 +1489,19 @@ control in it has an `onChange`. If you reach for one of these in a context that
 isn't a form, that's a signal the pattern doesn't fit — don't add a
 `checked`-plus-callback API alongside the form one.
 
-The switch's 30px track sits inside a 48px button so the target meets §9.3
-without the shape growing. Its accessible name comes from `aria-labelledby`
-pointing at the row's own label, because a `<label for>` cannot wrap a
-`role="switch"` button.
+⚠ **This is why the switch is a hand-drawn `<button>` and not shadcn's own
+component.** Upstream's is a Radix root driven by `onCheckedChange` — controlled
+state that submits nothing. Adopting it wholesale would have traded a settings
+screen that works without JavaScript for an appearance. The appearance is what
+was wanted, so the appearance is what was taken; the element, the ARIA, the
+form semantics and the RTL travel all stayed. Anyone tempted to "just install
+the real one" should read this paragraph first.
 
-**`knob="round"` drops the leaf.** The default knob carries the 9px Arc sweep
-and rotates −45° as it lands, which is §9.3's own drawing and right for a single
-switch on a form. A *column* of them is a different object: the client record's
-notification view stacks four, two rows apart, and four leaves rotating in and
-out of alignment made a settings list read as unsettled. The round variant is a
-plain disc that slides and does not turn — same size, same travel, same tokens.
-Reach for it where the switches are a list; keep the leaf where one is a detail.
+The switch's 24px track sits inside a 48px button so the target meets §9.3
+without the shape growing — and the padded target is what keeps the control
+above the touch floor now that the track is 6px shorter than it was. Its
+accessible name comes from `aria-labelledby` pointing at the row's own label,
+because a `<label for>` cannot wrap a `role="switch"` button.
 
 **Segments use `aria-pressed`, not `role="radio"`.** A radio group promises
 arrow-key navigation that plain buttons don't provide; a labelled group of

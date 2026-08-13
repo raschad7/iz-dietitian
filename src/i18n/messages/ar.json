@@ -581,8 +581,8 @@
     },
     "activity": {
       "sedentary": "خامل",
-      "light": "نشاط خفيف",
-      "moderate": "نشاط متوسط",
+      "light": "خفيف",
+      "moderate": "متوسط",
       "active": "نشِط",
       "very_active": "نشِط جدًا"
     },
@@ -860,7 +860,9 @@
         "approved": "تمت الموافقة",
         "declined": "مرفوض",
         "withdrawn": "مسحوب"
-      }
+      },
+      "showMore": "عرض {count, plural, one {طلب آخر} two {طلبين آخرين} few {# طلبات أخرى} other {# طلبًا آخر}}",
+      "showLess": "إخفاء بقية الطلبات"
     },
     "plan": {
       "title": "الخطة الغذائية",
@@ -910,7 +912,7 @@
         "email": "البريد الإلكتروني",
         "height": "الطول",
         "weight": "الوزن الحالي",
-        "goal": "الهدف المتفق عليه",
+        "goal": "الهدف",
         "activityLevel": "مستوى النشاط",
         "conditions": "الحالات الصحية",
         "allergies": "الحساسية الغذائية",

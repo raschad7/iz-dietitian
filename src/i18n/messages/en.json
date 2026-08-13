@@ -860,7 +860,9 @@
         "approved": "Approved",
         "declined": "Declined",
         "withdrawn": "Withdrawn"
-      }
+      },
+      "showMore": "Show {count, plural, one {1 more request} other {# more requests}}",
+      "showLess": "Hide the other requests"
     },
     "plan": {
       "title": "Meal plan",
@@ -910,7 +912,7 @@
         "email": "Email",
         "height": "Height",
         "weight": "Current weight",
-        "goal": "Agreed goal",
+        "goal": "Goal",
         "activityLevel": "Activity level",
         "conditions": "Health conditions",
         "allergies": "Food allergies",

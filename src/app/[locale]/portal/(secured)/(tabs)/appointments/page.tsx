@@ -1,12 +1,11 @@
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
-import { buttonVariants } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Icon } from '@/components/ui/icon';
 import { appointmentMarker } from '@/features/portal/appointments';
 import { AppointmentCard } from '@/features/portal/components/appointment-card';
 import { AppointmentRequestDialog } from '@/features/portal/components/appointment-request-dialog';
+import { AppointmentRequestFab } from '@/features/portal/components/appointment-request-fab';
 import { AppointmentTabs } from '@/features/portal/components/appointment-tabs';
 import { PortalSection } from '@/features/portal/components/portal-section';
 import { RequestList } from '@/features/portal/components/request-list';
@@ -14,7 +13,6 @@ import { RequestSentToast } from '@/features/portal/components/request-sent-toas
 import { loadAppointments, loadRequestPage } from '@/features/portal/page-data';
 import { requestSearchSchema } from '@/features/portal/schema';
 import { requirePortalClient } from '@/features/portal/session';
-import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/params';
 
 type AppointmentsPageProps = {
@@ -48,9 +46,12 @@ export async function generateMetadata({ params }: AppointmentsPageProps): Promi
  * "when was that last one?"; the second is a different visit to this page, not a
  * scroll on the first.
  *
- * The ask sits above that switch rather than inside either half. It is about the
- * page, not about the half being read — offering it under "past" would be
- * offering it against a list of things that already happened.
+ * The ask sits outside that switch rather than inside either half. It is about
+ * the page, not about the half being read — offering it under "past" would be
+ * offering it against a list of things that already happened. It used to say so
+ * by sitting above the switch, in the header; it says so now by floating over
+ * both halves as a corner button, which is the same claim made without spending
+ * a band of the first screenful on it. See `AppointmentRequestFab`.
  *
  * Within the upcoming half every appointment is one row of one list, the
  * soonest included. It used to be lifted out above the section as a card of its
@@ -208,58 +209,44 @@ export default async function AppointmentsPage({ params, searchParams }: Appoint
 
   return (
     <div className="space-y-6">
-      <header className="space-y-4">
-        <div className="space-y-1">
-          {/*
-            The page's own `h1`. The portal header above it carries the tab bar
-            and a bell, not a title, so every tab screen owns the top of its own
-            outline — the profile screen does the same.
-          */}
-          <h1 className="font-heading text-2xl font-semibold tracking-tight">
-            {t('appointments.title')}
-          </h1>
-          <p className="text-sm text-muted-foreground">{t('appointments.subtitle')}</p>
-        </div>
+      {/*
+        A title and a line under it, and nothing else — one `space-y-1` where
+        there used to be a `space-y-4` wrapper around a nested block, because
+        the thing the outer spacing separated the title from has left.
+      */}
+      <header className="space-y-1">
+        {/*
+          The page's own `h1`. The portal header above it carries the tab bar
+          and a bell, not a title, so every tab screen owns the top of its own
+          outline — the profile screen does the same.
+        */}
+        <h1 className="font-heading text-2xl font-semibold tracking-tight">
+          {t('appointments.title')}
+        </h1>
+        <p className="text-sm text-muted-foreground">{t('appointments.subtitle')}</p>
 
         {/*
-          `neutral` and full width: a white box with a hairline edge and a black
-          label, over the grey well of the switch below it. No brand colour at
-          all.
+          The ask is no longer in this header.
 
-          It was `soft` — an olive-50 fill with an olive-700 label — and before
-          that a solid olive bar, which was the loudest thing on a screen whose
-          actual subject, the next appointment, sits underneath it. With the
-          switch below now drawing its own selection in white-on-grey, an
-          olive-tinted button above it was the only coloured object left in the
-          header and read as the page's hero rather than as its one action. This
-          page *asks* for an appointment rather than booking one, and a neutral
-          box says that at exactly the right volume — it still reads as
-          pressable from its edge, and the cards below get the colour back.
+          It was a full-width `neutral` box here, and before that a `soft` one,
+          and before that a solid olive bar — three attempts at getting the
+          volume of a button right, all of which left it in the wrong *place*.
+          Whatever it was painted, it was a band of chrome between the page
+          title and the tab switch, so on a phone the first appointment — the
+          one fact this screen exists to state — started below the fold. It also
+          scrolled away the moment a client looked at anything, which is the one
+          thing a screen's only action should not do.
 
-          `max-w-none` because `buttonVariants` caps every button at 320px, so
-          `w-full` alone stops short of the edge on any phone wider than that.
+          It is `AppointmentRequestFab` now, at the foot of the page. See that
+          file, and note it renders last here for a reason that is about data,
+          not layout: it portals to <body> regardless of where it is written.
         */}
-        {/*
-          Still a `<Link>`, now pointing at this same page with `?request=1`
-          rather than at `/portal/appointments/request`. The standalone route is
-          untouched and still works — it is what a bookmark, a shared link or a
-          browser with no JavaScript gets — but from here the ask opens over the
-          list instead of replacing it, so a client comparing their next
-          appointment against the day they are about to propose does not lose
-          sight of it.
-        */}
-        <Link
-          href="/portal/appointments?request=1"
-          className={buttonVariants({ variant: 'neutral', className: 'w-full max-w-none' })}
-        >
-          <Icon name="bookAppointment" />
-          {t('appointments.book')}
-        </Link>
 
         {/*
           The confirmation is a toast, not a panel here.
 
-          It used to be a green bar under this button, and it never went away:
+          It used to be a green bar under the request button, and it never went
+          away:
           `?sent=1` survives a refresh and every navigation back to this tab, so
           nothing in the page could take it down again. `RequestSentToast`
           renders nothing, says the sentence once and clears the param behind
@@ -280,6 +267,15 @@ export default async function AppointmentsPage({ params, searchParams }: Appoint
         upcoming={upcomingPanel}
         past={pastPanel}
       />
+
+      {/*
+        The page's one action, floating over everything above it. Written last
+        and positioned by nothing here: it portals to `document.body`, because
+        `.q-route-stage` — the wrapper every tab page renders inside — is a
+        containing block for `fixed` descendants. The note in that file has the
+        whole of it.
+      */}
+      <AppointmentRequestFab label={t('appointments.book')} />
 
       {/*
         Last in the page, and only present while `?request=1` is. It portals to

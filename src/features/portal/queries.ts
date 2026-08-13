@@ -1,10 +1,11 @@
-import { and, asc, between, count, desc, eq, inArray } from 'drizzle-orm';
+import { and, asc, between, desc, eq, inArray } from 'drizzle-orm';
 
 import { db } from '@/db';
 import {
   appointmentRequests,
   appointments,
   clientCheckIns,
+  clientNutritionProfiles,
   clientPlanAdherence,
   clientRequests,
   clientSettings,
@@ -109,6 +110,48 @@ export async function getPortalClient(userId: string): Promise<PortalClient | nu
   const { id, clinicId, assignedDietitianId, ...profile } = row;
 
   return { id, clinicId, assignedDietitianId, profile: { id, ...profile } };
+}
+
+/**
+ * The allergens actually on file — the ticked ones and the typed ones.
+ *
+ * ⚠ **`clients.allergies` is not the client's allergy record, and reading it
+ * alone is a safety bug.** The intake dialog's allergy panel writes three
+ * fields: six catalog-filtering ticks (`allergen_tags`), a free list of
+ * anything outside those six (`custom_allergens`), and a prose detail box
+ * (`clients.allergies`) that is optional and routinely left empty. Only the
+ * third was portal-visible, so a dietitian could tick nuts, lactose, gluten and
+ * egg, add "coffee sweetened with almond", save — and the client's own profile
+ * screen would still read `غير مسجل` under "الحساسية الغذائية". A record that
+ * says "none recorded" when four allergens are on file is worse than one that
+ * says nothing at all.
+ *
+ * The two arrays live on `client_nutrition_profiles`, which is why this is a
+ * second read rather than more columns on `getPortalClient`: that row is loaded
+ * by the shell on *every* portal page, and these two columns are wanted on one.
+ * The same argument `getPortalClinic` below makes.
+ *
+ * A client with no nutrition profile row yet — never opened in the intake
+ * dialog — has no row to join, so both come back empty rather than null. The
+ * screen then falls through to the prose field, which is the pre-existing
+ * behaviour and still correct.
+ */
+export async function getPortalAllergens(
+  clientId: string,
+): Promise<{ allergenTags: string[]; customAllergens: string[] }> {
+  const [row] = await db
+    .select({
+      allergenTags: clientNutritionProfiles.allergenTags,
+      customAllergens: clientNutritionProfiles.customAllergens,
+    })
+    .from(clientNutritionProfiles)
+    .where(eq(clientNutritionProfiles.clientId, clientId))
+    .limit(1);
+
+  return {
+    allergenTags: row?.allergenTags ?? [],
+    customAllergens: row?.customAllergens ?? [],
+  };
 }
 
 /**
@@ -423,21 +466,18 @@ export async function listClinicBookings(
     .orderBy(asc(appointments.date), asc(appointments.startMinute));
 }
 
-/**
- * How many of this client's requests the dietitian has not answered yet.
- *
- * A count rather than `listPortalRequests(...).filter(...)`: the header needs
- * the number and nothing else, and the shell renders on every portal page —
- * including the ones that never load the list.
- */
-export async function countPendingRequests(clientId: string): Promise<number> {
-  const [row] = await db
-    .select({ value: count() })
-    .from(appointmentRequests)
-    .where(and(eq(appointmentRequests.clientId, clientId), eq(appointmentRequests.status, 'pending')));
+/*
+  `countPendingRequests` used to live here — one `COUNT(*)` of this client's
+  unanswered requests, read by the shell on every page to light the bell's dot.
 
-  return row?.value ?? 0;
-}
+  It is gone with the dot. The bell now badges the number of *unread
+  notifications*, which is a different fact in two ways: it counts the feed the
+  bell actually opens (reminders and answered requests included, not only what is
+  still pending), and it can be cleared by reading it. A server count of
+  something only the clinic can resolve could not be — which is why the dot
+  stayed lit for as long as a request went unanswered. `loadPortalNotifications`
+  in `page-data.ts` is what replaced it.
+*/
 
 /**
  * The client's own check-ins across a date range, inclusive.

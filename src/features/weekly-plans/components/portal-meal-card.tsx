@@ -21,9 +21,10 @@ import type { DayStanding } from '../week';
  * than specific foods: the plan's dishes are Palestinian, and a croissant is not
  * what breakfast looks like here.
  *
- * **The line set, not the app's usual Solar Bold**, and drawn bare rather than on
- * a filled disc — see the note beside these in `scripts/generate-icons.ts`. The
- * staff planner's slot rail still takes the bold four.
+ * **Drawn bare rather than on a filled disc.** The `*Outline` names are what is
+ * left of a filled/linear split the set no longer has — lucide is one weight
+ * throughout, so these resolve to the same glyphs the staff planner's slot rail
+ * draws. The names stay to record which surface wanted the quieter treatment.
  */
 const MEAL_ICONS = {
   breakfast: 'mealBreakfastOutline',

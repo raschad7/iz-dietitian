@@ -23,8 +23,8 @@ import { metricFraction, type MetricStatus, type MetricSummary } from '@/feature
  */
 
 /**
- * Metric → glyph. The names are roles in `scripts/generate-icons.ts`, so a
- * picture can be swapped there without touching this map or the rows below.
+ * Metric → glyph. The names are roles in `src/lib/icons.ts`, so a picture can
+ * be swapped there without touching this map or the rows below.
  */
 const ICONS: Record<CheckInMetric, IconName> = {
   energy: 'checkInEnergy',

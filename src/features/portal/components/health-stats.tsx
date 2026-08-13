@@ -136,19 +136,37 @@ export function HealthStats({ stats }: { stats: readonly HealthStat[] }) {
                 </span>
               ) : (
                 /*
-                  The figure leads and the unit sits under it, per the reference:
-                  at a glance the tile answers with a number, and "cm" is what
-                  that number is in rather than part of it. `dir="ltr"` keeps the
-                  digits in Latin order inside Arabic (§RTL).
+                  **The figure and its unit on one line** — `188 سم`, not `188`
+                  stacked over `سم`.
+
+                  The unit sat under the number, which is the reference design's
+                  drawing and is right on a dashboard tile the size of a card.
+                  At a third of a phone's width it is not: the tile is already
+                  three short lines tall (glyph, label, value), and splitting the
+                  one line anybody reads into two made this tile taller than the
+                  two categories beside it for the sake of two characters. Read
+                  aloud it was always one phrase anyway.
+
+                  **No `dir="ltr"`.** It was there to stack the two, and with
+                  them side by side it would do active harm: it pins the number
+                  to the inline-start, so an Arabic reader coming from the right
+                  meets `سم` before the figure it qualifies. The digits are
+                  European and stay internally LTR on their own under the bidi
+                  algorithm — `188` never becomes `881` — while the *order* of
+                  number and unit is the paragraph's to decide, which puts the
+                  figure first in both scripts. Same reasoning, and the same
+                  mistake once made, as the time range in `appointment-card.tsx`.
+
+                  `items-baseline` rather than `items-center`: the two sit a full
+                  step apart on the scale, and centring them by box left the unit
+                  floating above the numeral's foot.
                 */
-                <span className="block" dir="ltr">
-                  <span className="block font-heading text-xl leading-tight font-semibold tabular-nums sm:text-2xl">
+                <span className="flex items-baseline justify-center gap-x-1">
+                  <span className="font-heading text-xl leading-tight font-semibold tabular-nums sm:text-2xl">
                     {stat.value}
                   </span>
                   {stat.unit ? (
-                    <span className="block text-xs text-muted-foreground sm:text-sm">
-                      {stat.unit}
-                    </span>
+                    <span className="text-xs text-muted-foreground sm:text-sm">{stat.unit}</span>
                   ) : null}
                 </span>
               )}
