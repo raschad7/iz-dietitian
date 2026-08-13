@@ -175,7 +175,7 @@ export function MealInspector({
         {inspected && snapshot && (
           <div
             aria-hidden
-            className={cn(PLANNER_THEME, 'pointer-events-none fixed z-50')}
+            className={cn(PLANNER_THEME, 'pointer-events-none fixed z-50 max-sm:hidden')}
             style={snapshot}
           >
             <MealCardSnapshot meal={inspected.meal} />
@@ -191,12 +191,12 @@ export function MealInspector({
             sideOffset={16}
             collisionPadding={16}
             collisionAvoidance={{ side: 'flip', align: 'shift', fallbackAxisSide: 'start' }}
-            className="isolate z-50"
+            className="isolate z-50 max-sm:!inset-x-0 max-sm:!bottom-0 max-sm:!top-auto max-sm:!transform-none"
           >
             <Popover.Popup
               className={cn(
                 PLANNER_THEME,
-                'relative flex h-[min(42rem,calc(100vh-2rem))] w-[min(26rem,calc(100vw-2rem))] origin-(--transform-origin) flex-col overflow-hidden rounded-lg bg-popover p-4 text-popover-foreground shadow-overlay ring-1 ring-foreground/10 outline-none',
+                'relative flex h-[min(44rem,calc(100vh-2rem))] w-[min(29rem,calc(100vw-1.5rem))] origin-(--transform-origin) flex-col overflow-hidden rounded-lg bg-popover text-popover-foreground shadow-overlay ring-1 ring-foreground/10 outline-none max-sm:h-[min(44rem,calc(100vh-1rem))] max-sm:w-full max-sm:rounded-b-none',
                 'transition-[opacity,transform,filter,clip-path] duration-(--duration-sweep) ease-(--ease-sweep)',
                 'data-ending-style:scale-95 data-ending-style:opacity-0 data-ending-style:blur-sm',
                 'data-starting-style:scale-95 data-starting-style:opacity-0 data-starting-style:blur-sm',
@@ -207,7 +207,7 @@ export function MealInspector({
                 className={buttonVariants({
                   variant: 'ghost',
                   size: 'icon-sm',
-                  className: 'absolute end-3 top-3 z-10',
+                  className: 'absolute end-4 top-4 z-10',
                 })}
               >
                 <Icon name="close" />

@@ -17,6 +17,7 @@ import {
   type NutrientKey,
 } from '@/features/weekly-plans/nutrition';
 import { SERVING_STEP, snapServings } from '../similar';
+import { dishTagAccentClass } from '../meal-tag-tone';
 
 import { swapMealAction } from '../actions';
 import { initialPlanActionState } from '../form-state';
@@ -78,7 +79,7 @@ export function MealDetailPanel({
   if (editable && !meal.dish) {
     return (
       <div className="flex h-full min-h-0 flex-col overflow-hidden">
-        <div className={cn('shrink-0 border-b border-border pb-3', embedded && 'pe-10')}>
+        <div className={cn('shrink-0 border-b border-border px-5 pb-4 pt-5', embedded && 'pe-14')}>
           <p className="text-caption text-muted-foreground">
             {meal.label} · {meal.timeOfDay}
           </p>
@@ -87,7 +88,7 @@ export function MealDetailPanel({
           </h3>
         </div>
 
-        <div className="min-h-0 flex-1 pt-3">
+        <div className="min-h-0 flex-1 px-5 py-3">
           <DishCatalog
             catalog={catalog}
             usage={usage}
@@ -100,7 +101,7 @@ export function MealDetailPanel({
           />
         </div>
 
-        <section className="flex shrink-0 gap-3 border-t border-border pt-3">
+        <section className="flex shrink-0 gap-3 border-t border-border bg-muted/45 px-5 py-3">
           <Button
             type="button"
             variant="destructive"
@@ -118,15 +119,21 @@ export function MealDetailPanel({
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
-      <div className={cn('flex shrink-0 items-start justify-between gap-3 border-b border-border pb-3', embedded && 'pe-10')}>
+      <div className={cn('relative flex shrink-0 items-start justify-between gap-3 border-b border-border px-5 pb-4 pt-5', embedded && 'pe-14')}>
         <div className="min-w-0">
           <p className="text-caption text-muted-foreground">
             {meal.label} · {meal.timeOfDay}
           </p>
-          <h3 className="mt-1 font-heading text-heading-sm font-semibold leading-snug" dir="auto">
+          <h3 className="mt-1 font-heading text-heading-sm font-medium leading-snug" dir="auto">
             {meal.dish ? meal.dish.nameAr : t('emptySlot')}
           </h3>
           {meal.dish && <p className="text-caption text-muted-foreground">{meal.dish.nameEn}</p>}
+          {meal.dish && (
+            <span
+              aria-hidden
+              className={cn('mt-3 block h-1 w-20 rounded-full', dishTagAccentClass(meal.dish.tags))}
+            />
+          )}
         </div>
 
         {!embedded && (
@@ -136,13 +143,13 @@ export function MealDetailPanel({
         )}
       </div>
 
-      <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain pt-4">
+      <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-5 py-4">
         {meal.dish && <Portion meal={meal} editable={editable} />}
 
         {/* Only a filled slot gets here: an empty one is answered by the catalog
             above, which is the same question asked earlier. */}
         {editable && meal.dish && (
-          <section className="mt-5">
+          <section className="mt-6">
             <div className="flex items-baseline justify-between gap-2 pb-2">
               <h4 className="text-label font-semibold">{t('replacementOptions')}</h4>
               <span className="text-caption text-muted-foreground">{t('closestFirst')}</span>
@@ -154,7 +161,12 @@ export function MealDetailPanel({
               <SimilarDishes meal={meal} candidates={candidates} planId={planId} locale={locale} />
             )}
 
-            <Button type="button" variant="outline" className="mt-3 w-full" onClick={onBrowseDishes}>
+            <Button
+              type="button"
+              variant="default"
+              className="mt-4 w-full max-w-none"
+              onClick={onBrowseDishes}
+            >
               <Icon name="dishes" />
               {t('browseAllDishes')}
             </Button>
@@ -162,7 +174,7 @@ export function MealDetailPanel({
         )}
 
         {meal.dish && (
-          <div className="mt-4 border-t border-border">
+          <div className="mt-5 border-t border-border">
             <Disclosure label={t('ingredients')}>
               <Ingredients meal={meal} />
             </Disclosure>
@@ -196,11 +208,11 @@ export function MealDetailPanel({
        * scroll under it.
        */}
       {editable && (
-        <section className="flex shrink-0 gap-3 border-t border-border pt-3">
+        <section className="flex shrink-0 gap-2 border-t border-border bg-muted/45 px-5 py-3">
           {meal.dish && (
             <Button
               type="button"
-              variant="ghost"
+              variant="neutral"
               size="sm"
               className="min-w-0 flex-1"
               onClick={() => clear(meal.id)}
@@ -246,8 +258,8 @@ function Portion({ meal, editable }: { meal: BoardMeal; editable: boolean }) {
   const drift = driftState(kcal, meal.budgetKcal, MEAL_TOLERANCE);
 
   return (
-    <section className="rounded-lg bg-muted/60 p-3">
-      <h4 className="pb-2 text-label font-semibold text-muted-foreground">{t('portionLabel')}</h4>
+    <section className="rounded-lg border border-border bg-card p-4 shadow-card">
+      <h4 className="pb-3 text-label font-semibold text-foreground">{t('portionLabel')}</h4>
 
       {/*
         The stepper holds its place on a published plan rather than being
@@ -268,28 +280,30 @@ function Portion({ meal, editable }: { meal: BoardMeal; editable: boolean }) {
       >
         <Button
           type="button"
-          variant="outline"
+          variant="neutralGhost"
           size="icon-sm"
+          className="rounded-md"
           aria-label={t('lessPortion')}
           disabled={!editable || dish.servings <= 0.25}
           onClick={() => setServings(meal.id, snapServings(dish.servings - SERVING_STEP))}
         >
-          <Icon name="minus" />
+          <span aria-hidden className="text-display-sm font-normal leading-none">−</span>
         </Button>
 
-        <span className="min-w-14 text-center text-heading-sm font-semibold tabular-nums" dir="ltr">
+        <span className="min-w-20 text-center text-display-sm font-normal tabular-nums" dir="ltr">
           ×{dish.servings}
         </span>
 
         <Button
           type="button"
-          variant="outline"
+          variant="neutralGhost"
           size="icon-sm"
+          className="rounded-md"
           aria-label={t('morePortion')}
           disabled={!editable || dish.servings >= 3}
           onClick={() => setServings(meal.id, snapServings(dish.servings + SERVING_STEP))}
         >
-          <Icon name="add" />
+          <span aria-hidden className="text-display-sm font-normal leading-none">+</span>
         </Button>
 
         <span className="ms-auto text-body-sm text-muted-foreground">
@@ -297,7 +311,7 @@ function Portion({ meal, editable }: { meal: BoardMeal; editable: boolean }) {
         </span>
       </div>
 
-      <p className={cn('mt-2 border-t border-border pt-2 text-body-sm', drift ? 'text-status-attention-fg' : 'text-muted-foreground')}>
+      <p className={cn('mt-3 rounded-md bg-muted/70 px-3 py-2 text-body-sm', drift ? 'text-status-attention-fg' : 'text-muted-foreground')}>
         {t('kcalValue', { value: kcal })}
         {meal.budgetKcal > 0 && <> · {t('budget', { value: meal.budgetKcal })}</>}
       </p>
@@ -449,13 +463,14 @@ function SwapSubmit({
       type="submit"
       disabled={pending}
       className={cn(
-        'grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b border-border px-0 py-2.5 text-start text-body-sm transition-colors hover:bg-accent/60 disabled:opacity-50',
-        flagged && 'border-status-attention-fg/40',
+        'grid min-h-16 w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-md px-3 py-2.5 text-start text-body-sm transition-colors hover:bg-accent/70 disabled:opacity-50',
+        flagged && 'ring-1 ring-inset ring-status-attention-fg/30',
       )}
     >
       {children}
-      <span className="rounded-md border border-primary px-2.5 py-1.5 font-semibold text-primary">
+      <span className="inline-flex items-center gap-1 font-semibold text-primary">
         {pending ? '…' : t('replaceMeal')}
+        {!pending && <Icon name="chevronEnd" className="size-4" />}
       </span>
     </button>
   );
@@ -468,7 +483,7 @@ function Alternatives({ meal, planId, locale }: { meal: BoardMeal; planId: strin
   if (!meal.options.length) return null;
 
   return (
-      <div className="border-t border-border">
+      <div className="grid gap-1">
         {meal.options.slice(0, 3).map((option) => (
           <SwapButton
             key={option.id}
@@ -515,7 +530,7 @@ function SimilarDishes({
   if (!candidates.length) return null;
 
   return (
-      <div className="border-t border-border">
+      <div className="grid gap-1">
         {candidates.slice(0, 3).map((match) => (
           <SwapButton
             key={match.candidate.id}
