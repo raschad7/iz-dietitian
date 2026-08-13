@@ -272,7 +272,7 @@ export const APP_ICONS = {
   suggestion: Lightbulb,
 
   /* The portal's home screen */
-  dayComplete: CircleCheck,
+  dayComplete: Flame,
   mealCheckMark: CircleCheck,
   greetingSun: Sun,
   streak: Flame,

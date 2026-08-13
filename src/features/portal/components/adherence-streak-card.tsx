@@ -17,14 +17,18 @@ import { formatNumber } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 /**
- * "استمراريتك" — the client's streak, drawn as the path that produced it.
+ * "استمراريتك" — the client's streak, with each day's own adherence drawn
+ * beneath it.
  *
- * **The curve plots the run length, not the day's score.** That is what makes
- * the card one statement rather than two: the headline number is the last point
- * of the line under it, so the number and the shape agree by construction. A
- * line drawn from adherence scores would put a second measure on a card whose
- * whole subject is continuity, and the trend card further down the screen
- * already answers "how well".
+ * **The curve plots each day's fraction, not the run length.** A run length
+ * only ever climbs or resets, so a day kept at 1 of 4 meals used to draw the
+ * same rising line as a day kept at 4 of 4 — the shape said "still going" and
+ * nothing about how much of the day was actually kept. Plotting the fraction
+ * means a lighter day visibly dips even mid-streak, and a day nobody answered
+ * reads as the line returning to the floor, same as a broken streak did
+ * before. The headline number above the curve is still the streak count —
+ * that has not moved — but it is no longer restating what the line itself
+ * shows.
  *
  * **The number appears once.** The old copy repeated the streak count in text
  * under the number and again in the chart's callout bubble; the bubble is now
@@ -102,20 +106,20 @@ function clampY(value: number): number {
  * Arabic here rather than in CSS, because an SVG coordinate system is not
  * affected by `direction` the way the HTML markers layered over it are.
  *
- * The scale's ceiling is the tallest point in the window, never a fixed
- * maximum: a three-day streak drawn against a sixty-day axis would be a flat
- * line along the floor, which is the opposite of what a client on day three
- * needs to see.
+ * The scale is a fixed 0–1, not the tallest point in the window: `fraction`
+ * is already a percentage, so a day at 4 of 4 meals reaches the top whether
+ * every other day in the window did too or not, and two cards showing
+ * different weeks stay comparable. A day nobody answered — `fraction` is
+ * `null` — reads as the floor, the same place a `missed` day's `0` lands.
  */
 function plot(days: ContinuityDay[], rtl: boolean): Point[] {
-  const ceiling = Math.max(...days.map((day) => day.streak), 1);
-
   return days.map((day, index) => {
     const fraction = columnFraction(index, days.length);
+    const value = day.fraction ?? 0;
 
     return {
       x: (rtl ? 1 - fraction : fraction) * 100,
-      y: BOTTOM - (day.streak / ceiling) * (BOTTOM - TOP),
+      y: BOTTOM - value * (BOTTOM - TOP),
     };
   });
 }

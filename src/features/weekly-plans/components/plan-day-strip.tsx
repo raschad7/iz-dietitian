@@ -139,7 +139,12 @@ export function PlanDayStrip({
               className={cn(
                 // Fills its own grid column rather than a fixed width, so all
                 // seven sit edge to edge with no row wider than the screen.
-                'flex cursor-pointer flex-col items-center gap-2 rounded-2xl px-1 py-2 outline-none transition-all duration-200 ease-[cubic-bezier(.2,.6,.2,1)]',
+                // `min-w-0` overrides the flex item's default `min-width:
+                // auto` — without it the button refuses to shrink below its
+                // label's own natural width, so the label overflows the
+                // column instead of the `truncate` span below ever getting
+                // narrow enough to clip it with an ellipsis.
+                'flex min-w-0 cursor-pointer flex-col items-center gap-2 rounded-2xl px-1 py-2 outline-none transition-all duration-200 ease-[cubic-bezier(.2,.6,.2,1)]',
                 // The same focus and press treatment `buttonVariants` gives every
                 // other control: a raw <button> otherwise falls back to the UA
                 // outline, which is not this system's ring, and to no press cue
@@ -166,9 +171,10 @@ export function PlanDayStrip({
                 // to sit on the home glow (`page.tsx`), directly under the
                 // greeting, rather than on the white page column it used to
                 // share with the meal list. `active`'s own `bg-secondary`
-                // fill still carries its own opaque pair regardless of what
-                // it sits on, so it is the one state left untouched.
-                active ? 'bg-secondary text-secondary-foreground' : 'text-white hover:bg-white/10',
+                // fill is let run at 75% rather than fully opaque, so the
+                // glow still reads through the selected cell instead of
+                // cutting a flat white tile out of it.
+active ? 'bg-white/32 text-white' : 'text-white hover:bg-white/2',
                 !planned && !active && 'text-white/45',
               )}
             >
@@ -209,7 +215,7 @@ export function PlanDayStrip({
               */}
               <span
                 className={cn(
-                  'w-full truncate text-center text-caption',
+                  'block w-full truncate text-center text-caption',
                   day.isToday && 'font-semibold',
                 )}
               >
