@@ -1,10 +1,12 @@
 import { getTranslations } from 'next-intl/server';
 
+import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { formatLongDate, formatMediumDate, formatMinute } from '@/features/booking/format';
 import { type ClinicHours } from '@/features/booking/validation';
+import { patientToneStyle } from '@/features/booking/patient-color';
 import { Link } from '@/i18n/navigation';
 import { type Locale } from '@/i18n/routing';
 import { formatTimeAgo } from '@/lib/format';
@@ -83,7 +85,15 @@ export async function AppointmentRequestCard({
     <Card
       variant={compact ? 'tile' : 'listRow'}
       size={compact ? 'sm' : 'default'}
-      className={compact ? undefined : 'px-4'}
+      /*
+        `p-3` on the tile, against the variant's own `p-4`.
+
+        The dashboard card around this one shows three requests before it
+        scrolls, and a tile is the only part of that stack whose height is ours
+        to spend: 8px off each tile is 24px back across the window. The inbox
+        row keeps its `px-4` — it has a page to itself and no third tile to fit.
+      */
+      className={compact ? 'p-3' : 'px-4'}
     >
       {/* Tighter on the dashboard tile than in the inbox: three of these have to
           fit a window in a column that is also carrying today's agenda, and the
@@ -91,22 +101,34 @@ export async function AppointmentRequestCard({
       <CardContent className={cn('flex flex-col', compact ? 'gap-2' : 'gap-3')}>
         <div className={cn('flex items-start', compact ? 'gap-2' : 'gap-3')}>
           {/*
-            On a tile, a plain glyph in the neutral icon colour every other card
-            on the dashboard uses — the tile is already its own surface, and a
-            filled disc on top of it was a second contained shape inside a shape
-            inside the card. What kind of request this is stays legible in the
-            badge below, which is where it was doing the work anyway.
+            The client's own mark on the tile, not a glyph for the kind of
+            request.
 
-            In the inbox the disc stays: those rows are flat and ruled, so the
-            disc is the only mark starting each one. Amber there, never clay —
-            clay is reserved for a genuine medical flag, and a person waiting
-            for an answer is not one.
+            On the dashboard the first question a queue answers is *who*, and
+            every other list on this page — the agenda, the register, the
+            calendar block — already answers it with this disc, in the same
+            colour that person's appointments are drawn in. A calendar or a
+            refresh glyph in its place said what the badge beside the name says
+            in words, and said it in the one position the eye uses to tell one
+            row from the next.
+
+            The colour is the client's own, not a decorative one:
+            `patientToneStyle` sets the single hue their position in the clinic
+            maps to and `.patient-tone` builds the ramp from it, exactly as the
+            register and the calendar do. `contents` keeps the wrapper out of
+            the flex row's layout, so the span is a scope for the variables and
+            nothing else. Without it `--tone-mark` is undefined here and every
+            disc paints the same grey — which reads as "the colours are broken"
+            rather than as a missing scope.
+
+            In the inbox the disc stays as it was: those rows are flat and
+            ruled, the request kind is what that page is sorted and scanned by,
+            and amber is the mark that something is waiting.
           */}
           {compact ? (
-            <Icon
-              name={note ? 'chat' : KIND_ICONS[request.kind]}
-              className="mt-1 size-4 shrink-0 text-muted-foreground"
-            />
+            <span className="patient-tone contents" style={patientToneStyle(request.clientSeq)}>
+              <Avatar name={request.clientName} color="var(--tone-mark)" size="sm" className="mt-0.5" />
+            </span>
           ) : (
             <span
               className={cn(
@@ -125,24 +147,45 @@ export async function AppointmentRequestCard({
 
           <div className={cn('min-w-0 flex-1', compact ? 'space-y-0.5' : 'space-y-1')}>
             <div className="flex flex-wrap items-baseline justify-between gap-x-2">
-              {/* The name links to the record, so "who is this?" is one click
-                  rather than a search in another tab. */}
-              <Link
-                href={`/app/clients/${request.clientId}`}
-                className="min-w-0 truncate text-body-md font-medium hover:underline"
-                dir="auto"
-              >
-                {request.clientName}
-              </Link>
+              <span className="flex min-w-0 items-baseline gap-1.5">
+                {/* The name links to the record, so "who is this?" is one click
+                    rather than a search in another tab. */}
+                <Link
+                  href={`/app/clients/${request.clientId}`}
+                  className="min-w-0 truncate text-body-md font-medium hover:underline"
+                  dir="auto"
+                >
+                  {request.clientName}
+                </Link>
+
+                {compact && !note ? (
+                  <Badge variant="attention" size="sm" className="shrink-0">
+                    {t(`kind.${request.kind}`)}
+                  </Badge>
+                ) : null}
+              </span>
 
               <span className="shrink-0 text-label text-muted-foreground">
                 {formatTimeAgo(locale, request.createdAt, now)}
               </span>
             </div>
 
-            <Badge variant={note ? 'muted' : 'attention'} size="sm">
-              {note ? t('kind.note') : t(`kind.${request.kind}`)}
-            </Badge>
+            {/*
+              The kind, and on the tile it rides in the name's row rather than
+              taking one of its own — a badge on its own line costs ~24px, and
+              three tiles have to fit a window that was sized for one.
+
+              **A note gets none at all.** "Client message" over a client's
+              message, under their name and their avatar, was a label naming the
+              thing directly beneath it; on the tile the words are the request
+              and nothing else needs saying. The inbox keeps it, where the badge
+              column is how that page is scanned.
+            */}
+            {compact ? null : (
+              <Badge variant={note ? 'muted' : 'attention'} size="sm">
+                {note ? t('kind.note') : t(`kind.${request.kind}`)}
+              </Badge>
+            )}
 
             {/*
               The day they asked for. Absent on a cancellation, which proposes
@@ -191,15 +234,19 @@ export async function AppointmentRequestCard({
                   'text-body-sm',
                   note ? 'leading-relaxed whitespace-pre-line' : 'text-muted-foreground',
                   /*
-                    On the dashboard tile the aside is clamped to two lines. It
+                    On the dashboard tile the aside is clamped to one line. It
                     is what made this tile's height unpredictable — an Arabic
                     message wrapping to five lines pushed one request past the
-                    height of two — and the full text is one click away in the
-                    inbox, which is what that link in the header is for. A note
-                    is not clamped: there the message *is* the request, and
-                    hiding it would hide the item.
+                    height of two — and one line is what buys the third tile in
+                    the window: this is the client's aside beside a time they
+                    already named, not the request itself. The full text is one
+                    click away in the inbox, which is what the link in that
+                    card's header is for.
+
+                    A note is not clamped: there the message *is* the request,
+                    and hiding it would hide the item.
                   */
-                  compact && !note && 'line-clamp-2',
+                  compact && !note && 'line-clamp-1',
                 )}
                 dir="auto"
               >
@@ -210,14 +257,14 @@ export async function AppointmentRequestCard({
         </div>
 
         {/* Indented to the text column, so the controls line up under what they
-            act on rather than under the icon: 44px past the inbox's disc, 24px
-            past the tile's glyph (16px glyph + the tile's 8px gap).
+            act on rather than under the mark: 44px past the inbox's disc, 36px
+            past the tile's avatar (28px disc + the tile's 8px gap).
 
             A note has none: there is no time in it to approve, and a decline
             would be refusing a message. The dietitian reads it and books from
             the calendar like any other appointment. */}
         {note ? null : (
-          <div className={cn('space-y-2', compact ? 'ps-6' : 'ps-11')}>
+          <div className={cn('space-y-2', compact ? 'ps-9' : 'ps-11')}>
             <AppointmentRequestActions
               request={request}
               locale={locale}

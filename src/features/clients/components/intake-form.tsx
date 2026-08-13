@@ -19,7 +19,13 @@ import { saveIntakeAction } from '@/features/clients/actions';
 import { calculateAge } from '@/features/clients/age';
 import { initialIntakeFormState, type IntakeFormState } from '@/features/clients/form-state';
 import { mergedNotes } from '@/features/clients/notes';
-import { ALLERGENS } from '@/features/clients/nutrition';
+import {
+  ALLERGENS,
+  BLOOD_TYPES,
+  CLIENT_MARITAL_STATUSES,
+  INTAKE_FREQUENCIES,
+  SMOKING_HABITS,
+} from '@/features/clients/nutrition';
 import { CLIENT_ACTIVITY_LEVELS, CLIENT_GOALS } from '@/features/clients/schema';
 import {
   FIELDS_BY_SECTION,
@@ -67,9 +73,29 @@ const SECTIONS = INTAKE_SECTIONS;
 
 type SectionId = IntakeSectionId;
 
+/**
+ * The six food-frequency questions, in the order the paper sheet asks them.
+ *
+ * A list rather than six copies of the same twelve-line select: every one of
+ * them is the same control over the same scale, differing only in its label, and
+ * writing them out would be six chances for one to drift onto a different set of
+ * options. Typed as keys of `ClientIntakeValues`, so a field renamed on the
+ * record and not here fails to compile.
+ */
+const FREQUENCY_FIELDS = [
+  'caffeineFrequency',
+  'fastFoodFrequency',
+  'produceFrequency',
+  'dairyFrequency',
+  'proteinFoodFrequency',
+  'sweetsFrequency',
+] as const satisfies readonly (keyof ClientIntakeValues)[];
+
 /** The icon that stands for each section in the rail. */
 const SECTION_ICONS = {
   measurements: 'progress',
+  background: 'personOutline',
+  habits: 'activityOutline',
   allergies: 'medical',
   clinical: 'notes',
   planning: 'weeklyPlans',
@@ -160,6 +186,22 @@ export function IntakeForm({
    */
   const filled: Record<SectionId, boolean> = {
     measurements: Boolean(heightCm || weightKg || goal || activityLevel),
+    background: Boolean(
+      intake.maritalStatus ||
+        intake.childrenCount !== null ||
+        intake.bloodType ||
+        intake.occupation?.trim() ||
+        intake.visitReason?.trim() ||
+        intake.dietHistory?.trim() ||
+        intake.familyHistory?.trim(),
+    ),
+    habits: Boolean(
+      intake.activityNotes?.trim() ||
+        intake.activityBarriers?.trim() ||
+        intake.sleepHours !== null ||
+        intake.smoking ||
+        FREQUENCY_FIELDS.some((field) => intake[field]),
+    ),
     allergies:
       intake.allergenTags.length > 0 || custom.length > 0 || Boolean(intake.allergies?.trim()),
     clinical: Boolean(
@@ -301,6 +343,182 @@ export function IntakeForm({
               protein={suggestedProtein}
               overrideKcal={intake.dailyKcalTarget}
             />
+          </Panel>
+
+
+          {/*
+            The clinic's paper assessment sheet, split across two panels.
+
+            One panel would have been eighteen questions in a single scroll —
+            the exact shape the rail exists to avoid. They split where the sheet
+            itself does: who the person is and what brought them here, then how
+            they live. Everything on both panels is optional, and the fixed
+            answers are selects rather than text so two records taken months
+            apart can be read against each other.
+          */}
+          <Panel id="background" current={section}>
+            <p className="text-body-sm text-muted-foreground">{t('intake.backgroundHint')}</p>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <ChoiceField
+                name="maritalStatus"
+                label={t('fields.maritalStatus')}
+                defaultValue={intake.maritalStatus ?? ''}
+                options={CLIENT_MARITAL_STATUSES.map((value) => ({
+                  value,
+                  label: t(`maritalStatus.${value}`),
+                }))}
+                error={errorFor('maritalStatus')}
+              />
+              {/*
+                A count, not a "has children" switch followed by a number: the
+                count answers both, and 0 is a different answer from a blank —
+                one says none, the other says nobody asked.
+              */}
+              <NumberField
+                name="childrenCount"
+                label={t('fields.childrenCount')}
+                icon="clients"
+                placeholder={t('intake.placeholders.childrenCount')}
+                min={0}
+                max={20}
+                step={1}
+                defaultValue={intake.childrenCount?.toString() ?? ''}
+                error={errorFor('childrenCount')}
+              />
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <ChoiceField
+                name="bloodType"
+                label={t('fields.bloodType')}
+                defaultValue={intake.bloodType ?? ''}
+                options={BLOOD_TYPES.map((value) => ({
+                  value,
+                  label: t(`bloodType.${value}`),
+                }))}
+                error={errorFor('bloodType')}
+              />
+              <Field>
+                <Label htmlFor="occupation">{t('fields.occupation')}</Label>
+                <Input
+                  id="occupation"
+                  name="occupation"
+                  maxLength={120}
+                  defaultValue={intake.occupation ?? ''}
+                  placeholder={t('intake.placeholders.occupation')}
+                />
+                <FieldError>{errorFor('occupation')}</FieldError>
+              </Field>
+            </div>
+
+            <TextField
+              name="visitReason"
+              label={t('fields.visitReason')}
+              placeholder={t('intake.placeholders.visitReason')}
+              rows={3}
+              maxLength={1000}
+              defaultValue={intake.visitReason}
+              error={errorFor('visitReason')}
+            />
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <TextField
+                name="dietHistory"
+                label={t('fields.dietHistory')}
+                placeholder={t('intake.placeholders.dietHistory')}
+                rows={3}
+                maxLength={1000}
+                defaultValue={intake.dietHistory}
+                error={errorFor('dietHistory')}
+              />
+              <TextField
+                name="familyHistory"
+                label={t('fields.familyHistory')}
+                placeholder={t('intake.placeholders.familyHistory')}
+                rows={3}
+                maxLength={1000}
+                defaultValue={intake.familyHistory}
+                error={errorFor('familyHistory')}
+              />
+            </div>
+          </Panel>
+
+          <Panel id="habits" current={section}>
+            <p className="text-body-sm text-muted-foreground">{t('intake.habitsHint')}</p>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <TextField
+                name="activityNotes"
+                label={t('fields.activityNotes')}
+                placeholder={t('intake.placeholders.activityNotes')}
+                rows={3}
+                maxLength={1000}
+                defaultValue={intake.activityNotes}
+                error={errorFor('activityNotes')}
+              />
+              <TextField
+                name="activityBarriers"
+                label={t('fields.activityBarriers')}
+                placeholder={t('intake.placeholders.activityBarriers')}
+                rows={3}
+                maxLength={1000}
+                defaultValue={intake.activityBarriers}
+                error={errorFor('activityBarriers')}
+              />
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <NumberField
+                name="sleepHours"
+                label={t('fields.sleepHours')}
+                icon="clock"
+                placeholder={t('intake.placeholders.sleepHours')}
+                min={0}
+                max={16}
+                /*
+                  Half-hours, because "six and a half" is how the question gets
+                  answered. A whole-hour step would round it on the way in.
+                */
+                step={0.5}
+                defaultValue={intake.sleepHours?.toString() ?? ''}
+                error={errorFor('sleepHours')}
+              />
+              <ChoiceField
+                name="smoking"
+                label={t('fields.smoking')}
+                defaultValue={intake.smoking ?? ''}
+                options={SMOKING_HABITS.map((value) => ({
+                  value,
+                  label: t(`smoking.${value}`),
+                }))}
+                error={errorFor('smoking')}
+              />
+            </div>
+
+            <Divider label={t('intake.frequencyLegend')} />
+
+            {/*
+              Six questions on one scale, so the panel is one column of labels
+              against one column of identical selects. The period each question
+              is asked over — a day or a week — is in its label, which is where
+              the paper sheet puts it too.
+            */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              {FREQUENCY_FIELDS.map((name) => (
+                <ChoiceField
+                  key={name}
+                  name={name}
+                  label={t(`fields.${name}`)}
+                  defaultValue={intake[name] ?? ''}
+                  options={INTAKE_FREQUENCIES.map((value) => ({
+                    value,
+                    label: t(`frequency.${value}`),
+                  }))}
+                  error={errorFor(name)}
+                />
+              ))}
+            </div>
           </Panel>
 
           <Panel id="allergies" current={section}>
@@ -615,6 +833,45 @@ function Divider({ label }: { label: string }) {
   );
 }
 
+
+/**
+ * A select over a closed answer, uncontrolled — the form posts it.
+ *
+ * The blank row is the first option rather than only placeholder text, for the
+ * same reason the goal select carries one: an assessment is a form someone can
+ * walk back, and an answer picked by mistake has to be un-pickable without
+ * reloading the page.
+ */
+function ChoiceField({
+  name,
+  label,
+  defaultValue,
+  options,
+  error,
+}: {
+  name: string;
+  label: string;
+  defaultValue: string;
+  options: readonly { value: string; label: string }[];
+  error?: string;
+}) {
+  const t = useTranslations('clients');
+
+  return (
+    <Field>
+      <Label htmlFor={name}>{label}</Label>
+      <SelectField
+        id={name}
+        name={name}
+        defaultValue={defaultValue}
+        placeholder={t('notProvided')}
+        options={[{ value: '', label: t('notProvided') }, ...options]}
+      />
+      <FieldError>{error}</FieldError>
+    </Field>
+  );
+}
+
 /**
  * A number field as an `InputGroup`, with a glyph at its reading edge.
  *
@@ -823,12 +1080,31 @@ function TargetReadout({
   );
 }
 
+/**
+ * One figure of the readout: a caption, the number, and what the number is.
+ *
+ * **The direction lock is on the value, not on the line.** `dir="ltr"` on the
+ * `<strong>` set that element's own base direction, and `text-align: start`
+ * resolves against whatever element it lands on — so in Arabic the caption and
+ * the note sat against the right edge of the cell, as the whole dialog does,
+ * and "1994 kcal" sat against the left. Three columns of it read as a figure
+ * that had come loose from the words above and below it. The same mistake the
+ * `NumberField` group above documents, one element further in.
+ *
+ * `<bdi>` is what the lock actually wanted to say: isolate this run so the
+ * text around it cannot reorder it, and leave the line itself in the page's
+ * direction so it aligns with its own caption. Its `dir="auto"` also gets the
+ * units right in a way a hardcoded `ltr` could not — the first strong character
+ * of "1994 kcal" is Latin and the run lays out left-to-right, while the first
+ * of "134 غ" is Arabic and it lays out right-to-left. Both then read in the
+ * order they were written, which one fixed direction for both cannot do.
+ */
 function Stat({ label, value, note }: { label: string; value: string; note?: string }) {
   return (
     <div className="flex flex-col gap-0.5 px-4 py-3">
       <span className="text-caption text-muted-foreground">{label}</span>
-      <strong className="font-heading text-heading-sm font-semibold tabular-nums" dir="ltr">
-        {value}
+      <strong className="font-heading text-heading-sm font-semibold tabular-nums">
+        <bdi>{value}</bdi>
       </strong>
       {note ? <span className="text-caption text-muted-foreground">{note}</span> : null}
     </div>
@@ -1050,12 +1326,20 @@ function MealScheduleField({
             defaultValue={slot.timeOfDay}
             aria-label={t('intake.time')}
           />
+          {/*
+            No `dir="ltr"`, for the reason `NumberField` gives above: it pinned
+            the digits to the left edge of the box in Arabic while every other
+            field on the dialog filled from the right, so one cell of the
+            schedule row read against the grain of the rest. A number is a
+            left-to-right run under the bidi algorithm in either script — the
+            share still reads as the share, it is simply aligned to the edge the
+            form is read from.
+          */}
           <Input
             name="slotShare"
             type="number"
             min={0}
             max={100}
-            dir="ltr"
             defaultValue={Math.round(slot.kcalShare * 100)}
             aria-label={t('fields.slotShare')}
           />

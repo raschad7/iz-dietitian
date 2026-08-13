@@ -14,7 +14,13 @@ import {
   sectionForField,
 } from '@/features/clients/intake-sections';
 import { mergedNotes } from '@/features/clients/notes';
-import { ALLERGENS } from '@/features/clients/nutrition';
+import {
+  ALLERGENS,
+  BLOOD_TYPES,
+  CLIENT_MARITAL_STATUSES,
+  INTAKE_FREQUENCIES,
+  SMOKING_HABITS,
+} from '@/features/clients/nutrition';
 import { CLIENT_ACTIVITY_LEVELS, CLIENT_GOALS } from '@/features/clients/schema';
 import { type ClientIntakeValues } from '@/features/clients/types';
 import { mealTypeForSlot, type MealType } from '@/features/weekly-plans/schema';
@@ -146,6 +152,7 @@ export function ClientNutrition({
       : null;
 
   const hasAllergyRecord =
+    Boolean(intake.drugAllergies) ||
     allergenTags.length > 0 ||
     intake.customAllergens.length > 0 ||
     Boolean(intake.allergies) ||
@@ -158,6 +165,61 @@ export function ClientNutrition({
     Boolean(intake.dislikes);
 
   const hasPrivateRecord = Boolean(intake.medicalNotes) || Boolean(intake.notes);
+
+  /*
+   * The assessment questionnaire, in the two halves the dialog writes it in.
+   *
+   * Two flags rather than one: the sheet is filled in across visits, and a
+   * client who has answered the background questions but not the habits ones
+   * should get one card, not one card and one headed empty box.
+   */
+  const backgroundFacts = [
+    {
+      label: t('fields.maritalStatus'),
+      value: isMember(CLIENT_MARITAL_STATUSES, intake.maritalStatus)
+        ? t(`maritalStatus.${intake.maritalStatus}`)
+        : null,
+    },
+    {
+      label: t('fields.childrenCount'),
+      // `!== null` and not a truthiness check: zero children is an answer.
+      value: intake.childrenCount !== null ? format.number(intake.childrenCount) : null,
+    },
+    {
+      label: t('fields.bloodType'),
+      value: isMember(BLOOD_TYPES, intake.bloodType) ? t(`bloodType.${intake.bloodType}`) : null,
+    },
+    { label: t('fields.occupation'), value: intake.occupation },
+  ];
+
+  const habitFacts = [
+    {
+      label: t('fields.sleepHours'),
+      value: intake.sleepHours !== null ? t('intake.hoursValue', { value: intake.sleepHours }) : null,
+    },
+    {
+      label: t('fields.smoking'),
+      value: isMember(SMOKING_HABITS, intake.smoking) ? t(`smoking.${intake.smoking}`) : null,
+    },
+    ...FREQUENCY_DISPLAY_FIELDS.map((field) => ({
+      label: t(`fields.${field}`),
+      value: isMember(INTAKE_FREQUENCIES, intake[field]) ? t(`frequency.${intake[field]}`) : null,
+    })),
+  ];
+
+  const backgroundNotes = [
+    { label: t('fields.visitReason'), value: intake.visitReason },
+    { label: t('fields.dietHistory'), value: intake.dietHistory },
+    { label: t('fields.familyHistory'), value: intake.familyHistory },
+  ];
+
+  const habitNotes = [
+    { label: t('fields.activityNotes'), value: intake.activityNotes },
+    { label: t('fields.activityBarriers'), value: intake.activityBarriers },
+  ];
+
+  const hasBackgroundRecord = [...backgroundFacts, ...backgroundNotes].some((item) => item.value);
+  const hasHabitsRecord = [...habitFacts, ...habitNotes].some((item) => item.value);
 
   return (
     <div className="flex flex-col gap-4">
@@ -365,7 +427,10 @@ export function ClientNutrition({
         two-thirds width with dead space beside it.
       */}
       <div className="grid items-start gap-4 lg:grid-cols-3">
-        {intake.mealSchedule.length > 0 || hasPlanningRecord ? (
+        {intake.mealSchedule.length > 0 ||
+        hasPlanningRecord ||
+        hasBackgroundRecord ||
+        hasHabitsRecord ? (
           <div className="flex flex-col gap-4 lg:col-span-2">
             {intake.mealSchedule.length > 0 ? (
               <Card>
@@ -413,6 +478,42 @@ export function ClientNutrition({
                       { label: t('fields.dislikes'), value: intake.dislikes },
                     ]}
                   />
+                </CardContent>
+              </Card>
+            ) : null}
+
+            {/*
+              The assessment sheet, read back in the order it was asked.
+
+              Short closed answers first as a labelled lattice, prose under
+              them: a marital status and a blood type are two words each, and
+              running them as `Notes` entries gave every one of them a line of
+              its own down a card that was mostly whitespace.
+            */}
+            {hasBackgroundRecord ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle as="h2" icon="personOutline" size="sm">
+                    {t('intake.sections.background')}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4">
+                  <FactList items={backgroundFacts} />
+                  <Notes items={backgroundNotes} />
+                </CardContent>
+              </Card>
+            ) : null}
+
+            {hasHabitsRecord ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle as="h2" icon="activityOutline" size="sm">
+                    {t('intake.sections.habits')}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4">
+                  <Notes items={habitNotes} />
+                  <FactList items={habitFacts} />
                 </CardContent>
               </Card>
             ) : null}
@@ -465,6 +566,11 @@ export function ClientNutrition({
                       {
                         label: t('fields.medications'),
                         value: intake.medications,
+                      },
+                      {
+                        label: t('fields.drugAllergies'),
+                        value: intake.drugAllergies,
+                        medical: true,
                       },
                     ]}
                   />
@@ -823,6 +929,51 @@ function MealSchedule({
  * isolates the run so mixed scripts still order correctly while the block stays
  * in the page's direction. Same trap as the phone number in `ClientProfilePanel`.
  */
+
+/**
+ * The six food-frequency answers, in the order the assessment asks them.
+ *
+ * Declared here rather than imported from the dialog: this is a server
+ * component and `intake-form.tsx` is `'use client'`, so importing its constant
+ * would pull the whole form into this module's graph to read six strings.
+ */
+const FREQUENCY_DISPLAY_FIELDS = [
+  'caffeineFrequency',
+  'fastFoodFrequency',
+  'produceFrequency',
+  'dairyFrequency',
+  'proteinFoodFrequency',
+  'sweetsFrequency',
+] as const satisfies readonly (keyof ClientIntakeValues)[];
+
+/**
+ * Short label-over-value pairs, two or three across.
+ *
+ * `Notes` beneath it does the same job for prose and gives every entry a line
+ * of the card; a blood type and a marital status are two words each, and eight
+ * of them stacked was a column of whitespace with words down one edge. Blank
+ * answers are dropped rather than drawn as an em dash — an assessment is filled
+ * in across visits, and a lattice of placeholders reads as a form to complete
+ * rather than a record to read.
+ */
+function FactList({ items }: { items: { label: string; value: string | null }[] }) {
+  const present = items.filter((item) => item.value !== null && item.value !== '');
+  if (present.length === 0) return null;
+
+  return (
+    <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
+      {present.map((item) => (
+        <div key={item.label}>
+          <dt className="text-label text-muted-foreground">{item.label}</dt>
+          <dd className="mt-1 text-body-md text-foreground [overflow-wrap:anywhere]">
+            <bdi>{item.value}</bdi>
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
 function Notes({
   items,
 }: {

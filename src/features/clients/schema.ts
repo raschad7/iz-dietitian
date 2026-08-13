@@ -2,7 +2,14 @@ import { z } from 'zod';
 
 import { defaultLocale, locales } from '@/i18n/routing';
 
-import { ALLERGENS, mealScheduleSchema } from './nutrition';
+import {
+  ALLERGENS,
+  BLOOD_TYPES,
+  CLIENT_MARITAL_STATUSES,
+  INTAKE_FREQUENCIES,
+  mealScheduleSchema,
+  SMOKING_HABITS,
+} from './nutrition';
 
 /**
  * Allowed values for the enum-like text columns. These live here rather than in
@@ -180,6 +187,46 @@ export const intakeSchema = z.object({
   preferences: optionalText(1000),
   dislikes: optionalText(1000),
   permanentInstructions: optionalText(2000),
+
+  // ── The nutrition assessment questionnaire ───────────────────────────────
+  /*
+   * The clinic's paper form, in the dialog that already writes everything else
+   * clinical. Optional to the last field, like the rest of the intake: the sheet
+   * is worked through across visits, and a form that refuses to save an
+   * incomplete one is a form that loses what had already been typed.
+   */
+  maritalStatus: optionalEnum(CLIENT_MARITAL_STATUSES),
+  /**
+   * Not a checkbox plus a number. "Has children" is answerable by the count
+   * alone, and 0 is a different answer from a blank — one says none, the other
+   * says nobody asked.
+   */
+  childrenCount: z.preprocess(blankToUndefined, z.coerce.number().int().min(0).max(20).optional()),
+  bloodType: optionalEnum(BLOOD_TYPES),
+  occupation: optionalText(120),
+
+  visitReason: optionalText(1000),
+  dietHistory: optionalText(1000),
+  /** Drug allergies — deliberately not folded into the food allergen fields. */
+  drugAllergies: optionalText(1000),
+  familyHistory: optionalText(1000),
+
+  activityNotes: optionalText(1000),
+  activityBarriers: optionalText(1000),
+  /**
+   * A night, in hours. Halves allowed — "six and a half" is how people answer —
+   * and capped at 16, past which the answer is a typo rather than a sleeper.
+   */
+  sleepHours: z.preprocess(blankToUndefined, z.coerce.number().min(0).max(16).optional()),
+  smoking: optionalEnum(SMOKING_HABITS),
+
+  caffeineFrequency: optionalEnum(INTAKE_FREQUENCIES),
+  fastFoodFrequency: optionalEnum(INTAKE_FREQUENCIES),
+  produceFrequency: optionalEnum(INTAKE_FREQUENCIES),
+  dairyFrequency: optionalEnum(INTAKE_FREQUENCIES),
+  proteinFoodFrequency: optionalEnum(INTAKE_FREQUENCIES),
+  sweetsFrequency: optionalEnum(INTAKE_FREQUENCIES),
+
   mealSchedule: mealScheduleSchema,
 });
 

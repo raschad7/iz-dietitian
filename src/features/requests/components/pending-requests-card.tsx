@@ -35,24 +35,28 @@ import { RequestsWindow } from './requests-window';
  * banner squeezed between the quick actions and the register. The link to the
  * inbox stays for the answered history, which this panel never shows.
  *
- * **The window is one request deep**, and that number is a consequence of the
- * band it now lives in. {@link VISIBLE_REQUESTS} is a bound on height, not a
- * slice — every pending request is rendered and the rest are a scroll away,
- * because a list that renders one and stops cannot be scrolled to the second.
- * `RequestsWindow` reads the block-end edge of the Nth tile from the real layout
- * rather than taking a hand-tuned rem, which is the only way the count holds:
- * inside this card a tile's content box is narrow, so a message wraps to more
- * lines than it would anywhere else — and in Arabic, to more again.
+ * **The window is three requests deep.** {@link VISIBLE_REQUESTS} is a bound on
+ * height, not a slice — every pending request is rendered and the rest are a
+ * scroll away, because a list that renders three and stops cannot be scrolled to
+ * the fourth. `RequestsWindow` reads the block-end edge of the Nth tile from the
+ * real layout rather than taking a hand-tuned rem, which is the only way the
+ * count holds: inside this card a tile's content box is narrow, so a message
+ * wraps to more lines than it would anywhere else — and in Arabic, to more
+ * again.
  *
- * ⚠ **Why one and not three.** A request tile is ~195–207px, because every
- * request carries its own Accept and Decline and is therefore a panel rather
- * than a row. Three of them is ~600px; the two stat cards it now sits beside are
- * ~230px, and a grid row is as tall as its tallest card. Three would have made
- * the top band nearly three times the height of its own content on every morning
- * a request happened to be waiting — and taken it straight out of the
- * appointments panel, which is the part of this page that is actually worked
- * from. One tile matches the cards either side of it; the count in the header
- * says how many more, and the list scrolls to them.
+ * ⚠ **It was one, and the tile is what changed.** A request tile used to be
+ * ~195–207px — every request carries its own Accept and Decline, so it is a
+ * panel rather than a row — and three of those was ~600px against the ~230px of
+ * the two stat cards this card sits beside. So the window was one deep, and a
+ * dietitian had to scroll a two-item queue to learn the second item existed.
+ *
+ * The fix was the tile, not the window: `p-3` instead of `p-4`, the kind badge
+ * moved up into the name's row instead of taking one of its own, an
+ * appointment's aside clamped to one line instead of two, and the client's
+ * avatar in place of the kind glyph. Nothing about *this* card changed to make
+ * room — its padding, its header and its `max-h-[70vh]` ceiling are all as they
+ * were. The band is still taller on a morning with three requests waiting than
+ * on a quiet one; what it is not is three tiles' worth taller.
  *
  * **The way to the inbox is a labelled link in the header's block-start
  * inline-start corner, not a button under the list.** At the foot it was a
@@ -88,7 +92,7 @@ import { RequestsWindow } from './requests-window';
  * cannot size a box to its first N children when those children differ in
  * height, which is why that measurement exists at all.
  */
-const VISIBLE_REQUESTS = 1;
+const VISIBLE_REQUESTS = 3;
 
 export async function PendingRequestsCard({
   data,
@@ -203,19 +207,21 @@ export async function PendingRequestsCard({
           </div>
         ) : (
           /*
-            The whole queue, scrolled rather than truncated, in a window one
-            request deep.
+            The whole queue, scrolled rather than truncated, in a window three
+            requests deep.
 
-            The height comes from `RequestsWindow`, which measures where the Nth
-            tile ends. A tile is ~195px with no message and ~207px with a
-            two-line one — the reason this is measured rather than declared.
-            The second is a scroll away, and the first sitting flush against the
+            The height comes from `RequestsWindow`, which measures where the
+            third tile ends rather than trusting a figure written here — a tile
+            with no message and one with a wrapped Arabic message do not measure
+            the same, and neither do the appointment and client shapes. The
+            fourth is a scroll away, and the third sitting flush against the
             bottom edge is what the fade below is drawn over.
 
-            `max-h-[70vh]` is the guard on top of it, and with one tile it is now
-            the looser of the two on any normal screen; it stays as the floor
-            under a future {@link VISIBLE_REQUESTS} rather than as the value in
-            effect.
+            `max-h-[70vh]` is the guard on top of it and is unchanged. With
+            three of the tightened tiles it is the looser of the two on a normal
+            screen and the binding one on a short laptop, where it shows the
+            third tile part-way and scrolls rather than taking the appointments
+            panel off the page.
 
             `pe-1` leaves the scrollbar somewhere to sit that is not on top of
             the tiles, and `overscroll-contain` keeps a flick at the end of the

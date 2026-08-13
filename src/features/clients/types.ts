@@ -76,6 +76,36 @@ export type ClientIntakeValues = {
   permanentInstructions: string | null;
   mealSchedule: MealSlotValues[];
 
+  /*
+   * The nutrition assessment questionnaire — the clinic's paper intake sheet.
+   *
+   * Strings and not the union types `nutrition.ts` exports, matching how
+   * `goal` and `activityLevel` above are already carried: the column is text,
+   * anything could be in a row written before a value was retired, and the
+   * components narrow with `isMember` before they translate a label.
+   */
+  maritalStatus: string | null;
+  childrenCount: number | null;
+  bloodType: string | null;
+  occupation: string | null;
+
+  visitReason: string | null;
+  dietHistory: string | null;
+  drugAllergies: string | null;
+  familyHistory: string | null;
+
+  activityNotes: string | null;
+  activityBarriers: string | null;
+  sleepHours: number | null;
+  smoking: string | null;
+
+  caffeineFrequency: string | null;
+  fastFoodFrequency: string | null;
+  produceFrequency: string | null;
+  dairyFrequency: string | null;
+  proteinFoodFrequency: string | null;
+  sweetsFrequency: string | null;
+
   /**
    * Whether a `client_nutrition_profiles` row exists yet.
    *

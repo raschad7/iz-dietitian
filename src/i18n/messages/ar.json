@@ -566,7 +566,25 @@
       "permanentInstructions": "تعليمات دائمة",
       "slotLabel": "اسم الوجبة",
       "slotTime": "الوقت",
-      "slotShare": "النسبة %"
+      "slotShare": "النسبة %",
+      "maritalStatus": "الحالة الاجتماعية",
+      "childrenCount": "عدد الأطفال",
+      "bloodType": "زمرة الدم",
+      "occupation": "الوظيفة",
+      "visitReason": "سبب زيارة العيادة",
+      "dietHistory": "أنظمة غذائية سابقة",
+      "drugAllergies": "حساسية من أدوية",
+      "familyHistory": "أمراض وراثية أو سمنة في العائلة",
+      "activityNotes": "أسلوب النشاط البدني",
+      "activityBarriers": "ما يمنع ممارسة النشاط",
+      "sleepHours": "ساعات النوم",
+      "smoking": "التدخين والأرجيلة",
+      "caffeineFrequency": "الكافيين والمشروبات المحلاة (يوميًا)",
+      "fastFoodFrequency": "الوجبات السريعة (أسبوعيًا)",
+      "produceFrequency": "الخضار والفواكه (يوميًا)",
+      "dairyFrequency": "الحليب ومشتقاته (يوميًا)",
+      "proteinFoodFrequency": "اللحوم والدجاج والأسماك (أسبوعيًا)",
+      "sweetsFrequency": "الحلويات والسكريات (أسبوعيًا)"
     },
     "status": {
       "active": "نشِط",
@@ -576,6 +594,35 @@
     "sex": {
       "female": "أنثى",
       "male": "ذكر"
+    },
+    "maritalStatus": {
+      "single": "أعزب / عزباء",
+      "married": "متزوج / متزوجة",
+      "divorced": "مطلّق / مطلّقة",
+      "widowed": "أرمل / أرملة"
+    },
+    "bloodType": {
+      "a_pos": "A+",
+      "a_neg": "A−",
+      "b_pos": "B+",
+      "b_neg": "B−",
+      "ab_pos": "AB+",
+      "ab_neg": "AB−",
+      "o_pos": "O+",
+      "o_neg": "O−"
+    },
+    "smoking": {
+      "none": "لا يدخّن",
+      "cigarettes": "دخان",
+      "shisha": "أرجيلة",
+      "both": "دخان وأرجيلة"
+    },
+    "frequency": {
+      "none": "أبدًا",
+      "rarely": "نادرًا",
+      "one_two": "مرة إلى مرتين",
+      "three_four": "٣ إلى ٤ مرات",
+      "five_plus": "٥ مرات فأكثر"
     },
     "goal": {
       "weight_loss": "إنقاص الوزن",
@@ -611,9 +658,7 @@
       "previous": "السابق",
       "next": "التالي",
       "position": "الصفحة {page, number, integer} من {pageCount, number, integer}",
-      "label": "صفحات السجل",
-      "showing": "عرض {from, number, integer}–{to, number, integer} من {total, number, integer}",
-      "page": "الصفحة {page, number, integer}"
+      "label": "صفحات السجل"
     },
     "portal": {
       "title": "الحساب",
@@ -658,6 +703,8 @@
       "start": "ابدأ الآن",
       "sections": {
         "measurements": "القياسات",
+        "background": "بيانات ومعلومات عامة",
+        "habits": "نمط الحياة والعادات",
         "allergies": "الحساسية",
         "clinical": "الملاحظات الطبية",
         "planning": "ما تلتزم به الخطة",
@@ -674,6 +721,7 @@
       "missingFields": "لإتمام التوليد أضف: {fields}",
       "kcalValue": "{value} kcal",
       "gramsValue": "{value} غ",
+      "hoursValue": "{value} ساعة",
       "override": "يدوي",
       "shareTotal": "مجموع النسب {value}%",
       "addSlot": "إضافة وجبة",
@@ -691,7 +739,16 @@
         "medicalNotes": "ما تحتاج العيادة إلى تذكّره عن هذا المشترك",
         "permanentInstructions": "لا ألبان بعد السادسة مساءً",
         "preferences": "دجاج مشوي",
-        "dislikes": "كبدة"
+        "dislikes": "كبدة",
+        "occupation": "معلّمة",
+        "childrenCount": "2",
+        "sleepHours": "7",
+        "visitReason": "إنقاص الوزن قبل موعد محدد",
+        "dietHistory": "كيتو لمدة شهرين قبل سنة",
+        "drugAllergies": "بنسلين",
+        "familyHistory": "سكري لدى الأب، سمنة في العائلة",
+        "activityNotes": "مشي 40 دقيقة معظم المساءات، عمل مكتبي",
+        "activityBarriers": "ألم في الركبة"
       },
       "overrideDivider": "أرقام يدوية",
       "unsetCount": "{count} حقول غير مُدخلة",
@@ -718,7 +775,11 @@
       "gapsPrompt": "{count, plural, =0 {كل الحقول مُدخلة} one {حقل واحد بلا بيانات} two {حقلان بلا بيانات} few {# حقول بلا بيانات} many {# حقلاً بلا بيانات} other {# حقل بلا بيانات}}",
       "allergyLine": "الحساسية",
       "privateBadge": "خاص بالعيادة",
-      "notesDivider": "ملاحظات"
+      "notesDivider": "ملاحظات",
+      "backgroundHint": "معلومات عامة تُسجَّل مرة واحدة عند أول زيارة.",
+      "habitsHint": "عادات يومية وأسبوعية — اختاري الأقرب، والتفاصيل تُكتب في الملاحظات.",
+      "frequencyLegend": "كم مرة",
+      "assessmentEmpty": "لم يُسجَّل التقييم التغذوي بعد."
     },
     "allergens": {
       "nuts": "مكسرات",

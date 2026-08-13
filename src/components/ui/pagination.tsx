@@ -73,6 +73,21 @@ type PaginationLinkProps = {
  * the solid `default`. A pager is a place marker, not the screen's action:
  * a filled olive button here would outrank "New client" in the toolbar above
  * it, and there is only ever one of those per screen.
+ *
+ * **No border on the active page, and the fill alone is a weak mark.**
+ * `--secondary` is olive-50, 1.07:1 against a white page — on a button that is
+ * a tint you read as a surface, on a numeral it is nearly nothing. It is
+ * enough where the current page is the *only* page drawn, which is how
+ * `ClientPagination` now works: one numeral between two steps, and what tells
+ * you the step landed is the digit changing, not the chip behind it. The
+ * semibold numeral in `--foreground` (16.05:1 on that fill) is the rest of it.
+ *
+ * ⚠ It is thinner than it looks where a pager still draws a *row* of numbers —
+ * `DishPagination` does — because there the reader has to pick the current one
+ * out of five identical chips and a 1.07:1 fill is not much to do it with. An
+ * edge would fix it: olive-500 measures 3.47:1 on the page and 3.23:1 on the
+ * chip, clearing the 3:1 a boundary needs from either side. Left undrawn on
+ * purpose, not overlooked.
  */
 function PaginationLink({
   className,
@@ -92,6 +107,9 @@ function PaginationLink({
           // digits change under them — the same reason the table's number
           // columns carry it.
           "tabular",
+          // After the variant, so `twMerge` resolves the label colour in this
+          // file's favour rather than the variant's.
+          isActive && "font-semibold text-foreground",
           className
         ),
       },

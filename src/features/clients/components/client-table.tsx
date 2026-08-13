@@ -171,13 +171,23 @@ export function ClientTable({
 
   return (
     /*
-      From `md` up this is the only part of the register that scrolls: the
-      page hands it a bounded height and the rows move inside it, so the
-      title, the search field and the pager stay where the reader left them.
-      Below that the page scrolls as one — see the page component — and the
-      sticky header simply pins itself to the top of the app shell instead.
+      No vertical scroll of its own, at any width. It used to take a bounded
+      height from the page and scroll its rows inside it, which is the right
+      construction for a long table — and this one is no longer long. A page
+      is `CLIENTS_PAGE_SIZE` rows, a figure chosen so the whole register fits
+      the screen, so a frame around it would be a scrollbar on a list with
+      nothing below the fold. The pager is what moves you through the register
+      now.
+
+      `TableRoot` keeps its own `overflow-x-auto`: that is the sideways scroll
+      a wide table needs on a phone, and it is untouched by any of this.
+
+      `TableHeader sticky` stays too, and now pins to the app shell rather than
+      to a frame here — the same thing it already did below `md`. On a short
+      window where a full page of rows does not fit, the page scrolls as one and
+      the column names ride along at the top of it.
     */
-    <TableRoot className="md:min-h-0 md:flex-1 md:overflow-y-auto">
+    <TableRoot>
       <Table>
         <TableHeader sticky>
           <TableRow>

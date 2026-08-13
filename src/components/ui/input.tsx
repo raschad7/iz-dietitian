@@ -38,7 +38,7 @@ function Input({ className, type, icon, ...props }: InputProps) {
           name of the field: at the same 16px as both it competed with them,
           and an empty form read as a column of filled-in boxes.
         */
-        "placeholder:text-body-sm placeholder:text-muted-foreground",
+        "placeholder:text-body-sm placeholder:text-placeholder",
         "file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-caption file:font-medium file:text-foreground",
         // The well below is 48px, so the text starts where a field with no icon
         // would have its 20px of padding, plus the glyph and a gap.
