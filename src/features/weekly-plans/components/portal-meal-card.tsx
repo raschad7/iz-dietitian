@@ -114,14 +114,11 @@ export function PortalMealCard({
     */
     <Card
       className={cn(
-        // No shadow and no ring, resting or hovered. Five of these stacked in
-        // a tight scrolling list read as five raised slabs with `Card`'s own
-        // hairline still on; the `--meal-bg` tint against the page and the
-        // gap between cards do the separating instead — see the `--meal-*`
-        // note in `globals.css`.
-        'gap-0 p-1.5 shadow-none ring-0',
-        MEAL_SHELL,
-      )}
+    'gap-0 p-1.5 shadow-none ring-0 transition-colors duration-(--duration-label)',
+    'group-open:bg-[#F0F0F0] group-open:ring-1 group-open:ring-meal-border-checked',
+    'has-[[aria-checked=true]]:bg-[#F0F0F0] has-[[aria-checked=true]]:ring-1 has-[[aria-checked=true]]:ring-meal-border-checked',
+    MEAL_SHELL, 
+  )} 
     >
       <details className="q-disclosure group">
         {/*
@@ -167,9 +164,15 @@ export function PortalMealCard({
             inside it is invalid markup that browsers then reflow unpredictably.
           */}
           <span className="min-w-0 flex-1">
-            <span className="block font-heading text-base leading-snug font-semibold">
-              {meal.label}
-            </span>
+            {/*
+              `text-heading-sm` (20px/600) rather than `text-base`: this row is
+              the card's title — the one thing a client is scanning five of to
+              find "which meal" — and the scale's own role table names that
+              exact job (§Typography "Card titles, dialog titles"). The step
+              bakes its own leading and weight, so it replaces
+              `leading-snug font-semibold` rather than joining them.
+            */}
+            <span className="block font-heading text-heading-sm">{meal.label}</span>
             <span className="block truncate text-sm">
               {/* `dir="ltr"`: a clock time reads the same way in both languages. */}
               <span dir="ltr" className="tabular-nums">
@@ -202,9 +205,11 @@ export function PortalMealCard({
 
         {/*
           Plain `rounded-lg` on a bare fill: this is a panel inside the shell
-          around it, not a card in its own right.
+          around it, not a card in its own right. `bg-meal-bg`, not `bg-card`
+          — the panel is meant to read as part of the same tinted shell it
+          opens inside of, not as a second, whiter surface floating on top.
         */}
-        <div className="mt-1.5 rounded-lg bg-card p-4">
+        <div className="mt-1.5 rounded-lg bg-meal-bg p-4">
           {dish ? (
             <div className="space-y-4">
               {/*
@@ -232,9 +237,16 @@ export function PortalMealCard({
               */}
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0 space-y-1">
-                  <p className="font-heading text-lg leading-snug font-semibold text-primary">
-                    {dish.nameAr}
-                  </p>
+                  {/*
+                    `text-heading-sm` (20px/600), not `text-lg` (18px): opened,
+                    this line is the answer to the question the card exists to
+                    answer — what to eat — so it takes the scale's "card title"
+                    step rather than sitting one below it. The portion line under
+                    it stays `text-sm`, the scale's description size, so the two
+                    keep the same two-step gap `kcalValue`/`mealEnergyLabel` uses
+                    on the other side of this row.
+                  */}
+                  <p className="font-heading text-heading-sm text-primary">{dish.nameAr}</p>
                   <p className="text-sm text-secondary-foreground">
                     {t('portion', { servings: dish.servings, label: dish.baseServingLabel })}
                   </p>

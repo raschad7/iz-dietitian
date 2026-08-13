@@ -34,10 +34,13 @@ export function MealCheckMark({ checked }: { checked: boolean }) {
     */
     <span className="relative grid size-7 place-items-center">
       {checked ? (
-        <>
-          <span aria-hidden className="absolute size-5 rounded-full bg-card" />
-          <Icon name="mealCheckMark" className="relative size-7" />
-        </>
+        // Checked is a solid disc, not an outline glyph on a card-colour
+        // backing: the whole circle fills with the tick's own colour so the
+        // state reads at a glance, with the check itself in `bg-card` to sit
+        // on top of it.
+        <span className="grid size-6 place-items-center rounded-full bg-meal-check-fill">
+          <Icon name="check" className="size-4 text-card" />
+        </span>
       ) : (
         // Unchecked is an empty ring rather than a faint glyph: an outline reads
         // as "not yet", where a grey tick reads as a disabled one. 24px against

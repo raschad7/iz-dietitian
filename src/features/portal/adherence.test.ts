@@ -189,6 +189,24 @@ describe('continuityPath', () => {
 
     expect(path.map((day) => day.streak)).toEqual([1, 2, 2]);
   });
+
+  test('fraction reflects each day\'s own adherence, not the run climbing', () => {
+    // Monday, Tuesday, Wednesday(today). Monday kept at 1 of 4, Tuesday at
+    // 4 of 4 — the streak rises both days, but a lighter Monday must still
+    // read lower than a fuller Tuesday.
+    const path = continuityPath([meals(MONDAY, 1, 4), meals(TUESDAY, 4, 4)], WEDNESDAY, 3);
+
+    expect(path.map((day) => day.streak)).toEqual([1, 2, 2]);
+    expect(path.map((day) => day.fraction)).toEqual([0.25, 1, null]);
+  });
+
+  test('an unreported day has no fraction, distinct from an explicit zero', () => {
+    // Monday: reported and missed (0). Tuesday: unreported (null).
+    // Wednesday (today): reported at 2 of 4 (0.5).
+    const path = continuityPath([meals(MONDAY, 0, 4), meals(WEDNESDAY, 2, 4)], WEDNESDAY, 3);
+
+    expect(path.map((day) => day.fraction)).toEqual([0, null, 0.5]);
+  });
 });
 
 describe('currentAdherenceStreak', () => {

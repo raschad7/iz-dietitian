@@ -74,13 +74,18 @@ export function PortalTabBar() {
                 <Icon
                   name={PORTAL_NAV_ICONS[item.labelKey]}
                   className={cn(
-                    'size-6 transition-[color,transform] duration-(--duration-label) ease-(--ease-sweep)',
+                    'size-6 transition-[color,transform,filter] duration-(--duration-label) ease-(--ease-sweep)',
                     active
-                      ? '-translate-y-0.5 scale-105 text-primary'
+                      ? '-translate-y-0.5 scale-105 text-primary saturate-150'
                       : 'text-muted-foreground group-active:scale-95',
                   )}
                 />
-                <span className={cn('truncate', active ? 'font-semibold text-primary' : 'text-muted-foreground')}>
+                <span
+                  className={cn(
+                    'truncate',
+                    active ? 'font-semibold text-primary saturate-150' : 'text-muted-foreground',
+                  )}
+                >
                   {t(item.labelKey)}
                 </span>
               </Link>

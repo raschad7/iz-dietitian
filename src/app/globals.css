@@ -497,6 +497,8 @@
 
   --color-meal-bg: var(--meal-bg);
   --color-meal-fg: var(--meal-fg);
+  --color-meal-bg-checked: var(--meal-bg-checked);
+  --color-meal-border-checked: var(--meal-border-checked);
 
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
@@ -788,6 +790,17 @@
    */
   --meal-bg: #FBFBFB;
   --meal-fg: var(--n-900);
+
+  /*
+   * ── Meal shell, checked ──
+   * Today's card once its own `MealCheck` toggle is on — a darker border and
+   * a slightly deeper fill than `--meal-bg`'s resting tone, so a meal marked
+   * eaten reads as settled without a second colour entering the list. Mixed
+   * relative to `--meal-bg`/`--meal-fg` rather than pinned to a literal, for
+   * the same reason `--meal-bg` itself is not remapped for dark mode.
+   */
+  --meal-bg-checked: color-mix(in srgb, var(--meal-bg) 92%, var(--meal-fg) 8%);
+  --meal-border-checked: color-mix(in srgb, var(--meal-fg) 30%, transparent);
 
   /* Data visualisation comfort band */
   --viz-band-range: var(--lime-300);

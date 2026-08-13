@@ -116,7 +116,7 @@ export function TodayRing({
         ) : null}
       </svg>
 
-      <span className="grid size-[7.5rem] place-items-center rounded-full bg-portal-progress-fill shadow-elevated">
+      <span className="grid size-[7.5rem] place-items-center rounded-full bg-portal-progress-fill shadow-elevated saturate-150">
         <span className="flex flex-col items-center gap-1">
           <span className="font-heading text-4xl leading-none font-bold tabular-nums text-portal-progress-figure">
             {percentParts ? (
