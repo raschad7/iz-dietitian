@@ -75,7 +75,7 @@ function SelectTrigger({
       className={cn(
         "q-field flex cursor-pointer items-center justify-between gap-2 ps-5 pe-4 text-start",
         "data-[size=default]:h-12 data-[size=sm]:h-10",
-        "data-placeholder:text-muted-foreground",
+        "data-placeholder:text-placeholder",
         "[&_svg]:pointer-events-none [&_svg]:shrink-0",
         className
       )}

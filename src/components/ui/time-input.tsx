@@ -56,17 +56,36 @@ type TimeInputProps = Omit<React.ComponentProps<'input'>, 'type'> & {
    * this app stores a time more precisely than the minute.
    */
   step?: number;
+
+  /**
+   * Whether to draw the leading clock. On by default; pass `false` in a column
+   * of times.
+   *
+   * **The glyph costs 48px of the content box**, and with the field's own 20px
+   * end padding that is 68px of chrome before a digit is drawn. In the clinic's
+   * weekly schedule — two 128px fields per row, seven rows — that left about
+   * 60px for the value, and a browser rendering 12-hour time clipped `06:00 PM`
+   * to `06:00 P`. A time you cannot read is worse than a time with no icon.
+   *
+   * Dropping it there is also the better design on its own terms: the column is
+   * already headed "opens" and "closes", so fourteen identical clocks label
+   * nothing that the heading above them has not said once. The same reasoning
+   * removed the fourteen repeated من/إلى labels this table used to carry.
+   */
+  icon?: boolean;
 };
 
-function TimeInput({ className, step, ...props }: TimeInputProps) {
+function TimeInput({ className, step, icon = true, ...props }: TimeInputProps) {
   return (
     <span dir="ltr" className="relative block">
-      <span
-        aria-hidden
-        className="pointer-events-none absolute inset-y-0 start-0 flex w-12 items-center justify-center text-muted-foreground"
-      >
-        <Icon name="clock" className="size-5" />
-      </span>
+      {icon ? (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 start-0 flex w-12 items-center justify-center text-muted-foreground"
+        >
+          <Icon name="clock" className="size-5" />
+        </span>
+      ) : null}
 
       <Input
         type="time"
@@ -74,7 +93,8 @@ function TimeInput({ className, step, ...props }: TimeInputProps) {
         className={cn(
           // The same well `Input`'s own `icon` prop reserves, so a time field
           // and an iconned text field start their content at the same offset.
-          'ps-12 tabular',
+          icon && 'ps-12',
+          'tabular',
           /*
            * The indicator is the button that opens the OS spinner. `appearance`
            * as well as `display`, because they are two different opt-outs and

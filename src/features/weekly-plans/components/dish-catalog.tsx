@@ -1,13 +1,18 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Popover } from '@base-ui/react/popover';
 import { useDraggable } from '@dnd-kit/core';
 import { useTranslations } from 'next-intl';
 
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTitle,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { membersOf } from '@/lib/enum';
 import { cn } from '@/lib/utils';
 
@@ -148,9 +153,10 @@ export function DishCatalog({
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
-      <div className="relative shrink-0 border-b border-border pb-3">
+      <div className="relative shrink-0 border-b border-border pb-4">
         <Input
           type="search"
+          icon="search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder={t('searchDishes')}
@@ -193,17 +199,20 @@ export function DishCatalog({
             </FilterChip>
           ))}
 
-          <Popover.Root>
-            <Popover.Trigger
-              className={buttonVariants({ variant: 'outline', size: 'sm', className: 'px-3 text-label' })}
+          <Popover>
+            <PopoverTrigger
+              className={buttonVariants({ variant: 'neutral', size: 'sm', className: 'px-3 text-label' })}
             >
               <Icon name="filter" />
               {t('dishFilters')}
-            </Popover.Trigger>
-            <Popover.Portal>
-              <Popover.Positioner side="bottom" align="end" sideOffset={6} className="z-50">
-                <Popover.Popup className={cn(PLANNER_THEME, "w-72 origin-(--transform-origin) rounded-lg border border-border bg-popover p-3 text-popover-foreground shadow-overlay transition-[transform,opacity] duration-150 ease-[cubic-bezier(.2,.6,.2,1)] data-ending-style:scale-95 data-ending-style:opacity-0 data-starting-style:scale-95 data-starting-style:opacity-0")}>
-                  <Popover.Title className="pb-2 text-label font-semibold">{t('dishFilters')}</Popover.Title>
+            </PopoverTrigger>
+            <PopoverContent
+              side="bottom"
+              align="end"
+              sideOffset={6}
+              className={cn(PLANNER_THEME, 'w-72 gap-0 p-3 shadow-overlay')}
+            >
+                  <PopoverTitle className="pb-2 text-label font-semibold">{t('dishFilters')}</PopoverTitle>
 
                   {/* Two groups, because they answer different questions. The
                       tags describe the dish; the options describe whether it
@@ -254,10 +263,8 @@ export function DishCatalog({
                       );
                     })}
                   </FilterGroup>
-                </Popover.Popup>
-              </Popover.Positioner>
-            </Popover.Portal>
-          </Popover.Root>
+            </PopoverContent>
+          </Popover>
 
           {activeCount > 0 && (
             <Button type="button" variant="ghost" size="sm" onClick={clearFilters}>
@@ -267,9 +274,11 @@ export function DishCatalog({
         </div>
 
         {slot && slot.budgetKcal > 0 && (
-          <div className="mt-2 flex items-center justify-between gap-2 text-caption">
+          <div className="mt-3 flex items-center justify-between gap-2 rounded-md bg-secondary/70 px-3 py-2 text-caption">
             <strong className="text-primary">{t('bestMatches', { value: slot.budgetKcal })}</strong>
-            <span className="text-muted-foreground">{shown.length}</span>
+            <span className="rounded-full bg-card px-2 py-0.5 font-semibold tabular-nums text-muted-foreground shadow-card">
+              {shown.length}
+            </span>
           </div>
         )}
       </div>
@@ -286,13 +295,13 @@ export function DishCatalog({
           )}
         </div>
       ) : (
-        <ul className="no-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+        <ul className="no-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden pt-1">
           {shown.map((dish) => {
             const servings = slot ? (bestServings(dish.baseKcal, slot.budgetKcal) ?? 1) : 1;
             const allowed = editable && dish.blockedBy.length === 0;
 
             return (
-              <li key={dish.id}>
+              <li key={dish.id} className="border-b border-border last:border-b-0">
                 <CatalogRow
                   dish={dish}
                   usage={usage[dish.id]}
@@ -363,9 +372,9 @@ function FilterChip({
            which fitted more chips into the rail by making each of them a worse
            target — and in the compact layout this panel is a sheet, so it is
            being pressed with a thumb. Wrapping onto a third row is the cost. */
-        'inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 py-1 text-caption transition-colors',
+        'inline-flex min-h-10 items-center gap-1.5 rounded-full border px-3 py-1 text-caption transition-colors',
         active
-          ? 'border-primary bg-primary text-primary-foreground'
+          ? 'border-transparent bg-secondary text-secondary-foreground hover:bg-primary-subtle'
           : 'border-border text-muted-foreground hover:bg-accent',
         // Dimmed and inert rather than removed. A tag that vanishes when it
         // stops matching teaches the dietitian the catalog is missing things.
@@ -418,7 +427,7 @@ function CatalogRow({
   // same list in both places; only the leading mark changes, because the gesture
   // it promises is what changed.
   const shape = cn(
-    'grid min-h-16 w-full grid-cols-[1.25rem_minmax(0,1fr)_auto] items-center gap-2 border-b border-border py-2.5 text-start transition-colors',
+    'my-1 grid min-h-[4.5rem] w-full grid-cols-[1.25rem_minmax(0,1fr)_auto] items-center gap-2 rounded-md px-2 py-2.5 text-start transition-colors',
     draggable && 'cursor-grab hover:bg-accent/50',
     onPick && !blocked && 'cursor-pointer hover:bg-accent/50',
     blocked && 'bg-muted/50 opacity-70',
@@ -468,8 +477,9 @@ function CatalogRow({
           )}
         </span>
       </span>
-      <span className="text-label font-semibold tabular-nums" dir="ltr">
-        {kcal}
+      <span className="flex flex-col items-end text-end tabular-nums" dir="ltr">
+        <strong className="text-label">{kcal}</strong>
+        <small className="text-caption font-normal text-muted-foreground">kcal</small>
       </span>
     </>
   );

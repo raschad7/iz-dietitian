@@ -52,7 +52,7 @@ export type HomeTodayMeal = {
  * calorie counts update the instant `MealCheck` flips a meal below, rather
  * than waiting on the next navigation.
  */
-function TodayProgress({ meals }: { meals: HomeTodayMeal[] }) {
+function TodayProgress({ meals, countOnMount }: { meals: HomeTodayMeal[]; countOnMount: boolean }) {
   const locale = useLocale() as Locale;
   const t = useTranslations('portal.progress.today');
   const context = usePlanDayCompletion();
@@ -104,7 +104,13 @@ function TodayProgress({ meals }: { meals: HomeTodayMeal[] }) {
     // beside it. `text-black`, not `text-white`: the card is opaque again,
     // so the pair reads against `bg-card` rather than the home glow.
     <div className="flex min-h-[150px] w-full flex-col items-center justify-center gap-3 rounded-[30px] bg-card px-4 py-4">
-      <TodayRing fraction={fraction} completed={completed} total={total} locale={locale} />
+      <TodayRing
+        fraction={fraction}
+        completed={completed}
+        total={total}
+        locale={locale}
+        countOnMount={countOnMount}
+      />
 
       <div className="flex items-center justify-center gap-4 text-caption text-black">
         {/* Same pair the ring itself is drawn in — the fill for what's done, the soft track for what's left. */}
@@ -121,13 +127,30 @@ function TodayProgress({ meals }: { meals: HomeTodayMeal[] }) {
   );
 }
 
-export function HomeToday({ meals }: { meals: HomeTodayMeal[] }) {
+export function HomeToday({
+  meals,
+  countOnMount = false,
+}: {
+  meals: HomeTodayMeal[];
+  /**
+   * Draw the ring's figure up from zero when it first appears, the way the
+   * progress tab's copy does.
+   *
+   * ⚠ **Only true when the open day is today, and that guard is load-bearing.**
+   * `PlanDayPicker` changes days with `router.replace(?day=N)` and the page
+   * keys `PlanDayCompletionProvider` on the selection, so every day tap
+   * remounts this ring — ungated, each one would replay the full count-up and
+   * put a multi-second animation between the tap and the number it was asking
+   * for. The entrance belongs to arriving on the screen, not to browsing it.
+   */
+  countOnMount?: boolean;
+}) {
   const tToday = useTranslations('portal.progress.today');
 
   return (
     <section className="space-y-3">
       <p className="text-sm font-medium text-white">{tToday('heading')}</p>
-      <TodayProgress meals={meals} />
+      <TodayProgress meals={meals} countOnMount={countOnMount} />
     </section>
   );
 }

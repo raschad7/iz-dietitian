@@ -7,7 +7,7 @@ import { HomeGlow } from '@/features/portal/components/home-glow';
 import { PortalHeader } from '@/features/portal/components/portal-header';
 import { PortalTabBar } from '@/features/portal/components/portal-tab-bar';
 import { greetingKey } from '@/features/portal/greeting';
-import { countPendingRequests } from '@/features/portal/queries';
+import { loadPortalNotifications } from '@/features/portal/page-data';
 import { requirePortalClient } from '@/features/portal/session';
 import { resolveLocale } from '@/i18n/params';
 import { formatDate } from '@/lib/format';
@@ -35,7 +35,30 @@ export default async function PortalTabsLayout({ children, params }: PortalTabsL
   const locale = await resolveLocale(params);
 
   const context = await requirePortalClient(locale);
-  const pendingCount = await countPendingRequests(context.id);
+
+  /*
+    The bell's badge counts unread notifications, so the shell has to know what
+    the feed holds — not merely how much of it is outstanding.
+
+    This replaced a single `countPendingRequests`, and the trade is deliberate.
+    That count was one cheap query, but it counted *unanswered requests* while
+    the bell it badged opens a screen listing reminders, plan updates and
+    answered requests too — so the mark on the bell and the list behind it were
+    already two different facts, and the number would have been the wrong one.
+    Worse, being a server count of something only the clinic can resolve, it
+    could not be cleared by reading it: a client with one pending request saw the
+    same red dot for a week.
+
+    `loadPortalNotifications` is four small parallel reads and is the same loader
+    the notifications screen itself uses, so the two can never disagree. The
+    heavy part — a fully costed plan board, read for one date field — was taken
+    out of it on the way; see the note there.
+
+    Ids, not a count, because "unread" is a set difference. `PortalHeader` holds
+    the seen marks in `localStorage` and explains why they cannot live in the
+    database.
+  */
+  const notifications = await loadPortalNotifications(context);
 
   const t = await getTranslations('portal');
 
@@ -117,7 +140,7 @@ export default async function PortalTabsLayout({ children, params }: PortalTabsL
             day: 'numeric',
             month: 'long',
           })}
-          pendingCount={pendingCount}
+          notificationIds={notifications.map((item) => item.id)}
           locale={locale}
           showNav
         />

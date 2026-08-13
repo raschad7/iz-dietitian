@@ -1,10 +1,16 @@
 'use client';
 
-import { Dialog as DrawerPrimitive } from '@base-ui/react/dialog';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetTitle,
+} from '@/components/ui/sheet';
 import { getLocaleDirection, type Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 
@@ -41,46 +47,46 @@ export function DishCatalogDrawer({
   const direction = getLocaleDirection(locale);
 
   return (
-    <DrawerPrimitive.Root
+    <Sheet
       open={open}
       modal={false}
       disablePointerDismissal
       onOpenChange={(nextOpen) => onOpenChange(nextOpen)}
     >
-      <DrawerPrimitive.Portal>
-        <DrawerPrimitive.Popup
-          dir={direction}
-          className={cn(
-            PLANNER_THEME,
-            'fixed inset-y-0 z-50 flex w-[min(24rem,calc(100vw-1rem))] flex-col bg-popover text-popover-foreground shadow-overlay outline-none',
-            direction === 'rtl' ? 'end-0 border-s border-border' : 'start-0 border-e border-border',
-            'transition-[opacity,transform] duration-(--duration-sweep) ease-(--ease-sweep)',
-            'data-ending-style:-translate-x-full data-ending-style:opacity-0',
-            'data-starting-style:-translate-x-full data-starting-style:opacity-0',
-          )}
-        >
-          <header className="flex shrink-0 items-start gap-3 border-b border-border px-4 py-3">
+      <SheetContent
+        dir={direction}
+        side={direction === 'rtl' ? 'inline-end' : 'inline-start'}
+        showOverlay={false}
+        showCloseButton={false}
+        className={cn(
+          PLANNER_THEME,
+          'w-[min(28rem,calc(100vw-0.75rem))] sm:max-w-none',
+        )}
+      >
+        <header className="flex shrink-0 items-start gap-3 border-b border-border bg-muted/45 px-5 py-4">
+            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-card text-primary shadow-card">
+              <Icon name="dishes" className="size-5" />
+            </span>
             <div className="min-w-0 flex-1">
-              <DrawerPrimitive.Title className="font-heading text-heading-sm font-semibold">
+              <SheetTitle className="font-heading text-heading-lg font-medium">
                 {t('dishCatalog')}
-              </DrawerPrimitive.Title>
-              <DrawerPrimitive.Description className="text-caption text-muted-foreground">
+              </SheetTitle>
+              <SheetDescription className="mt-0.5 text-caption leading-relaxed">
                 {t('dishCatalogHint')}
-              </DrawerPrimitive.Description>
+              </SheetDescription>
             </div>
-            <DrawerPrimitive.Close
+            <SheetClose
               render={<Button type="button" variant="ghost" size="icon-sm" />}
               aria-label={t('close')}
             >
               <Icon name="close" />
-            </DrawerPrimitive.Close>
-          </header>
+            </SheetClose>
+        </header>
 
-          <div className="min-h-0 flex-1 p-4">
-            <DishCatalog catalog={catalog} usage={usage} slot={slot} editable={editable} />
-          </div>
-        </DrawerPrimitive.Popup>
-      </DrawerPrimitive.Portal>
-    </DrawerPrimitive.Root>
+        <div className="min-h-0 flex-1 px-5 pb-4 pt-3">
+          <DishCatalog catalog={catalog} usage={usage} slot={slot} editable={editable} />
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }

@@ -42,6 +42,21 @@ export default async function ProgressPage({ params }: ProgressPageProps) {
     <div className="space-y-4">
       <TodayAdherenceCard today={today} locale={locale} />
 
+      {/*
+        Both cards animate from the moment the page paints — the ring counts up
+        while the streak curve draws itself in.
+
+        ⚠ **The curve deliberately does not wait for the ring**, and it was
+        tried the other way first. Holding it back left the plot blank for as
+        long as the wait ran, which reads as a card that failed to load rather
+        than as a sequence — and worse when there is nothing to wait for at all:
+        `today` is null until something is reported and the fraction is 0 for an
+        untouched day, so the ring often paints instantly and the queue was
+        waiting on an animation that never played. Anchoring one to the other
+        also has no honest anchor point, because `--ease-sweep` decelerates into
+        its value and the ring has no crisp end to key off. Both start at zero;
+        neither can be late.
+      */}
       <AdherenceStreakCard streak={streak} continuity={continuity} />
 
       <AdherenceTrendCard weeks={monthlyTrend} />

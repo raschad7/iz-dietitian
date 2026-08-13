@@ -97,6 +97,10 @@ export default async function PortalPage({ params, searchParams }: PortalPagePro
   // `PortalPlan` renders meals for below it.
   const selectedBoardDay = plan?.board.days.find((candidate) => candidate.dayOfWeek === plan.selectedDay);
 
+  // The strip's own row for the open day, read for `isToday` — the same flag
+  // `PlanDayPicker` marks its today cell with.
+  const selectedDaySummary = plan?.days.find((candidate) => candidate.dayOfWeek === plan.selectedDay);
+
   // Only the shape `HomeToday` draws crosses into its client bundle — the
   // dish, options and rationale on each `BoardMeal` stay server-side, same
   // reasoning `portal-plan.tsx` documents for the plan section itself.
@@ -146,7 +150,19 @@ export default async function PortalPage({ params, searchParams }: PortalPagePro
       >
         {plan ? <PlanDayPicker days={plan.days} selectedDay={plan.selectedDay} /> : null}
 
-        <HomeToday meals={selectedMeals} />
+        {/*
+          The ring counts up from zero on arrival — but only while the day it
+          is drawing is today's. Stepping to another day re-navigates and
+          remounts this whole subtree (see the `key` above), so an unconditional
+          entrance would replay the climb on every tap of the strip and delay
+          the very figure the tap asked for. `isToday` comes off the same
+          `PlanDaySummary` the picker marks its own cell with, so the two can
+          never disagree about which day that is.
+        */}
+        <HomeToday
+          meals={selectedMeals}
+          countOnMount={selectedDaySummary?.isToday ?? false}
+        />
 
         {plan ? (
           <PortalPlan

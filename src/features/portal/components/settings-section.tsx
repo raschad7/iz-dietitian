@@ -23,7 +23,7 @@ export function SettingsSection({
   description,
   children,
 }: {
-  /** A name from the Solar registry — the app has one icon set. */
+  /** A name from `APP_ICONS` — the app has one icon set. */
   icon: IconName;
   title: string;
   description?: string;

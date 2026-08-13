@@ -59,7 +59,18 @@ function Tabs({
         'flex shrink-0 overflow-x-auto',
         appearance === 'line'
           ? 'gap-0.5 border-b border-border'
-          : 'w-fit max-w-full gap-1 rounded-lg bg-muted p-1',
+          /*
+           * The panel bar's own geometry, to the pixel — `h-11`, `rounded-lg`,
+           * `bg-muted`, `p-1`, `gap-0.5`. `PanelTabsList` is the reference and
+           * this is the link-flavoured twin of it; a settings tab bar and a
+           * client-record tab bar that differ by two pixels of padding read as
+           * a mistake rather than as two components.
+           *
+           * `w-full` rather than `w-fit`, so the track spans its column and the
+           * tabs share it — a bar that hugs one edge of an otherwise empty row
+           * is what the line appearance is for.
+           */
+          : 'h-11 w-full min-w-full items-center gap-0.5 rounded-lg bg-muted p-1',
         // Hides the horizontal scrollbar's track on the platforms that draw one
         // permanently; the strip still scrolls by wheel, drag and keyboard.
         '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
@@ -111,9 +122,19 @@ const tabLinkVariants = cva(
           'relative -mb-px border-b-2 border-b-transparent px-4 pt-3 pb-3.5',
           'after:pointer-events-none after:absolute after:inset-x-4 after:bottom-[-1px] after:h-0.5 after:origin-center after:scale-x-0 after:bg-primary after:transition-transform after:duration-(--duration-label) after:ease-(--ease-sweep)',
         ],
+        /*
+         * `PanelTabsTrigger`'s treatment, borrowed wholesale. `flex-auto` and
+         * not `flex-1`: the tabs keep their *relative* widths, so a two-word
+         * label still reads as the longer one instead of every tab getting an
+         * identical box.
+         *
+         * No border. The panel bar distinguishes the selected tab with fill and
+         * shadow alone, and adding a hairline here put a line around one of
+         * four otherwise identical shapes.
+         */
         contained: [
-          'h-10 rounded-md border border-transparent px-3',
-          'data-[active=true]:border-border data-[active=true]:bg-card data-[active=true]:shadow-card',
+          'h-full min-w-0 flex-auto justify-center rounded-md px-2.5',
+          'hover:bg-accent/60',
         ],
       },
     },
@@ -126,12 +147,10 @@ const tabLinkVariants = cva(
       {
         appearance: 'contained',
         active: true,
-        class: 'border-border bg-card shadow-card',
-      },
-      {
-        appearance: 'contained',
-        active: false,
-        class: 'hover:bg-accent',
+        // `hover:bg-card` holds the raised fill under the pointer: the
+        // unselected hover tint firing on the selected tab would read as it
+        // being deselected.
+        class: 'bg-card font-semibold text-secondary-foreground shadow-card hover:bg-card',
       },
     ],
     defaultVariants: { active: false, appearance: 'line' },

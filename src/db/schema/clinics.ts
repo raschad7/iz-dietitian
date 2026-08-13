@@ -40,6 +40,28 @@ export const clinics = pgTable(
     onboardingCompletedAt: timestamp('onboarding_completed_at', { withTimezone: true }),
 
     /**
+     * The clinic's mark, shown wherever the clinic identifies itself to a
+     * client — the portal header, and eventually a printed plan.
+     *
+     * **It holds a `data:` URI, not a link to a bucket.** This stack has no
+     * object storage: `DATABASE_URL` is the only backing service, so a column
+     * is the one place an image can live without introducing a second one. The
+     * upload control resizes to 256×256 and re-encodes to WebP before it ever
+     * reaches a server action, which caps a row at roughly 40 KB — small enough
+     * that Postgres storing it inline is unremarkable, and `LOGO_MAX_BYTES` in
+     * `validation.ts` rejects anything that slips past the client.
+     *
+     * The name is `logo_url` rather than `logo_data` deliberately: the day this
+     * moves to a bucket, the column holds an ordinary URL and every read stays
+     * exactly as written. Only the writer changes.
+     *
+     * ⚠ It is deliberately **not** selected by `getClinicProfile`'s sibling
+     * queries — see `queries.ts`. A 40 KB string on a row joined into every
+     * client list would be paid for on screens that never draw it.
+     */
+    logoUrl: text('logo_url'),
+
+    /**
      * When the clinic is open. The booking validator reads these three columns
      * and nothing else, so opening hours are per-clinic data — not a constant
      * someone has to redeploy to change.

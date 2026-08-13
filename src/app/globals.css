@@ -495,6 +495,7 @@
 
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
+  --color-placeholder: var(--placeholder);
   --color-muted-foreground: var(--muted-foreground);
   --color-muted: var(--muted);
   --color-icon-chip-foreground: var(--icon-chip-foreground);
@@ -602,6 +603,22 @@
    */
   --muted: var(--c-100);
   --muted-foreground: var(--n-600);     /* text.secondary — 6.38:1 floor */
+
+  /*
+   * Placeholder text — a hint, not an answer.
+   *
+   * It used to borrow `--muted-foreground`, which is the stop for text that
+   * *is* content: a caption, a unit, a secondary label. At n-600 an empty
+   * field read as already answered, and the intake dialog — twenty of them
+   * down one column — was twenty lines of warm olive ink saying nothing. One
+   * stop lighter takes the chroma down with it and settles the hint level
+   * with the edge it sits inside, `--input` being the same n-500: box and
+   * hint read as one piece of chrome, and the typed value is the only content
+   * in the field. 4.02:1 on white — past the 3:1 a non-essential hint needs,
+   * and well clear of the 2.2:1 n-400 would have faded to.
+   */
+  --placeholder: var(--n-500);
+
 
   /*
    * ── The icon disc ──
@@ -941,6 +958,10 @@
 
   --muted: var(--olive-900);
   --muted-foreground: var(--olive-200);
+  /* The same step down, taken in the neutral family: olive-200 is a tinted
+     light stop, so a hint drawn in it reads as green rather than as absent.
+     n-400 is the warm gray this scope already draws the field edge in. */
+  --placeholder: var(--n-400);
 
   /* The plate cannot be `--muted` here: dark's muted and card are both
      olive-900, so the disc would draw nothing at all. olive-800 is the stop
@@ -1095,6 +1116,10 @@
 
     --muted: var(--olive-900);
     --muted-foreground: var(--olive-200);
+    /* The same step down, taken in the neutral family: olive-200 is a tinted
+       light stop, so a hint drawn in it reads as green rather than as absent.
+       n-400 is the warm gray this scope already draws the field edge in. */
+    --placeholder: var(--n-400);
 
     /* See the `.dark` block — muted and card are the same stop here. */
     --icon-chip: var(--olive-800);
@@ -1376,6 +1401,25 @@
    */
   body:has(.portal-tab-bar) {
     --q-toast-offset-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+
+    /*
+     * ── A floating action clears the same bar ──
+     *
+     * `AppointmentRequestFab` has the toaster's exact problem and solves it the
+     * same way: it portals to <body>, so it is outside the portal tree and this
+     * is the nearest ancestor that can reach it with a value.
+     *
+     * Derived from the toast offset rather than restating the `calc()`, because
+     * the two are not two numbers that happen to agree — they are one
+     * clearance, the height of `PortalTabBar` plus a gap. Whoever changes the
+     * bar changes it here once.
+     *
+     * Undefined above `lg` and on the `(screen)` group, both of which render no
+     * tab bar. The call site supplies `1.5rem` as the `var()` fallback for
+     * those, which is the app's ordinary edge inset — an unset variable with no
+     * fallback would invalidate `bottom` entirely and drop the button to `auto`.
+     */
+    --q-fab-offset-bottom: var(--q-toast-offset-bottom);
   }
 }
 
@@ -1934,11 +1978,119 @@
     background: var(--status-complete-mark);
     animation: q-flame-particle-burst 660ms cubic-bezier(.2, .6, .2, 1) both;
   }
+
+  /*
+   * ── The streak curve drawing itself in ──
+   * `AdherenceStreakCard` on the progress tab. The card is server-rendered SVG
+   * and stays that way (§Charts: no chart is a client component), so the whole
+   * entrance is CSS that starts the moment the element paints — no observer, no
+   * hydration, nothing shipped to the browser to run it.
+   *
+   * It answers the same question the dashboard's Recharts area answers with its
+   * built-in mount animation, in the one way this chart can: Recharts wipes a
+   * clip rect across the plot, which needs a direction to wipe *in*. The stroke
+   * here draws along its own path instead, and the path is already plotted
+   * oldest-point-first with `x` mirrored for Arabic — so the line grows from the
+   * oldest day toward today in both scripts with nothing here knowing which way
+   * that is.
+   *
+   * Same unit as the celebration above: multiples of `--duration-arc` (220ms),
+   * on the one curve. The line takes 5× and everything else is timed off it —
+   * the wash follows one step behind the stroke, each dot lands as the stroke
+   * reaches its column (`AdherenceStreakCard` sets the per-dot delay, since only
+   * it knows how many days are in the window), and the callout arrives last,
+   * once there is a curve for it to be pointing at.
+   */
+  /*
+   * The wipe. A `<rect>` inside a `<clipPath>`, widening across the plot from
+   * the oldest day toward today, with the wash, the stroke and today's guide
+   * rule all clipped to it — so the curve is uncovered rather than redrawn, and
+   * the fill arrives underneath it in the same movement.
+   *
+   * ⚠ **It was a `stroke-dasharray` draw and that is why it must not be one
+   * again.** The stroke carries `vector-effect: non-scaling-stroke` inside a
+   * `preserveAspectRatio="none"` viewBox: `pathLength` normalises dash lengths
+   * in user space while non-scaling-stroke renders the stroke in screen space,
+   * the two scales disagree, and the pattern tiles across the path instead of
+   * covering it once — which paints a finished curve with pieces missing out of
+   * the middle. A clip has no such interaction: it is a box, and boxes do not
+   * care what the stroke is doing.
+   *
+   * **`transform-origin` is set per call site, not here.** It is the one part
+   * that has to know which end is the oldest day, and the card already knows —
+   * it mirrors the plot's own `x` for Arabic. `transform-box: view-box` is the
+   * initial value for SVG elements but is stated anyway: this rule is worthless
+   * if the origin resolves against a border box instead.
+   */
+  /*
+   * ⚠ **None of these three carries its own delay.** The card sets every one
+   * inline from `progress-motion.ts`, because they are positions in a sequence
+   * rather than properties of a class: the whole set waits for the commitment
+   * ring above to finish counting, and then the dots stagger across the wipe.
+   * Splitting that across a stylesheet and a component is how the two halves
+   * drift. Durations stay here — those *are* properties of the animation.
+   */
+  .q-chart-reveal {
+    transform-box: view-box;
+    animation: q-chart-wipe 1540ms cubic-bezier(.2, .6, .2, 1) both;
+  }
+
+  .q-chart-point {
+    animation: q-chart-point-in 440ms cubic-bezier(.2, .6, .2, 1) both;
+  }
+
+  .q-chart-callout {
+    animation: q-chart-fade 440ms cubic-bezier(.2, .6, .2, 1) both;
+  }
+
+  /*
+   * ── The trend card's bars growing out of the baseline ──
+   * `AdherenceTrendCard` on the progress tab, matching what Recharts does for
+   * the dashboard's own bar chart. Unlike everything above it, this one waits
+   * for the card to be scrolled to — `RevealOnView` publishes the `data-reveal`
+   * these key off.
+   *
+   * **The height is a variable, not an inline `height`.** The bar's own length
+   * is per-week data, so it has to come from the component; putting it in
+   * `--q-bar-h` instead of on `height` directly is what lets a rule here hold
+   * the bar at zero while it waits, without `!important` fighting an inline
+   * style it can never outrank.
+   *
+   * **Height and not `transform: scaleY()`**, which would be the cheaper
+   * property: these bars are `rounded-md`, and a scaled bar has its corner radii
+   * stretched with it — the animation would play with visibly squashed corners
+   * that only settle at the end. Four bars is nothing to lay out.
+   */
+  .q-bar {
+    height: var(--q-bar-h, 0%);
+  }
+
+  /* Held at the floor while the observer waits. Absent this attribute — no
+     JavaScript, no observer — the rule above stands and the bar is simply
+     drawn. */
+  [data-reveal='armed'] .q-bar {
+    height: 0;
+  }
+
+  [data-reveal='seen'] .q-bar {
+    animation: q-bar-grow 880ms cubic-bezier(.2, .6, .2, 1) both;
+  }
 }
 
 /*
  * Everything that moves does so to communicate state. When the OS says the
  * user does not want that, the state still changes — only the travel does not.
+ *
+ * ⚠ **The delays have to go too, not just the durations.** Collapsing a
+ * duration to nothing still leaves a staggered set waiting out its delays one
+ * by one — so a sequence built from delays keeps its full running time and
+ * merely becomes a series of pops instead of a movement, which is the one
+ * outcome this block exists to prevent. The streak curve's dots are staggered
+ * across the whole 1100ms the line takes to draw, and its callout waits out
+ * that entire draw before appearing; without the line below, a reader who has
+ * asked for no motion would watch the card assemble itself for over a second.
+ * The negative value is the canonical form: it starts every animation already
+ * past its own beginning, so the finished state is what paints.
  */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -1946,7 +2098,9 @@
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+    animation-delay: -1ms !important;
     transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
     scroll-behavior: auto !important;
   }
 }
@@ -2057,6 +2211,38 @@
   .q-dialog[data-closing='true']:not(.planner-context-sheet):not(.app-navigation-drawer) {
     animation-name: q-dialog-out-card;
   }
+}
+
+/*
+ * ── `placement="center"` takes the card's entrance to every width ──
+ *
+ * The rules above pick the keyframe by *breakpoint*, on the assumption that a
+ * phone gets a sheet. `Dialog`'s `center` placement breaks that assumption: it
+ * is a centred card below `sm` as well, and the sheet keyframe would have it
+ * rise 1rem from an edge it is nowhere near — a movement describing a layout
+ * that is not on the screen. `q-dialog-in-card` is the small scale-and-settle
+ * that suits a card arriving in place.
+ *
+ * Doubled up as `.q-dialog.q-dialog-centered` rather than written as one class,
+ * to outrank the base rules by specificity instead of by source order. They
+ * carry four class-level selectors each (`.q-dialog`, `[open]`, and the two
+ * `:not()` arguments); matching that exactly would leave this depending on
+ * where it happens to sit in the file, and this stylesheet is long enough that
+ * "below the other one" is not a property anybody should have to maintain.
+ *
+ * Above `sm` it changes nothing — the media query already names these same two
+ * keyframes, so the declarations agree and only the specificity differs.
+ *
+ * The `:not()` pair is repeated because the planner's context sheet and the
+ * navigation drawer own their entrances outright; neither is ever centred, but
+ * a rule that could reach them if one day they were is a trap.
+ */
+.q-dialog.q-dialog-centered[open]:not(.planner-context-sheet):not(.app-navigation-drawer) {
+  animation-name: q-dialog-in-card;
+}
+
+.q-dialog.q-dialog-centered[data-closing='true']:not(.planner-context-sheet):not(.app-navigation-drawer) {
+  animation-name: q-dialog-out-card;
 }
 
 /* The context sheet preserves its relationship to the board: up from the
@@ -2573,5 +2759,43 @@
   100% {
     opacity: 0;
     transform: translate(var(--q-tx, 0), var(--q-ty, 0)) scale(0.3);
+  }
+}
+
+/*
+ * The streak curve's entrance. Each of these declares only `from`: the implicit
+ * `to` is the element's own computed style, so the finished state is simply how
+ * the card is written and no keyframe has to restate it. That is also what
+ * makes them safe if the animation never runs — the resting style is the
+ * visible one, so a browser that drops the animation shows a finished chart
+ * rather than a blank box.
+ */
+@keyframes q-chart-wipe {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes q-chart-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes q-chart-point-in {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+}
+
+/*
+ * Same "declare only `from`" contract as the streak curve's keyframes above:
+ * the implicit `to` is `.q-bar`'s own `var(--q-bar-h)`, so each bar animates to
+ * its real week's value without this rule knowing any of them.
+ */
+@keyframes q-bar-grow {
+  from {
+    height: 0;
   }
 }

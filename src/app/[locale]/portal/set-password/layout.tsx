@@ -32,10 +32,14 @@ export default async function SetPasswordLayout({ children, params }: SetPasswor
 
   return (
     <>
+      {/*
+        No `notificationIds`. `showNav` is false here, so the bell is an inert
+        glyph rather than a link — loading a feed to badge a control nobody can
+        press would be four queries spent on nothing.
+      */}
       <PortalHeader
         name={context.profile.fullName}
         greeting={greetingKey(context.now.minute)}
-        pendingCount={0}
         locale={locale}
         showNav={false}
       />

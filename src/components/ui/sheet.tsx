@@ -28,7 +28,7 @@ function SheetOverlay({ className, ...props }: SheetPrimitive.Backdrop.Props) {
     <SheetPrimitive.Backdrop
       data-slot="sheet-overlay"
       className={cn(
-        "fixed inset-0 z-50 bg-black/10 transition-opacity duration-150 data-ending-style:opacity-0 data-starting-style:opacity-0 supports-backdrop-filter:backdrop-blur-xs",
+        "fixed inset-0 z-50 bg-[var(--overlay)] [backdrop-filter:blur(4px)] transition-opacity duration-(--duration-reverse) ease-(--ease-sweep) data-ending-style:opacity-0 data-starting-style:opacity-0",
         className
       )}
       {...props}
@@ -41,14 +41,17 @@ function SheetContent({
   children,
   side = "inline-end",
   showCloseButton = true,
+  showOverlay = true,
   ...props
 }: SheetPrimitive.Popup.Props & {
   side?: "top" | "bottom" | "inline-start" | "inline-end"
   showCloseButton?: boolean
+  /** Non-modal workbench rails leave the underlying canvas available for drag/drop. */
+  showOverlay?: boolean
 }) {
   return (
     <SheetPortal>
-      <SheetOverlay />
+      {showOverlay ? <SheetOverlay /> : null}
       <SheetPrimitive.Popup
         data-slot="sheet-content"
         data-side={side}
@@ -67,7 +70,7 @@ function SheetContent({
            * no logical form, so the start-side sheet moves negatively in LTR
            * and positively in RTL, and the end-side sheet the other way.
            */
-          "fixed z-50 flex flex-col gap-4 bg-popover bg-clip-padding text-sm text-popover-foreground shadow-lg transition duration-200 ease-in-out data-ending-style:opacity-0 data-starting-style:opacity-0 " +
+          "fixed z-50 flex flex-col bg-popover bg-clip-padding text-sm text-popover-foreground shadow-overlay ring-1 ring-foreground/10 transition duration-(--duration-sweep) ease-(--ease-sweep) data-ending-style:opacity-0 data-starting-style:opacity-0 " +
             "data-[side=top]:inset-x-0 data-[side=top]:top-0 data-[side=top]:h-auto data-[side=top]:border-b data-[side=top]:data-ending-style:-translate-y-10 data-[side=top]:data-starting-style:-translate-y-10 " +
             "data-[side=bottom]:inset-x-0 data-[side=bottom]:bottom-0 data-[side=bottom]:h-auto data-[side=bottom]:border-t data-[side=bottom]:data-ending-style:translate-y-10 data-[side=bottom]:data-starting-style:translate-y-10 " +
             "data-[side=inline-start]:inset-y-0 data-[side=inline-start]:start-0 data-[side=inline-start]:h-full data-[side=inline-start]:w-3/4 data-[side=inline-start]:border-e data-[side=inline-start]:sm:max-w-sm " +

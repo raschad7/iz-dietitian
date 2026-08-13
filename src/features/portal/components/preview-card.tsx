@@ -23,7 +23,7 @@ export function PreviewCard({
   action,
 }: {
   href: '/portal/appointments' | '/portal/appointments/request';
-  /** A name from the Solar registry — the app has one icon set. */
+  /** A name from `APP_ICONS` — the app has one icon set. */
   icon: IconName;
   title: string;
   /**

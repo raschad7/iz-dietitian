@@ -42,12 +42,22 @@ export function TodayAdherenceCard({ today, locale }: { today: TodayAdherence | 
     <Card>
       <CardContent className="flex flex-col gap-4">
         <div className="flex items-center gap-4">
+          {/*
+            `countOnMount`: this figure is what the client opened the tab to
+            read, and it does not move while they are reading it — there are no
+            meals to tick on this screen. So the ring draws itself up from zero
+            on arrival instead of appearing already finished. The home screen's
+            copy deliberately does not, because a day switch remounts it there
+            and the climb would read as that day's figure having just been
+            earned — see `rising-fraction.ts`.
+          */}
           <TodayRing
             fraction={today?.fraction ?? null}
             completed={today?.completedMeals ?? 0}
             total={today?.totalMeals ?? 0}
             locale={locale}
             showMealsCaption={false}
+            countOnMount
           />
 
           <div className="min-w-0 flex-1 space-y-1">

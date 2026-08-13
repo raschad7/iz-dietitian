@@ -22,6 +22,51 @@ export async function saveClinicInformation(clinicId: string, input: ClinicInfor
   return rows.length > 0;
 }
 
+/**
+ * One column of the clinic row.
+ *
+ * The settings surface edits a field at a time through a dialog, so writing the
+ * whole object back would mean reading four values in order to change one — and
+ * would silently rewrite anything another tab had changed in between. The key
+ * is a column on `clinics`, so Drizzle maps it; the caller has already validated
+ * the value against that field's own schema.
+ */
+export type ClinicEditableColumn = keyof ClinicInformationInput | 'logoUrl';
+
+export async function updateClinicField(
+  clinicId: string,
+  field: ClinicEditableColumn,
+  value: string | null,
+): Promise<boolean> {
+  const rows = await db
+    .update(clinics)
+    .set({ [field]: value, updatedAt: new Date() })
+    .where(eq(clinics.id, clinicId))
+    .returning({ id: clinics.id });
+
+  return rows.length > 0;
+}
+
+/**
+ * One field of the signed-in practitioner's profile.
+ *
+ * Unlike the clinic above, this cannot be a single-column update: the
+ * practitioner row may not exist yet, may exist unlinked from a legacy
+ * onboarding, and `name` has to stay in step with `user.name`. All three live
+ * in `saveProfessionalProfile`'s transaction, so this reads the current values,
+ * patches the one that changed and hands the whole object back to it rather
+ * than duplicating that logic.
+ */
+export async function updateProfessionalField(
+  clinicId: string,
+  userId: string,
+  current: ProfessionalProfileInput,
+  field: keyof ProfessionalProfileInput,
+  value: string | null,
+): Promise<boolean> {
+  return saveProfessionalProfile(clinicId, userId, { ...current, [field]: value });
+}
+
 export async function saveWeeklySchedule(clinicId: string, input: WeeklyScheduleInput): Promise<boolean> {
   const values = input.days.map((day) => ({ ...day, clinicId }));
 

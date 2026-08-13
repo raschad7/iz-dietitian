@@ -62,6 +62,23 @@ const BOTTOM = 88;
 /** Catmull-Rom tension. Below 1 the curve pulls tighter and overshoots less. */
 const TENSION = 0.82;
 
+/**
+ * The wipe's own duration, mirroring `.q-chart-reveal` in `globals.css` — 7 ×
+ * `--duration-arc`, which also lands within 40ms of the 1500ms Recharts
+ * animates the dashboard's area over, the plot this card was asked to move
+ * like. Repeated on this side because the dots are staggered *across* it and
+ * only this component knows where each day's column sits.
+ *
+ * ⚠ **Nothing here waits on the commitment ring above it.** The curve was once
+ * held back until that number finished counting, and it was wrong every way it
+ * was tried: the plot sat blank for the length of the wait, the ring frequently
+ * does not animate at all (null or zero fraction), and `--ease-sweep`
+ * decelerates into its value so there is no crisp moment to call its end
+ * anyway. The two now run together from the first paint. See the note on the
+ * progress page.
+ */
+const DRAW_MS = 1540;
+
 type Point = { x: number; y: number };
 
 /**
@@ -238,42 +255,78 @@ export function AdherenceStreakCard({
                   <stop offset="55%" stopColor="var(--color-accent-lime)" stopOpacity="0.16" />
                   <stop offset="100%" stopColor="var(--color-accent-lime)" stopOpacity="0" />
                 </linearGradient>
+
+                {/*
+                  The wipe that uncovers the curve — see `.q-chart-reveal`.
+
+                  **The origin is the oldest day's end of the plot**, which is
+                  the inline-start edge, which `plot()` has already mirrored `x`
+                  for. In Arabic that is the right-hand edge, so the reveal runs
+                  right to left and climbs as it goes, because today — the tallest
+                  point of a growing streak — is the last column it reaches. In
+                  English the same rule runs it left to right. Neither is written
+                  as a side: `rtl` decides, once, here.
+                */}
+                <clipPath id="continuity-reveal">
+                  <rect
+                    className="q-chart-reveal"
+                    x="0"
+                    y="0"
+                    width="100"
+                    height="100"
+                    style={{ transformOrigin: rtl ? 'right' : 'left' }}
+                  />
+                </clipPath>
               </defs>
 
               {/*
-                One guide, at today, hairline and solid — §Charts is explicit
-                that rules are never dashed. It marks what the callout is
-                pointing at and nothing else; a grid behind six points would be
-                scaffolding for a reading nobody is doing.
+                Everything drawn in the plot is clipped to the one wipe, so the
+                wash, the stroke and the guide are uncovered together rather than
+                each fading in on a schedule of its own. Nothing in here carries
+                an animation: the group is what moves, and these are what it
+                moves over.
               */}
-              {latest ? (
-                <line
-                  x1={round(latest.x)}
-                  y1="26"
-                  x2={round(latest.x)}
-                  y2="100"
+              <g clipPath="url(#continuity-reveal)">
+                {/*
+                  One guide, at today, hairline and solid — §Charts is explicit
+                  that rules are never dashed. It marks what the callout is
+                  pointing at and nothing else; a grid behind six points would be
+                  scaffolding for a reading nobody is doing. Today is the last
+                  column the wipe reaches, so it arrives with the curve's end.
+                */}
+                {latest ? (
+                  <line
+                    x1={round(latest.x)}
+                    y1="26"
+                    x2={round(latest.x)}
+                    y2="100"
+                    vectorEffect="non-scaling-stroke"
+                    strokeWidth="1"
+                    className="stroke-border"
+                  />
+                ) : null}
+
+                <path d={areaPath(points, line)} fill="url(#continuity-wash)" stroke="none" />
+
+                {/*
+                  `non-scaling-stroke` is what lets the box stretch to the card's
+                  width without the stroke stretching with it. The alternative —
+                  a preserved aspect ratio — would leave the curve floating in the
+                  middle of a band it never fills.
+
+                  ⚠ It is also why this stroke must never be revealed with
+                  `stroke-dasharray`: see the note on `.q-chart-reveal` in
+                  `globals.css` for the missing-segments bug that caused.
+                */}
+                <path
+                  d={line}
                   vectorEffect="non-scaling-stroke"
-                  strokeWidth="1"
-                  className="stroke-border"
+                  strokeWidth="2.25"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="fill-none stroke-primary"
                 />
-              ) : null}
-
-              <path d={areaPath(points, line)} fill="url(#continuity-wash)" stroke="none" />
-
-              {/*
-                `non-scaling-stroke` is what lets the box stretch to the card's
-                width without the stroke stretching with it. The alternative —
-                a preserved aspect ratio — would leave the curve floating in the
-                middle of a band it never fills.
-              */}
-              <path
-                d={line}
-                vectorEffect="non-scaling-stroke"
-                strokeWidth="2.25"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="fill-none stroke-primary"
-              />
+              </g>
             </svg>
 
             {/*
@@ -299,7 +352,34 @@ export function AdherenceStreakCard({
                     top: `${point.y}%`,
                   }}
                 >
-                  <span className="grid place-items-center">
+                  {/*
+                    The pop is on this inner box, not the positioned one above
+                    it: that carries `-translate-y-1/2` to sit on its own point,
+                    and a keyframe animating `transform` here would overwrite it
+                    and drop every dot half its height down the card.
+
+                    The delay is the dot's own column position times the wipe's
+                    duration, which is exactly when the reveal's edge crosses it
+                    — so a circle appears as the curve arrives at it rather than
+                    the whole row landing at once over a finished line.
+
+                    `columnFraction` and not `index / (count - 1)`: the wipe
+                    travels the full width while the points sit centred in their
+                    columns, so the first is reached a little after the start and
+                    the last a little before the end. The same expression works
+                    in both scripts — in Arabic the plot's `x` is mirrored *and*
+                    the wipe starts from the opposite edge, so a point's distance
+                    along the travel is unchanged.
+
+                    Inline because it is computed per point — the same reason
+                    `TodayFlameCell`'s particles set theirs inline.
+                  */}
+                  <span
+                    className="q-chart-point grid place-items-center"
+                    style={{
+                      animationDelay: `${Math.round(columnFraction(index, continuity.length) * DRAW_MS)}ms`,
+                    }}
+                  >
                     {/* The halo makes the current point read as lit rather than as a bigger dot. */}
                     {isLatest ? (
                       <span className="col-start-1 row-start-1 size-6 rounded-full bg-accent-lime/25" />
@@ -326,14 +406,25 @@ export function AdherenceStreakCard({
             */}
             {streak > 0 ? (
               <>
-                <ChartTip className="absolute top-0 end-0 bg-primary text-primary-foreground">
+                {/*
+                  Last in, once the curve it labels is finished being drawn —
+                  a bubble reading "5 أيام متواصلة" over a line still arriving
+                  at five is captioning something that has not happened yet.
+                */}
+                <ChartTip
+                  className="q-chart-callout absolute top-0 end-0 bg-primary text-primary-foreground"
+                  style={{ animationDelay: `${DRAW_MS}ms` }}
+                >
                   {t('unit', { count: streak })}
                 </ChartTip>
 
                 <span
                   aria-hidden="true"
-                  className="absolute top-6 flex w-0 justify-center"
-                  style={{ insetInlineStart: `${latestFraction * 100}%` }}
+                  className="q-chart-callout absolute top-6 flex w-0 justify-center"
+                  style={{
+                    insetInlineStart: `${latestFraction * 100}%`,
+                    animationDelay: `${DRAW_MS}ms`,
+                  }}
                 >
                   <span className="size-2 rotate-45 rounded-xs bg-primary" />
                 </span>

@@ -30,7 +30,26 @@ import { type ClientIntakeValues, type MealSlotValues } from './types';
  * can call these directly — see the note at the top of `mutations.ts`.
  */
 
-export const CLIENTS_PAGE_SIZE = 20;
+/**
+ * How many clients one page of the register holds.
+ *
+ * Nine, and the number is a layout decision as much as a query one: nine rows
+ * plus the title, the search row and the pager fits a laptop screen without the
+ * list needing a scrollbar of its own. It was twenty, which never did — so the
+ * register carried a bounded, independently scrolling table, and "where am I in
+ * this list" was a question the page could not answer without being scrolled.
+ * The pager answers it now, and it is the only way through the register.
+ *
+ * This doc is the only place the figure is written out. The page and the table
+ * that depend on it describe the *constraint* — a register that fits the screen
+ * — and name the constant rather than repeating its value, because a comment
+ * three files away saying "ten" is one nobody edits when this line changes.
+ *
+ * Read by `listClients` for the `LIMIT`/`OFFSET` and the page count, and by
+ * `ClientPagination` for the arithmetic behind the page numbers. One constant,
+ * so the pager and the query cannot disagree.
+ */
+export const CLIENTS_PAGE_SIZE = 9;
 
 export type ClientListItem = {
   id: string;
@@ -398,6 +417,24 @@ export async function getClientIntake(
       dislikes: clientNutritionProfiles.dislikes,
       permanentInstructions: clientNutritionProfiles.permanentInstructions,
       mealSchedule: clientNutritionProfiles.mealSchedule,
+      maritalStatus: clientNutritionProfiles.maritalStatus,
+      childrenCount: clientNutritionProfiles.childrenCount,
+      bloodType: clientNutritionProfiles.bloodType,
+      occupation: clientNutritionProfiles.occupation,
+      visitReason: clientNutritionProfiles.visitReason,
+      dietHistory: clientNutritionProfiles.dietHistory,
+      drugAllergies: clientNutritionProfiles.drugAllergies,
+      familyHistory: clientNutritionProfiles.familyHistory,
+      activityNotes: clientNutritionProfiles.activityNotes,
+      activityBarriers: clientNutritionProfiles.activityBarriers,
+      sleepHours: clientNutritionProfiles.sleepHours,
+      smoking: clientNutritionProfiles.smoking,
+      caffeineFrequency: clientNutritionProfiles.caffeineFrequency,
+      fastFoodFrequency: clientNutritionProfiles.fastFoodFrequency,
+      produceFrequency: clientNutritionProfiles.produceFrequency,
+      dairyFrequency: clientNutritionProfiles.dairyFrequency,
+      proteinFoodFrequency: clientNutritionProfiles.proteinFoodFrequency,
+      sweetsFrequency: clientNutritionProfiles.sweetsFrequency,
     })
     .from(clients)
     .leftJoin(clientNutritionProfiles, eq(clientNutritionProfiles.clientId, clients.id))
@@ -428,6 +465,24 @@ export async function getClientIntake(
     dislikes: row.dislikes,
     permanentInstructions: row.permanentInstructions,
     mealSchedule: readMealSchedule(row.mealSchedule),
+    maritalStatus: row.maritalStatus,
+    childrenCount: row.childrenCount,
+    bloodType: row.bloodType,
+    occupation: row.occupation,
+    visitReason: row.visitReason,
+    dietHistory: row.dietHistory,
+    drugAllergies: row.drugAllergies,
+    familyHistory: row.familyHistory,
+    activityNotes: row.activityNotes,
+    activityBarriers: row.activityBarriers,
+    sleepHours: row.sleepHours,
+    smoking: row.smoking,
+    caffeineFrequency: row.caffeineFrequency,
+    fastFoodFrequency: row.fastFoodFrequency,
+    produceFrequency: row.produceFrequency,
+    dairyFrequency: row.dairyFrequency,
+    proteinFoodFrequency: row.proteinFoodFrequency,
+    sweetsFrequency: row.sweetsFrequency,
     hasProfile: row.profileId !== null,
   };
 }

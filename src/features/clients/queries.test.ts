@@ -6,7 +6,7 @@ import { weeklyPlans } from '@/db/schema';
 import { createTestClinic, resetDatabase } from '../../../tests/helpers';
 import { archiveClient, createClient } from './mutations';
 import { issuePortalCredentials } from './portal-credentials';
-import { getClient, listClients } from './queries';
+import { CLIENTS_PAGE_SIZE, getClient, listClients } from './queries';
 import { listClientsSchema } from './schema';
 
 const filters = (overrides: Record<string, unknown> = {}) => listClientsSchema.parse(overrides);
@@ -137,18 +137,26 @@ describe('listClients', () => {
     expect(other.items[0]?.hasPortalAccess).toBe(false);
   });
 
+  /*
+    Sized off `CLIENTS_PAGE_SIZE` rather than off the literal it happens to be.
+    This test hardcoded 20 and 25, so changing the register's page size failed
+    it on the arithmetic rather than on the behaviour — which is the one thing a
+    pagination test should not do.
+  */
   test('paginates', async () => {
-    for (let index = 0; index < 25; index += 1) {
+    const REMAINDER = 5;
+
+    for (let index = 0; index < CLIENTS_PAGE_SIZE + REMAINDER; index += 1) {
       await createClient(clinicId, { fullName: `عميل ${index}`, preferredLocale: 'ar' });
     }
 
     const first = await listClients(clinicId, filters());
-    expect(first.items).toHaveLength(20);
-    expect(first.total).toBe(25);
+    expect(first.items).toHaveLength(CLIENTS_PAGE_SIZE);
+    expect(first.total).toBe(CLIENTS_PAGE_SIZE + REMAINDER);
     expect(first.pageCount).toBe(2);
 
     const second = await listClients(clinicId, filters({ page: '2' }));
-    expect(second.items).toHaveLength(5);
+    expect(second.items).toHaveLength(REMAINDER);
   });
 
   test('returns an empty page past the end rather than failing', async () => {

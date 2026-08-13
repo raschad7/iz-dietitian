@@ -185,12 +185,21 @@ export function AppointmentCard({
   */
   const markerBadge =
     marker === null ? null : (
-      // The chip steps up on the featured card: its default olive-50 fill and
-      // that card's sunken surface are the same lightness, so at rest it read
-      // as floating text with no pill around it.
-      <Badge className={cn(featured && 'bg-primary-subtle')}>
-        {t(`appointments.marker.${marker}`)}
-      </Badge>
+      /*
+        olive-100, on every tone — not `Badge`'s default olive-50.
+
+        This is the one chip on the page that says *how soon*, and olive-50
+        (#F5F8EF) is a hair off white: against a white card the pill all but
+        disappeared and "القادم" read as loose green text with no shape around
+        it. olive-100 (#E8F0DA) is the first step of the ramp that actually
+        reads as green at chip size, and the label stays olive-700 from the
+        variant — 6.51:1, so the fill is bought without touching contrast.
+
+        It was already doing this on the featured card, and for a neighbouring
+        reason: that card's own surface is n-50, the same lightness as olive-50
+        in a different hue. One fill for both cases is one thing to keep true.
+      */
+      <Badge className="bg-primary-subtle">{t(`appointments.marker.${marker}`)}</Badge>
     );
 
   /*
