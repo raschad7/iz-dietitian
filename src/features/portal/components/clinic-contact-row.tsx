@@ -58,11 +58,12 @@ export function ClinicContactRow({
 
           <div className="min-w-0 flex-1">
             {/*
-              olive-700 (`--secondary-foreground`), the palette's `text.brand`
-              at 7.37:1 — not `text-primary`, which is olive-500 at 3.47:1 and
-              fails on a heading. Same pair the settings articles already use.
+              Ink and bold, matching `SettingsPoint`'s heading — this is the
+              fourth screen in the support section and it should open the same
+              way the other three do. It was olive-700, which put the card's
+              only heading in the same hue as the disc directly beside it.
             */}
-            <p className="font-heading text-base leading-snug font-semibold text-secondary-foreground">
+            <p className="font-heading text-base leading-snug font-bold text-foreground">
               {t('contactClinic')}
             </p>
             <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">

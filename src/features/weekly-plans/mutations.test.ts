@@ -150,6 +150,19 @@ async function adherenceLevel(forClientId: string, date: string): Promise<string
 }
 
 /**
+ * The week every fixture plan is built for, and the day the client is standing
+ * in while reading it.
+ *
+ * They are the same date because `week_start_date` is day 0 of the plan and the
+ * fixture meals default to `dayOfWeek: 0` — so a toggle against `PLAN_WEEK` is
+ * a toggle against today, which is the only day `toggleMealCompletion` accepts.
+ * `getPublishedBoard` now takes the same date for its own reason: it refuses a
+ * plan whose week has already ended, so a caller has to say which day it is
+ * asking about.
+ */
+const PLAN_WEEK = '2026-08-02';
+
+/**
  * Creates a plan, or fails the test.
  *
  * Throws rather than returning `string | null`: a null here means the fixture is
@@ -158,7 +171,7 @@ async function adherenceLevel(forClientId: string, date: string): Promise<string
  */
 async function createPlan(
   meals: ReconciledMeal[] = [meal()],
-  weekStartDate = '2026-08-02',
+  weekStartDate = PLAN_WEEK,
 ): Promise<string> {
   const planId = await createPlanFromGeneration({
     clinicId,
@@ -445,7 +458,7 @@ describe('publishPlan', () => {
 
     expect(await publishPlan(clinicId, planId)).toEqual({ ok: true });
 
-    const portal = await getPublishedBoard(clientId);
+    const portal = await getPublishedBoard(clientId, PLAN_WEEK);
 
     expect(portal?.id).toBe(planId);
     expect(portal?.status).toBe('published');
@@ -456,7 +469,7 @@ describe('publishPlan', () => {
     const planId = await createPlan([meal(), meal({ dayOfWeek: 1, dishId: null, options: [] })]);
 
     expect(await publishPlan(clinicId, planId)).toEqual({ ok: false, reason: 'unfilled' });
-    expect(await getPublishedBoard(clientId)).toBeNull();
+    expect(await getPublishedBoard(clientId, PLAN_WEEK)).toBeNull();
   });
 
   test('archives the previous plan for the same week instead of colliding with it', async () => {
@@ -476,7 +489,7 @@ describe('publishPlan', () => {
     expect(rows.find((row) => row.id === second)?.status).toBe('published');
 
     // And the client sees exactly one plan — the new one.
-    expect((await getPublishedBoard(clientId))?.id).toBe(second);
+    expect((await getPublishedBoard(clientId, PLAN_WEEK))?.id).toBe(second);
   });
 
   test('refuses to publish a plan twice', async () => {
@@ -499,7 +512,88 @@ describe('unpublishPlan', () => {
     await publishPlan(clinicId, planId);
 
     expect(await unpublishPlan(clinicId, planId)).toBe(true);
-    expect(await getPublishedBoard(clientId)).toBeNull();
+    expect(await getPublishedBoard(clientId, PLAN_WEEK)).toBeNull();
+  });
+
+  /**
+   * The live fault this rule was written for. Unpublishing the current week
+   * used to *reveal* an older plan the dietitian had left published, so the
+   * take-down appeared to do nothing — and only for clients who had an older
+   * plan to fall back onto, which is what made it look account-specific.
+   */
+  test('clears the portal even when an older plan is still published', async () => {
+    const lastWeek = await createPlan([meal()], '2026-07-26');
+    await publishPlan(clinicId, lastWeek);
+
+    const thisWeek = await createPlan([meal()], PLAN_WEEK);
+    await publishPlan(clinicId, thisWeek);
+
+    expect((await getPublishedBoard(clientId, PLAN_WEEK))?.id).toBe(thisWeek);
+
+    await unpublishPlan(clinicId, thisWeek);
+
+    expect(await getPublishedBoard(clientId, PLAN_WEEK)).toBeNull();
+  });
+});
+
+/**
+ * Which plan the portal shows, and when it shows none.
+ *
+ * The rule is deliberately absolute in both directions: published *and*
+ * covering today. The tick on a meal card renders only for the day that is
+ * today, and the home screen's commitment figure counts only today's meals — so
+ * a plan for any other week is seven days a client cannot report on. See the
+ * header on `getPublishedBoard`.
+ */
+describe('getPublishedBoard choice of week', () => {
+  test('serves a plan on the last day of its own week', async () => {
+    const planId = await createPlan();
+    await publishPlan(clinicId, planId);
+
+    // 2026-08-02 + 6 — the plan's seventh and final day, still its week.
+    expect((await getPublishedBoard(clientId, '2026-08-08'))?.id).toBe(planId);
+  });
+
+  test('drops a published plan the day after its week ends', async () => {
+    const planId = await createPlan();
+    await publishPlan(clinicId, planId);
+
+    expect(await getPublishedBoard(clientId, '2026-08-09')).toBeNull();
+  });
+
+  test('withholds a plan published for a week that has not started', async () => {
+    const nextWeek = await createPlan([meal()], '2026-08-09');
+    await publishPlan(clinicId, nextWeek);
+
+    // It appears on 2026-08-09 and not a day sooner: until then the client has
+    // no plan for the week they are actually in.
+    expect(await getPublishedBoard(clientId, PLAN_WEEK)).toBeNull();
+    expect((await getPublishedBoard(clientId, '2026-08-09'))?.id).toBe(nextWeek);
+  });
+
+  /**
+   * A client holding both this week's plan and next week's is eating from this
+   * week. A plain `ORDER BY week_start_date DESC` handed them the future one,
+   * whose every day is `future` and therefore carries no tick at all.
+   */
+  test('takes the week containing today over one published for the week ahead', async () => {
+    const thisWeek = await createPlan([meal()], PLAN_WEEK);
+    await publishPlan(clinicId, thisWeek);
+
+    const nextWeek = await createPlan([meal()], '2026-08-09');
+    await publishPlan(clinicId, nextWeek);
+
+    expect((await getPublishedBoard(clientId, '2026-08-05'))?.id).toBe(thisWeek);
+  });
+
+  test('takes the week containing today over one whose week has ended', async () => {
+    const lastWeek = await createPlan([meal()], '2026-07-26');
+    await publishPlan(clinicId, lastWeek);
+
+    const thisWeek = await createPlan([meal()], PLAN_WEEK);
+    await publishPlan(clinicId, thisWeek);
+
+    expect((await getPublishedBoard(clientId, PLAN_WEEK))?.id).toBe(thisWeek);
   });
 });
 
@@ -518,7 +612,7 @@ describe('adherence recompute on plan edits', () => {
     const planId = await createPlan([meal({ slotKey: 'breakfast' }), meal({ slotKey: 'lunch' })]);
     await publishPlan(clinicId, planId);
 
-    const board = await getPublishedBoard(clientId);
+    const board = await getPublishedBoard(clientId, PLAN_WEEK);
     const mealIds = board!.days[0]!.meals.map((row) => row.id);
 
     for (const mealId of mealIds) {
@@ -556,7 +650,7 @@ describe('adherence recompute on plan edits', () => {
     ]);
     await publishPlan(clinicId, planId);
 
-    const board = await getPublishedBoard(clientId);
+    const board = await getPublishedBoard(clientId, PLAN_WEEK);
     await toggleMealCompletion({ clientId, clinicId, today: '2026-08-03' }, board!.days[1]!.meals[0]!.id, true);
 
     expect(await adherenceLevel(clientId, '2026-08-03')).toBe('full');
@@ -572,7 +666,7 @@ describe('adherence recompute on plan edits', () => {
     const planId = await createPlan([meal({ slotKey: 'breakfast' }), meal({ slotKey: 'lunch' })]);
     await publishPlan(clinicId, planId);
 
-    const board = await getPublishedBoard(clientId);
+    const board = await getPublishedBoard(clientId, PLAN_WEEK);
     await toggleMealCompletion({ clientId, clinicId, today: '2026-08-02' }, board!.days[0]!.meals[0]!.id, true);
 
     expect(await adherenceLevel(clientId, '2026-08-02')).toBe('partial');
@@ -587,7 +681,7 @@ describe('adherence recompute on plan edits', () => {
     const planId = await createPlan([meal({ slotKey: 'breakfast' }), meal({ slotKey: 'lunch' })]);
     await publishPlan(clinicId, planId);
 
-    const board = await getPublishedBoard(clientId);
+    const board = await getPublishedBoard(clientId, PLAN_WEEK);
     for (const row of board!.days[0]!.meals) {
       await toggleMealCompletion({ clientId, clinicId, today: '2026-08-02' }, row.id, true);
     }

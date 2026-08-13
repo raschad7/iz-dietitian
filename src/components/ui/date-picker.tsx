@@ -217,9 +217,16 @@ export function DatePicker({
           field's popup that changes width with the locale sits differently under
           the control it belongs to. The cells divide the panel instead.
         */}
+        {/*
+          Aligned to the inline-end either way, because that is the edge the
+          calendar icon sits on. The field trigger draws its icon at the end of
+          a full-width button, so a panel aligned to the *start* opened a whole
+          field's width away from the control that was just pressed — in Arabic,
+          the icon on the left and the calendar off to the right.
+        */}
         <PopoverContent
           container={dialogHost ?? undefined}
-          align={trigger === 'icon' ? 'end' : 'start'}
+          align="end"
           className="w-[264px] p-2"
         >
           <DateChooser

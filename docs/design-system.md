@@ -206,18 +206,17 @@ When adding a type token, update both `globals.css` and the custom
 
 ## Iconography
 
-Use the generated Solar Linear icon set through
-[`Icon`](../src/components/ui/icon.tsx):
+Use the Lucide icon set through [`Icon`](../src/components/ui/icon.tsx) and the
+role-based registry in [`src/lib/icons.ts`](../src/lib/icons.ts):
 
 ```tsx
 <Icon name="search" className="size-5" />
 ```
 
-Add icons to `ICONS` in
-[`scripts/generate-icons.ts`](../scripts/generate-icons.ts), then run
-`bun run icons:generate`. Use role-based names such as `myPlan`, inherit color
-with `currentColor`, and mirror only direction-bearing glyphs. The allowlist in
-`icon.tsx` owns RTL mirroring. Do not import a second icon style into feature UI.
+Add icons to `APP_ICONS` in `src/lib/icons.ts`. Use role-based names such as
+`myPlan`, inherit color with `currentColor`, and mirror only direction-bearing
+glyphs. The allowlist in `icon.tsx` owns RTL mirroring. Do not import Lucide
+directly in feature UI or introduce a second icon style.
 
 ## Shape, spacing, elevation, and motion
 

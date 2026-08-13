@@ -6,10 +6,13 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Icon } from '@/components/ui/icon';
 import { appointmentMarker } from '@/features/portal/appointments';
 import { AppointmentCard } from '@/features/portal/components/appointment-card';
+import { AppointmentRequestDialog } from '@/features/portal/components/appointment-request-dialog';
 import { AppointmentTabs } from '@/features/portal/components/appointment-tabs';
 import { PortalSection } from '@/features/portal/components/portal-section';
 import { RequestList } from '@/features/portal/components/request-list';
-import { loadAppointments } from '@/features/portal/page-data';
+import { RequestSentToast } from '@/features/portal/components/request-sent-toast';
+import { loadAppointments, loadRequestPage } from '@/features/portal/page-data';
+import { requestSearchSchema } from '@/features/portal/schema';
 import { requirePortalClient } from '@/features/portal/session';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/params';
@@ -49,9 +52,11 @@ export async function generateMetadata({ params }: AppointmentsPageProps): Promi
  * page, not about the half being read — offering it under "past" would be
  * offering it against a list of things that already happened.
  *
- * Within the upcoming half the soonest appointment is lifted out of the list
- * entirely. It is the one thing anyone opens this page for, and a list where
- * every row looks identical makes them find it by reading dates.
+ * Within the upcoming half every appointment is one row of one list, the
+ * soonest included. It used to be lifted out above the section as a card of its
+ * own; the marker chip on each row already says which one is next, so the lift
+ * bought a different-looking first card and a heading that appeared to start at
+ * the second appointment. See the note on the list itself.
  *
  * Both halves are rendered here, on the server, and handed to `AppointmentTabs`
  * as slots — see that file for why the choice is local state rather than `?view=`.
@@ -67,14 +72,42 @@ export default async function AppointmentsPage({ params, searchParams }: Appoint
     they land rather than one they have to go looking for.
 
     Nothing else depends on it, so a stale or hand-typed `?sent=1` costs a
-    sentence and no state — which is why this stays a query param rather than a
-    flash cookie.
+    toast and no state — which is why this stays a query param rather than a
+    flash cookie. `RequestSentToast` strips it once it has been said, so it is
+    a flash in practice as well as in intent.
   */
-  const sent = (await searchParams).sent;
+  const search = await searchParams;
+  const sent = search.sent;
   const justSent = (Array.isArray(sent) ? sent[0] : sent) === '1';
 
+  /*
+    `?request=1` opens the ask as a modal over this page.
+
+    A query param rather than local state, because the form underneath is not
+    self-contained: choosing a day is a server round trip (`loadRequestPage`
+    recomputes availability from the clinic's own rules rather than shipping a
+    month of its bookings to the browser), and `RequestForm`'s day strip
+    navigates to do it. The URL is the only thing that survives that
+    navigation, so it is the only place "the form is open" can live.
+
+    It also keeps the entry point a real `<Link>` — middle-click, open in a new
+    tab, and a working control before hydration, none of which an `onClick`
+    trigger would have.
+  */
+  const requested = search.request;
+  const requestOpen = (Array.isArray(requested) ? requested[0] : requested) === '1';
+
   const context = await requirePortalClient(locale);
-  const { upcoming, past, requests } = await loadAppointments(context);
+
+  /*
+    Loaded only when the modal is actually open. `loadRequestPage` reads the
+    clinic's opening hours and a month of its bookings to work out which days
+    have room; an ordinary visit to this list should not pay for that.
+  */
+  const [{ upcoming, past, requests }, requestData] = await Promise.all([
+    loadAppointments(context),
+    requestOpen ? loadRequestPage(context, requestSearchSchema.parse(search)) : Promise.resolve(null),
+  ]);
 
   const t = await getTranslations('portal');
 
@@ -104,62 +137,42 @@ export default async function AppointmentsPage({ params, searchParams }: Appoint
     a week later should be able to say it, and a button that disappears after
     one use would read as the portal having taken the offer away.
   */
-  // `upcoming` is sorted soonest-first by `splitAppointments`, so the head is the
-  // next appointment and the tail is everything after it.
-  const [next, ...later] = upcoming;
-
   const upcomingPanel = (
     <div className="space-y-7">
-      {next === undefined ? (
+      {/*
+        **One list, heading and all — the next appointment included.**
+
+        It used to be lifted out: the soonest one was drawn on its own as a
+        `tone="featured"` card above the section, with no heading over it,
+        because it is the one thing anyone opens this page for. That made the
+        screen's first card a different *kind* of card from the ones underneath
+        it, and the heading below it then read as though "المواعيد القادمة"
+        began at the second appointment — which is exactly backwards.
+
+        `appointmentMarker` is what actually answers "when am I next seen?": it
+        chips position 0 as today, tomorrow or next, so the soonest row still
+        says so from inside the list. It is sorted soonest-first by
+        `splitAppointments`, so the index passed here is its real position.
+      */}
+      {upcoming.length === 0 ? (
         <EmptyState
           icon="calendar"
           title={t('appointments.noneUpcomingTitle')}
           description={t('appointments.noneUpcoming')}
         />
       ) : (
-        <>
-          {/*
-            No section heading over this one. `appointmentMarker` always returns
-            a marker at position 0 — today, tomorrow, or next — so the card
-            opens with a chip that says the same thing the heading did, under a
-            fourth calendar glyph in a row that already had three. The card is
-            built to lead a page (see `appointment-card.tsx`); a label above it
-            only pushed it further down one.
-          */}
-          <AppointmentCard
-            appointment={next}
-            tone="featured"
-            marker={appointmentMarker(next, 0, context.now)}
-          />
-
-          {/*
-            Nothing at all when there is no second appointment — not an empty
-            state saying so.
-
-            There was one, and it stated the obvious twice over: the client is
-            looking at their next appointment, and the only thing under it was a
-            card explaining that there was nothing under it. A screen that ends
-            is not a screen that failed; the featured card above is a complete
-            answer to "when am I next seen?", and the request button in the
-            header is already the thing to press if the answer is not enough.
-          */}
-          {later.length > 0 ? (
-            <PortalSection icon="calendar" title={t('appointments.upcoming')} count={later.length}>
-              <ul className="space-y-3">
-                {later.map((appointment, index) => (
-                  <li key={appointment.id}>
-                    <AppointmentCard
-                      appointment={appointment}
-                      // `index + 1`: these start after the featured one, and
-                      // `appointmentMarker` reads position 0 as "next".
-                      marker={appointmentMarker(appointment, index + 1, context.now)}
-                    />
-                  </li>
-                ))}
-              </ul>
-            </PortalSection>
-          ) : null}
-        </>
+        <PortalSection icon="calendar" title={t('appointments.upcoming')} count={upcoming.length}>
+          <ul className="space-y-3">
+            {upcoming.map((appointment, index) => (
+              <li key={appointment.id}>
+                <AppointmentCard
+                  appointment={appointment}
+                  marker={appointmentMarker(appointment, index, context.now)}
+                />
+              </li>
+            ))}
+          </ul>
+        </PortalSection>
       )}
 
       {/*
@@ -209,44 +222,54 @@ export default async function AppointmentsPage({ params, searchParams }: Appoint
         </div>
 
         {/*
-          `soft` and full width, matching the switch below it. The solid olive
-          it used to be was the loudest thing on a screen whose actual subject —
-          the next appointment — sits underneath it, and this page asks for an
-          appointment rather than booking one, so a bar that reads like a
-          checkout button was overstating what pressing it does.
+          `neutral` and full width: a white box with a hairline edge and a black
+          label, over the grey well of the switch below it. No brand colour at
+          all.
+
+          It was `soft` — an olive-50 fill with an olive-700 label — and before
+          that a solid olive bar, which was the loudest thing on a screen whose
+          actual subject, the next appointment, sits underneath it. With the
+          switch below now drawing its own selection in white-on-grey, an
+          olive-tinted button above it was the only coloured object left in the
+          header and read as the page's hero rather than as its one action. This
+          page *asks* for an appointment rather than booking one, and a neutral
+          box says that at exactly the right volume — it still reads as
+          pressable from its edge, and the cards below get the colour back.
 
           `max-w-none` because `buttonVariants` caps every button at 320px, so
           `w-full` alone stops short of the edge on any phone wider than that.
         */}
+        {/*
+          Still a `<Link>`, now pointing at this same page with `?request=1`
+          rather than at `/portal/appointments/request`. The standalone route is
+          untouched and still works — it is what a bookmark, a shared link or a
+          browser with no JavaScript gets — but from here the ask opens over the
+          list instead of replacing it, so a client comparing their next
+          appointment against the day they are about to propose does not lose
+          sight of it.
+        */}
         <Link
-          href="/portal/appointments/request"
-          className={buttonVariants({ variant: 'soft', className: 'w-full max-w-none' })}
+          href="/portal/appointments?request=1"
+          className={buttonVariants({ variant: 'neutral', className: 'w-full max-w-none' })}
         >
           <Icon name="bookAppointment" />
           {t('appointments.book')}
         </Link>
 
         {/*
-          Under the button rather than above the title: it is the answer to the
-          press, so it belongs against the control that was pressed, not floated
-          over the page's heading as a thing that happened to the whole screen.
+          The confirmation is a toast, not a panel here.
 
-          `role="status"` because a client arriving here by redirect has had the
-          page replaced under them — a screen reader announces the new document,
-          not this sentence, unless it is a live region.
-
-          On-track olive rather than a green of its own: the palette already
-          spends olive on "this is going the way it should", and a second
-          success colour would only be a second success colour.
+          It used to be a green bar under this button, and it never went away:
+          `?sent=1` survives a refresh and every navigation back to this tab, so
+          nothing in the page could take it down again. `RequestSentToast`
+          renders nothing, says the sentence once and clears the param behind
+          itself — see that file.
         */}
         {justSent ? (
-          <p
-            role="status"
-            className="flex items-start gap-2 rounded-lg bg-status-on-track-bg px-4 py-3 text-sm font-medium text-status-on-track-fg"
-          >
-            <Icon name="check" className="mt-0.5" />
-            {t('appointments.requestSent')}
-          </p>
+          <RequestSentToast
+            title={t('appointments.requestSent')}
+            description={t('appointments.requestSentDetail')}
+          />
         ) : null}
       </header>
 
@@ -257,6 +280,14 @@ export default async function AppointmentsPage({ params, searchParams }: Appoint
         upcoming={upcomingPanel}
         past={pastPanel}
       />
+
+      {/*
+        Last in the page, and only present while `?request=1` is. It portals to
+        `document.body` and opens in the top layer, so its position here decides
+        nothing visually — it is here because this is where the data it needs
+        was loaded.
+      */}
+      {requestData ? <AppointmentRequestDialog data={requestData} locale={locale} /> : null}
     </div>
   );
 }

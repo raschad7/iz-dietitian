@@ -6,6 +6,8 @@ import { useFormStatus } from 'react-dom';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/dialog';
+import { Field } from '@/components/ui/field';
 import { Icon } from '@/components/ui/icon';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -15,7 +17,7 @@ import {
   type ClientRequestSummary,
   type ClientRequestTopic,
 } from '@/features/portal/types';
-import { type Locale } from '@/i18n/routing';
+import { getLocaleDirection, type Locale } from '@/i18n/routing';
 import { formatDate } from '@/lib/format';
 
 /**
@@ -81,7 +83,7 @@ export function DataUpdateRequest({
   const request = openRequest ? (
     <PendingRequest request={openRequest} locale={locale} />
   ) : (
-    <RequestDisclosure topic={topic} locale={locale} />
+    <RequestDialogTrigger topic={topic} locale={locale} noticeKey={noticeKey} />
   );
 
   /*
@@ -120,7 +122,54 @@ export function DataUpdateRequest({
   );
 }
 
-function RequestDisclosure({ topic, locale }: { topic: ClientRequestTopic; locale: Locale }) {
+/**
+ * The correction request, asked for in a modal rather than in place.
+ *
+ * **Why a dialog and not the disclosure this replaces.** The control used to be
+ * a `<summary>` that unfolded a textarea and two buttons directly into the
+ * card. On the health record that pushed the rest of the screen down at the
+ * moment the client started typing, and on the contact screen it grew a form
+ * inside a settings list — a row that turns into a form reads as the list
+ * having broken rather than as a task having started. A modal is the shape the
+ * app already gives "write something and send it": the client record's own two
+ * forms are dialogs for the same reason, and the reason given there applies
+ * here too — losing your place is not a reasonable price for filing a note.
+ *
+ * **What it costs, stated honestly.** The disclosure worked with JavaScript
+ * off: `<details>` opens on its own and the form posted to a server action
+ * either way. A dialog does not — `showModal()` is script. Everything else on
+ * these two screens is still readable and the client can still reach the
+ * clinic by phone from Settings, so this trades a path almost nobody takes for
+ * a form that does not move the page underneath it.
+ *
+ * **Mounted, not conditionally rendered**, which is what lets it animate
+ * *out*. `Dialog` drives the exit through `data-closing` and only calls
+ * `close()` when the animation has run; unmounting on close — the pattern
+ * `client-form-trigger.tsx` uses, because it has data to load first — skips
+ * that entirely. Keeping it mounted also means `<dialog>`'s own `close()`
+ * restores focus to the trigger natively, so none of the manual focus
+ * bookkeeping that file needs is required here.
+ *
+ * **No portal, unlike that file.** These screens render inside
+ * `.q-route-stage`, whose route-enter animation puts a `transform` and a
+ * `clip-path` on an ancestor — the two things that would normally trap a
+ * `fixed` child, and the reason `HomeGlow` had to be hoisted out of the page.
+ * A dialog opened with `showModal()` is promoted to the **top layer**, which is
+ * painted outside the ancestor chain entirely, so neither reaches it. Skipping
+ * the portal keeps this server-renderable: a closed `<dialog>` is `display:
+ * none` under the UA stylesheet, so it costs a node and needs no
+ * "have we hydrated yet" flag to avoid touching `document` during SSR.
+ */
+function RequestDialogTrigger({
+  topic,
+  locale,
+  noticeKey,
+}: {
+  topic: ClientRequestTopic;
+  locale: Locale;
+  /** The same sentence the card shows, repeated inside — see below. */
+  noticeKey: 'notice' | 'contactNotice';
+}) {
   const t = useTranslations('portal.profile.update');
   const tErrors = useTranslations('portal');
   const tCommon = useTranslations('common');
@@ -128,92 +177,107 @@ function RequestDisclosure({ topic, locale }: { topic: ClientRequestTopic; local
   const actionKey = topic === 'contact' ? 'contactAction' : 'action';
 
   const [state, formAction] = useActionState(requestDataUpdateAction, initialClientRequestState);
-
-  // Mirrored from the `<details>` element's own event rather than replacing it,
-  // so the panel still opens when this component has not hydrated yet.
   const [open, setOpen] = useState(false);
-
   const formRef = useRef<HTMLFormElement>(null);
 
   /*
-    Closing without sending.
+    Closing without sending **resets the form**. Opening this is one tap and
+    reading it is the moment someone realises they have nothing to report; a
+    draft left in the textarea would otherwise still be there the next time the
+    dialog opened, under a control the client had explicitly cancelled.
 
-    Opening this panel is one tap and reading it is the moment someone realises
-    they have nothing to report — so there has to be a way out that is not
-    "find the summary again and tap it a second time". It **resets the form**
-    as well as closing it: `<details>` only hides its content, so a draft left
-    in the textarea would still be sitting there on the next visit under a
-    control the client had explicitly cancelled.
+    A success needs no handler: the action revalidates, `openRequest` comes back
+    set, and `DataUpdateRequest` swaps this whole component for
+    `PendingRequest`. That is the confirmation this flow is built around — see
+    `ClientRequestFormState`, which deliberately has no success member — and it
+    takes the dialog with it.
   */
-  function cancel() {
+  function close() {
     formRef.current?.reset();
     setOpen(false);
   }
 
   return (
-    <details
-      className="group/disclosure"
-      open={open}
-      onToggle={(event) => setOpen(event.currentTarget.open)}
-    >
-      {/*
-        `list-none` hides the triangle in Chrome and Firefox; Safari needs the
-        `::-webkit-details-marker` pseudo-element as well, and without it the
-        button renders with a stray disclosure arrow inside it.
-      */}
-      <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-[10px] rounded-ee-xl bg-card px-3.5 text-sm font-medium text-secondary-foreground ring-1 ring-border transition-all duration-200 ease-[cubic-bezier(.2,.6,.2,1)] hover:rounded-ee-[30px] hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-focus-halo focus-visible:outline-none [&::-webkit-details-marker]:hidden">
-        <Icon name="edit" className="size-4 shrink-0" />
+    <>
+      <Button type="button" variant="outline" onClick={() => setOpen(true)}>
+        <Icon name="edit" />
         {t(actionKey)}
-      </summary>
+      </Button>
 
-      <form ref={formRef} action={formAction} className="space-y-3 pt-3">
-        <input type="hidden" name="locale" value={locale} />
-        <input type="hidden" name="topic" value={topic} />
-
-        <div className="space-y-1.5">
-          <Label htmlFor="update-message">{t('messageLabel')}</Label>
-
-          <Textarea
-            id="update-message"
-            name="message"
-            required
-            maxLength={1000}
-            rows={3}
-            placeholder={t('messagePlaceholder')}
-            aria-invalid={state.status === 'error' || undefined}
-            aria-describedby={state.status === 'error' ? 'update-error' : undefined}
-            className="bg-card"
-          />
-        </div>
-
-        {state.status === 'error' ? (
-          <p id="update-error" role="alert" className="text-sm text-destructive">
-            {tErrors(state.messageKey)}
-          </p>
-        ) : null}
+      <Dialog
+        open={open}
+        onClose={close}
+        label={t(actionKey)}
+        dir={getLocaleDirection(locale)}
+        flat
+        // `open:` rather than a bare `flex`: a `display` utility on a
+        // <dialog> outranks the UA rule that hides it while closed.
+        className="open:flex open:flex-col max-h-[90dvh] overflow-hidden"
+      >
+        {/*
+          No close button in the corner: the footer ends in Cancel, and Escape
+          and a backdrop click both close it. §Fields — "a third exit only
+          crowds the corner the title starts from".
+        */}
+        <DialogHeader title={t(actionKey)} />
 
         {/*
-          §Buttons: siblings sit 12px apart, and the primary takes the
-          inline-start of the group in both locales — source order plus `flex`,
-          so Arabic mirrors it without a `flex-row-reverse`. Send is the
-          decision here and wears the brand colour; cancelling is merely
-          available, so it is the boxless `ghost` rather than a second outlined
-          control competing with it.
-
-          ⚠ Cancel needs JavaScript, where the rest of this panel does not —
-          `<details>` opens on its own and the form posts to a server action
-          either way. Unhydrated, the summary is still the way to close it,
-          which is exactly the behaviour that existed before this button did.
+          `min-h-0` so the body is what scrolls on a short phone in landscape,
+          rather than the dialog growing past `max-h-[90dvh]` and taking its own
+          footer off screen with it.
         */}
-        <div className="flex flex-wrap items-center gap-3">
-          <SubmitButton label={t('submit')} />
+        <form ref={formRef} action={formAction} className="flex min-h-0 flex-1 flex-col">
+          <input type="hidden" name="locale" value={locale} />
+          <input type="hidden" name="topic" value={topic} />
 
-          <Button type="button" variant="ghost" size="default" onClick={cancel}>
-            {tCommon('cancel')}
-          </Button>
-        </div>
-      </form>
-    </details>
+          <DialogBody className="min-h-0 flex-1 overflow-y-auto">
+            {/*
+              The notice is repeated here, and that is not duplication: the
+              scrim blurs the card it also sits on, so while this is open it is
+              the only readable copy. It matters most on the contact screen,
+              where it is the sentence explaining that a phone number and an
+              email have to be verified — which is exactly what the client is
+              about to ask for.
+            */}
+            <p className="text-sm leading-relaxed text-muted-foreground">{t(noticeKey)}</p>
+
+            <Field>
+              <Label htmlFor="update-message">{t('messageLabel')}</Label>
+
+              <Textarea
+                id="update-message"
+                name="message"
+                required
+                maxLength={1000}
+                rows={4}
+                placeholder={t('messagePlaceholder')}
+                aria-invalid={state.status === 'error' || undefined}
+                aria-describedby={state.status === 'error' ? 'update-error' : undefined}
+              />
+            </Field>
+
+            {state.status === 'error' ? (
+              <p id="update-error" role="alert" className="text-sm text-destructive">
+                {tErrors(state.messageKey)}
+              </p>
+            ) : null}
+          </DialogBody>
+
+          {/*
+            `DialogFooter` justifies to the inline-end and takes the primary
+            last in DOM order — cancel first, so a stray Enter cannot be the
+            thing that files the request.
+          */}
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={close}>
+              {tCommon('cancel')}
+            </Button>
+
+            <SubmitButton label={t('submit')} />
+          </DialogFooter>
+        </form>
+      </Dialog>
+    </>
   );
 }
 

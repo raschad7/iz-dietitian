@@ -531,6 +531,11 @@
       "demographics": "Demographics",
       "privateNotes": "Private clinic notes"
     },
+    "placeholders": {
+      "fullName": "Ahmad Khaled",
+      "email": "name@example.com",
+      "phone": "Number without the country code"
+    },
     "fields": {
       "fullName": "Full name",
       "phone": "Phone",
@@ -677,7 +682,17 @@
       "bmi": "BMI",
       "sectionsLabel": "Intake sections",
       "hasContent": "Has content",
-      "allergyDetailPlaceholder": "e.g. mild reaction to walnuts but not almonds; lactose-free dairy is fine.",
+      "allergyDetailPlaceholder": "Mild reaction to walnuts but not almonds",
+      "placeholders": {
+        "heightCm": "170",
+        "weightKg": "70",
+        "conditions": "Diabetes",
+        "medications": "Metformin 500mg twice daily",
+        "medicalNotes": "What the clinic should remember about this client",
+        "permanentInstructions": "No dairy after 6pm",
+        "preferences": "Grilled chicken",
+        "dislikes": "Liver"
+      },
       "overrideDivider": "Manual figures",
       "unsetCount": "{count} fields not filled in",
       "unsetOne": "1 field not filled in",
@@ -787,7 +802,8 @@
       "title": "Appointments",
       "subtitle": "Everything your dietitian has booked for you.",
       "book": "Request an appointment",
-      "requestSent": "Your request has been sent. Your dietitian will see it with your appointments.",
+      "requestSent": "Your request has been sent.",
+      "requestSentDetail": "Your dietitian will see it with your appointments.",
       "tabs": {
         "upcoming": "Upcoming",
         "past": "Past"
@@ -859,8 +875,7 @@
       "dailyTarget": "Daily target: {value} kcal",
       "chooseDay": "Choose a day",
       "today": "Today",
-      "chooseDayHeading": "Pick a day to see its meals",
-      "dayEnergyLabel": "Energy for this day",
+      "todayMealsHeading": "Your meals for today",
       "mealEnergyLabel": "Meal energy",
       "emptyDayTitle": "Nothing planned for this day",
       "emptyDayHint": "Your dietitian left this day open. Pick another day above.",
@@ -990,10 +1005,13 @@
     "progress": {
       "today": {
         "heading": "Your commitment today",
-        "meals": "Completed {completed, number, integer} of {total, number, integer} {total, plural, one {meal} other {meals}}",
+        "meals": "{completed, number, integer} of {total, number, integer} {total, plural, one {meal} other {meals}}",
         "caloriesCompleted": "{value, number, integer} kcal completed",
         "caloriesRemaining": "{value, number, integer} kcal remaining",
+        "energyTodayLabel": "Today's energy",
+        "energyTodayValue": "{value, number, integer} kcal",
         "prompt": "Tick off today's meals in My Plan to see your commitment here.",
+        "noMeals": "No meals are planned for today, so there is nothing to track yet.",
         "cta": "Update today's adherence",
         "level": {
           "missed": "That's alright — tomorrow is a fresh start.",

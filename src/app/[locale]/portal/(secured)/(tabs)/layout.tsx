@@ -1,7 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
 
-import { weekdayOf } from '@/features/booking/date';
 import { AppShell } from '@/components/layout/sidebar';
 import { PORTAL_NAV, PORTAL_NAV_ICONS } from '@/features/portal/nav';
 import { HomeGlow } from '@/features/portal/components/home-glow';
@@ -54,21 +53,6 @@ export default async function PortalTabsLayout({ children, params }: PortalTabsL
       */}
       <HomeGlow />
 
-      <PortalHeader
-        name={context.profile.fullName}
-        greeting={greetingKey(context.now.minute)}
-        date={formatDate(locale, context.now.date, {
-          dateStyle: undefined,
-          weekday: 'long',
-          day: 'numeric',
-          month: 'long',
-        })}
-        todayDayOfWeek={weekdayOf(context.now.date) ?? 0}
-        pendingCount={pendingCount}
-        locale={locale}
-        showNav
-      />
-
       {/*
         `showTitle={false}`: the portal's name is not drawn anywhere in the
         client's own app. `PortalHeader` directly above already opens the
@@ -83,18 +67,70 @@ export default async function PortalTabsLayout({ children, params }: PortalTabsL
         `PortalHeader` above with the bell and settings — so the rail's own bar
         would be a third.
 
-        `portal-shell-main`/`portal-shell-column` are inert on four of the
-        five tabs. They only do anything when the page inside them is the home
-        screen, which marks its own root `.portal-home` — the shell then
-        becomes a viewport-height frame and these two become part of the flex
-        column that carries its one scrolling region down to the meal list.
-        The rule, why it also reaches into `AppShell`'s own `data-slot`
-        wrappers, and why it is written as a `:has()` selector rather than as
-        a route check up here, is in `globals.css` beside `.portal-home-glow`.
+        There are no `portal-shell-*` hooks on `main` and its column any more.
+        They existed to make the home tab a viewport-height frame with the meal
+        list as its one scrolling region; that screen scrolls as an ordinary
+        document now, and the classes were left naming a rule that no longer
+        exists. What survives of that chain is one rule unpainting `AppShell`'s
+        own `<main>` so the glow shows through — in `globals.css`, beside
+        `.portal-home-glow`, with the ⚠ note on what was removed. It applies to
+        every portal tab rather than only the home route, which is why the page
+        no longer marks its own root either.
       */}
       <AppShell items={PORTAL_NAV} title={t('title')} showTitle={false} icons={PORTAL_NAV_ICONS}>
-        <main className="portal-shell-main min-w-0 flex-1 px-4 pt-5 pb-24 md:px-6 md:pt-6 md:pb-8">
-          <div className="portal-shell-column mx-auto w-full max-w-3xl">{children}</div>
+        {/*
+          **Inside the shell, not beside it.** This used to be a sibling of
+          `AppShell`, which put it in the portal wrapper's own flex column at
+          full viewport width — and that is wrong in two ways from `md` up,
+          where the rail appears:
+
+          1. The rail is `fixed inset-y-0 start-0 w-(--sidebar-width) z-10`. It
+             paints from the very top of the viewport, and an unpositioned
+             header cannot win against a positioned `z-10` element — so the
+             inline-start 256px of this bar was *underneath* the rail. Between
+             768px and ~1180px that is the whole notification bell, and on the
+             home tab the greeting, the client's name and the start of the day
+             strip with it. A phone never saw it because the rail is a sheet
+             below `md`.
+          2. `main` sits after the rail's in-flow 256px gap, so its centred
+             `max-w-3xl` column and this header's centred `max-w-3xl` column
+             were measured against different boxes — 128px apart once both hit
+             the cap, and up to 256px apart at tablet widths. The greeting sat
+             visibly off from the cards beneath it.
+
+          Rendered here it shares `SidebarInset` with `main`, so both columns
+          are centred in the same box and the rail has nothing of ours to cover.
+          Below `md` nothing moves: the rail is a sheet, the inset is the full
+          width, and this is still the first thing in the column.
+
+          It also settles a stray scrollbar on the four non-home tabs. The
+          wrapper carries `min-h-svh`; with the header outside it, the page's
+          minimum height was a full viewport *plus* this bar, so every one of
+          those tabs scrolled a little however little it held.
+        */}
+        <PortalHeader
+          name={context.profile.fullName}
+          greeting={greetingKey(context.now.minute)}
+          date={formatDate(locale, context.now.date, {
+            dateStyle: undefined,
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+          })}
+          pendingCount={pendingCount}
+          locale={locale}
+          showNav
+        />
+
+        {/*
+          `pb-24` runs to `lg`, not `md`: it is what keeps the last card off
+          `PortalTabBar`, and that bar is now on screen until `lg`. Dropping it
+          at `md` put a tablet's last card underneath the bar. The horizontal
+          padding still steps at `md` — it is a measure, not a clearance, and
+          it has to keep matching `PortalHeader`'s so the two columns line up.
+        */}
+        <main className="min-w-0 flex-1 px-4 pt-5 pb-24 md:px-6 md:pt-6 lg:pb-8">
+          <div className="mx-auto w-full max-w-3xl">{children}</div>
         </main>
 
         <PortalTabBar />

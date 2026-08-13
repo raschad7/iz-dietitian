@@ -39,6 +39,7 @@ import {
   type MealScheduleInput,
 } from './schema';
 import { slotBudgets, suggestProteinGrams, suggestTargets, type SlotBudget, type SuggestedTargets } from './targets';
+import { weekDates } from './week';
 
 /**
  * Reads for the weekly-plans feature.
@@ -838,15 +839,45 @@ export async function getLatestBoard(clinicId: string, clientId: string): Promis
 }
 
 /**
- * The client's own view: the published plan for the latest week.
+ * The client's own view: the published plan for the week they are standing in,
+ * and nothing else.
  *
  * Scoped by `client_id` and `status` only — a portal session has no clinic, and
  * adding one would mean trusting a value the client's session does not carry. The
  * plan is reachable because it belongs to them, which is the actual authorisation
  * rule.
+ *
+ * **Two conditions, and both are absolute: published, and covering `today`.**
+ *
+ * `published` is the dietitian's decision to show it at all. A draft is their
+ * working copy, and a client following a plan that is still being edited is the
+ * failure the status column exists to prevent.
+ *
+ * The week is what makes the screen behave. The tick on a meal card renders
+ * only for `dayStanding === 'today'`, and the home screen's commitment figure
+ * counts only today's meals — so a plan whose week does not contain today gives
+ * a client seven days they cannot report on and a percentage with no
+ * denominator. Requiring the week means the rule is simple to state in both
+ * directions: **if a plan is on screen, its meals can be ticked today.**
+ *
+ * Two consequences worth knowing, because both were chosen rather than fallen
+ * into:
+ *
+ * - Unpublishing this week's plan clears the client's home screen at once, even
+ *   when an older plan is still marked published. An expired plan surfacing
+ *   from underneath a take-down is what made unpublishing look like it had done
+ *   nothing.
+ * - A plan published for a week that has not started yet is not shown either.
+ *   It appears on the first day of its own week. `loadPlanPage` used to treat a
+ *   future plan's seven `future` days as the honest answer; the honest answer
+ *   now is that the client has no plan for *this* week.
  */
-export async function getPublishedBoard(clientId: string): Promise<Board | null> {
-  const [plan] = await db
+export async function getPublishedBoard(clientId: string, today: string): Promise<Board | null> {
+  // Every published plan's header row, newest week first. The rows are small —
+  // no meals, no dishes — and a client accumulates one per week, so reading
+  // them and choosing here costs less than a second round trip and keeps the
+  // rule readable instead of buried in a WHERE clause of date arithmetic.
+  const candidates = await db
     .select({
       id: weeklyPlans.id,
       clientId: weeklyPlans.clientId,
@@ -865,10 +896,16 @@ export async function getPublishedBoard(clientId: string): Promise<Board | null>
     .from(weeklyPlans)
     .innerJoin(clients, eq(clients.id, weeklyPlans.clientId))
     .where(and(eq(weeklyPlans.clientId, clientId), eq(weeklyPlans.status, 'published')))
-    .orderBy(desc(weeklyPlans.weekStartDate))
-    .limit(1);
+    .orderBy(desc(weeklyPlans.weekStartDate));
 
-  return plan ? assembleBoard(plan) : null;
+  // `weekDates` walks the plan's own seven dates from its `week_start_date`, so
+  // this holds for a plan starting on any weekday — the same reckoning
+  // `planWeekDays` gives the day strip, rather than a second guess at it. No
+  // fallback: a plan that does not cover today is not this week's plan, and
+  // there is nothing else for the portal to mean by "your plan".
+  const covering = candidates.find((plan) => weekDates(plan.weekStartDate).includes(today));
+
+  return covering ? assembleBoard(covering) : null;
 }
 
 type PlanRow = Omit<Board, 'days' | 'totals' | 'unfilled'>;

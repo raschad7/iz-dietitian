@@ -132,6 +132,43 @@
   --portal-home-glow: #A5D66C;
 
   /*
+   * ── Home hero progress ring ──
+   * The "today" ring on the portal home screen's commitment card — pinned to
+   * Figma values exactly like `--portal-home-glow` above, for the same
+   * reason: a single decorative fill and its own two-stop track, not a step
+   * in the olive/lime ramp. Nothing else may reach for these.
+   *
+   * `--portal-progress-fill` lands on the same hex as `--portal-home-glow` —
+   * the badge floats on that wash and is meant to read as cut from the same
+   * green — but it is its own token because the two are different concerns
+   * (an ambient blur vs. a solid, shadowed disc) and the glow's own comment
+   * reserves it for that one use.
+   */
+  --portal-progress-fill: #A5D66C;
+  --portal-progress-track: #DBFDB4;
+  --portal-progress-track-soft: rgba(219, 253, 180, .34);
+  --portal-progress-figure: #F3FFE5;
+  --portal-progress-caption: #DBFDB4;
+
+  /*
+   * ── Meal check tick ──
+   * `MealCheckMark`'s filled circle, on a design reference asking for the
+   * same bright green as the home hero above rather than `--primary`'s
+   * olive-500. A third pinned duplicate of that hex, not a reach for
+   * `--portal-progress-fill` — that token's own comment reserves it for the
+   * ring and the glow, and this is a different surface (a small mark on a
+   * meal card, not the home screen's decorative wash).
+   *
+   * ⚠ Lower contrast than `--primary` was. The white tick this fill is cut
+   * out around (see `MealCheckMark`) measures ~1.7:1 against it, under the
+   * 3:1 WCAG asks of a graphical mark — `--primary` cleared 3.47:1 here. Kept
+   * anyway because the mark is checked-state-only, sits inside an otherwise
+   * unambiguous checkbox row, and the reference explicitly asked for this
+   * exact green; flag before reusing this token anywhere contrast is load-bearing.
+   */
+  --meal-check-fill: #A5D66C;
+
+  /*
    * ── Leading, per script ──
    *
    * Every step of the type scale ships two line heights: the looser one for
@@ -450,6 +487,14 @@
   --color-commitment-card-figure: var(--commitment-card-figure);
   --color-commitment-card-stat: var(--commitment-card-stat);
 
+  --color-portal-progress-fill: var(--portal-progress-fill);
+  --color-portal-progress-track: var(--portal-progress-track);
+  --color-portal-progress-track-soft: var(--portal-progress-track-soft);
+  --color-portal-progress-figure: var(--portal-progress-figure);
+  --color-portal-progress-caption: var(--portal-progress-caption);
+
+  --color-meal-check-fill: var(--meal-check-fill);
+
   --color-meal-bg: var(--meal-bg);
   --color-meal-fg: var(--meal-fg);
 
@@ -720,20 +765,20 @@
    * **One step off the canvas, and untinted.** It went olive-100 → n-100 → n-50
    * → here, and the last step is the one that makes the card read as paper
    * rather than as a filled block: n-100 is a tint you notice, this is a surface
-   * you don't. `#F7F7F7` rather than n-50's `#F7F5EF` — the same lightness with
+   * you don't. `#FBFBFB` rather than n-50's `#F7F5EF` — the same lightness with
    * the last of the warm cast taken out, which is the grey the home screen's
    * design specifies for these cards.
    *
    * Measured, not eyeballed:
    *
-   * - n-900 on it is **15.86:1**, up from the olive pair's 8.92:1.
-   * - It is **1.08:1** on the n-0 canvas, so the fill is not what separates the
+   * - n-900 on it is **15.5:1**, up from the olive pair's 8.92:1.
+   * - It is **1.03:1** on the n-0 canvas, so the fill is not what separates the
    *   card from the page — `Card`'s own `ring-1 ring-foreground/10` hairline is,
    *   and it is load-bearing here in exactly the way the rail's divider is (§14).
    *   The meal cards drop their shadow on the home screen, so that ring is now
    *   the only edge they have; lighten this any further and there is nothing
    *   left holding the card off the page.
-   * - The olive-500 tick on it is **3.20:1**, which clears the 3:1 a graphical
+   * - The olive-500 tick on it is **3.35:1**, which clears the 3:1 a graphical
    *   mark needs — it measured 2.96:1 on olive-100 *and* on n-100, both under.
    *   Lifting the shell is what finally fixed that, so the one olive left on this
    *   screen is also the first version of it that passes.
@@ -741,7 +786,7 @@
    * Not remapped for dark mode, matching §15's rule for status: only bg, text
    * and border tokens remap, so the verified pair stays intact.
    */
-  --meal-bg: #F7F7F7;
+  --meal-bg: #FBFBFB;
   --meal-fg: var(--n-900);
 
   /* Data visualisation comfort band */
@@ -1262,116 +1307,127 @@
 }
 
 /*
- * ── The home screen's fixed frame ──
+ * ── The portal keeps the phone layout until `lg` ──
  *
- * On the client's home tab the page does not scroll: the greeting, the
- * commitment card, the day picker and the day's energy line all hold still,
- * and the meal list underneath them is the only thing that moves. A picker
- * that scrolls off the top of the screen the moment you read the day it
- * chose is a control you have to go back for, and the day's own total
- * belongs above the meals it totals rather than somewhere up the scrollback.
+ * `Sidebar` turns its rail on at `md` (768px), which is the right breakpoint
+ * for the practitioner app and the wrong one here. An iPad portrait *is*
+ * 768px, so the portal spent a third of the screen on a 256px rail carrying
+ * four destinations that the bottom tab bar already carries, and left the
+ * content column 464px wide — narrower than the reading measure it is capped
+ * at, with the page's own white filling everything below it.
  *
- * ⚠ **Unlayered, and that is the whole reason this block sits here rather
- * than in `@layer components` with the rest of the app's own classes.** Two
- * of the six rules below override a Tailwind utility written on the very
- * element they target — `min-h-svh` and `bg-background`, both baked into
- * `src/components/ui/sidebar.tsx`. Cascade layers are decided by layer order
- * *before* specificity is ever consulted, and Tailwind emits
- * `@layer utilities` after `@layer components`, so a component-layer rule
- * loses to any utility no matter how many `:has()` and attribute selectors
- * it carries. These two spent time in that layer and silently did nothing:
- * `bg-background` kept painting the shell opaque white over the home glow,
- * leaving green only in the strip behind the unfilled header — the exact
- * "flat green band rather than a wash" this rule was written to prevent —
- * and `min-h-svh` kept fighting the fixed-height frame. Unlayered beats
- * every layer, which is the same mechanism the `:lang(ar)` font swap above
- * depends on and for the same reason. **Do not fold this back into a layer.**
+ * Scoped to `.portal-shell`, so the staff area's own `AppShell` — same
+ * primitive, same `md:block` — is untouched. `[data-slot='sidebar']` is the
+ * wrapper holding both the in-flow gap that reserves the 256px and the fixed
+ * panel that fills it, so hiding it reclaims the width and removes the rail
+ * together.
  *
- * **Why a `:has()` rule and not conditional class names.** The frame is
- * assembled by files that cannot see the route — `portal/layout.tsx` owns
- * the shell, `(tabs)/layout.tsx` owns `AppShell`, the main column and the
- * measure, `(tabs)/template.tsx` owns the route-enter stage every page
- * mounts inside, and only `(tabs)/page.tsx` knows it is the home screen.
- * That page marks its own root `.portal-home`, and the shell reacts. The
- * alternative was another `usePathname()` client component in the layout,
- * the trick `HomeGlow` is forced into because it renders an element of its
- * own; here there is no element to render, only ancestors to constrain, so
- * the declarative version is both smaller and immune to the route and the
- * class disagreeing.
+ * Nothing becomes unreachable: `PortalTabBar` now runs to the same breakpoint
+ * and carries every destination the rail does, and the header carries the
+ * bell and settings.
  *
- * **`min-height: 0` on every step, and it is load-bearing.** A flex item's
- * automatic minimum size is its content, so without this each wrapper would
- * refuse to shrink under the height of the meal list inside it and the
- * overflow would climb straight back out to the document — the exact
- * scrolling this replaces, only now with the shell clipping it.
+ * `:not([data-mobile='true'])` spares the Sheet the same primitive renders
+ * below `md`, which carries this identical `data-slot`. The portal mounts no
+ * `SidebarTrigger` today so that sheet can never be opened — but a rule that
+ * would silently swallow it if one were ever added is a trap, and excluding
+ * it costs one selector.
  *
- * **Two of the steps are `AppShell`'s own, targeted by `data-slot` rather
- * than a class of ours.** `[data-slot="sidebar-wrapper"]` is
- * `SidebarProvider`'s row (rail beside the page) and carries its own
- * `min-h-svh`, which fights a fixed-height shell exactly the way an
- * unset `min-height` would; `[data-slot="sidebar-inset"]` is the `<main>`
- * shadcn's sidebar renders as the page itself, already `flex flex-1
- * flex-col`. Neither exposes a `className` through `AppShell`'s own props,
- * so `data-slot` — which the primitive sets regardless — is the only hook
- * available. Both are still scoped under `.portal-shell:has(.portal-home)`,
- * so the staff app's own `AppShell` usage, built on the same primitives, is
- * untouched.
- *
- * **`[data-slot="sidebar-inset"]` also loses its own `bg-background`.**
- * That `<main>` is shadcn's, opaque by default, and it sits directly under
- * the header — which is exactly where `.portal-home-glow` is meant to still
- * be fading. Before `AppShell` there was no background on this wrapper at
- * all, so the blur trailed off on its own math; with one restored, the glow
- * gets clipped hard at the header's lower edge instead of fading, and reads
- * as a flat green band rather than a wash. Made transparent again, scoped
- * the same way, so the other four tabs keep the opaque page behind them.
- *
- * ⚠ **`.q-route-stage` is the one wrapper this chain does not own.**
- * `template.tsx` renders it with no flex or height classes of its own — it
- * exists purely for the route-enter animation — so left alone it sits
- * between `.portal-shell-column` and `.portal-home` as a plain block flex
- * item with an automatic (content-sized) minimum height. That silently
- * broke every step below it: the meal list never received a bounded height
- * to overflow *within*, so nothing scrolled and the tail of the day's meals
- * was simply clipped by this rule's own `overflow: hidden` instead of
- * reachable. It gets the same treatment as the other wrappers, scoped the
- * same way.
- *
- * The other four tabs are untouched: no `.portal-home` inside them, so the
- * shell keeps `min-h-dvh` and the window scrolls as it always has.
+ * `PortalTabBar`, `HomeGlow`, `PortalHeader`'s white-on-glow tones and
+ * `main`'s bottom padding all pivot on this same `lg`. They describe one
+ * layout; move one and move all of them.
  */
-.portal-shell:has(.portal-home) {
-  height: 100dvh;
-  overflow: hidden;
+@media (width < 64rem) {
+  .portal-shell [data-slot='sidebar']:not([data-mobile='true']) {
+    display: none;
+  }
+
+  /*
+   * ── Toasts clear the portal's tab bar ──
+   *
+   * `Toaster` is bottom-centre and mounted once, in the locale layout, for the
+   * whole app. In the portal that lands it exactly on `PortalTabBar` — a fixed
+   * bar the client navigates with — so the confirmation covers the way out of
+   * the screen it is confirming.
+   *
+   * `body:has(...)` rather than a rule on the shell itself, because the toaster
+   * is a *sibling* of the page: it hangs off <body>, outside the portal tree
+   * entirely. Setting the variable on <body> is the nearest common ancestor
+   * that can reach it, and a custom property inherits the rest of the way down.
+   * Sonner reads it through the `offset` props in `layout.tsx` — it writes its
+   * own offsets inline, so there is nothing here to override, only a value to
+   * supply.
+   *
+   * It asks for `.portal-tab-bar`, not `.portal-shell`: the shell wraps the
+   * whole portal, and the `(screen)` group inside it — profile, settings, the
+   * request route — renders no tab bar. Keying off the bar itself means the
+   * toast is lifted exactly where there is something to clear.
+   *
+   * 5rem is the bar (62px of content) plus a gap; `env(safe-area-inset-bottom)`
+   * tracks the padding the bar itself carries on a notched phone, so the toast
+   * rises with it rather than sinking into it. It is `0px` on every screen
+   * without one, which is why the fallback is spelled out — `env()` with no
+   * fallback invalidates the whole `calc()` where the variable is unsupported.
+   *
+   * Held to the same `lg` as the rule above: from `lg` the bar is gone and the
+   * toast goes back to the app-wide 24px.
+   */
+  body:has(.portal-tab-bar) {
+    --q-toast-offset-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+  }
 }
 
-.portal-shell:has(.portal-home) [data-slot='sidebar-wrapper'] {
-  min-height: 0;
-}
-
-.portal-shell:has(.portal-home) [data-slot='sidebar-inset'] {
-  min-height: 0;
+/*
+ * ── Letting the home glow show through `AppShell`'s own `<main>` ──
+ *
+ * `[data-slot="sidebar-inset"]` is the `<main>` shadcn's sidebar renders as the
+ * page itself, opaque `bg-background` by default (`sidebar.tsx`), and it is the
+ * box the glow has to show through — the whole of it, header included, because
+ * `PortalHeader` sits *inside* this wrapper so that its column and `main`'s are
+ * centred against the same box and the fixed rail stops painting over the bar's
+ * inline-start 256px (see `(tabs)/layout.tsx`). Left opaque it paints flat white
+ * from the header's lower edge down, clipping the wash into a hard band instead
+ * of letting it fade the way `.portal-home-glow`'s own blur intends.
+ *
+ * **Transparent everywhere rather than scoped to the home route.** The other
+ * four tabs have no glow behind them to reveal, so this only lets
+ * `.portal-shell`'s own `bg-background` (`portal/layout.tsx`) show through
+ * instead — the same white, one layer down. That is also what retires the
+ * `.portal-home` marker the page used to set for this rule's benefit.
+ *
+ * The primitive exposes no `className` through `AppShell`'s own props, so
+ * `data-slot` — which it sets regardless — is the only hook available.
+ *
+ * ⚠ **Unlayered, and that is the whole reason this sits here rather than in
+ * `@layer components` with the rest of the app's own classes.** It overrides
+ * `bg-background`, a Tailwind utility written on the very element it targets.
+ * Cascade layers are decided by layer order *before* specificity is ever
+ * consulted, and Tailwind emits `@layer utilities` after `@layer components` —
+ * so a component-layer rule loses to any utility no matter how many attribute
+ * selectors it carries. This one spent time in that layer and silently did
+ * nothing: the shell kept painting opaque white over the glow, leaving green
+ * only in the strip behind the unfilled header — the exact "flat green band
+ * rather than a wash" it was written to prevent. Unlayered beats every layer,
+ * which is the same mechanism the `:lang(ar)` font swap above depends on and
+ * for the same reason. **Do not fold this back into a layer.**
+ *
+ * ⚠ **The home screen used to be a fixed `100dvh` frame**, and a much larger
+ * block lived here to build it: a `height` and an `overflow: hidden` on the
+ * shell, `min-height: 0` on every wrapper down to the meal list, and `flex`
+ * columns forced onto `.portal-shell-main`, `.portal-shell-column` and
+ * `.q-route-stage`. The list was the only thing that scrolled; the picker and
+ * the commitment card above it were pinned.
+ *
+ * It is gone. A screen that scrolls in two places is a screen a client has to
+ * work out — a swipe over the cards moved the list, the same swipe over the
+ * card above it moved nothing — and on a short phone the frame left the list a
+ * few rows tall underneath chrome that would not get out of its way. The home
+ * tab now scrolls as one document, like the other four. Rebuilding it means
+ * rebuilding that whole chain: the class hooks it needed are gone from
+ * `(tabs)/layout.tsx` too, and `portal-plan.tsx` no longer sizes its list to
+ * the space left over.
+ */
+.portal-shell [data-slot='sidebar-inset'] {
   background: transparent;
-}
-
-.portal-shell:has(.portal-home) .portal-shell-main {
-  display: flex;
-  min-height: 0;
-  flex-direction: column;
-}
-
-.portal-shell:has(.portal-home) .portal-shell-column {
-  display: flex;
-  min-height: 0;
-  flex: 1;
-  flex-direction: column;
-}
-
-.portal-shell:has(.portal-home) .q-route-stage {
-  display: flex;
-  min-height: 0;
-  flex: 1;
-  flex-direction: column;
 }
 
 @layer base {
@@ -1536,21 +1592,29 @@
    * 629.99 at -184.36/-219 on a 390×844 frame, blurred 77.7px, rotated 1.81deg.
    * Written in `vw` at that same ratio (value / 390 × 100) rather than fixed
    * px, so it holds its proportions on any phone width instead of matching
-   * only the one frame it was measured on — `HomeGlow` renders it `md:hidden`,
-   * where phone widths stay in the range that ratio was tuned for.
+   * only the one frame it was measured on. Above `md` the vertical is re-based
+   * on `vh` instead — see the block below for why that is what lets the glow
+   * run at every width rather than being switched off on a tablet.
    *
    * `inset-inline-start`, not `left`: the shape is a formless ambient blur, so
    * mirroring it in Arabic costs nothing and keeps the rule that only a
    * genuinely directional asset earns a physical property.
    *
-   * Two things outside this rule are what make it *visible*, and both are
+   * Three things outside this rule are what make it *visible*, and all are
    * documented where they live: `HomeGlow` renders from `(tabs)/layout.tsx`
    * rather than from the page, because the page sits inside `.q-route-stage`
-   * and a transformed ancestor is the containing block for anything `fixed`;
-   * and `PortalTheme` carries `isolate`, because a `-z-10` layer otherwise
-   * paints beneath that wrapper's own `bg-background`.
+   * and a transformed ancestor is the containing block for anything positioned
+   * inside it; and `PortalTheme` carries both `isolate` — a `-z-10` layer
+   * otherwise paints beneath that wrapper's own `bg-background` — and
+   * `relative`, which is what the wash's own `absolute` box is measured from so
+   * that it scrolls with the page instead of hanging in front of it.
    */
   .portal-home-glow {
+    /*
+     * The phone shape, exactly as measured on the 390×844 reference frame and
+     * written as ratios of the viewport width so it holds across phone widths.
+     * Untouched — every number here is the original.
+     */
     position: absolute;
     inset-block-start: -56.15vw;
     inset-inline-start: -47.27vw;
@@ -1562,14 +1626,51 @@
   }
 
   /*
-   * ── The home screen's fixed frame ──
+   * ── The same wash, on a screen that is wider than it is tall ──
    *
-   * ⚠ **Moved out of this layer.** `.portal-shell:has(.portal-home)` and its
-   * five companions are now unlayered, just above `@layer base` in this file.
-   * Two of the six override a Tailwind utility on the element they target, and
-   * a rule in `@layer components` loses to `@layer utilities` on layer order
-   * alone no matter how specific it is. The whole reasoning — including what
-   * broke while they sat here — is in the block there.
+   * ⚠ **Only the vertical is re-based, and that is the whole fix.**
+   *
+   * Horizontally the `vw` ratios already do the right thing at any width: the
+   * rect is twice the viewport and starts half a viewport before it, so both
+   * blurred side edges stay off screen and the green spans the full width. That
+   * is as true at 1440px as at 390px, so those two declarations are not
+   * repeated here.
+   *
+   * Vertically they are tied to the wrong axis. `height: 161.54vw` is 630px on
+   * the reference phone — about three quarters of its 844px viewport, ending
+   * just under halfway down — but 2326px at 1440px wide, against a viewport
+   * around 900px tall. Every blurred edge lands off screen and the page paints
+   * flat green rather than a wash. That is why the glow was switched off above
+   * `md` in the first place, and switching it back on without this would only
+   * restore the green page.
+   *
+   * The replacements are the reference frame's own proportions, read against
+   * its height instead of its width: -219/844, 630/844 and 78/844. On the phone
+   * that reproduces the original pixels exactly; on any other screen it keeps
+   * the wash covering the top half and fading out, which is what the shape
+   * means rather than what it happened to measure.
+   *
+   * From `md` rather than at every width, so no phone — including a short one,
+   * where `vh` and `vw` disagree most — renders a single pixel differently than
+   * it did before.
+   */
+  @media (width >= 48rem) {
+    .portal-home-glow {
+      inset-block-start: -25.94vh;
+      height: 74.64vh;
+      filter: blur(9.24vh);
+    }
+  }
+
+  /*
+   * ── The portal shell's transparent `<main>` ──
+   *
+   * ⚠ **Moved out of this layer.** `.portal-shell [data-slot='sidebar-inset']`
+   * is unlayered, just above `@layer base` in this file. It overrides a
+   * Tailwind utility on the element it targets, and a rule in
+   * `@layer components` loses to `@layer utilities` on layer order alone no
+   * matter how specific it is. The whole reasoning — including what broke while
+   * it sat here — is in the block there.
    */
 
   /*

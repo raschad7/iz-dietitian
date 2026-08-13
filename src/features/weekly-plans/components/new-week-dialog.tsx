@@ -155,11 +155,19 @@ export function NewWeekDialog({
                   {t('weekStartHint')}
                 </p>
               </div>
+              {/*
+                Olive on the chosen day, the way the calendar toolbar's picker marks it —
+                not the neutral black a date field draws. The default is neutral because a
+                form's month grid painted in the accent came out as a field of green, but
+                this panel is not one field among many: the dialog asks which week to
+                build, and this is the answer to it.
+              */}
               <DatePicker
                 id="new-week-start"
                 value={weekStartDate}
                 onChange={setWeekStartDate}
                 locale={locale}
+                selectedTone="primary"
               />
             </div>
 
