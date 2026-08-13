@@ -162,6 +162,13 @@
       "when": 1786430547407,
       "tag": "0022_catch_up_skipped_0020",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1786532008693,
+      "tag": "0023_mushy_magneto",
+      "breakpoints": true
     }
   ]
 }

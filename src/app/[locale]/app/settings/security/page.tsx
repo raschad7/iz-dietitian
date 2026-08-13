@@ -3,7 +3,6 @@ import { headers } from 'next/headers';
 import type { Metadata } from 'next';
 
 import { SecuritySettings } from '@/features/auth/components/security-settings';
-import { SettingsPageHeader } from '@/features/settings/components/settings-page-header';
 import { resolveLocale } from '@/i18n/params';
 import { auth } from '@/lib/auth';
 import { requireStaffSession } from '@/lib/session';
@@ -24,24 +23,20 @@ export default async function SecurityPage({ params }: SecurityPageProps) {
 
   const requestHeaders = await headers();
 
-  const [passkeys, accounts, t] = await Promise.all([
+  const [passkeys, accounts] = await Promise.all([
     auth.api.listPasskeys({ headers: requestHeaders }),
     auth.api.listUserAccounts({ headers: requestHeaders }),
-    getTranslations('settingsWorkspace.security'),
   ]);
 
   return (
-    <div className="space-y-5">
-      <SettingsPageHeader title={t('title')} description={t('description')} />
-      <SecuritySettings
-        locale={locale}
-        passkeys={passkeys.map((entry) => ({
-          id: entry.id,
-          name: entry.name ?? null,
-          createdAt: entry.createdAt.toISOString(),
-        }))}
-        providers={accounts.map((entry) => entry.providerId)}
-      />
-    </div>
+    <SecuritySettings
+      locale={locale}
+      passkeys={passkeys.map((entry) => ({
+        id: entry.id,
+        name: entry.name ?? null,
+        createdAt: entry.createdAt.toISOString(),
+      }))}
+      providers={accounts.map((entry) => entry.providerId)}
+    />
   );
 }

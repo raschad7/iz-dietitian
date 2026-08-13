@@ -10,7 +10,11 @@ export type ClinicSchedule = {
 };
 
 export type ClinicProfileSnapshot = {
-  clinic: ClinicInformationInput;
+  /**
+   * The writable clinic fields, plus the mark — which is read here but never
+   * written through `saveClinicInformation`. See `clinicInformationSchema`.
+   */
+  clinic: ClinicInformationInput & { logoUrl: string | null };
   schedule: ClinicSchedule;
   professional: ProfessionalProfileInput;
   onboardingCompletedAt: Date | null;

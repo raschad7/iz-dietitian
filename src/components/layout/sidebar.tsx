@@ -63,6 +63,18 @@ type ShellProps = {
    * so it keeps the title.
    */
   showTitle?: boolean;
+  /**
+   * The clinic's own mark, drawn beside the title at the head of the rail.
+   *
+   * **This is the clinic, not the signed-in person.** The account avatar at the
+   * foot of the rail is a different thing and stays a different thing: one
+   * identifies whose session this is, the other whose practice it is. A clinic
+   * that has uploaded no logo gets the app's own glyph, so the row never
+   * collapses to a bare word.
+   *
+   * A `data:` URI, per `clinics.logoUrl`.
+   */
+  brand?: { logoUrl: string | null; name: string };
   user?: { name: string; email?: string | null; locale: Locale };
   icons?: Partial<Record<NavItem['labelKey'], IconName>>;
   /**
@@ -114,6 +126,7 @@ export function AppShell({
   items,
   title,
   showTitle = true,
+  brand,
   user,
   icons,
   className,
@@ -121,7 +134,7 @@ export function AppShell({
 }: ShellProps) {
   return (
     <SidebarProvider className={className}>
-      <AppSidebar items={items} title={title} showTitle={showTitle} user={user} icons={icons} />
+      <AppSidebar items={items} title={title} showTitle={showTitle} brand={brand} user={user} icons={icons} />
       <SidebarInset>
         {/*
           Below `md` the rail is a sheet, and a sheet needs an opener that is
@@ -134,7 +147,7 @@ export function AppShell({
           its own header and a bottom tab bar under `md`; a second bar above
           them would be the third way to get to the same five screens.
         */}
-        {user ? <MobileBar title={title} /> : null}
+        {user ? <MobileBar title={brand?.name ?? title} /> : null}
         {children}
       </SidebarInset>
     </SidebarProvider>
@@ -152,7 +165,34 @@ function MobileBar({ title }: { title: string }) {
   );
 }
 
-function AppSidebar({ items, title, showTitle = true, user, icons }: Omit<ShellProps, 'children'>) {
+/**
+ * The clinic's mark at the head of the rail.
+ *
+ * A **plain `<img>`**, not `next/image`: the source is a `data:` URI already
+ * sized to 256px by the upload control, so there is no remote fetch to
+ * optimise and no srcset to generate.
+ *
+ * Falling back to the app glyph rather than to initials — a clinic that has not
+ * uploaded a mark has no mark, and inventing one from its name would put a
+ * second lettered disc on a rail whose foot already carries the account's.
+ */
+function BrandMark({ logoUrl, name }: { logoUrl: string | null; name: string }) {
+  return (
+    <span
+      aria-hidden
+      className="grid size-7 shrink-0 place-items-center overflow-hidden rounded-md bg-sidebar-accent ring-1 ring-sidebar-border"
+    >
+      {logoUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element -- a data: URI has nothing for the image optimizer to do.
+        <img src={logoUrl} alt="" className="size-full object-contain" />
+      ) : (
+        <Icon name="dishes" className="size-4 text-sidebar-icon" aria-label={name} />
+      )}
+    </span>
+  );
+}
+
+function AppSidebar({ items, title, showTitle = true, brand, user, icons }: Omit<ShellProps, 'children'>) {
   const t = useTranslations('nav');
   const pathname = usePathname();
 
@@ -171,18 +211,27 @@ function AppSidebar({ items, title, showTitle = true, user, icons }: Omit<ShellP
       <SidebarHeader className="gap-0 pb-1">
         <div className="flex h-12 items-center justify-between gap-2 px-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
           {/*
-            `sr-only` rather than absent when hidden: the string is the rail's
-            accessible name, and the mobile drawer needs one whether or not
-            anybody is meant to read it on screen. See `showTitle`.
+            The whole identity hides when the rail collapses, mark included.
+            At 56px the head has room for exactly one control, and that has to
+            be the trigger — it is the only way back out of the collapsed
+            state, so nothing may compete with it for the row.
           */}
-          <span
-            className={cn(
-              'truncate font-heading text-heading-sm font-semibold group-data-[collapsible=icon]:hidden',
-              !showTitle && 'sr-only',
-            )}
-          >
-            {title}
-          </span>
+          <div className="flex min-w-0 items-center gap-2 group-data-[collapsible=icon]:hidden">
+            {brand ? <BrandMark logoUrl={brand.logoUrl} name={brand.name} /> : null}
+            {/*
+              `sr-only` rather than absent when hidden: the string is the rail's
+              accessible name, and the mobile drawer needs one whether or not
+              anybody is meant to read it on screen. See `showTitle`.
+            */}
+            <span
+              className={cn(
+                'truncate font-heading text-heading-sm font-semibold group-data-[collapsible=icon]:hidden',
+                !showTitle && 'sr-only',
+              )}
+            >
+              {brand?.name ?? title}
+            </span>
+          </div>
           <SidebarTrigger className="shrink-0" />
         </div>
       </SidebarHeader>

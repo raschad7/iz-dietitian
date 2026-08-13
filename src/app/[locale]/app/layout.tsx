@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 
 import { AppShell } from '@/components/layout/sidebar';
 import { type IconName } from '@/components/ui/icon';
-import { isClinicOnboardingComplete } from '@/features/clinic-profile/queries';
+import { getClinicBrand, isClinicOnboardingComplete } from '@/features/clinic-profile/queries';
 import { resolveLocale } from '@/i18n/params';
 import { requireStaffClinic } from '@/lib/session';
 
@@ -58,7 +58,10 @@ export default async function AppLayout({ children, params }: AppLayoutProps) {
   const { clinicId, session } = await requireStaffClinic(locale);
   if (!(await isClinicOnboardingComplete(clinicId))) redirect(`/${locale}/onboarding`);
 
-  const t = await getTranslations('app');
+  // The rail draws the clinic's own mark and name rather than the product's, so
+  // a dietitian sees whose practice they are working in. `updateClinicFieldAction`
+  // revalidates this layout for exactly that reason.
+  const [brand, t] = await Promise.all([getClinicBrand(clinicId), getTranslations('app')]);
 
   return (
     /*
@@ -93,6 +96,7 @@ export default async function AppLayout({ children, params }: AppLayoutProps) {
     <AppShell
       items={NAV_ITEMS}
       title={t('shortName')}
+      brand={brand ?? undefined}
       user={{ name: session.user.name, email: session.user.email, locale }}
       icons={NAV_ICONS}
       className="h-svh overflow-hidden"

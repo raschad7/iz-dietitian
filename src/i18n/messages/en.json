@@ -67,11 +67,6 @@
       "whatsapp": "WhatsApp",
       "security": "Security"
     },
-    "leaveTitle": "Leave without saving?",
-    "leaveDescription": "This page has changes you have not saved yet. Switching tabs will discard them.",
-    "leaveConfirm": "Discard changes",
-    "leaveCancel": "Keep editing",
-    "unsaved": "Unsaved",
     "profile": {
       "title": "Personal profile",
       "description": "Your professional information and personal account inside the clinic.",
@@ -80,7 +75,8 @@
       "formTitle": "Professional information",
       "formDescription": "Update the details that identify you within the clinic team.",
       "accountEmail": "Account email",
-      "accountEmailHint": "This email is managed through your sign-in account."
+      "accountEmailHint": "This email is managed through your sign-in account.",
+      "identityTitle": "Account"
     },
     "clinic": {
       "title": "Clinic",
@@ -88,7 +84,10 @@
       "formTitle": "Clinic details",
       "formDescription": "Essential contact information used by the team and clients.",
       "hoursTitle": "Working hours",
-      "hoursDescription": "Choose the days and times available for appointments."
+      "hoursDescription": "Choose the days and times available for appointments.",
+      "identityTitle": "Clinic identity",
+      "identityDescription": "The logo and name your clients see.",
+      "hoursSummaryLabel": "Opening days and hours"
     },
     "whatsapp": {
       "title": "WhatsApp",
@@ -103,7 +102,13 @@
       "enabled": "Enabled",
       "notConnected": "Not connected",
       "createdAt": "Added {date}"
-    }
+    },
+    "change": "Change",
+    "save": "Save",
+    "cancel": "Cancel",
+    "saving": "Saving…",
+    "saveFailed": "That could not be saved. Try again.",
+    "notSet": "Not set"
   },
   "landing": {
     "title": "Run your dietitian practice in one place",
@@ -1648,7 +1653,7 @@
     "gatewayUnreachable": "The WhatsApp gateway did not answer. Make sure it is running, then try again.",
     "connection": {
       "title": "Connection",
-      "statusLabel": "Status",
+      "statusLabel": "Connection status",
       "phoneLabel": "Linked number",
       "connectedAt": "Connected since {when}",
       "syncedAt": "Status last checked {when}",
@@ -1787,7 +1792,8 @@
       "invalidPhone": "Enter a valid phone number using digits and an optional country code.",
       "invalidTime": "Choose a valid time in 15-minute increments.",
       "closingAfterOpening": "Closing time must be later than opening time.",
-      "workingDayRequired": "Choose at least one working day."
+      "workingDayRequired": "Choose at least one working day.",
+      "invalidImage": "That image could not be used. Choose a PNG, JPG or WebP file."
     },
     "messages": {
       "saved": "Changes saved.",
@@ -1795,6 +1801,13 @@
       "unexpected": "We could not save your changes. Try again.",
       "incomplete": "Complete all three sections before continuing.",
       "scheduleConflict": "Schedule saved. {count, plural, one {# future appointment is now outside these hours} other {# future appointments are now outside these hours}}."
-    }
+    },
+    "logo": "Clinic logo",
+    "logoUpload": "Choose an image",
+    "logoReplace": "Replace image",
+    "logoRemove": "Remove logo",
+    "logoHint": "PNG, JPG or WebP. Resized to 256×256 automatically.",
+    "logoPreviewAlt": "Clinic logo",
+    "closed": "Closed"
   }
 }

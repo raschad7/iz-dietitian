@@ -10,8 +10,14 @@ import {
   saveClinicInformation,
   saveProfessionalProfile,
   saveWeeklySchedule,
+  updateClinicField,
 } from './mutations';
-import { countFutureScheduleConflicts, getClinicProfile, isClinicOnboardingComplete } from './queries';
+import {
+  countFutureScheduleConflicts,
+  getClinicBrand,
+  getClinicProfile,
+  isClinicOnboardingComplete,
+} from './queries';
 import type { ClinicInformationInput, ProfessionalProfileInput, WeeklyScheduleInput } from './schema';
 
 const CLINIC: ClinicInformationInput = {
@@ -124,7 +130,7 @@ describe('onboarding completion', () => {
     expect(await isClinicOnboardingComplete(clinicId)).toBe(true);
 
     const profile = await getClinicProfile(clinicId, userId);
-    expect(profile?.clinic).toEqual(CLINIC);
+    expect(profile?.clinic).toEqual({ ...CLINIC, logoUrl: null });
     expect(profile?.professional).toEqual(PROFESSIONAL);
     expect(profile?.schedule.envelope).toEqual({ openMinute: 9 * 60, closeMinute: 17 * 60 });
   });
@@ -178,5 +184,90 @@ describe('future schedule conflicts', () => {
     });
 
     expect(await countFutureScheduleConflicts(clinicId, SCHEDULE.days, '2026-08-02')).toBe(0);
+  });
+});
+
+/**
+ * The clinic mark round-trips through a column, so the things worth pinning are
+ * that it survives a write unchanged — base64 is punctuation-heavy and any
+ * accidental escaping would corrupt it silently — and that the two readers used
+ * by the settings page and the rail both return it.
+ */
+describe('the clinic logo', () => {
+  const LOGO = 'data:image/webp;base64,UklGRiQAAABXRUJQVlA4IBgAAAAwAQCdASoBAAEAAwA0JaQAA3AA/vuUAAA=';
+
+  test('persists a data URI byte for byte and is read back by both queries', async () => {
+    const userId = await createStaff(clinicId, 'logo-owner');
+    expect(await updateClinicField(clinicId, 'logoUrl', LOGO)).toBe(true);
+
+    const [row] = await db.select().from(clinics).where(eq(clinics.id, clinicId));
+    expect(row?.logoUrl).toBe(LOGO);
+
+    // The rail reads its own narrow projection; the settings page reads the
+    // whole profile. A logo visible in one and not the other is the bug this
+    // pins down.
+    expect((await getClinicBrand(clinicId))?.logoUrl).toBe(LOGO);
+
+    await saveClinicInformation(clinicId, CLINIC);
+    await saveWeeklySchedule(clinicId, SCHEDULE);
+    await saveProfessionalProfile(clinicId, userId, PROFESSIONAL);
+    expect((await getClinicProfile(clinicId, userId))?.clinic.logoUrl).toBe(LOGO);
+  });
+
+  test('clears to null rather than to an empty string', async () => {
+    await updateClinicField(clinicId, 'logoUrl', LOGO);
+    await updateClinicField(clinicId, 'logoUrl', null);
+
+    const [row] = await db.select().from(clinics).where(eq(clinics.id, clinicId));
+    expect(row?.logoUrl).toBeNull();
+  });
+
+  test('leaves every other clinic column alone', async () => {
+    await saveClinicInformation(clinicId, CLINIC);
+    await updateClinicField(clinicId, 'logoUrl', LOGO);
+
+    const [row] = await db.select().from(clinics).where(eq(clinics.id, clinicId));
+    expect(row?.contactEmail).toBe('clinic@qiwam.test');
+    expect(row?.address).toBe('Ramallah, Main Street');
+  });
+
+  /**
+   * The regression this suite exists for.
+   *
+   * `saveClinicInformation` writes with `.set({ ...input })`, so while the mark
+   * was a member of `clinicInformationSchema` every bulk write cleared it —
+   * including the onboarding wizard, which has no logo field to carry it
+   * forward with. Editing an address wiped the logo, which reads to a user as
+   * "the picture would not save".
+   */
+  test('survives a bulk clinic write that does not mention it', async () => {
+    await updateClinicField(clinicId, 'logoUrl', LOGO);
+
+    await saveClinicInformation(clinicId, { ...CLINIC, address: 'A new street entirely' });
+
+    const [row] = await db.select().from(clinics).where(eq(clinics.id, clinicId));
+    expect(row?.address).toBe('A new street entirely');
+    expect(row?.logoUrl).toBe(LOGO);
+  });
+
+  test('survives onboarding completion', async () => {
+    const userId = await createStaff(clinicId, 'onboarding-owner');
+    await updateClinicField(clinicId, 'logoUrl', LOGO);
+    await saveClinicInformation(clinicId, CLINIC);
+    await saveWeeklySchedule(clinicId, SCHEDULE);
+    await saveProfessionalProfile(clinicId, userId, PROFESSIONAL);
+
+    expect(await completeOnboarding(clinicId, userId)).toBe(true);
+
+    const [row] = await db.select().from(clinics).where(eq(clinics.id, clinicId));
+    expect(row?.logoUrl).toBe(LOGO);
+  });
+
+  test('never reaches another clinic', async () => {
+    const otherClinicId = await createTestClinic('Other Clinic');
+    await updateClinicField(clinicId, 'logoUrl', LOGO);
+
+    const [other] = await db.select().from(clinics).where(eq(clinics.id, otherClinicId));
+    expect(other?.logoUrl).toBeNull();
   });
 });

@@ -11,6 +11,9 @@ export function readClinicProfileForm(formData: FormData) {
       phone: formData.get('clinicPhone'),
       contactEmail: formData.get('contactEmail'),
       address: formData.get('address'),
+      // No logo here: it is written one column at a time by
+      // `updateClinicFieldAction`, never as part of a bulk clinic write. See
+      // `clinicInformationSchema` for why that separation is load-bearing.
     },
     schedule: {
       days: Array.from({ length: 7 }, (_, weekday) => {
