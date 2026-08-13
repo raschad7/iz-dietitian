@@ -4,7 +4,7 @@ import { type CSSProperties } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RevealOnView } from '@/components/ui/reveal-on-view';
 import { type MonthlyTrendWeek } from '@/features/portal/adherence';
-import { type Locale } from '@/i18n/routing';
+import { getLocaleDirection, type Locale } from '@/i18n/routing';
 import { formatNumber } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
@@ -31,14 +31,16 @@ import { cn } from '@/lib/utils';
  * Recharts grows the dashboard's bars in unison; these are staggered a little
  * because the weeks are ordered and the last of them is *this* week — the one
  * the card is about — so building up to it says something the simultaneous
- * version does not. Small enough to still read as one gesture. The array is
- * oldest-first, so in Arabic it fills from the right, the same direction the
- * streak curve above it draws in.
+ * version does not. Small enough to still read as one gesture. The stagger
+ * follows `weeks`' own oldest-first order regardless of language — see
+ * `rtl` below for why the *visual* position is a separate concern from this.
  */
 const BAR_STAGGER_MS = 100;
 export function AdherenceTrendCard({ weeks }: { weeks: MonthlyTrendWeek[] }) {
   const locale = useLocale() as Locale;
   const t = useTranslations('portal.progress.trend');
+
+  const rtl = getLocaleDirection(locale) === 'rtl';
 
   return (
     <Card>
@@ -59,7 +61,18 @@ export function AdherenceTrendCard({ weeks }: { weeks: MonthlyTrendWeek[] }) {
             const heightPercent = Math.max(percent * 100, week.averageFraction === null ? 0 : 6);
 
             return (
-              <div key={week.weekStartDate} className="flex flex-1 flex-col items-center gap-2">
+              <div
+                key={week.weekStartDate}
+                // A plain source-order row would put the *last* array entry
+                // — this week, the one bar the card is actually about — at
+                // the row's RTL end, which is the physical left, furthest
+                // from where an Arabic reader's eye starts. `order` moves
+                // only the visual position: the stagger above still counts
+                // up through `weeks` in its own oldest-first order, so which
+                // bar animates first is untouched by which side it lands on.
+                style={{ order: rtl ? weeks.length - 1 - index : index }}
+                className="flex flex-1 flex-col items-center gap-2"
+              >
                 <span className="text-xs font-medium tabular-nums text-muted-foreground">
                   {week.averageFraction === null ? '—' : formatNumber(locale, week.averageFraction, { style: 'percent' })}
                 </span>

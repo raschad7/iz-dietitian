@@ -144,7 +144,12 @@ export function PlanDayStrip({
                 // label's own natural width, so the label overflows the
                 // column instead of the `truncate` span below ever getting
                 // narrow enough to clip it with an ellipsis.
-                'flex min-w-0 cursor-pointer flex-col items-center gap-2 rounded-2xl px-1 py-2 outline-none transition-all duration-200 ease-[cubic-bezier(.2,.6,.2,1)]',
+                // `px-0.5`, not `px-1`: at seven columns on a narrow phone
+                // the two extra pixels a side were the difference between
+                // "الخميس" fitting and clipping its own last letter — see the
+                // label's own note on `text-[11px]` below for the rest of
+                // that budget.
+                'flex min-w-0 cursor-pointer flex-col items-center gap-2 rounded-2xl px-0.5 py-2 outline-none transition-all duration-200 ease-[cubic-bezier(.2,.6,.2,1)]',
                 // The same focus and press treatment `buttonVariants` gives every
                 // other control: a raw <button> otherwise falls back to the UA
                 // outline, which is not this system's ring, and to no press cue
@@ -200,9 +205,12 @@ active ? 'bg-white/32 text-white' : 'text-white hover:bg-white/2',
                 اليوم"), so nothing is lost to a screen reader, which cannot
                 see the weight doing the work here.
 
-                `text-caption` is 12px, the scale's floor. `truncate` is a guard
-                rather than a working state at 72px, and the `aria-label` carries
-                the untruncated name regardless.
+                `text-[11px]`, one under `text-caption`'s 12px floor. At seven
+                equal columns on a narrow phone, 12px genuinely did not fit
+                الخميس — its own last letter clipped under `truncate` rather
+                than the guard ever needing to draw an ellipsis. `truncate`
+                stays as the actual guard now, and the `aria-label` still
+                carries the untruncated name regardless.
 
                 **No `leading-none` here.** `text-caption` already carries its own
                 line height, and that height is looser under `:lang(ar)` (1.5
@@ -215,7 +223,7 @@ active ? 'bg-white/32 text-white' : 'text-white hover:bg-white/2',
               */}
               <span
                 className={cn(
-                  'block w-full truncate text-center text-caption',
+                  'block w-full truncate text-center text-[11px] leading-[1.5]',
                   day.isToday && 'font-semibold',
                 )}
               >

@@ -116,24 +116,25 @@ export function PortalMealCard({
     <Card
       className={cn(
     'gap-0 p-1.5 shadow-none ring-0 transition-colors duration-(--duration-label)',
-    'group-open:bg-meal-bg-checked group-open:ring-1 group-open:ring-meal-border-checked',
-    'has-[[aria-checked=true]]:bg-meal-bg-checked has-[[aria-checked=true]]:ring-1 has-[[aria-checked=true]]:ring-meal-border-checked',
+    'group-open:bg-meal-bg-checked/70 group-open:ring-1 group-open:ring-meal-border-checked',
+    'has-[[aria-checked=true]]:bg-meal-bg-checked/70 has-[[aria-checked=true]]:ring-1 has-[[aria-checked=true]]:ring-meal-border-checked',
     MEAL_SHELL, 
   )} 
     >
       <details className="q-disclosure group">
         {/*
-          The whole row is the control — 56px tall and full width, so it is a
+          The whole row is the control — 48px tall and full width, so it is a
           target that cannot be missed rather than a chevron that has to be aimed
-          at. `list-none` plus the WebKit marker rule removes the default triangle
-          in every engine.
+          at, while still clearing the 44px tick's own footprint. `list-none`
+          plus the WebKit marker rule removes the default triangle in every
+          engine.
         */}
         {/*
           `gap-2.5` again: the kcal pill left the row, so four elements share
           three gaps where five shared four, and the eight pixels that were
           taken out of them go back.
         */}
-        <summary className="flex min-h-14 cursor-pointer list-none items-center gap-2.5 rounded-md px-2.5 py-2 outline-none transition-colors hover:bg-foreground/5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-focus-halo [&::-webkit-details-marker]:hidden">
+        <summary className="flex min-h-12 cursor-pointer list-none items-center gap-2.5 rounded-md px-2.5 py-1.5 outline-none transition-colors hover:bg-foreground/5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-focus-halo [&::-webkit-details-marker]:hidden">
           {/*
             The tick leads the row, at the **inline-start** — the edge a column of
             five is read down, so "which of these have I eaten" is answered by one

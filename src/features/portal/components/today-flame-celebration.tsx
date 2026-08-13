@@ -250,7 +250,14 @@ export function TodayFlameCell({ day }: { day: AdherenceDay }) {
                   {t('celebration.title')}
                 </h2>
 
-                <Button type="button" size="default" className="w-full" onClick={handleClaim}>
+                {/*
+                  `text-white`, not the button's own `text-primary-foreground`
+                  — that token went dark (`n-900`) when `--primary` moved to
+                  the brand's lighter #72AE34, but this claim button is asked
+                  for white text specifically, so it overrides the default
+                  pairing rather than reopening it globally.
+                */}
+                <Button type="button" size="default" className="w-full text-white" onClick={handleClaim}>
                   {t('celebration.claim')}
                 </Button>
               </div>
