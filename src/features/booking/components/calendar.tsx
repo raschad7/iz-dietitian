@@ -5,7 +5,6 @@ import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useOptimistic, useRef, useState, useTransition } from 'react';
 
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { Icon } from '@/components/ui/icon';
 import { useRouter } from '@/i18n/navigation';
 import { type Locale } from '@/i18n/routing';
 import { normalizeForSearch } from '@/features/clients/search';
