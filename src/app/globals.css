@@ -2417,6 +2417,7 @@
   */
   --tone-fill: oklch(0.84 0.0788 var(--tone-h));
   --tone-fill-hover: oklch(0.795 0.0788 var(--tone-h));
+  --tone-avatar-fill: oklch(0.89 0.05 var(--tone-h));
   /*
     The hairline. 0.105 rather than the 0.115 it asked for: the ceiling at this
     lightness is 0.1055, so the old value was clipping a band of hues — moving
@@ -2475,6 +2476,7 @@
   */
   --tone-fill: oklch(0.34 0.055 var(--tone-h));
   --tone-fill-hover: oklch(0.40 0.055 var(--tone-h));
+  --tone-avatar-fill: oklch(0.40 0.055 var(--tone-h));
   --tone-edge: oklch(0.62 0.105 var(--tone-h));
   /*
     And here the mark has to go the other way, because the disc under it does.

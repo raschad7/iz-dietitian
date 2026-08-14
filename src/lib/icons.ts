@@ -44,6 +44,7 @@ import {
   House,
   Info,
   KeyRound,
+  Languages,
   LayoutDashboard,
   Leaf,
   LifeBuoy,
@@ -131,6 +132,7 @@ export const APP_ICONS = {
   whatsapp: MessageCircle,
   security: ShieldCheck,
   settings: Settings,
+  language: Languages,
   contact: Phone,
   notes: FileText,
 

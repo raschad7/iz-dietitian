@@ -102,9 +102,9 @@ export function NewWeekDialog({
         variant={triggerVariant}
         aria-label={compactTrigger ? (triggerLabel ?? t('newWeek')) : undefined}
         title={compactTrigger ? (triggerLabel ?? t('newWeek')) : undefined}
-        className={
-          compactTrigger ? 'px-3 2xl:size-10 2xl:rounded-full 2xl:px-0' : undefined
-        }
+        // Square-shouldered even when it collapses to an icon: the planner's
+        // action bar is one set of controls and they share the base radius.
+        className={compactTrigger ? 'px-3 2xl:size-10 2xl:px-0' : undefined}
         onClick={() => {
           setGenerating(false);
           setWeekStartDate(newWeek.weekStartDate);
@@ -174,22 +174,13 @@ export function NewWeekDialog({
             {/* Stacked on a phone, three across from `sm` up — the dialog is a
                 full bottom sheet there, and three columns in a phone's width is
                 three columns of nothing. */}
+            {/* Generate first, so it lands at the reading edge — the right in
+                Arabic, the left in English. It is the featured door and the one
+                carrying a form; sitting last it was the door you reached after
+                scanning past the two you did not want. The order mirrors with
+                the writing direction because the grid is direction-aware, which
+                is the whole reason it is expressed as document order. */}
             <div className="grid gap-4 sm:min-h-0 sm:flex-1 sm:grid-cols-3 sm:items-stretch">
-              <EmptyDoor
-                clientId={clientId}
-                locale={locale}
-                weekStartDate={weekStartDate}
-                blocked={newWeek.blocked}
-              />
-
-              <CopyDoor
-                clientId={clientId}
-                locale={locale}
-                weekStartDate={weekStartDate}
-                plans={copyable}
-                blocked={newWeek.blocked}
-              />
-
               <GenerateDoor
                 clientId={clientId}
                 locale={locale}
@@ -200,6 +191,21 @@ export function NewWeekDialog({
                 defaultInstruction={newWeek.defaultInstruction}
                 onPendingChange={setGenerating}
                 onSuccess={finishGeneration}
+              />
+
+              <CopyDoor
+                clientId={clientId}
+                locale={locale}
+                weekStartDate={weekStartDate}
+                plans={copyable}
+                blocked={newWeek.blocked}
+              />
+
+              <EmptyDoor
+                clientId={clientId}
+                locale={locale}
+                weekStartDate={weekStartDate}
+                blocked={newWeek.blocked}
               />
             </div>
           </DialogBody>

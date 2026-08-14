@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
 
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
 import { Link } from '@/i18n/navigation';
@@ -63,9 +63,9 @@ export default function AppError({
               {t('retry')}
             </Button>
 
-            <Button variant="ghost" render={<Link href="/app" />}>
+            <Link href="/app" className={buttonVariants({ variant: 'ghost' })}>
               {t('dashboard')}
-            </Button>
+            </Link>
           </div>
         </CardContent>
       </Card>

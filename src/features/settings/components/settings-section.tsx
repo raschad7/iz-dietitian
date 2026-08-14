@@ -31,6 +31,7 @@ export function SettingsSection({
   description,
   icon,
   action,
+  flush,
   children,
   className,
 }: {
@@ -40,6 +41,16 @@ export function SettingsSection({
   icon?: IconName;
   /** An action belonging to the whole section rather than to one row. */
   action?: ReactNode;
+  /**
+   * Drops the rules for a child that draws its own frame.
+   *
+   * The hairlines below exist to divide `SettingsRow`s from each other and from
+   * the heading. A section holding a *table* instead has its own header strip
+   * and its own row rules, and the section's top border landed directly on that
+   * strip's rounded corners — two edges saying the same thing, one of them
+   * clipped.
+   */
+  flush?: boolean;
   children: ReactNode;
   className?: string;
 }) {
@@ -64,7 +75,12 @@ export function SettingsSection({
         {action ? <div className="shrink-0">{action}</div> : null}
       </div>
 
-      <div className="mt-3 flex flex-col divide-y divide-border border-t border-border">
+      <div
+        className={cn(
+          'mt-3 flex flex-col',
+          !flush && 'divide-y divide-border border-t border-border',
+        )}
+      >
         {children}
       </div>
     </section>
@@ -85,12 +101,21 @@ export function SettingsSection({
  * helper text — *"never for essential information"*. A field's name is the most
  * essential thing in its row. It is `text-label` now (13px/600), which is the
  * step the scale defines for exactly this, and the pairing reads as a label
- * over a value rather than as a caption someone forgot to promote.
+ * beside a value rather than as a caption someone forgot to promote.
  *
  * **The value is the emphasised line, not the label.** You already know what
  * you came to change; the value is what you are checking. Reversing that — a
  * bold label with the value trailing in grey — is the most common way this row
  * is drawn wrong.
+ *
+ * ## No `full` escape hatch
+ *
+ * A value that needs the section's whole inline size is not this row. The
+ * working-hours table is the one such value in settings, and it renders
+ * directly inside its `SettingsSection` with the Change control in the
+ * section's own `action` slot — see `settings-forms.tsx`. Widening this row for
+ * it would have made every other row's geometry conditional on a case it does
+ * not have.
  */
 export function SettingsRow({
   label,
