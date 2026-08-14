@@ -292,34 +292,39 @@ export type ContinuityDay = {
   daysAgo: number;
   /** The streak as it stood on this day: consecutive reported days ending here. */
   streak: number;
+  /**
+   * The day's own adherence, 0–1, or null when nothing was reported — what the
+   * curve now plots. A day that was 1 of 4 sits low and a day that was 4 of 4
+   * sits high, even mid-streak, rather than every kept day reading identically
+   * because only the run was ever drawn.
+   */
+  fraction: number | null;
   /** True when this day itself carries a report. */
   recorded: boolean;
 };
 
 /**
- * "مسار الاستمرارية" — the streak as it stood on each of the last
- * {@link CONTINUITY_DAYS} days, oldest first.
+ * "مسار الاستمرارية" — each of the last {@link CONTINUITY_DAYS} days'
+ * adherence, oldest first.
  *
- * The curve plots the **run length**, not the day's score. The card it feeds is
- * about continuity, and a card whose headline number is "3 أيام متواصلة" over a
- * line drawn from adherence scores would be two different measures stacked on
- * one another. Plotting the run means the last point *is* the headline number,
- * and a broken streak shows as the line returning to the floor rather than as a
- * dip someone has to interpret.
+ * The curve plots the **day's own fraction**, not the run length. A run
+ * length can only ever climb or reset, so a Monday kept at 1 of 4 meals drew
+ * the same rising line as a Sunday kept at 4 of 4 — the shape said "still
+ * going" and nothing about how much of the day was actually kept. The
+ * fraction says that: a lighter day dips, a fuller one climbs, and a day
+ * nobody answered reads as the line returning to the floor exactly the way a
+ * broken streak used to.
  *
- * Today gets {@link currentAdherenceStreak}'s grace and no other day does: a
- * report that has not been filed yet at 9am is not a broken streak, but a day
- * that ended with nothing in it — or with an explicit `missed` — is. That
- * asymmetry is what keeps the last point equal to the number printed beside
- * it all day long. `recorded` still reflects **any** report, `missed`
- * included: it answers "did this day get a tap", not "did the run survive
- * it", which is the streak column's question.
+ * `streak` is still carried per day — the card's headline number is
+ * {@link currentAdherenceStreak}, which agrees with this array's last entry —
+ * but it no longer drives the curve's height.
  */
 export function continuityPath(
   rows: AdherenceRow[],
   today: IsoDate,
   days = CONTINUITY_DAYS,
 ): ContinuityDay[] {
+  const byDate = new Map(rows.map((row) => [row.date, row]));
   const reported = new Set(rows.map((row) => row.date));
   const kept = new Set(rows.filter((row) => isKept(row.level)).map((row) => row.date));
 
@@ -328,11 +333,13 @@ export function continuityPath(
     const date = addDays(today, -daysAgo);
     const recorded = reported.has(date);
     const isToday = daysAgo === 0;
+    const row = byDate.get(date);
 
     return {
       date,
       daysAgo,
       streak: runEndingAt(kept, recorded || !isToday ? date : addDays(date, -1)),
+      fraction: row ? rowFraction(row) : null,
       recorded,
     };
   });

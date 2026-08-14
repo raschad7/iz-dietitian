@@ -1,6 +1,7 @@
 import { getFormatter, getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
+import { ALLERGENS } from '@/features/clients/nutrition';
 import { CLIENT_ACTIVITY_LEVELS, CLIENT_GOALS } from '@/features/clients/schema';
 import { ClinicSection } from '@/features/portal/components/clinic-section';
 import { DataUpdateRequest } from '@/features/portal/components/data-update-request';
@@ -11,6 +12,7 @@ import { ProfileSection } from '@/features/portal/components/profile-section';
 import { loadProfilePage } from '@/features/portal/page-data';
 import { requirePortalClient } from '@/features/portal/session';
 import { resolveLocale } from '@/i18n/params';
+import { isMember } from '@/lib/enum';
 
 type ProfilePageProps = {
   params: Promise<{ locale: string }>;
@@ -64,7 +66,8 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   const locale = await resolveLocale(params);
 
   const context = await requirePortalClient(locale);
-  const { profile, clinic, practitioner, openUpdateRequest } = await loadProfilePage(context);
+  const { profile, clinic, practitioner, openUpdateRequest, allergens } =
+    await loadProfilePage(context);
 
   const t = await getTranslations('portal.profile');
   const tClients = await getTranslations('clients');
@@ -109,6 +112,56 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
       icon: 'activityOutline',
     },
   ];
+
+  /*
+    **The allergy row, assembled from the three places an allergy is recorded.**
+
+    The intake dialog's allergy panel writes three fields and this screen used to
+    render only one of them — `clients.allergies`, the optional prose box at the
+    bottom of that panel. So a dietitian could tick four allergens, type a fifth
+    into "حساسيات أخرى", save, and the client's own record would still read
+    `غير مسجل` under "الحساسية الغذائية". `getPortalAllergens` has the full note;
+    the short version is that a record claiming nothing is on file when four
+    things are is worse than one that says nothing at all.
+
+    The ticks and the free entries are one list — the catalog-filtering
+    distinction between them is the dietitian's concern, not the client's, and
+    the staff card resolved it the same way (`client-nutrition.tsx`). The prose
+    detail follows on its own line, because it qualifies the list rather than
+    extending it: "حساسية خفيفة من الجوز دون اللوز" is a sentence about the nuts
+    entry, not a sixth allergen.
+
+    Joined with a newline rather than rendered as two rows: `InfoRow`'s value
+    panel is `whitespace-pre-line`, and a second row would spend a whole labelled
+    line on a heading ("تفاصيل") that the sentence under the list does not need.
+
+    `null` when all three are empty, which is what keeps the unrecorded chip
+    honest for a client who genuinely has nothing on file.
+  */
+  /*
+    An unrecognised tag falls back to its own raw value — it is **not** dropped.
+
+    `allergen_tags` is a `text[]`, so a value written by a newer version of the
+    app may have no label here. Everywhere else in this file that mismatch reads
+    as "not recorded" (see `enumLabel`), and for a goal or an activity level that
+    is the right failure: a stale enum is worth less than a wrong label. An
+    allergen is the one field on this screen where silently showing less than
+    the record holds is the dangerous direction, so an unknown tag is printed
+    verbatim. Ugly beats absent here.
+  */
+  const allergenNames = [
+    ...allergens.allergenTags.map((tag) =>
+      isMember(ALLERGENS, tag) ? tClients(`allergens.${tag}`) : tag,
+    ),
+    ...allergens.customAllergens,
+  ];
+
+  const allergyDetail = profile.allergies?.trim() ?? '';
+
+  const allergyValue =
+    [allergenNames.length > 0 ? format.list(allergenNames, { type: 'unit' }) : '', allergyDetail]
+      .filter((part) => part !== '')
+      .join('\n') || null;
 
   return (
     /*
@@ -164,9 +217,10 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
           icon="conditionsOutline"
           block
         />
+        {/* Assembled above — see the note there for why this is not `profile.allergies`. */}
         <InfoRow
           label={t('field.allergies')}
-          value={profile.allergies}
+          value={allergyValue}
           icon="allergiesOutline"
           block
         />

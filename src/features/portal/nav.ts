@@ -36,9 +36,12 @@ export type PortalLabelKey = (typeof PORTAL_NAV)[number]['labelKey'];
  * same reason the list itself is: a client who learns an icon on their phone
  * must find the same one on a laptop.
  *
- * The line set, not the app's usual Solar Bold — the bottom bar marks the
- * active tab with colour and a lift (`PortalTabBar`), so the icons themselves
- * stay quiet and outlined rather than competing with that.
+ * The `*Outline` names are what is left of a filled/linear split the set no
+ * longer has — lucide is one weight throughout, so each of these now resolves
+ * to the same glyph as its plain twin. They stay because the reason still
+ * holds: the bottom bar marks the active tab with colour and a lift
+ * (`PortalTabBar`), so if the set ever gains a second weight, this is the list
+ * that must not take it.
  */
 export const PORTAL_NAV_ICONS = {
   portalHome: 'portalHomeOutline',

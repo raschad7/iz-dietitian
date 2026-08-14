@@ -45,14 +45,13 @@ export function PasskeyButton({ locale }: { locale: Locale }) {
       <Button type="button" variant="outline" className="w-full max-w-none" disabled={pending} onClick={signIn}>
         {/*
           The FIDO fingerprint, hand-inlined rather than taken from `Icon`:
-          Solar has no biometric glyph, and this is the mark the platform
-          prompts themselves use, so it is a standard mark like `GoogleIcon`
-          rather than a picture we get to choose.
+          this is the mark the platform prompts themselves use, so it is a
+          standard mark like `GoogleIcon` rather than a picture we get to
+          choose — which is why it stays hand-drawn even though the set it once
+          had no biometric glyph for (Solar) is long gone.
 
-          It is a *stroke* glyph in a set that is otherwise Solar Bold and
-          filled — the one place that is true, and only because a fingerprint
-          drawn as a solid shape is an ink blot. Everything else follows the
-          rules: `currentColor` so it inverts with the button's label on hover
+          Everything else follows the rules: `currentColor` so it inverts with
+          the button's label on hover
           (a hardcoded olive-950 stayed dark at rest, where the label is not),
           and sized by the button rather than by a 2em intrinsic size that made
           it twice the width of the Google mark beside it.

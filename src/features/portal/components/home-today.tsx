@@ -52,7 +52,7 @@ export type HomeTodayMeal = {
  * calorie counts update the instant `MealCheck` flips a meal below, rather
  * than waiting on the next navigation.
  */
-function TodayProgress({ meals }: { meals: HomeTodayMeal[] }) {
+function TodayProgress({ meals, countOnMount }: { meals: HomeTodayMeal[]; countOnMount: boolean }) {
   const locale = useLocale() as Locale;
   const t = useTranslations('portal.progress.today');
   const context = usePlanDayCompletion();
@@ -92,24 +92,27 @@ function TodayProgress({ meals }: { meals: HomeTodayMeal[] }) {
   */
   if (fraction === null) {
     return (
-      <div className="flex min-h-[150px] w-full items-center rounded-[30px] bg-card px-4 py-4">
+      <div className="flex min-h-[150px] w-full items-center justify-center rounded-[30px] bg-card px-4 py-4">
         <p className="text-sm text-muted-foreground">{t('noMeals')}</p>
       </div>
     );
   }
 
   return (
-    // `rtl:flex-row-reverse`, not source order: the ring stays on the
-    // physical left in both locales rather than mirroring to inline-start.
-    // `px-4`, not the card's old `px-7`: `PlanDayPicker`'s strip sits almost
-    // flush with the page edge (`px-0.5` on its own grid) directly above
-    // this card now, and the wider inset read as a second, offset column
-    // once the two were stacked — pulling the ring's edge in closer to the
-    // day cells' own is what lines the two back up.
-    <div className="flex min-h-[150px] w-full items-center justify-between rounded-[30px] bg-card px-4 py-4 rtl:flex-row-reverse">
-      <TodayRing fraction={fraction} completed={completed} total={total} locale={locale} />
+    // Back on its own white card — the ring centred on it, with the
+    // completed/remaining pair as one row underneath rather than a column
+    // beside it. `text-black`, not `text-white`: the card is opaque again,
+    // so the pair reads against `bg-card` rather than the home glow.
+    <div className="flex min-h-[150px] w-full flex-col items-center justify-center gap-3 rounded-[30px] bg-card px-4 py-4">
+      <TodayRing
+        fraction={fraction}
+        completed={completed}
+        total={total}
+        locale={locale}
+        countOnMount={countOnMount}
+      />
 
-      <div className="flex flex-col gap-2.5 text-caption text-black">
+      <div className="flex items-center justify-center gap-4 text-caption text-black">
         {/* Same pair the ring itself is drawn in — the fill for what's done, the soft track for what's left. */}
         <span className="flex items-center gap-2">
           <span className="size-2.5 shrink-0 rounded-full bg-portal-progress-fill" />
@@ -119,27 +122,35 @@ function TodayProgress({ meals }: { meals: HomeTodayMeal[] }) {
           <span className="size-2.5 shrink-0 rounded-full bg-portal-progress-track-soft" />
           {t('caloriesRemaining', { value: remainingCalories })}
         </span>
-
-        {/* The day's planned total, not a third split — no dot, at the same
-            caption size as the two rows above rather than a heavier one.
-            `mt-2` on top of the column's own `gap-2.5`, so it reads as a
-            separate total rather than a third item in the same list. */}
-        <span className="mt-2 flex items-center justify-between gap-4">
-          <span>{t('energyTodayLabel')}</span>
-          <span className="tabular-nums">{t('energyTodayValue', { value: totalCalories })}</span>
-        </span>
       </div>
     </div>
   );
 }
 
-export function HomeToday({ meals }: { meals: HomeTodayMeal[] }) {
+export function HomeToday({
+  meals,
+  countOnMount = false,
+}: {
+  meals: HomeTodayMeal[];
+  /**
+   * Draw the ring's figure up from zero when it first appears, the way the
+   * progress tab's copy does.
+   *
+   * ⚠ **Only true when the open day is today, and that guard is load-bearing.**
+   * `PlanDayPicker` changes days with `router.replace(?day=N)` and the page
+   * keys `PlanDayCompletionProvider` on the selection, so every day tap
+   * remounts this ring — ungated, each one would replay the full count-up and
+   * put a multi-second animation between the tap and the number it was asking
+   * for. The entrance belongs to arriving on the screen, not to browsing it.
+   */
+  countOnMount?: boolean;
+}) {
   const tToday = useTranslations('portal.progress.today');
 
   return (
     <section className="space-y-3">
       <p className="text-sm font-medium text-white">{tToday('heading')}</p>
-      <TodayProgress meals={meals} />
+      <TodayProgress meals={meals} countOnMount={countOnMount} />
     </section>
   );
 }

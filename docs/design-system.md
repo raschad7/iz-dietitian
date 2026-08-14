@@ -218,6 +218,15 @@ Add icons to `APP_ICONS` in `src/lib/icons.ts`. Use role-based names such as
 glyphs. The allowlist in `icon.tsx` owns RTL mirroring. Do not import Lucide
 directly in feature UI or introduce a second icon style.
 
+**Two names may share a glyph; two rows of one screen may not.** Sharing is fine
+across the app — `dish` and `mealDinner` are both `Utensils` and never meet. It
+stops being fine when the duplicates land in the same list, where the glyph is
+what the reader is scanning by: `privacy` and `security` were both `ShieldCheck`
+six rows apart in the portal's settings. Give one of them its own name and its
+own picture rather than re-pointing a shared one — `refresh` and `close` are
+drawn by the whole app, so the portal's request rows got `rescheduleRequest` and
+`cancelRequest` instead.
+
 ## Shape, spacing, elevation, and motion
 
 - Buttons and fields use the 10px control radius.
@@ -345,8 +354,33 @@ when adapting another popup.
 ### Switches and segmented controls
 
 `Switch` is a 48px button target containing the visual track. It is designed for
-server-held settings and may act as the submit button of its own form. Use
-`knob="round"` for a dense list and the default leaf for an isolated setting.
+server-held settings and may act as the submit button of its own form.
+
+The track is shadcn/ui's: 44×24, a plain 20px disc, `bg-primary` on and
+`bg-input/60` off, with upstream's 2px transparent border insetting the disc
+rather than edging the track. There is no `knob` prop and no leaf — the 52×30
+track whose knob carried the Arc sweep and rotated −45° as it landed is gone,
+and with it the choice between a leaf and a disc. One drawing, everywhere.
+
+Two departures from upstream, both about this app rather than about taste. The
+off fill is `bg-input/60`, not a flat `bg-input`: `--input` is `n-500` here and
+is a *border* color picked to read as a 1px line, so poured into a 44×24 slab it
+made the off state heavier than the on state. And the disc travels on
+`inset-inline-start` rather than upstream's `translate-x`, which is a physical
+direction and would slide the wrong way in Arabic.
+
+⚠ **This is why the switch is a hand-drawn `<button>` and not shadcn's own
+component.** Upstream's is a Radix root driven by `onCheckedChange` — controlled
+state that submits nothing. Adopting it wholesale would trade a settings screen
+that works without JavaScript for an appearance. The appearance is what was
+wanted, so the appearance is what was taken; the element, the ARIA, the form
+semantics and the RTL travel all stayed. Anyone tempted to "just install the real
+one" should read this paragraph first.
+
+The padded 48px target is what keeps the control above the touch floor now that
+the track is 6px shorter than it was. Its accessible name comes from
+`aria-labelledby` pointing at the row's own label, because a `<label for>` cannot
+wrap a `role="switch"` button.
 
 `Segmented` is the controlled client component for two to four mutually
 exclusive views or modes. Give it accurate semantics with `role="tablist"` or

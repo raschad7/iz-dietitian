@@ -2,7 +2,7 @@ import type { IconName } from '@/components/ui/icon';
 
 import { mealTypeForSlot, type MealType } from './schema';
 
-/** Food-first Solar Linear choices for a newly added meal row. */
+/** Food-first glyph choices for a newly added meal row. */
 export const MEAL_ICON_OPTIONS = [
   {
     id: 'tea',

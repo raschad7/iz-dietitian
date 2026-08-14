@@ -207,6 +207,30 @@ const buttonVariants = cva(
         sm: "h-10 gap-2 px-5",
         icon: "size-12 rounded-full [&_svg:not([class*='size-'])]:size-5",
         "icon-sm": "size-10 rounded-full",
+        /*
+         * The floating action — a 56px circle carrying a 24px glyph, for a
+         * control that sits *over* the page rather than in it.
+         *
+         * A third size, and it earns one. `icon` is 48px because that is the
+         * touch floor for a control inside a layout that already frames it; a
+         * button floating free over a scrolling list has nothing framing it,
+         * and 56px is the size at which it stops reading as a stray chip. The
+         * glyph steps to 24px with it — a 20px mark in a 56px circle leaves a
+         * ring of empty fill.
+         *
+         * It is deliberately outside the `default` + `icon` compound below, so
+         * it keeps `default`'s solid olive and white glyph rather than that
+         * compound's pale olive chip. A pale circle is right for a control
+         * living in a toolbar and wrong for the only action on a screen: this
+         * one has to be findable from anywhere on the page, and the fill is
+         * what makes it so.
+         *
+         * ⚠ Not a general-purpose size. One floating action per screen, and
+         * only where the screen has exactly one thing to do — the same rule
+         * `accent` carries. If a second one appears, the screen wants a
+         * toolbar, not two circles.
+         */
+        fab: "size-14 rounded-full [&_svg:not([class*='size-'])]:size-6",
       },
     },
     compoundVariants: [

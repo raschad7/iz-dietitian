@@ -908,6 +908,41 @@ export async function getPublishedBoard(clientId: string, today: string): Promis
   return covering ? assembleBoard(covering) : null;
 }
 
+/**
+ * The same question as `getPublishedBoard`, asked when only the answer's *date*
+ * is wanted: which published week covers `today`, or none.
+ *
+ * It exists because two callers were paying for a whole board to read one field
+ * off it. `buildNotifications` takes a `currentWeekPlanStartDate` and nothing
+ * else from the plan — it needs to know whether to say "your plan is ready" —
+ * and `assembleBoard` behind `getPublishedBoard` reads every meal and every dish
+ * in the week to get there. That was tolerable on the notifications screen; it
+ * became untenable when the portal's bell started counting the same feed, since
+ * the bell renders on all five tabs.
+ *
+ * ⚠ **The covering rule is duplicated nowhere — it is the same two lines, and it
+ * must stay that way.** A plan is this week's plan when its own seven days
+ * include `today`; the long note on `getPublishedBoard` above is the whole
+ * argument for that and applies here unchanged. If the rule moves, both readers
+ * move together or the bell will offer a plan the home screen does not show.
+ */
+export async function getPublishedPlanWeekStart(
+  clientId: string,
+  today: string,
+): Promise<string | null> {
+  // Header rows only — the same small select `getPublishedBoard` opens with,
+  // minus every column that exists to build a board out of.
+  const candidates = await db
+    .select({ weekStartDate: weeklyPlans.weekStartDate })
+    .from(weeklyPlans)
+    .where(and(eq(weeklyPlans.clientId, clientId), eq(weeklyPlans.status, 'published')))
+    .orderBy(desc(weeklyPlans.weekStartDate));
+
+  const covering = candidates.find((plan) => weekDates(plan.weekStartDate).includes(today));
+
+  return covering?.weekStartDate ?? null;
+}
+
 type PlanRow = Omit<Board, 'days' | 'totals' | 'unfilled'>;
 
 /** Shared by the three readers above — the plan row differs, the assembly does not. */
