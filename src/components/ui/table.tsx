@@ -80,16 +80,16 @@ function Table({ className, ...props }: React.ComponentProps<'table'>) {
       className={cn(
         'w-full caption-bottom border-separate border-spacing-0 text-body-md',
         /*
-         * No rule above the very first body row — the header strip is already
-         * the edge it sits under, and a line there would double it.
+         * No rule under the very last body row — the table ends there, and a
+         * line under the last record draws a floor the table does not have.
          *
-         * Declared on the table rather than as `first:` on the row, because a
+         * Declared on the table rather than as `last:` on the row, because a
          * table may have several `<tbody>`s (see `TableBody`'s `linked`) and
-         * `tr:first-child` is true once per group. Only the first group's first
-         * row is the top of the table; the rest are group boundaries and should
-         * keep their rule.
+         * `tr:last-child` is true once per group. Only the final group's last
+         * row is the bottom of the table; the rest are group boundaries and
+         * should keep their rule.
          */
-        '[&>tbody:first-of-type>tr:first-child>td]:border-t-0',
+        '[&>tbody:last-of-type>tr:last-child>td]:border-b-0',
         className,
       )}
       {...props}
@@ -127,13 +127,18 @@ function TableHeader({
          */
         'bg-muted text-body-sm text-muted-foreground',
         /*
-         * The strip takes the control radius on all four corners, and it takes
-         * it on the end cells rather than on the `thead`: a table's fill is
-         * painted per cell, so a radius on the group is clipped away by the
-         * square cells sitting on top of it. Logical sides, so Arabic rounds
-         * the same two ends without a mirrored rule.
+         * The strip rounds its **block-start** corners only, and it takes them
+         * on the end cells rather than on the `thead`: a table's fill is painted
+         * per cell, so a radius on the group is clipped away by the square cells
+         * sitting on top of it.
+         *
+         * Block-end square, because the strip does not end there — the first
+         * body row begins. Rounding the bottom drew the header as a detached
+         * capsule with the rows tucked under it, which is two shapes where the
+         * table is one. `-ss-`/`-se-` are the logical corners, so Arabic rounds
+         * the same visual pair without a mirrored rule.
          */
-        '[&>tr>th:first-child]:rounded-s-[10px] [&>tr>th:last-child]:rounded-e-[10px]',
+        '[&>tr>th:first-child]:rounded-ss-[10px] [&>tr>th:last-child]:rounded-se-[10px]',
         sticky && '[&>tr>th]:sticky [&>tr>th]:top-0 [&>tr>th]:z-10 [&>tr>th]:bg-muted',
         className,
       )}
@@ -169,12 +174,12 @@ function TableBody({
       className={cn(
         linked && 'relative cursor-pointer transition-colors hover:bg-accent/50',
         /*
-         * The rows inside one group are one record, so only the group's first
-         * row draws the rule that separates it from the record above. Without
+         * The rows inside one group are one record, so only the group's last
+         * row draws the rule that separates it from the record below. Without
          * this, the dashboard's register would draw a line between a client's
          * name and the next-visit line hanging under it.
          */
-        linked && '[&>tr:not(:first-child)>td]:border-t-0',
+        linked && '[&>tr:not(:last-child)>td]:border-b-0',
         className,
       )}
       {...props}
@@ -230,9 +235,20 @@ type RowProps = {
    * `relative` so it sits above the stretched link.
    */
   linked?: boolean;
+  /**
+   * A row in a table you only read.
+   *
+   * Drops the hover fill. A table that answers the pointer is promising that
+   * pointing at a row leads somewhere, and the clinic's opening hours lead
+   * nowhere — the lit row would be a control that does nothing.
+   *
+   * `zebra` still works, and so does `data-selected`; this only turns off the
+   * pointer affordance for rows that do not respond to the pointer.
+   */
+  plain?: boolean;
 };
 
-function TableRow({ className, zebra, linked, ...props }: React.ComponentProps<'tr'> & RowProps) {
+function TableRow({ className, zebra, linked, plain, ...props }: React.ComponentProps<'tr'> & RowProps) {
   return (
     <tr
       data-slot="table-row"
@@ -250,23 +266,38 @@ function TableRow({ className, zebra, linked, ...props }: React.ComponentProps<'
          *
          * If this ever moves back to `border-collapse`, the row-level version
          * starts working again and this becomes the wrong place for it.
+         *
+         * ## Why the rule is on the block-**end** edge
+         *
+         * A border follows the corner it runs into. The fills below round the
+         * row's block-start corners, so a `border-t` came out of each rounded
+         * corner as a curve, and every divider in the app drew as a line with a
+         * little hook on both ends, stopping short of the table's edges. Nothing
+         * was wrong with the radius or the colour — the rule was simply on the
+         * rounded edge.
+         *
+         * The block-end edge is square, so `border-b` runs straight from one
+         * side of the table to the other. Same hairline in the same place
+         * between the same two rows; it just belongs to the row above now.
          */
-        '[&>td]:border-t [&>td]:border-border',
+        '[&>td]:border-b [&>td]:border-border',
         'transition-colors [&>td]:transition-colors',
         zebra && 'even:bg-muted',
         linked && 'relative cursor-pointer',
         /*
-         * The hover and selection fills below are rounded pills, and the radius
-         * is what forces them onto the cells rather than the row. `Table` is
-         * `border-separate`, and in that model a `<tr>` background paints as a
-         * square layer *behind* the cells that no `border-radius` can clip —
-         * only cells round (the same reason `TableHeader`'s strip rounds its end
-         * cells, not the `thead`). So the corner cells carry the radius on all
-         * four corners, on logical sides so Arabic rounds the same two ends, and
-         * every row fill is set on `[&>td]`. The radius sits on transparent cells
-         * at rest and only shows when a fill appears under the pointer.
+         * **No radius on a row fill.** It was a pill, then a pill open at the
+         * bottom, and both were the same mistake: a rounded fill is a shape for
+         * something detached — a chip, a card, a menu item — and a table row is
+         * neither. It is one band in a stack of bands, running the full measure
+         * of the table, and its edges are where the neighbouring rows begin
+         * rather than free corners. Square, the fill lands exactly on the row
+         * and the hairlines above and below it stay straight to both edges.
+         *
+         * The fills are still set on `[&>td]` rather than on the `<tr>`.
+         * `Table` is `border-separate`, and in that model a row background
+         * paints as a layer *behind* the cells, so anything a cell draws — a
+         * status tint, a zebra stripe — would sit on top of it.
          */
-        '[&>td:first-child]:rounded-s-lg [&>td:last-child]:rounded-e-lg',
         /*
          * `has-aria-expanded` is the registry's, and it earns its place here:
          * a row whose actions menu is open stays lit while the pointer is off
@@ -290,7 +321,7 @@ function TableRow({ className, zebra, linked, ...props }: React.ComponentProps<'
          * register without any single row looking *selected*. Selection below is
          * the olive at full strength, and the gap between the two is the point.
          */
-        'hover:[&>td]:bg-accent/25 has-aria-expanded:[&>td]:bg-accent/25',
+        !plain && 'hover:[&>td]:bg-accent/25 has-aria-expanded:[&>td]:bg-accent/25',
         'data-[selected=true]:[&>td]:bg-secondary data-[state=selected]:[&>td]:bg-secondary',
         className,
       )}

@@ -25,12 +25,18 @@ export default async function SettingsLayout({ children }: { children: ReactNode
 
   return (
     /*
-      A ceiling rather than none: a settings row is a label, a value and a
-      button, and past about 1200px the gap between the value and its control
-      stops reading as one row. Every laptop this is used on is below that and
-      gets the full width.
+      Full width, like every other screen in the app.
+
+      This was capped at `max-w-[1200px]` with no auto margin, so on anything
+      wider the column stayed 1200px and *pinned itself to the inline-start
+      edge* — collapsing the rail did not widen the page, it just moved the
+      viewport's free space into one enormous void at the inline-end. Settings
+      was the only screen that did this, which is exactly how it was noticed.
+
+      A ceiling was defensible for a row of label, value and button; a lopsided
+      one is not, and `main` already gives every other page the whole column.
     */
-    <div className="flex w-full max-w-[1200px] flex-col gap-5 text-start">
+    <div className="flex w-full flex-col gap-5 text-start">
       <header className="flex flex-col gap-1">
         <h1 className="font-heading text-heading-lg font-semibold tracking-tight">{t('title')}</h1>
         <p className="max-w-2xl text-body-sm text-muted-foreground">{t('description')}</p>

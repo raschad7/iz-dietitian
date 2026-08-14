@@ -1,12 +1,20 @@
 'use client';
 
-import { Fragment } from 'react';
 import { useTranslations } from 'next-intl';
 
 import { Callout } from '@/components/ui/callout';
 import { Field, FieldError } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRoot,
+  TableRow,
+} from '@/components/ui/table';
 import { SettingsEditDialog } from '@/features/settings/components/settings-edit-dialog';
 import {
   SettingsEmptyValue,
@@ -17,7 +25,7 @@ import type { Locale } from '@/i18n/routing';
 
 import { saveWeeklyScheduleAction, updateClinicFieldAction, updateProfessionalFieldAction } from '../actions';
 import { initialClinicProfileFormState, initialFieldEditState } from '../form-state';
-import { minutesToTime, summarizeSchedule } from '../schedule-summary';
+import { minutesToTime } from '../schedule-summary';
 import type { ClinicProfileSnapshot } from '../types';
 import { ClinicLogo, ClinicLogoField } from './logo-field';
 import { ScheduleFields } from './profile-fields';
@@ -105,100 +113,168 @@ export function ClinicSettings({ locale, profile }: { locale: Locale; profile: C
         <ClinicRow locale={locale} field="address" label={tc('address')} value={clinic.address} />
       </SettingsSection>
 
-      <SettingsSection title={t('clinic.hoursTitle')} description={t('clinic.hoursDescription')} icon="clock">
-        <ScheduleRow locale={locale} profile={profile} />
+      <SettingsSection
+        title={t('clinic.hoursTitle')}
+        description={t('clinic.hoursDescription')}
+        icon="clock"
+        // The table draws its own header strip and row rules, and the Change
+        // control belongs to the whole week rather than to a row of it.
+        flush
+        action={<ScheduleEditDialog locale={locale} profile={profile} />}
+      >
+        <ScheduleTable profile={profile} />
       </SettingsSection>
     </div>
   );
 }
 
 /**
- * The week as spans, with the whole editor behind one control.
+ * The week, as the table it always was.
+ *
+ * ## Why this is not a `SettingsRow`
+ *
+ * It was one: a label, a small two-column list crammed into the value slot, and
+ * a Change button across the row. Every other row in settings states *one*
+ * value, so the slot is sized for one — and a week of opening hours squeezed
+ * into it came out as a narrow block of text floating in a row three times its
+ * width, with the days and their hours drifting apart and no rule carrying the
+ * eye between them. It read as a paragraph that had lost its formatting.
+ *
+ * A schedule is tabular data — repeated records with the same fields — so it
+ * gets the app's `Table`, at the section's full inline size, with the column
+ * names stated once at the top. The Change control moves to the section's own
+ * action slot, where it now governs the whole week rather than one row of it.
+ *
+ * ## One row per day
+ *
+ * All seven, in weekday order, whether or not two of them read the same. The
+ * summary used to collapse adjacent identical days into spans — "Tuesday –
+ * Thursday" as one line — which is the right compression for a *sentence* about
+ * the week, and the wrong one for a table. A table's promise is that its rows
+ * are the records: you look up Wednesday by finding the row called Wednesday,
+ * not by working out which range contains it. It also made the table's height
+ * depend on the data, so editing one day could silently restructure the whole
+ * thing.
+ *
+ * A closed day spends one cell on the word rather than leaving two columns
+ * empty: a dash under *Opens* and another under *Closes* reads as missing data,
+ * and this data is not missing.
+ */
+function ScheduleTable({ profile }: { profile: ClinicProfileSnapshot }) {
+  const tc = useTranslations('clinicProfile');
+  // Sorted here rather than trusted from the query: the table's whole claim is
+  // that it is the week in order, and that must not depend on row order in a
+  // result set. The week starts on Sunday, matching `Date.prototype.getDay()`.
+  const days = [...profile.schedule.days].sort((a, b) => a.weekday - b.weekday);
+
+  return (
+    <TableRoot>
+      <Table>
+        <TableHeader>
+          <TableRow plain>
+            {/* Three equal columns. The day column was `w-1/2`, which on a wide
+                screen threw the times most of a metre away from the day they
+                belong to — the row stopped reading as one fact. */}
+            <TableHead className="w-1/3">{tc('day')}</TableHead>
+            <TableHead className="w-1/3">{tc('opens')}</TableHead>
+            <TableHead className="w-1/3">{tc('closes')}</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {days.map((day) => {
+            return (
+              <TableRow key={day.weekday} plain>
+                <TableCell
+                  className={day.isWorking ? 'font-medium' : 'font-medium text-muted-foreground'}
+                >
+                  {tc(`days.${day.weekday}` as 'days.0')}
+                </TableCell>
+                {day.isWorking ? (
+                  <>
+                    <TableCell>
+                      <Time minute={day.openMinute} />
+                    </TableCell>
+                    <TableCell>
+                      <Time minute={day.closeMinute} />
+                    </TableCell>
+                  </>
+                ) : (
+                  <TableCell colSpan={2} className="text-muted-foreground">
+                    {tc('closed')}
+                  </TableCell>
+                )}
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </TableRoot>
+  );
+}
+
+/**
+ * One clock time inside an Arabic table.
+ *
+ * ⚠ The isolation is on the **run**, never on the cell. `TableCell`'s `numeric`
+ * prop puts `dir="ltr"` on the `<td>` itself, and that also re-resolves the
+ * cell's `text-start` — so in Arabic the digits flushed to the *left* edge of
+ * their cell while the Arabic column head above them, resolved against the
+ * table's own direction, sat at the right. Header and value in the same column,
+ * at opposite ends of it. `settings-section.tsx` records the identical trap for
+ * the account email, and `docs/design-system.md` for the register's phone
+ * column: isolate the run, leave the box alone.
+ */
+function Time({ minute }: { minute: number }) {
+  return (
+    <span dir="ltr" className="tabular">
+      {minutesToTime(minute)}
+    </span>
+  );
+}
+
+/**
+ * The whole week's editor, behind one control.
  *
  * Seven switches and fourteen time fields are a lot of surface for something a
  * clinic sets once and revisits twice a year, and inline they dominated a page
- * whose every other row is a single value. The summary is the fact you came to
- * check; the dialog is the thing you occasionally came to change.
- *
- * It used to print all seven days verbatim, one per line, which made the most
- * common answer — "the usual hours, Sunday to Thursday" — something you had to
- * reconstruct by comparing five identical lines. `summarizeSchedule` collapses
- * them; see that file for why a span never crosses a closed day.
+ * whose every other row is a single value. The table above is the fact you came
+ * to check; this is the thing you occasionally came to change.
  */
-function ScheduleRow({ locale, profile }: { locale: Locale; profile: ClinicProfileSnapshot }) {
+function ScheduleEditDialog({ locale, profile }: { locale: Locale; profile: ClinicProfileSnapshot }) {
   const t = useTranslations('settingsWorkspace');
   const tc = useTranslations('clinicProfile');
-  const spans = summarizeSchedule(profile.schedule.days);
-
-  function dayRange(from: number, to: number): string {
-    const start = tc(`days.${from}` as 'days.0');
-    return from === to ? start : `${start} – ${tc(`days.${to}` as 'days.0')}`;
-  }
 
   return (
-    <SettingsRow
-      className="items-start"
-      label={t('clinic.hoursSummaryLabel')}
-      value={
-        /*
-          A two-column table, not seven stacked lines. The hours column is
-          `tabular` and sits at a shared inline offset, so a glance down it
-          compares like against like — which is the one thing a column of
-          opening hours is for. `summarizeSchedule` has already collapsed the
-          identical days, so the ordinary clinic gets two rows here.
-        */
-        <dl className="grid grid-cols-[auto_1fr] gap-x-8 gap-y-2">
-          {spans.map((span) => (
-            <Fragment key={span.from}>
-              <dt className={span.isWorking ? 'font-medium' : 'text-muted-foreground'}>
-                {dayRange(span.from, span.to)}
-              </dt>
-              <dd className="text-muted-foreground">
-                {span.isWorking && span.openMinute !== null && span.closeMinute !== null ? (
-                  <span dir="ltr" className="tabular">
-                    {minutesToTime(span.openMinute)} – {minutesToTime(span.closeMinute)}
-                  </span>
-                ) : (
-                  tc('closed')
-                )}
-              </dd>
-            </Fragment>
-          ))}
-        </dl>
-      }
-      action={
-        <SettingsEditDialog
-          locale={locale}
-          title={t('clinic.hoursTitle')}
-          triggerLabel={t('change')}
-          triggerAriaLabel={t('clinic.hoursTitle')}
-          // Seven rows of a switch and two time fields is a table, not a field.
-          size="wide"
-          action={saveWeeklyScheduleAction}
-          initialState={initialClinicProfileFormState}
-        >
-          {(state) => (
-            <div className="flex flex-col gap-4">
-              <ScheduleFields
-                profile={profile}
-                fieldErrors={state.status === 'error' && state.messageKey === 'invalid' ? state.fieldErrors : undefined}
-              />
-              {/*
-                Moving opening hours can strand appointments already booked
-                outside them. The action counts those and reports a `warning`
-                rather than refusing the change — it is the dietitian's call —
-                but the count has to be said where the change was made.
-              */}
-              {state.status === 'warning' ? (
-                <Callout role="status" tone="attention">
-                  {tc('messages.scheduleConflict', { count: state.conflictCount })}
-                </Callout>
-              ) : null}
-            </div>
-          )}
-        </SettingsEditDialog>
-      }
-    />
+    <SettingsEditDialog
+      locale={locale}
+      title={t('clinic.hoursTitle')}
+      triggerLabel={t('change')}
+      triggerAriaLabel={t('clinic.hoursTitle')}
+      // Seven rows of a switch and two time fields is a table, not a field.
+      size="wide"
+      action={saveWeeklyScheduleAction}
+      initialState={initialClinicProfileFormState}
+    >
+      {(state) => (
+        <div className="flex flex-col gap-4">
+          <ScheduleFields
+            profile={profile}
+            fieldErrors={state.status === 'error' && state.messageKey === 'invalid' ? state.fieldErrors : undefined}
+          />
+          {/*
+            Moving opening hours can strand appointments already booked
+            outside them. The action counts those and reports a `warning`
+            rather than refusing the change — it is the dietitian's call —
+            but the count has to be said where the change was made.
+          */}
+          {state.status === 'warning' ? (
+            <Callout role="status" tone="attention">
+              {tc('messages.scheduleConflict', { count: state.conflictCount })}
+            </Callout>
+          ) : null}
+        </div>
+      )}
+    </SettingsEditDialog>
   );
 }
 

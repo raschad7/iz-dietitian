@@ -4,16 +4,16 @@ import { useTranslations } from 'next-intl';
 import { useRef } from 'react';
 
 import { LocaleSwitcher } from '@/components/layout/locale-switcher';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Icon, type IconName } from '@/components/ui/icon';
-import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
+import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar';
 import { signOutAction } from '@/features/auth/actions';
 import { Link } from '@/i18n/navigation';
 import { type Locale } from '@/i18n/routing';
@@ -30,21 +30,19 @@ import { cn } from '@/lib/utils';
  * them behind one row spends that space on the name and puts the rest one click
  * away, which is the right price for things you touch once a week.
  *
- * ## Why this is a real menu now
+ * ## Two widths, two appropriate disclosures
  *
- * It used to be a hand-rolled disclosure: a `0fr` → `1fr` grid row that grew
- * *inside* the rail, pushing the trigger down. That works until the rail is
- * 56px wide — collapsed, there is no room to grow into — and it never had what
- * a menu is expected to have: type-ahead, arrow keys, a focus trap, a return of
- * focus to the trigger on close. `DropdownMenu` is the same primitive the row
- * actions and the selects use, so the panel is positioned against the viewport
- * rather than against the rail: it opens to the **inline-end** on desktop, out
- * over the page and away from the sidebar in either script, and upward from the
- * bottom on a phone, where the rail is a sheet and there is no inline-end to
- * open into.
+ * At full width, the footer is an inline disclosure: the account row stays
+ * anchored at the bottom and its actions unfold above it. The controls remain
+ * part of the rail instead of covering the page, and the identity does not need
+ * to be repeated a few pixels above itself. The mobile sheet has the same usable
+ * width, so it follows this mode too.
  *
- * Collapsed, the trigger is just the avatar — a person is the one thing in this
- * rail that still identifies itself at 40px without a label.
+ * At 56px there is no useful inline layout to reveal, so the collapsed rail
+ * keeps the positioned `DropdownMenu`. Its trigger is just the avatar — a
+ * person is the one thing in this rail that still identifies itself at 40px
+ * without a label. The popup reuses the same action-surface design as the
+ * inline drawer, so changing widths does not introduce a second visual system.
  *
  * The destinations moved out of the rail proper rather than being copied into
  * it: the same link in two lists is two answers to "where does this live".
@@ -87,6 +85,8 @@ export function SidebarProfile({
 }) {
   const t = useTranslations('nav');
   const tCommon = useTranslations('common');
+  const { state: sidebarState, isMobile, openMobile } = useSidebar();
+  const usesInlineDisclosure = isMobile || sidebarState === 'expanded';
 
   /*
    * Signing out is a POST to a server action, not a client call: the session
@@ -96,6 +96,90 @@ export function SidebarProfile({
    * asks this one — still mounted, outside the portal — to submit itself.
    */
   const signOutRef = useRef<HTMLFormElement>(null);
+
+  if (usesInlineDisclosure) {
+    return (
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <form ref={signOutRef} action={signOutAction} className="hidden">
+            <input type="hidden" name="locale" value={locale} />
+          </form>
+
+          {/*
+            The trigger stays first in DOM order, so Tab enters newly revealed
+            actions after it. Reversing only the visual column draws the panel
+            above the bottom-anchored row without changing that keyboard
+            sequence.
+          */}
+          <Collapsible
+            // Remount after dismissing the mobile sheet, so it always reopens
+            // with a folded footer. Switching to the icon rail unmounts this
+            // whole branch and provides the same reset on desktop.
+            key={isMobile ? `mobile-${openMobile ? 'open' : 'closed'}` : 'desktop'}
+            className="flex flex-col-reverse gap-2"
+          >
+            <CollapsibleTrigger
+              render={
+                <SidebarMenuButton
+                  type="button"
+                  size="lg"
+                  aria-label={name}
+                  className="px-3 data-panel-open:bg-sidebar-hover"
+                >
+                  <AccountAvatar name={name} />
+                  <ProfileIdentity name={name} email={email} />
+                  <Icon
+                    name="chevronUp"
+                    className="ms-auto size-4 text-sidebar-icon transition-transform duration-(--duration-arc) ease-(--ease-sweep) group-data-[panel-open]/menu-button:rotate-180 motion-reduce:transition-none"
+                  />
+                </SidebarMenuButton>
+              }
+            />
+
+            <CollapsibleContent className="h-(--collapsible-panel-height) overflow-hidden opacity-100 transition-[height,opacity] duration-(--duration-arc) ease-(--ease-sweep) data-ending-style:h-0 data-ending-style:opacity-0 data-starting-style:h-0 data-starting-style:opacity-0 motion-reduce:transition-none [&[hidden]:not([hidden='until-found'])]:hidden">
+              <div className="flex flex-col gap-1 rounded-md bg-card p-1 text-card-foreground">
+                <SidebarMenu>
+                  {LINKS.map((link) => (
+                    <SidebarMenuItem key={link.href}>
+                      <SidebarMenuButton
+                        size="lg"
+                        className="gap-2.5"
+                        render={
+                          <Link
+                            href={link.href}
+                            onClick={onNavigate}
+                          />
+                        }
+                      >
+                        <Icon name={link.icon} className="size-4.5" />
+                        <span>{t(link.labelKey)}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+
+                <LocaleSwitcher variant="menu" />
+
+                <SidebarMenu className="mt-1">
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      type="button"
+                      size="lg"
+                      className="gap-2.5 text-destructive hover:bg-destructive-subtle hover:text-destructive [&_svg]:text-destructive"
+                      onClick={() => signOutRef.current?.requestSubmit()}
+                    >
+                      <Icon name="signOut" className="size-4.5" />
+                      <span>{tCommon('signOut')}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        </SidebarMenuItem>
+      </SidebarMenu>
+    );
+  }
 
   return (
     <SidebarMenu>
@@ -116,8 +200,9 @@ export function SidebarProfile({
             No `tooltip` on this button, unlike the navigation rows above it.
             The tooltip wraps its button in a trigger of its own, and a button
             that is already a menu's trigger cannot also be a tooltip's — the
-            hover label wins and the menu never opens. Collapsed, the menu names
-            the account at its own head instead.
+            hover label wins and the menu never opens. The trigger's accessible
+            name still identifies the account without adding a second identity
+            block to the popup.
           */}
           <DropdownMenuTrigger
             render={
@@ -130,16 +215,6 @@ export function SidebarProfile({
                 className="group-data-[collapsible=icon]:px-0.5!"
               >
                 <AccountAvatar name={name} />
-                <ProfileIdentity name={name} email={email} />
-                {/*
-                  A single up caret: the menu always opens upward now, out of
-                  the foot of the rail, so one arrow points where it appears.
-                  Hidden while collapsed, where the avatar is the whole control.
-                */}
-                <Icon
-                  name="chevronUp"
-                  className="ms-auto size-4 text-sidebar-icon group-data-[collapsible=icon]:hidden"
-                />
               </SidebarMenuButton>
             }
           />
@@ -153,39 +228,23 @@ export function SidebarProfile({
               snapping into place. `slide-in-from-bottom-3` gives it enough
               distance for the rise to register as a direction.
             */
-            className="min-w-64 rounded-xl p-1.5 shadow-elevated duration-(--duration-arc) ease-(--ease-sweep) data-[side=top]:slide-in-from-bottom-3"
-            // Always upward, out of the foot of the rail — the account row sits
-            // at the very bottom of the sidebar (and of the phone sheet), so up
-            // is the one direction with room.
+            className="flex min-w-64 flex-col gap-1 rounded-md border border-border bg-card p-1 text-card-foreground shadow-none ring-0 duration-(--duration-arc) ease-(--ease-sweep) data-[side=top]:slide-in-from-bottom-3"
+            // Always upward, out of the foot of the collapsed rail, where it
+            // has the most available room.
             side="top"
             align="end"
             sideOffset={10}
           >
             {/*
-              The identity again, at the head of the panel. On a phone the
-              trigger is behind the sheet that spawned it, and collapsed it is
-              an avatar with no name on it — either way the menu has to say
-              whose account it is acting on before it offers to sign it out.
-            */}
-            <div className="flex items-center gap-2.5 px-1.5 py-2">
-              <AccountAvatar name={name} />
-              <ProfileIdentity name={name} email={email} />
-            </div>
-
-            <DropdownMenuSeparator />
-
-            {/*
-              `h-9` and `gap-2.5`, against the registry's `py-1`. These are the
-              only rows in the panel, read one at a time and clicked rarely; at
-              the default density they sat tighter than the account header above
-              them and the panel read as a list of settings rather than as a
-              menu of places to go.
+              The popup uses the same 48px row rhythm, padding and hover fill as
+              the inline drawer. Only the disclosure mechanism changes at the
+              compact width; the action surface does not.
             */}
             <DropdownMenuGroup>
               {LINKS.map((link) => (
                 <DropdownMenuItem
                   key={link.href}
-                  className="h-9 gap-2.5 px-2"
+                  className="h-12 gap-2.5 px-3 focus:bg-sidebar-hover"
                   render={<Link href={link.href} onClick={onNavigate} />}
                 >
                   <Icon name={link.icon} className="size-4.5 text-muted-foreground" />
@@ -194,16 +253,7 @@ export function SidebarProfile({
               ))}
             </DropdownMenuGroup>
 
-            <DropdownMenuSeparator />
-
-            {/*
-              Not a destination — the one row here that changes the page you are
-              already on rather than taking you to another, which is why it is
-              fenced off from the three above it.
-            */}
             <LocaleSwitcher variant="menu" />
-
-            <DropdownMenuSeparator />
 
             {/*
               Last, and clay. Ending a session is reversible in the sense that
@@ -211,10 +261,10 @@ export function SidebarProfile({
               you were doing, so it sits furthest from the ones you meant to
               click.
             */}
-            <DropdownMenuGroup>
+            <DropdownMenuGroup className="mt-1">
               <DropdownMenuItem
                 variant="destructive"
-                className="h-9 gap-2.5 px-2"
+                className="h-12 gap-2.5 px-3 focus:bg-destructive-subtle"
                 onClick={() => signOutRef.current?.requestSubmit()}
               >
                 <Icon name="signOut" className="size-4.5" />

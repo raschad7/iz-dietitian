@@ -84,12 +84,18 @@ function Tabs({
 /**
  * One tab.
  *
- * **The active tab is olive-700 with an olive-500 underline.** The rail marks
- * its active row with olive-500 on olive-50, which docs/design-system.md
+ * **The active *line* tab is olive-700 with an olive-500 underline.** The rail
+ * marks its active row with olive-500 on olive-50, which docs/design-system.md
  * already flags as the system's one navigation contrast failure at 2.95:1.
  * There is no reason to repeat it here: olive-700 on the page's white is
  * 7.37:1, and the underline — a graphical mark, which needs only 3:1 — is what
  * carries the brand colour.
+ *
+ * **The active *contained* tab is plain `text-foreground`.** That tab is a
+ * raised card on a sunken track: fill, shadow and weight have all already said
+ * "this one" before colour gets a turn. Tinting the label as well only makes it
+ * the quietest green on the page, and under a black page heading it read as a
+ * link rather than as where you are.
  *
  * Geometry does not change between states. Only the label colour and the
  * underline move, so a tab never shifts the row while you are reading it.
@@ -111,7 +117,19 @@ const tabLinkVariants = cva(
   {
     variants: {
       active: {
-        true: 'text-secondary-foreground font-semibold',
+        /*
+         * No colour here. The two appearances mark "active" differently — the
+         * line tab has only the label and its underline to work with, the
+         * contained tab has a raised card — so the colour is set in the
+         * compound variants below and nowhere else.
+         *
+         * ⚠ It used to be `text-secondary-foreground` on this variant, with the
+         * contained pair trying to override it to `text-foreground`. `cva`
+         * concatenates classes, so both landed on the element at equal
+         * specificity and the winner was decided by stylesheet order, not by
+         * which one was written last. The override lost, silently.
+         */
+        true: 'font-semibold',
         // The hover fill stops at the label rather than reaching the hairline,
         // which is why it is the sunken neutral and not a brand tint: a tint
         // here would read as a second active state.
@@ -142,15 +160,28 @@ const tabLinkVariants = cva(
       {
         appearance: 'line',
         active: true,
-        class: 'after:scale-x-100',
+        // Olive on the label, olive underline — see this block's docstring for
+        // why the line tab carries the brand colour and the contained one does
+        // not.
+        class: 'text-secondary-foreground after:scale-x-100',
       },
       {
         appearance: 'contained',
         active: true,
-        // `hover:bg-card` holds the raised fill under the pointer: the
-        // unselected hover tint firing on the selected tab would read as it
-        // being deselected.
-        class: 'bg-card font-semibold text-secondary-foreground shadow-card hover:bg-card',
+        /*
+         * `text-foreground`, not the olive the line tabs use. The selected tab
+         * here is already a raised card on a sunken track — fill, shadow and
+         * weight all say "this one" before colour gets a chance to. Adding the
+         * brand tint on top of three other signals only makes the label the
+         * quietest kind of green, and the settings bar sits directly under a
+         * page heading in plain black; a green heading-sized label under it read
+         * as a link rather than as where you are.
+         *
+         * `hover:bg-card` holds the raised fill under the pointer: the
+         * unselected hover tint firing on the selected tab would read as it
+         * being deselected.
+         */
+        class: 'bg-card font-semibold text-foreground shadow-card hover:bg-card',
       },
     ],
     defaultVariants: { active: false, appearance: 'line' },
