@@ -18,7 +18,7 @@ import {
   resetDatabase,
 } from '../../../tests/helpers';
 
-import { getBoard, listPlannableClients, loadCatalog, planDishesBySlot, searchFoods } from './queries';
+import { getBoard, listPlannableClients, loadCatalog, planDishesBySlot, searchFoods, searchFoodsById } from './queries';
 import { slotFillKey } from './skeleton';
 
 let clinicId: string;
@@ -326,5 +326,22 @@ describe('searchFoods', () => {
     const other = await createTestClinic();
     await db.insert(foods).values({ clinicId: other, fdcId: null, description: 'Chicken secret', category: 'Clinic custom', kcal: 1, protein: 0, carbs: 0, fat: 0 });
     expect((await searchFoods(clinicId, 'chicken secret', 10)).length).toBe(0);
+  });
+});
+
+describe('searchFoodsById', () => {
+  test('returns the food row by id, or empty for another clinic\'s', async () => {
+    const [food] = await db
+      .insert(foods)
+      .values({ description: 'Chicken breast', category: 'Poultry', kcal: 165, protein: 31, carbs: 0, fat: 3.6 })
+      .returning({ id: foods.id });
+    const other = await createTestClinic();
+    const [customFood] = await db
+      .insert(foods)
+      .values({ clinicId: other, fdcId: null, description: 'Other clinic food', category: 'Clinic custom', kcal: 1, protein: 0, carbs: 0, fat: 0 })
+      .returning({ id: foods.id });
+
+    expect((await searchFoodsById(clinicId, food!.id)).map((f) => f.id)).toEqual([food!.id]);
+    expect(await searchFoodsById(clinicId, customFood!.id)).toEqual([]);
   });
 });

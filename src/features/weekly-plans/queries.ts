@@ -409,6 +409,21 @@ export async function searchFoods(
     .limit(limit);
 }
 
+/**
+ * A single library food by id, clinic-visible.
+ *
+ * Symmetric with `searchFoods`: same columns, same clinic-visibility rule, but by
+ * id rather than by description — the shape `findFoodMatches` needs to resolve a
+ * remembered alias without guessing at text search.
+ */
+export async function searchFoodsById(clinicId: string, foodId: string): Promise<FoodSearchResult[]> {
+  return db
+    .select(foodColumns)
+    .from(foods)
+    .where(and(eq(foods.id, foodId), or(isNull(foods.clinicId), eq(foods.clinicId, clinicId))))
+    .limit(1);
+}
+
 // ---------------------------------------------------------------------------
 // Clients and profiles
 // ---------------------------------------------------------------------------
