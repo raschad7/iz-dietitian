@@ -18,7 +18,7 @@ import {
   resetDatabase,
 } from '../../../tests/helpers';
 
-import { getBoard, listPlannableClients, loadCatalog, planDishesBySlot } from './queries';
+import { getBoard, listPlannableClients, loadCatalog, planDishesBySlot, searchFoods } from './queries';
 import { slotFillKey } from './skeleton';
 
 let clinicId: string;
@@ -297,5 +297,34 @@ describe('loadCatalog ownership', () => {
 
     expect((await loadCatalog(clinicId)).map((d) => d.slug)).not.toContain('shared-dish');
     expect((await loadCatalog(otherClinic)).map((d) => d.slug)).toContain('shared-dish');
+  });
+});
+
+describe('searchFoods', () => {
+  test('finds shared library foods and this clinic own custom foods by description', async () => {
+    await db.insert(foods).values([
+      { description: 'Chicken breast, roasted', category: 'Poultry', kcal: 165, protein: 31, carbs: 0, fat: 3.6 },
+      { description: 'Chicken thigh', category: 'Poultry', kcal: 209, protein: 26, carbs: 0, fat: 10 },
+      { description: 'Apple, raw', category: 'Fruit', kcal: 52, protein: 0.3, carbs: 14, fat: 0.2 },
+    ]);
+    await db.insert(foods).values({
+      clinicId,
+      fdcId: null,
+      description: 'Chicken village style',
+      category: 'Clinic custom',
+      kcal: 200, protein: 20, carbs: 0, fat: 12,
+    });
+
+    const results = await searchFoods(clinicId, 'chicken', 10);
+    const descriptions = results.map((f) => f.description);
+    expect(descriptions).toContain('Chicken breast, roasted');
+    expect(descriptions).toContain('Chicken village style');
+    expect(descriptions).not.toContain('Apple, raw');
+  });
+
+  test('does not return another clinic custom food', async () => {
+    const other = await createTestClinic();
+    await db.insert(foods).values({ clinicId: other, fdcId: null, description: 'Chicken secret', category: 'Clinic custom', kcal: 1, protein: 0, carbs: 0, fat: 0 });
+    expect((await searchFoods(clinicId, 'chicken secret', 10)).length).toBe(0);
   });
 });

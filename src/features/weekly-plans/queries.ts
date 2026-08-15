@@ -43,6 +43,7 @@ import {
   dishTotals,
   emptyTotals,
   type DishDetail,
+  type FoodNutrients,
   type NutrientTotals,
 } from './nutrition';
 import { findSimilar, type SimilarMatch } from './similar';
@@ -379,6 +380,33 @@ export async function listMealTypes(): Promise<string[]> {
     .where(eq(dishes.isActive, true));
 
   return rows.map((row) => row.mealType).sort();
+}
+
+export type FoodSearchResult = { id: string; description: string } & FoodNutrients;
+
+/**
+ * Library food search for the dish editor.
+ *
+ * Shared USDA foods plus this clinic's own custom foods, matched on description.
+ * `ilike '%…%'` with the same escaping `listDishes` uses; 7,793 rows is a few
+ * milliseconds of sequential scan, so no index is needed (the table comment says
+ * as much).
+ */
+export async function searchFoods(
+  clinicId: string,
+  query: string,
+  limit = 20,
+): Promise<FoodSearchResult[]> {
+  const trimmed = query.trim();
+  if (!trimmed) return [];
+  const term = `%${trimmed.replace(/[\\%_]/g, '\\$&')}%`;
+
+  return db
+    .select(foodColumns)
+    .from(foods)
+    .where(and(ilike(foods.description, term), or(isNull(foods.clinicId), eq(foods.clinicId, clinicId))))
+    .orderBy(asc(foods.description))
+    .limit(limit);
 }
 
 // ---------------------------------------------------------------------------
