@@ -2,7 +2,15 @@ import { beforeEach, describe, expect, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { appointments, dishIngredients, dishes, foods, weeklyPlanMeals, weeklyPlans } from '@/db/schema';
+import {
+  appointments,
+  clinicHiddenDishes,
+  dishIngredients,
+  dishes,
+  foods,
+  weeklyPlanMeals,
+  weeklyPlans,
+} from '@/db/schema';
 import {
   createTestClient,
   createTestClinic,
@@ -10,7 +18,7 @@ import {
   resetDatabase,
 } from '../../../tests/helpers';
 
-import { getBoard, listPlannableClients, planDishesBySlot } from './queries';
+import { getBoard, listPlannableClients, loadCatalog, planDishesBySlot } from './queries';
 import { slotFillKey } from './skeleton';
 
 let clinicId: string;
@@ -221,5 +229,73 @@ describe('planDishesBySlot', () => {
       .returning({ id: weeklyPlans.id });
 
     expect((await planDishesBySlot(clinicId, plan!.id)).size).toBe(0);
+  });
+});
+
+describe('loadCatalog ownership', () => {
+  async function seedSharedDish(slug: string) {
+    const [dish] = await db
+      .insert(dishes)
+      .values({
+        slug,
+        nameAr: slug,
+        nameEn: slug,
+        mealTypes: ['lunch'],
+        tags: [],
+        allergenTags: [],
+        baseServingLabel: 'serving',
+      })
+      .returning({ id: dishes.id });
+    return dish!.id;
+  }
+
+  test('returns shared dishes plus the clinic own, and hides what the clinic hid', async () => {
+    const otherClinic = await createTestClinic();
+
+    const sharedId = await seedSharedDish('shared-dish');
+    const hiddenSharedId = await seedSharedDish('shared-hidden');
+
+    const [ownDish] = await db
+      .insert(dishes)
+      .values({
+        clinicId,
+        slug: 'own-dish',
+        nameAr: 'own',
+        nameEn: 'own',
+        mealTypes: ['lunch'],
+        tags: [],
+        allergenTags: [],
+        baseServingLabel: 'serving',
+      })
+      .returning({ id: dishes.id });
+    await db.insert(dishes).values({
+      clinicId: otherClinic,
+      slug: 'other-clinic-dish',
+      nameAr: 'other',
+      nameEn: 'other',
+      mealTypes: ['lunch'],
+      tags: [],
+      allergenTags: [],
+      baseServingLabel: 'serving',
+    });
+
+    await db.insert(clinicHiddenDishes).values({ clinicId, dishId: hiddenSharedId });
+
+    const slugs = (await loadCatalog(clinicId)).map((dish) => dish.slug).sort();
+
+    expect(slugs).toEqual(['own-dish', 'shared-dish']);
+    expect(slugs).not.toContain('shared-hidden');
+    expect(slugs).not.toContain('other-clinic-dish');
+    expect(sharedId).toBeDefined();
+    expect(ownDish).toBeDefined();
+  });
+
+  test('another clinic still sees a dish this clinic hid', async () => {
+    const otherClinic = await createTestClinic();
+    const sharedId = await seedSharedDish('shared-dish');
+    await db.insert(clinicHiddenDishes).values({ clinicId, dishId: sharedId });
+
+    expect((await loadCatalog(clinicId)).map((d) => d.slug)).not.toContain('shared-dish');
+    expect((await loadCatalog(otherClinic)).map((d) => d.slug)).toContain('shared-dish');
   });
 });

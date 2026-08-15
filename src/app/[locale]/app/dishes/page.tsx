@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function DishesPage({ params, searchParams }: PageProps) {
   const locale = await resolveLocale(params);
-  await requireStaffClinic(locale);
+  const { clinicId } = await requireStaffClinic(locale);
 
   const { q, mealType, page } = await searchParams;
 
@@ -33,7 +33,7 @@ export default async function DishesPage({ params, searchParams }: PageProps) {
   const currentPage = Number.isInteger(parsedPage) && parsedPage >= 1 ? parsedPage : 1;
 
   const [result, mealTypes, t] = await Promise.all([
-    listDishes({ q, mealType, page: currentPage }),
+    listDishes({ clinicId, q, mealType, page: currentPage }),
     listMealTypes(),
     getTranslations('dishes'),
   ]);

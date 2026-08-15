@@ -7,14 +7,15 @@ import { foods } from './foods';
  * The approved dish catalog — the only thing weekly-plan generation may choose
  * from.
  *
- * Like `foods`, this table is NOT scoped to a clinic. A curated dish is closer to
- * reference data than to a tenant's record, and one seeded catalog beats every
- * clinic seeding an identical copy. When clinic-owned dishes are actually needed
- * that is a `clinic_id` column added then, by a migration that can see the real
- * requirement — not a nullable column added now on the guess that it might be.
+ * Shared dishes have `clinic_id = null` and are visible to every clinic, the way
+ * `foods` is: a curated dish is closer to reference data than to a tenant's
+ * record, and one seeded catalog beats every clinic seeding an identical copy. A
+ * clinic may also add its own dishes, with `clinic_id` set to that clinic — those
+ * are visible only to it. A clinic that does not want a shared dish hides it via
+ * `clinic_hidden_dishes` rather than deleting or editing the shared row.
  *
  * Seeded from `data/dishes.json` by `bun run db:seed:dishes`. Read-only in the
- * application: nothing in the UI writes here.
+ * application beyond that: nothing in the UI writes here.
  *
  * A dish carries no nutrition of its own. Its composition is `dish_ingredients`
  * pointing at `foods`, and every number the UI shows is derived from those at read

@@ -1,10 +1,28 @@
-import { and, asc, count, desc, eq, gt, gte, ilike, inArray, lt, ne, or, sql, type SQL } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gt,
+  gte,
+  ilike,
+  inArray,
+  isNull,
+  lt,
+  ne,
+  notInArray,
+  or,
+  sql,
+  type SQL,
+} from 'drizzle-orm';
 
 import { db } from '@/db';
 import {
   clientNutritionProfiles,
   clients,
   appointments,
+  clinicHiddenDishes,
   dishIngredients,
   dishes,
   foods,
@@ -98,8 +116,26 @@ const foodColumns = {
  * `allergens` filters in SQL. This is the only allergen gate that matters: a dish
  * excluded here never reaches the model, the prompt, or the UI.
  */
-export async function loadCatalog(allergens: readonly string[] = []): Promise<DishDetail[]> {
-  const conditions: SQL[] = [eq(dishes.isActive, true)];
+export async function loadCatalog(
+  clinicId: string,
+  allergens: readonly string[] = [],
+): Promise<DishDetail[]> {
+  // Dishes hidden by this clinic — read first so the main query can exclude them.
+  const hidden = await db
+    .select({ dishId: clinicHiddenDishes.dishId })
+    .from(clinicHiddenDishes)
+    .where(eq(clinicHiddenDishes.clinicId, clinicId));
+  const hiddenIds = hidden.map((row) => row.dishId);
+
+  const conditions: SQL[] = [
+    eq(dishes.isActive, true),
+    // Shared (unowned) dishes, or this clinic's own — never another clinic's.
+    or(isNull(dishes.clinicId), eq(dishes.clinicId, clinicId))!,
+  ];
+
+  if (hiddenIds.length) {
+    conditions.push(notInArray(dishes.id, hiddenIds));
+  }
 
   if (allergens.length) {
     // `&&` is the array-overlap operator: true when the dish carries ANY of the
@@ -243,8 +279,11 @@ export type CatalogEntry = DishDetail & {
  * from the same arithmetic the server uses — without them, dropping a dish would
  * have to guess at the numbers or wait for a round trip.
  */
-export async function listCatalogForBoard(allergens: readonly string[]): Promise<CatalogEntry[]> {
-  const catalog = await loadCatalog();
+export async function listCatalogForBoard(
+  clinicId: string,
+  allergens: readonly string[],
+): Promise<CatalogEntry[]> {
+  const catalog = await loadCatalog(clinicId);
   const blocked = new Set(allergens);
 
   return catalog
@@ -273,6 +312,7 @@ export const DISHES_PAGE_SIZE = 20;
  * generated plan looks wrong.
  */
 export async function listDishes(input: {
+  clinicId: string;
   q?: string;
   mealType?: string;
   page: number;
@@ -318,7 +358,7 @@ export async function listDishes(input: {
   const ids = new Set(page.map((row) => row.id));
   // Recipes come from the same loader the rest of the feature uses, so the
   // numbers on this page are the numbers a plan would use.
-  const catalog = await loadCatalog();
+  const catalog = await loadCatalog(input.clinicId);
 
   const items = catalog
     .filter((dish) => ids.has(dish.id))
@@ -1078,17 +1118,19 @@ export type SwapCandidate = SimilarMatch<{
  * a swap can never introduce something the AI was forbidden from choosing.
  */
 export async function findSwapCandidates({
+  clinicId,
   slotKey,
   budgetKcal,
   allergens,
   excludeSlugs,
 }: {
+  clinicId: string;
   slotKey: string;
   budgetKcal: number;
   allergens: readonly string[];
   excludeSlugs: readonly string[];
 }): Promise<SwapCandidate[]> {
-  const catalog = await loadCatalog(allergens);
+  const catalog = await loadCatalog(clinicId, allergens);
 
   const candidates = catalog.map((dish) => ({
     id: dish.id,
@@ -1155,9 +1197,10 @@ export function swapCandidatesByMealFromCatalog(
 
 export async function swapCandidatesByMeal(
   board: Board,
+  clinicId: string,
   allergens: readonly string[],
 ): Promise<Record<string, SwapCandidate[]>> {
-  return swapCandidatesByMealFromCatalog(board, await loadCatalog(allergens));
+  return swapCandidatesByMealFromCatalog(board, await loadCatalog(clinicId, allergens));
 }
 
 /** Dish slugs used in the client's most recent plan, fed to the prompt for variety. */

@@ -702,15 +702,15 @@ describe('adherence recompute on plan edits', () => {
 
 describe('loadCatalog', () => {
   test('excludes dishes carrying a blocked allergen, in SQL', async () => {
-    const all = await loadCatalog();
+    const all = await loadCatalog(clinicId);
     expect(all.map((dish) => dish.slug).sort()).toEqual(['test-lunch-a', 'test-lunch-b']);
 
-    const safe = await loadCatalog(['nuts']);
+    const safe = await loadCatalog(clinicId, ['nuts']);
     expect(safe.map((dish) => dish.slug)).toEqual(['test-lunch-a']);
   });
 
   test('carries the recipe so nutrition can be derived', async () => {
-    const [dish] = await loadCatalog(['nuts']);
+    const [dish] = await loadCatalog(clinicId, ['nuts']);
 
     expect(dish!.ingredients).toHaveLength(1);
     expect(dish!.ingredients[0]!.quantityGrams).toBe(200);

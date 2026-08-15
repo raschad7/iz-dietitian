@@ -127,7 +127,7 @@ async function prepare(
     return { ok: false, state: { status: 'error', messageKey: 'errors.profileIncomplete' } };
   }
 
-  const catalog = await loadCatalog(context.profile.allergenTags);
+  const catalog = await loadCatalog(clinicId, context.profile.allergenTags);
 
   if (!catalog.length) {
     return { ok: false, state: { status: 'error', messageKey: 'errors.emptyCatalog' } };

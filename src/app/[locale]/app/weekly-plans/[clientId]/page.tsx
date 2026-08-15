@@ -69,7 +69,7 @@ export default async function ClientBoardPage({ params, searchParams }: PageProp
   // dropped dish itself, and the previous week's slots so a repeat is visible
   // without leaving the page.
   const [catalog, usage, previous] = await Promise.all([
-    listCatalogForBoard(allergens),
+    listCatalogForBoard(clinicId, allergens),
     recentDishUse(clinicId, clientId),
     board ? previousPlanSlots(clinicId, clientId, board.weekStartDate) : Promise.resolve(null),
   ]);
