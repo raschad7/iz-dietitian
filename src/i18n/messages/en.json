@@ -730,6 +730,7 @@
       "override": "Manual",
       "shareTotal": "Shares total {value}%",
       "addSlot": "Add a meal",
+      "balanceShares": "Balance to 100%",
       "allergenHint": "Only the ticks above remove dishes from the catalog.",
       "dailyTarget": "Daily target",
       "bmi": "BMI",

@@ -18,6 +18,7 @@ import { TimeInput } from '@/components/ui/time-input';
 import { saveIntakeAction } from '@/features/clients/actions';
 import { calculateAge } from '@/features/clients/age';
 import { initialIntakeFormState, type IntakeFormState } from '@/features/clients/form-state';
+import { balanceToHundred } from '@/features/clients/meal-split';
 import { mergedNotes } from '@/features/clients/notes';
 import {
   ALLERGENS,
@@ -1342,11 +1343,11 @@ function MealScheduleField({
             max={100}
             value={Math.round(slot.kcalShare * 100)}
             onChange={(event) => {
-              const percent = Number(event.target.value);
+              const nextPercent = Number(event.target.value);
               onChange(
                 slots.map((current, position) =>
                   position === index
-                    ? { ...current, kcalShare: Number.isFinite(percent) ? percent / 100 : 0 }
+                    ? { ...current, kcalShare: Number.isFinite(nextPercent) ? nextPercent / 100 : 0 }
                     : current,
                 ),
               );
@@ -1399,6 +1400,21 @@ function MealScheduleField({
           information rather than an error — but a dietitian aiming at 100 wants
           to know where they are, and the badge is quiet until they are off it.
         */}
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          disabled={percent === 100}
+          onClick={() => {
+            const balanced = balanceToHundred(slots.map((slot) => Math.round(slot.kcalShare * 100)));
+            onChange(
+              slots.map((slot, position) => ({ ...slot, kcalShare: balanced[position]! / 100 })),
+            );
+          }}
+        >
+          {t('intake.balanceShares')}
+        </Button>
+
         <Badge variant={percent === 100 ? 'muted' : 'attention'}>
           {t('intake.shareTotal', { value: percent })}
         </Badge>
