@@ -1,7 +1,7 @@
 import { addDays, addMonths, isoToLocalDate, startOfMonth, startOfWeek, toIsoDate } from '@/features/booking/date';
 import { getClinicHours, listAppointments } from '@/features/booking/queries';
 import { type CalendarAppointment } from '@/features/booking/types';
-import { DASHBOARD_ATTENTION_LIMIT, loadStaffAttention } from '@/features/notifications/page-data';
+import { loadStaffAttention } from '@/features/notifications/page-data';
 import { type StaffAttentionNotification } from '@/features/notifications/types';
 import { listPendingAppointmentRequests, listPendingClientRequests } from '@/features/requests/queries';
 import { type PendingRequests } from '@/features/requests/types';
@@ -102,8 +102,6 @@ export type DashboardData = {
    * with the buttons that answer them.
    */
   attention: StaffAttentionNotification[];
-  /** How many there are in total, so the card's count does not lie about its own cap. */
-  attentionTotal: number;
   /** Read once here so every "3 hours ago" on the page measures from one instant. */
   now: Date;
 };
@@ -174,15 +172,9 @@ export async function loadDashboard(clinicId: string): Promise<DashboardData> {
       appointmentsByWeek,
       clientsWithoutNextVisit,
     },
-    /*
-     * The card shows a handful and says how many there are; the whole list is
-     * one link away on `/app/notifications`. Sliced here rather than by asking
-     * the query for fewer, because the count has to be the real one — a card
-     * that says "4" because it fetched 4 is a card that cannot tell a quiet
-     * register from a busy one.
-     */
-    attention: attention.slice(0, DASHBOARD_ATTENTION_LIMIT),
-    attentionTotal: attention.length,
+    // The bell receives every id so browser-local reads and dismissals keep its
+    // count honest; the client component still renders only a four-row preview.
+    attention,
     // The two request reads join this page's single round of parallel queries
     // rather than calling `loadPendingRequests`, which would repeat the
     // `getClinicHours` read the week strip above already needs.

@@ -54,6 +54,8 @@ export type DayColumnProps = {
   /** Ids that do not match the current search, drawn dimmed. */
   dimmedIds: ReadonlySet<string>;
   completedIds: ReadonlySet<string>;
+  /** True in the seven-column week layout. */
+  compactAppointments?: boolean;
   /** The range currently being dragged out on *this* date, if any. */
   pending: PendingRange | null;
   isClosed: boolean;
@@ -97,6 +99,7 @@ export function DayColumn({
   matchId,
   dimmedIds,
   completedIds,
+  compactAppointments = false,
   pending,
   isClosed,
   isPast,
@@ -266,6 +269,7 @@ export function DayColumn({
               selectedId === appointment.id || highlightId === appointment.id || matchId === appointment.id
             }
             dimmed={dimmedIds.has(appointment.id)}
+            compact={compactAppointments}
             dragState={dragging?.id === appointment.id ? (dragging.valid ? 'valid' : 'invalid') : null}
             onSelect={onSelect}
             onOpen={onOpen}

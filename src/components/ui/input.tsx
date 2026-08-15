@@ -20,9 +20,34 @@ type InputProps = React.ComponentProps<"input"> & {
    * icon announced beside it would say everything twice.
    */
   icon?: IconName
+  /**
+   * Paints controlled text in an ordinary text layer while retaining the
+   * native input for focus, selection, keyboard input and accessibility.
+   *
+   * Almarai contains Arabic glyph ink below the descent declared in its font
+   * metrics. Chromium clips that ink inside native inputs, which can remove
+   * the lower dots from letters such as ي. Enable this only for affected
+   * Arabic text/search fields and mirror the field's inline padding through
+   * `unclippedTextClassName`.
+   */
+  unclippedText?: boolean
+  unclippedTextClassName?: string
+  unclippedTextDirection?: React.HTMLAttributes<HTMLSpanElement>["dir"]
 }
 
-function Input({ className, type, icon, ...props }: InputProps) {
+function Input({
+  className,
+  type,
+  icon,
+  unclippedText = false,
+  unclippedTextClassName,
+  unclippedTextDirection = "auto",
+  style,
+  value,
+  placeholder,
+  ...props
+}: InputProps) {
+  const visibleText = value === undefined || value === "" ? placeholder : String(value)
   const field = (
     <InputPrimitive
       type={type}
@@ -43,23 +68,55 @@ function Input({ className, type, icon, ...props }: InputProps) {
         // The well below is 48px, so the text starts where a field with no icon
         // would have its 20px of padding, plus the glyph and a gap.
         icon && "ps-12",
+        unclippedText && "placeholder:text-transparent",
         className
       )}
+      style={
+        unclippedText
+          ? {
+              ...style,
+              color: "transparent",
+              WebkitTextFillColor: "transparent",
+              caretColor: style?.caretColor ?? "var(--foreground)",
+            }
+          : style
+      }
+      value={value}
+      placeholder={placeholder}
       {...props}
     />
   )
 
-  if (!icon) return field
+  if (!icon && !unclippedText) return field
 
   return (
     <span className="relative block">
-      <span
-        aria-hidden
-        className="pointer-events-none absolute inset-y-0 start-0 flex w-12 items-center justify-center text-muted-foreground"
-      >
-        <Icon name={icon} className="size-5" />
-      </span>
+      {icon ? (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 start-0 flex w-12 items-center justify-center text-muted-foreground"
+        >
+          <Icon name={icon} className="size-5" />
+        </span>
+      ) : null}
       {field}
+      {unclippedText ? (
+        <span
+          aria-hidden
+          className={cn(
+            "pointer-events-none absolute inset-y-0 start-0 end-0 flex min-w-0 items-center overflow-visible whitespace-nowrap",
+            icon ? "ps-12 pe-5" : "px-5",
+            unclippedTextClassName,
+          )}
+        >
+          <span
+            dir={unclippedTextDirection}
+            className="min-w-0 flex-1 truncate text-start"
+          >
+            {visibleText}
+          </span>
+        </span>
+      ) : null}
     </span>
   )
 }

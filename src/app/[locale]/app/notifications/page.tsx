@@ -17,7 +17,7 @@ export async function generateMetadata({ params }: NotificationsPageProps): Prom
 }
 
 /**
- * Everything waiting on the dietitian, as a page.
+ * Client follow-ups that may need the dietitian's attention, as a page.
  *
  * The same feed used to live in a bell popover in the app bar. There is no app
  * bar any more, and a popover is the wrong home for it besides: it is a list
@@ -57,7 +57,7 @@ export default async function NotificationsPage({ params }: NotificationsPagePro
         starts at that edge. Capped measure, slack on the far side.
       */}
       <div className="me-auto w-full max-w-3xl">
-        <NotificationsList data={data} locale={locale} />
+        <NotificationsList data={data} />
       </div>
     </div>
   );

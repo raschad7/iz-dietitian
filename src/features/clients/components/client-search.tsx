@@ -101,6 +101,14 @@ export function ClientSearch({ input, locale }: { input: ListClientsInput; local
           placeholder={t('searchPlaceholder')}
           aria-label={t('searchPlaceholder')}
           className="ps-12"
+          lang={locale}
+          unclippedText={locale === 'ar'}
+          unclippedTextClassName={
+            q
+              ? 'ps-12 pe-12 text-body-md text-foreground'
+              : 'ps-12 pe-12 text-body-sm text-placeholder'
+          }
+          unclippedTextDirection="rtl"
         />
       </div>
 

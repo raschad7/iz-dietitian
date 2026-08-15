@@ -1243,6 +1243,7 @@ export function Calendar({
                         matchId={matchId}
                         dimmedIds={dimmedIds}
                         completedIds={completedIds}
+                        compactAppointments={view === 'week'}
                         pending={gestures.pending}
                         isClosed={closed}
                         isPast={today !== null && date < today}

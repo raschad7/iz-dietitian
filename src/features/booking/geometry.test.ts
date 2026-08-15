@@ -215,6 +215,11 @@ describe('blockTypeScale', () => {
     expect(twoHour.gapRem).toBeGreaterThan(half.gapRem);
   });
 
+  test('keeps the appointment time visually subordinate to the client name', () => {
+    expect(blockTypeScale(64).timeRem).toBe(0.75);
+    expect(blockTypeScale(256).timeRem).toBe(0.9375);
+  });
+
   test('stops growing past two hours, so a full-day block is not enormous', () => {
     expect(blockTypeScale(1280).nameRem).toBe(blockTypeScale(256).nameRem);
   });
