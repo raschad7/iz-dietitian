@@ -1340,7 +1340,17 @@ function MealScheduleField({
             type="number"
             min={0}
             max={100}
-            defaultValue={Math.round(slot.kcalShare * 100)}
+            value={Math.round(slot.kcalShare * 100)}
+            onChange={(event) => {
+              const percent = Number(event.target.value);
+              onChange(
+                slots.map((current, position) =>
+                  position === index
+                    ? { ...current, kcalShare: Number.isFinite(percent) ? percent / 100 : 0 }
+                    : current,
+                ),
+              );
+            }}
             aria-label={t('fields.slotShare')}
           />
 
