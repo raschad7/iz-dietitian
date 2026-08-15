@@ -47,4 +47,15 @@ describe('findFoodMatches', () => {
     const result = await findFoodMatches(clinicId, 'zzzznothing', { translator: createStubTranslator() });
     expect(result.matches).toHaveLength(0);
   });
+
+  test('degrades to a raw-name search when the translator throws, instead of crashing', async () => {
+    const translator = {
+      async toKeywords(): Promise<string> {
+        throw new Error('translator down');
+      },
+    };
+    const result = await findFoodMatches(clinicId, 'دجاج', { translator });
+    expect(result.source).toBe('search');
+    expect(result.matches).toEqual([]);
+  });
 });

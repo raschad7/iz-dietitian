@@ -41,6 +41,16 @@ export async function findFoodMatches(
   }
 
   const translator = deps.translator ?? getFoodTranslator();
-  const keywords = await translator.toKeywords(name);
+
+  // A translator outage must not crash the picker: fall back to searching the
+  // raw name (which finds nothing for Arabic-only input, but returns cleanly so
+  // the UI can offer "create a custom food") rather than letting the error escape.
+  let keywords = name;
+  try {
+    keywords = await translator.toKeywords(name);
+  } catch {
+    keywords = name;
+  }
+
   return { source: 'search', matches: await searchFoods(clinicId, keywords) };
 }

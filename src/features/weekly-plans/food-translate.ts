@@ -17,26 +17,30 @@ export function createStubTranslator(): FoodTranslator {
 function createOpenAiTranslator(apiKey: string, model: string): FoodTranslator {
   return {
     async toKeywords(arabicName) {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
-        signal: AbortSignal.timeout(15_000),
-        body: JSON.stringify({
-          model,
-          temperature: 0,
-          messages: [
-            {
-              role: 'system',
-              content:
-                'Translate the Arabic food name into 1-4 English keywords for searching a USDA food database. Reply with only the keywords, no punctuation, no explanation.',
-            },
-            { role: 'user', content: arabicName },
-          ],
-        }),
-      });
-      if (!response.ok) throw new Error(`OpenAI translation failed: ${response.status}`);
-      const json = (await response.json()) as { choices?: { message?: { content?: string } }[] };
-      return json.choices?.[0]?.message?.content?.trim() || arabicName;
+      try {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
+          signal: AbortSignal.timeout(15_000),
+          body: JSON.stringify({
+            model,
+            temperature: 0,
+            messages: [
+              {
+                role: 'system',
+                content:
+                  'Translate the Arabic food name into 1-4 English keywords for searching a USDA food database. Reply with only the keywords, no punctuation, no explanation.',
+              },
+              { role: 'user', content: arabicName },
+            ],
+          }),
+        });
+        if (!response.ok) return arabicName;
+        const json = (await response.json()) as { choices?: { message?: { content?: string } }[] };
+        return json.choices?.[0]?.message?.content?.trim() || arabicName;
+      } catch {
+        return arabicName;
+      }
     },
   };
 }
