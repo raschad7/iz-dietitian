@@ -32,7 +32,7 @@ describe('clinicDishInputSchema', () => {
     expect(() =>
       clinicDishInputSchema.parse({
         ...validDish,
-        ingredients: [{ foodId: validDish.ingredients[0].foodId, quantityGrams: 0 }],
+        ingredients: [{ foodId: validDish.ingredients[0]!.foodId, quantityGrams: 0 }],
       }),
     ).toThrow();
   });
@@ -42,7 +42,7 @@ describe('clinicDishInputSchema', () => {
       ...validDish,
       ingredients: [
         {
-          foodId: validDish.ingredients[0].foodId,
+          foodId: validDish.ingredients[0]!.foodId,
           quantityGrams: 45,
           displayNameAr: 'أرز',
           householdLabel: 'ملعقة كبيرة',
@@ -50,7 +50,7 @@ describe('clinicDishInputSchema', () => {
         },
       ],
     });
-    expect(parsed.ingredients[0].householdGrams).toBe(15);
+    expect(parsed.ingredients[0]!.householdGrams).toBe(15);
   });
 });
 
