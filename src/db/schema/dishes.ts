@@ -1,5 +1,6 @@
 import { boolean, index, integer, pgTable, real, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 
+import { clinics } from './clinics';
 import { foods } from './foods';
 
 /**
@@ -25,6 +26,12 @@ export const dishes = pgTable(
   'dishes',
   {
     id: uuid('id').primaryKey().defaultRandom(),
+
+    /**
+     * The owning clinic, or null for a shared built-in dish. Null dishes are
+     * visible to every clinic; a set value scopes the dish to one clinic.
+     */
+    clinicId: uuid('clinic_id').references(() => clinics.id, { onDelete: 'cascade' }),
 
     /**
      * The stable natural key, e.g. `mujaddara-salad`.
@@ -82,6 +89,7 @@ export const dishes = pgTable(
     uniqueIndex('dishes_slug_idx').on(table.slug),
     // Generation reads the whole active catalog, every time.
     index('dishes_is_active_idx').on(table.isActive),
+    index('dishes_clinic_id_idx').on(table.clinicId),
   ],
 );
 
@@ -107,6 +115,13 @@ export const dishIngredients = pgTable(
     /** Grams for ONE base serving. Scaled by `weekly_plan_meals.servings` at read time. */
     quantityGrams: real('quantity_grams').notNull(),
 
+    /** The Arabic food name shown to the client. Null on shared/seed rows until curated. */
+    displayNameAr: text('display_name_ar'),
+
+    /** An optional household measure, e.g. "tablespoon", with the grams it weighs. */
+    householdLabel: text('household_label'),
+    householdGrams: real('household_grams'),
+
     sortOrder: integer('sort_order').notNull().default(0),
 
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -115,7 +130,32 @@ export const dishIngredients = pgTable(
   (table) => [index('dish_ingredients_dish_id_idx').on(table.dishId, table.sortOrder)],
 );
 
+/**
+ * A clinic's decision to hide a shared dish it does not use.
+ *
+ * Only ever references shared dishes; a clinic's own dishes are removed by
+ * deleting them, not hidden. One row per (clinic, dish) — hiding twice is the
+ * same as hiding once.
+ */
+export const clinicHiddenDishes = pgTable(
+  'clinic_hidden_dishes',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    clinicId: uuid('clinic_id')
+      .notNull()
+      .references(() => clinics.id, { onDelete: 'cascade' }),
+    dishId: uuid('dish_id')
+      .notNull()
+      .references(() => dishes.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex('clinic_hidden_dishes_clinic_dish_idx').on(table.clinicId, table.dishId)],
+);
+
 export type Dish = typeof dishes.$inferSelect;
 export type NewDish = typeof dishes.$inferInsert;
 export type DishIngredient = typeof dishIngredients.$inferSelect;
 export type NewDishIngredient = typeof dishIngredients.$inferInsert;
+export type ClinicHiddenDish = typeof clinicHiddenDishes.$inferSelect;
+export type NewClinicHiddenDish = typeof clinicHiddenDishes.$inferInsert;

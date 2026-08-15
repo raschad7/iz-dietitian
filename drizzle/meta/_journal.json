@@ -176,6 +176,13 @@
       "when": 1786606458782,
       "tag": "0024_public_blizzard",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1786829439646,
+      "tag": "0025_fantastic_randall_flagg",
+      "breakpoints": true
     }
   ]
 }

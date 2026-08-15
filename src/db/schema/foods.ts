@@ -1,5 +1,7 @@
 import { index, integer, pgTable, real, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 
+import { clinics } from './clinics';
+
 /**
  * The food composition reference table.
  *
@@ -27,12 +29,13 @@ export const foods = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
 
     /**
-     * The upstream FoodData Central id. Kept as the natural key so a re-seed
-     * updates rows in place rather than orphaning any meal plan item that
-     * references them, and so a number in this table can always be traced back
-     * to its published source.
+     * The owning clinic for a custom food, or null for the shared USDA library.
+     * Custom foods carry dietitian-entered (or AI-estimated, confirmed) nutrition.
      */
-    fdcId: integer('fdc_id').notNull(),
+    clinicId: uuid('clinic_id').references(() => clinics.id, { onDelete: 'cascade' }),
+
+    /** The upstream FoodData Central id. Null for a clinic's own custom food. */
+    fdcId: integer('fdc_id'),
 
     /** USDA's own wording, e.g. "Egg, whole, raw, fresh". Never translated. */
     description: text('description').notNull(),
@@ -86,5 +89,31 @@ export const foods = pgTable(
   ],
 );
 
+/**
+ * A clinic's remembered mapping from an Arabic food name to a library food.
+ *
+ * Built up as the dietitian confirms matches, so the next time she types the
+ * same Arabic name it resolves instantly with no AI call, and so the app grows
+ * an Arabic food vocabulary the USDA library does not have.
+ */
+export const foodAliases = pgTable(
+  'food_aliases',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    clinicId: uuid('clinic_id')
+      .notNull()
+      .references(() => clinics.id, { onDelete: 'cascade' }),
+    foodId: uuid('food_id')
+      .notNull()
+      .references(() => foods.id, { onDelete: 'cascade' }),
+    nameAr: text('name_ar').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex('food_aliases_clinic_name_idx').on(table.clinicId, table.nameAr)],
+);
+
 export type Food = typeof foods.$inferSelect;
 export type NewFood = typeof foods.$inferInsert;
+export type FoodAlias = typeof foodAliases.$inferSelect;
+export type NewFoodAlias = typeof foodAliases.$inferInsert;
