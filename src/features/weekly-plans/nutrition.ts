@@ -253,3 +253,36 @@ export function dishTotals(
 export function baseServingKcal(ingredients: readonly DishIngredientDetail[]): number {
   return dishTotals(ingredients, 1).kcal.value;
 }
+
+/**
+ * The single nutrition label a dish carries, worked out from its own macros.
+ *
+ * Computed, never stored: change the recipe and the label follows, so it cannot
+ * go stale the way a hand-typed "high protein" tag does. Uses `energySplit`, so
+ * the percentages are shares of the energy the macros account for — the same
+ * basis the meal panel uses, which sidesteps the divide-by-`kcal` rounding
+ * problem noted on `energySplit`.
+ *
+ * Exactly one label. When a dish crosses more than one cutoff, the one it beats
+ * by the widest margin wins, so there is never a tie to resolve in the UI.
+ */
+export const NUTRITION_CATEGORIES = ['high_protein', 'high_carb', 'high_fat', 'balanced'] as const;
+
+export type NutritionCategory = (typeof NUTRITION_CATEGORIES)[number];
+
+export function nutritionCategory(totals: NutrientTotals): NutritionCategory {
+  const split = energySplit(totals);
+
+  // Each macro's share minus its cutoff. A positive margin means the dish
+  // qualifies for that label; the widest positive margin is the label it gets.
+  const candidates = [
+    { label: 'high_protein' as const, margin: split.protein.percent - 0.3 },
+    { label: 'high_carb' as const, margin: split.carbs.percent - 0.55 },
+    { label: 'high_fat' as const, margin: split.fat.percent - 0.4 },
+  ];
+
+  const crossed = candidates.filter((candidate) => candidate.margin >= 0);
+  if (crossed.length === 0) return 'balanced';
+
+  return crossed.reduce((best, candidate) => (candidate.margin > best.margin ? candidate : best)).label;
+}
