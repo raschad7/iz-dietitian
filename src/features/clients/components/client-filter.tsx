@@ -1,7 +1,7 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useState, type FormEvent } from 'react';
 
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -66,6 +66,7 @@ function hasOptions(column: ClientFilter): column is keyof typeof VALUE_OPTIONS 
 
 export function ClientFilterMenu({ input }: { input: ListClientsInput }) {
   const t = useTranslations('clients');
+  const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -164,14 +165,14 @@ export function ClientFilterMenu({ input }: { input: ListClientsInput }) {
         ) : null}
       </PopoverTrigger>
 
-      <PopoverContent align="end" className="w-80 gap-4 p-4">
+      <PopoverContent align="end" className="w-80 gap-4 p-4 text-start">
         <PopoverTitle className="font-heading text-body-md font-semibold">
           {t('filter.title')}
         </PopoverTitle>
 
         <form onSubmit={apply} className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="client-filter-column" className="text-caption text-muted-foreground">
+            <label htmlFor="client-filter-column" className="text-body-sm text-muted-foreground">
               {t('filter.column')}
             </label>
             <SelectField
@@ -179,7 +180,7 @@ export function ClientFilterMenu({ input }: { input: ListClientsInput }) {
               size="sm"
               value={column}
               onValueChange={(next) => handleColumn(next as ClientFilter)}
-              className="ps-4"
+              className="ps-4 text-start"
               options={CLIENT_FILTERS.map((option) => ({
                 value: option,
                 label: t(`fields.${option}`),
@@ -188,7 +189,7 @@ export function ClientFilterMenu({ input }: { input: ListClientsInput }) {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="client-filter-value" className="text-caption text-muted-foreground">
+            <label htmlFor="client-filter-value" className="text-body-sm text-muted-foreground">
               {t('filter.value')}
             </label>
 
@@ -198,7 +199,7 @@ export function ClientFilterMenu({ input }: { input: ListClientsInput }) {
                 size="sm"
                 value={value}
                 onValueChange={setValue}
-                className="ps-4"
+                className="ps-4 text-start"
                 options={valueOptions}
               />
             ) : (
@@ -207,10 +208,16 @@ export function ClientFilterMenu({ input }: { input: ListClientsInput }) {
                 value={value}
                 onChange={(event) => setValue(event.target.value)}
                 placeholder={t('filter.contains')}
-                // The value is read left-to-right in both locales, like the
-                // column it searches — see the note in `ClientTable`.
-                dir="ltr"
-                className="h-10 px-4"
+                // Arabic keeps the field anchored to the inline start while
+                // `plaintext` preserves the internal order of phones/emails.
+                dir={locale === 'ar' ? 'rtl' : 'ltr'}
+                lang={locale}
+                className="h-10 px-4 text-start [unicode-bidi:plaintext]"
+                unclippedText={locale === 'ar'}
+                unclippedTextClassName={cn(
+                  'ps-4 pe-4 [unicode-bidi:plaintext]',
+                  value ? 'text-body-md text-foreground' : 'text-body-sm text-placeholder',
+                )}
                 autoComplete="off"
               />
             )}

@@ -60,7 +60,7 @@ function Segmented<T extends string>({
   size = 'default',
   shape = 'default',
   className,
-  activeClassName = 'bg-primary text-primary-foreground',
+  activeClassName,
   inactiveClassName,
 }: {
   options: readonly SegmentedOption<T>[];
@@ -70,10 +70,10 @@ function Segmented<T extends string>({
   label: string;
   role?: 'tablist' | 'radiogroup';
   size?: 'default' | 'sm';
-  /** `pill` fills its row with equal, fully rounded halves. See above. */
-  shape?: 'default' | 'pill';
+  /** `pill` fills its row; `contained` matches the raised Settings tab bar. */
+  shape?: 'default' | 'pill' | 'contained';
   className?: string;
-  /** The selected option's fill. Defaults to the primary olive used everywhere else. */
+  /** Overrides the selected fill; contained shapes default to a raised card. */
   activeClassName?: string;
   /**
    * The unselected options, replacing the default grey-plus-hover-fill.
@@ -91,6 +91,10 @@ function Segmented<T extends string>({
 }) {
   const isTablist = role === 'tablist';
   const pill = shape === 'pill';
+  const contained = shape === 'contained';
+  const selectedClassName =
+    activeClassName ??
+    (pill || contained ? 'bg-card text-foreground' : 'bg-primary text-primary-foreground');
 
   return (
     <div
@@ -107,6 +111,9 @@ function Segmented<T extends string>({
         // The neutral well. No ring and no shadow — the track is the recess,
         // and the selected half is the only thing on this control that lifts.
         pill && 'w-full rounded-[14px] border-transparent bg-muted p-1',
+        // Matches the contained link tabs used by Settings: the same 44px
+        // recessed track with a raised card for the selected view.
+        contained && 'h-11 gap-0.5 rounded-lg border-transparent bg-muted p-1',
         /*
          * `sm` is pinned to 40px so the control matches `Button size="sm"` and
          * a 40px field beside it — the height is set on the *track*, and the
@@ -117,7 +124,7 @@ function Segmented<T extends string>({
          * `default` is unchanged: the login role switch and the client tabs
          * are its only callers and neither sits in a row of 40px controls.
          */
-        size === 'sm' && 'h-10',
+        size === 'sm' && !contained && 'h-10',
         className,
       )}
     >
@@ -146,11 +153,11 @@ function Segmented<T extends string>({
               // concentric, so the half sits inside the well rather than
               // looking pasted onto it.
               pill && 'relative h-11 flex-1 rounded-[10px] px-3 py-0 font-semibold',
-              // `activeClassName` rather than the olive literal, so a caller can
-              // repaint the selected half; it defaults to that same olive, which
-              // is what every shape draws unless told otherwise.
+              contained && 'h-full min-w-0 flex-auto rounded-md px-2.5 py-0',
+              // The default shape stays olive; recessed shapes lift a neutral
+              // card out of their track unless the caller overrides it.
               active
-                ? cn(activeClassName, 'scale-100 shadow-card')
+                ? cn(selectedClassName, 'scale-100 shadow-card')
                 : inactiveClassName
                   ? inactiveClassName
                   : pill

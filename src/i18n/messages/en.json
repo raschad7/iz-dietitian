@@ -367,9 +367,14 @@
   },
   "notifications": {
     "title": "Notifications",
-    "subtitle": "Requests waiting for an answer, and clients whose record has gone quiet.",
+    "subtitle": "Client follow-ups that may need your attention.",
     "empty": "Nothing needs you right now",
-    "emptyDescription": "No requests to answer, and no client is overdue a check-in. This page fills itself as things come in.",
+    "emptyDescription": "Every client is up to date. New follow-up reminders will appear here automatically.",
+    "dismissed": "Notifications cleared on this browser",
+    "dismissedDescription": "The underlying client follow-ups still exist. New notifications will continue to appear here.",
+    "unread": "Unread notification",
+    "delete": "Delete notification",
+    "deleteFor": "Delete notification for {name}",
     "preferred": "Asked for {when}",
     "reviewRequests": "Review all {count, plural, one {# request} other {# requests}}",
     "groups": {

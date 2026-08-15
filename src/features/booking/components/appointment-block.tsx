@@ -56,6 +56,8 @@ export type AppointmentBlockProps = {
   selected: boolean;
   /** True when a search is running and this appointment does not match. */
   dimmed: boolean;
+  /** Week columns use tighter inline spacing so tablet cards keep a readable name. */
+  compact?: boolean;
   /** Live drag feedback: the candidate is valid, invalid, or not being dragged. */
   dragState?: 'valid' | 'invalid' | null;
   onSelect: (id: string) => void;
@@ -72,6 +74,7 @@ export function AppointmentBlock({
   completed,
   selected,
   dimmed,
+  compact = false,
   dragState = null,
   onSelect,
   onOpen,
@@ -80,6 +83,7 @@ export function AppointmentBlock({
 }: AppointmentBlockProps) {
   const t = useTranslations('booking');
   const scale = blockTypeScale(height);
+  const compactStacked = compact && !scale.inline;
 
   /** Where a press on the client name began — see the link's own note below. */
   const pressPoint = useRef<{ x: number; y: number } | null>(null);
@@ -151,7 +155,8 @@ export function AppointmentBlock({
         // `patient-tone` builds the four steps below from the hue the style
         // sets. See the note on the class in globals.css.
         'patient-tone',
-        'absolute start-2.5 end-2.5 rounded-sm border px-4',
+        'absolute rounded-sm border',
+        compact ? 'start-1.5 end-1.5 px-2' : 'start-2.5 end-2.5 px-4',
         'text-start transition-[opacity,box-shadow,background-color,border-color] select-none',
         // The block-axis padding the height allows. A short booking cannot
         // spend 12px on air and still show a line of text, so it takes 6px;
@@ -252,7 +257,15 @@ export function AppointmentBlock({
         the width the name has to truncate into. The hairline and the fill still
         carry the client's hue at that size; only the initials go.
       */}
-      <div className={cn('flex min-w-0 gap-2', scale.inline ? 'items-baseline' : 'items-start')}>
+      <div
+        className={cn(
+          'min-w-0',
+          compactStacked
+            ? 'grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-1.5'
+            : cn('flex', compact ? 'gap-1.5' : 'gap-2', scale.inline ? 'items-baseline' : 'items-start'),
+        )}
+        style={compactStacked ? { rowGap: `${scale.gapRem}rem` } : undefined}
+      >
         {!scale.inline && (
           <Avatar
             name={appointment.clientName}
@@ -264,10 +277,15 @@ export function AppointmentBlock({
 
         <div
           className={cn(
-            'flex min-w-0 flex-1 pe-3',
-            scale.inline ? 'flex-row items-baseline' : 'flex-col',
+            compactStacked
+              ? 'contents'
+              : cn(
+                  'flex min-w-0 flex-1',
+                  compact ? 'pe-2' : 'pe-3',
+                  scale.inline ? 'flex-row items-baseline' : 'flex-col',
+                ),
           )}
-          style={{ gap: `${scale.gapRem}rem` }}
+          style={compactStacked ? undefined : { gap: `${scale.gapRem}rem` }}
         >
         {/*
           **The name is the way to the record.** It was the corner arrow, then
@@ -282,8 +300,12 @@ export function AppointmentBlock({
         */}
         <Link
           href={`/app/clients/${appointment.clientId}`}
-          className="min-w-0 flex-1 truncate font-semibold text-foreground underline-offset-2 hover:underline focus-visible:underline focus-visible:outline-none"
-          style={{ fontSize: `${scale.nameRem}rem`, lineHeight: 1.25 }}
+          className={cn(
+            'min-w-0 flex-1 truncate font-semibold text-foreground underline-offset-2',
+            'hover:underline focus-visible:underline focus-visible:outline-none',
+            compactStacked && 'col-start-2 pe-2',
+          )}
+          style={{ fontSize: `${scale.nameRem}rem`, lineHeight: 'var(--lh-label)' }}
           /*
             The press still reaches the card, so the block can be dragged by
             its name like any other part of it — the whole top line is the
@@ -325,13 +347,19 @@ export function AppointmentBlock({
           */
           className={cn(
             'flex items-center gap-1 font-medium text-foreground/70',
+            // On tablet week cards the avatar and name occupy the first row;
+            // the time gets the complete second row instead of inheriting the
+            // narrow text column beside the avatar.
+            compactStacked && 'col-span-2 min-w-0',
             // Inline, the name gives way first and the time keeps its space —
             // the time is the shorter, more predictable string.
             scale.inline ? 'shrink-0 whitespace-nowrap' : 'truncate',
           )}
-          style={{ fontSize: `${scale.timeRem}rem`, lineHeight: 1.25 }}
+          style={{ fontSize: `${scale.timeRem}rem`, lineHeight: 'var(--lh-label)' }}
         >
-          <span className="tabular-nums">{timeRange}</span>
+          <span dir="ltr" className="tabular-nums">
+            {timeRange}
+          </span>
           {/*
             No `uppercase tracking-wide` on the label below: it is translated,
             and both are neutralised under `:lang(ar)` anyway, so they only

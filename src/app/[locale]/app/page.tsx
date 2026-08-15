@@ -91,20 +91,9 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
         <div className="flex items-center gap-2">
           <p className="text-body-md text-muted-foreground">{formatLongDate(locale, data.today)}</p>
 
-          {/*
-            The bell reads the same two lists the cards below it do — requests
-            and drifted clients — rather than a feed of its own. `now` is passed
-            in so every "10 minutes ago" on this page, in the panel and in the
-            requests card alike, measures from the one instant `loadDashboard`
-            read.
-          */}
-          <NotificationsBell
-            attention={data.attention}
-            attentionTotal={data.attentionTotal}
-            requests={data.requests}
-            locale={locale}
-            now={data.now}
-          />
+          {/* Requests already have the actionable card below; the bell is only
+              for client records that may need follow-up. */}
+          <NotificationsBell attention={data.attention} />
         </div>
       </div>
 

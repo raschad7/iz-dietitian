@@ -2,6 +2,7 @@ import { and, asc, count, desc, eq, gte, isNotNull, notExists } from 'drizzle-or
 
 import { db } from '@/db';
 import { appointmentRequests, appointments, clients, session, weeklyPlans } from '@/db/schema';
+import { clientSeq } from '@/features/clients/seq';
 import { type RequestKind } from '@/features/portal/types';
 import { currentSunday } from '@/features/weekly-plans/week';
 
@@ -68,6 +69,7 @@ export async function countPendingRequests(clinicId: string): Promise<number> {
 export type AttentionItem = {
   clientId: string;
   clientName: string;
+  clientSeq: number;
   reason: AttentionReason;
 };
 
@@ -78,7 +80,7 @@ export async function listClientsWithNoUpcomingAppointment(
   limit: number,
 ): Promise<AttentionItem[]> {
   const rows = await db
-    .select({ clientId: clients.id, clientName: clients.fullName })
+    .select({ clientId: clients.id, clientName: clients.fullName, clientSeq })
     .from(clients)
     .where(
       and(
@@ -112,7 +114,7 @@ export async function listClientsWithoutWeeklyPlan(clinicId: string, limit: numb
   const weekStartDate = currentSunday();
 
   const rows = await db
-    .select({ clientId: clients.id, clientName: clients.fullName })
+    .select({ clientId: clients.id, clientName: clients.fullName, clientSeq })
     .from(clients)
     .where(
       and(
@@ -147,7 +149,7 @@ export async function listClientsWithoutWeeklyPlan(clinicId: string, limit: numb
  */
 export async function listClientsNeverSignedIn(clinicId: string, limit: number): Promise<AttentionItem[]> {
   const rows = await db
-    .select({ clientId: clients.id, clientName: clients.fullName })
+    .select({ clientId: clients.id, clientName: clients.fullName, clientSeq })
     .from(clients)
     .where(
       and(
