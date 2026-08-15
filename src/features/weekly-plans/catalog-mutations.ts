@@ -1,7 +1,15 @@
 import { and, eq, isNull } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { clinicHiddenDishes, dishes, dishIngredients, foodAliases, foods } from '@/db/schema';
+import {
+  clinicHiddenDishes,
+  dishes,
+  dishIngredients,
+  foodAliases,
+  foods,
+  weeklyPlanMealOptions,
+  weeklyPlanMeals,
+} from '@/db/schema';
 
 import type { ClinicDishInput, CustomFoodInput } from './catalog-schema';
 
@@ -96,11 +104,28 @@ export async function updateClinicDish(
   return true;
 }
 
-export async function deleteClinicDish(clinicId: string, dishId: string): Promise<boolean> {
-  if (!(await ownsDish(clinicId, dishId))) return false;
-  // dish_ingredients cascade on dish delete (see schema).
+export type DeleteDishResult = 'deleted' | 'not_found' | 'in_use';
+
+export async function deleteClinicDish(clinicId: string, dishId: string): Promise<DeleteDishResult> {
+  if (!(await ownsDish(clinicId, dishId))) return 'not_found';
+
+  // The dish's own ingredients cascade, but weekly_plan_meals / options reference
+  // it with onDelete: restrict — a dish a saved plan still uses must not vanish
+  // from under that plan. Report it rather than letting the FK error escape.
+  const [inMeal] = await db
+    .select({ id: weeklyPlanMeals.id })
+    .from(weeklyPlanMeals)
+    .where(eq(weeklyPlanMeals.dishId, dishId))
+    .limit(1);
+  const [inOption] = await db
+    .select({ id: weeklyPlanMealOptions.id })
+    .from(weeklyPlanMealOptions)
+    .where(eq(weeklyPlanMealOptions.dishId, dishId))
+    .limit(1);
+  if (inMeal || inOption) return 'in_use';
+
   await db.delete(dishes).where(eq(dishes.id, dishId));
-  return true;
+  return 'deleted';
 }
 
 /** Confirms a dish is a SHARED dish (clinic_id null) — the only kind that may be hidden. */

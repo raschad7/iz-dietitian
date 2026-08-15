@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, test } from 'bun:test';
 import { and, eq } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { clinicHiddenDishes, dishes, dishIngredients, foodAliases, foods } from '@/db/schema';
-import { createTestClinic, resetDatabase } from '../../../tests/helpers';
+import { clinicHiddenDishes, dishes, dishIngredients, foodAliases, foods, weeklyPlanMeals, weeklyPlans } from '@/db/schema';
+import { createTestClient, createTestClinic, resetDatabase } from '../../../tests/helpers';
 
 import {
   createClinicDish,
@@ -79,13 +79,38 @@ describe('updateClinicDish', () => {
 describe('deleteClinicDish', () => {
   test('deletes an owned dish but not a shared one', async () => {
     const dishId = await createClinicDish(clinicId, dishInput());
-    expect(await deleteClinicDish(clinicId, dishId!)).toBe(true);
+    expect(await deleteClinicDish(clinicId, dishId!)).toBe('deleted');
 
     const [shared] = await db
       .insert(dishes)
       .values({ slug: 's', nameAr: 's', nameEn: 's', mealTypes: ['lunch'], tags: [], allergenTags: [], baseServingLabel: 'x' })
       .returning({ id: dishes.id });
-    expect(await deleteClinicDish(clinicId, shared!.id)).toBe(false);
+    expect(await deleteClinicDish(clinicId, shared!.id)).toBe('not_found');
+  });
+
+  test('refuses to delete a dish that a saved plan still uses', async () => {
+    const clientId = await createTestClient(clinicId, 'Plan Client');
+    const dishId = await createClinicDish(clinicId, dishInput());
+
+    const [plan] = await db
+      .insert(weeklyPlans)
+      .values({ clinicId, clientId, weekStartDate: '2026-08-16', status: 'draft', kcalTargetSnapshot: 1800 })
+      .returning({ id: weeklyPlans.id });
+    await db.insert(weeklyPlanMeals).values({
+      planId: plan!.id,
+      dayOfWeek: 0,
+      slotKey: 'lunch',
+      label: 'غداء',
+      timeOfDay: '14:00',
+      budgetKcal: 600,
+      sortOrder: 0,
+      dishId: dishId!,
+      servings: 1,
+    });
+
+    expect(await deleteClinicDish(clinicId, dishId!)).toBe('in_use');
+    // The dish is still there.
+    expect(await db.select().from(dishes).where(eq(dishes.id, dishId!))).toHaveLength(1);
   });
 });
 
