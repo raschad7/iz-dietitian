@@ -2,13 +2,15 @@ import { beforeEach, describe, expect, test } from 'bun:test';
 import { and, eq } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { clinicHiddenDishes, dishes, dishIngredients, foods } from '@/db/schema';
+import { clinicHiddenDishes, dishes, dishIngredients, foodAliases, foods } from '@/db/schema';
 import { createTestClinic, resetDatabase } from '../../../tests/helpers';
 
 import {
   createClinicDish,
+  createCustomFood,
   deleteClinicDish,
   hideSharedDish,
+  rememberFoodAlias,
   unhideSharedDish,
   updateClinicDish,
 } from './catalog-mutations';
@@ -110,5 +112,34 @@ describe('hide / unhide shared dishes', () => {
   test('refuses to hide a clinic-owned dish (own dishes are deleted, not hidden)', async () => {
     const dishId = await createClinicDish(clinicId, dishInput());
     expect(await hideSharedDish(clinicId, dishId!)).toBe(false);
+  });
+});
+
+describe('createCustomFood', () => {
+  test('stores a clinic-owned food with null fdc_id and an Arabic alias', async () => {
+    const id = await createCustomFood(clinicId, {
+      description: 'Village white cheese',
+      nameAr: 'جبنة بلدية',
+      kcal: 260,
+      protein: 18,
+      carbs: 2,
+      fat: 20,
+    });
+    expect(id).toBeString();
+    const [food] = await db.select().from(foods).where(eq(foods.id, id!));
+    expect(food!.clinicId).toBe(clinicId);
+    expect(food!.fdcId).toBeNull();
+    // The Arabic name it was created under is remembered as an alias.
+    const aliases = await db.select().from(foodAliases).where(eq(foodAliases.foodId, id!));
+    expect(aliases).toHaveLength(1);
+    expect(aliases[0]!.nameAr).toBe('جبنة بلدية');
+  });
+});
+
+describe('rememberFoodAlias', () => {
+  test('is idempotent on (clinic, name)', async () => {
+    await rememberFoodAlias(clinicId, foodId, 'دجاج');
+    await rememberFoodAlias(clinicId, foodId, 'دجاج');
+    expect(await db.select().from(foodAliases).where(eq(foodAliases.clinicId, clinicId))).toHaveLength(1);
   });
 });

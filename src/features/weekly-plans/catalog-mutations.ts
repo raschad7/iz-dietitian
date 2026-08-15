@@ -1,9 +1,9 @@
 import { and, eq, isNull } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { clinicHiddenDishes, dishes, dishIngredients } from '@/db/schema';
+import { clinicHiddenDishes, dishes, dishIngredients, foodAliases, foods } from '@/db/schema';
 
-import type { ClinicDishInput } from './catalog-schema';
+import type { ClinicDishInput, CustomFoodInput } from './catalog-schema';
 
 /**
  * Writes for a clinic's own catalog.
@@ -127,4 +127,50 @@ export async function unhideSharedDish(clinicId: string, dishId: string): Promis
     .delete(clinicHiddenDishes)
     .where(and(eq(clinicHiddenDishes.clinicId, clinicId), eq(clinicHiddenDishes.dishId, dishId)));
   return true;
+}
+
+/**
+ * Remembers that an Arabic name maps to a library food, for this clinic.
+ *
+ * Idempotent on (clinic, name): confirming the same match twice is a no-op, so
+ * callers can record freely.
+ */
+export async function rememberFoodAlias(clinicId: string, foodId: string, nameAr: string): Promise<void> {
+  await db
+    .insert(foodAliases)
+    .values({ clinicId, foodId, nameAr })
+    .onConflictDoNothing({ target: [foodAliases.clinicId, foodAliases.nameAr] });
+}
+
+/**
+ * Creates a clinic's own custom food.
+ *
+ * Numbers are the dietitian's (or an AI estimate she confirmed) — the one place
+ * nutrition is entered by hand rather than read from the USDA library. Records
+ * the Arabic name it was created under as an alias, so it resolves instantly next
+ * time.
+ */
+export async function createCustomFood(clinicId: string, input: CustomFoodInput): Promise<string | null> {
+  return db.transaction(async (tx) => {
+    const [food] = await tx
+      .insert(foods)
+      .values({
+        clinicId,
+        fdcId: null,
+        description: input.description,
+        category: 'Clinic custom',
+        kcal: input.kcal,
+        protein: input.protein,
+        carbs: input.carbs,
+        fat: input.fat,
+      })
+      .returning({ id: foods.id });
+
+    if (!food) return null;
+    await tx
+      .insert(foodAliases)
+      .values({ clinicId, foodId: food.id, nameAr: input.nameAr })
+      .onConflictDoNothing({ target: [foodAliases.clinicId, foodAliases.nameAr] });
+    return food.id;
+  });
 }
