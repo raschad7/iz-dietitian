@@ -1715,6 +1715,40 @@
       "sesame": "Sesame"
     }
   },
+  "dishEditor": {
+    "foodPicker": {
+      "label": "Food name",
+      "placeholder": "Search by Arabic or English name",
+      "searchButton": "Search",
+      "searching": "Searching…",
+      "kcalPer100g": "{kcal} kcal/100g",
+      "noMatches": "No matches found for \"{name}\".",
+      "createCustomFood": "Create a custom food",
+      "createCustomFoodShort": "Can't find it? Add a custom food"
+    },
+    "customFoodDialog": {
+      "title": "Add a custom food",
+      "description": "Adds a food to the clinic's own library with its nutrition per 100g.",
+      "descriptionLabel": "Name (English)",
+      "descriptionPlaceholder": "e.g. Grilled chicken breast",
+      "nameArLabel": "Name (Arabic)",
+      "nameArPlaceholder": "مثال: صدر دجاج مشوي",
+      "kcalLabel": "Calories (kcal)",
+      "proteinLabel": "Protein (g)",
+      "carbsLabel": "Carbs (g)",
+      "fatLabel": "Fat (g)",
+      "macrosHint": "Values are per 100g",
+      "cancel": "Cancel",
+      "close": "Close",
+      "submit": "Add food",
+      "submitting": "Adding…",
+      "errors": {
+        "required": "This field is required",
+        "nonNegativeNumber": "Enter a number of 0 or more",
+        "createFailed": "Could not add the food. Check the values and try again."
+      }
+    }
+  },
   "whatsapp": {
     "title": "WhatsApp",
     "description": "Link the clinic's WhatsApp number to send appointment reminders and confirmations automatically.",

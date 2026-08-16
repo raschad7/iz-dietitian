@@ -1715,6 +1715,40 @@
       "sesame": "سمسم"
     }
   },
+  "dishEditor": {
+    "foodPicker": {
+      "label": "اسم الطعام",
+      "placeholder": "ابحث بالاسم العربي أو الإنجليزي",
+      "searchButton": "بحث",
+      "searching": "جارٍ البحث…",
+      "kcalPer100g": "{kcal} سعرة/100غ",
+      "noMatches": "لا توجد نتائج مطابقة لـ \"{name}\".",
+      "createCustomFood": "إضافة طعام مخصص",
+      "createCustomFoodShort": "لم تجده؟ أضف طعاماً مخصصاً"
+    },
+    "customFoodDialog": {
+      "title": "إضافة طعام مخصص",
+      "description": "يضيف طعاماً إلى مكتبة العيادة مع قيمه الغذائية لكل 100غ.",
+      "descriptionLabel": "الاسم (بالإنجليزية)",
+      "descriptionPlaceholder": "مثال: صدر دجاج مشوي",
+      "nameArLabel": "الاسم (بالعربية)",
+      "nameArPlaceholder": "مثال: صدر دجاج مشوي",
+      "kcalLabel": "السعرات (سعرة حرارية)",
+      "proteinLabel": "البروتين (غ)",
+      "carbsLabel": "الكربوهيدرات (غ)",
+      "fatLabel": "الدهون (غ)",
+      "macrosHint": "القيم لكل 100غ",
+      "cancel": "إلغاء",
+      "close": "إغلاق",
+      "submit": "إضافة الطعام",
+      "submitting": "جارٍ الإضافة…",
+      "errors": {
+        "required": "هذا الحقل مطلوب",
+        "nonNegativeNumber": "أدخل رقماً 0 أو أكثر",
+        "createFailed": "تعذّرت إضافة الطعام. تحقق من القيم وحاول مرة أخرى."
+      }
+    }
+  },
   "whatsapp": {
     "title": "واتساب",
     "description": "اربط رقم العيادة على واتساب لإرسال تذكيرات المواعيد وتأكيداتها تلقائيًا.",
