@@ -526,6 +526,7 @@
   --color-secondary-foreground: var(--secondary-foreground);
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-foreground-white: var(--primary-foreground-white);
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
   --color-primary-subtle: var(--primary-subtle);
@@ -602,6 +603,17 @@
   --primary: #72AE34;
   --primary-hover: var(--olive-600);
   --primary-foreground: var(--n-900);
+  /*
+   * The *white* label on that same fill — what every solid primary button
+   * wears. It was one variant's colour among several white-vs-dark call sites;
+   * the fork is closed and `default` reads this. A token rather than a
+   * `text-white` per site so the pairing lives in one place: if the fill is
+   * ever darkened to clear AA, this is the single line to re-check.
+   *
+   * `--primary-foreground` (n-900) stays for the non-button surfaces that
+   * still read it. See `default` in `components/ui/button.tsx` for the trade.
+   */
+  --primary-foreground-white: var(--n-0);
   /*
    * The brand's quiet fill, mirroring `--destructive-subtle`. For a surface
    * that is *about* to be primary — the agenda's next session at rest, before

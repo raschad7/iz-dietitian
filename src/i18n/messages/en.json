@@ -410,6 +410,10 @@
       "title": "Nothing waiting",
       "description": "Appointment requests and record corrections from the portal arrive here."
     },
+    "sectionLabels": {
+      "appointments": "Appointments",
+      "records": "Record corrections"
+    },
     "sections": {
       "appointments": "Appointments ({count, number, integer})",
       "records": "Record corrections ({count, number, integer})",
@@ -445,6 +449,7 @@
       "accept": "Accept",
       "decline": "Decline",
       "markDone": "Mark done",
+      "openRecord": "Open record",
       "confirmBooking": "Confirm booking",
       "confirmCancellation": "Cancel the appointment"
     },
@@ -808,6 +813,7 @@
       "complete": "Everything is filled in",
       "completeness": "Record completeness",
       "filledOf": "{filled} of {total} fields filled in",
+      "sectionEmpty": "Nothing recorded yet.",
       "gapsHeading": "Fill in the patient's information from these sections",
       "kcalMismatch": "The manual target is far from the computed one",
       "kcalMismatchDetail": "{manual} kcal was entered by hand, but the measurements and goal give {computed} kcal. Check the number, or clear it to compute it automatically.",

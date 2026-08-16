@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, gte, isNotNull, notExists } from 'drizzle-orm';
+import { and, count, desc, eq, gte, isNotNull, notExists } from 'drizzle-orm';
 
 import { db } from '@/db';
 import { appointmentRequests, appointments, clients, session, weeklyPlans } from '@/db/schema';
@@ -66,6 +66,20 @@ export async function countPendingRequests(clinicId: string): Promise<number> {
   return row?.value ?? 0;
 }
 
+/**
+ * ⚠ **The three attention reads are ordered newest client first.**
+ *
+ * These rows are not events and carry no timestamp of their own — "no upcoming
+ * appointment" is a standing fact about a record, true until someone books.
+ * They were ordered by name, which is alphabetical rather than temporal and put
+ * the same clients at the top of the feed every morning. `clients.created_at` is
+ * the only time this data has, so newest-registered leads, matching the
+ * requests inbox beside it.
+ *
+ * The limit is applied per category, so the order also decides *which* clients
+ * make the cut when a clinic has more than `perCategory` of them — under the old
+ * ordering that was "whoever is early in the alphabet".
+ */
 export type AttentionItem = {
   clientId: string;
   clientName: string;
@@ -94,7 +108,7 @@ export async function listClientsWithNoUpcomingAppointment(
         ),
       ),
     )
-    .orderBy(asc(clients.fullName))
+    .orderBy(desc(clients.createdAt))
     .limit(limit);
 
   return rows.map((row) => ({ ...row, reason: 'noUpcomingAppointment' as const }));
@@ -134,7 +148,7 @@ export async function listClientsWithoutWeeklyPlan(clinicId: string, limit: numb
         ),
       ),
     )
-    .orderBy(asc(clients.fullName))
+    .orderBy(desc(clients.createdAt))
     .limit(limit);
 
   return rows.map((row) => ({ ...row, reason: 'noWeeklyPlan' as const }));
@@ -159,7 +173,7 @@ export async function listClientsNeverSignedIn(clinicId: string, limit: number):
         notExists(db.select({ id: session.id }).from(session).where(eq(session.userId, clients.userId))),
       ),
     )
-    .orderBy(asc(clients.fullName))
+    .orderBy(desc(clients.createdAt))
     .limit(limit);
 
   return rows.map((row) => ({ ...row, reason: 'neverSignedIn' as const }));

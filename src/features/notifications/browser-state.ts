@@ -32,6 +32,25 @@ export function markNotificationRead(state: NotificationState, id: string): Noti
   return { ...state, read: [...state.read, id] };
 }
 
+/**
+ * Every id at once — what "See all notifications" does on its way to the list.
+ *
+ * Opening the full feed *is* reading it: the rows are all on screen, so a bell
+ * still claiming eleven unread over a list the dietitian is looking at is the
+ * badge lying about work already done. Returns the same object when nothing
+ * changes, so a second open does not write storage or wake the subscribers.
+ */
+export function markNotificationsRead(
+  state: NotificationState,
+  ids: readonly string[],
+): NotificationState {
+  const read = new Set(state.read);
+  const added = ids.filter((id) => !read.has(id));
+  if (added.length === 0) return state;
+
+  return { ...state, read: [...state.read, ...added] };
+}
+
 export function deleteNotification(state: NotificationState, id: string): NotificationState {
   if (state.deleted.includes(id)) return state;
   return { ...state, deleted: [...state.deleted, id] };

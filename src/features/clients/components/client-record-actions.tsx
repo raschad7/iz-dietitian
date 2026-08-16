@@ -54,8 +54,10 @@ export async function ClientRecordActions({
   return (
     <div className={cn('flex items-center gap-2', className)}>
       {/*
-        The solid primary. It is the only thing in this column you can press, so
-        there is nothing here for an olive label to compete with.
+        The solid primary — the same button the clients list's "New client" is,
+        so the one action on the record reads as the one action on the list. It
+        is the only thing in this column you can press, so there is nothing here
+        for an olive label to compete with.
       */}
       <ClientFormTrigger
         locale={locale}

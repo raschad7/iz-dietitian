@@ -5,6 +5,7 @@ import { useCallback, useSyncExternalStore } from 'react';
 import {
   deleteNotification,
   markNotificationRead,
+  markNotificationsRead,
   parseNotificationState,
   type NotificationState,
 } from './browser-state';
@@ -66,9 +67,14 @@ export function useBrowserNotificationState() {
     writeState(markNotificationRead(readState(), id));
   }, []);
 
+  /** Every id in one write — see `markNotificationsRead`. */
+  const markAllRead = useCallback((ids: readonly string[]) => {
+    writeState(markNotificationsRead(readState(), ids));
+  }, []);
+
   const dismiss = useCallback((id: string) => {
     writeState(deleteNotification(readState(), id));
   }, []);
 
-  return { state, markRead, dismiss };
+  return { state, markRead, markAllRead, dismiss };
 }

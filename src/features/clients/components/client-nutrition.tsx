@@ -50,9 +50,13 @@ import { cn } from '@/lib/utils';
  *
  * **Cards with a heading and no contents.** `Facts` returned null when every
  * child was absent, but the `Card` around it still rendered — so a sparse record
- * drew three headed, empty boxes. A section with nothing in it does not render
- * at all now, and every gap collects into one dashed card at the end whose chips
- * open the dialog.
+ * drew three headed, empty boxes. Sections then stopped rendering entirely when
+ * empty, which traded one problem for another: the record's shape changed from
+ * client to client, and a reader looking for the allergies on a sparse one could
+ * not tell "none recorded" from "not on this screen". Every section draws its
+ * card now, and an empty one says so and carries the trigger that fills it —
+ * see `EmptySection`. The dashed gap card at the foot stays for the fields
+ * missing from sections that are otherwise filled.
  *
  * **A record that contradicted itself in silence.** A manual calorie target far
  * from what the measurements imply is the most consequential thing this screen
@@ -169,9 +173,10 @@ export function ClientNutrition({
   /*
    * The assessment questionnaire, in the two halves the dialog writes it in.
    *
-   * Two flags rather than one: the sheet is filled in across visits, and a
-   * client who has answered the background questions but not the habits ones
-   * should get one card, not one card and one headed empty box.
+   * Two flags rather than one: the sheet is filled in across visits, so a
+   * client can have answered the background questions and none of the habits
+   * ones, and each card decides for itself whether it has a record to show or
+   * an `EmptySection` to offer.
    */
   const backgroundFacts = [
     {
@@ -426,14 +431,20 @@ export function ClientNutrition({
         still occupies its grid column, which would leave the other stack at
         two-thirds width with dead space beside it.
       */}
+      {/*
+        Every section draws its card, filled or not.
+
+        They used to render only when they held something, on the argument that
+        a headed empty box is a third of a screen spent saying nothing. That is
+        true of a box with no way out of its own emptiness — and these have one:
+        each carries the trigger that opens the dialog *on its own section*. A
+        record is now the same seven cards in the same order on every client, so
+        the reader learns where the allergies are once rather than hunting for
+        them on a sparse record and finding they are simply absent.
+      */}
       <div className="grid items-start gap-4 lg:grid-cols-3">
-        {intake.mealSchedule.length > 0 ||
-        hasPlanningRecord ||
-        hasBackgroundRecord ||
-        hasHabitsRecord ? (
           <div className="flex flex-col gap-4 lg:col-span-2">
-            {intake.mealSchedule.length > 0 ? (
-              <Card>
+            <Card>
                 <CardHeader className="flex-row flex-wrap items-center justify-between gap-x-4 gap-y-1">
                   <CardTitle as="h2" icon="clock" size="sm">
                     {t('intake.sections.schedule')}
@@ -452,78 +463,55 @@ export function ClientNutrition({
                   </p>
                 </CardHeader>
                 <CardContent>
-                  <MealSchedule slots={intake.mealSchedule} />
+                  {intake.mealSchedule.length > 0 ? (
+                    <MealSchedule slots={intake.mealSchedule} />
+                  ) : (
+                    <EmptySection
+                      locale={locale}
+                      clientId={intake.clientId}
+                      section="schedule"
+                      label={t('intake.sectionEmpty')}
+                    />
+                  )}
                 </CardContent>
               </Card>
-            ) : null}
 
-            {hasPlanningRecord ? (
-              <Card>
+            <Card>
                 <CardHeader>
                   <CardTitle as="h2" icon="weeklyPlans" size="sm">
                     {t('intake.sections.planning')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <Notes
-                    items={[
-                      {
-                        label: t('fields.permanentInstructions'),
-                        value: intake.permanentInstructions,
-                      },
-                      {
-                        label: t('fields.preferences'),
-                        value: intake.preferences,
-                      },
-                      { label: t('fields.dislikes'), value: intake.dislikes },
-                    ]}
-                  />
+                  {hasPlanningRecord ? (
+                    <Notes
+                      items={[
+                        {
+                          label: t('fields.permanentInstructions'),
+                          value: intake.permanentInstructions,
+                        },
+                        {
+                          label: t('fields.preferences'),
+                          value: intake.preferences,
+                        },
+                        { label: t('fields.dislikes'), value: intake.dislikes },
+                      ]}
+                    />
+                  ) : (
+                    <EmptySection
+                      locale={locale}
+                      clientId={intake.clientId}
+                      section="planning"
+                      label={t('intake.sectionEmpty')}
+                    />
+                  )}
                 </CardContent>
               </Card>
-            ) : null}
 
-            {/*
-              The assessment sheet, read back in the order it was asked.
-
-              Short closed answers first as a labelled lattice, prose under
-              them: a marital status and a blood type are two words each, and
-              running them as `Notes` entries gave every one of them a line of
-              its own down a card that was mostly whitespace.
-            */}
-            {hasBackgroundRecord ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle as="h2" icon="personOutline" size="sm">
-                    {t('intake.sections.background')}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-4">
-                  <FactList items={backgroundFacts} />
-                  <Notes items={backgroundNotes} />
-                </CardContent>
-              </Card>
-            ) : null}
-
-            {hasHabitsRecord ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle as="h2" icon="activityOutline" size="sm">
-                    {t('intake.sections.habits')}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-4">
-                  <Notes items={habitNotes} />
-                  <FactList items={habitFacts} />
-                </CardContent>
-              </Card>
-            ) : null}
           </div>
-        ) : null}
 
-        {hasAllergyRecord || hasPrivateRecord ? (
           <div className="flex flex-col gap-4">
-            {hasAllergyRecord ? (
-              <Card>
+            <Card>
                 <CardHeader>
                   <CardTitle as="h2" icon="medical" size="sm">
                     {t('intake.sections.allergies')}
@@ -539,47 +527,54 @@ export function ClientNutrition({
                 and outlined pills used to draw is the intake dialog's job; on a
                 read-only card it was a legend nobody had.
               */}
-                  <Notes
-                    items={[
-                      {
-                        label: t('intake.allergyLine'),
-                        value:
-                          allergenTags.length > 0 ||
-                          intake.customAllergens.length > 0
-                            ? format.list([
-                                ...allergenTags.map((tag) =>
-                                  t(`allergens.${tag}`),
-                                ),
-                                ...intake.customAllergens,
-                              ])
-                            : null,
-                        medical: true,
-                      },
-                      {
-                        label: t('intake.allergyDetailLabel'),
-                        value: intake.allergies,
-                      },
-                      {
-                        label: t('fields.conditions'),
-                        value: intake.conditions,
-                      },
-                      {
-                        label: t('fields.medications'),
-                        value: intake.medications,
-                      },
-                      {
-                        label: t('fields.drugAllergies'),
-                        value: intake.drugAllergies,
-                        medical: true,
-                      },
-                    ]}
-                  />
+                  {hasAllergyRecord ? (
+                    <Notes
+                      items={[
+                        {
+                          label: t('intake.allergyLine'),
+                          value:
+                            allergenTags.length > 0 ||
+                            intake.customAllergens.length > 0
+                              ? format.list([
+                                  ...allergenTags.map((tag) =>
+                                    t(`allergens.${tag}`),
+                                  ),
+                                  ...intake.customAllergens,
+                                ])
+                              : null,
+                          medical: true,
+                        },
+                        {
+                          label: t('intake.allergyDetailLabel'),
+                          value: intake.allergies,
+                        },
+                        {
+                          label: t('fields.conditions'),
+                          value: intake.conditions,
+                        },
+                        {
+                          label: t('fields.medications'),
+                          value: intake.medications,
+                        },
+                        {
+                          label: t('fields.drugAllergies'),
+                          value: intake.drugAllergies,
+                          medical: true,
+                        },
+                      ]}
+                    />
+                  ) : (
+                    <EmptySection
+                      locale={locale}
+                      clientId={intake.clientId}
+                      section="allergies"
+                      label={t('intake.sectionEmpty')}
+                    />
+                  )}
                 </CardContent>
               </Card>
-            ) : null}
 
-            {hasPrivateRecord ? (
-              <Card>
+            <Card>
                 <CardHeader>
                   {/*
                 'خاص بالعيادة' was a pill beside the title. It is a property of
@@ -596,19 +591,94 @@ export function ClientNutrition({
                     them out as two labelled notes would put the split back on
                     screen after the dialog stopped drawing it.
                   */}
-                  <Notes
-                    items={[
-                      {
-                        label: t('intake.notesDivider'),
-                        value: mergedNotes(intake.medicalNotes, intake.notes),
-                      },
-                    ]}
-                  />
+                  {hasPrivateRecord ? (
+                    <Notes
+                      items={[
+                        {
+                          label: t('intake.notesDivider'),
+                          value: mergedNotes(intake.medicalNotes, intake.notes),
+                        },
+                      ]}
+                    />
+                  ) : (
+                    <EmptySection
+                      locale={locale}
+                      clientId={intake.clientId}
+                      section="clinical"
+                      label={t('intake.sectionEmpty')}
+                    />
+                  )}
                 </CardContent>
               </Card>
-            ) : null}
           </div>
-        ) : null}
+      </div>
+
+      {/*
+        The assessment sheet, read back in the order it was asked.
+
+        Short closed answers first as a labelled lattice, prose under
+        them: a marital status and a blood type are two words each, and
+        running them as `Notes` entries gave every one of them a line of
+        its own down a card that was mostly whitespace.
+
+        **The two halves sit side by side, across the full width.** They are the
+        one pair on this screen that is genuinely read together — who this person
+        is, and how they live — and each is a short lattice of two-word answers,
+        so stacked they were two wide cards of mostly empty row. They are out of
+        the three-column grid above rather than inside its wide column: at half
+        of two-thirds, a "نمط الحياة والعادات" lattice wraps to one answer per
+        line, which is the shape this pairing exists to avoid.
+
+        `items-start` so the shorter of the two keeps its own height instead of
+        stretching to match, and one column below `sm`, where side by side would
+        be two narrow strips.
+      */}
+      <div className="grid items-start gap-4 sm:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle as="h2" icon="personOutline" size="sm">
+              {t('intake.sections.background')}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            {hasBackgroundRecord ? (
+              <>
+                <FactList items={backgroundFacts} />
+                <Notes items={backgroundNotes} />
+              </>
+            ) : (
+              <EmptySection
+                locale={locale}
+                clientId={intake.clientId}
+                section="background"
+                label={t('intake.sectionEmpty')}
+              />
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle as="h2" icon="activityOutline" size="sm">
+              {t('intake.sections.habits')}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            {hasHabitsRecord ? (
+              <>
+                <Notes items={habitNotes} />
+                <FactList items={habitFacts} />
+              </>
+            ) : (
+              <EmptySection
+                locale={locale}
+                clientId={intake.clientId}
+                section="habits"
+                label={t('intake.sectionEmpty')}
+              />
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/*
@@ -1002,5 +1072,47 @@ function Notes({
         </div>
       ))}
     </dl>
+  );
+}
+
+/**
+ * What a section card holds before anyone has filled it in.
+ *
+ * A sentence and the way to change it. The card exists whether or not the
+ * record does — see the note on the grid above — so this is what keeps an empty
+ * one from being a headed box with nothing to do: the trigger opens the intake
+ * dialog *on this section*, the same jump the gap chips at the foot of the page
+ * make, so "there is nothing here" and "put something here" are one control
+ * apart rather than a scroll apart.
+ *
+ * `h-10`, the design system's floor for a control, and the dashed chip the gap
+ * list already uses — an empty state and a gap are the same fact stated in two
+ * places, and they should not look like two different offers.
+ */
+function EmptySection({
+  locale,
+  clientId,
+  section,
+  label,
+}: {
+  locale: Locale;
+  clientId: string;
+  section: IntakeSectionId;
+  label: string;
+}) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <p className="text-body-sm text-muted-foreground">{label}</p>
+
+      <IntakeFormTrigger
+        locale={locale}
+        clientId={clientId}
+        section={section}
+        className="inline-flex h-10 items-center gap-2 rounded-full border border-dashed border-input px-4 text-label text-muted-foreground transition-colors hover:border-solid hover:border-primary hover:bg-secondary hover:text-secondary-foreground"
+      >
+        <Icon name="edit" className="size-4" />
+        {label}
+      </IntakeFormTrigger>
+    </div>
   );
 }

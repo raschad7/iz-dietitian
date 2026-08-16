@@ -34,8 +34,7 @@ export function AuthSubmitButton({ label }: { label: string }) {
   const { pending } = useFormStatus();
 
   return (
-    /* `primaryWhite`: the white label, asked for on every auth screen. */
-    <Button type="submit" variant="primaryWhite" className="w-full max-w-none" disabled={pending}>
+    <Button type="submit" className="w-full max-w-none" disabled={pending}>
       {/*
         The label stays put and a spinner joins it, rather than the label being
         replaced by the word "loading". Swapping the text changes the width of

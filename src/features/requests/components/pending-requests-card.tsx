@@ -2,13 +2,14 @@ import { getTranslations } from 'next-intl/server';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
-import { Link } from '@/i18n/navigation';
 import { type Locale } from '@/i18n/routing';
 
-import { type PendingRequests } from '../types';
+import { type RequestsData } from '../types';
 
 import { AppointmentRequestCard } from './appointment-request-card';
 import { ClientRequestCard } from './client-request-card';
+import { RequestsDialogTrigger } from './requests-dialog-trigger';
+import { RequestsInbox } from './requests-inbox';
 import { RequestsWindow } from './requests-window';
 
 /**
@@ -32,8 +33,10 @@ import { RequestsWindow } from './requests-window';
  *
  * **Every pending request is here, and the list scrolls inside the card.** It
  * used to show three and hand the rest to the inbox, because it was then a
- * banner squeezed between the quick actions and the register. The link to the
- * inbox stays for the answered history, which this panel never shows.
+ * banner squeezed between the quick actions and the register. "All requests"
+ * stays for the answered history, which this panel never shows — it opens the
+ * inbox as a dialog over this page now rather than navigating to it, so nothing
+ * about working the queue costs the dashboard. See `RequestsDialogTrigger`.
  *
  * **The window is three requests deep.** {@link VISIBLE_REQUESTS} is a bound on
  * height, not a slice — every pending request is rendered and the rest are a
@@ -99,7 +102,7 @@ export async function PendingRequestsCard({
   locale,
   now,
 }: {
-  data: PendingRequests;
+  data: RequestsData;
   locale: Locale;
   now: Date;
 }) {
@@ -164,13 +167,51 @@ export async function PendingRequestsCard({
           <CardTitle as="h2" size="sm" tone="muted" icon="chat">
             {t('dashboard.heading')}
           </CardTitle>
-          <Link
-            href="/app/requests"
+          {/*
+            It opens the inbox over this page rather than navigating to it —
+            see `RequestsDialogTrigger`. Same words, same corner, same styling
+            as the link it replaces; what changes is that answering the fourth
+            request no longer costs the dashboard.
+          */}
+          <RequestsDialogTrigger
+            locale={locale}
             className="-ms-1 mt-0.5 inline-flex items-center gap-0.5 rounded-sm px-1 py-0.5 text-label font-medium text-muted-foreground transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+            inbox={
+              <RequestsInbox
+                data={data}
+                locale={locale}
+                now={now}
+                presentation="cards"
+                appointmentsHeading={false}
+              />
+            }
+            heading={
+              appointments.length > 0 ? (
+                /*
+                  The appointments list's heading, for the dialog's header bar.
+
+                  It is built here rather than inside the dialog because this is
+                  the server: the words and the number are both `t()` and data,
+                  and the trigger is a client component that holds neither.
+
+                  `items-baseline` and the heading's own size on the numeral, so
+                  the word and the count read as one phrase rather than as a
+                  label with a footnote — the same pair `SectionHeading` draws
+                  for the record corrections below.
+                */
+                <span className="flex items-baseline gap-2 self-center">
+                  <span className="text-heading-sm font-semibold">
+                    {t('sectionLabels.appointments')}
+                  </span>
+                  <span className="text-heading-sm font-semibold tabular-nums text-muted-foreground">
+                    {appointments.length}
+                  </span>
+                </span>
+              ) : null
+            }
           >
             {t('dashboard.openInbox')}
-            <Icon name="chevronEnd" className="size-3.5" />
-          </Link>
+          </RequestsDialogTrigger>
         </div>
 
         {/* A bare numeral, not a pill: a count is a quantity, not a state. See

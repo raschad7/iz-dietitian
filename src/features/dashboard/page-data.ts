@@ -3,8 +3,13 @@ import { getClinicHours, listAppointments } from '@/features/booking/queries';
 import { type CalendarAppointment } from '@/features/booking/types';
 import { loadStaffAttention } from '@/features/notifications/page-data';
 import { type StaffAttentionNotification } from '@/features/notifications/types';
-import { listPendingAppointmentRequests, listPendingClientRequests } from '@/features/requests/queries';
-import { type PendingRequests } from '@/features/requests/types';
+import {
+  listAnsweredAppointmentRequests,
+  listPendingAppointmentRequests,
+  listPendingClientRequests,
+} from '@/features/requests/queries';
+import { DASHBOARD_ANSWERED_LIMIT } from '@/features/requests/page-data';
+import { type RequestsData } from '@/features/requests/types';
 
 import {
   countActiveClients,
@@ -94,7 +99,7 @@ export type DashboardData = {
    * and the panel that renders them draws nothing when they are — see
    * `PendingRequestsCard` for why that matters on this page in particular.
    */
-  requests: PendingRequests;
+  requests: RequestsData;
   /**
    * Clients the register says have drifted — the notifications feed's own
    * "worth checking" half, surfaced on the page a dietitian actually keeps
@@ -132,6 +137,7 @@ export async function loadDashboard(clinicId: string): Promise<DashboardData> {
     hours,
     pendingRequests,
     pendingClientRequests,
+    answeredRequests,
     attention,
     activeClients,
     clientMonths,
@@ -142,6 +148,7 @@ export async function loadDashboard(clinicId: string): Promise<DashboardData> {
     getClinicHours(clinicId),
     listPendingAppointmentRequests(clinicId),
     listPendingClientRequests(clinicId),
+    listAnsweredAppointmentRequests(clinicId, DASHBOARD_ANSWERED_LIMIT),
     loadStaffAttention(clinicId),
     countActiveClients(clinicId),
     // `created_at` is a timestamp, so the window opens at local midnight on the
@@ -178,7 +185,13 @@ export async function loadDashboard(clinicId: string): Promise<DashboardData> {
     // The two request reads join this page's single round of parallel queries
     // rather than calling `loadPendingRequests`, which would repeat the
     // `getClinicHours` read the week strip above already needs.
-    requests: { appointments: pendingRequests, clientRequests: pendingClientRequests, today, hours },
+    requests: {
+      appointments: pendingRequests,
+      clientRequests: pendingClientRequests,
+      answered: answeredRequests,
+      today,
+      hours,
+    },
     now,
   };
 }

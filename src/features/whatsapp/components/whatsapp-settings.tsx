@@ -99,7 +99,7 @@ function ConnectionSection({ locale, connection, onRefresh }: {
               <input type="hidden" name="locale" value={locale} />
               <ConfirmSubmitButton
                 label={connection.linked ? t('connection.reconnect') : t('connection.connect')}
-                variant={connection.linked ? 'neutral' : 'primaryWhite'}
+                variant={connection.linked ? 'neutral' : 'default'}
               />
             </form>
             {connection.linked ? (

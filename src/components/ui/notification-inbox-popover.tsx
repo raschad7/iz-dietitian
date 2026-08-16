@@ -270,10 +270,18 @@ function NotificationInboxPopover<T extends string>({
             `divide-y` rather than a `border-b` on every row: the rule lands once
             between each pair and never doubles up, so the last row cannot draw a
             line directly on top of the footer's own `border-t`.
+
+            No scroll and no height cap: the caller passes a bounded preview —
+            five rows, in the one place this is used — and the way to the rest
+            is the footer's own link. It carried `max-h-80 overflow-y-auto`,
+            which turned that preview into a short scrolling strip: a reader had
+            to wheel through five rows to learn there was a sixth, and the link
+            that actually opens the rest sat below the fold of a 20rem box.
+
+            ⚠ A caller that passes an unbounded list will grow this panel to the
+            length of it. Slice before you pass.
           */
-          <ul className="flex max-h-80 flex-col divide-y divide-border overflow-y-auto overscroll-contain">
-            {children}
-          </ul>
+          <ul className="flex flex-col divide-y divide-border">{children}</ul>
         )}
 
         {footer ? <div className="border-t border-border p-(--notif-pad)">{footer}</div> : null}
