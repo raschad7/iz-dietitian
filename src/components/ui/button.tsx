@@ -59,6 +59,28 @@ const buttonVariants = cva(
         default: "border-transparent bg-primary text-primary-foreground hover:bg-primary-hover",
 
         /**
+         * `default`, with a white label instead of the dark one.
+         *
+         * The same solid brand fill; only the label colour differs. It exists so
+         * that "make this one white" is a variant a caller names rather than a
+         * `text-white` sprinkled onto `buttonVariants()` at each site — five of
+         * those had accumulated before this was a variant, and a sixth was about
+         * to. Current callers: the landing page's staff CTA, the auth forms'
+         * submit, both "New client" buttons, and the WhatsApp connect button.
+         *
+         * ⚠ Contrast is traded, and knowingly. `--primary-foreground` is n-900
+         * precisely because white on the brand's own #72AE34 measures ~2.68:1,
+         * under WCAG AA's 4.5:1 for body text — see the token's note in
+         * `globals.css`. This variant was asked for by name, so it is spelled out
+         * here where the trade is visible, and `default` stays the checked pair
+         * that everything else reaches for. Reach for this one only where the
+         * white label has actually been asked for; a button that needs to be read
+         * wants `default`. Darkening this fill one step to olive-600 would clear
+         * the floor, if the pairing is ever revisited.
+         */
+        primaryWhite: "border-transparent bg-primary text-white hover:bg-primary-hover",
+
+        /**
          * Primary, quietly — the brand's subtle fill, an olive label, no border.
          *
          * For the one action on a screen that is otherwise all reading. The

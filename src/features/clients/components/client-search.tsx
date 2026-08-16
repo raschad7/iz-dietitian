@@ -12,7 +12,6 @@ import { ClientFormTrigger } from '@/features/clients/components/client-form-tri
 import { type ListClientsInput } from '@/features/clients/schema';
 import { usePathname, useRouter } from '@/i18n/navigation';
 import { type Locale } from '@/i18n/routing';
-import { cn } from '@/lib/utils';
 
 /** How long to let someone keep typing before the register re-queries. */
 const SEARCH_DEBOUNCE_MS = 300;
@@ -124,11 +123,9 @@ export function ClientSearch({ input, locale }: { input: ListClientsInput; local
       <div className="flex shrink-0 items-center gap-2">
         <ClientFilterMenu input={input} />
 
-        {/* Opens the client card over the list. The label is white rather than
-            the variant's dark `primary-foreground`, by request — see the note in
-            `ClientTable`'s empty state, which carries the same override so the
-            two "New client" buttons cannot drift apart. */}
-        <ClientFormTrigger locale={locale} className={cn(buttonVariants(), 'text-white')}>
+        {/* Opens the client card over the list. `primaryWhite` for the white
+            label, matching the empty state's copy of this button. */}
+        <ClientFormTrigger locale={locale} className={buttonVariants({ variant: 'primaryWhite' })}>
           <Icon name="addClient" />
           {t('new')}
         </ClientFormTrigger>

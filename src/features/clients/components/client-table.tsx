@@ -141,16 +141,7 @@ export function ClientTable({
             {t('clearFilters')}
           </Link>
         ) : archived ? null : (
-          /*
-            White label, not the `default` variant's dark one.
-
-            `--primary-foreground` is n-900 on purpose: white on the brand's
-            #72AE34 measures ~2.68:1, under WCAG AA's 4.5:1 for body text. This
-            override was asked for explicitly, so it is scoped to the two "New
-            client" buttons rather than taken out of the token, and every other
-            primary button on the app keeps the contrast-checked pairing.
-          */
-          <ClientFormTrigger locale={locale} className={cn(buttonVariants({ size: 'sm' }), 'text-white')}>
+          <ClientFormTrigger locale={locale} className={buttonVariants({ variant: 'primaryWhite', size: 'sm' })}>
             {t('new')}
           </ClientFormTrigger>
         )}
