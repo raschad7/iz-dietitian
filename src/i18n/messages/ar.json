@@ -410,6 +410,10 @@
       "title": "لا شيء بالانتظار",
       "description": "طلبات المواعيد وطلبات تصحيح البيانات القادمة من البوابة تظهر هنا."
     },
+    "sectionLabels": {
+      "appointments": "المواعيد",
+      "records": "تصحيح البيانات"
+    },
     "sections": {
       "appointments": "المواعيد ({count, number, integer})",
       "records": "تصحيح البيانات ({count, number, integer})",
@@ -445,6 +449,7 @@
       "accept": "قبول",
       "decline": "رفض",
       "markDone": "تمّ التنفيذ",
+      "openRecord": "فتح السجل",
       "confirmBooking": "تأكيد الحجز",
       "confirmCancellation": "إلغاء الموعد"
     },
@@ -761,6 +766,7 @@
       "complete": "كل الحقول مُدخلة",
       "completeness": "اكتمال السجل",
       "filledOf": "{filled} من {total} حقلاً مُدخلة",
+      "sectionEmpty": "لا توجد بيانات مسجّلة بعد.",
       "gapsHeading": "أكمل بيانات المريض من هذه الأقسام",
       "kcalMismatch": "الهدف اليدوي بعيد عن المحسوب",
       "kcalMismatchDetail": "أُدخل {manual} kcal يدويًا، بينما القياسات والهدف يعطيان {computed} kcal. راجعي الرقم أو احذفيه ليُحسب تلقائيًا.",
