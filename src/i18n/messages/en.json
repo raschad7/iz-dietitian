@@ -560,6 +560,7 @@
       "createdAt": "Registered",
       "portalAccess": "Portal",
       "plan": "Plan",
+      "weeklyProgress": "Weekly progress",
       "actions": "Actions",
       "conditions": "Conditions",
       "medications": "Medications and supplements",
@@ -657,6 +658,13 @@
       "published": "Active plan",
       "draft": "Draft",
       "none": "No plan"
+    },
+    "progress": {
+      "daysCompleted": "{completed, number, integer} / {total, number, integer} days",
+      "aria": "Weekly progress {percent}, {completed, number, integer} of {total, number, integer} plan days fully completed",
+      "ariaEmpty": "No weekly progress recorded yet, out of {total, number, integer} plan days",
+      "ariaNoPlan": "No weekly progress: no plan covers today",
+      "ariaNoTracking": "No weekly progress: no portal account"
     },
     "clearFilters": "Clear filters",
     "pagination": {
