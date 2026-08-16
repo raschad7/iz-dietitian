@@ -34,7 +34,15 @@ export function AuthSubmitButton({ label }: { label: string }) {
   const { pending } = useFormStatus();
 
   return (
-    <Button type="submit" className="w-full max-w-none" disabled={pending}>
+    /*
+      `text-white`, not the `default` variant's dark `--primary-foreground`.
+
+      The token is n-900 on purpose — white on the brand green measures about
+      2.68:1, under WCAG AA. The white label was asked for on the auth screens
+      specifically, so it is an override here rather than a change to the token,
+      and every primary button behind the login keeps the checked pairing.
+    */
+    <Button type="submit" className="w-full max-w-none text-white" disabled={pending}>
       {/*
         The label stays put and a spinner joins it, rather than the label being
         replaced by the word "loading". Swapping the text changes the width of

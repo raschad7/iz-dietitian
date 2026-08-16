@@ -5,6 +5,8 @@ import type { Metadata } from 'next';
 import { resolveLocale } from '@/i18n/params';
 import { requireStaffClinic } from '@/lib/session';
 
+import { PageHeader } from '@/components/layout/page-header';
+
 import { ContextPanel } from '@/features/weekly-plans/components/context-panel';
 import { EmptyPlanBoard } from '@/features/weekly-plans/components/empty-plan-board';
 import { PlanBoard } from '@/features/weekly-plans/components/plan-board';
@@ -151,9 +153,15 @@ export default async function ClientBoardPage({ params, searchParams }: PageProp
     <div
       className={`${PLANNER_THEME} flex min-h-full min-w-0 flex-col text-start md:h-full md:min-h-0`}
     >
-      {/* No week pills beside the title: they were the history tab's list, in
-          a second place, with room for fewer of them. */}
-      <h1 className="sr-only">{t('title')}</h1>
+      {/* The shared staff header — see `PageHeader`. No week pills beside the
+          title: they were the history tab's list, in a second place, with room
+          for fewer of them. */}
+      <PageHeader
+        locale={locale}
+        title={t('title')}
+        clinicId={clinicId}
+        className="mb-4"
+      />
 
       <div className="flex min-h-0 min-w-0 flex-1 gap-4">
         {board ? (

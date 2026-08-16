@@ -3,6 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import { buttonVariants } from '@/components/ui/button';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/params';
+import { cn } from '@/lib/utils';
 
 type LandingPageProps = {
   params: Promise<{ locale: string }>;
@@ -27,7 +28,10 @@ export default async function LandingPage({ params }: LandingPageProps) {
         semantics. `buttonVariants` gives the same appearance on a real anchor.
       */}
       <div className="flex flex-wrap gap-3">
-        <Link href="/login" className={buttonVariants()}>
+        {/* `text-white`, not the `default` variant's dark `--primary-foreground`
+            — the same override the auth screens' submit button carries, so the
+            two green buttons someone meets before signing in look alike. */}
+        <Link href="/login" className={cn(buttonVariants(), 'text-white')}>
           {t('staffCta')}
         </Link>
         <Link href="/client-login" className={buttonVariants({ variant: 'outline' })}>
