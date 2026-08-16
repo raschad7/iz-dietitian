@@ -79,6 +79,44 @@ function readIntakeForm(formData: FormData) {
     preferences: formData.get('preferences'),
     dislikes: formData.get('dislikes'),
     permanentInstructions: formData.get('permanentInstructions'),
+
+    /*
+     * ⚠ The questionnaire — Background and Habits, and the drug allergies that
+     * sit with the food ones on the Allergies panel.
+     *
+     * **These were missing, and the data was being thrown away.** Every one of
+     * them is `optional()` in `intakeSchema` — an intake is filled in across
+     * visits, so nothing is required — and `saveIntake` writes `input.X ?? null`
+     * to each column. A field never read out of the `FormData` therefore parsed
+     * as `undefined`, validated cleanly, and was written as SQL NULL: the two
+     * panels reported "saved", and every answer on them was gone on reopen. A
+     * dietitian filling the clinic's paper sheet into the dialog lost the whole
+     * sheet, silently, every time.
+     *
+     * Every key on `intakeSchema` must be read here. There is no schema-level
+     * "reject unknown-but-missing" that would have caught this: optional means
+     * optional, and the form is the only thing that knows the field exists.
+     */
+    maritalStatus: formData.get('maritalStatus'),
+    childrenCount: formData.get('childrenCount'),
+    bloodType: formData.get('bloodType'),
+    occupation: formData.get('occupation'),
+    visitReason: formData.get('visitReason'),
+    dietHistory: formData.get('dietHistory'),
+    drugAllergies: formData.get('drugAllergies'),
+    familyHistory: formData.get('familyHistory'),
+
+    activityNotes: formData.get('activityNotes'),
+    activityBarriers: formData.get('activityBarriers'),
+    sleepHours: formData.get('sleepHours'),
+    smoking: formData.get('smoking'),
+
+    caffeineFrequency: formData.get('caffeineFrequency'),
+    fastFoodFrequency: formData.get('fastFoodFrequency'),
+    produceFrequency: formData.get('produceFrequency'),
+    dairyFrequency: formData.get('dairyFrequency'),
+    proteinFoodFrequency: formData.get('proteinFoodFrequency'),
+    sweetsFrequency: formData.get('sweetsFrequency'),
     mealSchedule: slotKeys.map((slotKey, index) => ({
       slotKey,
       label: String(formData.getAll('slotLabel')[index] ?? ''),

@@ -540,6 +540,27 @@ export function IntakeForm({
               />
               <FieldError>{errorFor('allergies')}</FieldError>
             </Field>
+
+            {/*
+              Drug allergies, which had no control at all.
+
+              The column exists, `intakeSchema` validates it, the Nutrition tab
+              renders it, and `FIELDS_BY_SECTION` files it on this panel — the
+              only missing piece was the field itself, so the record could show
+              a drug allergy that nothing in the app could ever write. It sits
+              here rather than in Background for the reason that mapping already
+              gives: someone looking for what a client reacts to should find
+              every answer on one panel.
+            */}
+            <TextField
+              name="drugAllergies"
+              label={t('fields.drugAllergies')}
+              placeholder={t('intake.placeholders.drugAllergies')}
+              rows={3}
+              maxLength={1000}
+              defaultValue={intake.drugAllergies}
+              error={errorFor('drugAllergies')}
+            />
           </Panel>
 
           <Panel id="clinical" current={section}>

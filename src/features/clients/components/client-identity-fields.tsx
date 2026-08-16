@@ -32,7 +32,11 @@ import { cn } from '@/lib/utils';
  * input; it holds its value here and posts through a hidden input of the same
  * name, so a reader of either form still just sees `dateOfBirth`.
  */
-type FieldName = 'fullName' | 'phone' | 'email' | 'dateOfBirth' | 'sex';
+/*
+ * No 'email': the card stopped offering one — see the layout note below for
+ * what that does and does not change about the stored column.
+ */
+type FieldName = 'fullName' | 'phone' | 'dateOfBirth' | 'sex';
 
 export function ClientIdentityFields({
   locale,
@@ -41,16 +45,16 @@ export function ClientIdentityFields({
   dateOfBirthCaption,
 }: {
   locale: Locale;
-  /** Absent when creating, which is also what hides the email field. */
+  /** Absent when creating: the stored record, to fill the fields from. */
   client?: ClientFormValues;
   /** The server's complaint about a field, if there is one to show. */
   errorFor?: (field: FieldName) => string | undefined;
   /**
    * How the date-of-birth popup is navigated — see `DateChooser`.
    *
-   * Left out, it follows whether a client is being *added* or edited, which is
-   * the thing the choice actually turns on. See `dobCaption` below. Pass it to
-   * override that on a surface where the reasoning does not hold.
+   * Left out, it is the month-and-year dropdowns — see `dobCaption` below for
+   * why that is the answer on every surface this card is opened from. Pass it to
+   * override on one where a date near today is the usual answer.
    */
   dateOfBirthCaption?: 'chooser' | 'dropdowns';
 }) {
@@ -59,23 +63,22 @@ export function ClientIdentityFields({
   const [dateOfBirth, setDateOfBirth] = useState(client?.dateOfBirth ?? '');
 
   /*
-    Two dropdowns when adding someone, the caption ring when editing them.
+    Two dropdowns — a month list beside a year list — in both states.
 
     Every "add a patient" surface in the app is the same moment: the person is
     in front of you reading a year out, the field is empty, and the answer is
     decades from the month the panel opens on. The ring costs two presses before
-    the year is even on screen; a month list beside a year list is one press to
-    either half. Editing is the other case — the date is already in the record
-    and what brings anyone back to it is a correction of a day or a month, which
-    is what the ring is quickest at.
+    the year is even on screen; the lists are one press to either half.
 
-    Derived from `client` rather than passed in by each caller, because that is
-    exactly the distinction: the register's Add button, the calendar's "New
-    client" dialog and the dashboard's shortcut all open this with no `client`,
-    and all three wanted the same thing. Three call sites each remembering to
-    say so is three chances for one of them to forget.
+    ⚠ **Editing used to get the ring instead**, on the argument that the date is
+    already stored and what brings anyone back to it is a correction of a day or
+    a month. That is true of the correction and false of the control: it made one
+    card behave two ways, so whoever learned the picker while adding somebody met
+    a different one while fixing them, on the same field in the same dialog. One
+    card, one picker. The ring is still reachable — `dateOfBirthCaption` is why
+    the prop exists — for a surface where a date near today is the usual answer.
   */
-  const dobCaption = dateOfBirthCaption ?? (client ? 'chooser' : 'dropdowns');
+  const dobCaption = dateOfBirthCaption ?? 'dropdowns';
 
   /**
    * …and the day cells marked the way the calendar's own picker marks them:
@@ -88,9 +91,9 @@ export function ClientIdentityFields({
    * pressed is the only answer in it. Black said "chosen" and olive says "this
    * one", which is what the grid is for.
    *
-   * Tied to the same moment as the dropdowns rather than to the field: an edit
-   * opens with a date already in it, where the mark is confirming a stored value
-   * on a form full of them, and the neutral grid is the right register there.
+   * Tied to `dobCaption` rather than to the field, so a surface that asks for
+   * the ring — a date near today, already in the record — gets the neutral grid
+   * with it, where the mark is confirming a stored value on a form full of them.
    */
   const dobTone = dobCaption === 'dropdowns' ? 'primary' : 'neutral';
 
@@ -131,19 +134,6 @@ export function ClientIdentityFields({
           defaultValue={client?.phone}
           countryLabel={t('fields.phoneCountry')}
           placeholder={t('placeholders.phone')}
-        />
-      </FormField>
-    ),
-
-    email: (
-      <FormField id="email" label={t('fields.email')} error={error('email')}>
-        <Input
-          id="email"
-          name="email"
-          type="email"
-          dir="ltr"
-          placeholder={t('placeholders.email')}
-          defaultValue={client?.email ?? ''}
         />
       </FormField>
     ),
@@ -189,12 +179,19 @@ export function ClientIdentityFields({
   /*
     One field per row, top to bottom.
 
-    Email is absent when creating and present when editing. A walk-in is booked
-    from a name and a number, and asking for an address at the counter is a
-    field that gets skipped or filled with something made up — which is worse
-    than empty, because the register can filter on it. The record can still take
-    one later, from the same card in edit mode, which is where the rest of the
-    intake is filled in anyway.
+    ⚠ **Email is on neither.** It was absent when creating and present when
+    editing, on the reasoning that a walk-in is booked from a name and a number
+    and asking for an address at the counter yields a skipped or invented value
+    — worse than empty, because the register can filter on it. That argument
+    held for creating, and the card is now the same card in both states, so it
+    holds for editing too: a form that grows a field the second time it is
+    opened is two forms wearing one title.
+
+    ⚠ **This is the only surface that wrote `clients.email`.** The column, the
+    schema field and `readForm` are all untouched — a record that already holds
+    an address keeps it, the register still filters on it, and a portal login is
+    a username and never this. What is gone is the way to type one in. Restore
+    the field below if the clinic starts collecting addresses.
 
     Date of birth and phone used to share a row, on the reading that they are
     one "when and how to reach this person" thought. They are not, and the
@@ -211,7 +208,6 @@ export function ClientIdentityFields({
   return (
     <div className="grid gap-4">
       {fields.fullName}
-      {client ? fields.email : null}
       {fields.dateOfBirth}
       {fields.phone}
       {fields.sex}
