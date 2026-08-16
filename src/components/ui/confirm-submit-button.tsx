@@ -22,7 +22,7 @@ type ConfirmSubmitButtonProps = {
    * is at stake.
    */
   confirmTitle?: string;
-  variant?: 'default' | 'primaryWhite' | 'outline' | 'destructive' | 'destructiveGhost' | 'ghost' | 'neutral';
+  variant?: 'default' | 'outline' | 'destructive' | 'destructiveGhost' | 'ghost' | 'neutral';
   size?: 'default' | 'sm' | 'icon' | 'icon-sm';
   /**
    * Renders the glyph instead of the words. `label` stays the accessible name

@@ -149,7 +149,7 @@ function IssueForm({
 
       <CredentialsMessage state={state} />
 
-      <Button type="submit" className="self-start">
+      <Button type="submit" variant="default" className="self-start">
         <Icon name="lock" />
         {t('portal.issue')}
       </Button>

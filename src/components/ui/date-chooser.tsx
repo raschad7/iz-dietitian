@@ -346,7 +346,13 @@ function ChooserCell({
         // not a choice — the day grid would only refuse every cell in it.
         'disabled:pointer-events-none disabled:opacity-50',
         shown
-          ? 'bg-primary text-primary-foreground font-semibold'
+          ? // The white label token, the same one every solid olive control in
+            // the app now carries — see `default` in `components/ui/button.tsx`
+            // and `--primary-foreground-white` in `globals.css`. The month and
+            // year cells here are filled with `bg-primary` exactly as a primary
+            // button is, so they read its label colour rather than keeping the
+            // dark one this pairing started with.
+            'bg-primary text-primary-foreground-white font-semibold'
           : current
             ? 'ring-1 ring-inset ring-primary text-primary font-medium hover:bg-muted'
             : 'text-foreground hover:bg-muted',
