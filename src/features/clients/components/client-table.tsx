@@ -141,7 +141,7 @@ export function ClientTable({
             {t('clearFilters')}
           </Link>
         ) : archived ? null : (
-          <ClientFormTrigger locale={locale} className={buttonVariants({ size: 'sm' })}>
+          <ClientFormTrigger locale={locale} className={buttonVariants({ variant: 'primaryWhite', size: 'sm' })}>
             {t('new')}
           </ClientFormTrigger>
         )}

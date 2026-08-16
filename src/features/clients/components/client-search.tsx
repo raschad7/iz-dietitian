@@ -123,8 +123,9 @@ export function ClientSearch({ input, locale }: { input: ListClientsInput; local
       <div className="flex shrink-0 items-center gap-2">
         <ClientFilterMenu input={input} />
 
-        {/* Opens the client card over the list. */}
-        <ClientFormTrigger locale={locale} className={buttonVariants()}>
+        {/* Opens the client card over the list. `primaryWhite` for the white
+            label, matching the empty state's copy of this button. */}
+        <ClientFormTrigger locale={locale} className={buttonVariants({ variant: 'primaryWhite' })}>
           <Icon name="addClient" />
           {t('new')}
         </ClientFormTrigger>
