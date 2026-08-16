@@ -40,6 +40,9 @@ export const foods = pgTable(
     /** USDA's own wording, e.g. "Egg, whole, raw, fresh". Never translated. */
     description: text('description').notNull(),
 
+    /** Arabic name for a clinic's own custom food. Null for shared USDA rows. */
+    nameAr: text('name_ar'),
+
     /** One of the 25 SR Legacy food groups, e.g. "Vegetables and Vegetable Products". */
     category: text('category').notNull(),
 
