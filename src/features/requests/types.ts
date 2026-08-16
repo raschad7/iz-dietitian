@@ -122,7 +122,7 @@ export type RequestsResult<TData = undefined> =
  * would be a worse answer than one whose choice can be turned down.
  */
 export type PendingRequests = {
-  /** Oldest first — an inbox is worked from the top. */
+  /** Newest first — see `listPendingAppointmentRequests` for why. */
   appointments: StaffAppointmentRequest[];
   clientRequests: StaffClientRequest[];
   /** Clinic-local `YYYY-MM-DD`, for defaulting the approve dialog's date. */

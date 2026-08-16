@@ -28,6 +28,18 @@ import { type PendingRequests, type RequestsData } from './types';
 const ANSWERED_LIMIT = 10;
 
 /**
+ * The same window, for the dashboard.
+ *
+ * The dashboard used to read no answered history at all — the panel there shows
+ * pending work and linked out for the rest. It links *into a dialog* now, and
+ * that dialog is the inbox itself, so the page has to arrive holding what the
+ * inbox renders. One indexed read joins a round of parallel queries the page was
+ * already issuing; see `RequestsDialogTrigger` for why the alternative — fetching
+ * on open — was not taken.
+ */
+export const DASHBOARD_ANSWERED_LIMIT = ANSWERED_LIMIT;
+
+/**
  * What is waiting on the dietitian.
  *
  * Its own function rather than a slice of {@link loadRequests}, because the
