@@ -34,7 +34,7 @@ import { cn } from "@/lib/utils"
   and the mark keeps the ground the style shipped with.
 */
 const avatarVariants = cva(
-  "flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--tone-fill,white)] [&>svg]:size-full",
+  "flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--tone-avatar-fill,var(--tone-fill,white))] [&>svg]:size-full",
   {
     variants: {
       size: {

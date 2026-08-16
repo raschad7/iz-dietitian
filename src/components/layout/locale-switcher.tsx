@@ -22,9 +22,9 @@ import { cn } from '@/lib/utils';
  * `dropdown` is the auth screens', where the switcher sits alone in the corner
  * of a wide, otherwise empty page — there is room for the endonyms there, and a
  * page with one card on it should not carry a second segmented control above
- * the one that picks who is signing in. `menu` is the rail's, and it is not a
- * control of its own at all: it returns menu items, to be spread into the
- * account menu's popup alongside the destinations and the sign-out.
+ * the one that picks who is signing in. `menu` is the rail account surface's:
+ * it returns one compact labelled Select row that works in either the inline
+ * drawer or the collapsed-sidebar popup.
  *
  * The rail used to take `group` — a segmented control wedged into a panel of
  * menu rows, the one thing in it that was neither a destination nor an action.
@@ -55,6 +55,7 @@ export function LocaleSwitcher({ className, variant = 'group' }: LocaleSwitcherP
   if (variant === 'menu') {
     return (
       <LocaleSelect
+        className={className}
         activeLocale={activeLocale}
         disabled={isPending}
         label={t('label')}
@@ -135,26 +136,30 @@ export function LocaleSwitcher({ className, variant = 'group' }: LocaleSwitcherP
  *
  * A `Select`, not the two radio rows this used to be: the account menu already
  * carries a stack of destinations and a sign-out, and a second bare list of
- * choices inside it read as more navigation. A single labelled control that
- * names the current language and opens the other on demand is one row instead
- * of two and looks like the choice it is. It is the app's own `Select`, so it
- * matches every other one in the product.
+ * choices inside it read as more navigation. Its trigger is the whole menu row
+ * — icon, label, current value and chevron — so Language has the same target
+ * size and hover response as Settings rather than a small field nested inside
+ * a passive row.
  *
  * The parts are composed by hand rather than through `SelectField` for one
  * reason: each endonym carries `lang`, so a screen reader gives "العربية" its
  * Arabic voice and "English" its English one. `SelectField` takes plain string
  * labels and has nowhere to hang that attribute.
  *
- * The host menu is `modal={false}` (see `SidebarProfile`) precisely so this
- * Select's own popup — portalled to the body, outside the menu — stays live.
+ * In the collapsed sidebar, the host menu is `modal={false}` (see
+ * `SidebarProfile`) so this Select's popup — portalled to the body, outside the
+ * menu — stays live. The same component also sits directly in the inline
+ * drawer when the sidebar is expanded.
  */
 function LocaleSelect({
+  className,
   activeLocale,
   disabled,
   label,
   name,
   onSelect,
 }: {
+  className?: string;
   activeLocale: Locale;
   disabled: boolean;
   label: string;
@@ -164,58 +169,48 @@ function LocaleSelect({
   const labelId = useId();
 
   return (
-    /*
-      Label and control on **one** row, not a caption stacked over a full-width
-      box. Stacked, the switcher was two rows tall and the widest, tallest,
-      darkest thing in a panel whose actual subject is the three destinations
-      above it — a setting nobody opens this menu for, out-shouting the reasons
-      they did. As a settings row it is one line, the label carries the meaning
-      and the control is only as wide as the longest language name.
-    */
-    <div className="flex items-center justify-between gap-3 px-2 py-1.5">
-      <span id={labelId} className="text-body-sm text-muted-foreground">
-        {label}
-      </span>
-
-      <Select
-        value={activeLocale}
-        onValueChange={(next) => onSelect(next as Locale)}
-        disabled={disabled}
+    <Select
+      value={activeLocale}
+      onValueChange={(next) => onSelect(next as Locale)}
+      disabled={disabled}
+    >
+      {/*
+        `.q-field` normally draws a form-control edge. This instance is a menu
+        row, so its full 48px surface uses the same quiet hover and focus fill
+        as the Settings row instead of placing a second outlined control inside
+        it.
+      */}
+      <SelectTrigger
+        size="sm"
+        aria-labelledby={labelId}
+        className={cn(
+          'h-12! w-full gap-2.5 rounded-md border-transparent px-3 text-body-sm',
+          'hover:bg-sidebar-hover focus:border-transparent focus:bg-sidebar-hover focus:outline-0',
+          className,
+        )}
       >
+        <Icon name="language" className="size-4.5 shrink-0 text-muted-foreground" />
+        <span id={labelId} className="truncate text-body-sm">
+          {label}
+        </span>
         {/*
-          Overrides on three of `.q-field`'s form-field defaults, because this is
-          a menu row rather than a field in a form: `h-8!` against the `sm`
-          size's 40px (the `!` is needed — the size rule is an attribute
-          selector and out-ranks a plain utility), `w-auto` against its
-          `w-full`, and the divider border against `--input`, which is tuned to
-          carry a lone text box on a white page and here framed the one control
-          nobody came for. Utilities beat `.q-field` on layer order alone; only
-          the height needs the flag.
+          A function child rather than a bare `SelectValue`: it lets the
+          selected language keep its own `lang`, the same as the rows below.
         */}
-        <SelectTrigger
-          size="sm"
-          aria-labelledby={labelId}
-          className="h-8! w-auto gap-1.5 border-border ps-2.5 pe-2 text-body-sm"
-        >
-          {/*
-            A function child rather than a bare `SelectValue`: it lets the
-            selected language keep its own `lang`, the same as the rows below.
-          */}
-          <SelectValue>
-            {(value) => <span lang={value as string}>{name(value as Locale)}</span>}
-          </SelectValue>
-        </SelectTrigger>
+        <SelectValue className="ms-auto flex-none text-muted-foreground">
+          {(value) => <span lang={value as string}>{name(value as Locale)}</span>}
+        </SelectValue>
+      </SelectTrigger>
 
-        {/* Anchored to the trigger's own end edge, in both scripts. */}
-        <SelectContent align="end">
-          {locales.map((locale) => (
-            <SelectItem key={locale} value={locale}>
-              <span lang={locale}>{name(locale)}</span>
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
+      {/* Anchored to the trigger's own end edge, in both scripts. */}
+      <SelectContent align="end">
+        {locales.map((locale) => (
+          <SelectItem key={locale} value={locale}>
+            <span lang={locale}>{name(locale)}</span>
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
 

@@ -27,7 +27,9 @@ export default async function LandingPage({ params }: LandingPageProps) {
         semantics. `buttonVariants` gives the same appearance on a real anchor.
       */}
       <div className="flex flex-wrap gap-3">
-        <Link href="/login" className={buttonVariants()}>
+        {/* `primaryWhite` rather than `default`: the white label was asked for
+            on both green buttons someone meets before signing in. */}
+        <Link href="/login" className={buttonVariants({ variant: 'primaryWhite' })}>
           {t('staffCta')}
         </Link>
         <Link href="/client-login" className={buttonVariants({ variant: 'outline' })}>

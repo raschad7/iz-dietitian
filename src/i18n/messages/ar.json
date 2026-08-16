@@ -367,9 +367,14 @@
   },
   "notifications": {
     "title": "الإشعارات",
-    "subtitle": "طلبات تنتظر ردّك، ومشتركون هدأت سجلاتهم.",
+    "subtitle": "متابعات للمشتركين قد تحتاج إلى انتباهك.",
     "empty": "لا شيء يحتاج انتباهك الآن",
-    "emptyDescription": "لا طلبات تنتظر الرد، ولا مشترك تأخّرت متابعته. تمتلئ هذه الصفحة تلقائيًا عند ورود أي جديد.",
+    "emptyDescription": "كل المشتركين على ما يرام. ستظهر هنا تلقائيًا أي متابعة جديدة.",
+    "dismissed": "تم مسح الإشعارات من هذا المتصفح",
+    "dismissedDescription": "لا تزال متابعات المشتركين الأساسية قائمة، وستستمر الإشعارات الجديدة بالظهور هنا.",
+    "unread": "إشعار غير مقروء",
+    "delete": "حذف الإشعار",
+    "deleteFor": "حذف إشعار {name}",
     "preferred": "طلب موعد {when}",
     "reviewRequests": "مراجعة كل {count, plural, one {طلب واحد} two {طلبين} few {# طلبات} many {# طلبًا} other {# طلب}}",
     "groups": {
@@ -565,7 +570,12 @@
         "subtitle": "الالتزام اليومي خلال الأسبوع المحدد",
         "seriesLabel": "الالتزام",
         "mealsTooltip": "{completed, number, integer} من {total, number, integer} وجبات"
-      }
+      },
+      "daysCompleted": "{completed, number, integer} / {total, number, integer} أيام",
+      "aria": "التقدّم الأسبوعي {percent}، أُكمل {completed, number, integer} من {total, number, integer} أيام الخطة كاملةً",
+      "ariaEmpty": "لا يوجد تقدّم أسبوعي مسجّل بعد، من {total, number, integer} أيام الخطة",
+      "ariaNoPlan": "لا يوجد تقدّم أسبوعي: لا توجد خطة تغطّي اليوم",
+      "ariaNoTracking": "لا يوجد تقدّم أسبوعي: لا يوجد حساب في البوابة"
     },
     "sections": {
       "contact": "بيانات التواصل",
@@ -596,6 +606,7 @@
       "createdAt": "تاريخ التسجيل",
       "portalAccess": "البوابة",
       "plan": "الخطة",
+      "weeklyProgress": "التقدّم الأسبوعي",
       "actions": "إجراءات",
       "conditions": "الحالات الصحية",
       "medications": "الأدوية والمكمّلات",

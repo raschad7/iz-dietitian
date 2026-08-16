@@ -11,7 +11,7 @@ import { getClientWeekProgress } from './progress';
  *
  * Seeds `client_plan_adherence` directly rather than through a generated plan
  * and `toggleMealCompletion` — the arithmetic those rows feed
- * (`summariseAdherenceForDates`) is already covered end to end in
+ * (`summariseAdherenceRun`) is already covered end to end in
  * `portal/adherence.test.ts`, so what is worth a database round trip here is
  * the composition around it: that a week reads back the rows it was given,
  * that a week nobody has touched reports the empty state rather than a

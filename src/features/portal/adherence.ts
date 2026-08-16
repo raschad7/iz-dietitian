@@ -140,7 +140,14 @@ export type AdherenceDay = {
 };
 
 export type WeekAdherence = {
-  /** Always seven entries, Sunday first. */
+  /**
+   * One entry per date the summary was asked about, in the order given.
+   *
+   * Seven, Sunday first, when it came from {@link summariseAdherenceWeek}.
+   * Seven in the plan's own order when it came from
+   * {@link summariseAdherenceRun} over a plan period, which may begin on any
+   * weekday — see that function.
+   */
   days: AdherenceDay[];
   /** Days in this week with a report, past or present — any level counts. */
   recordedCount: number;
@@ -227,17 +234,40 @@ export function adherenceDaysFor(
 
 /**
  * The week strip and the weekly percentage, derived from one pass over the
- * rows the query returned, for an arbitrary run of seven dates.
+ * rows the query returned.
  *
- * `rows` may be sparse, out of order, and may contain dates outside `dates`;
- * only the given dates are read. Dates after `today` are dropped from the
- * average even if a stray row exists for one, so a future day can never pull
- * the week's number down — the same contract whether `dates` is the week
- * `today` falls in ({@link summariseAdherenceWeek}) or another week entirely,
- * such as the dietitian dashboard's progress tab reading a week the client
- * has already finished or has not started.
+ * `rows` may be sparse, out of order, and may contain dates outside the week;
+ * only the seven dates of `today`'s week are read, the same contract
+ * `summariseWeek` documents in `check-ins.ts`. Dates after `today` are
+ * dropped from the average even if a stray row exists for one, so a future
+ * day can never pull the week's number down.
  */
-export function summariseAdherenceForDates(
+export function summariseAdherenceWeek(rows: AdherenceRow[], today: IsoDate): WeekAdherence {
+  return summariseAdherenceRun(weekDates(today), rows, today);
+}
+
+/**
+ * The same summary over **any** run of dates, rather than over the calendar
+ * week `today` falls in.
+ *
+ * Split out of {@link summariseAdherenceWeek} for the reason
+ * {@link adherenceDaysFor} was split out of it before: a *plan period* is not a
+ * calendar week. `weekly_plans.week_start_date` may be any weekday, and the
+ * staff register measures a client against the seven days of the plan they are
+ * actually on — so a client whose plan runs Tuesday-to-Monday is judged on
+ * Tuesday-to-Monday, and their figure resets when that plan period ends rather
+ * than at midnight on Saturday. `summariseAdherenceWeek` above is now this
+ * function called with `weekDates(today)`, so the portal's progress tab keeps
+ * the calendar week it has always shown and there is still exactly one
+ * implementation of the arithmetic.
+ *
+ * The contract on `rows` is unchanged and worth restating: they may be sparse,
+ * out of order, and may contain dates outside `dates` entirely — only the given
+ * dates are read. Dates after `today` are dropped from the average and the
+ * counts even if a row exists for one, so the back half of a plan period a
+ * client has not reached cannot drag their figure down.
+ */
+export function summariseAdherenceRun(
   dates: readonly IsoDate[],
   rows: readonly AdherenceRow[],
   today: IsoDate,
@@ -255,15 +285,6 @@ export function summariseAdherenceForDates(
   const fullyCompletedCount = recorded.filter((row) => row.completedMeals >= row.totalMeals).length;
 
   return { days, recordedCount: recorded.length, fullyCompletedCount, averageFraction };
-}
-
-/**
- * {@link summariseAdherenceForDates} over the seven dates of `today`'s own
- * week — the progress tab's contract, kept as its own name since every
- * caller of it means exactly that week.
- */
-export function summariseAdherenceWeek(rows: AdherenceRow[], today: IsoDate): WeekAdherence {
-  return summariseAdherenceForDates(weekDates(today), rows, today);
 }
 
 /**

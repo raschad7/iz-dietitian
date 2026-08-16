@@ -5,7 +5,6 @@ import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useOptimistic, useRef, useState, useTransition } from 'react';
 
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { Icon } from '@/components/ui/icon';
 import { useRouter } from '@/i18n/navigation';
 import { type Locale } from '@/i18n/routing';
 import { normalizeForSearch } from '@/features/clients/search';
@@ -1244,6 +1243,7 @@ export function Calendar({
                         matchId={matchId}
                         dimmedIds={dimmedIds}
                         completedIds={completedIds}
+                        compactAppointments={view === 'week'}
                         pending={gestures.pending}
                         isClosed={closed}
                         isPast={today !== null && date < today}
@@ -1473,14 +1473,12 @@ export function Calendar({
  * number. One straggler at six o'clock and four bookings stacked past the fold
  * are different afternoons.
  *
- * `+3` rather than "see 3 more": the column is a seventh of a week and the chip
- * has to survive that width in both languages, and its position on the last line
- * of the panel already says "below". The full sentence is the accessible name,
+ * Only `+count` is visible: the column is a seventh of a week and the marker's
+ * position already says "below". The full sentence remains the accessible name,
  * where there is room for it.
  *
- * Lime-600 (`viz-band-edge`), the same stop as the now-line — the palette
- * defines the darker step for exactly this, marking a boundary, and it is the
- * one value in the lime ramp that can carry white text.
+ * The light primary tint keeps this secondary cue visible without making it the
+ * strongest control on the calendar.
  *
  * It does not pulse. A marker that animates for as long as the state holds is
  * animating for most of a working afternoon, which is both tiring at the edge of
@@ -1500,15 +1498,14 @@ function BelowFoldMarker({ count, onClick }: { count: number; onClick: () => voi
       aria-label={t('hiddenBelowAction', { count })}
       onClick={onClick}
       className={cn(
-        'pointer-events-auto flex h-6 items-center gap-0.5 rounded-full px-2',
-        'bg-viz-band-edge text-label font-semibold text-background tabular-nums shadow-card',
+        'pointer-events-auto flex h-6 min-w-6 items-center justify-center rounded-full px-1.5',
+        'bg-primary/30 text-label font-semibold text-secondary-foreground tabular-nums shadow-card',
         'transition-transform duration-(--duration-label) ease-(--ease-sweep)',
         'hover:scale-105 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-focus-halo focus-visible:outline-none',
         'motion-reduce:transition-none motion-reduce:hover:scale-100',
       )}
     >
-      {t('hiddenBelow', { count })}
-      <Icon name="chevronDown" className="size-3.5" />
+      <span dir="ltr">+{count}</span>
     </button>
   );
 }

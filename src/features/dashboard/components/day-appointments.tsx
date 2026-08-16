@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useCallback, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -80,9 +80,9 @@ import { cn } from '@/lib/utils';
  * lands one row early, so the panel reads previous, current, next without a
  * gesture. `useLayoutEffect` does it before paint.
  *
- * **It says where "now" falls.** A hairline sits between what has finished and
- * what is ahead, carrying the time. Only on today: on any other day it would be
- * a line drawn through a day the clock has nothing to do with.
+ * **It says where "now" falls** — with the fill on the live row and the caret on
+ * the next one, not with a rule drawn between them. See `NowClock` for what that
+ * rule was and why the clock reading moved to the header.
  *
  * **It admits it scrolls.** `globals.css` sets `scrollbar-width: none` on
  * everything in the app, so a bounded box has no native way to say it is
@@ -133,7 +133,7 @@ export type DayAppointmentsLabels = {
   done: string;
   live: string;
   next: string;
-  /** The current time, e.g. `9:05 AM`. Drawn on the now-line. */
+  /** The current time, e.g. `9:05 AM`. Shown in the header while on today. */
   now: string;
   empty: string;
   emptyCta: string;
@@ -170,21 +170,36 @@ const CELL = 'py-3.5';
 /** How far from an edge still counts as "at the edge", in pixels. */
 const EDGE_SLACK = 4;
 
-function NowLine({ label }: { label: string }) {
+/**
+ * The clock, beside the day it belongs to.
+ *
+ * ## It used to be a line across the table
+ *
+ * A hairline row was inserted between the last finished appointment and the
+ * first one still ahead, carrying the time on an olive rule. It was three
+ * problems at once. It was a `<tr>` that is not an appointment, in a table whose
+ * rows are appointments — so the scroll anchoring had to filter it out by hand,
+ * and a screen reader met a row with one cell spanning four columns. It painted
+ * a second olive mark two rows from the olive fill on the live appointment, in a
+ * panel where olive already means *now*. And when the day was over it fell past
+ * the last row, leaving a rule hanging under the table pointing at nothing.
+ *
+ * The line was answering "where in this day am I" — a question the table already
+ * answers, twice: the live row is filled, and the next one carries an amber
+ * caret and chip. All the line added was the reading on the clock, and a clock
+ * is a fact about the *day*, not about the gap between two rows. So it sits in
+ * the header with the day's own label, and only while you are looking at today.
+ *
+ * The dot stays: it is what separates a live reading from a printed one.
+ */
+function NowClock({ label }: { label: string }) {
   return (
-    // Not a data row: no hairline above it and no hover, so it reads as a mark
-    // laid across the table rather than as an appointment with nothing in it.
-    <TableRow className="border-t-0 hover:[&>td]:bg-transparent">
-      <TableCell colSpan={4} className="py-0">
-        <span className="flex items-center gap-2">
-          <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-primary" />
-          <span dir="ltr" className="text-caption font-semibold tabular text-primary">
-            {label}
-          </span>
-          <span aria-hidden className="h-px flex-1 bg-primary/40" />
-        </span>
-      </TableCell>
-    </TableRow>
+    <span className="flex shrink-0 items-center gap-1.5">
+      <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-primary" />
+      <span dir="ltr" className="text-label font-semibold tabular text-muted-foreground">
+        {label}
+      </span>
+    </span>
   );
 }
 
@@ -234,18 +249,59 @@ export function DayAppointments({
      * Land one appointment *above* the anchor rather than on it. The anchor is
      * what is happening now; the row before it is what just finished, and
      * showing both is the difference between "here is your next appointment"
-     * and "here is where you are in the day". `[data-row]` skips the now-line,
-     * which is a `<tr>` too and would otherwise be the row we stopped on.
+     * and "here is where you are in the day".
      */
     const rows = Array.from(box.querySelectorAll<HTMLElement>('[data-row="true"]'));
     const anchorAt = rows.findIndex((row) => row.dataset.anchor === 'true');
     const target = anchorAt > 0 ? rows[anchorAt - 1] : rows[anchorAt];
     const head = box.querySelector('thead');
 
-    // `TableRoot` is `relative`, so a row's `offsetTop` is already measured
-    // against the box that scrolls it. The header is sticky and would otherwise
-    // cover the row this just scrolled to.
-    box.scrollTop = target ? Math.max(0, target.offsetTop - (head?.offsetHeight ?? 0)) : 0;
+    if (!target) {
+      box.scrollTop = 0;
+      readEdges();
+      return;
+    }
+
+    /*
+     * Measured rectangles, not `offsetTop`.
+     *
+     * ⚠ This was `target.offsetTop - head.offsetHeight`, and it landed **8px
+     * short** on every render — enough to leave the bottom padding of the row
+     * *above* the target sitting under the sticky header. It read as a white gap
+     * between the column names and the first appointment, and it was the tail of
+     * an appointment you were not meant to be looking at.
+     *
+     * `offsetTop` resolves against `offsetParent`, and inside a
+     * `border-separate` table with sticky header cells the row's offset parent
+     * and the box that actually scrolls are not the same origin — the two
+     * disagreed by exactly the amount the header overhangs. Rectangles are
+     * measured in one coordinate space (the viewport), so the difference between
+     * two of them is exact whatever the table model is doing, and adjusting
+     * `scrollTop` by a delta needs no origin at all.
+     */
+    /*
+     * Re-measured after each scroll, up to three times.
+     *
+     * Setting `scrollTop` to a fractional value gets snapped to a whole device
+     * pixel, so one pass can leave a residue — and a few pixels of residue is a
+     * white seam under the column names. Measuring again after the box has moved
+     * and correcting settles it.
+     *
+     * The loop also has to *stop* when the box cannot move: on a short day the
+     * target row is already as close to the top as the scroll range allows, the
+     * delta does not shrink, and re-applying it would spin. Three passes is the
+     * ceiling for both cases — this is layout arithmetic, not an animation.
+     */
+    for (let pass = 0; pass < 3; pass += 1) {
+      const delta =
+        target.getBoundingClientRect().top -
+        box.getBoundingClientRect().top -
+        (head?.getBoundingClientRect().height ?? 0);
+
+      if (Math.abs(delta) < 0.5) break;
+      box.scrollTop = Math.max(0, box.scrollTop + delta);
+    }
+
     readEdges();
   }, [selected, readEdges]);
 
@@ -265,18 +321,6 @@ export function DayAppointments({
    */
   const anchorId =
     day.rows.find((row) => row.status === 'live')?.id ?? day.rows.find((row) => row.isNext)?.id;
-
-  /*
-   * Where the now-line goes: immediately above the first appointment still
-   * ahead. When every appointment on today has finished it falls past the last
-   * row, which is the honest reading of an evening — the day is behind you.
-   */
-  const nowIndex = day.isToday
-    ? (() => {
-        const first = day.rows.findIndex((row) => row.status === 'upcoming');
-        return first === -1 ? day.rows.length : first;
-      })()
-    : -1;
 
   return (
     <Card className="min-w-0 xl:h-full">
@@ -334,7 +378,16 @@ export function DayAppointments({
               home that is not counting caret presses backwards, so that half
               stays.
             */}
-            {day.isToday ? null : (
+            {/*
+              One slot, two readings of the same question — "am I on today?".
+              On today it is the clock; off it, the way back. They can never both
+              be needed, and neither one ever moves the carets beside it.
+            */}
+            {day.isToday ? (
+              <span className="ms-1">
+                <NowClock label={labels.now} />
+              </span>
+            ) : (
               <button
                 type="button"
                 onClick={() => setSelected(initialDate)}
@@ -412,8 +465,16 @@ export function DayAppointments({
                 the same call `ClientTable` and the register card make.
               */}
               <Table className="table-fixed text-body-sm">
-                {/* A header that scrolls away with the rows it names is not a header. */}
-                <TableHeader sticky>
+                {/* A header that scrolls away with the rows it names is not a header.
+                    The hairline is the "there is more above" mark, drawn on the
+                    header's own block-end edge rather than as a wash over the
+                    row beneath it — see the fade below. */}
+                <TableHeader
+                  sticky
+                  className={cn(
+                    edges.up && '[&>tr>th]:shadow-[0_1px_0_0_var(--color-border)]',
+                  )}
+                >
                   <TableRow>
                     {/*
                       Wide enough for the longest range the Latin formatter
@@ -432,194 +493,192 @@ export function DayAppointments({
                 </TableHeader>
 
                 <TableBody>
-                  {day.rows.map((row, rowIndex) => (
-                    <Fragment key={row.id}>
-                      {rowIndex === nowIndex ? <NowLine label={labels.now} /> : null}
+                  {day.rows.map((row) => (
+                    <TableRow
+                      key={row.id}
+                      linked
+                      data-row="true"
+                      data-anchor={row.id === anchorId ? 'true' : undefined}
+                      className={cn(
+                        /*
+                          **The pointer is grey; olive means the clock.**
 
-                      <TableRow
-                        linked
-                        data-row="true"
-                        data-anchor={row.id === anchorId ? 'true' : undefined}
-                        className={cn(
-                          /*
-                            **The pointer is grey; olive means the clock.**
+                          The grey hover is now `TableRow`'s own default —
+                          `bg-accent/50` painted on the cells as a rounded pill,
+                          the same one the client register uses — so this table
+                          no longer overrides it. It used to force a stronger
+                          `bg-accent` here because this is the only table with a
+                          row that is *permanently* olive (the live one), and
+                          pointing at any row must not produce the tint that
+                          marks the appointment happening now. The cool neutral
+                          is what `--accent` exists for and cannot be confused
+                          with a status, because nothing in this system says
+                          anything in grey.
 
-                            The grey hover is now `TableRow`'s own default —
-                            `bg-accent/50` painted on the cells as a rounded pill,
-                            the same one the client register uses — so this table
-                            no longer overrides it. It used to force a stronger
-                            `bg-accent` here because this is the only table with a
-                            row that is *permanently* olive (the live one), and
-                            pointing at any row must not produce the tint that
-                            marks the appointment happening now. The cool neutral
-                            is what `--accent` exists for and cannot be confused
-                            with a status, because nothing in this system says
-                            anything in grey.
-
-                            **Fill means happening; the caret means next.** Only
-                            the live row is filled; the next one is marked by the
-                            amber caret at its start. Under the pointer the live
-                            row deepens by one step of its own hue rather than
-                            taking the grey, so it keeps saying "now" while it
-                            answers you. Both fills are set on `[&>td]` so they
-                            round with the shared pill and out-rank the grey the
-                            base row paints on the same cells.
-                          */
-                          row.status === 'live' &&
-                            '[&>td]:bg-secondary hover:[&>td]:bg-primary-subtle',
-                          // Past rows step back rather than disappear: the
-                          // morning you have already worked is still information.
-                          row.status === 'done' && 'text-muted-foreground',
-                        )}
-                      >
-                        <TableCell className={cn(CELL, 'font-medium')}>
+                          **Fill means happening; the caret means next.** Only
+                          the live row is filled; the next one is marked by the
+                          amber caret at its start. Under the pointer the live
+                          row deepens by one step of its own hue rather than
+                          taking the grey, so it keeps saying "now" while it
+                          answers you. Both fills are set on `[&>td]` so they
+                          round with the shared pill and out-rank the grey the
+                          base row paints on the same cells.
+                        */
+                        row.status === 'live' &&
+                          '[&>td]:bg-secondary hover:[&>td]:bg-primary-subtle',
+                        // Past rows step back rather than disappear: the
+                        // morning you have already worked is still information.
+                        row.status === 'done' && 'text-muted-foreground',
+                      )}
+                    >
+                      <TableCell className={cn(CELL, 'font-medium')}>
+                        {/*
+                          `whitespace-nowrap` because `TableCell` deliberately
+                          leaves it off — that default is for the name column,
+                          where a long name should wrap rather than widen the
+                          table. A clock time has no sensible break point.
+                        */}
+                        <span className="flex items-center gap-1.5 whitespace-nowrap">
                           {/*
-                            `whitespace-nowrap` because `TableCell` deliberately
-                            leaves it off — that default is for the name column,
-                            where a long name should wrap rather than widen the
-                            table. A clock time has no sensible break point.
+                            `Caret` rather than the icon set's chevron, matching
+                            the two in the stepper above: it mirrors itself from
+                            a logical direction, so it points from the row's
+                            inline-start edge into the row in both locales.
                           */}
-                          <span className="flex items-center gap-1.5 whitespace-nowrap">
-                            {/*
-                              `Caret` rather than the icon set's chevron, matching
-                              the two in the stepper above: it mirrors itself from
-                              a logical direction, so it points from the row's
-                              inline-start edge into the row in both locales.
-                            */}
-                            {row.isNext ? (
-                              // Amber, following the chip at the far end of the
-                              // same row: the caret and the chip mark one state,
-                              // and drawing them in two colours would say there
-                              // are two.
-                              <Caret
-                                direction="end"
-                                className="size-4 shrink-0 text-status-attention-fg"
-                              />
-                            ) : null}
-
-                            {/*
-                              `after:absolute after:inset-0` stretches this link
-                              over the whole row. The focus ring stays on the time
-                              rather than on the stretched `::after`, so a keyboard
-                              reader can see which row they are on.
-                            */}
-                            <Link
-                              href={dayHref(day.date)}
-                              className={cn(
-                                'rounded-sm underline-offset-4',
-                                'after:absolute after:inset-0 after:content-[""]',
-                                'focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-2',
-                              )}
-                            >
-                              {/*
-                                The digits run left-to-right on an Arabic page,
-                                which is how a clock is read in both locales; the
-                                cell keeps the page's direction so the column
-                                still starts at the inline-start edge.
-                              */}
-                              <span dir="ltr" className="tabular">
-                                {row.time}
-                              </span>
-                            </Link>
-                          </span>
-                        </TableCell>
-
-                        <TableCell className={CELL}>
-                          {/*
-                            The hue goes on the wrapper, not on the `Avatar`.
-
-                            `Avatar` writes `style={{ background: color }}` before
-                            it spreads the rest of its props, so a `style` passed
-                            in replaces that object outright rather than merging
-                            with it — the disc ends up with the right `--tone-h`
-                            and no background at all, which on a white row is an
-                            invisible avatar and white initials on white. The
-                            calendar and the old agenda both set the tone on an
-                            ancestor for this reason; `--tone-mark` then resolves
-                            by inheritance, which is what `.patient-tone` is for.
-                          */}
-                          <span
-                            className="patient-tone flex items-center gap-2.5"
-                            style={{ '--tone-h': row.hue.toFixed(3) } as CSSProperties}
-                          >
-                            <Avatar name={row.clientName} color="var(--tone-mark)" size="sm" />
-                            <span className="truncate font-medium" dir="auto">
-                              {row.clientName}
-                            </span>
-                          </span>
-                        </TableCell>
-
-                        <TableCell className={cn(CELL, 'truncate text-muted-foreground')} dir="auto">
-                          {row.reason ?? (
-                            <span aria-hidden className="text-muted-foreground/60">
-                              —
-                            </span>
-                          )}
-                        </TableCell>
-
-                        <TableCell className={CELL}>
-                          {/*
-                            The live chip is the word alone. It carried a
-                            `StatusDot` in front of it, which put a second mark in
-                            a row that already has the olive fill behind it and
-                            the caret below it — three devices for one state, in a
-                            table whose whole job is to be scanned.
-                          */}
-                          {row.status === 'live' ? (
-                            <Badge variant="onTrack" size="sm">
-                              {labels.live}
-                            </Badge>
-                          ) : row.status === 'done' ? (
-                            <Badge variant="muted" size="sm">
-                              {labels.done}
-                            </Badge>
-                          ) : row.isNext ? (
-                            /*
-                              Amber, and amber is the only choice this palette
-                              actually leaves.
-
-                              "Next" needed to stop being olive so it could not
-                              be mistaken for "now" one row above it, and the
-                              system's other two accents are both spoken for:
-                              clay is the only true alarm colour and is reserved
-                              for a real medical flag, so a clay chip here would
-                              read as something being wrong with the
-                              appointment; flame means a day the client
-                              completed, in the portal. Amber is §Status's
-                              "needs follow-up", which is the nearest true thing
-                              to "this is the one you are about to do" — and it
-                              is the one warm hue that carries no verdict.
-                            */
-                            <Badge variant="attention" size="sm">
-                              {labels.next}
-                            </Badge>
+                          {row.isNext ? (
+                            // Amber, following the chip at the far end of the
+                            // same row: the caret and the chip mark one state,
+                            // and drawing them in two colours would say there
+                            // are two.
+                            <Caret
+                              direction="end"
+                              className="size-4 shrink-0 text-status-attention-fg"
+                            />
                           ) : null}
-                        </TableCell>
-                      </TableRow>
-                    </Fragment>
-                  ))}
 
-                  {nowIndex === day.rows.length ? <NowLine label={labels.now} /> : null}
+                          {/*
+                            `after:absolute after:inset-0` stretches this link
+                            over the whole row. The focus ring stays on the time
+                            rather than on the stretched `::after`, so a keyboard
+                            reader can see which row they are on.
+                          */}
+                          <Link
+                            href={dayHref(day.date)}
+                            className={cn(
+                              'rounded-sm underline-offset-4',
+                              'after:absolute after:inset-0 after:content-[""]',
+                              'focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-2',
+                            )}
+                          >
+                            {/*
+                              The digits run left-to-right on an Arabic page,
+                              which is how a clock is read in both locales; the
+                              cell keeps the page's direction so the column
+                              still starts at the inline-start edge.
+                            */}
+                            <span dir="ltr" className="tabular">
+                              {row.time}
+                            </span>
+                          </Link>
+                        </span>
+                      </TableCell>
+
+                      <TableCell className={CELL}>
+                        {/*
+                          The hue goes on the wrapper, not on the `Avatar`.
+
+                          `Avatar` writes `style={{ background: color }}` before
+                          it spreads the rest of its props, so a `style` passed
+                          in replaces that object outright rather than merging
+                          with it — the disc ends up with the right `--tone-h`
+                          and no background at all, which on a white row is an
+                          invisible avatar and white initials on white. The
+                          calendar and the old agenda both set the tone on an
+                          ancestor for this reason; `--tone-mark` then resolves
+                          by inheritance, which is what `.patient-tone` is for.
+                        */}
+                        <span
+                          className="patient-tone flex items-center gap-2.5"
+                          style={{ '--tone-h': row.hue.toFixed(3) } as CSSProperties}
+                        >
+                          <Avatar name={row.clientName} color="var(--tone-mark)" size="sm" />
+                          <span className="truncate font-medium" dir="auto">
+                            {row.clientName}
+                          </span>
+                        </span>
+                      </TableCell>
+
+                      <TableCell className={cn(CELL, 'truncate text-muted-foreground')} dir="auto">
+                        {row.reason ?? (
+                          <span aria-hidden className="text-muted-foreground/60">
+                            —
+                          </span>
+                        )}
+                      </TableCell>
+
+                      <TableCell className={CELL}>
+                        {/*
+                          The live chip is the word alone. It carried a
+                          `StatusDot` in front of it, which put a second mark in
+                          a row that already has the olive fill behind it and
+                          the caret below it — three devices for one state, in a
+                          table whose whole job is to be scanned.
+                        */}
+                        {row.status === 'live' ? (
+                          <Badge variant="onTrack" size="sm">
+                            {labels.live}
+                          </Badge>
+                        ) : row.status === 'done' ? (
+                          <Badge variant="muted" size="sm">
+                            {labels.done}
+                          </Badge>
+                        ) : row.isNext ? (
+                          /*
+                            Amber, and amber is the only choice this palette
+                            actually leaves.
+
+                            "Next" needed to stop being olive so it could not
+                            be mistaken for "now" one row above it, and the
+                            system's other two accents are both spoken for:
+                            clay is the only true alarm colour and is reserved
+                            for a real medical flag, so a clay chip here would
+                            read as something being wrong with the
+                            appointment; flame means a day the client
+                            completed, in the portal. Amber is §Status's
+                            "needs follow-up", which is the nearest true thing
+                            to "this is the one you are about to do" — and it
+                            is the one warm hue that carries no verdict.
+                          */
+                          <Badge variant="attention" size="sm">
+                            {labels.next}
+                          </Badge>
+                        ) : null}
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </TableRoot>
 
             {/*
-              The overflow affordance. `pointer-events-none` so neither fade can
-              swallow a click on the row beneath it, and each is tied to the
-              direction it describes — a fade with nothing behind it would be
-              claiming there is more when there is not.
+              The overflow affordance, at the block-end only.
 
-              The top one clears the sticky header (36px) rather than starting at
-              the box's edge, so it fades the rows and not the column names.
+              **There was a matching fade at the top and it had to go.** It was
+              a 20px white wash starting at `top-9` — a hardcoded guess at the
+              sticky header's height — so on a scrolled panel it painted a pale
+              band directly under the column names and the first visible row
+              began below it, looking detached from the header it was sitting
+              against. A gap that is not there, drawn every time you scroll.
+
+              The header's own hairline says the same thing in one pixel and
+              cannot drift out of register with a header whose height changes.
+              The block-end fade stays: there is nothing under the last row for
+              a line to sit on, and a fade is the only mark available there.
+
+              `pointer-events-none` so it cannot swallow a click on the row
+              beneath it, and it is tied to the direction it describes — a fade
+              with nothing behind it would claim there is more when there is not.
             */}
-            <span
-              aria-hidden
-              className={cn(
-                'pointer-events-none absolute inset-x-0 top-9 h-5 bg-linear-to-b from-card to-transparent transition-opacity duration-(--duration-label)',
-                edges.up ? 'opacity-100' : 'opacity-0',
-              )}
-            />
             <span
               aria-hidden
               className={cn(

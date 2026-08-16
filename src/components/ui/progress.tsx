@@ -4,12 +4,35 @@ import { Progress as ProgressPrimitive } from "@base-ui/react/progress"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * What the filled part of the track means, and therefore what colour it takes.
+ *
+ * `brand` is olive, the app's action colour, and stays the default so every
+ * existing call site is untouched.
+ *
+ * `measure` is for a bar that reports a *quantity* rather than the progress of
+ * something the reader started — the clients register's adherence column is the
+ * case it was added for. It exists because olive is explicitly not this
+ * system's data colour (see the `viz-brand` note in `globals.css`: olive marks
+ * what you can act on), and because the obvious alternative, amber, already
+ * means "needs follow-up" — a register of nine amber bars would report every
+ * client as a problem.
+ */
+const INDICATOR_TONE = {
+  brand: "bg-primary",
+  measure: "bg-viz-progress",
+} as const
+
 function Progress({
   className,
   children,
   value,
+  tone = "brand",
   ...props
-}: ProgressPrimitive.Root.Props) {
+}: ProgressPrimitive.Root.Props & {
+  /** Which meaning the fill carries. See {@link INDICATOR_TONE}. */
+  tone?: keyof typeof INDICATOR_TONE
+}) {
   return (
     <ProgressPrimitive.Root
       value={value}
@@ -19,7 +42,7 @@ function Progress({
     >
       {children}
       <ProgressTrack>
-        <ProgressIndicator />
+        <ProgressIndicator className={INDICATOR_TONE[tone]} />
       </ProgressTrack>
     </ProgressPrimitive.Root>
   )

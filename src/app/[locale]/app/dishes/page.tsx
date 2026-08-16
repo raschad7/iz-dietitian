@@ -1,6 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
+import { PageHeader } from '@/components/layout/page-header';
 import { DishFilters } from '@/features/weekly-plans/components/dish-filters';
 import { DishPagination } from '@/features/weekly-plans/components/dish-pagination';
 import { DishTable } from '@/features/weekly-plans/components/dish-table';
@@ -23,7 +24,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function DishesPage({ params, searchParams }: PageProps) {
   const locale = await resolveLocale(params);
-  await requireStaffClinic(locale);
+  const { clinicId } = await requireStaffClinic(locale);
 
   const { q, mealType, page } = await searchParams;
 
@@ -50,12 +51,13 @@ export default async function DishesPage({ params, searchParams }: PageProps) {
       names still stay put — the table header is sticky either way.
     */
     <div className="flex flex-col gap-6 text-start md:h-full md:min-h-0">
-      <div className="shrink-0">
-        <h1 className="font-heading text-heading-lg font-semibold tracking-tight">{t('title')}</h1>
-        <p className="text-body-sm text-muted-foreground">
-          {t('subtitle', { count: result.total })}
-        </p>
-      </div>
+      {/* The shared staff header — see `PageHeader`. */}
+      <PageHeader
+        locale={locale}
+        title={t('title')}
+        subtitle={t('subtitle', { count: result.total })}
+        clinicId={clinicId}
+      />
 
       <DishFilters
         q={q}

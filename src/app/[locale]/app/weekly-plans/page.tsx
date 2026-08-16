@@ -1,6 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
+import { PageHeader } from '@/components/layout/page-header';
 import { NoClientBoard } from '@/features/weekly-plans/components/no-client-board';
 import { listPlannableClients } from '@/features/weekly-plans/queries';
 import { PLANNER_THEME } from '@/features/weekly-plans/theme';
@@ -38,7 +39,15 @@ export default async function WeeklyPlansPage({ params }: PageProps) {
     <div
       className={`${PLANNER_THEME} flex min-h-full min-w-0 flex-col text-start md:h-full md:min-h-0`}
     >
-      <h1 className="sr-only">{t('title')}</h1>
+      {/* The shared staff header — see `PageHeader`. It replaces the sr-only
+          title this page carried: the planner names itself now, and the date and
+          the bell sit where they do on every other section. */}
+      <PageHeader
+        locale={locale}
+        title={t('title')}
+        clinicId={clinicId}
+        className="mb-4"
+      />
 
       <div className="flex min-h-0 min-w-0 flex-1 gap-4">
         <NoClientBoard clients={clients} locale={locale} />

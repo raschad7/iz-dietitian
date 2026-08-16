@@ -1,4 +1,4 @@
-import { type AdherenceDay, summariseAdherenceForDates } from '@/features/portal/adherence';
+import { type AdherenceDay, summariseAdherenceRun } from '@/features/portal/adherence';
 import { listMealCompletions, listPlanAdherenceForClinic } from '@/features/portal/queries';
 import { getBoard } from '@/features/weekly-plans/queries';
 import { weekDates } from '@/features/weekly-plans/week';
@@ -9,7 +9,7 @@ import { type IsoDate } from '@/lib/iso-date';
  * dashboard's Progress tab.
  *
  * Built entirely from `client_plan_adherence` — the same table and the same
- * arithmetic (`summariseAdherenceForDates` in `portal/adherence.ts`) the
+ * arithmetic (`summariseAdherenceRun` in `portal/adherence.ts`) the
  * client's own portal reads, so a dietitian and a client looking at the same
  * week can never see two different percentages for it. Nothing here computes
  * an adherence figure of its own.
@@ -69,7 +69,7 @@ export async function getClientWeekProgress(
   const toDate = dates[6] as IsoDate;
 
   const rows = await listPlanAdherenceForClinic(clinicId, clientId, fromDate, toDate);
-  const summary = summariseAdherenceForDates(dates, rows, today);
+  const summary = summariseAdherenceRun(dates, rows, today);
 
   const totalCompletedMeals = summary.days.reduce((sum, day) => sum + day.completedMeals, 0);
   const totalPlannedMeals = summary.days.reduce((sum, day) => sum + day.totalMeals, 0);

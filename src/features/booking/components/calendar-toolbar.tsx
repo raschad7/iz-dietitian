@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Segmented } from '@/components/ui/segmented';
 import { TooltipHint } from '@/components/ui/tooltip-hint';
 import { type Locale } from '@/i18n/routing';
+import { cn } from '@/lib/utils';
 
 import { CALENDAR_VIEWS, type CalendarView } from '../schema';
 import { DatePickerButton } from './date-picker-button';
@@ -234,6 +235,13 @@ export function CalendarToolbar({
               placeholder={t('search.placeholder')}
               aria-label={t('search.placeholder')}
               className="h-10 ps-10 pe-4 text-body-sm"
+              lang={locale}
+              unclippedText={locale === 'ar'}
+              unclippedTextClassName={cn(
+                'ps-10 pe-4 text-body-sm',
+                query ? 'text-foreground' : 'text-placeholder',
+              )}
+              unclippedTextDirection="rtl"
             />
           </div>
         )}
@@ -265,10 +273,9 @@ export function CalendarToolbar({
         <Segmented
           label={t('nav.view')}
           size="sm"
+          shape="contained"
           value={view}
           onChange={onViewChange}
-          activeClassName="bg-muted text-foreground"
-          inactiveClassName="text-muted-foreground"
           options={CALENDAR_VIEWS.map((candidate) => ({
             value: candidate,
             label: t(`nav.${candidate}`),

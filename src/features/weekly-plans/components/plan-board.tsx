@@ -204,11 +204,27 @@ function BoardBody({
         <div className="min-w-0">{children}</div>
 
         <div className="planner-action-bar mx-2 mb-2 flex max-w-full flex-wrap items-center justify-end gap-1.5 rounded-lg bg-muted/70 p-1.5 2xl:my-2 2xl:me-2 2xl:ms-0 2xl:w-auto 2xl:self-center 2xl:flex-nowrap 2xl:justify-center">
+          {/* Publish leads the bar. It is the only thing here that changes what
+              the client sees, and it was sitting second behind a catalog opener —
+              a shortcut to a drawer, which is a smaller promise than the one
+              control that finishes the week.
+
+              Every button in this bar carries the same 10px radius the `Button`
+              base defines. The icon-only ones used to go circular at `2xl`, so
+              the row turned into two pills and two discs at exactly the width
+              where all four are finally visible together. */}
+          <PublishButton
+            planId={board.id}
+            status={board.status}
+            unfilled={board.unfilled}
+            locale={locale}
+          />
+
           <Button
             type="button"
             size="sm"
             variant="neutral"
-            className="px-3 2xl:size-10 2xl:rounded-full 2xl:px-0"
+            className="px-3 2xl:size-10 2xl:px-0"
             aria-label={t('tabs.dishes')}
             title={t('tabs.dishes')}
             onClick={() => onCatalogOpenChange(true)}
@@ -216,12 +232,6 @@ function BoardBody({
             <Icon name="dishes" />
             <span className="2xl:sr-only">{t('tabs.dishes')}</span>
           </Button>
-          <PublishButton
-            planId={board.id}
-            status={board.status}
-            unfilled={board.unfilled}
-            locale={locale}
-          />
 
           <NewWeekDialog
             clientId={board.clientId}
@@ -236,7 +246,10 @@ function BoardBody({
             <PopoverTrigger
               aria-label={t('moreActions')}
               title={t('moreActions')}
-              className={buttonVariants({ variant: 'neutral', size: 'icon-sm' })}
+              // `size-10` and the base radius rather than `icon-sm`, which is a
+              // disc: the four controls in this bar are one set and share a
+              // shape.
+              className={cn(buttonVariants({ variant: 'neutral', size: 'sm' }), 'size-10 px-0')}
             >
               <Icon name="moreActions" />
               <span className="sr-only">{t('moreActions')}</span>

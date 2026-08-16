@@ -252,7 +252,9 @@ export function blockTypeScale(height: number): BlockTypeScale {
 
   return {
     nameRem: px(14 + Math.round(growth * 6)),
-    timeRem: px(13 + Math.round(growth * 4)),
+    // Supporting data stays quieter than the client name: 12px on an ordinary
+    // block and no larger than 15px even on a two-hour card.
+    timeRem: px(12 + Math.round(growth * 3)),
     gapRem: px(2 + Math.round(growth * 4)),
     inline: false,
   };

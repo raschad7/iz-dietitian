@@ -25,7 +25,7 @@ import { ClientProgressWeekSelect } from './client-progress-week-select';
  *
  * Every figure on this panel is `ClientWeekProgress`, computed in
  * `features/clients/progress.ts` from `client_plan_adherence` — the exact
- * table and the exact arithmetic (`summariseAdherenceForDates` in
+ * table and the exact arithmetic (`summariseAdherenceRun` in
  * `portal/adherence.ts`) the client's own portal reads. Nothing here derives
  * a percentage of its own, so a dietitian and the client reading the same
  * week can never disagree about what it says.
