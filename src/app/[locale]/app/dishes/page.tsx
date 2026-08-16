@@ -1,14 +1,12 @@
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
-import { buttonVariants } from '@/components/ui/button';
-import { Icon } from '@/components/ui/icon';
+import { DishDialog } from '@/features/weekly-plans/components/dish-dialog';
 import { DishFilters } from '@/features/weekly-plans/components/dish-filters';
 import { DishPagination } from '@/features/weekly-plans/components/dish-pagination';
 import { DishTable } from '@/features/weekly-plans/components/dish-table';
 import { listDishes, listMealTypes } from '@/features/weekly-plans/queries';
 import { MEAL_TYPES } from '@/features/weekly-plans/schema';
-import { Link } from '@/i18n/navigation';
 import { membersOf } from '@/lib/enum';
 import { resolveLocale } from '@/i18n/params';
 import { requireStaffClinic } from '@/lib/session';
@@ -61,10 +59,7 @@ export default async function DishesPage({ params, searchParams }: PageProps) {
           </p>
         </div>
 
-        <Link href="/app/dishes/new" className={buttonVariants({ size: 'sm' })}>
-          <Icon name="add" />
-          {t('addDish')}
-        </Link>
+        <DishDialog locale={locale} />
       </div>
 
       <DishFilters

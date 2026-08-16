@@ -1720,14 +1720,20 @@
   },
   "dishEditor": {
     "foodPicker": {
-      "label": "Food name",
-      "placeholder": "Search by Arabic or English name",
+      "label": "Search your food library",
+      "placeholder": "Search your clinic's foods, by Arabic or English name",
       "searchButton": "Search",
       "searching": "Searching…",
       "kcalPer100g": "{kcal} kcal/100g",
       "noMatches": "No matches found for \"{name}\".",
-      "createCustomFood": "Create a custom food",
-      "createCustomFoodShort": "Can't find it? Add a custom food"
+      "noLibraryMatches": "No matches in your library for \"{name}\".",
+      "libraryEmpty": "Your food library doesn't have this yet.",
+      "createCustomFood": "Add a new food",
+      "createCustomFoodShort": "Can't find it? Add a new food",
+      "usdaToggle": "Search the USDA database instead",
+      "usdaHint": "A large English-language nutrition database, separate from your clinic's own foods. A match here is not yet in your library.",
+      "usdaLabel": "Search the USDA database",
+      "usdaPlaceholder": "Search by English name"
     },
     "customFoodDialog": {
       "title": "Add a custom food",

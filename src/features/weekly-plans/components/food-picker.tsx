@@ -1,27 +1,35 @@
 'use client';
 
-import { useState, useTransition, type FormEvent } from 'react';
+import { useEffect, useRef, useState, useTransition, type FormEvent } from 'react';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import { Callout } from '@/components/ui/callout';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Item, ItemContent, ItemDescription, ItemGroup, ItemTitle } from '@/components/ui/item';
+import { Separator } from '@/components/ui/separator';
 import { Spinner } from '@/components/ui/spinner';
 
-import { searchFoodMatchesAction } from '../catalog-actions';
+import { searchClinicFoodsAction, searchFoodMatchesAction } from '../catalog-actions';
 import type { FoodSearchResult } from '../queries';
 
 import { CustomFoodDialog } from './custom-food-dialog';
 
+/** How long to let the dietitian keep typing before the library re-queries. */
+const SEARCH_DEBOUNCE_MS = 250;
+
 /**
  * Finds a food for a dish's ingredient list.
  *
- * The dietitian types an Arabic or English name; a confirmed alias or a
- * translate-then-search pass resolves it to library rows. Nothing here is
- * guaranteed to find a match — an empty result always keeps the door open to
- * adding the food to the clinic's own library instead of blocking the dish.
+ * The primary path is plain text search over the clinic's own library —
+ * `searchClinicFoodsAction`, no AI, works offline, and the empty query still
+ * returns her library so there is always something to pick from. The USDA
+ * database (`searchFoodMatchesAction`, which also runs the Arabic→English
+ * translation pass) is a large English-only reference the dietitian may reach
+ * for when her own library comes up short, so it sits behind an explicit
+ * opt-in rather than racing the library search for attention.
  */
 export function FoodPicker({
   locale,
@@ -31,80 +39,100 @@ export function FoodPicker({
   onPick: (food: FoodSearchResult) => void;
 }) {
   const t = useTranslations('dishEditor');
+
+  // --- Primary: the clinic's own library ---------------------------------
   const [term, setTerm] = useState('');
-  const [matches, setMatches] = useState<FoodSearchResult[] | null>(null);
-  const [searchedTerm, setSearchedTerm] = useState('');
-  const [pending, startTransition] = useTransition();
+  const [libraryResults, setLibraryResults] = useState<FoodSearchResult[] | null>(null);
+  const [libraryPending, startLibraryTransition] = useTransition();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const name = term.trim();
-    if (!name) return;
-
-    startTransition(async () => {
-      const result = await searchFoodMatchesAction(locale, name);
-      setMatches(result.matches);
-      setSearchedTerm(name);
+  function runLibrarySearch(query: string) {
+    startLibraryTransition(async () => {
+      const result = await searchClinicFoodsAction(locale, query);
+      setLibraryResults(result);
     });
   }
 
-  function reset() {
-    setMatches(null);
-    setTerm('');
+  // Shows the clinic's library before anything is typed, the same way an
+  // empty query already behaves server-side.
+  useEffect(() => {
+    runLibrarySearch('');
+    return () => clearTimeout(debounceRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locale]);
+
+  function handleTermChange(value: string) {
+    setTerm(value);
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => runLibrarySearch(value), SEARCH_DEBOUNCE_MS);
   }
 
-  function handlePick(food: FoodSearchResult) {
-    reset();
-    onPick(food);
+  function handleLibrarySubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    clearTimeout(debounceRef.current);
+    runLibrarySearch(term);
   }
 
   function handleCreated(food: FoodSearchResult) {
     setDialogOpen(false);
-    reset();
     onPick(food);
   }
 
-  const hasResults = matches !== null && matches.length > 0;
-  const noResults = matches !== null && matches.length === 0;
+  const trimmedTerm = term.trim();
+  const hasLibraryResults = libraryResults !== null && libraryResults.length > 0;
+  const noLibraryResults = libraryResults !== null && libraryResults.length === 0;
+
+  // --- Secondary: the USDA database, opt-in only --------------------------
+  const [usdaOpen, setUsdaOpen] = useState(false);
+  const [usdaTerm, setUsdaTerm] = useState('');
+  const [usdaMatches, setUsdaMatches] = useState<FoodSearchResult[] | null>(null);
+  const [usdaPending, startUsdaTransition] = useTransition();
+
+  function handleUsdaSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const name = usdaTerm.trim();
+    if (!name) return;
+
+    startUsdaTransition(async () => {
+      const result = await searchFoodMatchesAction(locale, name);
+      setUsdaMatches(result.matches);
+    });
+  }
 
   return (
     <div className="flex flex-col gap-3">
-      <form onSubmit={handleSubmit} className="flex items-center gap-2">
+      <form onSubmit={handleLibrarySubmit} className="flex items-center gap-2">
         <Input
           type="search"
           icon="search"
           value={term}
-          onChange={(event) => setTerm(event.target.value)}
+          onChange={(event) => handleTermChange(event.target.value)}
           placeholder={t('foodPicker.placeholder')}
           aria-label={t('foodPicker.label')}
           className="flex-1"
         />
-        <Button type="submit" variant="outline" disabled={pending || !term.trim()}>
-          {pending ? <Spinner /> : <Icon name="search" />}
-          {t('foodPicker.searchButton')}
-        </Button>
       </form>
 
-      {pending && (
+      {libraryPending && (
         <p className="flex items-center gap-2 text-body-sm text-muted-foreground">
           <Spinner />
           {t('foodPicker.searching')}
         </p>
       )}
 
-      {!pending && hasResults && (
+      {!libraryPending && hasLibraryResults && (
         <ItemGroup className="gap-2">
-          {matches.map((food) => (
+          {libraryResults.map((food) => (
             <Item
               key={food.id}
               render={<button type="button" />}
-              onClick={() => handlePick(food)}
+              onClick={() => onPick(food)}
               variant="outline"
               className="cursor-pointer text-start hover:bg-accent"
             >
               <ItemContent>
-                <ItemTitle dir="auto">{food.description}</ItemTitle>
+                <ItemTitle dir="auto">{food.nameAr ?? food.description}</ItemTitle>
                 <ItemDescription>
                   {t('foodPicker.kcalPer100g', { kcal: Math.round(food.kcal) })}
                 </ItemDescription>
@@ -114,9 +142,13 @@ export function FoodPicker({
         </ItemGroup>
       )}
 
-      {!pending && noResults && (
+      {!libraryPending && noLibraryResults && (
         <Callout tone="neutral">
-          <p>{t('foodPicker.noMatches', { name: searchedTerm })}</p>
+          <p>
+            {trimmedTerm
+              ? t('foodPicker.noLibraryMatches', { name: trimmedTerm })
+              : t('foodPicker.libraryEmpty')}
+          </p>
           <Button
             type="button"
             variant="outline"
@@ -132,7 +164,7 @@ export function FoodPicker({
 
       {/* Offered beside a successful search too — the right food may not be
           listed even when others are. */}
-      {!pending && hasResults && (
+      {!libraryPending && hasLibraryResults && (
         <Button
           type="button"
           variant="link"
@@ -144,11 +176,89 @@ export function FoodPicker({
         </Button>
       )}
 
+      <Separator />
+
+      {/*
+        The big English-language reference, kept visually quiet and opt-in:
+        the clinic's own library is what she matches against day to day, and
+        this is the fallback for the food that is not in it yet.
+      */}
+      <Collapsible open={usdaOpen} onOpenChange={setUsdaOpen}>
+        <CollapsibleTrigger
+          render={
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="self-start gap-1.5 px-0 text-muted-foreground hover:bg-transparent hover:text-foreground"
+            >
+              <Icon name="search" className="size-4" />
+              {t('foodPicker.usdaToggle')}
+              <Icon name={usdaOpen ? 'chevronUp' : 'chevronDown'} className="size-4" />
+            </Button>
+          }
+        />
+
+        <CollapsibleContent className="flex flex-col gap-3 pt-3">
+          <p className="text-caption text-muted-foreground">{t('foodPicker.usdaHint')}</p>
+
+          <form onSubmit={handleUsdaSubmit} className="flex items-center gap-2">
+            <Input
+              type="search"
+              icon="search"
+              value={usdaTerm}
+              onChange={(event) => setUsdaTerm(event.target.value)}
+              placeholder={t('foodPicker.usdaPlaceholder')}
+              aria-label={t('foodPicker.usdaLabel')}
+              className="flex-1"
+            />
+            <Button type="submit" variant="outline" disabled={usdaPending || !usdaTerm.trim()}>
+              {usdaPending ? <Spinner /> : <Icon name="search" />}
+              {t('foodPicker.searchButton')}
+            </Button>
+          </form>
+
+          {usdaPending && (
+            <p className="flex items-center gap-2 text-body-sm text-muted-foreground">
+              <Spinner />
+              {t('foodPicker.searching')}
+            </p>
+          )}
+
+          {!usdaPending && usdaMatches !== null && usdaMatches.length > 0 && (
+            <ItemGroup className="gap-2">
+              {usdaMatches.map((food) => (
+                <Item
+                  key={food.id}
+                  render={<button type="button" />}
+                  onClick={() => onPick(food)}
+                  variant="outline"
+                  className="cursor-pointer text-start hover:bg-accent"
+                >
+                  <ItemContent>
+                    <ItemTitle dir="auto">{food.description}</ItemTitle>
+                    <ItemDescription>
+                      {t('foodPicker.kcalPer100g', { kcal: Math.round(food.kcal) })}
+                    </ItemDescription>
+                  </ItemContent>
+                </Item>
+              ))}
+            </ItemGroup>
+          )}
+
+          {!usdaPending && usdaMatches !== null && usdaMatches.length === 0 && (
+            <p className="text-body-sm text-muted-foreground">
+              {t('foodPicker.noMatches', { name: usdaTerm.trim() })}
+            </p>
+          )}
+        </CollapsibleContent>
+      </Collapsible>
+
       <CustomFoodDialog
         locale={locale}
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        initialNameAr={searchedTerm || term}
+        initialNameAr={trimmedTerm}
         onCreated={handleCreated}
       />
     </div>

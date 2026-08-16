@@ -1720,14 +1720,20 @@
   },
   "dishEditor": {
     "foodPicker": {
-      "label": "اسم الطعام",
-      "placeholder": "ابحث بالاسم العربي أو الإنجليزي",
+      "label": "ابحث في مكتبة أطعمة عيادتك",
+      "placeholder": "ابحث في أطعمة عيادتك، بالاسم العربي أو الإنجليزي",
       "searchButton": "بحث",
       "searching": "جارٍ البحث…",
       "kcalPer100g": "{kcal} سعرة/100غ",
       "noMatches": "لا توجد نتائج مطابقة لـ \"{name}\".",
-      "createCustomFood": "إضافة طعام مخصص",
-      "createCustomFoodShort": "لم تجده؟ أضف طعاماً مخصصاً"
+      "noLibraryMatches": "لا توجد نتائج في مكتبتك لـ \"{name}\".",
+      "libraryEmpty": "لا يوجد هذا الطعام في مكتبتك بعد.",
+      "createCustomFood": "إضافة طعام جديد",
+      "createCustomFoodShort": "لم تجده؟ أضف طعاماً جديداً",
+      "usdaToggle": "البحث في قاعدة بيانات USDA بدلاً من ذلك",
+      "usdaHint": "قاعدة بيانات غذائية كبيرة باللغة الإنجليزية، منفصلة عن أطعمة عيادتك الخاصة. النتائج هنا ليست بعد في مكتبتك.",
+      "usdaLabel": "البحث في قاعدة بيانات USDA",
+      "usdaPlaceholder": "ابحث بالاسم الإنجليزي"
     },
     "customFoodDialog": {
       "title": "إضافة طعام مخصص",

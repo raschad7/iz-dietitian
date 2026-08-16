@@ -71,7 +71,22 @@ function emptyRow(): IngredientRowState {
   };
 }
 
-export function DishEditor({ locale }: { locale: string }): React.JSX.Element {
+export function DishEditor({
+  locale,
+  onSuccess,
+  onCancel,
+}: {
+  locale: string;
+  /**
+   * Called instead of the page redirect when the dish is created. Set by
+   * `DishDialog`, which closes itself and refreshes the catalog rather than
+   * navigating anywhere — the form still lives on `/app/dishes`, it is just
+   * shown inside a dialog now.
+   */
+  onSuccess?: () => void;
+  /** Overrides the Cancel button's page redirect for the same reason. */
+  onCancel?: () => void;
+}): React.JSX.Element {
   const t = useTranslations('dishEditor');
   const tCommon = useTranslations('common');
   const tNutrients = useTranslations('weeklyPlans.nutrients');
@@ -159,8 +174,10 @@ export function DishEditor({ locale }: { locale: string }): React.JSX.Element {
 
   const router = useRouter();
   useEffect(() => {
-    if (state.status === 'done') router.push('/app/dishes');
-  }, [state, router]);
+    if (state.status !== 'done') return;
+    if (onSuccess) onSuccess();
+    else router.push('/app/dishes');
+  }, [state, router, onSuccess]);
 
   return (
     <form action={formAction} onSubmit={handleSubmit} className="flex flex-col gap-6">
@@ -301,7 +318,7 @@ export function DishEditor({ locale }: { locale: string }): React.JSX.Element {
           variant="ghost"
           size="sm"
           className="ms-auto"
-          onClick={() => router.push('/app/dishes')}
+          onClick={() => (onCancel ? onCancel() : router.push('/app/dishes'))}
         >
           {tCommon('cancel')}
         </Button>

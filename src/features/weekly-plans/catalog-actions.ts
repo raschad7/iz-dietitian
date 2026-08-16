@@ -17,7 +17,7 @@ import {
   unhideSharedDish,
   updateClinicDish,
 } from './catalog-mutations';
-import { searchFoodsById, type FoodSearchResult } from './queries';
+import { searchClinicFoods, searchFoodsById, type FoodSearchResult } from './queries';
 
 /**
  * Server actions for the clinic's own dish catalog: create, edit, delete, and
@@ -163,6 +163,17 @@ export async function unhideDishAction(
 export async function searchFoodMatchesAction(locale: string, arabicName: string): Promise<FoodMatchResult> {
   const { clinicId } = await requireStaffClinic(localeSchema.parse(locale));
   return findFoodMatches(clinicId, arabicName);
+}
+
+/**
+ * The dish editor's primary food search: the clinic's own library only, plain
+ * Arabic/English text matching, no AI and no USDA. `searchFoodMatchesAction`
+ * above (USDA + AI translation) is offered as a clearly-secondary option in
+ * `FoodPicker`, not the first thing the dietitian reaches for.
+ */
+export async function searchClinicFoodsAction(locale: string, query: string): Promise<FoodSearchResult[]> {
+  const { clinicId } = await requireStaffClinic(localeSchema.parse(locale));
+  return searchClinicFoods(clinicId, query);
 }
 
 export async function createCustomFoodAction(
