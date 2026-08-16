@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
+import { Progress } from '@/components/ui/progress';
 import {
   Table,
   TableBody,
@@ -20,10 +21,15 @@ import { patientToneStyle } from '@/features/booking/patient-color';
 import { calculateAge } from '@/features/clients/age';
 import { ArchiveButton } from '@/features/clients/components/archive-button';
 import { ClientFormTrigger } from '@/features/clients/components/client-form-trigger';
-import { type ClientListResult, type LivePlanStatus } from '@/features/clients/queries';
+import {
+  type ClientListResult,
+  type ClientWeeklyProgress,
+  type LivePlanStatus,
+} from '@/features/clients/queries';
 import { type ClientSort, type ListClientsInput } from '@/features/clients/schema';
 import { Link } from '@/i18n/navigation';
 import { type Locale } from '@/i18n/routing';
+import { formatNumber } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 /**
@@ -95,14 +101,27 @@ import { cn } from '@/lib/utils';
  * `LIMIT` and the pager's `count()`. It carries no `sorted` prop at all rather
  * than `sorted={false}`: the latter sets `aria-sort="none"`, which tells a
  * screen reader the column *can* be sorted and this one cannot.
+ *
+ * **Weekly progress is new, and it cannot be sorted either**, for exactly the
+ * reason Plan cannot: it is derived after the page has already been chosen —
+ * from `client_plan_adherence` rather than from a column on `clients` — so
+ * ordering by it would mean the same join into the `ORDER BY` that breaks both
+ * the `LIMIT` and the pager's `count()`. It carries no `sorted` prop at all,
+ * for the same `aria-sort` reason as Plan.
+ *
+ * It sits *beside* Plan rather than at the end of the row because the two
+ * answer one question together: what was this person given, and are they
+ * keeping to it. With the portal column between them, the answer sat two stops
+ * away from the question it belongs to.
  */
 const COLUMNS = [
   { key: 'fullName', sortable: true },
   { key: 'age', sortable: true },
   { key: 'plan', sortable: false },
+  { key: 'weeklyProgress', sortable: false },
   { key: 'portalAccess', sortable: true },
 ] as const satisfies ReadonlyArray<
-  { key: ClientSort; sortable: true } | { key: 'plan'; sortable: false }
+  { key: ClientSort; sortable: true } | { key: 'plan' | 'weeklyProgress'; sortable: false }
 >;
 
 export function ClientTable({
@@ -314,6 +333,18 @@ export function ClientTable({
               </TableCell>
 
               {/*
+                And whether they are keeping to it — the same weekly figure
+                their own portal shows them. See `WeeklyProgress`.
+              */}
+              <TableCell>
+                <WeeklyProgress
+                  progress={client.weeklyProgress}
+                  hasPortalAccess={client.hasPortalAccess}
+                  locale={locale}
+                />
+              </TableCell>
+
+              {/*
                 Whether this person can sign in. A chip like the plan beside
                 it — the two columns answer the same shape of question about a
                 client, and one as a pill and the other as a bare glyph read as
@@ -424,6 +455,220 @@ function PlanBadge({ status }: { status: LivePlanStatus | null }) {
   if (status === 'draft') return <Badge variant="incomplete">{t('plan.draft')}</Badge>;
 
   return <Badge variant="muted">{t('plan.none')}</Badge>;
+}
+
+/**
+ * How closely this client has followed the plan they are currently on.
+ *
+ * ## The period belongs to the client, not to the calendar
+ *
+ * The window is the seven days of *their* plan, counted from its
+ * `week_start_date`, and it rolls over when that plan period ends. Two clients
+ * of the same clinic can therefore be six days apart in their own cycles and
+ * each is judged on their own, which is the only reading that means anything
+ * when plans do not all start on the same weekday. See `weeklyProgressByClient`
+ * for how the current plan is chosen — the rule is the portal's, not a second
+ * guess at it.
+ *
+ * This column briefly measured a Sunday-to-Saturday calendar week instead,
+ * which quietly reset every client's figure at the same midnight regardless of
+ * when their plan began. That was wrong for every client whose plan does not
+ * start on a Sunday.
+ *
+ * ## The arithmetic is the portal's own
+ *
+ * `averageFraction` comes from `summariseAdherenceRun` in
+ * `portal/adherence.ts` — the same function, over the same table, behind the
+ * ring and the flame strip on the client's progress tab. The register hands it
+ * the plan's dates where the portal hands it a calendar week; nothing else
+ * differs, and nothing is recomputed here.
+ *
+ * ⚠ Because the two pass different date runs, this figure and the one on the
+ * client's own progress tab **can legitimately disagree** whenever a plan does
+ * not align to Sunday. That is intended — a dietitian asking "is this person
+ * keeping to the plan I set" and a client asking "how has my week gone" are not
+ * the same question — but it is worth knowing before treating a mismatch as a
+ * bug.
+ *
+ * ## Why a meter and not a badge
+ *
+ * The two chips already on this row — Plan and Portal — mark *states*, which is
+ * what the design system reserves a filled pill for. This is a quantity, and a
+ * third pill beside them would make the row read as three equal facts when one
+ * of them is a measurement. A track is the shape the eye can compare down a
+ * column of nine without reading a single digit, which is exactly the job:
+ * "who is slipping this week" should be answerable by scanning, not by
+ * arithmetic.
+ *
+ * A circular version of this was tried and taken back out. It measured the same
+ * thing and was no clearer for it: a bar's length is read against its
+ * neighbours in the column above and below, which is precisely the comparison
+ * this cell is for, while nine rings each answer only for themselves.
+ *
+ * ## One colour, deliberately
+ *
+ * Gold (`tone="measure"`, `--viz-progress`) at every value — never amber below
+ * some line, never clay. Adherence is a continuum with no clinical threshold
+ * behind it, and a register where half the rows wear a warning colour on a
+ * Wednesday morning teaches the reader that the colour means "this clinic has
+ * clients" rather than "look here" — the same trap `PlanBadge` above spells
+ * out. The figure and the bar's own length carry the difference; colour is not
+ * asked to.
+ *
+ * Gold rather than the olive this started with, and it turns out to be the more
+ * correct reading of the design system rather than a departure from it: olive
+ * is the action colour, and `viz-brand`'s own note says data is not an action.
+ * The bar now sits in its own register, unmistakable against the olive Plan and
+ * Portal chips on the same row.
+ *
+ * ## Three kinds of nothing
+ *
+ * An empty cell is never drawn as 0%. `adherence.ts` keeps unreported days out
+ * of its averages precisely so that silence is never scored, and a zero here
+ * would accuse someone of abandoning a plan they may be following perfectly.
+ * The three real causes are separated in the branches below, in the order a
+ * reader would want them.
+ */
+function WeeklyProgress({
+  progress,
+  hasPortalAccess,
+  locale,
+}: {
+  progress: ClientWeeklyProgress | null;
+  hasPortalAccess: boolean;
+  locale: Locale;
+}) {
+  const t = useTranslations('clients');
+
+  /*
+    No portal account: the client has no way to tick a meal at all. Checked
+    before the period, because creating their plan seeded a `missed` row for
+    every one of its days — so the arithmetic below would report a truthful-
+    looking 0% for someone who was never given a way to log anything. That is
+    the one reading this column must not produce.
+  */
+  if (!hasPortalAccess) return <NoProgress label={t('progress.ariaNoTracking')} />;
+
+  // No published plan covers today, so there is no period to measure over.
+  if (!progress) return <NoProgress label={t('progress.ariaNoPlan')} />;
+
+  const percentLabel =
+    progress.averageFraction === null
+      ? null
+      : formatNumber(locale, progress.averageFraction, { style: 'percent' });
+
+  return (
+    /*
+      `Progress` from the shared library rather than a hand-drawn track: Base
+      UI's root is what supplies `role="progressbar"` and `aria-valuenow`, and
+      its indicator sizes itself with `width` off `inset-inline-start`, which is
+      a logical property and so fills from the correct edge in Arabic without
+      this file knowing the direction.
+
+      The root is `flex flex-wrap`, so the two spans take the first line and the
+      full-width track wraps onto the second — a two-line cell the same height
+      as the name cell beside it, which is what keeps the row from growing.
+    */
+    <Progress
+      /*
+        `value` is 0–100; the fraction is 0–1. One multiplication, here, at the
+        only place the two scales meet.
+
+        A period with nothing recorded draws the bare track at zero — the same
+        empty bar `NoProgress` below uses, because "no figure" should look like
+        "no figure" wherever it comes from.
+      */
+      value={(progress.averageFraction ?? 0) * 100}
+      // A quantity, not an action — see `INDICATOR_TONE` on the component.
+      tone="measure"
+      // Both spans are `aria-hidden`, so this is the whole cell as a screen
+      // reader receives it.
+      aria-label={
+        percentLabel === null
+          ? t('progress.ariaEmpty', { total: progress.periodDays })
+          : t('progress.aria', {
+              percent: percentLabel,
+              completed: progress.fullyCompletedCount,
+              total: progress.periodDays,
+            })
+      }
+      className="w-full max-w-32 gap-x-2 gap-y-1.5"
+    >
+      <span aria-hidden className="tabular text-body-sm font-medium">
+        {percentLabel ?? <Missing />}
+      </span>
+
+      {/*
+        Days kept in full, out of the plan period's own length — not out of
+        seven, because the period is the plan's and a plan is not obliged to be
+        a calendar week.
+
+        `fullyCompletedCount` rather than `recordedCount`, and the difference is
+        not cosmetic: almost every elapsed day of a live plan *has* a row, since
+        creating the plan seeds one per day, so a "days recorded" count would
+        read as the number of days that have passed and tell the dietitian
+        nothing. Days kept in full is the count that moves only when the client
+        does something.
+
+        `ms-auto` pushes it to the cell's far edge — logical, so it lands on the
+        correct side in both directions.
+      */}
+      <span aria-hidden className="tabular ms-auto text-caption text-muted-foreground">
+        {t('progress.daysCompleted', {
+          completed: progress.fullyCompletedCount,
+          total: progress.periodDays,
+        })}
+      </span>
+    </Progress>
+  );
+}
+
+/**
+ * The progress cell with nothing to measure: the bare track, a dash where the
+ * figure goes, and no day count.
+ *
+ * ## Why it says nothing about why
+ *
+ * It used to render a `muted` badge naming the cause — "No active plan", "No
+ * tracking". Both were wrong to put here, for the same underlying reason: this
+ * column's job is to report progress, and every explanation for its absence is
+ * already a column of its own on the same row.
+ *
+ * "No active plan" was the worse of the two, because it did not merely repeat
+ * the Plan column — it **contradicted** it. `latestPlanStatus` means "this
+ * client's newest plan is published", which is not the same question as "a
+ * published plan covers today": a plan published for last week, or for a week
+ * still ahead, satisfies the first and fails the second. So a row could read
+ * `Active plan` beside `No active plan` and be telling the truth twice. A
+ * reader has no way to resolve that, and nothing here should ask them to.
+ *
+ * "No tracking" had the milder version of the same fault, restating the Portal
+ * column one cell over.
+ *
+ * So the cell draws an empty track and stops. The column stays uniform — every
+ * row carries a bar, which is what makes it scannable — and the reason lives
+ * where the reader is already looking for it.
+ *
+ * The reason is not lost, only unspoken: it rides on the bar's accessible name,
+ * so a screen reader is told which of the two absences this is rather than
+ * being handed a silent zero.
+ */
+function NoProgress({ label }: { label: string }) {
+  return (
+    // The same geometry as a cell with a figure in it — an empty track under a
+    // dash — so the column keeps one shape down the page and an empty row does
+    // not read as a different kind of thing from a full one.
+    <Progress
+      value={0}
+      tone="measure"
+      aria-label={label}
+      className="w-full max-w-32 gap-x-2 gap-y-1.5"
+    >
+      <span aria-hidden className="tabular text-body-sm font-medium">
+        <Missing />
+      </span>
+    </Progress>
+  );
 }
 
 /**

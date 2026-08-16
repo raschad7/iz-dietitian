@@ -560,6 +560,7 @@
       "createdAt": "تاريخ التسجيل",
       "portalAccess": "البوابة",
       "plan": "الخطة",
+      "weeklyProgress": "التقدّم الأسبوعي",
       "actions": "إجراءات",
       "conditions": "الحالات الصحية",
       "medications": "الأدوية والمكمّلات",
@@ -657,6 +658,13 @@
       "published": "خطة نشطة",
       "draft": "مسودة",
       "none": "لا توجد خطة"
+    },
+    "progress": {
+      "daysCompleted": "{completed, number, integer} / {total, number, integer} أيام",
+      "aria": "التقدّم الأسبوعي {percent}، أُكمل {completed, number, integer} من {total, number, integer} أيام الخطة كاملةً",
+      "ariaEmpty": "لا يوجد تقدّم أسبوعي مسجّل بعد، من {total, number, integer} أيام الخطة",
+      "ariaNoPlan": "لا يوجد تقدّم أسبوعي: لا توجد خطة تغطّي اليوم",
+      "ariaNoTracking": "لا يوجد تقدّم أسبوعي: لا يوجد حساب في البوابة"
     },
     "clearFilters": "مسح الفلاتر",
     "pagination": {
