@@ -18,7 +18,16 @@ import {
   resetDatabase,
 } from '../../../tests/helpers';
 
-import { getBoard, listPlannableClients, loadCatalog, planDishesBySlot, searchFoods, searchFoodsById } from './queries';
+import {
+  getBoard,
+  listClinicFoods,
+  listPlannableClients,
+  loadCatalog,
+  planDishesBySlot,
+  searchClinicFoods,
+  searchFoods,
+  searchFoodsById,
+} from './queries';
 import { slotFillKey } from './skeleton';
 
 let clinicId: string;
@@ -343,5 +352,102 @@ describe('searchFoodsById', () => {
 
     expect((await searchFoodsById(clinicId, food!.id)).map((f) => f.id)).toEqual([food!.id]);
     expect(await searchFoodsById(clinicId, customFood!.id)).toEqual([]);
+  });
+});
+
+describe('clinic food library', () => {
+  test('listClinicFoods returns only this clinic own foods, ordered by nameAr', async () => {
+    const other = await createTestClinic();
+    await db.insert(foods).values([
+      { description: 'USDA shared food', category: 'Poultry', kcal: 100, protein: 1, carbs: 1, fat: 1 },
+      {
+        clinicId,
+        fdcId: null,
+        nameAr: 'موز',
+        description: 'Banana custom',
+        category: 'Clinic custom',
+        kcal: 90,
+        protein: 1,
+        carbs: 20,
+        fat: 0.3,
+      },
+      {
+        clinicId,
+        fdcId: null,
+        nameAr: 'أرز',
+        description: 'Rice custom',
+        category: 'Clinic custom',
+        kcal: 130,
+        protein: 2.4,
+        carbs: 28,
+        fat: 0.3,
+      },
+      {
+        clinicId: other,
+        fdcId: null,
+        nameAr: 'خبز',
+        description: 'Other clinic bread',
+        category: 'Clinic custom',
+        kcal: 265,
+        protein: 9,
+        carbs: 49,
+        fat: 3.2,
+      },
+    ]);
+
+    const result = await listClinicFoods(clinicId);
+    expect(result.map((f) => f.nameAr)).toEqual(['أرز', 'موز']);
+    expect(result.every((f) => f.description !== 'USDA shared food')).toBe(true);
+    expect(result.every((f) => f.description !== 'Other clinic bread')).toBe(true);
+  });
+
+  test('searchClinicFoods matches by Arabic name, scoped to the clinic', async () => {
+    const other = await createTestClinic();
+    await db.insert(foods).values({
+      clinicId,
+      fdcId: null,
+      nameAr: 'دجاج',
+      description: 'Chicken custom',
+      category: 'Clinic custom',
+      kcal: 165,
+      protein: 31,
+      carbs: 0,
+      fat: 3.6,
+    });
+
+    const results = await searchClinicFoods(clinicId, 'دجاج');
+    expect(results.map((f) => f.nameAr)).toEqual(['دجاج']);
+
+    expect(await searchClinicFoods(other, 'دجاج')).toEqual([]);
+  });
+
+  test('searchClinicFoods with an empty query returns the clinic library', async () => {
+    await db.insert(foods).values([
+      {
+        clinicId,
+        fdcId: null,
+        nameAr: 'موز',
+        description: 'Banana custom',
+        category: 'Clinic custom',
+        kcal: 90,
+        protein: 1,
+        carbs: 20,
+        fat: 0.3,
+      },
+      {
+        clinicId,
+        fdcId: null,
+        nameAr: 'أرز',
+        description: 'Rice custom',
+        category: 'Clinic custom',
+        kcal: 130,
+        protein: 2.4,
+        carbs: 28,
+        fat: 0.3,
+      },
+    ]);
+
+    const results = await searchClinicFoods(clinicId, '');
+    expect(results.map((f) => f.nameAr)).toEqual(['أرز', 'موز']);
   });
 });

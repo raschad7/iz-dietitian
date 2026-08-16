@@ -88,6 +88,7 @@ function textArray(values: readonly string[]): SQL {
 const foodColumns = {
   id: foods.id,
   description: foods.description,
+  nameAr: foods.nameAr,
   kcal: foods.kcal,
   protein: foods.protein,
   carbs: foods.carbs,
@@ -382,7 +383,7 @@ export async function listMealTypes(): Promise<string[]> {
   return rows.map((row) => row.mealType).sort();
 }
 
-export type FoodSearchResult = { id: string; description: string } & FoodNutrients;
+export type FoodSearchResult = { id: string; description: string; nameAr: string | null } & FoodNutrients;
 
 /**
  * Library food search for the dish editor.
@@ -422,6 +423,49 @@ export async function searchFoodsById(clinicId: string, foodId: string): Promise
     .from(foods)
     .where(and(eq(foods.id, foodId), or(isNull(foods.clinicId), eq(foods.clinicId, clinicId))))
     .limit(1);
+}
+
+/** Every food this clinic added to its own library, newest name order. For the library screen. */
+export async function listClinicFoods(clinicId: string): Promise<FoodSearchResult[]> {
+  return db
+    .select(foodColumns)
+    .from(foods)
+    .where(eq(foods.clinicId, clinicId))
+    .orderBy(asc(foods.nameAr));
+}
+
+/**
+ * Searches ONLY this clinic's own foods, by Arabic name or description. No AI,
+ * works offline — the primary picker source.
+ *
+ * An empty query returns the clinic's library (first `limit`), same ordering as
+ * `listClinicFoods`, so the picker has something to show before the dietitian
+ * types anything.
+ */
+export async function searchClinicFoods(
+  clinicId: string,
+  query: string,
+  limit = 20,
+): Promise<FoodSearchResult[]> {
+  const trimmed = query.trim();
+
+  if (!trimmed) {
+    return db
+      .select(foodColumns)
+      .from(foods)
+      .where(eq(foods.clinicId, clinicId))
+      .orderBy(asc(foods.nameAr))
+      .limit(limit);
+  }
+
+  const term = `%${trimmed.replace(/[\\%_]/g, '\\$&')}%`;
+
+  return db
+    .select(foodColumns)
+    .from(foods)
+    .where(and(eq(foods.clinicId, clinicId), or(ilike(foods.nameAr, term), ilike(foods.description, term))))
+    .orderBy(asc(foods.nameAr))
+    .limit(limit);
 }
 
 // ---------------------------------------------------------------------------
