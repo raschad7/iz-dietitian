@@ -1531,7 +1531,9 @@
       "unfilled": "Cannot publish while meals are unfilled.",
       "invalid": "Invalid data.",
       "clientNotFound": "Client not found.",
-      "unexpected": "Something went wrong."
+      "unexpected": "Something went wrong.",
+      "notFound": "Dish not found.",
+      "inUse": "This dish is used in an active plan and cannot be deleted."
     },
     "tabs": {
       "client": "Client",
@@ -1670,6 +1672,7 @@
   "dishes": {
     "title": "Dish catalog",
     "subtitle": "{count} approved dishes — the only thing the AI may choose from",
+    "addDish": "Add dish",
     "empty": "No dishes in the catalog yet",
     "emptyHint": "Approved dishes appear here once they are added.",
     "emptyFiltered": "No matching dishes",
@@ -1747,6 +1750,40 @@
         "nonNegativeNumber": "Enter a number of 0 or more",
         "createFailed": "Could not add the food. Check the values and try again."
       }
+    },
+    "editor": {
+      "pageTitle": "Add dish",
+      "pageSubtitle": "Add a dish to the clinic's approved catalog",
+      "nameAr": "Name (Arabic)",
+      "nameEn": "Name (English)",
+      "baseServingLabel": "Base serving label",
+      "baseServingHint": "Shown to the client as the unit for this dish, e.g. \"serving\" or \"plate\".",
+      "mealTypesLegend": "Meal times",
+      "labelsLegend": "Labels",
+      "allergensLegend": "Allergens",
+      "allergensHint": "These exclude the dish from clients with a matching allergy.",
+      "ingredientsHeading": "Ingredients",
+      "addIngredient": "Add ingredient",
+      "removeIngredient": "Remove ingredient",
+      "pickFoodHint": "Search for a food to add it to this ingredient",
+      "changeFood": "Change food",
+      "quantityGrams": "Grams (per base serving)",
+      "displayNameAr": "Client-facing name (optional)",
+      "householdLabel": "Household unit (optional)",
+      "householdGrams": "Household unit grams (optional)",
+      "liveNutrition": "Nutrition per base serving",
+      "categories": {
+        "high_protein": "High protein",
+        "high_carb": "High carbohydrate",
+        "high_fat": "High fat",
+        "balanced": "Balanced"
+      },
+      "errors": {
+        "mealTypeRequired": "Select at least one meal time",
+        "ingredientRequired": "Add at least one ingredient with a food and a positive amount"
+      },
+      "submit": "Create dish",
+      "submitting": "Saving…"
     }
   },
   "whatsapp": {

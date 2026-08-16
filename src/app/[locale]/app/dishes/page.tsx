@@ -1,11 +1,14 @@
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
+import { buttonVariants } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
 import { DishFilters } from '@/features/weekly-plans/components/dish-filters';
 import { DishPagination } from '@/features/weekly-plans/components/dish-pagination';
 import { DishTable } from '@/features/weekly-plans/components/dish-table';
 import { listDishes, listMealTypes } from '@/features/weekly-plans/queries';
 import { MEAL_TYPES } from '@/features/weekly-plans/schema';
+import { Link } from '@/i18n/navigation';
 import { membersOf } from '@/lib/enum';
 import { resolveLocale } from '@/i18n/params';
 import { requireStaffClinic } from '@/lib/session';
@@ -50,11 +53,18 @@ export default async function DishesPage({ params, searchParams }: PageProps) {
       names still stay put — the table header is sticky either way.
     */
     <div className="flex flex-col gap-6 text-start md:h-full md:min-h-0">
-      <div className="shrink-0">
-        <h1 className="font-heading text-heading-lg font-semibold tracking-tight">{t('title')}</h1>
-        <p className="text-body-sm text-muted-foreground">
-          {t('subtitle', { count: result.total })}
-        </p>
+      <div className="flex shrink-0 flex-wrap items-start justify-between gap-2">
+        <div>
+          <h1 className="font-heading text-heading-lg font-semibold tracking-tight">{t('title')}</h1>
+          <p className="text-body-sm text-muted-foreground">
+            {t('subtitle', { count: result.total })}
+          </p>
+        </div>
+
+        <Link href="/app/dishes/new" className={buttonVariants({ size: 'sm' })}>
+          <Icon name="add" />
+          {t('addDish')}
+        </Link>
       </div>
 
       <DishFilters
