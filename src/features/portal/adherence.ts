@@ -269,7 +269,7 @@ export function summariseAdherenceWeek(rows: AdherenceRow[], today: IsoDate): We
  */
 export function summariseAdherenceRun(
   dates: readonly IsoDate[],
-  rows: AdherenceRow[],
+  rows: readonly AdherenceRow[],
   today: IsoDate,
 ): WeekAdherence {
   const byDate = new Map(rows.map((row) => [row.date, row]));

@@ -2,10 +2,12 @@ import { and, desc, eq } from 'drizzle-orm';
 
 import { db } from '@/db';
 import { clients, weeklyPlanMealOptions, weeklyPlanMeals, weeklyPlans } from '@/db/schema';
+import { recomputeDayAdherence } from '@/features/portal/mutations';
 
 import { DAYS_OF_WEEK } from './schema';
 import { snapServings } from './similar';
 import type { SkeletonMeal } from './skeleton';
+import { planWeekDays, weekDateForDay } from './week';
 
 /**
  * Writes for the manual side of weekly plans — the plans nobody generated.
@@ -13,6 +15,20 @@ import type { SkeletonMeal } from './skeleton';
  * Same rules as `mutations.ts`: `clinicId` first, every id resolved back to a row
  * inside that clinic before anything is written, and `null` rather than a throw
  * when the scope check fails, so a forged id is indistinguishable from a stale one.
+ *
+ * **Every write that changes how many meals a day holds also recomputes that
+ * day's `client_plan_adherence` row**, the same obligation `mutations.ts`
+ * documents beside `recomputeDayAdherence` itself. This file used to be the
+ * one place that didn't: a plan built by hand — `createPlanFromSkeleton`, or
+ * a slot added or removed on the board afterward — wrote real
+ * `weekly_plan_meals` rows and never told `client_plan_adherence` those days
+ * now had something to report on, so the dietitian dashboard's Progress tab
+ * read a plan with meals in it as a week with no data at all. Placing a dish,
+ * changing its servings, clearing a slot back to empty, or moving a dish
+ * between two slots never changes a day's meal *count*, so none of those
+ * three touch adherence — only the five writes that add or remove a row do:
+ * `createPlanFromSkeleton`, `addMeal`, `addMealToWeek`, `removeMeal`, and
+ * `removeMealFromWeek`.
  */
 
 /** Confirms a client belongs to this clinic. */
@@ -91,6 +107,20 @@ export async function createPlanFromSkeleton(input: {
       })),
     );
 
+    // Every day of the week, exactly as `createPlanFromGeneration` does it —
+    // a day the skeleton left empty still needs its stale adherence (from
+    // whatever draft this just deleted) cleared, which is what the `null`
+    // branch of `recomputeDayAdherence` does for a day with zero meals.
+    for (const { dayOfWeek, date } of planWeekDays(input.weekStartDate)) {
+      await recomputeDayAdherence(tx, {
+        clinicId: input.clinicId,
+        clientId: input.clientId,
+        planId: plan.id,
+        dayOfWeek,
+        date,
+      });
+    }
+
     return plan.id;
   });
 }
@@ -116,18 +146,38 @@ async function editablePlan(
   clinicId: string,
   planId: string,
   allowPublished: boolean,
-): Promise<{ id: string; clientId: string } | null> {
+): Promise<{ id: string; clientId: string; weekStartDate: string } | null> {
   const [plan] = await db
-    .select({ id: weeklyPlans.id, clientId: weeklyPlans.clientId, status: weeklyPlans.status })
+    .select({
+      id: weeklyPlans.id,
+      clientId: weeklyPlans.clientId,
+      weekStartDate: weeklyPlans.weekStartDate,
+      status: weeklyPlans.status,
+    })
     .from(weeklyPlans)
     .where(and(eq(weeklyPlans.id, planId), eq(weeklyPlans.clinicId, clinicId)))
     .limit(1);
 
   if (!plan) return null;
-  if (plan.status === 'draft') return { id: plan.id, clientId: plan.clientId };
-  if (plan.status === 'published' && allowPublished) return { id: plan.id, clientId: plan.clientId };
+
+  const result = { id: plan.id, clientId: plan.clientId, weekStartDate: plan.weekStartDate };
+  if (plan.status === 'draft') return result;
+  if (plan.status === 'published' && allowPublished) return result;
 
   return null;
+}
+
+/** `recomputeDayAdherence` for one day of an already-resolved plan. */
+async function recomputePlanDay(
+  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+  clinicId: string,
+  plan: { id: string; clientId: string; weekStartDate: string },
+  dayOfWeek: number,
+): Promise<void> {
+  const date = weekDateForDay(plan.weekStartDate, dayOfWeek);
+  if (!date) return;
+
+  await recomputeDayAdherence(tx, { clinicId, clientId: plan.clientId, planId: plan.id, dayOfWeek, date });
 }
 
 /** Marks the plan changed. Every edit does it, so it is written once. */
@@ -276,11 +326,16 @@ export async function removeMealFromWeek(
     const deleted = await tx
       .delete(weeklyPlanMeals)
       .where(and(eq(weeklyPlanMeals.planId, planId), eq(weeklyPlanMeals.slotKey, slotKey)))
-      .returning({ id: weeklyPlanMeals.id });
+      .returning({ id: weeklyPlanMeals.id, dayOfWeek: weeklyPlanMeals.dayOfWeek });
 
     if (!deleted.length) return 0;
 
     await touchPlan(tx, planId);
+
+    const affectedDays = new Set(deleted.map((row) => row.dayOfWeek));
+    for (const dayOfWeek of affectedDays) {
+      await recomputePlanDay(tx, clinicId, plan, dayOfWeek);
+    }
 
     return deleted.length;
   });
@@ -296,14 +351,15 @@ export async function removeMeal(
   if (!plan) return false;
 
   return db.transaction(async (tx) => {
-    const deleted = await tx
+    const [deleted] = await tx
       .delete(weeklyPlanMeals)
       .where(and(eq(weeklyPlanMeals.id, mealId), eq(weeklyPlanMeals.planId, planId)))
-      .returning({ id: weeklyPlanMeals.id });
+      .returning({ id: weeklyPlanMeals.id, dayOfWeek: weeklyPlanMeals.dayOfWeek });
 
-    if (!deleted.length) return false;
+    if (!deleted) return false;
 
     await touchPlan(tx, planId);
+    await recomputePlanDay(tx, clinicId, plan, deleted.dayOfWeek);
 
     return true;
   });
@@ -357,6 +413,7 @@ export async function addMeal(
     if (!added) return null;
 
     await touchPlan(tx, planId);
+    await recomputePlanDay(tx, clinicId, plan, input.dayOfWeek);
 
     return added.id;
   });
@@ -429,6 +486,11 @@ export async function addMealToWeek(
       .returning({ id: weeklyPlanMeals.id });
 
     await touchPlan(tx, planId);
+
+    const affectedDays = new Set(values.map((value) => value.dayOfWeek));
+    for (const dayOfWeek of affectedDays) {
+      await recomputePlanDay(tx, clinicId, plan, dayOfWeek);
+    }
 
     return added.length;
   });

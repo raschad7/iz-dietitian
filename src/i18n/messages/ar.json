@@ -527,9 +527,55 @@
       "tabs": {
         "account": "الحساب",
         "nutrition": "التغذية",
+        "progress": "التقدم",
         "security": "الأمان",
         "billing": "الفوترة والخطط"
       }
+    },
+    "progress": {
+      "weekLabel": "الأسبوع",
+      "noWeeks": {
+        "title": "لا توجد خطط بعد",
+        "body": "أنشئ خطة أسبوعية لهذا المسترشد لبدء تتبع التقدم."
+      },
+      "empty": {
+        "title": "لا توجد بيانات لهذا الأسبوع",
+        "body": "لم يتم تسجيل أي شيء لهذا الأسبوع بعد."
+      },
+      "summary": {
+        "title": "ملخص الأسبوع",
+        "average": "متوسط الالتزام اليومي",
+        "recordedDays": "أيام مسجَّلة",
+        "completedDays": "أيام مكتملة بالكامل",
+        "meals": "وجبات مكتملة"
+      },
+      "days": {
+        "title": "التقدم اليومي",
+        "meals": "{completed, number, integer} من {total, number, integer} {total, plural, one {وجبة} other {وجبات}}",
+        "noMeals": "لا توجد وجبات مخططة",
+        "mealEaten": "تم تناولها",
+        "mealNotEaten": "لم يتم تناولها",
+        "unnamedMeal": "لا يوجد طبق محدد",
+        "state": {
+          "full": "تم الالتزام بالكامل",
+          "partial": "التزام جزئي",
+          "missed": "لم يتم الالتزام",
+          "empty": "غير مسجَّل",
+          "today": "اليوم",
+          "future": "قادم"
+        }
+      },
+      "chart": {
+        "title": "التزام هذا الأسبوع",
+        "subtitle": "الالتزام اليومي خلال الأسبوع المحدد",
+        "seriesLabel": "الالتزام",
+        "mealsTooltip": "{completed, number, integer} من {total, number, integer} وجبات"
+      },
+      "daysCompleted": "{completed, number, integer} / {total, number, integer} أيام",
+      "aria": "التقدّم الأسبوعي {percent}، أُكمل {completed, number, integer} من {total, number, integer} أيام الخطة كاملةً",
+      "ariaEmpty": "لا يوجد تقدّم أسبوعي مسجّل بعد، من {total, number, integer} أيام الخطة",
+      "ariaNoPlan": "لا يوجد تقدّم أسبوعي: لا توجد خطة تغطّي اليوم",
+      "ariaNoTracking": "لا يوجد تقدّم أسبوعي: لا يوجد حساب في البوابة"
     },
     "sections": {
       "contact": "بيانات التواصل",
@@ -658,13 +704,6 @@
       "published": "خطة نشطة",
       "draft": "مسودة",
       "none": "لا توجد خطة"
-    },
-    "progress": {
-      "daysCompleted": "{completed, number, integer} / {total, number, integer} أيام",
-      "aria": "التقدّم الأسبوعي {percent}، أُكمل {completed, number, integer} من {total, number, integer} أيام الخطة كاملةً",
-      "ariaEmpty": "لا يوجد تقدّم أسبوعي مسجّل بعد، من {total, number, integer} أيام الخطة",
-      "ariaNoPlan": "لا يوجد تقدّم أسبوعي: لا توجد خطة تغطّي اليوم",
-      "ariaNoTracking": "لا يوجد تقدّم أسبوعي: لا يوجد حساب في البوابة"
     },
     "clearFilters": "مسح الفلاتر",
     "pagination": {
