@@ -154,6 +154,7 @@ describe('createCustomFood', () => {
     const [food] = await db.select().from(foods).where(eq(foods.id, id!));
     expect(food!.clinicId).toBe(clinicId);
     expect(food!.fdcId).toBeNull();
+    expect(food!.nameAr).toBe('جبنة بلدية');
     // The Arabic name it was created under is remembered as an alias.
     const aliases = await db.select().from(foodAliases).where(eq(foodAliases.foodId, id!));
     expect(aliases).toHaveLength(1);

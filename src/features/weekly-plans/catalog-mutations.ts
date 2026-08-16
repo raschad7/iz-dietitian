@@ -183,6 +183,7 @@ export async function createCustomFood(clinicId: string, input: CustomFoodInput)
         clinicId,
         fdcId: null,
         description: input.description,
+        nameAr: input.nameAr,
         category: 'Clinic custom',
         kcal: input.kcal,
         protein: input.protein,
