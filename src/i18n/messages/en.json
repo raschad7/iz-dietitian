@@ -532,9 +532,55 @@
       "tabs": {
         "account": "Account",
         "nutrition": "Nutrition",
+        "progress": "Progress",
         "security": "Security",
         "billing": "Billing & Plans"
       }
+    },
+    "progress": {
+      "weekLabel": "Week",
+      "noWeeks": {
+        "title": "No plans yet",
+        "body": "Create a weekly plan for this client to start tracking progress."
+      },
+      "empty": {
+        "title": "No data for this week",
+        "body": "Nothing has been recorded for this week yet."
+      },
+      "summary": {
+        "title": "Weekly summary",
+        "average": "Average daily adherence",
+        "recordedDays": "Days recorded",
+        "completedDays": "Days fully completed",
+        "meals": "Meals completed"
+      },
+      "days": {
+        "title": "Daily progress",
+        "meals": "{completed, number, integer} of {total, number, integer} {total, plural, one {meal} other {meals}}",
+        "noMeals": "No meals planned",
+        "mealEaten": "Eaten",
+        "mealNotEaten": "Not eaten",
+        "unnamedMeal": "No dish assigned",
+        "state": {
+          "full": "Fully followed",
+          "partial": "Partially followed",
+          "missed": "Not followed",
+          "empty": "Not recorded",
+          "today": "Today",
+          "future": "Upcoming"
+        }
+      },
+      "chart": {
+        "title": "This week's adherence",
+        "subtitle": "Daily adherence across the selected week",
+        "seriesLabel": "Adherence",
+        "mealsTooltip": "{completed, number, integer} of {total, number, integer} meals"
+      },
+      "daysCompleted": "{completed, number, integer} / {total, number, integer} days",
+      "aria": "Weekly progress {percent}, {completed, number, integer} of {total, number, integer} plan days fully completed",
+      "ariaEmpty": "No weekly progress recorded yet, out of {total, number, integer} plan days",
+      "ariaNoPlan": "No weekly progress: no plan covers today",
+      "ariaNoTracking": "No weekly progress: no portal account"
     },
     "sections": {
       "contact": "Contact details",
@@ -565,6 +611,7 @@
       "createdAt": "Registered",
       "portalAccess": "Portal",
       "plan": "Plan",
+      "weeklyProgress": "Weekly progress",
       "actions": "Actions",
       "conditions": "Conditions",
       "medications": "Medications and supplements",

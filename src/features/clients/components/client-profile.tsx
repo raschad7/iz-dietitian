@@ -7,13 +7,13 @@ import { ClientVisitRecord } from '@/features/booking/components/client-visit-re
 import { type ClientVisitEntry, type ClientVisitSummary } from '@/features/booking/queries';
 import { ClientNutrition } from '@/features/clients/components/client-nutrition';
 import { ClientProfilePanel } from '@/features/clients/components/client-profile-panel';
-import {
-  ClientProfileTabs,
-  type ProfileTab,
-} from '@/features/clients/components/client-profile-tabs';
+import { ClientProfileTabs } from '@/features/clients/components/client-profile-tabs';
+import { ClientProgressPanel } from '@/features/clients/components/client-progress-panel';
 import { PortalCredentialsCard } from '@/features/clients/components/portal-credentials-card';
+import { type ProfileTab } from '@/features/clients/components/profile-tab';
 import { intakeGaps } from '@/features/clients/intake-gaps';
 import { type ClientDetail } from '@/features/clients/queries';
+import { type ClientDayMeal, type ClientWeekProgress } from '@/features/clients/progress';
 import { type ClientIntakeValues } from '@/features/clients/types';
 import { ClientPlansCard } from '@/features/weekly-plans/components/client-plans-card';
 import { type PlanListEntry } from '@/features/weekly-plans/queries';
@@ -93,6 +93,16 @@ export type ClientProfileProps = {
    * the meal-slot denominator the plans card counts a week against.
    */
   intake: ClientIntakeValues;
+  /** The selected week's adherence, for the Progress view. */
+  progress: ClientWeekProgress;
+  /**
+   * `plans`, narrowed to the weeks that actually hold meals — the Progress
+   * view's week picker. An empty draft is real for Billing & Plans, which
+   * still reads `plans` whole, but has nothing a client could have followed.
+   */
+  progressWeeks: PlanListEntry[];
+  /** The selected week's plan meals by day of week, for the Progress view's per-meal detail. */
+  mealsByDay: Map<number, ClientDayMeal[]>;
   portal: {
     /** What they already sign in with, or null when there is no account. */
     username: string | null;
@@ -114,6 +124,9 @@ export async function ClientProfile({
   visits,
   plans,
   intake,
+  progress,
+  progressWeeks,
+  mealsByDay,
   portal,
   canSendWhatsapp,
 }: ClientProfileProps) {
@@ -122,6 +135,7 @@ export async function ClientProfile({
   const labels: Record<ProfileTab, string> = {
     account: t('profile.tabs.account'),
     nutrition: t('profile.tabs.nutrition'),
+    progress: t('profile.tabs.progress'),
     security: t('profile.tabs.security'),
     billing: t('profile.tabs.billing'),
   };
@@ -164,6 +178,15 @@ export async function ClientProfile({
             />
           ),
           nutrition: <ClientNutrition intake={intake} locale={locale} />,
+          progress: (
+            <ClientProgressPanel
+              clientId={client.id}
+              locale={locale}
+              weeks={progressWeeks}
+              progress={progress}
+              mealsByDay={mealsByDay}
+            />
+          ),
           security: (
             <PortalCredentialsCard
               locale={locale}

@@ -10,9 +10,18 @@ import {
 } from '@/components/ui/panel-tabs';
 import { cn } from '@/lib/utils';
 
+/*
+ * `PROFILE_TABS` and `ProfileTab` moved to `./profile-tab` — a plain module,
+ * not this Client Component — because a Server Component reading the runtime
+ * array needs the array itself, not the client-reference stub the bundler
+ * substitutes for a value exported from a `'use client'` file. Import from
+ * `./profile-tab` directly rather than re-importing them through here.
+ */
+import { type ProfileTab, PROFILE_TABS } from './profile-tab';
+
 /**
- * The four views of a client's record, and the one bar that switches between
- * them: **Nutrition, Account, Security, Billing &amp; Plans**.
+ * The views of a client's record, and the one bar that switches between
+ * them: **Nutrition, Progress, Account, Security, Billing &amp; Plans**.
  *
  * The `users/view` template's bar, cut to the views this product has something
  * to put in. Its Notifications and Connections tabs are gone — see
@@ -52,10 +61,6 @@ import { cn } from '@/lib/utils';
  * not rewrite the URL: a view switch is not a navigation, and pushing a history
  * entry for one would make Back undo a glance.
  */
-export const PROFILE_TABS = ['nutrition', 'account', 'security', 'billing'] as const;
-
-export type ProfileTab = (typeof PROFILE_TABS)[number];
-
 export function ClientProfileTabs({
   label,
   labels,

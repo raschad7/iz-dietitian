@@ -4,13 +4,12 @@ import type { Metadata } from 'next';
 
 import { getClientVisitSummary, listClientVisits } from '@/features/booking/queries';
 import { ClientProfile } from '@/features/clients/components/client-profile';
-import {
-  PROFILE_TABS,
-  type ProfileTab,
-} from '@/features/clients/components/client-profile-tabs';
+import { PROFILE_TABS, type ProfileTab } from '@/features/clients/components/profile-tab';
 import { getPortalUsername } from '@/features/clients/portal-credentials';
+import { getClientWeekMeals, getClientWeekProgress } from '@/features/clients/progress';
 import { getClient, getClientIntake } from '@/features/clients/queries';
 import { suggestUsername } from '@/features/clients/transliterate';
+import { currentSunday } from '@/features/weekly-plans/week';
 import { listPlans } from '@/features/weekly-plans/queries';
 import { getSettings } from '@/features/whatsapp/queries';
 import { resolveLocale } from '@/i18n/params';
@@ -20,7 +19,7 @@ import { requireStaffClinic } from '@/lib/session';
 
 type ClientInfoPageProps = {
   params: Promise<{ locale: string; clientId: string }>;
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; week?: string }>;
 };
 
 /**
@@ -36,7 +35,7 @@ export async function generateMetadata({ params }: ClientInfoPageProps): Promise
 }
 
 /**
- * The client's record: the identity panel, and four views of it.
+ * The client's record: the identity panel, and the views of it.
  *
  * **This page absorbed four routes.** `/nutrition`, `/visits`, `/plans` and
  * `/portal` were tabs of their own and are now views here — the visit record
@@ -80,7 +79,8 @@ export default async function ClientInfoPage({ params, searchParams }: ClientInf
   // An unknown `?tab=` opens on the first view — Nutrition — rather than 404ing: the param is
   // a hint about which panel to show, not an address, and a stale link is not a
   // missing client.
-  const requestedTab = (await searchParams).tab;
+  const resolvedSearchParams = await searchParams;
+  const requestedTab = resolvedSearchParams.tab;
   const defaultTab: ProfileTab = isMember(PROFILE_TABS, requestedTab) ? requestedTab : 'nutrition';
 
   // `getClient` has already proved the row exists and belongs to this clinic,
@@ -89,6 +89,48 @@ export default async function ClientInfoPage({ params, searchParams }: ClientInf
   if (!intake) {
     notFound();
   }
+
+  /*
+    The Progress view only ever offers a week the dietitian has actually put
+    meals in. An empty draft is a plan row (so it belongs on the Billing &
+    Plans tab, which reads `plans` unfiltered) but has nothing for a client to
+    have followed — showing it in the week picker would only lead to the
+    "nothing recorded" empty state for a week that was never really an
+    option, which is the exact confusion this filter avoids.
+  */
+  const progressWeeks = plans.filter((plan) => plan.mealCount > 0);
+
+  /*
+    The Progress view's own week, from `?week=` — same "hint, not an address"
+    rule the tab param follows. `progressWeeks` is newest-first (see
+    `listPlans`), so its head is the live week; a `?week=` naming a week with
+    no meals in it falls back to it rather than opening on a week the picker
+    does not even list, and a client with no meal-bearing week at all falls
+    back to the clinic's current week so the empty state still names a real
+    one.
+  */
+  const requestedWeek = resolvedSearchParams.week;
+  const knownWeek = progressWeeks.some((plan) => plan.weekStartDate === requestedWeek);
+  const selectedWeek = knownWeek
+    ? (requestedWeek as string)
+    : (progressWeeks[0]?.weekStartDate ?? currentSunday());
+
+  /*
+    The same "most current plan for this week" a plan can be a draft beside an
+    already-published one, or an old draft left over after a regeneration, and
+    `listPlans` orders newest `updatedAt` first — so the first match for
+    `selectedWeek` is the same plan the week picker's deduped option list
+    resolves to (see `ClientProgressPanel`). Undefined for a week with no plan
+    at all, which `getClientWeekMeals` never gets to run for.
+  */
+  const selectedPlan = progressWeeks.find((plan) => plan.weekStartDate === selectedWeek);
+
+  const [progress, mealsByDay] = await Promise.all([
+    getClientWeekProgress(clinicId, client.id, selectedWeek, today),
+    selectedPlan
+      ? getClientWeekMeals(clinicId, client.id, selectedPlan.id)
+      : Promise.resolve(new Map()),
+  ]);
 
   return (
     <ClientProfile
@@ -99,6 +141,9 @@ export default async function ClientInfoPage({ params, searchParams }: ClientInf
       visits={{ summary: visitSummary, entries: visitEntries }}
       plans={plans}
       intake={intake}
+      progress={progress}
+      progressWeeks={progressWeeks}
+      mealsByDay={mealsByDay}
       portal={{
         username: portalUsername,
         suggestedUsername: suggestUsername(client.fullName),

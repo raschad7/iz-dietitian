@@ -123,6 +123,28 @@
   --flame-700: #93490D;
 
   /*
+   * ── Gold: the adherence meter's fill ──
+   *
+   * Not amber, and for the same reason flame is not amber: amber means "needs
+   * follow-up" in this system, and a meter that wore it would report every
+   * client on the register as a problem. Not olive either — olive marks what
+   * you can act on, and a measurement is not an action (the rule `viz-brand`
+   * spells out).
+   *
+   * A **graphic fill only**. It carries the register's progress track and
+   * nothing else; it is far too light to sit under text, and it must never be
+   * reached for as an ink colour. See `--viz-progress`.
+   *
+   * Deepened from the #FDC700 it started at, which read as a highlighter
+   * against the light track rather than as a filled measure — the bar was
+   * bright without being legible, which is the wrong trade for a value someone
+   * is meant to compare down a column. This step keeps the hue and takes about
+   * a fifth off the lightness, which lifts it from 1.6:1 on white to roughly
+   * 2:1. Still nowhere near a text ratio, and still fill-only.
+   */
+  --gold-500: #E8B000;
+
+  /*
    * ── Portal home glow ──
    * The ambient blur behind the portal's home screen, pinned to the exact
    * Figma value rather than mapped onto the olive/lime ramp — it is a single
@@ -436,6 +458,7 @@
    */
   --color-viz-brand: var(--viz-brand);
   --color-viz-brand-soft: var(--viz-brand-soft);
+  --color-viz-progress: var(--viz-progress);
 
   --color-ring: var(--ring);
   --color-focus-halo: var(--focus-halo);
@@ -864,6 +887,14 @@
   --viz-brand-soft: var(--olive-300);
 
   /*
+   * The adherence meter's fill — see `--gold-500`. One value across light,
+   * dark and system dark: it is a saturated mid-tone that holds against both
+   * the light track (`--muted`) and the dark one, so unlike the olive pair
+   * above it does not need a lighter step in the dark themes.
+   */
+  --viz-progress: var(--gold-500);
+
+  /*
    * ── Sidebar — a near-white rail ──
    *
    * Full-bleed, separated from the canvas by a hairline rather than by
@@ -1066,6 +1097,8 @@
    */
   --viz-brand: var(--olive-400);
   --viz-brand-soft: var(--olive-600);
+  /* Unchanged in dark — see the light block for why it needs no darker step. */
+  --viz-progress: var(--gold-500);
 
   /*
    * The dark rail keeps its dark treatment — a pale rail on an olive-950
@@ -1180,6 +1213,8 @@
 
     --viz-brand: var(--olive-400);
     --viz-brand-soft: var(--olive-600);
+    /* Repeated here deliberately — see the note on this media query block. */
+    --viz-progress: var(--gold-500);
 
     --sidebar: var(--olive-900);
     --sidebar-foreground: var(--olive-200);
