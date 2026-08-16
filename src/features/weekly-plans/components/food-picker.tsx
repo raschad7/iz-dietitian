@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useTransition, type FormEvent } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
@@ -68,12 +68,6 @@ export function FoodPicker({
     debounceRef.current = setTimeout(() => runLibrarySearch(value), SEARCH_DEBOUNCE_MS);
   }
 
-  function handleLibrarySubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    clearTimeout(debounceRef.current);
-    runLibrarySearch(term);
-  }
-
   function handleCreated(food: FoodSearchResult) {
     setDialogOpen(false);
     onPick(food);
@@ -89,8 +83,7 @@ export function FoodPicker({
   const [usdaMatches, setUsdaMatches] = useState<FoodSearchResult[] | null>(null);
   const [usdaPending, startUsdaTransition] = useTransition();
 
-  function handleUsdaSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  function runUsdaSearch() {
     const name = usdaTerm.trim();
     if (!name) return;
 
@@ -102,17 +95,31 @@ export function FoodPicker({
 
   return (
     <div className="flex flex-col gap-3">
-      <form onSubmit={handleLibrarySubmit} className="flex items-center gap-2">
+      {/*
+        A plain container, NOT a <form>: this picker renders inside the dish
+        editor's own <form>, and a nested form is invalid HTML — the browser
+        would either drop the inner submit or bubble Enter up to submit the whole
+        dish. The library re-queries on the debounced onChange; Enter just runs it
+        immediately, and preventDefault stops it reaching the dish form.
+      */}
+      <div className="flex items-center gap-2">
         <Input
           type="search"
           icon="search"
           value={term}
           onChange={(event) => handleTermChange(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              clearTimeout(debounceRef.current);
+              runLibrarySearch(term);
+            }
+          }}
           placeholder={t('foodPicker.placeholder')}
           aria-label={t('foodPicker.label')}
           className="flex-1"
         />
-      </form>
+      </div>
 
       {libraryPending && (
         <p className="flex items-center gap-2 text-body-sm text-muted-foreground">
@@ -202,21 +209,32 @@ export function FoodPicker({
         <CollapsibleContent className="flex flex-col gap-3 pt-3">
           <p className="text-caption text-muted-foreground">{t('foodPicker.usdaHint')}</p>
 
-          <form onSubmit={handleUsdaSubmit} className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
             <Input
               type="search"
               icon="search"
               value={usdaTerm}
               onChange={(event) => setUsdaTerm(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  runUsdaSearch();
+                }
+              }}
               placeholder={t('foodPicker.usdaPlaceholder')}
               aria-label={t('foodPicker.usdaLabel')}
               className="flex-1"
             />
-            <Button type="submit" variant="outline" disabled={usdaPending || !usdaTerm.trim()}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={runUsdaSearch}
+              disabled={usdaPending || !usdaTerm.trim()}
+            >
               {usdaPending ? <Spinner /> : <Icon name="search" />}
               {t('foodPicker.searchButton')}
             </Button>
-          </form>
+          </div>
 
           {usdaPending && (
             <p className="flex items-center gap-2 text-body-sm text-muted-foreground">
