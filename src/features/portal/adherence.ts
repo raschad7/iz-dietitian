@@ -227,17 +227,22 @@ export function adherenceDaysFor(
 
 /**
  * The week strip and the weekly percentage, derived from one pass over the
- * rows the query returned.
+ * rows the query returned, for an arbitrary run of seven dates.
  *
- * `rows` may be sparse, out of order, and may contain dates outside the week;
- * only the seven dates of `today`'s week are read, the same contract
- * `summariseWeek` documents in `check-ins.ts`. Dates after `today` are
- * dropped from the average even if a stray row exists for one, so a future
- * day can never pull the week's number down.
+ * `rows` may be sparse, out of order, and may contain dates outside `dates`;
+ * only the given dates are read. Dates after `today` are dropped from the
+ * average even if a stray row exists for one, so a future day can never pull
+ * the week's number down — the same contract whether `dates` is the week
+ * `today` falls in ({@link summariseAdherenceWeek}) or another week entirely,
+ * such as the dietitian dashboard's progress tab reading a week the client
+ * has already finished or has not started.
  */
-export function summariseAdherenceWeek(rows: AdherenceRow[], today: IsoDate): WeekAdherence {
+export function summariseAdherenceForDates(
+  dates: readonly IsoDate[],
+  rows: readonly AdherenceRow[],
+  today: IsoDate,
+): WeekAdherence {
   const byDate = new Map(rows.map((row) => [row.date, row]));
-  const dates = weekDates(today);
 
   const days = adherenceDaysFor(dates, rows, today);
 
@@ -250,6 +255,15 @@ export function summariseAdherenceWeek(rows: AdherenceRow[], today: IsoDate): We
   const fullyCompletedCount = recorded.filter((row) => row.completedMeals >= row.totalMeals).length;
 
   return { days, recordedCount: recorded.length, fullyCompletedCount, averageFraction };
+}
+
+/**
+ * {@link summariseAdherenceForDates} over the seven dates of `today`'s own
+ * week — the progress tab's contract, kept as its own name since every
+ * caller of it means exactly that week.
+ */
+export function summariseAdherenceWeek(rows: AdherenceRow[], today: IsoDate): WeekAdherence {
+  return summariseAdherenceForDates(weekDates(today), rows, today);
 }
 
 /**

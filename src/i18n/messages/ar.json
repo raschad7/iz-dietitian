@@ -522,8 +522,49 @@
       "tabs": {
         "account": "الحساب",
         "nutrition": "التغذية",
+        "progress": "التقدم",
         "security": "الأمان",
         "billing": "الفوترة والخطط"
+      }
+    },
+    "progress": {
+      "weekLabel": "الأسبوع",
+      "noWeeks": {
+        "title": "لا توجد خطط بعد",
+        "body": "أنشئ خطة أسبوعية لهذا المسترشد لبدء تتبع التقدم."
+      },
+      "empty": {
+        "title": "لا توجد بيانات لهذا الأسبوع",
+        "body": "لم يتم تسجيل أي شيء لهذا الأسبوع بعد."
+      },
+      "summary": {
+        "title": "ملخص الأسبوع",
+        "average": "متوسط الالتزام اليومي",
+        "recordedDays": "أيام مسجَّلة",
+        "completedDays": "أيام مكتملة بالكامل",
+        "meals": "وجبات مكتملة"
+      },
+      "days": {
+        "title": "التقدم اليومي",
+        "meals": "{completed, number, integer} من {total, number, integer} {total, plural, one {وجبة} other {وجبات}}",
+        "noMeals": "لا توجد وجبات مخططة",
+        "mealEaten": "تم تناولها",
+        "mealNotEaten": "لم يتم تناولها",
+        "unnamedMeal": "لا يوجد طبق محدد",
+        "state": {
+          "full": "تم الالتزام بالكامل",
+          "partial": "التزام جزئي",
+          "missed": "لم يتم الالتزام",
+          "empty": "غير مسجَّل",
+          "today": "اليوم",
+          "future": "قادم"
+        }
+      },
+      "chart": {
+        "title": "التزام هذا الأسبوع",
+        "subtitle": "الالتزام اليومي خلال الأسبوع المحدد",
+        "seriesLabel": "الالتزام",
+        "mealsTooltip": "{completed, number, integer} من {total, number, integer} وجبات"
       }
     },
     "sections": {
