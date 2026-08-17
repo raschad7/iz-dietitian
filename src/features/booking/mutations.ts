@@ -3,6 +3,7 @@ import { and, asc, eq } from 'drizzle-orm';
 import { db, type Database } from '@/db';
 import { isBookingConflict, pgConstraintName } from '@/db/errors';
 import { appointments, clients, clinicWorkingHours, practitioners } from '@/db/schema';
+import { type ClientRecordInput } from '@/features/clients/mutations';
 import { normalizeForSearch } from '@/features/clients/search';
 import { toClinicSchedule } from '@/features/clinic-profile/schedule';
 import { DISPLAY_TIME_ZONE } from '@/lib/format';
@@ -386,7 +387,14 @@ export async function deleteAppointment(clinicId: string, id: string): Promise<A
  */
 export async function createClientAndBook(
   context: BookingContext,
-  input: CreateClientAndBookInput,
+  /*
+    The client half is typed as the *row* it writes rather than as the dialog's
+    payload — see `ClientRecordInput`. `CreateClientAndBookInput` is assignable
+    to this, so the action is unaffected; what it buys is that a test booking a
+    walk-in called "أحمد" does not have to name every field the card happens to
+    require.
+  */
+  input: Omit<CreateClientAndBookInput, 'client'> & { client: ClientRecordInput },
 ): Promise<ActionResult<CreatedAppointment>> {
   const { clinicId } = context;
 

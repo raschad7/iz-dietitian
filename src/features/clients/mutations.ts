@@ -16,6 +16,23 @@ import { type ClientFormInput, type IntakeInput } from './schema';
  */
 
 /**
+ * What the `clients` row needs, as opposed to what the card collects.
+ *
+ * The card asks for a first and a last name; the table stores one. Typing these
+ * writes against `ClientFormInput` would drag that form detail — and every
+ * field the card happens to require this month — into every caller that only
+ * wants to write a row, which is why the seed script and the tests had to
+ * describe a whole form to create a client called "أحمد".
+ *
+ * `fullName` is the only thing a row cannot be written without. Everything else
+ * is optional *here* and required by the schema: whether a client may exist
+ * without a phone number is a question about the form, and this is the layer
+ * that writes columns.
+ */
+export type ClientRecordInput = Pick<ClientFormInput, 'fullName'> &
+  Partial<Pick<ClientFormInput, 'phone' | 'email' | 'preferredLocale' | 'dateOfBirth' | 'sex'>>;
+
+/**
  * Maps validated card input onto columns. Optional fields become NULL, not
  * skipped — a cleared phone number has to actually clear.
  *
@@ -23,7 +40,7 @@ import { type ClientFormInput, type IntakeInput } from './schema';
  * {@link saveIntake}, and listing them here as well would mean the card silently
  * nulled a height every time someone fixed a typo in a name.
  */
-function toColumns(input: ClientFormInput) {
+function toColumns(input: ClientRecordInput) {
   return {
     fullName: input.fullName,
     searchName: normalizeForSearch(input.fullName),
@@ -46,7 +63,7 @@ function scopedToClinic(clinicId: string, id: string) {
   return and(eq(clients.id, id), eq(clients.clinicId, clinicId));
 }
 
-export async function createClient(clinicId: string, input: ClientFormInput): Promise<{ id: string }> {
+export async function createClient(clinicId: string, input: ClientRecordInput): Promise<{ id: string }> {
   const [row] = await db
     .insert(clients)
     .values({ ...toColumns(input), clinicId })
@@ -63,7 +80,7 @@ export async function createClient(clinicId: string, input: ClientFormInput): Pr
 export async function updateClient(
   clinicId: string,
   id: string,
-  input: ClientFormInput,
+  input: ClientRecordInput,
 ): Promise<boolean> {
   const rows = await db
     .update(clients)
@@ -90,7 +107,22 @@ export async function updateClient(
  * Returns false when this clinic has no client with that id — the same "not
  * found" a cross-tenant id gets.
  */
-export async function saveIntake(clinicId: string, input: IntakeInput): Promise<boolean> {
+/**
+ * What the two intake tables need written, as opposed to what the dialog now
+ * insists on. The same split as {@link ClientRecordInput}, for the same reason.
+ *
+ * Every column here is written as `input.X ?? null`, so all of them are optional
+ * at this layer. That height, weight, goal and activity level are *required on
+ * the form* is a rule about the form — see the ⚠ on `intakeSchema` — and a
+ * backfill script or a test writing one allergen should not have to satisfy it.
+ *
+ * The three that stay required are the ones written straight into non-null
+ * columns rather than through `?? null`.
+ */
+export type IntakeRecordInput = Partial<IntakeInput> &
+  Pick<IntakeInput, 'clientId' | 'allergenTags' | 'customAllergens' | 'mealSchedule'>;
+
+export async function saveIntake(clinicId: string, input: IntakeRecordInput): Promise<boolean> {
   return db.transaction(async (tx) => {
     const rows = await tx
       .update(clients)

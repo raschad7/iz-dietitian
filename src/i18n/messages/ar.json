@@ -589,11 +589,28 @@
     },
     "placeholders": {
       "fullName": "أحمد خالد",
+      "firstName": "أحمد",
+      "lastName": "خالد",
       "email": "name@example.com",
       "phone": "الرقم دون رمز الدولة"
     },
+    "validation": {
+      "required": "هذا الحقل مطلوب.",
+      "firstNameTooLong": "استخدم {nameMax} أحرف كحد أقصى.",
+      "lastNameTooLong": "استخدم {nameMax} أحرف كحد أقصى.",
+      "phoneDigitsOnly": "أرقام فقط.",
+      "phoneTooLong": "استخدم {phoneMax} أرقام كحد أقصى.",
+      "invalidDate": "هذا التاريخ غير موجود.",
+      "ageTooYoung": "العمر يجب أن يكون أكبر من {minAge} سنوات.",
+      "ageTooOld": "العمر يجب أن يكون أقل من {maxAge} سنة.",
+      "invalidEmail": "أدخل بريداً إلكترونياً صحيحاً.",
+      "heightOutOfRange": "أدخل طولاً بين {heightMin} و{heightMax} سم.",
+      "weightOutOfRange": "أدخل وزناً بين {weightMin} و{weightMax} كغ."
+    },
     "fields": {
       "fullName": "الاسم الكامل",
+      "firstName": "الاسم الأول",
+      "lastName": "الاسم الأخير",
       "phone": "رقم الهاتف",
       "phoneCountry": "رمز الدولة",
       "email": "البريد الإلكتروني",
@@ -752,6 +769,7 @@
       "clientNotFound": "المشترك غير موجود."
     },
     "intake": {
+      "choose": "اختر",
       "createTitle": "استكمال بيانات التغذية",
       "editTitle": "تعديل بيانات التغذية",
       "forClient": "لـ {name}",

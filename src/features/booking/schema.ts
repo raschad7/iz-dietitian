@@ -3,7 +3,8 @@ import { z } from 'zod';
 import { MINUTES_PER_DAY, SLOT_MINUTES } from '@/lib/time-constants';
 import { defaultLocale, locales } from '@/i18n/routing';
 
-import { clientFormSchema } from '@/features/clients/schema';
+import { joinName } from '@/features/clients/name';
+import { clientFormObject } from '@/features/clients/schema';
 
 import { isIsoDate } from './date';
 import { MAX_REPEAT_WEEKS } from './repeat';
@@ -117,18 +118,27 @@ export type RepeatWeeklyInput = z.infer<typeof repeatWeeklySchema>;
  * sex, so the calorie formula could not run for them until somebody noticed and
  * opened their card. "Later" is doing a lot of work in that sentence.
  *
- * Picking from `clientFormSchema` rather than redeclaring the fields is what
+ * Picking from `clientFormObject` rather than redeclaring the fields is what
  * keeps the two paths honestly identical — including the parts that are easy to
  * get subtly wrong, like the date's `YYYY-MM-DD` shape and the blank-to-
  * undefined preprocessing. `email` and `preferredLocale` are left out because
  * the create form does not show them either.
  */
-export const newClientSchema = clientFormSchema.pick({
-  fullName: true,
-  phone: true,
-  dateOfBirth: true,
-  sex: true,
-});
+export const newClientSchema = clientFormObject
+  .pick({
+    firstName: true,
+    lastName: true,
+    phone: true,
+    dateOfBirth: true,
+    sex: true,
+  })
+  /*
+    Picked from the untransformed object and given the same transform back,
+    because `.pick()` is unavailable on a schema that carries one. The name is
+    derived here rather than accepted, so the calendar cannot write a `fullName`
+    that disagrees with the two halves it collected.
+  */
+  .transform((values) => ({ ...values, fullName: joinName(values.firstName, values.lastName) }));
 
 export type NewClientInput = z.infer<typeof newClientSchema>;
 

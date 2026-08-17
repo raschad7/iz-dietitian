@@ -90,43 +90,72 @@ export function DishFilters({
     // `shrink-0`: this row is chrome the catalog scrolls under, never something
     // the table squeezes to make room for itself. See the page component.
     <div className="flex shrink-0 flex-wrap items-center gap-3">
-      {/* The glyph rides inside the field's own well — see `Input`'s `icon`. */}
-      <Input
-        name="q"
-        type="search"
-        icon="search"
-        value={term}
-        onChange={(event) => handleSearch(event.target.value)}
-        placeholder={t('searchPlaceholder')}
-        aria-label={t('searchPlaceholder')}
-        /*
-          `w-full` below `sm`, and `flex-1` with a floor from `sm` up.
+      {/*
+        ⚠ **The sizing is on this wrapper, not on the `Input`.**
 
-          It was `min-w-64 flex-1` at every width, and that is not the same
-          thing as a line to itself. `flex-1` is `flex: 1 1 0%` — it grows into
-          whatever is *left over* on its line — so on a phone the select beside
-          it stayed on the same row and shrank toward its own min-content, and
-          the field sat at its 256px floor with a squeezed dropdown jammed
-          against it. The toolbar's own note below says the field takes a line
-          to itself below `sm`; this is what actually makes that true. A
-          `width: 100%` basis cannot share a flex line, so the group after it
-          wraps, and the search box is as wide as the catalog it searches.
+        It was on the field itself — `w-full sm:w-auto sm:min-w-64 sm:flex-1` —
+        and none of it reached the layout. `Input` with an `icon` does not
+        render an `<input>`: it renders a `<span class="relative block">` with
+        the glyph and the field inside it, and the caller's `className` goes to
+        the inner `<input>`. So the flex item on this row was that span, sized
+        `flex: 0 1 auto` from its content, while `w-full` applied to an input
+        that `.q-field` already pins to `width: 100%` — 100% of a box measuring
+        itself by that same input. The field came out at its intrinsic ~20
+        characters and the select sat beside it on the phone line it was
+        supposed to have to itself.
 
-          The floor moves to `sm` with the rest of it. At 256px it was also
-          wider than a 320px phone has to give once the staff rail and the
-          page's own padding are out — the one width where a minimum on a
-          search field turns into a page that scrolls sideways.
-        */
-        className="w-full sm:w-auto sm:min-w-64 sm:flex-1"
-      />
+        Sizing therefore belongs on the element the flex container can actually
+        see. The behaviour it asks for is unchanged from what the old comment
+        described, and now true:
+
+        - `w-full` below `sm`. A `width: 100%` basis cannot share a flex line,
+          so the qualifier group after it wraps and the search box is as wide as
+          the catalog it searches.
+        - `flex-1` with a 256px floor from `sm` up, where there is room for the
+          two to share a row.
+
+        The floor stays at `sm` for the same reason it was moved there: 256px is
+        wider than a 320px phone has to give once the staff rail and the page's
+        own padding are out, and a minimum on a search field at that width is a
+        page that scrolls sideways.
+
+        `Input`'s own note records the trap for the next caller.
+      */}
+      <div className="w-full sm:w-auto sm:min-w-64 sm:flex-1">
+        {/* The glyph rides inside the field's own well — see `Input`'s `icon`. */}
+        <Input
+          name="q"
+          type="search"
+          icon="search"
+          value={term}
+          onChange={(event) => handleSearch(event.target.value)}
+          placeholder={t('searchPlaceholder')}
+          aria-label={t('searchPlaceholder')}
+        />
+      </div>
 
       {/*
         The qualifier and the way out travel together. Below `sm` the field
         above takes a line to itself and these two share the next one, rather
         than each wrapping onto a line of its own and leaving the toolbar three
         rows deep before a single dish is on screen.
+
+        ⚠ **`flex-wrap`, because at 320px the two genuinely do not fit.** This
+        group had none, and "Clear filters" is `shrink-0` — so with a filter
+        active the row's min-content came to 295px against the 264px a 320px
+        phone leaves once the staff rail and the page's padding are out. Nothing
+        could give, so the group pushed the shell 31px wider than the viewport
+        and took the search field above it off the screen edge with it: a search
+        box set to fill the width, hanging over the side of the page.
+
+        Wrapping is the honest answer and it is conditional by nature — the
+        button drops to a line of its own only at the width where keeping it up
+        there would cost the toolbar its edges. Above that the two still share
+        a row, which is what the paragraph above asks for. Shrinking the button
+        instead would have bought the same 31px by cutting its label, which is
+        the thing this screen has been trading away everywhere else.
       */}
-      <div className="flex flex-1 items-center gap-3 sm:flex-none">
+      <div className="flex flex-1 flex-wrap items-center gap-3 sm:flex-none sm:flex-nowrap">
         {/*
           The meal time is a choice out of five, so it is a select rather than a
           row of chips: four meal times plus "all" would be five permanently lit

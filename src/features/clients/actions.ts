@@ -38,7 +38,10 @@ import { type ClientFormValues, type ClientIntakeValues } from './types';
 
 function readForm(formData: FormData) {
   return {
-    fullName: formData.get('fullName'),
+    // Two fields, one stored column — `clientFormSchema` joins them. See
+    // `./name.ts` for why the column did not become two.
+    firstName: formData.get('firstName'),
+    lastName: formData.get('lastName'),
     phone: formData.get('phone'),
     email: formData.get('email'),
     preferredLocale: formData.get('preferredLocale'),

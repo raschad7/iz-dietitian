@@ -58,7 +58,14 @@ export default async function ClientLayout({ children, params }: ClientLayoutPro
   const t = await getTranslations('clients');
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4 text-start">
+    /*
+      `q-hide-rail` takes the staff rail off this route below `md` — see the
+      rule's own note in `globals.css` for why the record is the one screen
+      that asks for it, and why the breadcrumb below is a condition of asking.
+      It does nothing at any wider width, where the 56px column costs the record
+      nothing it needs.
+    */
+    <div className="q-hide-rail flex h-full min-h-0 flex-col gap-4 text-start">
       {/*
         The way back, and nothing else. Edit and the overflow menu were here for
         one release; they are at the foot of the identity panel now, which is the

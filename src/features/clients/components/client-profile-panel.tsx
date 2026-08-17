@@ -228,7 +228,29 @@ export async function ClientProfilePanel({
                       )}
                     />
                   ) : null}
-                  <bdi className="truncate">{row.value ?? t('notProvided')}</bdi>
+                  {/*
+                    ⚠ **`wrap-anywhere`, not `truncate`.**
+
+                    A phone number and an email are the two facts on this panel
+                    that someone reads in order to *use* them, and they are the
+                    two longest strings on it. `truncate` cut both: at 320px
+                    inside the staff shell the panel is 264px wide, the label
+                    takes its share of that, and an ordinary address —
+                    `rashad.abdulrahman@gmail.com` — lost 81px to an ellipsis.
+                    Truncating the one row a reader came to the panel for is the
+                    wrong failure, and it is not only a phone problem: the `lg`
+                    column is a fixed `17.5rem`, so the same address is cut on a
+                    desktop too.
+
+                    `overflow-wrap: anywhere` breaks the string only when it does
+                    not fit, and — unlike `break-word` — it lets the value shrink
+                    below its longest token, which is what keeps the row from
+                    pushing the panel wider than its column. A long address takes
+                    a second line; nothing is lost. `min-w-0` because this is a
+                    flex item and its automatic minimum would otherwise be the
+                    string's own width.
+                  */}
+                  <bdi className="min-w-0 wrap-anywhere">{row.value ?? t('notProvided')}</bdi>
                 </dd>
               </div>
             ))}
