@@ -2,12 +2,53 @@ import { z } from 'zod';
 
 const requiredText = (minimum: number, maximum: number) => z.string().trim().min(minimum).max(maximum);
 
+/**
+ * The ceilings, named because the form draws them.
+ *
+ * They are not new — `name` has been capped at 120 since this schema was
+ * written. What was missing is that anything over the cap came back as
+ * `too_big` and `validation.ts` translated *every* issue on that field to
+ * `required`, so a 300-character clinic name was reported as "This field is
+ * required" under a box with 300 characters in it. Exporting the numbers lets
+ * the field show the limit and the message name it, instead of the form
+ * appearing to accept any length and then refusing to move.
+ */
+export const FIELD_LIMITS = {
+  clinicName: 50,
+  /** Both the required digit count and the character ceiling — see `phoneSchema`. */
+  clinicPhone: 10,
+  contactEmail: 254,
+  address: 120,
+  practitionerName: 50,
+  /*
+    50 each, which is the ceiling on what "أخرى" lets someone type — the only
+    way either of these becomes free text. Every offered option is well inside
+    it (the longest, "التغذية والتغذية العلاجية", is 25), so the cap constrains
+    the typed answer and nothing else.
+  */
+  professionalTitle: 50,
+  specialty: 50,
+} as const;
+
+/**
+ * Exactly ten digits, and nothing else.
+ *
+ * It used to accept 7–40 characters of digits, spaces, brackets, dots, dashes
+ * and an optional leading `+`, which let one clinic store `+970 59 123 4567`
+ * and another `0599123456` for the same line. A single fixed shape is what
+ * makes the number comparable, dialable and printable without a normaliser at
+ * every call site.
+ *
+ * ⚠ Separators are rejected rather than stripped. The field's counter reads
+ * "n of 10", so the count the reader is watching has to be the count the rule
+ * applies to — accepting `059 587 2094` while showing 12/10 would be a control
+ * arguing with itself. `FIELD_LIMITS.clinicPhone` is therefore both the digit
+ * count and the character ceiling.
+ */
 const phoneSchema = z
   .string()
   .trim()
-  .min(7)
-  .max(40)
-  .regex(/^[+\d][\d\s().-]+$/);
+  .regex(new RegExp(`^\\d{${FIELD_LIMITS.clinicPhone}}$`));
 
 /**
  * The clinic mark, as a `data:` URI.
@@ -56,10 +97,15 @@ export const clinicLogoInputSchema = z.preprocess(
  * unrepresentable rather than merely avoided.
  */
 export const clinicInformationSchema = z.object({
-  name: requiredText(2, 120),
+  name: requiredText(2, FIELD_LIMITS.clinicName),
   phone: phoneSchema,
-  contactEmail: z.string().trim().toLowerCase().pipe(z.email()),
-  address: requiredText(3, 500),
+  /**
+   * `.max()` before `.pipe()`, so an over-long string is reported as `too_big`
+   * on this field rather than as a malformed address. 254 is the addr-spec
+   * ceiling; the column is `text`, so nothing below it is enforced elsewhere.
+   */
+  contactEmail: z.string().trim().toLowerCase().max(FIELD_LIMITS.contactEmail).pipe(z.email()),
+  address: requiredText(3, FIELD_LIMITS.address),
 });
 
 const weekdaySchema = z.number().int().min(0).max(6);
@@ -95,15 +141,30 @@ export const weeklyScheduleSchema = z
     }
   });
 
+/**
+ * ⚠ **`phone` and `licenseNumber` are deliberately absent.**
+ *
+ * The professional profile used to ask for a work phone and a licence number
+ * on top of the clinic's own contact details, and both were dropped from every
+ * screen by decision. The `practitioners.phone` and `practitioners.license_number`
+ * columns still exist and still hold whatever was saved before — nothing reads
+ * them, `saveProfessionalProfile` no longer writes them, and leaving them in
+ * place is what makes the removal reversible without a restore.
+ *
+ * Do not re-add them here to "fix" the unused columns: `completeOnboarding`
+ * re-validates the saved row against this schema, so a required field nobody
+ * collects would make finishing setup impossible.
+ *
+ * `professionalTitle` and `specialty` are chosen from the lists in
+ * `professional-options.ts`, but they stay plain bounded strings here. The
+ * lists offer "أخرى", and choosing it stores whatever the practitioner types —
+ * so the set of legal values is genuinely open, and an enum would reject the
+ * one answer the product explicitly allows.
+ */
 export const professionalProfileSchema = z.object({
-  name: requiredText(2, 120),
-  professionalTitle: requiredText(2, 120),
-  specialty: requiredText(2, 160),
-  phone: phoneSchema,
-  licenseNumber: z.preprocess(
-    (value) => (typeof value === 'string' && value.trim() === '' ? null : value),
-    z.string().trim().max(80).nullable(),
-  ),
+  name: requiredText(2, FIELD_LIMITS.practitionerName),
+  professionalTitle: requiredText(2, FIELD_LIMITS.professionalTitle),
+  specialty: requiredText(2, FIELD_LIMITS.specialty),
 });
 
 export type ClinicInformationInput = z.infer<typeof clinicInformationSchema>;

@@ -73,8 +73,6 @@ export async function getClinicProfile(clinicId: string, userId: string): Promis
       name: professional?.name ?? staff.name,
       professionalTitle: professional?.professionalTitle ?? '',
       specialty: professional?.specialty ?? '',
-      phone: professional?.phone ?? '',
-      licenseNumber: professional?.licenseNumber ?? null,
     },
     onboardingCompletedAt: clinic.onboardingCompletedAt,
   };

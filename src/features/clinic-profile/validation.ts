@@ -10,6 +10,7 @@ import {
 export type ProfileSection = 'clinic' | 'schedule' | 'professional';
 export type ValidationMessageKey =
   | 'required'
+  | 'tooLong'
   | 'invalidEmail'
   | 'invalidPhone'
   | 'invalidTime'
@@ -25,8 +26,6 @@ export type ClinicProfileRaw = {
     name: unknown;
     professionalTitle: unknown;
     specialty: unknown;
-    phone: unknown;
-    licenseNumber: unknown;
   };
 };
 
@@ -40,31 +39,60 @@ export type ClinicProfileValidationResult =
   | { success: true; data: ValidatedProfile }
   | { success: false; section: ProfileSection; fieldErrors: ClinicProfileFieldErrors };
 
-const ALL_SECTIONS: readonly ProfileSection[] = ['clinic', 'schedule', 'professional'];
+export const ALL_SECTIONS: readonly ProfileSection[] = ['clinic', 'schedule', 'professional'];
 
 function isBlank(value: unknown): boolean {
   return typeof value !== 'string' || value.trim().length === 0;
 }
 
+/**
+ * Whether a Zod issue is "you wrote too much" rather than "you wrote nothing".
+ *
+ * Both land on the same field, and the mapping below used to answer `required`
+ * for either — which is how a 300-character clinic name came back as "This
+ * field is required" under a box the reader had just filled. `too_big` is the
+ * code `.max()` raises in Zod 4; every other failure on a text field here is
+ * either emptiness or a format the field has its own message for.
+ */
+function isTooLong(issue: { code: string }): boolean {
+  return issue.code === 'too_big';
+}
+
+/**
+ * The blank pass and the schema pass both run, and the blank one wins per field.
+ *
+ * They used to be sequential: if *any* field was empty the function returned
+ * before Zod ever ran, so a 300-character clinic name beside an empty phone
+ * reported only the phone — and the name's real problem appeared one round
+ * later, after the phone was filled. Two visits to fix two faults that were
+ * both true at the same moment.
+ *
+ * "Empty" still takes precedence over whatever Zod says about the same field,
+ * because `required` is the more useful sentence for a box with nothing in it
+ * than `too_small` translated.
+ */
 function validateClinic(raw: ClinicProfileRaw['clinic']): ClinicProfileValidationResult | ClinicInformationInput {
   const fieldErrors: ClinicProfileFieldErrors = {};
   if (isBlank(raw.name)) fieldErrors.clinicName = 'required';
   if (isBlank(raw.phone)) fieldErrors.clinicPhone = 'required';
   if (isBlank(raw.contactEmail)) fieldErrors.contactEmail = 'required';
   if (isBlank(raw.address)) fieldErrors.address = 'required';
-  if (Object.keys(fieldErrors).length > 0) return { success: false, section: 'clinic', fieldErrors };
 
   const parsed = clinicInformationSchema.safeParse(raw);
-  if (parsed.success) return parsed.data;
+  if (parsed.success && Object.keys(fieldErrors).length === 0) return parsed.data;
 
-  for (const issue of parsed.error.issues) {
-    const field = issue.path[0];
-    if (field === 'phone') fieldErrors.clinicPhone = 'invalidPhone';
-    if (field === 'contactEmail') fieldErrors.contactEmail = 'invalidEmail';
-    if (field === 'name') fieldErrors.clinicName = 'required';
-    if (field === 'address') fieldErrors.address = 'required';
-    if (field === 'logoUrl') fieldErrors.clinicLogoUrl = 'invalidImage';
+  if (!parsed.success) {
+    for (const issue of parsed.error.issues) {
+      const field = issue.path[0];
+      const long = isTooLong(issue);
+      if (field === 'phone') fieldErrors.clinicPhone ??= long ? 'tooLong' : 'invalidPhone';
+      if (field === 'contactEmail') fieldErrors.contactEmail ??= long ? 'tooLong' : 'invalidEmail';
+      if (field === 'name') fieldErrors.clinicName ??= long ? 'tooLong' : 'required';
+      if (field === 'address') fieldErrors.address ??= long ? 'tooLong' : 'required';
+      if (field === 'logoUrl') fieldErrors.clinicLogoUrl ??= 'invalidImage';
+    }
   }
+
   return { success: false, section: 'clinic', fieldErrors };
 }
 
@@ -97,23 +125,26 @@ function validateSchedule(raw: ClinicProfileRaw['schedule']): ClinicProfileValid
   return { success: false, section: 'schedule', fieldErrors: { schedule: 'invalidTime' } };
 }
 
+/** Same two-pass merge as {@link validateClinic}; the reasoning is there. */
 function validateProfessional(raw: ClinicProfileRaw['professional']): ClinicProfileValidationResult | ProfessionalProfileInput {
   const fieldErrors: ClinicProfileFieldErrors = {};
   if (isBlank(raw.name)) fieldErrors.name = 'required';
   if (isBlank(raw.professionalTitle)) fieldErrors.professionalTitle = 'required';
   if (isBlank(raw.specialty)) fieldErrors.specialty = 'required';
-  if (isBlank(raw.phone)) fieldErrors.professionalPhone = 'required';
-  if (Object.keys(fieldErrors).length > 0) return { success: false, section: 'professional', fieldErrors };
 
   const parsed = professionalProfileSchema.safeParse(raw);
-  if (parsed.success) return parsed.data;
-  for (const issue of parsed.error.issues) {
-    const field = issue.path[0];
-    if (field === 'phone') fieldErrors.professionalPhone = 'invalidPhone';
-    if (field === 'name') fieldErrors.name = 'required';
-    if (field === 'professionalTitle') fieldErrors.professionalTitle = 'required';
-    if (field === 'specialty') fieldErrors.specialty = 'required';
+  if (parsed.success && Object.keys(fieldErrors).length === 0) return parsed.data;
+
+  if (!parsed.success) {
+    for (const issue of parsed.error.issues) {
+      const field = issue.path[0];
+      const long = isTooLong(issue);
+      if (field === 'name') fieldErrors.name ??= long ? 'tooLong' : 'required';
+      if (field === 'professionalTitle') fieldErrors.professionalTitle ??= long ? 'tooLong' : 'required';
+      if (field === 'specialty') fieldErrors.specialty ??= long ? 'tooLong' : 'required';
+    }
   }
+
   return { success: false, section: 'professional', fieldErrors };
 }
 
@@ -133,4 +164,30 @@ export function validateClinicProfile(
     data[section] = result as never;
   }
   return { success: true, data };
+}
+
+/**
+ * Every section's errors at once, keyed by section.
+ *
+ * {@link validateClinicProfile} stops at the first section that fails, which is
+ * the right shape for a server action deciding whether to write — it has one
+ * message to return and nothing to draw. It is the wrong shape for the wizard's
+ * Finish button: stopping at the clinic step meant the reader fixed an address,
+ * pressed Finish, and was thrown to a *different* step with fresh errors they
+ * had never been shown, once per broken section.
+ *
+ * Sections that pass are absent from the result, so an empty object means the
+ * whole form is valid.
+ */
+export function validateEverySection(
+  raw: ClinicProfileRaw,
+): Partial<Record<ProfileSection, ClinicProfileFieldErrors>> {
+  const failures: Partial<Record<ProfileSection, ClinicProfileFieldErrors>> = {};
+
+  for (const section of ALL_SECTIONS) {
+    const result = validateClinicProfile(raw, [section]);
+    if (!result.success) failures[section] = result.fieldErrors;
+  }
+
+  return failures;
 }

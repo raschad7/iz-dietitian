@@ -1,6 +1,13 @@
 import { describe, expect, test } from 'bun:test';
 
-import { clearFieldError, validateWizardSubmission } from './wizard-validation';
+import { OTHER_OPTION } from './professional-options';
+import {
+  ARRIVAL_GRACE_MS,
+  clearFieldError,
+  FINISH_BUTTON_ID,
+  isDeliberateFinish,
+  validateWizardSubmission,
+} from './wizard-validation';
 
 const completedForm = () => {
   const form = new FormData();
@@ -9,9 +16,8 @@ const completedForm = () => {
   form.set('contactEmail', 'rashad@example.com');
   form.set('address', 'Ramallah');
   form.set('name', 'Rashad Atallah');
-  form.set('professionalTitle', 'deitetions');
-  form.set('specialty', 'diet');
-  form.set('professionalPhone', '0232333322');
+  form.set('professionalTitle', 'أخصائي تغذية');
+  form.set('specialty', 'التغذية العلاجية');
   for (let weekday = 0; weekday < 5; weekday += 1) {
     form.set(`working-${weekday}`, 'on');
     form.set(`open-${weekday}`, '08:00');
@@ -31,9 +37,85 @@ describe('validateWizardSubmission', () => {
 
     expect(validateWizardSubmission(form)).toEqual({
       submit: false,
-      section: 'professional',
-      fieldErrors: { professionalTitle: 'required' },
+      firstSection: 'professional',
+      failures: { professional: { professionalTitle: 'required' } },
     });
+  });
+
+  test('reports every broken section, not just the earliest one', () => {
+    // Finish is a claim about all three steps, so the answer to it is
+    // everything still outstanding. Returning only the first meant one press
+    // per broken section, each one relocating the reader to a step they had
+    // not seen fail.
+    const form = completedForm();
+    form.set('address', '');
+    form.set('specialty', '');
+
+    const decision = validateWizardSubmission(form);
+
+    expect(decision.submit).toBe(false);
+    if (decision.submit) return;
+    expect(decision.firstSection).toBe('clinic');
+    expect(decision.failures).toEqual({
+      clinic: { address: 'required' },
+      professional: { specialty: 'required' },
+    });
+  });
+
+  test('resolves the custom box when the reader chose "other"', () => {
+    const form = completedForm();
+    form.set('specialty', OTHER_OPTION);
+    form.set('specialtyCustom', 'تغذية الحوامل');
+
+    expect(validateWizardSubmission(form)).toEqual({ submit: true });
+  });
+
+  test('rejects "other" with nothing typed beside it', () => {
+    const form = completedForm();
+    form.set('specialty', OTHER_OPTION);
+    form.set('specialtyCustom', '   ');
+
+    expect(validateWizardSubmission(form)).toEqual({
+      submit: false,
+      firstSection: 'professional',
+      failures: { professional: { specialty: 'required' } },
+    });
+  });
+});
+
+describe('isDeliberateFinish', () => {
+  const finishPress = {
+    submitterId: FINISH_BUTTON_ID,
+    onLastStep: true,
+    sinceStepChange: 5_000,
+  };
+
+  test('accepts a press of Finish on the last step', () => {
+    expect(isDeliberateFinish(finishPress)).toBe(true);
+  });
+
+  test('rejects the submit that rides along with the arrival on the last step', () => {
+    // The reported bug. Continue and Finish are one DOM node whose `type` flips
+    // to `submit` as the step lands, so a second activation in the same burst —
+    // the tail of a double click, a repeating Enter — reaches this with the last
+    // step already current. It is the arrival, not a decision.
+    expect(isDeliberateFinish({ ...finishPress, sinceStepChange: 0 })).toBe(false);
+    expect(isDeliberateFinish({ ...finishPress, sinceStepChange: ARRIVAL_GRACE_MS - 1 })).toBe(
+      false,
+    );
+    expect(isDeliberateFinish({ ...finishPress, sinceStepChange: ARRIVAL_GRACE_MS })).toBe(true);
+  });
+
+  test('rejects an implicit submission, which reports no submitter', () => {
+    expect(isDeliberateFinish({ ...finishPress, submitterId: null })).toBe(false);
+  });
+
+  test('rejects a submit raised by any other control', () => {
+    expect(isDeliberateFinish({ ...finishPress, submitterId: 'apply-to-all' })).toBe(false);
+  });
+
+  test('rejects a submit raised anywhere but the last step', () => {
+    expect(isDeliberateFinish({ ...finishPress, onLastStep: false })).toBe(false);
   });
 });
 

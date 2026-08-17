@@ -154,7 +154,12 @@ export function ProfileEditor({
              */
             <ScheduleFields profile={profile} fieldErrors={errors} onEdit={() => setDirty(true)} />
           ) : (
-            <ProfessionalFields profile={profile} fieldErrors={errors} />
+            /*
+             * The title and the specialty are selects, which are buttons — so
+             * like the schedule they report their own edits rather than being
+             * heard by the form's `onInput`.
+             */
+            <ProfessionalFields profile={profile} fieldErrors={errors} onEdit={() => setDirty(true)} />
           )
         }
       </SectionForm>

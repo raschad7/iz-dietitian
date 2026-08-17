@@ -21,6 +21,7 @@ import {
   type AttemptKind,
 } from './rate-limit';
 import { resolveSafeRedirect } from './redirect';
+import { firstSignUpMessage, readSignUpForm, signUpFieldErrors } from './signup-validation';
 import {
   changePasswordSchema,
   credentialsSchema,
@@ -127,27 +128,20 @@ export async function signUpStaff(
   _previousState: AuthFormState,
   formData: FormData,
 ): Promise<AuthFormState> {
-  const raw = {
-    name: formData.get('name'),
-    email: formData.get('email'),
-    password: formData.get('password'),
-    confirmPassword: formData.get('confirmPassword'),
-    locale: formData.get('locale'),
-  };
-
+  const raw = readSignUpForm(formData);
   const parsed = signUpSchema.safeParse(raw);
 
   if (!parsed.success) {
     // Map the first failing field to a specific message — a sign-up form that
-    // says only "something went wrong" is the most annoying kind.
-    const fieldErrors = z.flattenError(parsed.error).fieldErrors;
+    // says only "something went wrong" is the most annoying kind. The order and
+    // the wording live in `signup-validation.ts`, which the form itself uses to
+    // catch the same mistakes before the request; keeping one copy is what
+    // stops the two from disagreeing about what is wrong.
+    const messageKey = firstSignUpMessage(signUpFieldErrors(raw));
 
-    if (fieldErrors.confirmPassword) return { status: 'error', messageKey: 'passwordMismatch' };
-    if (fieldErrors.password) return { status: 'error', messageKey: 'passwordTooShort' };
-    if (fieldErrors.email) return { status: 'error', messageKey: 'invalidEmail' };
-    if (fieldErrors.name) return { status: 'error', messageKey: 'nameRequired' };
-
-    return { status: 'error', messageKey: 'genericError' };
+    return messageKey
+      ? { status: 'error', messageKey }
+      : { status: 'error', messageKey: 'genericError' };
   }
 
   const { name, email, password, locale } = parsed.data;

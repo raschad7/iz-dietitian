@@ -22,17 +22,15 @@ import type { ClinicInformationInput, ProfessionalProfileInput, WeeklyScheduleIn
 
 const CLINIC: ClinicInformationInput = {
   name: 'Qiwam Clinic',
-  phone: '+970 59 123 4567',
+  phone: '0599123456',
   contactEmail: 'clinic@qiwam.test',
   address: 'Ramallah, Main Street',
 };
 
 const PROFESSIONAL: ProfessionalProfileInput = {
   name: 'Rania Khalil',
-  professionalTitle: 'Clinical Dietitian',
-  specialty: 'Sports nutrition',
-  phone: '0599 123 456',
-  licenseNumber: null,
+  professionalTitle: 'أخصائي تغذية سريرية',
+  specialty: 'التغذية الرياضية',
 };
 
 const SCHEDULE: WeeklyScheduleInput = {
@@ -103,7 +101,7 @@ describe('clinic-scoped profile writes', () => {
     expect(staff?.name).toBe('Rania Khalil');
     expect(professional?.userId).toBe(userId);
     expect(professional?.name).toBe('Rania Khalil');
-    expect(professional?.professionalTitle).toBe('Clinical Dietitian');
+    expect(professional?.professionalTitle).toBe('أخصائي تغذية سريرية');
   });
 
   test('refuses to write a professional profile for a user from another clinic', async () => {
