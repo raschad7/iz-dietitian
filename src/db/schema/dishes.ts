@@ -58,12 +58,17 @@ export const dishes = pgTable(
     mealTypes: text('meal_types').array().notNull(),
 
     /**
-     * `cheap`, `portable`, `quick`, `vegetarian`, `high_protein`,
-     * `diabetic_friendly`.
+     * The **practical** tags only: `economical`, `quick`, `easy_prep`,
+     * `no_cook`, `portable`, `filling`, `local`, `vegetarian` — the closed set in
+     * `DISH_TAGS` (`schema.ts`).
      *
      * These are what a dietitian's weekly instruction resolves against: "lower
      * cost" and "portable meals" are only actionable because the catalog says
-     * which dishes are which.
+     * which dishes are which. Nutrition is NOT here — "high protein" is computed
+     * from the recipe by `nutritionCategory()`, the single source of truth, so a
+     * dish can never be hand-tagged to contradict its own food. Disease
+     * suitability is not here either; it is a patient-specific rule, not a dish
+     * boolean.
      */
     tags: text('tags').array().notNull(),
 

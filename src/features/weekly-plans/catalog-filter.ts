@@ -1,4 +1,5 @@
 import { MEAL_TOLERANCE } from './drift';
+import type { NutritionCategory } from './nutrition';
 import type { CatalogEntry } from './queries';
 import type { DishTag } from './schema';
 import { bestServings } from './similar';
@@ -22,6 +23,12 @@ export type CatalogFilters = {
   needle: string;
   mealType: string | null;
   tags: readonly DishTag[];
+  /**
+   * Computed nutrition categories to keep — e.g. `['high_protein']`. Matched
+   * against the dish's `nutritionCategory`, which is derived from the recipe, so
+   * "high protein" here means the food is, not that someone tagged it so.
+   */
+  nutrition: readonly NutritionCategory[];
   options: readonly CatalogOption[];
 };
 
@@ -47,7 +54,7 @@ export type CatalogContext = {
  */
 export function filterCatalog(
   catalog: readonly CatalogEntry[],
-  { needle, mealType, tags, options }: CatalogFilters,
+  { needle, mealType, tags, nutrition, options }: CatalogFilters,
   { usage, budgetKcal }: CatalogContext,
 ): CatalogEntry[] {
   return catalog.filter((dish) => {
@@ -58,6 +65,8 @@ export function filterCatalog(
 
     if (mealType && !dish.mealTypes.includes(mealType)) return false;
     if (!tags.every((tag) => dish.tags.includes(tag))) return false;
+    // Computed, not stored: a dish is "high protein" here only if its recipe is.
+    if (nutrition.length && !nutrition.includes(dish.nutritionCategory)) return false;
 
     for (const option of options) {
       if (option === 'allergenSafe' && dish.blockedBy.length > 0) return false;

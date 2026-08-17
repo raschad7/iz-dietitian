@@ -23,6 +23,8 @@ import { inArray, sql } from 'drizzle-orm';
 
 import { db } from '@/db';
 import { dishIngredients, dishes, foods, type NewDish } from '@/db/schema';
+import { DISH_TAGS, MEAL_TYPES } from '@/features/weekly-plans/schema';
+import { isMember } from '@/lib/enum';
 
 const DATASET_PATH = join(dirname(fileURLToPath(import.meta.url)), '../data/dishes.json');
 
@@ -38,7 +40,7 @@ type IngredientRecord = {
   note: string;
 };
 
-type DishRecord = {
+export type DishRecord = {
   slug: string;
   nameAr: string;
   nameEn: string;
@@ -52,13 +54,16 @@ type DishRecord = {
 type Dataset = { dishes: DishRecord[] };
 
 /**
- * Checks the file before touching the database.
+ * Collects everything wrong with the records, before touching the database.
  *
  * Every one of these would otherwise surface much later as a plan that looks
- * plausible and is wrong — a dish with no ingredients reads as 0 kcal, and a
- * duplicate slug means one definition silently wins.
+ * plausible and is wrong — a dish with no ingredients reads as 0 kcal, a
+ * duplicate slug means one definition silently wins, and a **deprecated or
+ * unknown tag** (`high_protein`, `diabetic_friendly`, a typo) would let metadata
+ * back in that the rest of the app has removed. Returns the problems rather than
+ * throwing, so it is unit-testable without a database.
  */
-function validate(records: DishRecord[]): void {
+export function validateDishRecords(records: DishRecord[]): string[] {
   const problems: string[] = [];
   const seen = new Set<string>();
 
@@ -69,6 +74,20 @@ function validate(records: DishRecord[]): void {
     if (dish.ingredients.length === 0) problems.push(`${dish.slug}: no ingredients`);
     if (dish.mealTypes.length === 0) problems.push(`${dish.slug}: no mealTypes`);
 
+    for (const mealType of dish.mealTypes) {
+      if (!isMember(MEAL_TYPES, mealType)) {
+        problems.push(`${dish.slug}: unknown meal type "${mealType}"`);
+      }
+    }
+
+    // Only the practical tags survive the taxonomy cleanup; a computed-nutrition
+    // tag or a disease tag stored here is a defect, not a value.
+    for (const tag of dish.tags) {
+      if (!isMember(DISH_TAGS, tag)) {
+        problems.push(`${dish.slug}: unknown or deprecated tag "${tag}"`);
+      }
+    }
+
     for (const ingredient of dish.ingredients) {
       if (!(ingredient.grams > 0)) {
         problems.push(`${dish.slug}: non-positive grams for fdcId ${ingredient.fdcId}`);
@@ -76,6 +95,11 @@ function validate(records: DishRecord[]): void {
     }
   }
 
+  return problems;
+}
+
+function validate(records: DishRecord[]): void {
+  const problems = validateDishRecords(records);
   if (problems.length) {
     throw new Error(`data/dishes.json is invalid:\n  ${problems.join('\n  ')}`);
   }

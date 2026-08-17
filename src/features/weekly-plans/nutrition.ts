@@ -211,6 +211,8 @@ export type DishIngredientDetail = {
 
 export type DishDetail = {
   id: string;
+  /** The owning clinic, or null for a shared built-in dish — what tells "my dish" from a system dish. */
+  clinicId: string | null;
   slug: string;
   nameAr: string;
   nameEn: string;
@@ -241,6 +243,33 @@ export function dishTotals(
   }));
 
   return sumNutrients(sources);
+}
+
+/**
+ * A dish's total weight in grams at a serving multiplier.
+ *
+ * The multiplier scales the grams, exactly as {@link dishTotals} scales them
+ * before summing nutrients — so the weight shown to a client always matches the
+ * calories shown, both derived from the same recipe at the same serving. This is
+ * what replaced the abstract "×N portions" the UI used to print: a real amount a
+ * person can act on, with no new data stored.
+ */
+export function dishGrams(
+  ingredients: readonly { quantityGrams: number }[],
+  servings: number,
+): number {
+  return ingredients.reduce((total, ingredient) => total + ingredient.quantityGrams * servings, 0);
+}
+
+/**
+ * Rounds a gram figure for display.
+ *
+ * A single food reads to the nearest gram (`step` 1); a whole dish to the nearest
+ * 5 g (`step` 5), because "≈ 445 g" is a weight someone acts on and the trailing
+ * digit is precision the recipe never promised.
+ */
+export function roundGrams(value: number, step: 1 | 5 = 1): number {
+  return Math.round(value / step) * step;
 }
 
 /**

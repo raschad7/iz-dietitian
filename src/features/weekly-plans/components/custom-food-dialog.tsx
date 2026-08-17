@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, type FormEvent } from 'react';
+import { useState, useTransition } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
@@ -9,21 +9,27 @@ import { Field, FieldError, FieldHint } from '@/components/ui/field';
 import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { SelectField } from '@/components/ui/select-field';
 import { getLocaleDirection } from '@/i18n/routing';
 
 import { createCustomFoodAction } from '../catalog-actions';
+import { CUSTOM_FOOD_UNITS } from '../catalog-schema';
+import { suggestUnitKey } from '../ingredient-units';
 import type { FoodSearchResult } from '../queries';
 
-type FieldName = 'description' | 'nameAr' | 'kcal' | 'protein' | 'carbs' | 'fat';
+type FieldName = 'nameAr' | 'kcal' | 'protein' | 'carbs' | 'fat' | 'unitGrams';
 type FieldErrors = Partial<Record<FieldName, string>>;
 
 /**
- * Adds a food to the clinic's own library when the search in `FoodPicker`
- * comes up short.
+ * Adds a food to the clinic's own library when the search comes up short — kept
+ * deliberately focused (spec §24).
  *
- * The dietitian enters the nutrition per 100g directly — no AI estimate here,
- * that is a later increment. Numbers are kept as controlled strings so an
- * empty field can be told apart from a typed zero while validating.
+ * The Arabic name, the four macros per 100 g, and a natural serving unit are all
+ * that is asked for. The unit (spec §10) lets the dietitian add the food by the
+ * loaf / cup / piece later, not only by grams — it is persisted on the food's
+ * `portionLabel`/`portionGrams`, and its default is guessed from the name (خبز →
+ * رغيف). The English name is optional and sits last. Nothing about sources,
+ * aliases, or which database this lands in appears.
  */
 export function CustomFoodDialog({
   locale,
@@ -39,36 +45,42 @@ export function CustomFoodDialog({
   onCreated: (food: FoodSearchResult) => void;
 }) {
   const t = useTranslations('dishEditor');
+  const tUnits = useTranslations('dishEditor.editor.units');
   const activeLocale = useLocale();
   const [pending, startTransition] = useTransition();
 
-  const [description, setDescription] = useState('');
   const [nameAr, setNameAr] = useState(initialNameAr ?? '');
+  const [description, setDescription] = useState('');
   const [kcal, setKcal] = useState('');
   const [protein, setProtein] = useState('');
   const [carbs, setCarbs] = useState('');
   const [fat, setFat] = useState('');
+  const [unit, setUnit] = useState<string>(() => suggestUnitKey(initialNameAr ?? ''));
+  const [unitGrams, setUnitGrams] = useState('');
   const [errors, setErrors] = useState<FieldErrors>({});
   const [submitError, setSubmitError] = useState(false);
 
-  // Resets the form to a clean slate each time the dialog opens, rather than
-  // carrying over a previous attempt's values into an unrelated food. Derived
-  // during render — the documented pattern for mirroring a prop into state —
-  // so no stale value ever paints for a frame first.
+  // Reset to a clean slate each time the dialog opens. Derived during render — the
+  // documented pattern for mirroring a prop into state — so no stale value paints.
   const [wasOpen, setWasOpen] = useState(open);
   if (open !== wasOpen) {
     setWasOpen(open);
     if (open) {
+      const seedName = initialNameAr ?? '';
+      setNameAr(seedName);
       setDescription('');
-      setNameAr(initialNameAr ?? '');
       setKcal('');
       setProtein('');
       setCarbs('');
       setFat('');
+      setUnit(suggestUnitKey(seedName));
+      setUnitGrams('');
       setErrors({});
       setSubmitError(false);
     }
   }
+
+  const usesHouseholdUnit = unit !== 'g';
 
   function close() {
     if (pending) return;
@@ -78,7 +90,7 @@ export function CustomFoodDialog({
   function validate(): FieldErrors {
     const next: FieldErrors = {};
 
-    if (!description.trim()) next.description = t('customFoodDialog.errors.required');
+    // English name is optional; only the Arabic name and the macros are required.
     if (!nameAr.trim()) next.nameAr = t('customFoodDialog.errors.required');
 
     for (const [key, value] of [
@@ -93,11 +105,18 @@ export function CustomFoodDialog({
       }
     }
 
+    // A household unit must carry a positive grams-per-unit; grams-only needs none.
+    if (usesHouseholdUnit) {
+      const grams = Number(unitGrams);
+      if (unitGrams.trim() === '' || Number.isNaN(grams) || grams <= 0) {
+        next.unitGrams = t('customFoodDialog.errors.unitGramsRequired');
+      }
+    }
+
     return next;
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  function submit() {
     if (pending) return;
 
     const validationErrors = validate();
@@ -107,12 +126,14 @@ export function CustomFoodDialog({
     setSubmitError(false);
     startTransition(async () => {
       const result = await createCustomFoodAction(locale, {
-        description: description.trim(),
         nameAr: nameAr.trim(),
+        description: description.trim(),
         kcal: Number(kcal),
         protein: Number(protein),
         carbs: Number(carbs),
         fat: Number(fat),
+        unit,
+        unitGrams: usesHouseholdUnit ? Number(unitGrams) : undefined,
       });
 
       if (result.ok) {
@@ -134,26 +155,25 @@ export function CustomFoodDialog({
     >
       <DialogHeader
         title={t('customFoodDialog.title')}
-        description={t('customFoodDialog.description')}
         onClose={close}
         closeLabel={t('customFoodDialog.close')}
       />
 
-      <form onSubmit={handleSubmit}>
-        <DialogBody>
-          <Field>
-            <Label htmlFor="custom-food-description">{t('customFoodDialog.descriptionLabel')}</Label>
-            <Input
-              id="custom-food-description"
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-              placeholder={t('customFoodDialog.descriptionPlaceholder')}
-              aria-invalid={Boolean(errors.description) || undefined}
-              disabled={pending}
-            />
-            <FieldError>{errors.description}</FieldError>
-          </Field>
-
+      {/*
+        A plain container, NOT a <form>: this dialog's native <dialog> renders
+        inline inside the dish editor's own <form> (the editor uses a server
+        action), and a nested <form> is invalid HTML that breaks hydration. The
+        submit is imperative anyway; Enter on a field still triggers it.
+      */}
+      <div
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            submit();
+          }
+        }}
+      >
+        <DialogBody className="gap-5">
           <Field>
             <Label htmlFor="custom-food-name-ar">{t('customFoodDialog.nameArLabel')}</Label>
             <Input
@@ -168,73 +188,88 @@ export function CustomFoodDialog({
             <FieldError>{errors.nameAr}</FieldError>
           </Field>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Field>
-              <Label htmlFor="custom-food-kcal">{t('customFoodDialog.kcalLabel')}</Label>
-              <Input
-                id="custom-food-kcal"
-                type="number"
-                inputMode="decimal"
-                min={0}
-                step="any"
-                value={kcal}
-                onChange={(event) => setKcal(event.target.value)}
-                aria-invalid={Boolean(errors.kcal) || undefined}
-                disabled={pending}
-              />
-              <FieldError>{errors.kcal}</FieldError>
-            </Field>
-
-            <Field>
-              <Label htmlFor="custom-food-protein">{t('customFoodDialog.proteinLabel')}</Label>
-              <Input
-                id="custom-food-protein"
-                type="number"
-                inputMode="decimal"
-                min={0}
-                step="any"
-                value={protein}
-                onChange={(event) => setProtein(event.target.value)}
-                aria-invalid={Boolean(errors.protein) || undefined}
-                disabled={pending}
-              />
-              <FieldError>{errors.protein}</FieldError>
-            </Field>
-
-            <Field>
-              <Label htmlFor="custom-food-carbs">{t('customFoodDialog.carbsLabel')}</Label>
-              <Input
-                id="custom-food-carbs"
-                type="number"
-                inputMode="decimal"
-                min={0}
-                step="any"
-                value={carbs}
-                onChange={(event) => setCarbs(event.target.value)}
-                aria-invalid={Boolean(errors.carbs) || undefined}
-                disabled={pending}
-              />
-              <FieldError>{errors.carbs}</FieldError>
-            </Field>
-
-            <Field>
-              <Label htmlFor="custom-food-fat">{t('customFoodDialog.fatLabel')}</Label>
-              <Input
-                id="custom-food-fat"
-                type="number"
-                inputMode="decimal"
-                min={0}
-                step="any"
-                value={fat}
-                onChange={(event) => setFat(event.target.value)}
-                aria-invalid={Boolean(errors.fat) || undefined}
-                disabled={pending}
-              />
-              <FieldError>{errors.fat}</FieldError>
-            </Field>
+          <div>
+            <p className="pb-2 text-label font-semibold">{t('customFoodDialog.macrosHeading')}</p>
+            <div className="grid grid-cols-2 gap-3">
+              {(
+                [
+                  ['kcal', kcal, setKcal],
+                  ['protein', protein, setProtein],
+                  ['carbs', carbs, setCarbs],
+                  ['fat', fat, setFat],
+                ] as const
+              ).map(([key, value, setValue]) => (
+                <Field key={key}>
+                  <Label htmlFor={`custom-food-${key}`}>{t(`customFoodDialog.${key}Label`)}</Label>
+                  <Input
+                    id={`custom-food-${key}`}
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    step="any"
+                    value={value}
+                    onChange={(event) => setValue(event.target.value)}
+                    aria-invalid={Boolean(errors[key]) || undefined}
+                    disabled={pending}
+                  />
+                  <FieldError>{errors[key]}</FieldError>
+                </Field>
+              ))}
+            </div>
+            <FieldHint className="mt-2">{t('customFoodDialog.macrosHint')}</FieldHint>
           </div>
 
-          <FieldHint>{t('customFoodDialog.macrosHint')}</FieldHint>
+          {/* Natural serving unit (spec §10) — persisted on the food itself. */}
+          <div>
+            <p className="pb-2 text-label font-semibold">{t('customFoodDialog.unitHeading')}</p>
+            <div className="grid grid-cols-2 gap-3">
+              <Field>
+                <Label htmlFor="custom-food-unit">{t('customFoodDialog.unitLabel')}</Label>
+                <SelectField
+                  id="custom-food-unit"
+                  value={unit}
+                  onValueChange={setUnit}
+                  disabled={pending}
+                  options={CUSTOM_FOOD_UNITS.map((value) => ({
+                    value,
+                    label: value === 'g' ? t('customFoodDialog.unitGrams') : tUnits(value),
+                  }))}
+                />
+              </Field>
+
+              {usesHouseholdUnit && (
+                <Field>
+                  <Label htmlFor="custom-food-unit-grams">{t('customFoodDialog.unitGramsLabel')}</Label>
+                  <Input
+                    id="custom-food-unit-grams"
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    step="any"
+                    value={unitGrams}
+                    onChange={(event) => setUnitGrams(event.target.value)}
+                    aria-invalid={Boolean(errors.unitGrams) || undefined}
+                    disabled={pending}
+                  />
+                  <FieldError>{errors.unitGrams}</FieldError>
+                </Field>
+              )}
+            </div>
+            <FieldHint className="mt-2">{t('customFoodDialog.unitHint')}</FieldHint>
+          </div>
+
+          {/* English name — optional and last, the same as a dish's. */}
+          <Field>
+            <Label htmlFor="custom-food-description">{t('customFoodDialog.descriptionLabel')}</Label>
+            <Input
+              id="custom-food-description"
+              dir="ltr"
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              placeholder={t('customFoodDialog.descriptionPlaceholder')}
+              disabled={pending}
+            />
+          </Field>
 
           {submitError && (
             <p role="alert" className="flex items-center gap-1.5 text-body-sm text-destructive">
@@ -248,11 +283,11 @@ export function CustomFoodDialog({
           <Button type="button" variant="ghost" onClick={close} disabled={pending}>
             {t('customFoodDialog.cancel')}
           </Button>
-          <Button type="submit" disabled={pending}>
+          <Button type="button" onClick={submit} disabled={pending}>
             {pending ? t('customFoodDialog.submitting') : t('customFoodDialog.submit')}
           </Button>
         </DialogFooter>
-      </form>
+      </div>
     </Dialog>
   );
 }

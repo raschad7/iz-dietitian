@@ -1,7 +1,6 @@
 import {
   and,
   asc,
-  count,
   desc,
   eq,
   gt,
@@ -36,15 +35,19 @@ import { calculateAge } from '@/features/clients/age';
 import { clientSeq } from '@/features/clients/seq';
 import { DISPLAY_TIME_ZONE } from '@/lib/format';
 
+import { normalizeArabic } from './arabic-normalize';
+import { matchesOwner, type OwnerFilter } from './catalog-ownership';
 import type { CatalogDish } from './generate';
 import {
   baseServingKcal,
   combineTotals,
   dishTotals,
   emptyTotals,
+  nutritionCategory,
   type DishDetail,
   type FoodNutrients,
   type NutrientTotals,
+  type NutritionCategory,
 } from './nutrition';
 import { findSimilar, type SimilarMatch } from './similar';
 import { slotFillKey, type SlotFill } from './skeleton';
@@ -89,6 +92,13 @@ const foodColumns = {
   id: foods.id,
   description: foods.description,
   nameAr: foods.nameAr,
+  // Carried for the dish editor's unit menu: the food's SR Legacy group decides
+  // whether a household unit is offered at all (meat is grams-only), and the one
+  // stored household portion is what that menu is derived from. See
+  // `ingredient-units.ts`.
+  category: foods.category,
+  portionGrams: foods.portionGrams,
+  portionLabel: foods.portionLabel,
   kcal: foods.kcal,
   protein: foods.protein,
   carbs: foods.carbs,
@@ -148,6 +158,7 @@ export async function loadCatalog(
   const dishRows = await db
     .select({
       id: dishes.id,
+      clinicId: dishes.clinicId,
       slug: dishes.slug,
       nameAr: dishes.nameAr,
       nameEn: dishes.nameEn,
@@ -205,6 +216,7 @@ export async function loadDishesByIds(ids: readonly string[]): Promise<DishDetai
   const dishRows = await db
     .select({
       id: dishes.id,
+      clinicId: dishes.clinicId,
       slug: dishes.slug,
       nameAr: dishes.nameAr,
       nameEn: dishes.nameEn,
@@ -257,12 +269,22 @@ export function toPromptCatalog(catalog: readonly DishDetail[]): CatalogDish[] {
     allergenTags: dish.allergenTags,
     baseKcal: baseServingKcal(dish.ingredients),
     baseProtein: dishTotals(dish.ingredients, 1).protein.value,
+    // Computed here, sent to the model as a fact rather than a question — kept
+    // separate from `tags`, which stay purely practical.
+    nutritionCategory: nutritionCategory(dishTotals(dish.ingredients, 1)),
   }));
 }
 
 export type CatalogEntry = DishDetail & {
   /** Energy for one base serving, so the panel can rank by fit. */
   baseKcal: number;
+  /**
+   * The dish's computed nutrition label (`high_protein` | `high_carb` |
+   * `high_fat` | `balanced`), derived from the recipe — never a stored tag. This
+   * is what the "high protein" filter matches, so the filter and the badge can
+   * never disagree, and no dish can be hand-tagged into a nutrition claim.
+   */
+  nutritionCategory: NutritionCategory;
   /**
    * The client's allergens this dish carries. Empty for a dish they can eat.
    *
@@ -292,86 +314,265 @@ export async function listCatalogForBoard(
     .map((dish) => ({
       ...dish,
       baseKcal: baseServingKcal(dish.ingredients),
+      nutritionCategory: nutritionCategory(dishTotals(dish.ingredients, 1)),
       blockedBy: dish.allergenTags.filter((tag) => blocked.has(tag)),
     }))
     .sort((a, b) => a.nameAr.localeCompare(b.nameAr, 'ar'));
 }
 
 export type DishListResult = {
-  items: (DishDetail & { baseKcal: number; totals: NutrientTotals })[];
+  items: (DishDetail & { baseKcal: number; totals: NutrientTotals; hidden: boolean })[];
   total: number;
   page: number;
   pageCount: number;
 };
 
+/** One clinic dish, in the exact shape the editor preloads its fields from. */
+export type DishEditData = {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+  baseServingLabel: string;
+  mealTypes: string[];
+  tags: string[];
+  allergenTags: string[];
+  ingredients: {
+    food: FoodSearchResult;
+    quantityGrams: number;
+    displayNameAr: string | null;
+    householdLabel: string | null;
+    householdGrams: number | null;
+  }[];
+};
+
 export const DISHES_PAGE_SIZE = 20;
 
 /**
- * The browsable catalog.
+ * The browsable catalog — one clinic's visible dishes, searched and paginated.
  *
- * Read-only in this cut — there is no dish editor yet — so this exists to answer
- * "what was the AI choosing from", which is the first question anyone asks when a
- * generated plan looks wrong.
+ * Filtered and paged **in memory over `loadCatalog`**, not by a second SQL query.
+ * `loadCatalog` already returns exactly what this clinic may see — shared dishes
+ * it has not hidden, plus its own, active only — and this function loaded the
+ * whole thing regardless to cost each dish. The previous version counted and
+ * paged with an *unscoped* query over `dishes`, so the total was inflated by
+ * every other clinic's dishes and by this clinic's hidden ones, and a page could
+ * come back short once the visibility intersection removed rows the offset had
+ * already claimed. Driving both the count and the window off the visible set
+ * keeps them honest.
+ *
+ * Search is normalized the same way the ingredient search is (`normalizeArabic`),
+ * so a dietitian who types `ارز` finds a dish stored as `أرز`. Both names and the
+ * slug are matched, because she will search in whichever language is to hand.
  */
 export async function listDishes(input: {
   clinicId: string;
   q?: string;
   mealType?: string;
+  /** Practical tags to require (AND) — the catalog toolbar's tag chips. */
+  tags?: readonly string[];
+  /** Keep only dishes whose computed nutrition category is `high_protein`. */
+  highProtein?: boolean;
+  /** Ownership filter: shared/system dishes, the clinic's own, or (undefined) all. */
+  owner?: OwnerFilter;
   page: number;
+  /**
+   * Also list the shared dishes this clinic has hidden, flagged `hidden`, so they
+   * can be un-hidden from the same catalog. Off by default: hidden is hidden.
+   */
+  includeHidden?: boolean;
 }): Promise<DishListResult> {
-  const conditions: SQL[] = [eq(dishes.isActive, true)];
+  const visible = (await loadCatalog(input.clinicId)).map((dish) => ({ ...dish, hidden: false }));
+  const hidden = input.includeHidden
+    ? (await loadHiddenSharedDishes(input.clinicId)).map((dish) => ({ ...dish, hidden: true }))
+    : [];
+  const catalog = [...visible, ...hidden];
 
-  if (input.q) {
-    const term = `%${input.q.replace(/[\\%_]/g, '\\$&')}%`;
-    // Both names, because a dietitian will search in whichever language is to
-    // hand and neither is authoritative.
-    conditions.push(or(ilike(dishes.nameAr, term), ilike(dishes.nameEn, term), ilike(dishes.slug, term))!);
-  }
+  const term = input.q?.trim() ? normalizeArabic(input.q) : null;
+  const tags = input.tags ?? [];
 
-  if (input.mealType) {
-    conditions.push(sql`${dishes.mealTypes} && ${textArray([input.mealType])}`);
-  }
+  const filtered = catalog
+    .filter((dish) => {
+      // Ownership first — shared vs the clinic's own — so it composes with every
+      // other filter and with pagination. See `catalog-ownership.ts`.
+      if (!matchesOwner(dish.clinicId, input.owner)) return false;
+      if (input.mealType && !dish.mealTypes.includes(input.mealType)) return false;
+      // AND, like the planner's catalog filter: each extra tag narrows.
+      if (tags.length && !tags.every((tag) => dish.tags.includes(tag))) return false;
+      // Computed from the recipe, never a stored tag — the filter can't disagree
+      // with the dish's own numbers. See `nutritionCategory`.
+      if (input.highProtein && nutritionCategory(dishTotals(dish.ingredients, 1)) !== 'high_protein') {
+        return false;
+      }
+      if (!term) return true;
+      return (
+        normalizeArabic(dish.nameAr).includes(term) ||
+        normalizeArabic(dish.nameEn).includes(term) ||
+        normalizeArabic(dish.slug).includes(term)
+      );
+    })
+    .sort((a, b) => a.nameAr.localeCompare(b.nameAr, 'ar'));
 
-  const where = and(...conditions);
-
-  const [totals] = await db.select({ value: count() }).from(dishes).where(where);
-  const total = totals?.value ?? 0;
+  const total = filtered.length;
   const pageCount = Math.max(1, Math.ceil(total / DISHES_PAGE_SIZE));
 
   /*
    * Clamped, not trusted. A page number can outlive the list it was written
    * for — a bookmarked `?page=4`, a shared link, the back button after a
-   * filter narrowed the catalog — and an offset past the end returns no rows
-   * at all. That reads as an empty catalog, and the pager under it computes a
-   * range from the page it was asked for: "Showing 21–20 of 18". Landing on
-   * the last real page instead shows the reader the end of the list they
-   * asked for, which is the nearest true answer to the request.
+   * filter narrowed the catalog — and a window past the end returns no rows at
+   * all. Landing on the last real page instead shows the reader the end of the
+   * list they asked for, the nearest true answer to the request.
    */
   const currentPage = Math.min(Math.max(input.page, 1), pageCount);
+  const start = (currentPage - 1) * DISHES_PAGE_SIZE;
 
-  const page = await db
-    .select({ id: dishes.id })
-    .from(dishes)
-    .where(where)
-    .orderBy(asc(dishes.nameAr))
-    .limit(DISHES_PAGE_SIZE)
-    .offset((currentPage - 1) * DISHES_PAGE_SIZE);
-
-  const ids = new Set(page.map((row) => row.id));
-  // Recipes come from the same loader the rest of the feature uses, so the
-  // numbers on this page are the numbers a plan would use.
-  const catalog = await loadCatalog(input.clinicId);
-
-  const items = catalog
-    .filter((dish) => ids.has(dish.id))
-    .map((dish) => ({
-      ...dish,
-      baseKcal: baseServingKcal(dish.ingredients),
-      totals: dishTotals(dish.ingredients, 1),
-    }))
-    .sort((a, b) => a.nameAr.localeCompare(b.nameAr, 'ar'));
+  const items = filtered.slice(start, start + DISHES_PAGE_SIZE).map((dish) => ({
+    ...dish,
+    baseKcal: baseServingKcal(dish.ingredients),
+    totals: dishTotals(dish.ingredients, 1),
+  }));
 
   return { items, total, page: currentPage, pageCount };
+}
+
+/**
+ * The shared dishes this clinic has hidden, with recipes — the complement of
+ * what `loadCatalog` filters out. Only used to offer "unhide" from the catalog;
+ * generation never sees these.
+ */
+async function loadHiddenSharedDishes(clinicId: string): Promise<DishDetail[]> {
+  const hidden = await db
+    .select({ dishId: clinicHiddenDishes.dishId })
+    .from(clinicHiddenDishes)
+    .where(eq(clinicHiddenDishes.clinicId, clinicId));
+
+  return loadDishesByIds(hidden.map((row) => row.dishId));
+}
+
+/**
+ * One clinic-owned dish, everything the editor needs to reopen it.
+ *
+ * Owner-scoped: returns null for a shared dish or another clinic's, so the edit
+ * path cannot preload — let alone save over — a dish this clinic does not own.
+ * Unlike `loadCatalog` it reads the per-ingredient client-facing extras
+ * (`display_name_ar`, the household measure), because saving an edit replaces the
+ * recipe wholesale and dropping them would erase what the dietitian set.
+ */
+export async function getClinicDishForEdit(clinicId: string, dishId: string): Promise<DishEditData | null> {
+  const [dish] = await db
+    .select({
+      id: dishes.id,
+      nameAr: dishes.nameAr,
+      nameEn: dishes.nameEn,
+      baseServingLabel: dishes.baseServingLabel,
+      mealTypes: dishes.mealTypes,
+      tags: dishes.tags,
+      allergenTags: dishes.allergenTags,
+    })
+    .from(dishes)
+    .where(and(eq(dishes.id, dishId), eq(dishes.clinicId, clinicId)))
+    .limit(1);
+
+  if (!dish) return null;
+
+  const rows = await db
+    .select({
+      quantityGrams: dishIngredients.quantityGrams,
+      displayNameAr: dishIngredients.displayNameAr,
+      householdLabel: dishIngredients.householdLabel,
+      householdGrams: dishIngredients.householdGrams,
+      food: foodColumns,
+    })
+    .from(dishIngredients)
+    .innerJoin(foods, eq(foods.id, dishIngredients.foodId))
+    .where(eq(dishIngredients.dishId, dishId))
+    .orderBy(asc(dishIngredients.sortOrder));
+
+  return {
+    ...dish,
+    ingredients: rows.map((row) => ({
+      food: row.food,
+      quantityGrams: row.quantityGrams,
+      displayNameAr: row.displayNameAr,
+      householdLabel: row.householdLabel,
+      householdGrams: row.householdGrams,
+    })),
+  };
+}
+
+/** A dish opened in the catalog's read-only detail drawer. */
+export type DishDetailView = {
+  id: string;
+  /** Null for a shared/system dish — what tells the drawer whether to offer Edit. */
+  clinicId: string | null;
+  nameAr: string;
+  nameEn: string;
+  mealTypes: string[];
+  tags: string[];
+  allergenTags: string[];
+  baseServingLabel: string;
+  /** Computed here so the drawer never sums nutrition itself. */
+  totals: NutrientTotals;
+  baseKcal: number;
+  ingredients: {
+    food: FoodSearchResult;
+    quantityGrams: number;
+    /** The saved unit key + grams-per-unit, so the drawer can show "1 كوب" not "186 غ". */
+    householdLabel: string | null;
+    householdGrams: number | null;
+  }[];
+};
+
+/**
+ * One dish for the catalog detail drawer, any dish this clinic can see.
+ *
+ * Unlike `getClinicDishForEdit` this is **not** owner-scoped — a dietitian may
+ * open a shared/system dish to read it, they just cannot edit it. Scoped to
+ * shared-or-own so it never reaches another clinic's dish. Carries the per-
+ * ingredient household measure (which `loadCatalog` omits) so the drawer can show
+ * each amount in the unit it was entered in, grams as the fallback.
+ */
+export async function getDishDetailForClinic(
+  clinicId: string,
+  dishId: string,
+): Promise<DishDetailView | null> {
+  const [dish] = await db
+    .select({
+      id: dishes.id,
+      clinicId: dishes.clinicId,
+      nameAr: dishes.nameAr,
+      nameEn: dishes.nameEn,
+      mealTypes: dishes.mealTypes,
+      tags: dishes.tags,
+      allergenTags: dishes.allergenTags,
+      baseServingLabel: dishes.baseServingLabel,
+    })
+    .from(dishes)
+    .where(and(eq(dishes.id, dishId), or(isNull(dishes.clinicId), eq(dishes.clinicId, clinicId))))
+    .limit(1);
+
+  if (!dish) return null;
+
+  const rows = await db
+    .select({
+      quantityGrams: dishIngredients.quantityGrams,
+      householdLabel: dishIngredients.householdLabel,
+      householdGrams: dishIngredients.householdGrams,
+      food: foodColumns,
+    })
+    .from(dishIngredients)
+    .innerJoin(foods, eq(foods.id, dishIngredients.foodId))
+    .where(eq(dishIngredients.dishId, dishId))
+    .orderBy(asc(dishIngredients.sortOrder));
+
+  const ingredients = rows.map((row) => ({
+    food: row.food,
+    quantityGrams: row.quantityGrams,
+    householdLabel: row.householdLabel,
+    householdGrams: row.householdGrams,
+  }));
+  const totals = dishTotals(ingredients, 1);
+
+  return { ...dish, ingredients, totals, baseKcal: totals.kcal.value };
 }
 
 export async function listMealTypes(): Promise<string[]> {
@@ -383,7 +584,16 @@ export async function listMealTypes(): Promise<string[]> {
   return rows.map((row) => row.mealType).sort();
 }
 
-export type FoodSearchResult = { id: string; description: string; nameAr: string | null } & FoodNutrients;
+export type FoodSearchResult = {
+  id: string;
+  description: string;
+  nameAr: string | null;
+  /** SR Legacy food group — used only to decide the editor's unit menu. */
+  category: string;
+  /** The one stored household measure, or null. The unit menu is derived from these two. */
+  portionGrams: number | null;
+  portionLabel: string | null;
+} & FoodNutrients;
 
 /**
  * Library food search for the dish editor.
@@ -458,14 +668,25 @@ export async function searchClinicFoods(
       .limit(limit);
   }
 
-  const term = `%${trimmed.replace(/[\\%_]/g, '\\$&')}%`;
+  // Matched on the normalized Arabic form, so "ارز ابيض" finds a food stored as
+  // "أرز أبيض". `ilike` cannot run the JS normalizer, so the clinic's own foods
+  // (a small set — never the 7,793 USDA rows) are loaded and filtered here. See
+  // `arabic-normalize.ts` for why a stored normalized column was not worth its
+  // migration at this size.
+  const term = normalizeArabic(trimmed);
 
-  return db
+  const rows = await db
     .select(foodColumns)
     .from(foods)
-    .where(and(eq(foods.clinicId, clinicId), or(ilike(foods.nameAr, term), ilike(foods.description, term))))
-    .orderBy(asc(foods.nameAr))
-    .limit(limit);
+    .where(eq(foods.clinicId, clinicId))
+    .orderBy(asc(foods.nameAr));
+
+  return rows
+    .filter((row) => {
+      const name = row.nameAr ? normalizeArabic(row.nameAr) : '';
+      return name.includes(term) || normalizeArabic(row.description).includes(term);
+    })
+    .slice(0, limit);
 }
 
 // ---------------------------------------------------------------------------

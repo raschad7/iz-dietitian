@@ -67,7 +67,7 @@ async function seedDishes(): Promise<string[]> {
         nameAr: 'طبق أ',
         nameEn: 'Dish A',
         mealTypes: ['lunch'],
-        tags: ['cheap'],
+        tags: ['economical'],
         allergenTags: [],
         baseServingLabel: 'حصة',
       },

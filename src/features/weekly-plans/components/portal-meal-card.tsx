@@ -3,7 +3,7 @@ import { useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Icon, type IconName } from '@/components/ui/icon';
-import { roundForDisplay } from '@/features/weekly-plans/nutrition';
+import { dishGrams, roundForDisplay, roundGrams } from '@/features/weekly-plans/nutrition';
 import { cn } from '@/lib/utils';
 
 import { MealCheck } from './meal-check';
@@ -251,8 +251,14 @@ export function PortalMealCard({
                     on the other side of this row.
                   */}
                   <p className="font-heading text-heading-sm text-primary">{dish.nameAr}</p>
-                  <p className="text-sm text-secondary-foreground">
-                    {t('portion', { servings: dish.servings, label: dish.baseServingLabel })}
+                  {/*
+                    The real weight to eat, not "×1.5 portions" — a number the
+                    client can act on, summed from the dish's own foods at the
+                    planned serving. A per-food Arabic breakdown is project #2's
+                    job, once the foods carry Arabic names.
+                  */}
+                  <p className="text-sm text-secondary-foreground tabular-nums">
+                    {t('totalGrams', { value: roundGrams(dishGrams(dish.ingredients, dish.servings), 5) })}
                   </p>
                 </div>
 

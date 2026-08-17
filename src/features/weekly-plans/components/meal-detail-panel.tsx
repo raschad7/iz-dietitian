@@ -13,7 +13,9 @@ import { MEAL_TOLERANCE, driftState } from '@/features/weekly-plans/drift';
 import {
   NUTRIENT_KEYS,
   NUTRIENT_UNITS,
+  dishGrams,
   roundForDisplay,
+  roundGrams,
   type NutrientKey,
 } from '@/features/weekly-plans/nutrition';
 import { SERVING_STEP, snapServings } from '../similar';
@@ -306,8 +308,13 @@ function Portion({ meal, editable }: { meal: BoardMeal; editable: boolean }) {
           <span aria-hidden className="text-display-sm font-normal leading-none">+</span>
         </Button>
 
-        <span className="ms-auto text-body-sm text-muted-foreground">
-          {t('portion', { servings: dish.servings, label: dish.baseServingLabel })}
+        {/*
+          The real weight at the chosen serving, not "×1.5 of a portion" — a
+          figure the dietitian works in. The stepper beside it still shows the
+          multiplier it is the control for; this is its result.
+        */}
+        <span className="ms-auto text-body-sm text-muted-foreground tabular-nums">
+          {t('totalGrams', { value: roundGrams(dishGrams(dish.ingredients, dish.servings), 5) })}
         </span>
       </div>
 
@@ -541,8 +548,10 @@ function SimilarDishes({
             locale={locale}
           >
             <span className="block font-medium">{match.candidate.nameAr}</span>
+            {/* Kcal only, like the AI alternatives above: a swap candidate carries
+                no ingredient rows, so its weight cannot be derived here, and its
+                energy against the slot budget is the figure that matters anyway. */}
             <span className="mt-0.5 block text-muted-foreground">
-              {t('portionShort', { servings: match.servings })} ·{' '}
               {t('kcalValue', { value: roundForDisplay('kcal', match.kcal) })}
             </span>
           </SwapButton>

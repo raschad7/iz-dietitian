@@ -952,7 +952,7 @@
       "markEaten": "Mark {meal} as eaten",
       "wasEaten": "{meal} — eaten",
       "wasNotEaten": "{meal} — not marked as eaten",
-      "portion": "{servings} × {label}",
+      "totalGrams": "≈ {value} g",
       "orInstead": "You can eat this instead:",
       "noMeal": "No meal set"
     },
@@ -1391,6 +1391,7 @@
     "cm": "{value} cm",
     "years": "{value} years",
     "grams": "{value} g",
+    "totalGrams": "≈ {value} g",
     "unset": "Not set",
     "notComputable": "Cannot be computed",
     "override": "Manual",
@@ -1455,8 +1456,6 @@
     "publishing": "Publishing…",
     "unpublish": "Unpublish",
     "unpublishing": "Unpublishing…",
-    "portion": "{servings} × {label}",
-    "portionShort": "{servings} servings",
     "portionLabel": "Portion",
     "ingredients": "Ingredients",
     "nutrition": "Nutrition",
@@ -1578,6 +1577,10 @@
       "notRecent": "Not used recently",
       "allergenSafe": "No allergens"
     },
+    "filterNutrition": "Nutrition",
+    "nutritionFilters": {
+      "high_protein": "High protein"
+    },
     "allMealTypes": "All meal types",
     "bestMatches": "Best matches for {value} kcal",
     "noDishes": "No dishes match",
@@ -1592,12 +1595,14 @@
       "dinner": "Dinner"
     },
     "tags": {
-      "cheap": "Low cost",
-      "portable": "Portable",
+      "economical": "Economical",
       "quick": "Quick",
-      "vegetarian": "Vegetarian",
-      "high_protein": "High protein",
-      "diabetic_friendly": "Diabetic friendly"
+      "easy_prep": "Easy prep",
+      "no_cook": "No cook",
+      "portable": "Portable",
+      "filling": "Filling",
+      "local": "Local",
+      "vegetarian": "Vegetarian"
     },
     "dropHere": "Drop here",
     "addMeal": "Add a meal",
@@ -1679,8 +1684,27 @@
     "emptyFilteredHint": "Try another name, or a different meal time.",
     "searchPlaceholder": "Search by dish name",
     "clearFilters": "Clear filters",
-    "allMealTypes": "All meal times",
+    "filters": "Filters",
+    "filtersReset": "Reset",
+    "allMealTypes": "All",
+    "count": "{count, plural, =0 {No dishes} one {# dish} other {# dishes}}",
     "moreTags": "+{count, number, integer}",
+    "notFoundPrompt": "Didn't find the dish you're looking for?",
+    "ownerFilter": {
+      "label": "Show dishes",
+      "all": "All",
+      "system": "Shared",
+      "clinic": "Mine"
+    },
+    "nutritionFilters": {
+      "high_protein": "High protein"
+    },
+    "detail": {
+      "ingredients": "Ingredients",
+      "edit": "Edit dish",
+      "open": "View {name}",
+      "nutrition": "Nutrition"
+    },
     "pagination": {
       "previous": "Previous",
       "next": "Next",
@@ -1693,7 +1717,25 @@
       "tags": "Tags",
       "kcal": "kcal / serving",
       "protein": "Protein",
-      "ingredients": "Ingredients"
+      "ingredients": "Ingredients",
+      "actions": "Actions"
+    },
+    "hiddenBadge": "Hidden",
+    "showHidden": "Show hidden",
+    "ownership": {
+      "system": "Shared",
+      "clinic": "Added by me"
+    },
+    "rowActions": {
+      "menuLabel": "More actions",
+      "hide": "Hide from my catalog",
+      "unhide": "Show in my catalog",
+      "deleteConfirmTitle": "Delete this dish?",
+      "deleteConfirmMessage": "\"{name}\" will be removed from your catalog. This can't be undone.",
+      "deleted": "Dish deleted",
+      "hidden": "Dish hidden from your catalog",
+      "unhidden": "Dish shown in your catalog",
+      "editFailed": "Couldn't open this dish for editing"
     },
     "mealTypes": {
       "breakfast": "Breakfast",
@@ -1702,12 +1744,14 @@
       "dinner": "Dinner"
     },
     "tags": {
-      "cheap": "Low cost",
-      "portable": "Portable",
+      "economical": "Economical",
       "quick": "Quick",
-      "vegetarian": "Vegetarian",
-      "high_protein": "High protein",
-      "diabetic_friendly": "Diabetes friendly"
+      "easy_prep": "Easy prep",
+      "no_cook": "No cook",
+      "portable": "Portable",
+      "filling": "Filling",
+      "local": "Local",
+      "vegetarian": "Vegetarian"
     },
     "allergens": {
       "nuts": "Nuts",
@@ -1720,33 +1764,40 @@
   },
   "dishEditor": {
     "foodPicker": {
-      "label": "Search your food library",
-      "placeholder": "Search your clinic's foods, by Arabic or English name",
-      "searchButton": "Search",
+      "label": "Search for an ingredient",
+      "placeholder": "Search for an ingredient…",
       "searching": "Searching…",
-      "kcalPer100g": "{kcal} kcal/100g",
-      "noMatches": "No matches found for \"{name}\".",
-      "noLibraryMatches": "No matches in your library for \"{name}\".",
-      "libraryEmpty": "Your food library doesn't have this yet.",
-      "createCustomFood": "Add a new food",
-      "createCustomFoodShort": "Can't find it? Add a new food",
-      "usdaToggle": "Search the USDA database instead",
-      "usdaHint": "A large English-language nutrition database, separate from your clinic's own foods. A match here is not yet in your library.",
-      "usdaLabel": "Search the USDA database",
-      "usdaPlaceholder": "Search by English name"
+      "kcalPer100g": "{kcal} kcal / 100g",
+      "startSearching": "Search for an ingredient, or add your own",
+      "noResults": "We couldn't find \"{name}\".",
+      "noResultTitle": "No matching ingredient",
+      "addNew": "Add a new ingredient",
+      "addNewShort": "Can't find it? Add a new ingredient",
+      "addCustom": "Add a custom ingredient",
+      "addNamed": "Add \"{name}\" as a new ingredient",
+      "moreResults": "Show more",
+      "otherVariants": "{count, plural, one {# other type} other {# other types}}",
+      "englishResults": "More results (English)",
+      "searchError": "Couldn't complete the search",
+      "retry": "Try again"
     },
     "customFoodDialog": {
-      "title": "Add a custom food",
-      "description": "Adds a food to the clinic's own library with its nutrition per 100g.",
-      "descriptionLabel": "Name (English)",
+      "title": "Add a new ingredient",
+      "descriptionLabel": "English name (optional)",
       "descriptionPlaceholder": "e.g. Grilled chicken breast",
-      "nameArLabel": "Name (Arabic)",
-      "nameArPlaceholder": "مثال: صدر دجاج مشوي",
+      "nameArLabel": "Ingredient name",
+      "nameArPlaceholder": "مثال: جميد بلدي",
+      "macrosHeading": "Nutrition per 100 g",
       "kcalLabel": "Calories (kcal)",
       "proteinLabel": "Protein (g)",
       "carbsLabel": "Carbs (g)",
       "fatLabel": "Fat (g)",
       "macrosHint": "Values are per 100g",
+      "unitHeading": "Natural serving unit",
+      "unitLabel": "Serving unit",
+      "unitGramsLabel": "Weight per unit (g)",
+      "unitHint": "Lets the dietitian add this ingredient by the loaf, cup, piece… not only grams.",
+      "unitGrams": "grams",
       "cancel": "Cancel",
       "close": "Close",
       "submit": "Add food",
@@ -1754,30 +1805,49 @@
       "errors": {
         "required": "This field is required",
         "nonNegativeNumber": "Enter a number of 0 or more",
+        "unitGramsRequired": "Enter the weight of one unit in grams",
         "createFailed": "Could not add the food. Check the values and try again."
       }
     },
     "editor": {
       "pageTitle": "Add dish",
       "pageSubtitle": "Add a dish to the clinic's approved catalog",
-      "nameAr": "Name (Arabic)",
-      "nameEn": "Name (English)",
+      "nameAr": "Dish name",
+      "nameArPlaceholder": "e.g. Chicken Maqluba",
+      "nameEn": "English name",
+      "nameEnPlaceholder": "e.g. Chicken Maqluba",
+      "additionalDetails": "Additional details",
       "baseServingLabel": "Base serving label",
       "baseServingHint": "Shown to the client as the unit for this dish, e.g. \"serving\" or \"plate\".",
-      "mealTypesLegend": "Meal times",
-      "labelsLegend": "Labels",
+      "mealTypesLegend": "Meal time",
+      "labelsLegend": "Dish properties",
       "allergensLegend": "Allergens",
       "allergensHint": "These exclude the dish from clients with a matching allergy.",
       "ingredientsHeading": "Ingredients",
       "addIngredient": "Add ingredient",
       "removeIngredient": "Remove ingredient",
+      "noIngredientsYet": "Search above to add the dish's ingredients.",
+      "ingredientCount": "{count, plural, =0 {No ingredients} one {# ingredient} other {# ingredients}}",
       "pickFoodHint": "Search for a food to add it to this ingredient",
       "changeFood": "Change food",
-      "quantityGrams": "Grams (per base serving)",
-      "displayNameAr": "Client-facing name (optional)",
-      "householdLabel": "Household unit (optional)",
-      "householdGrams": "Household unit grams (optional)",
+      "amount": "Amount",
+      "unitAria": "Unit",
+      "rowKcal": "{kcal} kcal",
+      "units": {
+        "g": "g",
+        "piece": "piece",
+        "slice": "slice",
+        "loaf": "loaf",
+        "half_loaf": "½ loaf",
+        "cup": "cup",
+        "half_cup": "½ cup",
+        "quarter_cup": "¼ cup",
+        "tbsp": "tbsp",
+        "tsp": "tsp"
+      },
       "liveNutrition": "Nutrition per base serving",
+      "nutritionTitle": "Nutrition",
+      "nutritionEmpty": "Add ingredients to see the nutrition.",
       "categories": {
         "high_protein": "High protein",
         "high_carb": "High carbohydrate",
@@ -1785,11 +1855,19 @@
         "balanced": "Balanced"
       },
       "errors": {
+        "nameRequired": "Dish name is required",
         "mealTypeRequired": "Select at least one meal time",
         "ingredientRequired": "Add at least one ingredient with a food and a positive amount"
       },
       "submit": "Create dish",
-      "submitting": "Saving…"
+      "saveChanges": "Save changes",
+      "submitting": "Saving…",
+      "editTitle": "Edit dish",
+      "editSubtitle": "Update this dish in your clinic's catalog",
+      "unsavedTitle": "Discard changes?",
+      "unsavedMessage": "You have unsaved changes that will be lost if you close.",
+      "discard": "Discard",
+      "keepEditing": "Keep editing"
     }
   },
   "whatsapp": {

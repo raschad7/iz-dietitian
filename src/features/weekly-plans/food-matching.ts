@@ -1,8 +1,9 @@
-import { and, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 
 import { db } from '@/db';
 import { foodAliases } from '@/db/schema';
 
+import { normalizeArabic } from './arabic-normalize';
 import { getFoodTranslator, type FoodTranslator } from './food-translate';
 import { searchFoods, searchFoodsById, type FoodSearchResult } from './queries';
 
@@ -27,11 +28,16 @@ export async function findFoodMatches(
   const name = arabicName.trim();
   if (!name) return { source: 'search', matches: [] };
 
-  const [alias] = await db
-    .select({ foodId: foodAliases.foodId })
+  // Matched on the normalized form, not the raw text: a dietitian who typed
+  // "أَرزّ" today must still hit the alias she confirmed as "ارز" last week. The
+  // clinic's alias set is small, so normalizing in app code beats a stored
+  // normalized column and its migration — see `arabic-normalize.ts`.
+  const normalized = normalizeArabic(name);
+  const aliasRows = await db
+    .select({ foodId: foodAliases.foodId, nameAr: foodAliases.nameAr })
     .from(foodAliases)
-    .where(and(eq(foodAliases.clinicId, clinicId), eq(foodAliases.nameAr, name)))
-    .limit(1);
+    .where(eq(foodAliases.clinicId, clinicId));
+  const alias = aliasRows.find((row) => normalizeArabic(row.nameAr) === normalized);
 
   if (alias) {
     // Resolve the aliased food by its exact description via searchFoods is wrong

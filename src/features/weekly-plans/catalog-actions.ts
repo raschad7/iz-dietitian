@@ -8,7 +8,6 @@ import { requireStaffClinic } from '@/lib/session';
 
 import { clinicDishInputSchema, customFoodInputSchema } from './catalog-schema';
 import type { CatalogFormState } from './catalog-form-state';
-import { findFoodMatches, type FoodMatchResult } from './food-matching';
 import {
   createClinicDish,
   createCustomFood,
@@ -17,7 +16,16 @@ import {
   unhideSharedDish,
   updateClinicDish,
 } from './catalog-mutations';
-import { searchClinicFoods, searchFoodsById, type FoodSearchResult } from './queries';
+import type { RefinedFood } from './ingredient-refine';
+import { searchIngredients } from './ingredient-search';
+import {
+  getClinicDishForEdit,
+  getDishDetailForClinic,
+  searchFoodsById,
+  type DishDetailView,
+  type DishEditData,
+  type FoodSearchResult,
+} from './queries';
 
 /**
  * Server actions for the clinic's own dish catalog: create, edit, delete, and
@@ -160,20 +168,37 @@ export async function unhideDishAction(
 // to a <form>, so they take `locale` as a plain argument to resolve the clinic.
 // ---------------------------------------------------------------------------
 
-export async function searchFoodMatchesAction(locale: string, arabicName: string): Promise<FoodMatchResult> {
+/**
+ * The dish editor's one ingredient search.
+ *
+ * A single box over every internal source — clinic foods, the shared library, and
+ * the alias/translated USDA fallback — merged and deduplicated by `searchIngredients`.
+ * The dietitian never chooses a source: there is no "search USDA instead" any more,
+ * because which database a food lives in is not her problem.
+ */
+export async function searchIngredientsAction(locale: string, query: string): Promise<RefinedFood[]> {
   const { clinicId } = await requireStaffClinic(localeSchema.parse(locale));
-  return findFoodMatches(clinicId, arabicName);
+  return searchIngredients(clinicId, query);
 }
 
 /**
- * The dish editor's primary food search: the clinic's own library only, plain
- * Arabic/English text matching, no AI and no USDA. `searchFoodMatchesAction`
- * above (USDA + AI translation) is offered as a clearly-secondary option in
- * `FoodPicker`, not the first thing the dietitian reaches for.
+ * Loads a clinic-owned dish for the editor to reopen. Owner-scoped in the query,
+ * so a dishId the caller does not own comes back null — the same "not found" a
+ * forged id gets.
  */
-export async function searchClinicFoodsAction(locale: string, query: string): Promise<FoodSearchResult[]> {
+export async function loadDishForEditAction(locale: string, dishId: string): Promise<DishEditData | null> {
   const { clinicId } = await requireStaffClinic(localeSchema.parse(locale));
-  return searchClinicFoods(clinicId, query);
+  return getClinicDishForEdit(clinicId, dishId);
+}
+
+/**
+ * Loads any dish this clinic can see for the catalog's read-only detail drawer —
+ * shared/system dishes included. Not owner-scoped (reading is allowed for all),
+ * but still scoped to shared-or-own so it never reaches another clinic's dish.
+ */
+export async function loadDishDetailAction(locale: string, dishId: string): Promise<DishDetailView | null> {
+  const { clinicId } = await requireStaffClinic(localeSchema.parse(locale));
+  return getDishDetailForClinic(clinicId, dishId);
 }
 
 export async function createCustomFoodAction(

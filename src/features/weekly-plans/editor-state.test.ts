@@ -11,6 +11,7 @@ import type { Board, BoardMeal } from './queries';
 function dish(id: string): DishDetail {
   return {
     id,
+    clinicId: null,
     slug: id,
     nameAr: id,
     nameEn: id,

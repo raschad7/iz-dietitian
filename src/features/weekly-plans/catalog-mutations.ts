@@ -1,4 +1,4 @@
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, isNull, or, sql } from 'drizzle-orm';
 
 import { db } from '@/db';
 import {
@@ -11,6 +11,7 @@ import {
   weeklyPlanMeals,
 } from '@/db/schema';
 
+import { normalizeArabic } from './arabic-normalize';
 import type { ClinicDishInput, CustomFoodInput } from './catalog-schema';
 
 /**
@@ -161,6 +162,17 @@ export async function unhideSharedDish(clinicId: string, dishId: string): Promis
  * callers can record freely.
  */
 export async function rememberFoodAlias(clinicId: string, foodId: string, nameAr: string): Promise<void> {
+  // A normalized-equal alias already on file is the same mapping under a
+  // different spelling; recording a second one would fragment the vocabulary
+  // this table exists to unify. The DB's own unique index still guards the exact
+  // duplicate — this guards the orthographic one it cannot see.
+  const normalized = normalizeArabic(nameAr);
+  const existing = await db
+    .select({ nameAr: foodAliases.nameAr })
+    .from(foodAliases)
+    .where(eq(foodAliases.clinicId, clinicId));
+  if (existing.some((row) => normalizeArabic(row.nameAr) === normalized)) return;
+
   await db
     .insert(foodAliases)
     .values({ clinicId, foodId, nameAr })
@@ -176,19 +188,84 @@ export async function rememberFoodAlias(clinicId: string, foodId: string, nameAr
  * time.
  */
 export async function createCustomFood(clinicId: string, input: CustomFoodInput): Promise<string | null> {
+  // Reuse an already-usable food rather than add a duplicate. The picker surfaces
+  // matches first; this is the backend guardrail behind it, and it must look past
+  // the clinic's own custom foods at the shared USDA library too — otherwise a
+  // dietitian who re-types a name for a food that already exists globally splits
+  // the catalog. Three reuse paths, cheapest first; a genuinely new food (no
+  // match on any) still falls through to the insert below.
+  //
+  // ⚠ App-level check-then-insert, so there is a narrow race between the lookups
+  // and the insert under two simultaneous creates of the same name. A DB-level
+  // normalized-unique constraint (a stored `normalized_name`/`normalized_alias`
+  // column with a unique index) would close it — deferred on purpose: it needs a
+  // migration and backfill, and a single dietitian saving a form is not a
+  // concurrent writer. See `arabic-normalize.ts`.
+  const normalized = normalizeArabic(input.nameAr);
+  // English name is optional now; fall back to the Arabic name so the NOT NULL
+  // `description` column and the reuse-by-description guard below always have a value.
+  const description = input.description.trim() || input.nameAr;
+
+  // 1. An Arabic name this clinic already bridged to a food — including a shared
+  //    USDA row, which carries no Arabic name of its own and is reachable only
+  //    through its alias.
+  const aliasRows = await db
+    .select({ foodId: foodAliases.foodId, nameAr: foodAliases.nameAr })
+    .from(foodAliases)
+    .where(eq(foodAliases.clinicId, clinicId));
+  const aliasMatch = aliasRows.find((row) => normalizeArabic(row.nameAr) === normalized);
+  if (aliasMatch) return aliasMatch.foodId;
+
+  // 2. A clinic custom food under the same normalized name but no alias (belt and
+  //    suspenders — created customs are aliased, but this cannot depend on it).
+  const clinicFoods = await db
+    .select({ id: foods.id, nameAr: foods.nameAr })
+    .from(foods)
+    .where(eq(foods.clinicId, clinicId));
+  const nameMatch = clinicFoods.find((row) => row.nameAr && normalizeArabic(row.nameAr) === normalized);
+  if (nameMatch) return nameMatch.id;
+
+  // 3. A shared USDA row (or a clinic food) whose English description is exactly
+  //    what was typed. Exact, case-insensitive, whitespace-trimmed — never a
+  //    substring, so it reuses the real thing without ever matching the wrong
+  //    USDA row. Scoped to shared + this clinic, so it never reaches across
+  //    tenants.
+  const descKey = description.trim().toLowerCase();
+  const [descMatch] = await db
+    .select({ id: foods.id })
+    .from(foods)
+    .where(
+      and(
+        or(eq(foods.clinicId, clinicId), isNull(foods.clinicId)),
+        eq(sql`lower(btrim(${foods.description}))`, descKey),
+      ),
+    )
+    .limit(1);
+  if (descMatch) return descMatch.id;
+
   return db.transaction(async (tx) => {
+    // A chosen household unit is persisted the same way USDA foods store theirs:
+    // the unit key on `portionLabel`, the grams one weighs on `portionGrams`.
+    // `deriveUnitOptions` reads a bare (non-numeric) label as a custom unit. Grams
+    // (or no unit) leaves both null — a grams-only food. See spec §10.
+    const householdUnit = input.unit && input.unit !== 'g' ? input.unit : null;
+    const portionLabel = householdUnit;
+    const portionGrams = householdUnit ? (input.unitGrams ?? null) : null;
+
     const [food] = await tx
       .insert(foods)
       .values({
         clinicId,
         fdcId: null,
-        description: input.description,
+        description,
         nameAr: input.nameAr,
         category: 'Clinic custom',
         kcal: input.kcal,
         protein: input.protein,
         carbs: input.carbs,
         fat: input.fat,
+        portionLabel,
+        portionGrams,
       })
       .returning({ id: foods.id });
 

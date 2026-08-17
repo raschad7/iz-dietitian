@@ -7,7 +7,7 @@ import { Icon } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 
 import { MEAL_TOLERANCE, driftState } from '@/features/weekly-plans/drift';
-import { roundForDisplay } from '@/features/weekly-plans/nutrition';
+import { dishGrams, roundForDisplay, roundGrams } from '@/features/weekly-plans/nutrition';
 import { dishTagAccentClass } from '../meal-tag-tone';
 import type { BoardMeal } from '../queries';
 
@@ -192,10 +192,8 @@ export function MealCard({
           </span>
 
           {meal.dish && (
-            <span
-              className="shrink-0 text-caption text-muted-foreground"
-            >
-              {t('portionShort', { servings: meal.dish.servings })}
+            <span className="shrink-0 text-caption text-muted-foreground tabular-nums">
+              {t('totalGrams', { value: roundGrams(dishGrams(meal.dish.ingredients, meal.dish.servings), 5) })}
             </span>
           )}
         </span>
@@ -309,8 +307,8 @@ export function MealCardSnapshot({ meal }: { meal: BoardMeal }) {
         </span>
 
         {meal.dish && (
-          <span className="text-caption text-muted-foreground">
-            {t('portionShort', { servings: meal.dish.servings })}
+          <span className="text-caption text-muted-foreground tabular-nums">
+            {t('totalGrams', { value: roundGrams(dishGrams(meal.dish.ingredients, meal.dish.servings), 5) })}
           </span>
         )}
       </span>

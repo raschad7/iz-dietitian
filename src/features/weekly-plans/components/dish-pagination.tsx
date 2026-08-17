@@ -37,22 +37,35 @@ export function DishPagination({
   result,
   q,
   mealType,
+  tags,
+  hp,
+  owner,
+  hidden,
 }: {
   result: DishListResult;
   q: string | undefined;
   mealType: string | undefined;
+  /** The raw comma-joined `tags` param, passed straight through. */
+  tags: string | undefined;
+  hp: string | undefined;
+  owner: string | undefined;
+  hidden: string | undefined;
 }) {
   const t = useTranslations('dishes');
 
   if (result.total === 0) return null;
 
-  // Both filters ride along: page 2 of a differently filtered catalog is not
-  // the page the reader was on.
+  // Every filter rides along, the "show hidden" view included: page 2 of a
+  // differently filtered catalog is not the page the reader was on.
   const query = (page: number) => ({
     pathname: '/app/dishes' as const,
     query: {
       ...(q ? { q } : {}),
       ...(mealType ? { mealType } : {}),
+      ...(tags ? { tags } : {}),
+      ...(hp ? { hp } : {}),
+      ...(owner ? { owner } : {}),
+      ...(hidden ? { hidden } : {}),
       page: String(page),
     },
   });
@@ -70,12 +83,14 @@ export function DishPagination({
       its `mx-auto` here — it is the inline-end of a strip on this screen, not a
       block centred under a list.
     */
-    <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-3">
+    <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-3 border-t border-border pt-3">
       {/* `tabular` so the range does not jitter as the digits change under it. */}
       <p className="tabular text-body-sm text-muted-foreground">
         {t('pagination.showing', { from, to, total: result.total })}
       </p>
 
+      {/* `mx-0` drops the pager's default `mx-auto` centering; `w-auto` lets it
+          size to its links and sit at the inline-end in both directions. */}
       <Pagination className="mx-0 w-auto justify-end">
         <PaginationContent>
           <PaginationItem>

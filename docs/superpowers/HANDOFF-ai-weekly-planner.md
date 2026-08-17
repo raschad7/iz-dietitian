@@ -1,162 +1,255 @@
-# Handoff — AI weekly planner improvements
+# Handoff — AI weekly planner: food catalog redesign
 
 Date: 2026-08-16
-Branch: `study/ai-weekly-planner` (branched from `main` at `b797c5b0`)
-Nothing merged yet. Working tree is clean except a pre-existing unrelated
-`.claude/settings.json` modification (leave it alone; never stage it).
+Branch: `study/ai-weekly-planner`
+**Nothing is committed.** All work below is in the working tree only. Commit when
+you (and the user) are ready — the user has not asked to commit yet.
 
-## What this is
+## TL;DR
 
-Three related improvements to the AI weekly-planner feature
-(`src/features/weekly-plans/`), driven by dietitian feedback. Each has a spec in
-`docs/superpowers/specs/` and a plan in `docs/superpowers/plans/`.
+Seven slices are **done and verified by tests/typecheck/lint**. The UI pieces are
+**not browser-verified** — staff login blocks the assistant (password entry is
+prohibited), and a dev server is already running as the user's own process (PID
+20380 on :3000; do not kill it). Two things are still pending for the user: run
+the DB seed, and verify the redesigned catalog + editor UI in a browser. One larger
+design (plan nutrition snapshots) is **spec'd but not built** and needs a product
+decision. Catalog expansion is **stopped** — the user considers it good enough.
 
-The user prefers **simple, plain-language explanations** (English is not their first
-language). Keep questions concrete and give examples.
+## Repo checks (last run, all green)
 
-## The mental model (agreed with the user)
+```bash
+bun run typecheck   # exit 0
+bun run lint        # exit 0
+bun test src/features/weekly-plans/   # 381 pass / 0 fail (single serial run)
+```
 
-Two layers: **foods → dishes → catalog → AI plan.**
-- **Foods** = ingredients with calories. Two sources: the built-in **USDA library**
-  (shared, English, read-only) and the clinic's **own food library** (the dietitian
-  adds these: Arabic name + calories per 100g).
-- **A dish** = a name + a list of foods with grams (chicken 200g + rice 150g). The
-  dish stores **no calories** — they are summed from its foods at read time.
-- **Dish catalog** = all dishes (built-in + the clinic's own).
-- **AI weekly plan** = picks dishes from the catalog.
+⚠ The test DB is **not safe for concurrent `bun test` runs** — two runs against the
+same DB throw FK errors on shared clinic teardown (`clinic_working_hours_..._fk`).
+Symptom looks like a real failure but is just collision; run suites serially.
 
-### Design decisions the user cares about (do not violate)
-- **The AI never invents nutrition numbers.** They always come from real food rows.
-  The AI is only a *translator/matcher*. The single exception: a custom food's
-  AI-estimated numbers, which the dietitian must confirm (this estimate button is
-  NOT built yet — currently she types the numbers).
-- **Show real grams, never "portions."** (Project #1, spec only, not built.)
-- Custom food entry is **per 100g**; **grams only** for now (spoon/household
-  measures deferred); keep the USDA + AI search as a **secondary** option, the
-  clinic's own library is primary.
-- **Add Dish is a dialog**, not a full page.
+The catalog expansion (slice 5) changed only `data/dishes.json`; the project's
+own `validateDishRecords` reports **0 problems across all 113 dishes**.
 
-## Status of the three projects
+Known-unrelated pre-existing failure: `src/features/whatsapp/templates.test.ts`
+(a bidi/ICU date assertion) — not touched by this work.
 
-### Project #3 — dynamic calorie split — DONE ✅
-The client intake meal-schedule editor now shows a live shares total and a
-"balance to 100%" button. Fully built and tested.
-- Spec: `docs/superpowers/specs/2026-08-15-dynamic-calorie-split-design.md`
-- Plan: `docs/superpowers/plans/2026-08-15-dynamic-calorie-split.md`
-- Code: `src/features/clients/meal-split.ts` (+ test), `intake-form.tsx`
-  (`MealScheduleField`), i18n key `clients.intake.balanceShares`.
-- Commits: `144493d`, `abccd04`, `851f811`.
+---
 
-### Project #2 — editable dish catalog — backend DONE ✅, UI IN PROGRESS ⚠️
-- Spec: `docs/superpowers/specs/2026-08-15-editable-dish-catalog-design.md`
-- Plans: `.../plans/2026-08-16-editable-dish-catalog-phase-2a.md` and
-  `.../2026-08-16-editable-dish-catalog-phase-2b.md`
+## What is DONE (in order)
 
-**Phase 2A (foundation) — DONE, test-DB verified.** Commits `cb01581`, `8963f6d`,
-`91e8246`.
-- `nutritionCategory(totals)` in `nutrition.ts` — auto computes one label
-  (high_protein / high_carb / high_fat / balanced) from the recipe.
-- Schema (migration `0025`): `dishes.clinicId`, `clinic_hidden_dishes`,
-  `dish_ingredients.{display_name_ar, household_label, household_grams}`,
-  `foods.clinicId`, nullable `foods.fdcId`, `food_aliases`.
-- `loadCatalog(clinicId, allergens?)` now returns shared-not-hidden + clinic-own.
+### Slice 1 — Arabic normalization + duplicate prevention ✅
 
-**Phase 2B backend — DONE, test-DB verified.** Commits `6ceb91e`, `ea03dd5`,
-`931168a`, `7a5bed8`, `bfc325c`, `5ed6988`, `ca55a6e`, `90ef4f8`, plus food-library
-extension `db07ab2`, `27f1e2b`, `48b3dde`.
-- `catalog-schema.ts` — zod input schemas (`clinicDishInputSchema`,
-  `customFoodInputSchema`).
-- `catalog-mutations.ts` — `createClinicDish`, `updateClinicDish`,
-  `deleteClinicDish` (returns `'deleted' | 'not_found' | 'in_use'`),
-  `hideSharedDish`, `unhideSharedDish`, `createCustomFood` (stores `nameAr`),
-  `rememberFoodAlias`.
-- `queries.ts` — `searchFoods`, `searchFoodsById`, `listClinicFoods`,
-  `searchClinicFoods` (clinic's own foods, Arabic search, no AI). `foodColumns`/
-  `FoodSearchResult` now include `nameAr`.
-- `food-translate.ts` — the AI translator seam (stub + OpenAI, degrades to raw name
-  on failure). `food-matching.ts` — `findFoodMatches` (alias memory first, then
-  translate+search).
-- Migration `0026`: `foods.name_ar`.
+The catalog used exact-match everywhere, so `أرز`/`ارز`/`أَرزّ` fragmented into
+separate foods/aliases. Fixed with a conservative normalizer.
 
-**Phase 2B UI — IN PROGRESS, NOT VERIFIED IN A BROWSER.** Commits `2ef4b51`,
-`404a716`, `4c70812`, `2171590`, `917f1d8`.
-- `catalog-actions.ts` — server actions: form actions
-  `createDishAction`/`updateDishAction`/`deleteDishAction`/`hideDishAction`/
-  `unhideDishAction`; imperative data actions `searchFoodMatchesAction`,
-  `searchClinicFoodsAction`, `createCustomFoodAction`. State in
-  `catalog-form-state.ts`.
-- `components/food-picker.tsx` — searches the clinic library first (plain Arabic,
-  debounced), USDA behind a collapsible, inline "add a new food".
-- `components/custom-food-dialog.tsx` — create a custom food (per-100g numbers).
-- `components/dish-editor.tsx` — the dish form: name, meal types/labels/allergens,
-  dynamic ingredient rows (each uses `FoodPicker`), **live** kcal/macros via
-  `dishTotals` + the auto `nutritionCategory` badge. Submits `createDishAction`.
-- `components/dish-dialog.tsx` — hosts the editor in a Dialog; "Add dish" trigger on
-  `app/[locale]/app/dishes/page.tsx`. The old `/dishes/new` route was deleted.
-- Last fix (`917f1d8`): removed **nested `<form>` elements** inside `FoodPicker`
-  (it renders inside the dish `<form>`; nested forms are invalid HTML and broke the
-  search / could submit the dish on Enter). This likely fixes the "search not
-  working" the user reported — NEEDS BROWSER RE-TEST.
+- **`src/features/weekly-plans/arabic-normalize.ts`** — `normalizeArabic()`: folds
+  أ/إ/آ/ٱ → ا, strips tashkeel + tatweel, collapses whitespace, lowercases Latin.
+  Leaves ة/ى alone on purpose (a false merge hides a real food). Deferred note in
+  the module doc: **DB-level normalized uniqueness / race protection is not built**
+  (app-level check-then-insert; fine for one dietitian).
+- Wired into: `food-matching.ts` (alias lookup normalized), `catalog-mutations.ts`
+  (`createCustomFood` dedup — checks aliases → clinic foods → **shared/USDA foods by
+  exact description**, so it reuses a global food instead of duplicating;
+  `rememberFoodAlias` normalized dedup), `queries.ts` `searchClinicFoods`.
+- Tests: `arabic-normalize.test.ts`, `arabic-catalog-search.test.ts` (incl. clinic
+  isolation + global-food reuse).
 
-### Project #1 — grams instead of "portions" — SPEC ONLY, not built
-- Spec: `docs/superpowers/specs/2026-08-15-weekly-plan-serving-grams-design.md`
-- Plan exists only implicitly; write a plan when starting. Its full client-facing
-  per-food Arabic list depends on Project #2 capturing Arabic names (which the
-  backend now does).
+### Slice 2 — Catalog search bug fixes ✅
 
-## The core blocker (read this)
+- **`queries.ts` `listDishes` rewritten** to filter/sort/paginate over
+  `loadCatalog(clinicId)` (the correct visible set) instead of an unscoped SQL
+  query. Fixes: wrong `total`/`pageCount` (they counted other clinics' + hidden
+  dishes) and short/empty pages; adds Arabic-normalized dish search.
+- Test: `list-dishes.test.ts`.
 
-The dish-editor screens live behind staff login. This assistant **cannot type a
-password** (safety rule) and so **cannot run/see the authenticated UI**. Every UI
-piece above is typecheck- and lint-clean but **not confirmed working in a browser**.
-The user was mid-testing and reported: "search not working", "adding ingredients not
-working", UX is bad. The nested-form bug (`917f1d8`) is the most recent concrete fix.
+### Slice 3 — Catalog row actions UI ✅ (backend tested; UI unverified in browser)
 
-**To continue effectively, the next session should get the app testable.** Options:
-- Ask the user to log in (seeded dev staff account exists — see `scripts/seed.ts`,
-  `STAFF_EMAIL` / password `clinic-dev-password`) and report exactly what happens /
-  paste any browser error overlay text or dev-server terminal errors.
-- Or verify each screen by reading + reasoning, as done for the nested-form bug.
+Clinic dishes get Edit/Delete; system dishes are read-only with Hide/Unhide;
+ownership is shown; all in one unified catalog. Reuses existing tested backend
+actions — no new permission logic.
 
-## Immediate next steps (recommended order)
+- Data: `DishDetail.clinicId` (`nutrition.ts`) selected in `loadCatalog` +
+  `loadDishesByIds`; `getClinicDishForEdit` (owner-scoped edit payload);
+  `listDishes` gains `includeHidden` + per-item `hidden`; `loadDishForEditAction`
+  in `catalog-actions.ts`.
+- UI: `DishEditor` edit mode (preloads, submits `updateDishAction`);
+  **`components/dish-row-actions.tsx`** (new — Edit dialog, Delete via ConfirmDialog,
+  Hide/Unhide dropdown, all calling existing actions); `dish-table.tsx` (ownership
+  badge grey=system / olive=my dish, actions column, dimmed hidden rows);
+  `dish-filters.tsx` ("Show hidden" toggle); `dish-pagination.tsx` (threads `hidden`).
+- Test: `catalog-read.test.ts`. i18n: `dishes.rowActions`, `dishes.ownership`,
+  `dishEditor.editor.editTitle/saveChanges`.
+- **Not done here:** there is no "Add to plan" button on `/app/dishes` — deliberate
+  (no plan context on that page; add-to-plan lives in the plan board's catalog).
 
-1. **Confirm the search/add works now** after `917f1d8` (needs the user's browser).
-   Get concrete feedback: does the food box show library results? does clicking a
-   result add it to the row? does "add a new food" work?
-2. **Build the Food Library screen** (Phase 2B, still missing): a page/section under
-   Dishes to list/add/edit/delete the clinic's own foods, so the dietitian populates
-   her library directly instead of only through a dish. Backend ready
-   (`listClinicFoods`, `createCustomFood`; add update/delete-food mutations).
-3. **Catalog edit/hide** (Phase 2B plan task 9b): row actions on `dish-table.tsx` —
-   Edit own dishes (reopen editor in edit mode via `updateDishAction`), Hide/Unhide
-   shared dishes (`hideDishAction`/`unhideDishAction`). Edit mode needs the editor to
-   accept an existing dish's values.
-4. **Project #1 (grams display)** once the above lands.
-5. Deferred niceties: household/spoon measures; the AI "estimate" button in the
-   custom-food dialog.
+### Slice 4 — Tag taxonomy cleanup ✅
+
+One source of truth for nutrition; only practical tags are manual.
+
+- **Kept (manual/practical):** `economical`, `quick`, `easy_prep`, `no_cook`,
+  `portable`, `filling`, `local`, `vegetarian`.
+- **Removed:** `high_protein` (now **computed only** via `nutritionCategory()`),
+  `diabetic_friendly` (medical), `cheap` (→ `economical`).
+- Enforced everywhere: `schema.ts` `DISH_TAGS`; `catalog-schema.ts`
+  (`tags: z.enum(DISH_TAGS)` rejects removed/unknown); `scripts/seed-dishes.ts`
+  (`validateDishRecords`, now exported, rejects deprecated/unknown tags);
+  `dish-editor.tsx`; `meal-tag-tone.ts` + `globals.css` (accent tokens);
+  `catalog-filter.ts` (computed `nutrition` filter) + `CatalogEntry.nutritionCategory`
+  (`queries.ts` `listCatalogForBoard`); `dish-catalog.tsx` (computed "High protein"
+  filter chip); `prompt.ts` (practical `tags` and a separate computed `nutrition`
+  column); i18n en+ar; `data/dishes.json` migrated.
+- Tests: `catalog-schema.test.ts`, `catalog-filter.test.ts` (computed high-protein),
+  `seed-dishes-validation.test.ts`, `prompt.test.ts` (tags vs nutrition separation).
+
+### Slice 5 — Curated catalog expansion ✅ (data only)
+
+- **`data/dishes.json`: 76 → 113 dishes (+37).** Palestinian/Levantine 20, common
+  dietitian meals 14, simple combinations 3.
+- All reuse existing USDA ingredients (0 invented); every `fdcId`/`note` resolves
+  against `data/usda-sr-legacy.ndjson`; `validateDishRecords` → 0 problems.
+- **Missing local ingredients (flagged, not faked):** freekeh (فريكة), sumac
+  (سماق), jameed (جميد) — dishes needing them were skipped (mansaf, freekeh dishes;
+  musakhan is modeled without sumac, whose macros are negligible).
+- **Suggested aliases** (for the existing `food_aliases` runtime mechanism — no
+  seed exists for aliases): أرز/رز, دجاج/جاج, لبن/زبادي, بندورة/طماطم, بطاطا/بطاطس,
+  كوسا/كوسى.
+
+### Slice 6 — Ingredient measurement units + Add/Edit Dish UX ✅ (logic tested; UI unverified in browser)
+
+The dietitian now works in human units — `[2] [pieces ▼]`, `[1] [cup ▼]`,
+`[1] [tbsp ▼]`, `[150] [g ▼]` — and the system converts to grams internally.
+**Nutrition still runs on grams via `dishTotals` — one calculation path, unchanged.**
+
+- **`ingredient-units.ts`** (new, pure, no DB/React) — `deriveUnitOptions(food)`
+  turns a food's single USDA `portionGrams`/`portionLabel` into a short sensible
+  menu, each unit carrying grams-per-unit; always ends in grams. `rowGrams`,
+  `defaultUnitKey`, `findUnit`, `resolveSavedRow` (exact-grams reload). Rules: never
+  invents a conversion (fractions = arithmetic on the real cup weight; tsp = tbsp/3);
+  **meat/poultry/fish/seafood = grams-only** by product decision even when USDA has a
+  cup; weight-only portions ("1 oz") and no-portion foods fall back to grams.
+  `ingredient-units.test.ts` — 15 tests (piece/cup/tbsp→g, grams fallback, meat
+  suppression, wrong-unit-not-offered, quantity/unit change grams, saved round-trip).
+- **No schema change.** Reused the previously **write-only** `dish_ingredients.
+  householdLabel` (now the unit key) + `householdGrams` (grams-per-unit) to remember
+  the chosen unit for exact round-trip. Added `category`/`portionGrams`/`portionLabel`
+  to `foodColumns` + `FoodSearchResult` (`queries.ts`) so the picker carries them.
+- **`dish-editor.tsx`** — ingredient row collapsed to `[qty] [unit ▼]` + live per-row
+  kcal + remove. **Removed** the client-facing-name (`displayNameAr`) and manual
+  household-grams inputs — nothing rendered them to a client; they only bloated the row.
+  DB columns kept. i18n: `dishEditor.editor.units.*` + `amount`/`unitAria`/`rowKcal`
+  (en + ar); removed the now-unused grams/household/displayName editor keys.
+- **Smart default** = the food's natural unit (egg→piece, rice→cup, oil→tbsp,
+  bread→slice, chicken→g); fresh pick starts household units at qty 1, grams blank.
+
+### Slice 7 — Catalog + Add/Edit UX redesign ✅ (logic tested; UI unverified in browser)
+
+A frontend/UX restructuring of `/app/dishes` and the dish editor. **Backend is
+additive-only** — same dishes/foods/ingredients/units/nutrition/actions.
+
+- **Catalog page** is a card grid, not a wide table. `dish-table.tsx` **deleted**,
+  replaced by **`dish-list.tsx`**: each card is Arabic name → English (secondary) →
+  meal category → kcal + protein → a few tags → ownership → `⋮`. **No ingredient
+  column** — raw USDA names never appear in browsing. The whole card is a stretched
+  button that opens the detail drawer; the `⋮` menu (`dish-row-actions.tsx`, now
+  menu-only) re-enables pointer events above it.
+- **`dish-details.tsx`** (new) — a `Sheet` drawer: macros, meal/tags/allergens, and
+  the recipe with each line in its saved unit ("1 كوب", "150 غرام") via
+  `resolveSavedRow`. Clinic dishes show **Edit** (delegated up so one editor dialog
+  serves both the card menu and the drawer).
+- **`dish-filters.tsx`** — search + a meal-category pill row + a tag/high-protein pill
+  row (all URL params; high-protein is the computed category, never a tag).
+- **Editor** (`dish-editor.tsx`) reordered per spec: name → **ingredients (hero)** →
+  compact `NutritionSummary` → meal type → practical tags → collapsible **Additional
+  details** (English name, allergens, base serving). **App validation** replaces native
+  `required` (no browser bubble). Choice groups + collapsed fields post from state via
+  **hidden inputs**, so a collapsed section still submits.
+- **`food-picker.tsx`** — ONE unified search (`searchIngredientsAction`). No
+  library/USDA toggle, one loading state, empty/no-result states, single "add new"
+  escape hatch. **`custom-food-dialog.tsx`** minimal, English optional/secondary.
+- **Backend (additive):** `nameEn` + custom-food `description` now **optional**
+  (default `''`, stored to the NOT NULL columns; mutation falls custom `description`
+  back to the Arabic name). `listDishes` gains `tags` + `highProtein` filtering
+  (in-memory over the already-loaded catalog). New `getDishDetailForClinic` (any
+  clinic-visible dish, with household units) and `searchIngredients` (merge
+  clinic→shared→translated, dedup by food id) + actions `loadDishDetailAction` /
+  `searchIngredientsAction`. **No schema/migration change.**
+- **Tests:** `ingredient-search.test.ts` (merge dedup/priority), optional-name cases
+  in `catalog-schema.test.ts`. No React render harness in the repo, so component
+  rendering is browser-verify only.
+
+---
+
+## PENDING — for the user / next session
+
+1. **Run the DB seed** to apply slices 4 + 5 to the database (the DB still holds
+   the old tags and 76 dishes until this runs):
+   ```bash
+   bun run db:seed:dishes    # idempotent upsert-by-slug; needs foods seeded first
+   ```
+   Not run here — the user asked not to run the production write step.
+
+2. **Browser-verify the redesigned catalog + editor** (assistant blocked by auth —
+   the route redirects to sign-in; the module graph compiles clean, but the rendered
+   UI is unverified). Log in with the seeded dev staff account (`scripts/seed.ts`,
+   `STAFF_EMAIL` / password `clinic-dev-password`) and check on `/app/dishes`:
+   - **Catalog cards:** scan/search; meal-category + tag + high-protein pill filters;
+     ownership badges; a card click opens the **detail drawer** (macros + ingredients
+     in saved units); the `⋮` menu does NOT open the drawer.
+   - **Detail drawer:** clinic dish shows Edit → opens the editor; system dish is
+     read-only. Ingredients read "1 كوب" / "150 غرام" (grams fallback for seeded system
+     dishes, which store no units yet).
+   - **Add/Edit editor:** order is name → ingredients → nutrition → meal type → tags →
+     collapsible details. Empty name shows the app error (no browser bubble). One
+     ingredient search (no USDA toggle). Unit dropdown per food (egg→piece/g,
+     rice→cup/½/¼/g, oil→tbsp/tsp/g, chicken→g). Save with **no English name**. Reopen
+     a clinic dish → units + quantities reload, grams unchanged. Custom ingredient →
+     add → auto-selected → nutrition updates.
+   - **Interaction risks to watch** (couldn't test): the stretched-button card vs `⋮`
+     pointer-events; the collapsible chevron rotation (`data-panel-open`); allergens
+     inside the collapsed "Additional details" still submitting (they post via hidden
+     inputs, so should).
+   - Check Arabic RTL + English LTR, desktop + mobile, long names / long ingredient
+     lists.
+
+## OPEN DECISION — plan nutrition snapshots (spec'd, NOT built)
+
+Spec: **`docs/superpowers/specs/2026-08-16-plan-nutrition-snapshots-design.md`**.
+
+Problem: plans store `dishId + servings` and recompute nutrition live, so editing a
+clinic dish/custom food now silently changes already-published/archived patient
+plans. The spec proposes a `nutrition_snapshot` jsonb on `weekly_plan_meals`
+(+ options), frozen at publish. **One product decision blocks implementation:**
+published plans **immutable** (edit via unpublish→republish; smallest) vs **keep
+in-place published edits** (re-snapshot per touched meal). Nutrition-only snapshot;
+recipe/ingredient-composition versioning is explicitly deferred.
+
+## Deferred (do not build without asking)
+
+- DB-level normalized-unique constraint for foods/aliases (race protection).
+- Serving-unit architecture / named dish portions (small/medium/large).
+- Recipe versioning; medical rule engine; system-dish forking; real-time pricing.
+- Freekeh/sumac/jameed ingredients (source real nutrition first).
 
 ## How to run / verify
 
-- Dev server: use the browser preview tool with launch config `dev` (Next.js on
-  :3000), or `bun run dev`. Auth redirects to sign-in.
-- Checks: `bun run typecheck`, `bun run lint`, `bun run test`. The test DB is
-  configured via `.env.test.local` and DB tests run (backend work IS covered).
-- **Known unrelated failing test:** `src/features/whatsapp/templates.test.ts` (a
-  bidi/ICU date-format assertion) fails independently of this work — last edited
-  2026-08-11, before this branch. Full suite is otherwise green (1150 pass / 1 fail).
-- Migrations: `bun run db:generate` then `bun run db:migrate` (dev) and
-  `bun run db:migrate:test` (test DB). Never hand-edit generated snapshots.
+- Dev server: `bun run dev` (Next.js). **A dev server is already running (user's,
+  PID 20380 on :3000) — Next enforces one instance; don't kill it.**
+- Checks: `bun run typecheck`, `bun run lint`, `bun run test` (test DB via
+  `.env.test.local`).
+- USDA source for authoring: `data/usda-sr-legacy.ndjson` (7,793 SR-Legacy foods,
+  `#` header line then one JSON food per line). The catalog's `foods` table is
+  seeded from exactly this file, so an fdcId present here is present in the DB.
 
-## Conventions to follow (from the repo)
+## Conventions (unchanged)
 
-- Business logic in `src/features/<feature>/`; route files only compose.
-- Staff reads/writes scoped to `requireStaffClinic()`'s clinic; mutations take
-  `clinicId` first, resolve ids against it, return `false`/null on a scope miss.
-- UI: reuse `src/components/ui/*` (see `docs/design-system.md`), semantic tokens (no
-  raw hex — lint-enforced), logical direction props (ms/me/ps/pe), `<Icon>` from the
-  registry, `Field`/`FieldError`, RTL + LTR, mobile + desktop.
-- TDD with `bun:test`; frequent small commits; end commit messages with the
+- Business logic in `src/features/<feature>/`; routes compose. Staff writes scoped
+  via `requireStaffClinic()`; mutations take `clinicId` first, return false/null on
+  a scope miss.
+- Nutrition is always computed from `foods`, never stored on a dish or typed by the
+  AI. The model emits only a dish slug + serving multiplier, resolved to a UUID
+  server-side.
+- UI: reuse `src/components/ui/*`, semantic tokens (no raw hex — lint-enforced),
+  logical props (ms/me/ps/pe), RTL + LTR, mobile + desktop.
+- TDD with `bun:test`; end commit messages with the
   `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>` trailer.
-- Execution style used so far: subagent-driven (implementer + spec review + quality
-  review per task) for backend; UI was built via briefed subagents but is the part
-  that needs browser verification.
+- `data/dishes.json` is CRLF with a `$comment` header; keep formatting when editing.

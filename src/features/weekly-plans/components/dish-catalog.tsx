@@ -16,7 +16,12 @@ import {
 import { membersOf } from '@/lib/enum';
 import { cn } from '@/lib/utils';
 
-import { roundForDisplay } from '@/features/weekly-plans/nutrition';
+import {
+  dishGrams,
+  roundForDisplay,
+  roundGrams,
+  type NutritionCategory,
+} from '@/features/weekly-plans/nutrition';
 
 import {
   availableOptions as optionsFor,
@@ -27,6 +32,17 @@ import {
 } from '../catalog-filter';
 import type { CatalogEntry } from '../queries';
 import { ALLERGENS, DISH_TAGS, mealTypeForSlot, type DishTag } from '../schema';
+
+/**
+ * The computed nutrition categories offered as filters. Only "high protein" for
+ * now — the one nutrition question a dietitian filters on — and it matches the
+ * recipe-derived `nutritionCategory`, never a manual tag.
+ */
+const NUTRITION_FILTERS = ['high_protein'] as const satisfies readonly NutritionCategory[];
+
+/** The narrow union of categories actually offered as filters — so message keys
+ * like `nutritionFilters.${entry}` stay resolvable. */
+type NutritionFilter = (typeof NUTRITION_FILTERS)[number];
 import { bestServings } from '../similar';
 import { PLANNER_THEME } from '../theme';
 import type { RecentUse } from '../usage';
@@ -77,6 +93,7 @@ export function DishCatalog({
   // `DishTag`, not `string`: next-intl only accepts message keys it can see, so
   // a widened element type here makes `t('tags.' + entry)` unresolvable.
   const [tags, setTags] = useState<readonly DishTag[]>([]);
+  const [nutrition, setNutrition] = useState<readonly NutritionFilter[]>([]);
   const [options, setOptions] = useState<readonly CatalogOption[]>([]);
   const [allMealTypes, setAllMealTypes] = useState(false);
 
@@ -92,7 +109,7 @@ export function DishCatalog({
   const shown = useMemo(() => {
     const matches = filterCatalog(
       catalog,
-      { needle, mealType: activeMealType, tags, options },
+      { needle, mealType: activeMealType, tags, nutrition, options },
       context,
     );
 
@@ -106,7 +123,7 @@ export function DishCatalog({
 
       return fit(a) - fit(b);
     });
-  }, [catalog, needle, activeMealType, tags, options, context, budgetKcal]);
+  }, [catalog, needle, activeMealType, tags, nutrition, options, context, budgetKcal]);
 
   /**
    * How many dishes each chip would leave, given everything already chosen.
@@ -122,11 +139,16 @@ export function DishCatalog({
    */
   const counts = useMemo(() => {
     const byChip: Record<string, number> = {};
-    const base = { needle, mealType: activeMealType, tags, options };
+    const base = { needle, mealType: activeMealType, tags, nutrition, options };
 
     for (const entry of DISH_TAGS) {
       const next = tags.includes(entry) ? tags : [...tags, entry];
       byChip[entry] = filterCatalog(catalog, { ...base, tags: next }, context).length;
+    }
+
+    for (const entry of NUTRITION_FILTERS) {
+      const next = nutrition.includes(entry) ? nutrition : [...nutrition, entry];
+      byChip[entry] = filterCatalog(catalog, { ...base, nutrition: next }, context).length;
     }
 
     for (const entry of CATALOG_OPTIONS) {
@@ -135,14 +157,21 @@ export function DishCatalog({
     }
 
     return byChip;
-  }, [catalog, needle, activeMealType, tags, options, context]);
+  }, [catalog, needle, activeMealType, tags, nutrition, options, context]);
 
-  const activeCount = tags.length + options.length + (activeMealType ? 1 : 0);
+  const activeCount = tags.length + nutrition.length + options.length + (activeMealType ? 1 : 0);
 
   function clearFilters(): void {
     setTags([]);
+    setNutrition([]);
     setOptions([]);
     setAllMealTypes(true);
+  }
+
+  function toggleNutrition(entry: NutritionFilter): void {
+    setNutrition((current) =>
+      current.includes(entry) ? current.filter((value) => value !== entry) : [...current, entry],
+    );
   }
 
   function toggleOption(entry: CatalogOption): void {
@@ -188,6 +217,13 @@ export function DishCatalog({
               onClick={() => setTags((current) => current.filter((value) => value !== entry))}
             >
               {t(`tags.${entry}`)}
+              <Icon name="close" className="size-3.5" />
+            </FilterChip>
+          ))}
+
+          {nutrition.map((entry) => (
+            <FilterChip key={entry} active onClick={() => toggleNutrition(entry)}>
+              {t(`nutritionFilters.${entry}`)}
               <Icon name="close" className="size-3.5" />
             </FilterChip>
           ))}
@@ -258,6 +294,28 @@ export function DishCatalog({
                           }
                         >
                           {t(`tags.${entry}`)}
+                          <ChipCount value={count} />
+                        </FilterChip>
+                      );
+                    })}
+                  </FilterGroup>
+
+                  {/* Nutrition is its own group, and computed: this chip filters
+                      on the recipe-derived category, not a stored tag, so it can
+                      never disagree with the dish's own numbers. */}
+                  <FilterGroup label={t('filterNutrition')}>
+                    {NUTRITION_FILTERS.map((entry) => {
+                      const selected = nutrition.includes(entry);
+                      const count = counts[entry] ?? 0;
+
+                      return (
+                        <FilterChip
+                          key={entry}
+                          active={selected}
+                          disabled={!selected && count === 0}
+                          onClick={() => toggleNutrition(entry)}
+                        >
+                          {t(`nutritionFilters.${entry}`)}
                           <ChipCount value={count} />
                         </FilterChip>
                       );
@@ -458,7 +516,9 @@ function CatalogRow({
             </span>
           ) : (
             <>
-              {t('portionShort', { servings })}
+              <span className="tabular-nums">
+                {t('totalGrams', { value: roundGrams(dishGrams(dish.ingredients, servings), 5) })}
+              </span>
               {deltaLabel && (
                 <>
                   <span aria-hidden> · </span>

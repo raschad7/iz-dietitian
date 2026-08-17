@@ -1,19 +1,29 @@
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
-import { DishDialog } from '@/features/weekly-plans/components/dish-dialog';
+import { AddDishButton } from '@/features/weekly-plans/components/add-dish-button';
 import { DishFilters } from '@/features/weekly-plans/components/dish-filters';
+import { DishList, type DishCardData } from '@/features/weekly-plans/components/dish-list';
 import { DishPagination } from '@/features/weekly-plans/components/dish-pagination';
-import { DishTable } from '@/features/weekly-plans/components/dish-table';
-import { listDishes, listMealTypes } from '@/features/weekly-plans/queries';
-import { MEAL_TYPES } from '@/features/weekly-plans/schema';
+import { parseOwnerFilter } from '@/features/weekly-plans/catalog-ownership';
+import { roundForDisplay } from '@/features/weekly-plans/nutrition';
+import { listDishes } from '@/features/weekly-plans/queries';
+import { DISH_TAGS } from '@/features/weekly-plans/schema';
 import { membersOf } from '@/lib/enum';
 import { resolveLocale } from '@/i18n/params';
 import { requireStaffClinic } from '@/lib/session';
 
 type PageProps = {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ q?: string; mealType?: string; page?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    mealType?: string;
+    tags?: string;
+    hp?: string;
+    owner?: string;
+    page?: string;
+    hidden?: string;
+  }>;
 };
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -26,56 +36,86 @@ export default async function DishesPage({ params, searchParams }: PageProps) {
   const locale = await resolveLocale(params);
   const { clinicId } = await requireStaffClinic(locale);
 
-  const { q, mealType, page } = await searchParams;
+  const { q, mealType, tags: tagsParam, hp, owner: ownerParam, page, hidden } = await searchParams;
+  const showHidden = hidden === '1';
+  const highProtein = hp === '1';
+  // Narrowed against the known set: a hand-edited `?owner=whatever` degrades to no
+  // filter rather than being trusted.
+  const owner = parseOwnerFilter(ownerParam);
 
-  // `.catch`-style coercion: a hand-edited query string degrades to page 1 rather
-  // than throwing a 500, matching the food browser.
+  // Narrowed against the enum: a hand-edited `?tags=made_up` degrades to no filter
+  // rather than being trusted, the same way `page` degrades below.
+  const tags = membersOf(DISH_TAGS, (tagsParam ?? '').split(',').filter(Boolean));
+
+  // A hand-edited query string degrades to page 1 rather than throwing a 500.
   const parsedPage = Number(page);
   const currentPage = Number.isInteger(parsedPage) && parsedPage >= 1 ? parsedPage : 1;
 
-  const [result, mealTypes, t] = await Promise.all([
-    listDishes({ clinicId, q, mealType, page: currentPage }),
-    listMealTypes(),
+  const [result, t] = await Promise.all([
+    listDishes({ clinicId, q, mealType, tags, highProtein, owner, page: currentPage, includeHidden: showHidden }),
     getTranslations('dishes'),
   ]);
 
+  const items: DishCardData[] = result.items.map((dish) => ({
+    id: dish.id,
+    nameAr: dish.nameAr,
+    nameEn: dish.nameEn,
+    mealTypes: dish.mealTypes,
+    tags: dish.tags,
+    kcal: roundForDisplay('kcal', dish.baseKcal),
+    protein: roundForDisplay('protein', dish.totals.protein.value),
+    isSystem: dish.clinicId === null,
+    hidden: dish.hidden,
+  }));
+
+  const filtered =
+    Boolean(q) || Boolean(mealType) || tags.length > 0 || highProtein || Boolean(owner);
+
   return (
     /*
-      The page fills the shell and does not scroll; the catalog does, inside
-      itself. A long list otherwise pushes the search field and the pager off
-      the top and bottom of the screen, and the two controls you reach for
-      *because* the list is long are the two the list hides.
-
-      Below `md` the page scrolls as a whole, the way the register does: on a
-      phone the chrome and a usable number of rows do not both fit. The column
-      names still stay put — the table header is sticky either way.
+      The page fills the shell and does not scroll; the list does, inside itself,
+      so the toolbar stays put over a long catalog. Below `md` the page scrolls as
+      a whole.
     */
-    <div className="flex flex-col gap-6 text-start md:h-full md:min-h-0">
-      <div className="flex shrink-0 flex-wrap items-start justify-between gap-2">
-        <div>
-          <h1 className="font-heading text-heading-lg font-semibold tracking-tight">{t('title')}</h1>
-          <p className="text-body-sm text-muted-foreground">
-            {t('subtitle', { count: result.total })}
-          </p>
+    <div className="flex flex-col gap-4 text-start md:h-full md:min-h-0">
+      {/*
+        Header and toolbar read as one control area (Phase 2 §1): the title and
+        count sit with the Add button on the first row, the search / meal tabs /
+        filters on the rows beneath, all in one block with even spacing.
+      */}
+      <div className="flex shrink-0 flex-col gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <div className="flex items-baseline gap-2.5">
+            <h1 className="font-heading text-heading-lg font-semibold tracking-tight">{t('title')}</h1>
+            <span className="text-body-sm text-muted-foreground tabular-nums">
+              {t('count', { count: result.total })}
+            </span>
+          </div>
+
+          <AddDishButton locale={locale} />
         </div>
 
-        <DishDialog locale={locale} />
+        <DishFilters
+          q={q}
+          mealType={mealType}
+          tags={tags}
+          highProtein={highProtein}
+          owner={owner}
+          showHidden={showHidden}
+        />
       </div>
 
-      <DishFilters
+      <DishList locale={locale} items={items} filtered={filtered} />
+
+      <DishPagination
+        result={result}
         q={q}
         mealType={mealType}
-        // Narrowed against the enum rather than passed as strings: the labels
-        // are looked up as `mealTypes.${type}`, and a `text[]` column is not
-        // proof its contents are still valid meal times.
-        mealTypes={membersOf(MEAL_TYPES, mealTypes)}
+        tags={tagsParam}
+        hp={hp}
+        owner={ownerParam}
+        hidden={hidden}
       />
-
-      <DishTable result={result} filtered={Boolean(q) || Boolean(mealType)} />
-
-      {/* Renders nothing on an empty catalog, so it is a direct child: an empty
-          wrapper here would still cost the page a row's worth of gap. */}
-      <DishPagination result={result} q={q} mealType={mealType} />
     </div>
   );
 }

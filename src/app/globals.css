@@ -468,12 +468,12 @@
   --color-status-complete-bg: var(--status-complete-bg);
   --color-status-complete-mark: var(--status-complete-mark);
   --color-status-complete-mark-soft: var(--status-complete-mark-soft);
-  --color-planner-tag-cheap: var(--planner-tag-cheap);
+  --color-planner-tag-economical: var(--planner-tag-economical);
   --color-planner-tag-portable: var(--planner-tag-portable);
   --color-planner-tag-quick: var(--planner-tag-quick);
   --color-planner-tag-vegetarian: var(--planner-tag-vegetarian);
-  --color-planner-tag-high-protein: var(--planner-tag-high-protein);
-  --color-planner-tag-diabetic-friendly: var(--planner-tag-diabetic-friendly);
+  --color-planner-tag-filling: var(--planner-tag-filling);
+  --color-planner-tag-local: var(--planner-tag-local);
   --color-progress-track: var(--progress-track);
   --color-progress-card-border: var(--progress-card-border);
 
@@ -1288,12 +1288,12 @@
 
   /* Dish tags are identity marks, not statuses. These darker stops keep the
      short accent legible without turning the meal card into a badge. */
-  --planner-tag-cheap: var(--amber-600);
+  --planner-tag-economical: var(--amber-600);
   --planner-tag-portable: var(--n-500);
   --planner-tag-quick: var(--flame-500);
   --planner-tag-vegetarian: var(--olive-500);
-  --planner-tag-high-protein: var(--lime-600);
-  --planner-tag-diabetic-friendly: var(--c-600);
+  --planner-tag-filling: var(--lime-600);
+  --planner-tag-local: var(--clay-600);
 }
 
 /* Each row cell paints one segment of a continuous rule, reaching halfway

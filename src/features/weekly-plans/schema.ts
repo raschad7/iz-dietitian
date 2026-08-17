@@ -43,13 +43,30 @@ export const clientIdSchema = z.uuid();
 
 /** The closed sets behind the catalog's array columns. */
 export const MEAL_TYPES = ['breakfast', 'snack', 'lunch', 'dinner'] as const;
+
+/**
+ * The **manual, practical** dish tags — and only those.
+ *
+ * These describe how a dish fits into a real week (cost, effort, cuisine), which
+ * is exactly what a dietitian's instruction resolves against and what the numbers
+ * cannot know. Nutrition is deliberately absent: "high protein" is *computed* from
+ * the recipe by `nutritionCategory()` in `nutrition.ts`, the single source of
+ * truth, so it cannot be hand-set to disagree with the food. Disease suitability
+ * (the former `diabetic_friendly`) is absent too — that is a patient-specific
+ * clinical judgement, not a boolean a dish carries.
+ *
+ * The order is the accent-colour priority in `meal-tag-tone.ts` and the chip
+ * order in the catalog filters.
+ */
 export const DISH_TAGS = [
-  'cheap',
-  'portable',
+  'economical',
   'quick',
+  'easy_prep',
+  'no_cook',
+  'portable',
+  'filling',
+  'local',
   'vegetarian',
-  'high_protein',
-  'diabetic_friendly',
 ] as const;
 
 export type MealType = (typeof MEAL_TYPES)[number];
