@@ -14,6 +14,7 @@ import {
   signUpFieldErrors,
   type SignUpFieldErrors,
 } from '@/features/auth/signup-validation';
+import { MAX_NAME_PART_LENGTH } from '@/features/auth/schema';
 import { FieldError } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -105,21 +106,49 @@ export function StaffSignUpForm({ locale, showGoogle }: StaffSignUpFormProps) {
       >
         <input type="hidden" name="locale" value={locale} />
 
-        <div className="space-y-2">
-          <Label htmlFor="signup-name">{t('fullName')}</Label>
-          <Input
-            id="signup-name"
-            name="name"
-            autoComplete="name"
-            aria-required
-            aria-invalid={Boolean(fieldErrors.name)}
-            aria-describedby={fieldErrors.name ? 'signup-name-error' : undefined}
-            placeholder={t('namePlaceholder')}
-            icon="person"
-          />
-          {fieldErrors.name ? (
-            <FieldError id="signup-name-error">{t(fieldErrors.name)}</FieldError>
-          ) : null}
+        {/*
+          The two halves sit side by side on one row rather than stacked. They
+          are one answer — a name — and a form that spends two full-width rows
+          on it reads as twice the work; the pair also stays under the fold on a
+          phone, where this form is already five fields long. `sm:` because at
+          320px two ten-character boxes are narrower than the text in them.
+        */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="signup-first-name">{t('firstName')}</Label>
+            <Input
+              id="signup-first-name"
+              name="firstName"
+              autoComplete="given-name"
+              maxLength={MAX_NAME_PART_LENGTH}
+              aria-required
+              aria-invalid={Boolean(fieldErrors.firstName)}
+              aria-describedby={fieldErrors.firstName ? 'signup-first-name-error' : undefined}
+              placeholder={t('firstNamePlaceholder')}
+              icon="person"
+            />
+            {fieldErrors.firstName ? (
+              <FieldError id="signup-first-name-error">{t(fieldErrors.firstName, { count: MAX_NAME_PART_LENGTH })}</FieldError>
+            ) : null}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="signup-last-name">{t('lastName')}</Label>
+            <Input
+              id="signup-last-name"
+              name="lastName"
+              autoComplete="family-name"
+              maxLength={MAX_NAME_PART_LENGTH}
+              aria-required
+              aria-invalid={Boolean(fieldErrors.lastName)}
+              aria-describedby={fieldErrors.lastName ? 'signup-last-name-error' : undefined}
+              placeholder={t('lastNamePlaceholder')}
+              icon="person"
+            />
+            {fieldErrors.lastName ? (
+              <FieldError id="signup-last-name-error">{t(fieldErrors.lastName, { count: MAX_NAME_PART_LENGTH })}</FieldError>
+            ) : null}
+          </div>
         </div>
 
         <div className="space-y-2">
@@ -147,7 +176,7 @@ export function StaffSignUpForm({ locale, showGoogle }: StaffSignUpFormProps) {
           autoComplete="new-password"
           nativeRequired={false}
           placeholder={t('passwordPlaceholder')}
-          hint={t('passwordHint', { count: MIN_PASSWORD_LENGTH })}
+          hint={t('passwordStrengthHint', { count: MIN_PASSWORD_LENGTH })}
           error={fieldErrors.password ? t(fieldErrors.password) : undefined}
         />
 

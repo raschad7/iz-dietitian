@@ -34,12 +34,17 @@ import { signUpSchema } from './schema';
  * same four `if`s in the same order.
  */
 
-export type SignUpField = 'name' | 'email' | 'password' | 'confirmPassword';
+export type SignUpField = 'firstName' | 'lastName' | 'email' | 'password' | 'confirmPassword';
 
 export type SignUpMessageKey =
-  | 'nameRequired'
+  | 'firstNameRequired'
+  | 'lastNameRequired'
+  | 'nameTooLong'
+  | 'emailRequired'
+  | 'passwordRequired'
   | 'invalidEmail'
   | 'passwordTooShort'
+  | 'passwordTooWeak'
   | 'passwordMismatch';
 
 export type SignUpFieldErrors = Partial<Record<SignUpField, SignUpMessageKey>>;
@@ -51,7 +56,8 @@ export type SignUpFieldErrors = Partial<Record<SignUpField, SignUpMessageKey>>;
  * comparing it to `password`, so any issue on it means the two disagree.
  */
 const MESSAGE_BY_FIELD = {
-  name: 'nameRequired',
+  firstName: 'firstNameRequired',
+  lastName: 'lastNameRequired',
   email: 'invalidEmail',
   password: 'passwordTooShort',
   confirmPassword: 'passwordMismatch',
@@ -65,16 +71,66 @@ const MESSAGE_BY_FIELD = {
  * were filled and simply disagree — so it is the most useful sentence to lead
  * with when several rules failed at once.
  */
-const PRIORITY: readonly SignUpField[] = ['confirmPassword', 'password', 'email', 'name'];
+const PRIORITY: readonly SignUpField[] = [
+  'confirmPassword',
+  'password',
+  'email',
+  'lastName',
+  'firstName',
+];
+
+/**
+ * An empty box is answered with "X is required", never with advice about what a
+ * valid value looks like — "Enter a valid email address" under a box nobody has
+ * typed in yet is telling someone off for a mistake they have not made.
+ *
+ * Only the fields whose ordinary message would be about *content* need an entry
+ * here; the two name halves already say "required" either way.
+ */
+const REQUIRED_MESSAGE = {
+  email: 'emailRequired',
+  password: 'passwordRequired',
+} as const satisfies Partial<Record<SignUpField, SignUpMessageKey>>;
 
 export function readSignUpForm(formData: FormData) {
   return {
-    name: formData.get('name'),
+    firstName: formData.get('firstName'),
+    lastName: formData.get('lastName'),
     email: formData.get('email'),
     password: formData.get('password'),
     confirmPassword: formData.get('confirmPassword'),
     locale: formData.get('locale'),
   };
+}
+
+/**
+ * The message a failing field reports.
+ *
+ * Two fields do not simply map to one sentence. An empty box gets the
+ * "required" wording rather than advice about its contents, and the password
+ * has two ways to be wrong — too short and too weak — which call for different
+ * advice, so its message is read off the issue `staffPasswordSchema` raised.
+ */
+function messageFor(
+  field: SignUpField,
+  input: unknown,
+  issues: readonly string[] | undefined,
+): SignUpMessageKey {
+  const required = field in REQUIRED_MESSAGE ? REQUIRED_MESSAGE[field as keyof typeof REQUIRED_MESSAGE] : undefined;
+  if (required && isBlank(input, field)) return required;
+
+  if (field === 'password' && issues?.[0] === 'passwordTooWeak') return 'passwordTooWeak';
+
+  if ((field === 'firstName' || field === 'lastName') && !isBlank(input, field)) {
+    return 'nameTooLong';
+  }
+
+  return MESSAGE_BY_FIELD[field];
+}
+
+function isBlank(input: unknown, field: SignUpField): boolean {
+  const value = (input as Record<string, unknown> | null)?.[field];
+  return typeof value !== 'string' || value.trim() === '';
 }
 
 /** Every field that failed, keyed by field. Empty means the form is valid. */
@@ -86,7 +142,9 @@ export function signUpFieldErrors(input: unknown): SignUpFieldErrors {
   const errors: SignUpFieldErrors = {};
 
   for (const field of PRIORITY) {
-    if (flattened[field]?.length) errors[field] = MESSAGE_BY_FIELD[field];
+    if (!flattened[field]?.length) continue;
+
+    errors[field] = messageFor(field, input, flattened[field]);
   }
 
   return errors;

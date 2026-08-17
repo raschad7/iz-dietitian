@@ -16,7 +16,14 @@ export type AuthFormState =
         | 'emailTaken'
         | 'passwordMismatch'
         | 'passwordTooShort'
-        | 'nameRequired'
+        /** Long enough, but still `aaaaaaaaaa` — see `isStrongStaffPassword`. */
+        | 'passwordTooWeak'
+        | 'firstNameRequired'
+        | 'lastNameRequired'
+        /** Either half of a name over `MAX_NAME_PART_LENGTH`. */
+        | 'nameTooLong'
+        | 'emailRequired'
+        | 'passwordRequired'
         | 'invalidEmail'
         | 'verifyEmailFirst'
         | 'accountNotLinked'
