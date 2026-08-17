@@ -1570,6 +1570,8 @@
     "searchDishes": "ابحث في الأطباق",
     "dishFilters": "الفلاتر",
     "clearFilters": "مسح الفلاتر",
+    "colorKey": "دليل ألوان الأطباق",
+    "colorKeyUntagged": "بدون خصائص",
     "filterTags": "تصنيف الطبق",
     "filterForThisSlot": "مناسبة لهذه الخانة",
     "dishOptions": {
@@ -1714,9 +1716,10 @@
     "columns": {
       "name": "الطبق",
       "mealTypes": "وقت الوجبة",
-      "tags": "الوسوم",
-      "kcal": "سعرات الحصة",
-      "protein": "بروتين",
+      "tags": "الخصائص",
+      "kcal": "السعرات",
+      "carbs": "الكربوهيدرات",
+      "protein": "البروتين",
       "ingredients": "المكوّنات",
       "actions": "إجراءات"
     },
@@ -1728,8 +1731,8 @@
     },
     "rowActions": {
       "menuLabel": "إجراءات أخرى",
-      "hide": "إخفاء من قائمتي",
-      "unhide": "إظهار في قائمتي",
+      "hide": "إخفاء",
+      "unhide": "إظهار",
       "deleteConfirmTitle": "حذف هذا الطبق؟",
       "deleteConfirmMessage": "سيُحذف «{name}» من قائمتك. لا يمكن التراجع عن هذا.",
       "deleted": "تم حذف الطبق",
@@ -1821,6 +1824,7 @@
       "baseServingHint": "تظهر للمشترك كوحدة هذا الطبق، مثل \"حصة\" أو \"طبق\".",
       "mealTypesLegend": "وقت الوجبة",
       "labelsLegend": "خصائص الطبق",
+      "labelsHint": "لون كل خاصية يرافق الطبق في الكتالوج وفي الخطة الأسبوعية.",
       "allergensLegend": "مسببات الحساسية",
       "allergensHint": "يستثنى هذا الطبق من خطط المشتركين الذين لديهم حساسية مطابقة.",
       "ingredientsHeading": "المكوّنات",
@@ -1833,6 +1837,7 @@
       "amount": "الكمية",
       "unitAria": "الوحدة",
       "rowKcal": "{kcal} سعرة",
+      "rowGrams": "= {grams} غ",
       "units": {
         "g": "غرام",
         "piece": "حبة",
@@ -1848,6 +1853,8 @@
       "liveNutrition": "القيم الغذائية لكل حصة أساسية",
       "nutritionTitle": "القيم الغذائية",
       "nutritionEmpty": "أضف مكوّنات لعرض القيم الغذائية.",
+      "perServing": "لكل {unit}",
+      "energyShare": "الأشرطة تُظهر نسبة كل عنصر من سعرات الطبق.",
       "categories": {
         "high_protein": "غني بالبروتين",
         "high_carb": "غني بالكربوهيدرات",

@@ -40,9 +40,13 @@ import { ALLERGENS, DISH_TAGS, mealTypeForSlot, type DishTag } from '../schema';
  */
 const NUTRITION_FILTERS = ['high_protein'] as const satisfies readonly NutritionCategory[];
 
+/** How many colour dots a rail row prints before it stops — it is 20rem wide. */
+const DOT_LIMIT = 3;
+
 /** The narrow union of categories actually offered as filters — so message keys
  * like `nutritionFilters.${entry}` stay resolvable. */
 type NutritionFilter = (typeof NUTRITION_FILTERS)[number];
+import { dishTagDotClasses, highProteinDotClasses } from '../meal-tag-tone';
 import { bestServings } from '../similar';
 import { PLANNER_THEME } from '../theme';
 import type { RecentUse } from '../usage';
@@ -210,20 +214,22 @@ export function DishCatalog({
             </FilterChip>
           )}
 
+          {nutrition.map((entry) => (
+            <FilterChip key={entry} active onClick={() => toggleNutrition(entry)}>
+              <span aria-hidden className={highProteinDotClasses()} />
+              {t(`nutritionFilters.${entry}`)}
+              <Icon name="close" className="size-3.5" />
+            </FilterChip>
+          ))}
+
           {tags.map((entry) => (
             <FilterChip
               key={entry}
               active
               onClick={() => setTags((current) => current.filter((value) => value !== entry))}
             >
+              <span aria-hidden className={dishTagDotClasses(entry)} />
               {t(`tags.${entry}`)}
-              <Icon name="close" className="size-3.5" />
-            </FilterChip>
-          ))}
-
-          {nutrition.map((entry) => (
-            <FilterChip key={entry} active onClick={() => toggleNutrition(entry)}>
-              {t(`nutritionFilters.${entry}`)}
               <Icon name="close" className="size-3.5" />
             </FilterChip>
           ))}
@@ -275,7 +281,38 @@ export function DishCatalog({
                     </FilterGroup>
                   )}
 
+                  {/*
+                    Tags and the computed high-protein label in one run, each
+                    wearing its colour dot — the same grammar the standalone dish
+                    catalog uses, so the panel a dietitian filters *inside* the
+                    planner and the page they manage the catalog on are the same
+                    control with the same legend.
+
+                    High protein used to sit in a "nutrition" group of its own to
+                    record that it is derived from the recipe rather than typed.
+                    True, and not a distinction worth a section heading to the
+                    person filtering: it is one more quality a dish has or does
+                    not. The comment carries the fact; the UI does not need to.
+                  */}
                   <FilterGroup label={t('filterTags')}>
+                    {NUTRITION_FILTERS.map((entry) => {
+                      const selected = nutrition.includes(entry);
+                      const count = counts[entry] ?? 0;
+
+                      return (
+                        <FilterChip
+                          key={entry}
+                          active={selected}
+                          disabled={!selected && count === 0}
+                          onClick={() => toggleNutrition(entry)}
+                        >
+                          <span aria-hidden className={highProteinDotClasses()} />
+                          {t(`nutritionFilters.${entry}`)}
+                          <ChipCount value={count} />
+                        </FilterChip>
+                      );
+                    })}
+
                     {DISH_TAGS.map((entry) => {
                       const selected = tags.includes(entry);
                       const count = counts[entry] ?? 0;
@@ -293,29 +330,8 @@ export function DishCatalog({
                             )
                           }
                         >
+                          <span aria-hidden className={dishTagDotClasses(entry)} />
                           {t(`tags.${entry}`)}
-                          <ChipCount value={count} />
-                        </FilterChip>
-                      );
-                    })}
-                  </FilterGroup>
-
-                  {/* Nutrition is its own group, and computed: this chip filters
-                      on the recipe-derived category, not a stored tag, so it can
-                      never disagree with the dish's own numbers. */}
-                  <FilterGroup label={t('filterNutrition')}>
-                    {NUTRITION_FILTERS.map((entry) => {
-                      const selected = nutrition.includes(entry);
-                      const count = counts[entry] ?? 0;
-
-                      return (
-                        <FilterChip
-                          key={entry}
-                          active={selected}
-                          disabled={!selected && count === 0}
-                          onClick={() => toggleNutrition(entry)}
-                        >
-                          {t(`nutritionFilters.${entry}`)}
                           <ChipCount value={count} />
                         </FilterChip>
                       );
@@ -476,6 +492,9 @@ function CatalogRow({
   });
 
   const blocked = dish.blockedBy.length > 0;
+  // Catalog order, so the leading dot is the same tag the meal card will paint —
+  // see `primaryDishTag`, which resolves through `DISH_TAGS` for this reason.
+  const dishTags = membersOf(DISH_TAGS, dish.tags).slice(0, DOT_LIMIT);
   const kcal = roundForDisplay('kcal', dish.baseKcal * servings);
   const delta = budgetKcal === null ? null : kcal - budgetKcal;
   const deltaLabel = delta === null ? null : `${delta > 0 ? '+' : ''}${delta}`;
@@ -499,8 +518,32 @@ function CatalogRow({
         className={cn('size-4 text-muted-foreground', onPick && !blocked && 'text-primary')}
       />
       <span className="min-w-0">
-        <span className="block truncate font-heading text-body-sm font-semibold" dir="auto">
-          {dish.nameAr}
+        <span className="flex min-w-0 items-center gap-1.5">
+          <span className="min-w-0 truncate font-heading text-body-sm font-semibold" dir="auto">
+            {dish.nameAr}
+          </span>
+
+          {/*
+            The dish's colours, as bare dots.
+
+            The rail is too narrow for labelled chips, and it does not need
+            them: the same dots are labelled one click away in this panel's own
+            filter popover, and the first of them is the colour this dish will
+            paint across the top of the card it becomes the moment it is
+            dropped. That last part is the point — the mark is visible *before*
+            the drop, on the row being dragged, so the board's rules stop being
+            decoration the dietitian has to decode after the fact.
+          */}
+          {dishTags.length > 0 && (
+            <span
+              className="flex shrink-0 items-center gap-1"
+              title={dishTags.map((tag) => t(`tags.${tag}`)).join('، ')}
+            >
+              {dishTags.map((tag) => (
+                <span key={tag} aria-hidden className={dishTagDotClasses(tag)} />
+              ))}
+            </span>
+          )}
         </span>
         <span className="mt-0.5 block text-caption text-muted-foreground">
           {blocked ? (

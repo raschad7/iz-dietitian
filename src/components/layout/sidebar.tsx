@@ -21,6 +21,7 @@ import {
 import { Link, usePathname } from '@/i18n/navigation';
 import type { Locale } from '@/i18n/routing';
 
+import { BrandLogo } from './brand-logo';
 import { SidebarProfile } from './sidebar-profile';
 
 export type NavItem = {
@@ -73,6 +74,10 @@ type ShellProps = {
    * collapses to a bare word.
    *
    * A `data:` URI, per `clinics.logoUrl`.
+   *
+   * ⚠ `logoUrl` is currently drawn nowhere: the rail head leads with the product
+   * logo. It stays on the type because the value is real and the settings screen
+   * still captures it — see the note above `AppSidebar`.
    */
   brand?: { logoUrl: string | null; name: string };
   user?: { name: string; email?: string | null; locale: Locale };
@@ -165,32 +170,17 @@ function MobileBar({ title }: { title: string }) {
   );
 }
 
-/**
- * The clinic's mark at the head of the rail.
+/*
+ * `BrandMark` — the clinic's own uploaded logo, drawn as a 28px rounded square
+ * at the head of the rail — used to live here. The head now leads with the
+ * product logo instead (see `BrandLogo` in the header below), so the component
+ * had no caller and is gone rather than left to rot.
  *
- * A **plain `<img>`**, not `next/image`: the source is a `data:` URI already
- * sized to 256px by the upload control, so there is no remote fetch to
- * optimise and no srcset to generate.
- *
- * Falling back to the app glyph rather than to initials — a clinic that has not
- * uploaded a mark has no mark, and inventing one from its name would put a
- * second lettered disc on a rail whose foot already carries the account's.
+ * `brand.logoUrl` still travels down from the staff layout and the settings
+ * screen that captures it still works; nothing in the rail reads it any more.
+ * Restoring a clinic mark means deciding where it goes now that the head is
+ * taken — the account row at the foot is the obvious candidate.
  */
-function BrandMark({ logoUrl, name }: { logoUrl: string | null; name: string }) {
-  return (
-    <span
-      aria-hidden
-      className="grid size-7 shrink-0 place-items-center overflow-hidden rounded-md bg-sidebar-accent ring-1 ring-sidebar-border"
-    >
-      {logoUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element -- a data: URI has nothing for the image optimizer to do.
-        <img src={logoUrl} alt="" className="size-full object-contain" />
-      ) : (
-        <Icon name="dishes" className="size-4 text-sidebar-icon" aria-label={name} />
-      )}
-    </span>
-  );
-}
 
 function AppSidebar({ items, title, showTitle = true, brand, user, icons }: Omit<ShellProps, 'children'>) {
   const t = useTranslations('nav');
@@ -217,16 +207,35 @@ function AppSidebar({ items, title, showTitle = true, brand, user, icons }: Omit
             state, so nothing may compete with it for the row.
           */}
           <div className="flex min-w-0 items-center gap-2 group-data-[collapsible=icon]:hidden">
-            {brand ? <BrandMark logoUrl={brand.logoUrl} name={brand.name} /> : null}
+            {/*
+              The staff rail leads with the product logo — the leaf and the
+              wordmark as one mark — where it used to draw the clinic's own
+              square mark beside the clinic's name in text.
+
+              ⚠ **The clinic's name is no longer visible here.** It is still the
+              rail's accessible name (the `sr-only` span below), and the account
+              row at the foot still says whose session this is, but the head now
+              identifies the *product* rather than the practice. That is the
+              trade: one logo reads as a brand where a lettered square plus a
+              name read as a row of two things. `brand.logoUrl` — a clinic's own
+              uploaded mark — is consequently unused by this rail; the settings
+              screen that captures it still works, it simply has nowhere here to
+              appear.
+            */}
+            {brand ? <BrandLogo className="h-9 shrink-0" /> : null}
             {/*
               `sr-only` rather than absent when hidden: the string is the rail's
               accessible name, and the mobile drawer needs one whether or not
               anybody is meant to read it on screen. See `showTitle`.
+
+              Always `sr-only` once the logo is drawn — the logo carries the
+              wordmark, so a heading beside it would be the name twice, once as
+              a picture and once as text.
             */}
             <span
               className={cn(
                 'truncate font-heading text-heading-sm font-semibold group-data-[collapsible=icon]:hidden',
-                !showTitle && 'sr-only',
+                (!showTitle || brand) && 'sr-only',
               )}
             >
               {brand?.name ?? title}

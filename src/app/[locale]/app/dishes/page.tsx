@@ -6,7 +6,7 @@ import { DishFilters } from '@/features/weekly-plans/components/dish-filters';
 import { DishList, type DishCardData } from '@/features/weekly-plans/components/dish-list';
 import { DishPagination } from '@/features/weekly-plans/components/dish-pagination';
 import { parseOwnerFilter } from '@/features/weekly-plans/catalog-ownership';
-import { roundForDisplay } from '@/features/weekly-plans/nutrition';
+import { nutritionCategory, roundForDisplay } from '@/features/weekly-plans/nutrition';
 import { listDishes } from '@/features/weekly-plans/queries';
 import { DISH_TAGS } from '@/features/weekly-plans/schema';
 import { membersOf } from '@/lib/enum';
@@ -63,7 +63,12 @@ export default async function DishesPage({ params, searchParams }: PageProps) {
     mealTypes: dish.mealTypes,
     tags: dish.tags,
     kcal: roundForDisplay('kcal', dish.baseKcal),
+    carbs: roundForDisplay('carbs', dish.totals.carbs.value),
     protein: roundForDisplay('protein', dish.totals.protein.value),
+    // Derived from the recipe here rather than read off the row: `high_protein`
+    // is a computed category, and the filter above narrows on the same function,
+    // so the chip and the filter can never disagree.
+    highProtein: nutritionCategory(dish.totals) === 'high_protein',
     isSystem: dish.clinicId === null,
     hidden: dish.hidden,
   }));
@@ -84,17 +89,16 @@ export default async function DishesPage({ params, searchParams }: PageProps) {
         filters on the rows beneath, all in one block with even spacing.
       */}
       <div className="flex shrink-0 flex-col gap-4">
-        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-          <div className="flex items-baseline gap-2.5">
-            <h1 className="font-heading text-heading-lg font-semibold tracking-tight">{t('title')}</h1>
-            <span className="text-body-sm text-muted-foreground tabular-nums">
-              {t('count', { count: result.total })}
-            </span>
-          </div>
-
-          <AddDishButton locale={locale} />
+        <div className="flex items-baseline gap-2.5">
+          <h1 className="font-heading text-heading-lg font-semibold tracking-tight">{t('title')}</h1>
+          <span className="text-body-sm text-muted-foreground tabular-nums">
+            {t('count', { count: result.total })}
+          </span>
         </div>
 
+        {/* Add sits *in* the toolbar rather than up beside the title: everything
+            you do to this catalog — search it, narrow it, add to it — is now one
+            row of controls, and the heading is just a heading. */}
         <DishFilters
           q={q}
           mealType={mealType}
@@ -102,7 +106,9 @@ export default async function DishesPage({ params, searchParams }: PageProps) {
           highProtein={highProtein}
           owner={owner}
           showHidden={showHidden}
-        />
+        >
+          <AddDishButton locale={locale} />
+        </DishFilters>
       </div>
 
       <DishList locale={locale} items={items} filtered={filtered} />

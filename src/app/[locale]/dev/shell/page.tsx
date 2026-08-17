@@ -37,6 +37,10 @@ export default async function DevShellPage({ params }: DevShellPageProps) {
         { href: '/app/dishes', labelKey: 'dishes' },
       ]}
       title="Qiwam"
+      /* The staff configuration, which is the one that has a brand — without it
+         the head falls back to the plain title and the product logo never
+         renders, so the harness could not show the thing it exists to show. */
+      brand={{ logoUrl: null, name: 'عيادة مهيب' }}
       user={{ name: 'Rani Shweiki', email: 'rani@example.com', locale }}
       icons={{
         dashboard: 'dashboard',

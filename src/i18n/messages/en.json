@@ -1570,6 +1570,8 @@
     "searchDishes": "Search dishes",
     "dishFilters": "Filters",
     "clearFilters": "Clear filters",
+    "colorKey": "Dish colour key",
+    "colorKeyUntagged": "No properties",
     "filterTags": "Dish type",
     "filterForThisSlot": "Fits this slot",
     "dishOptions": {
@@ -1714,8 +1716,9 @@
     "columns": {
       "name": "Dish",
       "mealTypes": "Meal time",
-      "tags": "Tags",
-      "kcal": "kcal / serving",
+      "tags": "Qualities",
+      "kcal": "Calories",
+      "carbs": "Carbs",
       "protein": "Protein",
       "ingredients": "Ingredients",
       "actions": "Actions"
@@ -1728,8 +1731,8 @@
     },
     "rowActions": {
       "menuLabel": "More actions",
-      "hide": "Hide from my catalog",
-      "unhide": "Show in my catalog",
+      "hide": "Hide",
+      "unhide": "Show",
       "deleteConfirmTitle": "Delete this dish?",
       "deleteConfirmMessage": "\"{name}\" will be removed from your catalog. This can't be undone.",
       "deleted": "Dish deleted",
@@ -1821,6 +1824,7 @@
       "baseServingHint": "Shown to the client as the unit for this dish, e.g. \"serving\" or \"plate\".",
       "mealTypesLegend": "Meal time",
       "labelsLegend": "Dish properties",
+      "labelsHint": "Each colour follows the dish into the catalog and the weekly plan.",
       "allergensLegend": "Allergens",
       "allergensHint": "These exclude the dish from clients with a matching allergy.",
       "ingredientsHeading": "Ingredients",
@@ -1833,6 +1837,7 @@
       "amount": "Amount",
       "unitAria": "Unit",
       "rowKcal": "{kcal} kcal",
+      "rowGrams": "= {grams} g",
       "units": {
         "g": "g",
         "piece": "piece",
@@ -1848,6 +1853,8 @@
       "liveNutrition": "Nutrition per base serving",
       "nutritionTitle": "Nutrition",
       "nutritionEmpty": "Add ingredients to see the nutrition.",
+      "perServing": "per {unit}",
+      "energyShare": "Bars show each macro's share of the calories.",
       "categories": {
         "high_protein": "High protein",
         "high_carb": "High carbohydrate",

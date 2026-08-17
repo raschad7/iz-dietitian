@@ -22,7 +22,7 @@ import { boardRows } from '../board-rows';
 import { dayKey } from '../schema';
 import { slotFillKey } from '../skeleton';
 import type { RecentUse } from '../usage';
-import { dayOfWeekForDate, orderedWeekdays } from '../week';
+import { dayOfWeekForDate, orderedWeekdays, planColumnDates } from '../week';
 
 import { BoardEditor, useEditor } from './board-dnd';
 import { DayColumn } from './day-column';
@@ -32,6 +32,7 @@ import type { GhostMeal } from './meal-card';
 import { MealInspector } from './meal-inspector';
 import { NewWeekDialog, type NewWeekProps } from './new-week-dialog';
 import { PublishButton } from './publish-button';
+import { TagColorKey } from './tag-color-key';
 
 type BoardProps = {
   board: Board;
@@ -126,6 +127,15 @@ function BoardBody({
       return day ? [day] : [];
     });
   }, [board.days, board.weekStartDate]);
+
+  /* The calendar date behind each column heading, keyed by weekday so a rotated
+     week (one starting on a Wednesday) still lands each date on its own column.
+     `namesMonth` travels with it — see `planColumnDates` for why the month is
+     printed on some columns and not others. */
+  const columnDates = useMemo(
+    () => new Map(planColumnDates(board.weekStartDate).map((column) => [column.dayOfWeek, column])),
+    [board.weekStartDate],
+  );
 
   const mealsById = useMemo(
     () => new Map(board.days.flatMap((day) => day.meals).map((meal) => [meal.id, meal])),
@@ -301,6 +311,13 @@ function BoardBody({
                 )}
               </div>
 
+              {/* The key to the cards' coloured rules. Reference rather than an
+                  action, so it sits under the actions and above the history —
+                  and inside this popover it costs the board no space at all. */}
+              <div className="mt-2 border-t border-border pt-2 empty:hidden">
+                <TagColorKey days={board.days} />
+              </div>
+
               <div className="mt-2 border-t border-border pt-2">
                 <p className="pb-1 text-caption font-semibold text-muted-foreground">
                   {t('history')}
@@ -416,6 +433,8 @@ function BoardBody({
               <DayColumn
                 key={day.dayOfWeek}
                 day={day}
+                date={columnDates.get(day.dayOfWeek)?.date ?? null}
+                namesMonth={columnDates.get(day.dayOfWeek)?.namesMonth ?? false}
                 rows={rows}
                 dailyTarget={dailyTarget}
                 editable={editable}
