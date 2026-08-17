@@ -266,8 +266,26 @@ export type ClientSort = (typeof CLIENT_SORTS)[number];
  * filter in as well would be two answers to the same question, and it would let
  * the register mix the two states in one list, where the status column it
  * needed has just been removed for saying "active" on every row.
+ *
+ * **`phone` and `email` are not here either, and that leaves one.** They were
+ * substring matches on two columns nobody searches a register by: a dietitian
+ * looking someone up types a name, which is what the field beside the control
+ * already does. Both were also the only *free-text* filters, so the popover had
+ * to carry a text input for them and a chooser for the fixed-choice one, and the
+ * two branches were most of the control.
+ *
+ * What is left is the one filter that answers a question a name cannot: who has
+ * a portal login and who does not. It is a fixed pair of values, so the popover
+ * is now a single question with two answers — see `ClientFilterMenu`, which
+ * dropped its column chooser with them.
+ *
+ * ⚠ It stays an array of one rather than collapsing into a bare `'portalAccess'`
+ * literal. `filterBy` is a URL parameter and this is what validates it; a second
+ * filter is a plausible addition, and the shape that takes it is this one. An
+ * old link carrying `filterBy=phone` now fails the enum and `.catch()` drops it,
+ * which shows the register unfiltered rather than erroring.
  */
-export const CLIENT_FILTERS = ['phone', 'email', 'portalAccess'] as const;
+export const CLIENT_FILTERS = ['portalAccess'] as const;
 export type ClientFilter = (typeof CLIENT_FILTERS)[number];
 
 /** What `portalAccess` filters on: the client has a portal login, or has not. */
@@ -277,10 +295,10 @@ export const PORTAL_ACCESS_VALUES = ['yes', 'no'] as const;
  * List filters. Every field uses `.catch()` so a hand-edited query string
  * degrades to the default view instead of throwing a 500 at the user.
  *
- * `filterValue` is validated against the *column* rather than here — an enum
- * for status and portal access, free text for phone and email — so the rule
- * lives with the query that applies it. Anything nonsensical is ignored there
- * and the register falls back to its default view.
+ * `filterValue` is validated against the *column* rather than here — the one
+ * remaining column takes `yes` or `no` — so the rule lives with the query that
+ * applies it. Anything nonsensical is ignored there and the register falls back
+ * to its default view.
  */
 export const listClientsSchema = z.object({
   q: z.preprocess(blankToUndefined, z.string().trim().max(120).optional()),

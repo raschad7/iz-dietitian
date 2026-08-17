@@ -5,7 +5,7 @@ import { mergeProps } from "@base-ui/react/merge-props"
 import { useRender } from "@base-ui/react/use-render"
 import { cva, type VariantProps } from "class-variance-authority"
 
-import { useIsMobile } from "@/hooks/use-mobile"
+import { useIsCompact, useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -45,6 +45,14 @@ type SidebarContextProps = {
   setOpenMobile: (open: boolean) => void
   isMobile: boolean
   toggleSidebar: () => void
+  /**
+   * The rail is locked to icons and cannot be opened at this width.
+   *
+   * True on a `railOnly` shell below `lg`. It is what the trigger reads to take
+   * itself out of the page — a control that cannot do anything is worse than no
+   * control — and what `Sidebar` reads to draw the rail instead of the drawer.
+   */
+  locked: boolean
 }
 
 const SidebarContext = React.createContext<SidebarContextProps | null>(null)
@@ -58,10 +66,25 @@ function useSidebar() {
   return context
 }
 
+/**
+ * @param railOnly Lock the rail to its icon width below `lg`, with no drawer and
+ *   no way to open it.
+ *
+ *   This is the staff app's shape on a tablet and a phone: navigation is always
+ *   on screen as a column of icons, and the expanded 16rem column is a desktop
+ *   affordance. It replaces a `<dialog>` drawer that had to be opened before any
+ *   destination could be reached and then covered the page while it was.
+ *
+ *   Opt-in rather than the default, because the other shell that renders this is
+ *   the patient portal — a phone-first app with a bottom tab bar carrying the
+ *   same five destinations. A permanent icon rail there would be a second
+ *   navigation for one set of screens.
+ */
 function SidebarProvider({
   defaultOpen = true,
   open: openProp,
   onOpenChange: setOpenProp,
+  railOnly = false,
   className,
   style,
   children,
@@ -70,8 +93,11 @@ function SidebarProvider({
   defaultOpen?: boolean
   open?: boolean
   onOpenChange?: (open: boolean) => void
+  railOnly?: boolean
 }) {
   const isMobile = useIsMobile()
+  const isCompact = useIsCompact()
+  const locked = railOnly && isCompact
   const [openMobile, setOpenMobile] = React.useState(false)
 
   // This is the internal state of the sidebar.
@@ -93,10 +119,13 @@ function SidebarProvider({
     [setOpenProp, open]
   )
 
-  // Helper to toggle the sidebar.
+  // Helper to toggle the sidebar. A locked rail has nothing to toggle — the
+  // keyboard shortcut below reaches this too, so the lock has to live here
+  // rather than only on the trigger.
   const toggleSidebar = React.useCallback(() => {
+    if (locked) return
     return isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open)
-  }, [isMobile, setOpen, setOpenMobile])
+  }, [locked, isMobile, setOpen, setOpenMobile])
 
   // Adds a keyboard shortcut to toggle the sidebar.
   React.useEffect(() => {
@@ -116,7 +145,12 @@ function SidebarProvider({
 
   // We add a state so that we can do data-state="expanded" or "collapsed".
   // This makes it easier to style the sidebar with Tailwind classes.
-  const state = open ? "expanded" : "collapsed"
+  //
+  // A locked rail is collapsed whatever the stored preference says. The
+  // preference itself is left untouched — it is the *desktop* choice, and a
+  // dietitian who works on a laptop and checks the day on a tablet should find
+  // their laptop the way they left it.
+  const state = locked || !open ? "collapsed" : "expanded"
 
   const contextValue = React.useMemo<SidebarContextProps>(
     () => ({
@@ -127,14 +161,20 @@ function SidebarProvider({
       openMobile,
       setOpenMobile,
       toggleSidebar,
+      locked,
     }),
-    [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
+    [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar, locked]
   )
 
   return (
     <SidebarContext.Provider value={contextValue}>
       <div
         data-slot="sidebar-wrapper"
+        // The shell's own arrangement, exposed for CSS and for tests. `locked`
+        // is the resolved answer (this shell, at this width); `rail-only` is the
+        // shell's intent regardless of width.
+        data-rail-only={railOnly ? "true" : undefined}
+        data-locked={locked ? "true" : undefined}
         style={
           {
             "--sidebar-width": SIDEBAR_WIDTH,
@@ -167,7 +207,7 @@ function Sidebar({
   variant?: "sidebar" | "floating" | "inset"
   collapsible?: "offcanvas" | "icon" | "none"
 }) {
-  const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
+  const { isMobile, state, openMobile, setOpenMobile, locked } = useSidebar()
 
   if (collapsible === "none") {
     return (
@@ -184,7 +224,11 @@ function Sidebar({
     )
   }
 
-  if (isMobile) {
+  // A locked rail is drawn as the rail at every width, so the drawer branch is
+  // skipped even on a phone. That is the whole shape change: navigation stops
+  // being a thing you open over the page and becomes a column that is always
+  // there.
+  if (isMobile && !locked) {
     return (
       <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
         <SheetContent
@@ -212,12 +256,16 @@ function Sidebar({
 
   return (
     <div
-      className="group peer hidden text-sidebar-foreground md:block"
+      // `hidden md:block` is the drawer shell's arrangement: below `md` the rail
+      // is absent because the Sheet above is standing in for it. A locked rail
+      // has no Sheet, so it has to be visible at every width.
+      className={cn("group peer text-sidebar-foreground", locked ? "block" : "hidden md:block")}
       data-state={state}
       data-collapsible={state === "collapsed" ? collapsible : ""}
       data-variant={variant}
       data-side={side}
       data-slot="sidebar"
+      data-locked={locked ? "true" : undefined}
     >
       {/* This is what handles the sidebar gap on desktop */}
       <div
@@ -236,6 +284,11 @@ function Sidebar({
         data-side={side}
         className={cn(
           "fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[inset-inline-start,inset-inline-end,width] duration-200 ease-linear data-[side=inline-start]:start-0 data-[side=inline-start]:group-data-[collapsible=offcanvas]:start-[calc(var(--sidebar-width)*-1)] data-[side=inline-end]:end-0 data-[side=inline-end]:group-data-[collapsible=offcanvas]:end-[calc(var(--sidebar-width)*-1)] md:flex",
+          // Same reason as the wrapper above: with no Sheet standing in for it
+          // below `md`, the locked rail has to draw itself there. The width
+          // needs no help — `data-collapsible="icon"` is set on the group, so
+          // the variant below resolves it to the icon column.
+          locked && "flex",
           // Adjust the padding for floating and inset variants.
           variant === "floating" || variant === "inset"
             ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]"
@@ -261,7 +314,12 @@ function SidebarTrigger({
   onClick,
   ...props
 }: React.ComponentProps<typeof Button>) {
-  const { toggleSidebar } = useSidebar()
+  const { toggleSidebar, locked } = useSidebar()
+
+  // Nothing to toggle, so nothing to press. A control that is present and inert
+  // is worse than an absent one: it invites the press and then says nothing
+  // about why the rail did not move.
+  if (locked) return null
 
   return (
     <Button

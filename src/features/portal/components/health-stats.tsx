@@ -58,7 +58,20 @@ export function HealthStats({ stats }: { stats: readonly HealthStat[] }) {
     shares it, squares off into two rows of two instead of three-plus-one, and
     only spreads across a single row once `sm` has the width for it.
   */
-  const columns = stats.length === 4 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3';
+  /*
+    Three across, except on the phones where three across does not fit.
+
+    The three-up case had no breakpoint at all, so it stayed three-up at every
+    width down to 320px — where each tile is about 82px and a value like
+    "Moderately active" or its Arabic equivalent ran straight out of its tile
+    and over the neighbour's. Two-up below 380px gives each tile half the row,
+    which is enough for the longest category either locale produces, and the odd
+    third tile takes the second row.
+
+    The four-tile case already stepped down to two and is left alone: at four,
+    two-up is the *narrow* arrangement and it holds at 320px.
+  */
+  const columns = stats.length === 4 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2 min-[24rem]:grid-cols-3';
 
   return (
     /*

@@ -185,7 +185,24 @@ function NotificationInboxPopover<T extends string>({
 
       <PopoverContent
         align={align}
-        className={cn(MEASURES, 'w-(--notif-width) gap-0 overflow-hidden p-0', className)}
+        /*
+          `overflow-x-hidden overflow-y-auto`, not `overflow-hidden`, and the
+          difference is load-bearing.
+
+          Both axes still clip in the sense that matters here — the full-bleed
+          rows keep the panel's rounded corners — but the block axis can now
+          scroll. `PopoverContent` clamps every popup to `--available-height`,
+          and tailwind-merge treats `overflow` as one group with `overflow-x` and
+          `overflow-y`: a bare `overflow-hidden` here would replace the base's
+          scrolling while leaving the height cap in place, which is a panel
+          capped to the viewport with no way to reach its last rows or the
+          footer link. Spelling both axes keeps the cap and the scroll together.
+
+          The "bounded five-row preview" this panel is built around is untouched:
+          it only exceeds `--available-height` on a screen too short to hold five
+          rows, which is the case that needs the scroll.
+        */
+        className={cn(MEASURES, 'w-(--notif-width) gap-0 overflow-x-hidden overflow-y-auto p-0', className)}
       >
         {/*
           Header. The reference pairs the filter strip with a "mark all as read";

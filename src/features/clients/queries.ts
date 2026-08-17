@@ -224,15 +224,15 @@ function filterCondition(input: ListClientsInput): SQL | undefined {
   if (!value) return undefined;
 
   switch (input.filterBy) {
-    // Matched as typed, like the register renders them: a phone number and an
-    // email address have no folded copy to search, and both are read
-    // left-to-right whatever the page's direction is.
-    case 'phone':
-      return ilike(clients.phone, `%${value}%`);
-    case 'email':
-      return ilike(clients.email, `%${value}%`);
-    // Not a column — `userId IS NOT NULL`, exactly what the list renders in
-    // that cell and what `SORT_COLUMNS` orders it by.
+    /*
+      Not a column — `userId IS NOT NULL`, exactly what the list renders in that
+      cell and what `SORT_COLUMNS` orders it by.
+
+      It is the only case left. `phone` and `email` were `ilike` substring
+      matches beside it and went with their entries in `CLIENT_FILTERS`; the
+      `switch` stays a `switch` because `filterBy` is still an enum that can
+      grow, and `default` is what a stale link lands on.
+    */
     case 'portalAccess':
       return value === 'yes'
         ? isNotNull(clients.userId)

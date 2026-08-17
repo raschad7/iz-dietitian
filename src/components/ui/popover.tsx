@@ -73,6 +73,42 @@ function PopoverContent({
           data-slot="popover-content"
           className={cn(
             "z-50 flex w-72 origin-(--transform-origin) flex-col gap-2.5 rounded-lg bg-popover p-2.5 text-sm text-popover-foreground shadow-md ring-1 ring-foreground/10 outline-hidden duration-100 data-[side=bottom]:slide-in-from-top-2 data-[side=inline-end]:slide-in-from-start-2 data-[side=inline-start]:slide-in-from-end-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+            /*
+              Never larger than the room the positioner measured.
+
+              `w-72` and every per-call `w-80` are *ideal* widths, and a popup
+              is `position: fixed` — nothing scrolls the page to recover what
+              falls outside it. On a 320px screen a 320px popup is already wider
+              than the 310px the positioner has after its collision padding, so
+              its inline-end edge — the Apply button on the register's filter,
+              the notes column in the planner's context panel — was simply off
+              the screen. On a short viewport the same was true downwards: the
+              date picker's month grid opened below its trigger inside a dialog
+              and its last fortnight was unreachable.
+
+              `--available-width` and `--available-height` are what Base UI's
+              positioner exposes for exactly this. Clamping to them turns every
+              per-call width into "this wide if it fits", and `overflow-y-auto`
+              gives the block axis somewhere to put the remainder instead of
+              dropping it.
+
+              Declared before `className` so a call site can still override
+              either, and it is the reason the fix belongs here rather than in
+              the six popovers that had learnt to work around it: `combobox.tsx`
+              had already grown its own `max-w-(--available-width)`, which is the
+              same repair applied one call site at a time.
+
+            ⚠ A caller that passes its own `overflow-*` **replaces both axes
+              here**, because tailwind-merge treats `overflow` as one group with
+              `overflow-x`/`overflow-y` — while the `max-h` above survives, since
+              that is a different group. So `overflow-hidden` at a call site
+              turns into "capped and clipped", which is how the notification
+              inbox lost its last rows and its footer link the first time this
+              clamp went in. That caller now says `overflow-x-hidden
+              overflow-y-auto` for exactly this reason; any new one that wants
+              clipping has to spell both axes too.
+            */
+            "max-h-(--available-height) max-w-(--available-width) overflow-x-hidden overflow-y-auto overscroll-contain",
             className
           )}
           {...props}

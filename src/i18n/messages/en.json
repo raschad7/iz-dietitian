@@ -215,6 +215,7 @@
     "openClientProfile": "Open client profile",
     "openActions": "Appointment actions",
     "monthMore": "+{count, number, integer} more",
+    "monthOther": "Other {count, number, integer}",
     "hiddenBelow": "+{count, number, integer} more",
     "hiddenBelowAction": "Scroll down to {count, number, integer} more appointments on this day",
     "monthReadOnly": "Month view is an overview. Click a day to book or edit.",
@@ -488,15 +489,14 @@
     "empty": "No clients yet. Start by adding your first one.",
     "emptyFiltered": "No clients match your search.",
     "searchPlaceholder": "Search by name",
+    "searchAction": "Search",
     "filter": {
       "trigger": "Filter",
       "title": "Filter the register",
-      "column": "Filter by",
-      "value": "Matching",
-      "contains": "Contains…",
       "apply": "Apply",
       "clear": "Clear",
       "portalAccess": {
+        "label": "Portal access",
         "yes": "Has access",
         "no": "No access"
       }
@@ -869,7 +869,7 @@
       "noPlan": "No plan yet"
     },
     "archive": {
-      "title": "Archived clients",
+      "title": "Archived",
       "subtitle": "Restore anyone who should be back on the register.",
       "empty": "Nothing has been archived."
     },
