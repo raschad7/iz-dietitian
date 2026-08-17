@@ -1,6 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 
+import { PROFESSIONAL_TITLE_OPTIONS, SPECIALTY_OPTIONS } from './professional-options';
 import {
+  FIELD_LIMITS,
   clinicInformationSchema,
   professionalProfileSchema,
   weeklyScheduleSchema,
@@ -25,16 +27,32 @@ describe('clinicInformationSchema', () => {
     expect(
       clinicInformationSchema.parse({
         name: '  Qiwam Clinic  ',
-        phone: '  +970 59 123 4567  ',
+        phone: '  0599123456  ',
         contactEmail: '  TEAM@QIWAM.TEST ',
         address: '  Ramallah, Main Street  ',
       }),
     ).toEqual({
       name: 'Qiwam Clinic',
-      phone: '+970 59 123 4567',
+      phone: '0599123456',
       contactEmail: 'team@qiwam.test',
       address: 'Ramallah, Main Street',
     });
+  });
+
+  test('requires the phone to be exactly ten digits', () => {
+    const base = { name: 'Qiwam Clinic', contactEmail: 'team@qiwam.test', address: 'Ramallah' };
+    const accepts = (phone: string) => clinicInformationSchema.safeParse({ ...base, phone }).success;
+
+    expect(accepts('0599123456')).toBe(true);
+    expect(accepts('059912345')).toBe(false); // nine
+    expect(accepts('05991234567')).toBe(false); // eleven
+
+    // Separators are rejected rather than stripped, so the counter the reader
+    // watches ("n of 10") counts the same characters the rule does.
+    expect(accepts('059 912 3456')).toBe(false);
+    expect(accepts('+970599123456')).toBe(false);
+    expect(accepts('059-912-3456')).toBe(false);
+    expect(accepts('abcdefghij')).toBe(false);
   });
 
   test('rejects a missing required clinic field', () => {
@@ -76,22 +94,95 @@ describe('weeklyScheduleSchema', () => {
   });
 });
 
+describe('FIELD_LIMITS', () => {
+  test('holds the lengths the product asked for', () => {
+    // Pinned rather than inferred: these three are product decisions, not
+    // arithmetic, and a silent widening is exactly the drift that let a clinic
+    // name look unbounded in the first place.
+    expect(FIELD_LIMITS.clinicName).toBe(50);
+    expect(FIELD_LIMITS.address).toBe(120);
+    expect(FIELD_LIMITS.practitionerName).toBe(50);
+    // The ceiling on what "أخرى" lets someone type.
+    expect(FIELD_LIMITS.professionalTitle).toBe(50);
+    expect(FIELD_LIMITS.specialty).toBe(50);
+    // Both the digit count and the character ceiling for the clinic phone.
+    expect(FIELD_LIMITS.clinicPhone).toBe(10);
+  });
+
+  test('every offered option fits inside its own limit', () => {
+    // A list that offered a value its own schema rejects would be a trap the
+    // reader walks into by picking the obvious answer.
+    for (const option of PROFESSIONAL_TITLE_OPTIONS) {
+      expect(option.value.length).toBeLessThanOrEqual(FIELD_LIMITS.professionalTitle);
+    }
+    for (const option of SPECIALTY_OPTIONS) {
+      expect(option.value.length).toBeLessThanOrEqual(FIELD_LIMITS.specialty);
+    }
+  });
+
+  test('caps a typed "other" title and specialty at 50', () => {
+    const professional = { name: 'Rania Khalil', specialty: 'التغذية السريرية' };
+
+    expect(professionalProfileSchema.safeParse({ ...professional, professionalTitle: 'ت'.repeat(50) }).success).toBe(true);
+    expect(professionalProfileSchema.safeParse({ ...professional, professionalTitle: 'ت'.repeat(51) }).success).toBe(false);
+
+    const title = { name: 'Rania Khalil', professionalTitle: 'أخصائي تغذية' };
+    expect(professionalProfileSchema.safeParse({ ...title, specialty: 'خ'.repeat(50) }).success).toBe(true);
+    expect(professionalProfileSchema.safeParse({ ...title, specialty: 'خ'.repeat(51) }).success).toBe(false);
+  });
+
+  test('the schemas actually enforce them', () => {
+    const base = { phone: '0599123456', contactEmail: 'a@b.com', address: 'Ramallah' };
+
+    expect(clinicInformationSchema.safeParse({ ...base, name: 'ع'.repeat(50) }).success).toBe(true);
+    expect(clinicInformationSchema.safeParse({ ...base, name: 'ع'.repeat(51) }).success).toBe(false);
+
+    expect(clinicInformationSchema.safeParse({ ...base, name: 'Clinic', address: 'x'.repeat(120) }).success).toBe(true);
+    expect(clinicInformationSchema.safeParse({ ...base, name: 'Clinic', address: 'x'.repeat(121) }).success).toBe(false);
+
+    const professional = { professionalTitle: 'أخصائي تغذية', specialty: 'التغذية السريرية' };
+    expect(professionalProfileSchema.safeParse({ ...professional, name: 'ن'.repeat(50) }).success).toBe(true);
+    expect(professionalProfileSchema.safeParse({ ...professional, name: 'ن'.repeat(51) }).success).toBe(false);
+  });
+});
+
 describe('professionalProfileSchema', () => {
-  test('requires professional identity and normalizes an empty license to null', () => {
+  test('requires professional identity and trims what it is given', () => {
     expect(
       professionalProfileSchema.parse({
         name: '  Rania Khalil ',
-        professionalTitle: ' Clinical Dietitian ',
-        specialty: ' Sports nutrition ',
-        phone: ' 0599 123 456 ',
-        licenseNumber: '   ',
+        professionalTitle: ' أخصائي تغذية سريرية ',
+        specialty: ' التغذية الرياضية ',
       }),
     ).toEqual({
       name: 'Rania Khalil',
-      professionalTitle: 'Clinical Dietitian',
-      specialty: 'Sports nutrition',
-      phone: '0599 123 456',
-      licenseNumber: null,
+      professionalTitle: 'أخصائي تغذية سريرية',
+      specialty: 'التغذية الرياضية',
     });
+  });
+
+  test('ignores a phone or a licence number that is still being sent', () => {
+    // Both fields were removed from every screen; the columns stay. A stale
+    // caller passing them must not be able to write them back in by accident.
+    const parsed = professionalProfileSchema.parse({
+      name: 'Rania Khalil',
+      professionalTitle: 'أخصائي تغذية',
+      specialty: 'التغذية السريرية',
+      phone: '0599123456',
+      licenseNumber: 'RD-12',
+    });
+
+    expect(parsed).not.toHaveProperty('phone');
+    expect(parsed).not.toHaveProperty('licenseNumber');
+  });
+
+  test('accepts a title the list does not offer, because "other" is typed', () => {
+    expect(
+      professionalProfileSchema.parse({
+        name: 'Rania Khalil',
+        professionalTitle: 'أخصائي تغذية الأطفال',
+        specialty: 'تغذية كبار السن',
+      }).professionalTitle,
+    ).toBe('أخصائي تغذية الأطفال');
   });
 });
