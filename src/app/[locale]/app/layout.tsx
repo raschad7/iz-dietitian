@@ -101,7 +101,29 @@ export default async function AppLayout({ children, params }: AppLayoutProps) {
       icons={NAV_ICONS}
       className="h-svh overflow-hidden"
     >
-      <main className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-3 md:p-5">
+      {/*
+        `overflow-x-auto`, not the `overflow-x-hidden` this carried.
+
+        The clip was undocumented and it was the app's last line of defence
+        against a wide surface — but a clip plus `* { scrollbar-width: none }`
+        (globals.css) is content with neither a bar nor a gesture to reach it.
+        Anything that overflowed at a phone width was simply gone: the register
+        toolbar's "New client" was clipped exactly this way.
+
+        `auto` keeps the containment — the shell still refuses to be widened by a
+        child, which is what stops *page-level* horizontal scrolling — while
+        leaving wheel, trackpad, touch drag and keyboard able to reach anything
+        that still overflows. It also matters that nothing appears: the route
+        entrance in `.q-route-stage` animates from an 8px translate, and with a
+        clip that was invisible while with a *bar* it would flash a scrollbar on
+        every navigation. There are no bars.
+
+        This is a safety net, not a licence. Every real overflow is fixed at its
+        source with the Rearrange → Stack → Internal-scroll ladder — `TableRoot`,
+        `Tabs`, `PanelTabsList` and `.planner-week-scroll` are the precedents —
+        and `overflow-x-hidden` must not come back here or go anywhere else.
+      */}
+      <main className="min-h-0 min-w-0 flex-1 overflow-x-auto overflow-y-auto p-3 md:p-5">
         {children}
       </main>
     </AppShell>

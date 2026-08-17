@@ -145,7 +145,25 @@ export function NewWeekDialog({
             closeLabel={tCommon('close')}
           />
 
-          <DialogBody className="sm:min-h-0 sm:flex-1 sm:overflow-hidden">
+          {/*
+            `sm:overflow-y-auto`, not `sm:overflow-hidden`.
+
+            From `sm` up this dialog is a fixed height —
+            `min(52rem, 100dvh - 1rem)` — and the body was told to clip whatever
+            did not fit inside it. On a tall window nothing ever did, so the
+            clip was invisible; on a short one it was the whole point of the
+            screen. A landscape phone (844×390), a 1280×600 window or a 1366×768
+            laptop with browser chrome leaves under ~660px here, and the generate
+            door's form ran past it: its fields and its submit button were drawn
+            outside the box and there was no way to scroll to them, so the week
+            could not be created at all.
+
+            Scrolling rather than clipping changes nothing when the content
+            fits — no bar is drawn app-wide, and a box with nothing to scroll
+            behaves exactly as it did — and turns "unreachable" into "one swipe
+            away" when it does not.
+          */}
+          <DialogBody className="sm:min-h-0 sm:flex-1 sm:overflow-y-auto">
             <div className="grid shrink-0 gap-3 rounded-lg bg-muted px-4 py-3 sm:grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)] sm:items-center">
               <div>
                 <Label htmlFor="new-week-start" className="text-body-md font-medium">
@@ -436,7 +454,13 @@ function Door({
         </p>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col px-4 pb-3">{children}</div>
+      {/*
+        The door's own body scrolls too, for the same reason the dialog's does:
+        on a short viewport the generate door's form is taller than the column it
+        sits in, and the alternative to scrolling it is clipping its submit
+        button off the bottom of a card the reader cannot move.
+      */}
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pb-3">{children}</div>
     </Card>
   );
 }

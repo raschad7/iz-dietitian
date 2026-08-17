@@ -58,7 +58,15 @@ function TableRoot({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="table-container"
-      className={cn('relative w-full overflow-x-auto', className)}
+      /*
+        `q-scroll-cue` is what tells a reader this table has more columns than
+        the screen. Scrollbars are hidden app-wide, so a register on a phone
+        showed its first four columns and looked like a table that did not have
+        the rest; the cue is a shadow at whichever edge has content past it, and
+        it paints nothing at all when the table fits. See its note in
+        `globals.css`.
+      */
+      className={cn('q-scroll-cue relative w-full overflow-x-auto', className)}
       {...props}
     />
   );

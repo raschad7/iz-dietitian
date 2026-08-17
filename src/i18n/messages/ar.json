@@ -215,6 +215,7 @@
     "openClientProfile": "فتح ملف المشترك",
     "openActions": "إجراءات الموعد",
     "monthMore": "+{count, number, integer} أخرى",
+    "monthOther": "أخرى {count, number, integer}",
     "hiddenBelow": "+{count, number, integer} أخرى",
     "hiddenBelowAction": "انزل إلى {count, number, integer} مواعيد أخرى في هذا اليوم",
     "monthReadOnly": "عرض الشهر للاطّلاع فقط. انقر على أي يوم للحجز أو التعديل.",
@@ -488,15 +489,14 @@
     "empty": "لا يوجد مشتركون بعد. ابدأ بإضافة أول مشترك.",
     "emptyFiltered": "لا نتائج مطابقة لبحثك.",
     "searchPlaceholder": "ابحث بالاسم",
+    "searchAction": "بحث",
     "filter": {
       "trigger": "تصفية",
       "title": "تصفية السجل",
-      "column": "التصفية حسب",
-      "value": "المطابق",
-      "contains": "يحتوي على…",
       "apply": "تطبيق",
       "clear": "مسح",
       "portalAccess": {
+        "label": "الوصول إلى البوابة",
         "yes": "لديه دخول",
         "no": "لا دخول له"
       }
@@ -869,7 +869,7 @@
       "noPlan": "لا توجد خطة بعد"
     },
     "archive": {
-      "title": "المشتركون المؤرشفون",
+      "title": "المؤرشفون",
       "subtitle": "أعِد أي مشترك يجب أن يعود إلى القائمة.",
       "empty": "لا يوجد أي مشترك مؤرشف."
     },

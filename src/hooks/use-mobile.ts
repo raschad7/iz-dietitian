@@ -29,3 +29,32 @@ export function useIsMobile() {
     () => false,
   )
 }
+
+/**
+ * The tablet-and-below boundary: anything narrower than `lg`.
+ *
+ * Separate from `useIsMobile` because they answer different questions. 768px is
+ * where a phone becomes a tablet — where seven calendar columns start to fit and
+ * where the shell stops being one column. 1024px is where a tablet becomes a
+ * desktop, which is the line the staff rail is locked at: below it the rail is
+ * icons and nothing else, above it the expanded column comes back.
+ *
+ * `64rem` rather than a pixel count, so it tracks the root font size the way the
+ * `lg` breakpoint it mirrors does — a reader who has scaled their text up is on
+ * a narrower screen in the only unit that matters.
+ */
+const COMPACT_QUERY = '(width < 64rem)'
+
+function subscribeCompact(onChange: () => void) {
+  const query = window.matchMedia(COMPACT_QUERY)
+  query.addEventListener('change', onChange)
+  return () => query.removeEventListener('change', onChange)
+}
+
+export function useIsCompact() {
+  return React.useSyncExternalStore(
+    subscribeCompact,
+    () => window.matchMedia(COMPACT_QUERY).matches,
+    () => false,
+  )
+}

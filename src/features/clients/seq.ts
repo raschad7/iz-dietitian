@@ -5,12 +5,16 @@ import { clients } from '@/db/schema';
 /**
  * The client's position in their own clinic, counted from 0.
  *
- * This is what makes a patient's colour *theirs* and nobody else's. The colour
- * used to be hashed from the client id, and a hash cannot promise what a colour
- * code has to: two ids can land a fraction of a degree apart on the wheel, which
- * is not a near-miss but the same colour. An index cannot — distinct clients
- * hold distinct positions, so `patientHue` can hand out the ten palette colours
- * and then the mixes between them without ever repeating one.
+ * This is what makes a patient's colour stable and predictable. The colour used
+ * to be hashed from the client id, and a hash cannot promise what a colour code
+ * has to: it lands wherever it lands, so the ten palette colours came out
+ * lopsided — four clients on one of them and none on another — and two ids could
+ * fall a fraction of a degree apart, which is not a near-miss but the same
+ * colour. An index cannot. Distinct clients hold distinct, consecutive positions,
+ * which is what lets `patientHue` hand out the ten palette colours and then the
+ * mixes between them without ever repeating one — and what lets it push clients
+ * registered together a third of the wheel apart rather than leaving it to a
+ * hash's luck.
  *
  * **Ordered by `created_at, id`, so the numbering only ever appends.** A client
  * registered today is given the next free position and nobody else moves. Any

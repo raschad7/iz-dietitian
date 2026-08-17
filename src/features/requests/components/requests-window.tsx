@@ -17,7 +17,12 @@ import { cn } from '@/lib/utils';
  *
  * So the window is the block-end edge of the Nth item, read from the layout that
  * actually rendered. Under it the list is unbounded, which is the same thing:
- * with three or fewer there is nothing to scroll to.
+ * with no more items than the window is deep there is nothing to scroll to.
+ *
+ * `visible` may be fractional. A whole number leaves the last visible tile
+ * sitting flush against the bottom edge, which reads as the end of the list; a
+ * half tile cut by that edge cannot be read as anything else but "there is
+ * more below".
  *
  * `useLayoutEffect` so the measurement lands before paint — a max-height applied
  * a frame late is a visible jump on every dashboard load. A `ResizeObserver` on
@@ -34,7 +39,10 @@ export function RequestsWindow({
   className,
   children,
 }: {
-  /** How many items fit before the list starts scrolling. */
+  /**
+   * How many items fit before the list starts scrolling. May be fractional —
+   * `2.5` shows two tiles whole and cuts the third at its half.
+   */
   visible: number;
   /** Items in the list — the effect re-measures when this changes. */
   count: number;
@@ -61,14 +69,29 @@ export function RequestsWindow({
 
       const items = Array.from(list.children) as HTMLElement[];
       const first = items[0];
-      const last = items[visible - 1];
+      // A fractional `visible` is the point: the window ends part-way down a
+      // tile, so the cut edge itself says the list scrolls, before the fade or
+      // the scrollbar has to. `whole` is the last tile shown in full.
+      const whole = Math.floor(visible);
+      const fraction = visible - whole;
+      const last = items[whole - 1];
       if (!first || !last) return;
 
       // Offsets against the list's own box, so the card's padding and whatever
-      // the list is already scrolled to are out of the sum. The gap between the
-      // third tile and the fourth is deliberately not included: the window ends
-      // where the third one does.
-      list.style.maxHeight = `${last.offsetTop + last.offsetHeight - first.offsetTop}px`;
+      // the list is already scrolled to are out of the sum. The gap after the
+      // last whole tile is deliberately not included: with no fraction the
+      // window ends exactly where that tile does.
+      let height = last.offsetTop + last.offsetHeight - first.offsetTop;
+
+      const next = items[whole];
+      if (fraction > 0 && next) {
+        // The gap is measured rather than assumed — it is `gap-2` on the list
+        // today, but this component is handed its layout, not told it.
+        const gap = next.offsetTop - (last.offsetTop + last.offsetHeight);
+        height += gap + next.offsetHeight * fraction;
+      }
+
+      list.style.maxHeight = `${height}px`;
     }
 
     measure();

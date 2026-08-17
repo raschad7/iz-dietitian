@@ -133,37 +133,40 @@ export function AppShell({
   children,
 }: ShellProps) {
   return (
-    <SidebarProvider className={className}>
+    /*
+      `railOnly` on the staff shell, and only there.
+
+      Below `lg` the rail is locked to its 56px icon column: always on screen,
+      never expandable, no drawer. It replaces a `<dialog>` drawer that had to be
+      opened before any destination could be reached and covered the page while
+      it was open — two taps and an occlusion to change screen, on the devices
+      where changing screen is most of what you do.
+
+      The portal passes nothing and keeps the drawer, because it is a phone-first
+      app with a bottom tab bar carrying the same five destinations; a permanent
+      rail there would be a second navigation for one set of screens.
+    */
+    <SidebarProvider className={className} railOnly={Boolean(user)}>
       <AppSidebar items={items} title={title} showTitle={showTitle} brand={brand} user={user} icons={icons} />
       <SidebarInset>
         {/*
-          Below `md` the rail is a sheet, and a sheet needs an opener that is
-          not inside itself. The trigger in the sidebar's own header is the
-          desktop one — once the rail is a drawer, that trigger is behind the
-          drawer, so closed there is nothing on screen to open it with and the
-          whole of the navigation is unreachable.
+          The phone app bar is gone with the drawer it existed to open.
 
-          Only when there is a `user`, which is the staff area. The portal has
-          its own header and a bottom tab bar under `md`; a second bar above
-          them would be the third way to get to the same five screens.
+          It carried a hamburger and the clinic's name, and the hamburger was the
+          only thing on screen that could reach navigation once the rail became a
+          sheet. With the rail permanently visible there is nothing left for the
+          trigger to do, and the bar would be 56px of height spent on a title
+          that `PageHeader` already prints on the page below it.
+
+          The portal never rendered it — it draws its own header and tab bar —
+          which is why this had a `user` test rather than a breakpoint.
         */}
-        {user ? <MobileBar title={brand?.name ?? title} /> : null}
         {children}
       </SidebarInset>
     </SidebarProvider>
   );
 }
 
-function MobileBar({ title }: { title: string }) {
-  const t = useTranslations('nav');
-
-  return (
-    <div className="flex h-14 shrink-0 items-center gap-2 border-b border-sidebar-border bg-sidebar px-3 text-sidebar-foreground md:hidden">
-      <SidebarTrigger aria-label={t('openNavigation')} title={t('openNavigation')} />
-      <span className="min-w-0 truncate font-heading text-body-md font-semibold">{title}</span>
-    </div>
-  );
-}
 
 /**
  * The clinic's mark at the head of the rail.

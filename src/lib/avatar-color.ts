@@ -7,11 +7,13 @@
  * learned to recognise — this module only chooses the initial value.
  *
  * **Patients are not coloured from here.** They were, and that was the bug: a
- * name hashed into ten colours wraps on the eleventh person and has no relation
- * to the hue their appointments are drawn in. A patient's colour is their
- * position in the clinic (`src/features/clients/seq.ts`) turned into a hue by
- * `src/features/booking/patient-color.ts`, which is unique per client and is
- * what every surface that draws a patient reads. Don't point a patient at this
+ * name hashed into these ten hex colours has no relation to the hue their
+ * appointments are drawn in, so the same person was two colours depending on
+ * which surface drew them. A patient's colour is their position in the clinic
+ * (`src/features/clients/seq.ts`) turned into an OKLCH hue by
+ * `src/features/booking/patient-color.ts`, which every surface that draws a
+ * patient reads. That module also has the palette this one never did: ten hues
+ * with a measured minimum distance between them. Don't point a patient at this
  * file again.
  */
 

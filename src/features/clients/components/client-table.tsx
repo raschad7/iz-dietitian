@@ -114,14 +114,42 @@ import { cn } from '@/lib/utils';
  * keeping to it. With the portal column between them, the answer sat two stops
  * away from the question it belongs to.
  */
+/**
+ * The columns, and the width each one waits for.
+ *
+ * Six tracks — these five plus the row actions — come to roughly 820px at their
+ * natural widths, and nothing below a desktop has that. A tablet gives this page
+ * about 672px and a phone about 271px, because the staff rail is locked to its
+ * 56px icon column at every width; `TableRoot` is `overflow-x-auto`, so what
+ * the register actually did there was scroll sideways with no visible bar to say
+ * so — `globals.css` takes the bars off every scroller in the app. A register
+ * you have to swipe to read is one you cannot scan, which is the only thing a
+ * register is for.
+ *
+ * So each column arrives where it fits, the widest waiting longest:
+ *
+ * - **Phone** — the identity column alone: the disc, the name and the number
+ *   under it. That is a list of people, which is what this screen is, and the
+ *   whole row is already a link to the record where everything else lives.
+ * - **`sm`** — the row actions come back.
+ * - **`md`** — age and portal access, the two narrow ones.
+ * - **`lg`** — the plan chip.
+ * - **`xl`** — the weekly progress ring, the widest of them.
+ *
+ * ⚠ The class goes on the head *and* on the matching cell. Hide one and the
+ * body and the header count different tracks, and every column from there on
+ * lands under the wrong name.
+ */
 const COLUMNS = [
-  { key: 'fullName', sortable: true },
-  { key: 'age', sortable: true },
-  { key: 'plan', sortable: false },
-  { key: 'weeklyProgress', sortable: false },
-  { key: 'portalAccess', sortable: true },
+  { key: 'fullName', sortable: true, className: '' },
+  { key: 'age', sortable: true, className: 'hidden md:table-cell' },
+  { key: 'plan', sortable: false, className: 'hidden lg:table-cell' },
+  { key: 'weeklyProgress', sortable: false, className: 'hidden xl:table-cell' },
+  { key: 'portalAccess', sortable: true, className: 'hidden md:table-cell' },
 ] as const satisfies ReadonlyArray<
-  { key: ClientSort; sortable: true } | { key: 'plan' | 'weeklyProgress'; sortable: false }
+  ({ key: ClientSort; sortable: true } | { key: 'plan' | 'weeklyProgress'; sortable: false }) & {
+    className: string;
+  }
 >;
 
 export function ClientTable({
@@ -214,13 +242,17 @@ export function ClientTable({
               // Plain text, no link and no `aria-sort` — see the note on
               // `COLUMNS` for why this one column cannot be ordered by.
               if (!column.sortable) {
-                return <TableHead key={column.key}>{t(`fields.${column.key}`)}</TableHead>;
+                return (
+                  <TableHead key={column.key} className={column.className}>
+                    {t(`fields.${column.key}`)}
+                  </TableHead>
+                );
               }
 
               const active = input.sort === column.key ? input.dir : false;
 
               return (
-                <TableHead key={column.key} sorted={active} className="p-0">
+                <TableHead key={column.key} sorted={active} className={cn('p-0', column.className)}>
                   {/*
                     The link fills the cell rather than sitting inside it, so
                     the whole header is the target and not just the words.
@@ -236,7 +268,7 @@ export function ClientTable({
             })}
 
             {/* Actions are not a column you can sort, so this head carries no `sorted`. */}
-            <TableHead className="text-end">
+            <TableHead className="hidden text-end sm:table-cell">
               <span className="sr-only">{t('fields.actions')}</span>
             </TableHead>
           </TableRow>
@@ -319,7 +351,7 @@ export function ClientTable({
                 no age at all rather than as a number nobody can explain — the
                 same rule the client's own profile card follows.
               */}
-              <TableCell className="tabular">
+              <TableCell className="hidden tabular md:table-cell">
                 <Age dateOfBirth={client.dateOfBirth} />
               </TableCell>
 
@@ -328,7 +360,7 @@ export function ClientTable({
                 that earns a chip, because it is the only one whose value
                 actually differs down the page. See `PlanBadge`.
               */}
-              <TableCell>
+              <TableCell className="hidden lg:table-cell">
                 <PlanBadge status={client.latestPlanStatus} />
               </TableCell>
 
@@ -336,7 +368,7 @@ export function ClientTable({
                 And whether they are keeping to it — the same weekly figure
                 their own portal shows them. See `WeeklyProgress`.
               */}
-              <TableCell>
+              <TableCell className="hidden xl:table-cell">
                 <WeeklyProgress
                   progress={client.weeklyProgress}
                   hasPortalAccess={client.hasPortalAccess}
@@ -359,7 +391,7 @@ export function ClientTable({
                 is a value nobody has recorded, and "no portal account" is a
                 definite answer.
               */}
-              <TableCell>
+              <TableCell className="hidden md:table-cell">
                 {client.hasPortalAccess ? (
                   <Badge variant="default">
                     <Icon name="check" />
@@ -375,7 +407,7 @@ export function ClientTable({
                 `relative` lifts the cell above the row's stretched link so
                 these stay separately clickable.
               */}
-              <TableCell className="relative">
+              <TableCell className="relative hidden sm:table-cell">
                 {/*
                   `gap-0.5`, and 20px glyphs inside the same 40px targets. Three
                   icons spaced like three separate controls read as three

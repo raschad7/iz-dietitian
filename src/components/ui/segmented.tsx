@@ -49,6 +49,24 @@ import { cn } from '@/lib/utils';
 type SegmentedOption<T extends string> = {
   value: T;
   label: React.ReactNode;
+  /**
+   * Classes for this option alone — the width gate the calendar's view switch
+   * needs, and nothing else so far.
+   *
+   * It exists because *which options a control offers* can be a property of the
+   * screen. The calendar offers day, week and month on a desktop and day and
+   * week on a tablet, because a month grid is not something a 900px-wide screen
+   * renders usefully however it is arranged. Expressing that as `hidden lg:flex`
+   * on the option keeps the decision in CSS with the rest of the responsive
+   * rules, and out of a `matchMedia` read that would flash the wrong set of
+   * segments before hydration.
+   *
+   * ⚠ A hidden option still exists: it is in the DOM, and the state it selects
+   * is still reachable by URL. Anything using this must also make sure the
+   * *current* value can never be one the reader can no longer see — see
+   * `CalendarViewGuard` for how the calendar closes that door.
+   */
+  className?: string;
 };
 
 function Segmented<T extends string>({
@@ -174,6 +192,9 @@ function Segmented<T extends string>({
                     // "hover is carried by the ring and the fill instead").
                     'text-muted-foreground hover:text-foreground'
                   : 'text-muted-foreground hover:bg-secondary hover:text-secondary-foreground',
+              // Last, so a call site gating this option by width wins over the
+              // `display` the shape above just set.
+              option.className,
             )}
           >
             {option.label}

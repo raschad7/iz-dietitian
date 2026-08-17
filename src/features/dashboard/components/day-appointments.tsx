@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +17,7 @@ import {
   TableRoot,
   TableRow,
 } from '@/components/ui/table';
+import { patientToneStyle } from '@/features/booking/patient-color';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
 
@@ -97,10 +98,19 @@ export type AppointmentRow = {
   id: string;
   /** `8:45 – 9:15 AM`. Latin digits in both locales, like the calendar. */
   time: string;
+  /** The start on its own — the phone's column has room for nothing else. */
+  timeShort: string;
   clientName: string;
   clientId: string;
-  /** The client's hue in degrees — what `.patient-tone` builds its ramp from. */
-  hue: number;
+  /**
+   * The client's position in the clinic — what their colour is picked from.
+   *
+   * The row used to carry the hue itself, which was fine while a colour was one
+   * number. It is five custom properties now, so the row carries the input and
+   * `patientToneStyle` spells them at the point of use rather than the server
+   * shipping a colour this type would have to keep in step with.
+   */
+  clientSeq: number;
   reason: string | null;
   /** Against the clock at render time. Every row on a past day is `done`. */
   status: 'done' | 'live' | 'upcoming';
@@ -464,7 +474,43 @@ export function DayAppointments({
                 `table-fixed` so one long reason cannot squeeze the time column —
                 the same call `ClientTable` and the register card make.
               */}
-              <Table className="table-fixed text-body-sm">
+              {/*
+                **Four columns from `md`, two below it — and no sideways scroll
+                on a phone at all.**
+
+                `table-fixed` divides the *available* width by the declared
+                tracks: `w-44` (176px) for the time, `w-1/4` for the reason and
+                `w-24` (96px) for the status. The one column with no declared
+                width — the client's name — is handed what is left. On a phone
+                what was left was nothing: the name column measured 0px, and the
+                row showed a time, an empty gap and a status with no clue whose
+                appointment it was.
+
+                The first fix for that was `min-w-[34rem]` on every screen: keep
+                all four columns at their designed widths and let `TableRoot`,
+                which is `overflow-x-auto`, scroll. It was honest but it was the
+                bottom rung of the Rearrange → Stack → Internal-scroll ladder.
+                A phone gives this card about 263px of content — the staff rail
+                is locked to its 56px icon column at every width — so 34rem
+                meant looking at 48% of a row and swiping for the rest, on the
+                page that is meant to be read at a glance.
+
+                So the phone *rearranges* instead. The reason and the status
+                stand down (`hidden md:table-cell`, on the heads and the cells
+                alike, so `table-fixed` stops counting their tracks), the time
+                column drops to the start alone, and the two that are left
+                divide the width with no floor under them. From `md` the floor
+                and all four columns come back, and there the card is 632px wide
+                so the floor never engages either.
+
+                **Nothing that stood down was the only way to read a state.**
+                Live is the olive fill behind the whole row, done is the muted
+                text, next is the amber caret in front of the time — the words
+                in the status column name what those three already say. The
+                reason is the one thing genuinely left behind, and it is one tap
+                away on the day the row links to.
+              */}
+              <Table className="table-fixed text-body-sm md:min-w-[34rem]">
                 {/* A header that scrolls away with the rows it names is not a header.
                     The hairline is the "there is more above" mark, drawn on the
                     header's own block-end edge rather than as a wash over the
@@ -485,10 +531,21 @@ export function DayAppointments({
                       same Latin digits here, so a width tuned by eye on the
                       Arabic page is tuned on the shorter of the two layouts.
                     */}
-                    <TableHead className="w-44">{labels.time}</TableHead>
+                    {/*
+                      `w-32` on a phone, where the cell holds `9:15 AM` and the
+                      caret in front of it; `w-44` from `md`, wide enough for
+                      the longest range the Latin formatter produces —
+                      `10:30 – 11:15 AM` — plus the pointer. At `w-36` the range
+                      wrapped onto two lines and took the row height with it.
+                      That only showed up in the English build, which is the
+                      tell worth remembering: both locales draw the same Latin
+                      digits here, so a width tuned by eye on the Arabic page is
+                      tuned on the shorter of the two layouts.
+                    */}
+                    <TableHead className="w-32 md:w-44">{labels.time}</TableHead>
                     <TableHead>{labels.client}</TableHead>
-                    <TableHead className="w-1/4">{labels.reason}</TableHead>
-                    <TableHead className="w-24">{labels.status}</TableHead>
+                    <TableHead className="hidden w-1/4 md:table-cell">{labels.reason}</TableHead>
+                    <TableHead className="hidden w-24 md:table-cell">{labels.status}</TableHead>
                   </TableRow>
                 </TableHeader>
 
@@ -576,7 +633,19 @@ export function DayAppointments({
                               cell keeps the page's direction so the column
                               still starts at the inline-start edge.
                             */}
-                            <span dir="ltr" className="tabular">
+                            {/*
+                              Two strings rather than one truncated: a clock
+                              time has no sensible break point and an elided
+                              `10:30 – 11:1…` is worse than the start on its
+                              own. Both are formatted on the server and one is
+                              hidden in CSS — same reason as everywhere else on
+                              this page, a width read on the client would flash
+                              the wrong one on first paint.
+                            */}
+                            <span dir="ltr" className="tabular md:hidden">
+                              {row.timeShort}
+                            </span>
+                            <span dir="ltr" className="hidden tabular md:inline">
                               {row.time}
                             </span>
                           </Link>
@@ -585,30 +654,51 @@ export function DayAppointments({
 
                       <TableCell className={CELL}>
                         {/*
-                          The hue goes on the wrapper, not on the `Avatar`.
+                          The tone goes on the wrapper, not on the `Avatar`.
 
                           `Avatar` writes `style={{ background: color }}` before
                           it spreads the rest of its props, so a `style` passed
                           in replaces that object outright rather than merging
-                          with it — the disc ends up with the right `--tone-h`
+                          with it — the disc ends up with the right properties
                           and no background at all, which on a white row is an
-                          invisible avatar and white initials on white. The
-                          calendar and the old agenda both set the tone on an
-                          ancestor for this reason; `--tone-mark` then resolves
-                          by inheritance, which is what `.patient-tone` is for.
+                          invisible avatar. The calendar and the old agenda both
+                          set the tone on an ancestor for this reason;
+                          `--tone-mark` then resolves by inheritance, which is
+                          what `.patient-tone` is for.
+
+                          `patientToneStyle` rather than a hue written out here:
+                          a client's colour is five custom properties now — the
+                          hue, and a lightness and chroma per theme — and the
+                          one place that knows how to spell them is the module
+                          that picks them.
                         */}
                         <span
                           className="patient-tone flex items-center gap-2.5"
-                          style={{ '--tone-h': row.hue.toFixed(3) } as CSSProperties}
+                          style={patientToneStyle(row.clientSeq)}
                         >
-                          <Avatar name={row.clientName} color="var(--tone-mark)" size="sm" />
+                          {/*
+                            The disc goes on a phone. It is a mark *supporting*
+                            a name, and in a 135px column it was taking a
+                            quarter of the space from the thing it supports —
+                            the name is the answer to "whose", and the avatar
+                            only helps once there is room to read both.
+                          */}
+                          <Avatar
+                            name={row.clientName}
+                            color="var(--tone-mark)"
+                            size="sm"
+                            className="hidden md:flex"
+                          />
                           <span className="truncate font-medium" dir="auto">
                             {row.clientName}
                           </span>
                         </span>
                       </TableCell>
 
-                      <TableCell className={cn(CELL, 'truncate text-muted-foreground')} dir="auto">
+                      <TableCell
+                        className={cn(CELL, 'hidden truncate text-muted-foreground md:table-cell')}
+                        dir="auto"
+                      >
                         {row.reason ?? (
                           <span aria-hidden className="text-muted-foreground/60">
                             —
@@ -616,7 +706,7 @@ export function DayAppointments({
                         )}
                       </TableCell>
 
-                      <TableCell className={CELL}>
+                      <TableCell className={cn(CELL, 'hidden md:table-cell')}>
                         {/*
                           The live chip is the word alone. It carried a
                           `StatusDot` in front of it, which put a second mark in
