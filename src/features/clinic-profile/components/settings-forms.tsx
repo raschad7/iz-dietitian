@@ -64,10 +64,14 @@ export function PersonalProfileSettings({ locale, profile, email }: {
       </SettingsSection>
 
       <SettingsSection title={t('profile.formTitle')} description={t('profile.formDescription')} icon="notes">
+        {/*
+          A professional phone and a licence number sat under these two and are
+          gone from every screen by decision — see the ⚠ on
+          `professionalProfileSchema`. The columns still hold whatever was saved
+          before; nothing reads them and nothing writes them.
+        */}
         <ProfileRow locale={locale} field="professionalTitle" label={tc('professionalTitle')} value={professional.professionalTitle} />
         <ProfileRow locale={locale} field="specialty" label={tc('specialty')} value={professional.specialty} />
-        <ProfileRow locale={locale} field="phone" label={tc('professionalPhone')} value={professional.phone} isolate type="tel" />
-        <ProfileRow locale={locale} field="licenseNumber" label={tc('licenseNumber')} value={professional.licenseNumber ?? ''} optional />
       </SettingsSection>
     </div>
   );
@@ -291,7 +295,7 @@ function ClinicRow(props: {
 
 function ProfileRow(props: {
   locale: Locale;
-  field: 'name' | 'professionalTitle' | 'specialty' | 'phone' | 'licenseNumber';
+  field: 'name' | 'professionalTitle' | 'specialty';
   label: string;
   value: string;
   isolate?: boolean;

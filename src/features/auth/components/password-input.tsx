@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { useId, useState } from 'react';
 
+import { FieldError } from '@/components/ui/field';
 import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,6 +16,22 @@ type PasswordInputProps = {
   hint?: string;
   minLength?: number;
   placeholder?: string;
+  /**
+   * An already-translated message to show under the field.
+   *
+   * Passed by forms that validate themselves rather than leaving it to the
+   * browser — see `signup-validation.ts`. When it is set the field also drops
+   * the `required` attribute, because a form doing its own checking has no use
+   * for the browser's and every reason to avoid the engine painting its own
+   * invalid state over ours.
+   */
+  error?: string;
+  /**
+   * Whether the browser should enforce the field. On by default, because the
+   * sign-in, reset and set-password forms still rely on it; the sign-up form
+   * passes `false` and validates in Arabic instead.
+   */
+  nativeRequired?: boolean;
 };
 
 /**
@@ -26,10 +43,20 @@ type PasswordInputProps = {
  * `end-*` rather than `right-*` so it lands on the correct side in Arabic —
  * opposite the lock, which `Input` draws at the inline-start.
  */
-export function PasswordInput({ name, label, autoComplete, hint, minLength, placeholder }: PasswordInputProps) {
+export function PasswordInput({
+  name,
+  label,
+  autoComplete,
+  hint,
+  minLength,
+  placeholder,
+  error,
+  nativeRequired = true,
+}: PasswordInputProps) {
   const t = useTranslations('login');
   const [revealed, setRevealed] = useState(false);
   const id = useId();
+  const errorId = `${id}-error`;
 
   return (
     <div className="space-y-2">
@@ -41,8 +68,11 @@ export function PasswordInput({ name, label, autoComplete, hint, minLength, plac
           name={name}
           type={revealed ? 'text' : 'password'}
           autoComplete={autoComplete}
-          minLength={minLength}
-          required
+          minLength={nativeRequired ? minLength : undefined}
+          required={nativeRequired}
+          aria-required
+          aria-invalid={Boolean(error)}
+          aria-describedby={error ? errorId : undefined}
           placeholder={placeholder}
           icon="lock"
           className="pe-12"
@@ -59,7 +89,17 @@ export function PasswordInput({ name, label, autoComplete, hint, minLength, plac
         </button>
       </div>
 
-      {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
+      {/*
+        The error replaces the hint rather than stacking under it: on the
+        sign-up form the hint is "at least 10 characters" and the error is "that
+        password is too short", which is the same rule stated twice — once
+        neutrally and once in red, directly on top of each other.
+      */}
+      {error ? (
+        <FieldError id={errorId}>{error}</FieldError>
+      ) : hint ? (
+        <p className="text-xs text-muted-foreground">{hint}</p>
+      ) : null}
     </div>
   );
 }

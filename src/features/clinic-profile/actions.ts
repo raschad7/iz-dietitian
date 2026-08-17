@@ -68,8 +68,6 @@ const PROFESSIONAL_FIELD_MESSAGES = {
   name: 'required',
   professionalTitle: 'required',
   specialty: 'required',
-  phone: 'invalidPhone',
-  licenseNumber: 'required',
 } as const satisfies Record<keyof ProfessionalProfileInput, ValidationMessageKey>;
 
 type ClinicEditableField = keyof typeof CLINIC_FIELD_SCHEMAS;
