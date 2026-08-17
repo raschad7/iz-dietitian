@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { defaultLocale, locales } from '@/i18n/routing';
 import { MIN_PASSWORD_LENGTH } from '@/lib/auth-constants';
 
-import { CLIENT_MIN_PASSWORD_LENGTH } from './password-policy';
+import { CLIENT_MIN_PASSWORD_LENGTH, isStrongStaffPassword } from './password-policy';
 
 export const localeSchema = z.enum(locales).catch(defaultLocale);
 
@@ -36,11 +36,35 @@ export const setPasswordSchema = z
   })
   .refine((values) => values.password === values.confirmPassword, { path: ['confirmPassword'] });
 
+/**
+ * The staff password rule, in one place: long enough, and not a password in
+ * name only. The two failures carry their own message keys because the advice
+ * differs — one says "longer", the other says "mix in a digit or a symbol" —
+ * and `signup-validation.ts` reads the key straight off the issue.
+ */
+const staffPasswordSchema = z
+  .string()
+  .min(MIN_PASSWORD_LENGTH, { message: 'passwordTooShort' })
+  .refine(isStrongStaffPassword, { message: 'passwordTooWeak' });
+
+/**
+ * One half of a practitioner's name.
+ *
+ * Ten characters is a tight ceiling for a real name, so it is stated here once
+ * and enforced with `maxLength` on the inputs as well — a limit that stops the
+ * typing is kinder than one that rejects it afterwards, and this schema is the
+ * server's copy of the same rule.
+ */
+export const MAX_NAME_PART_LENGTH = 10;
+
+const namePartSchema = z.string().trim().min(1).max(MAX_NAME_PART_LENGTH);
+
 export const signUpSchema = z
   .object({
-    name: z.string().trim().min(2),
+    firstName: namePartSchema,
+    lastName: namePartSchema,
     email: emailSchema,
-    password: z.string().min(MIN_PASSWORD_LENGTH),
+    password: staffPasswordSchema,
     confirmPassword: z.string(),
     locale: localeSchema,
   })
@@ -56,7 +80,7 @@ export const forgotPasswordSchema = z.object({
 export const resetPasswordSchema = z
   .object({
     token: z.string().min(1),
-    password: z.string().min(MIN_PASSWORD_LENGTH),
+    password: staffPasswordSchema,
     confirmPassword: z.string(),
     locale: localeSchema,
   })

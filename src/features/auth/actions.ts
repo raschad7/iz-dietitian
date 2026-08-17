@@ -144,7 +144,15 @@ export async function signUpStaff(
       : { status: 'error', messageKey: 'genericError' };
   }
 
-  const { name, email, password, locale } = parsed.data;
+  const { firstName, lastName, email, password, locale } = parsed.data;
+
+  /*
+   * The form asks for the two halves separately — they are what a person is
+   * asked for on paper, and each has its own length limit — but Better Auth and
+   * every screen that greets a practitioner want one `name`. Joining here keeps
+   * the split a property of the form rather than of the account.
+   */
+  const name = `${firstName} ${lastName}`;
 
   const limited = await guard('sign_up', null);
   if (limited) return limited;

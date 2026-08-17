@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 
 import {
   CLIENT_MIN_PASSWORD_LENGTH,
+  isStrongStaffPassword,
   generateTemporaryPassword,
   isCommonPassword,
 } from './password-policy';
@@ -46,5 +47,23 @@ describe('generateTemporaryPassword', () => {
 describe('CLIENT_MIN_PASSWORD_LENGTH', () => {
   test('is six, matching the Better Auth global floor', () => {
     expect(CLIENT_MIN_PASSWORD_LENGTH).toBe(6);
+  });
+});
+
+describe('isStrongStaffPassword', () => {
+  test('rejects a single character class, however long', () => {
+    expect(isStrongStaffPassword('aaaaaaaaaaaa')).toBe(false);
+  });
+
+  test('rejects a common password', () => {
+    expect(isStrongStaffPassword('password')).toBe(false);
+  });
+
+  test('accepts letters mixed with digits', () => {
+    expect(isStrongStaffPassword('dietitian24')).toBe(true);
+  });
+
+  test('accepts letters mixed with symbols', () => {
+    expect(isStrongStaffPassword('dietitian!!')).toBe(true);
   });
 });

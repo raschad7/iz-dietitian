@@ -71,16 +71,25 @@ function Input({
         unclippedText && "placeholder:text-transparent",
         className
       )}
-      style={
-        unclippedText
+      style={{
+        ...style,
+        ...(unclippedText
           ? {
-              ...style,
               color: "transparent",
               WebkitTextFillColor: "transparent",
               caretColor: style?.caretColor ?? "var(--foreground)",
             }
-          : style
-      }
+          : null),
+        /*
+         * The red edge of an invalid field, stated here rather than left to
+         * `.q-field[aria-invalid='true']` in globals.css. That rule's
+         * `outline-color` and halo do land, but its `border-color` was being
+         * beaten by something later in the cascade, so an invalid field wore a
+         * red glow around an olive box. An inline value is the one place
+         * nothing can outrank.
+         */
+        ...(props["aria-invalid"] ? { borderColor: "var(--destructive)" } : null),
+      }}
       value={value}
       placeholder={placeholder}
       {...props}

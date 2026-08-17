@@ -54,3 +54,22 @@ export function generateTemporaryPassword(): string {
   }
   return out;
 }
+
+/**
+ * Whether a staff password is more than merely long enough.
+ *
+ * Length alone is satisfied by `aaaaaaaaaa` and by `dietitian1`, and a staff
+ * account reads every client's medical notes — so the staff minimum asks for
+ * two of the three character classes on top of its ten characters, and refuses
+ * the handful of values people actually type when asked to invent one.
+ *
+ * Deliberately not a scoring library. A rule a person can restate in one
+ * sentence is a rule they can satisfy on the first try; a score they cannot see
+ * the inside of just makes them add "1!" to the end.
+ */
+export function isStrongStaffPassword(value: string): boolean {
+  if (isCommonPassword(value)) return false;
+
+  const classes = [/[a-z]/i, /[0-9]/, /[^a-z0-9]/i].filter((pattern) => pattern.test(value));
+  return classes.length >= 2;
+}
