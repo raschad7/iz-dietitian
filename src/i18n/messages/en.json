@@ -589,11 +589,28 @@
     },
     "placeholders": {
       "fullName": "Ahmad Khaled",
+      "firstName": "Ahmad",
+      "lastName": "Khaled",
       "email": "name@example.com",
       "phone": "Number without the country code"
     },
+    "validation": {
+      "required": "This field is required.",
+      "firstNameTooLong": "Use {nameMax} characters at most.",
+      "lastNameTooLong": "Use {nameMax} characters at most.",
+      "phoneDigitsOnly": "Digits only.",
+      "phoneTooLong": "Use {phoneMax} digits at most.",
+      "invalidDate": "That date does not exist.",
+      "ageTooYoung": "The age should be greater than {minAge}.",
+      "ageTooOld": "The age should be less than {maxAge}.",
+      "invalidEmail": "Enter a valid email address.",
+      "heightOutOfRange": "Enter a height between {heightMin} and {heightMax} cm.",
+      "weightOutOfRange": "Enter a weight between {weightMin} and {weightMax} kg."
+    },
     "fields": {
       "fullName": "Full name",
+      "firstName": "First name",
+      "lastName": "Last name",
       "phone": "Phone",
       "phoneCountry": "Country code",
       "email": "Email",
@@ -752,6 +769,7 @@
       "clientNotFound": "Client not found."
     },
     "intake": {
+      "choose": "Choose",
       "createTitle": "Complete the nutrition intake",
       "editTitle": "Edit the nutrition intake",
       "forClient": "For {name}",

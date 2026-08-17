@@ -90,7 +90,27 @@ function StatTile({
       className={cn('flex min-w-0 flex-col items-center gap-1 bg-card px-4 py-3.5 text-center', className)}
       {...props}
     >
-      <dt className="max-w-full truncate text-label text-muted-foreground">{label}</dt>
+      {/*
+        ⚠ **The label wraps; it does not truncate.**
+
+        It was `truncate`, which on a two-up grid at a phone width cut the names
+        of the readings themselves — at 320px inside the staff shell each tile is
+        about 132px, and `مؤشر كتلة الجسم` lost 30px of its tail to an ellipsis
+        while `الهدف اليومي` lost 5px. A reading whose *label* is unreadable is
+        not a reading, and unlike a value there is no second place on the screen
+        to go and check what it was called.
+
+        The tiles sit in a hairline grid whose cells already stretch to the
+        tallest of the row, so a label that takes two lines costs the row some
+        height and costs the layout nothing. `text-balance` splits those two
+        lines evenly rather than leaving one word alone underneath, and
+        `wrap-anywhere` is the backstop for the one case wrapping cannot help
+        with — a single token longer than the cell, which would otherwise push
+        the grid wider than its column.
+      */}
+      <dt className="max-w-full text-label leading-snug text-balance wrap-anywhere text-muted-foreground">
+        {label}
+      </dt>
 
       <dd
         className={cn(

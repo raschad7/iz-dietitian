@@ -1,7 +1,19 @@
 import { z } from 'zod';
 
 import { defaultLocale, locales } from '@/i18n/routing';
+import { isIsoDate, toIsoDate } from '@/lib/iso-date';
+import { splitPhone } from '@/lib/phone-format';
 
+import { calculateAge } from './age';
+import {
+  HEIGHT_CM_RANGE,
+  MAX_AGE,
+  MAX_NAME_PART_LENGTH,
+  MAX_PHONE_DIGITS,
+  MIN_AGE,
+  WEIGHT_KG_RANGE,
+} from './form-rules';
+import { joinName } from './name';
 import {
   ALLERGENS,
   BLOOD_TYPES,
@@ -48,6 +60,92 @@ function optionalEnum<const T extends readonly [string, ...string[]]>(values: T)
   return z.preprocess(blankToUndefined, z.enum(values).optional());
 }
 
+/**
+ * The mirror of {@link blankToUndefined}, for the fields a client record cannot
+ * be created without.
+ *
+ * A required field has to tell an empty one apart from an absent one *and treat
+ * them the same*: an untouched text input submits `''`, an unchecked radio group
+ * submits nothing at all, and both mean "not answered". Collapsing them to `''`
+ * here rather than to `undefined` is what makes the failure a `required` message
+ * on the field instead of Zod's own "invalid input" on a missing key.
+ */
+function blankToEmpty(value: unknown): unknown {
+  return value === null || value === undefined ? '' : value;
+}
+
+/**
+ * ⚠ Every message below is a **key**, not a sentence — see `VALIDATION_KEYS` in
+ * `./form-rules.ts`, which is also where the two length limits live and why.
+ * A new message here needs a matching entry there and in both message
+ * catalogues, or the card renders nothing where the complaint should be.
+ */
+
+/**
+ * The number as the form submits it: `+<calling code><digits>`.
+ *
+ * The shape is guaranteed by `PhoneField`, which recombines its two halves
+ * through `joinPhone` — so this is not asking a person to type a format, it is
+ * refusing to store anything that did not come from that control. Free text is
+ * rejected outright rather than stripped: silently rewriting a patient's number
+ * is the one outcome worse than an error message.
+ *
+ * ⚠ The length is measured on the **national part**, read back out with
+ * `splitPhone`. A flat cap on the whole string would spend four of its
+ * characters on `+1876` and leave a Jamaican number six digits shorter than a
+ * Palestinian one.
+ */
+export const clientPhoneSchema = z
+  .string()
+  .trim()
+  .min(1, 'required')
+  .regex(/^\+\d+$/, 'phoneDigitsOnly')
+  .refine((value) => splitPhone(value).national.length > 0, 'required')
+  .refine((value) => splitPhone(value).national.length <= MAX_PHONE_DIGITS, 'phoneTooLong');
+
+/**
+ * Which end of the age range a date of birth falls outside, if either.
+ *
+ * ⚠ **The one rule in this file that reads a clock.** Elsewhere the convention is
+ * that a schema has no clock — see the note on `calendarSearchSchema`, which
+ * makes its caller resolve "today". That rule is about *defaulting*, where a
+ * schema inventing a date would hide which day the value came from. This is
+ * validation, and "is this person between ten and a hundred" cannot be answered
+ * without knowing when now is. `calculateAge` takes an injectable `today` so the
+ * arithmetic stays testable; this calls it with the default, because the question
+ * is about the moment the form was submitted.
+ *
+ * ⚠ `calculateAge` returns `null` for both a **negative** age and one past 130 —
+ * it refuses to believe either — so a null cannot simply pass this check or a
+ * date of birth in the future would be accepted. Which end it belongs to is
+ * decided from the date itself: later than today is too young, anything else is
+ * too old. Without that split, the commonest real mistake on this field — a year
+ * typed as this one — would sail through both bounds.
+ */
+function ageVerdict(dateOfBirth: string): 'tooYoung' | 'tooOld' | 'ok' {
+  const age = calculateAge(dateOfBirth);
+
+  if (age === null) return dateOfBirth > toIsoDate(new Date()) ? 'tooYoung' : 'tooOld';
+  if (age < MIN_AGE) return 'tooYoung';
+  if (age > MAX_AGE) return 'tooOld';
+
+  return 'ok';
+}
+
+/**
+ * One half of a client's name.
+ *
+ * Both halves are required and both are capped at {@link MAX_NAME_PART_LENGTH}.
+ * They are joined into the single `clients.fullName` column on the way out —
+ * see `./name.ts` for why the column did not become two.
+ */
+function namePartSchema(tooLongKey: 'firstNameTooLong' | 'lastNameTooLong') {
+  return z.preprocess(
+    blankToEmpty,
+    z.string().trim().min(1, 'required').max(MAX_NAME_PART_LENGTH, tooLongKey),
+  );
+}
+
 export const clientIdSchema = z.uuid();
 
 export const localeSchema = z.enum(locales).catch(defaultLocale);
@@ -65,27 +163,80 @@ export const localeSchema = z.enum(locales).catch(defaultLocale);
  * `dateOfBirth` and `sex` stay here rather than moving with the rest: they are
  * demographics, they do not change, and Mifflin-St Jeor is unanswerable without
  * them — see `suggestTargets` in `src/features/weekly-plans/targets.ts`.
+ *
+ * ⚠ **Everything except the email is required**, which is a deliberate reversal:
+ * the card used to accept a client with nothing but a name. The four fields it
+ * now insists on are the four this schema's own docblock already called
+ * load-bearing — a record without a date of birth or a sex cannot have its
+ * calorie target computed, and one without a number cannot be sent a reminder.
+ * Making them optional meant every one of those was discovered later, on a
+ * different screen, by whoever needed the answer rather than by whoever had the
+ * client in front of them.
+ *
+ * ⚠ The **intake stays optional to the last field** and must not follow this.
+ * The two forms are different promises: an intake is worked through across
+ * several visits, so a form that refuses to save an incomplete one loses what
+ * had already been typed. This card is filled in once, at the counter, with the
+ * person standing there.
  */
-export const clientFormSchema = z.object({
-  fullName: z.string().trim().min(2).max(120),
-  phone: optionalText(40),
+export const clientFormObject = z.object({
+  firstName: namePartSchema('firstNameTooLong'),
+  lastName: namePartSchema('lastNameTooLong'),
+  phone: z.preprocess(blankToEmpty, clientPhoneSchema),
   /**
+   * The one field that stays optional — and the only one with no control left
+   * on the card, which is why it is also the only one that must keep tolerating
+   * an absent value. See the ⚠ in `ClientIdentityFields` about the column.
+   *
    * `.pipe()`, not `z.email().trim()`. In Zod 4 `z.email()` bakes its format
    * check in at construction, so a chained `.trim()` runs only AFTER validation
    * — and "  a@b.co " is rejected before anything gets a chance to trim it.
    * Normalise as a plain string first, then validate the result.
    */
-  email: z.preprocess(blankToUndefined, z.string().trim().toLowerCase().pipe(z.email()).optional()),
-  preferredLocale: localeSchema,
-  dateOfBirth: z.preprocess(
+  email: z.preprocess(
     blankToUndefined,
+    z.string().trim().toLowerCase().pipe(z.email('invalidEmail')).optional(),
+  ),
+  preferredLocale: localeSchema,
+  /**
+   * A real calendar day, not merely a `YYYY-MM-DD`-shaped string.
+   *
+   * The regex this replaces accepted `2026-02-30`, which PostgreSQL then
+   * rejected as a 500 rather than as a message on the field. `isIsoDate` is the
+   * check the calendar already books against, so the two dates in this app now
+   * agree about which ones exist.
+   */
+  dateOfBirth: z.preprocess(
+    blankToEmpty,
     z
       .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/, 'expected YYYY-MM-DD')
-      .optional(),
+      .trim()
+      .min(1, 'required')
+      .refine(isIsoDate, 'invalidDate')
+      /*
+        The two ends of the age range, reported separately: a date is too young
+        or it is too old, and telling someone "between 10 and 100" makes them
+        work out which mistake they made from a number they can already see.
+      */
+      .refine((value) => ageVerdict(value) !== 'tooYoung', 'ageTooYoung')
+      .refine((value) => ageVerdict(value) !== 'tooOld', 'ageTooOld'),
   ),
-  sex: optionalEnum(CLIENT_SEXES),
+  sex: z.preprocess(blankToEmpty, z.enum(CLIENT_SEXES, { error: 'required' })),
 });
+
+/**
+ * The card's payload, with the stored name derived from the two fields.
+ *
+ * The object above is exported separately because `.pick()` is unavailable once
+ * a schema carries a transform, and the calendar's walk-in dialog picks from it
+ * — see `newClientSchema` in `src/features/booking/schema.ts`. Everything
+ * downstream of this schema goes on reading `fullName` and never learns that
+ * the form asked twice.
+ */
+export const clientFormSchema = clientFormObject.transform((values) => ({
+  ...values,
+  fullName: joinName(values.firstName, values.lastName),
+}));
 
 export type ClientFormInput = z.infer<typeof clientFormSchema>;
 
@@ -108,10 +259,40 @@ export type ClientFormInput = z.infer<typeof clientFormSchema>;
 export const intakeSchema = z.object({
   clientId: clientIdSchema,
 
-  // ── Measurements, from `clients` ─────────────────────────────────────────
-  heightCm: z.preprocess(blankToUndefined, z.coerce.number().int().min(30).max(280).optional()),
-  goal: optionalEnum(CLIENT_GOALS),
-  activityLevel: optionalEnum(CLIENT_ACTIVITY_LEVELS),
+  /*
+    ── Measurements, from `clients` ─────────────────────────────────────────
+
+    ⚠ **These four are the exception to "the intake is optional to the last
+    field"** — see the note on the schema above, which still holds for every
+    other field here. They are required because they are the four inputs
+    Mifflin-St Jeor needs alongside the card's date of birth and sex, so an
+    intake missing any of them cannot produce the calorie target that gates
+    plan generation.
+
+    ⚠ It is **one form with one submit** across five panels. A required field
+    here therefore blocks a save made from the Allergies panel too — the
+    dietitian is switched to Measurements and told what is missing (see the
+    section-switching note below). That is the cost of the rule, and it is why
+    the rest of the intake must not follow.
+
+    `blankToUndefined` rather than `blankToEmpty` for the numbers: `z.coerce.number`
+    reads `''` as `0`, which would fail the lower bound and report a range error
+    for a field nobody had touched. Mapped to `undefined` instead, the coercion
+    fails outright and says `required`.
+  */
+  heightCm: z.preprocess(
+    blankToUndefined,
+    z.coerce
+      .number({ error: 'required' })
+      .int('heightOutOfRange')
+      .min(HEIGHT_CM_RANGE.min, 'heightOutOfRange')
+      .max(HEIGHT_CM_RANGE.max, 'heightOutOfRange'),
+  ),
+  goal: z.preprocess(blankToEmpty, z.enum(CLIENT_GOALS, { error: 'required' })),
+  activityLevel: z.preprocess(
+    blankToEmpty,
+    z.enum(CLIENT_ACTIVITY_LEVELS, { error: 'required' }),
+  ),
 
   /**
    * Current weight, from `client_nutrition_profiles`.
@@ -120,7 +301,13 @@ export const intakeSchema = z.object({
    * it is a typo. One value and not a history — a weight log with a trend chart
    * is a feature of its own and nobody has asked for it yet.
    */
-  weightKg: z.preprocess(blankToUndefined, z.coerce.number().min(20).max(400).optional()),
+  weightKg: z.preprocess(
+    blankToUndefined,
+    z.coerce
+      .number({ error: 'required' })
+      .min(WEIGHT_KG_RANGE.min, 'weightOutOfRange')
+      .max(WEIGHT_KG_RANGE.max, 'weightOutOfRange'),
+  ),
 
   // ── Allergies: the tags filter, the prose does not ───────────────────────
   /**

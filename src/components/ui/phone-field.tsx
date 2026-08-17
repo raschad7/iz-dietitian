@@ -33,6 +33,10 @@ import { cn } from '@/lib/utils';
  * are the same string by construction.
  */
 
+/** `٠`, and the Persian `۰` a few keyboards emit instead. */
+const ARABIC_INDIC_ZERO = 0x0660;
+const EXTENDED_ARABIC_INDIC_ZERO = 0x06f0;
+
 export type PhoneFieldProps = {
   id: string;
   /** Submits the combined value under this name. Omit in a controlled form. */
@@ -53,10 +57,23 @@ export type PhoneFieldProps = {
   placeholder?: string;
   disabled?: boolean;
   /**
+   * Marks the digits half required, so a form using native validation stops on
+   * it. The country half always holds a value and has nothing to require.
+   */
+  required?: boolean;
+  /**
+   * How many digits the national part may carry. Omitted, the field does not
+   * cap it — the country picker means the caller knows the length it expects
+   * and this component does not.
+   */
+  maxDigits?: number;
+  /**
    * Applied to both halves — a compound field has to carry any styling across
    * the whole row or it reads as two fields that happen to be adjacent.
    */
   className?: string;
+  /** Paints the invalid edge on both halves — see `.q-field[aria-invalid]`. */
+  'aria-invalid'?: boolean;
 };
 
 export function PhoneField({
@@ -68,7 +85,10 @@ export function PhoneField({
   countryLabel,
   placeholder,
   disabled,
+  required,
+  maxDigits,
   className,
+  'aria-invalid': ariaInvalid,
 }: PhoneFieldProps) {
   // Lazily, and only once: this reads whatever shape the number was stored in,
   // and from then on the two halves are what the user is editing.
@@ -100,6 +120,37 @@ export function PhoneField({
     onChange?.(joinPhone(COUNTRIES[next.country].dial, next.national));
   }
 
+  /**
+   * What the digits half accepts: digits, and nothing else.
+   *
+   * The filter is on the way in rather than on the way out. `joinPhone` already
+   * strips anything else before the value is submitted, so letters were never
+   * *stored* — but they sat in the box looking accepted, and the number that
+   * left was quietly not the string that had been typed. Refusing the character
+   * at the keystroke is the same rule stated where it can still be seen.
+   *
+   * Arabic-Indic digits are folded to ASCII rather than dropped: a keyboard set
+   * to Arabic emits `٥` for the 5 key, and a field that silently ate every
+   * keystroke would read as broken to the person most likely to be using it.
+   */
+  function toDigits(raw: string): string {
+    const digits = [...raw]
+      .map((character) => {
+        const code = character.codePointAt(0) ?? 0;
+        if (code >= ARABIC_INDIC_ZERO && code <= ARABIC_INDIC_ZERO + 9) {
+          return String(code - ARABIC_INDIC_ZERO);
+        }
+        if (code >= EXTENDED_ARABIC_INDIC_ZERO && code <= EXTENDED_ARABIC_INDIC_ZERO + 9) {
+          return String(code - EXTENDED_ARABIC_INDIC_ZERO);
+        }
+        return character;
+      })
+      .join('')
+      .replace(/\D/g, '');
+
+    return maxDigits === undefined ? digits : digits.slice(0, maxDigits);
+  }
+
   return (
     <div className="flex items-center gap-2">
       {/*
@@ -128,6 +179,7 @@ export function PhoneField({
             chevron is what has to fit. Anything narrower reads fine against
             `+962` and clips against Jamaica.
           */
+          aria-invalid={ariaInvalid || undefined}
           className={cn(
             'q-field flex h-12 w-22 shrink-0 items-center justify-between gap-0.5 ps-3 pe-2 tabular-nums',
             className,
@@ -231,9 +283,12 @@ export function PhoneField({
         */
         dir={national ? 'ltr' : getLocaleDirection(locale)}
         disabled={disabled}
+        required={required}
+        maxLength={maxDigits}
+        aria-invalid={ariaInvalid || undefined}
         className={className}
         value={national}
-        onChange={(event) => update({ country, national: event.target.value })}
+        onChange={(event) => update({ country, national: toDigits(event.target.value) })}
       />
     </div>
   );

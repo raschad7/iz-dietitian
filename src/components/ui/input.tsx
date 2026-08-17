@@ -89,6 +89,24 @@ function Input({
 
   if (!icon && !unclippedText) return field
 
+  /*
+    ⚠ **With an `icon` or `unclippedText`, the field is no longer the outer
+    element — and `className` still goes to the inner `<input>`.**
+
+    That is right for anything describing the *field*: padding, text, state
+    overrides. It is wrong for anything describing its *box* in a parent's
+    layout. `.q-field` pins the input to `width: 100%`, so the input measures
+    100% of this span while the span measures itself from the input — and in a
+    flex or grid parent, where `width: auto` means shrink-to-fit rather than
+    fill, that resolves to the input's intrinsic ~20 characters. A `w-full`,
+    `flex-1` or `min-w-*` passed here lands on the wrong box and silently does
+    nothing.
+
+    Put layout on a wrapper around this component instead. `DishFilters` is the
+    call site that hit it and carries the worked example; `dish-catalog.tsx` is
+    unaffected because its parent is a block, where `display: block` already
+    fills the line.
+  */
   return (
     <span className="relative block">
       {icon ? (

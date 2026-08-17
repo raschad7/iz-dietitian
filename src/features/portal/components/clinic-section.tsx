@@ -12,6 +12,7 @@ import {
 } from '@/features/portal/clinic-hours';
 import { type PortalClinic, type PortalPractitioner } from '@/features/portal/types';
 import { type Locale } from '@/i18n/routing';
+import { cn } from '@/lib/utils';
 
 /**
  * The clinic and the dietitian looking after this client, plus the one thing
@@ -134,16 +135,25 @@ export function ClinicSection({
       </Card>
 
       {/*
-        Two to a row, because each holds a single line. `items-stretch` is the
+        Two to a row from `sm`, one to a row on a phone. `items-stretch` is the
         grid default, and `Card` is a flex column, so the shorter of the two
         still fills the row's height instead of leaving a step between them.
 
-        `grid-cols-2` from the narrowest width up: these are the reference's
-        pair, and at 320px each card is still wide enough for a phone number and
-        a street. A long address wraps inside its own card rather than pushing
-        the pair apart.
+        ⚠ **This was `grid-cols-2` at every width, on the claim that a 320px
+        card is still wide enough for a phone number and a street.** It is wide
+        enough for the phone number. It is not wide enough for a street: half of
+        a 320px screen leaves the address 104px of text column, and a real one —
+        `عمان، شارع مكة، مجمع الحسيني التجاري، الطابق الثالث، مكتب ٣٠٤` — set
+        six words deep and one or two words wide. The pair then took 272px of
+        height, most of it blank space beside a phone number on one line,
+        because `items-stretch` gives the short card the tall one's height.
+
+        A phone gets them stacked instead: the address has the full column, so
+        it is two lines rather than six, and each card is as tall as its own
+        fact. `sm` is where half the column is wide enough for a street again —
+        296px per card, which is the width the pair was designed against.
       */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
         <FactTile
           icon="locationOutline"
           label={t('field.clinicAddress')}
@@ -252,10 +262,24 @@ function Clock({ open, close, locale }: { open: number; close: number; locale: L
   );
 }
 
-/** A card's glyph and its label: the disc at the inline-start, the name beside it. */
-function FactLabel({ icon, label }: { icon: IconName; label: string }) {
+/**
+ * A card's glyph and its label: the disc at the inline-start, the name beside it.
+ *
+ * `className` is how `FactTile` turns the same pair into a centred column from
+ * `sm` up — the two arrangements are one component rather than two copies of
+ * this markup, so the disc's size, fill and gap are stated once.
+ */
+function FactLabel({
+  icon,
+  label,
+  className,
+}: {
+  icon: IconName;
+  label: string;
+  className?: string;
+}) {
   return (
-    <div className="flex items-center gap-3">
+    <div className={cn('flex items-center gap-3', className)}>
       <span
         aria-hidden="true"
         className="grid size-11 shrink-0 place-items-center rounded-full bg-icon-chip text-icon-chip-foreground"
@@ -269,12 +293,17 @@ function FactLabel({ icon, label }: { icon: IconName; label: string }) {
 }
 
 /**
- * One of the pair: the glyph centred over its label and value rather than
- * beside them.
+ * One of the pair: the address or the phone number.
  *
- * Centred because the card is half a phone wide — at that measure a start-hung
- * label with the value under it leaves a column of air down the far side, and
+ * From `sm` the glyph is centred over its label and value rather than beside
+ * them, because there the card is half the column wide — at that measure a
+ * start-hung label with the value under it leaves air down the far side, and
  * two of them side by side read as two things that failed to fill their boxes.
+ *
+ * On a phone the pair is stacked instead of paired (see the grid above), each
+ * card is the full column, and that reasoning inverts: the centred column is
+ * then three short lines floating in the middle of a wide card. So the phone
+ * shape is the start-hung one its full-width siblings already use.
  */
 function FactTile({
   icon,
@@ -297,16 +326,30 @@ function FactTile({
   const empty = value === null || value.trim() === '';
 
   return (
-    <Card>
-      <CardContent className="flex flex-col items-center gap-2 text-center">
-        <span
-          aria-hidden="true"
-          className="grid size-11 shrink-0 place-items-center rounded-full bg-icon-chip text-icon-chip-foreground"
-        >
-          <Icon name={icon} className="size-5" />
-        </span>
+    /*
+      **Two shapes, and the breakpoint that swaps them is the same one that
+      breaks the pair above.**
 
-        <span className="text-sm text-muted-foreground">{label}</span>
+      Centred — disc over label over value — is a tile's shape, and it is right
+      from `sm` up where these two sit side by side and each is read as one of a
+      matched pair.
+
+      Stacked full-width on a phone, that centring stops being a tile and starts
+      being a card whose three lines all float in the middle of an otherwise
+      empty row. So below `sm` the card takes the shape its two full-width
+      siblings already have — the disc and the label together on one line, the
+      value on the next, both starting at the reading edge — and the clinic
+      section is four cards built the same way instead of two and two.
+    */
+    <Card>
+      {/*
+        `items-start` on the phone shape, so the "not recorded" chip stays the
+        width of its own two words — a flex column's default `stretch` would
+        pull the badge across the whole card and turn a chip into a banner. The
+        centred shape sets its own alignment at `sm`.
+      */}
+      <CardContent className="flex flex-col items-start gap-2 sm:items-center sm:text-center">
+        <FactLabel icon={icon} label={label} className="sm:flex-col sm:gap-2" />
 
         {empty ? (
           <Badge variant="unrecorded">{t('notRecorded')}</Badge>
@@ -342,12 +385,24 @@ function PractitionerTile({ practitioner }: { practitioner: PortalPractitioner }
     <Card variant="tile" className="flex-row items-center gap-3">
       <Avatar name={practitioner.name} color={practitioner.color} size="lg" />
 
+      {/*
+        ⚠ **Both lines used to be `truncate`, and on a phone that cut the one
+        thing this tile exists to say.** The tile is the full column wide, the
+        avatar and its gap take 60px of it, and a full Arabic name with a title
+        — `د. هبة عبد الرحمن المحاسنة` — is longer than the ~228px left at
+        320px. It rendered as an ellipsis mid-surname, and the specialty under
+        it lost its last word or two the same way.
+
+        They wrap now. A name is not a table cell that can afford an ellipsis:
+        it is the person looking after you, and two lines of it cost less than
+        the height of the avatar beside them. `min-w-0` stays — it is what lets
+        a long unbroken run wrap inside this column instead of pushing the
+        avatar off the card.
+      */}
       <div className="min-w-0 flex-1">
-        <p className="truncate font-heading text-base leading-snug font-semibold">
-          {practitioner.name}
-        </p>
+        <p className="font-heading text-base leading-snug font-semibold">{practitioner.name}</p>
         {practitioner.specialty ? (
-          <p className="truncate text-sm text-muted-foreground">{practitioner.specialty}</p>
+          <p className="text-sm leading-snug text-muted-foreground">{practitioner.specialty}</p>
         ) : null}
       </div>
     </Card>

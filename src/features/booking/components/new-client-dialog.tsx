@@ -2,14 +2,16 @@
 
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import { z } from 'zod';
 
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/dialog';
 import { ClientIdentityFields } from '@/features/clients/components/client-identity-fields';
+import { isValidationKey, VALIDATION_VALUES } from '@/features/clients/form-rules';
 import { getLocaleDirection, type Locale } from '@/i18n/routing';
 
 import { formatLongDate, formatMinuteRange } from '../format';
-import { type NewClientInput } from '../schema';
+import { newClientSchema, type NewClientInput } from '../schema';
 import { type PendingBooking } from './client-picker';
 import { NO_REPEAT, RepeatField } from './repeat-field';
 
@@ -48,8 +50,24 @@ export function NewClientDialog({
   onCancel,
 }: NewClientDialogProps) {
   const t = useTranslations('booking');
+  /*
+    The clients namespace, for the field complaints only. This dialog belongs to
+    the calendar and its own copy is `booking.*`, but the fields inside it are
+    the clients page's fields and their messages have to read identically on
+    both screens — one register, one set of rules, one wording.
+  */
+  const tClients = useTranslations('clients');
 
   const [weeks, setWeeks] = useState(initialWeeks);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string[] | undefined>>({});
+
+  /** Same lookup, and the same guard, as the clients card's own `errorFor`. */
+  const errorFor = (field: string) => {
+    const key = fieldErrors[field]?.[0];
+    if (key === undefined || !isValidationKey(key)) return undefined;
+
+    return tClients(`validation.${key}`, VALIDATION_VALUES);
+  };
 
   return (
     <Dialog
@@ -68,40 +86,42 @@ export function NewClientDialog({
         copy in `useState` would mean the shared component had to support both
         shapes, which is how two surfaces drift back apart.
 
-        `reportValidity` rather than a disabled button. The name is `required`
-        with a `minLength`, so the browser already knows what is wrong and where
-        — a greyed-out submit says only that something is, and on a form this
-        long that is a worse answer.
+        ⚠ `noValidate`, where this used to call `reportValidity()`.
+
+        The browser's own bubbles were the right answer while the name was the
+        only rule and the schema agreed with `required` by accident. Four of
+        these fields are required now and two carry rules the browser cannot
+        state — a real calendar day, ten digits after the calling code — so the
+        two validators would disagree about the same form. Worse, the native
+        bubble fires *first* and dismisses on the next click, so the reader
+        would get a grey tooltip here and the red edge everywhere else for the
+        same mistake.
+
+        `newClientSchema` is the one that runs, which is also the schema the
+        server re-runs on the payload. The complaints below are therefore the
+        clients page's complaints, in the clients page's words.
       */}
       <form
-        noValidate={false}
+        noValidate
         onSubmit={(event) => {
           event.preventDefault();
 
-          const form = event.currentTarget;
-          if (!form.reportValidity()) return;
+          const data = new FormData(event.currentTarget);
+          const parsed = newClientSchema.safeParse({
+            firstName: data.get('firstName'),
+            lastName: data.get('lastName'),
+            phone: data.get('phone'),
+            dateOfBirth: data.get('dateOfBirth'),
+            sex: data.get('sex'),
+          });
 
-          const data = new FormData(form);
-          const text = (name: string) => {
-            const value = data.get(name);
-            const trimmed = typeof value === 'string' ? value.trim() : '';
-            return trimmed === '' ? undefined : trimmed;
-          };
+          if (!parsed.success) {
+            setFieldErrors(z.flattenError(parsed.error).fieldErrors);
+            return;
+          }
 
-          const fullName = text('fullName');
-          if (fullName === undefined) return;
-
-          /*
-            `FormData` yields strings, and the schema wants one of two words.
-            Narrowing here rather than casting: the radios can only emit these
-            two, so anything else came from a tampered form and is dropped on
-            the way out — the action re-validates regardless, but a client
-            object that is honestly typed cannot quietly carry a third answer.
-          */
-          const rawSex = text('sex');
-          const sex = rawSex === 'male' || rawSex === 'female' ? rawSex : undefined;
-
-          onCreate({ fullName, phone: text('phone'), dateOfBirth: text('dateOfBirth'), sex }, weeks);
+          setFieldErrors({});
+          onCreate(parsed.data, weeks);
         }}
       >
         <DialogHeader
@@ -123,7 +143,7 @@ export function NewClientDialog({
             and the two forms asking different questions was the reason they
             were not.
           */}
-          <ClientIdentityFields locale={locale} />
+          <ClientIdentityFields locale={locale} errorFor={errorFor} />
 
           {/* The same field as the picker's, because this saves the same
               appointment — just with a person who did not exist a moment ago. */}

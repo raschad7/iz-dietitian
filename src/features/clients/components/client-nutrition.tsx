@@ -50,13 +50,17 @@ import { cn } from '@/lib/utils';
  *
  * **Cards with a heading and no contents.** `Facts` returned null when every
  * child was absent, but the `Card` around it still rendered — so a sparse record
- * drew three headed, empty boxes. Sections then stopped rendering entirely when
- * empty, which traded one problem for another: the record's shape changed from
- * client to client, and a reader looking for the allergies on a sparse one could
- * not tell "none recorded" from "not on this screen". Every section draws its
- * card now, and an empty one says so and carries the trigger that fills it —
- * see `EmptySection`. The dashed gap card at the foot stays for the fields
- * missing from sections that are otherwise filled.
+ * drew three headed, empty boxes. This has been both ways since: sections
+ * stopped rendering when empty, then went back to always drawing so the
+ * record's shape would not change from client to client.
+ *
+ * **A section with nothing in it draws no card.** That is the arrangement now,
+ * and the objection to it — that a reader cannot tell "none recorded" from "not
+ * on this screen" — is answered somewhere better than a headed empty box: the
+ * dashed gap card at the foot names every missing section as a chip and opens
+ * the dialog on it. One place listing what the record lacks beats seven boxes
+ * each saying it about themselves, and a filled record is now only the cards
+ * that have something on them. See the flags above the return.
  *
  * **A record that contradicted itself in silence.** A manual calorie target far
  * from what the measurements imply is the most consequential thing this screen
@@ -175,8 +179,8 @@ export function ClientNutrition({
    *
    * Two flags rather than one: the sheet is filled in across visits, so a
    * client can have answered the background questions and none of the habits
-   * ones, and each card decides for itself whether it has a record to show or
-   * an `EmptySection` to offer.
+   * ones, and each card decides for itself whether it has a record to show —
+   * or, having none, stays off the screen entirely.
    */
   const backgroundFacts = [
     {
@@ -225,6 +229,32 @@ export function ClientNutrition({
 
   const hasBackgroundRecord = [...backgroundFacts, ...backgroundNotes].some((item) => item.value);
   const hasHabitsRecord = [...habitFacts, ...habitNotes].some((item) => item.value);
+  const hasScheduleRecord = intake.mealSchedule.length > 0;
+
+  /*
+    ⚠ **A section with nothing in it draws no card**, and these are what decide
+    it — one flag per section, plus the stacks and grids that would otherwise be
+    left holding nothing.
+
+    This reverses what the module note above records. The argument for drawing
+    every card, filled or not, was that a record whose *shape* changes from
+    client to client makes a reader hunt: on a sparse record you could not tell
+    "nothing recorded" from "not on this screen". That reasoning stands, and it
+    is answered by the dashed gap card at the foot rather than by seven headed
+    boxes — every missing section is named there as a chip (see
+    `GROUPED_GAP_SECTIONS`), so the record still says what it does not hold and
+    still offers one click to fill it. What it no longer does is spend a third
+    of the screen per empty section saying so.
+
+    **The stack and grid flags are not optional tidiness.** An empty flex child
+    still occupies its grid column, so a two-thirds stack with both cards hidden
+    would leave the narrow column stranded beside dead space — the same trap the
+    note on the grid below already warns about.
+  */
+  const hasWideStack = hasScheduleRecord || hasPlanningRecord;
+  const hasNarrowStack = hasAllergyRecord || hasPrivateRecord;
+  const hasRecordGrid = hasWideStack || hasNarrowStack;
+  const hasAssessmentGrid = hasBackgroundRecord || hasHabitsRecord;
 
   return (
     <div className="flex flex-col gap-4">
@@ -432,18 +462,32 @@ export function ClientNutrition({
         two-thirds width with dead space beside it.
       */}
       {/*
-        Every section draws its card, filled or not.
+        A section draws its card only when it holds something.
 
-        They used to render only when they held something, on the argument that
-        a headed empty box is a third of a screen spent saying nothing. That is
-        true of a box with no way out of its own emptiness — and these have one:
-        each carries the trigger that opens the dialog *on its own section*. A
-        record is now the same seven cards in the same order on every client, so
-        the reader learns where the allergies are once rather than hunting for
-        them on a sparse record and finding they are simply absent.
+        The counter-argument is on the record: the same seven cards in the same
+        order on every client is what lets a reader learn where the allergies
+        are once. What that cost was a third of a screen per empty section, on
+        the screen that is already the densest in the app — and on a new client,
+        seven headed boxes saying nothing before a single fact is on it.
+
+        What makes it safe to drop them is that nothing is silently absent: the
+        gap card at the foot lists every missing section by name and opens the
+        dialog on it, so "not recorded" is stated once, in one place, with the
+        way to fix it attached. The cards on screen are the record; the card at
+        the foot is what is missing from it.
       */}
-      <div className="grid items-start gap-4 lg:grid-cols-3">
-          <div className="flex flex-col gap-4 lg:col-span-2">
+      {hasRecordGrid ? (
+      /*
+        **The three-column split only exists when there are two stacks to
+        split.** With one of them hidden the survivor still sat in its own
+        track — the wide one across two thirds, the narrow one across one — and
+        the rest of the row was dead space beside a single card. A two-column
+        layout with one column is a one-column layout, so it is drawn as one.
+      */
+      <div className={cn('grid items-start gap-4', hasWideStack && hasNarrowStack && 'lg:grid-cols-3')}>
+          {hasWideStack ? (
+          <div className={cn('flex flex-col gap-4', hasNarrowStack && 'lg:col-span-2')}>
+            {hasScheduleRecord ? (
             <Card>
                 <CardHeader className="flex-row flex-wrap items-center justify-between gap-x-4 gap-y-1">
                   <CardTitle as="h2" icon="clock" size="sm">
@@ -463,19 +507,12 @@ export function ClientNutrition({
                   </p>
                 </CardHeader>
                 <CardContent>
-                  {intake.mealSchedule.length > 0 ? (
-                    <MealSchedule slots={intake.mealSchedule} />
-                  ) : (
-                    <EmptySection
-                      locale={locale}
-                      clientId={intake.clientId}
-                      section="schedule"
-                      label={t('intake.sectionEmpty')}
-                    />
-                  )}
+                  <MealSchedule slots={intake.mealSchedule} />
                 </CardContent>
               </Card>
+            ) : null}
 
+            {hasPlanningRecord ? (
             <Card>
                 <CardHeader>
                   <CardTitle as="h2" icon="weeklyPlans" size="sm">
@@ -483,8 +520,7 @@ export function ClientNutrition({
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {hasPlanningRecord ? (
-                    <Notes
+                  <Notes
                       items={[
                         {
                           label: t('fields.permanentInstructions'),
@@ -497,20 +533,16 @@ export function ClientNutrition({
                         { label: t('fields.dislikes'), value: intake.dislikes },
                       ]}
                     />
-                  ) : (
-                    <EmptySection
-                      locale={locale}
-                      clientId={intake.clientId}
-                      section="planning"
-                      label={t('intake.sectionEmpty')}
-                    />
-                  )}
                 </CardContent>
               </Card>
+            ) : null}
 
           </div>
+          ) : null}
 
+          {hasNarrowStack ? (
           <div className="flex flex-col gap-4">
+            {hasAllergyRecord ? (
             <Card>
                 <CardHeader>
                   <CardTitle as="h2" icon="medical" size="sm">
@@ -527,8 +559,7 @@ export function ClientNutrition({
                 and outlined pills used to draw is the intake dialog's job; on a
                 read-only card it was a legend nobody had.
               */}
-                  {hasAllergyRecord ? (
-                    <Notes
+                  <Notes
                       items={[
                         {
                           label: t('intake.allergyLine'),
@@ -563,17 +594,11 @@ export function ClientNutrition({
                         },
                       ]}
                     />
-                  ) : (
-                    <EmptySection
-                      locale={locale}
-                      clientId={intake.clientId}
-                      section="allergies"
-                      label={t('intake.sectionEmpty')}
-                    />
-                  )}
                 </CardContent>
               </Card>
+            ) : null}
 
+            {hasPrivateRecord ? (
             <Card>
                 <CardHeader>
                   {/*
@@ -591,8 +616,7 @@ export function ClientNutrition({
                     them out as two labelled notes would put the split back on
                     screen after the dialog stopped drawing it.
                   */}
-                  {hasPrivateRecord ? (
-                    <Notes
+                  <Notes
                       items={[
                         {
                           label: t('intake.notesDivider'),
@@ -600,18 +624,13 @@ export function ClientNutrition({
                         },
                       ]}
                     />
-                  ) : (
-                    <EmptySection
-                      locale={locale}
-                      clientId={intake.clientId}
-                      section="clinical"
-                      label={t('intake.sectionEmpty')}
-                    />
-                  )}
                 </CardContent>
               </Card>
+            ) : null}
           </div>
+          ) : null}
       </div>
+      ) : null}
 
       {/*
         The assessment sheet, read back in the order it was asked.
@@ -633,7 +652,9 @@ export function ClientNutrition({
         stretching to match, and one column below `sm`, where side by side would
         be two narrow strips.
       */}
+      {hasAssessmentGrid ? (
       <div className="grid items-start gap-4 sm:grid-cols-2">
+        {hasBackgroundRecord ? (
         <Card>
           <CardHeader>
             <CardTitle as="h2" icon="personOutline" size="sm">
@@ -641,22 +662,13 @@ export function ClientNutrition({
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            {hasBackgroundRecord ? (
-              <>
-                <FactList items={backgroundFacts} />
-                <Notes items={backgroundNotes} />
-              </>
-            ) : (
-              <EmptySection
-                locale={locale}
-                clientId={intake.clientId}
-                section="background"
-                label={t('intake.sectionEmpty')}
-              />
-            )}
+            <FactList items={backgroundFacts} />
+            <Notes items={backgroundNotes} />
           </CardContent>
         </Card>
+        ) : null}
 
+        {hasHabitsRecord ? (
         <Card>
           <CardHeader>
             <CardTitle as="h2" icon="activityOutline" size="sm">
@@ -664,22 +676,13 @@ export function ClientNutrition({
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            {hasHabitsRecord ? (
-              <>
-                <Notes items={habitNotes} />
-                <FactList items={habitFacts} />
-              </>
-            ) : (
-              <EmptySection
-                locale={locale}
-                clientId={intake.clientId}
-                section="habits"
-                label={t('intake.sectionEmpty')}
-              />
-            )}
+            <Notes items={habitNotes} />
+            <FactList items={habitFacts} />
           </CardContent>
         </Card>
+        ) : null}
       </div>
+      ) : null}
 
       {/*
         Every gap, once, at the end — instead of a headed empty card per section.
@@ -1074,45 +1077,4 @@ function Notes({
     </dl>
   );
 }
-
-/**
- * What a section card holds before anyone has filled it in.
- *
- * A sentence and the way to change it. The card exists whether or not the
- * record does — see the note on the grid above — so this is what keeps an empty
- * one from being a headed box with nothing to do: the trigger opens the intake
- * dialog *on this section*, the same jump the gap chips at the foot of the page
- * make, so "there is nothing here" and "put something here" are one control
- * apart rather than a scroll apart.
- *
- * `h-10`, the design system's floor for a control, and the dashed chip the gap
- * list already uses — an empty state and a gap are the same fact stated in two
- * places, and they should not look like two different offers.
- */
-function EmptySection({
-  locale,
-  clientId,
-  section,
-  label,
-}: {
-  locale: Locale;
-  clientId: string;
-  section: IntakeSectionId;
-  label: string;
-}) {
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <p className="text-body-sm text-muted-foreground">{label}</p>
-
-      <IntakeFormTrigger
-        locale={locale}
-        clientId={clientId}
-        section={section}
-        className="inline-flex h-10 items-center gap-2 rounded-full border border-dashed border-input px-4 text-label text-muted-foreground transition-colors hover:border-solid hover:border-primary hover:bg-secondary hover:text-secondary-foreground"
-      >
-        <Icon name="edit" className="size-4" />
-        {label}
-      </IntakeFormTrigger>
-    </div>
-  );
-}
+

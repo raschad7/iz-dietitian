@@ -1471,6 +1471,49 @@
 }
 
 /*
+ * ── One staff screen drops the rail on a phone ──
+ *
+ * The staff rail is `railOnly`, so below `lg` it is locked to its 56px icon
+ * column and drawn at *every* width — a phone included (`AppShell`). That is
+ * the right trade on the screens a dietitian moves between all day: 56px for
+ * one-tap navigation. It is the wrong one on a client's record, which is the
+ * densest screen in the app — an identity panel, a five-tab bar and a lattice
+ * of readings — and where those 56px are the difference between a phone
+ * showing 264px of record and showing the whole 320px.
+ *
+ * So the rail goes on that route, and on phones only. `.q-hide-rail` is the
+ * marker the record's own layout sets; a screen opts in, the rule never
+ * decides for itself which routes are dense.
+ *
+ * **Nothing becomes unreachable.** The record layout opens with a breadcrumb
+ * back to the register, which is the way out and is on screen before anything
+ * else. That link is a condition of using this class, not a coincidence — a
+ * screen with no rail *and* no way back is a dead end.
+ *
+ * `[data-slot='sidebar-wrapper']:has(…)` because the rail is a *sibling* of the
+ * page rather than an ancestor: the marker sits inside `SidebarInset` and the
+ * wrapper is the nearest box that can see both. Hiding `[data-slot='sidebar']`
+ * — the wrapper holding both the in-flow gap that reserves the column and the
+ * fixed panel that fills it — reclaims the width and removes the rail together,
+ * exactly as the portal's rule above does.
+ *
+ * `:not([data-mobile='true'])` spares the Sheet the same primitive renders when
+ * a shell is not `railOnly`. The staff shell always is, so that sheet never
+ * exists here — but the selector costs one clause and the portal rule carries
+ * it for the same reason.
+ *
+ * `48rem` is `md`, which is the line this app calls a phone: the register drops
+ * to its identity column there, `useIsMobile` reads the same query, and the
+ * record's own views are laid out against it. Move one and move all of them.
+ */
+@media (width < 48rem) {
+  [data-slot='sidebar-wrapper']:has(.q-hide-rail)
+    [data-slot='sidebar']:not([data-mobile='true']) {
+    display: none;
+  }
+}
+
+/*
  * ── Letting the home glow show through `AppShell`'s own `<main>` ──
  *
  * `[data-slot="sidebar-inset"]` is the `<main>` shadcn's sidebar renders as the

@@ -136,7 +136,26 @@ export function InfoRow({
             "الاسم الكامل" louder than the name beside it. The contact settings
             screen is six of those rows, so this is not hypothetical.
           */
-          stacked ? 'min-w-0 font-semibold' : 'shrink-0',
+          /*
+            ⚠ **An unrecorded row is the one inline case where the label gives
+            way instead of the value.**
+
+            `shrink-0` says the value should wrap inside its own column rather
+            than break the label across two lines, and for a *string* that is
+            right — a string can wrap. The unrecorded chip cannot: `Badge` is
+            `w-fit shrink-0 whitespace-nowrap`, so it is 100px or it is nothing.
+            With the label refusing to shrink too, there was no flexible item
+            left in the row, and the chip simply ran out of the card — at 320px
+            in English, `Medications and supplements` left the `dd` 22px wide
+            and pushed the chip 78px past the screen edge, off the side of the
+            page with no scrollbar to reach it.
+
+            So when the value is the chip, the label is the half that gives.
+            `min-w-0` lets it wrap to the two or three lines a long English
+            field name needs at that width, the chip keeps the size it has to
+            keep, and the row stays one row.
+          */
+          stacked ? 'min-w-0 font-semibold' : empty ? 'min-w-0' : 'shrink-0',
         )}
       >
         {icon ? (
@@ -156,6 +175,14 @@ export function InfoRow({
         // label off the screen.
         className={cn(
           'min-w-0 whitespace-pre-line text-sm',
+          /*
+            The other half of the fix above: `min-w-0` lets a text value shrink
+            and wrap, which is what it is for, but the chip has nothing to wrap
+            *to*. `shrink-0` makes the column reserve the chip's width so the
+            flexbox takes the space out of the label instead of out of the
+            chip's own box.
+          */
+          empty && 'shrink-0',
           stacked
             ? /*
                 **Prose sits loose under its label — no fill, no radius, no

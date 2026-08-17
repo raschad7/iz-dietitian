@@ -54,6 +54,8 @@ type SelectFieldProps<T> = {
   'aria-label'?: string;
   'aria-labelledby'?: string;
   'aria-invalid'?: boolean;
+  /** Announces the field as required. The visible mark is Label's `required`. */
+  'aria-required'?: boolean;
   'aria-describedby'?: string;
 };
 
@@ -85,6 +87,7 @@ export function SelectField<T extends string | number>({
   'aria-label': ariaLabel,
   'aria-labelledby': ariaLabelledBy,
   'aria-invalid': ariaInvalid,
+  'aria-required': ariaRequired,
   'aria-describedby': ariaDescribedBy,
 }: SelectFieldProps<T>) {
   return (
@@ -103,6 +106,7 @@ export function SelectField<T extends string | number>({
         aria-label={ariaLabel}
         aria-labelledby={ariaLabelledBy}
         aria-invalid={ariaInvalid}
+        aria-required={ariaRequired}
         aria-describedby={ariaDescribedBy}
         className={cn('w-full', className)}
       >
