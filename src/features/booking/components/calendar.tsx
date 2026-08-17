@@ -20,6 +20,7 @@ import {
 import { addDays, addMonths, eachDay, endOfMonth, startOfMonth, startOfWeek, toIsoDate } from '../date';
 import {
   formatDayNumber,
+  formatHour,
   formatLongDate,
   formatLongDateRange,
   formatMinute,
@@ -35,6 +36,7 @@ import { useScrollToMatch } from '../use-scroll-to-match';
 import { isWorkingDay, type ClinicHours, type ExistingAppointment } from '../validation';
 import { AppointmentDialog } from './appointment-dialog';
 import { CalendarToolbar } from './calendar-toolbar';
+import { CalendarViewGuard } from './calendar-view-guard';
 import { ClientPicker, type PendingBooking } from './client-picker';
 import { DayColumn } from './day-column';
 import { MonthView } from './month-view';
@@ -64,11 +66,57 @@ const HEADER_HEIGHT = 'h-9';
 /**
  * Narrowest a day column may get before the grid starts scrolling sideways.
  *
- * Seven of these plus the hour gutter come to well under a typical content
- * width, so a week fits without a horizontal scrollbar; a day view simply lets
- * its single column take the rest of the space.
+ * This is the day view's floor, at every width. One column with the whole panel
+ * to itself is never near it — the value is only there so a column cannot
+ * collapse if the shell ever hands the calendar less than it expects.
  */
 const DAY_MIN_WIDTH = 'min-w-28';
+
+/**
+ * The hour gutter's width — and the two spacers that stand in for it.
+ *
+ * It was `w-20` (80px), and it was that wide because the labels read
+ * `12:00 PM`: five characters of time, a space and a meridiem, at the label
+ * step. They read `09AM` now (`formatHour`), which is about 38px set, so 80px
+ * left half a column of nothing between the times and the first day of the
+ * week. 64px carries the longest of them with room to spare in either language
+ * and hands the 16px back to the columns, which on a tablet is where it is
+ * worth the most.
+ *
+ * ⚠ Three elements divide the same inline space — the header row's corner cell,
+ * the gutter itself, and the below-fold marker row's leading spacer — and the
+ * first and last exist *only* to be exactly as wide as the second. They must
+ * carry the same class or the day columns start at three different offsets.
+ */
+const GUTTER_WIDTH = 'w-16';
+
+/**
+ * The same floor for a week — but only from `lg` up.
+ *
+ * Seven columns at `min-w-28` plus the 64px hour gutter come to 848px, and the
+ * tablet band never has that. The staff rail is locked to its 56px icon column
+ * below `lg` (`railOnly`, see `sidebar.tsx`), so a 768px tablet leaves the
+ * calendar 712px and the week ran 136px past it — more than a day of it.
+ *
+ * That overflow is not a scrollbar you can see, either: `globals.css` takes the
+ * bars off every scroller in the app, so the last columns were simply cut off
+ * the side of the screen with nothing on it to say they were there or how to
+ * reach them. A week view that cannot show the end of the week is the one thing
+ * it may not do.
+ *
+ * Dropping the floor in that band lets the seven `flex-1` columns divide
+ * whatever there is instead: at the narrowest tablet that comes to ~92px a
+ * column, which still carries a compact block, and the week fits exactly — no
+ * cut, and no sideways scroll at all. From `lg` the floor comes back, because a
+ * desktop has the room and past that width a column should stop shrinking
+ * rather than keep dividing.
+ *
+ * ⚠ The header row, the timeline and the below-fold markers divide the same
+ * space and must carry the *same* value, or their columns drift apart and every
+ * vertical rule lands somewhere different. That is why all three read it from
+ * one place.
+ */
+const WEEK_DAY_MIN_WIDTH = 'min-w-0 lg:min-w-28';
 
 /**
  * The timeline scroller's block padding, in pixels.
@@ -286,6 +334,12 @@ export function Calendar({
    */
   const practitionerId = appointments[0]?.practitionerId ?? 'unresolved-practitioner';
 
+  /**
+   * The column floor the view on screen draws with — a week gives its up on a
+   * tablet so seven columns fit the width. See `WEEK_DAY_MIN_WIDTH`.
+   */
+  const dayMinWidth = view === 'week' ? WEEK_DAY_MIN_WIDTH : DAY_MIN_WIDTH;
+
   /** The days this view draws. */
   const days = useMemo(() => {
     if (view === 'day') return [anchorDate];
@@ -344,6 +398,26 @@ export function Calendar({
     params.set('date', next.date ?? anchorDate);
     router.push(`${basePath}/${next.view ?? view}?${params.toString()}`);
   }
+
+  /**
+   * The same move, without a history entry — for the view guard.
+   *
+   * A view the screen cannot show must not be somewhere Back can return to: on a
+   * phone that opened a shared month link, `push` would leave the month one
+   * press behind the day view, and pressing Back would land on it and be bounced
+   * forward again. `replace` swaps the entry instead, so Back leaves the
+   * calendar the way it would have if the month had never been mounted.
+   *
+   * `useCallback`, because the guard takes it as an effect dependency.
+   */
+  const replaceView = useCallback(
+    (next: CalendarView) => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set('date', anchorDate);
+      router.replace(`${basePath}/${next}?${params.toString()}`);
+    },
+    [anchorDate, basePath, router, searchParams],
+  );
 
   const step = view === 'month' ? 'month' : view === 'week' ? 7 : 1;
 
@@ -921,7 +995,27 @@ export function Calendar({
       reads as cut off rather than as finished. `TOOLBAR_INSET` puts the inline
       gutter back on everything above the grid, so only the grid is full-bleed.
     */
-    <div className={cn('flex min-h-0 flex-col gap-3', fullBleed ? FULL_BLEED : 'h-full')}>
+    /*
+      `min-w-0 max-w-full`, so the calendar is never wider than the column it is
+      given.
+
+      Everything inside it that can exceed the viewport already scrolls inside
+      its own panel — the week grid at its per-column floor, the month grid at
+      its own — but a flex child defaults to `min-width: auto`, which
+      is its *content*. Without this the widest of those grids could push this
+      box past the shell rather than scrolling within it, which is the one thing
+      the page-level rule forbids: the calendar may scroll sideways, the app may
+      not.
+
+      `max-w-full` states the ceiling the same way for the block: whatever the
+      shell hands it is the most it takes.
+    */
+    <div
+      className={cn(
+        'flex min-h-0 min-w-0 max-w-full flex-col gap-3',
+        fullBleed ? FULL_BLEED : 'h-full',
+      )}
+    >
       {/*
         `pt-4 md:pt-6` above the toolbar. The shell's own padding puts the row
         below the top of the viewport, but not by enough: the toolbar carries
@@ -931,6 +1025,17 @@ export function Calendar({
         this is the only breathing room anything above it gets, which is why it
         is a step deeper than the gap between the toolbar and the grid.
       */}
+      {/*
+        Moves a reader off a view their screen does not offer — a bookmarked
+        month opened on a phone, or a tablet turned to portrait with the month
+        grid up. The toolbar hides those segments; this is what stops the URL
+        from disagreeing with it. See `CalendarViewGuard`.
+
+        `replaceView` rather than `navigate`, so a view the screen cannot show
+        never becomes a history entry the Back button bounces off.
+      */}
+      <CalendarViewGuard view={view} onFallback={replaceView} />
+
       <div className={cn('pt-4 md:pt-6', contentInset)}>
         <CalendarToolbar
           locale={locale}
@@ -943,7 +1048,6 @@ export function Calendar({
           onQueryChange={setQuery}
           hideSearch={hideSearch}
           onViewChange={(next) => navigate({ view: next })}
-          onToday={() => navigate({ date: today ?? anchorDate })}
           onPrevious={() => shift(-1)}
           onNext={() => shift(1)}
           // Picking a date keeps the current view and moves it there — the
@@ -1057,7 +1161,8 @@ export function Calendar({
                 {/* Sticky, so the hour gutter keeps its corner when scrolled. */}
                 <div
                   className={cn(
-                    'sticky start-0 z-30 w-20 shrink-0 border-b border-border bg-background',
+                    'sticky start-0 z-30 shrink-0 border-b border-border bg-background',
+                    GUTTER_WIDTH,
                     HEADER_HEIGHT,
                   )}
                 />
@@ -1106,7 +1211,7 @@ export function Calendar({
 
                   const className = cn(
                     'flex flex-1 items-center justify-center gap-1.5 border-b border-s border-border',
-                    DAY_MIN_WIDTH,
+                    dayMinWidth,
                     HEADER_HEIGHT,
                     // Muted for a day nothing can be booked on, whether that
                     // is because the clinic is shut or because it has gone.
@@ -1175,9 +1280,35 @@ export function Calendar({
                 `overflow-y-auto`, so this deepens what the grid can scroll to
                 rather than pushing the grid past the shell's floor.
               */}
-              <div ref={timelineRef} className="flex min-h-0 flex-1 overflow-y-auto pt-3 pb-16">
+              {/*
+                `overflow-x-clip` beside the block-axis scroll, and it is what
+                makes the hour gutter below actually stick.
+
+                `overflow-y: auto` alone computes `overflow-x` from `visible` to
+                `auto`, which quietly made this element a scrollport in *both*
+                axes. The gutter's `sticky start-0` then resolved against this
+                box rather than against the horizontal scroller two levels up —
+                and since this box's content exactly fills it, it never scrolls
+                sideways and the sticky offset never engaged. So on any screen
+                narrower than the width the week wants — 848px, from `lg` up,
+                where the column floor applies — the time labels slid away with
+                the columns, and the one thing telling you which hour you were
+                looking at left the screen exactly when the week had to scroll.
+                The header row's corner spacer carries the identical classes and
+                *does* pin, because it sits outside this box — which is the
+                asymmetry that gave it away.
+
+                `clip` rather than `hidden`: unlike `hidden` it does not force
+                the other axis to become a scroll container, so this stays a
+                block-axis scroller and the inline axis passes up to the one
+                scroller that owns it. `plan-board.tsx` documents the same pair
+                for the same reason. Nothing is clipped in practice — the
+                ancestor is `min-w-max`, so this box is already as wide as its
+                content and there is no inline overflow here to cut.
+              */}
+              <div ref={timelineRef} className="flex min-h-0 flex-1 overflow-x-clip overflow-y-auto pt-3 pb-16">
                 {/* Hour gutter. Its labels use the same geometry as the blocks. */}
-                <div className="sticky start-0 z-30 w-20 shrink-0 bg-background">
+                <div className={cn('sticky start-0 z-30 shrink-0 bg-background', GUTTER_WIDTH)}>
                   {Array.from(
                     { length: Math.floor((hours.closeMinute - hours.openMinute) / 60) + 1 },
                     (_, index) => hours.openMinute + index * 60,
@@ -1205,8 +1336,9 @@ export function Calendar({
                           this grid is read against these — a block means
                           nothing until you know which hour it is beside — so
                           the gutter is load-bearing text, not a caption. The
-                          gutter was widened to `w-20` to take it; see the
-                          matching width on the header's corner cell.
+                          gutter is sized to hold it at that step; see
+                          `GUTTER_WIDTH`, which the header's corner cell and the
+                          marker row's spacer carry too.
                         */
                         className={cn(
                           'absolute end-2 text-label whitespace-nowrap text-muted-foreground tabular-nums',
@@ -1215,7 +1347,7 @@ export function Calendar({
                         style={{ top: minuteToY(minute, hours.openMinute, pxPerSlot) }}
                         dir="auto"
                       >
-                        {formatMinute(locale, anchorDate, minute)}
+                        {formatHour(locale, anchorDate, minute)}
                       </span>
                     );
                   })}
@@ -1230,7 +1362,7 @@ export function Calendar({
                   const dayAppointments = previewedAppointments.filter((row) => row.date === date);
 
                   return (
-                    <div key={date} className={cn('flex-1', DAY_MIN_WIDTH)}>
+                    <div key={date} className={cn('flex-1', dayMinWidth)}>
                       <DayColumn
                         date={date}
                         locale={locale}
@@ -1302,10 +1434,10 @@ export function Calendar({
                 className="pointer-events-none absolute inset-x-0 bottom-3 z-30 flex"
                 style={{ paddingInlineEnd: scrollbarWidth }}
               >
-                <div className="w-20 shrink-0" />
+                <div className={cn('shrink-0', GUTTER_WIDTH)} />
 
                 {days.map((date) => (
-                  <div key={date} className={cn('flex flex-1 justify-center', DAY_MIN_WIDTH)}>
+                  <div key={date} className={cn('flex flex-1 justify-center', dayMinWidth)}>
                     <BelowFoldMarker
                       count={belowFold.get(date) ?? 0}
                       onClick={revealBelowFold}

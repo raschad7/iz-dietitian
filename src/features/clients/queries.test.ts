@@ -39,9 +39,11 @@ describe('listClients', () => {
     expect((await listClients(clinicId, filters({ q: 'أحمد' }))).items).toHaveLength(1);
   });
 
-  /* The search box is the name column and nothing else — phone and email are
-     filtered on instead, below. It matched all three at once until the filter
-     control existed, which made one field mean three things. */
+  /* The search box is the name column and nothing else. It matched name, phone
+     and email at once until the filter control existed, which made one field
+     mean three things and gave a reader no way to say which they meant. Phone
+     and email are not filtered on either any more — nobody looks a register up
+     by them, and the name is what this field is for. */
   test('does not search phone or email', async () => {
     await createClient(clinicId, { fullName: 'سارة', preferredLocale: 'ar', phone: '0599123456', email: 'sara@clinic.ps' });
 
@@ -49,23 +51,27 @@ describe('listClients', () => {
     expect((await listClients(clinicId, filters({ q: 'sara@' }))).items).toHaveLength(0);
   });
 
-  test('filters on phone and email as typed', async () => {
+  /* Phone and email are no longer filter columns — a register is looked up by
+     name, and the field beside the control is what does that. A stale link
+     carrying one has to show the register rather than an empty list. */
+  test('ignores a retired filter column', async () => {
     await createClient(clinicId, { fullName: 'سارة', preferredLocale: 'ar', phone: '0599123456', email: 'sara@clinic.ps' });
-    await createClient(clinicId, { fullName: 'أحمد', preferredLocale: 'ar', phone: '0561111111' });
 
     expect(
       (await listClients(clinicId, filters({ filterBy: 'phone', filterValue: '99123' }))).items,
     ).toHaveLength(1);
     expect(
-      (await listClients(clinicId, filters({ filterBy: 'email', filterValue: 'sara@' }))).items,
+      (await listClients(clinicId, filters({ filterBy: 'email', filterValue: 'nobody@' }))).items,
     ).toHaveLength(1);
   });
 
-  /* A column chosen with nothing typed into it is not a filter, and must not
-     empty the register while the reader is still filling the popover in. */
+  /* A column with no value is not a filter, and must not empty the register
+     while the reader is still filling the popover in. */
   test('ignores a filter column with no value', async () => {
     await createClient(clinicId, { fullName: 'سارة', preferredLocale: 'ar' });
-    expect((await listClients(clinicId, filters({ filterBy: 'phone' }))).items).toHaveLength(1);
+    expect(
+      (await listClients(clinicId, filters({ filterBy: 'portalAccess' }))).items,
+    ).toHaveLength(1);
   });
 
   test('filters on portal access', async () => {

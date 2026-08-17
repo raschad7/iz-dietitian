@@ -317,7 +317,11 @@ export function DayColumn({
           <div
             aria-hidden
             className={cn(
-              'pointer-events-none absolute start-1/2 z-30 -translate-x-1/2 -translate-y-1/2 rounded-md border px-2 py-1',
+              // Same logical/physical mismatch as the block's own drag chip:
+              // `start-1/2` sets the inline-start edge, so the compensating
+              // translate has to flip with the direction or the chip lands a
+              // full width outside the column in Arabic.
+              'pointer-events-none absolute start-1/2 z-30 -translate-x-1/2 -translate-y-1/2 rounded-md border px-2 py-1 rtl:translate-x-1/2',
               'bg-popover text-xs font-semibold whitespace-nowrap shadow-md tabular-nums',
               pending.valid ? 'border-primary/60 text-foreground' : 'border-destructive/60 text-destructive',
             )}

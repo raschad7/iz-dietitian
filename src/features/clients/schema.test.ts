@@ -86,6 +86,16 @@ describe('listClientsSchema', () => {
     expect(result.page).toBe(1);
   });
 
+  test('drops a filter column that has been retired', () => {
+    // A bookmark or a back button can still be carrying `filterBy=phone` from
+    // before those columns were removed. It has to show the register, not a 500
+    // and not an empty list.
+    for (const retired of ['phone', 'email', 'status']) {
+      const result = listClientsSchema.parse({ filterBy: retired, filterValue: '0599' });
+      expect(result.filterBy).toBeUndefined();
+    }
+  });
+
   test('accepts a filter column, its value and a page number', () => {
     const result = listClientsSchema.parse({
       filterBy: 'portalAccess',

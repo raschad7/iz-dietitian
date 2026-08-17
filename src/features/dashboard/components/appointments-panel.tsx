@@ -2,8 +2,14 @@ import { getTranslations } from 'next-intl/server';
 
 import { CardTitle } from '@/components/ui/card';
 import { addDays, weekdayOf } from '@/features/booking/date';
-import { formatDayNumber, formatMinute, formatMinuteRangeLatin, formatWeekday } from '@/features/booking/format';
-import { patientHue } from '@/features/booking/patient-color';
+import {
+  formatDayNumber,
+  formatMinute,
+  formatMinuteLatin,
+  formatMinuteRangeLatin,
+  formatWeekday,
+} from '@/features/booking/format';
+
 import { type CalendarAppointment } from '@/features/booking/types';
 import {
   DayAppointments,
@@ -116,9 +122,12 @@ export async function AppointmentsPanel({
             appointment.startMinute,
             appointment.startMinute + appointment.durationMinutes,
           ),
+          // The phone's column has room for the start and nothing else — see
+          // the time cell in `DayAppointments`.
+          timeShort: formatMinuteLatin(appointment.date, appointment.startMinute),
           clientName: appointment.clientName,
           clientId: appointment.clientId,
-          hue: patientHue(appointment.clientSeq),
+          clientSeq: appointment.clientSeq,
           reason: appointment.reason,
           status: statusOf(appointment, today, nowMinute),
           // Filled in below, once the day's rows are ordered.

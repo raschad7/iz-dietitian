@@ -310,11 +310,30 @@ function DialogBody({ className, ...props }: React.ComponentProps<'div'>) {
 }
 
 /** Actions sit inline-end; the primary action is last in DOM order. */
+/**
+ * The dialog's action row.
+ *
+ * **It wraps**, and that is the whole of the difference from the row it used to
+ * be. A dialog is at its narrowest on the screen where it matters most — below
+ * `sm` it is a full-width bottom sheet — and an unwrappable row of actions
+ * simply ran off the end of it. The appointment dialog carries three (Delete,
+ * Cancel, Save) and in English they overflowed a 390px phone by 93px, which put
+ * *Save* off screen: the dialog could be opened and filled in and not submitted.
+ * Nothing scrolls a footer sideways, so those pixels were unreachable.
+ *
+ * Wrapping costs a row of height on a narrow screen and keeps every action on
+ * it. `gap-y-2` is what stops the two rows touching once it happens.
+ *
+ * `justify-end` still holds on one line, and a call site passing
+ * `justify-between` — as the appointment dialog does, to put Delete opposite the
+ * pair — keeps its own arrangement when there is room and stacks when there is
+ * not.
+ */
 function DialogFooter({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       className={cn(
-        'flex items-center justify-end gap-2 border-t border-border bg-muted/50 p-4',
+        'flex flex-wrap items-center justify-end gap-2 gap-y-2 border-t border-border bg-muted/50 p-4',
         className,
       )}
       {...props}

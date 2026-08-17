@@ -2,14 +2,11 @@ import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
 import { PageHeader } from '@/components/layout/page-header';
-import { buttonVariants } from '@/components/ui/button';
-import { Icon } from '@/components/ui/icon';
 import { ClientPagination } from '@/features/clients/components/client-pagination';
 import { ClientSearch } from '@/features/clients/components/client-search';
 import { ClientTable } from '@/features/clients/components/client-table';
 import { listClients } from '@/features/clients/queries';
 import { listClientsSchema } from '@/features/clients/schema';
-import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/params';
 import { requireStaffClinic } from '@/lib/session';
 
@@ -81,31 +78,9 @@ export default async function ClientsPage({ params, searchParams }: ClientsPageP
         clinicId={clinicId}
       />
 
-      {/*
-        The way into the archive, and the only one.
-
-        It sat beside the title until the shared header took that row: the date
-        and the bell own the far end of it now, and a third control crowded in
-        beside them read as part of the chrome rather than as a way somewhere.
-        A step down, between the header and the toolbar, it keeps the top of the
-        page — this is a place you go, not a filter on the list below it.
-
-        `neutralGhost` because "New client" in the toolbar below is this
-        screen's action and this is a place you may also go — see the note on
-        that variant for why two olive labels on one screen leave neither of
-        them looking like the decision.
-      */}
-      <div className="flex shrink-0 justify-end">
-        <Link
-          href="/app/clients/archived"
-          className={buttonVariants({ variant: 'neutralGhost', size: 'sm' })}
-        >
-          <Icon name="archive" />
-          {t('archive.title')}
-        </Link>
-      </div>
-
-      {/* Search, filter and "New client" all live in this row — see ClientSearch. */}
+      {/* Search, filter, the way into the archive and "New client" all live in
+          this one row — see ClientSearch. The archive link had a row of its own
+          here until it joined them; the note on it there has why. */}
       <ClientSearch input={input} locale={locale} />
 
       <ClientTable

@@ -38,10 +38,11 @@ import { RequestsWindow } from './requests-window';
  * inbox as a dialog over this page now rather than navigating to it, so nothing
  * about working the queue costs the dashboard. See `RequestsDialogTrigger`.
  *
- * **The window is three requests deep.** {@link VISIBLE_REQUESTS} is a bound on
- * height, not a slice — every pending request is rendered and the rest are a
- * scroll away, because a list that renders three and stops cannot be scrolled to
- * the fourth. `RequestsWindow` reads the block-end edge of the Nth tile from the
+ * **The window is two and a half requests deep.** {@link VISIBLE_REQUESTS} is a
+ * bound on height, not a slice — every pending request is rendered and the rest
+ * are a scroll away, because a list that renders two and stops cannot be
+ * scrolled to the third. `RequestsWindow` reads the block-end edge of the Nth
+ * tile — and half the one after it — from the
  * real layout rather than taking a hand-tuned rem, which is the only way the
  * count holds: inside this card a tile's content box is narrow, so a message
  * wraps to more lines than it would anywhere else — and in Arabic, to more
@@ -94,8 +95,17 @@ import { RequestsWindow } from './requests-window';
  * tile, and it also decides whether the "there is more" fade is drawn. CSS
  * cannot size a box to its first N children when those children differ in
  * height, which is why that measurement exists at all.
+ *
+ * **It is a half, on purpose.** At a whole 3 the third tile sat flush against
+ * the bottom edge, and a list whose last visible item ends exactly where its
+ * box does reads as a list that ended — the fade and the scrollbar were the
+ * only things saying otherwise, and both are easy to miss on a card this size.
+ * Cutting the third tile through its middle says it structurally: a half tile
+ * is not something a finished list can end on. It also buys back the height of
+ * half a tile in the dashboard's top band, which is the row that has to stay
+ * level with the two stat cards beside it.
  */
-const VISIBLE_REQUESTS = 3;
+const VISIBLE_REQUESTS = 2.5;
 
 export async function PendingRequestsCard({
   data,
@@ -248,21 +258,21 @@ export async function PendingRequestsCard({
           </div>
         ) : (
           /*
-            The whole queue, scrolled rather than truncated, in a window three
-            requests deep.
+            The whole queue, scrolled rather than truncated, in a window two and
+            a half requests deep.
 
             The height comes from `RequestsWindow`, which measures where the
-            third tile ends rather than trusting a figure written here — a tile
-            with no message and one with a wrapped Arabic message do not measure
-            the same, and neither do the appointment and client shapes. The
-            fourth is a scroll away, and the third sitting flush against the
-            bottom edge is what the fade below is drawn over.
+            second tile ends and adds half of the third rather than trusting a
+            figure written here — a tile with no message and one with a wrapped
+            Arabic message do not measure the same, and neither do the
+            appointment and client shapes. The third is cut through the middle
+            by the bottom edge, which is the clearest thing on the card saying
+            the list goes on; the fade below is drawn over it.
 
-            `max-h-[70vh]` is the guard on top of it and is unchanged. With
-            three of the tightened tiles it is the looser of the two on a normal
-            screen and the binding one on a short laptop, where it shows the
-            third tile part-way and scrolls rather than taking the appointments
-            panel off the page.
+            `max-h-[70vh]` is the guard on top of it and is unchanged. It is the
+            looser of the two on a normal screen and the binding one on a short
+            laptop, where it cuts the window shorter still rather than taking
+            the appointments panel off the page.
 
             `pe-1` leaves the scrollbar somewhere to sit that is not on top of
             the tiles, and `overscroll-contain` keeps a flick at the end of the

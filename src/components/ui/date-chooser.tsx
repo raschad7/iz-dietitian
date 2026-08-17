@@ -40,7 +40,22 @@ import { cn } from '@/lib/utils';
  * as the loudest mark in a popover whose one accent belongs to the chosen day.
  * They keep the hover fill; only the glyph turns black.
  */
-const stepButtonClassName = 'size-7 shrink-0 rounded-lg p-0 text-foreground hover:text-foreground';
+/*
+  28px, and a 44px hit area on a coarse pointer.
+
+  These two arrows are how a month is changed, and on a touch device the date
+  panel is the *only* way to change one — so on a phone the whole of month
+  navigation sat behind a pair of 28px targets, well under the 44px floor the
+  planner's own drag handle is built to.
+
+  The visible button stays 28px, because it is sized against the panel's
+  typography and the 18px glyph inside it: growing it would push the month label
+  between the arrows out of its row. `before:` takes the extra as hit area
+  instead, which is invisible, costs no layout, and only applies where a finger
+  is doing the pointing.
+*/
+const stepButtonClassName =
+  "size-7 shrink-0 rounded-lg p-0 text-foreground hover:text-foreground pointer-coarse:before:absolute pointer-coarse:before:-inset-2 pointer-coarse:before:content-[''] relative";
 
 /**
  * 18px, against the toolbar's 20px — the same glyph-to-button ratio in a 28px

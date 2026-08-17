@@ -370,7 +370,25 @@ function TrailRow({
         ) : null}
       </span>
 
-      <span className="shrink-0 text-body-sm font-semibold text-secondary-foreground opacity-0 transition-opacity group-hover/row:opacity-100 group-focus-visible/row:opacity-100">
+      {/*
+        The row's call to action — "Book visit", "Create plan" — revealed on
+        hover and on keyboard focus.
+
+        ⚠ **Visible from the start on a touch screen**, because there is no
+        third state there: a finger has no hover, and the focus ring arrives
+        only *after* the tap that has already navigated. On a phone or a tablet
+        this label was painted at `opacity-0` for its whole life, so a row whose
+        only purpose is to offer the action showed nothing but a chevron, and
+        the offer was invisible on exactly the devices that cannot discover it
+        any other way.
+
+        `pointer-coarse:opacity-100` rather than dropping the reveal: on a mouse
+        the fade is doing real work — a column of permanent olive labels down a
+        record that mostly has values already is noise — and that reading holds
+        wherever a pointer can hover. The variant asks the one question that
+        actually separates the two cases.
+      */}
+      <span className="shrink-0 text-body-sm font-semibold text-secondary-foreground opacity-0 transition-opacity group-hover/row:opacity-100 group-focus-visible/row:opacity-100 pointer-coarse:opacity-100">
         {value === null ? emptyAction : null}
       </span>
       <Icon name="chevronEnd" className="size-4 shrink-0 text-muted-foreground" />

@@ -155,6 +155,23 @@ export function AppointmentBlock({
         // `patient-tone` builds the four steps below from the hue the style
         // sets. See the note on the class in globals.css.
         'patient-tone',
+        /*
+          The avatar's disc is a hole in the card rather than a disc the card's
+          colour.
+
+          They come to the same thing at rest — the disc defaults to
+          `--tone-fill`, which is what this card is painted in — but not on
+          hover, where the card moves to `--tone-fill-hover` and a disc holding
+          the resting fill would surface as a pale coin under the pointer. Made
+          transparent, it is the card underneath at every state, including the
+          `saturate()` and `opacity` a completed booking carries.
+
+          Only here. Everywhere else an avatar is drawn — the register, the
+          notification feed, the request cards — it sits on a neutral row where
+          the disc is the one thing carrying the client's colour and has to be
+          filled.
+        */
+        '[--tone-avatar-fill:transparent]',
         'absolute rounded-sm border',
         compact ? 'start-1.5 end-1.5 px-2' : 'start-2.5 end-2.5 px-4',
         'text-start transition-[opacity,box-shadow,background-color,border-color] select-none',
@@ -421,6 +438,27 @@ export function AppointmentBlock({
           'absolute end-0.5 top-0.5 z-10 flex size-6 items-center justify-center rounded-full',
           'text-foreground/50 transition-colors hover:bg-accent hover:text-accent-foreground',
           'focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+          /*
+            On a touch screen this is not a convenience, it is the only way in.
+            Opening an appointment otherwise takes a right-click, which a finger
+            does not have — so on a phone every appointment action (open, edit,
+            delete, reschedule) sits behind this one 24px target.
+
+            `before:` rather than a bigger button: the visible disc stays 24px,
+            so the block looks identical on every device, and an invisible
+            pseudo-element widens the *hit* area to 40px. Growing the button
+            itself would cover the name on a 30-minute block.
+
+            8px and not the 10px that would reach the 44px floor exactly, and
+            only on coarse pointers. The note below this block is explicit that a
+            target stretched over the card was tried and reverted — "a booking
+            moved by a shaky hand and a dialog opened by accident are the same
+            slipped pointer" — and a 44px pad in the corner of a 30-minute block
+            *is* that stretched target, because the block is barely taller than
+            the pad. 40px is the most that can be taken here without turning a
+            tap meant for the card into a dialog.
+          */
+          'pointer-coarse:before:absolute pointer-coarse:before:-inset-2 pointer-coarse:before:content-[""]',
         )}
         onPointerDown={(event) => event.stopPropagation()}
         onClick={(event) => {
@@ -443,7 +481,15 @@ export function AppointmentBlock({
         <span
           aria-hidden
           className={cn(
-            'pointer-events-none absolute start-1/2 top-1/2 z-40 -translate-x-1/2 -translate-y-1/2 rounded-md border px-2 py-1',
+            /*
+              `start-1/2` is logical and `-translate-x-1/2` is physical, so the
+              pair only centred in English. In Arabic `start-1/2` resolves to
+              `right: 50%` — the chip hangs leftwards from the column's midline —
+              and pulling it left again by half its own width put it a full width
+              off centre, outside the 112px column it belongs to. `rtl:` flips
+              the compensation to match the edge the inset actually set.
+            */
+            'pointer-events-none absolute start-1/2 top-1/2 z-40 -translate-x-1/2 -translate-y-1/2 rounded-md border px-2 py-1 rtl:translate-x-1/2',
             'bg-popover text-xs font-semibold whitespace-nowrap shadow-md tabular-nums',
             dragState === 'valid' ? 'border-primary/60 text-foreground' : 'border-destructive/60 text-destructive',
           )}
@@ -454,6 +500,49 @@ export function AppointmentBlock({
               hour: (n) => t('duration.hours', { count: n }),
               minute: (n) => t('duration.minutes', { count: n }),
             })}
+          </span>
+        </span>
+      )}
+
+      {/*
+        The move grip, for fingers.
+
+        Invisible on a mouse: the whole block is draggable there and always has
+        been, so a grip would be chrome answering a question nobody asked. On a
+        coarse pointer it becomes a 28px column down the block's inline-start
+        edge — see `.calendar-drag-grip` in `globals.css` for why an explicit
+        grip is the only way a drag survives on glass, and why the block itself
+        cannot claim the gesture.
+
+        It sits at the inline-start edge and the actions button sits at the
+        inline-end one, so the two touch targets cannot be confused for each
+        other, and the name link between them keeps its own tap.
+
+        `draggable` gates it exactly as it gates the block's own handler: a
+        finished appointment is fixed, and a grip on one would promise a gesture
+        that does nothing.
+      */}
+      {onMovePointerDown && draggable && (
+        <span
+          role="presentation"
+          aria-hidden
+          className="calendar-drag-grip absolute start-0 top-0 z-10 cursor-grab active:cursor-grabbing"
+          onPointerDown={(event) => {
+            if (event.button !== 0) return;
+            // The block's own handler would otherwise start a second move for
+            // the same finger.
+            event.stopPropagation();
+            onSelect(appointment.id);
+            onMovePointerDown(appointment, event);
+          }}
+        >
+          {/* Two rules, the universal "grab here" mark. `text-current` so it
+              takes the block's own foreground and stays legible on every one of
+              the ten patient colours. */}
+          <span aria-hidden className="flex flex-col gap-0.5 opacity-50">
+            <span className="block h-px w-3 bg-current" />
+            <span className="block h-px w-3 bg-current" />
+            <span className="block h-px w-3 bg-current" />
           </span>
         </span>
       )}
@@ -474,8 +563,23 @@ export function AppointmentBlock({
         <span
           role="presentation"
           aria-hidden
-          className="absolute start-0 end-0 bottom-0 cursor-ns-resize"
-          style={{ height: Math.max(4, Math.min(8, height / 3)) }}
+          className="calendar-resize-grip absolute start-0 end-0 bottom-0 cursor-ns-resize"
+          /*
+            Both depths are computed and CSS picks one — no `matchMedia`, no
+            hydration mismatch, and the pointer question stays in the stylesheet
+            where the rest of it lives.
+
+            A finger cannot find an 8px edge, so a coarse pointer gets a deeper
+            one; both stay bounded by a third of the block, so neither can
+            swallow the surface the move gesture needs. That cap is why this
+            cannot be a static class: the bound is a fraction of *this* block.
+          */
+          style={
+            {
+              '--resize-grip-fine': `${Math.max(4, Math.min(8, height / 3))}px`,
+              '--resize-grip-coarse': `${Math.max(8, Math.min(20, height / 3))}px`,
+            } as CSSProperties
+          }
           onPointerDown={(event) => {
             if (event.button !== 0) return;
             // Without this the block's own handler would start a move at the

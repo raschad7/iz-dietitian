@@ -195,10 +195,34 @@ export function useCalendarGestures({
         });
       };
 
+      /**
+       * The gesture the browser took away from us, which is not a booking.
+       *
+       * ⚠ This used to be `handleUp` itself, and on a touch screen that made the
+       * calendar unusable. A finger that starts on empty grid and scrolls the day
+       * fires `pointercancel` the moment the browser claims the gesture for
+       * panning — with `moved` still false, because the move handler bails below
+       * the drag threshold and never gets another event. `handleUp` reads that as
+       * a plain click and opens the booking picker. So on a phone, *scrolling the
+       * calendar* offered to book an appointment.
+       *
+       * A cancelled gesture is one the user did not finish. It tears down and
+       * writes nothing. Nothing changes for a mouse, where `pointercancel`
+       * essentially never fires.
+       */
+      const handleCancel = () => {
+        window.removeEventListener('pointermove', handleMove);
+        window.removeEventListener('pointerup', handleUp);
+        window.removeEventListener('pointercancel', handleCancel);
+
+        createRef.current = null;
+        setPending(null);
+      };
+
       const handleUp = (upEvent: PointerEvent) => {
         window.removeEventListener('pointermove', handleMove);
         window.removeEventListener('pointerup', handleUp);
-        window.removeEventListener('pointercancel', handleUp);
+        window.removeEventListener('pointercancel', handleCancel);
 
         const gesture = createRef.current;
         createRef.current = null;
@@ -233,7 +257,7 @@ export function useCalendarGestures({
 
       window.addEventListener('pointermove', handleMove);
       window.addEventListener('pointerup', handleUp);
-      window.addEventListener('pointercancel', handleUp);
+      window.addEventListener('pointercancel', handleCancel);
     },
     [isValid, minuteAt],
   );
@@ -347,10 +371,29 @@ export function useCalendarGestures({
         });
       };
 
+      /**
+       * Same split as `beginCreate`: a gesture the browser took away is not a
+       * move, so it tears down and commits nothing.
+       *
+       * This path was already safe by accident — `handleUp` returns early unless
+       * the pointer travelled, and a cancel usually arrives before that — but it
+       * was safe for the wrong reason, and a cancel *after* the threshold would
+       * have written a move the user never finished. Saying it explicitly costs
+       * one function and makes both gestures read the same way.
+       */
+      const handleCancel = () => {
+        window.removeEventListener('pointermove', handleMove);
+        window.removeEventListener('pointerup', handleUp);
+        window.removeEventListener('pointercancel', handleCancel);
+
+        moveRef.current = null;
+        setDragPreview(null);
+      };
+
       const handleUp = (upEvent: PointerEvent) => {
         window.removeEventListener('pointermove', handleMove);
         window.removeEventListener('pointerup', handleUp);
-        window.removeEventListener('pointercancel', handleUp);
+        window.removeEventListener('pointercancel', handleCancel);
 
         const gesture = moveRef.current;
         moveRef.current = null;
@@ -376,9 +419,31 @@ export function useCalendarGestures({
         latest.current.onCommitMove(appointment, next);
       };
 
+      /*
+        Capture the pointer on the element that started the gesture.
+
+        On touch this is what keeps a drag a drag. Without it the browser is free
+        to reinterpret the finger as a pan the moment it travels, which cancels
+        the move halfway through; with it, every subsequent event for this
+        pointer is delivered here until it is released. `touch-action: none` on
+        the grip (see `AppointmentBlock`) is the other half — capture decides
+        where the events go, `touch-action` decides whether the browser competes
+        for them at all.
+
+        Wrapped because capture throws if the pointer has already been released,
+        which is a race a fast tap can win. Losing capture is not fatal — the
+        window listeners still work for a mouse — so it must not take the gesture
+        down with it.
+      */
+      try {
+        (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+      } catch {
+        // Nothing to do: the gesture proceeds uncaptured, as it always did.
+      }
+
       window.addEventListener('pointermove', handleMove);
       window.addEventListener('pointerup', handleUp);
-      window.addEventListener('pointercancel', handleUp);
+      window.addEventListener('pointercancel', handleCancel);
     },
     [isValid, minuteAt],
   );

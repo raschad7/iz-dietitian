@@ -1,19 +1,19 @@
 import { type CSSProperties } from 'react';
 
 /**
- * A colour of their own for every client — the ten palette colours first, then
- * mixes of them, and never the same colour twice.
+ * A colour of their own for every client — ten chosen colours first, then mixes
+ * of them, and never the same colour twice.
  *
- * This module decides one number — the hue, in degrees — and hands it to the
- * `.patient-tone` class in `globals.css`, which builds the card fill, the hover
- * fill, the hairline and the avatar disc from it. The long note there is where
- * the colour reasoning lives; this is where *which client gets which* lives,
- * and nothing else.
+ * This module decides the three OKLCH numbers a client's surfaces are built
+ * from and hands them to the `.patient-tone` class in `globals.css`, which turns
+ * them into the card fill, the hover fill, the hairline and the avatar disc. The
+ * long note there is where the *ramp* lives; this is where **which client gets
+ * which colour** lives, and where the palette is proved distinct.
  *
  * ## Ten colours, then the colours between them
  *
- * The clinic has a palette: ten named hues, chosen rather than computed. The
- * first ten clients get them, one each.
+ * The clinic has a palette: ten colours, chosen rather than computed. The first
+ * ten clients get them, one each.
  *
  * The eleventh does not start the ring again — it gets the colour *between* two
  * palette entries. The twelfth gets the one between the next pair, and so on
@@ -23,8 +23,8 @@ import { type CSSProperties } from 'react';
  * clients are ever handed the same one.
  *
  * That is the whole of the scheme, and it is what an earlier golden-angle
- * version got wrong. `seq × 137.508°` is also unique forever, but its hues are
- * unique the way random numbers are — the fourth client landed on a colour
+ * version got wrong. `seq × 137.508°` is also unique forever, but its colours
+ * are unique the way random numbers are — the fourth client landed on a colour
  * belonging to no set, and the palette was a fiction. Mixing keeps the anchors
  * real: the wheel fills in *from* the ten, in the order that keeps the widest
  * gaps longest.
@@ -45,57 +45,216 @@ import { type CSSProperties } from 'react';
  *
  * Distinct positions give distinct `(segment, offset)` pairs — the stride is a
  * bijection mod 10, the sequence never repeats a fraction, and an offset below 1
- * never reaches the next anchor — so distinct clients get distinct hues by
+ * never reaches the next anchor — so distinct clients get distinct colours by
  * construction rather than by luck.
+ *
+ * The assignment is a pure function of a stable identifier, so the same client is
+ * the same colour on every render and on every surface. Re-picking against
+ * whatever a given screen happens to be showing is the one thing this must not
+ * do: a client whose colour depends on who else is on the page has no colour.
  *
  * ## What this does and does not promise
  *
- * It promises no two clients are given the same colour. It does not promise that
- * a hundred clients are all *told apart* by colour: roughly a dozen hues is the
- * most anyone reliably distinguishes side by side, and past that the gaps close
- * below what the eye resolves no matter how they are assigned. The halving order
- * is what makes the degradation graceful instead of sudden.
+ * It promises no two clients are given the same colour, and it proves — with the
+ * OKLab measurements below — that the *ten* are far apart enough to be told
+ * apart at a glance. It does not promise that a hundred clients are all told
+ * apart by colour: roughly a dozen is the most anyone reliably distinguishes
+ * side by side, and past that the gaps close below what the eye resolves no
+ * matter how they are assigned. The halving order is what makes that degradation
+ * graceful instead of sudden, and {@link MIN_TONE_DISTANCE} is the floor it
+ * degrades *from* rather than a bound that holds forever.
  *
  * That limit is why colour is never asked to work alone here: the avatar carries
- * the client's initials and every surface prints the full name. Colour is what
- * makes a returning face recognisable across a week at a glance; the letters are
- * what settle it when two hues sit close, and they are what a reader who cannot
- * separate hues at all reads instead.
+ * the client's mark and every surface prints the full name. Colour is what makes
+ * a returning face recognisable across a week at a glance; the glyph and the
+ * letters settle it when two colours sit close, and they are what a reader who
+ * cannot separate hues at all reads instead.
  */
 
-/**
- * The ten hues, in OKLCH degrees, ascending — the clinic's palette, and the
- * anchors every later colour is mixed from.
- *
- * Spread around the wheel with the gaps placed by eye rather than by division:
- * the yellow-to-green stretch needs more room than the blues, because that is
- * where a fixed step produces two tones nobody separates. Each is only a hue —
- * `.patient-tone` sets the lightness and the chroma, and does it twice, once per
- * theme, which is what keeps all ten legible on cream and on charcoal.
- *
- * They must stay in ascending order: the segments below are the arcs between
- * consecutive entries, and an unsorted list would make one of them run backwards
- * across the rest of the wheel. Editing the list repaints the clinic.
- */
-const PALETTE = [
-  25, // red
-  55, // orange
-  90, // amber
-  135, // green
-  165, // emerald
-  195, // teal
-  230, // blue
-  265, // indigo
-  300, // violet
-  335, // pink
-] as const;
+/** One OKLCH colour: lightness `0–1`, chroma, hue in degrees. */
+export type Tone = { l: number; c: number; h: number };
 
 /**
- * How far along the palette each position moves. Coprime with `PALETTE.length`,
- * so ten consecutive clients cover every arc before any is revisited — see the
- * note above.
+ * A palette entry: one hue, and what it is worth in each theme.
+ *
+ * The hue is shared and the lightness and chroma are not, because the two themes
+ * are different problems. A card on cream has to be light enough to carry n-900
+ * text; the same client's card on charcoal has to be dark enough to carry n-25.
+ * The hue is what makes them the same client's colour across the two.
+ */
+type PaletteEntry = { h: number; light: [l: number, c: number]; dark: [l: number, c: number] };
+
+/**
+ * The ten colours, ascending by hue.
+ *
+ * ## They vary in all three coordinates, and that is the change
+ *
+ * This was ten hues at one fixed lightness and one fixed chroma, on the argument
+ * that colour should say *who* and never *how important* — two cards on the grid
+ * differing in hue and in nothing else. The argument is good and the palette it
+ * produced was not: with two of the three coordinates pinned, the whole of the
+ * separation between ten colours had to come out of a single circle of radius
+ * 0.055, which put the closest pair 0.030 apart in OKLab. That clears the
+ * ~0.02 just-noticeable difference and nothing more — ten colours that were
+ * *different* rather than ten colours anyone could tell apart, and in the dark
+ * theme especially they read as ten tints of one wash.
+ *
+ * Letting lightness and chroma move lifts the closest pair to **0.111 in light
+ * and 0.090 in dark** — three to four times the separation, from the same ten
+ * hue families. That is the difference between a palette and a set of shades.
+ *
+ * The cost is real and bounded: cards no longer weigh exactly the same on the
+ * grid. It is bounded by the band each theme's lightness is allowed to move in
+ * — 0.755–0.920 on cream, 0.285–0.455 on charcoal — which is chosen so that
+ * *every* colour still clears 4.5:1 for body text at rest and on hover. The
+ * measured worsts are 7.20:1 light and 6.64:1 dark, so no card is a weak card;
+ * the lighter ones are simply lighter.
+ *
+ * ## How these ten were picked
+ *
+ * By search, not by eye, maximising the smallest OKLab distance across all 45
+ * pairs subject to four constraints, each of which is one of the requirements
+ * this palette exists to meet:
+ *
+ * - **in sRGB at every step.** A colour past its hue's chroma ceiling is clipped
+ *   per channel by the browser, and per-channel clipping does not preserve hue:
+ *   it moves the colour off the one number identifying the client, and moves two
+ *   different clients towards the same corner of the cube. The fill, its hover
+ *   step and the glyph are all checked, not just the fill.
+ * - **≥ 4.5:1 for text**, at rest and hovered, in both themes.
+ * - **≥ 30° apart in hue.** Distance alone would happily return a pale red and a
+ *   deep red — far apart in OKLab, and still two reds. The hue floor is what
+ *   makes these ten *families* rather than ten points.
+ * - **chroma ≥ 0.075 light / 0.05 dark.** A near-neutral is easy to place far
+ *   from everything else and reads as grey, not as somebody's colour.
+ *
+ * They must stay ten and stay ascending: the mixing subdivides the arcs between
+ * consecutive entries, so an unsorted list would send one arc backwards across
+ * the rest of the wheel, and the stride is coprime with ten specifically.
+ * `patient-color.test.ts` re-derives the distances and the gamut rather than
+ * trusting this note. Editing this list repaints the clinic.
+ */
+const PATIENT_PALETTE: readonly PaletteEntry[] = [
+  { h: 21, light: [0.755, 0.14], dark: [0.285, 0.055] }, // red
+  { h: 53, light: [0.87, 0.075], dark: [0.415, 0.09] }, // amber
+  { h: 92, light: [0.755, 0.095], dark: [0.345, 0.06] }, // olive
+  { h: 142, light: [0.835, 0.16], dark: [0.455, 0.14] }, // green
+  { h: 173, light: [0.92, 0.075], dark: [0.42, 0.075] }, // mint
+  { h: 203, light: [0.835, 0.13], dark: [0.34, 0.05] }, // cyan
+  { h: 236, light: [0.755, 0.14], dark: [0.445, 0.09] }, // blue
+  { h: 273, light: [0.835, 0.075], dark: [0.285, 0.07] }, // violet
+  { h: 305, light: [0.755, 0.135], dark: [0.305, 0.145] }, // purple
+  { h: 339, light: [0.755, 0.195], dark: [0.385, 0.145] }, // magenta
+];
+
+/** The palette as plain tones, per theme — what the distinctness check reads. */
+export function paletteTones(theme: 'light' | 'dark'): Tone[] {
+  return PATIENT_PALETTE.map((entry) => ({ l: entry[theme][0], c: entry[theme][1], h: entry.h }));
+}
+
+/**
+ * Which arc each position moves to — coprime with the palette length, which is
+ * the whole of why it is 3. See the note at the top of the file.
  */
 const PALETTE_STRIDE = 3;
+
+/**
+ * The smallest OKLab distance any two of the ten may sit at.
+ *
+ * A just-noticeable difference in OKLab is around 0.02, and that is the floor a
+ * colour code has to clear rather than the bar it should aim at: two cards on
+ * one day want to be obviously different, not barely different. 0.06 is roughly
+ * three JNDs and is the line the test holds; the palette clears it with room, at
+ * 0.111 light and 0.090 dark.
+ *
+ * It is a bound on the *ten*, not on every client. Mixes fill the gaps between
+ * them by design, so the fortieth client is necessarily closer to their nearest
+ * neighbour than the tenth was — see "what this does and does not promise".
+ */
+export const MIN_TONE_DISTANCE = 0.06;
+
+/** OKLCH → OKLab. The `a`/`b` pair is the colour plane the distances live in. */
+function toLab({ l, c, h }: Tone): [number, number, number] {
+  const radians = (h * Math.PI) / 180;
+  return [l, c * Math.cos(radians), c * Math.sin(radians)];
+}
+
+/**
+ * How far apart two colours read, in OKLab — the straight-line distance between
+ * them, which is what OKLab is built to make meaningful.
+ *
+ * All three coordinates count. The old version took two hues and a shared
+ * chroma, which was the right shape for a palette that varied in hue alone and
+ * is not one that can measure this palette at all.
+ */
+export function toneDistance(a: Tone, b: Tone): number {
+  const [al, aa, ab] = toLab(a);
+  const [bl, ba, bb] = toLab(b);
+
+  return Math.hypot(al - bl, aa - ba, ab - bb);
+}
+
+/**
+ * OKLab → linear sRGB, and whether the result is a colour sRGB actually has.
+ *
+ * The matrices are the ones from Björn Ottosson's OKLab definition, which is
+ * also what the browser evaluates `oklch()` with — so "in gamut" here means the
+ * same thing it will mean at paint time.
+ */
+function inGamut(tone: Tone): boolean {
+  const [labL, a, b] = toLab(tone);
+
+  const lRoot = labL + 0.3963377774 * a + 0.2158037573 * b;
+  const mRoot = labL - 0.1055613458 * a - 0.0638541728 * b;
+  const sRoot = labL - 0.0894841775 * a - 1.291485548 * b;
+
+  const long = lRoot ** 3;
+  const medium = mRoot ** 3;
+  const short = sRoot ** 3;
+
+  const channels = [
+    4.0767416621 * long - 3.3077115913 * medium + 0.2309699292 * short,
+    -1.2684380046 * long + 2.6097574011 * medium - 0.3413193965 * short,
+    -0.0041960863 * long - 0.7034186147 * medium + 1.707614701 * short,
+  ];
+
+  return channels.every((channel) => channel >= 0 && channel <= 1);
+}
+
+/**
+ * The colour, with its chroma pulled back to the most that hue and lightness can
+ * hold in sRGB.
+ *
+ * **Only mixes need this, and they genuinely do.** The ten anchors are searched
+ * inside the gamut, but the gamut is not convex: the straight line between two
+ * colours that are both inside it passes outside for a stretch of the hues in
+ * between — measured, that is around one client in five past the tenth. Left
+ * alone, the browser clips those per channel, which does not preserve hue and so
+ * loses the one number identifying the client, in the surfaces least able to
+ * spare it.
+ *
+ * Bisection rather than an analytic solve: the sRGB boundary in OKLCH has no
+ * closed form, twenty steps land within 0.0004 of it, and this runs once per
+ * client per render on a list of a few dozen.
+ *
+ * Reducing chroma rather than lightness on purpose — lightness is what carries
+ * the text contrast the band was chosen for, and a mix that quietly darkened to
+ * stay in gamut would be a mix that quietly failed contrast.
+ */
+function clampToGamut(tone: Tone): Tone {
+  if (inGamut(tone)) return tone;
+
+  let low = 0;
+  let high = tone.c;
+
+  for (let step = 0; step < 20; step += 1) {
+    const mid = (low + high) / 2;
+    if (inGamut({ ...tone, c: mid })) low = mid;
+    else high = mid;
+  }
+
+  return { ...tone, c: low };
+}
 
 /**
  * 0, ½, ¼, ¾, ⅛, ⅝, ⅜, ⅞… — the binary digits of `n` read backwards through the
@@ -120,43 +279,84 @@ function vanDerCorput(n: number): number {
   return fraction;
 }
 
-/**
- * The client's hue in degrees, `0 ≤ h < 360`.
- *
- * Stable for the life of the record: positions are handed out in registration
- * order and only ever appended to, so a client's colour is decided once and
- * never moves under them.
- */
-export function patientHue(clientSeq: number): number {
+/** Where in the palette a client sits: which arc, and how far along it. */
+function positionOf(clientSeq: number): { segment: number; offset: number } {
   // Guarded rather than trusted: a negative or fractional seq is not something
   // the queries produce, but an index arriving from somewhere unexpected should
   // land on a colour rather than on `NaN`.
   const seq = Number.isFinite(clientSeq) ? Math.max(Math.trunc(clientSeq), 0) : 0;
+  const size = PATIENT_PALETTE.length;
 
-  const size = PALETTE.length;
-  const segment = (seq * PALETTE_STRIDE) % size;
-  const offset = vanDerCorput(Math.floor(seq / size));
-
-  const from = PALETTE[segment] ?? PALETTE[0];
-  // The last segment wraps: pink back round to red, the long way through the
-  // reds nothing else occupies. `+ 360` keeps the interpolation going forwards.
-  const to = segment === size - 1 ? PALETTE[0] + 360 : (PALETTE[segment + 1] ?? PALETTE[0]);
-
-  return (from + (to - from) * offset) % 360;
+  return {
+    segment: (seq * PALETTE_STRIDE) % size,
+    offset: vanDerCorput(Math.floor(seq / size)),
+  };
 }
 
 /**
- * The hue as the one custom property `.patient-tone` reads.
+ * The client's colour in one theme: a palette entry for the first ten, a mix of
+ * two of them for everyone after.
  *
- * Pair it with that class: the style supplies the number, the class supplies
- * the ramp built from it.
+ * All three coordinates interpolate. Lightness and chroma have to travel with
+ * the hue now that the anchors differ in them — carrying a mixed hue at one
+ * anchor's lightness would put the mix in neither colour's family.
+ */
+export function patientTone(clientSeq: number, theme: 'light' | 'dark'): Tone {
+  const { segment, offset } = positionOf(clientSeq);
+  const size = PATIENT_PALETTE.length;
+
+  const from = PATIENT_PALETTE[segment] ?? PATIENT_PALETTE[0]!;
+  const to = PATIENT_PALETTE[(segment + 1) % size] ?? PATIENT_PALETTE[0]!;
+
+  // The last segment wraps: magenta back round to red, the long way through the
+  // reds nothing else occupies. `+ 360` keeps the interpolation going forwards.
+  const toHue = segment === size - 1 ? to.h + 360 : to.h;
+
+  const [fromL, fromC] = from[theme];
+  const [toL, toC] = to[theme];
+
+  return clampToGamut({
+    l: fromL + (toL - fromL) * offset,
+    c: fromC + (toC - fromC) * offset,
+    h: (from.h + (toHue - from.h) * offset) % 360,
+  });
+}
+
+/**
+ * The client's hue in degrees, `0 ≤ h < 360`.
+ *
+ * The one coordinate that is the same in both themes, for the callers that only
+ * need to name a colour rather than paint one.
+ */
+export function patientHue(clientSeq: number): number {
+  return patientTone(clientSeq, 'light').h;
+}
+
+/**
+ * The client's colour as the custom properties `.patient-tone` reads.
+ *
+ * **Five properties, one of which is the hue.** It used to be the hue alone,
+ * because the ramp held lightness and chroma fixed and only needed telling which
+ * way round the wheel to go. Now that the ten differ in all three, the element
+ * has to carry both themes' lightness and chroma: the class picks the light pair
+ * and `.dark .patient-tone` picks the dark one, because a server-rendered inline
+ * style cannot know which theme it will be painted in.
  *
  * Three decimals, because rounding is quantising and quantising is how two
- * distinct hues become the same colour again. A tenth of a degree cuts the wheel
- * into 3,600 slots, which the halving above reaches sooner than it sounds; a
+ * distinct colours become one again. A tenth of a degree cuts the wheel into
+ * 3,600 slots, which the halving above reaches sooner than it sounds; a
  * thousandth gives 360,000 and keeps the emitted markup from carrying seventeen
  * digits of float on every card.
  */
 export function patientToneStyle(clientSeq: number): CSSProperties {
-  return { '--tone-h': patientHue(clientSeq).toFixed(3) } as CSSProperties;
+  const light = patientTone(clientSeq, 'light');
+  const dark = patientTone(clientSeq, 'dark');
+
+  return {
+    '--tone-h': light.h.toFixed(3),
+    '--tone-l-light': light.l.toFixed(3),
+    '--tone-c-light': light.c.toFixed(3),
+    '--tone-l-dark': dark.l.toFixed(3),
+    '--tone-c-dark': dark.c.toFixed(3),
+  } as CSSProperties;
 }

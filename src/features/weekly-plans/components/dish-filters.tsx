@@ -99,7 +99,25 @@ export function DishFilters({
         onChange={(event) => handleSearch(event.target.value)}
         placeholder={t('searchPlaceholder')}
         aria-label={t('searchPlaceholder')}
-        className="min-w-64 flex-1"
+        /*
+          `w-full` below `sm`, and `flex-1` with a floor from `sm` up.
+
+          It was `min-w-64 flex-1` at every width, and that is not the same
+          thing as a line to itself. `flex-1` is `flex: 1 1 0%` — it grows into
+          whatever is *left over* on its line — so on a phone the select beside
+          it stayed on the same row and shrank toward its own min-content, and
+          the field sat at its 256px floor with a squeezed dropdown jammed
+          against it. The toolbar's own note below says the field takes a line
+          to itself below `sm`; this is what actually makes that true. A
+          `width: 100%` basis cannot share a flex line, so the group after it
+          wraps, and the search box is as wide as the catalog it searches.
+
+          The floor moves to `sm` with the rest of it. At 256px it was also
+          wider than a 320px phone has to give once the staff rail and the
+          page's own padding are out — the one width where a minimum on a
+          search field turns into a page that scrolls sideways.
+        */
+        className="w-full sm:w-auto sm:min-w-64 sm:flex-1"
       />
 
       {/*

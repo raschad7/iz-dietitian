@@ -29,8 +29,20 @@ import { cn } from "@/lib/utils"
   than two shades of one hue — the style's own opaque white ground is stripped
   in `glyphAvatarSvg` precisely so this can show through.
 
+  That is now true rather than aspirational: `--tone-avatar-fill` is deliberately
+  declared nowhere, so this resolves to `--tone-fill` for every caller. It was a
+  lighter, flatter step for a while, which made the disc a family member of the
+  card's colour instead of the same colour, and cost the register a third of the
+  palette's separation on the one surface with nothing else to carry it. The long
+  note in `globals.css` has the measurements.
+
+  It stays in the chain as the override point, and `AppointmentBlock` is the one
+  caller that uses it: a disc drawn *on* a card of this colour sets it
+  `transparent` so it follows the card through hover rather than sitting on top
+  of it as a coin.
+
   The `white` fallback is for the callers outside a `.patient-tone` subtree — the
-  component gallery, the weekly-plan rails — where the variable is not defined
+  component gallery, the weekly-plan rails — where neither variable is defined
   and the mark keeps the ground the style shipped with.
 */
 const avatarVariants = cva(

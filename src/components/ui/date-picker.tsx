@@ -216,6 +216,14 @@ export function DatePicker({
           the weekday header is one letter in Arabic and three in English — and a
           field's popup that changes width with the locale sits differently under
           the control it belongs to. The cells divide the panel instead.
+
+          312px on a coarse pointer, and that is a touch-target fix rather than a
+          taste one. The cells divide the panel, so at 264px a day is about 35px
+          across — under the 40px floor, on the primary target of the whole
+          control. 19.5rem puts a day at roughly 42px. It is still one width per
+          pointer type rather than per locale, so the reasoning above holds, and
+          `PopoverContent` clamps to `--available-width`, so the wider panel
+          cannot push a 320px screen sideways.
         */}
         {/*
           Aligned to the inline-end either way, because that is the edge the
@@ -227,7 +235,7 @@ export function DatePicker({
         <PopoverContent
           container={dialogHost ?? undefined}
           align="end"
-          className="w-[264px] p-2"
+          className="w-[264px] pointer-coarse:w-[19.5rem] p-2"
         >
           <DateChooser
             locale={locale}
