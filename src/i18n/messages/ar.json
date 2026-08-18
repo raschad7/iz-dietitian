@@ -507,10 +507,17 @@
       "title": "تصفية السجل",
       "apply": "تطبيق",
       "clear": "مسح",
+      "column": "التصفية حسب",
       "portalAccess": {
         "label": "الوصول إلى البوابة",
         "yes": "لديه دخول",
         "no": "لا دخول له"
+      },
+      "weeklyProgress": {
+        "label": "التقدّم الأسبوعي",
+        "reported": "سجّل هذا الأسبوع",
+        "notReported": "لم يسجّل شيئًا بعد",
+        "noPlan": "لا توجد خطة سارية"
       }
     },
     "resultCount": "{total, number, integer} مشترك",
@@ -546,7 +553,7 @@
         "nutrition": "التغذية",
         "progress": "التقدم",
         "security": "الأمان",
-        "billing": "الفوترة والخطط"
+        "billing": "الخطط"
       }
     },
     "progress": {
@@ -665,11 +672,15 @@
       "activityBarriers": "ما يمنع ممارسة النشاط",
       "sleepHours": "ساعات النوم",
       "smoking": "التدخين والأرجيلة",
-      "caffeineFrequency": "الكافيين والمشروبات المحلاة (يوميًا)",
+      "caffeineFrequency": "الكافيين (يوميًا)",
+      "sweetDrinksFrequency": "المشروبات المحلاة (يوميًا)",
       "fastFoodFrequency": "الوجبات السريعة (أسبوعيًا)",
-      "produceFrequency": "الخضار والفواكه (يوميًا)",
+      "vegetablesFrequency": "الخضار (يوميًا)",
+      "fruitFrequency": "الفواكه (يوميًا)",
       "dairyFrequency": "الحليب ومشتقاته (يوميًا)",
-      "proteinFoodFrequency": "اللحوم والدجاج والأسماك (أسبوعيًا)",
+      "redMeatFrequency": "اللحوم الحمراء (أسبوعيًا)",
+      "chickenFrequency": "الدجاج (أسبوعيًا)",
+      "fishFrequency": "الأسماك (أسبوعيًا)",
       "sweetsFrequency": "الحلويات والسكريات (أسبوعيًا)"
     },
     "status": {

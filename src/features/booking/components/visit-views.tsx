@@ -17,7 +17,7 @@ import { Segmented } from '@/components/ui/segmented';
  * that remains *is* those two questions, and the card opens on the first.
  *
  * **A `Segmented`, not a row of tabs.** The record carries a tab bar of its own
- * — Account, Nutrition, Security, Billing &amp; Plans — and those switch the
+ * — Account, Nutrition, Security, Plans — and those switch the
  * subject of the page; these two switch which half of one card's list you are
  * reading. Drawing them as a second bar in the same visual language would stack
  * two identical-looking strips and leave the reader working out which one moves

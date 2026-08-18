@@ -180,7 +180,7 @@ export const clientNutritionProfiles = pgTable(
     smoking: text('smoking'),
 
     /*
-     * Six food-frequency answers, each one of `INTAKE_FREQUENCIES`.
+     * Ten food-frequency answers, each one of `INTAKE_FREQUENCIES`.
      *
      * A closed scale rather than a number: the paper form asks "كم مرة يوميا"
      * and gets "٢-٣" or "أحيانا" written in a margin. A five-point scale is what
@@ -189,12 +189,30 @@ export const clientNutritionProfiles = pgTable(
      *
      * The daily/weekly split is per question and fixed, matching the sheet; the
      * label the UI shows says which.
+     *
+     * ⚠ **One column per food, not per question on the sheet.** Four of these
+     * were two: caffeine shared a column with sweetened drinks, vegetables
+     * shared `produce_frequency` with fruit, and beef, chicken and fish shared
+     * `protein_food_frequency`. A single answer covering several foods cannot be
+     * read back — "3-4 times a week" across meat, chicken and fish says nothing
+     * about which of the three, which is the only thing a dietitian would act
+     * on. The old answers were copied into every column they used to cover when
+     * the columns split (migrations 0025 and 0027), so a record answered before
+     * the split reads as the same answer for each of its foods rather than as
+     * blanks.
      */
     caffeineFrequency: text('caffeine_frequency'),
+    /** Split out of `caffeine_frequency`; juice, soft drinks, sweetened tea. */
+    sweetDrinksFrequency: text('sweet_drinks_frequency'),
     fastFoodFrequency: text('fast_food_frequency'),
-    produceFrequency: text('produce_frequency'),
+    /* The two that were `produce_frequency`. */
+    vegetablesFrequency: text('vegetables_frequency'),
+    fruitFrequency: text('fruit_frequency'),
     dairyFrequency: text('dairy_frequency'),
-    proteinFoodFrequency: text('protein_food_frequency'),
+    /* The three that were `protein_food_frequency`. */
+    redMeatFrequency: text('red_meat_frequency'),
+    chickenFrequency: text('chicken_frequency'),
+    fishFrequency: text('fish_frequency'),
     sweetsFrequency: text('sweets_frequency'),
 
     /**

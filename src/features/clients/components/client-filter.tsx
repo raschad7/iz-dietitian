@@ -8,7 +8,13 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from '@/components/ui/popover';
 import { SelectField } from '@/components/ui/select-field';
-import { PORTAL_ACCESS_VALUES, type ListClientsInput } from '@/features/clients/schema';
+import {
+  CLIENT_FILTERS,
+  CLIENT_FILTER_VALUES,
+  PORTAL_ACCESS_VALUES,
+  type ClientFilter,
+  type ListClientsInput,
+} from '@/features/clients/schema';
 import { usePathname, useRouter } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
 
@@ -38,20 +44,74 @@ import { cn } from '@/lib/utils';
  *   input, the "Contains…" placeholder and the branch choosing between the two
  *   shapes all existed for them alone.
  *
- * A `<select>` of one option is not a choice, so with one column left the column
- * row is gone and what is left is the value: has access, or has not. That is
- * also why this stays a popover rather than becoming a pair of chips in the
- * toolbar — it is still a question you go and ask, not one the toolbar should
- * put in front of you every day.
+ * **The chooser is back, because there are two columns again.** It went when
+ * the list was down to one — a `<select>` of one option is not a choice — and
+ * the note left in its place said that a second column meant bringing it back
+ * rather than stacking another row here. `weeklyProgress` is that second column:
+ * where a client stands in the plan period they are currently on, which is the
+ * other thing a name cannot answer. So the popover is two rows again — the
+ * question, then its answers — and the URL carries the pair it always carried.
  *
- * ⚠ Adding a second filter column means bringing the chooser back, not stacking
- * another row here. `CLIENT_FILTERS` is still an array for that reason, and the
- * URL still carries `filterBy` alongside `filterValue`.
+ * **One filter at a time, still.** Two rows here would be two filters ANDed
+ * together, which is a saved-view feature and a different screen; this register
+ * is read by someone looking for one thing. It also stays a popover rather than
+ * becoming chips in the toolbar — it is a question you go and ask, not one the
+ * toolbar should put in front of you every day.
+ *
+ * ⚠ The answers are **per column**, so switching the column has to reset the
+ * value: `no` is an answer to portal access and means nothing to progress, and a
+ * value the column does not offer is one the query drops on the floor. See
+ * `chooseColumn` below.
+ *
+ * ⚠ **Weekly progress has no answers row**, and it is the only column that does
+ * not. Choosing it and pressing Apply filters on `reported` — the first of
+ * `WEEKLY_PROGRESS_VALUES` — so the register shows the clients who have logged
+ * something in the plan period they are currently on. The other two answers,
+ * `notReported` and `noPlan`, are still validated and still applied when a URL
+ * names them; this popover simply does not offer a way to pick them. Portal
+ * access keeps its row, because "has access" and "no access" are equally the
+ * question a reader means.
  *
  * Applying replaces rather than pushes, like the search field beside it: a
  * filter is where you are, not somewhere you went, and the back button should
  * leave the register rather than walk back through four attempts at one.
  */
+/**
+ * Each column's own label key, spelled out rather than built as
+ * `filter.${column}.label`.
+ *
+ * `useTranslations` checks its argument against the catalogue at compile time,
+ * and a template literal over a union produces every combination — including
+ * the ones that do not exist. Writing the keys out is what keeps a typo here a
+ * type error rather than a blank label at runtime.
+ */
+const COLUMN_LABEL = {
+  portalAccess: 'filter.portalAccess.label',
+  weeklyProgress: 'filter.weeklyProgress.label',
+} as const satisfies Record<ClientFilter, string>;
+
+/**
+ * Whether a column asks the reader which of its answers they mean.
+ *
+ * Only portal access does. Weekly progress applies its first answer and shows
+ * no row for it — see the ⚠ on the component above for what that means and why
+ * the other two answers still exist.
+ */
+function hasAnswersRow(column: ClientFilter): column is 'portalAccess' {
+  return column === 'portalAccess';
+}
+
+/**
+ * The answer a freshly opened popover shows for a column: its first one.
+ *
+ * Takes the column rather than reading state, because it is called while
+ * seeding — before there is any state to read — from both the initial value and
+ * every reopening.
+ */
+function defaultValue(column: ClientFilter | undefined): string {
+  return CLIENT_FILTER_VALUES[column ?? CLIENT_FILTERS[0]][0];
+}
+
 export function ClientFilterMenu({ input }: { input: ListClientsInput }) {
   const t = useTranslations('clients');
   const router = useRouter();
@@ -65,16 +125,42 @@ export function ClientFilterMenu({ input }: { input: ListClientsInput }) {
     openings: what is on screen is the truth, and a draft that outlived a
     "Clear" would offer to re-apply a filter the reader had just removed.
 
-    The default is the first of the two answers rather than blank, because the
-    control is a `<select>` and a select with nothing chosen is a control with
-    nothing to apply. Its value is only read once Apply is pressed.
+    The default is the first answer of the first column rather than blank,
+    because both controls are `<select>`s and a select with nothing chosen is a
+    control with nothing to apply. Neither is read until Apply is pressed.
   */
-  const [value, setValue] = useState(input.filterValue ?? PORTAL_ACCESS_VALUES[0]);
+  const [column, setColumn] = useState<ClientFilter>(input.filterBy ?? CLIENT_FILTERS[0]);
+  const [value, setValue] = useState(input.filterValue ?? defaultValue(input.filterBy));
 
   function reset(next: boolean) {
-    if (next) setValue(input.filterValue ?? PORTAL_ACCESS_VALUES[0]);
+    if (next) {
+      setColumn(input.filterBy ?? CLIENT_FILTERS[0]);
+      setValue(input.filterValue ?? defaultValue(input.filterBy));
+    }
     setOpen(next);
   }
+
+  /**
+   * Switching the question throws away the answer, on purpose.
+   *
+   * The two columns share no values — `no` belongs to portal access, `noPlan` to
+   * progress — so carrying the old one across would leave the select showing a
+   * value its own options do not contain, and applying it would send the query a
+   * value it discards. The first answer of the new column is what a select with
+   * something chosen has to be.
+   */
+  function chooseColumn(next: string) {
+    const chosen = next as ClientFilter;
+    setColumn(chosen);
+    setValue(CLIENT_FILTER_VALUES[chosen][0]);
+  }
+
+  /*
+    What Apply sends. The state for a column with an answers row, its first
+    answer for one without — a column whose row is not on screen must not apply
+    whatever was left in `value` by the column before it.
+  */
+  const appliedValue = hasAnswersRow(column) ? value : CLIENT_FILTER_VALUES[column][0];
 
   function navigate(params: URLSearchParams) {
     // A new filter always starts back at page 1 — page 3 of a differently
@@ -90,8 +176,8 @@ export function ClientFilterMenu({ input }: { input: ListClientsInput }) {
     const next = new URLSearchParams(searchParams);
     // Both, always, and in that order: `filterValue` without `filterBy` is a
     // value with no column to apply it to, which the query reads as no filter.
-    next.set('filterBy', 'portalAccess');
-    next.set('filterValue', value);
+    next.set('filterBy', column);
+    next.set('filterValue', appliedValue);
 
     navigate(next);
   }
@@ -151,30 +237,48 @@ export function ClientFilterMenu({ input }: { input: ListClientsInput }) {
 
         <form onSubmit={apply} className="flex flex-col gap-3">
           {/*
-            One field, labelled with the question rather than with "Matching".
-
-            The label used to be `filter.value` — a generic word, because the row
-            above it was what said which column was being matched. With that row
-            gone the label has to carry the column itself, so it names it:
-            "Portal access", then "Has access" / "No access" under it.
+            The question, and — for the one column that asks it — its answers.
+            The answers row's label is the column's own name rather than a
+            generic "Matching", so the pair reads as one sentence: "Portal
+            access" over "Has access".
           */}
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="client-filter-value" className="text-body-sm text-muted-foreground">
-              {t('filter.portalAccess.label')}
+            <label htmlFor="client-filter-by" className="text-body-sm text-muted-foreground">
+              {t('filter.column')}
             </label>
 
             <SelectField
-              id="client-filter-value"
+              id="client-filter-by"
               size="sm"
-              value={value}
-              onValueChange={setValue}
+              value={column}
+              onValueChange={chooseColumn}
               className="ps-4 text-start"
-              options={PORTAL_ACCESS_VALUES.map((option) => ({
+              options={CLIENT_FILTERS.map((option) => ({
                 value: option,
-                label: t(`filter.portalAccess.${option}`),
+                label: t(COLUMN_LABEL[option]),
               }))}
             />
           </div>
+
+          {hasAnswersRow(column) ? (
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="client-filter-value" className="text-body-sm text-muted-foreground">
+                {t(COLUMN_LABEL[column])}
+              </label>
+
+              <SelectField
+                id="client-filter-value"
+                size="sm"
+                value={value}
+                onValueChange={setValue}
+                className="ps-4 text-start"
+                options={PORTAL_ACCESS_VALUES.map((option) => ({
+                  value: option,
+                  label: t(`filter.portalAccess.${option}`),
+                }))}
+              />
+            </div>
+          ) : null}
 
           <div className="flex items-center justify-between gap-2">
             {/* Only offered when there is something to clear — a disabled

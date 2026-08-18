@@ -11,6 +11,7 @@ import {
   isNotNull,
   isNull,
   ne,
+  notInArray,
   sql,
   type AnyColumn,
   type SQL,
@@ -36,7 +37,12 @@ import { DISPLAY_TIME_ZONE } from '@/lib/format';
 import { DEFAULT_MEAL_SCHEDULE, mealScheduleSchema } from './nutrition';
 import { normalizeForSearch } from './search';
 import { clientSeq } from './seq';
-import { clientIdSchema, type ListClientsInput } from './schema';
+import {
+  clientIdSchema,
+  WEEKLY_PROGRESS_VALUES,
+  type ListClientsInput,
+  type WeeklyProgressFilterValue,
+} from './schema';
 import { type ClientIntakeValues, type MealSlotValues } from './types';
 
 /**
@@ -228,10 +234,15 @@ function filterCondition(input: ListClientsInput): SQL | undefined {
       Not a column — `userId IS NOT NULL`, exactly what the list renders in that
       cell and what `SORT_COLUMNS` orders it by.
 
-      It is the only case left. `phone` and `email` were `ilike` substring
-      matches beside it and went with their entries in `CLIENT_FILTERS`; the
-      `switch` stays a `switch` because `filterBy` is still an enum that can
-      grow, and `default` is what a stale link lands on.
+      `phone` and `email` were `ilike` substring matches beside it and went with
+      their entries in `CLIENT_FILTERS`; `default` is what a stale link carrying
+      one of them lands on.
+
+      ⚠ `weeklyProgress` is deliberately **not** a case here. It cannot be
+      expressed as a condition on `clients` at all — it is an average over
+      adherence rows inside each client's own plan period — so it is resolved
+      into an id set first and handed to `buildFilter` as an extra condition.
+      See {@link weeklyProgressCondition}.
     */
     case 'portalAccess':
       return value === 'yes'
@@ -250,7 +261,18 @@ function filterCondition(input: ListClientsInput): SQL | undefined {
  * `clinicId` is a required first argument rather than an optional filter so that
  * forgetting it is a type error, not a silent cross-tenant leak.
  */
-function buildFilter(clinicId: string, input: ListClientsInput): SQL | undefined {
+function buildFilter(
+  clinicId: string,
+  input: ListClientsInput,
+  /**
+   * The `weeklyProgress` filter, already resolved to a condition over
+   * `clients.id` — see {@link weeklyProgressCondition}. Passed in rather than
+   * computed here because resolving it takes two reads, and this function is
+   * synchronous by design: it is what both the `count()` and the page query are
+   * built from, and they must be built from exactly the same thing.
+   */
+  progress?: SQL,
+): SQL | undefined {
   const conditions: SQL[] = [eq(clients.clinicId, clinicId), eq(clients.status, input.status)];
 
   if (input.q) {
@@ -271,7 +293,79 @@ function buildFilter(clinicId: string, input: ListClientsInput): SQL | undefined
   const filter = filterCondition(input);
   if (filter) conditions.push(filter);
 
+  if (progress) conditions.push(progress);
+
   return and(...conditions);
+}
+
+/**
+ * The `weeklyProgress` filter, as a condition over `clients.id`.
+ *
+ * ## Why it is an id set and not a join
+ *
+ * "Where does this client stand in the plan period they are currently on" is not
+ * a column. It is: the newest published plan whose own seven dates contain
+ * today, then the adherence rows inside those dates, then a summary of them —
+ * three tables and a rule about which plan counts, none of which survives being
+ * folded into a `WHERE` that also has to carry a `count()` and a `LIMIT`.
+ *
+ * So the period side is answered first, for the whole clinic, and the answer is
+ * a list of ids. {@link weeklyProgressByClient} is the same reader the register's
+ * own progress column uses — called with `null` for "every client in this
+ * clinic" rather than a page of ids — so the filter cannot decide a client is
+ * behind while the cell beside their name says otherwise.
+ *
+ * ## The cost, stated plainly
+ *
+ * Two extra reads whenever this filter is on, both scoped to the clinic and both
+ * bounded by the clients who are *on a plan right now* rather than by the
+ * register's size: the plan read returns published plans for the clinic, and the
+ * adherence read spans the fortnight those periods can straddle. A clinic whose
+ * whole register is on a live plan pays for its whole register; that is the
+ * honest ceiling, and it is the same shape of read the page already makes for
+ * nine rows.
+ *
+ * ## `noPlan` is the complement, not a lookup
+ *
+ * There is no set of "clients without a current period" to select — it is every
+ * client the period read did not return, which is what `notInArray` says. With
+ * nothing on a plan at all it degrades to no condition, so the register shows
+ * everyone: correct, because with no periods anywhere every client is a client
+ * with no period.
+ */
+async function weeklyProgressCondition(
+  clinicId: string,
+  input: ListClientsInput,
+  today: string,
+): Promise<SQL | undefined> {
+  if (input.filterBy !== 'weeklyProgress') return undefined;
+
+  const value = input.filterValue;
+  // A stale or hand-edited value filters nothing, the same way an unknown
+  // `filterBy` does — see `filterCondition`'s `default`.
+  if (!isWeeklyProgressValue(value)) return undefined;
+
+  const progressByClient = await weeklyProgressByClient(clinicId, null, today);
+
+  if (value === 'noPlan') {
+    const onAPlan = [...progressByClient.keys()];
+    return onAPlan.length === 0 ? undefined : notInArray(clients.id, onAPlan);
+  }
+
+  const wanted = [...progressByClient]
+    // `recordedCount` is days carrying a report, which is exactly "has this
+    // person logged anything in this period" — a day reported as `missed` is
+    // still a day they answered on.
+    .filter(([, progress]) => (value === 'reported' ? progress.recordedCount > 0 : progress.recordedCount === 0))
+    .map(([id]) => id);
+
+  // No client matches, rather than "no filter": an empty result is the truthful
+  // answer to "who has reported nothing" when everyone has.
+  return wanted.length === 0 ? sql`false` : inArray(clients.id, wanted);
+}
+
+function isWeeklyProgressValue(value: string | undefined): value is WeeklyProgressFilterValue {
+  return WEEKLY_PROGRESS_VALUES.includes(value as WeeklyProgressFilterValue);
 }
 
 /**
@@ -342,7 +436,10 @@ export async function listClients(
   input: ListClientsInput,
   today: string = wallClockIn(DISPLAY_TIME_ZONE).date,
 ): Promise<ClientListResult> {
-  const where = buildFilter(clinicId, input);
+  // Before the `count()`, because the pager counts the filtered register.
+  const progress = await weeklyProgressCondition(clinicId, input, today);
+
+  const where = buildFilter(clinicId, input, progress);
 
   const [totals] = await db.select({ value: count() }).from(clients).where(where);
   const total = totals?.value ?? 0;
@@ -442,10 +539,19 @@ export async function listClients(
  */
 async function weeklyProgressByClient(
   clinicId: string,
-  clientIds: string[],
+  /**
+   * The page of clients to answer for — or `null` for every client in the
+   * clinic, which is what {@link weeklyProgressCondition} needs: a filter has to
+   * know who matches before the page is chosen, not after.
+   *
+   * `null` rather than an omitted argument, so "the whole clinic" has to be
+   * asked for in as many characters as a page of ids does. This read is scoped
+   * by `clinicId` either way — an id list was never the tenancy check.
+   */
+  clientIds: string[] | null,
   today: string,
 ): Promise<Map<string, ClientWeeklyProgress>> {
-  if (clientIds.length === 0) return new Map();
+  if (clientIds?.length === 0) return new Map();
 
   // Newest period first, so the covering scan below settles on the most recent
   // plan in the vanishingly rare case that two published plans both contain
@@ -456,7 +562,7 @@ async function weeklyProgressByClient(
     .where(
       and(
         eq(weeklyPlans.clinicId, clinicId),
-        inArray(weeklyPlans.clientId, clientIds),
+        clientIds ? inArray(weeklyPlans.clientId, clientIds) : undefined,
         eq(weeklyPlans.status, 'published'),
       ),
     )
@@ -695,10 +801,14 @@ export async function getClientIntake(
       sleepHours: clientNutritionProfiles.sleepHours,
       smoking: clientNutritionProfiles.smoking,
       caffeineFrequency: clientNutritionProfiles.caffeineFrequency,
+      sweetDrinksFrequency: clientNutritionProfiles.sweetDrinksFrequency,
       fastFoodFrequency: clientNutritionProfiles.fastFoodFrequency,
-      produceFrequency: clientNutritionProfiles.produceFrequency,
+      vegetablesFrequency: clientNutritionProfiles.vegetablesFrequency,
+      fruitFrequency: clientNutritionProfiles.fruitFrequency,
       dairyFrequency: clientNutritionProfiles.dairyFrequency,
-      proteinFoodFrequency: clientNutritionProfiles.proteinFoodFrequency,
+      redMeatFrequency: clientNutritionProfiles.redMeatFrequency,
+      chickenFrequency: clientNutritionProfiles.chickenFrequency,
+      fishFrequency: clientNutritionProfiles.fishFrequency,
       sweetsFrequency: clientNutritionProfiles.sweetsFrequency,
     })
     .from(clients)
@@ -743,10 +853,14 @@ export async function getClientIntake(
     sleepHours: row.sleepHours,
     smoking: row.smoking,
     caffeineFrequency: row.caffeineFrequency,
+    sweetDrinksFrequency: row.sweetDrinksFrequency,
     fastFoodFrequency: row.fastFoodFrequency,
-    produceFrequency: row.produceFrequency,
+    vegetablesFrequency: row.vegetablesFrequency,
+    fruitFrequency: row.fruitFrequency,
     dairyFrequency: row.dairyFrequency,
-    proteinFoodFrequency: row.proteinFoodFrequency,
+    redMeatFrequency: row.redMeatFrequency,
+    chickenFrequency: row.chickenFrequency,
+    fishFrequency: row.fishFrequency,
     sweetsFrequency: row.sweetsFrequency,
     hasProfile: row.profileId !== null,
   };

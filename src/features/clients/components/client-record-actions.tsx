@@ -22,7 +22,7 @@ import { cn } from '@/lib/utils';
  *
  * It replaced a link to the plan board there. That was a good button on the
  * wrong panel: this column is who somebody is, and the board is a week's work —
- * it is one click away from the Billing &amp; Plans view, which is where a plan
+ * it is one click away from the Plans view, which is where a plan
  * is the subject rather than a shortcut.
  *
  * **Edit fills the row and the menu is a square beside it.** The glyph wears the

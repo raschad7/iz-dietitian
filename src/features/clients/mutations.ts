@@ -187,10 +187,14 @@ export async function saveIntake(clinicId: string, input: IntakeRecordInput): Pr
       sleepHours: input.sleepHours ?? null,
       smoking: input.smoking ?? null,
       caffeineFrequency: input.caffeineFrequency ?? null,
+      sweetDrinksFrequency: input.sweetDrinksFrequency ?? null,
       fastFoodFrequency: input.fastFoodFrequency ?? null,
-      produceFrequency: input.produceFrequency ?? null,
+      vegetablesFrequency: input.vegetablesFrequency ?? null,
+      fruitFrequency: input.fruitFrequency ?? null,
       dairyFrequency: input.dairyFrequency ?? null,
-      proteinFoodFrequency: input.proteinFoodFrequency ?? null,
+      redMeatFrequency: input.redMeatFrequency ?? null,
+      chickenFrequency: input.chickenFrequency ?? null,
+      fishFrequency: input.fishFrequency ?? null,
       sweetsFrequency: input.sweetsFrequency ?? null,
     };
 

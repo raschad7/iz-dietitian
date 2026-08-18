@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 
 import {
   CLIENT_MIN_PASSWORD_LENGTH,
+  isStrongClientPassword,
   isStrongStaffPassword,
   generateTemporaryPassword,
   isCommonPassword,
@@ -65,5 +66,25 @@ describe('isStrongStaffPassword', () => {
 
   test('accepts letters mixed with symbols', () => {
     expect(isStrongStaffPassword('dietitian!!')).toBe(true);
+  });
+});
+
+describe('isStrongClientPassword', () => {
+  test('rejects a single character class, however long', () => {
+    expect(isStrongClientPassword('aaaaaa')).toBe(false);
+    expect(isStrongClientPassword('123456789012')).toBe(false);
+  });
+
+  test('rejects a common password', () => {
+    expect(isStrongClientPassword('qwerty')).toBe(false);
+  });
+
+  test('accepts a mix at the client minimum length', () => {
+    expect(isStrongClientPassword('tuff4h')).toBe(true);
+    expect(isStrongClientPassword('tuffa-h')).toBe(true);
+  });
+
+  test('says nothing about length — that is the schema’s rule', () => {
+    expect(isStrongClientPassword('a1')).toBe(true);
   });
 });

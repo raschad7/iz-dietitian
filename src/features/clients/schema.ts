@@ -407,11 +407,22 @@ export const intakeSchema = z.object({
   sleepHours: z.preprocess(blankToUndefined, z.coerce.number().min(0).max(16).optional()),
   smoking: optionalEnum(SMOKING_HABITS),
 
+  /*
+    One question per food. Caffeine and sweetened drinks were a single answer,
+    as were beef, chicken and fish — see the ⚠ on the columns in
+    `db/schema/client-nutrition-profiles.ts`. Every one of them takes the same
+    five-point scale, which is what makes the split free: no new vocabulary, just
+    the question asked once per thing it was about.
+  */
   caffeineFrequency: optionalEnum(INTAKE_FREQUENCIES),
+  sweetDrinksFrequency: optionalEnum(INTAKE_FREQUENCIES),
   fastFoodFrequency: optionalEnum(INTAKE_FREQUENCIES),
-  produceFrequency: optionalEnum(INTAKE_FREQUENCIES),
+  vegetablesFrequency: optionalEnum(INTAKE_FREQUENCIES),
+  fruitFrequency: optionalEnum(INTAKE_FREQUENCIES),
   dairyFrequency: optionalEnum(INTAKE_FREQUENCIES),
-  proteinFoodFrequency: optionalEnum(INTAKE_FREQUENCIES),
+  redMeatFrequency: optionalEnum(INTAKE_FREQUENCIES),
+  chickenFrequency: optionalEnum(INTAKE_FREQUENCIES),
+  fishFrequency: optionalEnum(INTAKE_FREQUENCIES),
   sweetsFrequency: optionalEnum(INTAKE_FREQUENCIES),
 
   mealSchedule: mealScheduleSchema,
@@ -461,22 +472,58 @@ export type ClientSort = (typeof CLIENT_SORTS)[number];
  * to carry a text input for them and a chooser for the fixed-choice one, and the
  * two branches were most of the control.
  *
- * What is left is the one filter that answers a question a name cannot: who has
- * a portal login and who does not. It is a fixed pair of values, so the popover
- * is now a single question with two answers — see `ClientFilterMenu`, which
- * dropped its column chooser with them.
+ * What is left is two columns, and both answer a question a name cannot: who
+ * has a portal login, and where each client stands in the plan period they are
+ * currently on. The chooser the popover dropped when this was down to one column
+ * is back for exactly the reason it was kept as an array — see
+ * `ClientFilterMenu`.
  *
- * ⚠ It stays an array of one rather than collapsing into a bare `'portalAccess'`
- * literal. `filterBy` is a URL parameter and this is what validates it; a second
- * filter is a plausible addition, and the shape that takes it is this one. An
- * old link carrying `filterBy=phone` now fails the enum and `.catch()` drops it,
+ * ⚠ **One column at a time, still.** The second filter is a second *answer* to
+ * "which question am I asking", not a second row stacked under the first. A pair
+ * of simultaneous filters would need the URL to carry a value per column and the
+ * popover to grow a field per column, and this register is read by someone
+ * looking for one thing.
+ *
+ * An old link carrying `filterBy=phone` fails the enum and `.catch()` drops it,
  * which shows the register unfiltered rather than erroring.
  */
-export const CLIENT_FILTERS = ['portalAccess'] as const;
+export const CLIENT_FILTERS = ['portalAccess', 'weeklyProgress'] as const;
 export type ClientFilter = (typeof CLIENT_FILTERS)[number];
 
 /** What `portalAccess` filters on: the client has a portal login, or has not. */
 export const PORTAL_ACCESS_VALUES = ['yes', 'no'] as const;
+
+/**
+ * What `weeklyProgress` filters on: where a client stands in the plan period
+ * they are currently on.
+ *
+ * **The three answers are the register's own three kinds of nothing, plus the
+ * one kind of something** — the same three the progress cell already draws
+ * separately (see `WeeklyProgress` in `client-table.tsx`). Nothing here is a
+ * *band*: no "on track" above some percentage and "slipping" below it.
+ * Adherence is a continuum with no clinical threshold behind it — the cell's own
+ * note on why it wears one colour at every value — and a filter that invented
+ * one would be that threshold, applied silently to a list, which is worse than a
+ * colour because the rows that fail it are not merely tinted, they are gone.
+ *
+ * What a dietitian can ask without a threshold is the useful question anyway:
+ * who has reported nothing at all this period.
+ *
+ * - `reported` — a published plan covers today and the client has logged at
+ *   least one of its days.
+ * - `notReported` — a published plan covers today and the client has logged
+ *   none of it. The one to open on a Wednesday.
+ * - `noPlan` — no published plan covers today, so there is nothing to follow
+ *   and silence means nothing.
+ */
+export const WEEKLY_PROGRESS_VALUES = ['reported', 'notReported', 'noPlan'] as const;
+export type WeeklyProgressFilterValue = (typeof WEEKLY_PROGRESS_VALUES)[number];
+
+/** The answers each filter column offers, in the order the popover lists them. */
+export const CLIENT_FILTER_VALUES = {
+  portalAccess: PORTAL_ACCESS_VALUES,
+  weeklyProgress: WEEKLY_PROGRESS_VALUES,
+} as const satisfies Record<ClientFilter, readonly [string, ...string[]]>;
 
 /**
  * List filters. Every field uses `.catch()` so a hand-edited query string

@@ -100,10 +100,14 @@ export type ClientIntakeValues = {
   smoking: string | null;
 
   caffeineFrequency: string | null;
+  sweetDrinksFrequency: string | null;
   fastFoodFrequency: string | null;
-  produceFrequency: string | null;
+  vegetablesFrequency: string | null;
+  fruitFrequency: string | null;
   dairyFrequency: string | null;
-  proteinFoodFrequency: string | null;
+  redMeatFrequency: string | null;
+  chickenFrequency: string | null;
+  fishFrequency: string | null;
   sweetsFrequency: string | null;
 
   /**
