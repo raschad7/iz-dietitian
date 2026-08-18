@@ -101,6 +101,8 @@ function NotificationInboxPopover<T extends string>({
   onOpenChange,
   align = 'end',
   className,
+  triggerClassName,
+  badgeClassName,
   children,
 }: {
   title: string;
@@ -133,6 +135,28 @@ function NotificationInboxPopover<T extends string>({
   onOpenChange?: (open: boolean) => void;
   align?: 'start' | 'center' | 'end';
   className?: string;
+  /**
+   * Appended to the trigger's own classes, for a caller whose bell already has
+   * a place in a header of its own.
+   *
+   * The default is a `neutral` icon button, which is right for a bar with no
+   * other chrome around it. The client portal's header is the case it is wrong
+   * for: its bell is a bare 44px disc that turns white over the home screen's
+   * green wash, and a bordered box there would be the only outlined control on
+   * the screen. Merged last, so a call site can replace the size, the radius,
+   * the border and the tone without any of it being restated here.
+   */
+  triggerClassName?: string;
+  /**
+   * Appended to the count disc on the trigger, same bargain as
+   * {@link triggerClassName}.
+   *
+   * The default is clay, because in the practitioner app olive is furniture and
+   * clay is the only alarm in the scale. A caller drawing this over its own
+   * coloured surface may need a different fill and a ring to separate the disc
+   * from the glyph beneath it — the portal does both.
+   */
+  badgeClassName?: string;
   /** The rows — `<li>` elements. */
   children?: React.ReactNode;
 }) {
@@ -156,7 +180,11 @@ function NotificationInboxPopover<T extends string>({
       */}
       <PopoverTrigger
         aria-label={triggerLabel ?? title}
-        className={cn(buttonVariants({ variant: 'neutral', size: 'icon-sm' }), 'relative')}
+        className={cn(
+          buttonVariants({ variant: 'neutral', size: 'icon-sm' }),
+          'relative',
+          triggerClassName,
+        )}
       >
         <Icon name={triggerIcon} className="size-5" />
 
@@ -176,6 +204,7 @@ function NotificationInboxPopover<T extends string>({
             className={cn(
               'absolute -top-0.5 -end-0.5 flex min-w-4 items-center justify-center rounded-full px-1',
               'bg-destructive text-[0.625rem] leading-4 font-semibold text-destructive-foreground tabular-nums',
+              badgeClassName,
             )}
           >
             {triggerCount > 9 ? '9+' : triggerCount}
