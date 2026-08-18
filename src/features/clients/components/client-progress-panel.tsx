@@ -10,7 +10,7 @@ import { type ClientDayMeal, type ClientWeekProgress } from '@/features/clients/
 import { MEAL_ICONS } from '@/features/weekly-plans/components/portal-meal-card';
 import { type PlanListEntry } from '@/features/weekly-plans/queries';
 import { mealTypeForSlot } from '@/features/weekly-plans/schema';
-import { getLocaleDirection, type Locale } from '@/i18n/routing';
+import { type Locale } from '@/i18n/routing';
 import { formatPercent } from '@/lib/format';
 import { type IsoDate } from '@/lib/iso-date';
 import { cn } from '@/lib/utils';
@@ -50,8 +50,6 @@ export async function ClientProgressPanel({
     getTranslations('weeklyPlans'),
   ]);
 
-  const direction = getLocaleDirection(locale);
-
   if (weeks.length === 0) {
     return (
       <EmptyState icon="mealPlans" title={t('noWeeks.title')} description={t('noWeeks.body')} />
@@ -73,17 +71,17 @@ export async function ClientProgressPanel({
   }));
 
   /*
-    SVG lays a chart's own path out left-to-right by array order regardless of
-    the page's `dir` — Recharts' `reversed` axis prop only flips which end the
-    *tick labels* render at, not reliably the plotted geometry underneath a
-    category (band) scale, which is what made the curve and its labels
-    disagree in Arabic. Reversing the data itself instead is what actually
-    moves Sunday to the reading start (the right, in RTL) and keeps every
-    point, dot and label in agreement about which pixel it owns.
+    The week always reads left to right in the plotted order — Sunday first —
+    regardless of `direction`. SVG lays a chart's own path out by array order
+    no matter the page's `dir`, and Recharts' `reversed` axis prop only flips
+    which end the *tick labels* render at, not reliably the plotted geometry
+    underneath a category (band) scale, so mirroring the data for RTL used to
+    keep the curve and its labels in agreement. The chart is drawn
+    chronologically instead now: the first day of the week sits at the left
+    in both languages, so a client's diary always climbs the same direction
+    on the page it climbed in the calendar.
   */
-  const orderedDays = direction === 'rtl' ? [...progress.days].reverse() : progress.days;
-
-  const chartData: ProgressChartPoint[] = orderedDays.map((day) => ({
+  const chartData: ProgressChartPoint[] = progress.days.map((day) => ({
     label: formatWeekday(locale, day.date, 'short'),
     value: day.fraction === null ? null : Math.round(day.fraction * 100),
     mealsLabel: t('chart.mealsTooltip', { completed: day.completedMeals, total: day.totalMeals }),

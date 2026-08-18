@@ -1,6 +1,9 @@
+import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 
 import { PortalTheme } from '@/features/portal/components/portal-theme';
+import { PORTAL_THEME_COLOR } from '@/features/portal/pwa/brand';
+import { ServiceWorkerRegister } from '@/features/portal/pwa/service-worker-register';
 import { requirePortalClient } from '@/features/portal/session';
 import { resolveLocale } from '@/i18n/params';
 
@@ -8,6 +11,52 @@ type PortalLayoutProps = {
   children: ReactNode;
   params: Promise<{ locale: string }>;
 };
+
+/**
+ * PWA metadata for the client portal only — never the staff app. Scoped here
+ * rather than in the root layout so `<link rel="manifest">`, the theme-color
+ * meta tag and the apple-web-app tags appear solely on `/portal/*` pages;
+ * everything under `(secured)`/`(screen)`/`(tabs)` and `set-password` inherits
+ * it, nothing outside `/portal` does.
+ *
+ * `manifest` points at the per-locale Route Handler in
+ * `portal/manifest.webmanifest/route.ts`, not a static file — the portal's
+ * `start_url`/`scope` need to carry the locale prefix every portal URL
+ * already has (`routing.localePrefix: 'always'`).
+ */
+export async function generateMetadata({ params }: Omit<PortalLayoutProps, 'children'>): Promise<Metadata> {
+  const locale = await resolveLocale(params);
+
+  return {
+    manifest: `/${locale}/portal/manifest.webmanifest`,
+    icons: {
+      icon: '/api/pwa-icons/192',
+      apple: '/api/pwa-icons/apple-180',
+    },
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: 'default',
+    },
+  };
+}
+
+/**
+ * `themeColor` moved out of `metadata` and into its own export in the App
+ * Router; putting it here (rather than the root layout) keeps the staff app's
+ * browser chrome untouched. The portal is fixed to light appearance
+ * (`PortalTheme` below), so there is one theme color, not a dark-mode pair.
+ *
+ * Deliberately no `viewportFit: 'cover'` here: the app ships no
+ * `viewport-fit=cover` meta today, so `PortalTabBar`'s
+ * `env(safe-area-inset-bottom)` currently resolves to `0`. Turning that on
+ * would change existing rendering on notched phones — real, but out of scope
+ * for adding PWA support.
+ */
+export function generateViewport(): Viewport {
+  return {
+    themeColor: PORTAL_THEME_COLOR,
+  };
+}
 
 /**
  * Shell for the whole client area: authenticates, sets the client app's
@@ -70,6 +119,14 @@ export default async function PortalLayout({ children, params }: PortalLayoutPro
       the screen went back to scrolling as one document.
     */
     <PortalTheme className="portal-shell relative isolate flex min-h-dvh flex-col bg-background text-foreground">
+      {/*
+        Registered once for the whole client area, including `set-password` —
+        renders nothing, so it carries no chrome or layout weight here. See
+        the component for why registration lives outside `requirePortalClient`'s
+        result rather than depending on it.
+      */}
+      <ServiceWorkerRegister locale={locale} />
+
       {children}
     </PortalTheme>
   );

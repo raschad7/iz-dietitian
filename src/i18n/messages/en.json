@@ -945,6 +945,36 @@
   "portal": {
     "title": "Client portal",
     "welcome": "Welcome, {name}",
+    "pwa": {
+      "name": "Dietitian Clinic — Client Portal",
+      "shortName": "Client Portal",
+      "description": "Track your plan, appointments and progress.",
+      "installBanner": {
+        "title": "Install the client portal",
+        "description": "Add it to your home screen for quicker, full-screen access.",
+        "install": "Install",
+        "iosInstructions": "How to install",
+        "dismiss": "Not now"
+      },
+      "iosDialog": {
+        "title": "Add to Home Screen",
+        "step1": "Tap the Share icon in Safari's toolbar.",
+        "step2": "Scroll down and tap \"Add to Home Screen\".",
+        "step3": "Tap \"Add\" to confirm.",
+        "close": "Got it"
+      },
+      "settingsRow": {
+        "label": "Install app",
+        "description": "Add the portal to your home screen",
+        "unavailableDescription": "Not available right now — tap for help"
+      },
+      "unavailableDialog": {
+        "title": "Installation isn't available yet",
+        "description": "Your browser hasn't offered to install this app on this visit.",
+        "tip": "Try reloading the page, or check your browser's menu for an \"Install app\" or \"Add to Home Screen\" option.",
+        "close": "Got it"
+      }
+    },
     "dashboard": {
       "nextAppointment": "Next appointment",
       "todaysMeals": "Today's meals",
