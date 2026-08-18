@@ -123,6 +123,35 @@
   --flame-700: #93490D;
 
   /*
+   * ── Tag identity hues: teal, plum, indigo ──
+   *
+   * Three cool stops added to a deliberately warm ramp, and they exist for
+   * exactly one job: dish tag identity marks.
+   *
+   * The catalog carries eight practical tags plus the computed high-protein
+   * label, and every mark has to be told apart from every other at 10px. The
+   * warm palette had five accent hues (olive, lime, amber, flame, clay) plus
+   * the neutral ramp, which left three tags either grey or wearing a
+   * near-duplicate of a hue that already means something else. A tag whose
+   * colour is almost another tag's colour is worse than no colour at all — it
+   * teaches a legend that then misfires on the weekly plan's meal cards, where
+   * the same hue is the only thing a 3px rule says.
+   *
+   * ⚠ **These are not status, action, or surface colours.** Nothing may reach
+   * for them outside `meal-tag-tone.ts`. They are cool on a warm page on
+   * purpose — an identity mark is *supposed* to sit outside the page's
+   * temperature, the way a highlighter does — and used as a fill or a border
+   * anywhere else they would simply read as a foreign palette.
+   *
+   * Each is a mid-dark stop chosen to hold up as a small dot on `--muted` and
+   * as a rule on `--card`, matched in lightness to olive-500 / clay-600 so no
+   * one tag shouts louder than the rest.
+   */
+  --teal-500: #17827B;
+  --plum-500: #7D4F9B;
+  --indigo-500: #2F5FA8;
+
+  /*
    * ── Gold: the adherence meter's fill ──
    *
    * Not amber, and for the same reason flame is not amber: amber means "needs
@@ -491,12 +520,15 @@
   --color-status-complete-bg: var(--status-complete-bg);
   --color-status-complete-mark: var(--status-complete-mark);
   --color-status-complete-mark-soft: var(--status-complete-mark-soft);
-  --color-planner-tag-cheap: var(--planner-tag-cheap);
+  --color-planner-tag-economical: var(--planner-tag-economical);
   --color-planner-tag-portable: var(--planner-tag-portable);
   --color-planner-tag-quick: var(--planner-tag-quick);
   --color-planner-tag-vegetarian: var(--planner-tag-vegetarian);
+  --color-planner-tag-filling: var(--planner-tag-filling);
+  --color-planner-tag-local: var(--planner-tag-local);
+  --color-planner-tag-easy-prep: var(--planner-tag-easy-prep);
+  --color-planner-tag-no-cook: var(--planner-tag-no-cook);
   --color-planner-tag-high-protein: var(--planner-tag-high-protein);
-  --color-planner-tag-diabetic-friendly: var(--planner-tag-diabetic-friendly);
   --color-progress-track: var(--progress-track);
   --color-progress-card-border: var(--progress-card-border);
 
@@ -744,6 +776,37 @@
   --status-complete-mark-soft: var(--flame-300);
 
   /*
+   * ── Dish tag identity colours ──
+   *
+   * A dish tag is an *identity* mark, not a status: `quick` is always the same
+   * hue, wherever the dish is drawn. These live at `:root` rather than inside
+   * `.planner-theme` because two screens now depend on them agreeing — the
+   * planner's meal card paints its top rule with them, and the dish catalog
+   * paints the matching tag dot — and a token scoped to one of those two
+   * surfaces is a promise the other cannot keep.
+   *
+   * Complete, not partial: every tag the catalog can show carries one, so the
+   * dot beside a tag name is always the same promise. `easy_prep` and `no_cook`
+   * reach for the two cool identity hues added above rather than a lighter
+   * flame, because they sit next to `quick` in the same effort family and three
+   * shades of one hue is not a legend anybody can read.
+   *
+   * `high_protein` is here too, and it is the odd one: it is *computed* from the
+   * recipe by `nutritionCategory()`, never stored, so it can never disagree with
+   * the dish's own numbers. It reads as a tag because that is what it is to a
+   * dietitian scanning the list; it simply is not one anybody typed.
+   */
+  --planner-tag-economical: var(--amber-600);
+  --planner-tag-portable: var(--n-500);
+  --planner-tag-quick: var(--flame-500);
+  --planner-tag-vegetarian: var(--olive-500);
+  --planner-tag-filling: var(--lime-600);
+  --planner-tag-local: var(--clay-600);
+  --planner-tag-easy-prep: var(--plum-500);
+  --planner-tag-no-cook: var(--teal-500);
+  --planner-tag-high-protein: var(--indigo-500);
+
+  /*
    * The Q-arc's unfilled track (§9.6) — the dots the week has not reached yet.
    *
    * A stop of its own rather than status-on-track-bg, which is what it started
@@ -929,6 +992,31 @@
    * glyph is the thing you scan a rail by, and a neutral one reads as a
    * wayfinding mark rather than as brand.
    */
+  /*
+   * ── The product logo ──
+   *
+   * The three fills of `BrandLogo`. They are pinned brand values, not steps in
+   * the olive ramp: the mark is the one thing on the screen that may not be
+   * re-toned to suit a surface, so it does not reach for `--primary` or any
+   * other semantic token. Nothing outside `brand-logo.tsx` may use them.
+   *
+   * They live here rather than as hexes in the component because that is the
+   * rule (`qiwam/no-raw-hex`) — and because one of them has to flip for dark,
+   * which a literal could not do.
+   *
+   * - `leaf` is the mark's body. Fixed: it reads on a light rail and a dark one.
+   * - `seed` is the two shapes *inside* the leaf. Fixed for a sharper reason —
+   *   they sit on the leaf, so the surface behind the logo never reaches them,
+   *   and flipping them with the theme would erase them at the one moment the
+   *   theme changed.
+   * - `wordmark` is the lettering, the only part printed straight onto the rail.
+   *   Brand green in light; see `.dark` for the other stop, where this value
+   *   would be a dark green word on a dark green field.
+   */
+  --brand-leaf: #75CF48;
+  --brand-seed: #266805;
+  --brand-wordmark: #266805;
+
   --sidebar: var(--c-50);
   --sidebar-foreground: var(--olive-800);   /* idle label — 10.02:1 on the rail */
   --sidebar-icon: var(--n-700);             /* idle glyph — #46443B, 9.35:1 */
@@ -1105,6 +1193,11 @@
    * canvas would be the brightest surface on the screen, which is the same
    * mistake the dark rail made in light mode, inverted.
    */
+  /* The wordmark takes the rail's own label colour on a dark rail — the brand
+     green is unreadable on olive-900. The leaf and its seeds are unchanged:
+     they sit on each other, not on the rail. */
+  --brand-wordmark: var(--olive-200);
+
   --sidebar: var(--olive-900);
   --sidebar-foreground: var(--olive-200);
   /*
@@ -1264,83 +1357,50 @@
 /*
  * The weekly planner board, and nothing else.
  *
- * Two deliberate departures from the app-wide tokens, both scoped to the one
+ * **One** deliberate departure from the app-wide tokens, scoped to the one
  * screen that is a dense working grid rather than a page of cards.
  *
- * **The face is Tajawal.** Re-pointing `--script-ui-font` / `--script-display-font`
- * is the whole mechanism — `.font-sans` and `.font-heading` compile to
- * `var(--script-ui-font), …`, so every descendant re-resolves the family with no
- * per-component override. The inner fallback matters for the same reason it does
- * on `:lang(ar)`: an undefined variable invalidates the entire `font-family`
- * declaration and drops the subtree to the system font.
+ * ─────────────────────────────────────────────────────────────────────────────
+ * **The board no longer sets its own face.** It ran on Tajawal while every other
+ * screen ran on Almarai, which made the planner read as a different product —
+ * and the rail beside it, which is shared chrome, kept the app face, so the two
+ * halves of the same window disagreed. The typeface is now Almarai here like
+ * everywhere else, inherited from the `:lang(ar)` block above with no override.
  *
- * ⚠ **The font rule has to match every descendant, not just the root.**
- * `:lang(ar)` matches every element in an Arabic document — not only `<html>` —
- * so each node inside the board re-declares `--script-ui-font` *for itself* and
- * never inherits the value set on `.planner-theme`. Setting it on the wrapper
- * alone therefore does nothing at all: the wrapper gets Tajawal and every child
- * immediately overrides itself back to Neo Sans. The `*` is what stops that,
- * and `:root ` in front is what wins the specificity (0,2,0 against 0,1,0)
- * regardless of source order.
+ * Reverting that took deleting two rules, not editing them: a `:root
+ * .planner-theme, :root .planner-theme *` block that re-pointed
+ * `--script-ui-font` / `--script-display-font` at `--font-tajawal`, and a
+ * `font-family` declaration on the scope root. Both were needed to make the
+ * override work at all (`:lang(ar)` re-declares the variable on *every* element,
+ * so the wrapper alone could not win), and both had to go for it to stop.
  *
- * The colour tokens below need no such treatment — nothing else re-declares
+ * `--font-tajawal` is still attached in `layout.tsx`. Nothing reads it now; drop
+ * the `Tajawal` import there too if the board is never going back.
+ * ─────────────────────────────────────────────────────────────────────────────
+ *
+ * **The neutrals go cool**, and that part stays. The page was already `#FFFFFF`;
+ * what read as warm was everything drawn *on* it — a board is mostly hairlines,
+ * and thirty-five cards edged in warm n-200 tint the whole surface. These four
+ * are the cool equivalents at matched lightness, which is what makes the board
+ * read as clinical white rather than as cream.
+ *
+ * These need no per-element rule the way the font did: nothing else re-declares
  * them per element, so ordinary inheritance carries them down the subtree.
- *
- * The Arabic `--lh-*` values in that `:lang(ar)` block are deliberately **not**
- * overridden — Tajawal needs the looser Arabic leading exactly as much as Neo
- * Sans does.
- *
- * **The neutrals go cool.** The page was already `#FFFFFF`; what read as warm
- * was everything drawn *on* it — a board is mostly hairlines, and thirty-five
- * cards edged in warm n-200 tint the whole surface. These four are the cool
- * equivalents at matched lightness, which is what makes the board read as
- * clinical white rather than as cream.
  *
  * This is the second place cool greys are allowed (the rail is the first) and
  * the exception is recorded in docs/design-system.md. It stays an exception:
  * a warm page surface beside a cool one is only coherent while the cool ones
  * are whole surfaces, not stray accents.
  */
-:root .planner-theme,
-:root .planner-theme * {
-  --script-ui-font: var(--font-tajawal, var(--font-ibm-plex-sans-arabic));
-  --script-display-font: var(--font-tajawal, var(--font-readex-pro));
-}
-
-/*
- * ⚠ And the family has to be *declared* here, not just re-pointed above.
- *
- * Re-pointing the variable only reaches elements that declare
- * `font-family: var(--script-ui-font), …` themselves — that is, elements
- * carrying `.font-sans` or `.font-heading`. Most of a page carries neither: it
- * inherits `font-family` from `<html>`, where the `var()` was already
- * substituted, so the *computed* Neo Sans stack is what comes down the tree and
- * no amount of changing the variable further down can touch it.
- *
- * The symptom is precise and easy to misread as "the override didn't apply":
- * the handful of elements with an explicit font utility switch to Tajawal while
- * every label, tab and paragraph around them stays on the old face. Declaring
- * the family on the scope root fixes those, and the variable rule above fixes
- * the ones that override it per element. Both are needed; neither is enough.
- */
-:root .planner-theme {
-  font-family: var(--script-ui-font), var(--font-ibm-plex-sans), ui-sans-serif, system-ui, sans-serif;
-}
-
 :root .planner-theme {
   --border: var(--c-200);               /* border.divider — the warm n-200's cool twin */
   --muted: var(--c-50);                 /* bg.sunken — now the app-wide value too */
   --accent: var(--c-100);               /* ambient hover tint */
   --muted-foreground: var(--c-600);     /* text.secondary — 7.46:1 on white, clears the 6.38:1 floor n-600 set */
 
-  /* Dish tags are identity marks, not statuses. These darker stops keep the
-     short accent legible without turning the meal card into a badge. */
-  --planner-tag-cheap: var(--amber-600);
-  --planner-tag-portable: var(--n-500);
-  --planner-tag-quick: var(--flame-500);
-  --planner-tag-vegetarian: var(--olive-500);
-  --planner-tag-high-protein: var(--lime-600);
-  --planner-tag-diabetic-friendly: var(--c-600);
+  /* The `--planner-tag-*` stops used to be redeclared here. They now live at
+     `:root` so the dish catalog can paint the same hues — see the block there.
+     The board inherits them unchanged; nothing about the meal card moved. */
 }
 
 /* Each row cell paints one segment of a continuous rule, reaching halfway
@@ -1891,6 +1951,31 @@
   .q-field:disabled {
     @apply cursor-not-allowed opacity-50;
     background-color: var(--muted);
+  }
+  /*
+   * **`type="search"` ships a clear button this design system did not draw.**
+   *
+   * WebKit and Blink paint their own `✕` inside a search field, at the browser's
+   * accent colour — which lands as a bright blue mark inside an olive-and-warm
+   * field, on the wrong side of the box in Arabic, at a size and hit area
+   * nothing here controls. It appeared inside the dish editor's ingredient
+   * search and read as a UI bug, because next to a design system that owns every
+   * other glyph on the screen, that is what it is.
+   *
+   * Turned off for every search field in the app rather than patched at one call
+   * site: they are all `Input type="search"`, and a control that only some of
+   * them wear is worse than one none of them do. Nothing is lost — Escape still
+   * clears a search field, and the fields that need a visible clear draw their
+   * own, on the system's terms.
+   */
+  .q-field::-webkit-search-cancel-button,
+  .q-field::-webkit-search-decoration {
+    /* `display: none` as well as `appearance`, and not by belt-and-braces: the
+       build's CSS normaliser drops the `-webkit-`-prefixed `appearance` line and
+       keeps only the unprefixed one, which this pseudo-element does not always
+       honour. `display` is not ambiguous in any engine that paints the button. */
+    appearance: none;
+    display: none;
   }
   /*
    * Read-only is a sunken fill with no border: the control is still a value to

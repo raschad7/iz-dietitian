@@ -202,15 +202,40 @@ export function roundForDisplay(key: NutrientKey, value: number): number {
   return Math.round(value * factor) / factor;
 }
 
+/** The measure an amount was entered in. Display only — see {@link DishIngredientDetail}. */
+export type IngredientPortion = {
+  id: string;
+  labelAr: string;
+  labelEn: string;
+  /** What one of it weighs. Recorded for display; the grams below are what count. */
+  grams: number;
+};
+
 /** A recipe line, as the queries hand it over. */
 export type DishIngredientDetail = {
-  /** Grams for ONE base serving. */
+  /**
+   * Grams for ONE base serving, and the **only** quantity any total is built
+   * from. A portion below never enters this arithmetic.
+   */
   quantityGrams: number;
-  food: { id: string; description: string } & FoodNutrients;
+  food: { id: string; nameAr: string; nameEn: string } & FoodNutrients;
+  /**
+   * How the dietitian typed the amount — "2 حبة" rather than "100 غرام".
+   *
+   * Purely a record of the entry, so the editor and the recipe list can show the
+   * unit it was written in. Null when the amount was entered in grams, and null
+   * again if the portion has since been retired, in which case the grams above
+   * are shown instead. Optional so a caller that only needs nutrition (the live
+   * editor preview) need not carry it.
+   */
+  portion?: IngredientPortion | null;
+  portionQuantity?: number | null;
 };
 
 export type DishDetail = {
   id: string;
+  /** The owning clinic, or null for a shared built-in dish — what tells "my dish" from a system dish. */
+  clinicId: string | null;
   slug: string;
   nameAr: string;
   nameEn: string;
@@ -244,6 +269,33 @@ export function dishTotals(
 }
 
 /**
+ * A dish's total weight in grams at a serving multiplier.
+ *
+ * The multiplier scales the grams, exactly as {@link dishTotals} scales them
+ * before summing nutrients — so the weight shown to a client always matches the
+ * calories shown, both derived from the same recipe at the same serving. This is
+ * what replaced the abstract "×N portions" the UI used to print: a real amount a
+ * person can act on, with no new data stored.
+ */
+export function dishGrams(
+  ingredients: readonly { quantityGrams: number }[],
+  servings: number,
+): number {
+  return ingredients.reduce((total, ingredient) => total + ingredient.quantityGrams * servings, 0);
+}
+
+/**
+ * Rounds a gram figure for display.
+ *
+ * A single food reads to the nearest gram (`step` 1); a whole dish to the nearest
+ * 5 g (`step` 5), because "≈ 445 g" is a weight someone acts on and the trailing
+ * digit is precision the recipe never promised.
+ */
+export function roundGrams(value: number, step: 1 | 5 = 1): number {
+  return Math.round(value / step) * step;
+}
+
+/**
  * Energy for one base serving of a dish.
  *
  * Used to size a dish against a slot budget before any plan exists — which is how
@@ -252,4 +304,37 @@ export function dishTotals(
  */
 export function baseServingKcal(ingredients: readonly DishIngredientDetail[]): number {
   return dishTotals(ingredients, 1).kcal.value;
+}
+
+/**
+ * The single nutrition label a dish carries, worked out from its own macros.
+ *
+ * Computed, never stored: change the recipe and the label follows, so it cannot
+ * go stale the way a hand-typed "high protein" tag does. Uses `energySplit`, so
+ * the percentages are shares of the energy the macros account for — the same
+ * basis the meal panel uses, which sidesteps the divide-by-`kcal` rounding
+ * problem noted on `energySplit`.
+ *
+ * Exactly one label. When a dish crosses more than one cutoff, the one it beats
+ * by the widest margin wins, so there is never a tie to resolve in the UI.
+ */
+export const NUTRITION_CATEGORIES = ['high_protein', 'high_carb', 'high_fat', 'balanced'] as const;
+
+export type NutritionCategory = (typeof NUTRITION_CATEGORIES)[number];
+
+export function nutritionCategory(totals: NutrientTotals): NutritionCategory {
+  const split = energySplit(totals);
+
+  // Each macro's share minus its cutoff. A positive margin means the dish
+  // qualifies for that label; the widest positive margin is the label it gets.
+  const candidates = [
+    { label: 'high_protein' as const, margin: split.protein.percent - 0.3 },
+    { label: 'high_carb' as const, margin: split.carbs.percent - 0.55 },
+    { label: 'high_fat' as const, margin: split.fat.percent - 0.4 },
+  ];
+
+  const crossed = candidates.filter((candidate) => candidate.margin >= 0);
+  if (crossed.length === 0) return 'balanced';
+
+  return crossed.reduce((best, candidate) => (candidate.margin > best.margin ? candidate : best)).label;
 }

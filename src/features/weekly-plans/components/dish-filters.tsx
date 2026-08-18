@@ -4,41 +4,93 @@ import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState, useTransition } from 'react';
 
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { Icon, type IconName } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
-import { SelectField } from '@/components/ui/select-field';
+import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from '@/components/ui/popover';
 import { usePathname, useRouter } from '@/i18n/navigation';
-import { type MealType } from '@/features/weekly-plans/schema';
+import { cn } from '@/lib/utils';
+import { type OwnerFilter } from '@/features/weekly-plans/catalog-ownership';
+import { dishTagDotClasses, highProteinDotClasses } from '@/features/weekly-plans/meal-tag-tone';
+import { DISH_TAGS, MEAL_TYPES, type DishTag, type MealType } from '@/features/weekly-plans/schema';
 
 /** How long to let someone keep typing before the catalog re-queries. */
 const SEARCH_DEBOUNCE_MS = 300;
 
-/** The select's "no meal time chosen" row. A `<select>` cannot hold `undefined`. */
-const ANY = '__any__';
+/** Meal categories in the order a day runs, not the order the enum happens to be in. */
+const MEAL_TAB_ORDER: MealType[] = ['breakfast', 'lunch', 'dinner', 'snack'].filter(
+  (value): value is MealType => (MEAL_TYPES as readonly string[]).includes(value),
+);
+
+/** The category's own glyph, so the list reads as meals rather than as four more chips. */
+const MEAL_ICON: Record<MealType, IconName> = {
+  breakfast: 'mealBreakfast',
+  lunch: 'mealLunch',
+  dinner: 'mealDinner',
+  snack: 'mealSnack',
+};
+
+/** The ownership filter's three choices — `all` clears the URL param. */
+const OWNER_OPTIONS = ['all', 'system', 'clinic'] as const;
 
 /**
- * The catalog's toolbar: search, meal time, and the way back out.
+ * The catalog's toolbar.
  *
- * **The Apply button is gone.** This screen used to be a `<form method="get">`
- * with a submit button, which meant three interactions to answer "is there a
- * quick breakfast in here" and a page that looked unchanged until you pressed
- * the third. Typing re-queries live and choosing a meal time applies at once —
- * the same behaviour as the client register's toolbar, which is the control
- * pattern this app has already committed to.
+ * ## One control, not four
  *
- * Both parameters still round-trip through the URL (`router.replace`, so a
- * keystroke never adds a history entry of its own), which is what keeps a
- * filtered catalog shareable and is what the page reads to run the query.
+ * This row used to carry a search box, a three-way ownership switch, a Filters
+ * popover *and* a second row of five meal tabs. Four controls of three different
+ * shapes, none of which said which of them was currently narrowing the list —
+ * so the honest answer to "why am I seeing 79 dishes" was somewhere in a row you
+ * had to reconstruct by eye.
+ *
+ * Now there are exactly two things above the table: **search**, because it is
+ * typed on nearly every visit and is not a filter but a lookup, and **Filters**,
+ * which owns every narrowing choice in one popover, grouped by the question each
+ * group answers:
+ *
+ * 1. *Meal category* — which meal of the day. A category, not a quality: single
+ *    select, with the meal's own icon.
+ * 2. *Who added it* — shared library vs. this clinic's own.
+ * 3. *Dish qualities* — the practical tags. Multi-select, AND. Each carries the
+ *    colour dot it has everywhere else, so the popover teaches the legend that
+ *    the table and the weekly plan then use.
+ * 4. *Nutrition* — the computed high-protein filter.
+ * 5. *Show hidden* — administrative, kept below a rule and out of the run.
+ *
+ * ## What is on, stays visible
+ *
+ * A closed popover hiding an active filter is the thing that makes a list feel
+ * broken: it has quietly stopped showing you dishes and the reason is one click
+ * out of sight. So every active choice is also a removable chip on the row
+ * beneath, and the trigger carries a count. Nothing narrows this list invisibly.
+ *
+ * Everything round-trips through the URL, so a filtered catalog stays shareable
+ * and the server query that owns pagination reads it back.
  */
 export function DishFilters({
   q,
   mealType,
-  mealTypes,
+  tags,
+  highProtein,
+  owner,
+  showHidden,
+  children,
 }: {
   q: string | undefined;
   mealType: string | undefined;
-  /** The meal times actually present in the catalog, already narrowed. */
-  mealTypes: readonly MealType[];
+  tags: readonly DishTag[];
+  highProtein: boolean;
+  owner: OwnerFilter | undefined;
+  showHidden: boolean;
+  /**
+   * The page's primary action, pinned to the end of this row.
+   *
+   * A slot rather than an import, because the toolbar owns the row's geometry
+   * and nothing else should be allowed to change it — whatever lands here is
+   * `shrink-0` beside the Filters button and inside the same fixed height.
+   */
+  children?: React.ReactNode;
 }) {
   const t = useTranslations('dishes');
   const router = useRouter();
@@ -49,13 +101,9 @@ export function DishFilters({
   const [term, setTerm] = useState(q ?? '');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  /*
-   * The URL can change from outside this field too — "clear filters", the back
-   * button — and the field has to follow it back rather than keep showing a
-   * term that no longer matches what is on screen. Adjusted during render
-   * rather than in an effect (React's documented pattern for mirroring a prop
-   * into state) so the field never paints the stale value even for one frame.
-   */
+  // The URL can change from outside this field (reset, back button); mirror it back
+  // rather than keep showing a term that no longer matches the list. Adjusted during
+  // render — React's documented pattern — so no stale value paints.
   const [lastSynced, setLastSynced] = useState(q ?? '');
   if ((q ?? '') !== lastSynced) {
     setLastSynced(q ?? '');
@@ -64,65 +112,63 @@ export function DishFilters({
 
   useEffect(() => () => clearTimeout(debounceRef.current), []);
 
-  /** Writes one parameter and sends the reader back to the first page. */
-  function navigate(key: 'q' | 'mealType', value: string) {
+  /** Writes one or more params and sends the reader back to the first page. */
+  function navigate(changes: Record<string, string>) {
     const next = new URLSearchParams(searchParams);
-    if (value) next.set(key, value);
-    else next.delete(key);
-    // A new search or filter always starts back at page 1 — page 3 of a
-    // differently filtered catalog is not the page the reader meant.
+    for (const [key, value] of Object.entries(changes)) {
+      if (value) next.set(key, value);
+      else next.delete(key);
+    }
+    // A new search or filter always restarts at page 1.
     next.delete('page');
-
-    startTransition(() => {
-      router.replace(`${pathname}?${next.toString()}`);
-    });
+    startTransition(() => router.replace(`${pathname}?${next.toString()}`));
   }
 
   function handleSearch(value: string) {
     setTerm(value);
     clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => navigate('q', value), SEARCH_DEBOUNCE_MS);
+    debounceRef.current = setTimeout(() => navigate({ q: value }), SEARCH_DEBOUNCE_MS);
   }
 
-  const active = Boolean(q) || Boolean(mealType);
+  function toggleTag(tag: DishTag) {
+    const next = tags.includes(tag) ? tags.filter((entry) => entry !== tag) : [...tags, tag];
+    navigate({ tags: next.join(',') });
+  }
+
+  const activeMealType = MEAL_TAB_ORDER.find((type) => type === mealType) ?? null;
+
+  // Everything the popover can turn on. Search is excluded — it has its own
+  // field on the row and clearing it there is obvious.
+  const filterCount =
+    tags.length + (highProtein ? 1 : 0) + (showHidden ? 1 : 0) + (activeMealType ? 1 : 0) + (owner ? 1 : 0);
+
+  function resetFilters() {
+    navigate({ mealType: '', owner: '', tags: '', hp: '', hidden: '' });
+  }
+
+  function resetAll() {
+    clearTimeout(debounceRef.current);
+    setTerm('');
+    startTransition(() => router.replace(pathname));
+  }
 
   return (
-    // `shrink-0`: this row is chrome the catalog scrolls under, never something
-    // the table squeezes to make room for itself. See the page component.
-    <div className="flex shrink-0 flex-wrap items-center gap-3">
-      {/*
-        ⚠ **The sizing is on this wrapper, not on the `Input`.**
+    /*
+      One row, one fixed height, and nothing in it may change that.
 
-        It was on the field itself — `w-full sm:w-auto sm:min-w-64 sm:flex-1` —
-        and none of it reached the layout. `Input` with an `icon` does not
-        render an `<input>`: it renders a `<span class="relative block">` with
-        the glyph and the field inside it, and the caller's `className` goes to
-        the inner `<input>`. So the flex item on this row was that span, sized
-        `flex: 0 1 auto` from its content, while `w-full` applied to an input
-        that `.q-field` already pins to `width: 100%` — 100% of a box measuring
-        itself by that same input. The field came out at its intrinsic ~20
-        characters and the select sat beside it on the phone line it was
-        supposed to have to itself.
-
-        Sizing therefore belongs on the element the flex container can actually
-        see. The behaviour it asks for is unchanged from what the old comment
-        described, and now true:
-
-        - `w-full` below `sm`. A `width: 100%` basis cannot share a flex line,
-          so the qualifier group after it wraps and the search box is as wide as
-          the catalog it searches.
-        - `flex-1` with a 256px floor from `sm` up, where there is room for the
-          two to share a row.
-
-        The floor stays at `sm` for the same reason it was moved there: 256px is
-        wider than a 320px phone has to give once the staff rail and the page's
-        own padding are out, and a minimum on a search field at that width is a
-        page that scrolls sideways.
-
-        `Input`'s own note records the trap for the next caller.
-      */}
-      <div className="w-full sm:w-auto sm:min-w-64 sm:flex-1">
-        {/* The glyph rides inside the field's own well — see `Input`'s `icon`. */}
+      The active-filter chips used to live on a second row that mounted the
+      moment you pressed your first chip — which pushed the entire table down a
+      row's worth just as you were about to read it. The chips are worth keeping
+      (a filter you cannot see is what makes a list feel broken), so they moved
+      *into* this row instead, in a strip that scrolls sideways when there are
+      more of them than fit. The search field is `max-w-sm` rather than `flex-1`
+      so it does not resize as chips arrive either: the strip absorbs the change,
+      and the row it sits in is `h-10` whether it holds nothing or eight chips.
+    */
+    <div className="flex h-10 shrink-0 items-center gap-2">
+      {/* `Input` renders a wrapper when it has an icon, so flex sizing belongs
+          on this visible flex item rather than on the nested input element. */}
+      <div className="w-full max-w-sm min-w-24 shrink">
         <Input
           name="q"
           type="search"
@@ -135,57 +181,295 @@ export function DishFilters({
       </div>
 
       {/*
-        The qualifier and the way out travel together. Below `sm` the field
-        above takes a line to itself and these two share the next one, rather
-        than each wrapping onto a line of its own and leaving the toolbar three
-        rows deep before a single dish is on screen.
+        The active filters, inline. `min-w-0` plus `overflow-x-auto` is what
+        keeps the promise above: eight chips scroll inside this strip rather than
+        wrapping the row onto a second line and moving the table.
 
-        ⚠ **`flex-wrap`, because at 320px the two genuinely do not fit.** This
-        group had none, and "Clear filters" is `shrink-0` — so with a filter
-        active the row's min-content came to 295px against the 264px a 320px
-        phone leaves once the staff rail and the page's padding are out. Nothing
-        could give, so the group pushed the shell 31px wider than the viewport
-        and took the search field above it off the screen edge with it: a search
-        box set to fill the width, hanging over the side of the page.
-
-        Wrapping is the honest answer and it is conditional by nature — the
-        button drops to a line of its own only at the width where keeping it up
-        there would cost the toolbar its edges. Above that the two still share
-        a row, which is what the paragraph above asks for. Shrinking the button
-        instead would have bought the same 31px by cutting its label, which is
-        the thing this screen has been trading away everywhere else.
+        `nowrap` on the strip, not on the chips — a chip that wrapped its own
+        label would grow the row just as surely as a second line of chips.
       */}
-      <div className="flex flex-1 flex-wrap items-center gap-3 sm:flex-none sm:flex-nowrap">
-        {/*
-          The meal time is a choice out of five, so it is a select rather than a
-          row of chips: four meal times plus "all" would be five permanently lit
-          controls in a toolbar that is read past every day, and only ever one
-          of them is on.
-        */}
-        <SelectField
-          aria-label={t('columns.mealTypes')}
-          value={mealType ?? ANY}
-          onValueChange={(next) => navigate('mealType', next === ANY ? '' : next)}
-          className="flex-1 sm:w-48 sm:flex-none"
-          options={[
-            { value: ANY, label: t('allMealTypes') },
-            ...mealTypes.map((type) => ({ value: type, label: t(`mealTypes.${type}`) })),
-          ]}
-        />
+      <div className="no-scrollbar flex min-w-0 flex-1 basis-24 items-center gap-1.5 overflow-x-auto whitespace-nowrap">
+        {activeMealType && (
+          <ActiveChip onRemove={() => navigate({ mealType: '' })}>
+            <Icon name={MEAL_ICON[activeMealType]} className="size-3.5" />
+            {t(`mealTypes.${activeMealType}`)}
+          </ActiveChip>
+        )}
 
-        {/* Only offered when there is something to clear — a permanently
-            disabled control here would be a third item in a two-item row. */}
-        {active && (
-          <Button
-            type="button"
-            variant="neutralGhost"
-            className="shrink-0"
-            onClick={() => startTransition(() => router.replace(pathname))}
-          >
+        {owner && (
+          <ActiveChip onRemove={() => navigate({ owner: '' })}>{t(`ownerFilter.${owner}`)}</ActiveChip>
+        )}
+
+        {highProtein && (
+          <ActiveChip onRemove={() => navigate({ hp: '' })}>
+            <span aria-hidden className={highProteinDotClasses()} />
+            {t('nutritionFilters.high_protein')}
+          </ActiveChip>
+        )}
+
+        {tags.map((tag) => (
+          <ActiveChip key={tag} onRemove={() => toggleTag(tag)}>
+            <span aria-hidden className={dishTagDotClasses(tag)} />
+            {t(`tags.${tag}`)}
+          </ActiveChip>
+        ))}
+
+        {showHidden && (
+          <ActiveChip onRemove={() => navigate({ hidden: '' })}>{t('showHidden')}</ActiveChip>
+        )}
+
+        {(filterCount > 0 || Boolean(q)) && (
+          <Button type="button" variant="ghost" size="sm" className="shrink-0" onClick={resetAll}>
             {t('clearFilters')}
           </Button>
         )}
       </div>
+
+      <Popover>
+        <PopoverTrigger
+          // Named for assistive tech regardless of the viewport, since the
+          // visible word below is hidden on a phone.
+          aria-label={t('filters')}
+          className={buttonVariants({
+            variant: filterCount > 0 ? 'neutral' : 'neutralGhost',
+            className: 'shrink-0',
+          })}
+        >
+          <Icon name="filter" />
+          {/* The word drops below `sm`. On a 375px row the search field, this
+              button and one active chip cannot all fit, and the label is the
+              only one of the three that is redundant — the funnel icon and the
+              count already say what this is and whether it is doing anything. */}
+          <span className="hidden sm:inline">{t('filters')}</span>
+          {filterCount > 0 && (
+            <span
+              className="ms-1 inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-caption font-semibold text-primary-foreground tabular-nums"
+              dir="ltr"
+            >
+              {filterCount}
+            </span>
+          )}
+        </PopoverTrigger>
+
+        <PopoverContent
+          side="bottom"
+          align="end"
+          sideOffset={6}
+          className="max-h-[min(32rem,calc(100svh-8rem))] w-[min(22rem,calc(100vw-2rem))] overflow-y-auto p-0"
+        >
+          {/*
+            The reset control is **always** rendered, and disabled when there
+            is nothing to reset.
+
+            Mounting it only once a filter is on made the header grow a button
+            the moment you pressed your first chip: the row got taller, the
+            title shifted, and the whole popover changed shape under the
+            pointer that was still moving inside it. A control that appears is
+            a layout change; a control that goes from dim to live is a state
+            change, and only the second one is honest about what happened.
+            Same reason the panel below never adds or removes a section.
+          */}
+          <div className="flex h-13 items-center justify-between gap-2 border-b border-border px-4">
+            <PopoverTitle className="text-label font-semibold">{t('filters')}</PopoverTitle>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={filterCount === 0}
+              onClick={resetFilters}
+            >
+              {t('filtersReset')}
+            </Button>
+          </div>
+
+          <div className="divide-y divide-border">
+            {/* 1 — Meal category. Single select, and "all" is a real choice in
+                the run rather than the absence of one. */}
+            <FilterSection label={t('columns.mealTypes')}>
+              <div className="grid grid-cols-2 gap-1.5">
+                <OptionRow
+                  selected={!activeMealType}
+                  onClick={() => navigate({ mealType: '' })}
+                  label={t('allMealTypes')}
+                />
+                {MEAL_TAB_ORDER.map((type) => (
+                  <OptionRow
+                    key={type}
+                    selected={activeMealType === type}
+                    onClick={() => navigate({ mealType: activeMealType === type ? '' : type })}
+                    icon={MEAL_ICON[type]}
+                    label={t(`mealTypes.${type}`)}
+                  />
+                ))}
+              </div>
+            </FilterSection>
+
+            {/* 2 — Ownership. Also single select, so it gets the same shape. */}
+            <FilterSection label={t('ownerFilter.label')}>
+              <div className="grid grid-cols-3 gap-1.5">
+                {OWNER_OPTIONS.map((value) => (
+                  <OptionRow
+                    key={value}
+                    selected={(owner ?? 'all') === value}
+                    onClick={() => navigate({ owner: value === 'all' ? '' : value })}
+                    label={t(`ownerFilter.${value}`)}
+                  />
+                ))}
+              </div>
+            </FilterSection>
+
+            {/*
+              3 — Qualities. Multi-select, and the dots are the legend for the
+              colours the table and the weekly plan both use.
+
+              High protein sits in this run rather than in a nutrition section
+              of its own. It *is* computed rather than typed — the filter
+              resolves it against `nutritionCategory()`, so it can never
+              disagree with the dish's numbers — but to the person filtering it
+              is one more quality a dish either has or does not, and splitting
+              it out bought a whole extra section heading to say something only
+              the database cares about. It leads the run, as it leads the chip
+              run in each row.
+            */}
+            <FilterSection label={t('columns.tags')}>
+              <div className="flex flex-wrap gap-1.5">
+                <TagChip
+                  dot={highProteinDotClasses()}
+                  active={highProtein}
+                  onClick={() => navigate({ hp: highProtein ? '' : '1' })}
+                  label={t('nutritionFilters.high_protein')}
+                />
+                {DISH_TAGS.map((tag: DishTag) => (
+                  <TagChip
+                    key={tag}
+                    dot={dishTagDotClasses(tag)}
+                    active={tags.includes(tag)}
+                    onClick={() => toggleTag(tag)}
+                    label={t(`tags.${tag}`)}
+                  />
+                ))}
+              </div>
+            </FilterSection>
+
+            {/* 4 — Administrative. Quiet, and out of the filter run entirely. */}
+            <div className="p-3">
+              <button
+                type="button"
+                aria-pressed={showHidden}
+                onClick={() => navigate({ hidden: showHidden ? '' : '1' })}
+                className={cn(
+                  'flex w-full items-center gap-2 rounded-md px-2 py-2 text-body-sm transition-colors',
+                  showHidden
+                    ? 'font-medium text-primary'
+                    : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
+                )}
+              >
+                <Icon name={showHidden ? 'eye' : 'eyeOff'} className="size-4" />
+                {t('showHidden')}
+                {showHidden && <Icon name="check" className="ms-auto size-4" />}
+              </button>
+            </div>
+          </div>
+        </PopoverContent>
+      </Popover>
+
+      {children}
     </div>
+  );
+}
+
+/** One titled group inside the Filters popover. */
+function FilterSection({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <section className="p-3">
+      <h4 className="px-1 pb-2 text-caption font-medium text-muted-foreground">{label}</h4>
+      {children}
+    </section>
+  );
+}
+
+/**
+ * A single-select option: a full-width target with its own label, rather than a
+ * pill that has to be measured against its neighbours to see which is on.
+ */
+function OptionRow({
+  selected,
+  onClick,
+  icon,
+  label,
+  className,
+}: {
+  selected: boolean;
+  onClick: () => void;
+  icon?: IconName;
+  label: string;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={selected}
+      className={cn(
+        'inline-flex h-9 items-center justify-center gap-1.5 rounded-md border px-2.5 text-body-sm transition-colors',
+        selected
+          ? 'border-transparent bg-secondary font-semibold text-primary'
+          : 'border-input text-muted-foreground hover:bg-accent/50 hover:text-foreground',
+        className,
+      )}
+    >
+      {icon && <Icon name={icon} className="size-4 shrink-0" />}
+      <span className="truncate">{label}</span>
+    </button>
+  );
+}
+
+/**
+ * A quality chip, carrying the tag's own colour dot.
+ *
+ * The dot is the same token the catalog table and the planner's meal card paint,
+ * so this popover doubles as the legend for both.
+ */
+function TagChip({
+  dot,
+  active,
+  onClick,
+  label,
+}: {
+  /** The full dot class run from `meal-tag-tone`. */
+  dot: string;
+  active: boolean;
+  onClick: () => void;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        'inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-body-sm font-medium transition-colors',
+        active
+          ? 'border-transparent bg-secondary font-semibold text-primary'
+          : 'border-input text-muted-foreground hover:border-(--input-hover) hover:bg-secondary/60',
+      )}
+    >
+      <span aria-hidden className={dot} />
+      {label}
+    </button>
+  );
+}
+
+/** An active filter, shown on the toolbar. Pressing it removes that one filter. */
+function ActiveChip({ onRemove, children }: { onRemove: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onRemove}
+      className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-secondary px-3 text-caption font-medium text-secondary-foreground transition-colors hover:bg-primary-subtle"
+    >
+      {children}
+      <Icon name="close" className="size-3.5 opacity-70" />
+    </button>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useOptimistic, useRef, useState, useTransition } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import {
   DndContext,
   DragOverlay,
@@ -29,6 +29,7 @@ import {
   setServingsAction,
 } from '../editor-actions';
 import { applyEdit, type BoardEdit } from '../editor-state';
+import { localizedName } from '../food-display';
 import { initialPlanActionState, type PlanActionState } from '../form-state';
 import type { Board } from '../queries';
 
@@ -60,8 +61,6 @@ type EditErrorKey = Extract<PlanActionState, { status: 'error' }>['messageKey'];
 type EditorValue = {
   board: Board;
   editable: boolean;
-  /** True while a live plan is being edited on purpose. */
-  allowPublished: boolean;
   pending: boolean;
   /** A message key from the last failed edit, or null. */
   error: EditErrorKey | null;
@@ -100,14 +99,12 @@ export type DragPayload =
 export function BoardEditor({
   board,
   editable,
-  allowPublished,
   locale,
   onDishDragStart,
   children,
 }: {
   board: Board;
   editable: boolean;
-  allowPublished: boolean;
   locale: string;
   onDishDragStart?: () => void;
   children: React.ReactNode;
@@ -150,7 +147,6 @@ export function BoardEditor({
     const form = new FormData();
     form.set('locale', locale);
     form.set('planId', board.id);
-    if (allowPublished) form.set('allowPublished', 'on');
     for (const [key, value] of Object.entries(fields)) form.set(key, String(value));
     return form;
   }
@@ -270,7 +266,6 @@ export function BoardEditor({
   const value: EditorValue = {
     board: optimisticBoard,
     editable,
-    allowPublished,
     pending,
     error,
   };
@@ -354,8 +349,11 @@ function DragPreview({
   payload: DragPayload;
   size: { width: number; height: number } | null;
 }) {
+  const locale = useLocale();
   const isMeal = payload.kind === 'meal';
-  const name = isMeal ? payload.preview.dishName : payload.dish.nameAr;
+  // A meal's preview name was already localized when the drag started; a dish
+  // dragged out of the catalog carries both names and is localized here.
+  const name = isMeal ? payload.preview.dishName : localizedName(payload.dish, locale);
 
   /*
    * A lifted card keeps the size it had in its column; a dish lifted out of the
@@ -415,7 +413,7 @@ function DragPreview({
 }
 
 /** The edits a card or column can trigger without a drag. */
-type EditorActions = {
+export type EditorActions = {
   /**
    * Puts a dish in a slot without a drag.
    *
@@ -439,7 +437,13 @@ type EditorActions = {
   settledMealId: string | null;
 };
 
-const EditorActionsContext = createContext<EditorActions | null>(null);
+/**
+ * Exported for the dev harness at `/{locale}/dev/meals`, which renders
+ * `MealDetailPanel` outside a real board so the meal-quantity UI can be driven and
+ * screenshotted without a staff session. Nothing in the product reads it directly;
+ * use {@link useEditorActions}.
+ */
+export const EditorActionsContext = createContext<EditorActions | null>(null);
 
 export function useEditorActions(): EditorActions {
   const value = useContext(EditorActionsContext);

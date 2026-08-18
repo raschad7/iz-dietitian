@@ -1,20 +1,21 @@
 'use client';
 
 import { useDraggable, useDroppable } from '@dnd-kit/core';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 import { Icon } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 
 import { MEAL_TOLERANCE, driftState } from '@/features/weekly-plans/drift';
-import { roundForDisplay } from '@/features/weekly-plans/nutrition';
+import { roundForDisplay, roundGrams } from '@/features/weekly-plans/nutrition';
+import { localizedName } from '../food-display';
 import { dishTagAccentClass } from '../meal-tag-tone';
 import type { BoardMeal } from '../queries';
 
 import { useEditorActions } from './board-dnd';
 
 /** What the same slot held in the plan being compared against. */
-export type GhostMeal = { nameAr: string; isRepeat: boolean };
+export type GhostMeal = { nameAr: string; nameEn: string; isRepeat: boolean };
 
 /**
  * One meal in a day column.
@@ -48,6 +49,7 @@ export function MealCard({
   editable: boolean;
 }) {
   const t = useTranslations('weeklyPlans');
+  const locale = useLocale();
   const { dragging, settledMealId } = useEditorActions();
 
   const kcal = roundForDisplay('kcal', meal.totals.kcal.value);
@@ -74,7 +76,7 @@ export function MealCard({
         ? {
             label: meal.label,
             timeOfDay: meal.timeOfDay,
-            dishName: meal.dish.nameAr,
+            dishName: localizedName(meal.dish, locale),
             kcal,
             servings: meal.dish.servings,
           }
@@ -91,7 +93,7 @@ export function MealCard({
     dragging?.kind === 'meal'
       ? dragging.preview.dishName
       : dragging?.kind === 'dish'
-        ? dragging.dish.nameAr
+        ? localizedName(dragging.dish, locale)
         : null;
 
   return (
@@ -141,7 +143,7 @@ export function MealCard({
               meal.dish === null && 'font-normal text-muted-foreground',
             )}
           >
-            {meal.dish ? meal.dish.nameAr : t('emptySlot')}
+            {meal.dish ? localizedName(meal.dish, locale) : t('emptySlot')}
           </span>
         </span>
 
@@ -192,10 +194,8 @@ export function MealCard({
           </span>
 
           {meal.dish && (
-            <span
-              className="shrink-0 text-caption text-muted-foreground"
-            >
-              {t('portionShort', { servings: meal.dish.servings })}
+            <span className="shrink-0 text-caption text-muted-foreground tabular-nums">
+              {t('totalGrams', { value: roundGrams(meal.grams, 5) })}
             </span>
           )}
         </span>
@@ -213,7 +213,7 @@ export function MealCard({
                 {t('repeatedFromLastWeek', { date: compareDate ?? '' })}
               </>
             ) : (
-              ghost.nameAr
+              localizedName(ghost, locale)
             )}
           </span>
         )}
@@ -228,7 +228,7 @@ export function MealCard({
           ref={setDragRef}
           {...listeners}
           {...attributes}
-          aria-label={meal.dish.nameAr}
+          aria-label={localizedName(meal.dish, locale)}
           // `top-1`, not `top-7`. The old offset cleared the metadata row that
           // used to sit above the dish name; with that row in the slot rail the
           // handle would have floated in the middle of the name it belongs to.
@@ -268,6 +268,7 @@ export function MealCard({
  */
 export function MealCardSnapshot({ meal }: { meal: BoardMeal }) {
   const t = useTranslations('weeklyPlans');
+  const locale = useLocale();
   const kcal = roundForDisplay('kcal', meal.totals.kcal.value);
   const drift = meal.dish === null ? null : driftState(kcal, meal.budgetKcal, MEAL_TOLERANCE);
 
@@ -281,7 +282,7 @@ export function MealCardSnapshot({ meal }: { meal: BoardMeal }) {
           )}
           dir="auto"
         >
-          {meal.dish ? meal.dish.nameAr : t('emptySlot')}
+          {meal.dish ? localizedName(meal.dish, locale) : t('emptySlot')}
         </span>
       </span>
 
@@ -309,8 +310,8 @@ export function MealCardSnapshot({ meal }: { meal: BoardMeal }) {
         </span>
 
         {meal.dish && (
-          <span className="text-caption text-muted-foreground">
-            {t('portionShort', { servings: meal.dish.servings })}
+          <span className="text-caption text-muted-foreground tabular-nums">
+            {t('totalGrams', { value: roundGrams(meal.grams, 5) })}
           </span>
         )}
       </span>

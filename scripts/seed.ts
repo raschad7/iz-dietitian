@@ -20,8 +20,8 @@ import { defaultClinicScheduleRows } from '@/features/clinic-profile/default-sch
 import { auth } from '@/lib/auth';
 import { paletteColorAt } from '@/lib/avatar-color';
 
+import { seedCatalogFoods } from './seed-catalog-foods';
 import { seedDishes } from './seed-dishes';
-import { seedFoods } from './seed-foods';
 
 const STAFF_EMAIL = 'dietitian@clinic.ps';
 const STAFF_PASSWORD = 'clinic-dev-password';
@@ -276,8 +276,13 @@ async function ensureClinicSchedule(clinicId: string): Promise<void> {
  * machinery than a seed should own. Generate one from a client's board instead.
  */
 async function seedReferenceData(): Promise<void> {
-  const foodCount = await seedFoods();
-  console.info(`seeded ${foodCount} foods (USDA SR Legacy)`);
+  // Catalog before dishes, always: every ingredient resolves to a `catalog_foods`
+  // row, and `seedDishes` refuses rather than writing a recipe it cannot join.
+  const catalog = await seedCatalogFoods({ apply: true });
+  console.info(
+    `seeded catalog: ${catalog.foodsCreated} created, ${catalog.foodsUpdated} updated, ` +
+      `${catalog.foodsUnchanged} unchanged, ${catalog.portionsWritten} portions, ${catalog.aliasesWritten} aliases`,
+  );
 
   const { dishes: dishCount, ingredients } = await seedDishes();
   console.info(`seeded ${dishCount} dishes, ${ingredients} ingredients`);

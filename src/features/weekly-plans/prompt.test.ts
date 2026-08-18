@@ -7,17 +7,21 @@ const CATALOG: PromptDish[] = [
     slug: 'mujaddara-salad',
     nameAr: 'مجدرة مع سلطة خضراء',
     mealTypes: ['lunch', 'dinner'],
-    tags: ['cheap', 'vegetarian'],
+    tags: ['economical', 'vegetarian'],
     baseKcal: 618.4,
     baseProtein: 21.7,
+    nutritionCategory: 'balanced',
   },
   {
     slug: 'labaneh-zeit-pita',
     nameAr: 'لبنة بزيت الزيتون مع خبز',
     mealTypes: ['breakfast'],
-    tags: ['quick', 'high_protein'],
+    // Practical tags only — "high protein" is not among them; it rides in the
+    // separate nutritionCategory field below, computed from the recipe.
+    tags: ['quick'],
     baseKcal: 381.2,
     baseProtein: 18.4,
+    nutritionCategory: 'high_protein',
   },
 ];
 
@@ -143,7 +147,20 @@ describe('buildPrompt — content', () => {
   test('lists the catalog with rounded energy', () => {
     const { user } = buildPrompt(input());
 
-    expect(user).toContain('mujaddara-salad\tمجدرة مع سلطة خضراء\tlunch|dinner\tcheap|vegetarian\t618kcal\t22g');
+    expect(user).toContain(
+      'mujaddara-salad\tمجدرة مع سلطة خضراء\tlunch|dinner\teconomical|vegetarian\t618kcal\t22g\tbalanced',
+    );
+  });
+
+  test('keeps practical tags and computed nutrition in separate columns', () => {
+    const { user } = buildPrompt(input());
+
+    // The header names both, distinctly.
+    expect(user).toContain('slug\tname\tmeal_types\ttags\tbase_kcal\tbase_protein\tnutrition');
+
+    // labaneh is computed high_protein, but "high_protein" is NOT in its tags
+    // column — it appears only in the trailing computed-nutrition column.
+    expect(user).toContain('labaneh-zeit-pita\tلبنة بزيت الزيتون مع خبز\tbreakfast\tquick\t381kcal\t18g\thigh_protein');
   });
 
   test('names last week so the model can vary', () => {

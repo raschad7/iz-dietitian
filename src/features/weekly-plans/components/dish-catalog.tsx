@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useDraggable } from '@dnd-kit/core';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
@@ -16,7 +16,12 @@ import {
 import { membersOf } from '@/lib/enum';
 import { cn } from '@/lib/utils';
 
-import { roundForDisplay } from '@/features/weekly-plans/nutrition';
+import {
+  dishGrams,
+  roundForDisplay,
+  roundGrams,
+  type NutritionCategory,
+} from '@/features/weekly-plans/nutrition';
 
 import {
   availableOptions as optionsFor,
@@ -25,8 +30,24 @@ import {
   type CatalogContext,
   type CatalogOption,
 } from '../catalog-filter';
+import { localizedName } from '../food-display';
 import type { CatalogEntry } from '../queries';
 import { ALLERGENS, DISH_TAGS, mealTypeForSlot, type DishTag } from '../schema';
+
+/**
+ * The computed nutrition categories offered as filters. Only "high protein" for
+ * now — the one nutrition question a dietitian filters on — and it matches the
+ * recipe-derived `nutritionCategory`, never a manual tag.
+ */
+const NUTRITION_FILTERS = ['high_protein'] as const satisfies readonly NutritionCategory[];
+
+/** How many colour dots a rail row prints before it stops — it is 20rem wide. */
+const DOT_LIMIT = 3;
+
+/** The narrow union of categories actually offered as filters — so message keys
+ * like `nutritionFilters.${entry}` stay resolvable. */
+type NutritionFilter = (typeof NUTRITION_FILTERS)[number];
+import { dishTagDotClasses, highProteinDotClasses } from '../meal-tag-tone';
 import { bestServings } from '../similar';
 import { PLANNER_THEME } from '../theme';
 import type { RecentUse } from '../usage';
@@ -77,6 +98,7 @@ export function DishCatalog({
   // `DishTag`, not `string`: next-intl only accepts message keys it can see, so
   // a widened element type here makes `t('tags.' + entry)` unresolvable.
   const [tags, setTags] = useState<readonly DishTag[]>([]);
+  const [nutrition, setNutrition] = useState<readonly NutritionFilter[]>([]);
   const [options, setOptions] = useState<readonly CatalogOption[]>([]);
   const [allMealTypes, setAllMealTypes] = useState(false);
 
@@ -92,7 +114,7 @@ export function DishCatalog({
   const shown = useMemo(() => {
     const matches = filterCatalog(
       catalog,
-      { needle, mealType: activeMealType, tags, options },
+      { needle, mealType: activeMealType, tags, nutrition, options },
       context,
     );
 
@@ -106,7 +128,7 @@ export function DishCatalog({
 
       return fit(a) - fit(b);
     });
-  }, [catalog, needle, activeMealType, tags, options, context, budgetKcal]);
+  }, [catalog, needle, activeMealType, tags, nutrition, options, context, budgetKcal]);
 
   /**
    * How many dishes each chip would leave, given everything already chosen.
@@ -122,11 +144,16 @@ export function DishCatalog({
    */
   const counts = useMemo(() => {
     const byChip: Record<string, number> = {};
-    const base = { needle, mealType: activeMealType, tags, options };
+    const base = { needle, mealType: activeMealType, tags, nutrition, options };
 
     for (const entry of DISH_TAGS) {
       const next = tags.includes(entry) ? tags : [...tags, entry];
       byChip[entry] = filterCatalog(catalog, { ...base, tags: next }, context).length;
+    }
+
+    for (const entry of NUTRITION_FILTERS) {
+      const next = nutrition.includes(entry) ? nutrition : [...nutrition, entry];
+      byChip[entry] = filterCatalog(catalog, { ...base, nutrition: next }, context).length;
     }
 
     for (const entry of CATALOG_OPTIONS) {
@@ -135,14 +162,21 @@ export function DishCatalog({
     }
 
     return byChip;
-  }, [catalog, needle, activeMealType, tags, options, context]);
+  }, [catalog, needle, activeMealType, tags, nutrition, options, context]);
 
-  const activeCount = tags.length + options.length + (activeMealType ? 1 : 0);
+  const activeCount = tags.length + nutrition.length + options.length + (activeMealType ? 1 : 0);
 
   function clearFilters(): void {
     setTags([]);
+    setNutrition([]);
     setOptions([]);
     setAllMealTypes(true);
+  }
+
+  function toggleNutrition(entry: NutritionFilter): void {
+    setNutrition((current) =>
+      current.includes(entry) ? current.filter((value) => value !== entry) : [...current, entry],
+    );
   }
 
   function toggleOption(entry: CatalogOption): void {
@@ -181,12 +215,21 @@ export function DishCatalog({
             </FilterChip>
           )}
 
+          {nutrition.map((entry) => (
+            <FilterChip key={entry} active onClick={() => toggleNutrition(entry)}>
+              <span aria-hidden className={highProteinDotClasses()} />
+              {t(`nutritionFilters.${entry}`)}
+              <Icon name="close" className="size-3.5" />
+            </FilterChip>
+          ))}
+
           {tags.map((entry) => (
             <FilterChip
               key={entry}
               active
               onClick={() => setTags((current) => current.filter((value) => value !== entry))}
             >
+              <span aria-hidden className={dishTagDotClasses(entry)} />
               {t(`tags.${entry}`)}
               <Icon name="close" className="size-3.5" />
             </FilterChip>
@@ -239,7 +282,38 @@ export function DishCatalog({
                     </FilterGroup>
                   )}
 
+                  {/*
+                    Tags and the computed high-protein label in one run, each
+                    wearing its colour dot — the same grammar the standalone dish
+                    catalog uses, so the panel a dietitian filters *inside* the
+                    planner and the page they manage the catalog on are the same
+                    control with the same legend.
+
+                    High protein used to sit in a "nutrition" group of its own to
+                    record that it is derived from the recipe rather than typed.
+                    True, and not a distinction worth a section heading to the
+                    person filtering: it is one more quality a dish has or does
+                    not. The comment carries the fact; the UI does not need to.
+                  */}
                   <FilterGroup label={t('filterTags')}>
+                    {NUTRITION_FILTERS.map((entry) => {
+                      const selected = nutrition.includes(entry);
+                      const count = counts[entry] ?? 0;
+
+                      return (
+                        <FilterChip
+                          key={entry}
+                          active={selected}
+                          disabled={!selected && count === 0}
+                          onClick={() => toggleNutrition(entry)}
+                        >
+                          <span aria-hidden className={highProteinDotClasses()} />
+                          {t(`nutritionFilters.${entry}`)}
+                          <ChipCount value={count} />
+                        </FilterChip>
+                      );
+                    })}
+
                     {DISH_TAGS.map((entry) => {
                       const selected = tags.includes(entry);
                       const count = counts[entry] ?? 0;
@@ -257,6 +331,7 @@ export function DishCatalog({
                             )
                           }
                         >
+                          <span aria-hidden className={dishTagDotClasses(entry)} />
                           {t(`tags.${entry}`)}
                           <ChipCount value={count} />
                         </FilterChip>
@@ -410,6 +485,7 @@ function CatalogRow({
   onPick?: () => void;
 }) {
   const t = useTranslations('weeklyPlans');
+  const locale = useLocale();
 
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `dish:${dish.id}`,
@@ -418,6 +494,9 @@ function CatalogRow({
   });
 
   const blocked = dish.blockedBy.length > 0;
+  // Catalog order, so the leading dot is the same tag the meal card will paint —
+  // see `primaryDishTag`, which resolves through `DISH_TAGS` for this reason.
+  const dishTags = membersOf(DISH_TAGS, dish.tags).slice(0, DOT_LIMIT);
   const kcal = roundForDisplay('kcal', dish.baseKcal * servings);
   const delta = budgetKcal === null ? null : kcal - budgetKcal;
   const deltaLabel = delta === null ? null : `${delta > 0 ? '+' : ''}${delta}`;
@@ -441,8 +520,32 @@ function CatalogRow({
         className={cn('size-4 text-muted-foreground', onPick && !blocked && 'text-primary')}
       />
       <span className="min-w-0">
-        <span className="block truncate font-heading text-body-sm font-semibold" dir="auto">
-          {dish.nameAr}
+        <span className="flex min-w-0 items-center gap-1.5">
+          <span className="min-w-0 truncate font-heading text-body-sm font-semibold" dir="auto">
+            {localizedName(dish, locale)}
+          </span>
+
+          {/*
+            The dish's colours, as bare dots.
+
+            The rail is too narrow for labelled chips, and it does not need
+            them: the same dots are labelled one click away in this panel's own
+            filter popover, and the first of them is the colour this dish will
+            paint across the top of the card it becomes the moment it is
+            dropped. That last part is the point — the mark is visible *before*
+            the drop, on the row being dragged, so the board's rules stop being
+            decoration the dietitian has to decode after the fact.
+          */}
+          {dishTags.length > 0 && (
+            <span
+              className="flex shrink-0 items-center gap-1"
+              title={dishTags.map((tag) => t(`tags.${tag}`)).join('، ')}
+            >
+              {dishTags.map((tag) => (
+                <span key={tag} aria-hidden className={dishTagDotClasses(tag)} />
+              ))}
+            </span>
+          )}
         </span>
         <span className="mt-0.5 block text-caption text-muted-foreground">
           {blocked ? (
@@ -458,7 +561,9 @@ function CatalogRow({
             </span>
           ) : (
             <>
-              {t('portionShort', { servings })}
+              <span className="tabular-nums">
+                {t('totalGrams', { value: roundGrams(dishGrams(dish.ingredients, servings), 5) })}
+              </span>
               {deltaLabel && (
                 <>
                   <span aria-hidden> · </span>
@@ -493,7 +598,7 @@ function CatalogRow({
         // dish the client is allergic to. `disabled` is the honest control state
         // and the row already says why.
         disabled={blocked}
-        title={blocked ? undefined : t('addToSlot', { name: dish.nameAr })}
+        title={blocked ? undefined : t('addToSlot', { name: localizedName(dish, locale) })}
         className={cn(shape, 'outline-none focus-visible:bg-accent/60')}
       >
         {body}

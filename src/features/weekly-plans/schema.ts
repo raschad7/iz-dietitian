@@ -43,13 +43,30 @@ export const clientIdSchema = z.uuid();
 
 /** The closed sets behind the catalog's array columns. */
 export const MEAL_TYPES = ['breakfast', 'snack', 'lunch', 'dinner'] as const;
+
+/**
+ * The **manual, practical** dish tags — and only those.
+ *
+ * These describe how a dish fits into a real week (cost, effort, cuisine), which
+ * is exactly what a dietitian's instruction resolves against and what the numbers
+ * cannot know. Nutrition is deliberately absent: "high protein" is *computed* from
+ * the recipe by `nutritionCategory()` in `nutrition.ts`, the single source of
+ * truth, so it cannot be hand-set to disagree with the food. Disease suitability
+ * (the former `diabetic_friendly`) is absent too — that is a patient-specific
+ * clinical judgement, not a boolean a dish carries.
+ *
+ * The order is the accent-colour priority in `meal-tag-tone.ts` and the chip
+ * order in the catalog filters.
+ */
 export const DISH_TAGS = [
-  'cheap',
-  'portable',
+  'economical',
   'quick',
+  'easy_prep',
+  'no_cook',
+  'portable',
+  'filling',
+  'local',
   'vegetarian',
-  'high_protein',
-  'diabetic_friendly',
 ] as const;
 
 export type MealType = (typeof MEAL_TYPES)[number];
@@ -198,15 +215,16 @@ export const startWeekFromPlanSchema = z.object({
 // ---------------------------------------------------------------------------
 
 /**
- * Whether the caller means to edit a plan the client is already following.
+ * Shared by every edit: which plan.
  *
- * A checkbox value, so it arrives as `'on'` or not at all. Absent means no, which
- * is the safe reading of a field that failed to submit.
+ * There was an `allowPublished` flag here, letting a caller opt into editing a plan
+ * the client was already following. It is gone: publishing freezes each meal's
+ * nutrition, so editing in place would leave a frozen total describing a dish the
+ * plan no longer holds. A published plan is now immutable and must be unpublished
+ * before it can be edited — enforced in `editablePlan` (`editor-mutations.ts`), and
+ * the field is dropped here so a form can no longer even ask for it.
  */
-const allowPublishedSchema = z.preprocess((value) => value === 'on' || value === 'true', z.boolean());
-
-/** Shared by every edit: which plan, and whether a live one may be touched. */
-const editBase = { planId: planIdSchema, allowPublished: allowPublishedSchema };
+const editBase = { planId: planIdSchema };
 
 export const placeDishSchema = z.object({
   ...editBase,

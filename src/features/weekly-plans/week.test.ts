@@ -7,6 +7,7 @@ import {
   formatDateParts,
   nextSunday,
   orderedWeekdays,
+  planColumnDates,
   planWeekDays,
   weekDateForDay,
   weekDates,
@@ -156,5 +157,47 @@ describe('dayStanding', () => {
     // nobody can place on a calendar must not be the one day that opens for
     // writing.
     expect(dayStanding(null, TODAY)).toBe('past');
+  });
+});
+
+describe('plan column dates', () => {
+  test('names the month on the first column and nowhere else inside one month', () => {
+    const columns = planColumnDates('2026-08-16');
+
+    expect(columns).toHaveLength(7);
+    expect(columns.map((column) => column.date.slice(-2))).toEqual([
+      '16', '17', '18', '19', '20', '21', '22',
+    ]);
+    expect(columns.map((column) => column.namesMonth)).toEqual([
+      true, false, false, false, false, false, false,
+    ]);
+  });
+
+  /*
+   * The case the rule exists for. A week that crosses into September has to say
+   * so at the crossing, or "1" and "2" read as belonging to August.
+   */
+  test('names the month again where the week crosses into the next one', () => {
+    const columns = planColumnDates('2026-08-30');
+
+    expect(columns.map((column) => column.date)).toEqual([
+      '2026-08-30', '2026-08-31', '2026-09-01',
+      '2026-09-02', '2026-09-03', '2026-09-04', '2026-09-05',
+    ]);
+    expect(columns.map((column) => column.namesMonth)).toEqual([
+      true, false, true, false, false, false, false,
+    ]);
+  });
+
+  test('carries the weekday ids of a rotated week', () => {
+    // 2026-08-19 is a Wednesday, so the week runs Wed .. Tue.
+    expect(planColumnDates('2026-08-19').map((column) => column.dayOfWeek)).toEqual([
+      3, 4, 5, 6, 0, 1, 2,
+    ]);
+  });
+
+  test('an unreadable start date yields no columns rather than wrong ones', () => {
+    expect(planColumnDates('2026-02-31')).toEqual([]);
+    expect(planColumnDates('not-a-date')).toEqual([]);
   });
 });

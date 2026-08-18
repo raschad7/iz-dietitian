@@ -25,6 +25,7 @@ import {
   WEIGHT_KG_RANGE,
 } from '@/features/clients/form-rules';
 import { initialIntakeFormState, type IntakeFormState } from '@/features/clients/form-state';
+import { balanceToHundred } from '@/features/clients/meal-split';
 import { mergedNotes } from '@/features/clients/notes';
 import {
   ALLERGENS,
@@ -1473,7 +1474,17 @@ function MealScheduleField({
             type="number"
             min={0}
             max={100}
-            defaultValue={Math.round(slot.kcalShare * 100)}
+            value={Math.round(slot.kcalShare * 100)}
+            onChange={(event) => {
+              const nextPercent = Number(event.target.value);
+              onChange(
+                slots.map((current, position) =>
+                  position === index
+                    ? { ...current, kcalShare: Number.isFinite(nextPercent) ? nextPercent / 100 : 0 }
+                    : current,
+                ),
+              );
+            }}
             aria-label={t('fields.slotShare')}
           />
 
@@ -1522,6 +1533,21 @@ function MealScheduleField({
           information rather than an error — but a dietitian aiming at 100 wants
           to know where they are, and the badge is quiet until they are off it.
         */}
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          disabled={percent === 100}
+          onClick={() => {
+            const balanced = balanceToHundred(slots.map((slot) => Math.round(slot.kcalShare * 100)));
+            onChange(
+              slots.map((slot, position) => ({ ...slot, kcalShare: balanced[position]! / 100 })),
+            );
+          }}
+        >
+          {t('intake.balanceShares')}
+        </Button>
+
         <Badge variant={percent === 100 ? 'muted' : 'attention'}>
           {t('intake.shareTotal', { value: percent })}
         </Badge>

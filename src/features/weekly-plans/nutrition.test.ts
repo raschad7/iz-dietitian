@@ -2,13 +2,17 @@ import { describe, expect, test } from 'bun:test';
 
 import {
   combineTotals,
+  dishGrams,
   emptyTotals,
   energySplit,
+  nutritionCategory,
   roundForDisplay,
+  roundGrams,
   scaleNutrients,
   sumNutrients,
   type FoodNutrients,
   type NutrientSource,
+  type NutrientTotals,
 } from './nutrition';
 
 /** USDA fdc_id 171287, "Egg, whole, raw, fresh" — real per-100 g figures. */
@@ -178,5 +182,71 @@ describe('roundForDisplay', () => {
   test('gives energy and milligrams whole numbers', () => {
     expect(roundForDisplay('kcal', 214.5)).toBe(215);
     expect(roundForDisplay('sodium', 142.4)).toBe(142);
+  });
+});
+
+describe('dishGrams', () => {
+  // Chicken 200 g + rice 150 g = a 350 g base serving.
+  const recipe = [{ quantityGrams: 200 }, { quantityGrams: 150 }];
+
+  test('sums the ingredient grams for one base serving', () => {
+    expect(dishGrams(recipe, 1)).toBe(350);
+  });
+
+  test('scales the grams by the serving multiplier', () => {
+    expect(dishGrams(recipe, 1.5)).toBe(525);
+    expect(dishGrams(recipe, 0.25)).toBe(87.5);
+  });
+
+  test('an empty dish weighs nothing', () => {
+    expect(dishGrams([], 2)).toBe(0);
+  });
+});
+
+describe('roundGrams', () => {
+  test('rounds a single food to the nearest gram', () => {
+    expect(roundGrams(187.5)).toBe(188);
+    expect(roundGrams(187.4)).toBe(187);
+  });
+
+  test('rounds a whole dish to the nearest 5 g', () => {
+    expect(roundGrams(447, 5)).toBe(445);
+    expect(roundGrams(448, 5)).toBe(450);
+  });
+});
+
+describe('nutritionCategory', () => {
+  // Builds a totals object with only the three energy macros set — the only
+  // fields energySplit reads. Grams in, category out.
+  function totalsOf(protein: number, carbs: number, fat: number): NutrientTotals {
+    const totals = emptyTotals();
+    totals.protein.value = protein;
+    totals.carbs.value = carbs;
+    totals.fat.value = fat;
+    return totals;
+  }
+
+  test('labels a protein-dominant dish high_protein', () => {
+    expect(nutritionCategory(totalsOf(40, 40, 5))).toBe('high_protein');
+  });
+
+  test('labels a carb-dominant dish high_carb', () => {
+    expect(nutritionCategory(totalsOf(10, 80, 5))).toBe('high_carb');
+  });
+
+  test('labels a fat-dominant dish high_fat', () => {
+    expect(nutritionCategory(totalsOf(5, 5, 30))).toBe('high_fat');
+  });
+
+  test('labels a spread-out dish balanced when nothing crosses a threshold', () => {
+    expect(nutritionCategory(totalsOf(20, 45, 15))).toBe('balanced');
+  });
+
+  test('when two thresholds are crossed, picks the one crossed by the largest margin', () => {
+    expect(nutritionCategory(totalsOf(30, 5, 25))).toBe('high_fat');
+  });
+
+  test('an empty dish is balanced rather than dividing by zero', () => {
+    expect(nutritionCategory(emptyTotals())).toBe('balanced');
   });
 });

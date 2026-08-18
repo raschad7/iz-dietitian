@@ -825,6 +825,7 @@
       "override": "يدوي",
       "shareTotal": "مجموع النسب {value}%",
       "addSlot": "إضافة وجبة",
+      "balanceShares": "توزيع حتى 100٪",
       "allergenHint": "الخانات أعلاه هي وحدها ما يستبعد الأطباق من الكتالوج.",
       "dailyTarget": "الهدف اليومي",
       "bmi": "مؤشر كتلة الجسم",
@@ -1077,7 +1078,8 @@
       "markEaten": "تحديد {meal} كوجبة تم تناولها",
       "wasEaten": "{meal} — تم تناولها",
       "wasNotEaten": "{meal} — لم تُسجَّل كوجبة تم تناولها",
-      "portion": "{servings} × {label}",
+      "totalGrams": "≈ {value} غ",
+      "mealQuantity": "كمية الوجبة",
       "orInstead": "يمكنك بدلاً منها:",
       "noMeal": "لم تُحدد وجبة"
     },
@@ -1515,7 +1517,9 @@
     "kg": "{value} كغ",
     "cm": "{value} سم",
     "years": "{value} سنة",
-    "grams": "{value} غ",
+    "grams": "{value} غرام",
+    "gramsShort": "{value} غ",
+    "totalGrams": "≈ {value} غ",
     "unset": "غير محدد",
     "notComputable": "غير قابل للحساب",
     "override": "يدوي",
@@ -1580,9 +1584,7 @@
     "publishing": "جارٍ النشر…",
     "unpublish": "إلغاء النشر",
     "unpublishing": "جارٍ الإلغاء…",
-    "portion": "{servings} × {label}",
-    "portionShort": "{servings} حصة",
-    "portionLabel": "الحصة",
+    "mealQuantity": "كمية الوجبة",
     "ingredients": "المكوّنات",
     "nutrition": "القيم الغذائية",
     "unmeasured": "بعض المكوّنات لم تُقس لهذا العنصر، فالمجموع حدّ أدنى",
@@ -1656,7 +1658,9 @@
       "unfilled": "لا يمكن النشر مع وجود وجبات غير محددة.",
       "invalid": "بيانات غير صحيحة.",
       "clientNotFound": "المشترك غير موجود.",
-      "unexpected": "حدث خطأ غير متوقع."
+      "unexpected": "حدث خطأ غير متوقع.",
+      "notFound": "الطبق غير موجود.",
+      "inUse": "هذا الطبق مستخدم في خطة نشطة ولا يمكن حذفه."
     },
     "tabs": {
       "client": "المشترك",
@@ -1694,12 +1698,18 @@
     "searchDishes": "ابحث في الأطباق",
     "dishFilters": "الفلاتر",
     "clearFilters": "مسح الفلاتر",
+    "colorKey": "دليل ألوان الأطباق",
+    "colorKeyUntagged": "بدون خصائص",
     "filterTags": "تصنيف الطبق",
     "filterForThisSlot": "مناسبة لهذه الخانة",
     "dishOptions": {
       "fitsBudget": "ضمن الميزانية",
       "notRecent": "لم يتكرر مؤخراً",
       "allergenSafe": "بدون مسببات حساسية"
+    },
+    "filterNutrition": "التغذية",
+    "nutritionFilters": {
+      "high_protein": "غني بالبروتين"
     },
     "allMealTypes": "كل أنواع الوجبات",
     "bestMatches": "أفضل تطابق لهدف {value} kcal",
@@ -1715,12 +1725,14 @@
       "dinner": "عشاء"
     },
     "tags": {
-      "cheap": "اقتصادي",
-      "portable": "سهل الحمل",
+      "economical": "اقتصادي",
       "quick": "سريع التحضير",
-      "vegetarian": "نباتي",
-      "high_protein": "غني بالبروتين",
-      "diabetic_friendly": "مناسب لمرضى السكري"
+      "easy_prep": "سهل التحضير",
+      "no_cook": "بدون طهي",
+      "portable": "سهل الحمل",
+      "filling": "مُشبِع",
+      "local": "محلي",
+      "vegetarian": "نباتي"
     },
     "dropHere": "أفلت هنا",
     "addMeal": "إضافة وجبة",
@@ -1743,18 +1755,16 @@
     "restoreSlot": "أعد {slot} إلى هذا اليوم",
     "removeMeal": "حذف الوجبة",
     "clearMeal": "إفراغ الخانة",
-    "morePortion": "حصة أكبر",
-    "lessPortion": "حصة أصغر",
+    "morePortion": "كمية أكبر",
+    "lessPortion": "كمية أصغر",
     "budgetHint": "ميزانية هذه الوجبة {value} kcal",
     "overBudget": "أكبر من الميزانية",
     "underBudget": "أقل من الميزانية",
     "compareWith": "مقارنة مع {date}",
     "compareShort": "مقارنة بالسابق",
     "repeatedFromLastWeek": "نفس {date}",
-    "editPublished": "تعديل الخطة",
-    "editPublishedDisabled": "متاح بعد نشر الخطة",
-    "editPublishedWarning": "هذه الخطة منشورة. أي تعديل يظهر للمشترك فوراً.",
-    "editPublishedConfirm": "هذه الخطة منشورة والمشترك يتبعها. التعديلات ستظهر له مباشرة. هل تريد المتابعة؟",
+    "editPublishedDisabled": "متاح أثناء كون الخطة مسودة",
+    "publishedReadOnly": "هذه الخطة منشورة وغير قابلة للتعديل. ألغِ نشرها لتعديلها، ثم انشرها من جديد.",
     "retiredDish": "طبق متقاعد من الكتالوج",
     "savedIndicator": "محفوظ",
     "savingIndicator": "جارٍ الحفظ…",
@@ -1795,14 +1805,34 @@
   "dishes": {
     "title": "كتالوج الأطباق",
     "subtitle": "{count} طبقاً معتمداً — هذه وحدها ما يختار منه الذكاء الاصطناعي",
+    "addDish": "إضافة طبق",
     "empty": "لا توجد أطباق في الكتالوج بعد",
     "emptyHint": "تظهر هنا الأطباق المعتمدة بعد إضافتها.",
     "emptyFiltered": "لا أطباق مطابقة",
     "emptyFilteredHint": "جرّب اسماً آخر، أو وقت وجبة مختلفاً.",
     "searchPlaceholder": "ابحث باسم الطبق",
     "clearFilters": "مسح الفلاتر",
-    "allMealTypes": "كل الأوقات",
+    "filters": "الفلاتر",
+    "filtersReset": "إعادة تعيين",
+    "allMealTypes": "الكل",
+    "count": "{count, plural, =0 {لا أطباق} one {طبق واحد} two {طبقان} few {# أطباق} many {# طبقاً} other {# طبق}}",
     "moreTags": "+{count, number, integer}",
+    "notFoundPrompt": "لم تجد الطبق الذي تبحث عنه؟",
+    "ownerFilter": {
+      "label": "عرض الأطباق",
+      "all": "الكل",
+      "system": "مشتركة",
+      "clinic": "أطباقي"
+    },
+    "nutritionFilters": {
+      "high_protein": "عالي البروتين"
+    },
+    "detail": {
+      "ingredients": "المكوّنات",
+      "edit": "تعديل الطبق",
+      "open": "عرض {name}",
+      "nutrition": "القيم الغذائية"
+    },
     "pagination": {
       "previous": "السابق",
       "next": "التالي",
@@ -1812,10 +1842,29 @@
     "columns": {
       "name": "الطبق",
       "mealTypes": "وقت الوجبة",
-      "tags": "الوسوم",
-      "kcal": "سعرات الحصة",
-      "protein": "بروتين",
-      "ingredients": "المكوّنات"
+      "tags": "الخصائص",
+      "kcal": "السعرات",
+      "carbs": "الكربوهيدرات",
+      "protein": "البروتين",
+      "ingredients": "المكوّنات",
+      "actions": "إجراءات"
+    },
+    "hiddenBadge": "مخفي",
+    "showHidden": "إظهار المخفية",
+    "ownership": {
+      "system": "مشترك",
+      "clinic": "أضيف بواسطتي"
+    },
+    "rowActions": {
+      "menuLabel": "إجراءات أخرى",
+      "hide": "إخفاء",
+      "unhide": "إظهار",
+      "deleteConfirmTitle": "حذف هذا الطبق؟",
+      "deleteConfirmMessage": "سيُحذف «{name}» من قائمتك. لا يمكن التراجع عن هذا.",
+      "deleted": "تم حذف الطبق",
+      "hidden": "تم إخفاء الطبق من قائمتك",
+      "unhidden": "تم إظهار الطبق في قائمتك",
+      "editFailed": "تعذّر فتح هذا الطبق للتعديل"
     },
     "mealTypes": {
       "breakfast": "فطور",
@@ -1824,12 +1873,14 @@
       "dinner": "عشاء"
     },
     "tags": {
-      "cheap": "اقتصادي",
-      "portable": "قابل للنقل",
+      "economical": "اقتصادي",
       "quick": "سريع",
-      "vegetarian": "نباتي",
-      "high_protein": "عالي البروتين",
-      "diabetic_friendly": "مناسب للسكري"
+      "easy_prep": "سهل التحضير",
+      "no_cook": "بدون طهي",
+      "portable": "قابل للنقل",
+      "filling": "مُشبِع",
+      "local": "محلي",
+      "vegetarian": "نباتي"
     },
     "allergens": {
       "nuts": "مكسرات",
@@ -1838,6 +1889,114 @@
       "egg": "بيض",
       "fish": "سمك",
       "sesame": "سمسم"
+    }
+  },
+  "dishEditor": {
+    "foodPicker": {
+      "label": "ابحث عن مكوّن",
+      "placeholder": "ابحث عن مكوّن…",
+      "searching": "جارٍ البحث…",
+      "kcalPer100g": "{kcal} سعرة / 100غ",
+      "startSearching": "ابحث عن مكوّن، أو أضف مكوّناً خاصاً",
+      "noResults": "لم نجد \"{name}\".",
+      "noResultTitle": "لم نجد مكوّناً مطابقاً",
+      "addNew": "إضافة مكوّن جديد",
+      "addNewShort": "لم تجده؟ أضف مكوّناً جديداً",
+      "addCustom": "إضافة مكوّن خاص",
+      "addNamed": "إضافة \"{name}\" كمكوّن جديد",
+      "moreResults": "عرض المزيد",
+      "otherLanguageResults": "نتائج إضافية بالإنجليزية",
+      "searchError": "تعذر إكمال البحث",
+      "retry": "حاول مرة أخرى"
+    },
+    "customFoodDialog": {
+      "title": "إضافة مكوّن جديد",
+      "descriptionLabel": "الاسم بالإنجليزية (اختياري)",
+      "descriptionPlaceholder": "مثال: Grilled chicken breast",
+      "nameArLabel": "اسم المكوّن",
+      "nameArPlaceholder": "مثال: جميد بلدي",
+      "macrosHeading": "القيم الغذائية لكل 100 غرام",
+      "kcalLabel": "السعرات (سعرة حرارية)",
+      "proteinLabel": "البروتين (غ)",
+      "carbsLabel": "الكربوهيدرات (غ)",
+      "fatLabel": "الدهون (غ)",
+      "macrosHint": "القيم لكل 100غ",
+      "unitHeading": "وحدة الحصة الطبيعية",
+      "unitLabel": "وحدة الحصة",
+      "unitGramsLabel": "وزن الوحدة (غرام)",
+      "unitHint": "تتيح إضافة هذا المكوّن بالرغيف أو الكوب أو الحبة… لا بالغرام وحده.",
+      "unitGrams": "غرام",
+      "cancel": "إلغاء",
+      "close": "إغلاق",
+      "submit": "إضافة الطعام",
+      "submitting": "جارٍ الإضافة…",
+      "errors": {
+        "required": "هذا الحقل مطلوب",
+        "nonNegativeNumber": "أدخل رقماً 0 أو أكثر",
+        "unitGramsRequired": "أدخل وزن الوحدة الواحدة بالغرام",
+        "createFailed": "تعذّرت إضافة الطعام. تحقق من القيم وحاول مرة أخرى."
+      }
+    },
+    "editor": {
+      "pageTitle": "إضافة طبق",
+      "pageSubtitle": "أضف طبقاً إلى قائمة العيادة المعتمدة",
+      "nameAr": "اسم الطبق",
+      "nameArPlaceholder": "مثال: مقلوبة دجاج",
+      "nameEn": "الاسم بالإنجليزية",
+      "nameEnPlaceholder": "مثال: Chicken Maqluba",
+      "additionalDetails": "تفاصيل إضافية",
+      "baseServingLabel": "تسمية الحصة الأساسية",
+      "baseServingHint": "تظهر للمشترك كوحدة هذا الطبق، مثل \"حصة\" أو \"طبق\".",
+      "mealTypesLegend": "وقت الوجبة",
+      "labelsLegend": "خصائص الطبق",
+      "labelsHint": "لون كل خاصية يرافق الطبق في الكتالوج وفي الخطة الأسبوعية.",
+      "allergensLegend": "مسببات الحساسية",
+      "allergensHint": "يستثنى هذا الطبق من خطط المشتركين الذين لديهم حساسية مطابقة.",
+      "ingredientsHeading": "المكوّنات",
+      "addIngredient": "إضافة مكوّن",
+      "removeIngredient": "إزالة المكوّن",
+      "noIngredientsYet": "ابحث بالأعلى لإضافة مكوّنات الطبق.",
+      "ingredientCount": "{count, plural, =0 {لا مكوّنات} one {مكوّن واحد} two {مكوّنان} few {# مكوّنات} many {# مكوّناً} other {# مكوّن}}",
+      "pickFoodHint": "ابحث عن طعام لإضافته إلى هذا المكوّن",
+      "changeFood": "تغيير الطعام",
+      "amount": "الكمية",
+      "unitAria": "الوحدة",
+      "rowKcal": "{kcal} سعرة",
+      "rowGrams": "= {grams} غرام",
+      "units": {
+        "g": "غرام",
+        "piece": "حبة",
+        "slice": "شريحة",
+        "loaf": "رغيف",
+        "cup": "كوب",
+        "tbsp": "ملعقة كبيرة",
+        "tsp": "ملعقة صغيرة"
+      },
+      "liveNutrition": "القيم الغذائية لكل حصة أساسية",
+      "nutritionTitle": "القيم الغذائية",
+      "nutritionEmpty": "أضف مكوّنات لعرض القيم الغذائية.",
+      "perServing": "لكل {unit}",
+      "energyShare": "الأشرطة تُظهر نسبة كل عنصر من سعرات الطبق.",
+      "categories": {
+        "high_protein": "غني بالبروتين",
+        "high_carb": "غني بالكربوهيدرات",
+        "high_fat": "غني بالدهون",
+        "balanced": "متوازن"
+      },
+      "errors": {
+        "nameRequired": "اسم الطبق مطلوب",
+        "mealTypeRequired": "اختر وقت وجبة واحداً على الأقل",
+        "ingredientRequired": "أضف مكوّناً واحداً على الأقل بطعام وكمية موجبة"
+      },
+      "submit": "إنشاء الطبق",
+      "saveChanges": "حفظ التعديلات",
+      "submitting": "جارٍ الحفظ…",
+      "editTitle": "تعديل الطبق",
+      "editSubtitle": "تحديث هذا الطبق في قائمة عيادتك",
+      "unsavedTitle": "تجاهل التغييرات؟",
+      "unsavedMessage": "لديك تغييرات غير محفوظة ستُفقد إذا أغلقت.",
+      "discard": "تجاهل",
+      "keepEditing": "متابعة التعديل"
     }
   },
   "whatsapp": {

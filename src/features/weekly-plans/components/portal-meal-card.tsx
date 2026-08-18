@@ -1,12 +1,16 @@
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Icon, type IconName } from '@/components/ui/icon';
-import { roundForDisplay } from '@/features/weekly-plans/nutrition';
+import { roundForDisplay, roundGrams } from '@/features/weekly-plans/nutrition';
 import { cn } from '@/lib/utils';
 
+import { localizedName } from '../food-display';
+import { servingGuideFor, servingGuideLines } from '../serving-guide';
+
 import { MealCheck } from './meal-check';
+import { ServingGuideList } from './serving-guide-list';
 import { SettledMealCheck } from './meal-check-mark';
 import type { BoardMeal } from '../queries';
 import { mealTypeForSlot, type MealType } from '../schema';
@@ -99,10 +103,19 @@ export function PortalMealCard({
   completed: boolean;
 }) {
   const t = useTranslations('portal.plan');
+  // The client's own locale, from next-intl — the same mechanism the staff board
+  // uses, so a dish reads the same way on both sides of the app.
+  const locale = useLocale();
 
   const mealType = mealTypeForSlot(meal.slotKey);
   const mealIcon = MEAL_ICONS[mealType];
   const dish = meal.dish;
+
+  // Empty for a dish with no guide, which is the safe default — see
+  // `serving-guide.ts`. The portal never falls back to the recipe; the weight and
+  // the dish's own serving label are what it says instead.
+  const guide = dish ? servingGuideFor(dish.slug) : null;
+  const servingLines = guide && dish ? servingGuideLines(guide, dish.servings, locale) : [];
 
   return (
     /*
@@ -181,7 +194,7 @@ export function PortalMealCard({
               <span dir="ltr" className="tabular-nums">
                 {meal.timeOfDay}
               </span>
-              {dish ? ` · ${dish.nameAr}` : null}
+              {dish ? ` · ${localizedName(dish, locale)}` : null}
             </span>
           </span>
 
@@ -251,9 +264,22 @@ export function PortalMealCard({
                     keep the same two-step gap `kcalValue`/`mealEnergyLabel` uses
                     on the other side of this row.
                   */}
-                  <p className="font-heading text-heading-sm text-primary">{dish.nameAr}</p>
-                  <p className="text-sm text-secondary-foreground">
-                    {t('portion', { servings: dish.servings, label: dish.baseServingLabel })}
+                  <p className="font-heading text-heading-sm text-primary" dir="auto">
+                    {localizedName(dish, locale)}
+                  </p>
+                  {/*
+                    The real weight to eat, not "×1.5 portions" — a number the
+                    client can act on, summed from the dish's own foods at the
+                    planned serving. A per-food Arabic breakdown is project #2's
+                    job, once the foods carry Arabic names.
+                  */}
+                  <p className="text-sm text-secondary-foreground tabular-nums" dir="auto">
+                    {t('totalGrams', { value: roundGrams(meal.grams, 5) })}
+                    {/* The dish's own serving label — "صحن متوسط" — carries the
+                        shape of the portion when there is no guide to state it. */}
+                    {servingLines.length === 0 && dish.baseServingLabel
+                      ? ` · ${dish.baseServingLabel}`
+                      : null}
                   </p>
                 </div>
 
@@ -297,7 +323,7 @@ export function PortalMealCard({
                           claiming these alternatives are "on track" (§06).
                         */}
                         <Badge className="px-3 py-1">
-                          {option.nameAr} ·{' '}
+                          {localizedName(option, locale)} ·{' '}
                           {t('kcalValue', { value: roundForDisplay('kcal', option.kcal) })}
                         </Badge>
                       </li>
@@ -307,18 +333,25 @@ export function PortalMealCard({
               ) : null}
 
               {/*
-                The ingredient-and-gram list that used to close this card is gone.
-                It was the longest thing in it — a dish runs to a dozen rows — and
-                it is a recipe, which is a different document from a plan. The
-                dish name and the portion say what to eat; the breakdown behind it
-                remains on the dietitian's side, where it is what the arithmetic
-                is checked against.
+                What to serve — at most two lines, from the dish's serving guide.
 
-                `dish.ingredients` is still loaded and still summed: `foods` is
-                what every calorie on this screen is derived from at read time
-                (see `docs/architecture.md`), so the join stays whether or not it
-                is drawn.
+                Briefly this printed the whole recipe, which put "40 g onion, 10 g
+                oil, 15 g tomato paste" on a patient's screen as though it were an
+                instruction. A recipe is a different document from a plan, and the
+                part of it a person acts on is two lines long. A dish with no guide
+                shows nothing here: the weight above already answers "how much",
+                and inventing an instruction is not an option on this surface.
+
+                Read-only by construction: there is no control here and none is
+                rendered disabled. A client changing their own prescription is a
+                thing the portal does not do.
               */}
+              {servingLines.length > 0 ? (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground">{t('mealQuantity')}</p>
+                  <ServingGuideList lines={servingLines} />
+                </div>
+              ) : null}
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">{t('noMeal')}</p>

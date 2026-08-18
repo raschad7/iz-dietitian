@@ -12,6 +12,7 @@ import type { CatalogEntry } from './queries';
 /** A catalog row with only the fields the filter reads. */
 function dish(overrides: Partial<CatalogEntry> & { id: string }): CatalogEntry {
   return {
+    clinicId: null,
     slug: overrides.id,
     nameAr: 'طبق',
     nameEn: 'Dish',
@@ -22,12 +23,19 @@ function dish(overrides: Partial<CatalogEntry> & { id: string }): CatalogEntry {
     isActive: true,
     ingredients: [],
     baseKcal: 400,
+    nutritionCategory: 'balanced',
     blockedBy: [],
     ...overrides,
   } as CatalogEntry;
 }
 
-const NO_FILTERS: CatalogFilters = { needle: '', mealType: null, tags: [], options: [] };
+const NO_FILTERS: CatalogFilters = {
+  needle: '',
+  mealType: null,
+  tags: [],
+  nutrition: [],
+  options: [],
+};
 const NO_CONTEXT: CatalogContext = { usage: {}, budgetKcal: null };
 
 const ids = (rows: readonly CatalogEntry[]) => rows.map((row) => row.id);
@@ -42,6 +50,31 @@ describe('filterCatalog search', () => {
     expect(ids(filterCatalog(catalog, { ...NO_FILTERS, needle: 'حمص' }, NO_CONTEXT))).toEqual(['a']);
     expect(ids(filterCatalog(catalog, { ...NO_FILTERS, needle: 'shak' }, NO_CONTEXT))).toEqual(['b']);
     expect(ids(filterCatalog(catalog, { ...NO_FILTERS, needle: 'a' }, NO_CONTEXT))).toEqual(['a', 'b']);
+  });
+});
+
+describe('filterCatalog computed nutrition', () => {
+  // The "high protein" filter reads the recipe-derived `nutritionCategory`, never
+  // a stored tag — a dish is only kept if its own numbers make it high-protein.
+  const catalog = [
+    dish({ id: 'protein', nutritionCategory: 'high_protein', tags: [] }),
+    // Carries no manual tag AND is not computed high-protein: must be excluded,
+    // proving the filter is not reading tags.
+    dish({ id: 'carby', nutritionCategory: 'high_carb', tags: ['economical'] }),
+    dish({ id: 'balanced', nutritionCategory: 'balanced', tags: [] }),
+  ];
+
+  test('keeps only dishes the recipe computes as high-protein', () => {
+    expect(ids(filterCatalog(catalog, { ...NO_FILTERS, nutrition: ['high_protein'] }, NO_CONTEXT))).toEqual([
+      'protein',
+    ]);
+  });
+
+  test('does not treat a manual tag as high-protein', () => {
+    // 'carby' has a practical tag but the wrong computed category — a dish cannot
+    // be tagged into the nutrition filter.
+    const kept = filterCatalog(catalog, { ...NO_FILTERS, nutrition: ['high_protein'] }, NO_CONTEXT);
+    expect(ids(kept)).not.toContain('carby');
   });
 });
 

@@ -13,6 +13,8 @@ function meal(slotKey: string, label: string, timeOfDay: string): BoardMeal {
     dish: null,
     rationaleAr: null,
     totals: emptyTotals(),
+    grams: 0,
+    nutritionFrozen: false,
     budgetKcal: 0,
     options: [],
   };
