@@ -8,7 +8,12 @@ import { type PortalAppointment, type PortalRequest, type RequestKind } from './
 
 /**
  * Turning the client's own data — never a separate notifications table — into
- * the feed the standalone `/portal/notifications` screen renders.
+ * the feed behind the portal header's bell (`PortalNotificationsBell`).
+ *
+ * It used to fill a screen of its own at `/portal/notifications`; that route is
+ * gone and the feed opens as a popover over whatever tab the client is on. What
+ * this file produces is unchanged either way — the panel renders exactly the
+ * rows the screen did, from exactly this loader.
  *
  * Pure — no database, no Next.js, no `Date.now()` — same reasoning as
  * `adherence.ts` and `check-ins.ts`: everything time-dependent arrives as the
