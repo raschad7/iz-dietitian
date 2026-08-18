@@ -76,7 +76,9 @@
       "formDescription": "Update the details that identify you within the clinic team.",
       "accountEmail": "Account email",
       "accountEmailHint": "This email is managed through your sign-in account.",
-      "identityTitle": "Account"
+      "identityTitle": "Account",
+      "languageTitle": "Preferred language",
+      "languageDescription": "The language this workspace is shown in."
     },
     "clinic": {
       "title": "Clinic",
@@ -549,10 +551,10 @@
       "visitsSoFar": "Visits so far",
       "plansWritten": "Plans written",
       "tabs": {
-        "account": "Account",
+        "account": "Visits",
         "nutrition": "Nutrition",
         "progress": "Progress",
-        "security": "Security",
+        "security": "The Gate",
         "billing": "Plans"
       }
     },

@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 
+import { LocaleSwitcher } from '@/components/layout/locale-switcher';
 import { Callout } from '@/components/ui/callout';
 import { Field, FieldError } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
@@ -44,6 +45,7 @@ export function PersonalProfileSettings({ locale, profile, email }: {
 }) {
   const t = useTranslations('settingsWorkspace');
   const tc = useTranslations('clinicProfile');
+  const tl = useTranslations('localeSwitcher');
   const { professional } = profile;
 
   return (
@@ -72,6 +74,25 @@ export function PersonalProfileSettings({ locale, profile, email }: {
         */}
         <ProfileRow locale={locale} field="professionalTitle" label={tc('professionalTitle')} value={professional.professionalTitle} />
         <ProfileRow locale={locale} field="specialty" label={tc('specialty')} value={professional.specialty} />
+      </SettingsSection>
+
+      {/*
+        The interface language moved here out of the rail's account menu: it is
+        a preference of the signed-in person, so it belongs beside the rest of
+        them rather than among the rail's destinations. The `dropdown` variant
+        is the one that states the endonym, which is what a settings row's
+        action slot has room for.
+      */}
+      <SettingsSection
+        title={t('profile.languageTitle')}
+        description={t('profile.languageDescription')}
+        icon="language"
+      >
+        <SettingsRow
+          label={tl('label')}
+          value={<span lang={locale}>{tl(`${locale}Name`)}</span>}
+          action={<LocaleSwitcher variant="dropdown" side="top" />}
+        />
       </SettingsSection>
     </div>
   );
