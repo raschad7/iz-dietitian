@@ -131,7 +131,9 @@ export async function PendingRequestsCard({
       longer needs the `xl:shrink-0` it carried in the narrow column: it is a
       grid item now, not a flex child, and nothing is trying to compress it.
     */
-    <Card className="min-h-0">
+    /* `data-guide` marks this card for the guided tour's requests step — see
+       `src/features/user-guide/steps.ts`. */
+    <Card data-guide="dashboard-requests" className="min-h-0">
       {/* The register's header, disc and all — the same neutral mark, because
           the card is not a target and has nothing to promise the pointer. The
           count beside the title is what says this one is waiting on you. */}

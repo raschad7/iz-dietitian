@@ -183,7 +183,7 @@ export function DishList({
         column heads below — and `overflow-x-auto` stays only as the floor under
         a case the rearrangement cannot absorb.
       */}
-      <TableRoot className="md:min-h-0 md:flex-1 md:overflow-y-auto">
+      <TableRoot data-guide="dishes-list" className="md:min-h-0 md:flex-1 md:overflow-y-auto">
         <Table>
           <TableHeader sticky>
             {/*

@@ -97,6 +97,20 @@ type ShellProps = {
    * hand the overflow to, so a fixed frame would clip them.
    */
   className?: string;
+  /**
+   * An extra block at the foot of the rail's content, below the destinations
+   * and above the account row.
+   *
+   * A slot rather than a flag, because what goes there is not this component's
+   * business: the staff layout puts `GuideLauncher` in it, and the shell has no
+   * reason to know what a guided tour is — the portal renders the same rail and
+   * passes nothing.
+   *
+   * Whatever is passed is responsible for its own spacing. `SidebarContent` is
+   * a flex column, so a block that wants to sit against the footer says
+   * `mt-auto` itself.
+   */
+  secondary?: React.ReactNode;
   children: React.ReactNode;
 };
 
@@ -135,6 +149,7 @@ export function AppShell({
   user,
   icons,
   className,
+  secondary,
   children,
 }: ShellProps) {
   return (
@@ -164,7 +179,15 @@ export function AppShell({
       overflow-hidden` through here.
     */
     <SidebarProvider className={cn('q-app-shell', className)} railOnly={Boolean(user)}>
-      <AppSidebar items={items} title={title} showTitle={showTitle} brand={brand} user={user} icons={icons} />
+      <AppSidebar
+        items={items}
+        title={title}
+        showTitle={showTitle}
+        brand={brand}
+        user={user}
+        icons={icons}
+        secondary={secondary}
+      />
       <SidebarInset>
         {/*
           The phone app bar is gone with the drawer it existed to open.
@@ -197,7 +220,15 @@ export function AppShell({
  * taken — the account row at the foot is the obvious candidate.
  */
 
-function AppSidebar({ items, title, showTitle = true, brand, user, icons }: Omit<ShellProps, 'children'>) {
+function AppSidebar({
+  items,
+  title,
+  showTitle = true,
+  brand,
+  user,
+  icons,
+  secondary,
+}: Omit<ShellProps, 'children'>) {
   const t = useTranslations('nav');
   const pathname = usePathname();
 
@@ -263,7 +294,10 @@ function AppSidebar({ items, title, showTitle = true, brand, user, icons }: Omit
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupContent>
-            <SidebarMenu>
+            {/* The guided tour's first anchor: the whole list, not a row of it.
+                Its opening step is about the rail as a thing — see
+                `features/user-guide/steps.ts`. */}
+            <SidebarMenu data-guide="nav">
               {items.map((item) => {
                 const icon = icons?.[item.labelKey];
                 const label = t(item.labelKey);
@@ -296,6 +330,10 @@ function AppSidebar({ items, title, showTitle = true, brand, user, icons }: Omit
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* See `secondary` on `ShellProps`. The staff shell puts the user
+            guide here; the portal passes nothing and this renders nothing. */}
+        {secondary}
       </SidebarContent>
 
       {/*

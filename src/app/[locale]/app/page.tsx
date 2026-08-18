@@ -97,7 +97,14 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
         them is what let it stop being a panel that vanished when there was
         nothing in it.
       */}
-      <div className="grid gap-4 xl:shrink-0 lg:grid-cols-3">
+      {/*
+        `data-guide` is on the band rather than on the two stat cards inside it.
+        `StatCards` renders them as siblings so that each is its own grid item,
+        and a wrapper around the pair would collapse both into one cell — so the
+        tour's first dashboard step lights the whole row and its second zooms
+        into the requests card. See `src/features/user-guide/steps.ts`.
+      */}
+      <div data-guide="dashboard-stats" className="grid gap-4 xl:shrink-0 lg:grid-cols-3">
         <StatCards stats={data.stats} today={data.today} locale={locale} />
         <PendingRequestsCard data={data.requests} locale={locale} now={data.now} />
       </div>
@@ -110,7 +117,7 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
         push the card's own footer off the viewport — which is precisely the
         "have to scroll a bit" this replaced.
       */}
-      <div className="flex min-w-0 flex-col xl:min-h-0 xl:flex-1">
+      <div data-guide="dashboard-agenda" className="flex min-w-0 flex-col xl:min-h-0 xl:flex-1">
         <AppointmentsPanel
           appointments={data.weekAppointments}
           weekStart={data.weekStart}
