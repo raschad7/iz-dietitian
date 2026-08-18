@@ -175,7 +175,18 @@ export function DayColumn({
       ref={canvasRef}
       data-day={date}
       className={cn(
-        'relative flex-1 select-none border-s border-border',
+        /*
+          `calendar-day-canvas` carries one declaration and it is what makes the
+          hold-to-book gesture possible on a finger: `-webkit-touch-callout:
+          none`. See the rule in `globals.css` — without it iOS answers the same
+          press with its own callout and magnifier, cancels the pointer, and the
+          gesture ends at the moment it was meant to arm.
+
+          Deliberately not `touch-action: none`: this surface has to stay
+          pannable, which is the whole reason the gesture needs a hold in the
+          first place.
+        */
+        'calendar-day-canvas relative flex-1 select-none border-s border-border',
         // Two weights, because they mean different things. A closed day refuses
         // a booking, so it is the heavier fill; a past day merely *is* past, and
         // now takes bookings like any other, so it gets half as much — enough to

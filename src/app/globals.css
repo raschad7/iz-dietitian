@@ -588,6 +588,36 @@
 }
 
 :root {
+  /*
+   * ── The safe area, as four tokens ──
+   *
+   * `viewport-fit=cover` (see the `viewport` export in `[locale]/layout.tsx`)
+   * makes the document paint edge to edge, which is what an installed PWA
+   * should do and what stops iOS letterboxing it inside a band of theme colour.
+   * The other half of that bargain is that anything pinned to an edge now has
+   * to keep itself clear of the home indicator, the status bar and the rounded
+   * corners.
+   *
+   * Tokens rather than `env()` at each call site, for two reasons that both
+   * caught this codebase already. `env()` with no fallback invalidates the
+   * whole declaration it appears in wherever the function is unsupported, so
+   * every use needs the `, 0px` spelled out and one that forgets fails
+   * silently. And these are read from Tailwind arbitrary values, where the
+   * comma inside `env(…, 0px)` has to be escaped — a token has no commas, so
+   * `pb-(--q-safe-b)` just works.
+   *
+   * Named for the *logical* edges the app writes everywhere else, except that
+   * the physical mapping is correct as-is: the safe area is a property of the
+   * hardware, not of the text direction, so a notch stays at the top and the
+   * home indicator at the bottom in Arabic exactly as in English. The inline
+   * pair is deliberately physical-to-logical-agnostic for the same reason — a
+   * rounded corner is on the same side of the glass in both scripts.
+   */
+  --q-safe-t: env(safe-area-inset-top, 0px);
+  --q-safe-b: env(safe-area-inset-bottom, 0px);
+  --q-safe-l: env(safe-area-inset-left, 0px);
+  --q-safe-r: env(safe-area-inset-right, 0px);
+
   /* Surface & text */
   /*
    * bg.canvas — plain white. It used to be the warm n-25, one step below the
@@ -1657,6 +1687,57 @@
   button:not(:disabled) {
     cursor: pointer;
   }
+
+  /*
+   * ── Taps land immediately ──
+   *
+   * iOS Safari still watches for a double-tap-to-zoom on any element whose
+   * `touch-action` permits it, so the *first* tap on a control is held back
+   * until the gesture is known not to be the start of a zoom. The effect is a
+   * control that feels dead for a beat, a menu that opens after the finger has
+   * already lifted and moved on, and a second tap in quick succession that
+   * zooms the page instead of activating anything.
+   *
+   * ⚠ **This is invisible in DevTools device emulation.** Blink removed the
+   * delay outright for `width=device-width` documents years ago, so Chrome —
+   * including every iPad preset in its device toolbar, which is Blink wearing
+   * an iPad's dimensions — has nothing to demonstrate. WebKit kept the
+   * behaviour and only `touch-action` opts out of it. It is the single most
+   * likely reason a dropdown, sheet or select "works on the desktop and in the
+   * inspector but not on the iPad".
+   *
+   * `manipulation` disables double-tap zoom and the delay it implies while
+   * leaving panning and pinch-zoom alone, so nothing about scrolling or
+   * accessibility zoom changes.
+   *
+   * **The selector is elements plus `[role]`, and the layer is what keeps it
+   * safe.** Base UI renders its menu items, options and tabs as `<div>`s
+   * carrying a role rather than as buttons, so an element-only selector would
+   * miss exactly the popup rows this is meant to fix. Living in `@layer base`
+   * means any utility (`touch-none` on the scroll-area thumb) and any unlayered
+   * rule (`.planner-drag-handle`, `.calendar-drag-grip`, `.calendar-resize-grip`,
+   * which all claim `touch-action: none` so dnd-kit and the calendar's pointer
+   * capture own the gesture) still win without an `!important` anywhere.
+   */
+  button,
+  a[href],
+  label,
+  summary,
+  select,
+  [role='button'],
+  [role='link'],
+  [role='menuitem'],
+  [role='menuitemcheckbox'],
+  [role='menuitemradio'],
+  [role='option'],
+  [role='tab'],
+  [role='switch'],
+  [role='checkbox'],
+  [role='radio'],
+  [role='combobox'] {
+    touch-action: manipulation;
+  }
+
   body {
     @apply bg-background text-foreground;
     font-size: var(--text-body-md);
@@ -1727,9 +1808,51 @@
    * the wheel's scroll chain skips the app shell's own `main` scroller
    * entirely; there is nothing else behind a dialog for a wheel to find.
    */
+  /*
+   * ⚠ **`overflow: hidden` is a wheel lock, not a touch lock.** A trackpad and a
+   * mouse wheel scroll the root through its overflow, so hiding it stops them.
+   * A finger on iOS does not go through the same path: WebKit keeps
+   * touch-panning and rubber-banding a root whose overflow is hidden, so on the
+   * hardware the page still slid under every modal while the desktop and every
+   * DevTools iPad preset — Blink, where the property does hold — showed a
+   * frozen page. `overscroll-behavior` is the half that WebKit does honour: it
+   * severs the scroll chain, so a pan that starts on the backdrop, or one that
+   * runs past the end of a scrollable dialog body, has nowhere to propagate to
+   * and the page behind stays put.
+   *
+   * `none` rather than `contain`, and only while a modal is open: it also
+   * suppresses the rubber-band overscroll, which is the visible half of the
+   * same problem — a dialog that bounces the whole page a centimetre when a
+   * list inside it is flicked past its end.
+   */
   html:has(dialog[open]),
   html:has(dialog[open]) body {
     overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  /*
+   * ── Anything that scrolls inside an overlay keeps its scroll to itself ──
+   *
+   * The rule above stops the chain at the root. This stops it at the source, so
+   * a flick that reaches the end of a menu, a select's list, a popover or a
+   * dialog body does not hand the remainder to whatever is behind it. It
+   * matters most for the surfaces Base UI portals to `<body>` — those sit
+   * *outside* the `<dialog>` the rule above keys on, so on a page with no
+   * dialog open there was nothing severing the chain at all.
+   *
+   * Keyed on the `data-slot` names this project already gives its overlays plus
+   * Base UI's own `[data-popup]`, rather than on `overflow` — there is no
+   * selector for "this element scrolls", and every one of these surfaces
+   * declares `overflow-y-auto` at the component.
+   */
+  [data-slot='dropdown-menu-content'],
+  [data-slot='select-content'],
+  [data-slot='popover-content'],
+  [data-slot='combobox-content'],
+  [data-slot='sheet-content'],
+  [data-slot='scroll-area-viewport'] {
+    overscroll-behavior: contain;
   }
 
   /*
@@ -1853,9 +1976,9 @@
    */
   @media (width >= 48rem) {
     .portal-home-glow {
-      inset-block-start: -25.94vh;
-      height: 74.64vh;
-      filter: blur(9.24vh);
+      inset-block-start: -25.94dvh;
+      height: 74.64dvh;
+      filter: blur(9.24dvh);
     }
   }
 
@@ -2337,6 +2460,432 @@
 }
 
 /*
+ * ══ Anchored popups become bottom sheets on touch hardware ══
+ *
+ * Select, Combobox, Dropdown menu and Popover all anchor themselves to their
+ * trigger, flip when there is no room and clamp to `--available-height`. That
+ * is the right control for a pointer, and it is the wrong one for a thumb: the
+ * list opens wherever the trigger happens to be, which on a tablet is often the
+ * middle of the screen with a keyboard about to cover the half of it that
+ * matters, and every row is a small target a long way from the hand.
+ *
+ * So on a coarse pointer they rise from the block-end edge instead — full
+ * width, rounded at the top, thumb-height rows, clear of the home indicator.
+ *
+ * ## Why `(pointer: coarse)` and not a width
+ *
+ * A width query cannot answer this question. An iPad is 810–1366 CSS px, which
+ * is desktop territory by every breakpoint in this file — so a `max-sm:` or
+ * even `max-lg:` rule leaves the exact device this was reported on with the
+ * anchored popup it could not use. `pointer: coarse` asks about the input
+ * hardware, which is the thing that actually decides whether a popup should be
+ * a sheet, and it is correct for a phone, a tablet and a touchscreen laptop
+ * alike while leaving every mouse-driven window untouched at any size.
+ *
+ * ## How it works, and why it is one rule rather than four components
+ *
+ * Base UI writes the anchored position as *inline* styles on the positioner, so
+ * a stylesheet needs `!important` to take it back — and once it has, the
+ * positioner is just a fixed box pinned to the bottom edge. Nothing about the
+ * popup's DOM, focus management, keyboard navigation, `dir` handling or
+ * dismissal changes; only where the box lands. `meal-inspector.tsx` already
+ * does exactly this at `max-sm`, per call site — this is the same move made
+ * once, on the `data-slot` hooks the four positioners now carry, so every
+ * existing caller and every future one gets it without knowing to ask.
+ *
+ * ⚠ `display` is deliberately not touched. Base UI hides a closed popup by
+ * setting `display: none` on the positioner, and an `!important` display here
+ * would strand every closed popup on screen.
+ */
+@media (pointer: coarse) {
+  [data-slot='select-positioner'],
+  [data-slot='combobox-positioner'],
+  [data-slot='dropdown-menu-positioner'],
+  [data-slot='popover-positioner'] {
+    position: fixed !important;
+    inset-inline: 0 !important;
+    inset-block: auto 0 !important;
+    /*
+      The anchored transform is what carried the popup to its trigger, and the
+      transform origin with it. Both have to go, or the sheet arrives translated
+      away from the edge it is now pinned to.
+    */
+    transform: none !important;
+    min-width: 0 !important;
+    width: auto !important;
+    max-width: none !important;
+    max-height: none !important;
+  }
+
+  [data-slot='select-content'],
+  [data-slot='combobox-content'],
+  [data-slot='dropdown-menu-content'],
+  [data-slot='popover-content'] {
+    width: 100% !important;
+    min-width: 0 !important;
+    /*
+      `--anchor-width` and `--available-*` describe a box anchored to a trigger.
+      A sheet is measured against the screen instead: tall enough to be worth
+      opening, never so tall that the page behind it disappears and the sheet
+      reads as a page of its own.
+    */
+    max-width: none !important;
+    max-height: min(75dvh, calc(100dvh - 3rem)) !important;
+    /*
+      Risen from the edge, so only the block-start corners exist — the same
+      language `Dialog`'s sheet placement speaks, and the same radius.
+    */
+    border-start-start-radius: var(--qiwam-radius-lg);
+    border-start-end-radius: var(--qiwam-radius-lg);
+    border-end-start-radius: 0;
+    border-end-end-radius: 0;
+    /*
+      The sheet's own fill runs under the home indicator; its last row does not.
+      Added to whatever padding the popup already carries rather than replacing
+      it, so a menu keeps its 4px gutter and gains the inset beneath it.
+    */
+    padding-block-end: calc(var(--q-safe-b) + 0.25rem);
+    /* A sheet is lifted off the page, not ringed against it. */
+    box-shadow: var(--shadow-overlay, 0 -8px 32px rgb(0 0 0 / 12%));
+  }
+
+  /*
+    The entrance. It replaces the anchored popup's zoom-and-fade, which
+    describes a box growing out of its trigger — a movement a sheet does not
+    make. `!important` because the utilities it replaces are `animation`
+    shorthands from `tw-animate-css` on the same element.
+
+    The reduced-motion block near the top of this file still wins: it caps
+    `animation-duration` with `!important` of its own and is declared later.
+  */
+  [data-slot='select-content'][data-open],
+  [data-slot='combobox-content'][data-open],
+  [data-slot='dropdown-menu-content'][data-open],
+  [data-slot='popover-content'][data-open] {
+    animation: q-popup-sheet-in 220ms var(--ease-sweep) !important;
+  }
+
+  [data-slot='select-content'][data-closed],
+  [data-slot='combobox-content'][data-closed],
+  [data-slot='dropdown-menu-content'][data-closed],
+  [data-slot='popover-content'][data-closed] {
+    animation: q-popup-sheet-out 160ms ease-in both !important;
+  }
+
+  /*
+    Rows reach the touch floor. The anchored menu's 1px/4px gutters are a mouse
+    target; a thumb needs the 44px the rest of this file already reserves for
+    coarse pointers (see `.planner-drag-handle` and `.calendar-drag-grip`).
+    `min-block-size` rather than a height, so a two-line row still grows.
+  */
+  [data-slot='dropdown-menu-item'],
+  [data-slot='dropdown-menu-checkbox-item'],
+  [data-slot='dropdown-menu-radio-item'],
+  [data-slot='dropdown-menu-sub-trigger'],
+  [data-slot='combobox-item'] {
+    min-block-size: 44px;
+    padding-inline: 0.75rem;
+  }
+
+  [data-slot='select-item'] {
+    min-block-size: 44px;
+  }
+}
+
+/*
+ * ══ …and stops being full-bleed once the screen is wider than a phone ══
+ *
+ * The block above is right about *where* a sheet belongs and says nothing
+ * useful about how wide it should be, because on the device it was written for
+ * the two questions have the same answer: a phone in portrait is 390–430px, and
+ * full-bleed is the only width there is. Turn that phone sideways and it is
+ * 850px; an iPad in landscape is 1180–1366px. A select with six options and a
+ * dropdown with four rows were being stretched across the whole of that — a
+ * band of empty popover with the labels stranded at the inline-start end and
+ * the check marks at the other, which is a longer journey for the eye than the
+ * anchored popup this replaced.
+ *
+ * So above `sm` the sheet takes a measure and centres on the block-end edge.
+ * It is still a sheet — still risen from the thumb's edge, still square at the
+ * bottom, still the same entrance — it simply stops being as wide as the glass.
+ *
+ * **28rem, which is the measure the app already uses for a modal surface** —
+ * `Dialog`'s own centred card is `min(28rem, …)`, and a menu is not a wider
+ * kind of thing than a dialog. It was briefly 40rem, on the reasoning that
+ * Material caps a large-screen bottom sheet there; on an iPad that is still
+ * two-thirds of the glass for a list of four rows, which is the width this was
+ * meant to stop. Sharing the number with the card is also the point: a tablet
+ * shows one width for every surface that interrupts the page, whether it rises
+ * from the edge or floats in the middle.
+ *
+ * Below 40rem nothing changes at all — a phone in portrait never matches this
+ * query, so the full-bleed behaviour the block above describes is exactly as it
+ * was.
+ *
+ * `min(100%, …)` rather than `max-width`, because the rule above sets
+ * `width: 100% !important` and an `!important` width outranks any max-width;
+ * the cap has to be inside the same declaration that beats it.
+ */
+@media (pointer: coarse) and (width >= 40rem) {
+  [data-slot='select-content'],
+  [data-slot='combobox-content'],
+  [data-slot='dropdown-menu-content'],
+  [data-slot='popover-content'] {
+    width: min(100%, 28rem) !important;
+    margin-inline: auto;
+  }
+}
+
+@keyframes q-popup-sheet-in {
+  from {
+    transform: translateY(100%);
+    opacity: 0.6;
+  }
+}
+
+@keyframes q-popup-sheet-out {
+  to {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+/*
+ * ══ The safe area, applied ══
+ *
+ * `viewport-fit=cover` is what makes an installed app fill the screen instead
+ * of sitting letterboxed in a band of theme colour, and the price of it is that
+ * every surface pinned to an edge is now responsible for keeping its own
+ * content clear of the home indicator, the status bar and the rounded corners.
+ * The `--q-safe-*` tokens beside the colour tokens are the four numbers; this
+ * is the list of surfaces that owe them.
+ *
+ * ⚠ **None of this is observable in device emulation.** DevTools reports zero
+ * for every inset whatever device it is imitating, so both before and after
+ * this block it renders identically there. The difference appears only on
+ * hardware with a home indicator or a notch, and most sharply in an installed
+ * PWA, which is the one context with no browser chrome to absorb the
+ * difference.
+ *
+ * Everything below adds padding *inside* a surface that already reaches the
+ * edge. Nothing is inset away from the edge itself — a bottom sheet still
+ * touches the bottom of the screen and its background still runs under the home
+ * indicator, which is what a bottom sheet should do; it is the *content* that
+ * moves up.
+ */
+
+/*
+ * The bottom sheet. `data-placement` comes from `Dialog`, and only the sheet
+ * gets this: a centred card floats clear of every edge already.
+ *
+ * The inset lands on the footer where there is one, so the footer's own
+ * `bg-muted/50` runs down into the safe area and the sheet reads as one
+ * surface. Where there is no footer, the body takes it instead — a sheet whose
+ * last row was a form field otherwise ended with that field under the home
+ * indicator. `:has()` picks whichever applies, so a dialog never gets both.
+ *
+ * Held to below `sm`, because that is where `Dialog` stops being a sheet and
+ * becomes the same centred card as `placement="center"`.
+ */
+@media (max-width: 39.999rem) {
+  .q-dialog[data-placement='sheet'] [data-slot='dialog-footer'] {
+    padding-block-end: calc(1rem + var(--q-safe-b));
+  }
+
+  .q-dialog[data-placement='sheet']:not(:has([data-slot='dialog-footer'])) [data-slot='dialog-body'] {
+    padding-block-end: calc(1rem + var(--q-safe-b));
+  }
+}
+
+/*
+ * Base UI's `Sheet`, which is a different component from the `<dialog>` above
+ * and reaches an edge on all four sides depending on its `side`. Each one takes
+ * the inset for the edge it is actually against; a start/end rail spans the
+ * full block axis, so it takes both.
+ */
+[data-slot='sheet-content'][data-side='bottom'] {
+  padding-block-end: var(--q-safe-b);
+}
+
+[data-slot='sheet-content'][data-side='top'] {
+  padding-block-start: var(--q-safe-t);
+}
+
+[data-slot='sheet-content'][data-side='inline-start'],
+[data-slot='sheet-content'][data-side='inline-end'] {
+  padding-block-start: var(--q-safe-t);
+  padding-block-end: var(--q-safe-b);
+}
+
+/*
+ * …and the inline edge each of those is against, which is the half that only
+ * appears once the device is turned. `data-side` is logical and the insets are
+ * physical, so each pairing is stated with the `dir` that makes it the same
+ * edge of the glass. In portrait every one of these resolves to `0px` and the
+ * rules are inert, which is why this is the piece that survives a review on a
+ * desk and fails in a hand.
+ */
+[dir='ltr'] [data-slot='sheet-content'][data-side='inline-start'],
+[dir='rtl'] [data-slot='sheet-content'][data-side='inline-end'] {
+  padding-left: var(--q-safe-l);
+}
+
+[dir='ltr'] [data-slot='sheet-content'][data-side='inline-end'],
+[dir='rtl'] [data-slot='sheet-content'][data-side='inline-start'] {
+  padding-right: var(--q-safe-r);
+}
+
+/*
+ * The portal's floating request button. It is `fixed` in the block-end inline-
+ * end corner — the one corner of the screen where *both* insets meet — and its
+ * `end-4` is a 16px gutter measured from the edge of the glass rather than from
+ * the edge of the safe area. In landscape a phone reports ~47px there, so a
+ * 56px circle sat a third of the way under the rounded corner and the sensor
+ * housing beside it, on the control that is how a client asks for an
+ * appointment at all.
+ *
+ * `max()` so the utility's 16px stays the floor: nothing changes in portrait,
+ * on a desktop, or on any screen that reports no inset. Physical properties for
+ * the reason recorded on `.q-app-shell` — `inset-inline-end` would apply the
+ * right-hand inset to the left of the glass in Arabic.
+ *
+ * The block-end edge needs nothing here: `--q-fab-offset-bottom` already adds
+ * `env(safe-area-inset-bottom)` through the tab bar's clearance, and the
+ * `1.5rem` fallback it falls back to on the `(screen)` group clears a home
+ * indicator on its own.
+ *
+ * Each rule clears the opposite edge to `auto`, which is a no-op in the case
+ * these are written for — the app sets `dir` on <html> and nowhere above this
+ * button — and the guard for the case they are not. `[dir='ltr'] X` is a
+ * *descendant* selector, so both rules match an RTL subtree of an LTR document;
+ * with `left` and `right` then both set on an auto-width fixed element, the
+ * button would stretch between them instead of sitting in its corner.
+ */
+[dir='ltr'] .q-fab {
+  right: max(1rem, var(--q-safe-r));
+  left: auto;
+}
+
+[dir='rtl'] .q-fab {
+  left: max(1rem, var(--q-safe-l));
+  right: auto;
+}
+
+/*
+ * The app shell — staff and portal both, since each of the portal's two route
+ * groups renders through the same `AppShell`.
+ *
+ * It is `h-svh overflow-hidden` in the staff area and a `min-h-dvh` column in
+ * the portal, and under `viewport-fit=cover` either measures the whole screen
+ * rather than the safe part of it. Padding rather than a smaller height, so the
+ * shell's fill still reaches both ends and only its contents move.
+ *
+ * ⚠ **The block pair is all this element can do, and the inline pair used to be
+ * here and was wrong twice over.**
+ *
+ * It was wrong *physically*: `padding-inline-start` resolves to the right-hand
+ * edge in Arabic, so it applied `--q-safe-l` — the inset for the left of the
+ * glass — to the right of it. The insets describe hardware, not text: a sensor
+ * housing does not move when the reader switches language. Anything consuming
+ * them has to say `left`/`right`, which is why every inline rule below does.
+ *
+ * And it was wrong *structurally*: the rail is `position: fixed`, so it is laid
+ * out against the viewport and every ancestor's padding — this one included —
+ * passes it by. Measured on an 852×393 landscape viewport with the four insets
+ * simulated at the values an iPhone reports there, the rail spanned 0→256 while
+ * `main` began at 303: a 47px stripe of bare canvas down the middle of the
+ * shell, with the rail's own first row still under the status bar and its
+ * inline-start column still under the housing. The inset had moved the one box
+ * that did not need it and missed both that did.
+ *
+ * So the inline insets now sit on the two boxes that are actually against the
+ * glass — `main` and the rail's own contents — and each is stated for the edge
+ * it is against. Nothing is inset twice, and there is no gap between them,
+ * because the shell itself is no longer inset at all.
+ */
+.q-app-shell {
+  padding-block-start: var(--q-safe-t);
+  padding-block-end: var(--q-safe-b);
+}
+
+/*
+ * `main`'s outer edge — the one facing the screen rather than the rail. In
+ * English the rail is on the left and this is the right-hand inset; in Arabic
+ * it is the mirror. The rail-facing edge needs nothing: the rail is 256px of
+ * fill between that edge and the glass, which is five times any inset a phone
+ * reports.
+ */
+[dir='ltr'] .q-app-shell [data-slot='sidebar-inset'] {
+  padding-right: var(--q-safe-r);
+}
+
+[dir='rtl'] .q-app-shell [data-slot='sidebar-inset'] {
+  padding-left: var(--q-safe-l);
+}
+
+/*
+ * Below `md` the rail is a Sheet rather than a column in flow, so `main` is the
+ * full width of the screen and both of its edges are against the glass. The
+ * breakpoint is `Sidebar`'s own `hidden md:block`, restated here in the range
+ * syntax the rest of this file uses.
+ *
+ * A locked icon rail *is* in flow at this width, and this rule insets `main`
+ * past it anyway. That costs nothing on real hardware: the inline insets are
+ * reported below `md` only in landscape, and no device is under 768px in
+ * landscape — a phone held sideways is 812px at its narrowest.
+ */
+@media (width < 48rem) {
+  .q-app-shell [data-slot='sidebar-inset'] {
+    padding-left: var(--q-safe-l);
+    padding-right: var(--q-safe-r);
+  }
+}
+
+/*
+ * The rail, which has to inset itself for the reason above: it is fixed to the
+ * viewport, so it is the shell's padding that misses it, not the other way
+ * round.
+ *
+ * On the inner rather than on the fixed container, so the rail's `bg-sidebar`
+ * still runs under the status bar, the home indicator and the rounded corner
+ * and only the navigation inside it moves. Both ends always — the rail spans
+ * the full block axis whichever side it is on — and one inline edge, the one it
+ * is pinned to. `data-side` is logical, so each is paired with the `dir` that
+ * makes it the physical edge the inset belongs to.
+ */
+[data-slot='sidebar-container'] > [data-slot='sidebar-inner'] {
+  padding-block: var(--q-safe-t) var(--q-safe-b);
+}
+
+[dir='ltr'] [data-slot='sidebar-container'][data-side='inline-start'] > [data-slot='sidebar-inner'],
+[dir='rtl'] [data-slot='sidebar-container'][data-side='inline-end'] > [data-slot='sidebar-inner'] {
+  padding-left: var(--q-safe-l);
+}
+
+[dir='ltr'] [data-slot='sidebar-container'][data-side='inline-end'] > [data-slot='sidebar-inner'],
+[dir='rtl'] [data-slot='sidebar-container'][data-side='inline-start'] > [data-slot='sidebar-inner'] {
+  padding-right: var(--q-safe-r);
+}
+
+/*
+ * The portal's tab bar. `fixed inset-x-0 bottom-0`, so it is the same story as
+ * the rail: it spans the glass and no ancestor's padding reaches it. It already
+ * carried the block-end inset inline in the component — that one is visible in
+ * portrait and so was the one anyone would have found — and had nothing for the
+ * pair that only appear when the phone is turned. Four tabs on a `grid` divided
+ * across the full width put the first and last icon squarely under the housing
+ * and the opposite corner.
+ *
+ * `max()` against the bar's own `px-1`, so the gutter it already has is a floor
+ * rather than something the inset replaces, and the fill still reaches every
+ * edge because this is padding on the list inside it.
+ */
+.portal-tab-bar > ul {
+  padding-left: max(0.25rem, var(--q-safe-l));
+  padding-right: max(0.25rem, var(--q-safe-r));
+}
+
+/*
  * Responsive staff navigation. The tablet rail stays in flow at 72px; this
  * full drawer enters in the top layer, so opening it never resizes the working
  * canvas. Logical positioning and direction-specific travel keep Arabic and
@@ -2353,6 +2902,14 @@
   margin: 0;
   border: 0;
   background: transparent;
+  /*
+    Full-height and against the inline-start edge, so it owes three insets. It
+    keeps `height: 100dvh` and takes them as padding — the drawer's own surface
+    should still reach every edge it is pinned to; only what is inside it moves
+    clear of the status bar, the home indicator and a rounded corner.
+  */
+  padding-block: var(--q-safe-t) var(--q-safe-b);
+  padding-inline-start: var(--q-safe-l);
   animation-duration: 260ms;
   animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -2384,8 +2941,46 @@
 /* Route content enters from the navigation's inline-start edge while the shell
  * remains still. The near-complete starting state prevents a flash on slower
  * devices; clip and blur make the gesture read as continuity, not decoration. */
+/*
+ * `backwards`, not `both` — the same bug, and the same fix, as the dialog
+ * entrance documented below. It is repeated here because this element is the
+ * wrapper *every* route in the app renders inside, so the blast radius is the
+ * whole product rather than one surface.
+ *
+ * The keyframes declare only a `from`. Under `both` the forwards fill keeps the
+ * animated properties applied for as long as the route is mounted, so a settled
+ * stage computes `transform: matrix(1, 0, 0, 1, 0, 0)` rather than `none` — and
+ * any transform other than `none` makes the element the containing block for
+ * every `position: fixed` descendant it has. Measured in the browser before
+ * this change: a `position: fixed; inset-block-start: 0; left: 0` probe
+ * appended to the stage resolved to `left: 256px`, the stage's own inline-start
+ * edge, instead of the viewport's.
+ *
+ * Base UI's popups portal to `<body>` and so were never caught by it, but every
+ * hand-positioned `fixed` overlay rendered *inside* a page was — which is why
+ * `AppointmentRequestFab`, `data-update-request`, `appointment-request-dialog`
+ * and the portal's `HomeGlow` each carry a note about working around this
+ * wrapper. They were treating the symptom one call site at a time; this is the
+ * cause.
+ *
+ * There is a second failure that only `backwards` removes, and it is the one
+ * that shows up on a tablet rather than a desktop. `both` also fills
+ * *backwards*, so before the animation's first frame the stage carries the
+ * from-state — including `clip-path: inset(0 1rem 0 0 round …)`, which clips
+ * fixed descendants as well as in-flow ones. A document that is loaded while
+ * hidden never advances that animation: iOS suspends timers for a backgrounded
+ * tab and restores pages from the back/forward cache and the app switcher
+ * without replaying them, so a route restored that way keeps the from-state
+ * indefinitely. Verified by reading `getAnimations()` on a hidden document:
+ * `playState: 'running'`, `clip-path: inset(0px 16px 0px 0px round 16px)`,
+ * with the probe above still landing at the stage's edge.
+ *
+ * `backwards` keeps the only thing the fill was wanted for — the from-state
+ * applied before the first frame, so there is no flash on slower devices — and
+ * drops the forwards half that never should have persisted.
+ */
 .q-route-stage {
-  animation: q-route-enter-ltr 190ms var(--ease-sweep) both;
+  animation: q-route-enter-ltr 190ms var(--ease-sweep) backwards;
 }
 
 [dir='rtl'] .q-route-stage {
@@ -2441,6 +3036,99 @@
 
   .q-dialog[data-closing='true']:not(.planner-context-sheet):not(.app-navigation-drawer) {
     animation-name: q-dialog-out-card;
+  }
+}
+
+/*
+ * ══ A sheet stays a sheet on touch hardware, at every width ══
+ *
+ * `placement="sheet"` used to mean "bottom sheet below `sm`, centred card
+ * above", and `sm` is 640px — so a tablet got the card. That is the right split
+ * for a *window*, which is narrow because someone dragged it narrow, and the
+ * wrong one for a *device*: an iPad is 810–1366 CSS px and lands on the desktop
+ * side of every breakpoint in this file while being operated entirely by thumb.
+ * The new-client form, the intake panels, the notification and request lists
+ * were all centred cards there, with their controls in the middle of a screen
+ * held at the edges.
+ *
+ * Same reasoning, and the same query, as the anchored popups higher up this
+ * file: `pointer: coarse` asks about the input hardware, which is the thing
+ * that actually decides whether a surface should rise from the thumb's edge.
+ * A mouse keeps the centred card at every size, including on a 500px-wide
+ * window, exactly as before.
+ *
+ * ⚠ **`placement="center"` is deliberately excluded.** That value exists
+ * precisely for the short modal that would read as a failed sheet — four rows
+ * along the bottom edge under two-thirds of blurred page. Those stay centred on
+ * a tablet too; see the prop's own documentation in `dialog.tsx`.
+ *
+ * Unlayered, so it beats the `sm:m-auto sm:rounded-lg sm:w-[…]` utilities on
+ * the element — including the per-call widths the client form, the intake form
+ * and the dish editor each pass — without an `!important` anywhere.
+ */
+@media (pointer: coarse) {
+  .q-dialog[data-placement='sheet']:not(.planner-context-sheet):not(.app-navigation-drawer) {
+    /* Full-bleed and pinned to the block-end edge — `mt-auto mb-0` in longhand. */
+    margin-block: auto 0;
+    margin-inline: 0;
+    width: 100%;
+    max-width: none;
+    /*
+      Only the block-start corners exist; the other two are off-screen. Stated
+      through the same token `rounded-t-2xl` resolves, so the tablet sheet and
+      the phone sheet are the same shape rather than two values that happen to
+      agree today.
+    */
+    border-radius: var(--radius-2xl, 1rem) var(--radius-2xl, 1rem) 0 0;
+  }
+
+  /*
+    And it enters the way a sheet enters. Without this the surface would be
+    shaped like a sheet and animate like a card — a scale-and-fade in the middle
+    of the screen for something that arrived at the bottom edge. Declared after
+    the `min-width: 40rem` block above so it wins the `animation-name` on a
+    tablet, which is the one width where both queries match.
+  */
+  .q-dialog[data-placement='sheet'][open]:not(.planner-context-sheet):not(.app-navigation-drawer) {
+    animation-name: q-dialog-in-sheet;
+  }
+
+  .q-dialog[data-placement='sheet'][data-closing='true']:not(.planner-context-sheet):not(.app-navigation-drawer) {
+    animation-name: q-dialog-out-sheet;
+  }
+}
+
+/*
+ * The dialog's half of the measure above, and it needs two widths where the
+ * popups needed one: `size="wide"` exists precisely because the dish editor and
+ * the intake form do not fit a reading measure.
+ *
+ * Both are the surface's own `sm:w-[…]` utilities said again — `min(28rem,
+ * calc(100vw - 2rem))` and `min(64rem, calc(100vw - 4rem))` — because those are
+ * suppressed here by the `width: 100%` above and a sheet that agreed with the
+ * card by accident would drift the first time one of them was tuned. Restating
+ * them rather than inventing a third number is also what keeps a tablet from
+ * showing two widths for the same dialog depending on whether it is being
+ * pointed at or touched.
+ *
+ * The subtracted gutter is the half that matters on an iPad held upright: at
+ * 820px a bare `min(100%, 64rem)` resolves to the full 820, so a wide sheet was
+ * still edge to edge on exactly the device this measure exists for. Taking the
+ * card's own 4rem back leaves the scrim visible down both sides, which is what
+ * says the page is still there behind it.
+ *
+ * `margin-inline: auto` against the `margin-inline: 0` above; the block pair
+ * stays `auto 0`, so the sheet is centred across the screen and still pinned to
+ * the bottom of it.
+ */
+@media (pointer: coarse) and (width >= 40rem) {
+  .q-dialog[data-placement='sheet']:not(.planner-context-sheet):not(.app-navigation-drawer) {
+    margin-inline: auto;
+    width: min(28rem, calc(100vw - 2rem));
+  }
+
+  .q-dialog[data-placement='sheet'][data-size='wide']:not(.planner-context-sheet):not(.app-navigation-drawer) {
+    width: min(64rem, calc(100vw - 4rem));
   }
 }
 
@@ -2917,6 +3605,46 @@
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
+}
+
+/*
+ * ── The iOS half of "this is a grip, not text" ──
+ *
+ * All three grips already say `user-select: none`, and on every engine but
+ * WebKit that is the whole of it. iOS has a second gesture bound to the same
+ * press: hold a moment and Safari raises the callout menu and the selection
+ * magnifier. The instant either appears WebKit takes ownership of the pointer
+ * and fires `pointercancel` — which is exactly the event both drag
+ * implementations here treat as "the gesture was abandoned"
+ * (`use-calendar-gestures.ts` listens for it explicitly; dnd-kit's sensors do
+ * the same internally). So a drag that begins with a deliberate press — which
+ * is how a finger starts every drag — died at about the moment it was meant to
+ * begin, and `touch-action: none` could not prevent it: that property decides
+ * whether the browser competes for the *scroll*, not whether it raises a
+ * callout.
+ *
+ * `-webkit-user-select: none` is often assumed to cover this and does not; the
+ * callout is a separate opt-out, and it is the only property in this file with
+ * no unprefixed equivalent for Lightning CSS to derive it from. Blink has no
+ * callout at all, so DevTools device emulation has nothing to reproduce — this
+ * is visible only on the hardware.
+ *
+ * Stated once for the three grips rather than three times, because it is one
+ * fact about touch hardware and not three decisions.
+ */
+.planner-drag-handle,
+.calendar-drag-grip,
+.calendar-resize-grip,
+/*
+  The empty booking canvas belongs on this list even though it is not a grip,
+  because `use-calendar-gestures.ts` now arms a paint-a-range gesture on a
+  *hold* there — and a hold is precisely the press iOS answers with the callout.
+  It gets the callout opt-out and nothing else: unlike the grips it must keep
+  `touch-action` free, since a finger that has not held still is scrolling the
+  week and the browser has to be able to take that gesture.
+*/
+.calendar-day-canvas {
+  -webkit-touch-callout: none;
 }
 
 @media (pointer: coarse) {

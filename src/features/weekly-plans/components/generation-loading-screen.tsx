@@ -62,7 +62,17 @@ export function GenerationLoadingScreen({ mode }: { mode: NewWeekMode }) {
       aria-live="polite"
       aria-busy="true"
       aria-atomic="true"
-      className="flex min-h-[30rem] flex-col items-center justify-center px-4 py-10 text-center outline-none sm:px-10"
+      /*
+        The 30rem floor is what keeps this screen from collapsing to the height
+        of its own three lines while the plan is being written, so the dialog
+        does not shrink and re-grow around it. `min()` is the landscape half of
+        that: a phone turned sideways is ~390px tall, the sheet this renders in
+        is capped at 90dvh, and an unconditional 480px floor made a *status*
+        screen — one with nothing to read past the first paragraph and no
+        control to reach — something the reader had to scroll. Below ~686px of
+        viewport the floor yields and the screen simply fills what it is given.
+      */
+      className="flex min-h-[min(30rem,70dvh)] flex-col items-center justify-center px-4 py-10 text-center outline-none sm:px-10"
     >
       <div aria-hidden="true" className="relative mb-8 flex size-28 items-center justify-center rounded-full bg-secondary">
         {FRAMES.map((frame, index) => (

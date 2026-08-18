@@ -46,11 +46,19 @@ export async function generateMetadata({ params }: Omit<PortalLayoutProps, 'chil
  * browser chrome untouched. The portal is fixed to light appearance
  * (`PortalTheme` below), so there is one theme color, not a dark-mode pair.
  *
- * Deliberately no `viewportFit: 'cover'` here: the app ships no
- * `viewport-fit=cover` meta today, so `PortalTabBar`'s
- * `env(safe-area-inset-bottom)` currently resolves to `0`. Turning that on
- * would change existing rendering on notched phones — real, but out of scope
- * for adding PWA support.
+ * **`viewportFit: 'cover'` now lives in the root layout**, so this export no
+ * longer needs to mention it and must not restate it. It used to say the
+ * opposite — that `cover` was deliberately left off and `PortalTabBar`'s
+ * `env(safe-area-inset-bottom)` therefore resolved to `0`. That was true and it
+ * was the bug: an installed portal was letterboxed inside the safe area with
+ * the theme colour filling the margin, which is what "the PWA has cut edges"
+ * describes. See the `viewport` export in `[locale]/layout.tsx` for the whole
+ * of the reasoning, and `--q-safe-b` in `globals.css` for the inset every
+ * block-end surface now carries.
+ *
+ * Only `themeColor` is declared here, and only because it is portal-specific:
+ * Next merges a nested viewport export over its parent field by field, so
+ * naming a field here would silently replace the app-wide one.
  */
 export function generateViewport(): Viewport {
   return {

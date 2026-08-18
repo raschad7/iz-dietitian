@@ -58,7 +58,7 @@ import { RequestsWindow } from './requests-window';
  * moved up into the name's row instead of taking one of its own, an
  * appointment's aside clamped to one line instead of two, and the client's
  * avatar in place of the kind glyph. Nothing about *this* card changed to make
- * room — its padding, its header and its `max-h-[70vh]` ceiling are all as they
+ * room — its padding, its header and its `max-h-[70dvh]` ceiling are all as they
  * were. The band is still taller on a morning with three requests waiting than
  * on a quiet one; what it is not is three tiles' worth taller.
  *
@@ -269,7 +269,7 @@ export async function PendingRequestsCard({
             by the bottom edge, which is the clearest thing on the card saying
             the list goes on; the fade below is drawn over it.
 
-            `max-h-[70vh]` is the guard on top of it and is unchanged. It is the
+            `max-h-[70dvh]` is the guard on top of it and is unchanged. It is the
             looser of the two on a normal screen and the binding one on a short
             laptop, where it cuts the window shorter still rather than taking
             the appointments panel off the page.
@@ -279,7 +279,7 @@ export async function PendingRequestsCard({
             queue off the shell behind it.
           */
           <div className="relative min-h-0">
-            <RequestsWindow visible={VISIBLE_REQUESTS} count={total} className="max-h-[70vh]">
+            <RequestsWindow visible={VISIBLE_REQUESTS} count={total} className="max-h-[70dvh]">
               {appointments.map((request) => (
                 <li key={request.id}>
                   <AppointmentRequestCard

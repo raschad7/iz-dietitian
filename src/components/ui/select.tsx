@@ -169,6 +169,7 @@ function SelectContent({
          * exists. Same rule as `popover.tsx` and `combobox.tsx`.
          */
         positionMethod={container ? "fixed" : undefined}
+        data-slot="select-positioner"
         className="isolate z-50"
       >
         <SelectPrimitive.Popup

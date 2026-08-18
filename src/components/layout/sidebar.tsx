@@ -151,7 +151,19 @@ export function AppShell({
       app with a bottom tab bar carrying the same five destinations; a permanent
       rail there would be a second navigation for one set of screens.
     */
-    <SidebarProvider className={className} railOnly={Boolean(user)}>
+    /*
+      `q-app-shell` carries the safe-area padding — see the rule in
+      `globals.css`. It belongs on the outermost box of the shell rather than on
+      the rail or on `main`, because the two of them sit side by side and each
+      would otherwise have to know about the insets separately; padding here
+      inset the pair as one, and the shell's own background still reaches every
+      edge of the screen.
+
+      Prepended to `className` rather than appended, so a caller's own class
+      still wins where the two overlap — the staff layout passes `h-svh
+      overflow-hidden` through here.
+    */
+    <SidebarProvider className={cn('q-app-shell', className)} railOnly={Boolean(user)}>
       <AppSidebar items={items} title={title} showTitle={showTitle} brand={brand} user={user} icons={icons} />
       <SidebarInset>
         {/*

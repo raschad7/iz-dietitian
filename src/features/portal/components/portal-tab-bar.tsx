@@ -12,10 +12,13 @@ import { cn } from '@/lib/utils';
  * edge, which is where a thumb is.
  *
  * It is edge-to-edge — flush left, right and bottom, with the top two corners
- * rounded and the bottom two left square so they meet the screen corners. The
- * only inset it keeps is `env(safe-area-inset-bottom)`, carried *inside* the
- * bar so the fill still reaches the bottom of the display on a notched phone
- * while the labels stay clear of the home indicator.
+ * rounded and the bottom two left square so they meet the screen corners. Every
+ * inset it keeps is carried *inside* the bar, so the fill still reaches the
+ * edges of the display on a notched phone while the labels stay clear of the
+ * hardware: `env(safe-area-inset-bottom)` below, and the inline pair from the
+ * `.portal-tab-bar > ul` rule in `globals.css` — this bar is `fixed`, so the
+ * shell's own safe-area padding never reaches it, and in landscape the first
+ * and last of four equal columns are exactly what a sensor housing covers.
  *
  * Four equal columns, one style throughout — no tab is raised above the
  * others. Icons come from `PORTAL_NAV_ICONS`, the same map the desktop
@@ -58,6 +61,11 @@ export function PortalTabBar() {
         indicator on a notched phone, where the viewport bottom is not the
         bottom of the usable screen. It is padding, not a margin, so the fill
         behind it still runs to the very edge.
+
+        `px-1` is the gutter in portrait and a floor in landscape: the rule in
+        `globals.css` raises this element's inline padding to the safe-area
+        insets with a `max()` against this same 0.25rem, so the two never
+        disagree about which is larger.
       */}
       <ul className="grid grid-cols-4 px-1 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         {PORTAL_NAV.map((item) => {

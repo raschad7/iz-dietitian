@@ -161,6 +161,22 @@ function Dialog({
         setContainer(node);
       }}
       dir={dir}
+      /*
+        Published so CSS can tell the two surfaces apart without re-deriving the
+        breakpoint. The safe-area inset in `globals.css` is owed to the sheet —
+        which reaches the block-end edge of the screen and so can land under the
+        home indicator — and not to the centred card, which floats clear of
+        every edge at any width.
+      */
+      data-placement={placement}
+      /*
+        And its size, for the same reason and to the same reader. The coarse-
+        pointer sheet in `globals.css` takes the surface's width back from the
+        `sm:w-[…]` utilities below, so above 40rem it has to know which of the
+        two widths it is putting back — and `size` is otherwise legible only
+        from the class list it is compiled into.
+      */
+      data-size={size}
       aria-label={label}
       onClose={onClose}
       onCancel={(event) => {
@@ -306,7 +322,7 @@ function DialogHeader({
 }
 
 function DialogBody({ className, ...props }: React.ComponentProps<'div'>) {
-  return <div className={cn('flex flex-col gap-3 p-4', className)} {...props} />;
+  return <div data-slot="dialog-body" className={cn('flex flex-col gap-3 p-4', className)} {...props} />;
 }
 
 /** Actions sit inline-end; the primary action is last in DOM order. */
@@ -332,6 +348,7 @@ function DialogBody({ className, ...props }: React.ComponentProps<'div'>) {
 function DialogFooter({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
+      data-slot="dialog-footer"
       className={cn(
         'flex flex-wrap items-center justify-end gap-2 gap-y-2 border-t border-border bg-muted/50 p-4',
         className,

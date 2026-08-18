@@ -67,6 +67,7 @@ function PopoverContent({
         side={side}
         sideOffset={sideOffset}
         positionMethod={positionMethod ?? (resolvedContainer ? "fixed" : undefined)}
+        data-slot="popover-positioner"
         className="isolate z-50"
       >
         <PopoverPrimitive.Popup
