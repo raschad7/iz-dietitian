@@ -3,7 +3,6 @@
 import { useTranslations } from 'next-intl';
 import { useRef } from 'react';
 
-import { LocaleSwitcher } from '@/components/layout/locale-switcher';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   DropdownMenu,
@@ -116,7 +115,14 @@ export function SidebarProfile({
             // with a folded footer. Switching to the icon rail unmounts this
             // whole branch and provides the same reset on desktop.
             key={isMobile ? `mobile-${openMobile ? 'open' : 'closed'}` : 'desktop'}
-            className="flex flex-col-reverse gap-2"
+            /*
+              `-m-2` cancels `SidebarFooter`'s padding on all four sides, so the
+              row and the panel it opens both run edge to edge across the rail
+              and sit flush against its foot. No gap between them either: open,
+              the two are one white block interrupted by nothing, which is what
+              a disclosure that belongs to its trigger should look like.
+            */
+            className="-m-2 flex flex-col-reverse"
           >
             <CollapsibleTrigger
               render={
@@ -124,7 +130,23 @@ export function SidebarProfile({
                   type="button"
                   size="lg"
                   aria-label={name}
-                  className="px-3 data-panel-open:bg-sidebar-hover"
+                  /*
+                    Open, the row takes the panel's own white ground rather than
+                    the rail's hover fill, so trigger and drawer read as one
+                    surface split by the rail's edge instead of two shades of
+                    olive stacked on each other. The colours cross on the
+                    system's own curve, over the longer `--duration-travel`, so
+                    the change of state is something you watch rather than
+                    something that has already happened.
+                  */
+                  className={cn(
+                    'rounded-none px-4',
+                    // Slower than the panel's own travel and on the same curve:
+                    // the fill has to be legible as a change of state, and 220ms
+                    // read as a flicker under the height animation.
+                    'transition-colors duration-(--duration-travel) ease-(--ease-sweep) motion-reduce:transition-none',
+                    'data-panel-open:bg-card data-panel-open:text-card-foreground data-panel-open:[&_svg]:text-card-foreground',
+                  )}
                 >
                   <AccountAvatar name={name} />
                   <ProfileIdentity name={name} email={email} />
@@ -137,13 +159,25 @@ export function SidebarProfile({
             />
 
             <CollapsibleContent className="h-(--collapsible-panel-height) overflow-hidden opacity-100 transition-[height,opacity] duration-(--duration-arc) ease-(--ease-sweep) data-ending-style:h-0 data-ending-style:opacity-0 data-starting-style:h-0 data-starting-style:opacity-0 motion-reduce:transition-none [&[hidden]:not([hidden='until-found'])]:hidden">
-              <div className="flex flex-col gap-1 rounded-md bg-card p-1 text-card-foreground">
+              {/*
+                No padding, no corners and no rule against the trigger: the
+                panel is the same white surface continued, not a card sitting
+                inside the rail. Its rows carry their own inline padding, so the
+                fill reaches all four edges.
+
+                The one hairline it does carry is at its far edge, and it is the
+                footer's own `--sidebar-border` rather than `--border` — that
+                rule is what closes the account block against the navigation
+                when the panel is shut, so the open block has to end on the same
+                line rather than on a second, differently coloured one.
+              */}
+              <div className="flex flex-col border-t border-sidebar-border bg-card text-card-foreground">
                 <SidebarMenu>
                   {LINKS.map((link) => (
                     <SidebarMenuItem key={link.href}>
                       <SidebarMenuButton
                         size="lg"
-                        className="gap-2.5"
+                        className="gap-2.5 rounded-none px-4"
                         render={
                           <Link
                             href={link.href}
@@ -158,14 +192,12 @@ export function SidebarProfile({
                   ))}
                 </SidebarMenu>
 
-                <LocaleSwitcher variant="menu" />
-
-                <SidebarMenu className="mt-1">
+                <SidebarMenu>
                   <SidebarMenuItem>
                     <SidebarMenuButton
                       type="button"
                       size="lg"
-                      className="gap-2.5 text-destructive hover:bg-destructive-subtle hover:text-destructive [&_svg]:text-destructive"
+                      className="gap-2.5 rounded-none px-4 text-destructive hover:bg-destructive-subtle hover:text-destructive [&_svg]:text-destructive"
                       onClick={() => signOutRef.current?.requestSubmit()}
                     >
                       <Icon name="signOut" className="size-4.5" />
@@ -189,11 +221,12 @@ export function SidebarProfile({
         </form>
 
         {/*
-          `modal={false}` because this menu hosts a nested Select (the language
-          switcher). A modal menu makes everything outside its own popup inert,
-          which would swallow every click on the Select's own popup — it is
-          portalled to the body, outside this menu. Non-modal, the two popups
-          coexist and the account menu still closes on an outside press.
+          `modal={false}` so the page behind the menu stays live. It was
+          required while the language Select still sat in here — its popup is
+          portalled to the body, and a modal menu made everything outside its
+          own popup inert. That control now lives in personal settings;
+          non-modal stays the right default for a short list of rows, and the
+          menu still closes on an outside press.
         */}
         <DropdownMenu modal={false}>
           {/*
@@ -252,8 +285,6 @@ export function SidebarProfile({
                 </DropdownMenuItem>
               ))}
             </DropdownMenuGroup>
-
-            <LocaleSwitcher variant="menu" />
 
             {/*
               Last, and clay. Ending a session is reversible in the sense that

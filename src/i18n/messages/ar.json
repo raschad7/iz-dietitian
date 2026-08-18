@@ -76,7 +76,9 @@
       "formDescription": "حدّث البيانات التي تعرّف بك داخل فريق العيادة.",
       "accountEmail": "البريد الإلكتروني للحساب",
       "accountEmailHint": "تتم إدارة هذا البريد من خلال حساب تسجيل الدخول.",
-      "identityTitle": "الحساب"
+      "identityTitle": "الحساب",
+      "languageTitle": "اللغة المفضلة",
+      "languageDescription": "اللغة التي تُعرض بها هذه المساحة."
     },
     "clinic": {
       "title": "العيادة",
@@ -549,10 +551,10 @@
       "visitsSoFar": "الزيارات حتى الآن",
       "plansWritten": "الخطط المكتوبة",
       "tabs": {
-        "account": "الحساب",
+        "account": "الزيارات",
         "nutrition": "التغذية",
         "progress": "التقدم",
-        "security": "الأمان",
+        "security": "البوابة",
         "billing": "الخطط"
       }
     },
