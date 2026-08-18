@@ -10,7 +10,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "bun test --path-ignore-patterns=e2e",
+    "test": "bun test --path-ignore-patterns=\"e2e/**\"",
     "test:e2e": "playwright test",
     "db:migrate:test": "bun --env-file=.env.test.local run scripts/db-migrate-test.ts",
     "db:reset:test": "bun --env-file=.env.test.local run scripts/db-reset-test.ts",
