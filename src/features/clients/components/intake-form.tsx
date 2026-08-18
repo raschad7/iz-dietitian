@@ -91,10 +91,14 @@ type SectionId = IntakeSectionId;
  */
 const FREQUENCY_FIELDS = [
   'caffeineFrequency',
+  'sweetDrinksFrequency',
   'fastFoodFrequency',
-  'produceFrequency',
+  'vegetablesFrequency',
+  'fruitFrequency',
   'dairyFrequency',
-  'proteinFoodFrequency',
+  'redMeatFrequency',
+  'chickenFrequency',
+  'fishFrequency',
   'sweetsFrequency',
 ] as const satisfies readonly (keyof ClientIntakeValues)[];
 
@@ -548,10 +552,17 @@ export function IntakeForm({
             <Divider label={t('intake.frequencyLegend')} />
 
             {/*
-              Six questions on one scale, so the panel is one column of labels
+              Ten questions on one scale, so the panel is one column of labels
               against one column of identical selects. The period each question
               is asked over — a day or a week — is in its label, which is where
               the paper sheet puts it too.
+
+              Ten and not six because four questions each covered more than one
+              food: caffeine was asked together with sweetened drinks, vegetables
+              together with fruit, and beef, chicken and fish shared a single
+              answer. One scale answered once per food is the same control
+              repeated, which is why splitting them costs rows of the grid and
+              nothing else.
             */}
             <div className="grid gap-4 sm:grid-cols-2">
               {FREQUENCY_FIELDS.map((name) => (

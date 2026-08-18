@@ -1,0 +1,1 @@
+ALTER TABLE "client_nutrition_profiles" DROP COLUMN "produce_frequency";

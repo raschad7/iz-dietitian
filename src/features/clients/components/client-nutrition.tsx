@@ -1004,18 +1004,25 @@ function MealSchedule({
  */
 
 /**
- * The six food-frequency answers, in the order the assessment asks them.
+ * The ten food-frequency answers, in the order the assessment asks them.
  *
- * Declared here rather than imported from the dialog: this is a server
- * component and `intake-form.tsx` is `'use client'`, so importing its constant
- * would pull the whole form into this module's graph to read six strings.
+ * ⚠ **Kept in step with `FREQUENCY_FIELDS` in `intake-form.tsx` by hand.** The
+ * two lists are the same ten keys in the same order, and they are two lists
+ * because this is a server component while the form is `'use client'` —
+ * importing its constant would pull the whole form into this module's graph to
+ * read ten strings. A field added to one and not the other is written by the
+ * dialog and never displayed here.
  */
 const FREQUENCY_DISPLAY_FIELDS = [
   'caffeineFrequency',
+  'sweetDrinksFrequency',
   'fastFoodFrequency',
-  'produceFrequency',
+  'vegetablesFrequency',
+  'fruitFrequency',
   'dairyFrequency',
-  'proteinFoodFrequency',
+  'redMeatFrequency',
+  'chickenFrequency',
+  'fishFrequency',
   'sweetsFrequency',
 ] as const satisfies readonly (keyof ClientIntakeValues)[];
 

@@ -21,7 +21,7 @@ import { type ProfileTab, PROFILE_TABS } from './profile-tab';
 
 /**
  * The views of a client's record, and the one bar that switches between
- * them: **Nutrition, Progress, Account, Security, Billing &amp; Plans**.
+ * them: **Nutrition, Progress, Account, Security, Plans**.
  *
  * The `users/view` template's bar, cut to the views this product has something
  * to put in. Its Notifications and Connections tabs are gone — see

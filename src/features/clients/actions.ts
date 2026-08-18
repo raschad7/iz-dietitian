@@ -115,10 +115,14 @@ function readIntakeForm(formData: FormData) {
     smoking: formData.get('smoking'),
 
     caffeineFrequency: formData.get('caffeineFrequency'),
+    sweetDrinksFrequency: formData.get('sweetDrinksFrequency'),
     fastFoodFrequency: formData.get('fastFoodFrequency'),
-    produceFrequency: formData.get('produceFrequency'),
+    vegetablesFrequency: formData.get('vegetablesFrequency'),
+    fruitFrequency: formData.get('fruitFrequency'),
     dairyFrequency: formData.get('dairyFrequency'),
-    proteinFoodFrequency: formData.get('proteinFoodFrequency'),
+    redMeatFrequency: formData.get('redMeatFrequency'),
+    chickenFrequency: formData.get('chickenFrequency'),
+    fishFrequency: formData.get('fishFrequency'),
     sweetsFrequency: formData.get('sweetsFrequency'),
     mealSchedule: slotKeys.map((slotKey, index) => ({
       slotKey,

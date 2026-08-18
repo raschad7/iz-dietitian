@@ -68,6 +68,35 @@ export function generateTemporaryPassword(): string {
  * the inside of just makes them add "1!" to the end.
  */
 export function isStrongStaffPassword(value: string): boolean {
+  return isStrongPassword(value);
+}
+
+/**
+ * Whether a client password is more than merely long enough.
+ *
+ * The same rule as staff, applied at the client's shorter minimum: six
+ * characters of one class is "aaaaaa", and the forced first-sign-in change is
+ * the one moment we get to ask for better — the temporary password it replaces
+ * was ten random characters from a 57-glyph alphabet, so accepting anything
+ * weaker than a mix would leave the account worse off than the day it was
+ * issued.
+ *
+ * Length and strength stay separate checks because the two failures need
+ * different advice — one says "longer", the other says "mix in a digit or a
+ * symbol" — and the caller reports whichever one the value tripped.
+ */
+export function isStrongClientPassword(value: string): boolean {
+  return isStrongPassword(value);
+}
+
+/**
+ * The shared body of both.
+ *
+ * Two of the three character classes, and never one of the values people
+ * actually type when asked to invent one. Staff and clients differ in how long
+ * the password has to be, not in what counts as a mix.
+ */
+function isStrongPassword(value: string): boolean {
   if (isCommonPassword(value)) return false;
 
   const classes = [/[a-z]/i, /[0-9]/, /[^a-z0-9]/i].filter((pattern) => pattern.test(value));

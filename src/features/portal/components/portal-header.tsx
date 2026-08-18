@@ -381,7 +381,13 @@ export function PortalHeader({
       )}
     >
       <div className="mx-auto w-full max-w-3xl">
-        <div className="flex items-center justify-between">
+        {/*
+          `justify-end` before the password change, because there is no bell on
+          that screen to sit opposite — see the note below. `justify-between`
+          with a single child would park sign-out on the leading edge, where the
+          bell used to be.
+        */}
+        <div className={cn('flex items-center', showNav ? 'justify-between' : 'justify-end')}>
           {/*
             **The feed opens over the page, not as one.**
 
@@ -394,8 +400,12 @@ export function PortalHeader({
             `showNav` still decides whether there is a control here at all: a
             client who has not replaced their temporary password can reach one
             page, and a bell offering them a feed they cannot leave to act on is
-            the same dead end the link was. They get the inert disc instead —
-            the shape stays, so the header does not reflow when the guard lifts.
+            the same dead end the link was. There used to be an inert disc in
+            its place, which was worse than nothing — a bell that looks pressable
+            and answers nothing reads as broken, and on the one screen a client
+            cannot leave it is the last thing to draw their eye. Nothing renders
+            there now; the row switches to `justify-end` so sign-out keeps its
+            corner.
 
             The badge is no longer drawn here. It is the shared trigger's own
             count disc, given the portal's fill and ring through
@@ -428,16 +438,7 @@ export function PortalHeader({
                 iconTone,
               )}
             />
-          ) : (
-            <span
-              className={cn(
-                'flex size-11 items-center justify-center rounded-full transition-colors',
-                iconTone,
-              )}
-            >
-              <Icon name="notifications" className="size-5.5" />
-            </span>
-          )}
+          ) : null}
 
           {showNav ? (
             <Destination

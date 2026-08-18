@@ -12,7 +12,6 @@ import { requireClientSession, requireStaffSession } from '@/lib/session';
 
 import { purgeUnverifiedAccounts } from './cleanup';
 import { type AuthFormState } from './form-state';
-import { isCommonPassword } from './password-policy';
 import {
   checkRateLimit,
   clearAttempts,
@@ -283,6 +282,22 @@ export async function signInToPortal(
  * `mustChangePassword` is what unlocks the rest of the portal — see the guard
  * in `src/app/[locale]/portal/(secured)/layout.tsx`.
  */
+/**
+ * Which of the client password rules a value tripped.
+ *
+ * `clientPasswordSchema` puts the message key on the issue itself — too short,
+ * too common, or long enough but a single character class — so the three keep
+ * their own advice instead of collapsing into "too short", which is what a
+ * client typing `aaaaaa` used to be told.
+ */
+function passwordIssueKey(
+  issues: readonly string[] | undefined,
+): 'passwordTooShort' | 'passwordTooCommon' | 'passwordTooWeak' {
+  const issue = issues?.[0];
+  if (issue === 'passwordTooCommon' || issue === 'passwordTooWeak') return issue;
+  return 'passwordTooShort';
+}
+
 export async function setPortalPassword(
   _previousState: AuthFormState,
   formData: FormData,
@@ -296,16 +311,12 @@ export async function setPortalPassword(
   if (!parsed.success) {
     const fieldErrors = z.flattenError(parsed.error).fieldErrors;
     if (fieldErrors.confirmPassword) return { status: 'error', messageKey: 'passwordMismatch' };
-    return { status: 'error', messageKey: 'passwordTooShort' };
+    // Whichever rule the value tripped: too short, or long enough but a single
+    // character class — `clientPasswordSchema` carries the key on the issue.
+    return { status: 'error', messageKey: passwordIssueKey(fieldErrors.password) };
   }
 
   const { password, locale } = parsed.data;
-
-  // At six characters this check is load-bearing, not decoration — see
-  // `src/features/auth/password-policy.ts`.
-  if (isCommonPassword(password)) {
-    return { status: 'error', messageKey: 'passwordTooCommon' };
-  }
 
   const session = await requireClientSession(locale);
 
@@ -353,7 +364,9 @@ export async function changePortalPassword(
   if (!parsed.success) {
     const fieldErrors = z.flattenError(parsed.error).fieldErrors;
     if (fieldErrors.confirmNewPassword) return { status: 'error', messageKey: 'passwordMismatch' };
-    if (fieldErrors.newPassword) return { status: 'error', messageKey: 'passwordTooShort' };
+    if (fieldErrors.newPassword) {
+      return { status: 'error', messageKey: passwordIssueKey(fieldErrors.newPassword) };
+    }
     return { status: 'error', messageKey: 'genericError' };
   }
 
@@ -361,12 +374,6 @@ export async function changePortalPassword(
 
   if (newPassword === currentPassword) {
     return { status: 'error', messageKey: 'passwordSameAsCurrent' };
-  }
-
-  // At six characters this check is load-bearing, not decoration — see
-  // `src/features/auth/password-policy.ts`.
-  if (isCommonPassword(newPassword)) {
-    return { status: 'error', messageKey: 'passwordTooCommon' };
   }
 
   const session = await requireClientSession(locale);

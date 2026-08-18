@@ -29,7 +29,7 @@ import { type IsoDate } from '@/lib/iso-date';
  * **A panel that does not move, and four views that do.** The identity column on
  * the inline-start edge carries who this person is and the reference facts about
  * them; the column beside it is one card switched between Account, Nutrition,
- * Security and Billing &amp; Plans.
+ * Security and Plans.
  *
  * ## What the template's tabs became
  *
@@ -42,11 +42,14 @@ import { type IsoDate } from '@/lib/iso-date';
  * | Security — password, 2FA, devices | The portal sign-in: issuing, reissuing, revoking |
  * | Billing &amp; Plans — plan, invoices | The weekly plans: the live week, and every week before it |
  *
- * **Nothing was invented to fill a view.** This product has no billing, so the
- * Billing &amp; Plans view is the *plans* half of its own name and says nothing
- * about money; the Security view has no device list because the app keeps no
- * per-device sessions to list. A view that would have to be mocked up is a view
- * that states something untrue about a patient.
+ * **Nothing was invented to fill a view.** This product has no billing, so that
+ * view kept the *plans* half of the template's name and is simply called Plans
+ * — it says nothing about money, and a tab that half-promised invoices was a
+ * tab that had to be opened to find out it did not have any. The `billing` key
+ * behind it is the template's, kept so the `?tab=billing` links that redirect
+ * here still land. The Security view has no device list either, because the app
+ * keeps no per-device sessions to list. A view that would have to be mocked up
+ * is a view that states something untrue about a patient.
  *
  * **Two of the template's tabs are gone rather than thinned.** Notifications was
  * the four switches on `client_settings`, and Connections was the phone, the

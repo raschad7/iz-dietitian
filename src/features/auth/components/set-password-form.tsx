@@ -37,7 +37,7 @@ export function SetPasswordForm({ locale }: { locale: Locale }) {
             label={tCommon('password')}
             autoComplete="new-password"
             minLength={CLIENT_MIN_PASSWORD_LENGTH}
-            hint={t('clientPasswordHint', { count: CLIENT_MIN_PASSWORD_LENGTH })}
+            hint={t('passwordStrengthHint', { count: CLIENT_MIN_PASSWORD_LENGTH })}
           />
 
           <PasswordInput

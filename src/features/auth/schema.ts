@@ -3,7 +3,12 @@ import { z } from 'zod';
 import { defaultLocale, locales } from '@/i18n/routing';
 import { MIN_PASSWORD_LENGTH } from '@/lib/auth-constants';
 
-import { CLIENT_MIN_PASSWORD_LENGTH, isStrongStaffPassword } from './password-policy';
+import {
+  CLIENT_MIN_PASSWORD_LENGTH,
+  isCommonPassword,
+  isStrongClientPassword,
+  isStrongStaffPassword,
+} from './password-policy';
 
 export const localeSchema = z.enum(locales).catch(defaultLocale);
 
@@ -28,9 +33,26 @@ export const portalSignInSchema = z.object({
   locale: localeSchema,
 });
 
+/**
+ * The client password rule, in one place — the mirror of `staffPasswordSchema`
+ * below, at the client's shorter minimum.
+ *
+ * Length was the whole rule here until now, which meant `aaaaaa` replaced a
+ * ten-character random temporary password and the account came out weaker for
+ * the change. Both failures carry their own message key because the advice
+ * differs, and the actions read the key straight off the issue.
+ */
+const clientPasswordSchema = z
+  .string()
+  .min(CLIENT_MIN_PASSWORD_LENGTH, { message: 'passwordTooShort' })
+  // Before the general strength rule, so `password1` — which fails both — is
+  // answered with the specific sentence rather than the generic one.
+  .refine((value) => !isCommonPassword(value), { message: 'passwordTooCommon' })
+  .refine(isStrongClientPassword, { message: 'passwordTooWeak' });
+
 export const setPasswordSchema = z
   .object({
-    password: z.string().min(CLIENT_MIN_PASSWORD_LENGTH),
+    password: clientPasswordSchema,
     confirmPassword: z.string(),
     locale: localeSchema,
   })
@@ -98,7 +120,7 @@ export const resetPasswordSchema = z
 export const changePasswordSchema = z
   .object({
     currentPassword: z.string().min(1),
-    newPassword: z.string().min(CLIENT_MIN_PASSWORD_LENGTH),
+    newPassword: clientPasswordSchema,
     confirmNewPassword: z.string(),
     locale: localeSchema,
   })

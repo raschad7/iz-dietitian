@@ -507,10 +507,17 @@
       "title": "Filter the register",
       "apply": "Apply",
       "clear": "Clear",
+      "column": "Filter by",
       "portalAccess": {
         "label": "Portal access",
         "yes": "Has access",
         "no": "No access"
+      },
+      "weeklyProgress": {
+        "label": "Weekly progress",
+        "reported": "Reported this week",
+        "notReported": "Nothing reported yet",
+        "noPlan": "No plan running"
       }
     },
     "resultCount": "{total, number, integer} clients",
@@ -546,7 +553,7 @@
         "nutrition": "Nutrition",
         "progress": "Progress",
         "security": "Security",
-        "billing": "Billing & Plans"
+        "billing": "Plans"
       }
     },
     "progress": {
@@ -665,11 +672,15 @@
       "activityBarriers": "What limits activity",
       "sleepHours": "Hours of sleep",
       "smoking": "Smoking / shisha",
-      "caffeineFrequency": "Caffeine and sweetened drinks (daily)",
+      "caffeineFrequency": "Caffeine (daily)",
+      "sweetDrinksFrequency": "Sweetened drinks (daily)",
       "fastFoodFrequency": "Fast food (weekly)",
-      "produceFrequency": "Vegetables and fruit (daily)",
+      "vegetablesFrequency": "Vegetables (daily)",
+      "fruitFrequency": "Fruit (daily)",
       "dairyFrequency": "Milk and dairy (daily)",
-      "proteinFoodFrequency": "Meat, chicken and fish (weekly)",
+      "redMeatFrequency": "Red meat (weekly)",
+      "chickenFrequency": "Chicken (weekly)",
+      "fishFrequency": "Fish (weekly)",
       "sweetsFrequency": "Sweets and sugar (weekly)"
     },
     "status": {
