@@ -1036,7 +1036,7 @@ export function Calendar({
       */}
       <CalendarViewGuard view={view} onFallback={replaceView} />
 
-      <div className={cn('pt-4 md:pt-6', contentInset)}>
+      <div data-guide="calendar-toolbar" className={cn('pt-4 md:pt-6', contentInset)}>
         <CalendarToolbar
           locale={locale}
           view={view}
@@ -1122,6 +1122,10 @@ export function Calendar({
           sticky positioning has no work left to do.
         */
         <div
+          // The guided tour's booking step points here: dragging a slot out of
+          // this grid is the only way an appointment is made, and it is the one
+          // thing on the screen that no label says.
+          data-guide="calendar-grid"
           className={cn(
             // One rule across the top and nothing else — no radius, no side or
             // block-end edge. The grid runs into the shell on three sides, so

@@ -234,7 +234,7 @@ export function ClientTable({
       window where a full page of rows does not fit, the page scrolls as one and
       the column names ride along at the top of it.
     */
-    <TableRoot>
+    <TableRoot data-guide="clients-table">
       <Table>
         <TableHeader sticky>
           <TableRow>

@@ -165,7 +165,7 @@ export function DishFilters({
       so it does not resize as chips arrive either: the strip absorbs the change,
       and the row it sits in is `h-10` whether it holds nothing or eight chips.
     */
-    <div className="flex h-10 shrink-0 items-center gap-2">
+    <div data-guide="dishes-filters" className="flex h-10 shrink-0 items-center gap-2">
       {/* `Input` renders a wrapper when it has an icon, so flex sizing belongs
           on this visible flex item rather than on the nested input element. */}
       <div className="w-full max-w-sm min-w-24 shrink">

@@ -1,6 +1,8 @@
 import { notFound } from 'next/navigation';
 
 import { AppShell } from '@/components/layout/sidebar';
+import { GuideLauncher } from '@/features/user-guide/guide-launcher';
+import { GuideProvider } from '@/features/user-guide/guide-provider';
 import { resolveLocale } from '@/i18n/params';
 
 type DevShellPageProps = {
@@ -28,35 +30,54 @@ export default async function DevShellPage({ params }: DevShellPageProps) {
   const locale = await resolveLocale(params);
 
   return (
-    <AppShell
-      items={[
-        { href: '/app', labelKey: 'dashboard' },
-        { href: '/app/clients', labelKey: 'clients' },
-        { href: '/app/calendar', labelKey: 'calendar' },
-        { href: '/app/weekly-plans', labelKey: 'weeklyPlans' },
-        { href: '/app/dishes', labelKey: 'dishes' },
-      ]}
-      title="Qiwam"
-      /* The staff configuration, which is the one that has a brand — without it
-         the head falls back to the plain title and the product logo never
-         renders, so the harness could not show the thing it exists to show. */
-      brand={{ logoUrl: null, name: 'عيادة مهيب' }}
-      user={{ name: 'Rani Shweiki', email: 'rani@example.com', locale }}
-      icons={{
-        dashboard: 'dashboard',
-        clients: 'clients',
-        calendar: 'calendar',
-        weeklyPlans: 'weeklyPlans',
-        dishes: 'dishes',
-      }}
-    >
-      <main className="min-h-0 min-w-0 flex-1 overflow-y-auto p-5">
-        <h1 className="text-heading-lg font-semibold">Shell</h1>
-        <p className="mt-2 text-body-sm text-muted-foreground">
-          Collapse the sidebar with the trigger in its header, or the rail on its edge. Collapsed,
-          each row shows its label as a tooltip. Check both against <code>/ar/dev/shell</code>.
-        </p>
-      </main>
-    </AppShell>
+    /*
+      The guided tour is part of the shell's foot now, so the harness carries it
+      for the same reason it carries everything else here: it is the only way to
+      look at the rail without a session.
+
+      `routed={false}` because every step names a screen under `/app`, and this
+      page is not one: left on, starting the tour would push straight into the
+      authenticated area and bounce to sign-in before a single card had been
+      looked at. Off, all sixteen steps can be walked here against the harness's
+      own rail. Only the navigation is suppressed — the cards, the spotlight and
+      the docking are the real ones.
+
+      Anchors that live on the app's own screens are not here, so those steps
+      draw centred with their text intact. That is the same fallback a real
+      clinic gets when a step points at something its data does not have.
+    */
+    <GuideProvider routed={false}>
+      <AppShell
+        items={[
+          { href: '/app', labelKey: 'dashboard' },
+          { href: '/app/clients', labelKey: 'clients' },
+          { href: '/app/calendar', labelKey: 'calendar' },
+          { href: '/app/weekly-plans', labelKey: 'weeklyPlans' },
+          { href: '/app/dishes', labelKey: 'dishes' },
+        ]}
+        title="Qiwam"
+        /* The staff configuration, which is the one that has a brand — without it
+           the head falls back to the plain title and the product logo never
+           renders, so the harness could not show the thing it exists to show. */
+        brand={{ logoUrl: null, name: 'عيادة مهيب' }}
+        user={{ name: 'Rani Shweiki', email: 'rani@example.com', locale }}
+        icons={{
+          dashboard: 'dashboard',
+          clients: 'clients',
+          calendar: 'calendar',
+          weeklyPlans: 'weeklyPlans',
+          dishes: 'dishes',
+        }}
+        secondary={<GuideLauncher />}
+      >
+        <main className="min-h-0 min-w-0 flex-1 overflow-y-auto p-5">
+          <h1 className="text-heading-lg font-semibold">Shell</h1>
+          <p className="mt-2 text-body-sm text-muted-foreground">
+            Collapse the sidebar with the trigger in its header, or the rail on its edge. Collapsed,
+            each row shows its label as a tooltip. Check both against <code>/ar/dev/shell</code>.
+          </p>
+        </main>
+      </AppShell>
+    </GuideProvider>
   );
 }

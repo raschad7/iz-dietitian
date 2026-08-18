@@ -3831,3 +3831,176 @@
     height: 0;
   }
 }
+
+/* ==========================================================================
+ * §  The guided tour
+ * ==========================================================================
+ *
+ * Three rules and one keyframe, for `src/features/user-guide/`. They are here
+ * rather than in the component for the reasons the rest of this section is:
+ * `--overlay` is a semantic token, `env(safe-area-inset-*)` has to be written
+ * out, and a `box-shadow` with a viewport-sized spread is not something a
+ * utility class can express.
+ *
+ * Everything positional stays in the component. These rules say what the
+ * surfaces *are*; the arithmetic that puts them where they go is in
+ * `place-card.ts`, because it depends on measurements CSS cannot take.
+ */
+
+/*
+ * The whole surface fades in once, when the tour opens. Individual steps do not
+ * re-run it — the element persists across them — so moving from step to step is
+ * the hole travelling to its next control rather than a screen blinking.
+ */
+/*
+ * ⚠ **Nothing in the tour animates `opacity`, and the dim has no entrance at
+ * all.** Both of those are deliberate, and they were paid for.
+ *
+ * The surface used to fade in from `opacity: 0`. That makes "the animation is
+ * not progressing" and "the entire feature is invisible" the same state. It is
+ * not a hypothetical: observed directly on a document whose timeline never
+ * advanced, the surface sat at `opacity: 0` indefinitely — mounted, positioned,
+ * correct in every other respect, and completely unseeable. Dropping the
+ * `backwards` fill did not help either, because an animation frozen *inside*
+ * its active interval keeps applying its `from` frame; fill modes only govern
+ * what happens outside it.
+ *
+ * So the rule for this feature is that motion may move things, and may not hide
+ * them. The cards keep their entrance as a pure `translate`, which fails safe:
+ * a frozen clock leaves a card twelve pixels from where it belongs, which is a
+ * blemish rather than an outage. The dim simply appears — a scrim easing in
+ * over 220ms is a nicety, and it is not worth being the single point of failure
+ * for everything drawn on top of it.
+ *
+ * This is also the house idiom rather than a departure: `.q-route-stage`
+ * animates the page in from an 8px translate for the same kind of reason.
+ */
+
+/*
+ * The hole, and the dim it casts.
+ *
+ * One `box-shadow` with a spread bigger than any viewport, rather than four
+ * rectangles fitted around the cut-out. Four boxes have to be kept in step
+ * through every scroll and they seam visibly at the corners on fractional
+ * device pixel ratios; one box has no corners to seam and no siblings to
+ * disagree with.
+ *
+ * `pointer-events: none` because the shell behind is already `inert` — the hole
+ * is a place to look, not a place to press. See the note on `GuideOverlay`.
+ */
+.q-guide-spotlight {
+  border-radius: var(--radius-lg);
+  /*
+   * `120vmax` of spread, where `100vmax` is the arithmetic minimum: a hole in
+   * one corner of the screen is `max(width, height)` away from the opposite
+   * edge, and the shadow grows outward from the hole in every direction at
+   * once. The extra fifth is headroom against sub-pixel rounding, which at the
+   * exact minimum leaves a hairline of undimmed page along one edge on
+   * fractional device pixel ratios.
+   */
+  box-shadow:
+    0 0 0 120vmax var(--overlay),
+    0 0 0 2px var(--ring);
+  pointer-events: none;
+}
+
+/*
+ * The step card. One surface, both layouts — floating beside the spotlight on a
+ * desktop, docked to an edge on anything narrower or any touch screen — because
+ * only its *position* changes between them, and a second visual treatment would
+ * be a second thing to keep in step.
+ */
+/*
+ * ⚠ **No `position` here, and that is not an oversight.**
+ *
+ * Everything in this block is unlayered, and unlayered CSS beats every
+ * `@layer` — Tailwind's utilities included (the note above `@layer components`
+ * further up this file spells out the ordering). A `position: relative` here
+ * therefore silently overrode the `fixed` and `absolute` the component asks
+ * for, and the card was statically positioned with its offsets applied as
+ * *relative* nudges instead. On a desktop that happened to land in the right
+ * place — the card's static origin is the surface's own top-left corner, so the
+ * measured offsets came out correct by coincidence — and on every phone and
+ * tablet the docked sheet was pushed off the top of the screen by its own
+ * `bottom` value.
+ *
+ * The component always supplies a position utility, and both of the ones it
+ * supplies establish a containing block, which is all this rule needed.
+ */
+.q-guide-card {
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border);
+  background-color: var(--card);
+  color: var(--card-foreground);
+  padding: 1rem;
+  /* The same elevation every other surface that floats over the page takes. */
+  box-shadow: var(--shadow-overlay);
+}
+
+/*
+ * Docked: pinned to one edge of the screen with the safe area added to the
+ * gutter, so the card clears a home indicator at the bottom and a notch or a
+ * status bar at the top. `1rem` is the same gutter the floating layout uses;
+ * `env()` is what a phone adds to it, and resolves to `0px` everywhere else.
+ *
+ * Which edge is decided in the component, from where the spotlight ended up —
+ * the card takes the edge furthest from it, so it never covers the control the
+ * step is about.
+ */
+.q-guide-card-bottom {
+  bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  animation: q-guide-card-up var(--duration-arc) var(--ease-sweep);
+}
+
+.q-guide-card-top {
+  top: calc(1rem + env(safe-area-inset-top, 0px));
+  animation: q-guide-card-down var(--duration-arc) var(--ease-sweep);
+}
+
+/*
+ * The docked card's width, and the inline safe areas it has to clear — a phone
+ * held sideways puts the housing over the edge the card is centred within.
+ *
+ * `left`/`right` rather than `inset-inline`, and this is the one place in the
+ * file where physical sides are the correct ones: `env(safe-area-inset-left)`
+ * *is* the left of the device, in both scripts. There is nothing to mirror. The
+ * card is centred between the two by `margin-inline: auto`, so Arabic and
+ * English put it in the same place — which is what a centred sheet means.
+ *
+ * `42rem` is the same ceiling `max-w-2xl` sets on the app's other wide reading
+ * surfaces. Below it the card is as wide as the screen allows; above it, a
+ * tablet in landscape gets a column that is still comfortable to read rather
+ * than a sentence stretched across 1024px.
+ */
+.q-guide-card-bottom,
+.q-guide-card-top {
+  left: calc(1rem + env(safe-area-inset-left, 0px));
+  right: calc(1rem + env(safe-area-inset-right, 0px));
+  margin-inline: auto;
+  width: auto;
+  max-width: 42rem;
+}
+
+@keyframes q-guide-card-up {
+  from {
+    transform: translateY(0.75rem);
+  }
+}
+
+@keyframes q-guide-card-down {
+  from {
+    transform: translateY(-0.75rem);
+  }
+}
+
+/*
+ * Reduced motion keeps the surfaces and drops the travel. The tour is a
+ * sequence of things appearing in different places, which is exactly the kind
+ * of movement this preference is about.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .q-guide-card-bottom,
+  .q-guide-card-top {
+    animation: none;
+  }
+}
