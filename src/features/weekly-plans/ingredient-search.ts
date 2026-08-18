@@ -1,40 +1,39 @@
-import { findFoodMatches } from './food-matching';
-import type { FoodTranslator } from './food-translate';
 import { refineIngredientResults, type RefinedFood } from './ingredient-refine';
-import { searchClinicFoods, searchFoods, type FoodSearchResult } from './queries';
+import { loadFoodAliases, searchClinicFoods, searchFoods, type FoodSearchResult } from './queries';
 
 /**
- * One ingredient search over every internal source.
+ * One ingredient search over the canonical food catalog.
  *
- * The dietitian sees a single search box and a single list. Behind it, results
- * come from the clinic's own foods, the shared library, and — for an Arabic name
- * the library does not have yet — the alias/translated USDA path. The old UI
- * exposed that seam as a "search USDA instead" toggle and made the dietitian pick
- * a source; there is no reason she should have to. The source is an
- * implementation detail, so it stays one.
+ * The dietitian sees a single search box and a single list. Behind it there is now
+ * a single source: `catalog_foods`, matched on stored Arabic names, stored English
+ * names, and stored aliases.
  *
- * Priority, cheapest and most local first (spec §13): the clinic's own foods, then
- * the shared library, then the translated USDA fallback — which only runs when the
- * local sources come up thin, so a well-stocked library never pays for an AI call
- * on a keystroke.
+ * **What used to be here, and why it is gone.** The old path searched the clinic's
+ * foods, then 7,793 USDA SR Legacy rows by English description, and — when that
+ * came up thin — sent the Arabic term to an LLM to be turned into English keywords
+ * so USDA could be searched again. Three sources, an AI call on the keystroke path,
+ * and a `FOOD_BASES` heuristic guessing an Arabic label back out of whatever USDA
+ * returned. That heuristic labelled `Eggplant, raw` as بيض (it matched `egg` before
+ * `eggplant`), collapsed 1,176 distinct beef rows onto one entry, and left
+ * restaurant meals, baby food and alcohol one substring away from a meal plan.
+ *
+ * Names and synonyms are data now, so none of that is needed: no AI call, no
+ * translation, no runtime guessing, and nothing outside the catalog is reachable.
+ *
+ * Two calls rather than one so the clinic's own foods keep their priority — a food
+ * a clinic added is the one it means — and because the merge is where dedup by id
+ * happens.
  */
 
 /** How many results the picker shows. */
 const RESULT_LIMIT = 20;
 
 /**
- * Below this many local hits, reach for the translate+USDA fallback. Above it the
- * library already answered, and the AI translation is skipped — it is the one
- * costly, latent step in the path and should not fire when it is not needed.
- */
-const TRANSLATE_THRESHOLD = 8;
-
-/**
  * Merges result groups into one deduplicated list, source priority preserved.
  *
  * Dedup is by food id: the same food resolved by two sources is one food, shown
  * once, at the position its highest-priority source gave it. Pure and separate
- * from the DB/AI calls so the ordering rule can be pinned down in a test.
+ * from the DB calls so the ordering rule can be pinned down in a test.
  */
 export function mergeFoodResults(
   ...groups: readonly (readonly FoodSearchResult[])[]
@@ -53,33 +52,32 @@ export function mergeFoodResults(
   return out;
 }
 
+/**
+ * @param locale The UI language the dietitian is reading. It changes no result and
+ *   no visibility — only which results are shown first, and which are folded into
+ *   the picker's secondary list. See `ingredient-refine.ts`.
+ */
 export async function searchIngredients(
   clinicId: string,
   query: string,
-  deps: { translator?: FoodTranslator } = {},
+  locale: string,
 ): Promise<RefinedFood[]> {
   const trimmed = query.trim();
   if (!trimmed) return [];
 
-  // Local first: the clinic's own foods (matched on Arabic name too) and the
-  // shared library (matched on English description). Cheap, offline, no AI.
+  // The clinic's own foods first, then the shared catalog. Both are indexed
+  // queries against a small table; neither leaves the database.
   const [clinic, shared] = await Promise.all([
     searchClinicFoods(clinicId, trimmed),
     searchFoods(clinicId, trimmed),
   ]);
-  let merged = mergeFoodResults(clinic, shared);
 
-  // Only when the library is thin: bridge an Arabic name to the USDA library via a
-  // confirmed alias (cheap) or a one-off translation (the AI step). `findFoodMatches`
-  // already gates the AI call behind the alias lookup, so a remembered name pays
-  // nothing.
-  if (merged.length < TRANSLATE_THRESHOLD) {
-    const { matches } = await findFoodMatches(clinicId, trimmed, deps);
-    merged = mergeFoodResults(clinic, shared, matches);
-  }
+  const merged = mergeFoodResults(clinic, shared);
 
-  // Arabic-first, deduplicated, ranked (spec §5–7). Refine runs on the whole
-  // merged set — collapsing near-identical USDA variants is exactly why the raw
-  // list is longer than what the dietitian should see — then the list is capped.
-  return refineIngredientResults(merged, trimmed).slice(0, RESULT_LIMIT);
+  // One extra round trip, over the handful of ids that actually came back: a food
+  // found *by its synonym* has to be grouped by the language that synonym is
+  // written in, and the search result itself does not carry which alias matched.
+  const aliases = await loadFoodAliases(merged.map((food) => food.id));
+
+  return refineIngredientResults(merged, trimmed, locale, aliases).slice(0, RESULT_LIMIT);
 }

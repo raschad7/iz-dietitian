@@ -23,6 +23,7 @@ import { cn } from '@/lib/utils';
 import { NUTRIENT_UNITS } from '@/features/weekly-plans/nutrition';
 
 import { loadDishForEditAction } from '../catalog-actions';
+import { localizedName } from '../food-display';
 import { dishTagDotClasses, highProteinDotClasses } from '../meal-tag-tone';
 import type { DishEditData } from '../queries';
 import { DISH_TAGS, MEAL_TYPES, type MealType } from '../schema';
@@ -260,7 +261,7 @@ function DishRow({
             <button
               type="button"
               onClick={onOpen}
-              aria-label={t('detail.open', { name: dish.nameAr })}
+              aria-label={t('detail.open', { name: localizedName(dish, locale) })}
               dir="auto"
               className={cn(
                 /* `font-medium`, not `font-semibold`. Every row in this column
@@ -274,7 +275,7 @@ function DishRow({
                 'focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-2',
               )}
             >
-              {dish.nameAr}
+              {localizedName(dish, locale)}
             </button>
 
             {dish.hidden && (
@@ -363,7 +364,7 @@ function DishRow({
         ) : (
           <DishRowActions
             locale={locale}
-            dish={{ id: dish.id, nameAr: dish.nameAr, isSystem: dish.isSystem, hidden: dish.hidden }}
+            dish={{ id: dish.id, name: localizedName(dish, locale), isSystem: dish.isSystem, hidden: dish.hidden }}
             onEdit={onEdit}
           />
         )}

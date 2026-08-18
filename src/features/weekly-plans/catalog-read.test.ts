@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
 
 import { db } from '@/db';
-import { clinicHiddenDishes, dishes, foods } from '@/db/schema';
-import { createTestClinic, resetDatabase } from '../../../tests/helpers';
+import { clinicHiddenDishes, dishes } from '@/db/schema';
+import { createTestCatalogFood, createTestClinic, resetDatabase } from '../../../tests/helpers';
 
 import { createClinicDish } from './catalog-mutations';
 import type { ClinicDishInput } from './catalog-schema';
@@ -21,11 +21,16 @@ let foodId: string;
 beforeEach(async () => {
   await resetDatabase();
   clinicId = await createTestClinic();
-  const [food] = await db
-    .insert(foods)
-    .values({ description: 'Chicken breast', category: 'Poultry', kcal: 165, protein: 31, carbs: 0, fat: 3.6 })
-    .returning({ id: foods.id });
-  foodId = food!.id;
+  foodId = await createTestCatalogFood({
+    slug: 'chicken-breast-raw',
+    nameAr: 'صدر دجاج ني',
+    nameEn: 'Chicken breast, skinless, raw',
+    category: 'poultry',
+    kcal: 165,
+    protein: 31,
+    carbs: 0,
+    fat: 3.6,
+  });
 });
 
 const dishInput = (): ClinicDishInput => ({
@@ -35,7 +40,7 @@ const dishInput = (): ClinicDishInput => ({
   tags: ['quick'],
   allergenTags: [],
   baseServingLabel: 'حصة',
-  ingredients: [{ foodId, quantityGrams: 200, displayNameAr: 'دجاج' }],
+  ingredients: [{ foodId, quantityGrams: 200 }],
 });
 
 function seedSharedDish(slug: string) {
@@ -98,7 +103,7 @@ describe('getClinicDishForEdit', () => {
     expect(data!.ingredients).toHaveLength(1);
     const ingredient = data!.ingredients[0]!;
     expect(ingredient.quantityGrams).toBe(200);
-    expect(ingredient.displayNameAr).toBe('دجاج');
+    expect(ingredient.portionId).toBeNull();
     expect(ingredient.food.id).toBe(foodId);
     // The food carries what the picker needs to render it back.
     expect(ingredient.food.kcal).toBe(165);

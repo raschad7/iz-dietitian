@@ -21,10 +21,12 @@ import {
   clientNutritionProfiles,
   clients,
   appointments,
+  catalogFoodAliases,
+  catalogFoodPortions,
+  catalogFoods,
   clinicHiddenDishes,
   dishIngredients,
   dishes,
-  foods,
   weeklyPlanMealOptions,
   weeklyPlanMeals,
   weeklyPlans,
@@ -38,6 +40,7 @@ import { DISPLAY_TIME_ZONE } from '@/lib/format';
 import { normalizeArabic } from './arabic-normalize';
 import { matchesOwner, type OwnerFilter } from './catalog-ownership';
 import type { CatalogDish } from './generate';
+import type { FoodPortion } from './ingredient-units';
 import {
   baseServingKcal,
   combineTotals,
@@ -49,6 +52,7 @@ import {
   type NutrientTotals,
   type NutritionCategory,
 } from './nutrition';
+import { readMealSnapshot, requiresFrozenNutrition, resolveMealNutrition } from './nutrition-snapshot';
 import { findSimilar, type SimilarMatch } from './similar';
 import { slotFillKey, type SlotFill } from './skeleton';
 import {
@@ -73,6 +77,16 @@ import { weekDates } from './week';
  */
 
 /**
+ * Anything a read can run on: the pool, or an open transaction.
+ *
+ * Only `loadDishesByIds` takes one today, so `publishPlan` can freeze nutrition on
+ * the same connection that flips the status. Spelled out from `db.transaction`'s
+ * own callback parameter rather than imported, which is the idiom already used in
+ * `editor-mutations.ts`.
+ */
+type DbExecutor = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/**
  * A `text[]` literal with each element bound as a parameter.
  *
  * Interpolating a JS array straight into a `sql` template hands PostgreSQL a
@@ -87,31 +101,187 @@ function textArray(values: readonly string[]): SQL {
   )}]::text[]`;
 }
 
-/** The columns making up a food's composition, shared by the readers below. */
+/**
+ * The columns making up a food's composition, shared by the readers below.
+ *
+ * `catalog_foods` is the only food table now. Both names are stored and both come
+ * through, so `food-display.ts` chooses one by locale rather than deriving either.
+ */
 const foodColumns = {
-  id: foods.id,
-  description: foods.description,
-  nameAr: foods.nameAr,
-  // Carried for the dish editor's unit menu: the food's SR Legacy group decides
-  // whether a household unit is offered at all (meat is grams-only), and the one
-  // stored household portion is what that menu is derived from. See
-  // `ingredient-units.ts`.
-  category: foods.category,
-  portionGrams: foods.portionGrams,
-  portionLabel: foods.portionLabel,
-  kcal: foods.kcal,
-  protein: foods.protein,
-  carbs: foods.carbs,
-  fat: foods.fat,
-  fiber: foods.fiber,
-  sugar: foods.sugar,
-  saturatedFat: foods.saturatedFat,
-  sodium: foods.sodium,
-  cholesterol: foods.cholesterol,
-  calcium: foods.calcium,
-  iron: foods.iron,
-  potassium: foods.potassium,
+  id: catalogFoods.id,
+  nameAr: catalogFoods.nameAr,
+  nameEn: catalogFoods.nameEn,
+  /** Null for a shared catalog food — what tells "my clinic added this" from the shipped set. */
+  clinicId: catalogFoods.clinicId,
+  /** `raw` | `cooked` | `dry` | … — kept distinct, never merged. */
+  state: catalogFoods.state,
+  category: catalogFoods.category,
+  verificationStatus: catalogFoods.verificationStatus,
+  kcal: catalogFoods.kcal,
+  protein: catalogFoods.protein,
+  carbs: catalogFoods.carbs,
+  fat: catalogFoods.fat,
+  fiber: catalogFoods.fiber,
+  sugar: catalogFoods.sugar,
+  saturatedFat: catalogFoods.saturatedFat,
+  sodium: catalogFoods.sodium,
+  cholesterol: catalogFoods.cholesterol,
+  calcium: catalogFoods.calcium,
+  iron: catalogFoods.iron,
+  potassium: catalogFoods.potassium,
 } as const;
+
+/** The portion columns, joined onto a recipe line to say how its amount was typed. */
+const portionColumns = {
+  id: catalogFoodPortions.id,
+  labelAr: catalogFoodPortions.labelAr,
+  labelEn: catalogFoodPortions.labelEn,
+  grams: catalogFoodPortions.grams,
+} as const;
+
+/**
+ * Every portion belonging to a set of foods, grouped by food.
+ *
+ * A second query rather than a join on the food select: a food with three portions
+ * would otherwise come back three times and every caller would have to fold it
+ * back, and the picker's twenty results are one small extra round trip.
+ *
+ * Visibility needs no check of its own — a portion is reachable only through a food
+ * the caller already scoped, which is the reason the table carries no `clinic_id`.
+ */
+async function portionsByFood(
+  foodIds: readonly string[],
+  executor: DbExecutor = db,
+): Promise<Map<string, FoodPortion[]>> {
+  const byFood = new Map<string, FoodPortion[]>();
+  if (!foodIds.length) return byFood;
+
+  const rows = await executor
+    .select({
+      foodId: catalogFoodPortions.foodId,
+      id: catalogFoodPortions.id,
+      labelAr: catalogFoodPortions.labelAr,
+      labelEn: catalogFoodPortions.labelEn,
+      grams: catalogFoodPortions.grams,
+      isDefault: catalogFoodPortions.isDefault,
+      sortOrder: catalogFoodPortions.sortOrder,
+    })
+    .from(catalogFoodPortions)
+    .where(inArray(catalogFoodPortions.foodId, [...foodIds]))
+    .orderBy(asc(catalogFoodPortions.sortOrder), asc(catalogFoodPortions.labelEn));
+
+  for (const { foodId, ...portion } of rows) {
+    const bucket = byFood.get(foodId);
+    if (bucket) bucket.push(portion);
+    else byFood.set(foodId, [portion]);
+  }
+
+  return byFood;
+}
+
+/** One recipe line as the bulk dish readers select it: the food, and how it was typed. */
+const recipeColumns = {
+  dishId: dishIngredients.dishId,
+  quantityGrams: dishIngredients.quantityGrams,
+  portionQuantity: dishIngredients.portionQuantity,
+  portion: portionColumns,
+  food: foodColumns,
+} as const;
+
+type RecipeRow = {
+  dishId: string;
+  quantityGrams: number;
+  portionQuantity: number | null;
+  /**
+   * Null when the line was entered in grams, or when the portion it was entered in
+   * has since been retired — `dish_ingredients.portion_id` is `on delete set null`,
+   * and the `left join` then finds nothing. Both cases mean the same thing to a
+   * reader: show the grams.
+   */
+  portion: { id: string; labelAr: string; labelEn: string; grams: number } | null;
+  food: Omit<FoodSearchResult, 'portions'>;
+};
+
+/** Folds recipe rows onto their dishes, preserving the query's ordering. */
+function attachRecipes<D extends { id: string }>(
+  dishRows: readonly D[],
+  ingredientRows: readonly RecipeRow[],
+): (D & { ingredients: DishDetail['ingredients'] })[] {
+  const byDish = new Map<string, DishDetail['ingredients']>();
+
+  for (const row of ingredientRows) {
+    const ingredient = {
+      quantityGrams: row.quantityGrams,
+      food: row.food,
+      portion: row.portion,
+      portionQuantity: row.portionQuantity,
+    };
+
+    const bucket = byDish.get(row.dishId);
+    if (bucket) bucket.push(ingredient);
+    else byDish.set(row.dishId, [ingredient]);
+  }
+
+  return dishRows.map((dish) => ({ ...dish, ingredients: byDish.get(dish.id) ?? [] }));
+}
+
+/**
+ * One stored synonym for a food, with the language it is written in.
+ *
+ * Aliases are **search-only** — a food is always displayed under its canonical
+ * name — but which language a synonym is written in decides which of the picker's
+ * two lists the food it found belongs in. See `ingredient-refine.ts`.
+ */
+export type FoodAlias = {
+  foodId: string;
+  name: string;
+  /** `normalizeArabic(name)`, the form search matched against. */
+  normalizedName: string;
+  /** `ar` | `en`. */
+  locale: string;
+};
+
+/**
+ * Every alias carried by a set of foods, grouped by food.
+ *
+ * Read after the search rather than joined into it, for the same reason
+ * {@link portionsByFood} is: a food with four synonyms must come back once, and a
+ * join would multiply the row and fight the ordering. Needs no visibility check of
+ * its own — the food ids handed in have already been scoped.
+ */
+export async function loadFoodAliases(
+  foodIds: readonly string[],
+): Promise<Map<string, FoodAlias[]>> {
+  const byFood = new Map<string, FoodAlias[]>();
+  const ids = [...new Set(foodIds)];
+  if (!ids.length) return byFood;
+
+  const rows = await db
+    .select({
+      foodId: catalogFoodAliases.foodId,
+      name: catalogFoodAliases.name,
+      normalizedName: catalogFoodAliases.normalizedName,
+      locale: catalogFoodAliases.locale,
+    })
+    .from(catalogFoodAliases)
+    .where(inArray(catalogFoodAliases.foodId, ids));
+
+  for (const row of rows) {
+    const bucket = byFood.get(row.foodId);
+    if (bucket) bucket.push(row);
+    else byFood.set(row.foodId, [row]);
+  }
+
+  return byFood;
+}
+
+/** Attaches each food's portions to a list of search results. */
+async function withPortions(
+  foods: readonly Omit<FoodSearchResult, 'portions'>[],
+): Promise<FoodSearchResult[]> {
+  const byFood = await portionsByFood(foods.map((food) => food.id));
+  return foods.map((food) => ({ ...food, portions: byFood.get(food.id) ?? [] }));
+}
 
 // ---------------------------------------------------------------------------
 // The catalog
@@ -175,13 +345,10 @@ export async function loadCatalog(
   if (!dishRows.length) return [];
 
   const ingredientRows = await db
-    .select({
-      dishId: dishIngredients.dishId,
-      quantityGrams: dishIngredients.quantityGrams,
-      food: foodColumns,
-    })
+    .select(recipeColumns)
     .from(dishIngredients)
-    .innerJoin(foods, eq(foods.id, dishIngredients.foodId))
+    .innerJoin(catalogFoods, eq(catalogFoods.id, dishIngredients.catalogFoodId))
+    .leftJoin(catalogFoodPortions, eq(catalogFoodPortions.id, dishIngredients.portionId))
     .where(
       inArray(
         dishIngredients.dishId,
@@ -190,14 +357,7 @@ export async function loadCatalog(
     )
     .orderBy(asc(dishIngredients.sortOrder));
 
-  const byDish = new Map<string, DishDetail['ingredients']>();
-  for (const { dishId, ...ingredient } of ingredientRows) {
-    const bucket = byDish.get(dishId);
-    if (bucket) bucket.push(ingredient);
-    else byDish.set(dishId, [ingredient]);
-  }
-
-  return dishRows.map((dish) => ({ ...dish, ingredients: byDish.get(dish.id) ?? [] }));
+  return attachRecipes(dishRows, ingredientRows);
 }
 
 /**
@@ -210,10 +370,22 @@ export async function loadCatalog(
  * did not make. `dishes.is_active` says as much itself: retired dishes stay for the
  * plans that reference them.
  */
-export async function loadDishesByIds(ids: readonly string[]): Promise<DishDetail[]> {
+export async function loadDishesByIds(
+  ids: readonly string[],
+  /**
+   * The connection to read on. Defaults to the pool.
+   *
+   * `publishPlan` freezes each meal's nutrition inside the transaction that flips
+   * the status, and it must read the recipes on that same connection or it would
+   * be snapshotting rows from outside its own transaction. Passing the executor in
+   * is what lets publishing reuse this exact loader — and therefore the exact
+   * nutrition path the board uses — rather than growing a second one.
+   */
+  executor: DbExecutor = db,
+): Promise<DishDetail[]> {
   if (!ids.length) return [];
 
-  const dishRows = await db
+  const dishRows = await executor
     .select({
       id: dishes.id,
       clinicId: dishes.clinicId,
@@ -232,14 +404,11 @@ export async function loadDishesByIds(ids: readonly string[]): Promise<DishDetai
 
   if (!dishRows.length) return [];
 
-  const ingredientRows = await db
-    .select({
-      dishId: dishIngredients.dishId,
-      quantityGrams: dishIngredients.quantityGrams,
-      food: foodColumns,
-    })
+  const ingredientRows = await executor
+    .select(recipeColumns)
     .from(dishIngredients)
-    .innerJoin(foods, eq(foods.id, dishIngredients.foodId))
+    .innerJoin(catalogFoods, eq(catalogFoods.id, dishIngredients.catalogFoodId))
+    .leftJoin(catalogFoodPortions, eq(catalogFoodPortions.id, dishIngredients.portionId))
     .where(
       inArray(
         dishIngredients.dishId,
@@ -248,14 +417,7 @@ export async function loadDishesByIds(ids: readonly string[]): Promise<DishDetai
     )
     .orderBy(asc(dishIngredients.sortOrder));
 
-  const byDish = new Map<string, DishDetail['ingredients']>();
-  for (const { dishId, ...ingredient } of ingredientRows) {
-    const bucket = byDish.get(dishId);
-    if (bucket) bucket.push(ingredient);
-    else byDish.set(dishId, [ingredient]);
-  }
-
-  return dishRows.map((dish) => ({ ...dish, ingredients: byDish.get(dish.id) ?? [] }));
+  return attachRecipes(dishRows, ingredientRows);
 }
 
 /** The catalog reduced to what generation needs: identity, tags, and energy per serving. */
@@ -337,11 +499,11 @@ export type DishEditData = {
   tags: string[];
   allergenTags: string[];
   ingredients: {
+    /** Carries the food's whole portion menu, so the editor can rebuild the unit list. */
     food: FoodSearchResult;
     quantityGrams: number;
-    displayNameAr: string | null;
-    householdLabel: string | null;
-    householdGrams: number | null;
+    /** The portion the amount was saved in, or null for grams. */
+    portionId: string | null;
   }[];
 };
 
@@ -453,9 +615,11 @@ async function loadHiddenSharedDishes(clinicId: string): Promise<DishDetail[]> {
  *
  * Owner-scoped: returns null for a shared dish or another clinic's, so the edit
  * path cannot preload — let alone save over — a dish this clinic does not own.
- * Unlike `loadCatalog` it reads the per-ingredient client-facing extras
- * (`display_name_ar`, the household measure), because saving an edit replaces the
- * recipe wholesale and dropping them would erase what the dietitian set.
+ *
+ * Unlike `loadCatalog` this carries each food's **whole portion menu**, not just the
+ * one portion the line was saved in: the editor has to offer every unit the food
+ * supports, and reopening a dish must not silently narrow the list to what was
+ * chosen last time.
  */
 export async function getClinicDishForEdit(clinicId: string, dishId: string): Promise<DishEditData | null> {
   const [dish] = await db
@@ -477,24 +641,22 @@ export async function getClinicDishForEdit(clinicId: string, dishId: string): Pr
   const rows = await db
     .select({
       quantityGrams: dishIngredients.quantityGrams,
-      displayNameAr: dishIngredients.displayNameAr,
-      householdLabel: dishIngredients.householdLabel,
-      householdGrams: dishIngredients.householdGrams,
+      portionId: dishIngredients.portionId,
       food: foodColumns,
     })
     .from(dishIngredients)
-    .innerJoin(foods, eq(foods.id, dishIngredients.foodId))
+    .innerJoin(catalogFoods, eq(catalogFoods.id, dishIngredients.catalogFoodId))
     .where(eq(dishIngredients.dishId, dishId))
     .orderBy(asc(dishIngredients.sortOrder));
+
+  const byFood = await portionsByFood(rows.map((row) => row.food.id));
 
   return {
     ...dish,
     ingredients: rows.map((row) => ({
-      food: row.food,
+      food: { ...row.food, portions: byFood.get(row.food.id) ?? [] },
       quantityGrams: row.quantityGrams,
-      displayNameAr: row.displayNameAr,
-      householdLabel: row.householdLabel,
-      householdGrams: row.householdGrams,
+      portionId: row.portionId,
     })),
   };
 }
@@ -513,13 +675,7 @@ export type DishDetailView = {
   /** Computed here so the drawer never sums nutrition itself. */
   totals: NutrientTotals;
   baseKcal: number;
-  ingredients: {
-    food: FoodSearchResult;
-    quantityGrams: number;
-    /** The saved unit key + grams-per-unit, so the drawer can show "1 كوب" not "186 غ". */
-    householdLabel: string | null;
-    householdGrams: number | null;
-  }[];
+  ingredients: DishDetail['ingredients'];
 };
 
 /**
@@ -527,9 +683,9 @@ export type DishDetailView = {
  *
  * Unlike `getClinicDishForEdit` this is **not** owner-scoped — a dietitian may
  * open a shared/system dish to read it, they just cannot edit it. Scoped to
- * shared-or-own so it never reaches another clinic's dish. Carries the per-
- * ingredient household measure (which `loadCatalog` omits) so the drawer can show
- * each amount in the unit it was entered in, grams as the fallback.
+ * shared-or-own so it never reaches another clinic's dish. Each line carries the
+ * portion it was entered in, so the drawer can show "1 كوب" rather than "158 غرام",
+ * and falls back to grams when there is none.
  */
 export async function getDishDetailForClinic(
   clinicId: string,
@@ -553,23 +709,15 @@ export async function getDishDetailForClinic(
   if (!dish) return null;
 
   const rows = await db
-    .select({
-      quantityGrams: dishIngredients.quantityGrams,
-      householdLabel: dishIngredients.householdLabel,
-      householdGrams: dishIngredients.householdGrams,
-      food: foodColumns,
-    })
+    .select(recipeColumns)
     .from(dishIngredients)
-    .innerJoin(foods, eq(foods.id, dishIngredients.foodId))
+    .innerJoin(catalogFoods, eq(catalogFoods.id, dishIngredients.catalogFoodId))
+    .leftJoin(catalogFoodPortions, eq(catalogFoodPortions.id, dishIngredients.portionId))
     .where(eq(dishIngredients.dishId, dishId))
     .orderBy(asc(dishIngredients.sortOrder));
 
-  const ingredients = rows.map((row) => ({
-    food: row.food,
-    quantityGrams: row.quantityGrams,
-    householdLabel: row.householdLabel,
-    householdGrams: row.householdGrams,
-  }));
+  const [assembled] = attachRecipes([{ id: dishId }], rows);
+  const ingredients = assembled?.ingredients ?? [];
   const totals = dishTotals(ingredients, 1);
 
   return { ...dish, ingredients, totals, baseKcal: totals.kcal.value };
@@ -586,22 +734,42 @@ export async function listMealTypes(): Promise<string[]> {
 
 export type FoodSearchResult = {
   id: string;
-  description: string;
-  nameAr: string | null;
-  /** SR Legacy food group — used only to decide the editor's unit menu. */
+  /** Both stored, neither derived. The reader's locale picks one; see `food-display.ts`. */
+  nameAr: string;
+  nameEn: string;
+  /** Null for a shared catalog food, set for one this clinic added. */
+  clinicId: string | null;
+  /** `raw` | `cooked` | `dry` | … Raw and cooked are separate foods, never merged. */
+  state: string;
   category: string;
-  /** The one stored household measure, or null. The unit menu is derived from these two. */
-  portionGrams: number | null;
-  portionLabel: string | null;
+  verificationStatus: string;
+  /** Every household measure this food offers, in menu order. Empty means grams only. */
+  portions: FoodPortion[];
 } & FoodNutrients;
 
+/** Shared catalog foods plus this clinic's own. Never another clinic's, never inactive. */
+function catalogVisibleTo(clinicId: string): SQL {
+  return and(
+    eq(catalogFoods.isActive, true),
+    or(isNull(catalogFoods.clinicId), eq(catalogFoods.clinicId, clinicId))!,
+  )!;
+}
+
 /**
- * Library food search for the dish editor.
+ * Ingredient search over the canonical catalog.
  *
- * Shared USDA foods plus this clinic's own custom foods, matched on description.
- * `ilike '%…%'` with the same escaping `listDishes` uses; 7,793 rows is a few
- * milliseconds of sequential scan, so no index is needed (the table comment says
- * as much).
+ * Matches the stored Arabic name, the stored English name, and any stored alias —
+ * all on their normalized forms, so "ارز ابيض" finds "أرز أبيض" and "طماطم" finds
+ * بندورة. The normalization happens at write time (`normalized_name_ar` /
+ * `normalized_name_en` / `catalog_food_aliases.normalized_name`), which is what
+ * makes this an indexed SQL predicate instead of the whole-table load into JS the
+ * old clinic-food search needed.
+ *
+ * **USDA is not reachable from here.** The old path searched 7,793 SR Legacy rows
+ * by English description and then guessed an Arabic label back out of them, which
+ * is how a search for بيض could return 94 rows including `Eggplant, raw`, and how
+ * restaurant meals, baby food and alcohol were one substring away from a meal plan.
+ * The catalog is the only source now; `foods` stays as an internal reference.
  */
 export async function searchFoods(
   clinicId: string,
@@ -610,47 +778,82 @@ export async function searchFoods(
 ): Promise<FoodSearchResult[]> {
   const trimmed = query.trim();
   if (!trimmed) return [];
-  const term = `%${trimmed.replace(/[\\%_]/g, '\\$&')}%`;
 
-  return db
+  const term = `%${normalizeArabic(trimmed).replace(/[\\%_]/g, '\\$&')}%`;
+
+  // `exists` rather than a join: a food with three matching aliases must come back
+  // once, and a join would need a distinct that fights the ordering below.
+  const aliasMatch = sql`exists (
+    select 1 from ${catalogFoodAliases}
+    where ${catalogFoodAliases.foodId} = ${catalogFoods.id}
+      and ${catalogFoodAliases.normalizedName} ilike ${term}
+  )`;
+
+  const rows = await db
     .select(foodColumns)
-    .from(foods)
-    .where(and(ilike(foods.description, term), or(isNull(foods.clinicId), eq(foods.clinicId, clinicId))))
-    .orderBy(asc(foods.description))
+    .from(catalogFoods)
+    .where(
+      and(
+        catalogVisibleTo(clinicId),
+        or(
+          ilike(catalogFoods.normalizedNameAr, term),
+          ilike(catalogFoods.normalizedNameEn, term),
+          aliasMatch,
+        ),
+      ),
+    )
+    /*
+     * A clinic's own food first — it was added because the shared catalog lacked
+     * it — then an exact name match, then everything else alphabetically.
+     *
+     * Note what this deliberately does NOT do: collapse a food's preparation
+     * states. A search for رز returns both أرز أبيض ناشف and أرز أبيض مطبوخ, each
+     * under its own name, and neither is promoted over the other. They are
+     * different foods with different nutrition per 100 g, and picking one on the
+     * dietitian's behalf is exactly the error the catalog was built to stop.
+     */
+    .orderBy(
+      sql`case when ${catalogFoods.clinicId} is null then 1 else 0 end`,
+      sql`case when ${catalogFoods.normalizedNameAr} = ${normalizeArabic(trimmed)} then 0 else 1 end`,
+      asc(catalogFoods.nameAr),
+    )
     .limit(limit);
+
+  return withPortions(rows);
 }
 
 /**
- * A single library food by id, clinic-visible.
+ * A single catalog food by id, clinic-visible.
  *
- * Symmetric with `searchFoods`: same columns, same clinic-visibility rule, but by
- * id rather than by description — the shape `findFoodMatches` needs to resolve a
- * remembered alias without guessing at text search.
+ * Symmetric with `searchFoods`: same columns, same visibility rule, but by id —
+ * what the editor needs after a pick, without guessing at text search.
  */
 export async function searchFoodsById(clinicId: string, foodId: string): Promise<FoodSearchResult[]> {
-  return db
+  const rows = await db
     .select(foodColumns)
-    .from(foods)
-    .where(and(eq(foods.id, foodId), or(isNull(foods.clinicId), eq(foods.clinicId, clinicId))))
+    .from(catalogFoods)
+    .where(and(eq(catalogFoods.id, foodId), catalogVisibleTo(clinicId)))
     .limit(1);
+
+  return withPortions(rows);
 }
 
-/** Every food this clinic added to its own library, newest name order. For the library screen. */
+/** Every food this clinic added to its own catalog. For the library screen. */
 export async function listClinicFoods(clinicId: string): Promise<FoodSearchResult[]> {
-  return db
+  const rows = await db
     .select(foodColumns)
-    .from(foods)
-    .where(eq(foods.clinicId, clinicId))
-    .orderBy(asc(foods.nameAr));
+    .from(catalogFoods)
+    .where(and(eq(catalogFoods.clinicId, clinicId), eq(catalogFoods.isActive, true)))
+    .orderBy(asc(catalogFoods.nameAr));
+
+  return withPortions(rows);
 }
 
 /**
- * Searches ONLY this clinic's own foods, by Arabic name or description. No AI,
- * works offline — the primary picker source.
+ * Searches ONLY this clinic's own catalog foods, by Arabic or English name.
  *
- * An empty query returns the clinic's library (first `limit`), same ordering as
- * `listClinicFoods`, so the picker has something to show before the dietitian
- * types anything.
+ * An empty query returns the clinic's own library (first `limit`), so the picker
+ * has something to show before the dietitian types anything.
  */
 export async function searchClinicFoods(
   clinicId: string,
@@ -659,34 +862,46 @@ export async function searchClinicFoods(
 ): Promise<FoodSearchResult[]> {
   const trimmed = query.trim();
 
+  const scope = and(eq(catalogFoods.clinicId, clinicId), eq(catalogFoods.isActive, true))!;
+
   if (!trimmed) {
-    return db
-      .select(foodColumns)
-      .from(foods)
-      .where(eq(foods.clinicId, clinicId))
-      .orderBy(asc(foods.nameAr))
-      .limit(limit);
+    return withPortions(
+      await db
+        .select(foodColumns)
+        .from(catalogFoods)
+        .where(scope)
+        .orderBy(asc(catalogFoods.nameAr))
+        .limit(limit),
+    );
   }
 
-  // Matched on the normalized Arabic form, so "ارز ابيض" finds a food stored as
-  // "أرز أبيض". `ilike` cannot run the JS normalizer, so the clinic's own foods
-  // (a small set — never the 7,793 USDA rows) are loaded and filtered here. See
-  // `arabic-normalize.ts` for why a stored normalized column was not worth its
-  // migration at this size.
-  const term = normalizeArabic(trimmed);
+  const term = `%${normalizeArabic(trimmed).replace(/[\\%_]/g, '\\$&')}%`;
 
+  // Aliases count here exactly as they do in the shared search: a clinic that
+  // recorded طماطم as a synonym for its own بندورة entry expects to find it by
+  // either word, and a search that only read the canonical names would quietly
+  // ignore half of what the clinic wrote down.
   const rows = await db
     .select(foodColumns)
-    .from(foods)
-    .where(eq(foods.clinicId, clinicId))
-    .orderBy(asc(foods.nameAr));
+    .from(catalogFoods)
+    .where(
+      and(
+        scope,
+        or(
+          ilike(catalogFoods.normalizedNameAr, term),
+          ilike(catalogFoods.normalizedNameEn, term),
+          sql`exists (
+            select 1 from ${catalogFoodAliases}
+            where ${catalogFoodAliases.foodId} = ${catalogFoods.id}
+              and ${catalogFoodAliases.normalizedName} ilike ${term}
+          )`,
+        ),
+      ),
+    )
+    .orderBy(asc(catalogFoods.nameAr))
+    .limit(limit);
 
-  return rows
-    .filter((row) => {
-      const name = row.nameAr ? normalizeArabic(row.nameAr) : '';
-      return name.includes(term) || normalizeArabic(row.description).includes(term);
-    })
-    .slice(0, limit);
+  return withPortions(rows);
 }
 
 // ---------------------------------------------------------------------------
@@ -975,7 +1190,19 @@ export type BoardMeal = {
   /** Null for an unfilled slot. */
   dish: (DishDetail & { servings: number }) | null;
   rationaleAr: string | null;
+  /** Frozen when the plan was published, computed live for a draft. */
   totals: NutrientTotals;
+  /** The dish's total weight, from the same source as `totals`, so the two agree. */
+  grams: number;
+  /**
+   * True when `totals` and `grams` came from the published snapshot.
+   *
+   * The itemised ingredient list beside them is still rendered from the *current*
+   * recipe — composition is not versioned — so on an older plan the frozen total
+   * and the live breakdown can legitimately disagree. This flag is what lets the UI
+   * avoid presenting that breakdown as the prescription.
+   */
+  nutritionFrozen: boolean;
   /** What this slot was supposed to carry, from the plan's snapshotted target. */
   budgetKcal: number;
   options: BoardOption[];
@@ -1084,7 +1311,7 @@ export type ComparisonPlan = {
   planId: string;
   weekStartDate: string;
   /** Dish name per `dayOfWeek:slotKey`, for the ghost line under each card. */
-  slots: Record<string, { dishId: string; nameAr: string }>;
+  slots: Record<string, { dishId: string; nameAr: string; nameEn: string }>;
 };
 
 /**
@@ -1122,7 +1349,10 @@ export async function previousPlanSlots(
       dayOfWeek: weeklyPlanMeals.dayOfWeek,
       slotKey: weeklyPlanMeals.slotKey,
       dishId: weeklyPlanMeals.dishId,
+      // Both names: the ghost line under a card renders in the reader's locale
+      // like every other dish name on the board.
       nameAr: dishes.nameAr,
+      nameEn: dishes.nameEn,
     })
     .from(weeklyPlanMeals)
     .innerJoin(dishes, eq(dishes.id, weeklyPlanMeals.dishId))
@@ -1132,7 +1362,11 @@ export async function previousPlanSlots(
 
   for (const row of rows) {
     if (!row.dishId) continue;
-    slots[slotFillKey(row.dayOfWeek, row.slotKey)] = { dishId: row.dishId, nameAr: row.nameAr };
+    slots[slotFillKey(row.dayOfWeek, row.slotKey)] = {
+      dishId: row.dishId,
+      nameAr: row.nameAr,
+      nameEn: row.nameEn,
+    };
   }
 
   return { planId: previous.id, weekStartDate: previous.weekStartDate, slots };
@@ -1307,6 +1541,7 @@ async function assembleBoard(plan: PlanRow): Promise<Board> {
       dishId: weeklyPlanMeals.dishId,
       servings: weeklyPlanMeals.servings,
       rationaleAr: weeklyPlanMeals.rationaleAr,
+      nutritionSnapshot: weeklyPlanMeals.nutritionSnapshot,
     })
     .from(weeklyPlanMeals)
     .where(eq(weeklyPlanMeals.planId, plan.id))
@@ -1376,6 +1611,20 @@ async function assembleBoard(plan: PlanRow): Promise<Board> {
   for (const meal of mealRows) {
     const dish = meal.dishId ? dishById.get(meal.dishId) : undefined;
 
+    // The one branch between a frozen record and a live calculation. Keyed on the
+    // snapshot rather than on `plan.status`, so the rule is stated once and the
+    // three readers above (staff board, latest board, patient portal) cannot
+    // disagree about what a published plan contains. See `nutrition-snapshot.ts`.
+    const nutrition = resolveMealNutrition({
+      snapshot: readMealSnapshot(meal.nutritionSnapshot),
+      // The status decides what a *missing or damaged* snapshot means. A draft
+      // recalculates; a published plan with nothing readable to show throws rather
+      // than quietly producing today's numbers under yesterday's prescription.
+      requiresSnapshot: requiresFrozenNutrition(plan.status),
+      ingredients: dish ? dish.ingredients : null,
+      servings: meal.servings,
+    });
+
     days[meal.dayOfWeek]?.meals.push({
       id: meal.id,
       slotKey: meal.slotKey,
@@ -1383,7 +1632,9 @@ async function assembleBoard(plan: PlanRow): Promise<Board> {
       timeOfDay: toTimeInput(meal.timeOfDay),
       dish: dish ? { ...dish, servings: meal.servings } : null,
       rationaleAr: meal.rationaleAr,
-      totals: dish ? dishTotals(dish.ingredients, meal.servings) : emptyTotals(),
+      totals: nutrition.totals,
+      grams: nutrition.grams,
+      nutritionFrozen: nutrition.frozen,
       budgetKcal: meal.budgetKcal,
       options: optionsByMeal.get(meal.id) ?? [],
     });

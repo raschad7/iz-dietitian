@@ -2,8 +2,14 @@ import { beforeEach, describe, expect, test } from 'bun:test';
 import { and, eq } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { clinicHiddenDishes, dishes, dishIngredients, foodAliases, foods, weeklyPlanMeals, weeklyPlans } from '@/db/schema';
-import { createTestClient, createTestClinic, resetDatabase } from '../../../tests/helpers';
+import { catalogFoodAliases, catalogFoodPortions, catalogFoods, clinicHiddenDishes, dishes, dishIngredients, weeklyPlanMeals, weeklyPlans } from '@/db/schema';
+import {
+  createTestClient,
+  createTestCatalogFood,
+  createTestCatalogPortion,
+  createTestClinic,
+  resetDatabase,
+} from '../../../tests/helpers';
 
 import {
   createClinicDish,
@@ -22,11 +28,16 @@ let foodId: string;
 beforeEach(async () => {
   await resetDatabase();
   clinicId = await createTestClinic();
-  const [food] = await db
-    .insert(foods)
-    .values({ description: 'Chicken breast', category: 'Poultry', kcal: 165, protein: 31, carbs: 0, fat: 3.6 })
-    .returning({ id: foods.id });
-  foodId = food!.id;
+  foodId = await createTestCatalogFood({
+    slug: 'chicken-breast-raw',
+    nameAr: 'صدر دجاج ني',
+    nameEn: 'Chicken breast, skinless, raw',
+    category: 'poultry',
+    kcal: 165,
+    protein: 31,
+    carbs: 0,
+    fat: 3.6,
+  });
 });
 
 const dishInput = (): ClinicDishInput => ({
@@ -36,7 +47,7 @@ const dishInput = (): ClinicDishInput => ({
   tags: [],
   allergenTags: [],
   baseServingLabel: 'حصة',
-  ingredients: [{ foodId, quantityGrams: 200, displayNameAr: 'دجاج', householdLabel: undefined, householdGrams: undefined }],
+  ingredients: [{ foodId, quantityGrams: 200 }],
 });
 
 describe('createClinicDish', () => {
@@ -49,7 +60,10 @@ describe('createClinicDish', () => {
 
     const rows = await db.select().from(dishIngredients).where(eq(dishIngredients.dishId, dishId!));
     expect(rows).toHaveLength(1);
-    expect(rows[0]!.displayNameAr).toBe('دجاج');
+    expect(rows[0]!.catalogFoodId).toBe(foodId);
+    // Entered in grams, so nothing records a unit.
+    expect(rows[0]!.portionId).toBeNull();
+    expect(rows[0]!.portionQuantity).toBeNull();
   });
 });
 
@@ -141,7 +155,7 @@ describe('hide / unhide shared dishes', () => {
 });
 
 describe('createCustomFood', () => {
-  test('stores a clinic-owned food with null fdc_id and an Arabic alias', async () => {
+  test('stores a clinic-scoped catalog food with an Arabic alias', async () => {
     const id = await createCustomFood(clinicId, {
       description: 'Village white cheese',
       nameAr: 'جبنة بلدية',
@@ -150,22 +164,224 @@ describe('createCustomFood', () => {
       carbs: 2,
       fat: 20,
     });
+
     expect(id).toBeString();
-    const [food] = await db.select().from(foods).where(eq(foods.id, id!));
+
+    const [food] = await db.select().from(catalogFoods).where(eq(catalogFoods.id, id!));
     expect(food!.clinicId).toBe(clinicId);
-    expect(food!.fdcId).toBeNull();
     expect(food!.nameAr).toBe('جبنة بلدية');
+    expect(food!.nameEn).toBe('Village white cheese');
+    // Entered by hand, so it claims neither a source nor verification.
+    expect(food!.sourceType).toBe('clinic_entered');
+    expect(food!.sourceRef).toBeNull();
+    expect(food!.verificationStatus).toBe('provisional');
+
     // The Arabic name it was created under is remembered as an alias.
-    const aliases = await db.select().from(foodAliases).where(eq(foodAliases.foodId, id!));
+    const aliases = await db
+      .select()
+      .from(catalogFoodAliases)
+      .where(eq(catalogFoodAliases.foodId, id!));
     expect(aliases).toHaveLength(1);
-    expect(aliases[0]!.nameAr).toBe('جبنة بلدية');
+    expect(aliases[0]!.name).toBe('جبنة بلدية');
   });
 });
 
 describe('rememberFoodAlias', () => {
-  test('is idempotent on (clinic, name)', async () => {
-    await rememberFoodAlias(clinicId, foodId, 'دجاج');
-    await rememberFoodAlias(clinicId, foodId, 'دجاج');
-    expect(await db.select().from(foodAliases).where(eq(foodAliases.clinicId, clinicId))).toHaveLength(1);
+  test('is idempotent on (food, normalized name)', async () => {
+    const ownId = await createCustomFood(clinicId, {
+      description: 'Village white cheese',
+      nameAr: 'جبنة بلدية',
+      kcal: 260,
+      protein: 18,
+      carbs: 2,
+      fat: 20,
+    });
+
+    await rememberFoodAlias(clinicId, ownId!, 'جبنه بلديه');
+    await rememberFoodAlias(clinicId, ownId!, 'جبنه بلديه');
+
+    const aliases = await db
+      .select()
+      .from(catalogFoodAliases)
+      .where(eq(catalogFoodAliases.foodId, ownId!));
+    // The creation alias plus the one remembered once, not twice.
+    expect(aliases).toHaveLength(2);
+  });
+
+  test('refuses to add a synonym to a shared catalog food', async () => {
+    // `foodId` is the shared fixture food. One clinic's vocabulary must not
+    // become every clinic's.
+    await rememberFoodAlias(clinicId, foodId, 'جاج');
+
+    const aliases = await db
+      .select()
+      .from(catalogFoodAliases)
+      .where(eq(catalogFoodAliases.foodId, foodId));
+    expect(aliases).toHaveLength(0);
+  });
+});
+
+/**
+ * The grams a recipe is saved with, when the line names a portion.
+ *
+ * The browser computes `quantity × gramsPerUnit` for the live preview and submits
+ * the result alongside the portion it used. Trusting that number is how a request
+ * saying "1 cup" could store 50 grams of a 200 g cup: every reader would see
+ * "1 كوب", every calorie would be a quarter of it, and nothing anywhere would
+ * disagree with anything else. So the server derives the grams and throws the
+ * submitted ones away.
+ */
+describe('portion-to-grams consistency', () => {
+  let riceId: string;
+  let cupId: string;
+
+  beforeEach(async () => {
+    riceId = await createTestCatalogFood({
+      slug: 'rice-white-cooked',
+      nameAr: 'أرز أبيض مطبوخ',
+      nameEn: 'White rice, cooked',
+      state: 'cooked',
+      category: 'grains',
+      kcal: 130,
+      protein: 2.7,
+      carbs: 28,
+      fat: 0.3,
+    });
+    cupId = await createTestCatalogPortion(riceId, {
+      labelAr: 'كوب',
+      labelEn: 'Cup',
+      grams: 200,
+      isDefault: true,
+    });
+  });
+
+  const withPortion = (overrides: Partial<ClinicDishInput['ingredients'][number]>): ClinicDishInput => ({
+    ...dishInput(),
+    ingredients: [
+      { foodId: riceId, quantityGrams: 200, portionId: cupId, portionQuantity: 1, ...overrides },
+    ],
+  });
+
+  async function savedRow(dishId: string) {
+    const rows = await db.select().from(dishIngredients).where(eq(dishIngredients.dishId, dishId));
+    return rows[0]!;
+  }
+
+  test('the grams come from the portion, not from the request', async () => {
+    // The forgery: one cup of a 200 g cup, declared as 50 g.
+    const dishId = await createClinicDish(clinicId, withPortion({ quantityGrams: 50 }));
+
+    const row = await savedRow(dishId!);
+    expect(row.quantityGrams).toBe(200);
+    expect(row.portionId).toBe(cupId);
+    // And the count is preserved exactly as typed, not reconstructed by division.
+    expect(row.portionQuantity).toBe(1);
+  });
+
+  test('an inflated grams value is discarded the same way', async () => {
+    const dishId = await createClinicDish(clinicId, withPortion({ quantityGrams: 5000 }));
+
+    expect((await savedRow(dishId!)).quantityGrams).toBe(200);
+  });
+
+  test('a fractional portion count derives its own weight', async () => {
+    const dishId = await createClinicDish(clinicId, withPortion({ portionQuantity: 0.5, quantityGrams: 999 }));
+
+    const row = await savedRow(dishId!);
+    expect(row.quantityGrams).toBe(100);
+    expect(row.portionQuantity).toBe(0.5);
+  });
+
+  test('a grams-only line keeps the grams it submitted', async () => {
+    // Nothing to derive from, and nothing was claimed twice: the submitted number
+    // is the only figure the request stated.
+    const dishId = await createClinicDish(clinicId, {
+      ...dishInput(),
+      ingredients: [{ foodId: riceId, quantityGrams: 175 }],
+    });
+
+    const row = await savedRow(dishId!);
+    expect(row.quantityGrams).toBe(175);
+    expect(row.portionId).toBeNull();
+  });
+
+  test('an update is derived too, not only a create', async () => {
+    const dishId = await createClinicDish(clinicId, withPortion({}));
+
+    const ok = await updateClinicDish(clinicId, dishId!, withPortion({ portionQuantity: 2, quantityGrams: 1 }));
+
+    expect(ok).toBe(true);
+    expect((await savedRow(dishId!)).quantityGrams).toBe(400);
+  });
+
+  test('a portion belonging to another food is refused, not silently ignored', async () => {
+    // `foodId` is the chicken from the outer fixture; `cupId` is rice's cup.
+    const result = await createClinicDish(clinicId, {
+      ...dishInput(),
+      ingredients: [{ foodId, quantityGrams: 200, portionId: cupId, portionQuantity: 1 }],
+    });
+
+    expect(result).toBeNull();
+    expect(await db.select().from(dishIngredients)).toHaveLength(0);
+  });
+
+  test('a portion belonging to another clinic is refused', async () => {
+    const otherClinicId = await createTestClinic();
+    const theirFoodId = await createTestCatalogFood({
+      slug: 'their-bread',
+      nameAr: 'خبزهم',
+      nameEn: 'Their bread',
+      clinicId: otherClinicId,
+      category: 'grains',
+    });
+    const theirPortionId = await createTestCatalogPortion(theirFoodId, {
+      labelAr: 'رغيف',
+      labelEn: 'Loaf',
+      grams: 60,
+    });
+
+    const result = await createClinicDish(clinicId, {
+      ...dishInput(),
+      ingredients: [
+        { foodId: riceId, quantityGrams: 200, portionId: theirPortionId, portionQuantity: 1 },
+      ],
+    });
+
+    expect(result).toBeNull();
+  });
+
+  test('a stale portion id — one deleted since the form was opened — is refused', async () => {
+    const staleId = await createTestCatalogPortion(riceId, {
+      labelAr: 'نصف كوب',
+      labelEn: 'Half cup',
+      grams: 100,
+    });
+    await db.delete(catalogFoodPortions).where(eq(catalogFoodPortions.id, staleId));
+
+    const result = await createClinicDish(clinicId, {
+      ...dishInput(),
+      ingredients: [{ foodId: riceId, quantityGrams: 100, portionId: staleId, portionQuantity: 1 }],
+    });
+
+    // Refused rather than quietly downgraded to grams: the dietitian asked for a
+    // unit that no longer exists, and saving something else under their name is
+    // worse than saying no.
+    expect(result).toBeNull();
+  });
+
+  test('a refused line leaves an existing dish untouched', async () => {
+    const dishId = await createClinicDish(clinicId, withPortion({}));
+
+    const ok = await updateClinicDish(clinicId, dishId!, {
+      ...dishInput(),
+      // A well-formed uuid naming nothing — what the schema lets through, and so
+      // what the mutation has to catch.
+      ingredients: [
+        { foodId: riceId, quantityGrams: 100, portionId: crypto.randomUUID(), portionQuantity: 1 },
+      ],
+    });
+
+    expect(ok).toBe(false);
+    expect((await savedRow(dishId!)).quantityGrams).toBe(200);
   });
 });

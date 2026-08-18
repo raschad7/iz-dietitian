@@ -202,11 +202,34 @@ export function roundForDisplay(key: NutrientKey, value: number): number {
   return Math.round(value * factor) / factor;
 }
 
+/** The measure an amount was entered in. Display only — see {@link DishIngredientDetail}. */
+export type IngredientPortion = {
+  id: string;
+  labelAr: string;
+  labelEn: string;
+  /** What one of it weighs. Recorded for display; the grams below are what count. */
+  grams: number;
+};
+
 /** A recipe line, as the queries hand it over. */
 export type DishIngredientDetail = {
-  /** Grams for ONE base serving. */
+  /**
+   * Grams for ONE base serving, and the **only** quantity any total is built
+   * from. A portion below never enters this arithmetic.
+   */
   quantityGrams: number;
-  food: { id: string; description: string } & FoodNutrients;
+  food: { id: string; nameAr: string; nameEn: string } & FoodNutrients;
+  /**
+   * How the dietitian typed the amount — "2 حبة" rather than "100 غرام".
+   *
+   * Purely a record of the entry, so the editor and the recipe list can show the
+   * unit it was written in. Null when the amount was entered in grams, and null
+   * again if the portion has since been retired, in which case the grams above
+   * are shown instead. Optional so a caller that only needs nutrition (the live
+   * editor preview) need not carry it.
+   */
+  portion?: IngredientPortion | null;
+  portionQuantity?: number | null;
 };
 
 export type DishDetail = {

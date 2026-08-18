@@ -1,303 +1,137 @@
 /**
- * Ingredient measurement units for the dish editor.
+ * The measurement menu for one ingredient row.
  *
- * A dietitian picks a food in a human unit — 2 pieces, 1 cup, 1 tablespoon — and
- * the nutrition engine needs grams. This module turns a food's single USDA
- * household measure (`foods.portionGrams` + `portionLabel`) into a short, sensible
- * menu of units for that specific food, each carrying the grams one of it weighs.
- * Grams is always offered and is always the source of truth: the editor stores
- * `quantity × gramsPerUnit` in `dish_ingredients.quantityGrams` and never opens a
- * second nutrition path — `dishTotals` still does the arithmetic it always did.
+ * A dietitian types a quantity and picks a unit — 2 حبة, 1 كوب, 150 غرام — and the
+ * nutrition engine needs grams. This module turns a food's `catalog_food_portions`
+ * rows into that menu and does the one multiplication: `quantity × gramsPerUnit`.
  *
- * Nothing here invents a conversion. Every non-gram unit is either the food's own
- * measured portion (a slice, a piece, a cup of *that* food) or a universal ratio
- * applied to it (½/¼ of that cup; a teaspoon as a third of that tablespoon). A
- * food with no trustworthy household measure — a weight-only USDA portion like
- * "1 oz", or none at all — offers grams alone. Correctness over a friendly label
- * everywhere.
+ * ## Grams is the source of truth, and there is only one calculation
+ *
+ * `dish_ingredients.quantity_grams` is what every total is built from, through
+ * `dishTotals` and the per-100 g pipeline in `nutrition.ts` — unchanged. A portion
+ * is a data-entry convenience whose *only* job is to produce that number and to
+ * record how it was produced. Nothing here is a second nutrition path, which is
+ * why editing a portion's weight later cannot move a recipe: the grams were
+ * already written.
+ *
+ * ## What this used to be
+ *
+ * It used to parse a USDA label string ("1 pita, large (6-1/2\" dia)") on every
+ * render, classify the unit word against two hand-written word lists, and derive
+ * halves and quarters in the browser. That derivation still exists — it runs once,
+ * at dataset build time, in `portion-derivation.ts` — and its output is rows a
+ * person can read and correct. What is left here is selection and arithmetic.
  */
 
-/** Every unit the editor can store, in no particular order. */
-export const UNIT_KEYS = [
-  'loaf',
-  'half_loaf',
-  'piece',
-  'slice',
-  'cup',
-  'half_cup',
-  'quarter_cup',
-  'tbsp',
-  'tsp',
-  'g',
-] as const;
+import { localizedPortionLabel } from './food-display';
 
-export type UnitKey = (typeof UNIT_KEYS)[number];
+/** The value the grams option carries. Not a uuid, so it can never collide with a portion id. */
+export const GRAMS_UNIT = 'g';
 
-/** Grams itself — always available, always the nutrition basis. */
-export const GRAMS_UNIT: UnitOption = { key: 'g', gramsPerUnit: 1 };
+/** One portion of a food, as the queries hand it over. */
+export type FoodPortion = {
+  id: string;
+  labelAr: string;
+  labelEn: string;
+  /** What one of this portion weighs. Always > 0 — the column is constrained. */
+  grams: number;
+  isDefault: boolean;
+  sortOrder: number;
+};
 
 export type UnitOption = {
-  key: UnitKey;
-  /** Grams that one of this unit weighs. `1` for grams. */
+  /** `'g'`, or a `catalog_food_portions.id`. */
+  value: string;
+  /** Grams one of this unit weighs. `1` for grams. */
   gramsPerUnit: number;
+  /** Null for grams, whose label is a translated string rather than stored data. */
+  portion: FoodPortion | null;
 };
 
 /** The food fields this module reads — a subset of `FoodSearchResult`. */
 export type UnitFood = {
-  portionGrams: number | null;
-  portionLabel: string | null;
-  category: string;
+  portions: readonly FoodPortion[];
 };
 
+/** Grams itself: always offered, always the nutrition basis. */
+export const GRAMS_OPTION: UnitOption = { value: GRAMS_UNIT, gramsPerUnit: 1, portion: null };
+
 /**
- * Categories a dietitian weighs rather than portions by household measure.
+ * The units a food may be entered in: grams first, then its own portions.
  *
- * USDA does carry a "1 cup, chopped or diced" for cooked chicken, but "a cup of
- * chicken" is not how a plan is written — meat, poultry, fish and seafood go by
- * grams. The USDA measure stays in `foods`; it is simply not offered as a unit
- * here. A deliberate product choice, not a data limitation.
+ * Grams leads because it is the one unit every food has and the one every figure
+ * is ultimately in — a menu whose first entry disappears from food to food is a
+ * menu you have to read before you can use. Which unit is *selected* is a separate
+ * question; see {@link defaultUnitValue}.
  */
-const GRAMS_ONLY_CATEGORIES = new Set([
-  'Poultry Products',
-  'Beef Products',
-  'Pork Products',
-  'Lamb, Veal, and Game Products',
-  'Finfish and Shellfish Products',
-  'Sausages and Luncheon Meats',
-]);
+export function unitOptions(food: UnitFood): UnitOption[] {
+  const portions = [...food.portions].sort((a, b) => a.sortOrder - b.sortOrder);
+
+  return [
+    GRAMS_OPTION,
+    ...portions
+      // Defensive: the column is constrained positive, but a zero here would
+      // silently convert every quantity to nothing.
+      .filter((portion) => Number.isFinite(portion.grams) && portion.grams > 0)
+      .map((portion) => ({ value: portion.id, gramsPerUnit: portion.grams, portion })),
+  ];
+}
 
 /**
- * The USDA unit words that mean "one countable item" of the food — an egg, a
- * fillet, a link. All collapse to a single friendly "piece" unit.
- */
-const PIECE_WORDS = new Set([
-  'large',
-  'medium',
-  'small',
-  'extra',
-  'unit',
-  'piece',
-  'each',
-  'whole',
-  'fillet',
-  'link',
-  'patty',
-  'stick',
-  'wedge',
-  'clove',
-  'leaf',
-  'ear',
-  'fruit',
-  'pod',
-  'strip',
-  'ball',
-  'bar',
-  'roll',
-  'bun',
-  'loaf',
-  'cookie',
-  'cracker',
-  'chip',
-]);
-
-type Family = 'cup' | 'tbsp' | 'tsp' | 'slice' | 'piece' | 'loaf' | 'none';
-
-/**
- * USDA unit words that mean "one whole flatbread/loaf" — a pita, a tortilla, a
- * roll. USDA carries "1 pita, large" = 60 g for pita bread; the old classifier
- * did not recognise "pita" and fell the whole food back to grams, which is why
- * bread had no رغيف unit. All collapse to the friendly "loaf" (رغيف).
- */
-const LOAF_WORDS = new Set(['pita', 'loaf', 'tortilla', 'flatbread', 'naan', 'bun', 'roll', 'bagel']);
-
-/**
- * The amount and unit word a USDA portion label leads with.
+ * The unit a freshly picked food starts in: its default portion, else grams.
  *
- * The dataset builder guarantees the label starts with its own count — "1 large",
- * "3 oz", "1 cup, chopped" — so the first token is the amount and the next word is
- * the unit. Anything after (", chopped or diced") is descriptive and dropped.
+ * A food that comes with a measured household portion is one a dietitian thinks of
+ * in that unit — a رغيف of bread, a كوب of rice — so starting there saves the
+ * conversion they would otherwise do in their head. A food with none starts in
+ * grams and the quantity starts blank.
  */
-function parsePortionLabel(label: string): { amount: number; unit: string } | null {
-  const match = label.trim().toLowerCase().match(/^([\d.]+)\s+(.+)$/);
-  if (!match) return null;
-
-  const amount = Number(match[1]);
-  if (!Number.isFinite(amount) || amount <= 0) return null;
-
-  const unit = match[2]!.split(/[\s,]+/)[0] ?? '';
-  return unit ? { amount, unit } : null;
+export function defaultUnitValue(food: UnitFood): string {
+  return food.portions.find((portion) => portion.isDefault)?.id ?? GRAMS_UNIT;
 }
 
-/** Maps a USDA unit word to the household family the editor offers. */
-function classify(unit: string): Family {
-  if (unit === 'cup') return 'cup';
-  if (unit === 'tablespoon' || unit === 'tbsp') return 'tbsp';
-  if (unit === 'teaspoon' || unit === 'tsp') return 'tsp';
-  if (unit === 'slice') return 'slice';
-  // Loaf before piece: "loaf"/"roll"/"bun" also live in PIECE_WORDS, but bread
-  // reads as رغيف, not قطعة.
-  if (LOAF_WORDS.has(unit)) return 'loaf';
-  if (PIECE_WORDS.has(unit)) return 'piece';
-  // Weight and volume units (oz, lb, gram, ml, quart…) and anything unknown carry
-  // no friendly household unit — grams is the honest answer.
-  return 'none';
+export function findUnitOption(options: readonly UnitOption[], value: string): UnitOption | undefined {
+  return options.find((option) => option.value === value);
+}
+
+/** A unit's label in the reader's language. Grams has no stored label, so it is passed in. */
+export function unitLabel(option: UnitOption, locale: string, gramsLabel: string): string {
+  return option.portion ? localizedPortionLabel(option.portion, locale) : gramsLabel;
 }
 
 /**
- * The unit menu for one household family, given the grams one base unit weighs.
- * Fractions are pure arithmetic on that weight — never invented — and grams is
- * always last.
- */
-function buildFamily(family: Family, gramsPerBase: number): UnitOption[] {
-  // Round derived grams to a tenth: the source portion is ~3 sig figs, and this
-  // keeps ½/¼ splits off float noise (13.5 / 3 = 4.5, not 4.4999…).
-  const g = (value: number): number => Math.round(value * 10) / 10;
-
-  switch (family) {
-    case 'loaf':
-      return [
-        { key: 'loaf', gramsPerUnit: g(gramsPerBase) },
-        { key: 'half_loaf', gramsPerUnit: g(gramsPerBase / 2) },
-        GRAMS_UNIT,
-      ];
-    case 'cup':
-      return [
-        { key: 'cup', gramsPerUnit: g(gramsPerBase) },
-        { key: 'half_cup', gramsPerUnit: g(gramsPerBase / 2) },
-        { key: 'quarter_cup', gramsPerUnit: g(gramsPerBase / 4) },
-        GRAMS_UNIT,
-      ];
-    case 'tbsp':
-      return [
-        { key: 'tbsp', gramsPerUnit: g(gramsPerBase) },
-        { key: 'tsp', gramsPerUnit: g(gramsPerBase / 3) },
-        GRAMS_UNIT,
-      ];
-    case 'tsp':
-      return [{ key: 'tsp', gramsPerUnit: g(gramsPerBase) }, GRAMS_UNIT];
-    case 'slice':
-      return [{ key: 'slice', gramsPerUnit: g(gramsPerBase) }, GRAMS_UNIT];
-    case 'piece':
-      return [{ key: 'piece', gramsPerUnit: g(gramsPerBase) }, GRAMS_UNIT];
-    default:
-      return [GRAMS_UNIT];
-  }
-}
-
-/** The household family a stored UnitKey belongs to — used to rebuild a custom
- *  food's menu from its saved unit. */
-function familyForKey(key: UnitKey): Family {
-  switch (key) {
-    case 'loaf':
-    case 'half_loaf':
-      return 'loaf';
-    case 'cup':
-    case 'half_cup':
-    case 'quarter_cup':
-      return 'cup';
-    case 'tbsp':
-      return 'tbsp';
-    case 'tsp':
-      return 'tsp';
-    case 'slice':
-      return 'slice';
-    case 'piece':
-      return 'piece';
-    default:
-      return 'none';
-  }
-}
-
-/**
- * The unit menu for one food: its household unit(s) first, grams last.
+ * The grams a row contributes: `quantity × gramsPerUnit`.
  *
- * Grams is always present and always last. When no reliable household measure
- * exists — a suppressed category, a weight-only portion, or no portion at all —
- * the menu is grams alone.
+ * A blank or non-positive quantity, or a unit this food does not offer, contributes
+ * nothing — the row is mid-edit, not a mistake, and the editor simply leaves it out
+ * of the recipe until it is finished.
  */
-export function deriveUnitOptions(food: UnitFood): UnitOption[] {
-  if (GRAMS_ONLY_CATEGORIES.has(food.category)) return [GRAMS_UNIT];
-  if (food.portionGrams == null || food.portionGrams <= 0 || !food.portionLabel) return [GRAMS_UNIT];
-
-  // A clinic custom food stores its serving as a bare UnitKey token in
-  // `portionLabel` (e.g. "loaf") with the grams one of it weighs in
-  // `portionGrams` — no leading count, unlike a USDA "1 pita, large". The
-  // dietitian chose that household unit in the custom-food dialog, so offer it
-  // (and its fractions) directly. See `createCustomFood`.
-  const label = food.portionLabel.trim();
-  if (!/^\d/.test(label)) {
-    const key = label as UnitKey;
-    const family = (UNIT_KEYS as readonly string[]).includes(key) ? familyForKey(key) : 'none';
-    return family === 'none' ? [GRAMS_UNIT] : buildFamily(family, food.portionGrams);
-  }
-
-  const parsed = parsePortionLabel(food.portionLabel);
-  if (!parsed) return [GRAMS_UNIT];
-
-  const gramsPerBase = food.portionGrams / parsed.amount;
-  if (!Number.isFinite(gramsPerBase) || gramsPerBase <= 0) return [GRAMS_UNIT];
-
-  return buildFamily(classify(parsed.unit), gramsPerBase);
-}
-
-/**
- * The household unit to suggest for a custom food, guessed from its Arabic name
- * — bread → رغيف, oil → ملعقة, rice/lentils → كوب, eggs/produce → حبة. Grams when
- * nothing obvious fits, so the dietitian is never fighting a wrong default.
- */
-export function suggestUnitKey(nameAr: string): UnitKey {
-  const name = nameAr.trim();
-  const has = (...needles: string[]) => needles.some((needle) => name.includes(needle));
-
-  if (has('خبز', 'رغيف', 'صمون', 'كماج')) return 'loaf';
-  if (has('توست', 'شريحة')) return 'slice';
-  if (has('زيت', 'سمن', 'طحين', 'طحينة', 'دبس', 'عسل', 'صلصة')) return 'tbsp';
-  if (has('أرز', 'ارز', 'رز', 'برغل', 'فريكة', 'عدس', 'حمص', 'فول', 'حليب', 'لبن', 'شوربة')) return 'cup';
-  if (has('بيض', 'بيضة', 'تفاح', 'موز', 'برتقال', 'بندورة', 'خيار', 'بطاطا', 'حبة')) return 'piece';
-  return 'g';
-}
-
-/** The unit a freshly picked food starts in: its natural household unit, else grams. */
-export function defaultUnitKey(options: readonly UnitOption[]): UnitKey {
-  return options[0]?.key ?? 'g';
-}
-
-export function findUnit(options: readonly UnitOption[], key: string): UnitOption | undefined {
-  return options.find((option) => option.key === key);
-}
-
-/**
- * The grams a row contributes: `quantity × gramsPerUnit`, the single figure the
- * nutrition engine receives. A blank or non-positive quantity, or an unknown
- * unit, contributes nothing — the row is mid-edit, not a mistake.
- */
-export function rowGrams(options: readonly UnitOption[], quantity: number, unitKey: string): number {
+export function rowGrams(options: readonly UnitOption[], quantity: number, value: string): number {
   if (!Number.isFinite(quantity) || quantity <= 0) return 0;
-  const unit = findUnit(options, unitKey);
-  return unit ? quantity * unit.gramsPerUnit : 0;
+  const option = findUnitOption(options, value);
+  return option ? quantity * option.gramsPerUnit : 0;
 }
 
 /**
- * Reopens a saved ingredient into a `{ quantity, unit }` row without ever
- * changing the grams it holds.
+ * Reopens a saved ingredient as a `{ unit, quantity }` row **without ever changing
+ * the grams it holds**.
  *
- * The recipe's stored `quantityGrams` is authoritative. When the saved unit is
- * one this food still offers, the quantity is that weight expressed back in the
- * unit (100 g of egg → "2 pieces"), so an untouched save writes the same grams.
- * When the saved unit no longer applies — a legacy free-text label, or a food
- * that has since become grams-only — the row falls back to grams and the exact
- * stored weight, rather than silently rescaling the recipe.
+ * The stored `quantity_grams` is authoritative. When the saved portion is one this
+ * food still offers, the quantity is that weight expressed back in the portion
+ * (100 g of egg → "2 حبة"), so reopening and saving an untouched dish writes the
+ * same grams. When the portion has since been retired — `portion_id` is
+ * `on delete set null` — the row falls back to grams and the exact stored weight,
+ * rather than rescaling the recipe onto whatever unit is left.
  */
 export function resolveSavedRow(
   food: UnitFood,
-  saved: { quantityGrams: number; householdLabel: string | null; householdGrams: number | null },
-): { unitKey: UnitKey; quantity: number } {
-  const options = deriveUnitOptions(food);
-  const match = saved.householdLabel ? findUnit(options, saved.householdLabel) : undefined;
+  saved: { quantityGrams: number; portionId: string | null },
+): { unitValue: string; quantity: number } {
+  const options = unitOptions(food);
+  const match = saved.portionId ? findUnitOption(options, saved.portionId) : undefined;
 
   if (match && match.gramsPerUnit > 0) {
-    return { unitKey: match.key, quantity: saved.quantityGrams / match.gramsPerUnit };
+    return { unitValue: match.value, quantity: saved.quantityGrams / match.gramsPerUnit };
   }
 
-  return { unitKey: 'g', quantity: saved.quantityGrams };
+  return { unitValue: GRAMS_UNIT, quantity: saved.quantityGrams };
 }

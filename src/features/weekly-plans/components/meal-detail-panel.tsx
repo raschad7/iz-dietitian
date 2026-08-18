@@ -13,12 +13,13 @@ import { MEAL_TOLERANCE, driftState } from '@/features/weekly-plans/drift';
 import {
   NUTRIENT_KEYS,
   NUTRIENT_UNITS,
-  dishGrams,
   roundForDisplay,
   roundGrams,
   type NutrientKey,
 } from '@/features/weekly-plans/nutrition';
-import { SERVING_STEP, snapServings } from '../similar';
+import { localizedName, secondaryName } from '../food-display';
+import { MAX_SERVINGS, MIN_SERVINGS, snapServings } from '../similar';
+import { servingGuideFor, servingGuideLines, servingStepFor } from '../serving-guide';
 import { dishTagAccentClass } from '../meal-tag-tone';
 
 import { swapMealAction } from '../actions';
@@ -28,6 +29,8 @@ import type { RecentUse } from '../usage';
 
 import { useEditorActions } from './board-dnd';
 import { DishCatalog } from './dish-catalog';
+import { MealIngredientAmounts } from './meal-ingredient-amounts';
+import { ServingGuideList } from './serving-guide-list';
 
 /**
  * Everything about one meal: what it is, what it contains, why it was chosen, and
@@ -127,9 +130,13 @@ export function MealDetailPanel({
             {meal.label} · {meal.timeOfDay}
           </p>
           <h3 className="mt-1 font-heading text-heading-sm font-medium leading-snug" dir="auto">
-            {meal.dish ? meal.dish.nameAr : t('emptySlot')}
+            {meal.dish ? localizedName(meal.dish, locale) : t('emptySlot')}
           </h3>
-          {meal.dish && <p className="text-caption text-muted-foreground">{meal.dish.nameEn}</p>}
+          {meal.dish && secondaryName(meal.dish, locale) && (
+            <p className="text-caption text-muted-foreground" dir="auto">
+              {secondaryName(meal.dish, locale)}
+            </p>
+          )}
           {meal.dish && (
             <span
               aria-hidden
@@ -146,7 +153,7 @@ export function MealDetailPanel({
       </div>
 
       <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-5 py-4">
-        {meal.dish && <Portion meal={meal} editable={editable} />}
+        {meal.dish && <MealQuantity meal={meal} locale={locale} editable={editable} />}
 
         {/* Only a filled slot gets here: an empty one is answered by the catalog
             above, which is the same question asked earlier. */}
@@ -177,8 +184,15 @@ export function MealDetailPanel({
 
         {meal.dish && (
           <div className="mt-5 border-t border-border">
+            {/* The recipe, unchanged, one level down: this is what the nutrition
+                is built from and what a dietitian checks the numbers against — but
+                it is not the serving instruction, so it is not the card above. */}
             <Disclosure label={t('ingredients')}>
-              <Ingredients meal={meal} />
+              <MealIngredientAmounts
+                ingredients={meal.dish.ingredients}
+                servings={meal.dish.servings}
+                locale={locale}
+              />
             </Disclosure>
             <Disclosure label={t('nutrition')}>
               <Nutrients meal={meal} />
@@ -251,100 +265,121 @@ function Disclosure({ label, children }: { label: string; children: React.ReactN
   );
 }
 
-function Portion({ meal, editable }: { meal: BoardMeal; editable: boolean }) {
+/**
+ * How much of this meal to eat — as a serving instruction, not as a recipe and not
+ * as a multiplier.
+ *
+ * Two wrong answers preceded this one. The first was `×2.25`, the raw `servings`
+ * value: correct arithmetic, and meaningless to anyone who is not holding the base
+ * recipe in their head. The second was the recipe itself, every line of it —
+ * onion, oil, tomato paste, 2 g of cumin — which is a production list, not
+ * something a person plates, and which buried the two numbers that matter under
+ * nine that do not.
+ *
+ * What it states now is the dish's serving guide: **at most two lines**, written
+ * per dish in `serving-guide.ts`. A dish with no guide states its weight and its
+ * own serving label instead, because a guessed instruction is worse than a plain
+ * one. The full recipe is still one disclosure below, for staff, where it is what
+ * the arithmetic is checked against.
+ *
+ * The stepper is **not rendered at all** when the panel is read-only. It used to
+ * render disabled, on the argument that a control which vanishes teaches nothing;
+ * but on a published plan every quantity below it is a statement of what was
+ * prescribed, and a greyed −/+ sitting on top of that reads as a thing that is
+ * broken rather than a thing that is settled.
+ */
+function MealQuantity({
+  meal,
+  locale,
+  editable,
+}: {
+  meal: BoardMeal;
+  locale: string;
+  editable: boolean;
+}) {
   const t = useTranslations('weeklyPlans');
   const { setServings } = useEditorActions();
   const dish = meal.dish!;
 
   const kcal = roundForDisplay('kcal', meal.totals.kcal.value);
   const drift = driftState(kcal, meal.budgetKcal, MEAL_TOLERANCE);
+  const totalGrams = t('totalGrams', { value: roundGrams(meal.grams, 5) });
+
+  const guide = servingGuideFor(dish.slug);
+  // The dish's own step where it has one — whole eggs step by one, a stew by half
+  // — still snapped onto the global quarter grid so the stored value stays legal.
+  const step = servingStepFor(guide);
+  const lines = guide ? servingGuideLines(guide, dish.servings, locale) : [];
 
   return (
     <section className="rounded-lg border border-border bg-card p-4 shadow-card">
-      <h4 className="pb-3 text-label font-semibold text-foreground">{t('portionLabel')}</h4>
-
-      {/*
-        The stepper holds its place on a published plan rather than being
-        replaced by a line of text.
-
-        Removing it meant the panel silently changed shape the moment a plan was
-        published, and the only way to learn that portions were still adjustable
-        was to find the "edit published" toggle by accident. Rendering it
-        disabled says both things at once: this is the control, and it is not
-        available yet. The design system asks for exactly this — and for the
-        explanation to sit on a *wrapping* element, because
-        `disabled:pointer-events-none` means a `title` on the button itself can
-        never be hovered.
-      */}
-      <div
-        className="flex items-center gap-3"
-        title={editable ? undefined : t('editPublishedDisabled')}
-      >
-        <Button
-          type="button"
-          variant="neutralGhost"
-          size="icon-sm"
-          className="rounded-md"
-          aria-label={t('lessPortion')}
-          disabled={!editable || dish.servings <= 0.25}
-          onClick={() => setServings(meal.id, snapServings(dish.servings - SERVING_STEP))}
-        >
-          <span aria-hidden className="text-display-sm font-normal leading-none">−</span>
-        </Button>
-
-        <span className="min-w-20 text-center text-display-sm font-normal tabular-nums" dir="ltr">
-          ×{dish.servings}
-        </span>
-
-        <Button
-          type="button"
-          variant="neutralGhost"
-          size="icon-sm"
-          className="rounded-md"
-          aria-label={t('morePortion')}
-          disabled={!editable || dish.servings >= 3}
-          onClick={() => setServings(meal.id, snapServings(dish.servings + SERVING_STEP))}
-        >
-          <span aria-hidden className="text-display-sm font-normal leading-none">+</span>
-        </Button>
-
-        {/*
-          The real weight at the chosen serving, not "×1.5 of a portion" — a
-          figure the dietitian works in. The stepper beside it still shows the
-          multiplier it is the control for; this is its result.
-        */}
-        <span className="ms-auto text-body-sm text-muted-foreground tabular-nums">
-          {t('totalGrams', { value: roundGrams(dishGrams(dish.ingredients, dish.servings), 5) })}
-        </span>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 pb-3">
+        <h4 className="text-label font-semibold text-foreground">{t('mealQuantity')}</h4>
+        {/* The whole meal's weight. On a read-only panel it is the only summary
+            figure here, so it is stated rather than tucked beside a control. */}
+        {!editable && (
+          <span className="text-body-sm text-muted-foreground tabular-nums">{totalGrams}</span>
+        )}
       </div>
+
+      {editable && (
+        <div className="flex items-center gap-3 pb-3">
+          <Button
+            type="button"
+            variant="neutralGhost"
+            size="icon-sm"
+            className="rounded-md"
+            aria-label={t('lessPortion')}
+            disabled={dish.servings - step < MIN_SERVINGS}
+            onClick={() => setServings(meal.id, snapServings(dish.servings - step))}
+          >
+            <span aria-hidden className="text-display-sm font-normal leading-none">−</span>
+          </Button>
+
+          {/*
+            The stepper's readout is the meal's real weight, not the multiplier it
+            is technically stepping. Both move together and only one of them is a
+            quantity — and the guide underneath says what that weight looks like on
+            a plate.
+          */}
+          <span className="min-w-24 text-center text-body-sm text-muted-foreground tabular-nums">
+            {totalGrams}
+          </span>
+
+          <Button
+            type="button"
+            variant="neutralGhost"
+            size="icon-sm"
+            className="rounded-md"
+            aria-label={t('morePortion')}
+            disabled={dish.servings + step > MAX_SERVINGS}
+            onClick={() => setServings(meal.id, snapServings(dish.servings + step))}
+          >
+            <span aria-hidden className="text-display-sm font-normal leading-none">+</span>
+          </Button>
+        </div>
+      )}
+
+      {lines.length > 0 ? (
+        <ServingGuideList lines={lines} />
+      ) : (
+        /*
+          No guide: the weight and the dish's own serving label, and nothing else.
+          Not the recipe — "45 g onion, 10 g oil, 15 g tomato paste" is what the
+          kitchen does, not what the patient is being told to eat, and printing it
+          here is the mistake this card was corrected for.
+        */
+        <p className="text-body-sm text-muted-foreground" dir="auto">
+          {/* The weight is already beside the stepper when there is one, so the
+              fallback adds the serving label rather than repeating itself. */}
+          {editable ? dish.baseServingLabel : `${totalGrams} · ${dish.baseServingLabel}`}
+        </p>
+      )}
 
       <p className={cn('mt-3 rounded-md bg-muted/70 px-3 py-2 text-body-sm', drift ? 'text-status-attention-fg' : 'text-muted-foreground')}>
         {t('kcalValue', { value: kcal })}
         {meal.budgetKcal > 0 && <> · {t('budget', { value: meal.budgetKcal })}</>}
       </p>
-    </section>
-  );
-}
-
-/** The recipe, at the portion actually planned — not per base serving. */
-function Ingredients({ meal }: { meal: BoardMeal }) {
-  const t = useTranslations('weeklyPlans');
-  const { servings, ingredients } = meal.dish!;
-
-  return (
-    <section>
-      <ul className="flex flex-col gap-1 text-body-sm">
-        {ingredients.map((ingredient) => (
-          <li key={ingredient.food.id} className="flex justify-between gap-2">
-            <span className="min-w-0 flex-1 [overflow-wrap:anywhere] text-muted-foreground">
-              {ingredient.food.description}
-            </span>
-            <span className="shrink-0 tabular-nums">
-              {t('grams', { value: roundForDisplay('protein', ingredient.quantityGrams * servings) })}
-            </span>
-          </li>
-        ))}
-      </ul>
     </section>
   );
 }
@@ -501,7 +536,7 @@ function Alternatives({ meal, planId, locale }: { meal: BoardMeal; planId: strin
             locale={locale}
             flagged={!option.isSimilar}
           >
-            <span className="block font-medium">{option.nameAr}</span>
+            <span className="block font-medium" dir="auto">{localizedName(option, locale)}</span>
             <span className="mt-0.5 block text-muted-foreground">
               {t('kcalValue', { value: roundForDisplay('kcal', option.kcal) })}
               {!option.isSimilar && (
@@ -547,7 +582,7 @@ function SimilarDishes({
             servings={match.servings}
             locale={locale}
           >
-            <span className="block font-medium">{match.candidate.nameAr}</span>
+            <span className="block font-medium" dir="auto">{localizedName(match.candidate, locale)}</span>
             {/* Kcal only, like the AI alternatives above: a swap candidate carries
                 no ingredient rows, so its weight cannot be derived here, and its
                 energy against the slot budget is the figure that matters anyway. */}

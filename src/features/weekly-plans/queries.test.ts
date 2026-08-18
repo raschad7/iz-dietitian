@@ -1,17 +1,20 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
-import { eq } from 'drizzle-orm';
+import { randomUUID } from 'node:crypto';
+import { eq, sql } from 'drizzle-orm';
 
 import { db } from '@/db';
+import { normalizeArabic } from '@/features/weekly-plans/arabic-normalize';
 import {
   appointments,
+  catalogFoods,
   clinicHiddenDishes,
   dishIngredients,
   dishes,
-  foods,
   weeklyPlanMeals,
   weeklyPlans,
 } from '@/db/schema';
 import {
+  createTestCatalogFood,
   createTestClient,
   createTestClinic,
   createTestPractitioner,
@@ -103,17 +106,24 @@ describe('listPlannableClients', () => {
 describe('getBoard', () => {
   test('renders a dish that has since been retired, and does not count it unfilled', async () => {
     const [food] = await db
-      .insert(foods)
-      .values({
-        fdcId: 999101,
-        description: 'Staple',
-        category: 'Test',
+      .insert(catalogFoods)
+    .values({
+      slug: `test-staple-${randomUUID()}`,
+      nameAr: 'طعام تجريبي',
+      nameEn: 'Staple',
+      normalizedNameAr: normalizeArabic('طعام تجريبي'),
+      normalizedNameEn: normalizeArabic('Staple'),
+      state: 'raw',
+      category: 'other',
+      sourceType: 'usda_sr_legacy',
+
         kcal: 300,
         protein: 12,
         fat: 5,
         carbs: 50,
-      })
-      .returning({ id: foods.id });
+
+    })
+    .returning({ id: catalogFoods.id });
 
     const [dish] = await db
       .insert(dishes)
@@ -130,7 +140,7 @@ describe('getBoard', () => {
 
     await db
       .insert(dishIngredients)
-      .values({ dishId: dish!.id, foodId: food!.id, quantityGrams: 200, sortOrder: 0 });
+      .values({ dishId: dish!.id, catalogFoodId: food!.id, quantityGrams: 200, sortOrder: 0 });
 
     const [plan] = await db
       .insert(weeklyPlans)
@@ -309,145 +319,133 @@ describe('loadCatalog ownership', () => {
   });
 });
 
-describe('searchFoods', () => {
-  test('finds shared library foods and this clinic own custom foods by description', async () => {
-    await db.insert(foods).values([
-      { description: 'Chicken breast, roasted', category: 'Poultry', kcal: 165, protein: 31, carbs: 0, fat: 3.6 },
-      { description: 'Chicken thigh', category: 'Poultry', kcal: 209, protein: 26, carbs: 0, fat: 10 },
-      { description: 'Apple, raw', category: 'Fruit', kcal: 52, protein: 0.3, carbs: 14, fat: 0.2 },
-    ]);
-    await db.insert(foods).values({
+describe('searchFoods over the canonical catalog', () => {
+  test('finds shared catalog foods and this clinic own foods', async () => {
+    const shared = await createTestCatalogFood({
+      slug: 'chicken-breast-raw',
+      nameAr: 'صدر دجاج ني',
+      nameEn: 'Chicken breast, skinless, raw',
+      category: 'poultry',
+    });
+    const mine = await createTestCatalogFood({
       clinicId,
-      fdcId: null,
-      description: 'Chicken village style',
-      category: 'Clinic custom',
-      kcal: 200, protein: 20, carbs: 0, fat: 12,
+      slug: 'clinic-chicken-shawarma',
+      nameAr: 'شاورما دجاج',
+      nameEn: 'Chicken shawarma',
+      category: 'poultry',
+    });
+    const apple = await createTestCatalogFood({
+      slug: 'apple-raw',
+      nameAr: 'تفاح',
+      nameEn: 'Apple, raw',
+      category: 'fruits',
     });
 
-    const results = await searchFoods(clinicId, 'chicken', 10);
-    const descriptions = results.map((f) => f.description);
-    expect(descriptions).toContain('Chicken breast, roasted');
-    expect(descriptions).toContain('Chicken village style');
-    expect(descriptions).not.toContain('Apple, raw');
+    const ids = (await searchFoods(clinicId, 'دجاج', 10)).map((f) => f.id);
+
+    expect(ids).toContain(shared);
+    expect(ids).toContain(mine);
+    expect(ids).not.toContain(apple);
+  });
+
+  test('the clinic own food is ranked ahead of the shared catalog', async () => {
+    await createTestCatalogFood({
+      slug: 'chicken-breast-raw',
+      nameAr: 'صدر دجاج ني',
+      nameEn: 'Chicken breast, skinless, raw',
+      category: 'poultry',
+    });
+    const mine = await createTestCatalogFood({
+      clinicId,
+      slug: 'clinic-chicken-shawarma',
+      nameAr: 'شاورما دجاج',
+      nameEn: 'Chicken shawarma',
+      category: 'poultry',
+    });
+
+    const results = await searchFoods(clinicId, 'دجاج', 10);
+
+    expect(results[0]?.id).toBe(mine);
   });
 
   test('does not return another clinic custom food', async () => {
     const other = await createTestClinic();
-    await db.insert(foods).values({ clinicId: other, fdcId: null, description: 'Chicken secret', category: 'Clinic custom', kcal: 1, protein: 0, carbs: 0, fat: 0 });
-    expect((await searchFoods(clinicId, 'chicken secret', 10)).length).toBe(0);
+    await createTestCatalogFood({
+      clinicId: other,
+      slug: 'clinic-secret-chicken',
+      nameAr: 'دجاج سري',
+      nameEn: 'Chicken secret',
+    });
+
+    expect(await searchFoods(clinicId, 'دجاج سري', 10)).toHaveLength(0);
+  });
+
+  /**
+   * The cutover, still asserted after the legacy tables are gone.
+   *
+   * Before Phase 1 the picker searched 7,793 USDA SR Legacy rows by English
+   * substring, so restaurant meals, baby food and alcohol were one keystroke from a
+   * meal plan. Phase 2 dropped the `foods` and `food_aliases` tables outright — the
+   * seed no longer needs them — so the strongest statement available is that the
+   * search reaches nothing but `catalog_foods`, and that those descriptions match
+   * nothing in it.
+   */
+  test('cannot reach USDA-style noise: the catalog is the only source', async () => {
+    const tables = await db.execute<{ table_name: string }>(sql`
+      select table_name from information_schema.tables
+      where table_schema = 'public' and table_name in ('foods', 'food_aliases')
+    `);
+    expect(tables).toHaveLength(0);
+
+    for (const noise of ['egg rolls', 'Babyfood', 'beer', 'Restaurant']) {
+      expect(await searchFoods(clinicId, noise, 20)).toHaveLength(0);
+    }
   });
 });
 
 describe('searchFoodsById', () => {
-  test('returns the food row by id, or empty for another clinic\'s', async () => {
-    const [food] = await db
-      .insert(foods)
-      .values({ description: 'Chicken breast', category: 'Poultry', kcal: 165, protein: 31, carbs: 0, fat: 3.6 })
-      .returning({ id: foods.id });
+  test("returns the food row by id, or empty for another clinic's", async () => {
+    const shared = await createTestCatalogFood({ slug: 'shared-food', nameEn: 'Shared food' });
     const other = await createTestClinic();
-    const [customFood] = await db
-      .insert(foods)
-      .values({ clinicId: other, fdcId: null, description: 'Other clinic food', category: 'Clinic custom', kcal: 1, protein: 0, carbs: 0, fat: 0 })
-      .returning({ id: foods.id });
+    const theirs = await createTestCatalogFood({
+      clinicId: other,
+      slug: 'their-food',
+      nameEn: 'Other clinic food',
+    });
 
-    expect((await searchFoodsById(clinicId, food!.id)).map((f) => f.id)).toEqual([food!.id]);
-    expect(await searchFoodsById(clinicId, customFood!.id)).toEqual([]);
+    expect((await searchFoodsById(clinicId, shared)).map((f) => f.id)).toEqual([shared]);
+    expect(await searchFoodsById(clinicId, theirs)).toEqual([]);
   });
 });
 
 describe('clinic food library', () => {
   test('listClinicFoods returns only this clinic own foods, ordered by nameAr', async () => {
     const other = await createTestClinic();
-    await db.insert(foods).values([
-      { description: 'USDA shared food', category: 'Poultry', kcal: 100, protein: 1, carbs: 1, fat: 1 },
-      {
-        clinicId,
-        fdcId: null,
-        nameAr: 'موز',
-        description: 'Banana custom',
-        category: 'Clinic custom',
-        kcal: 90,
-        protein: 1,
-        carbs: 20,
-        fat: 0.3,
-      },
-      {
-        clinicId,
-        fdcId: null,
-        nameAr: 'أرز',
-        description: 'Rice custom',
-        category: 'Clinic custom',
-        kcal: 130,
-        protein: 2.4,
-        carbs: 28,
-        fat: 0.3,
-      },
-      {
-        clinicId: other,
-        fdcId: null,
-        nameAr: 'خبز',
-        description: 'Other clinic bread',
-        category: 'Clinic custom',
-        kcal: 265,
-        protein: 9,
-        carbs: 49,
-        fat: 3.2,
-      },
-    ]);
+
+    await createTestCatalogFood({ slug: 'shared-food', nameAr: 'مشترك', nameEn: 'Shared food' });
+    await createTestCatalogFood({ clinicId, slug: 'clinic-banana', nameAr: 'موز', nameEn: 'Banana custom' });
+    await createTestCatalogFood({ clinicId, slug: 'clinic-rice', nameAr: 'أرز', nameEn: 'Rice custom' });
+    await createTestCatalogFood({ clinicId: other, slug: 'other-bread', nameAr: 'خبز', nameEn: 'Other clinic bread' });
 
     const result = await listClinicFoods(clinicId);
+
     expect(result.map((f) => f.nameAr)).toEqual(['أرز', 'موز']);
-    expect(result.every((f) => f.description !== 'USDA shared food')).toBe(true);
-    expect(result.every((f) => f.description !== 'Other clinic bread')).toBe(true);
   });
 
   test('searchClinicFoods matches by Arabic name, scoped to the clinic', async () => {
     const other = await createTestClinic();
-    await db.insert(foods).values({
-      clinicId,
-      fdcId: null,
-      nameAr: 'دجاج',
-      description: 'Chicken custom',
-      category: 'Clinic custom',
-      kcal: 165,
-      protein: 31,
-      carbs: 0,
-      fat: 3.6,
-    });
+    await createTestCatalogFood({ clinicId, slug: 'clinic-chicken', nameAr: 'دجاج', nameEn: 'Chicken custom' });
 
-    const results = await searchClinicFoods(clinicId, 'دجاج');
-    expect(results.map((f) => f.nameAr)).toEqual(['دجاج']);
-
+    expect((await searchClinicFoods(clinicId, 'دجاج')).map((f) => f.nameAr)).toEqual(['دجاج']);
     expect(await searchClinicFoods(other, 'دجاج')).toEqual([]);
   });
 
   test('searchClinicFoods with an empty query returns the clinic library', async () => {
-    await db.insert(foods).values([
-      {
-        clinicId,
-        fdcId: null,
-        nameAr: 'موز',
-        description: 'Banana custom',
-        category: 'Clinic custom',
-        kcal: 90,
-        protein: 1,
-        carbs: 20,
-        fat: 0.3,
-      },
-      {
-        clinicId,
-        fdcId: null,
-        nameAr: 'أرز',
-        description: 'Rice custom',
-        category: 'Clinic custom',
-        kcal: 130,
-        protein: 2.4,
-        carbs: 28,
-        fat: 0.3,
-      },
-    ]);
+    await createTestCatalogFood({ clinicId, slug: 'clinic-banana', nameAr: 'موز', nameEn: 'Banana custom' });
+    await createTestCatalogFood({ clinicId, slug: 'clinic-rice', nameAr: 'أرز', nameEn: 'Rice custom' });
 
     const results = await searchClinicFoods(clinicId, '');
+
     expect(results.map((f) => f.nameAr)).toEqual(['أرز', 'موز']);
   });
 });

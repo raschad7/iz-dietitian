@@ -69,20 +69,61 @@ describe('clinicDishInputSchema', () => {
     expect(() => clinicDishInputSchema.parse(withoutArabic)).toThrow();
   });
 
-  test('carries optional per-ingredient Arabic name and household measure', () => {
+  test('carries the portion an amount was entered in, beside the authoritative grams', () => {
     const parsed = clinicDishInputSchema.parse({
       ...validDish,
       ingredients: [
         {
           foodId: validDish.ingredients[0]!.foodId,
-          quantityGrams: 45,
-          displayNameAr: 'أرز',
-          householdLabel: 'ملعقة كبيرة',
-          householdGrams: 15,
+          quantityGrams: 100,
+          portionId: '3f2a1b4c-5d6e-4f70-8192-a3b4c5d6e7f8',
+          portionQuantity: 2,
         },
       ],
     });
-    expect(parsed.ingredients[0]!.householdGrams).toBe(15);
+
+    expect(parsed.ingredients[0]!.quantityGrams).toBe(100);
+    expect(parsed.ingredients[0]!.portionQuantity).toBe(2);
+  });
+
+  /*
+   * Half a record of how an amount was entered is not a record of anything: a
+   * portion with no count cannot be rendered, and a count with no portion has no
+   * unit. Both, or neither.
+   */
+  test('rejects a portion without its quantity', () => {
+    const result = clinicDishInputSchema.safeParse({
+      ...validDish,
+      ingredients: [
+        {
+          foodId: validDish.ingredients[0]!.foodId,
+          quantityGrams: 100,
+          portionId: '3f2a1b4c-5d6e-4f70-8192-a3b4c5d6e7f8',
+        },
+      ],
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  test('rejects a quantity without its portion', () => {
+    const result = clinicDishInputSchema.safeParse({
+      ...validDish,
+      ingredients: [
+        { foodId: validDish.ingredients[0]!.foodId, quantityGrams: 100, portionQuantity: 2 },
+      ],
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  test('rejects a non-finite quantity, which coercion would otherwise let through', () => {
+    const result = clinicDishInputSchema.safeParse({
+      ...validDish,
+      ingredients: [{ foodId: validDish.ingredients[0]!.foodId, quantityGrams: 'Infinity' }],
+    });
+
+    expect(result.success).toBe(false);
   });
 });
 

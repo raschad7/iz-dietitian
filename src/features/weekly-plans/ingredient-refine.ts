@@ -1,162 +1,130 @@
 /**
- * Turns a raw, merged ingredient-search list into what the picker should show:
- * Arabic-first, deduplicated, and ranked (spec §5–7).
+ * Ranks and groups the merged ingredient-search list for the picker.
  *
- * The input is whatever `searchIngredients` merged from the clinic's foods, the
- * shared USDA library and the translated fallback — a flat list where the shared
- * rows are English and often near-duplicates ("Lentils, …, with salt" /
- * "…, without salt" / "…, sprouted"). This function:
+ * Presentation only, and deliberately small. What used to live here is gone with
+ * the canonical catalog:
  *
- *   1. gives every row a friendly Arabic label where one can be derived,
- *   2. collapses near-identical USDA variants into one representative, counting
- *      the rest so the UI can offer "عرض N أنواع أخرى",
- *   3. ranks the results — clinic foods and exact Arabic matches first, English-
- *      only rows last.
+ *   - **Derivation.** `deriveArabicFoodName` guessed an Arabic label out of a USDA
+ *     English description and got `Eggplant, raw` wrong — `egg` is checked before
+ *     `eggplant` in `FOOD_BASES`, so eggplant was labelled بيض. Names are stored now.
+ *   - **Variant collapsing.** It existed because USDA held 1,176 beef rows and nine
+ *     kinds of lentil. The catalog holds one entry per real food.
  *
- * It is pure and presentation-only. The representative it picks is a real
- * `FoodSearchResult`, so picking it stores the same food it always would.
+ * What is left is ordering and one grouping decision, and it is careful about two
+ * things in particular.
+ *
+ * **Preparation states are never merged and never chosen between.** A search for رز
+ * returns أرز أبيض ناشف and أرز أبيض مطبوخ as two results, each under its own name.
+ * They carry different nutrition per 100 g, so picking one for the dietitian would
+ * be making a clinical decision on their behalf from a three-letter query.
+ *
+ * **A match through an alias is a match in that alias's language.** The picker
+ * shows results the reader's own language matched first and folds the rest into a
+ * quiet secondary section. That test used to read the canonical Arabic *name* and
+ * nothing else, which demoted every food found by a synonym: a search for طماطم
+ * finds بندورة through its Arabic alias, and بندورة does not contain طماطم, so the
+ * one result a dietitian typing Arabic wanted arrived collapsed under "more
+ * results (English)". Aliases are half the reason the catalog stores synonyms at
+ * all, so they count here exactly as the canonical name does.
  */
 
-import { deriveArabicFoodName, queryMatchesBase } from './arabic-food-terms';
-import { conciseFoodName } from './food-display';
-import type { FoodSearchResult } from './queries';
+import { normalizeArabic } from './arabic-normalize';
+import { isArabicLocale } from './food-display';
+import type { FoodAlias, FoodSearchResult } from './queries';
 
 export type RefinedFood = FoodSearchResult & {
-  /** The Arabic label to show as primary, or null when only English is available. */
-  displayAr: string | null;
-  /** True for a clinic food or a row anchored to a recognised Arabic base. */
-  matchedArabic: boolean;
-  /** How many near-identical variants were collapsed under this one. */
-  variantCount: number;
+  /**
+   * True when the row matched on a name or alias **in the reader's own language**.
+   *
+   * The picker's primary list. False rows are still results and still shown — one
+   * fold down, because a dietitian working in Arabic who typed Arabic did not ask
+   * for the English half of the catalog first.
+   */
+  matchesLocale: boolean;
 };
 
-type Annotated = {
-  food: FoodSearchResult;
-  displayAr: string | null;
-  base: string;
-  matchedArabic: boolean;
-  /** True for the clinic's own foods — always ranked first, never merged. */
-  isClinicFood: boolean;
-  /** True when this representative row carries a usable household portion. */
-  hasPortion: boolean;
-  groupKey: string;
-  cookState: string;
-};
+/** Every alias a food carries, by food id. Empty is normal — most foods have none. */
+export type AliasIndex = ReadonlyMap<string, readonly FoodAlias[]>;
 
-/** Annotates one search row with its Arabic identity and dedup key. */
-function annotate(food: FoodSearchResult): Annotated {
-  const hasPortion = food.portionGrams != null && food.portionGrams > 0;
+const NO_ALIASES: readonly FoodAlias[] = [];
 
-  // A clinic food already has a real Arabic name — trust it, and never merge it
-  // with anything else (its own id is its group).
-  if (food.nameAr && food.nameAr.trim()) {
-    return {
-      food,
-      displayAr: food.nameAr.trim(),
-      base: food.nameAr.trim(),
-      matchedArabic: true,
-      isClinicFood: true,
-      hasPortion,
-      groupKey: `clinic:${food.id}`,
-      cookState: '',
-    };
-  }
-
-  const derived = deriveArabicFoodName(food.description);
-  if (derived) {
-    return {
-      food,
-      displayAr: derived.name,
-      base: derived.base,
-      matchedArabic: true,
-      isClinicFood: false,
-      hasPortion,
-      groupKey: derived.groupKey,
-      cookState: '',
-    };
-  }
-
-  // No Arabic base recognised: keep a concise English label and group English
-  // duplicates by that label so the same USDA food twice still shows once.
-  const concise = conciseFoodName(food.description);
-  return {
-    food,
-    displayAr: null,
-    base: concise,
-    matchedArabic: false,
-    isClinicFood: false,
-    hasPortion,
-    groupKey: `en:${concise.toLowerCase()}`,
-    cookState: '',
-  };
+/** The aliases of one food written in one language. */
+function aliasesIn(aliases: AliasIndex, foodId: string, locale: string): readonly FoodAlias[] {
+  const wanted = isArabicLocale(locale) ? 'ar' : 'en';
+  return (aliases.get(foodId) ?? NO_ALIASES).filter((alias) => alias.locale === wanted);
 }
 
-/** Within a dedup group, the row that should represent it: clinic first, then a
- *  row with a usable portion, then whatever came first from search. */
-function pickRepresentative(group: Annotated[]): Annotated {
-  return (
-    group.find((entry) => entry.isClinicFood) ??
-    group.find((entry) => entry.hasPortion) ??
-    group[0]!
+/**
+ * Whether this row came back because of something written in the reader's
+ * language — its canonical name in that language, or one of its synonyms in it.
+ */
+export function matchesLocale(
+  food: FoodSearchResult,
+  normalizedQuery: string,
+  locale: string,
+  aliases: AliasIndex,
+): boolean {
+  if (!normalizedQuery) return true;
+
+  const name = isArabicLocale(locale) ? food.nameAr : food.nameEn;
+  if (normalizeArabic(name).includes(normalizedQuery)) return true;
+
+  return aliasesIn(aliases, food.id, locale).some((alias) =>
+    alias.normalizedName.includes(normalizedQuery),
   );
 }
 
-/** A group's rank against the query — higher sorts first. */
-function score(rep: Annotated, query: string): number {
+/** A row's rank against the query — higher sorts first. */
+function score(
+  food: FoodSearchResult,
+  normalizedQuery: string,
+  locale: string,
+  aliases: AliasIndex,
+): number {
   let value = 0;
-  if (rep.isClinicFood) value += 1000;
 
-  const match = queryMatchesBase(query, rep.base);
-  if (match === 'exact') value += 500;
-  else if (match === 'prefix') value += 250;
+  const nameAr = normalizeArabic(food.nameAr);
+  const nameEn = normalizeArabic(food.nameEn);
 
-  if (rep.matchedArabic) value += 100;
-  if (rep.hasPortion) value += 20;
+  if (nameAr === normalizedQuery || nameEn === normalizedQuery) value += 500;
+  else if (nameAr.startsWith(normalizedQuery) || nameEn.startsWith(normalizedQuery)) value += 250;
 
-  // A plain or cooked staple is what a dietitian reaches for first; raw and the
-  // odder preparations sit below it.
-  const derived = deriveArabicFoodName(rep.food.description);
-  const cook = derived?.groupKey.split('|')[2] ?? '';
-  if (cook === '' || cook === 'cooked') value += 10;
-  else if (cook === 'raw') value += 2;
+  // A hit in the language being read outranks one in the other, whether it landed
+  // on the canonical name or on a synonym — the same rule the grouping applies,
+  // so the order inside the primary list agrees with which list a row is in.
+  if (matchesLocale(food, normalizedQuery, locale, aliases)) value += 100;
+
+  // A food that carries a household measure is one a dietitian can enter without
+  // reaching for a scale. A tie-break, not a ranking of its own.
+  if (food.portions.length > 0) value += 20;
 
   return value;
 }
 
 /**
- * Refines and ranks the merged search list. Stable within equal scores, so the
- * merge's source priority (clinic → shared → translated) still shows through.
+ * Ranks the merged search list and marks each row's language. Stable within equal
+ * scores, so the merge's source priority (clinic foods before shared) still shows
+ * through — which is what keeps a clinic's own food above the shared one it was
+ * added to replace.
  */
 export function refineIngredientResults(
   results: readonly FoodSearchResult[],
   query: string,
+  locale: string,
+  aliases: AliasIndex = new Map(),
 ): RefinedFood[] {
-  const annotated = results.map(annotate);
+  const normalizedQuery = normalizeArabic(query);
 
-  // Group by dedup key, preserving first-seen order for stability.
-  const groups = new Map<string, Annotated[]>();
-  for (const entry of annotated) {
-    const bucket = groups.get(entry.groupKey);
-    if (bucket) bucket.push(entry);
-    else groups.set(entry.groupKey, [entry]);
-  }
+  const indexed = results.map((food, index) => ({
+    food,
+    index,
+    value: score(food, normalizedQuery, locale, aliases),
+  }));
 
-  const reps = [...groups.values()].map((group) => {
-    const rep = pickRepresentative(group);
-    return { rep, variantCount: group.length - 1 };
-  });
-
-  // Decorate with score, then sort by score desc while keeping original order
-  // among equals (a stable sort on the index).
-  const indexed = reps.map((entry, index) => ({ ...entry, index, value: score(entry.rep, query) }));
   indexed.sort((a, b) => (b.value !== a.value ? b.value - a.value : a.index - b.index));
 
-  return indexed.map(({ rep, variantCount }) => ({
-    ...rep.food,
-    // Fill the Arabic name so downstream display and the saved row read Arabic.
-    nameAr: rep.displayAr ?? rep.food.nameAr,
-    displayAr: rep.displayAr,
-    matchedArabic: rep.matchedArabic,
-    variantCount,
+  return indexed.map(({ food }) => ({
+    ...food,
+    matchesLocale: matchesLocale(food, normalizedQuery, locale, aliases),
   }));
 }

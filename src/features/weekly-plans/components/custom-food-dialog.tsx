@@ -14,7 +14,7 @@ import { getLocaleDirection } from '@/i18n/routing';
 
 import { createCustomFoodAction } from '../catalog-actions';
 import { CUSTOM_FOOD_UNITS } from '../catalog-schema';
-import { suggestUnitKey } from '../ingredient-units';
+import { suggestUnitKey } from '../portion-derivation';
 import type { FoodSearchResult } from '../queries';
 
 type FieldName = 'nameAr' | 'kcal' | 'protein' | 'carbs' | 'fat' | 'unitGrams';

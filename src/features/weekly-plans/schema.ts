@@ -215,15 +215,16 @@ export const startWeekFromPlanSchema = z.object({
 // ---------------------------------------------------------------------------
 
 /**
- * Whether the caller means to edit a plan the client is already following.
+ * Shared by every edit: which plan.
  *
- * A checkbox value, so it arrives as `'on'` or not at all. Absent means no, which
- * is the safe reading of a field that failed to submit.
+ * There was an `allowPublished` flag here, letting a caller opt into editing a plan
+ * the client was already following. It is gone: publishing freezes each meal's
+ * nutrition, so editing in place would leave a frozen total describing a dish the
+ * plan no longer holds. A published plan is now immutable and must be unpublished
+ * before it can be edited — enforced in `editablePlan` (`editor-mutations.ts`), and
+ * the field is dropped here so a form can no longer even ask for it.
  */
-const allowPublishedSchema = z.preprocess((value) => value === 'on' || value === 'true', z.boolean());
-
-/** Shared by every edit: which plan, and whether a live one may be touched. */
-const editBase = { planId: planIdSchema, allowPublished: allowPublishedSchema };
+const editBase = { planId: planIdSchema };
 
 export const placeDishSchema = z.object({
   ...editBase,

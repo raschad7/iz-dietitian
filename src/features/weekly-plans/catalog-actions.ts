@@ -177,8 +177,11 @@ export async function unhideDishAction(
  * because which database a food lives in is not her problem.
  */
 export async function searchIngredientsAction(locale: string, query: string): Promise<RefinedFood[]> {
-  const { clinicId } = await requireStaffClinic(localeSchema.parse(locale));
-  return searchIngredients(clinicId, query);
+  const parsed = localeSchema.parse(locale);
+  const { clinicId } = await requireStaffClinic(parsed);
+  // The same locale that resolved the clinic also decides the result grouping —
+  // there is no second language setting anywhere in this path.
+  return searchIngredients(clinicId, query, parsed);
 }
 
 /**

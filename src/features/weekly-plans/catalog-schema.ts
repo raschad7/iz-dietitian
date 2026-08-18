@@ -13,13 +13,36 @@ import { DISH_TAGS, MEAL_TYPES } from './schema';
  */
 const uuid = z.string().uuid();
 
-export const ingredientInputSchema = z.object({
-  foodId: uuid,
-  quantityGrams: z.coerce.number().positive(),
-  displayNameAr: z.string().trim().max(120).optional(),
-  householdLabel: z.string().trim().max(60).optional(),
-  householdGrams: z.coerce.number().positive().optional(),
-});
+/**
+ * One recipe line.
+ *
+ * `quantityGrams` is the authoritative amount and is what nutrition is computed
+ * from; the portion pair only records how the dietitian typed it. Both are
+ * validated here for shape — finite and positive — while the two questions a
+ * schema cannot answer (does this portion belong to this food, and can this clinic
+ * see it) are checked against the database in `catalog-mutations.ts`.
+ */
+export const ingredientInputSchema = z
+  .object({
+    foodId: uuid,
+    // `.finite()` as well as `.positive()`: `Number("Infinity")` coerces happily,
+    // and an infinite gram count would poison every total on the plan.
+    quantityGrams: z.coerce.number().positive().finite(),
+    portionId: uuid.nullish(),
+    portionQuantity: z.coerce.number().positive().finite().nullish(),
+  })
+  .refine(
+    (value) =>
+      (value.portionId == null && value.portionQuantity == null) ||
+      (value.portionId != null && value.portionQuantity != null),
+    {
+      // Half a record of how the amount was entered is not a record of anything:
+      // a portion with no count cannot be rendered, and a count with no portion
+      // has no unit. Grams-only lines carry neither.
+      message: 'A portion and its quantity must be given together, or neither.',
+      path: ['portionQuantity'],
+    },
+  );
 
 export const clinicDishInputSchema = z.object({
   nameAr: z.string().trim().min(1).max(120),
@@ -41,10 +64,10 @@ export const clinicDishInputSchema = z.object({
 export type ClinicDishInput = z.infer<typeof clinicDishInputSchema>;
 
 /**
- * The household units a custom food may be measured in — the UnitKeys from
- * `ingredient-units.ts`, plus `g`. Kept as a literal tuple here (rather than
- * imported) so this validation stays free of the unit module and Zod gets the
- * non-empty tuple it needs for `z.enum`.
+ * The household units a custom food may be measured in — the keys of
+ * `CUSTOM_UNIT_LABELS`, plus `g`. Kept as a literal tuple here (rather than
+ * derived) because Zod needs a non-empty tuple for `z.enum`; the two are asserted
+ * to agree in `catalog-schema.test.ts`.
  */
 export const CUSTOM_FOOD_UNITS = ['loaf', 'piece', 'slice', 'cup', 'tbsp', 'tsp', 'g'] as const;
 
@@ -59,11 +82,11 @@ export const customFoodInputSchema = z
     protein: z.coerce.number().nonnegative(),
     carbs: z.coerce.number().nonnegative(),
     fat: z.coerce.number().nonnegative(),
-    // The natural serving unit, persisted on `foods.portionLabel` /
-    // `.portionGrams` (spec §10). `g` (or omitted) means grams-only. A household
-    // unit must carry a positive grams-per-unit, enforced below.
+    // The natural serving unit, written as one `catalog_food_portions` row. `g`
+    // (or omitted) means grams-only and creates no portion. A household unit must
+    // carry a positive grams-per-unit, enforced below.
     unit: z.enum(CUSTOM_FOOD_UNITS).optional(),
-    unitGrams: z.coerce.number().positive().optional(),
+    unitGrams: z.coerce.number().positive().finite().optional(),
   })
   .refine((value) => !(value.unit && value.unit !== 'g') || (value.unitGrams ?? 0) > 0, {
     message: 'A household unit needs a positive grams-per-unit value.',

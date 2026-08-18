@@ -14,25 +14,37 @@ import { DISH_TAGS } from '@/features/weekly-plans/schema';
 import { membersOf } from '@/lib/enum';
 import { IngredientSearch } from '@/features/weekly-plans/components/food-picker';
 import { refineIngredientResults, type RefinedFood } from '@/features/weekly-plans/ingredient-refine';
-import { getFoodDisplayName } from '@/features/weekly-plans/food-display';
+import { localizedName } from '@/features/weekly-plans/food-display';
+import type { FoodPortion } from '@/features/weekly-plans/ingredient-units';
 import type { FoodSearchResult } from '@/features/weekly-plans/queries';
 
-/** A raw search fixture plus the Arabic terms a query must contain to surface it. */
+/** A catalog fixture plus the terms a query must contain to surface it. */
 type Fixture = FoodSearchResult & { tags: string[] };
+
+/** Builds a portion list the way `db:build-catalog` does — a measure and its fractions. */
+function cup(id: string, grams: number): FoodPortion[] {
+  return [
+    { id: `${id}-cup`, labelAr: 'كوب', labelEn: 'Cup', grams, isDefault: true, sortOrder: 0 },
+    { id: `${id}-half`, labelAr: 'نصف كوب', labelEn: 'Half cup', grams: grams / 2, isDefault: false, sortOrder: 1 },
+  ];
+}
 
 function row(
   id: string,
-  description: string,
+  nameAr: string,
+  nameEn: string,
   tags: string[],
   extra: Partial<FoodSearchResult>,
 ): Fixture {
   return {
     id,
-    description,
-    nameAr: null,
-    category: 'Legumes and Legume Products',
-    portionGrams: null,
-    portionLabel: null,
+    nameAr,
+    nameEn,
+    clinicId: null,
+    state: 'raw',
+    category: 'legumes',
+    verificationStatus: 'verified',
+    portions: [],
     kcal: 100,
     protein: 5,
     fat: 1,
@@ -51,84 +63,87 @@ function row(
 }
 
 /**
- * Real SR Legacy-shaped rows for the queries the spec names, so the mock search
- * exercises the genuine refine (Arabic-first, dedup, ranking) rather than a
- * hand-faked result list.
+ * Catalog-shaped rows for the queries the spec names.
+ *
+ * Deliberately includes both raw/dry and cooked entries for the same food: the
+ * picker must show them as two distinct results under their own names and must not
+ * pick one, and that is a behaviour worth being able to look at without a database.
  */
 const FIXTURES: Fixture[] = [
-  row('l1', 'Lentils, mature seeds, cooked, boiled, without salt', ['عدس'], {
-    portionGrams: 198,
-    portionLabel: '1 cup',
+  row('l1', 'عدس ناشف', 'Lentils, dry', ['عدس'], {
+    state: 'dry',
+    portions: cup('l1', 192),
+    kcal: 352,
+  }),
+  row('l2', 'عدس مطبوخ', 'Lentils, cooked', ['عدس'], {
+    state: 'cooked',
+    portions: cup('l2', 198),
     kcal: 116,
   }),
-  row('l2', 'Lentils, mature seeds, cooked, boiled, with salt', ['عدس'], {
-    portionGrams: 198,
-    portionLabel: '1 cup',
-    kcal: 116,
-  }),
-  row('l3', 'Lentils, raw', ['عدس'], { portionGrams: 192, portionLabel: '1 cup', kcal: 352 }),
-  row('l4', 'Lentils, pink or red, raw', ['عدس', 'عدس احمر'], {
-    portionGrams: 192,
-    portionLabel: '1 cup',
+  row('l3', 'عدس أحمر ناشف', 'Red lentils, dry', ['عدس', 'عدس احمر'], {
+    state: 'dry',
+    portions: cup('l3', 192),
     kcal: 358,
   }),
-  row('l5', 'Lentils, sprouted, raw', ['عدس'], { portionGrams: 77, portionLabel: '1 cup', kcal: 106 }),
-  row('c1', 'Homemade jameed', ['جميد'], {
-    nameAr: 'جميد بلدي',
-    category: 'Clinic custom',
+  row('c1', 'جميد بلدي', 'Homemade jameed', ['جميد'], {
+    clinicId: 'clinic-1',
+    category: 'dairy_eggs',
+    state: 'prepared',
+    verificationStatus: 'needs_review',
     kcal: 120,
   }),
-  row('b1', 'Bread, pita, white, enriched', ['خبز', 'خبز عربي'], {
-    category: 'Baked Products',
-    portionGrams: 60,
-    portionLabel: '1 pita, large (6-1/2" dia)',
+  row('b1', 'خبز عربي أبيض', 'White pita bread', ['خبز', 'خبز عربي'], {
+    category: 'grains',
+    state: 'prepared',
+    portions: [
+      { id: 'b1-loaf', labelAr: 'رغيف', labelEn: 'Loaf', grams: 60, isDefault: true, sortOrder: 0 },
+      { id: 'b1-half', labelAr: 'نصف رغيف', labelEn: 'Half loaf', grams: 30, isDefault: false, sortOrder: 1 },
+    ],
     kcal: 275,
     protein: 9,
     carbs: 56,
   }),
-  row('b2', 'Bread, pita, whole-wheat', ['خبز', 'خبز عربي'], {
-    category: 'Baked Products',
-    portionGrams: 64,
-    portionLabel: '1 pita, large (6-1/2" dia)',
-    kcal: 262,
+  row('r1', 'أرز أبيض ناشف', 'White rice, dry', ['ارز', 'رز'], {
+    category: 'grains',
+    state: 'dry',
+    portions: cup('r1', 185),
+    kcal: 365,
   }),
-  row('r1', 'Rice, white, long-grain, regular, enriched, cooked', ['ارز', 'رز'], {
-    category: 'Cereal Grains and Pasta',
-    portionGrams: 158,
-    portionLabel: '1 cup',
+  row('r2', 'أرز أبيض مطبوخ', 'White rice, cooked', ['ارز', 'رز'], {
+    category: 'grains',
+    state: 'cooked',
+    portions: cup('r2', 158),
     kcal: 130,
   }),
-  row('r2', 'Rice, brown, long-grain, cooked', ['ارز', 'رز'], {
-    category: 'Cereal Grains and Pasta',
-    portionGrams: 195,
-    portionLabel: '1 cup',
-    kcal: 123,
-  }),
-  row('o1', 'Oil, olive, salad or cooking', ['زيت', 'زيت زيتون'], {
-    category: 'Fats and Oils',
-    portionGrams: 13.5,
-    portionLabel: '1 tablespoon',
+  row('o1', 'زيت زيتون', 'Olive oil', ['زيت', 'زيت زيتون'], {
+    category: 'fats_oils',
+    portions: [
+      { id: 'o1-tbsp', labelAr: 'ملعقة كبيرة', labelEn: 'Tablespoon', grams: 13.5, isDefault: true, sortOrder: 0 },
+      { id: 'o1-tsp', labelAr: 'ملعقة صغيرة', labelEn: 'Teaspoon', grams: 4.5, isDefault: false, sortOrder: 1 },
+    ],
     kcal: 884,
     fat: 100,
     carbs: 0,
   }),
-  row('e1', 'Egg, whole, raw, fresh', ['بيض'], {
-    category: 'Dairy and Egg Products',
-    portionGrams: 50,
-    portionLabel: '1 large',
+  row('e1', 'بيض ني', 'Egg, whole, raw', ['بيض'], {
+    category: 'dairy_eggs',
+    portions: [
+      { id: 'e1-piece', labelAr: 'حبة', labelEn: 'Piece', grams: 50, isDefault: true, sortOrder: 0 },
+    ],
     kcal: 143,
     protein: 13,
   }),
-  row('k1', 'Crackers, flavored', ['كراكر', 'بسكويت'], {
-    category: 'Baked Products',
-    portionGrams: 30,
-    portionLabel: '1 serving',
-    kcal: 490,
+  row('m1', 'صدر دجاج ني', 'Chicken breast, skinless, raw', ['دجاج'], {
+    // Grams-only by product choice: meat, poultry and fish carry no portions.
+    category: 'poultry',
+    kcal: 120,
+    protein: 22,
+    carbs: 0,
   }),
 ];
 
 /** A stand-in for `searchIngredientsAction` — real refine over the fixtures. */
-async function mockSearch(_locale: string, query: string): Promise<RefinedFood[]> {
+async function mockSearch(locale: string, query: string): Promise<RefinedFood[]> {
   const needle = normalizeArabic(query);
   const matched = FIXTURES.filter((fixture) =>
     fixture.tags.some((tag) => {
@@ -138,7 +153,7 @@ async function mockSearch(_locale: string, query: string): Promise<RefinedFood[]
   ).map(({ tags: _tags, ...food }) => food);
   // A tiny latency so the loading indicator is observable.
   await new Promise((resolve) => setTimeout(resolve, 120));
-  return refineIngredientResults(matched, query);
+  return refineIngredientResults(matched, query, locale);
 }
 
 /** Mock catalog rows — a mix of shared and clinic-owned dishes, one hidden. */
@@ -211,7 +226,7 @@ export function DishesHarness({ locale }: { locale: string }) {
       <header className="flex flex-col gap-1">
         <h1 className="font-heading text-heading-lg font-semibold">Dish editor harness (dev)</h1>
         <p className="text-body-sm text-muted-foreground">
-          Mock search over real refine logic. Try عدس, خبز, أرز, زيت, بيض.
+          Mock search over real refine logic. Try عدس, خبز, أرز, زيت, بيض, دجاج. Raw and cooked stay separate; meat is grams-only.
         </p>
       </header>
 
@@ -224,7 +239,7 @@ export function DishesHarness({ locale }: { locale: string }) {
           <ul className="mt-2 flex flex-col gap-1 border-t border-border pt-2 text-body-sm">
             {picked.map((food, index) => (
               <li key={`${food.id}-${index}`} className="text-muted-foreground" dir="auto">
-                picked: <span className="font-medium text-foreground">{getFoodDisplayName(food, locale)}</span>
+                picked: <span className="font-medium text-foreground">{localizedName(food, locale)}</span>
               </li>
             ))}
           </ul>

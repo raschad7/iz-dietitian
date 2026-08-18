@@ -1,8 +1,9 @@
 /**
  * Loads `data/dishes.json` into `dishes` and `dish_ingredients`.
  *
- * Run on its own with `bun run db:seed:dishes`. Requires `foods` to be seeded
- * first — every ingredient resolves to a `foods` row by `fdc_id`.
+ * Run on its own with `bun run db:seed:dishes`. Requires the canonical catalog to
+ * be seeded first — every ingredient resolves to a `catalog_foods` row by its
+ * `source_ref` (the fdcId `data/dishes.json` authors against).
  *
  * Idempotent by way of `slug`: re-running updates dishes in place, so a weekly
  * plan keeps pointing at the same dish rows. Ingredients are replaced wholesale
@@ -19,12 +20,14 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { inArray, sql } from 'drizzle-orm';
+import { inArray, isNull, sql } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { dishIngredients, dishes, foods, type NewDish } from '@/db/schema';
+import { catalogFoods, dishIngredients, dishes, type NewDish } from '@/db/schema';
 import { DISH_TAGS, MEAL_TYPES } from '@/features/weekly-plans/schema';
 import { isMember } from '@/lib/enum';
+
+import { readCatalogDataset } from './seed-catalog-foods';
 
 const DATASET_PATH = join(dirname(fileURLToPath(import.meta.url)), '../data/dishes.json');
 
@@ -105,11 +108,18 @@ function validate(records: DishRecord[]): void {
   }
 }
 
-export async function seedDishes(): Promise<{ dishes: number; ingredients: number }> {
+/**
+ * The committed dish dataset, read and validated.
+ *
+ * Exported so `db:check` can count what a correctly seeded database is *supposed*
+ * to hold rather than carrying a hand-copied number that goes stale the next time
+ * a dish is added.
+ */
+export function readDishDataset(path = DATASET_PATH): DishRecord[] {
   let file: string;
 
   try {
-    file = readFileSync(DATASET_PATH, 'utf8');
+    file = readFileSync(path, 'utf8');
   } catch {
     throw new Error('data/dishes.json is missing.');
   }
@@ -119,38 +129,54 @@ export async function seedDishes(): Promise<{ dishes: number; ingredients: numbe
 
   validate(records);
 
-  // One query for every food the catalog references, rather than one per
-  // ingredient line.
-  const fdcIds = [...new Set(records.flatMap((dish) => dish.ingredients.map((i) => i.fdcId)))];
+  return records;
+}
 
-  const foodRows = await db
-    .select({ id: foods.id, fdcId: foods.fdcId, description: foods.description })
-    .from(foods)
-    .where(inArray(foods.fdcId, fdcIds));
+export async function seedDishes(): Promise<{ dishes: number; ingredients: number }> {
+  const records = readDishDataset();
 
-  const foodByFdcId = new Map(foodRows.map((row) => [row.fdcId, row]));
+  /**
+   * The canonical catalog row for each fdcId, keyed by `source_ref`.
+   *
+   * Recipes point at `catalog_foods` only. `data/dishes.json` still authors against
+   * fdcIds — they are the stable identifier the notes below are checked against —
+   * so this map is the bridge between the two, and the catalog's `source_ref` is
+   * what makes it possible without a USDA table in the database.
+   */
+  const catalogRows = await db
+    .select({ id: catalogFoods.id, sourceRef: catalogFoods.sourceRef, nameEn: catalogFoods.nameEn })
+    .from(catalogFoods)
+    .where(isNull(catalogFoods.clinicId));
+
+  const catalogBySourceRef = new Map(
+    catalogRows.filter((row) => row.sourceRef !== null).map((row) => [row.sourceRef!, row]),
+  );
 
   // Resolve everything up front. A dish is only written once every one of its
   // ingredients is known to exist and to be the food the file says it is.
   const mismatches: string[] = [];
 
+  // The dataset's own `note` per fdcId — the USDA description `db:build-catalog`
+  // recorded. `data/dishes.json` carries the same note per ingredient, written by
+  // hand from the same source, so comparing them is what still catches an fdcId
+  // that has moved onto a different food now that no USDA table is in the database.
+  const noteBySourceRef = new Map(readCatalogDataset().map((food) => [food.sourceRef, food.note]));
+
   for (const dish of records) {
     for (const ingredient of dish.ingredients) {
-      const food = foodByFdcId.get(ingredient.fdcId);
+      const key = String(ingredient.fdcId);
 
-      if (!food) {
+      if (!catalogBySourceRef.has(key)) {
         mismatches.push(
-          `${dish.slug}: fdcId ${ingredient.fdcId} (${ingredient.note}) is not in the foods table`,
+          `${dish.slug}: fdcId ${ingredient.fdcId} (${ingredient.note}) has no canonical catalog food`,
         );
         continue;
       }
 
-      // The note is a human-readable label in the JSON, but it doubles as a
-      // checksum: if a re-seed of `foods` ever moved an fdcId to a different
-      // food, this is what catches it.
-      if (!food.description.startsWith(ingredient.note.slice(0, 24))) {
+      const note = noteBySourceRef.get(key) ?? '';
+      if (!note.startsWith(ingredient.note.slice(0, 24))) {
         mismatches.push(
-          `${dish.slug}: fdcId ${ingredient.fdcId} is "${food.description}", file says "${ingredient.note}"`,
+          `${dish.slug}: fdcId ${ingredient.fdcId} is "${note}", data/dishes.json says "${ingredient.note}"`,
         );
       }
     }
@@ -158,7 +184,7 @@ export async function seedDishes(): Promise<{ dishes: number; ingredients: numbe
 
   if (mismatches.length) {
     throw new Error(
-      `data/dishes.json does not match the foods table. Nothing was written.\n  ${mismatches.join('\n  ')}\n\nIf a food "is not in the foods table", seed foods first: bun run db:seed:foods\nOtherwise the file's note is stale — correct it to the description shown.`,
+      `data/dishes.json does not match the canonical catalog. Nothing was written.\n  ${mismatches.join('\n  ')}\n\nSeed the catalog first: bun run db:seed:catalog --apply\nIf the food is genuinely missing, add it to data/catalog-foods.json and run: bun run db:build-catalog`,
     );
   }
 
@@ -214,8 +240,13 @@ export async function seedDishes(): Promise<{ dishes: number; ingredients: numbe
 
       return dish.ingredients.map((ingredient, index) => ({
         dishId,
-        foodId: foodByFdcId.get(ingredient.fdcId)!.id,
+        catalogFoodId: catalogBySourceRef.get(String(ingredient.fdcId))!.id,
         quantityGrams: ingredient.grams,
+        // The shipped catalog is authored in grams, so no portion was chosen.
+        // Nutrition reads `quantity_grams` regardless — a portion only ever records
+        // how a person typed an amount.
+        portionId: null,
+        portionQuantity: null,
         sortOrder: index,
       }));
     });

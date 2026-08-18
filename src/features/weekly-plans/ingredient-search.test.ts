@@ -10,14 +10,16 @@ import type { FoodSearchResult } from './queries';
  * SAME food and must appear once, and the source that found it first — the more
  * local, more relevant one — decides where it sits.
  */
-function food(id: string, description: string): FoodSearchResult {
+function food(id: string, nameEn: string): FoodSearchResult {
   return {
     id,
-    description,
-    nameAr: null,
-    category: 'x',
-    portionGrams: null,
-    portionLabel: null,
+    nameAr: nameEn,
+    nameEn,
+    clinicId: null,
+    state: 'raw',
+    category: 'other',
+    verificationStatus: 'verified',
+    portions: [],
     kcal: 100,
     protein: 1,
     fat: 1,

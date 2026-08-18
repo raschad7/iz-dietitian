@@ -18,8 +18,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { membersOf } from '@/lib/enum';
 
 import { loadDishDetailAction } from '../catalog-actions';
-import { getFoodDisplayName, getFoodSecondaryName } from '../food-display';
-import { resolveSavedRow } from '../ingredient-units';
+import { localizedName, localizedPortionLabel, secondaryName } from '../food-display';
 import { NUTRIENT_UNITS, roundForDisplay } from '../nutrition';
 import type { DishDetailView } from '../queries';
 import { ALLERGENS, DISH_TAGS, MEAL_TYPES } from '../schema';
@@ -94,10 +93,13 @@ export function DishDetails({
         ) : !detail ? null : (
           <>
             <SheetHeader className="gap-1 border-b border-border p-5">
+              {/* The dish in the reader's language, the other name quietly under it. */}
               <SheetTitle className="font-heading text-heading-sm" dir="auto">
-                {detail.nameAr}
+                {localizedName(detail, locale)}
               </SheetTitle>
-              {detail.nameEn && <SheetDescription dir="auto">{detail.nameEn}</SheetDescription>}
+              {secondaryName(detail, locale) && (
+                <SheetDescription dir="auto">{secondaryName(detail, locale)}</SheetDescription>
+              )}
               {meta && <p className="pt-1 text-body-sm text-muted-foreground">{meta}</p>}
             </SheetHeader>
 
@@ -140,13 +142,21 @@ export function DishDetails({
                 <h3 className="pb-2 text-label font-semibold">{t('detail.ingredients')}</h3>
                 <ul className="flex flex-col divide-y divide-border">
                   {detail.ingredients.map((ingredient, index) => {
-                    const { unitKey, quantity } = resolveSavedRow(ingredient.food, {
-                      quantityGrams: ingredient.quantityGrams,
-                      householdLabel: ingredient.householdLabel,
-                      householdGrams: ingredient.householdGrams,
-                    });
-                    const amount = Math.round(quantity * 1000) / 1000;
-                    const secondary = getFoodSecondaryName(ingredient.food, locale);
+                    /*
+                     * Shown in the unit it was entered in, grams otherwise.
+                     *
+                     * The portion arrives already resolved from the join, so a
+                     * portion that has since been retired (`portion_id` is
+                     * `on delete set null`) simply reads as its stored weight
+                     * rather than as a blank or a rescaled amount.
+                     */
+                    const amount = ingredient.portion
+                      ? Math.round((ingredient.portionQuantity ?? 0) * 1000) / 1000
+                      : Math.round(ingredient.quantityGrams);
+                    const unit = ingredient.portion
+                      ? localizedPortionLabel(ingredient.portion, locale)
+                      : tUnits('g');
+                    const secondary = secondaryName(ingredient.food, locale);
 
                     return (
                       <li
@@ -155,7 +165,7 @@ export function DishDetails({
                       >
                         <span className="min-w-0 flex-1">
                           <span className="block [overflow-wrap:anywhere]" dir="auto">
-                            {getFoodDisplayName(ingredient.food, locale)}
+                            {localizedName(ingredient.food, locale)}
                           </span>
                           {secondary && (
                             <span className="block text-caption text-muted-foreground" dir="auto">
@@ -163,8 +173,8 @@ export function DishDetails({
                             </span>
                           )}
                         </span>
-                        <span className="shrink-0 tabular-nums text-muted-foreground" dir="ltr">
-                          {amount} {tUnits(unitKey)}
+                        <span className="shrink-0 tabular-nums text-muted-foreground" dir="auto">
+                          {amount} {unit}
                         </span>
                       </li>
                     );

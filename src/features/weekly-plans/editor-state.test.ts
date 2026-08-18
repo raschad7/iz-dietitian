@@ -25,7 +25,8 @@ function dish(id: string): DishDetail {
         quantityGrams: 100,
         food: {
           id: `food-${id}`,
-          description: 'test food',
+          nameAr: 'طعام تجريبي',
+          nameEn: 'test food',
           kcal: 300,
           protein: 10,
           carbs: 20,
@@ -53,6 +54,8 @@ function meal(id: string, overrides: Partial<BoardMeal> = {}): BoardMeal {
     dish: null,
     rationaleAr: null,
     totals: emptyTotals(),
+    grams: 0,
+    nutritionFrozen: false,
     budgetKcal: 600,
     options: [],
     ...overrides,

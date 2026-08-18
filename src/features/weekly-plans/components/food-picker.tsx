@@ -10,7 +10,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
 
 import { searchIngredientsAction } from '../catalog-actions';
-import { getFoodDisplayName, getFoodSecondaryName } from '../food-display';
+import { localizedName, secondaryName } from '../food-display';
 import type { RefinedFood } from '../ingredient-refine';
 import type { FoodSearchResult } from '../queries';
 
@@ -52,8 +52,8 @@ export function IngredientSearch({
   const [term, setTerm] = useState('');
   const [results, setResults] = useState<RefinedFood[] | null>(null);
   const [status, setStatus] = useState<SearchStatus>('idle');
-  const [showEnglish, setShowEnglish] = useState(false);
-  const [showAllArabic, setShowAllArabic] = useState(false);
+  const [showSecondary, setShowSecondary] = useState(false);
+  const [showAllPrimary, setShowAllPrimary] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -73,8 +73,8 @@ export function IngredientSearch({
       return;
     }
 
-    setShowEnglish(false);
-    setShowAllArabic(false);
+    setShowSecondary(false);
+    setShowAllPrimary(false);
 
     const cached = cache.current.get(query);
     if (cached) {
@@ -132,9 +132,12 @@ export function IngredientSearch({
   }
 
   const trimmed = term.trim();
-  const arabic = (results ?? []).filter((row) => row.matchedArabic);
-  const english = (results ?? []).filter((row) => !row.matchedArabic);
-  const shownArabic = showAllArabic ? arabic : arabic.slice(0, PRIMARY_LIMIT);
+  // Grouped by the reader's own language, not by "Arabic vs the rest": in an
+  // English UI the primary list is what English names and English synonyms
+  // matched, and the fold below holds the Arabic ones. See `ingredient-refine.ts`.
+  const primary = (results ?? []).filter((row) => row.matchesLocale);
+  const secondary = (results ?? []).filter((row) => !row.matchesLocale);
+  const shownPrimary = showAllPrimary ? primary : primary.slice(0, PRIMARY_LIMIT);
   const noResults = status === 'done' && (results ?? []).length === 0;
 
   return (
@@ -201,9 +204,9 @@ export function IngredientSearch({
         </div>
       )}
 
-      {arabic.length > 0 && (
+      {primary.length > 0 && (
         <ul className="flex flex-col">
-          {shownArabic.map((food) => (
+          {shownPrimary.map((food) => (
             <li key={food.id}>
               <SearchResultRow food={food} locale={locale} onPick={() => pick(food)} />
             </li>
@@ -211,33 +214,34 @@ export function IngredientSearch({
         </ul>
       )}
 
-      {arabic.length > shownArabic.length && (
+      {primary.length > shownPrimary.length && (
         <button
           type="button"
-          onClick={() => setShowAllArabic(true)}
+          onClick={() => setShowAllPrimary(true)}
           className="self-start rounded-md px-2 py-1 text-body-sm font-medium text-primary hover:bg-accent"
         >
           {t('foodPicker.moreResults')}
         </button>
       )}
 
-      {/* English-only rows are demoted under a quiet, collapsed section (spec §5). */}
-      {english.length > 0 && (
+      {/* Rows that only matched the other language are demoted under a quiet,
+          collapsed section (spec §5) — never hidden, only folded. */}
+      {secondary.length > 0 && (
         <div className="mt-1">
           <button
             type="button"
-            onClick={() => setShowEnglish((value) => !value)}
+            onClick={() => setShowSecondary((value) => !value)}
             className="flex items-center gap-1.5 text-caption font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             <Icon
               name="chevronDown"
-              className={cn('size-3.5 transition-transform', showEnglish && 'rotate-180')}
+              className={cn('size-3.5 transition-transform', showSecondary && 'rotate-180')}
             />
-            {t('foodPicker.englishResults')} ({english.length})
+            {t('foodPicker.otherLanguageResults')} ({secondary.length})
           </button>
-          {showEnglish && (
+          {showSecondary && (
             <ul className="mt-1 flex flex-col">
-              {english.map((food) => (
+              {secondary.map((food) => (
                 <li key={food.id}>
                   <SearchResultRow food={food} locale={locale} onPick={() => pick(food)} />
                 </li>
@@ -259,10 +263,18 @@ export function IngredientSearch({
 }
 
 /**
- * One search result — a dense, tappable row (spec §21). The friendly Arabic name
- * leads, a quieter secondary line follows only when it adds something, and the
- * energy per 100 g sits at the inline-end. Collapsed near-duplicate variants are
- * noted quietly.
+ * One search result — a dense, tappable row (spec §21).
+ *
+ * The food's canonical name in the reader's language leads, the other language
+ * follows quietly, and the energy per 100 g sits at the inline-end.
+ *
+ * **The name shown is always the food's own, never the alias that matched it.** A
+ * search for طماطم returns بندورة under the name بندورة: synonyms exist so a
+ * dietitian can find a food by whatever they call it, and a list that renamed
+ * itself to the query would leave two dietitians reading different words for the
+ * same row. The canonical name is also what carries the preparation state — أرز
+ * أبيض ناشف and أرز أبيض مطبوخ arrive as two visibly different results — so
+ * nothing here collapses or pre-selects between them.
  */
 function SearchResultRow({
   food,
@@ -274,7 +286,7 @@ function SearchResultRow({
   onPick: () => void;
 }) {
   const t = useTranslations('dishEditor');
-  const secondary = getFoodSecondaryName(food, locale);
+  const secondary = secondaryName(food, locale);
 
   return (
     <button
@@ -287,13 +299,11 @@ function SearchResultRow({
     >
       <span className="min-w-0 flex-1">
         <span className="block truncate font-medium" dir="auto">
-          {getFoodDisplayName(food, locale)}
+          {localizedName(food, locale)}
         </span>
-        {(secondary || food.variantCount > 0) && (
+        {secondary && (
           <span className="block truncate text-caption text-muted-foreground" dir="auto">
             {secondary}
-            {secondary && food.variantCount > 0 && <span aria-hidden> · </span>}
-            {food.variantCount > 0 && t('foodPicker.otherVariants', { count: food.variantCount })}
           </span>
         )}
       </span>

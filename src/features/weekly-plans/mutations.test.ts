@@ -1,14 +1,16 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
+import { randomUUID } from 'node:crypto';
 import { and, eq } from 'drizzle-orm';
 
 import { db } from '@/db';
+import { normalizeArabic } from '@/features/weekly-plans/arabic-normalize';
 import { pgConstraintName, pgErrorCode, UNIQUE_VIOLATION } from '@/db/errors';
 import {
+  catalogFoods,
   clientPlanAdherence,
   clients,
   dishIngredients,
   dishes,
-  foods,
   weeklyPlanMealCompletions,
   weeklyPlanMeals,
   weeklyPlans,
@@ -47,17 +49,24 @@ let dishIds: string[];
 /** Two dishes with real recipes, so nutrition is derived rather than invented. */
 async function seedDishes(): Promise<string[]> {
   const [food] = await db
-    .insert(foods)
+    .insert(catalogFoods)
     .values({
-      fdcId: 999001,
-      description: 'Test staple, raw',
-      category: 'Test',
+      slug: `test-staple-${randomUUID()}`,
+      nameAr: 'طعام تجريبي',
+      nameEn: 'Test staple, raw',
+      normalizedNameAr: normalizeArabic('طعام تجريبي'),
+      normalizedNameEn: normalizeArabic('Test staple, raw'),
+      state: 'raw',
+      category: 'other',
+      sourceType: 'usda_sr_legacy',
+
       kcal: 300,
       protein: 12,
       fat: 5,
       carbs: 50,
+
     })
-    .returning({ id: foods.id });
+    .returning({ id: catalogFoods.id });
 
   const inserted = await db
     .insert(dishes)
@@ -84,7 +93,7 @@ async function seedDishes(): Promise<string[]> {
     .returning({ id: dishes.id });
 
   await db.insert(dishIngredients).values(
-    inserted.map((dish) => ({ dishId: dish.id, foodId: food!.id, quantityGrams: 200, sortOrder: 0 })),
+    inserted.map((dish) => ({ dishId: dish.id, catalogFoodId: food!.id, quantityGrams: 200, sortOrder: 0 })),
   );
 
   return inserted.map((dish) => dish.id);

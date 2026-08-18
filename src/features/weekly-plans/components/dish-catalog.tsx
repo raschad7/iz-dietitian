@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useDraggable } from '@dnd-kit/core';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
@@ -30,6 +30,7 @@ import {
   type CatalogContext,
   type CatalogOption,
 } from '../catalog-filter';
+import { localizedName } from '../food-display';
 import type { CatalogEntry } from '../queries';
 import { ALLERGENS, DISH_TAGS, mealTypeForSlot, type DishTag } from '../schema';
 
@@ -484,6 +485,7 @@ function CatalogRow({
   onPick?: () => void;
 }) {
   const t = useTranslations('weeklyPlans');
+  const locale = useLocale();
 
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `dish:${dish.id}`,
@@ -520,7 +522,7 @@ function CatalogRow({
       <span className="min-w-0">
         <span className="flex min-w-0 items-center gap-1.5">
           <span className="min-w-0 truncate font-heading text-body-sm font-semibold" dir="auto">
-            {dish.nameAr}
+            {localizedName(dish, locale)}
           </span>
 
           {/*
@@ -596,7 +598,7 @@ function CatalogRow({
         // dish the client is allergic to. `disabled` is the honest control state
         // and the row already says why.
         disabled={blocked}
-        title={blocked ? undefined : t('addToSlot', { name: dish.nameAr })}
+        title={blocked ? undefined : t('addToSlot', { name: localizedName(dish, locale) })}
         className={cn(shape, 'outline-none focus-visible:bg-accent/60')}
       >
         {body}

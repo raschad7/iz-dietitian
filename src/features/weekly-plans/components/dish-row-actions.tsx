@@ -22,7 +22,8 @@ import { initialCatalogFormState, type CatalogFormState } from '../catalog-form-
 /** Only what a row needs to decide which actions to offer. */
 export type RowActionsDish = {
   id: string;
-  nameAr: string;
+  /** Already in the reader's language — the menu never re-derives a name. */
+  name: string;
   /** Shared/built-in dish — read-only, so no Edit/Delete, only Hide/Unhide. */
   isSystem: boolean;
   /** A shared dish this clinic has hidden (only ever true in the "show hidden" view). */
@@ -128,7 +129,7 @@ export function DishRowActions({
         <ConfirmDialog
           locale={activeLocale}
           title={t('deleteConfirmTitle')}
-          description={t('deleteConfirmMessage', { name: dish.nameAr })}
+          description={t('deleteConfirmMessage', { name: dish.name })}
           confirmLabel={tCommon('delete')}
           cancelLabel={tCommon('cancel')}
           tone="destructive"

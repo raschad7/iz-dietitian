@@ -1,82 +1,70 @@
 /**
- * The presentation layer for a food's name.
+ * Which stored name to print, given the reader's locale.
  *
- * A `FoodSearchResult` carries two names: the Arabic `nameAr` a dietitian (or the
- * alias/translation path) gave it, and the raw USDA `description` — a
- * comma-stacked English string like "Cauliflower, cooked, boiled, drained,
- * without salt". Neither is what the UI should print by default: the description
- * is a database record, not a label, and in Arabic-first screens the English is
- * at best a footnote.
+ * Every name in the catalog is now data: a food carries `name_ar` and `name_en`,
+ * a dish carries both, a portion carries `label_ar` and `label_en`. So this module
+ * *chooses*; it no longer derives. What it replaced was `conciseFoodName`, which
+ * cut a USDA description ("Cauliflower, cooked, boiled, drained, without salt")
+ * down to something printable, and the Arabic heuristic behind it that guessed a
+ * name out of the English and labelled `Eggplant, raw` as بيض.
  *
- * This module derives the label the UI actually shows. It is **presentation only**
- * — it never touches the stored nutrition record or the description itself, so a
- * food matched by any source still costs and stores exactly as it did. See spec
- * §19 and §46: the food data needs a friendly display name, not a USDA sentence.
+ * Two rules hold everywhere:
+ *
+ *   - **An alias is never a label.** Synonyms exist so a dietitian can *find* a
+ *     food by whatever they call it; the food is still displayed under its
+ *     canonical name, so two dietitians looking at the same plan read the same
+ *     word.
+ *   - **Never render blank.** A clinic food migrated without an English name falls
+ *     back to the Arabic one and vice versa. A missing translation shows the name
+ *     that exists, not an empty cell.
  */
 
-/** The two name fields these helpers read — a subset of `FoodSearchResult`. */
-export type DisplayFood = {
-  nameAr: string | null;
-  description: string;
+/** A thing with a name in each language. Foods, dishes and portions all qualify. */
+export type BilingualNames = {
+  nameAr: string | null | undefined;
+  nameEn: string | null | undefined;
 };
 
-/**
- * A short, human label out of a raw USDA description.
- *
- * USDA descriptions pile qualifiers after commas — the food, then its main
- * preparation, then provenance nobody reads ("drained", "without salt",
- * "unprepared"). The first two comma-segments carry the food and how it is
- * prepared; everything after is dropped. "Cauliflower, cooked, boiled, drained,
- * without salt" becomes "Cauliflower, cooked"; a single-word "Rice" stays "Rice".
- *
- * Deliberately dumb and predictable: keeping exactly two segments can't
- * mistranslate a food the way a cleverer heuristic could, and this only ever runs
- * as a fallback for a food that has no Arabic name at all.
- */
-export function conciseFoodName(description: string): string {
-  const segments = description
-    .split(',')
-    .map((segment) => segment.trim())
-    .filter(Boolean);
-
-  if (segments.length === 0) return description.trim();
-  return segments.slice(0, 2).join(', ');
-}
-
 /** True for a locale whose UI reads Arabic-first. */
-function isArabic(locale: string): boolean {
+export function isArabicLocale(locale: string): boolean {
   return locale.startsWith('ar');
 }
 
 /**
- * The primary label for a food, given the reader's locale.
+ * The name to show, in the reader's language, falling back to the other one.
  *
- * Arabic-first: the Arabic name if there is one, else the concise English as a
- * last resort. English: the concise English, falling back to the Arabic name.
- * The priority in spec §19 — `nameAr → concise local/translated → English
- * fallback` — collapses to this here because a matched food only ever carries the
- * two fields; the alias/translation step upstream is what populates `nameAr`.
+ * The fallback is explicit rather than incidental: clinic foods created before
+ * the English name became optional carry only Arabic, and printing nothing for
+ * them would lose an ingredient off a recipe rather than merely showing it in the
+ * wrong language.
  */
-export function getFoodDisplayName(food: DisplayFood, locale: string): string {
-  const ar = food.nameAr?.trim();
-  const concise = conciseFoodName(food.description);
+export function localizedName(names: BilingualNames, locale: string): string {
+  const ar = names.nameAr?.trim() ?? '';
+  const en = names.nameEn?.trim() ?? '';
 
-  if (isArabic(locale)) return ar || concise;
-  return concise || ar || '';
+  return isArabicLocale(locale) ? ar || en : en || ar;
 }
 
 /**
- * The quieter secondary label shown under the primary, or null when it would
- * only repeat it.
+ * The quieter second line under the primary name, or null when it would only
+ * repeat it.
  *
- * In Arabic the secondary is the English, but only when a real Arabic name sits
- * above it — otherwise the English is already the primary and there is nothing to
- * add. In English it is the Arabic name, when that differs from what is shown.
+ * Null — not an empty string — so a caller renders no element at all rather than
+ * an empty one that still takes a line's height.
  */
-export function getFoodSecondaryName(food: DisplayFood, locale: string): string | null {
-  const ar = food.nameAr?.trim();
-  const concise = conciseFoodName(food.description);
+export function secondaryName(names: BilingualNames, locale: string): string | null {
+  const ar = names.nameAr?.trim() ?? '';
+  const en = names.nameEn?.trim() ?? '';
+  const primary = localizedName(names, locale);
+  const other = isArabicLocale(locale) ? en : ar;
 
-  if (isArabic(locale)) return ar && concise ? concise : null;
-  return ar && ar !== concise ? ar : null;
+  return other && other !== primary ? other : null;
+}
+
+/** A portion's label — `labelAr` / `labelEn` rather than `nameAr` / `nameEn`. */
+export function localizedPortionLabel(
+  portion: { labelAr: string | null; labelEn: string | null },
+  locale: string,
+): string {
+  return localizedName({ nameAr: portion.labelAr, nameEn: portion.labelEn }, locale);
 }

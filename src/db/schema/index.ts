@@ -16,7 +16,7 @@ export * from './appointments';
 export * from './appointment-requests';
 export * from './client-requests';
 export * from './client-settings';
-export * from './foods';
+export * from './catalog-foods';
 export * from './dishes';
 export * from './client-nutrition-profiles';
 export * from './client-check-ins';

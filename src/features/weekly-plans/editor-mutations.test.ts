@@ -1,12 +1,14 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
+import { randomUUID } from 'node:crypto';
 import { and, eq } from 'drizzle-orm';
 
 import { db } from '@/db';
+import { normalizeArabic } from '@/features/weekly-plans/arabic-normalize';
 import {
   clientPlanAdherence,
+  catalogFoods,
   dishIngredients,
   dishes,
-  foods,
   weeklyPlanMealOptions,
   weeklyPlanMeals,
   weeklyPlans,
@@ -168,17 +170,24 @@ describe('createPlanFromSkeleton', () => {
    */
   test('a copy follows the current schedule, not the copied plan\'s', async () => {
     const [food] = await db
-      .insert(foods)
-      .values({
-        fdcId: 999201,
-        description: 'Staple',
-        category: 'Test',
+      .insert(catalogFoods)
+    .values({
+      slug: `test-staple-${randomUUID()}`,
+      nameAr: 'طعام تجريبي',
+      nameEn: 'Staple',
+      normalizedNameAr: normalizeArabic('طعام تجريبي'),
+      normalizedNameEn: normalizeArabic('Staple'),
+      state: 'raw',
+      category: 'other',
+      sourceType: 'usda_sr_legacy',
+
         kcal: 300,
         protein: 12,
         fat: 5,
         carbs: 50,
-      })
-      .returning({ id: foods.id });
+
+    })
+    .returning({ id: catalogFoods.id });
 
     const [dish] = await db
       .insert(dishes)
@@ -195,7 +204,7 @@ describe('createPlanFromSkeleton', () => {
 
     await db
       .insert(dishIngredients)
-      .values({ dishId: dish!.id, foodId: food!.id, quantityGrams: 200, sortOrder: 0 });
+      .values({ dishId: dish!.id, catalogFoodId: food!.id, quantityGrams: 200, sortOrder: 0 });
 
     // July's plan: three meals a day, all filled on Sunday.
     const [source] = await db
@@ -276,17 +285,24 @@ describe('the edit writes', () => {
   /** A dish with a real recipe, so a placed meal has derivable nutrition. */
   async function seedDish(slug: string): Promise<string> {
     const [food] = await db
-      .insert(foods)
-      .values({
-        fdcId: 999300 + slug.length,
-        description: `Staple ${slug}`,
-        category: 'Test',
+      .insert(catalogFoods)
+    .values({
+      slug: `test-food-${randomUUID()}`,
+      nameAr: 'طعام تجريبي',
+      nameEn: 'Test food',
+      normalizedNameAr: normalizeArabic('طعام تجريبي'),
+      normalizedNameEn: normalizeArabic('Test food'),
+      state: 'raw',
+      category: 'other',
+      sourceType: 'usda_sr_legacy',
+
         kcal: 300,
         protein: 12,
         fat: 5,
         carbs: 50,
-      })
-      .returning({ id: foods.id });
+
+    })
+    .returning({ id: catalogFoods.id });
 
     const [row] = await db
       .insert(dishes)
@@ -303,7 +319,7 @@ describe('the edit writes', () => {
 
     await db
       .insert(dishIngredients)
-      .values({ dishId: row!.id, foodId: food!.id, quantityGrams: 100, sortOrder: 0 });
+      .values({ dishId: row!.id, catalogFoodId: food!.id, quantityGrams: 100, sortOrder: 0 });
 
     return row!.id;
   }
@@ -584,36 +600,45 @@ describe('the edit writes', () => {
     );
   });
 
-  test('every edit refuses an archived plan, acknowledged or not', async () => {
+  test('every edit refuses an archived plan', async () => {
     await db.update(weeklyPlans).set({ status: 'archived' }).where(eq(weeklyPlans.id, planId));
 
-    expect(await placeDish(clinicId, planId, sunday.lunch, dishId, 1, true)).toBe(false);
-    expect(await clearMeal(clinicId, planId, sunday.lunch, true)).toBe(false);
-    expect(await removeMeal(clinicId, planId, sunday.lunch, true)).toBe(false);
+    expect(await placeDish(clinicId, planId, sunday.lunch, dishId, 1)).toBe(false);
+    expect(await clearMeal(clinicId, planId, sunday.lunch)).toBe(false);
+    expect(await removeMeal(clinicId, planId, sunday.lunch)).toBe(false);
   });
 
-  test('a published plan is refused by default and allowed when acknowledged', async () => {
+  /**
+   * A published plan's nutrition is frozen, so its composition has to be frozen
+   * too — otherwise a swap would leave the previous dish's calories printed under
+   * the new dish's name. The in-place "edit published" mode this replaced is gone;
+   * the supported route is unpublish → edit → republish.
+   */
+  test('every edit refuses a published plan — it must be unpublished first', async () => {
     await db.update(weeklyPlans).set({ status: 'published' }).where(eq(weeklyPlans.id, planId));
 
     expect(await placeDish(clinicId, planId, sunday.lunch, dishId, 1)).toBe(false);
-    expect(await placeDish(clinicId, planId, sunday.lunch, dishId, 1, true)).toBe(true);
-
-    expect((await readMeal(sunday.lunch))?.dishId).toBe(dishId);
+    expect(await clearMeal(clinicId, planId, sunday.lunch)).toBe(false);
+    expect(await removeMeal(clinicId, planId, sunday.lunch)).toBe(false);
   });
 
-  test('editing a published plan leaves its status and publication time alone', async () => {
+  test('a published plan is left exactly as it was by a refused edit', async () => {
     const publishedAt = new Date('2026-08-01T09:00:00Z');
+    const before = await readMeal(sunday.lunch);
+
     await db
       .update(weeklyPlans)
       .set({ status: 'published', publishedAt })
       .where(eq(weeklyPlans.id, planId));
 
-    await placeDish(clinicId, planId, sunday.lunch, dishId, 1, true);
+    await placeDish(clinicId, planId, sunday.lunch, dishId, 1);
 
     const [plan] = await db.select().from(weeklyPlans).where(eq(weeklyPlans.id, planId));
 
     expect(plan?.status).toBe('published');
     expect(plan?.publishedAt?.toISOString()).toBe(publishedAt.toISOString());
+    // The meal itself is untouched, not merely the plan header.
+    expect((await readMeal(sunday.lunch))?.dishId).toBe(before?.dishId ?? null);
   });
 
   /**

@@ -17,10 +17,14 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "bun run scripts/seed.ts",
-    "db:seed:foods": "bun run scripts/seed-foods.ts",
     "db:seed:dishes": "bun run scripts/seed-dishes.ts",
+    "db:seed:catalog": "bun run scripts/seed-catalog-foods.ts",
+    "db:setup": "bun run scripts/setup-database.ts",
+    "db:check": "bun run scripts/check-catalog-readiness.ts",
+    "db:build-catalog": "bun run scripts/build-catalog-dataset.ts",
     "db:build-food-dataset": "bun run scripts/build-food-dataset.ts",
     "db:reset": "bun run scripts/db-reset.ts",
+    "db:backfill:plan-snapshots": "bun run scripts/backfill-plan-nutrition-snapshots.ts",
     "wa:reminders": "bun run scripts/whatsapp-reminders.ts"
   },
   "dependencies": {

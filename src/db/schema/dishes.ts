@@ -1,14 +1,14 @@
 import { boolean, index, integer, pgTable, real, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 
+import { catalogFoodPortions, catalogFoods } from './catalog-foods';
 import { clinics } from './clinics';
-import { foods } from './foods';
 
 /**
  * The approved dish catalog — the only thing weekly-plan generation may choose
  * from.
  *
  * Shared dishes have `clinic_id = null` and are visible to every clinic, the way
- * `foods` is: a curated dish is closer to reference data than to a tenant's
+ * `catalog_foods` is: a curated dish is closer to reference data than to a tenant's
  * record, and one seeded catalog beats every clinic seeding an identical copy. A
  * clinic may also add its own dishes, with `clinic_id` set to that clinic — those
  * are visible only to it. A clinic that does not want a shared dish hides it via
@@ -18,7 +18,7 @@ import { foods } from './foods';
  * application beyond that: nothing in the UI writes here.
  *
  * A dish carries no nutrition of its own. Its composition is `dish_ingredients`
- * pointing at `foods`, and every number the UI shows is derived from those at read
+ * pointing at `catalog_foods`, and every number the UI shows is derived from those at read
  * time by `src/features/weekly-plans/nutrition.ts`. This is the whole reason
  * the AI cannot invent a calorie count: the only things it emits are a dish slug
  * and a serving multiplier.
@@ -37,7 +37,7 @@ export const dishes = pgTable(
     /**
      * The stable natural key, e.g. `mujaddara-salad`.
      *
-     * Serves the same purpose as `foods.fdc_id`: a re-seed updates rows in place
+     * Serves the same purpose as `catalog_foods.slug`: a re-seed updates rows in place
      * rather than orphaning every plan row that references them. It is also what
      * the model returns — plan generation sends the catalog as slugs and gets
      * slugs back, so the id never leaves the server.
@@ -110,23 +110,43 @@ export const dishIngredients = pgTable(
       .references(() => dishes.id, { onDelete: 'cascade' }),
 
     /**
-     * `restrict`, not `cascade`: `foods` is reference data,
-     * and a re-seed that silently emptied a recipe would put wrong numbers in
-     * front of a client. Deleting a food that is in use fails loudly instead.
+     * The canonical food this line is made of — the one live nutrition reference.
+     *
+     * `restrict`, not `cascade`: a re-seed that silently emptied a recipe would put
+     * wrong numbers in front of a client. Deleting a food that is in use fails
+     * loudly instead.
+     *
+     * NOT NULL since Phase 2. The transitional `food_id` that pointed at the USDA
+     * `foods` table is gone, so there is exactly one food identity on this row and
+     * a line with no food cannot exist.
      */
-    foodId: uuid('food_id')
+    catalogFoodId: uuid('catalog_food_id')
       .notNull()
-      .references(() => foods.id, { onDelete: 'restrict' }),
+      .references(() => catalogFoods.id, { onDelete: 'restrict' }),
 
-    /** Grams for ONE base serving. Scaled by `weekly_plan_meals.servings` at read time. */
+    /**
+     * Grams for ONE base serving, and the **authoritative** quantity.
+     *
+     * Every nutrition figure in the product comes from this column through the
+     * per-100 g pipeline in `nutrition.ts`. The two columns below record how the
+     * dietitian typed it; neither is ever an input to a calculation.
+     */
     quantityGrams: real('quantity_grams').notNull(),
 
-    /** The Arabic food name shown to the client. Null on shared/seed rows until curated. */
-    displayNameAr: text('display_name_ar'),
+    /**
+     * The catalog portion the amount was entered in, when it was not grams.
+     *
+     * `set null`, not `restrict` or `cascade`: if a portion is later retired the
+     * recipe must keep the grams it was saved with and simply stop being able to
+     * say "2 حبة". Losing the unit is a display downgrade; losing or blocking the
+     * weight would be a clinical one.
+     */
+    portionId: uuid('portion_id').references(() => catalogFoodPortions.id, {
+      onDelete: 'set null',
+    }),
 
-    /** An optional household measure, e.g. "tablespoon", with the grams it weighs. */
-    householdLabel: text('household_label'),
-    householdGrams: real('household_grams'),
+    /** How many of `portion_id` were entered. Null exactly when `portion_id` is. */
+    portionQuantity: real('portion_quantity'),
 
     sortOrder: integer('sort_order').notNull().default(0),
 

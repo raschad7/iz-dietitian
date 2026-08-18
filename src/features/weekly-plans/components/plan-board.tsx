@@ -61,29 +61,22 @@ type BoardProps = {
  * published-plan toggle and the editor share one answer.
  */
 export function PlanBoard(props: BoardProps) {
-  // A published plan is read-only until the dietitian says otherwise. Editing what
-  // a client is already following should be a decision, not a slip.
-  const [allowPublished, setAllowPublished] = useState(false);
   const [catalogOpen, setCatalogOpen] = useState(false);
 
-  const editable =
-    props.board.status === 'draft' || (props.board.status === 'published' && allowPublished);
+  // Only a draft is editable. A published plan's nutrition is frozen at publish
+  // time, so editing one in place would leave a card showing the previous dish's
+  // calories under the new dish's name. Unpublish first — which clears the frozen
+  // numbers and makes it a live draft again — then republish. See `editablePlan`.
+  const editable = props.board.status === 'draft';
 
   return (
     <BoardEditor
       board={props.board}
       editable={editable}
-      allowPublished={allowPublished}
       locale={props.locale}
       onDishDragStart={() => setCatalogOpen(false)}
     >
-      <BoardBody
-        {...props}
-        allowPublished={allowPublished}
-        onAllowPublished={setAllowPublished}
-        catalogOpen={catalogOpen}
-        onCatalogOpenChange={setCatalogOpen}
-      />
+      <BoardBody {...props} catalogOpen={catalogOpen} onCatalogOpenChange={setCatalogOpen} />
     </BoardEditor>
   );
 }
@@ -97,13 +90,9 @@ function BoardBody({
   history,
   newWeek,
   children,
-  allowPublished,
-  onAllowPublished,
   catalogOpen,
   onCatalogOpenChange,
 }: BoardProps & {
-  allowPublished: boolean;
-  onAllowPublished: (value: boolean) => void;
   catalogOpen: boolean;
   onCatalogOpenChange: (value: boolean) => void;
 }) {
@@ -193,6 +182,7 @@ function BoardBody({
 
         ghosts[meal.slotKey] = {
           nameAr: before.nameAr,
+          nameEn: before.nameEn,
           isRepeat: meal.dish?.id === before.dishId,
         };
       }
@@ -289,26 +279,6 @@ function BoardBody({
                   </Button>
                 )}
 
-                {board.status === 'published' && (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    aria-pressed={allowPublished}
-                    className="w-full max-w-none justify-start"
-                    onClick={() => {
-                      if (allowPublished) {
-                        onAllowPublished(false);
-                        return;
-                      }
-
-                      if (window.confirm(t('editPublishedConfirm'))) onAllowPublished(true);
-                    }}
-                  >
-                    <Icon name="edit" />
-                    {t('editPublished')}
-                  </Button>
-                )}
               </div>
 
               {/* The key to the cards' coloured rules. Reference rather than an
@@ -353,9 +323,13 @@ function BoardBody({
         </div>
       </header>
 
-      {allowPublished && (
+      {/* A published plan is a record, not a working copy: its nutrition is frozen
+          and its composition is locked. Said here rather than left to a control
+          that would only fail — the route back to editing is Unpublish, which the
+          header already offers. */}
+      {board.status === 'published' && (
         <p className="rounded-md bg-status-attention-bg px-3 py-2 text-body-sm text-status-attention-fg">
-          {t('editPublishedWarning')}
+          {t('publishedReadOnly')}
         </p>
       )}
 

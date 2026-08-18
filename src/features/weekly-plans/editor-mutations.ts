@@ -130,22 +130,31 @@ export async function createPlanFromSkeleton(input: {
 // ---------------------------------------------------------------------------
 
 /**
- * The gate in front of every edit below.
+ * The gate in front of every edit below: **only a draft is editable.**
  *
- * `draft` always. `published` only when the caller states it meant to — the
- * dietitian turned on the edit-published mode, and a client is following this plan
- * right now. `archived` never: an archived plan is the record of what was, and
+ * `published` used to be editable in place, behind an `allowPublished`
+ * deliberate-action flag and a confirmation dialog. That is gone. Publishing now
+ * freezes each meal's nutrition (`publishPlan` → `snapshotPlanMeals`), and an
+ * in-place edit would leave a frozen total describing a dish the plan no longer
+ * holds — a published card showing the previous dish's calories under the new
+ * dish's name. Rather than overwrite a snapshot on every touch, a published plan is
+ * immutable and the supported route is explicit:
+ *
+ *     unpublish  →  snapshots cleared, plan is a live draft again
+ *                →  edit
+ *                →  republish, which freezes it afresh
+ *
+ * `archived` was never editable and still is not: it is the record of what was, and
  * rewriting it would move the ground the compare view stands on.
  *
  * Lives in the mutation layer rather than the action layer so the rule cannot be
- * skipped by a caller that forgets it. `allowPublished` is a deliberate-action
- * check, not an authorisation one — `requireStaffClinic` has already established
- * who is writing, and the clinic scope is re-checked here regardless.
+ * skipped by a caller that forgets it. This is not an authorisation check —
+ * `requireStaffClinic` has already established who is writing — but the clinic
+ * scope is re-checked here regardless.
  */
 async function editablePlan(
   clinicId: string,
   planId: string,
-  allowPublished: boolean,
 ): Promise<{ id: string; clientId: string; weekStartDate: string } | null> {
   const [plan] = await db
     .select({
@@ -159,10 +168,9 @@ async function editablePlan(
     .limit(1);
 
   if (!plan) return null;
-
-  const result = { id: plan.id, clientId: plan.clientId, weekStartDate: plan.weekStartDate };
-  if (plan.status === 'draft') return result;
-  if (plan.status === 'published' && allowPublished) return result;
+  if (plan.status === 'draft') {
+    return { id: plan.id, clientId: plan.clientId, weekStartDate: plan.weekStartDate };
+  }
 
   return null;
 }
@@ -202,9 +210,8 @@ export async function placeDish(
   mealId: string,
   dishId: string,
   servings: number,
-  allowPublished = false,
 ): Promise<boolean> {
-  const plan = await editablePlan(clinicId, planId, allowPublished);
+  const plan = await editablePlan(clinicId, planId);
   if (!plan) return false;
 
   return db.transaction(async (tx) => {
@@ -252,9 +259,8 @@ export async function setMealServings(
   planId: string,
   mealId: string,
   servings: number,
-  allowPublished = false,
 ): Promise<boolean> {
-  const plan = await editablePlan(clinicId, planId, allowPublished);
+  const plan = await editablePlan(clinicId, planId);
   if (!plan) return false;
 
   return db.transaction(async (tx) => {
@@ -283,9 +289,8 @@ export async function clearMeal(
   clinicId: string,
   planId: string,
   mealId: string,
-  allowPublished = false,
 ): Promise<boolean> {
-  const plan = await editablePlan(clinicId, planId, allowPublished);
+  const plan = await editablePlan(clinicId, planId);
   if (!plan) return false;
 
   return db.transaction(async (tx) => {
@@ -317,9 +322,8 @@ export async function removeMealFromWeek(
   clinicId: string,
   planId: string,
   slotKey: string,
-  allowPublished = false,
 ): Promise<number> {
-  const plan = await editablePlan(clinicId, planId, allowPublished);
+  const plan = await editablePlan(clinicId, planId);
   if (!plan) return 0;
 
   return db.transaction(async (tx) => {
@@ -345,9 +349,8 @@ export async function removeMeal(
   clinicId: string,
   planId: string,
   mealId: string,
-  allowPublished = false,
 ): Promise<boolean> {
-  const plan = await editablePlan(clinicId, planId, allowPublished);
+  const plan = await editablePlan(clinicId, planId);
   if (!plan) return false;
 
   return db.transaction(async (tx) => {
@@ -378,9 +381,8 @@ export async function addMeal(
   clinicId: string,
   planId: string,
   input: { dayOfWeek: number; slotKey: string; label: string; timeOfDay: string },
-  allowPublished = false,
 ): Promise<string | null> {
-  const plan = await editablePlan(clinicId, planId, allowPublished);
+  const plan = await editablePlan(clinicId, planId);
   if (!plan) return null;
 
   return db.transaction(async (tx) => {
@@ -436,9 +438,8 @@ export async function addMealToWeek(
   clinicId: string,
   planId: string,
   input: { slotKey: string; label: string; timeOfDay: string },
-  allowPublished = false,
 ): Promise<number> {
-  const plan = await editablePlan(clinicId, planId, allowPublished);
+  const plan = await editablePlan(clinicId, planId);
   if (!plan) return 0;
 
   return db.transaction(async (tx) => {
@@ -513,9 +514,8 @@ export async function moveMealDish(
   fromMealId: string,
   toMealId: string,
   mode: 'move' | 'copy',
-  allowPublished = false,
 ): Promise<boolean> {
-  const plan = await editablePlan(clinicId, planId, allowPublished);
+  const plan = await editablePlan(clinicId, planId);
   if (!plan) return false;
   if (fromMealId === toMealId) return false;
 

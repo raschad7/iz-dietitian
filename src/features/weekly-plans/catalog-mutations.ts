@@ -1,18 +1,20 @@
-import { and, eq, isNull, or, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, or } from 'drizzle-orm';
 
 import { db } from '@/db';
 import {
+  catalogFoodAliases,
+  catalogFoodPortions,
+  catalogFoods,
   clinicHiddenDishes,
   dishes,
   dishIngredients,
-  foodAliases,
-  foods,
   weeklyPlanMealOptions,
   weeklyPlanMeals,
 } from '@/db/schema';
 
 import { normalizeArabic } from './arabic-normalize';
 import type { ClinicDishInput, CustomFoodInput } from './catalog-schema';
+import { CUSTOM_UNIT_LABELS } from './portion-derivation';
 
 /**
  * Writes for a clinic's own catalog.
@@ -31,19 +33,148 @@ function makeSlug(clinicId: string, nameEn: string): string {
   return `${base}-${clinicId.slice(0, 8)}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
-function ingredientRows(dishId: string, input: ClinicDishInput) {
-  return input.ingredients.map((ingredient, index) => ({
+/** One recipe line after the server has decided what it actually means. */
+type ResolvedIngredient = {
+  foodId: string;
+  /** Derived here, never taken from the request when a portion was chosen. */
+  quantityGrams: number;
+  portionId: string | null;
+  portionQuantity: number | null;
+};
+
+function ingredientRows(dishId: string, ingredients: readonly ResolvedIngredient[]) {
+  return ingredients.map((ingredient, index) => ({
     dishId,
-    foodId: ingredient.foodId,
+    catalogFoodId: ingredient.foodId,
+    // The authoritative amount, and the only one nutrition reads.
     quantityGrams: ingredient.quantityGrams,
-    displayNameAr: ingredient.displayNameAr ?? null,
-    householdLabel: ingredient.householdLabel ?? null,
-    householdGrams: ingredient.householdGrams ?? null,
+    // How it was typed, preserved exactly as entered.
+    portionId: ingredient.portionId,
+    portionQuantity: ingredient.portionQuantity,
     sortOrder: index,
   }));
 }
 
+/**
+ * Resolves a submitted recipe into the rows that may actually be written, or null
+ * if any line is not usable by this clinic.
+ *
+ * Two jobs, and the second is the reason this is not just a validator.
+ *
+ * **1. Authorisation.** Returns null — never a throw, never a partial save — on:
+ *
+ *   - a food this clinic cannot see (another clinic's, or one that does not exist);
+ *   - an inactive food;
+ *   - a portion that belongs to a *different* food than the line it is on, which is
+ *     how "2 حبة" of egg could otherwise end up meaning "2 كوب" of rice;
+ *   - a portion of a food the clinic cannot see, which is the same cross-tenant
+ *     read as the first case arriving one level down.
+ *
+ * The portion id comes from a form. A dietitian's browser cannot offer another
+ * clinic's portion, but a request can name one, and "the UI would never send that"
+ * is not an authorisation rule.
+ *
+ * **2. Deriving the grams.** When a line names a portion, its weight is computed
+ * here as `portionQuantity × portion.grams` and the grams the client submitted are
+ * **discarded**. They are a convenience the browser calculates, and a request is
+ * free to submit "1 cup" with `quantityGrams: 50` when that cup weighs 200 g —
+ * which would show every reader "1 كوب" while feeding a quarter of a cup into the
+ * nutrition. The two figures cannot disagree if only one of them is ever trusted.
+ * A grams-only line has nothing to derive from and keeps the validated number it
+ * submitted, which is also the only figure it stated.
+ *
+ * The portion count itself is preserved exactly as typed, so the display keeps
+ * saying what the dietitian wrote rather than a value reconstructed by division.
+ */
+async function resolveIngredients(
+  clinicId: string,
+  input: ClinicDishInput,
+): Promise<ResolvedIngredient[] | null> {
+  const foodIds = [...new Set(input.ingredients.map((ingredient) => ingredient.foodId))];
+
+  const visible = await db
+    .select({ id: catalogFoods.id })
+    .from(catalogFoods)
+    .where(
+      and(
+        inArray(catalogFoods.id, foodIds),
+        eq(catalogFoods.isActive, true),
+        or(isNull(catalogFoods.clinicId), eq(catalogFoods.clinicId, clinicId)),
+      ),
+    );
+
+  if (visible.length !== foodIds.length) return null;
+
+  const portionIds = [
+    ...new Set(
+      input.ingredients
+        .map((ingredient) => ingredient.portionId)
+        .filter((id): id is string => typeof id === 'string'),
+    ),
+  ];
+
+  // Joined to the food and re-scoped there: a portion carries no `clinic_id` of
+  // its own precisely because its scope is the food's, so this is where that
+  // inheritance is enforced rather than assumed.
+  const portions = portionIds.length
+    ? await db
+        .select({
+          id: catalogFoodPortions.id,
+          foodId: catalogFoodPortions.foodId,
+          grams: catalogFoodPortions.grams,
+        })
+        .from(catalogFoodPortions)
+        .innerJoin(catalogFoods, eq(catalogFoods.id, catalogFoodPortions.foodId))
+        .where(
+          and(
+            inArray(catalogFoodPortions.id, portionIds),
+            eq(catalogFoods.isActive, true),
+            or(isNull(catalogFoods.clinicId), eq(catalogFoods.clinicId, clinicId)),
+          ),
+        )
+    : [];
+
+  const portionById = new Map(portions.map((row) => [row.id, row]));
+
+  const resolved: ResolvedIngredient[] = [];
+
+  for (const ingredient of input.ingredients) {
+    if (ingredient.portionId == null || ingredient.portionQuantity == null) {
+      resolved.push({
+        foodId: ingredient.foodId,
+        quantityGrams: ingredient.quantityGrams,
+        portionId: null,
+        portionQuantity: null,
+      });
+      continue;
+    }
+
+    const portion = portionById.get(ingredient.portionId);
+    // Unknown, retired, invisible, or belonging to another food — all of them are
+    // "this clinic may not measure this line that way", and all of them refuse.
+    if (!portion || portion.foodId !== ingredient.foodId) return null;
+    // The column is CHECK-constrained positive; a zero here would silently write a
+    // weightless ingredient, so it is refused rather than trusted.
+    if (!Number.isFinite(portion.grams) || portion.grams <= 0) return null;
+
+    const grams = ingredient.portionQuantity * portion.grams;
+    if (!Number.isFinite(grams) || grams <= 0) return null;
+
+    resolved.push({
+      foodId: ingredient.foodId,
+      quantityGrams: grams,
+      portionId: ingredient.portionId,
+      portionQuantity: ingredient.portionQuantity,
+    });
+  }
+
+  return resolved;
+}
+
 export async function createClinicDish(clinicId: string, input: ClinicDishInput): Promise<string | null> {
+  const ingredients = await resolveIngredients(clinicId, input);
+  if (!ingredients) return null;
+
   return db.transaction(async (tx) => {
     const [dish] = await tx
       .insert(dishes)
@@ -60,7 +191,7 @@ export async function createClinicDish(clinicId: string, input: ClinicDishInput)
       .returning({ id: dishes.id });
 
     if (!dish) return null;
-    await tx.insert(dishIngredients).values(ingredientRows(dish.id, input));
+    await tx.insert(dishIngredients).values(ingredientRows(dish.id, ingredients));
     return dish.id;
   });
 }
@@ -82,6 +213,9 @@ export async function updateClinicDish(
 ): Promise<boolean> {
   if (!(await ownsDish(clinicId, dishId))) return false;
 
+  const ingredients = await resolveIngredients(clinicId, input);
+  if (!ingredients) return false;
+
   await db.transaction(async (tx) => {
     await tx
       .update(dishes)
@@ -99,7 +233,7 @@ export async function updateClinicDish(
     // Replace the recipe wholesale — simpler and less error-prone than diffing,
     // and a dish has a handful of rows.
     await tx.delete(dishIngredients).where(eq(dishIngredients.dishId, dishId));
-    await tx.insert(dishIngredients).values(ingredientRows(dishId, input));
+    await tx.insert(dishIngredients).values(ingredientRows(dishId, ingredients));
   });
 
   return true;
@@ -156,124 +290,155 @@ export async function unhideSharedDish(clinicId: string, dishId: string): Promis
 }
 
 /**
- * Remembers that an Arabic name maps to a library food, for this clinic.
+ * Remembers that an Arabic name maps to a catalog food, for this clinic.
  *
- * Idempotent on (clinic, name): confirming the same match twice is a no-op, so
- * callers can record freely.
+ * Idempotent on (food, normalized name): confirming the same match twice is a
+ * no-op, so callers can record freely.
+ *
+ * Scope comes from the food, not from a column here — an alias on a clinic's own
+ * food is that clinic's, an alias on a shared food is everyone's. Which is why
+ * this refuses to write against a food the clinic cannot see, and why it will not
+ * add a synonym to a *shared* catalog row: one clinic's vocabulary must not become
+ * every clinic's.
  */
 export async function rememberFoodAlias(clinicId: string, foodId: string, nameAr: string): Promise<void> {
-  // A normalized-equal alias already on file is the same mapping under a
-  // different spelling; recording a second one would fragment the vocabulary
-  // this table exists to unify. The DB's own unique index still guards the exact
-  // duplicate — this guards the orthographic one it cannot see.
-  const normalized = normalizeArabic(nameAr);
-  const existing = await db
-    .select({ nameAr: foodAliases.nameAr })
-    .from(foodAliases)
-    .where(eq(foodAliases.clinicId, clinicId));
-  if (existing.some((row) => normalizeArabic(row.nameAr) === normalized)) return;
+  const [food] = await db
+    .select({ id: catalogFoods.id, clinicId: catalogFoods.clinicId })
+    .from(catalogFoods)
+    .where(eq(catalogFoods.id, foodId))
+    .limit(1);
+
+  if (!food || food.clinicId !== clinicId) return;
 
   await db
-    .insert(foodAliases)
-    .values({ clinicId, foodId, nameAr })
-    .onConflictDoNothing({ target: [foodAliases.clinicId, foodAliases.nameAr] });
+    .insert(catalogFoodAliases)
+    .values({
+      foodId,
+      name: nameAr.trim(),
+      normalizedName: normalizeArabic(nameAr),
+      locale: 'ar',
+    })
+    .onConflictDoNothing({
+      target: [catalogFoodAliases.foodId, catalogFoodAliases.normalizedName],
+    });
 }
 
 /**
- * Creates a clinic's own custom food.
+ * Creates a clinic's own custom catalog food.
  *
- * Numbers are the dietitian's (or an AI estimate she confirmed) — the one place
- * nutrition is entered by hand rather than read from the USDA library. Records
- * the Arabic name it was created under as an alias, so it resolves instantly next
- * time.
+ * Numbers are the dietitian's — the one place nutrition is entered by hand rather
+ * than copied from a named source, which is why the row is written
+ * `source_type: 'clinic_entered'` and `verification_status: 'provisional'`. It is
+ * private to the clinic and stays that way: nothing here can produce a shared row.
+ *
+ * Reuses an existing food rather than adding a duplicate, cheapest path first. The
+ * old third path — matching a USDA row by exact English description — is gone with
+ * the USDA cutover; the catalog is small and Arabic-first, so name matching over
+ * what the clinic can actually see is both sufficient and safer.
+ *
+ * ⚠ App-level check-then-insert, so there is a narrow race between the lookups and
+ * the insert under two simultaneous creates of the same name. Unchanged from
+ * before, and still not worth closing for one dietitian saving one form.
  */
 export async function createCustomFood(clinicId: string, input: CustomFoodInput): Promise<string | null> {
-  // Reuse an already-usable food rather than add a duplicate. The picker surfaces
-  // matches first; this is the backend guardrail behind it, and it must look past
-  // the clinic's own custom foods at the shared USDA library too — otherwise a
-  // dietitian who re-types a name for a food that already exists globally splits
-  // the catalog. Three reuse paths, cheapest first; a genuinely new food (no
-  // match on any) still falls through to the insert below.
-  //
-  // ⚠ App-level check-then-insert, so there is a narrow race between the lookups
-  // and the insert under two simultaneous creates of the same name. A DB-level
-  // normalized-unique constraint (a stored `normalized_name`/`normalized_alias`
-  // column with a unique index) would close it — deferred on purpose: it needs a
-  // migration and backfill, and a single dietitian saving a form is not a
-  // concurrent writer. See `arabic-normalize.ts`.
   const normalized = normalizeArabic(input.nameAr);
-  // English name is optional now; fall back to the Arabic name so the NOT NULL
-  // `description` column and the reuse-by-description guard below always have a value.
-  const description = input.description.trim() || input.nameAr;
+  // English name is optional; fall back to the Arabic name so `name_en` always
+  // has a value.
+  const nameEn = input.description.trim() || input.nameAr.trim();
 
-  // 1. An Arabic name this clinic already bridged to a food — including a shared
-  //    USDA row, which carries no Arabic name of its own and is reachable only
-  //    through its alias.
-  const aliasRows = await db
-    .select({ foodId: foodAliases.foodId, nameAr: foodAliases.nameAr })
-    .from(foodAliases)
-    .where(eq(foodAliases.clinicId, clinicId));
-  const aliasMatch = aliasRows.find((row) => normalizeArabic(row.nameAr) === normalized);
-  if (aliasMatch) return aliasMatch.foodId;
-
-  // 2. A clinic custom food under the same normalized name but no alias (belt and
-  //    suspenders — created customs are aliased, but this cannot depend on it).
-  const clinicFoods = await db
-    .select({ id: foods.id, nameAr: foods.nameAr })
-    .from(foods)
-    .where(eq(foods.clinicId, clinicId));
-  const nameMatch = clinicFoods.find((row) => row.nameAr && normalizeArabic(row.nameAr) === normalized);
-  if (nameMatch) return nameMatch.id;
-
-  // 3. A shared USDA row (or a clinic food) whose English description is exactly
-  //    what was typed. Exact, case-insensitive, whitespace-trimmed — never a
-  //    substring, so it reuses the real thing without ever matching the wrong
-  //    USDA row. Scoped to shared + this clinic, so it never reaches across
-  //    tenants.
-  const descKey = description.trim().toLowerCase();
-  const [descMatch] = await db
-    .select({ id: foods.id })
-    .from(foods)
+  // 1. A food this clinic can already see under the same normalized Arabic name —
+  //    its own, or a shared catalog entry. Re-typing "بندورة" must resolve to the
+  //    catalog's tomato, not split the catalog.
+  const visible = await db
+    .select({
+      id: catalogFoods.id,
+      normalizedNameAr: catalogFoods.normalizedNameAr,
+      normalizedNameEn: catalogFoods.normalizedNameEn,
+    })
+    .from(catalogFoods)
     .where(
       and(
-        or(eq(foods.clinicId, clinicId), isNull(foods.clinicId)),
-        eq(sql`lower(btrim(${foods.description}))`, descKey),
+        eq(catalogFoods.isActive, true),
+        or(isNull(catalogFoods.clinicId), eq(catalogFoods.clinicId, clinicId)),
+      ),
+    );
+
+  const nameMatch = visible.find(
+    (row) => row.normalizedNameAr === normalized || row.normalizedNameEn === normalized,
+  );
+  if (nameMatch) return nameMatch.id;
+
+  // 2. An alias, on any food this clinic can see, that already means this name.
+  const [aliasMatch] = await db
+    .select({ foodId: catalogFoodAliases.foodId })
+    .from(catalogFoodAliases)
+    .innerJoin(catalogFoods, eq(catalogFoods.id, catalogFoodAliases.foodId))
+    .where(
+      and(
+        eq(catalogFoodAliases.normalizedName, normalized),
+        eq(catalogFoods.isActive, true),
+        or(isNull(catalogFoods.clinicId), eq(catalogFoods.clinicId, clinicId)),
       ),
     )
     .limit(1);
-  if (descMatch) return descMatch.id;
+  if (aliasMatch) return aliasMatch.foodId;
 
   return db.transaction(async (tx) => {
-    // A chosen household unit is persisted the same way USDA foods store theirs:
-    // the unit key on `portionLabel`, the grams one weighs on `portionGrams`.
-    // `deriveUnitOptions` reads a bare (non-numeric) label as a custom unit. Grams
-    // (or no unit) leaves both null — a grams-only food. See spec §10.
-    const householdUnit = input.unit && input.unit !== 'g' ? input.unit : null;
-    const portionLabel = householdUnit;
-    const portionGrams = householdUnit ? (input.unitGrams ?? null) : null;
+    // A chosen household unit becomes one portion row, exactly as a shipped food's
+    // portions are rows — so a clinic food and a catalog food behave identically in
+    // the editor. Grams (or no unit) creates none: a grams-only food.
+    const unit = input.unit && input.unit !== 'g' ? input.unit : null;
 
     const [food] = await tx
-      .insert(foods)
+      .insert(catalogFoods)
       .values({
         clinicId,
-        fdcId: null,
-        description,
-        nameAr: input.nameAr,
-        category: 'Clinic custom',
+        // Unique per clinic, and stable: two clinics may both add "لبن عيران".
+        slug: `custom-${normalized.replace(/[^\p{L}\p{N}]+/gu, '-').slice(0, 40) || 'food'}-${Date.now().toString(36)}`,
+        nameAr: input.nameAr.trim(),
+        nameEn,
+        normalizedNameAr: normalized,
+        normalizedNameEn: normalizeArabic(nameEn),
+        // The dietitian entered numbers, not a preparation. Claiming a state would
+        // be asserting something about their food that nobody told us.
+        state: 'prepared',
+        category: 'other',
         kcal: input.kcal,
         protein: input.protein,
         carbs: input.carbs,
         fat: input.fat,
-        portionLabel,
-        portionGrams,
+        verificationStatus: 'provisional',
+        sourceType: 'clinic_entered',
+        sourceRef: null,
+        isActive: true,
       })
-      .returning({ id: foods.id });
+      .returning({ id: catalogFoods.id });
 
     if (!food) return null;
+
     await tx
-      .insert(foodAliases)
-      .values({ clinicId, foodId: food.id, nameAr: input.nameAr })
-      .onConflictDoNothing({ target: [foodAliases.clinicId, foodAliases.nameAr] });
+      .insert(catalogFoodAliases)
+      .values({
+        foodId: food.id,
+        name: input.nameAr.trim(),
+        normalizedName: normalized,
+        locale: 'ar',
+      })
+      .onConflictDoNothing();
+
+    if (unit && input.unitGrams) {
+      await tx.insert(catalogFoodPortions).values({
+        foodId: food.id,
+        ...CUSTOM_UNIT_LABELS[unit],
+        grams: input.unitGrams,
+        isDefault: true,
+        sortOrder: 0,
+        // No upstream reference: the weight is the dietitian's own, and claiming a
+        // source would be attributing their number to somebody else.
+        sourceRef: null,
+      });
+    }
+
     return food.id;
   });
 }

@@ -1,7 +1,10 @@
+import { randomUUID } from 'node:crypto';
+
 import { eq, sql } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { clients, clinics, clinicWorkingHours, practitioners, whatsappSettings, type WhatsappSettings } from '@/db/schema';
+import { catalogFoodAliases, catalogFoodPortions, catalogFoods, clients, clinics, clinicWorkingHours, practitioners, whatsappSettings, type WhatsappSettings } from '@/db/schema';
+import { normalizeArabic } from '@/features/weekly-plans/arabic-normalize';
 import { defaultClinicScheduleRows } from '@/features/clinic-profile/default-schedule';
 import { normalizeForSearch } from '@/features/clients/search';
 import { sessionNameForClinic } from '@/features/whatsapp/config';
@@ -178,4 +181,81 @@ export async function resetDatabase(): Promise<void> {
   );
 
   await db.execute(sql`TRUNCATE TABLE ${tables} RESTART IDENTITY CASCADE`);
+}
+
+/**
+ * A canonical catalog food.
+ *
+ * Every recipe points at `catalog_foods` since the Phase 1 cutover, so anything
+ * that builds a dish needs one of these rather than a `foods` row. Nutrition
+ * defaults to round numbers so a test can assert totals by hand; pass nulls for a
+ * nutrient to exercise the unmeasured path.
+ */
+export async function createTestCatalogFood(
+  overrides: Partial<typeof catalogFoods.$inferInsert> = {},
+): Promise<string> {
+  const nameAr = overrides.nameAr ?? 'طعام تجريبي';
+  const nameEn = overrides.nameEn ?? 'Test food';
+
+  const [row] = await db
+    .insert(catalogFoods)
+    .values({
+      slug: overrides.slug ?? `test-food-${randomUUID()}`,
+      nameAr,
+      nameEn,
+      normalizedNameAr: normalizeArabic(nameAr),
+      normalizedNameEn: normalizeArabic(nameEn),
+      state: 'raw',
+      category: 'other',
+      kcal: 300,
+      protein: 12,
+      fat: 5,
+      carbs: 50,
+      sourceType: 'usda_sr_legacy',
+      ...overrides,
+    })
+    .returning({ id: catalogFoods.id });
+
+  if (!row) throw new Error('insert into catalog_foods returned no row');
+
+  return row.id;
+}
+
+/**
+ * A household measure for a catalog food, and what one of it weighs.
+ *
+ * Scope is inherited from the food, so a portion created here is visible to
+ * exactly whoever the food is — which is what the cross-clinic tests rely on.
+ */
+export async function createTestCatalogPortion(
+  foodId: string,
+  portion: { labelAr: string; labelEn: string; grams: number; isDefault?: boolean; sortOrder?: number },
+): Promise<string> {
+  const [row] = await db
+    .insert(catalogFoodPortions)
+    .values({
+      foodId,
+      labelAr: portion.labelAr,
+      labelEn: portion.labelEn,
+      grams: portion.grams,
+      isDefault: portion.isDefault ?? false,
+      sortOrder: portion.sortOrder ?? 0,
+    })
+    .returning({ id: catalogFoodPortions.id });
+
+  if (!row) throw new Error('insert into catalog_food_portions returned no row');
+
+  return row.id;
+}
+
+/** An Arabic or English synonym for a catalog food. */
+export async function createTestCatalogAlias(
+  foodId: string,
+  name: string,
+  locale: 'ar' | 'en' = 'ar',
+): Promise<void> {
+  await db
+    .insert(catalogFoodAliases)
+    .values({ foodId, name, normalizedName: normalizeArabic(name), locale })
+    .onConflictDoNothing();
 }

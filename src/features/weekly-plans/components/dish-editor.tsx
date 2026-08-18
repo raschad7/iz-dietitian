@@ -19,14 +19,16 @@ import { cn } from '@/lib/utils';
 
 import { createDishAction, updateDishAction } from '../catalog-actions';
 import { initialCatalogFormState, type CatalogFormState } from '../catalog-form-state';
-import { getFoodDisplayName } from '../food-display';
+import { localizedName } from '../food-display';
 import {
-  deriveUnitOptions,
-  defaultUnitKey,
-  findUnit,
-  rowGrams,
-  resolveSavedRow,
+  defaultUnitValue,
+  findUnitOption,
+  GRAMS_OPTION,
   GRAMS_UNIT,
+  resolveSavedRow,
+  rowGrams,
+  unitLabel,
+  unitOptions,
   type UnitOption,
 } from '../ingredient-units';
 import {
@@ -79,10 +81,10 @@ type IngredientRowState = {
   key: string;
   /** Always a real food now — a row *is* a chosen ingredient (spec §15). */
   food: FoodSearchResult;
-  /** What the dietitian typed — a count of `unitKey`, not grams. */
+  /** What the dietitian typed — a count of `unitValue`, not grams. */
   quantity: string;
-  /** One of the units `deriveUnitOptions(food)` offers. */
-  unitKey: string;
+  /** `'g'`, or the id of one of this food's own portions. Never another food's. */
+  unitValue: string;
 };
 
 /** Formats a reloaded quantity for the input: whole numbers plain, else trimmed to 3 dp. */
@@ -100,12 +102,11 @@ function formatQuantity(value: number): string {
  */
 function rowFromIngredient(ingredient: DishEditData['ingredients'][number]): IngredientRowState {
   rowSeq += 1;
-  const { unitKey, quantity } = resolveSavedRow(ingredient.food, {
+  const { unitValue, quantity } = resolveSavedRow(ingredient.food, {
     quantityGrams: ingredient.quantityGrams,
-    householdLabel: ingredient.householdLabel,
-    householdGrams: ingredient.householdGrams,
+    portionId: ingredient.portionId,
   });
-  return { key: `row-${rowSeq}`, food: ingredient.food, quantity: formatQuantity(quantity), unitKey };
+  return { key: `row-${rowSeq}`, food: ingredient.food, quantity: formatQuantity(quantity), unitValue };
 }
 
 export function DishEditor({
@@ -176,7 +177,7 @@ export function DishEditor({
     mealTypes,
     tags,
     allergenTags,
-    rows: rows.map((row) => ({ f: row.food.id, q: row.quantity, u: row.unitKey })),
+    rows: rows.map((row) => ({ f: row.food.id, q: row.quantity, u: row.unitValue })),
   });
   // Captured once at mount via a lazy initial state (not a ref — reading a ref
   // during render is disallowed, and this value must be readable during render).
@@ -202,11 +203,12 @@ export function DishEditor({
   function addFood(food: FoodSearchResult) {
     rowSeq += 1;
     const key = `row-${rowSeq}`;
-    const unitKey = defaultUnitKey(deriveUnitOptions(food));
-    const grams = unitKey === 'g';
-    setRows((prev) => [...prev, { key, food, unitKey, quantity: grams ? '' : '1' }]);
+    const unitValue = defaultUnitValue(food);
+    const grams = unitValue === GRAMS_UNIT;
+    setRows((prev) => [...prev, { key, food, unitValue, quantity: grams ? '' : '1' }]);
     setFocusRowKey(grams ? key : null);
   }
+
 
   /*
    * Each row costed once: its unit menu, the grams it contributes (quantity × the
@@ -216,9 +218,20 @@ export function DishEditor({
   const preparedRows = useMemo(
     () =>
       rows.map((row) => {
-        const options = deriveUnitOptions(row.food);
-        const unit = findUnit(options, row.unitKey) ?? GRAMS_UNIT;
-        const grams = rowGrams(options, Number(row.quantity), row.unitKey);
+        const options = unitOptions(row.food);
+        /*
+         * A unit this food does not offer falls back to grams, here rather than
+         * anywhere downstream.
+         *
+         * Portion ids belong to exactly one food, so a selection that survived a
+         * food changing underneath it would either be rejected on save or, worse,
+         * measure this line with another food's cup. Resolving against *this*
+         * food's own options every render means a foreign portion can never reach
+         * `ingredientsJson`, and `rowGrams` returns 0 for it so the row stays out
+         * of the recipe until the dietitian picks a real unit.
+         */
+        const unit = findUnitOption(options, row.unitValue) ?? GRAMS_OPTION;
+        const grams = rowGrams(options, Number(row.quantity), unit.value);
         return { row, options, unit, grams };
       }),
     [rows],
@@ -247,12 +260,11 @@ export function DishEditor({
       JSON.stringify(
         completeRows.map((prepared) => ({
           foodId: prepared.row.food.id,
+          // Already multiplied out. This is the only number the server computes
+          // nutrition from; the portion below is a record of how it was typed.
           quantityGrams: prepared.grams,
-          // The unit and its grams travel too, so reopening the dish shows "2
-          // pieces" rather than "100 g" — without ever being a second source of
-          // nutrition truth.
-          householdLabel: prepared.unit.key,
-          householdGrams: prepared.unit.gramsPerUnit,
+          portionId: prepared.unit.portion?.id ?? null,
+          portionQuantity: prepared.unit.portion ? Number(prepared.row.quantity) : null,
         })),
       ),
     [completeRows],
@@ -749,10 +761,16 @@ function PillCheckboxGroup({
 }
 
 /**
- * One recipe line — compact and inline-editable (spec §16–17): the food's friendly
- * name, a quantity, a unit, the calories that weight carries, and a remove. Grams
- * is one unit in the list, not a field of its own; the household grams, the source,
- * and the USDA description all stay behind the UI (spec §16).
+ * One recipe line — compact and inline-editable (spec §16–17): the food's name in
+ * the reader's language, a quantity, a unit, the weight that comes to, the calories
+ * it carries, and a remove.
+ *
+ * The unit menu is grams plus **this food's own portions**, labelled from the
+ * stored `label_ar` / `label_en` rather than from a translation table — a clinic's
+ * own unit reads the same way a shipped one does. The calculated weight is printed
+ * beside the controls whenever the unit is not already grams: grams is the only
+ * figure nutrition ever sees, and a dietitian choosing "1 رغيف" over "150 غرام"
+ * should not have to trust a conversion they cannot see.
  */
 function IngredientRow({
   row,
@@ -779,6 +797,7 @@ function IngredientRow({
   const t = useTranslations('dishEditor');
   const quantityRef = useRef<HTMLInputElement>(null);
   const rowKcal = grams > 0 ? Math.round((grams / 100) * row.food.kcal) : null;
+  const gramsLabel = t('editor.units.g');
 
   useEffect(() => {
     if (autoFocusQuantity) quantityRef.current?.focus();
@@ -801,7 +820,7 @@ function IngredientRow({
         {/* Friendly name only — no raw English secondary when an Arabic name
             exists (Phase 2 §4). */}
         <p className="min-w-0 flex-1 truncate font-medium" dir="auto">
-          {getFoodDisplayName(row.food, locale)}
+          {localizedName(row.food, locale)}
         </p>
         <span className="shrink-0 text-body-sm font-medium text-muted-foreground tabular-nums" dir="ltr">
           {rowKcal !== null ? t('editor.rowKcal', { kcal: rowKcal }) : ''}
@@ -825,25 +844,19 @@ function IngredientRow({
         <SelectField
           size="sm"
           aria-label={t('editor.unitAria')}
-          value={row.unitKey}
-          onValueChange={(next) => onChange({ unitKey: next })}
+          value={unit.value}
+          onValueChange={(next) => onChange({ unitValue: next })}
           options={options.map((option) => ({
-            value: option.key,
-            label: t(`editor.units.${option.key}`),
+            value: option.value,
+            label: unitLabel(option, locale, gramsLabel),
           }))}
-          className="w-28 shrink-0"
+          className="w-32 shrink-0"
         />
 
-        {/*
-          What "2 pieces" actually weighs.
-
-          Grams is the only figure nutrition ever sees, and a household unit
-          hides it — so a dietitian choosing between "1 loaf" and "150 g" was
-          being asked to trust a conversion they could not see. Shown only when
-          the unit is not already grams, where it would just repeat the input.
-        */}
-        {unit.key !== GRAMS_UNIT.key && grams > 0 && (
-          <span className="min-w-0 truncate text-caption text-muted-foreground tabular-nums" dir="ltr">
+        {/* What "2 حبة" actually weighs. Hidden when the unit is already grams,
+            where it would only repeat the input. */}
+        {unit.value !== GRAMS_UNIT && grams > 0 && (
+          <span className="min-w-0 truncate text-caption text-muted-foreground tabular-nums" dir="auto">
             {t('editor.rowGrams', { grams: Math.round(grams) })}
           </span>
         )}
