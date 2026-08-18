@@ -101,6 +101,8 @@ function NotificationInboxPopover<T extends string>({
   onOpenChange,
   align = 'end',
   className,
+  triggerClassName,
+  badgeClassName,
   children,
 }: {
   title: string;
@@ -133,6 +135,28 @@ function NotificationInboxPopover<T extends string>({
   onOpenChange?: (open: boolean) => void;
   align?: 'start' | 'center' | 'end';
   className?: string;
+  /**
+   * Appended to the trigger's own classes, for a caller whose bell already has
+   * a place in a header of its own.
+   *
+   * The default is a `neutral` icon button, which is right for a bar with no
+   * other chrome around it. The client portal's header is the case it is wrong
+   * for: its bell is a bare 44px disc that turns white over the home screen's
+   * green wash, and a bordered box there would be the only outlined control on
+   * the screen. Merged last, so a call site can replace the size, the radius,
+   * the border and the tone without any of it being restated here.
+   */
+  triggerClassName?: string;
+  /**
+   * Appended to the count disc on the trigger, same bargain as
+   * {@link triggerClassName}.
+   *
+   * The default is clay, because in the practitioner app olive is furniture and
+   * clay is the only alarm in the scale. A caller drawing this over its own
+   * coloured surface may need a different fill and a ring to separate the disc
+   * from the glyph beneath it — the portal does both.
+   */
+  badgeClassName?: string;
   /** The rows — `<li>` elements. */
   children?: React.ReactNode;
 }) {
@@ -156,7 +180,11 @@ function NotificationInboxPopover<T extends string>({
       */}
       <PopoverTrigger
         aria-label={triggerLabel ?? title}
-        className={cn(buttonVariants({ variant: 'neutral', size: 'icon-sm' }), 'relative')}
+        className={cn(
+          buttonVariants({ variant: 'neutral', size: 'icon-sm' }),
+          'relative',
+          triggerClassName,
+        )}
       >
         <Icon name={triggerIcon} className="size-5" />
 
@@ -176,6 +204,7 @@ function NotificationInboxPopover<T extends string>({
             className={cn(
               'absolute -top-0.5 -end-0.5 flex min-w-4 items-center justify-center rounded-full px-1',
               'bg-destructive text-[0.625rem] leading-4 font-semibold text-destructive-foreground tabular-nums',
+              badgeClassName,
             )}
           >
             {triggerCount > 9 ? '9+' : triggerCount}
@@ -185,7 +214,24 @@ function NotificationInboxPopover<T extends string>({
 
       <PopoverContent
         align={align}
-        className={cn(MEASURES, 'w-(--notif-width) gap-0 overflow-hidden p-0', className)}
+        /*
+          `overflow-x-hidden overflow-y-auto`, not `overflow-hidden`, and the
+          difference is load-bearing.
+
+          Both axes still clip in the sense that matters here — the full-bleed
+          rows keep the panel's rounded corners — but the block axis can now
+          scroll. `PopoverContent` clamps every popup to `--available-height`,
+          and tailwind-merge treats `overflow` as one group with `overflow-x` and
+          `overflow-y`: a bare `overflow-hidden` here would replace the base's
+          scrolling while leaving the height cap in place, which is a panel
+          capped to the viewport with no way to reach its last rows or the
+          footer link. Spelling both axes keeps the cap and the scroll together.
+
+          The "bounded five-row preview" this panel is built around is untouched:
+          it only exceeds `--available-height` on a screen too short to hold five
+          rows, which is the case that needs the scroll.
+        */
+        className={cn(MEASURES, 'w-(--notif-width) gap-0 overflow-x-hidden overflow-y-auto p-0', className)}
       >
         {/*
           Header. The reference pairs the filter strip with a "mark all as read";
@@ -270,10 +316,18 @@ function NotificationInboxPopover<T extends string>({
             `divide-y` rather than a `border-b` on every row: the rule lands once
             between each pair and never doubles up, so the last row cannot draw a
             line directly on top of the footer's own `border-t`.
+
+            No scroll and no height cap: the caller passes a bounded preview —
+            five rows, in the one place this is used — and the way to the rest
+            is the footer's own link. It carried `max-h-80 overflow-y-auto`,
+            which turned that preview into a short scrolling strip: a reader had
+            to wheel through five rows to learn there was a sixth, and the link
+            that actually opens the rest sat below the fold of a 20rem box.
+
+            ⚠ A caller that passes an unbounded list will grow this panel to the
+            length of it. Slice before you pass.
           */
-          <ul className="flex max-h-80 flex-col divide-y divide-border overflow-y-auto overscroll-contain">
-            {children}
-          </ul>
+          <ul className="flex flex-col divide-y divide-border">{children}</ul>
         )}
 
         {footer ? <div className="border-t border-border p-(--notif-pad)">{footer}</div> : null}

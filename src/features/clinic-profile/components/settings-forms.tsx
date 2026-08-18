@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 
+import { LocaleSwitcher } from '@/components/layout/locale-switcher';
 import { Callout } from '@/components/ui/callout';
 import { Field, FieldError } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
@@ -44,6 +45,7 @@ export function PersonalProfileSettings({ locale, profile, email }: {
 }) {
   const t = useTranslations('settingsWorkspace');
   const tc = useTranslations('clinicProfile');
+  const tl = useTranslations('localeSwitcher');
   const { professional } = profile;
 
   return (
@@ -64,10 +66,33 @@ export function PersonalProfileSettings({ locale, profile, email }: {
       </SettingsSection>
 
       <SettingsSection title={t('profile.formTitle')} description={t('profile.formDescription')} icon="notes">
+        {/*
+          A professional phone and a licence number sat under these two and are
+          gone from every screen by decision — see the ⚠ on
+          `professionalProfileSchema`. The columns still hold whatever was saved
+          before; nothing reads them and nothing writes them.
+        */}
         <ProfileRow locale={locale} field="professionalTitle" label={tc('professionalTitle')} value={professional.professionalTitle} />
         <ProfileRow locale={locale} field="specialty" label={tc('specialty')} value={professional.specialty} />
-        <ProfileRow locale={locale} field="phone" label={tc('professionalPhone')} value={professional.phone} isolate type="tel" />
-        <ProfileRow locale={locale} field="licenseNumber" label={tc('licenseNumber')} value={professional.licenseNumber ?? ''} optional />
+      </SettingsSection>
+
+      {/*
+        The interface language moved here out of the rail's account menu: it is
+        a preference of the signed-in person, so it belongs beside the rest of
+        them rather than among the rail's destinations. The `dropdown` variant
+        is the one that states the endonym, which is what a settings row's
+        action slot has room for.
+      */}
+      <SettingsSection
+        title={t('profile.languageTitle')}
+        description={t('profile.languageDescription')}
+        icon="language"
+      >
+        <SettingsRow
+          label={tl('label')}
+          value={<span lang={locale}>{tl(`${locale}Name`)}</span>}
+          action={<LocaleSwitcher variant="dropdown" side="top" />}
+        />
       </SettingsSection>
     </div>
   );
@@ -291,7 +316,7 @@ function ClinicRow(props: {
 
 function ProfileRow(props: {
   locale: Locale;
-  field: 'name' | 'professionalTitle' | 'specialty' | 'phone' | 'licenseNumber';
+  field: 'name' | 'professionalTitle' | 'specialty';
   label: string;
   value: string;
   isolate?: boolean;

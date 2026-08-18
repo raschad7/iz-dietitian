@@ -27,7 +27,7 @@ export default async function LandingPage({ params }: LandingPageProps) {
         semantics. `buttonVariants` gives the same appearance on a real anchor.
       */}
       <div className="flex flex-wrap gap-3">
-        <Link href="/login" className={buttonVariants()}>
+        <Link href="/login" className={buttonVariants({ variant: 'default' })}>
           {t('staffCta')}
         </Link>
         <Link href="/client-login" className={buttonVariants({ variant: 'outline' })}>

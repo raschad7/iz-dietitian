@@ -177,7 +177,7 @@ describe('the appointment series', () => {
     // The line opens with the mark, before the number, or the digit decides the
     // direction for it.
     expect(first!.startsWith('‏1.')).toBe(true);
-    expect(first).toContain('⁨ 12 August 2026⁩'.trimStart());
+    expect(first).toContain('⁨12 August 2026⁩');
     expect(first).toContain('⁨10:00 AM⁩');
 
     // The duration is Arabic in production, so it is deliberately left bare —

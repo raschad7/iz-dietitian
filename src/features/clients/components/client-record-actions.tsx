@@ -22,7 +22,7 @@ import { cn } from '@/lib/utils';
  *
  * It replaced a link to the plan board there. That was a good button on the
  * wrong panel: this column is who somebody is, and the board is a week's work —
- * it is one click away from the Billing &amp; Plans view, which is where a plan
+ * it is one click away from the Plans view, which is where a plan
  * is the subject rather than a shortcut.
  *
  * **Edit fills the row and the menu is a square beside it.** The glyph wears the
@@ -54,8 +54,10 @@ export async function ClientRecordActions({
   return (
     <div className={cn('flex items-center gap-2', className)}>
       {/*
-        The solid primary. It is the only thing in this column you can press, so
-        there is nothing here for an olive label to compete with.
+        The solid primary — the same button the clients list's "New client" is,
+        so the one action on the record reads as the one action on the list. It
+        is the only thing in this column you can press, so there is nothing here
+        for an olive label to compete with.
       */}
       <ClientFormTrigger
         locale={locale}

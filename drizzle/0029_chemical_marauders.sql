@@ -17,6 +17,7 @@ CREATE TABLE "clinic_hidden_dishes" (
 --> statement-breakpoint
 ALTER TABLE "foods" ALTER COLUMN "fdc_id" DROP NOT NULL;--> statement-breakpoint
 ALTER TABLE "foods" ADD COLUMN "clinic_id" uuid;--> statement-breakpoint
+ALTER TABLE "foods" ADD COLUMN "name_ar" text;--> statement-breakpoint
 ALTER TABLE "dish_ingredients" ADD COLUMN "display_name_ar" text;--> statement-breakpoint
 ALTER TABLE "dish_ingredients" ADD COLUMN "household_label" text;--> statement-breakpoint
 ALTER TABLE "dish_ingredients" ADD COLUMN "household_grams" real;--> statement-breakpoint

@@ -3,6 +3,7 @@ import { and, eq } from 'drizzle-orm';
 
 import { db } from '@/db';
 import {
+  clientPlanAdherence,
   dishIngredients,
   dishes,
   foods,
@@ -51,6 +52,22 @@ beforeEach(async () => {
 
 function skeleton() {
   return planSkeleton({ schedule, dailyKcal: 1000 });
+}
+
+async function adherenceRow(
+  forClientId: string,
+  date: string,
+): Promise<{ level: string; completedMeals: number; totalMeals: number } | null> {
+  const [row] = await db
+    .select({
+      level: clientPlanAdherence.level,
+      completedMeals: clientPlanAdherence.completedMeals,
+      totalMeals: clientPlanAdherence.totalMeals,
+    })
+    .from(clientPlanAdherence)
+    .where(and(eq(clientPlanAdherence.clientId, forClientId), eq(clientPlanAdherence.date, date)));
+
+  return row ?? null;
 }
 
 describe('createPlanFromSkeleton', () => {
@@ -597,5 +614,69 @@ describe('the edit writes', () => {
 
     expect(plan?.status).toBe('published');
     expect(plan?.publishedAt?.toISOString()).toBe(publishedAt.toISOString());
+  });
+
+  /**
+   * Reproduces the bug seen live: a plan built by hand through this file's
+   * writes had real `weekly_plan_meals` rows but no `client_plan_adherence`
+   * row to match, so the dietitian dashboard's Progress tab read a week that
+   * plainly had meals in it as a week with nothing recorded at all. Every
+   * write here that adds or removes a meal must keep the day's adherence row
+   * in step with the count it is actually built from.
+   */
+  describe('adherence sync', () => {
+    test('createPlanFromSkeleton seeds every day, unfilled and unticked', async () => {
+      // `planId` from the outer `beforeEach` already exercises this — two
+      // slots a day, nothing completed yet.
+      expect(await adherenceRow(clientId, '2026-08-02')).toEqual({
+        level: 'missed',
+        completedMeals: 0,
+        totalMeals: 2,
+      });
+    });
+
+    test('addMeal grows that day\'s total_meals', async () => {
+      await addMeal(clinicId, planId, {
+        dayOfWeek: 0,
+        slotKey: 'extra_1',
+        label: 'سناك',
+        timeOfDay: '17:00',
+      });
+
+      expect((await adherenceRow(clientId, '2026-08-02'))?.totalMeals).toBe(3);
+      // Monday is untouched.
+      expect((await adherenceRow(clientId, '2026-08-03'))?.totalMeals).toBe(2);
+    });
+
+    test('removeMeal shrinks that day\'s total_meals', async () => {
+      await removeMeal(clinicId, planId, sunday.lunch);
+
+      expect((await adherenceRow(clientId, '2026-08-02'))?.totalMeals).toBe(1);
+    });
+
+    test('removeMeal to zero meals clears the day\'s row rather than leaving a stale one', async () => {
+      await removeMeal(clinicId, planId, sunday.lunch);
+      await removeMeal(clinicId, planId, sunday.breakfast);
+
+      expect(await adherenceRow(clientId, '2026-08-02')).toBeNull();
+    });
+
+    test('addMealToWeek grows every day\'s total_meals', async () => {
+      await addMealToWeek(clinicId, planId, {
+        slotKey: 'extra_1',
+        label: 'سناك مسائي',
+        timeOfDay: '19:00',
+      });
+
+      expect((await adherenceRow(clientId, '2026-08-02'))?.totalMeals).toBe(3);
+      expect((await adherenceRow(clientId, '2026-08-08'))?.totalMeals).toBe(3);
+    });
+
+    test('removeMealFromWeek shrinks every day\'s total_meals', async () => {
+      await removeMealFromWeek(clinicId, planId, 'lunch');
+
+      expect((await adherenceRow(clientId, '2026-08-02'))?.totalMeals).toBe(1);
+      expect((await adherenceRow(clientId, '2026-08-08'))?.totalMeals).toBe(1);
+    });
   });
 });

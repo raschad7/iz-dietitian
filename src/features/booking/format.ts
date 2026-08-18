@@ -59,6 +59,49 @@ export function formatMinute(locale: Locale, date: IsoDate, minute: number): str
   return formatter(locale, { timeStyle: 'short' }).format(toUtcInstant(date, minute));
 }
 
+/**
+ * `09AM` / `09 ص` — an hour on its own, for a label that is only ever on the hour.
+ *
+ * This is the calendar's hour gutter and nothing else. Every other time in the
+ * app can carry minutes, and this form cannot say 9:15 — it is not a shorter
+ * {@link formatMinute}, it is a different thing that happens to overlap with it
+ * at the top of each hour.
+ *
+ * Three differences from `timeStyle: 'short'`, and each one is paying for
+ * something in a column 60-odd pixels wide:
+ *
+ * - **No `:00`.** A gutter of eleven labels all ending in the same two zeros
+ *   spends a third of its width saying nothing. What a reader needs from it is
+ *   the number and whether it is morning.
+ * - **Padded to two digits.** `09` and `10` are the same width, so the column
+ *   of hours has one edge rather than a ragged one — the same reason every time
+ *   in this app is set in `tabular-nums`.
+ * - **No space before the meridiem in English.** `09AM` is one token at a
+ *   glance where `09 AM` is two. Arabic keeps its space: `09ص` runs Latin
+ *   digits straight into an Arabic letter with no break for the bidi algorithm
+ *   or for the eye, and the space is what keeps the pair readable as one label.
+ *
+ * Assembled from `formatToParts` rather than by trimming a formatted string.
+ * The parts are the hour and the day period; the *literal* between them — the
+ * one piece whose width differs between the server's ICU and the browser's, see
+ * {@link withStableSpaces} — is discarded rather than rendered, so this form is
+ * immune to that mismatch by construction rather than by repair.
+ *
+ * `hour12` is stated rather than inherited: the whole label is an hour and a
+ * meridiem, and a locale that resolved to 24-hour time would drop the half of
+ * it that says which `09` this is.
+ */
+export function formatHour(locale: Locale, date: IsoDate, minute: number): string {
+  const parts = formatter(locale, { hour: 'numeric', hour12: true }).formatToParts(
+    toUtcInstant(date, minute),
+  );
+
+  const hour = parts.find((part) => part.type === 'hour')?.value ?? '';
+  const period = parts.find((part) => part.type === 'dayPeriod')?.value ?? '';
+
+  return `${hour.padStart(2, '0')}${locale === 'ar' ? ' ' : ''}${period}`;
+}
+
 /** `9:15 AM – 10:00 AM`, using the locale's own range separator. */
 export function formatMinuteRange(locale: Locale, date: IsoDate, startMinute: number, endMinute: number): string {
   return withStableSpaces(
@@ -70,14 +113,27 @@ export function formatMinuteRange(locale: Locale, date: IsoDate, startMinute: nu
 }
 
 /**
- * `9:15 AM – 10:00 AM`, always in English AM/PM regardless of locale.
+ * `9:15 AM` and `9:15 AM – 10:00 AM`, always in English AM/PM regardless of
+ * locale.
  *
  * The dashboard agenda card is read at a glance rather than translated for a
  * client, so "ص"/"م" bought nothing there but an unfamiliar mark next to a
  * time everyone already reads in Western digits. Locale-facing surfaces
- * (calendar, portal, WhatsApp) keep using `formatMinuteRange` — the day
- * period there is not decoration, it is content someone reads.
+ * (calendar, portal, WhatsApp) keep using `formatMinute`/`formatMinuteRange` —
+ * the day period there is not decoration, it is content someone reads.
+ *
+ * The single-value form exists for the phone, where the agenda's time column is
+ * a third of the width it has on a desktop and a range does not fit in it. Both
+ * are rendered and one is hidden in CSS, so the pair has to agree on their
+ * day period — which is why the short one is here rather than borrowed from
+ * `formatMinute`, whose meridiem is translated.
  */
+export function formatMinuteLatin(date: IsoDate, minute: number): string {
+  return new Intl.DateTimeFormat('en-US', { timeStyle: 'short', ...WALL_CLOCK_DEFAULTS }).format(
+    toUtcInstant(date, minute),
+  );
+}
+
 export function formatMinuteRangeLatin(date: IsoDate, startMinute: number, endMinute: number): string {
   return new Intl.DateTimeFormat('en-US', { timeStyle: 'short', ...WALL_CLOCK_DEFAULTS }).formatRange(
     toUtcInstant(date, startMinute),

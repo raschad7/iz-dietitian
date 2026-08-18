@@ -89,8 +89,25 @@ function SelectTrigger({
         both, and the whole route 500s with "Can only set one of `children` or
         `props.dangerouslySetInnerHTML`". The same applies to every registry
         component adapted to this icon set.
+
+        **The chevron turns over while the list is open.** Base UI puts
+        `data-popup-open` on this span for exactly this, and a caret that still
+        points down under an open list is the one piece of the control that has
+        not noticed it was pressed. It is a rotation and nothing else — no
+        travel, no scale — so the trigger's geometry is untouched, which is the
+        rule for every interactive surface in this system.
+
+        `--duration-label` (180ms) and `ease-sweep`, the pair the field box
+        already uses for its own colour shift, so the caret and the border it
+        sits inside settle together rather than one chasing the other.
       */}
-      <SelectPrimitive.Icon className="flex shrink-0">
+      <SelectPrimitive.Icon
+        className={cn(
+          "flex shrink-0 transition-transform duration-(--duration-label) ease-sweep",
+          "data-popup-open:rotate-180",
+          "motion-reduce:transition-none"
+        )}
+      >
         <Icon name="chevronDown" className="size-4 text-muted-foreground" />
       </SelectPrimitive.Icon>
     </SelectPrimitive.Trigger>

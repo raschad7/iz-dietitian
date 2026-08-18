@@ -535,6 +535,42 @@ export async function listPlanAdherence(
 }
 
 /**
+ * {@link listPlanAdherence}, scoped by `clinicId` as well as `clientId`.
+ *
+ * The portal's own read only takes `clientId` because a client's session
+ * already proves they may read their own rows and nothing else's. A staff
+ * caller — the dietitian dashboard's progress tab — has no such guarantee
+ * from the session alone, so this asserts the clinic boundary in the query
+ * itself rather than trusting the caller to have checked it, the same rule
+ * `docs/architecture.md` states for every staff read.
+ */
+export async function listPlanAdherenceForClinic(
+  clinicId: string,
+  clientId: string,
+  fromDate: string,
+  toDate: string,
+): Promise<AdherenceRow[]> {
+  const rows = await db
+    .select({
+      date: clientPlanAdherence.date,
+      level: clientPlanAdherence.level,
+      completedMeals: clientPlanAdherence.completedMeals,
+      totalMeals: clientPlanAdherence.totalMeals,
+    })
+    .from(clientPlanAdherence)
+    .where(
+      and(
+        eq(clientPlanAdherence.clinicId, clinicId),
+        eq(clientPlanAdherence.clientId, clientId),
+        between(clientPlanAdherence.date, fromDate, toDate),
+      ),
+    )
+    .orderBy(asc(clientPlanAdherence.date));
+
+  return rows.map((row) => ({ ...row, level: row.level as AdherenceRow['level'] }));
+}
+
+/**
  * Which of the given meals this client has ticked complete.
  *
  * Scoped to the meal ids the caller already knows belong to this client's own

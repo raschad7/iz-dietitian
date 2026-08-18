@@ -27,6 +27,9 @@ export function NotificationRow({
 
   return (
     <li
+      /* What `ScrollWindow` counts when the feed is bounded to its first N —
+         see the dialog in `NotificationsBell`. Inert everywhere else. */
+      data-window-row
       className={cn(
         'group/notification flex min-w-0 items-stretch transition-colors',
         unread ? 'bg-secondary/35' : 'bg-card',

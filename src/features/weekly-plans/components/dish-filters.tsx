@@ -166,16 +166,19 @@ export function DishFilters({
       and the row it sits in is `h-10` whether it holds nothing or eight chips.
     */
     <div className="flex h-10 shrink-0 items-center gap-2">
-      <Input
-        name="q"
-        type="search"
-        icon="search"
-        value={term}
-        onChange={(event) => handleSearch(event.target.value)}
-        placeholder={t('searchPlaceholder')}
-        aria-label={t('searchPlaceholder')}
-        className="w-full max-w-sm min-w-24 shrink"
-      />
+      {/* `Input` renders a wrapper when it has an icon, so flex sizing belongs
+          on this visible flex item rather than on the nested input element. */}
+      <div className="w-full max-w-sm min-w-24 shrink">
+        <Input
+          name="q"
+          type="search"
+          icon="search"
+          value={term}
+          onChange={(event) => handleSearch(event.target.value)}
+          placeholder={t('searchPlaceholder')}
+          aria-label={t('searchPlaceholder')}
+        />
+      </div>
 
       {/*
         The active filters, inline. `min-w-0` plus `overflow-x-auto` is what

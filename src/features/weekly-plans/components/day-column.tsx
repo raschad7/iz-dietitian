@@ -258,7 +258,12 @@ function SkippedSlot({
     >
       <Icon
         name="add"
-        className="size-4 opacity-0 transition-opacity group-hover/skip:opacity-100 group-focus-visible/skip:opacity-100 max-md:opacity-60"
+        // `pointer-coarse:` for the same reason as `RemoveSlot` below: the
+        // resting visibility has to answer "can this pointer hover", not "how
+        // wide is the window". On a tablet the width test said yes and the
+        // hover never came, so the one mark saying this empty cell can be
+        // filled back in was invisible.
+        className="size-4 opacity-0 transition-opacity group-hover/skip:opacity-100 group-focus-visible/skip:opacity-100 pointer-coarse:opacity-60"
       />
     </button>
   );
@@ -432,7 +437,23 @@ function RemoveSlot({ row }: { row: BoardRow }) {
       }}
       aria-label={t('removeSlot', { slot: row.label })}
       title={t('removeSlot', { slot: row.label })}
-      className="absolute end-0.5 top-0.5 rounded-full p-1 text-muted-foreground opacity-0 transition-[opacity,color,background-color] hover:bg-destructive-subtle hover:text-destructive focus-visible:opacity-100 group-hover/slot:opacity-100 max-md:opacity-60"
+      /*
+        `pointer-coarse:` rather than `max-md:` for the resting visibility, and a
+        hit area that a finger can find.
+
+        The reveal was gated on viewport width, which answered the wrong
+        question. Below `md` the button sat at 60% and was reachable; from 768px
+        up it went back to `opacity-0` and hover-only — so on a tablet, where
+        there is no hover at all, removing a meal slot was invisible and
+        unreachable at every width the board is actually used at. Width does not
+        tell you whether a pointer can hover; `pointer-coarse` does, and it
+        covers the phone case the old class was aiming at as well.
+
+        `before:` widens the hit area to ~40px on touch without moving the 22px
+        mark, which has to stay small: it sits in the corner of a slot label and
+        a larger visible control would crowd the label it belongs to.
+      */
+      className="absolute end-0.5 top-0.5 rounded-full p-1 text-muted-foreground opacity-0 transition-[opacity,color,background-color] hover:bg-destructive-subtle hover:text-destructive focus-visible:opacity-100 group-hover/slot:opacity-100 pointer-coarse:opacity-60 pointer-coarse:before:absolute pointer-coarse:before:-inset-2 pointer-coarse:before:content-['']"
     >
       <Icon name="trash" className="size-3.5" />
     </button>

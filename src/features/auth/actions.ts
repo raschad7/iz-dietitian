@@ -12,7 +12,6 @@ import { requireClientSession, requireStaffSession } from '@/lib/session';
 
 import { purgeUnverifiedAccounts } from './cleanup';
 import { type AuthFormState } from './form-state';
-import { isCommonPassword } from './password-policy';
 import {
   checkRateLimit,
   clearAttempts,
@@ -21,6 +20,7 @@ import {
   type AttemptKind,
 } from './rate-limit';
 import { resolveSafeRedirect } from './redirect';
+import { firstSignUpMessage, readSignUpForm, signUpFieldErrors } from './signup-validation';
 import {
   changePasswordSchema,
   credentialsSchema,
@@ -127,30 +127,31 @@ export async function signUpStaff(
   _previousState: AuthFormState,
   formData: FormData,
 ): Promise<AuthFormState> {
-  const raw = {
-    name: formData.get('name'),
-    email: formData.get('email'),
-    password: formData.get('password'),
-    confirmPassword: formData.get('confirmPassword'),
-    locale: formData.get('locale'),
-  };
-
+  const raw = readSignUpForm(formData);
   const parsed = signUpSchema.safeParse(raw);
 
   if (!parsed.success) {
     // Map the first failing field to a specific message — a sign-up form that
-    // says only "something went wrong" is the most annoying kind.
-    const fieldErrors = z.flattenError(parsed.error).fieldErrors;
+    // says only "something went wrong" is the most annoying kind. The order and
+    // the wording live in `signup-validation.ts`, which the form itself uses to
+    // catch the same mistakes before the request; keeping one copy is what
+    // stops the two from disagreeing about what is wrong.
+    const messageKey = firstSignUpMessage(signUpFieldErrors(raw));
 
-    if (fieldErrors.confirmPassword) return { status: 'error', messageKey: 'passwordMismatch' };
-    if (fieldErrors.password) return { status: 'error', messageKey: 'passwordTooShort' };
-    if (fieldErrors.email) return { status: 'error', messageKey: 'invalidEmail' };
-    if (fieldErrors.name) return { status: 'error', messageKey: 'nameRequired' };
-
-    return { status: 'error', messageKey: 'genericError' };
+    return messageKey
+      ? { status: 'error', messageKey }
+      : { status: 'error', messageKey: 'genericError' };
   }
 
-  const { name, email, password, locale } = parsed.data;
+  const { firstName, lastName, email, password, locale } = parsed.data;
+
+  /*
+   * The form asks for the two halves separately — they are what a person is
+   * asked for on paper, and each has its own length limit — but Better Auth and
+   * every screen that greets a practitioner want one `name`. Joining here keeps
+   * the split a property of the form rather than of the account.
+   */
+  const name = `${firstName} ${lastName}`;
 
   const limited = await guard('sign_up', null);
   if (limited) return limited;
@@ -281,6 +282,22 @@ export async function signInToPortal(
  * `mustChangePassword` is what unlocks the rest of the portal — see the guard
  * in `src/app/[locale]/portal/(secured)/layout.tsx`.
  */
+/**
+ * Which of the client password rules a value tripped.
+ *
+ * `clientPasswordSchema` puts the message key on the issue itself — too short,
+ * too common, or long enough but a single character class — so the three keep
+ * their own advice instead of collapsing into "too short", which is what a
+ * client typing `aaaaaa` used to be told.
+ */
+function passwordIssueKey(
+  issues: readonly string[] | undefined,
+): 'passwordTooShort' | 'passwordTooCommon' | 'passwordTooWeak' {
+  const issue = issues?.[0];
+  if (issue === 'passwordTooCommon' || issue === 'passwordTooWeak') return issue;
+  return 'passwordTooShort';
+}
+
 export async function setPortalPassword(
   _previousState: AuthFormState,
   formData: FormData,
@@ -294,16 +311,12 @@ export async function setPortalPassword(
   if (!parsed.success) {
     const fieldErrors = z.flattenError(parsed.error).fieldErrors;
     if (fieldErrors.confirmPassword) return { status: 'error', messageKey: 'passwordMismatch' };
-    return { status: 'error', messageKey: 'passwordTooShort' };
+    // Whichever rule the value tripped: too short, or long enough but a single
+    // character class — `clientPasswordSchema` carries the key on the issue.
+    return { status: 'error', messageKey: passwordIssueKey(fieldErrors.password) };
   }
 
   const { password, locale } = parsed.data;
-
-  // At six characters this check is load-bearing, not decoration — see
-  // `src/features/auth/password-policy.ts`.
-  if (isCommonPassword(password)) {
-    return { status: 'error', messageKey: 'passwordTooCommon' };
-  }
 
   const session = await requireClientSession(locale);
 
@@ -351,7 +364,9 @@ export async function changePortalPassword(
   if (!parsed.success) {
     const fieldErrors = z.flattenError(parsed.error).fieldErrors;
     if (fieldErrors.confirmNewPassword) return { status: 'error', messageKey: 'passwordMismatch' };
-    if (fieldErrors.newPassword) return { status: 'error', messageKey: 'passwordTooShort' };
+    if (fieldErrors.newPassword) {
+      return { status: 'error', messageKey: passwordIssueKey(fieldErrors.newPassword) };
+    }
     return { status: 'error', messageKey: 'genericError' };
   }
 
@@ -359,12 +374,6 @@ export async function changePortalPassword(
 
   if (newPassword === currentPassword) {
     return { status: 'error', messageKey: 'passwordSameAsCurrent' };
-  }
-
-  // At six characters this check is load-bearing, not decoration — see
-  // `src/features/auth/password-policy.ts`.
-  if (isCommonPassword(newPassword)) {
-    return { status: 'error', messageKey: 'passwordTooCommon' };
   }
 
   const session = await requireClientSession(locale);

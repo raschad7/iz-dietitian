@@ -50,9 +50,17 @@ import { cn } from '@/lib/utils';
  *
  * **Cards with a heading and no contents.** `Facts` returned null when every
  * child was absent, but the `Card` around it still rendered — so a sparse record
- * drew three headed, empty boxes. A section with nothing in it does not render
- * at all now, and every gap collects into one dashed card at the end whose chips
- * open the dialog.
+ * drew three headed, empty boxes. This has been both ways since: sections
+ * stopped rendering when empty, then went back to always drawing so the
+ * record's shape would not change from client to client.
+ *
+ * **A section with nothing in it draws no card.** That is the arrangement now,
+ * and the objection to it — that a reader cannot tell "none recorded" from "not
+ * on this screen" — is answered somewhere better than a headed empty box: the
+ * dashed gap card at the foot names every missing section as a chip and opens
+ * the dialog on it. One place listing what the record lacks beats seven boxes
+ * each saying it about themselves, and a filled record is now only the cards
+ * that have something on them. See the flags above the return.
  *
  * **A record that contradicted itself in silence.** A manual calorie target far
  * from what the measurements imply is the most consequential thing this screen
@@ -169,9 +177,10 @@ export function ClientNutrition({
   /*
    * The assessment questionnaire, in the two halves the dialog writes it in.
    *
-   * Two flags rather than one: the sheet is filled in across visits, and a
-   * client who has answered the background questions but not the habits ones
-   * should get one card, not one card and one headed empty box.
+   * Two flags rather than one: the sheet is filled in across visits, so a
+   * client can have answered the background questions and none of the habits
+   * ones, and each card decides for itself whether it has a record to show —
+   * or, having none, stays off the screen entirely.
    */
   const backgroundFacts = [
     {
@@ -220,6 +229,32 @@ export function ClientNutrition({
 
   const hasBackgroundRecord = [...backgroundFacts, ...backgroundNotes].some((item) => item.value);
   const hasHabitsRecord = [...habitFacts, ...habitNotes].some((item) => item.value);
+  const hasScheduleRecord = intake.mealSchedule.length > 0;
+
+  /*
+    ⚠ **A section with nothing in it draws no card**, and these are what decide
+    it — one flag per section, plus the stacks and grids that would otherwise be
+    left holding nothing.
+
+    This reverses what the module note above records. The argument for drawing
+    every card, filled or not, was that a record whose *shape* changes from
+    client to client makes a reader hunt: on a sparse record you could not tell
+    "nothing recorded" from "not on this screen". That reasoning stands, and it
+    is answered by the dashed gap card at the foot rather than by seven headed
+    boxes — every missing section is named there as a chip (see
+    `GROUPED_GAP_SECTIONS`), so the record still says what it does not hold and
+    still offers one click to fill it. What it no longer does is spend a third
+    of the screen per empty section saying so.
+
+    **The stack and grid flags are not optional tidiness.** An empty flex child
+    still occupies its grid column, so a two-thirds stack with both cards hidden
+    would leave the narrow column stranded beside dead space — the same trap the
+    note on the grid below already warns about.
+  */
+  const hasWideStack = hasScheduleRecord || hasPlanningRecord;
+  const hasNarrowStack = hasAllergyRecord || hasPrivateRecord;
+  const hasRecordGrid = hasWideStack || hasNarrowStack;
+  const hasAssessmentGrid = hasBackgroundRecord || hasHabitsRecord;
 
   return (
     <div className="flex flex-col gap-4">
@@ -426,14 +461,34 @@ export function ClientNutrition({
         still occupies its grid column, which would leave the other stack at
         two-thirds width with dead space beside it.
       */}
-      <div className="grid items-start gap-4 lg:grid-cols-3">
-        {intake.mealSchedule.length > 0 ||
-        hasPlanningRecord ||
-        hasBackgroundRecord ||
-        hasHabitsRecord ? (
-          <div className="flex flex-col gap-4 lg:col-span-2">
-            {intake.mealSchedule.length > 0 ? (
-              <Card>
+      {/*
+        A section draws its card only when it holds something.
+
+        The counter-argument is on the record: the same seven cards in the same
+        order on every client is what lets a reader learn where the allergies
+        are once. What that cost was a third of a screen per empty section, on
+        the screen that is already the densest in the app — and on a new client,
+        seven headed boxes saying nothing before a single fact is on it.
+
+        What makes it safe to drop them is that nothing is silently absent: the
+        gap card at the foot lists every missing section by name and opens the
+        dialog on it, so "not recorded" is stated once, in one place, with the
+        way to fix it attached. The cards on screen are the record; the card at
+        the foot is what is missing from it.
+      */}
+      {hasRecordGrid ? (
+      /*
+        **The three-column split only exists when there are two stacks to
+        split.** With one of them hidden the survivor still sat in its own
+        track — the wide one across two thirds, the narrow one across one — and
+        the rest of the row was dead space beside a single card. A two-column
+        layout with one column is a one-column layout, so it is drawn as one.
+      */
+      <div className={cn('grid items-start gap-4', hasWideStack && hasNarrowStack && 'lg:grid-cols-3')}>
+          {hasWideStack ? (
+          <div className={cn('flex flex-col gap-4', hasNarrowStack && 'lg:col-span-2')}>
+            {hasScheduleRecord ? (
+            <Card>
                 <CardHeader className="flex-row flex-wrap items-center justify-between gap-x-4 gap-y-1">
                   <CardTitle as="h2" icon="clock" size="sm">
                     {t('intake.sections.schedule')}
@@ -458,7 +513,7 @@ export function ClientNutrition({
             ) : null}
 
             {hasPlanningRecord ? (
-              <Card>
+            <Card>
                 <CardHeader>
                   <CardTitle as="h2" icon="weeklyPlans" size="sm">
                     {t('intake.sections.planning')}
@@ -466,64 +521,29 @@ export function ClientNutrition({
                 </CardHeader>
                 <CardContent>
                   <Notes
-                    items={[
-                      {
-                        label: t('fields.permanentInstructions'),
-                        value: intake.permanentInstructions,
-                      },
-                      {
-                        label: t('fields.preferences'),
-                        value: intake.preferences,
-                      },
-                      { label: t('fields.dislikes'), value: intake.dislikes },
-                    ]}
-                  />
+                      items={[
+                        {
+                          label: t('fields.permanentInstructions'),
+                          value: intake.permanentInstructions,
+                        },
+                        {
+                          label: t('fields.preferences'),
+                          value: intake.preferences,
+                        },
+                        { label: t('fields.dislikes'), value: intake.dislikes },
+                      ]}
+                    />
                 </CardContent>
               </Card>
             ) : null}
 
-            {/*
-              The assessment sheet, read back in the order it was asked.
-
-              Short closed answers first as a labelled lattice, prose under
-              them: a marital status and a blood type are two words each, and
-              running them as `Notes` entries gave every one of them a line of
-              its own down a card that was mostly whitespace.
-            */}
-            {hasBackgroundRecord ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle as="h2" icon="personOutline" size="sm">
-                    {t('intake.sections.background')}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-4">
-                  <FactList items={backgroundFacts} />
-                  <Notes items={backgroundNotes} />
-                </CardContent>
-              </Card>
-            ) : null}
-
-            {hasHabitsRecord ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle as="h2" icon="activityOutline" size="sm">
-                    {t('intake.sections.habits')}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-4">
-                  <Notes items={habitNotes} />
-                  <FactList items={habitFacts} />
-                </CardContent>
-              </Card>
-            ) : null}
           </div>
-        ) : null}
+          ) : null}
 
-        {hasAllergyRecord || hasPrivateRecord ? (
+          {hasNarrowStack ? (
           <div className="flex flex-col gap-4">
             {hasAllergyRecord ? (
-              <Card>
+            <Card>
                 <CardHeader>
                   <CardTitle as="h2" icon="medical" size="sm">
                     {t('intake.sections.allergies')}
@@ -540,46 +560,46 @@ export function ClientNutrition({
                 read-only card it was a legend nobody had.
               */}
                   <Notes
-                    items={[
-                      {
-                        label: t('intake.allergyLine'),
-                        value:
-                          allergenTags.length > 0 ||
-                          intake.customAllergens.length > 0
-                            ? format.list([
-                                ...allergenTags.map((tag) =>
-                                  t(`allergens.${tag}`),
-                                ),
-                                ...intake.customAllergens,
-                              ])
-                            : null,
-                        medical: true,
-                      },
-                      {
-                        label: t('intake.allergyDetailLabel'),
-                        value: intake.allergies,
-                      },
-                      {
-                        label: t('fields.conditions'),
-                        value: intake.conditions,
-                      },
-                      {
-                        label: t('fields.medications'),
-                        value: intake.medications,
-                      },
-                      {
-                        label: t('fields.drugAllergies'),
-                        value: intake.drugAllergies,
-                        medical: true,
-                      },
-                    ]}
-                  />
+                      items={[
+                        {
+                          label: t('intake.allergyLine'),
+                          value:
+                            allergenTags.length > 0 ||
+                            intake.customAllergens.length > 0
+                              ? format.list([
+                                  ...allergenTags.map((tag) =>
+                                    t(`allergens.${tag}`),
+                                  ),
+                                  ...intake.customAllergens,
+                                ])
+                              : null,
+                          medical: true,
+                        },
+                        {
+                          label: t('intake.allergyDetailLabel'),
+                          value: intake.allergies,
+                        },
+                        {
+                          label: t('fields.conditions'),
+                          value: intake.conditions,
+                        },
+                        {
+                          label: t('fields.medications'),
+                          value: intake.medications,
+                        },
+                        {
+                          label: t('fields.drugAllergies'),
+                          value: intake.drugAllergies,
+                          medical: true,
+                        },
+                      ]}
+                    />
                 </CardContent>
               </Card>
             ) : null}
 
             {hasPrivateRecord ? (
-              <Card>
+            <Card>
                 <CardHeader>
                   {/*
                 'خاص بالعيادة' was a pill beside the title. It is a property of
@@ -597,19 +617,72 @@ export function ClientNutrition({
                     screen after the dialog stopped drawing it.
                   */}
                   <Notes
-                    items={[
-                      {
-                        label: t('intake.notesDivider'),
-                        value: mergedNotes(intake.medicalNotes, intake.notes),
-                      },
-                    ]}
-                  />
+                      items={[
+                        {
+                          label: t('intake.notesDivider'),
+                          value: mergedNotes(intake.medicalNotes, intake.notes),
+                        },
+                      ]}
+                    />
                 </CardContent>
               </Card>
             ) : null}
           </div>
+          ) : null}
+      </div>
+      ) : null}
+
+      {/*
+        The assessment sheet, read back in the order it was asked.
+
+        Short closed answers first as a labelled lattice, prose under
+        them: a marital status and a blood type are two words each, and
+        running them as `Notes` entries gave every one of them a line of
+        its own down a card that was mostly whitespace.
+
+        **The two halves sit side by side, across the full width.** They are the
+        one pair on this screen that is genuinely read together — who this person
+        is, and how they live — and each is a short lattice of two-word answers,
+        so stacked they were two wide cards of mostly empty row. They are out of
+        the three-column grid above rather than inside its wide column: at half
+        of two-thirds, a "نمط الحياة والعادات" lattice wraps to one answer per
+        line, which is the shape this pairing exists to avoid.
+
+        `items-start` so the shorter of the two keeps its own height instead of
+        stretching to match, and one column below `sm`, where side by side would
+        be two narrow strips.
+      */}
+      {hasAssessmentGrid ? (
+      <div className="grid items-start gap-4 sm:grid-cols-2">
+        {hasBackgroundRecord ? (
+        <Card>
+          <CardHeader>
+            <CardTitle as="h2" icon="personOutline" size="sm">
+              {t('intake.sections.background')}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <FactList items={backgroundFacts} />
+            <Notes items={backgroundNotes} />
+          </CardContent>
+        </Card>
+        ) : null}
+
+        {hasHabitsRecord ? (
+        <Card>
+          <CardHeader>
+            <CardTitle as="h2" icon="activityOutline" size="sm">
+              {t('intake.sections.habits')}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <Notes items={habitNotes} />
+            <FactList items={habitFacts} />
+          </CardContent>
+        </Card>
         ) : null}
       </div>
+      ) : null}
 
       {/*
         Every gap, once, at the end — instead of a headed empty card per section.
@@ -931,18 +1004,25 @@ function MealSchedule({
  */
 
 /**
- * The six food-frequency answers, in the order the assessment asks them.
+ * The ten food-frequency answers, in the order the assessment asks them.
  *
- * Declared here rather than imported from the dialog: this is a server
- * component and `intake-form.tsx` is `'use client'`, so importing its constant
- * would pull the whole form into this module's graph to read six strings.
+ * ⚠ **Kept in step with `FREQUENCY_FIELDS` in `intake-form.tsx` by hand.** The
+ * two lists are the same ten keys in the same order, and they are two lists
+ * because this is a server component while the form is `'use client'` —
+ * importing its constant would pull the whole form into this module's graph to
+ * read ten strings. A field added to one and not the other is written by the
+ * dialog and never displayed here.
  */
 const FREQUENCY_DISPLAY_FIELDS = [
   'caffeineFrequency',
+  'sweetDrinksFrequency',
   'fastFoodFrequency',
-  'produceFrequency',
+  'vegetablesFrequency',
+  'fruitFrequency',
   'dairyFrequency',
-  'proteinFoodFrequency',
+  'redMeatFrequency',
+  'chickenFrequency',
+  'fishFrequency',
   'sweetsFrequency',
 ] as const satisfies readonly (keyof ClientIntakeValues)[];
 
@@ -1004,3 +1084,4 @@ function Notes({
     </dl>
   );
 }
+

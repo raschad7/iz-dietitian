@@ -14,10 +14,10 @@ type SetPasswordLayoutProps = {
  * The one screen a client can reach before they have replaced their temporary
  * password — and the header that gives them a way out of it.
  *
- * `showNav` is false, so the bell renders as plain text instead of a link to a
- * page that would bounce straight back here, and the header's trailing slot
- * is sign-out instead of the settings link it is everywhere else — settings
- * would redirect back to this screen too. Without this header the only way
+ * `showNav` is false, so the bell is not rendered at all — its feed is a set
+ * of links to screens that would bounce straight back here — and the header's
+ * trailing slot is sign-out instead of the settings link it is everywhere else,
+ * settings being one more of those screens. Without this header the only way
  * off this screen would be closing the tab.
  *
  * It is a layout of its own rather than part of `portal/layout.tsx` because
@@ -33,9 +33,9 @@ export default async function SetPasswordLayout({ children, params }: SetPasswor
   return (
     <>
       {/*
-        No `notificationIds`. `showNav` is false here, so the bell is an inert
-        glyph rather than a link — loading a feed to badge a control nobody can
-        press would be four queries spent on nothing.
+        No `notifications`. `showNav` is false here, so there is no bell at
+        all — loading a feed to badge a control that is not on the page would be
+        four queries spent on nothing.
       */}
       <PortalHeader
         name={context.profile.fullName}

@@ -115,13 +115,18 @@ export async function saveProfessionalProfile(
           .orderBy(asc(practitioners.createdAt), asc(practitioners.id))
           .limit(1);
 
+    /*
+      `phone` and `license_number` are not listed, so an existing row keeps
+      whatever it already held. They were removed from every screen rather than
+      from the table — see the ⚠ on `professionalProfileSchema` — and a bulk
+      `.set()` naming them would quietly erase the old values on the next
+      unrelated save.
+    */
     const columns = {
       userId,
       name: input.name,
       professionalTitle: input.professionalTitle,
       specialty: input.specialty,
-      phone: input.phone,
-      licenseNumber: input.licenseNumber,
       updatedAt: new Date(),
     };
 
@@ -177,8 +182,6 @@ export async function completeOnboarding(clinicId: string, userId: string): Prom
       name: professional.name,
       professionalTitle: professional.professionalTitle,
       specialty: professional.specialty,
-      phone: professional.phone,
-      licenseNumber: professional.licenseNumber,
     }).success;
 
     if (!clinicValid || !scheduleValid || !professionalValid) return false;

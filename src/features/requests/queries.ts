@@ -1,4 +1,4 @@
-import { aliasedTable, and, asc, desc, eq, inArray } from 'drizzle-orm';
+import { aliasedTable, and, desc, eq, inArray } from 'drizzle-orm';
 
 import { db } from '@/db';
 import { clientSeq } from '@/features/clients/seq';
@@ -120,11 +120,18 @@ function toStaffAppointmentRequest(row: AppointmentRequestRow): StaffAppointment
 }
 
 /**
- * The inbox itself: everything still waiting on the dietitian, oldest first.
+ * The inbox itself: everything still waiting on the dietitian, newest first.
  *
- * Oldest first rather than newest, unlike the bell's preview — the person who
- * has been waiting longest is the one to answer next. Backed by
- * `appointment_requests_clinic_id_status_idx`, which is `(clinic, status, created_at)`.
+ * It was oldest first, on the queue argument — the person waiting longest is
+ * the one to answer next. In use that is not how the screen is read: what a
+ * dietitian opens the inbox to see is what has come in since they last looked,
+ * and burying it under a week of older items made the newest request the one
+ * furthest from the top. Newest first, like the bell's preview and the answered
+ * history below it, so all three lists on the page run the same way.
+ *
+ * Backed by `appointment_requests_clinic_id_status_idx`, which is
+ * `(clinic, status, created_at)` — an index reads in either direction, so the
+ * flip costs nothing.
  *
  * `leftJoin` on the appointment, not `innerJoin`: a `new` request names none,
  * and an inner join would silently drop exactly the kind the inbox most needs
@@ -137,7 +144,7 @@ export async function listPendingAppointmentRequests(clinicId: string): Promise<
     .innerJoin(clients, eq(clients.id, appointmentRequests.clientId))
     .leftJoin(requested, eq(requested.id, appointmentRequests.appointmentId))
     .where(and(eq(appointmentRequests.clinicId, clinicId), eq(appointmentRequests.status, 'pending')))
-    .orderBy(asc(appointmentRequests.createdAt));
+    .orderBy(desc(appointmentRequests.createdAt));
 
   return rows.map(toStaffAppointmentRequest);
 }
@@ -193,7 +200,8 @@ export async function getAppointmentRequest(
 }
 
 /**
- * Requests about the client's own record, oldest first.
+ * Requests about the client's own record, newest first — see the note on
+ * {@link listPendingAppointmentRequests} for why the inbox runs that way.
  *
  * Nothing read this table on the staff side before — the portal wrote to it and
  * the rows sat there. Backed by `client_requests_clinic_id_status_idx`.
@@ -215,7 +223,7 @@ export async function listPendingClientRequests(clinicId: string): Promise<Staff
     .from(clientRequests)
     .innerJoin(clients, eq(clients.id, clientRequests.clientId))
     .where(and(eq(clientRequests.clinicId, clinicId), eq(clientRequests.status, 'pending')))
-    .orderBy(asc(clientRequests.createdAt));
+    .orderBy(desc(clientRequests.createdAt));
 
   return rows.map((row) => ({
     ...row,

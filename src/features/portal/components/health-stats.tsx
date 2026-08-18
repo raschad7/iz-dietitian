@@ -58,7 +58,36 @@ export function HealthStats({ stats }: { stats: readonly HealthStat[] }) {
     shares it, squares off into two rows of two instead of three-plus-one, and
     only spreads across a single row once `sm` has the width for it.
   */
-  const columns = stats.length === 4 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3';
+  /*
+    Three across, except on the phones where three across does not fit.
+
+    The three-up case had no breakpoint at all, so it stayed three-up at every
+    width down to 320px — where each tile is about 82px and a value like
+    "Moderately active" or its Arabic equivalent ran straight out of its tile
+    and over the neighbour's. Two-up below 380px gives each tile half the row,
+    which is enough for the longest category either locale produces, and the odd
+    third tile takes the second row.
+
+    The four-tile case already stepped down to two and is left alone: at four,
+    two-up is the *narrow* arrangement and it holds at 320px.
+  */
+  const columns =
+    stats.length === 4 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2 min-[24rem]:grid-cols-3';
+
+  /*
+    **The odd tile takes the whole second row rather than half of it.**
+
+    Stepping three tiles down to two columns below `24rem` fixed the values
+    running out of their tiles, but it left the third one alone beside an empty
+    half — the exact "a tile that failed to load" reading the three-up case was
+    arranged to avoid, moved from the desktop width to the phone width. Spanning
+    it closes the hole, and a full-width tile among two half-width ones reads as
+    the set ending rather than as one going missing.
+
+    Only when there are three: at four the grid is even at both counts, and the
+    span is undone at `min-[24rem]` where all three fit on one row again.
+  */
+  const lastSpan = stats.length === 3 ? 'col-span-2 min-[24rem]:col-span-1' : undefined;
 
   return (
     /*
@@ -72,14 +101,17 @@ export function HealthStats({ stats }: { stats: readonly HealthStat[] }) {
       keeping the desktop tile and letting it wrap is what created the hole.
     */
     <dl className={cn('grid gap-2 sm:gap-3', columns)}>
-      {stats.map((stat) => {
+      {stats.map((stat, index) => {
         const empty = stat.value === null || stat.value.trim() === '';
 
         return (
           <Card
             key={stat.label}
             variant={empty ? 'empty' : 'tile'}
-            className="items-center gap-1.5 p-3 text-center sm:gap-2 sm:p-4"
+            className={cn(
+              'items-center gap-1.5 p-3 text-center sm:gap-2 sm:p-4',
+              index === stats.length - 1 && lastSpan,
+            )}
           >
             {/*
               The badge is the tile's mark: a disc of the brand's quiet fill with

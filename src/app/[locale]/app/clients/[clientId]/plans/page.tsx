@@ -9,7 +9,7 @@ type ClientPlansPageProps = {
 /**
  * The old Meal Plans tab.
  *
- * It is the profile's **Billing &amp; Plans** view now — the same
+ * It is the profile's **Plans** view now — the same
  * `ClientPlansCard`, rendered once. The route is kept as a redirect for the
  * reason the portal one is: it was an address in the record's tab bar, and
  * anything already pointing at it should land on the card rather than on a 404.

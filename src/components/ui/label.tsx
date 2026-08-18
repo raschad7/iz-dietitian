@@ -10,7 +10,36 @@ import { cn } from "@/lib/utils"
  * `:focus-within` on the surrounding `Field`, so wrap the pair in one — a bare
  * Label still renders correctly, it just does not animate.
  */
-function Label({ className, ...props }: React.ComponentProps<"label">) {
+/**
+ * Marks the field required with a `*` after its name.
+ *
+ * `aria-hidden`, and deliberately: the asterisk is a sighted convention, and
+ * the control itself carries `required` or `aria-required` for anyone reading
+ * the form through it. Announcing both says "required" twice on every field.
+ *
+ * `text-destructive` is the same clay the invalid border and the error message
+ * use — a field that is required, and a field that is required and empty, are
+ * one thought and should not be two colours.
+ */
+/*
+ * `-ms-1` pulls back most of the label's own `gap-2`, which is sized for a
+ * leading icon rather than for punctuation. At the full 8px the asterisk read as
+ * a separate mark floating beside the label instead of belonging to it.
+ */
+function RequiredMark() {
+  return (
+    <span aria-hidden="true" className="-ms-1 text-destructive">
+      *
+    </span>
+  )
+}
+
+function Label({
+  className,
+  required,
+  children,
+  ...props
+}: React.ComponentProps<"label"> & { required?: boolean }) {
   return (
     <label
       data-slot="label"
@@ -33,7 +62,10 @@ function Label({ className, ...props }: React.ComponentProps<"label">) {
         className
       )}
       {...props}
-    />
+    >
+      {children}
+      {required ? <RequiredMark /> : null}
+    </label>
   )
 }
 

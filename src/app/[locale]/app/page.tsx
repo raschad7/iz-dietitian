@@ -1,12 +1,11 @@
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
+import { PageHeader } from '@/components/layout/page-header';
 import { AppointmentsPanel } from '@/features/dashboard/components/appointments-panel';
 import { StatCards } from '@/features/dashboard/components/stat-cards';
 import { loadDashboard } from '@/features/dashboard/page-data';
-import { NotificationsBell } from '@/features/notifications/components/notifications-bell';
 import { PendingRequestsCard } from '@/features/requests/components/pending-requests-card';
-import { formatLongDate } from '@/features/booking/format';
 import { resolveLocale } from '@/i18n/params';
 import { requireStaffClinic } from '@/lib/session';
 
@@ -78,24 +77,19 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
 
   return (
     <div className="flex flex-col gap-4 text-start xl:h-full xl:min-h-0">
-      <div className="flex flex-wrap items-baseline justify-between gap-2 xl:shrink-0">
-        <h1 className="font-heading text-heading-lg font-semibold tracking-tight" dir="auto">
-          {t('welcome', { name: session.user.name })}
-        </h1>
-        {/*
-          The date, and the bell beside it. `body-md` (16px) rather than the
-          12px caption: with no app bar above it this line is the top of the
-          page, and today's date is a fact you read at a glance rather than
-          fine print under something else.
-        */}
-        <div className="flex items-center gap-2">
-          <p className="text-body-md text-muted-foreground">{formatLongDate(locale, data.today)}</p>
-
-          {/* Requests already have the actionable card below; the bell is only
-              for client records that may need follow-up. */}
-          <NotificationsBell attention={data.attention} />
-        </div>
-      </div>
+      {/*
+        The shared header — see `PageHeader`. The greeting is this page's own
+        title; the date and the bell beside it are now on every staff screen.
+        `attention` is handed in rather than read again: `loadDashboard` already
+        fetched it in this page's single round of parallel queries.
+      */}
+      <PageHeader
+        locale={locale}
+        title={t('welcome', { name: session.user.name })}
+        attention={data.attention}
+        today={data.today}
+        className="items-baseline xl:shrink-0"
+      />
 
       {/*
         Three cards across, all the same height. The two stat cards used to

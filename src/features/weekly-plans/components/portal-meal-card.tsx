@@ -26,7 +26,7 @@ import type { DayStanding } from '../week';
  * throughout, so these resolve to the same glyphs the staff planner's slot rail
  * draws. The names stay to record which surface wanted the quieter treatment.
  */
-const MEAL_ICONS = {
+export const MEAL_ICONS = {
   breakfast: 'mealBreakfastOutline',
   snack: 'mealSnackOutline',
   lunch: 'mealLunchOutline',
@@ -94,7 +94,8 @@ export function PortalMealCard({
 }: {
   meal: BoardMeal;
   standing: DayStanding;
-  /** Server-known and fixed on a settled day; on today `MealCheck` owns it instead. */
+  /**
+   *  Server-known and fixed on a settled day; on today `MealCheck` owns it instead. */
   completed: boolean;
 }) {
   const t = useTranslations('portal.plan');

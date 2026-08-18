@@ -2,13 +2,14 @@ import { getTranslations } from 'next-intl/server';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
-import { Link } from '@/i18n/navigation';
 import { type Locale } from '@/i18n/routing';
 
-import { type PendingRequests } from '../types';
+import { type RequestsData } from '../types';
 
 import { AppointmentRequestCard } from './appointment-request-card';
 import { ClientRequestCard } from './client-request-card';
+import { RequestsDialogTrigger } from './requests-dialog-trigger';
+import { RequestsInbox } from './requests-inbox';
 import { RequestsWindow } from './requests-window';
 
 /**
@@ -32,13 +33,16 @@ import { RequestsWindow } from './requests-window';
  *
  * **Every pending request is here, and the list scrolls inside the card.** It
  * used to show three and hand the rest to the inbox, because it was then a
- * banner squeezed between the quick actions and the register. The link to the
- * inbox stays for the answered history, which this panel never shows.
+ * banner squeezed between the quick actions and the register. "All requests"
+ * stays for the answered history, which this panel never shows — it opens the
+ * inbox as a dialog over this page now rather than navigating to it, so nothing
+ * about working the queue costs the dashboard. See `RequestsDialogTrigger`.
  *
- * **The window is three requests deep.** {@link VISIBLE_REQUESTS} is a bound on
- * height, not a slice — every pending request is rendered and the rest are a
- * scroll away, because a list that renders three and stops cannot be scrolled to
- * the fourth. `RequestsWindow` reads the block-end edge of the Nth tile from the
+ * **The window is two and a half requests deep.** {@link VISIBLE_REQUESTS} is a
+ * bound on height, not a slice — every pending request is rendered and the rest
+ * are a scroll away, because a list that renders two and stops cannot be
+ * scrolled to the third. `RequestsWindow` reads the block-end edge of the Nth
+ * tile — and half the one after it — from the
  * real layout rather than taking a hand-tuned rem, which is the only way the
  * count holds: inside this card a tile's content box is narrow, so a message
  * wraps to more lines than it would anywhere else — and in Arabic, to more
@@ -91,15 +95,24 @@ import { RequestsWindow } from './requests-window';
  * tile, and it also decides whether the "there is more" fade is drawn. CSS
  * cannot size a box to its first N children when those children differ in
  * height, which is why that measurement exists at all.
+ *
+ * **It is a half, on purpose.** At a whole 3 the third tile sat flush against
+ * the bottom edge, and a list whose last visible item ends exactly where its
+ * box does reads as a list that ended — the fade and the scrollbar were the
+ * only things saying otherwise, and both are easy to miss on a card this size.
+ * Cutting the third tile through its middle says it structurally: a half tile
+ * is not something a finished list can end on. It also buys back the height of
+ * half a tile in the dashboard's top band, which is the row that has to stay
+ * level with the two stat cards beside it.
  */
-const VISIBLE_REQUESTS = 3;
+const VISIBLE_REQUESTS = 2.5;
 
 export async function PendingRequestsCard({
   data,
   locale,
   now,
 }: {
-  data: PendingRequests;
+  data: RequestsData;
   locale: Locale;
   now: Date;
 }) {
@@ -164,13 +177,51 @@ export async function PendingRequestsCard({
           <CardTitle as="h2" size="sm" tone="muted" icon="chat">
             {t('dashboard.heading')}
           </CardTitle>
-          <Link
-            href="/app/requests"
+          {/*
+            It opens the inbox over this page rather than navigating to it —
+            see `RequestsDialogTrigger`. Same words, same corner, same styling
+            as the link it replaces; what changes is that answering the fourth
+            request no longer costs the dashboard.
+          */}
+          <RequestsDialogTrigger
+            locale={locale}
             className="-ms-1 mt-0.5 inline-flex items-center gap-0.5 rounded-sm px-1 py-0.5 text-label font-medium text-muted-foreground transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+            inbox={
+              <RequestsInbox
+                data={data}
+                locale={locale}
+                now={now}
+                presentation="cards"
+                appointmentsHeading={false}
+              />
+            }
+            heading={
+              appointments.length > 0 ? (
+                /*
+                  The appointments list's heading, for the dialog's header bar.
+
+                  It is built here rather than inside the dialog because this is
+                  the server: the words and the number are both `t()` and data,
+                  and the trigger is a client component that holds neither.
+
+                  `items-baseline` and the heading's own size on the numeral, so
+                  the word and the count read as one phrase rather than as a
+                  label with a footnote — the same pair `SectionHeading` draws
+                  for the record corrections below.
+                */
+                <span className="flex items-baseline gap-2 self-center">
+                  <span className="text-heading-sm font-semibold">
+                    {t('sectionLabels.appointments')}
+                  </span>
+                  <span className="text-heading-sm font-semibold tabular-nums text-muted-foreground">
+                    {appointments.length}
+                  </span>
+                </span>
+              ) : null
+            }
           >
             {t('dashboard.openInbox')}
-            <Icon name="chevronEnd" className="size-3.5" />
-          </Link>
+          </RequestsDialogTrigger>
         </div>
 
         {/* A bare numeral, not a pill: a count is a quantity, not a state. See
@@ -207,21 +258,21 @@ export async function PendingRequestsCard({
           </div>
         ) : (
           /*
-            The whole queue, scrolled rather than truncated, in a window three
-            requests deep.
+            The whole queue, scrolled rather than truncated, in a window two and
+            a half requests deep.
 
             The height comes from `RequestsWindow`, which measures where the
-            third tile ends rather than trusting a figure written here — a tile
-            with no message and one with a wrapped Arabic message do not measure
-            the same, and neither do the appointment and client shapes. The
-            fourth is a scroll away, and the third sitting flush against the
-            bottom edge is what the fade below is drawn over.
+            second tile ends and adds half of the third rather than trusting a
+            figure written here — a tile with no message and one with a wrapped
+            Arabic message do not measure the same, and neither do the
+            appointment and client shapes. The third is cut through the middle
+            by the bottom edge, which is the clearest thing on the card saying
+            the list goes on; the fade below is drawn over it.
 
-            `max-h-[70vh]` is the guard on top of it and is unchanged. With
-            three of the tightened tiles it is the looser of the two on a normal
-            screen and the binding one on a short laptop, where it shows the
-            third tile part-way and scrolls rather than taking the appointments
-            panel off the page.
+            `max-h-[70vh]` is the guard on top of it and is unchanged. It is the
+            looser of the two on a normal screen and the binding one on a short
+            laptop, where it cuts the window shorter still rather than taking
+            the appointments panel off the page.
 
             `pe-1` leaves the scrollbar somewhere to sit that is not on top of
             the tiles, and `overscroll-contain` keeps a flick at the end of the

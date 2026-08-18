@@ -17,6 +17,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { TimeInput } from '@/components/ui/time-input';
 import { saveIntakeAction } from '@/features/clients/actions';
 import { calculateAge } from '@/features/clients/age';
+import {
+  HEIGHT_CM_RANGE,
+  isValidationKey,
+  MEASUREMENT_MAX_DIGITS,
+  VALIDATION_VALUES,
+  WEIGHT_KG_RANGE,
+} from '@/features/clients/form-rules';
 import { initialIntakeFormState, type IntakeFormState } from '@/features/clients/form-state';
 import { balanceToHundred } from '@/features/clients/meal-split';
 import { mergedNotes } from '@/features/clients/notes';
@@ -85,10 +92,14 @@ type SectionId = IntakeSectionId;
  */
 const FREQUENCY_FIELDS = [
   'caffeineFrequency',
+  'sweetDrinksFrequency',
   'fastFoodFrequency',
-  'produceFrequency',
+  'vegetablesFrequency',
+  'fruitFrequency',
   'dairyFrequency',
-  'proteinFoodFrequency',
+  'redMeatFrequency',
+  'chickenFrequency',
+  'fishFrequency',
   'sweetsFrequency',
 ] as const satisfies readonly (keyof ClientIntakeValues)[];
 
@@ -150,8 +161,21 @@ export function IntakeForm({
   const [slots, setSlots] = useState<MealSlotValues[]>(intake.mealSchedule);
   const [custom, setCustom] = useState<string[]>(intake.customAllergens);
 
-  const errorFor = (field: string) =>
-    state.status === 'error' ? state.fieldErrors?.[field]?.[0] : undefined;
+  /**
+   * The server's complaint about one field.
+   *
+   * The four required measurements report **keys** — see `VALIDATION_KEYS` in
+   * `../form-rules` — because this app is read in Arabic and Zod's own defaults
+   * are English prose. Every other field on this form still reports Zod's
+   * default, so an unrecognised value is passed through rather than dropped:
+   * hiding it would turn a rejected save into a form that silently refuses.
+   */
+  const errorFor = (field: string) => {
+    const message = state.status === 'error' ? state.fieldErrors?.[field]?.[0] : undefined;
+    if (message === undefined) return undefined;
+
+    return isValidationKey(message) ? t(`validation.${message}`, VALIDATION_VALUES) : message;
+  };
 
   useEffect(() => {
     if (state.status === 'success') onSaved();
@@ -248,7 +272,14 @@ export function IntakeForm({
   }
 
   return (
-    <form action={formAction} className="flex min-h-0 flex-1 flex-col text-start">
+    /*
+      `noValidate`, for the same reason the client card carries it: the four
+      required measurements are a number input and two selects, and a native
+      `required` on the input would pop a grey browser bubble while the selects
+      showed the red edge and the message. One validator — `intakeSchema` — so
+      every field fails the same way and says so in the same place.
+    */
+    <form action={formAction} noValidate className="flex min-h-0 flex-1 flex-col text-start">
       <input type="hidden" name="locale" value={locale} />
       <input type="hidden" name="clientId" value={intake.clientId} />
 
@@ -271,14 +302,28 @@ export function IntakeForm({
         >
           <Panel id="measurements" current={section}>
             <div className="grid gap-4 sm:grid-cols-2">
+              {/*
+                All four fields in this panel are required — they are what the
+                calorie formula runs on. See the ⚠ on `intakeSchema`: they are
+                the exception on a form that is otherwise optional to the last
+                field, and the rest of it must not follow.
+              */}
               <NumberField
                 name="heightCm"
                 label={t('fields.heightCm')}
                 icon="heightOutline"
                 placeholder={t('intake.placeholders.heightCm')}
-                min={30}
-                max={280}
+                min={HEIGHT_CM_RANGE.min}
+                max={HEIGHT_CM_RANGE.max}
                 step={1}
+                /*
+                  Three digits, which is exactly what the bound above allows:
+                  300 cm and 200 kg are both three-digit numbers, so a fourth
+                  digit can only ever be a value the schema would reject. Better
+                  refused at the keystroke than accepted and complained about.
+                */
+                maxDigits={MEASUREMENT_MAX_DIGITS}
+                required
                 value={heightCm}
                 onChange={setHeightCm}
                 error={errorFor('heightCm')}
@@ -288,9 +333,12 @@ export function IntakeForm({
                 label={t('fields.weightKg')}
                 icon="weightOutline"
                 placeholder={t('intake.placeholders.weightKg')}
-                min={20}
-                max={400}
+                min={WEIGHT_KG_RANGE.min}
+                max={WEIGHT_KG_RANGE.max}
                 step={0.5}
+                // Digits, not characters — `70.5` still fits. See `maxDigits`.
+                maxDigits={MEASUREMENT_MAX_DIGITS}
+                required
                 value={weightKg}
                 onChange={setWeightKg}
                 error={errorFor('weightKg')}
@@ -299,41 +347,46 @@ export function IntakeForm({
 
             <div className="grid gap-4 sm:grid-cols-2">
               <Field>
-                <Label htmlFor="goal">{t('fields.goal')}</Label>
+                <Label htmlFor="goal" required>
+                  {t('fields.goal')}
+                </Label>
                 <SelectField
                   id="goal"
                   name="goal"
                   value={goal}
                   onValueChange={setGoal}
-                  placeholder={t('notProvided')}
+                  placeholder={t('intake.choose')}
+                  aria-required
+                  aria-invalid={errorFor('goal') !== undefined || undefined}
                   /*
-                    "Not provided" is a row, not just placeholder text: intake is
-                    a form someone can walk back, and a goal chosen by mistake
-                    has to be un-choosable without reloading the page.
+                    ⚠ **No "Not provided" row any more.** It was here so that a
+                    goal chosen by mistake could be un-chosen without reloading
+                    the page — a good reason while the field was optional, and
+                    now an offer of the one answer the form will refuse to save.
+                    A required field has no valid empty state to walk back to;
+                    the placeholder covers the not-yet-chosen case.
                   */
-                  options={[
-                    { value: '', label: t('notProvided') },
-                    ...CLIENT_GOALS.map((value) => ({ value, label: t(`goal.${value}`) })),
-                  ]}
+                  options={CLIENT_GOALS.map((value) => ({ value, label: t(`goal.${value}`) }))}
                 />
                 <FieldError>{errorFor('goal')}</FieldError>
               </Field>
 
               <Field>
-                <Label htmlFor="activityLevel">{t('fields.activityLevel')}</Label>
+                <Label htmlFor="activityLevel" required>
+                  {t('fields.activityLevel')}
+                </Label>
                 <SelectField
                   id="activityLevel"
                   name="activityLevel"
                   value={activityLevel}
                   onValueChange={setActivityLevel}
-                  placeholder={t('notProvided')}
-                  options={[
-                    { value: '', label: t('notProvided') },
-                    ...CLIENT_ACTIVITY_LEVELS.map((value) => ({
-                      value,
-                      label: t(`activity.${value}`),
-                    })),
-                  ]}
+                  placeholder={t('intake.choose')}
+                  aria-required
+                  aria-invalid={errorFor('activityLevel') !== undefined || undefined}
+                  options={CLIENT_ACTIVITY_LEVELS.map((value) => ({
+                    value,
+                    label: t(`activity.${value}`),
+                  }))}
                 />
                 <FieldError>{errorFor('activityLevel')}</FieldError>
               </Field>
@@ -500,10 +553,17 @@ export function IntakeForm({
             <Divider label={t('intake.frequencyLegend')} />
 
             {/*
-              Six questions on one scale, so the panel is one column of labels
+              Ten questions on one scale, so the panel is one column of labels
               against one column of identical selects. The period each question
               is asked over — a day or a week — is in its label, which is where
               the paper sheet puts it too.
+
+              Ten and not six because four questions each covered more than one
+              food: caffeine was asked together with sweetened drinks, vegetables
+              together with fruit, and beef, chicken and fish shared a single
+              answer. One scale answered once per food is the same control
+              repeated, which is why splitting them costs rows of the grid and
+              nothing else.
             */}
             <div className="grid gap-4 sm:grid-cols-2">
               {FREQUENCY_FIELDS.map((name) => (
@@ -541,6 +601,27 @@ export function IntakeForm({
               />
               <FieldError>{errorFor('allergies')}</FieldError>
             </Field>
+
+            {/*
+              Drug allergies, which had no control at all.
+
+              The column exists, `intakeSchema` validates it, the Nutrition tab
+              renders it, and `FIELDS_BY_SECTION` files it on this panel — the
+              only missing piece was the field itself, so the record could show
+              a drug allergy that nothing in the app could ever write. It sits
+              here rather than in Background for the reason that mapping already
+              gives: someone looking for what a client reacts to should find
+              every answer on one panel.
+            */}
+            <TextField
+              name="drugAllergies"
+              label={t('fields.drugAllergies')}
+              placeholder={t('intake.placeholders.drugAllergies')}
+              rows={3}
+              maxLength={1000}
+              defaultValue={intake.drugAllergies}
+              error={errorFor('drugAllergies')}
+            />
           </Panel>
 
           <Panel id="clinical" current={section}>
@@ -893,6 +974,8 @@ function NumberField({
   value,
   onChange,
   defaultValue,
+  required,
+  maxDigits,
   placeholder,
   error,
 }: {
@@ -914,10 +997,53 @@ function NumberField({
   defaultValue?: string;
   placeholder?: string;
   error?: string;
+  /**
+   * Draws the `*` after the label and announces the field as required.
+   *
+   * Not the native `required` attribute: the form is `noValidate` so that one
+   * validator reports every field in one style — see the note on the `<form>`.
+   */
+  required?: boolean;
+  /**
+   * How many digits may be typed into the box.
+   *
+   * ⚠ **Not `maxLength`.** That attribute is inert on `<input type="number">` —
+   * the HTML spec applies it to text, search, url, tel, email and password only
+   * — so a `maxLength={3}` here would look like a rule and enforce nothing. The
+   * cap is applied in the change handler instead, which rejects the keystroke
+   * (and a paste) rather than truncating after the fact.
+   *
+   * Counts **digits**, not characters, so the decimal separator on a weight is
+   * not one of the three: `70.5` is three digits and fits.
+   *
+   * Requires `onChange` — an uncontrolled field has no current value to fall
+   * back to when a keystroke is refused, so passing this without it does
+   * nothing.
+   */
+  maxDigits?: number;
 }) {
+  /*
+    Refusing a keystroke, rather than clamping the value.
+
+    Returning without calling `onChange` leaves the controlled value where it
+    was, so the fourth digit simply does not appear. Trimming to three instead
+    would silently rewrite what somebody typed — a 1750 mistyped for 175 would
+    become 175 and read as accepted.
+  */
+  const handleChange = (next: string) => {
+    if (!onChange) return;
+
+    const digits = (next.match(/\d/g) ?? []).length;
+    if (maxDigits !== undefined && digits > maxDigits) return;
+
+    onChange(next);
+  };
+
   return (
     <Field>
-      <Label htmlFor={name}>{label}</Label>
+      <Label htmlFor={name} required={required}>
+        {label}
+      </Label>
       {/*
         No direction lock on the group.
 
@@ -956,6 +1082,13 @@ function NumberField({
           min={min}
           max={max}
           step={step}
+          aria-required={required || undefined}
+          /*
+            The group paints the red edge from this, via its own
+            `has-[[data-slot][aria-invalid=true]]:border-destructive` — so the
+            whole control turns, not just the bare input inside it.
+          */
+          aria-invalid={error !== undefined || undefined}
           className={cn(
             // The field's own inline padding, which `InputGroupInput` strips
             // back to nothing so a group can decide it per addon.
@@ -973,7 +1106,7 @@ function NumberField({
           )}
           placeholder={placeholder}
           {...(onChange
-            ? { value: value ?? '', onChange: (event) => onChange(event.target.value) }
+            ? { value: value ?? '', onChange: (event) => handleChange(event.target.value) }
             : { defaultValue })}
         />
       </InputGroup>
@@ -1425,9 +1558,21 @@ function MealScheduleField({
   );
 }
 
+/**
+ * The dialog's own message, for a failure no field can explain.
+ *
+ * ⚠ **`errors.invalid` renders nothing**, matching the client card. It said
+ * "check the fields highlighted in red" — a sentence from when the fields
+ * themselves said nothing useful, and now a footer repeating what a red edge and
+ * a message beside each field already say. The rail switches to the panel
+ * holding the error, so the reader is looking straight at it.
+ *
+ * `errors.unexpected` and `errors.clientNotFound` still show: neither is about a
+ * field, and without them the dialog would swallow the failure.
+ */
 function FormMessage({ state }: { state: IntakeFormState }) {
   const t = useTranslations('clients');
-  if (state.status !== 'error') return null;
+  if (state.status !== 'error' || state.messageKey === 'errors.invalid') return null;
 
   return (
     <p role="status" className="me-auto text-body-sm text-destructive">

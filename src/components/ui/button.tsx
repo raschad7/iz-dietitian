@@ -55,8 +55,35 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        /** Primary — solid olive, white label. 5.46:1. */
-        default: "border-transparent bg-primary text-primary-foreground hover:bg-primary-hover",
+        /**
+         * Primary — solid olive, white label.
+         *
+         * **The label is white everywhere now.** It was n-900, and a white one
+         * was a second variant (`primaryWhite`) named at the eleven call sites
+         * that had asked for it — the landing CTA, the auth submits, both "New
+         * client" buttons, WhatsApp connect, and the client record's primaries.
+         * Two solid olive buttons with different labels is a fork a reader
+         * notices before a designer does: the same action wore two looks
+         * depending on which screen it was on. The fork is closed in favour of
+         * the white one, which is what the brand has been asked for by name
+         * every time it came up, and `primaryWhite` is gone rather than left as
+         * an alias so there is one way to spell a primary.
+         *
+         * The colour is `--primary-foreground-white` in `globals.css`, beside
+         * `--primary-foreground` — a token, not a `text-white` per site.
+         *
+         * ⚠ Contrast is traded, and knowingly. White on the brand's own #72AE34
+         * measures ~2.68:1, under WCAG AA's 4.5:1 for body text, which is why
+         * `--primary-foreground` is n-900 (5.46:1) and stays that way for the
+         * surfaces that still read it. Darkening this fill one step to olive-600
+         * would clear the floor and is the fix if the pairing is revisited; the
+         * decision to spend it was made deliberately and is recorded here and on
+         * the token. Where a label has to be *read* rather than pressed — a
+         * dense list, a small control — `soft` and `neutral` are the checked
+         * pairs.
+         */
+        default:
+          "border-transparent bg-primary text-primary-foreground-white hover:bg-primary-hover",
 
         /**
          * Primary, quietly — the brand's subtle fill, an olive label, no border.
@@ -182,7 +209,7 @@ const buttonVariants = cva(
          * definition there.
          */
         primarySubtle:
-          "border-transparent bg-primary-subtle text-secondary-foreground hover:bg-primary hover:text-primary-foreground",
+          "border-transparent bg-primary-subtle text-secondary-foreground hover:bg-primary hover:text-primary-foreground-white",
 
         /**
          * Inline text link. The one place `rounded-none` is legal, because a

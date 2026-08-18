@@ -6,7 +6,9 @@ import { useFormStatus } from 'react-dom';
 
 import { Icon } from '@/components/ui/icon';
 import { signOutAction } from '@/features/auth/actions';
+import { PortalNotificationsBell } from '@/features/portal/components/portal-notifications-bell';
 import { type GreetingKey } from '@/features/portal/greeting';
+import { type PortalNotification } from '@/features/portal/notifications';
 import { Link, usePathname } from '@/i18n/navigation';
 import { type Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
@@ -38,6 +40,15 @@ import { cn } from '@/lib/utils';
 const SEEN_STORAGE_KEY = 'iz.portal.notifications.seen';
 
 const NOTHING_SEEN: readonly string[] = [];
+
+/**
+ * The default feed: none.
+ *
+ * A module constant rather than a `[]` default in the signature, because the
+ * ids are memoised off it — a fresh array literal on every render would be a
+ * fresh dependency, and the memo would never hold.
+ */
+const NO_NOTIFICATIONS: readonly PortalNotification[] = [];
 
 const seenListeners = new Set<() => void>();
 
@@ -154,19 +165,19 @@ function useSeen() {
  * name, matching the current design.
  *
  * **The bell means something, and it can be answered.** It carries the number
- * of notifications this browser has not seen yet, and opens the standalone
- * notifications screen — its own pushed screen, not a tab, so it can be read and
- * backed out of without losing the tab the client was on.
+ * of notifications this browser has not seen yet, and opens the feed in a
+ * popover over whatever tab the client is on — see `PortalNotificationsBell`
+ * for why that stopped being a screen of its own.
  *
  * It was a red disc drawn straight off a server count of unanswered requests,
- * and that had both halves wrong. The count was of a different thing than the
- * screen it opened, and — being a fact about the clinic's queue rather than
- * about the reader — nothing the client did could clear it: one request left
- * unanswered lit the same dot every day for a week. A badge that survives being
- * read stops meaning anything, and a client learns to ignore the bell. The
- * count now comes from `loadPortalNotifications`, the same loader that screen
- * uses, and clicking marks it read — see `useSeen` for where "read" is kept and
- * why it cannot be in the database.
+ * and that had both halves wrong. The count was of a different thing than what
+ * it opened, and — being a fact about the clinic's queue rather than about the
+ * reader — nothing the client did could clear it: one request left unanswered
+ * lit the same dot every day for a week. A badge that survives being read stops
+ * meaning anything, and a client learns to ignore the bell. The count now comes
+ * from `loadPortalNotifications`, the same loader that fills the panel, and
+ * opening it marks it read — see `useSeen` for where "read" is kept and why it
+ * cannot be in the database.
  *
  * **The trailing control is settings, not a menu.** There is no drawer:
  * profile is already a tab, and settings is one tap away instead of two.
@@ -174,6 +185,16 @@ function useSeen() {
  * back to `set-password`, so this slot signs the client out directly instead
  * — the one thing they still need a way to do from a screen they cannot
  * leave any other way.
+ */
+/**
+ * The header's one remaining link.
+ *
+ * It used to serve the bell too, which is why it carries an `enabled` flag and
+ * an `onClick`: the bell was a link that marked its feed read on the way out
+ * and rendered inert before the password change. The bell is a popover now
+ * (`PortalNotificationsBell`) and settings is the only destination left, so the
+ * `href` union has one member — kept as a union so adding a second is still a
+ * compile-checked route rather than a string.
  */
 function Destination({
   href,
@@ -183,11 +204,10 @@ function Destination({
   onClick,
   children,
 }: {
-  href: '/portal/notifications' | '/portal/settings';
+  href: '/portal/settings';
   enabled: boolean;
   className: string;
   label: string;
-  /** Fired on the way out — the bell marks its feed read with it. */
   onClick?: () => void;
   children: React.ReactNode;
 }) {
@@ -234,7 +254,7 @@ export function PortalHeader({
   name,
   greeting,
   date,
-  notificationIds = NOTHING_SEEN,
+  notifications = NO_NOTIFICATIONS,
   locale,
   showNav,
 }: {
@@ -249,13 +269,21 @@ export function PortalHeader({
    */
   date?: string;
   /**
-   * The ids of every notification on `/portal/notifications` right now, from
-   * `loadPortalNotifications` — the same list the screen itself renders.
+   * The client's whole feed right now, from `loadPortalNotifications`.
    *
-   * Ids rather than a number, because the badge counts what has *not been seen*
-   * and that is a set difference, not a subtraction. See `useSeen` above.
+   * **The rows, not their ids.** It used to be `notificationIds` — a number was
+   * never enough, because the badge counts what has *not been seen* and that is
+   * a set difference rather than a subtraction (see `useSeen` above), but ids
+   * were all the bell needed while tapping it navigated to a screen that loaded
+   * the feed again. The feed now opens in a popover from this header, so the
+   * rows have to arrive with it; `loadPortalNotifications` was already being
+   * called in `(tabs)/layout.tsx` for the badge, so this costs the payload of
+   * at most eight short rows and no extra query.
+   *
+   * Optional, and empty by default: `set-password` mounts this header with
+   * `showNav={false}` and no feed at all.
    */
-  notificationIds?: readonly string[];
+  notifications?: readonly PortalNotification[];
   locale: Locale;
   /**
    * False while the client still owes us a password change. `(secured)/layout`
@@ -280,6 +308,13 @@ export function PortalHeader({
     store has not been read yet — zero, so the badge is absent rather than wrong
     (see the note on `useSeen`'s server snapshot).
   */
+  // Derived rather than passed: the feed arrives as rows now, and both the
+  // count above and the mark written on open are about the same set of ids.
+  const notificationIds = useMemo(
+    () => notifications.map((item) => item.id),
+    [notifications],
+  );
+
   const unreadCount = useMemo(() => {
     if (seen === null) return 0;
 
@@ -346,67 +381,64 @@ export function PortalHeader({
       )}
     >
       <div className="mx-auto w-full max-w-3xl">
-        <div className="flex items-center justify-between">
-          <Destination
-            href="/portal/notifications"
-            enabled={showNav}
-            label={
-              unreadCount > 0
-                ? t('notificationsWaiting', { count: unreadCount })
-                : t('notifications')
-            }
-            /*
-              Opening it is reading it. The mark is written on the way out
-              rather than by the screen it navigates to, for two reasons: this
-              is where the id list already is, and the badge should go quiet
-              under the thumb rather than a route transition later.
+        {/*
+          `justify-end` before the password change, because there is no bell on
+          that screen to sit opposite — see the note below. `justify-between`
+          with a single child would park sign-out on the leading edge, where the
+          bell used to be.
+        */}
+        <div className={cn('flex items-center', showNav ? 'justify-between' : 'justify-end')}>
+          {/*
+            **The feed opens over the page, not as one.**
 
-              Everything currently on the feed is marked, not only what was
-              unread — the client is about to look at the whole list, and a
-              badge that survived being read is the thing being fixed here.
-            */
-            onClick={() => markSeen(notificationIds)}
-            className={cn(
-              'relative flex size-11 items-center justify-center rounded-full transition-colors',
-              iconTone,
-            )}
-          >
-            <Icon name="notifications" className="size-5.5" />
+            This was a `<Link>` to `/portal/notifications`, a screen with a back
+            control and four one-line rows on it. That route is gone;
+            `PortalNotificationsBell` has the whole argument for why, and is the
+            portal's use of the same inbox shell the practitioner bell already
+            opens.
 
-            {unreadCount > 0 ? (
+            `showNav` still decides whether there is a control here at all: a
+            client who has not replaced their temporary password can reach one
+            page, and a bell offering them a feed they cannot leave to act on is
+            the same dead end the link was. There used to be an inert disc in
+            its place, which was worse than nothing — a bell that looks pressable
+            and answers nothing reads as broken, and on the one screen a client
+            cannot leave it is the last thing to draw their eye. Nothing renders
+            there now; the row switches to `justify-end` so sign-out keeps its
+            corner.
+
+            The badge is no longer drawn here. It is the shared trigger's own
+            count disc, given the portal's fill and ring through
+            `badgeClassName` — including the `9+` cap, which that component
+            already applies for the same reason this one did: three digits on a
+            16px disc either shrink the type under the floor or push the pill
+            off the bell.
+
+            **Opening it is reading it.** `markSeen` runs when the panel opens
+            rather than on the way to a route, which is the same moment as
+            before and a truer one — the rows are on screen by then. Everything
+            currently on the feed is marked, not only what was unread: the
+            client is about to look at the whole list, and a badge that survives
+            being read is the thing this store exists to fix.
+          */}
+          {showNav ? (
+            <PortalNotificationsBell
+              items={notifications}
+              unread={unreadCount}
+              onOpen={() => markSeen(notificationIds)}
               /*
-                **The count, not a disc.**
-
-                It was a 10px dot, which answered "is there anything?" and
-                nothing else — and because it was drawn straight off a server
-                count of unanswered requests, it could not go out until the
-                clinic acted. Reading the screen did nothing to it. A client
-                with one request pending saw the same red mark for a week.
-
-                A number says how much is waiting *and* is a thing that can be
-                cleared, which is the whole point of the seen mark behind it.
-
-                `9+` above nine: the badge is 18px on a 44px target, and three
-                digits either shrink the type under the floor or push the pill
-                off the bell. Past nine the exact figure is not what the client
-                needs from a glyph in a corner — the screen behind it has the
-                list.
-
-                `ring-card` on every tab including home, where the header is
-                unfilled over the glow: the ring is what separates the pill from
-                the bell under it, and against the green wash a white-ish ring
-                still reads as a gap rather than as part of the badge. The fill
-                is the same complete-mark green the dot used, which is already
-                the portal's "something for you" colour.
+                The portal's bell: a bare 44px disc that takes the header's own
+                tone, rather than the shared trigger's bordered grey box. It
+                clears the default's border, fill and size — see the note on
+                `triggerClassName`, and on `iconTone` above for why this turns
+                white on the home tab alone.
               */
-              <span
-                aria-hidden
-                className="absolute top-1.5 end-1.5 grid h-4.5 min-w-4.5 place-items-center rounded-full bg-status-complete-mark px-1 text-[0.625rem] leading-none font-semibold text-white ring-2 ring-card tabular-nums"
-              >
-                {unreadCount > 9 ? '9+' : unreadCount}
-              </span>
-            ) : null}
-          </Destination>
+              triggerClassName={cn(
+                'size-11 rounded-full border-transparent bg-transparent shadow-none',
+                iconTone,
+              )}
+            />
+          ) : null}
 
           {showNav ? (
             <Destination

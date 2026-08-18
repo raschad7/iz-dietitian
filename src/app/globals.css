@@ -152,6 +152,28 @@
   --indigo-500: #2F5FA8;
 
   /*
+   * ── Gold: the adherence meter's fill ──
+   *
+   * Not amber, and for the same reason flame is not amber: amber means "needs
+   * follow-up" in this system, and a meter that wore it would report every
+   * client on the register as a problem. Not olive either — olive marks what
+   * you can act on, and a measurement is not an action (the rule `viz-brand`
+   * spells out).
+   *
+   * A **graphic fill only**. It carries the register's progress track and
+   * nothing else; it is far too light to sit under text, and it must never be
+   * reached for as an ink colour. See `--viz-progress`.
+   *
+   * Deepened from the #FDC700 it started at, which read as a highlighter
+   * against the light track rather than as a filled measure — the bar was
+   * bright without being legible, which is the wrong trade for a value someone
+   * is meant to compare down a column. This step keeps the hue and takes about
+   * a fifth off the lightness, which lifts it from 1.6:1 on white to roughly
+   * 2:1. Still nowhere near a text ratio, and still fill-only.
+   */
+  --gold-500: #E8B000;
+
+  /*
    * ── Portal home glow ──
    * The ambient blur behind the portal's home screen, pinned to the exact
    * Figma value rather than mapped onto the olive/lime ramp — it is a single
@@ -465,6 +487,7 @@
    */
   --color-viz-brand: var(--viz-brand);
   --color-viz-brand-soft: var(--viz-brand-soft);
+  --color-viz-progress: var(--viz-progress);
 
   --color-ring: var(--ring);
   --color-focus-halo: var(--focus-halo);
@@ -535,6 +558,7 @@
   --color-secondary-foreground: var(--secondary-foreground);
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-foreground-white: var(--primary-foreground-white);
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
   --color-primary-subtle: var(--primary-subtle);
@@ -611,6 +635,17 @@
   --primary: #72AE34;
   --primary-hover: var(--olive-600);
   --primary-foreground: var(--n-900);
+  /*
+   * The *white* label on that same fill — what every solid primary button
+   * wears. It was one variant's colour among several white-vs-dark call sites;
+   * the fork is closed and `default` reads this. A token rather than a
+   * `text-white` per site so the pairing lives in one place: if the fill is
+   * ever darkened to clear AA, this is the single line to re-check.
+   *
+   * `--primary-foreground` (n-900) stays for the non-button surfaces that
+   * still read it. See `default` in `components/ui/button.tsx` for the trade.
+   */
+  --primary-foreground-white: var(--n-0);
   /*
    * The brand's quiet fill, mirroring `--destructive-subtle`. For a surface
    * that is *about* to be primary — the agenda's next session at rest, before
@@ -915,6 +950,14 @@
   --viz-brand-soft: var(--olive-300);
 
   /*
+   * The adherence meter's fill — see `--gold-500`. One value across light,
+   * dark and system dark: it is a saturated mid-tone that holds against both
+   * the light track (`--muted`) and the dark one, so unlike the olive pair
+   * above it does not need a lighter step in the dark themes.
+   */
+  --viz-progress: var(--gold-500);
+
+  /*
    * ── Sidebar — a near-white rail ──
    *
    * Full-bleed, separated from the canvas by a hairline rather than by
@@ -1142,6 +1185,8 @@
    */
   --viz-brand: var(--olive-400);
   --viz-brand-soft: var(--olive-600);
+  /* Unchanged in dark — see the light block for why it needs no darker step. */
+  --viz-progress: var(--gold-500);
 
   /*
    * The dark rail keeps its dark treatment — a pale rail on an olive-950
@@ -1261,6 +1306,8 @@
 
     --viz-brand: var(--olive-400);
     --viz-brand-soft: var(--olive-600);
+    /* Repeated here deliberately — see the note on this media query block. */
+    --viz-progress: var(--gold-500);
 
     --sidebar: var(--olive-900);
     --sidebar-foreground: var(--olive-200);
@@ -1480,6 +1527,49 @@
      * fallback would invalidate `bottom` entirely and drop the button to `auto`.
      */
     --q-fab-offset-bottom: var(--q-toast-offset-bottom);
+  }
+}
+
+/*
+ * ── One staff screen drops the rail on a phone ──
+ *
+ * The staff rail is `railOnly`, so below `lg` it is locked to its 56px icon
+ * column and drawn at *every* width — a phone included (`AppShell`). That is
+ * the right trade on the screens a dietitian moves between all day: 56px for
+ * one-tap navigation. It is the wrong one on a client's record, which is the
+ * densest screen in the app — an identity panel, a five-tab bar and a lattice
+ * of readings — and where those 56px are the difference between a phone
+ * showing 264px of record and showing the whole 320px.
+ *
+ * So the rail goes on that route, and on phones only. `.q-hide-rail` is the
+ * marker the record's own layout sets; a screen opts in, the rule never
+ * decides for itself which routes are dense.
+ *
+ * **Nothing becomes unreachable.** The record layout opens with a breadcrumb
+ * back to the register, which is the way out and is on screen before anything
+ * else. That link is a condition of using this class, not a coincidence — a
+ * screen with no rail *and* no way back is a dead end.
+ *
+ * `[data-slot='sidebar-wrapper']:has(…)` because the rail is a *sibling* of the
+ * page rather than an ancestor: the marker sits inside `SidebarInset` and the
+ * wrapper is the nearest box that can see both. Hiding `[data-slot='sidebar']`
+ * — the wrapper holding both the in-flow gap that reserves the column and the
+ * fixed panel that fills it — reclaims the width and removes the rail together,
+ * exactly as the portal's rule above does.
+ *
+ * `:not([data-mobile='true'])` spares the Sheet the same primitive renders when
+ * a shell is not `railOnly`. The staff shell always is, so that sheet never
+ * exists here — but the selector costs one clause and the portal rule carries
+ * it for the same reason.
+ *
+ * `48rem` is `md`, which is the line this app calls a phone: the register drops
+ * to its identity column there, `useIsMobile` reads the same query, and the
+ * record's own views are laid out against it. Move one and move all of them.
+ */
+@media (width < 48rem) {
+  [data-slot='sidebar-wrapper']:has(.q-hide-rail)
+    [data-slot='sidebar']:not([data-mobile='true']) {
+    display: none;
   }
 }
 
@@ -1942,6 +2032,62 @@
    * line and silently lost it in Arabic; that whole treatment is gone now, and
    * nothing in this file may reintroduce a `:dir()` rule.
    */
+  /*
+   * ── The cue a hidden scrollbar owes its surface ──
+   *
+   * `* { scrollbar-width: none }` above takes away the one thing that says a box
+   * has more inside it than it is showing, and that rule's own note sets the
+   * debt: "surfaces that can overflow should show their own affordance" and
+   * "nothing may rely on a bar being visible to tell a reader that content
+   * continues". The block axis has paid it in places — the calendar's below-fold
+   * markers, the requests queue's fade. The inline axis had nothing, so a
+   * register on a phone showed four of its ten columns and looked like a table
+   * that simply did not have the others.
+   *
+   * **It hides itself, which is the whole reason it is built this way.** A plain
+   * gradient overlay would dim the first and last few pixels of every table on
+   * every screen, including the desktop majority that do not overflow at all —
+   * legibility damage inflicted to warn about a condition that is not present.
+   *
+   * The four-layer background does the test in CSS. Two `local` layers scroll
+   * *with* the content and are painted in the surface colour; two `scroll`
+   * layers stay pinned to the box's edges and carry the shadow. At the start of
+   * the scroll the local layer sits exactly on top of the start-edge shadow and
+   * hides it; scroll away and it travels off, uncovering the shadow behind it.
+   * So each edge shows a shadow only while there is content past that edge —
+   * which is precisely what a scrollbar was telling you.
+   *
+   * Symmetric, so it mirrors for RTL for free, like `.q-skeleton` below. Built
+   * from theme tokens, so it follows the dark palette. `--scroll-cue-surface` is
+   * the colour of whatever the scroller sits on; override it on a scroller
+   * inside a card, where the ground is `--card` rather than the page.
+   *
+   * ⚠ It paints *behind* the content. A scroller whose rows carry their own
+   * opaque fill will hide it — the tables here are fine because only
+   * `TableHeader` is filled and the body rows are transparent, but a surface
+   * with an opaque child from edge to edge needs the overlay form instead.
+   */
+  .q-scroll-cue {
+    --scroll-cue-surface: var(--background);
+    background-image:
+      linear-gradient(to right, var(--scroll-cue-surface) 30%, transparent),
+      linear-gradient(to left, var(--scroll-cue-surface) 30%, transparent),
+      radial-gradient(farthest-side at 0 50%, rgb(0 0 0 / 0.12), transparent),
+      radial-gradient(farthest-side at 100% 50%, rgb(0 0 0 / 0.12), transparent);
+    background-position:
+      0 0,
+      100% 0,
+      0 0,
+      100% 0;
+    background-repeat: no-repeat;
+    background-size:
+      2.5rem 100%,
+      2.5rem 100%,
+      0.875rem 100%,
+      0.875rem 100%;
+    background-attachment: local, local, scroll, scroll;
+  }
+
   .q-skeleton {
     position: relative;
     overflow: hidden;
@@ -2574,131 +2720,133 @@
     box-shadow: 0 10px 24px -16px var(--primary);
   }
 }
-
 /*
  * ── Patient identity ──
  *
  * The colour a person's bookings are drawn in, so a day's grid can be read as
  * "who" before it is read as "when". One colour per client, everywhere the
  * schedule shows them: the calendar block, the month chip, the agenda row, and
- * the initials avatar on each.
+ * the avatar on each.
  *
- * **The element supplies one number and this supplies the rest.**
- * `src/features/booking/patient-color.ts` sets `--tone-h`, a hue in degrees
- * picked by the client's position — one of the ten palette colours, or a mix of
- * two of them once those are spoken for; the four steps below are built from it
- * here. Nothing below depends on which hue arrives: every value is measured
- * across the whole wheel, so the palette can be re-picked without touching this
- * file.
- * That split is deliberate. A component computing its own fills would put
- * colour decisions in a `.tsx` — the thing this file exists to make
- * unnecessary — and would have no way to answer a theme. This way the ramp is
- * one edit, and dark mode is the override underneath.
+ * **The element supplies the colour and this supplies the ramp built from it.**
+ * `src/features/booking/patient-color.ts` sets five custom properties — the hue,
+ * and a lightness and chroma per theme — picked by the client's position: one of
+ * the ten palette colours, or a mix of two of them once those are spoken for.
+ * The four steps below are derived here, so a component never computes a fill.
  *
- * It has to be a class rather than four `:root` tokens: a custom property is
+ * That split is deliberate. A component computing its own fills would put colour
+ * decisions in a `.tsx` — the thing this file exists to make unnecessary — and
+ * would have no way to answer a theme. This way the ramp is one edit, and dark
+ * mode is the override underneath.
+ *
+ * ⚠ **It used to be one property, and the extra four are the palette's doing.**
+ * The ramp held lightness and chroma fixed and took only `--tone-h`, which made
+ * every client's card exactly as heavy as every other's — colour saying who and
+ * never how important. That is a good rule and it bought a bad palette: with two
+ * coordinates pinned, all the separation between ten colours had to come out of
+ * one circle of radius 0.055, and the closest pair sat 0.030 apart in OKLab —
+ * barely past the ~0.02 that is just noticeable. Ten colours that were different
+ * rather than ten colours anyone could tell apart.
+ *
+ * Letting all three move puts the closest pair at 0.111 here and 0.090 in dark,
+ * three to four times the separation, and the cost is bounded to what the bands
+ * in `patient-color.ts` allow: every colour still carries body text at 4.5:1 or
+ * better, measured worst 7.20:1 here and 6.64:1 in dark. Cards differ in weight
+ * now; no card is weak.
+ *
+ * A theme cannot be answered by the inline style — the server does not know
+ * which one will paint — so the element carries both pairs and each block below
+ * picks one. `--tone-l` and `--tone-c` are the *resolved* pair; everything else
+ * is written in terms of them and is therefore theme-agnostic.
+ *
+ * It has to be a class rather than `:root` tokens: a custom property is
  * substituted where it is *declared*, so `--tone-fill` on `:root` would read
  * `:root`'s hue and ignore whatever the card set. Declaring the ramp on the
  * element itself is what makes the substitution local.
  *
- * **OKLCH, not HSL.** HSL's "lightness" is not lightness — `hsl(60 80% 50%)`
- * is a bright yellow and `hsl(240 80% 50%)` a dark blue, so a per-client hue
- * spun through HSL would hand one patient a card whose text fails contrast and
- * another a card that shouts. OKLCH is perceptually uniform, so fixing L fixes
- * *apparent* lightness. Measured across all 360 hues: the resting fill holds
- * n-900 at 12.16–12.53:1, the hover fill at 10.55–10.90:1, and the avatar's
- * glyph holds 4.15:1 or better on the disc. Every patient's *card* carries the
- * same visual weight, which is the point — colour here says who, never how
- * important.
+ * **OKLCH, not HSL.** HSL's "lightness" is not lightness — `hsl(60 80% 50%)` is
+ * a bright yellow and `hsl(240 80% 50%)` a dark blue, so a per-client hue spun
+ * through HSL would hand one patient a card whose text fails contrast and
+ * another a card that shouts. OKLCH is perceptually uniform, so a lightness
+ * *is* an apparent lightness, which is what lets a band be chosen and trusted.
  *
- * The chroma of every step is the most sRGB allows at that step's lightness
- * across every hue, so nothing is silently clipped. That is not only a contrast
- * concern: browsers clip per channel, and per-channel clipping moves the hue, so
- * a clipped step would no longer be the same colour as the card beside it. See
- * `--tone-mark`, which is where that went wrong.
- *
- * **The fill has to be tinted enough that two patients are actually told
- * apart**, and for a long time it was not. Two hues separate by twice the
- * chroma times the sine of half the gap between them — chroma is the multiplier
- * on the whole scheme — so at `0.0269` the closest pair on a day with eight
- * clients differed by an OKLab ΔE of 0.014, and at twelve by 0.007, against the
- * ~0.02 that is just-noticeable on a flat area. Every colour was unique in the
- * data and several were the same colour on screen, which is the entire job
- * undone. No assignment of hues can fix that; the hues were already as far apart
- * as they go.
- *
- * Chroma at a fixed lightness is the wrong lever on its own: the ceiling at
- * L=0.8888 is 0.0537, and past it hues leave sRGB, clip per channel, and land on
- * each other. Lightness has to come down with it. At `0.84 0.0788` — the ceiling
- * for the worst hue at that lightness, measured by bisecting all 360 — eight
- * clients separate by 0.041 and twenty still clear the threshold at 0.021, with
- * nothing clipped and n-900 still at 10.20:1 or better.
+ * **Nothing here may leave sRGB.** Browsers clip per channel rather than
+ * gamut-mapping, and per-channel clipping does not preserve hue: a clipped step
+ * is no longer the same colour as the card beside it, and two clipped clients
+ * drift towards the same corner of the cube. The per-client fill is clamped in
+ * `patient-color.ts` before it arrives; the fixed steps below are set inside the
+ * ceiling of the *weakest* hue on the wheel, measured by bisecting all 360.
  */
 .patient-tone {
+  /* The light theme's half of what the element carries. */
+  --tone-l: var(--tone-l-light);
+  --tone-c: var(--tone-c-light);
+
   /*
-    The resting card: `oklch(0.84 0.0788 h)`, a chosen colour with only the hue
-    left free.
+    The resting card: the client's own colour, whole.
 
-    Lightness and chroma are fixed on purpose and are not a derived pair. Holding
-    the first two is what keeps every patient's card the same weight on the grid
-    — colour here says who, never how important — and the whole of a client's
-    identity is the third number.
-
-    Which is exactly why the chroma is now the ceiling rather than a taste
-    setting. It sat at 0.0269 for a while, on the reading that the card could
-    afford to be quiet because the avatar beside the name says who. That traded
-    away the one thing the fill is for: at 0.0269 two clients on the same day
-    were 0.014 apart in OKLab, under the just-noticeable difference, so the
-    calendar had patients sharing a colour no matter how carefully the hues were
-    assigned. The note above works the arithmetic through.
-
-    0.0788 is the most the *weakest* hue can carry at this lightness, found by
-    bisecting every one of the 360 rather than by trusting the model. Nothing
-    clips — which matters twice over, because per-channel clipping moves the hue
-    and would break the avatar's match with the card as well as collapsing two
-    clients onto one colour.
+    Every number in it comes from the element now — which is why the palette can
+    be re-picked without touching this file.
 
     Opaque. It carried a 0.6 alpha briefly so the hour rules would show through,
     and that was reverted — the cards stopped reading as cards.
 
-    Measured: n-900 holds 10.20:1 or better on the resting fill and 8.76:1 on the
-    hover, across every hue. Hover differs by lightness alone, so the deeper step
-    cannot drift into a different colour from the card it belongs to.
+    Measured across the ten and the mixes between them: n-900 holds 7.20:1 or
+    better on the resting fill and 6.09:1 on the hover. Hover moves on lightness
+    alone, so the deeper step cannot drift into a different colour from the card
+    it belongs to.
   */
-  --tone-fill: oklch(0.84 0.0788 var(--tone-h));
-  --tone-fill-hover: oklch(0.795 0.0788 var(--tone-h));
-  --tone-avatar-fill: oklch(0.89 0.05 var(--tone-h));
+  --tone-fill: oklch(var(--tone-l) var(--tone-c) var(--tone-h));
+  --tone-fill-hover: oklch(calc(var(--tone-l) - 0.045) var(--tone-c) var(--tone-h));
+
   /*
-    The hairline. 0.105 rather than the 0.115 it asked for: the ceiling at this
-    lightness is 0.1055, so the old value was clipping a band of hues — moving
-    them off `--tone-h` and away from the fill they are drawn around. Same rule
-    as every other step here.
+    **The avatar disc is this same fill, which is why there is no separate step
+    for it here.** `--tone-avatar-fill` used to be declared on this line as a
+    lighter, flatter colour — a disc that merely *belonged to* the same hue
+    family as the card. `Avatar` falls back from it to `--tone-fill`, so deleting
+    the declaration is what makes the two literally one colour rather than two
+    shades of one hue, which is what the component's own note has claimed all
+    along.
+
+    Two colours were worse on both counts it was meant to help. On a neutral row
+    — the register, the notification feed, the request cards — the disc is the
+    *only* thing carrying the client's colour, and the lighter step spent a third
+    of the palette's separation on the one surface with nothing else to fall back
+    on. On the calendar the disc sits *inside* a card already filled with the
+    card colour, so a lighter disc was a pale coin stamped on the block, a second
+    shape competing with the glyph it exists to hold. Matched, the disc
+    disappears into the card and only the mark is left: the block is the client's
+    colour and the glyph is their signature on it.
+
+    `AppointmentBlock` sets it `transparent`, which is the same colour again at
+    rest and the right one on hover — see the note there.
   */
-  --tone-edge: oklch(0.62 0.105 var(--tone-h));
+
   /*
-    The mark on the avatar disc: the same hue as the card, two steps deeper.
+    The hairline, at a lightness of its own so it reads as an edge on every card
+    in the band rather than as a slightly deeper fill on the lighter ones.
 
-    **In gamut at every hue, which is the whole requirement.** This asked for
-    `0.42 0.4` for a while — a chroma past every hue's ceiling, left to be
-    clipped back to whatever sRGB had. That was written when the disc carried two
-    initials on a white ground and its one job was to be vivid enough to tell six
-    clients apart. It is a glyph on a disc filled with `--tone-fill` now, sitting
-    beside the appointment card in that same fill, and clipping is the one thing
-    that cannot survive: browsers clip per channel rather than gamut-mapping, and
-    per-channel clipping does not preserve hue. Red came back as `rgb(242 0 0)`
-    and violet as `rgb(84 0 255)` — colours that have left the hue they were
-    asked for, so the glyph and the card underneath it were no longer the same
-    colour at all.
-
-    0.075 is inside the ceiling for the *weakest* hue at this lightness — around
-    200°, the teals — measured by bisecting every one of the 360. Nothing clips,
-    so `--tone-h` comes out the other side unchanged and the mark is the card's
-    own colour by construction.
-
-    The glyph holds 4.33–4.40:1 against the disc it is drawn on and 3.72–3.78:1
-    against the hover fill, across all 360 hues. It is a graphic rather than
-    text, so 3:1 is the bar; it clears the text bar at rest anyway.
+    0.10 rather than the 0.105 it carried: bisecting all 360 hues puts the
+    ceiling at L=0.62 at 0.1054, and a value that close to the boundary clips the
+    moment a browser rounds differently. Same rule as every other step here.
   */
-  --tone-mark: oklch(0.46 0.075 var(--tone-h));
+  --tone-edge: oklch(0.62 0.1 var(--tone-h));
+
+  /*
+    The mark on the avatar disc: the client's hue, well below the fill.
+
+    Fixed rather than derived from `--tone-l`, and that is what the band in
+    `patient-color.ts` buys. A mark computed as "the fill, darker" would need its
+    chroma clamped per client — the arithmetic `clampToGamut` does in TypeScript,
+    which CSS cannot express — whereas a fixed step only has to clear its bar
+    against the lightest fill the band allows and stay in gamut at every hue.
+
+    0.40 0.06 does both: 3.97:1 at the weakest pairing across the ten and their
+    mixes, against the 3:1 a graphic needs, and inside the ceiling of the weakest
+    hue at that lightness. It was 0.46 0.075, which was measured against a single
+    fixed fill and would sit near 2.6:1 on the darkest cards in the new band.
+  */
+  --tone-mark: oklch(0.4 0.06 var(--tone-h));
 }
 
 /*
@@ -2712,33 +2860,34 @@
  */
 .dark .patient-tone {
   /*
-    Same correction as the light ramp, against a tighter ceiling: a dark colour
-    holds less chroma before it leaves sRGB, and 0.055 at L=0.34 is what the
-    weakest hue has. It was 0.035, which put two clients on a busy day 0.018
-    apart — the same "unique in the data, identical on screen" the light fill
-    had. n-25 still holds 10.86:1 on the resting fill and 8.49:1 on the hover.
-
-    The hover keeps the same chroma and moves on lightness alone, so it cannot
-    drift into a different colour from the card it belongs to. It had been
-    carrying a chroma of its own, which meant a hovered card was a slightly
-    different colour as well as a lighter one.
+    The other half of what the element carries. The fill is derived from this
+    pair and needs no restatement; only the two steps whose lightness has to move
+    against a dark surface are repeated below.
   */
-  --tone-fill: oklch(0.34 0.055 var(--tone-h));
-  --tone-fill-hover: oklch(0.40 0.055 var(--tone-h));
-  --tone-avatar-fill: oklch(0.40 0.055 var(--tone-h));
-  --tone-edge: oklch(0.62 0.105 var(--tone-h));
+  --tone-l: var(--tone-l-dark);
+  --tone-c: var(--tone-c-dark);
+
   /*
-    And here the mark has to go the other way, because the disc under it does.
+    Hover goes *up* here rather than down, because the surface it lifts off is
+    dark. Same chroma and hue, so a hovered card cannot be a different colour
+    from the card it belongs to — it carried a chroma of its own once, which
+    meant hovering changed the client as well as the state.
 
-    It was the light theme's value verbatim, which was defensible while the disc
-    was a saturated shape on its own ground and merely had to be dark enough for
-    white letters. The disc is `--tone-fill` now — L 0.34 in this theme — so a
-    mark at L 0.42 is a dark glyph on a dark card, near enough invisible. Above
-    the fill rather than below it: 0.82, holding 6.67–6.79:1 against the disc and
-    5.24–5.31:1 against its hover fill, every hue in gamut.
+    n-25 holds 6.64:1 on the resting fill and 5.24:1 on the hover, across the ten
+    and their mixes.
   */
-  --tone-mark: oklch(0.82 0.085 var(--tone-h));
+  --tone-fill-hover: oklch(calc(var(--tone-l) + 0.055) var(--tone-c) var(--tone-h));
+
+  /*
+    And the mark goes the other way too, because the disc under it does. The disc
+    is `--tone-fill` — L 0.285–0.455 in this theme — so a dark glyph on it is
+    near enough invisible. Above the fill rather than below: 0.88 0.045, holding
+    4.86:1 at the weakest pairing and in gamut at every hue, where the old
+    0.82 0.085 clipped through the blues at this lightness.
+  */
+  --tone-mark: oklch(0.88 0.045 var(--tone-h));
 }
+
 
 /* Tablet is a three-day-wide work surface, not a compressed seven-column
  * desktop. The rest of the week stays one touch swipe away, with the frozen
@@ -2778,6 +2927,74 @@
     place-items: center;
     padding: 0;
     opacity: 1;
+  }
+}
+
+/*
+ * ── The calendar's touch gestures ──
+ *
+ * The same problem the planner solved above, in the surface where it mattered
+ * most and had not been solved at all: an appointment could not be dragged on a
+ * touch screen, and trying was worse than failing.
+ *
+ * **Why a drag on glass used to die.** `use-calendar-gestures.ts` listens for
+ * `pointermove` on the window, which is right for a mouse and not sufficient for
+ * a finger. A touch that starts on a surface whose `touch-action` still permits
+ * panning belongs to the browser as soon as it travels: the browser takes the
+ * gesture for scrolling and fires `pointercancel`, and the move ends having gone
+ * nowhere. The block cannot simply claim `touch-action: none` for itself — it
+ * fills the grid, and a grid that cannot be panned is a calendar with one screen
+ * of day in it.
+ *
+ * So the same answer as the planner: the surface stays scrollable and an
+ * explicit grip reserves the gesture. `touch-action: none` on the grip alone
+ * means the browser never competes for a finger that starts there, while a
+ * finger anywhere else on the block still scrolls the week.
+ *
+ * `.calendar-drag-grip` is the move handle. It is invisible on a mouse — the
+ * whole block is draggable there and always has been, so the grip would be
+ * chrome answering a question nobody asked — and on coarse pointers it becomes a
+ * 44px target in the block's inline-start edge, clear of the name link and of
+ * the actions button in the opposite corner.
+ */
+.calendar-drag-grip {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  display: none;
+}
+
+/*
+ * The resize edge keeps its gesture on every pointer, because unlike the block
+ * it is a few pixels tall and has never been somewhere you would start a scroll.
+ * On coarse pointers it deepens towards the touch floor — bounded by the inline
+ * style, which caps it at a third of the block so it can never swallow the
+ * surface the move gesture needs.
+ */
+.calendar-resize-grip {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  /*
+    The block computes both depths and this picks one. It cannot be a static
+    value either way: the depth is capped at a third of *its own* block, so the
+    number is per-appointment and has to arrive from the element. The fallback
+    keeps the strip usable if a caller ever forgets to supply the pair.
+  */
+  block-size: var(--resize-grip-fine, 8px);
+}
+
+@media (pointer: coarse) {
+  .calendar-drag-grip {
+    display: grid;
+    place-items: center;
+    inline-size: 28px;
+    block-size: 100%;
+    opacity: 1;
+  }
+
+  .calendar-resize-grip {
+    block-size: var(--resize-grip-coarse, 20px);
   }
 }
 

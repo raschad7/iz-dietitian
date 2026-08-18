@@ -138,7 +138,7 @@ export function DatePickerButton({ locale, value, range, today, label, onSelect 
         control that changes width when the locale changes cannot be positioned
         against the toolbar's centre line. The cells divide the panel instead.
       */}
-      <PopoverContent aria-label={t('pickDate')} className="w-[264px] p-2">
+      <PopoverContent aria-label={t('pickDate')} className="w-[264px] pointer-coarse:w-[19.5rem] p-2">
         {/*
           Keyed on the anchor, so reopening the picker after the toolbar has
           moved starts the panel where the calendar now is — on the days, on

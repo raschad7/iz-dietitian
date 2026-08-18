@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useActionState } from 'react';
+import { useActionState, useState, type ChangeEvent, type FormEvent } from 'react';
 
 import { AuthFormMessage, AuthSubmitButton } from '@/features/auth/components/form-parts';
 import { GoogleButton } from '@/features/auth/components/google-button';
@@ -9,6 +9,12 @@ import { PasskeyButton } from '@/features/auth/components/passkey-button';
 import { PasswordInput } from '@/features/auth/components/password-input';
 import { signInWithPassword } from '@/features/auth/actions';
 import { initialAuthState, type AuthFormState } from '@/features/auth/form-state';
+import {
+  loginFieldErrors,
+  readLoginForm,
+  type LoginFieldErrors,
+} from '@/features/auth/login-validation';
+import { FieldError } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Link } from '@/i18n/navigation';
@@ -46,6 +52,39 @@ export function StaffLoginForm({ locale, showGoogle, redirectTo, oauthError }: S
   const t = useTranslations('login');
   const tCommon = useTranslations('common');
   const [state, formAction] = useActionState(signInWithPassword, initialAuthState);
+  const [fieldErrors, setFieldErrors] = useState<LoginFieldErrors>({});
+
+  /**
+   * Checks the form in the page's language before the browser can check it in
+   * its own. `noValidate` below silences the native bubble — see
+   * `login-validation.ts` for why it had to go rather than be translated.
+   */
+  function validateBeforeSubmit(event: FormEvent<HTMLFormElement>): void {
+    const form = event.currentTarget;
+    const errors = loginFieldErrors(readLoginForm(new FormData(form)));
+    setFieldErrors(errors);
+
+    if (Object.keys(errors).length === 0) return;
+
+    event.preventDefault();
+    // The first field that is wrong, not the first field on the form.
+    window.setTimeout(() => {
+      form.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+    }, 0);
+  }
+
+  /** A field stops being wrong the moment it is edited. */
+  function clearCorrectedField(event: ChangeEvent<HTMLFormElement>): void {
+    if (!(event.target instanceof HTMLInputElement)) return;
+    const name = event.target.name as keyof LoginFieldErrors;
+
+    setFieldErrors((current) => {
+      if (!current[name]) return current;
+      const next = { ...current };
+      delete next[name];
+      return next;
+    });
+  }
 
   const urlErrorState: AuthFormState | null = oauthError
     ? { status: 'error', messageKey: oauthMessageKey(oauthError) }
@@ -65,7 +104,13 @@ export function StaffLoginForm({ locale, showGoogle, redirectTo, oauthError }: S
   return (
     <div className="w-full">
 
-      <form action={formAction} className="space-y-4">
+      <form
+        action={formAction}
+        noValidate
+        onSubmit={validateBeforeSubmit}
+        onChange={clearCorrectedField}
+        className="space-y-4"
+      >
         <input type="hidden" name="locale" value={locale} />
         <input type="hidden" name="redirectTo" value={redirectTo ?? ''} />
 
@@ -85,10 +130,15 @@ export function StaffLoginForm({ locale, showGoogle, redirectTo, oauthError }: S
             name="email"
             type="email"
             autoComplete="email"
-            required
+            aria-required
+            aria-invalid={Boolean(fieldErrors.email)}
+            aria-describedby={fieldErrors.email ? 'staff-email-error' : undefined}
             placeholder={t('emailPlaceholder')}
             icon="email"
           />
+          {fieldErrors.email ? (
+            <FieldError id="staff-email-error">{t(fieldErrors.email)}</FieldError>
+          ) : null}
         </div>
 
         <PasswordInput
@@ -96,6 +146,8 @@ export function StaffLoginForm({ locale, showGoogle, redirectTo, oauthError }: S
           label={tCommon('password')}
           autoComplete="current-password"
           placeholder={t('passwordPlaceholder')}
+          nativeRequired={false}
+          error={fieldErrors.password ? t(fieldErrors.password) : undefined}
         />
 
         <p className="text-end text-sm">

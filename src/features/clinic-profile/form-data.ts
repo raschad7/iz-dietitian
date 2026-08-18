@@ -1,3 +1,5 @@
+import { resolveOptionValue } from './professional-options';
+
 function minuteFromTime(value: FormDataEntryValue | null): number {
   if (typeof value !== 'string' || !/^\d{2}:\d{2}$/.test(value)) return Number.NaN;
   const [hour, minute] = value.split(':').map(Number);
@@ -28,12 +30,27 @@ export function readClinicProfileForm(formData: FormData) {
           : { weekday, isWorking: false as const, openMinute: null, closeMinute: null };
       }),
     },
+    /*
+      The title and the specialty each post two controls — a select and the
+      text box that "أخرى" reveals — and collapse to the single string the
+      column holds. Doing it here rather than in the component means the server
+      action resolves the pair the same way the wizard's own client-side check
+      does, from the same `FormData`, so the two can never disagree about what
+      was chosen.
+
+      `professionalPhone` and `licenseNumber` are gone from every screen; see
+      the ⚠ on `professionalProfileSchema`.
+    */
     professional: {
       name: formData.get('name'),
-      professionalTitle: formData.get('professionalTitle'),
-      specialty: formData.get('specialty'),
-      phone: formData.get('professionalPhone'),
-      licenseNumber: formData.get('licenseNumber'),
+      professionalTitle: resolveOptionValue(
+        formData.get('professionalTitle'),
+        formData.get('professionalTitleCustom'),
+      ),
+      specialty: resolveOptionValue(
+        formData.get('specialty'),
+        formData.get('specialtyCustom'),
+      ),
     },
   };
 }

@@ -140,7 +140,14 @@ export type AdherenceDay = {
 };
 
 export type WeekAdherence = {
-  /** Always seven entries, Sunday first. */
+  /**
+   * One entry per date the summary was asked about, in the order given.
+   *
+   * Seven, Sunday first, when it came from {@link summariseAdherenceWeek}.
+   * Seven in the plan's own order when it came from
+   * {@link summariseAdherenceRun} over a plan period, which may begin on any
+   * weekday — see that function.
+   */
   days: AdherenceDay[];
   /** Days in this week with a report, past or present — any level counts. */
   recordedCount: number;
@@ -236,8 +243,36 @@ export function adherenceDaysFor(
  * day can never pull the week's number down.
  */
 export function summariseAdherenceWeek(rows: AdherenceRow[], today: IsoDate): WeekAdherence {
+  return summariseAdherenceRun(weekDates(today), rows, today);
+}
+
+/**
+ * The same summary over **any** run of dates, rather than over the calendar
+ * week `today` falls in.
+ *
+ * Split out of {@link summariseAdherenceWeek} for the reason
+ * {@link adherenceDaysFor} was split out of it before: a *plan period* is not a
+ * calendar week. `weekly_plans.week_start_date` may be any weekday, and the
+ * staff register measures a client against the seven days of the plan they are
+ * actually on — so a client whose plan runs Tuesday-to-Monday is judged on
+ * Tuesday-to-Monday, and their figure resets when that plan period ends rather
+ * than at midnight on Saturday. `summariseAdherenceWeek` above is now this
+ * function called with `weekDates(today)`, so the portal's progress tab keeps
+ * the calendar week it has always shown and there is still exactly one
+ * implementation of the arithmetic.
+ *
+ * The contract on `rows` is unchanged and worth restating: they may be sparse,
+ * out of order, and may contain dates outside `dates` entirely — only the given
+ * dates are read. Dates after `today` are dropped from the average and the
+ * counts even if a row exists for one, so the back half of a plan period a
+ * client has not reached cannot drag their figure down.
+ */
+export function summariseAdherenceRun(
+  dates: readonly IsoDate[],
+  rows: readonly AdherenceRow[],
+  today: IsoDate,
+): WeekAdherence {
   const byDate = new Map(rows.map((row) => [row.date, row]));
-  const dates = weekDates(today);
 
   const days = adherenceDaysFor(dates, rows, today);
 

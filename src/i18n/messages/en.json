@@ -76,7 +76,9 @@
       "formDescription": "Update the details that identify you within the clinic team.",
       "accountEmail": "Account email",
       "accountEmailHint": "This email is managed through your sign-in account.",
-      "identityTitle": "Account"
+      "identityTitle": "Account",
+      "languageTitle": "Preferred language",
+      "languageDescription": "The language this workspace is shown in."
     },
     "clinic": {
       "title": "Clinic",
@@ -127,6 +129,8 @@
     "passwordPlaceholder": "Your password",
     "confirmPasswordPlaceholder": "Confirm your password",
     "namePlaceholder": "Your name",
+    "firstNamePlaceholder": "Your first name",
+    "lastNamePlaceholder": "Your last name",
     "usernamePlaceholder": "Your username",
     "submit": "Sign in",
     "showPassword": "Show password",
@@ -140,8 +144,11 @@
     "signUpHeading": "Create a clinic team account",
     "signUpSubmit": "Create account",
     "fullName": "Full name",
+    "firstName": "First name",
+    "lastName": "Last name",
     "confirmPassword": "Confirm password",
     "passwordHint": "At least {count, number, integer} characters.",
+    "passwordStrengthHint": "At least {count, number, integer} characters, mixing letters with numbers or symbols.",
     "clientTitle": "Client portal",
     "brandTagline": "Nutrition care for the whole clinic, in one place.",
     "clientHeading": "Clients",
@@ -157,7 +164,14 @@
     "emailTaken": "That email address is already registered.",
     "passwordMismatch": "The two passwords do not match.",
     "passwordTooShort": "That password is too short.",
+    "passwordTooWeak": "Use a mix of letters and numbers or symbols, and avoid common passwords.",
+    "emailRequired": "Email is required",
+    "usernameRequired": "Username is required",
+    "passwordRequired": "Password is required",
     "nameRequired": "Enter your full name.",
+    "firstNameRequired": "First name is required",
+    "lastNameRequired": "Last name is required",
+    "nameTooLong": "Use at most {count, number, integer} characters.",
     "invalidEmail": "Enter a valid email address.",
     "continueWithGoogle": "Continue with Google",
     "googleUnavailable": "Google sign-in could not start. Check your connection and try again.",
@@ -215,6 +229,7 @@
     "openClientProfile": "Open client profile",
     "openActions": "Appointment actions",
     "monthMore": "+{count, number, integer} more",
+    "monthOther": "Other {count, number, integer}",
     "hiddenBelow": "+{count, number, integer} more",
     "hiddenBelowAction": "Scroll down to {count, number, integer} more appointments on this day",
     "monthReadOnly": "Month view is an overview. Click a day to book or edit.",
@@ -410,6 +425,10 @@
       "title": "Nothing waiting",
       "description": "Appointment requests and record corrections from the portal arrive here."
     },
+    "sectionLabels": {
+      "appointments": "Appointments",
+      "records": "Record corrections"
+    },
     "sections": {
       "appointments": "Appointments ({count, number, integer})",
       "records": "Record corrections ({count, number, integer})",
@@ -445,6 +464,7 @@
       "accept": "Accept",
       "decline": "Decline",
       "markDone": "Mark done",
+      "openRecord": "Open record",
       "confirmBooking": "Confirm booking",
       "confirmCancellation": "Cancel the appointment"
     },
@@ -483,17 +503,23 @@
     "empty": "No clients yet. Start by adding your first one.",
     "emptyFiltered": "No clients match your search.",
     "searchPlaceholder": "Search by name",
+    "searchAction": "Search",
     "filter": {
       "trigger": "Filter",
       "title": "Filter the register",
-      "column": "Filter by",
-      "value": "Matching",
-      "contains": "Contains…",
       "apply": "Apply",
       "clear": "Clear",
+      "column": "Filter by",
       "portalAccess": {
+        "label": "Portal access",
         "yes": "Has access",
         "no": "No access"
+      },
+      "weeklyProgress": {
+        "label": "Weekly progress",
+        "reported": "Reported this week",
+        "notReported": "Nothing reported yet",
+        "noPlan": "No plan running"
       }
     },
     "resultCount": "{total, number, integer} clients",
@@ -525,11 +551,57 @@
       "visitsSoFar": "Visits so far",
       "plansWritten": "Plans written",
       "tabs": {
-        "account": "Account",
+        "account": "Visits",
         "nutrition": "Nutrition",
-        "security": "Security",
-        "billing": "Billing & Plans"
+        "progress": "Progress",
+        "security": "The Gate",
+        "billing": "Plans"
       }
+    },
+    "progress": {
+      "weekLabel": "Week",
+      "noWeeks": {
+        "title": "No plans yet",
+        "body": "Create a weekly plan for this client to start tracking progress."
+      },
+      "empty": {
+        "title": "No data for this week",
+        "body": "Nothing has been recorded for this week yet."
+      },
+      "summary": {
+        "title": "Weekly summary",
+        "average": "Average daily adherence",
+        "recordedDays": "Days recorded",
+        "completedDays": "Days fully completed",
+        "meals": "Meals completed"
+      },
+      "days": {
+        "title": "Daily progress",
+        "meals": "{completed, number, integer} of {total, number, integer} {total, plural, one {meal} other {meals}}",
+        "noMeals": "No meals planned",
+        "mealEaten": "Eaten",
+        "mealNotEaten": "Not eaten",
+        "unnamedMeal": "No dish assigned",
+        "state": {
+          "full": "Fully followed",
+          "partial": "Partially followed",
+          "missed": "Not followed",
+          "empty": "Not recorded",
+          "today": "Today",
+          "future": "Upcoming"
+        }
+      },
+      "chart": {
+        "title": "This week's adherence",
+        "subtitle": "Daily adherence across the selected week",
+        "seriesLabel": "Adherence",
+        "mealsTooltip": "{completed, number, integer} of {total, number, integer} meals"
+      },
+      "daysCompleted": "{completed, number, integer} / {total, number, integer} days",
+      "aria": "Weekly progress {percent}, {completed, number, integer} of {total, number, integer} plan days fully completed",
+      "ariaEmpty": "No weekly progress recorded yet, out of {total, number, integer} plan days",
+      "ariaNoPlan": "No weekly progress: no plan covers today",
+      "ariaNoTracking": "No weekly progress: no portal account"
     },
     "sections": {
       "contact": "Contact details",
@@ -538,11 +610,28 @@
     },
     "placeholders": {
       "fullName": "Ahmad Khaled",
+      "firstName": "Ahmad",
+      "lastName": "Khaled",
       "email": "name@example.com",
       "phone": "Number without the country code"
     },
+    "validation": {
+      "required": "This field is required.",
+      "firstNameTooLong": "Use {nameMax} characters at most.",
+      "lastNameTooLong": "Use {nameMax} characters at most.",
+      "phoneDigitsOnly": "Digits only.",
+      "phoneTooLong": "Use {phoneMax} digits at most.",
+      "invalidDate": "That date does not exist.",
+      "ageTooYoung": "The age should be greater than {minAge}.",
+      "ageTooOld": "The age should be less than {maxAge}.",
+      "invalidEmail": "Enter a valid email address.",
+      "heightOutOfRange": "Enter a height between {heightMin} and {heightMax} cm.",
+      "weightOutOfRange": "Enter a weight between {weightMin} and {weightMax} kg."
+    },
     "fields": {
       "fullName": "Full name",
+      "firstName": "First name",
+      "lastName": "Last name",
       "phone": "Phone",
       "phoneCountry": "Country code",
       "email": "Email",
@@ -560,6 +649,7 @@
       "createdAt": "Registered",
       "portalAccess": "Portal",
       "plan": "Plan",
+      "weeklyProgress": "Weekly progress",
       "actions": "Actions",
       "conditions": "Conditions",
       "medications": "Medications and supplements",
@@ -584,11 +674,15 @@
       "activityBarriers": "What limits activity",
       "sleepHours": "Hours of sleep",
       "smoking": "Smoking / shisha",
-      "caffeineFrequency": "Caffeine and sweetened drinks (daily)",
+      "caffeineFrequency": "Caffeine (daily)",
+      "sweetDrinksFrequency": "Sweetened drinks (daily)",
       "fastFoodFrequency": "Fast food (weekly)",
-      "produceFrequency": "Vegetables and fruit (daily)",
+      "vegetablesFrequency": "Vegetables (daily)",
+      "fruitFrequency": "Fruit (daily)",
       "dairyFrequency": "Milk and dairy (daily)",
-      "proteinFoodFrequency": "Meat, chicken and fish (weekly)",
+      "redMeatFrequency": "Red meat (weekly)",
+      "chickenFrequency": "Chicken (weekly)",
+      "fishFrequency": "Fish (weekly)",
       "sweetsFrequency": "Sweets and sugar (weekly)"
     },
     "status": {
@@ -700,6 +794,7 @@
       "clientNotFound": "Client not found."
     },
     "intake": {
+      "choose": "Choose",
       "createTitle": "Complete the nutrition intake",
       "editTitle": "Edit the nutrition intake",
       "forClient": "For {name}",
@@ -762,6 +857,7 @@
       "complete": "Everything is filled in",
       "completeness": "Record completeness",
       "filledOf": "{filled} of {total} fields filled in",
+      "sectionEmpty": "Nothing recorded yet.",
       "gapsHeading": "Fill in the patient's information from these sections",
       "kcalMismatch": "The manual target is far from the computed one",
       "kcalMismatchDetail": "{manual} kcal was entered by hand, but the measurements and goal give {computed} kcal. Check the number, or clear it to compute it automatically.",
@@ -817,7 +913,7 @@
       "noPlan": "No plan yet"
     },
     "archive": {
-      "title": "Archived clients",
+      "title": "Archived",
       "subtitle": "Restore anyone who should be back on the register.",
       "empty": "Nothing has been archived."
     },
@@ -1991,14 +2087,36 @@
     "fullName": "Full name",
     "professionalTitle": "Professional title",
     "specialty": "Specialty",
-    "professionalPhone": "Professional phone",
-    "licenseNumber": "License number",
+    "titleOptions": {
+      "dietitian": "Dietitian",
+      "therapeuticDietitian": "Therapeutic Dietitian",
+      "clinicalDietitian": "Clinical Dietitian",
+      "sportsDietitian": "Sports Dietitian",
+      "nutritionConsultant": "Nutrition Consultant",
+      "dietAndNutritionSpecialist": "Diet and Nutrition Specialist",
+      "other": "Other"
+    },
+    "specialtyOptions": {
+      "nutritionAndTherapeutic": "Nutrition and Therapeutic Nutrition",
+      "therapeuticNutrition": "Therapeutic Nutrition",
+      "clinicalNutrition": "Clinical Nutrition",
+      "nutritionSciences": "Nutrition Sciences",
+      "humanNutrition": "Human Nutrition",
+      "sportsNutrition": "Sports Nutrition",
+      "foodAndNutritionSciences": "Food and Nutrition Sciences",
+      "other": "Other"
+    },
+    "selectPlaceholder": "Choose from the list",
+    "customTitle": "Type your professional title",
+    "customSpecialty": "Type your specialty",
+    "charactersUsed": "{count} of {max} characters",
     "optional": "optional",
     "day": "Day",
     "opens": "Opens",
     "closes": "Closes",
     "applyToAll": "Same hours every day",
     "applyToAllSource": "Copies {day}'s hours to every open day.",
+    "openDayCount": "{count, plural, =0 {No working days} one {# working day} other {# working days}}",
     "leaveTitle": "Leave without saving?",
     "leaveDescription": "This section has changes you have not saved yet. Switching away discards them.",
     "leaveConfirm": "Discard changes",
@@ -2017,10 +2135,12 @@
       "5": "Friday",
       "6": "Saturday"
     },
+    "stepIndicator": "Step {current} of {total}",
     "validation": {
       "required": "This field is required.",
+      "tooLong": "Keep this to {max} characters or fewer.",
       "invalidEmail": "Enter a valid email address, such as name@clinic.com.",
-      "invalidPhone": "Enter a valid phone number using digits and an optional country code.",
+      "invalidPhone": "Enter a valid phone number.",
       "invalidTime": "Choose a valid time in 15-minute increments.",
       "closingAfterOpening": "Closing time must be later than opening time.",
       "workingDayRequired": "Choose at least one working day.",

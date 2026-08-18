@@ -3,7 +3,6 @@ import { getTranslations } from 'next-intl/server';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Icon, type IconName } from '@/components/ui/icon';
 import { formatLongDate, formatMediumDate, formatMinute } from '@/features/booking/format';
 import { type ClinicHours } from '@/features/booking/validation';
 import { patientToneStyle } from '@/features/booking/patient-color';
@@ -40,12 +39,6 @@ import { AppointmentRequestActions } from './appointment-request-actions';
  * Requests filed before the portal stopped asking for a day still carry one,
  * are still answerable, and still get the buttons and the amber.
  */
-
-const KIND_ICONS = {
-  new: 'bookAppointment',
-  reschedule: 'refresh',
-  cancel: 'close',
-} as const satisfies Record<StaffAppointmentRequest['kind'], IconName>;
 
 /** See the note above: a `new` request with no proposed time is a message. */
 function isNote(request: StaffAppointmentRequest): boolean {
@@ -121,29 +114,16 @@ export async function AppointmentRequestCard({
             disc paints the same grey — which reads as "the colours are broken"
             rather than as a missing scope.
 
-            In the inbox the disc stays as it was: those rows are flat and
-            ruled, the request kind is what that page is sorted and scanned by,
-            and amber is the mark that something is waiting.
+            **The inbox rows draw the same disc.** They kept the kind glyph for
+            a release, on the argument that the page is scanned by kind — but a
+            real inbox settles it: five messages from one client in a column,
+            each opening with an identical grey speech bubble, so the position
+            the eye uses to tell rows apart said the same thing five times. The
+            kind is still there in words, as the badge under the name.
           */}
-          {compact ? (
-            <span className="patient-tone contents" style={patientToneStyle(request.clientSeq)}>
-              <Avatar name={request.clientName} color="var(--tone-mark)" size="sm" className="mt-0.5" />
-            </span>
-          ) : (
-            <span
-              className={cn(
-                'flex size-8 shrink-0 items-center justify-center rounded-full',
-                // A note is not waiting on the dietitian, so it does not take
-                // the amber disc. Neutral, and a speech bubble rather than a
-                // calendar glyph: what arrived is words, not a proposed slot.
-                note
-                  ? 'bg-muted text-muted-foreground'
-                  : 'bg-status-attention-bg text-status-attention-fg',
-              )}
-            >
-              <Icon name={note ? 'chat' : KIND_ICONS[request.kind]} className="size-4" />
-            </span>
-          )}
+          <span className="patient-tone contents" style={patientToneStyle(request.clientSeq)}>
+            <Avatar name={request.clientName} color="var(--tone-mark)" size="sm" className="mt-0.5" />
+          </span>
 
           <div className={cn('min-w-0 flex-1', compact ? 'space-y-0.5' : 'space-y-1')}>
             <div className="flex flex-wrap items-baseline justify-between gap-x-2">

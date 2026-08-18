@@ -208,7 +208,10 @@ export function AuthSplitCard({
               nothing a reader has to get from it.
             */}
             <Icon name="leaf" className="size-44 text-accent-lime/80 lg:size-60" />
-            <p className="font-heading text-heading-lg">{tagline}</p>
+            {/* White rather than the olive card's inherited `primary-foreground`,
+                by request. At 24px it is large text, so the 3:1 floor is the one
+                that applies here rather than 4.5:1. */}
+            <p className="font-heading text-heading-lg text-white">{tagline}</p>
           </div>
 
           {switcher ? <SwitchLink switcher={switcher} tone="onBrand" /> : null}
@@ -297,7 +300,13 @@ function SwitchLink({
   tone: 'onBrand' | 'onCard';
 }) {
   return (
-    <p className={cn('text-center text-body-md', tone === 'onCard' && 'text-muted-foreground')}>
+    /*
+      White on the olive half, by request — the prompt and the link together, so
+      the line reads as one sentence rather than as a dark question with a white
+      answer. `onCard` is the below-`md` copy, which sits on the white form card
+      and keeps the muted grey it has always had.
+    */
+    <p className={cn('text-center text-body-md', tone === 'onCard' ? 'text-muted-foreground' : 'text-white')}>
       {switcher.prompt}{' '}
       <Button
         type="button"
@@ -305,7 +314,7 @@ function SwitchLink({
         onClick={switcher.onClick}
         className={cn(
           'h-auto max-w-none p-0 align-baseline font-semibold underline',
-          tone === 'onBrand' && 'text-primary-foreground',
+          tone === 'onBrand' && 'text-white',
         )}
       >
         {switcher.label}

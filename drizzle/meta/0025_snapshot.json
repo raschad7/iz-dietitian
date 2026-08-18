@@ -1,5 +1,5 @@
 {
-  "id": "68c27829-06db-49b1-ba32-01daca6c2d69",
+  "id": "a7ad10b7-3f82-4fae-8083-fde07898a0b0",
   "prevId": "2737cbc4-9d17-48db-9aa2-be7c826fb5e7",
   "version": "7",
   "dialect": "postgresql",
@@ -1938,107 +1938,6 @@
       },
       "isRLSEnabled": false
     },
-    "public.food_aliases": {
-      "name": "food_aliases",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "clinic_id": {
-          "name": "clinic_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "food_id": {
-          "name": "food_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "name_ar": {
-          "name": "name_ar",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "food_aliases_clinic_name_idx": {
-          "name": "food_aliases_clinic_name_idx",
-          "columns": [
-            {
-              "expression": "clinic_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "name_ar",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "food_aliases_clinic_id_clinics_id_fk": {
-          "name": "food_aliases_clinic_id_clinics_id_fk",
-          "tableFrom": "food_aliases",
-          "tableTo": "clinics",
-          "columnsFrom": [
-            "clinic_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "food_aliases_food_id_foods_id_fk": {
-          "name": "food_aliases_food_id_foods_id_fk",
-          "tableFrom": "food_aliases",
-          "tableTo": "foods",
-          "columnsFrom": [
-            "food_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.foods": {
       "name": "foods",
       "schema": "",
@@ -2050,17 +1949,11 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
-        "clinic_id": {
-          "name": "clinic_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
         "fdc_id": {
           "name": "fdc_id",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "description": {
           "name": "description",
@@ -2205,116 +2098,7 @@
           "with": {}
         }
       },
-      "foreignKeys": {
-        "foods_clinic_id_clinics_id_fk": {
-          "name": "foods_clinic_id_clinics_id_fk",
-          "tableFrom": "foods",
-          "tableTo": "clinics",
-          "columnsFrom": [
-            "clinic_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.clinic_hidden_dishes": {
-      "name": "clinic_hidden_dishes",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "clinic_id": {
-          "name": "clinic_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "dish_id": {
-          "name": "dish_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "clinic_hidden_dishes_clinic_dish_idx": {
-          "name": "clinic_hidden_dishes_clinic_dish_idx",
-          "columns": [
-            {
-              "expression": "clinic_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "dish_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "clinic_hidden_dishes_clinic_id_clinics_id_fk": {
-          "name": "clinic_hidden_dishes_clinic_id_clinics_id_fk",
-          "tableFrom": "clinic_hidden_dishes",
-          "tableTo": "clinics",
-          "columnsFrom": [
-            "clinic_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "clinic_hidden_dishes_dish_id_dishes_id_fk": {
-          "name": "clinic_hidden_dishes_dish_id_dishes_id_fk",
-          "tableFrom": "clinic_hidden_dishes",
-          "tableTo": "dishes",
-          "columnsFrom": [
-            "dish_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -2349,24 +2133,6 @@
           "type": "real",
           "primaryKey": false,
           "notNull": true
-        },
-        "display_name_ar": {
-          "name": "display_name_ar",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "household_label": {
-          "name": "household_label",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "household_grams": {
-          "name": "household_grams",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": false
         },
         "sort_order": {
           "name": "sort_order",
@@ -2457,12 +2223,6 @@
           "primaryKey": true,
           "notNull": true,
           "default": "gen_random_uuid()"
-        },
-        "clinic_id": {
-          "name": "clinic_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
         },
         "slug": {
           "name": "slug",
@@ -2558,38 +2318,9 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
-        },
-        "dishes_clinic_id_idx": {
-          "name": "dishes_clinic_id_idx",
-          "columns": [
-            {
-              "expression": "clinic_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
         }
       },
-      "foreignKeys": {
-        "dishes_clinic_id_clinics_id_fk": {
-          "name": "dishes_clinic_id_clinics_id_fk",
-          "tableFrom": "dishes",
-          "tableTo": "clinics",
-          "columnsFrom": [
-            "clinic_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -2754,6 +2485,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "sweet_drinks_frequency": {
+          "name": "sweet_drinks_frequency",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "fast_food_frequency": {
           "name": "fast_food_frequency",
           "type": "text",
@@ -2774,6 +2511,24 @@
         },
         "protein_food_frequency": {
           "name": "protein_food_frequency",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "red_meat_frequency": {
+          "name": "red_meat_frequency",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "chicken_frequency": {
+          "name": "chicken_frequency",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fish_frequency": {
+          "name": "fish_frequency",
           "type": "text",
           "primaryKey": false,
           "notNull": false

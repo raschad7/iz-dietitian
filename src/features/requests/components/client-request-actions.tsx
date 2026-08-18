@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { type ReactNode, useState, useTransition } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
@@ -29,9 +29,24 @@ export type ClientRequestActionsProps = {
   request: StaffClientRequest;
   locale: Locale;
   size?: 'default' | 'sm';
+  /**
+   * A control to hang at the inline end of the button row — the inbox row's
+   * link into the client's record.
+   *
+   * It is passed in rather than rendered here because it is a `Link`, and this
+   * is the client boundary: a navigation does not belong behind the two calls
+   * that answer the request. It goes *inside* the row so an error message stays
+   * on a line of its own beneath all three controls.
+   */
+  trailing?: ReactNode;
 };
 
-export function ClientRequestActions({ request, locale, size = 'default' }: ClientRequestActionsProps) {
+export function ClientRequestActions({
+  request,
+  locale,
+  size = 'default',
+  trailing,
+}: ClientRequestActionsProps) {
   const t = useTranslations('requests');
   const router = useRouter();
 
@@ -80,6 +95,8 @@ export function ClientRequestActions({ request, locale, size = 'default' }: Clie
           <Icon name="close" />
           {t('actions.decline')}
         </Button>
+
+        {trailing}
       </div>
 
       {error ? (

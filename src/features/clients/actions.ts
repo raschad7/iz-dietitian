@@ -38,7 +38,10 @@ import { type ClientFormValues, type ClientIntakeValues } from './types';
 
 function readForm(formData: FormData) {
   return {
-    fullName: formData.get('fullName'),
+    // Two fields, one stored column — `clientFormSchema` joins them. See
+    // `./name.ts` for why the column did not become two.
+    firstName: formData.get('firstName'),
+    lastName: formData.get('lastName'),
     phone: formData.get('phone'),
     email: formData.get('email'),
     preferredLocale: formData.get('preferredLocale'),
@@ -79,6 +82,48 @@ function readIntakeForm(formData: FormData) {
     preferences: formData.get('preferences'),
     dislikes: formData.get('dislikes'),
     permanentInstructions: formData.get('permanentInstructions'),
+
+    /*
+     * ⚠ The questionnaire — Background and Habits, and the drug allergies that
+     * sit with the food ones on the Allergies panel.
+     *
+     * **These were missing, and the data was being thrown away.** Every one of
+     * them is `optional()` in `intakeSchema` — an intake is filled in across
+     * visits, so nothing is required — and `saveIntake` writes `input.X ?? null`
+     * to each column. A field never read out of the `FormData` therefore parsed
+     * as `undefined`, validated cleanly, and was written as SQL NULL: the two
+     * panels reported "saved", and every answer on them was gone on reopen. A
+     * dietitian filling the clinic's paper sheet into the dialog lost the whole
+     * sheet, silently, every time.
+     *
+     * Every key on `intakeSchema` must be read here. There is no schema-level
+     * "reject unknown-but-missing" that would have caught this: optional means
+     * optional, and the form is the only thing that knows the field exists.
+     */
+    maritalStatus: formData.get('maritalStatus'),
+    childrenCount: formData.get('childrenCount'),
+    bloodType: formData.get('bloodType'),
+    occupation: formData.get('occupation'),
+    visitReason: formData.get('visitReason'),
+    dietHistory: formData.get('dietHistory'),
+    drugAllergies: formData.get('drugAllergies'),
+    familyHistory: formData.get('familyHistory'),
+
+    activityNotes: formData.get('activityNotes'),
+    activityBarriers: formData.get('activityBarriers'),
+    sleepHours: formData.get('sleepHours'),
+    smoking: formData.get('smoking'),
+
+    caffeineFrequency: formData.get('caffeineFrequency'),
+    sweetDrinksFrequency: formData.get('sweetDrinksFrequency'),
+    fastFoodFrequency: formData.get('fastFoodFrequency'),
+    vegetablesFrequency: formData.get('vegetablesFrequency'),
+    fruitFrequency: formData.get('fruitFrequency'),
+    dairyFrequency: formData.get('dairyFrequency'),
+    redMeatFrequency: formData.get('redMeatFrequency'),
+    chickenFrequency: formData.get('chickenFrequency'),
+    fishFrequency: formData.get('fishFrequency'),
+    sweetsFrequency: formData.get('sweetsFrequency'),
     mealSchedule: slotKeys.map((slotKey, index) => ({
       slotKey,
       label: String(formData.getAll('slotLabel')[index] ?? ''),

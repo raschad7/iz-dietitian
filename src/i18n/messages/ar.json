@@ -76,7 +76,9 @@
       "formDescription": "حدّث البيانات التي تعرّف بك داخل فريق العيادة.",
       "accountEmail": "البريد الإلكتروني للحساب",
       "accountEmailHint": "تتم إدارة هذا البريد من خلال حساب تسجيل الدخول.",
-      "identityTitle": "الحساب"
+      "identityTitle": "الحساب",
+      "languageTitle": "اللغة المفضلة",
+      "languageDescription": "اللغة التي تُعرض بها هذه المساحة."
     },
     "clinic": {
       "title": "العيادة",
@@ -127,6 +129,8 @@
     "passwordPlaceholder": "كلمة المرور الخاصة بك",
     "confirmPasswordPlaceholder": "أكّد كلمة المرور",
     "namePlaceholder": "اسمك",
+    "firstNamePlaceholder": "اسمك الأول",
+    "lastNamePlaceholder": "اسمك الأخير",
     "usernamePlaceholder": "اسم المستخدم الخاص بك",
     "submit": "دخول",
     "showPassword": "إظهار كلمة المرور",
@@ -140,8 +144,11 @@
     "signUpHeading": "إنشاء حساب لفريق العيادة",
     "signUpSubmit": "إنشاء الحساب",
     "fullName": "الاسم الكامل",
+    "firstName": "الاسم الأول",
+    "lastName": "الاسم الأخير",
     "confirmPassword": "تأكيد كلمة المرور",
     "passwordHint": "{count, number, integer} أحرف على الأقل.",
+    "passwordStrengthHint": "{count, number, integer} أحرف على الأقل، مع مزج الحروف بالأرقام أو الرموز.",
     "clientTitle": "بوابة المشتركين",
     "brandTagline": "رعاية تغذوية لعيادتك كاملة في مكان واحد.",
     "clientHeading": "المشتركون",
@@ -157,7 +164,14 @@
     "emailTaken": "هذا البريد الإلكتروني مسجّل مسبقًا.",
     "passwordMismatch": "كلمتا المرور غير متطابقتين.",
     "passwordTooShort": "كلمة المرور قصيرة جدًا.",
+    "passwordTooWeak": "استخدم مزيجًا من الحروف والأرقام أو الرموز، وتجنّب كلمات المرور الشائعة.",
+    "emailRequired": "البريد الإلكتروني مطلوب",
+    "usernameRequired": "اسم المستخدم مطلوب",
+    "passwordRequired": "كلمة المرور مطلوبة",
     "nameRequired": "أدخل الاسم الكامل.",
+    "firstNameRequired": "الاسم الأول مطلوب",
+    "lastNameRequired": "الاسم الأخير مطلوب",
+    "nameTooLong": "{count, number, integer} أحرف كحد أقصى.",
     "invalidEmail": "أدخل بريدًا إلكترونيًا صحيحًا.",
     "continueWithGoogle": "المتابعة باستخدام Google",
     "googleUnavailable": "تعذّر بدء تسجيل الدخول باستخدام Google. تحقق من الاتصال وحاول مرة أخرى.",
@@ -215,6 +229,7 @@
     "openClientProfile": "فتح ملف المشترك",
     "openActions": "إجراءات الموعد",
     "monthMore": "+{count, number, integer} أخرى",
+    "monthOther": "أخرى {count, number, integer}",
     "hiddenBelow": "+{count, number, integer} أخرى",
     "hiddenBelowAction": "انزل إلى {count, number, integer} مواعيد أخرى في هذا اليوم",
     "monthReadOnly": "عرض الشهر للاطّلاع فقط. انقر على أي يوم للحجز أو التعديل.",
@@ -410,6 +425,10 @@
       "title": "لا شيء بالانتظار",
       "description": "طلبات المواعيد وطلبات تصحيح البيانات القادمة من البوابة تظهر هنا."
     },
+    "sectionLabels": {
+      "appointments": "المواعيد",
+      "records": "تصحيح البيانات"
+    },
     "sections": {
       "appointments": "المواعيد ({count, number, integer})",
       "records": "تصحيح البيانات ({count, number, integer})",
@@ -445,6 +464,7 @@
       "accept": "قبول",
       "decline": "رفض",
       "markDone": "تمّ التنفيذ",
+      "openRecord": "فتح السجل",
       "confirmBooking": "تأكيد الحجز",
       "confirmCancellation": "إلغاء الموعد"
     },
@@ -483,17 +503,23 @@
     "empty": "لا يوجد مشتركون بعد. ابدأ بإضافة أول مشترك.",
     "emptyFiltered": "لا نتائج مطابقة لبحثك.",
     "searchPlaceholder": "ابحث بالاسم",
+    "searchAction": "بحث",
     "filter": {
       "trigger": "تصفية",
       "title": "تصفية السجل",
-      "column": "التصفية حسب",
-      "value": "المطابق",
-      "contains": "يحتوي على…",
       "apply": "تطبيق",
       "clear": "مسح",
+      "column": "التصفية حسب",
       "portalAccess": {
+        "label": "الوصول إلى البوابة",
         "yes": "لديه دخول",
         "no": "لا دخول له"
+      },
+      "weeklyProgress": {
+        "label": "التقدّم الأسبوعي",
+        "reported": "سجّل هذا الأسبوع",
+        "notReported": "لم يسجّل شيئًا بعد",
+        "noPlan": "لا توجد خطة سارية"
       }
     },
     "resultCount": "{total, number, integer} مشترك",
@@ -525,11 +551,57 @@
       "visitsSoFar": "الزيارات حتى الآن",
       "plansWritten": "الخطط المكتوبة",
       "tabs": {
-        "account": "الحساب",
+        "account": "الزيارات",
         "nutrition": "التغذية",
-        "security": "الأمان",
-        "billing": "الفوترة والخطط"
+        "progress": "التقدم",
+        "security": "البوابة",
+        "billing": "الخطط"
       }
+    },
+    "progress": {
+      "weekLabel": "الأسبوع",
+      "noWeeks": {
+        "title": "لا توجد خطط بعد",
+        "body": "أنشئ خطة أسبوعية لهذا المسترشد لبدء تتبع التقدم."
+      },
+      "empty": {
+        "title": "لا توجد بيانات لهذا الأسبوع",
+        "body": "لم يتم تسجيل أي شيء لهذا الأسبوع بعد."
+      },
+      "summary": {
+        "title": "ملخص الأسبوع",
+        "average": "متوسط الالتزام اليومي",
+        "recordedDays": "أيام مسجَّلة",
+        "completedDays": "أيام مكتملة بالكامل",
+        "meals": "وجبات مكتملة"
+      },
+      "days": {
+        "title": "التقدم اليومي",
+        "meals": "{completed, number, integer} من {total, number, integer} {total, plural, one {وجبة} other {وجبات}}",
+        "noMeals": "لا توجد وجبات مخططة",
+        "mealEaten": "تم تناولها",
+        "mealNotEaten": "لم يتم تناولها",
+        "unnamedMeal": "لا يوجد طبق محدد",
+        "state": {
+          "full": "تم الالتزام بالكامل",
+          "partial": "التزام جزئي",
+          "missed": "لم يتم الالتزام",
+          "empty": "غير مسجَّل",
+          "today": "اليوم",
+          "future": "قادم"
+        }
+      },
+      "chart": {
+        "title": "التزام هذا الأسبوع",
+        "subtitle": "الالتزام اليومي خلال الأسبوع المحدد",
+        "seriesLabel": "الالتزام",
+        "mealsTooltip": "{completed, number, integer} من {total, number, integer} وجبات"
+      },
+      "daysCompleted": "{completed, number, integer} / {total, number, integer} أيام",
+      "aria": "التقدّم الأسبوعي {percent}، أُكمل {completed, number, integer} من {total, number, integer} أيام الخطة كاملةً",
+      "ariaEmpty": "لا يوجد تقدّم أسبوعي مسجّل بعد، من {total, number, integer} أيام الخطة",
+      "ariaNoPlan": "لا يوجد تقدّم أسبوعي: لا توجد خطة تغطّي اليوم",
+      "ariaNoTracking": "لا يوجد تقدّم أسبوعي: لا يوجد حساب في البوابة"
     },
     "sections": {
       "contact": "بيانات التواصل",
@@ -538,11 +610,28 @@
     },
     "placeholders": {
       "fullName": "أحمد خالد",
+      "firstName": "أحمد",
+      "lastName": "خالد",
       "email": "name@example.com",
       "phone": "الرقم دون رمز الدولة"
     },
+    "validation": {
+      "required": "هذا الحقل مطلوب.",
+      "firstNameTooLong": "استخدم {nameMax} أحرف كحد أقصى.",
+      "lastNameTooLong": "استخدم {nameMax} أحرف كحد أقصى.",
+      "phoneDigitsOnly": "أرقام فقط.",
+      "phoneTooLong": "استخدم {phoneMax} أرقام كحد أقصى.",
+      "invalidDate": "هذا التاريخ غير موجود.",
+      "ageTooYoung": "العمر يجب أن يكون أكبر من {minAge} سنوات.",
+      "ageTooOld": "العمر يجب أن يكون أقل من {maxAge} سنة.",
+      "invalidEmail": "أدخل بريداً إلكترونياً صحيحاً.",
+      "heightOutOfRange": "أدخل طولاً بين {heightMin} و{heightMax} سم.",
+      "weightOutOfRange": "أدخل وزناً بين {weightMin} و{weightMax} كغ."
+    },
     "fields": {
       "fullName": "الاسم الكامل",
+      "firstName": "الاسم الأول",
+      "lastName": "الاسم الأخير",
       "phone": "رقم الهاتف",
       "phoneCountry": "رمز الدولة",
       "email": "البريد الإلكتروني",
@@ -560,6 +649,7 @@
       "createdAt": "تاريخ التسجيل",
       "portalAccess": "البوابة",
       "plan": "الخطة",
+      "weeklyProgress": "التقدّم الأسبوعي",
       "actions": "إجراءات",
       "conditions": "الحالات الصحية",
       "medications": "الأدوية والمكمّلات",
@@ -584,11 +674,15 @@
       "activityBarriers": "ما يمنع ممارسة النشاط",
       "sleepHours": "ساعات النوم",
       "smoking": "التدخين والأرجيلة",
-      "caffeineFrequency": "الكافيين والمشروبات المحلاة (يوميًا)",
+      "caffeineFrequency": "الكافيين (يوميًا)",
+      "sweetDrinksFrequency": "المشروبات المحلاة (يوميًا)",
       "fastFoodFrequency": "الوجبات السريعة (أسبوعيًا)",
-      "produceFrequency": "الخضار والفواكه (يوميًا)",
+      "vegetablesFrequency": "الخضار (يوميًا)",
+      "fruitFrequency": "الفواكه (يوميًا)",
       "dairyFrequency": "الحليب ومشتقاته (يوميًا)",
-      "proteinFoodFrequency": "اللحوم والدجاج والأسماك (أسبوعيًا)",
+      "redMeatFrequency": "اللحوم الحمراء (أسبوعيًا)",
+      "chickenFrequency": "الدجاج (أسبوعيًا)",
+      "fishFrequency": "الأسماك (أسبوعيًا)",
       "sweetsFrequency": "الحلويات والسكريات (أسبوعيًا)"
     },
     "status": {
@@ -700,6 +794,7 @@
       "clientNotFound": "المشترك غير موجود."
     },
     "intake": {
+      "choose": "اختر",
       "createTitle": "استكمال بيانات التغذية",
       "editTitle": "تعديل بيانات التغذية",
       "forClient": "لـ {name}",
@@ -762,6 +857,7 @@
       "complete": "كل الحقول مُدخلة",
       "completeness": "اكتمال السجل",
       "filledOf": "{filled} من {total} حقلاً مُدخلة",
+      "sectionEmpty": "لا توجد بيانات مسجّلة بعد.",
       "gapsHeading": "أكمل بيانات المريض من هذه الأقسام",
       "kcalMismatch": "الهدف اليدوي بعيد عن المحسوب",
       "kcalMismatchDetail": "أُدخل {manual} kcal يدويًا، بينما القياسات والهدف يعطيان {computed} kcal. راجعي الرقم أو احذفيه ليُحسب تلقائيًا.",
@@ -817,7 +913,7 @@
       "noPlan": "لا توجد خطة بعد"
     },
     "archive": {
-      "title": "المشتركون المؤرشفون",
+      "title": "المؤرشفون",
       "subtitle": "أعِد أي مشترك يجب أن يعود إلى القائمة.",
       "empty": "لا يوجد أي مشترك مؤرشف."
     },
@@ -1991,14 +2087,36 @@
     "fullName": "الاسم الكامل",
     "professionalTitle": "المسمى المهني",
     "specialty": "التخصص",
-    "professionalPhone": "الهاتف المهني",
-    "licenseNumber": "رقم الترخيص",
+    "titleOptions": {
+      "dietitian": "أخصائي تغذية",
+      "therapeuticDietitian": "أخصائي تغذية علاجية",
+      "clinicalDietitian": "أخصائي تغذية سريرية",
+      "sportsDietitian": "أخصائي تغذية رياضية",
+      "nutritionConsultant": "مستشار تغذية",
+      "dietAndNutritionSpecialist": "أخصائي حميات وتغذية",
+      "other": "أخرى"
+    },
+    "specialtyOptions": {
+      "nutritionAndTherapeutic": "التغذية والتغذية العلاجية",
+      "therapeuticNutrition": "التغذية العلاجية",
+      "clinicalNutrition": "التغذية السريرية",
+      "nutritionSciences": "علوم التغذية",
+      "humanNutrition": "التغذية البشرية",
+      "sportsNutrition": "التغذية الرياضية",
+      "foodAndNutritionSciences": "علوم الغذاء والتغذية",
+      "other": "أخرى"
+    },
+    "selectPlaceholder": "اختر من القائمة",
+    "customTitle": "اكتب المسمى المهني",
+    "customSpecialty": "اكتب التخصص",
+    "charactersUsed": "{count} من {max} حرفًا",
     "optional": "اختياري",
     "day": "اليوم",
     "opens": "من",
     "closes": "إلى",
     "applyToAll": "الساعات نفسها كل يوم",
     "applyToAllSource": "ينسخ ساعات {day} إلى كل أيام العمل.",
+    "openDayCount": "{count, plural, =0 {لا توجد أيام عمل} one {يوم عمل واحد} two {يوما عمل} few {# أيام عمل} other {# يوم عمل}}",
     "leaveTitle": "الخروج دون حفظ؟",
     "leaveDescription": "يوجد في هذا القسم تعديلات لم تُحفظ بعد، وسيتم تجاهلها عند الانتقال.",
     "leaveConfirm": "تجاهل التعديلات",
@@ -2017,10 +2135,12 @@
       "5": "الجمعة",
       "6": "السبت"
     },
+    "stepIndicator": "الخطوة {current} من {total}",
     "validation": {
       "required": "هذا الحقل مطلوب.",
+      "tooLong": "الحد الأقصى {max} حرفًا. اختصر النص قليلًا.",
       "invalidEmail": "أدخل بريدًا إلكترونيًا صحيحًا، مثل name@clinic.com.",
-      "invalidPhone": "أدخل رقم هاتف صحيحًا باستخدام الأرقام ورمز الدولة إن وجد.",
+      "invalidPhone": "أدخل رقم هاتف صحيحًا.",
       "invalidTime": "اختر وقتًا صحيحًا بفواصل 15 دقيقة.",
       "closingAfterOpening": "يجب أن يكون وقت الإغلاق بعد وقت الافتتاح.",
       "workingDayRequired": "اختر يوم عمل واحدًا على الأقل.",

@@ -41,7 +41,24 @@ export function TodayAdherenceCard({ today, locale }: { today: TodayAdherence | 
   return (
     <Card>
       <CardContent className="flex flex-col gap-4">
-        <div className="flex items-center gap-4">
+        {/*
+          Ring beside the words, and stacked under them on the narrowest phones.
+
+          The ring is `size-44` — 176px — and `shrink-0`, which is right: it is
+          the figure the client opened the tab to read and it must not be
+          squeezed into an ellipse. But at 320px the card's content box is about
+          256px, so the ring and the `gap-4` took 192 of it and left 64px for
+          the heading beside it. "Today's progress" does not fit in 64px; it was
+          clipped to a couple of characters, and the encouragement line under it
+          with it.
+
+          Stacking below 400px gives both the full width in turn and loses
+          nothing — the same ring, the same heading, the same sentence, in one
+          column instead of two, centred so the ring stays the anchor. From
+          400px up, where the text column is wide enough to read, the row is
+          exactly as it was.
+        */}
+        <div className="flex items-center gap-4 max-[25rem]:flex-col max-[25rem]:text-center">
           {/*
             `countOnMount`: this figure is what the client opened the tab to
             read, and it does not move while they are reading it — there are no

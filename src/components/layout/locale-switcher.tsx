@@ -35,9 +35,18 @@ import { cn } from '@/lib/utils';
 type LocaleSwitcherProps = {
   className?: string;
   variant?: 'group' | 'dropdown' | 'menu';
+  /**
+   * Which side of the trigger the `dropdown` list opens on.
+   *
+   * Down by default, which is right in the corner of an auth screen with the
+   * whole page below it. In settings the switcher sits in the last row of the
+   * last section, where down is the page's own end — so that instance asks for
+   * `top` and the list opens into the space it actually has.
+   */
+  side?: 'top' | 'bottom';
 };
 
-export function LocaleSwitcher({ className, variant = 'group' }: LocaleSwitcherProps) {
+export function LocaleSwitcher({ className, variant = 'group', side = 'bottom' }: LocaleSwitcherProps) {
   const t = useTranslations('localeSwitcher');
   const activeLocale = useLocale() as Locale;
   const router = useRouter();
@@ -71,6 +80,7 @@ export function LocaleSwitcher({ className, variant = 'group' }: LocaleSwitcherP
         className={className}
         activeLocale={activeLocale}
         disabled={isPending}
+        side={side}
         onSelect={switchTo}
       />
     );
@@ -227,11 +237,13 @@ function LocaleDropdown({
   className,
   activeLocale,
   disabled,
+  side,
   onSelect,
 }: {
   className?: string;
   activeLocale: Locale;
   disabled: boolean;
+  side: 'top' | 'bottom';
   onSelect: (locale: Locale) => void;
 }) {
   const t = useTranslations('localeSwitcher');
@@ -283,11 +295,14 @@ function LocaleDropdown({
       >
         <span lang={activeLocale}>{t(`${activeLocale}Name`)}</span>
         {/*
-          Down when there is more to see, up when there is not — two drawn
-          arrows rather than one rotated, which lands a half pixel off its own
-          baseline at this size.
+          The arrow points where the list will appear, and reverses once it is
+          open — two drawn arrows rather than one rotated, which lands a half
+          pixel off its own baseline at this size.
         */}
-        <Icon name={open ? 'chevronUp' : 'chevronDown'} className="size-4" />
+        <Icon
+          name={(side === 'top') === !open ? 'chevronUp' : 'chevronDown'}
+          className="size-4"
+        />
       </button>
 
       {open ? (
@@ -295,7 +310,8 @@ function LocaleDropdown({
           id={menuId}
           role="menu"
           className={cn(
-            'absolute end-0 top-full z-20 mt-1 min-w-40 rounded-md border border-border bg-card p-1 shadow-elevated',
+            'absolute end-0 z-20 min-w-40 rounded-md border border-border bg-card p-1 shadow-elevated',
+            side === 'top' ? 'bottom-full mb-1' : 'top-full mt-1',
             'motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 motion-safe:duration-200',
           )}
         >

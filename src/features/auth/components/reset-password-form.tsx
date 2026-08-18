@@ -33,7 +33,7 @@ export function ResetPasswordForm({ locale, token }: { locale: Locale; token: st
             label={tCommon('password')}
             autoComplete="new-password"
             minLength={MIN_PASSWORD_LENGTH}
-            hint={t('passwordHint', { count: MIN_PASSWORD_LENGTH })}
+            hint={t('passwordStrengthHint', { count: MIN_PASSWORD_LENGTH })}
           />
 
           <PasswordInput

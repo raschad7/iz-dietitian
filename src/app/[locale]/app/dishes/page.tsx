@@ -2,6 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
 import { AddDishButton } from '@/features/weekly-plans/components/add-dish-button';
+import { PageHeader } from '@/components/layout/page-header';
 import { DishFilters } from '@/features/weekly-plans/components/dish-filters';
 import { DishList, type DishCardData } from '@/features/weekly-plans/components/dish-list';
 import { DishPagination } from '@/features/weekly-plans/components/dish-pagination';
@@ -83,18 +84,13 @@ export default async function DishesPage({ params, searchParams }: PageProps) {
       a whole.
     */
     <div className="flex flex-col gap-4 text-start md:h-full md:min-h-0">
-      {/*
-        Header and toolbar read as one control area (Phase 2 §1): the title and
-        count sit with the Add button on the first row, the search / meal tabs /
-        filters on the rows beneath, all in one block with even spacing.
-      */}
       <div className="flex shrink-0 flex-col gap-4">
-        <div className="flex items-baseline gap-2.5">
-          <h1 className="font-heading text-heading-lg font-semibold tracking-tight">{t('title')}</h1>
-          <span className="text-body-sm text-muted-foreground tabular-nums">
-            {t('count', { count: result.total })}
-          </span>
-        </div>
+        <PageHeader
+          locale={locale}
+          title={t('title')}
+          subtitle={t('subtitle', { count: result.total })}
+          clinicId={clinicId}
+        />
 
         {/* Add sits *in* the toolbar rather than up beside the title: everything
             you do to this catalog — search it, narrow it, add to it — is now one

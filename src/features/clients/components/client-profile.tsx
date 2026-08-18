@@ -7,13 +7,13 @@ import { ClientVisitRecord } from '@/features/booking/components/client-visit-re
 import { type ClientVisitEntry, type ClientVisitSummary } from '@/features/booking/queries';
 import { ClientNutrition } from '@/features/clients/components/client-nutrition';
 import { ClientProfilePanel } from '@/features/clients/components/client-profile-panel';
-import {
-  ClientProfileTabs,
-  type ProfileTab,
-} from '@/features/clients/components/client-profile-tabs';
+import { ClientProfileTabs } from '@/features/clients/components/client-profile-tabs';
+import { ClientProgressPanel } from '@/features/clients/components/client-progress-panel';
 import { PortalCredentialsCard } from '@/features/clients/components/portal-credentials-card';
+import { type ProfileTab } from '@/features/clients/components/profile-tab';
 import { intakeGaps } from '@/features/clients/intake-gaps';
 import { type ClientDetail } from '@/features/clients/queries';
+import { type ClientDayMeal, type ClientWeekProgress } from '@/features/clients/progress';
 import { type ClientIntakeValues } from '@/features/clients/types';
 import { ClientPlansCard } from '@/features/weekly-plans/components/client-plans-card';
 import { type PlanListEntry } from '@/features/weekly-plans/queries';
@@ -29,7 +29,7 @@ import { type IsoDate } from '@/lib/iso-date';
  * **A panel that does not move, and four views that do.** The identity column on
  * the inline-start edge carries who this person is and the reference facts about
  * them; the column beside it is one card switched between Account, Nutrition,
- * Security and Billing &amp; Plans.
+ * Security and Plans.
  *
  * ## What the template's tabs became
  *
@@ -42,11 +42,14 @@ import { type IsoDate } from '@/lib/iso-date';
  * | Security — password, 2FA, devices | The portal sign-in: issuing, reissuing, revoking |
  * | Billing &amp; Plans — plan, invoices | The weekly plans: the live week, and every week before it |
  *
- * **Nothing was invented to fill a view.** This product has no billing, so the
- * Billing &amp; Plans view is the *plans* half of its own name and says nothing
- * about money; the Security view has no device list because the app keeps no
- * per-device sessions to list. A view that would have to be mocked up is a view
- * that states something untrue about a patient.
+ * **Nothing was invented to fill a view.** This product has no billing, so that
+ * view kept the *plans* half of the template's name and is simply called Plans
+ * — it says nothing about money, and a tab that half-promised invoices was a
+ * tab that had to be opened to find out it did not have any. The `billing` key
+ * behind it is the template's, kept so the `?tab=billing` links that redirect
+ * here still land. The Security view has no device list either, because the app
+ * keeps no per-device sessions to list. A view that would have to be mocked up
+ * is a view that states something untrue about a patient.
  *
  * **Two of the template's tabs are gone rather than thinned.** Notifications was
  * the four switches on `client_settings`, and Connections was the phone, the
@@ -93,6 +96,16 @@ export type ClientProfileProps = {
    * the meal-slot denominator the plans card counts a week against.
    */
   intake: ClientIntakeValues;
+  /** The selected week's adherence, for the Progress view. */
+  progress: ClientWeekProgress;
+  /**
+   * `plans`, narrowed to the weeks that actually hold meals — the Progress
+   * view's week picker. An empty draft is real for Billing & Plans, which
+   * still reads `plans` whole, but has nothing a client could have followed.
+   */
+  progressWeeks: PlanListEntry[];
+  /** The selected week's plan meals by day of week, for the Progress view's per-meal detail. */
+  mealsByDay: Map<number, ClientDayMeal[]>;
   portal: {
     /** What they already sign in with, or null when there is no account. */
     username: string | null;
@@ -114,6 +127,9 @@ export async function ClientProfile({
   visits,
   plans,
   intake,
+  progress,
+  progressWeeks,
+  mealsByDay,
   portal,
   canSendWhatsapp,
 }: ClientProfileProps) {
@@ -122,6 +138,7 @@ export async function ClientProfile({
   const labels: Record<ProfileTab, string> = {
     account: t('profile.tabs.account'),
     nutrition: t('profile.tabs.nutrition'),
+    progress: t('profile.tabs.progress'),
     security: t('profile.tabs.security'),
     billing: t('profile.tabs.billing'),
   };
@@ -164,6 +181,15 @@ export async function ClientProfile({
             />
           ),
           nutrition: <ClientNutrition intake={intake} locale={locale} />,
+          progress: (
+            <ClientProgressPanel
+              clientId={client.id}
+              locale={locale}
+              weeks={progressWeeks}
+              progress={progress}
+              mealsByDay={mealsByDay}
+            />
+          ),
           security: (
             <PortalCredentialsCard
               locale={locale}
@@ -347,7 +373,25 @@ function TrailRow({
         ) : null}
       </span>
 
-      <span className="shrink-0 text-body-sm font-semibold text-secondary-foreground opacity-0 transition-opacity group-hover/row:opacity-100 group-focus-visible/row:opacity-100">
+      {/*
+        The row's call to action — "Book visit", "Create plan" — revealed on
+        hover and on keyboard focus.
+
+        ⚠ **Visible from the start on a touch screen**, because there is no
+        third state there: a finger has no hover, and the focus ring arrives
+        only *after* the tap that has already navigated. On a phone or a tablet
+        this label was painted at `opacity-0` for its whole life, so a row whose
+        only purpose is to offer the action showed nothing but a chevron, and
+        the offer was invisible on exactly the devices that cannot discover it
+        any other way.
+
+        `pointer-coarse:opacity-100` rather than dropping the reveal: on a mouse
+        the fade is doing real work — a column of permanent olive labels down a
+        record that mostly has values already is noise — and that reading holds
+        wherever a pointer can hover. The variant asks the one question that
+        actually separates the two cases.
+      */}
+      <span className="shrink-0 text-body-sm font-semibold text-secondary-foreground opacity-0 transition-opacity group-hover/row:opacity-100 group-focus-visible/row:opacity-100 pointer-coarse:opacity-100">
         {value === null ? emptyAction : null}
       </span>
       <Icon name="chevronEnd" className="size-4 shrink-0 text-muted-foreground" />

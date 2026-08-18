@@ -40,7 +40,22 @@ import { cn } from '@/lib/utils';
  * as the loudest mark in a popover whose one accent belongs to the chosen day.
  * They keep the hover fill; only the glyph turns black.
  */
-const stepButtonClassName = 'size-7 shrink-0 rounded-lg p-0 text-foreground hover:text-foreground';
+/*
+  28px, and a 44px hit area on a coarse pointer.
+
+  These two arrows are how a month is changed, and on a touch device the date
+  panel is the *only* way to change one — so on a phone the whole of month
+  navigation sat behind a pair of 28px targets, well under the 44px floor the
+  planner's own drag handle is built to.
+
+  The visible button stays 28px, because it is sized against the panel's
+  typography and the 18px glyph inside it: growing it would push the month label
+  between the arrows out of its row. `before:` takes the extra as hit area
+  instead, which is invisible, costs no layout, and only applies where a finger
+  is doing the pointing.
+*/
+const stepButtonClassName =
+  "size-7 shrink-0 rounded-lg p-0 text-foreground hover:text-foreground pointer-coarse:before:absolute pointer-coarse:before:-inset-2 pointer-coarse:before:content-[''] relative";
 
 /**
  * 18px, against the toolbar's 20px — the same glyph-to-button ratio in a 28px
@@ -346,7 +361,13 @@ function ChooserCell({
         // not a choice — the day grid would only refuse every cell in it.
         'disabled:pointer-events-none disabled:opacity-50',
         shown
-          ? 'bg-primary text-primary-foreground font-semibold'
+          ? // The white label token, the same one every solid olive control in
+            // the app now carries — see `default` in `components/ui/button.tsx`
+            // and `--primary-foreground-white` in `globals.css`. The month and
+            // year cells here are filled with `bg-primary` exactly as a primary
+            // button is, so they read its label colour rather than keeping the
+            // dark one this pairing started with.
+            'bg-primary text-primary-foreground-white font-semibold'
           : current
             ? 'ring-1 ring-inset ring-primary text-primary font-medium hover:bg-muted'
             : 'text-foreground hover:bg-muted',
