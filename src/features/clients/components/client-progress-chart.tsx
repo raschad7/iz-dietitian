@@ -1,156 +1,39 @@
 'use client';
 
-import { useEffect, useState, type Key } from 'react';
-import { Area, AreaChart, CartesianGrid, Dot, XAxis, YAxis } from 'recharts';
+import dynamic from 'next/dynamic';
 
-import { ChartContainer, ChartTooltip, type ChartConfig } from '@/components/ui/chart';
+import { cn } from '@/lib/utils';
 
 /**
- * The Progress tab's weekly graph.
+ * The client's weight plot, held behind a dynamic import.
  *
- * Recharts, on the same narrow terms `stat-charts.tsx` documents for the
- * dashboard's own two plots: only this file is a client component, and
- * colour comes from `viz-brand` through `ChartConfig`.
+ * The same three lines, and the same reasoning, as
+ * `features/dashboard/components/stat-charts.tsx` — read the long note there
+ * for why Recharts is worth splitting out and why the call site did not have to
+ * change. The plot itself is untouched in `client-progress-plot.tsx`.
  *
- * **This chart does not mirror for RTL, on purpose.** `stat-charts.tsx`
- * reverses its category axis with `XAxis reversed` for the dashboard's own
- * charts, but a client's diary reads the same direction it was lived in
- * regardless of the page's language: the first day of the week is always at
- * the left and the curve always climbs left to right. The caller
- * (`client-progress-panel.tsx`) passes `progress.days` straight through, so
- * this component always just draws its array left to right and every point,
- * dot and label are already in agreement about their pixel.
+ * This one is arguably the more valuable of the two. The dashboard at least
+ * *shows* both its plots the moment it opens; this chart lives inside
+ * `ClientProgressPanel`, one panel among several on a client's record, and a
+ * reader who came to check a phone number or a visit history never looks at it
+ * — yet the whole of Recharts was fetched, parsed and evaluated on the way to
+ * every client page regardless.
  *
- * A day with nothing recorded — future, or simply empty — plots as a gap
- * rather than a false zero, the same "absence, not a number" rule
- * `adherence.ts` applies everywhere else a fraction is drawn.
+ * ⚠ `PLOT_HEIGHT` is `h-56` in `client-progress-plot.tsx` and is restated here
+ * rather than imported, because importing any value from that module would put
+ * it back in the static graph and undo the split. The placeholder has to keep
+ * matching the plot or this trades blocking time for layout shift, so
+ * **whoever changes the height has to change it in both files**.
  */
-
-export type ProgressChartPoint = {
-  /** Already translated weekday label — an axis tick, not a date. */
-  label: string;
-  /** 0–100, or null when the day has nothing recorded. */
-  value: number | null;
-  /** Already translated "3 of 4 meals" — computed server-side, since a
-   * translator function cannot cross into this client component. */
-  mealsLabel: string;
-  isToday: boolean;
-};
-
-const CONFIG = {
-  value: { color: 'var(--color-viz-brand)' },
-} satisfies ChartConfig;
-
 const PLOT_HEIGHT = 'h-56 w-full';
 
-function useReducedMotion(): boolean {
-  const [reduced, setReduced] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-  );
-
-  useEffect(() => {
-    const query = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const listener = (event: MediaQueryListEvent) => setReduced(event.matches);
-    query.addEventListener('change', listener);
-    return () => query.removeEventListener('change', listener);
-  }, []);
-
-  return reduced;
+function PlotPlaceholder() {
+  return <div aria-hidden="true" className={cn(PLOT_HEIGHT, 'shrink-0')} />;
 }
 
-function ProgressTooltip({
-  active,
-  payload,
-}: {
-  active?: boolean;
-  payload?: { payload: ProgressChartPoint }[];
-}) {
-  if (!active || !payload?.length) return null;
-  const point = payload[0]?.payload;
-  if (!point) return null;
+export type { ProgressChartPoint } from './client-progress-plot';
 
-  return (
-    <div className="grid min-w-32 gap-1 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-xl">
-      <span className="font-medium text-foreground">{point.label}</span>
-      <span className="text-muted-foreground tabular-nums">
-        {point.value === null ? '—' : `${Math.round(point.value)}%`}
-      </span>
-      <span className="text-muted-foreground">{point.mealsLabel}</span>
-    </div>
-  );
-}
-
-export function ClientProgressChart({
-  data,
-  seriesLabel,
-}: {
-  data: ProgressChartPoint[];
-  seriesLabel: string;
-}) {
-  const config = { value: { ...CONFIG.value, label: seriesLabel } } satisfies ChartConfig;
-  const reducedMotion = useReducedMotion();
-
-  return (
-    <ChartContainer config={config} className={PLOT_HEIGHT}>
-      <AreaChart accessibilityLayer data={data} margin={{ top: 8, left: 4, right: 4, bottom: 0 }}>
-        <defs>
-          <linearGradient id="client-progress-fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--color-viz-brand-soft)" stopOpacity={0.7} />
-            <stop offset="100%" stopColor="var(--color-viz-brand-soft)" stopOpacity={0.05} />
-          </linearGradient>
-        </defs>
-
-        <CartesianGrid vertical={false} />
-
-        <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} />
-
-        <YAxis
-          domain={[0, 100]}
-          ticks={[0, 50, 100]}
-          tickLine={false}
-          axisLine={false}
-          tickFormatter={(tick: number) => `${tick}%`}
-          width={36}
-        />
-
-        <ChartTooltip cursor={{ strokeDasharray: '3 3' }} content={<ProgressTooltip />} />
-
-        <Area
-          dataKey="value"
-          type="monotone"
-          stroke="var(--color-value)"
-          strokeWidth={2}
-          fill="url(#client-progress-fill)"
-          connectNulls={false}
-          isAnimationActive={!reducedMotion}
-          animationDuration={700}
-          dot={(props: { cx?: number; cy?: number; payload?: ProgressChartPoint; key?: Key | null }) => {
-            const { cx, cy, payload, key } = props;
-            if (cx === undefined || cy === undefined || !payload || payload.value === null) {
-              return <Dot key={key} cx={cx} cy={cy} r={0} />;
-            }
-
-            if (payload.isToday) {
-              // A darker olive, not a bigger version of the same one — size
-              // alone reads as "important point" long before it reads as
-              // "today", and the two dates either side of it are the same
-              // shade at a glance. `viz-band-marker` is the palette's own
-              // token for a single called-out point against a run of data
-              // (see `ComfortBand`), which is exactly the job here. The soft
-              // ring behind it is the halo the plan picker already puts under
-              // today's cell, redrawn at chart scale.
-              return (
-                <g key={key}>
-                  <circle cx={cx} cy={cy} r={9} className="fill-viz-band-marker/15" />
-                  <Dot cx={cx} cy={cy} r={5} className="fill-viz-band-marker stroke-background" strokeWidth={2} />
-                </g>
-              );
-            }
-
-            return <Dot key={key} cx={cx} cy={cy} r={3.5} className="fill-viz-brand" />;
-          }}
-        />
-      </AreaChart>
-    </ChartContainer>
-  );
-}
+export const ClientProgressChart = dynamic(
+  () => import('./client-progress-plot').then((m) => m.ClientProgressChart),
+  { ssr: false, loading: PlotPlaceholder },
+);

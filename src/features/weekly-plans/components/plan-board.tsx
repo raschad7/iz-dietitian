@@ -257,7 +257,7 @@ function BoardBody({
             <PopoverContent
               align="end"
               side="bottom"
-              className="max-h-[min(36rem,75vh)] w-80 overflow-y-auto p-3"
+              className="max-h-[min(36rem,75dvh)] w-80 overflow-y-auto p-3"
             >
               <PopoverTitle className="pb-2 text-label font-semibold">
                 {t('moreActions')}

@@ -196,7 +196,7 @@ export function MealInspector({
             <Popover.Popup
               className={cn(
                 PLANNER_THEME,
-                'relative flex h-[min(44rem,calc(100vh-2rem))] w-[min(29rem,calc(100vw-1.5rem))] origin-(--transform-origin) flex-col overflow-hidden rounded-lg bg-popover text-popover-foreground shadow-overlay ring-1 ring-foreground/10 outline-none max-sm:h-[min(44rem,calc(100vh-1rem))] max-sm:w-full max-sm:rounded-b-none',
+                'relative flex h-[min(44rem,calc(100dvh-2rem))] w-[min(29rem,calc(100vw-1.5rem))] origin-(--transform-origin) flex-col overflow-hidden rounded-lg bg-popover text-popover-foreground shadow-overlay ring-1 ring-foreground/10 outline-none max-sm:h-[min(44rem,calc(100dvh-1rem))] max-sm:w-full max-sm:rounded-b-none',
                 'transition-[opacity,transform,filter,clip-path] duration-(--duration-sweep) ease-(--ease-sweep)',
                 'data-ending-style:scale-95 data-ending-style:opacity-0 data-ending-style:blur-sm',
                 'data-starting-style:scale-95 data-starting-style:opacity-0 data-starting-style:blur-sm',

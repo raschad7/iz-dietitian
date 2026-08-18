@@ -70,9 +70,75 @@ type CreateGesture = {
   date: string;
   gridTop: number;
   originClientY: number;
+  originClientX: number;
   anchorMinute: number;
   moved: boolean;
+  /**
+   * Whether this gesture is allowed to paint a range yet.
+   *
+   * `true` from the outset for a mouse or a pen, which is what the grid has
+   * always done. On a finger it starts `false` and only a deliberate hold turns
+   * it on — see {@link HOLD_TO_PAINT_MS}.
+   */
+  armed: boolean;
+  /** `'mouse' | 'pen' | 'touch'`, as reported by the originating event. */
+  pointerType: string;
+  /**
+   * The last coordinates this gesture actually saw, for the release to fall
+   * back on.
+   *
+   * `pointerup` is not reliably positioned on touch: WebKit has shipped
+   * versions where the release event for a finger carries `0, 0` rather than
+   * the point the finger left, and the picker is anchored to exactly those
+   * coordinates. Anchored to the origin it is clamped to the viewport margin
+   * and opens in the corner of the screen instead of under the hand — present
+   * and correct, but nowhere near the range just painted.
+   */
+  lastClientX: number;
+  lastClientY: number;
 };
+
+/**
+ * How long a finger must rest on empty canvas before it is painting a range
+ * rather than starting a scroll.
+ *
+ * ## Why the grid needed this at all
+ *
+ * Dragging out a booking was impossible on a touch screen, and the reason is
+ * structural rather than a missing handler. The day column has to stay
+ * pannable — a week that cannot be scrolled is one screen of day — so it cannot
+ * claim `touch-action: none` the way the drag and resize grips do. That leaves
+ * the browser free to take any finger that travels, and iOS does: it claims the
+ * gesture for panning and fires `pointercancel`. `handleCancel` treats that as
+ * an abandoned gesture and writes nothing, which is correct — it is what stops
+ * *scrolling* the calendar from offering to book — but it also meant every
+ * attempt to paint a range was thrown away at the moment it began. On a mouse,
+ * where `pointercancel` essentially never fires, the same code worked.
+ *
+ * ⚠ **This is why the grid books in DevTools and not on the hardware.** Blink's
+ * device emulation synthesises a pointer stream from the mouse; it does not
+ * reproduce the browser competing for the gesture, so `pointercancel` never
+ * arrives and the mouse path runs unchanged. The failure exists only where a
+ * real compositor is deciding whether the finger belongs to the page or to the
+ * app — which is to say, only on the device.
+ *
+ * ## The gesture
+ *
+ * A press that stays still is unambiguous: nobody starts a scroll by holding
+ * perfectly still. So a finger arms the paint by resting for this long within
+ * {@link HOLD_TOLERANCE_PX}, and from that moment `preventDefault()` on
+ * `touchmove` keeps the gesture (see `armTouchGesture`). Move before then and
+ * it was a scroll, which is left entirely to the browser.
+ *
+ * 450ms is the same order as the platform's own long-press and comfortably
+ * above dnd-kit's 150ms on the planner board — the board's handle already
+ * reserves its gesture with `touch-action`, so it can afford to be quicker;
+ * this one is competing with a scroller and has to be certain.
+ */
+const HOLD_TO_PAINT_MS = 450;
+
+/** How far a finger may drift during the hold and still be holding still. */
+const HOLD_TOLERANCE_PX = 10;
 
 type MoveGesture = {
   appointment: CalendarAppointment;
@@ -163,18 +229,104 @@ export function useCalendarGestures({
     (date: string, event: ReactPointerEvent<HTMLDivElement>) => {
       const gridTop = event.currentTarget.getBoundingClientRect().top;
 
+      /*
+        A finger is not allowed to paint until it has held still; anything else
+        keeps the behaviour the grid has always had. `pen` sits with `mouse`
+        rather than with `touch`: a stylus is aimed, so it has no scroll gesture
+        to be confused with, and making an Apple Pencil wait 450ms to draw a
+        range would be a regression invented for no one.
+      */
+      const isFinger = event.pointerType === 'touch';
+
       createRef.current = {
         date,
         gridTop,
         originClientY: event.clientY,
+        originClientX: event.clientX,
         // Floor, not round: a click books the slot the pointer is *inside*.
         anchorMinute: minuteAt(event.clientY, gridTop, floorToSlot),
         moved: false,
+        armed: !isFinger,
+        lastClientX: event.clientX,
+        lastClientY: event.clientY,
+        pointerType: event.pointerType,
       };
+
+      /*
+        ── Taking the gesture back from the browser ──
+
+        `preventDefault()` on `touchmove` is the only thing that stops iOS
+        panning a scroller mid-gesture; `touch-action` cannot be used here
+        because the column has to stay pannable, and `setPointerCapture` decides
+        where events are *delivered*, not whether the compositor scrolls.
+
+        ⚠ **`{ passive: false }` is load-bearing.** Browsers default
+        `touchmove` listeners on window and document to passive, and a passive
+        listener's `preventDefault()` is a silent no-op — no error, no warning
+        in normal use, the page simply keeps scrolling. Registering without it
+        would look exactly like this fix while changing nothing.
+
+        Registered at pointer-down rather than when the hold succeeds, because a
+        listener added after the browser has already begun scrolling is too
+        late to stop it. It is inert until `armed`, so an ordinary scroll that
+        starts on the grid passes through untouched.
+      */
+      const handleTouchMove = (touchEvent: TouchEvent) => {
+        if (createRef.current?.armed && touchEvent.cancelable) touchEvent.preventDefault();
+      };
+      window.addEventListener('touchmove', handleTouchMove, { passive: false });
+
+      /*
+        The hold. Arming paints the anchor slot straight away, so the range
+        appears under the finger at the instant the gesture is taken — without
+        it the hold succeeds invisibly and the first 15 minutes of the drag look
+        like nothing is happening.
+      */
+      const holdTimer = isFinger
+        ? window.setTimeout(() => {
+            const gesture = createRef.current;
+            if (!gesture || gesture.moved) return;
+
+            gesture.armed = true;
+
+            const range = {
+              date: gesture.date,
+              startMinute: gesture.anchorMinute,
+              durationMinutes: SLOT_MINUTES,
+            };
+            setPending({
+              ...range,
+              valid: isValid({ ...range, practitionerId: latest.current.practitionerId }),
+            });
+          }, HOLD_TO_PAINT_MS)
+        : null;
 
       const handleMove = (moveEvent: PointerEvent) => {
         const gesture = createRef.current;
         if (!gesture) return;
+
+        // Recorded on every move, armed or not, so the release always has a real
+        // point to fall back on. See `lastClientX` on the gesture type.
+        gesture.lastClientX = moveEvent.clientX;
+        gesture.lastClientY = moveEvent.clientY;
+
+        /*
+          Before a finger has armed, travel means this was a scroll all along:
+          drop the hold and let the browser have the gesture. Measured on both
+          axes, because a horizontal swipe across the week is a scroll too and
+          the vertical-only test below would not see it.
+        */
+        if (!gesture.armed) {
+          const drift = Math.hypot(
+            moveEvent.clientX - gesture.originClientX,
+            moveEvent.clientY - gesture.originClientY,
+          );
+          if (drift > HOLD_TOLERANCE_PX) {
+            if (holdTimer !== null) window.clearTimeout(holdTimer);
+            teardown();
+          }
+          return;
+        }
 
         // Still a click until the pointer has actually travelled.
         if (!gesture.moved && Math.abs(moveEvent.clientY - gesture.originClientY) < DRAG_THRESHOLD_PX) return;
@@ -196,6 +348,25 @@ export function useCalendarGestures({
       };
 
       /**
+       * Detach everything this gesture registered and forget it.
+       *
+       * One function because the listeners now come in two families — pointer
+       * and touch — and a release path that forgot the `touchmove` one would
+       * leave a live `preventDefault()` on the window, which is a calendar that
+       * has stopped scrolling.
+       */
+      function teardown() {
+        window.removeEventListener('pointermove', handleMove);
+        window.removeEventListener('pointerup', handleUp);
+        window.removeEventListener('pointercancel', handleCancel);
+        window.removeEventListener('touchmove', handleTouchMove);
+        if (holdTimer !== null) window.clearTimeout(holdTimer);
+
+        createRef.current = null;
+        setPending(null);
+      }
+
+      /**
        * The gesture the browser took away from us, which is not a booking.
        *
        * ⚠ This used to be `handleUp` itself, and on a touch screen that made the
@@ -209,24 +380,25 @@ export function useCalendarGestures({
        * A cancelled gesture is one the user did not finish. It tears down and
        * writes nothing. Nothing changes for a mouse, where `pointercancel`
        * essentially never fires.
+       *
+       * It stays a teardown now that a finger can arm the gesture, and that is
+       * deliberate rather than an oversight: once armed, `handleTouchMove` is
+       * holding the gesture with `preventDefault()`, so the browser has no
+       * reason to claim it and a `pointercancel` that arrives anyway — a second
+       * finger, a system gesture, a call coming in — really is an interruption.
        */
       const handleCancel = () => {
-        window.removeEventListener('pointermove', handleMove);
-        window.removeEventListener('pointerup', handleUp);
-        window.removeEventListener('pointercancel', handleCancel);
-
-        createRef.current = null;
-        setPending(null);
+        teardown();
       };
 
       const handleUp = (upEvent: PointerEvent) => {
-        window.removeEventListener('pointermove', handleMove);
-        window.removeEventListener('pointerup', handleUp);
-        window.removeEventListener('pointercancel', handleCancel);
-
         const gesture = createRef.current;
-        createRef.current = null;
-        setPending(null);
+
+        /*
+          Read before the teardown clears it, since `teardown` is what now owns
+          forgetting the gesture.
+        */
+        teardown();
 
         if (!gesture) return;
 
@@ -250,9 +422,25 @@ export function useCalendarGestures({
           };
         }
 
+        /*
+          Where to open the picker.
+
+          `pointerup`'s own coordinates where they are real, and the last point
+          the gesture actually saw where they are not — see `lastClientX` on the
+          gesture type for the WebKit behaviour this guards. `0, 0` is the
+          sentinel because it is both the value a mis-reported touch release
+          carries and a point no real release inside the grid can produce: the
+          grid never reaches the very corner of the viewport, since the shell's
+          rail and the calendar's own toolbar are always above and beside it.
+        */
+        const releasedAtOrigin = upEvent.clientX === 0 && upEvent.clientY === 0;
+        const pointer = releasedAtOrigin
+          ? { x: gesture.lastClientX, y: gesture.lastClientY }
+          : { x: upEvent.clientX, y: upEvent.clientY };
+
         // Nothing is written here. The picker opens, and only choosing a client
         // creates anything — so an abandoned gesture leaves no trace.
-        latest.current.onRequestBooking(request, { x: upEvent.clientX, y: upEvent.clientY });
+        latest.current.onRequestBooking(request, pointer);
       };
 
       window.addEventListener('pointermove', handleMove);

@@ -1,6 +1,6 @@
 import { NextIntlClientProvider } from 'next-intl';
 import { getTranslations } from 'next-intl/server';
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import {
   Almarai,
   IBM_Plex_Mono,
@@ -140,6 +140,47 @@ type LocaleLayoutProps = {
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
 }
+
+/**
+ * The viewport, for the whole app rather than the portal alone.
+ *
+ * Next emits `width=device-width, initial-scale=1` by default, which is what
+ * this document had. The two additions are both about hardware the browser's
+ * device emulation cannot reproduce.
+ *
+ * ## `viewportFit: 'cover'`
+ *
+ * `env(safe-area-inset-*)` resolves to `0` unless the document asks for the
+ * full screen, and until now nothing did. That made three separate pieces of
+ * inset handling dead code that read as if it worked: the portal tab bar's
+ * `pb-[max(0.5rem,env(safe-area-inset-bottom))]`, the `--q-toast-offset-bottom`
+ * calc in `globals.css`, and the request FAB derived from it. Each was written
+ * to clear the home indicator and each computed to nothing on the device it was
+ * written for.
+ *
+ * Without `cover`, iOS letterboxes a standalone web app inside the safe area
+ * and fills the margin with the theme colour, so an installed PWA sits in a
+ * band of olive with its own background stopping short of the screen — the
+ * "cut" edges an installed app shows and a browser tab does not. With `cover`
+ * the document paints edge to edge and the insets become real numbers, which is
+ * what the surfaces along those edges were always asking for. The block-end
+ * inset is applied to every one of them — see `--q-safe-b` in `globals.css`.
+ *
+ * ## `interactiveWidget: 'resizes-content'`
+ *
+ * When the on-screen keyboard opens, the default (`resizes-visual`) leaves the
+ * layout viewport at its full height and merely scrolls it, so a dialog sized
+ * in `dvh` keeps a height that no longer fits above the keyboard and its footer
+ * — the row with the submit button — ends up underneath it. Resizing the
+ * content instead means `dvh` shrinks with the keyboard and the footer stays
+ * reachable, which is the behaviour every form in a bottom sheet depends on.
+ */
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  interactiveWidget: 'resizes-content',
+};
 
 export async function generateMetadata({ params }: Omit<LocaleLayoutProps, 'children'>): Promise<Metadata> {
   const locale = await resolveLocale(params);

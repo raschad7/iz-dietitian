@@ -16,7 +16,7 @@ import { DishEditor } from './dish-editor';
 /**
  * The dish builder as a large centered dialog (spec §1).
  *
- * A centered modal workspace, not a side sheet: ~70rem wide and up to 92vh tall,
+ * A centered modal workspace, not a side sheet: ~70rem wide and up to 92dvh tall,
  * the page dimmed and blurred behind it, focus trapped, Escape and a backdrop
  * click honoured — all from the shared `Dialog` (a native `<dialog>` opened with
  * `showModal`). Only the body scrolls; the header and the editor's own sticky
@@ -78,7 +78,7 @@ export function DishEditorDialog({
         size="wide"
         // A workspace: wider and taller than the default card, a flex column so the
         // header stays put and the editor body scrolls inside it.
-        className="open:flex open:flex-col max-h-[92vh] sm:w-[min(70rem,calc(100vw-4rem))]"
+        className="open:flex open:flex-col max-h-[92dvh] sm:w-[min(70rem,calc(100vw-4rem))]"
       >
         <DialogHeader
           title={isEditing ? t('editTitle') : t('pageTitle')}

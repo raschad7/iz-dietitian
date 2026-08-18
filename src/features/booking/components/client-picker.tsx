@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Icon } from '@/components/ui/icon';
 
 import { Avatar } from '@/components/ui/avatar';
@@ -110,21 +111,64 @@ export function ClientPicker({
    * Position after measuring, not before: clamping needs the popover's real
    * size, and a width guessed from the content would put it half off screen on
    * a long client name. Hidden until measured, so there is no visible jump.
+   *
+   * ## And again whenever the viewport changes size
+   *
+   * `anchorPopover` takes the pointer that opened the picker and clamps the
+   * panel inside the viewport it was measured against. That viewport is not a
+   * constant on a phone or a tablet: turning the device swaps its two
+   * dimensions outright, and the on-screen keyboard shortens it by half under
+   * `interactiveWidget: 'resizes-content'` (see the `viewport` export in
+   * `[locale]/layout.tsx`) the moment the search field takes focus.
+   *
+   * Measured once, the panel kept coordinates clamped to a viewport that no
+   * longer existed — a picker opened near the foot of a portrait screen landed
+   * off the bottom of the same screen turned sideways, with the half-made
+   * booking it holds unreachable and no way back but dismissing it.
+   *
+   * Re-running the same clamp is the whole fix. The pointer is deliberately
+   * *not* re-derived: the tap it records happened in the old viewport and there
+   * is nothing to map it onto in the new one, so the honest behaviour is to
+   * keep the panel as close to where the reader left it as the new screen
+   * allows, which is exactly what clamping the old pointer does.
+   *
+   * Both events, because on a rotation they fire at different moments:
+   * `orientationchange` as the turn begins and `resize` once the new dimensions
+   * have settled. Running the clamp on each is two `getBoundingClientRect`
+   * reads and a `setState` that no-ops when the answer has not moved, which is
+   * cheaper than choosing wrong. `resize` alone still carries every other case
+   * — the keyboard, an iPad split-view divider, a desktop window edge — and is
+   * the same listener `meal-inspector.tsx` re-measures on.
    */
   useLayoutEffect(() => {
     const element = popoverRef.current;
     if (!element) return;
 
-    const rect = element.getBoundingClientRect();
+    function place() {
+      const node = popoverRef.current;
+      if (!node) return;
 
-    setPosition(
-      anchorPopover(
-        pending.pointer,
-        { width: rect.width, height: rect.height },
-        { width: window.innerWidth, height: window.innerHeight },
-        direction,
-      ),
-    );
+      const rect = node.getBoundingClientRect();
+
+      setPosition(
+        anchorPopover(
+          pending.pointer,
+          { width: rect.width, height: rect.height },
+          { width: window.innerWidth, height: window.innerHeight },
+          direction,
+        ),
+      );
+    }
+
+    place();
+
+    window.addEventListener('resize', place);
+    window.addEventListener('orientationchange', place);
+
+    return () => {
+      window.removeEventListener('resize', place);
+      window.removeEventListener('orientationchange', place);
+    };
   }, [direction, pending.pointer]);
 
   /**
@@ -202,7 +246,37 @@ export function ClientPicker({
     onPick(client.id, weeks);
   }
 
-  return (
+  /*
+    ── Portalled to <body>, like every other overlay in the app ──
+
+    This panel is `position: fixed`, and it was the last fixed overlay here
+    rendered *in place*: `Dialog` portals (see `client-form-trigger.tsx`), and
+    all four Base UI popups portal. Rendered inline it sat deep inside the
+    calendar, which means its containing block was not the viewport but the
+    nearest ancestor carrying a `transform`, `filter`, `backdrop-filter`,
+    `perspective`, `contain: paint` or `will-change` on any of them — and the
+    coordinates it computes come from `getBoundingClientRect`, which is measured
+    against the viewport. When those two disagree the panel lands offset by the
+    ancestor's own origin, and if that ancestor also clips (a `clip-path`, an
+    `overflow` on a transformed box) it is not merely displaced but invisible.
+
+    That is exactly the failure `.q-route-stage` was causing app-wide until the
+    `animation-fill-mode` fix, and the four notes elsewhere in this codebase
+    about working around that wrapper are the same bug found four times. A
+    portal to `<body>` ends the whole class of it: there is no ancestor left
+    between this element and the initial containing block, so no future
+    `transform` added anywhere in the calendar can move or hide the picker
+    again.
+
+    `dir` is already set explicitly below, so leaving the calendar's subtree
+    costs nothing — the panel never inherited direction from its parent.
+
+    Guarded on `document` so the first server render, where there is no body to
+    portal into, returns nothing rather than throwing.
+  */
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
     <div
       ref={popoverRef}
       role="dialog"
@@ -382,6 +456,7 @@ export function ClientPicker({
           {t('picker.newClient')}
         </Button>
       ) : null}
-    </div>
+    </div>,
+    document.body,
   );
 }
