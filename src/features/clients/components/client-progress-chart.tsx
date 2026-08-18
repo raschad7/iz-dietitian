@@ -12,14 +12,14 @@ import { ChartContainer, ChartTooltip, type ChartConfig } from '@/components/ui/
  * dashboard's own two plots: only this file is a client component, and
  * colour comes from `viz-brand` through `ChartConfig`.
  *
- * **RTL is handled by the caller, not by an axis prop.** `stat-charts.tsx`
- * reverses its category axis with `XAxis reversed`, which works for the
- * dashboard's two charts; here, with a band-scale category axis, `reversed`
- * flipped which end the tick *labels* rendered at without reliably moving
- * the plotted geometry to match, so the curve and its labels disagreed. The
- * caller (`client-progress-panel.tsx`) instead reverses `data` itself for
- * Arabic, so this component always just draws its array left to right and
- * every point, dot and label are already in agreement about their pixel.
+ * **This chart does not mirror for RTL, on purpose.** `stat-charts.tsx`
+ * reverses its category axis with `XAxis reversed` for the dashboard's own
+ * charts, but a client's diary reads the same direction it was lived in
+ * regardless of the page's language: the first day of the week is always at
+ * the left and the curve always climbs left to right. The caller
+ * (`client-progress-panel.tsx`) passes `progress.days` straight through, so
+ * this component always just draws its array left to right and every point,
+ * dot and label are already in agreement about their pixel.
  *
  * A day with nothing recorded — future, or simply empty — plots as a gap
  * rather than a false zero, the same "absence, not a number" rule
@@ -130,16 +130,24 @@ export function ClientProgressChart({
               return <Dot key={key} cx={cx} cy={cy} r={0} />;
             }
 
-            return (
-              <Dot
-                key={key}
-                cx={cx}
-                cy={cy}
-                r={payload.isToday ? 5 : 3.5}
-                className={payload.isToday ? 'fill-viz-brand stroke-background' : 'fill-viz-brand'}
-                strokeWidth={payload.isToday ? 2 : 0}
-              />
-            );
+            if (payload.isToday) {
+              // A darker olive, not a bigger version of the same one — size
+              // alone reads as "important point" long before it reads as
+              // "today", and the two dates either side of it are the same
+              // shade at a glance. `viz-band-marker` is the palette's own
+              // token for a single called-out point against a run of data
+              // (see `ComfortBand`), which is exactly the job here. The soft
+              // ring behind it is the halo the plan picker already puts under
+              // today's cell, redrawn at chart scale.
+              return (
+                <g key={key}>
+                  <circle cx={cx} cy={cy} r={9} className="fill-viz-band-marker/15" />
+                  <Dot cx={cx} cy={cy} r={5} className="fill-viz-band-marker stroke-background" strokeWidth={2} />
+                </g>
+              );
+            }
+
+            return <Dot key={key} cx={cx} cy={cy} r={3.5} className="fill-viz-brand" />;
           }}
         />
       </AreaChart>

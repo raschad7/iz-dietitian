@@ -48,3 +48,8 @@ yarn.lock
 *.pem
 /coverage
 .vercel
+
+# playwright e2e — run artifacts and the seed data global-setup.ts writes
+/test-results/
+/playwright-report/
+/e2e/.seed.json

@@ -7,9 +7,10 @@ import { PortalScreenHeader } from '@/features/portal/components/portal-screen-h
 import { PortalSignOut } from '@/features/portal/components/portal-sign-out';
 import { SettingsChoiceRow, SettingsLinkRow } from '@/features/portal/components/settings-rows';
 import { SettingsSection } from '@/features/portal/components/settings-section';
+import { InstallAppSettingsRow } from '@/features/portal/pwa/install-app-settings-row';
 import { requirePortalClient } from '@/features/portal/session';
 import { resolveLocale } from '@/i18n/params';
-import { locales } from '@/i18n/routing';
+import { getLocaleDirection, locales } from '@/i18n/routing';
 
 type SettingsPageProps = {
   params: Promise<{ locale: string }>;
@@ -101,6 +102,12 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
               description={t('preferences.language.description')}
               locale={locale}
             />
+
+            {/*
+              Renders nothing once already installed, or on a platform with no
+              install path to offer — see the component for both checks.
+            */}
+            <InstallAppSettingsRow dir={getLocaleDirection(locale)} />
           </SettingsSection>
 
           <SettingsSection icon="settingsSupport" title={t('support.title')}>
