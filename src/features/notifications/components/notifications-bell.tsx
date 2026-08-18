@@ -105,6 +105,16 @@ export function NotificationsBell({ attention }: { attention: StaffAttentionNoti
           if (next) markAllRead(preview.map((item) => item.id));
         }}
         title={t('title')}
+        /*
+          On a phone the panel comes up from the bottom edge instead of hanging
+          off the bell — the same shape the "see all" dialog behind it already
+          takes at that width, and at the same 40rem line. The bell is in the
+          inline-end corner of the page header, which on a phone is the corner
+          furthest from the hand holding the device; the same rows arrive under
+          the thumb instead, at the full width of the screen, with the page
+          dimmed behind them.
+        */
+        mobileSheet
         count={count}
         unread={unread}
         empty={empty}
