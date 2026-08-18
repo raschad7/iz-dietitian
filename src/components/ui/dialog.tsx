@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
  * the top layer for free — all of which a div-based modal has to reimplement,
  * usually incompletely. Two booking dialogs were already doing this by hand
  * with the same class string; this is that, shared, with the scrim moved off
- * `bg-black/40` and onto the olive-tinted `--overlay` token.
+ * `bg-black/40` and onto the green-tinted `--overlay` token.
  *
  * Bottom sheet on a phone, centred card from `sm` up. The sheet rounds its
  * block-start corners only, because it rises from the bottom edge and its other

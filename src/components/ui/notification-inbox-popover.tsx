@@ -579,10 +579,11 @@ function NotificationInboxItem({
  * negative offset paints inside the row and sits outside layout, so nothing
  * moves when it appears.
  *
- * `sidebar-ring` rather than the global lime `--ring`: this is a solo ring with
- * no olive-950 halo behind it, and lime-400 is 1.37:1 on a light surface, so the
+ * `sidebar-ring` rather than the global `--ring`: this is a solo ring with
+ * no green-950 halo behind it, and the global ring is tuned to sit inside that
+ * halo on a white card rather than to stand alone on the rail, so the
  * line has to carry the contrast by itself — the same reasoning that put
- * olive-950 on the rail. The token already flips for dark mode.
+ * green-950 on the rail. The token already flips for dark mode.
  */
 const notificationInboxItemLinkVariants = cn(
   'group/inbox-item block',

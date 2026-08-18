@@ -21,7 +21,7 @@ const buttonVariants = cva(
     // `not-aria-[haspopup]` exempts menu triggers: a control that opens a
     // surface should not appear to sink under it.
     "active:not-aria-[haspopup]:translate-y-px",
-    // Lime ring + olive-950 halo. Fields deliberately use a different focus
+    // Lime ring + green-950 halo. Fields deliberately use a different focus
     // treatment — see the note in globals.css.
     "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-focus-halo",
     /*
@@ -72,13 +72,15 @@ const buttonVariants = cva(
          * The colour is `--primary-foreground-white` in `globals.css`, beside
          * `--primary-foreground` — a token, not a `text-white` per site.
          *
-         * ⚠ Contrast is traded, and knowingly. White on the brand's own #72AE34
-         * measures ~2.68:1, under WCAG AA's 4.5:1 for body text, which is why
-         * `--primary-foreground` is n-900 (5.46:1) and stays that way for the
-         * surfaces that still read it. Darkening this fill one step to olive-600
-         * would clear the floor and is the fix if the pairing is revisited; the
-         * decision to spend it was made deliberately and is recorded here and on
-         * the token. Where a label has to be *read* rather than pressed — a
+         * ⚠ Contrast is traded, and knowingly — and the bill went up. White on
+         * the brand's leaf green (`#75CF48`) measures about 1.95:1; it was
+         * ~2.68:1 while `--primary` was the darker `#72AE34`. WCAG AA asks 4.5:1
+         * for body text, so this was already an exception and is now a larger
+         * one. `--primary-foreground` is n-900 — about 10.8:1 on this fill, and
+         * *better* than it was — and stays that way for the surfaces that read
+         * it. Switching this variant to that token is the one-line fix if the
+         * pairing is revisited; keeping white is a look the product chose
+         * deliberately, and it is recorded here and on the token. Where a label has to be *read* rather than pressed — a
          * dense list, a small control — `soft` and `neutral` are the checked
          * pairs.
          */
@@ -97,17 +99,18 @@ const buttonVariants = cva(
          *
          * Not a replacement for `default`. Where a button closes a decision —
          * a form's submit, a dialog's confirm — the solid fill is the one that
-         * says so. olive-700 on olive-50 is 7.37:1.
+         * says so. green-700 on green-50 is 7.37:1.
          */
         soft: "border-transparent bg-secondary text-secondary-foreground hover:bg-primary-subtle",
 
         /**
-         * Secondary — white box, olive border and label, flipping to lime on
-         * hover. The label darkens to olive-950 with it: olive-600 on lime-400
-         * is 3.98:1 and fails, olive-950 is 12.04:1.
+         * Secondary — white box, green border and label, flipping to the
+         * accent fill on hover. The label darkens to green-950 with it, and has
+         * to: a mid-ramp green on a light green fill fails, green-950 on it is
+         * about 9.9:1.
          */
         outline:
-          "border-primary bg-card text-secondary-foreground hover:border-accent-lime hover:bg-accent-lime hover:text-on-accent aria-expanded:border-accent-lime aria-expanded:bg-accent-lime aria-expanded:text-on-accent",
+          "border-primary bg-card text-secondary-foreground hover:border-accent-green hover:bg-accent-green hover:text-on-accent aria-expanded:border-accent-green aria-expanded:bg-accent-green aria-expanded:text-on-accent",
 
         /** Tertiary — no box until you touch it, then a warm neutral flip. */
         ghost:
@@ -152,8 +155,13 @@ const buttonVariants = cva(
         neutralGhost:
           "border-transparent text-foreground hover:bg-accent hover:text-accent-foreground aria-expanded:bg-accent",
 
-        /** Accent — the lime fill itself, for a completion action. */
-        accent: "border-transparent bg-accent-lime text-on-accent hover:bg-[var(--lime-300)]",
+        /**
+         * Accent — the accent fill itself, for a completion action. Hover steps
+         * *down* the ramp to green-400 rather than up: the fill is already
+         * light, so the response has to darken to be felt. green-950 stays
+         * legible on it at about 8:1.
+         */
+        accent: "border-transparent bg-accent-green text-on-accent hover:bg-[var(--green-400)]",
 
         /**
          * Destructive — clay outline, never a solid red block. A delete is a
@@ -183,10 +191,10 @@ const buttonVariants = cva(
         /**
          * Secondary-subtle. Not one of the six named variants, but the brand
          * tint is what several dense surfaces already reach for, and having it
-         * here keeps them off ad-hoc olive-50 classes.
+         * here keeps them off ad-hoc green-50 classes.
          */
         secondary:
-          "border-transparent bg-secondary text-secondary-foreground hover:bg-[var(--olive-100)]",
+          "border-transparent bg-secondary text-secondary-foreground hover:bg-[var(--green-100)]",
 
         /**
          * Primary, at rest. Olive-100 with an olive label, filling to the solid
@@ -199,8 +207,8 @@ const buttonVariants = cva(
          * rather than act on first. It still fills in, so the button that
          * commits has somewhere to go.
          *
-         * olive-700 on olive-100 is 6.51:1 — so the *resting* state, the one
-         * that has to be readable, passes. The hover fill is olive-500 under a
+         * green-700 on green-100 is 6.51:1 — so the *resting* state, the one
+         * that has to be readable, passes. The hover fill is green-500 under a
          * white label at 3.47:1, which is `default`'s own knowing brand
          * failure (see the ⚠ note in docs/design-system.md); this variant does
          * not add one, it inherits it, and only in the transient state.
@@ -262,14 +270,14 @@ const buttonVariants = cva(
     },
     compoundVariants: [
       /*
-       * The icon button is a size *and* a skin — pale olive chip, olive-200
+       * The icon button is a size *and* a skin — pale olive chip, green-200
        * border, olive glyph — and CVA cannot express "this fill only when
        * round". A compound variant can.
        */
       ...(["icon", "icon-sm"] as const).map((size) => ({
         variant: "default" as const,
         size,
-        class: "border-[var(--olive-200)] bg-[var(--olive-50)] text-primary hover:bg-[var(--olive-100)]",
+        class: "border-[var(--green-200)] bg-[var(--green-50)] text-primary hover:bg-[var(--green-100)]",
       })),
       /*
        * Tertiary controls carry 12px of padding rather than 20px. A ghost

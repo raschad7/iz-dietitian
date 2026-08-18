@@ -24,13 +24,13 @@ import { cn } from '@/lib/utils';
  * profile was asked to adopt: a sunken track with the selected tab lifted out of
  * it as a card. It is ported onto this system's tokens rather than copied —
  * `bg-muted` for the track, `bg-card` plus `shadow-card` for the selected tab,
- * olive-700 for its label — so the control belongs to the same palette as the
+ * green-700 for its label — so the control belongs to the same palette as the
  * cards under it.
  *
  * ⚠ **The selected tab is not a solid olive fill.** Olive marks what you can act
  * on (docs/design-system.md, "Colour"), and a tab bar merely says which view you
  * are in — the same argument the visit record's `Segmented` records for its own
- * neutral thumb. The label carries olive-700 at 7.37:1 on the raised white; the
+ * neutral thumb. The label carries green-700 at 7.37:1 on the raised white; the
  * fill stays neutral.
  *
  * ## Base UI, not a hand-rolled tablist

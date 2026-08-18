@@ -75,7 +75,7 @@ type PaginationLinkProps = {
  * it, and there is only ever one of those per screen.
  *
  * **No border on the active page, and the fill alone is a weak mark.**
- * `--secondary` is olive-50, 1.07:1 against a white page — on a button that is
+ * `--secondary` is green-50, 1.07:1 against a white page — on a button that is
  * a tint you read as a surface, on a numeral it is nearly nothing. It is
  * enough where the current page is the *only* page drawn, which is how
  * `ClientPagination` now works: one numeral between two steps, and what tells
@@ -85,7 +85,7 @@ type PaginationLinkProps = {
  * ⚠ It is thinner than it looks where a pager still draws a *row* of numbers —
  * `DishPagination` does — because there the reader has to pick the current one
  * out of five identical chips and a 1.07:1 fill is not much to do it with. An
- * edge would fix it: olive-500 measures 3.47:1 on the page and 3.23:1 on the
+ * edge would fix it: green-500 measures 3.47:1 on the page and 3.23:1 on the
  * chip, clearing the 3:1 a boundary needs from either side. Left undrawn on
  * purpose, not overlooked.
  */

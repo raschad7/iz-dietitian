@@ -1169,12 +1169,12 @@ export function Calendar({
 
                 {days.map((date) => {
                   /*
-                    Today is the whole cell tinted olive-50, not a filled pip
+                    Today is the whole cell tinted green-50, not a filled pip
                     behind the number. The pip marked the *date* when what is
                     current is the *column*, and at 20px across it was also the
-                    one place in the shell carrying white on olive-500 (3.47:1)
+                    one place in the shell carrying white on green-500 (3.47:1)
                     for no reason — the tint reads at a glance, runs the full
-                    width of the day it belongs to, and puts olive-700 on it at
+                    width of the day it belongs to, and puts green-700 on it at
                     7.37:1.
                   */
                   const isToday = date === today;

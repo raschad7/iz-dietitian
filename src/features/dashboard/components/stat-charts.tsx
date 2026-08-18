@@ -99,7 +99,7 @@ export function ClientIntakeChart({ data, direction, seriesLabel }: ChartProps) 
           <linearGradient id="dashboard-intake-fill" x1="0" y1="0" x2="0" y2="1">
             {/* The soft green, not the line's own colour: a wash of the mark
                 colour at low opacity goes grey-green against the card, where
-                olive-300 stays recognisably the light green the brand uses. */}
+                green-300 stays recognisably the light green the brand uses. */}
             <stop offset="0%" stopColor="var(--color-viz-brand-soft)" stopOpacity={0.7} />
             <stop offset="100%" stopColor="var(--color-viz-brand-soft)" stopOpacity={0.05} />
           </linearGradient>

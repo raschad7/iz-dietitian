@@ -378,7 +378,7 @@ export function MonthView({
                             'patient-tone',
                             'flex w-full items-center gap-1.5 rounded-sm border px-1.5 py-0.5 text-start text-label',
                             'border-(--tone-edge) bg-(--tone-fill) text-foreground',
-                            marked && 'ring-2 ring-(--olive-500) ring-offset-1 ring-offset-card',
+                            marked && 'ring-2 ring-(--green-500) ring-offset-1 ring-offset-card',
                           )}
                           style={{
                             ...patientToneStyle(appointment.clientSeq),

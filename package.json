@@ -25,7 +25,8 @@
     "db:build-food-dataset": "bun run scripts/build-food-dataset.ts",
     "db:reset": "bun run scripts/db-reset.ts",
     "db:backfill:plan-snapshots": "bun run scripts/backfill-plan-nutrition-snapshots.ts",
-    "wa:reminders": "bun run scripts/whatsapp-reminders.ts"
+    "wa:reminders": "bun run scripts/whatsapp-reminders.ts",
+    "brand:build": "bun run scripts/build-brand-assets.tsx"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

@@ -14,8 +14,9 @@ import { routing } from '@/i18n/routing';
 /**
  * Locale detection and redirect. With `localePrefix: 'always'`, a request to
  * `/login` is redirected to `/ar/login` or `/en/login` based on the
- * `NEXT_LOCALE` cookie, then `Accept-Language`. When neither expresses a usable
- * preference, `ar` wins (it is the default locale).
+ * `NEXT_LOCALE` cookie alone — `Accept-Language` is not consulted, because
+ * `localeDetection` is off in `src/i18n/routing.ts`. A visitor with no cookie
+ * gets `ar`, the default locale.
  */
 const intlMiddleware = createIntlMiddleware(routing);
 

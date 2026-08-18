@@ -264,7 +264,7 @@ function VisitFacts({
               */}
               {/*
                 Every value is full-strength foreground, the next visit included.
-                It carried olive-700 as "the one accented fact", which put a
+                It carried green-700 as "the one accented fact", which put a
                 coloured date in a row of black ones and made the strip read as
                 though the other four had been greyed out. The row is reference;
                 olive stays on the things you press.

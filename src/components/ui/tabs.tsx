@@ -84,10 +84,10 @@ function Tabs({
 /**
  * One tab.
  *
- * **The active *line* tab is olive-700 with an olive-500 underline.** The rail
- * marks its active row with olive-500 on olive-50, which docs/design-system.md
+ * **The active *line* tab is green-700 with an green-500 underline.** The rail
+ * marks its active row with green-500 on green-50, which docs/design-system.md
  * already flags as the system's one navigation contrast failure at 2.95:1.
- * There is no reason to repeat it here: olive-700 on the page's white is
+ * There is no reason to repeat it here: green-700 on the page's white is
  * 7.37:1, and the underline — a graphical mark, which needs only 3:1 — is what
  * carries the brand colour.
  *

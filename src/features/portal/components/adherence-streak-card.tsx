@@ -43,7 +43,7 @@ import { cn } from '@/lib/utils';
  * **Why olive and lime are allowed on this chart.** §Charts keeps the brand off
  * the practitioner dashboard's charts because olive there marks what you can
  * click. This card has nothing to click, and what it draws is the client's own
- * growth — the same olive-line-over-lime-wash language the home screen's leaf
+ * growth — the same green-line-over-lime-wash language the home screen's leaf
  * ring already speaks to them in. The lime stays a fill and never a foreground,
  * which is the rule that actually matters.
  */
@@ -251,9 +251,9 @@ export function AdherenceStreakCard({
                   the wrong way in Arabic while looking correct in English.
                 */}
                 <linearGradient id="continuity-wash" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--color-accent-lime)" stopOpacity="0.5" />
-                  <stop offset="55%" stopColor="var(--color-accent-lime)" stopOpacity="0.16" />
-                  <stop offset="100%" stopColor="var(--color-accent-lime)" stopOpacity="0" />
+                  <stop offset="0%" stopColor="var(--color-accent-green)" stopOpacity="0.5" />
+                  <stop offset="55%" stopColor="var(--color-accent-green)" stopOpacity="0.16" />
+                  <stop offset="100%" stopColor="var(--color-accent-green)" stopOpacity="0" />
                 </linearGradient>
 
                 {/*
@@ -382,7 +382,7 @@ export function AdherenceStreakCard({
                   >
                     {/* The halo makes the current point read as lit rather than as a bigger dot. */}
                     {isLatest ? (
-                      <span className="col-start-1 row-start-1 size-6 rounded-full bg-accent-lime/25" />
+                      <span className="col-start-1 row-start-1 size-6 rounded-full bg-accent-green/25" />
                     ) : null}
 
                     <span

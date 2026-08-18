@@ -20,8 +20,8 @@ const badgeVariants = cva(
         default: "border-transparent bg-secondary text-secondary-foreground",
         muted: "border-transparent bg-muted text-muted-foreground",
         outline: "border-border text-foreground",
-        /** The lime chip. One per screen, same rule as the accent button. */
-        accent: "border-transparent bg-accent-lime text-on-accent",
+        /** The accent chip. One per screen, same rule as the accent button. */
+        accent: "border-transparent bg-accent-green text-on-accent",
         onTrack: "border-transparent bg-status-on-track-bg text-status-on-track-fg",
         attention: "border-transparent bg-status-attention-bg text-status-attention-fg",
         /*

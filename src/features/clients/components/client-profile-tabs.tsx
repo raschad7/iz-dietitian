@@ -118,7 +118,7 @@ export function ClientProfileTabs({
           ⚠ **The inline padding is what stops the cards looking sliced.**
           Setting `overflow` to anything but `visible` — `hidden` included —
           makes this box clip on all four edges, and a `Card` draws its ring and
-          olive-tinted shadow *outside* its border box. Flush against the clip,
+          green-tinted shadow *outside* its border box. Flush against the clip,
           the ring vanished on whichever edge a card touched. The negative margin
           gives that padding back to the column so the panel still spans it.
         */

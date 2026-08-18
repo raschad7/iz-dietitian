@@ -37,7 +37,7 @@ import { cn } from '@/lib/utils';
  * **The track is the well and the selected half is the raised thumb** — the
  * shadcn tab shape: a quiet neutral groove with a white, shadowed segment
  * sitting in it. That inverts what this shape used to draw, which was a white
- * card track with an olive-tinted half inside; a raised track holding a tinted
+ * card track with an green-tinted half inside; a raised track holding a tinted
  * segment reads as two surfaces at the same height with one of them coloured
  * in, and it spent the brand hue on a filter. Here the *elevation* carries the
  * state instead of the colour, so nothing on the screen has to compete with it,
