@@ -1,6 +1,7 @@
 import { ImageResponse } from 'next/og';
 import { NextResponse } from 'next/server';
 
+import { APP_BACKGROUND_COLOR, APP_ICON_COLOR } from '@/features/app-pwa/brand';
 import { PORTAL_BACKGROUND_COLOR, PORTAL_THEME_COLOR } from '@/features/portal/pwa/brand';
 
 /**
@@ -43,6 +44,17 @@ const SIZES = {
   '512': { px: 512, radius: 0 },
   'maskable-512': { px: 512, radius: 0 },
   'apple-180': { px: 180, radius: 0 },
+  /*
+    The staff app's own set. Two installable apps on one origin must not share
+    an icon: a dietitian who installs both ends up with two tiles on the same
+    home screen, and if they carry the same artwork the only way to tell the
+    clinic's workspace from a client's portal is to open one. Same sizes, same
+    generator, different mark and inverted colours — see `MARKS` below.
+  */
+  'staff-192': { px: 192, radius: 0 },
+  'staff-512': { px: 512, radius: 0 },
+  'staff-maskable-512': { px: 512, radius: 0 },
+  'staff-apple-180': { px: 180, radius: 0 },
 } as const;
 
 type SizeKey = keyof typeof SIZES;
@@ -50,6 +62,61 @@ type SizeKey = keyof typeof SIZES;
 function isSizeKey(value: string): value is SizeKey {
   return value in SIZES;
 }
+
+/**
+ * The two marks, as inlined lucide path data.
+ *
+ * `salad` is the portal's — the client's own food. `clipboard-list` is the
+ * staff app's — the practitioner's working document. Both are hand-drawn
+ * `<svg>` and never emoji characters, for the reason spelled out at length
+ * above: an emoji sends `ImageResponse` to a public CDN at request time.
+ *
+ * ⚠ **Each entry renders the whole `<svg>`, not a fragment of paths.** Satori
+ * (the renderer behind `ImageResponse`) walks a React tree of elements it
+ * recognises; a `<>…</>` handed to it as an `<svg>`'s child is not one, and it
+ * fails the render rather than skipping it — the route then dies with
+ * "failed to pipe response" and every icon 500s, taking installability with
+ * it. Keep these returning a complete element.
+ */
+const MARKS = {
+  salad: (size: number, stroke: string) => (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={stroke}
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M7 21h10" />
+      <path d="M12 21a9 9 0 0 0 9-9H3a9 9 0 0 0 9 9Z" />
+      <path d="M11.38 12a2.4 2.4 0 0 1-.4-4.77 2.4 2.4 0 0 1 3.2-2.77 2.4 2.4 0 0 1 3.47-.63 2.4 2.4 0 0 1 3.37 3.37 2.4 2.4 0 0 1-1.1 3.7 2.51 2.51 0 0 1 .03 1.1" />
+      <path d="m13 12 4-4" />
+      <path d="M10.9 7.25A3.99 3.99 0 0 0 4 10c0 .73.2 1.41.54 2" />
+    </svg>
+  ),
+  clipboard: (size: number, stroke: string) => (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={stroke}
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
+      <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+      <path d="M12 11h4" />
+      <path d="M12 16h4" />
+      <path d="M8 11h.01" />
+      <path d="M8 16h.01" />
+    </svg>
+  ),
+} as const;
 
 export async function GET(_request: Request, { params }: { params: Promise<{ size: string }> }) {
   const { size: rawSize } = await params;
@@ -59,10 +126,23 @@ export async function GET(_request: Request, { params }: { params: Promise<{ siz
   }
 
   const { px } = SIZES[rawSize];
+
+  const staff = rawSize.startsWith('staff-');
+
   // The maskable variant is rendered by the OS inside a shape that can crop
   // up to the outer ~20% of the canvas (Android's "safe zone"), so its mark
   // is drawn smaller than the regular icons' to stay clear of that crop.
-  const markSize = rawSize === 'maskable-512' ? px * 0.5 : px * 0.62;
+  const maskable = rawSize.endsWith('maskable-512');
+  const markSize = maskable ? px * 0.5 : px * 0.62;
+
+  /*
+    The two apps are inverses of each other: the portal is a white mark on
+    olive, the staff app an olive mark on white. That reads as one family at a
+    glance and still tells the two tiles apart on a home screen holding both —
+    which a colour-only difference would not, at 48px behind a rounded mask.
+  */
+  const background = staff ? APP_BACKGROUND_COLOR : PORTAL_THEME_COLOR;
+  const stroke = staff ? APP_ICON_COLOR : PORTAL_BACKGROUND_COLOR;
 
   const response = new ImageResponse(
     (
@@ -73,27 +153,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ siz
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: PORTAL_THEME_COLOR,
+          background,
         }}
       >
-        {/* lucide's `salad` path data, inlined — see the note above on why
+        {/* Inlined lucide path data — see `MARKS` and the note above on why
             this is a vector and not an emoji character. */}
-        <svg
-          width={markSize}
-          height={markSize}
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke={PORTAL_BACKGROUND_COLOR}
-          strokeWidth={1.5}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M7 21h10" />
-          <path d="M12 21a9 9 0 0 0 9-9H3a9 9 0 0 0 9 9Z" />
-          <path d="M11.38 12a2.4 2.4 0 0 1-.4-4.77 2.4 2.4 0 0 1 3.2-2.77 2.4 2.4 0 0 1 3.47-.63 2.4 2.4 0 0 1 3.37 3.37 2.4 2.4 0 0 1-1.1 3.7 2.51 2.51 0 0 1 .03 1.1" />
-          <path d="m13 12 4-4" />
-          <path d="M10.9 7.25A3.99 3.99 0 0 0 4 10c0 .73.2 1.41.54 2" />
-        </svg>
+        {staff ? MARKS.clipboard(markSize, stroke) : MARKS.salad(markSize, stroke)}
       </div>
     ),
     { width: px, height: px },

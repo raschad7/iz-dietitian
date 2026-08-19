@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 
+import { INSTALL_PROMPT_EVENT, INSTALL_PROMPT_GLOBAL } from '@/features/pwa/install-prompt-globals';
 import {
   canShowInstallBanner,
   isInstalled,
@@ -93,6 +94,33 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 };
 
+/**
+ * Reads whatever the pre-hydration capture script parked on `window`.
+ *
+ * `beforeinstallprompt` fires once, and usually before this module has even
+ * been evaluated — see `install-prompt-capture.tsx` for the whole of why. The
+ * listener below still exists for the case where the event arrives *after*
+ * hydration; this covers the far more common case where it arrived before.
+ *
+ * Defensive about the shape rather than trusting the global: anything could
+ * write to `window` under this name, and a stored object without `prompt()` is
+ * worse than no prompt at all — it would resolve `installAction` to
+ * `'android'` and hand the client an install button that throws.
+ */
+function readCapturedPrompt(): BeforeInstallPromptEvent | null {
+  const captured = (window as unknown as Record<string, unknown>)[INSTALL_PROMPT_GLOBAL];
+
+  if (captured === null || typeof captured !== 'object') return null;
+  if (typeof (captured as BeforeInstallPromptEvent).prompt !== 'function') return null;
+
+  return captured as BeforeInstallPromptEvent;
+}
+
+/** Drops the stash once its prompt has been fired or the app is installed. */
+function clearCapturedPrompt() {
+  (window as unknown as Record<string, unknown>)[INSTALL_PROMPT_GLOBAL] = null;
+}
+
 function getStandaloneSnapshot(): boolean {
   // The standard signal, and Safari's own pre-standard one (`navigator.standalone`
   // is not in `lib.dom.d.ts`, hence the cast) — iOS never fires
@@ -157,16 +185,35 @@ export function useInstallPrompt() {
     };
 
     const onAppInstalled = () => {
+      clearCapturedPrompt();
       setDeferredPrompt(null);
       writeState({ ...readState(), installed: true });
     };
 
+    /*
+      The event the capture script dispatches after filling its stash. It only
+      matters in the narrow window where that script has run, this effect has
+      run, and the native event lands between the two — the adoption below
+      handles the ordinary "already there" case, and `onBeforeInstallPrompt`
+      handles "arrives later". Cheap to cover all three; a missed prompt costs
+      the client the install button entirely.
+    */
+    const onCaptured = () => {
+      const captured = readCapturedPrompt();
+      if (captured) setDeferredPrompt(captured);
+    };
+
     window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
     window.addEventListener('appinstalled', onAppInstalled);
+    window.addEventListener(INSTALL_PROMPT_EVENT, onCaptured);
+
+    // Adopt a prompt captured before React existed, which is the common case.
+    onCaptured();
 
     return () => {
       window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt);
       window.removeEventListener('appinstalled', onAppInstalled);
+      window.removeEventListener(INSTALL_PROMPT_EVENT, onCaptured);
     };
   }, []);
 
@@ -201,6 +248,16 @@ export function useInstallPrompt() {
 
     await deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
+
+    /*
+      A `beforeinstallprompt` event may only be prompted once. Clearing the
+      stash as well as the state matters because the two are separate copies of
+      the same event: without this, a client who dismissed the native dialog
+      and then navigated between portal tabs would remount this hook, adopt the
+      spent prompt out of the stash again, and get an install button whose
+      `prompt()` rejects.
+    */
+    clearCapturedPrompt();
     setDeferredPrompt(null);
 
     if (outcome === 'accepted') {
