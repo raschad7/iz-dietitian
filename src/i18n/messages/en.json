@@ -1,7 +1,7 @@
 {
   "app": {
-    "name": "Dietitian Clinic Management",
-    "shortName": "Dietitian Clinic",
+    "name": "Enzyme",
+    "shortName": "Enzyme",
     "tagline": "One platform for clients, nutrition plans and appointments."
   },
   "common": {
@@ -947,7 +947,7 @@
     "title": "Client portal",
     "welcome": "Welcome, {name}",
     "pwa": {
-      "name": "Dietitian Clinic — Client Portal",
+      "name": "Enzyme — Client Portal",
       "shortName": "Client Portal",
       "description": "Track your plan, appointments and progress.",
       "installBanner": {
@@ -1462,7 +1462,9 @@
   "errors": {
     "notFound": "Page not found",
     "notFoundDescription": "The link you opened is incorrect or has moved.",
+    "notFoundCta": "Go to the home page",
     "unexpected": "Something went wrong",
+    "unexpectedBody": "Nothing you entered was saved anywhere. Try again, or start from the home page.",
     "screen": {
       "title": "This screen could not be displayed",
       "body": "Nothing in your data was affected. Try again, or go back to the dashboard.",

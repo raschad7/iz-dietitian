@@ -84,10 +84,10 @@ function Tabs({
 /**
  * One tab.
  *
- * **The active *line* tab is olive-700 with an olive-500 underline.** The rail
- * marks its active row with olive-500 on olive-50, which docs/design-system.md
+ * **The active *line* tab is green-700 with an green-500 underline.** The rail
+ * marks its active row with green-500 on green-50, which docs/design-system.md
  * already flags as the system's one navigation contrast failure at 2.95:1.
- * There is no reason to repeat it here: olive-700 on the page's white is
+ * There is no reason to repeat it here: green-700 on the page's white is
  * 7.37:1, and the underline — a graphical mark, which needs only 3:1 — is what
  * carries the brand colour.
  *
@@ -112,6 +112,7 @@ const tabLinkVariants = cva(
      */
     'text-body-sm font-medium no-underline',
     'transition-colors duration-(--duration-label) ease-(--ease-sweep)',
+    'motion-reduce:transition-none',
     'outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-focus-halo',
   ],
   {
@@ -129,7 +130,10 @@ const tabLinkVariants = cva(
          * specificity and the winner was decided by stylesheet order, not by
          * which one was written last. The override lost, silently.
          */
-        true: 'font-semibold',
+        true: [
+          'font-semibold',
+          'motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 motion-safe:duration-(--duration-label)',
+        ],
         // The hover fill stops at the label rather than reaching the hairline,
         // which is why it is the sunken neutral and not a brand tint: a tint
         // here would read as a second active state.

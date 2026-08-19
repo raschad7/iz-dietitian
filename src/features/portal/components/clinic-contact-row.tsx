@@ -60,7 +60,7 @@ export function ClinicContactRow({
             {/*
               Ink and bold, matching `SettingsPoint`'s heading — this is the
               fourth screen in the support section and it should open the same
-              way the other three do. It was olive-700, which put the card's
+              way the other three do. It was green-700, which put the card's
               only heading in the same hue as the disc directly beside it.
             */}
             <p className="font-heading text-base leading-snug font-bold text-foreground">
@@ -120,7 +120,7 @@ export function ClinicContactRow({
   );
 }
 
-/** The olive-tinted disc a band is marked by. Decorative — the row's text names it. */
+/** The green-tinted disc a band is marked by. Decorative — the row's text names it. */
 function ContactDisc({ children }: { children: React.ReactNode }) {
   return (
     <span

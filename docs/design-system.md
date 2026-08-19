@@ -80,8 +80,8 @@ use the `Select` parts for a rich list and `SelectField` for a flat option list.
 
 - Clinical clarity comes before decoration.
 - The dietitian remains in control of generated, reviewed, and published data.
-- Olive identifies brand and action; it is not a universal data color.
-- Lime is a scarce accent fill, not readable foreground ink.
+- Green identifies brand and action; it is not a universal data color.
+- The light green accent is a scarce fill, not readable foreground ink.
 - Medical risk uses clay. Attention uses amber. Missing or incomplete data is
   not automatically an error.
 - One component structure serves Arabic RTL and English LTR.
@@ -96,7 +96,7 @@ use the `Select` parts for a rich list and `SelectField` for a flat option list.
 
 [`src/app/globals.css`](../src/app/globals.css) contains four relevant layers:
 
-1. Raw primitives such as `--olive-*`, `--lime-*`, `--n-*`, `--c-*`, and
+1. Raw primitives such as `--green-*`, `--n-*`, `--c-*`, and
    `--clay-*`.
 2. `@theme inline`, which registers semantic Tailwind utilities.
 3. Light, dark, portal, sidebar, and planner semantic assignments.
@@ -114,8 +114,8 @@ data or typed style helpers, not in reusable component classes.
 
 | Role | Current family | Use |
 |---|---|---|
-| Primary | olive | Primary actions, links, active states, actionable emphasis |
-| Accent | lime | Scarce fills, focus ring, completion emphasis, chart range edge |
+| Primary | `--green-*` | Primary actions, links, active states, actionable emphasis |
+| Accent | `--green-*` (light steps) | Scarce fills, completion emphasis, chart range edge |
 | Warm neutrals | `--n-*` | Text, borders, cards, shadows, most chart marks |
 | Cool neutrals | `--c-*` | Muted surfaces, hover fills, sidebar, planner grid |
 | Attention | amber | Follow-up, caution, incomplete information that needs action |
@@ -124,17 +124,23 @@ data or typed style helpers, not in reusable component classes.
 
 Rules:
 
-- Lime is a fill, never text or an icon on a light background. Use
-  `text-on-accent` on `bg-accent-lime`.
+- The accent green is a fill, never text or an icon on a light background.
+  Use `text-on-accent` on `bg-accent-green`.
 - Do not introduce blue for links, focus, or informational notices.
 - Do not use clay as a generic “bad” color.
 - Do not mix warm and cool neutral surfaces arbitrarily. Use the semantic token
   selected for the surface.
-- `--primary` currently maps to olive-500 in light mode and
-  `--primary-hover` to olive-600.
-- White text on olive-500 is a known 3.47:1 contrast exception. Do not extend
-  that pairing to body copy or new non-control surfaces. Prefer a passing token
-  combination when creating new patterns.
+- `--primary` is the brand green `#75CF48` in both light and dark;
+  `--primary-hover` is green-600 in light and steps *up* to green-300 in dark,
+  where a hover has to move towards the light to read as a response.
+- **There is one green family.** A second, yellow-green "lime" accent ramp
+  (`#CBEA24` and neighbours) was removed; every green surface, fill, edge and
+  mark now resolves to a step of `--green-*`. Do not reintroduce a second green,
+  and do not pin a green hex at a call site — take a step.
+- White text on `--primary` is a known ~1.95:1 contrast exception, carried by
+  the `default` Button variant alone. Do not extend that pairing to body copy or
+  new non-control surfaces. Prefer a passing token combination when creating new
+  patterns — see *One green, and what it costs* under **The brand mark**.
 
 ### Status language
 
@@ -227,6 +233,64 @@ own picture rather than re-pointing a shared one — `refresh` and `close` are
 drawn by the whole app, so the portal's request rows got `rescheduleRequest` and
 `cancelRequest` instead.
 
+## The brand mark
+
+The product is **إنزيم / Enzyme**. Its logo has one source of truth:
+[`src/features/brand/logo.ts`](../src/features/brand/logo.ts) — the path data
+and the three brand colours, which mirror `--brand-leaf`, `--brand-seed` and
+`--brand-wordmark` in `globals.css`. Change one side and change the other.
+
+### One green, and what it costs
+
+`--primary` and `--brand-leaf` are both `#75CF48` — step 400 of the brand ramp.
+The action colour and the logo are deliberately the same green; `--primary-hover`
+is step 600 (`#419020`) from that ramp. Both are pinned literals, not steps of
+`--green-*`, which is a different curve with no stop on either value. Change one
+and change the other in the same commit.
+
+**The cost is contrast, and it is real.** White on `#75CF48` measures about
+1.95:1, down from ~2.68:1 on the `#72AE34` this replaced. WCAG AA asks 4.5:1,
+so the white-on-primary pairing was already an exception and is now a larger
+one. It applies to exactly one thing: the `default` Button variant, which wears
+`--primary-foreground-white`.
+
+`--primary-foreground` (n-900) measures about 10.8:1 on the new fill — it
+improved. Prefer it, or the `soft` and `neutral` variants, anywhere a label has
+to be *read* rather than pressed: dense lists, small controls, long copy.
+Switching `default` to n-900 is a one-line change if the pairing is revisited.
+
+Two lockups, and which one to use follows the ground:
+
+- **On a light or neutral surface**, the mark in its own colours. In the app,
+  that is [`BrandLogo`](../src/components/layout/brand-logo.tsx) — inline SVG,
+  so the wordmark can flip on the dark rail. It is `aria-hidden` by default;
+  pass `aria-hidden={false}` with `role="img"` and a label only where it is the
+  page's only identification (the sign-in screens and the landing page do).
+- **On a coloured or unknown ground**, the reversed lockup: a white leaf with
+  the seeds punched back to the ground colour. This is the brand sheet's own
+  second lockup, not an inversion invented per surface.
+
+Outside React — app icons, the social card, email, print — nothing can read a
+token, so those draw from the same module through `renderBrandMarkSvg` /
+`renderBrandLockupSvg`. The static files in `public/brand/` are generated:
+
+```bash
+bun run brand:build
+```
+
+Where each one lands:
+
+| Surface | Asset |
+| --- | --- |
+| Browser tab | `public/brand/mark.svg`, via `icons.icon` in the locale layout |
+| Older browsers, link bots | `public/favicon.ico` — 16/32/48px, generated |
+| Home screen, PWA install | `/api/pwa-icons/{192,512,maskable-512,apple-180}` — reversed on a green tile |
+| Link previews (WhatsApp, Open Graph) | `src/app/[locale]/opengraph-image.tsx` |
+| Email, printed plans, anything off-app | `public/brand/{mark,logo}{,-on-color}.svg` |
+
+Do not add a fourth copy of the artwork. If a surface needs the mark in a size
+or colour that is not here, add it to the generator.
+
 ## Shape, spacing, elevation, and motion
 
 - Buttons and fields use the 10px control radius.
@@ -240,7 +304,7 @@ drawn by the whole app, so the portal's request rows got `rescheduleRequest` and
 - Use Tailwind's 4px spacing scale. Default card spacing is 16px on mobile and
   20px from `sm` upward.
 - Use `shadow-card`, `shadow-elevated`, and `shadow-overlay`; shadows are
-  olive-tinted. Scrims use `--overlay`, not black.
+  green-tinted. Scrims use `--overlay`, not black.
 - Use the shared motion tokens: `--ease-sweep`, `--duration-arc`,
   `--duration-sweep`, `--duration-label`, `--duration-reverse`, and
   `--duration-travel`.
@@ -307,7 +371,7 @@ Use [`Button`](../src/components/ui/button.tsx) and its existing variants:
 | `ghost` | Tertiary brand action |
 | `neutral` | Boxed peer action that should not compete with the primary |
 | `neutralGhost` | Repeated row action with no brand-color noise |
-| `accent` | Rare lime completion action |
+| `accent` | Rare accent-green completion action |
 | `destructive` | Destructive decision, usually inside confirmation |
 | `destructiveGhost` | Destructive action among other controls |
 | `secondary` | Dense brand-tinted action |
@@ -333,7 +397,7 @@ in `Field` so focus and error behavior remain consistent.
 
 - Controls are normally 48px tall and use 20px inline padding.
 - Resting fields are neutral and have no hover fill.
-- Focus uses the olive edge without changing box dimensions.
+- Focus uses the green edge without changing box dimensions.
 - Read-only and disabled states use muted surfaces.
 - Validate on blur or submit, not while a partially entered value is still being
   typed.
@@ -438,6 +502,17 @@ temporary display preference uses a segmented control.
 - Use `Dialog` for focused modal tasks and `Sheet` for secondary mobile/edge
   surfaces.
 - A dialog must have an accessible label and a deliberate dismissal policy.
+- G. Seam is the standard `Dialog` and `ConfirmDialog` transition: the surface
+  reveals from its horizontal midpoint and closes back into it. Planner context
+  sheets and application navigation drawers keep their own directional motion.
+- A conditionally rendered dialog must use `useDialogPresence(open)`. When the
+  dialog needs a state payload to paint its closing frame, use
+  `useDialogPresenceValue(value)` and pass the real desired-open boolean into
+  `Dialog`; never remove the subtree on the same render that closes it.
+- Dialog content motion belongs only to `DialogHeader`, `DialogBody`, and
+  `DialogFooter`. Do not animate arbitrary dialog children or descendants:
+  calendars, selects, comboboxes, and popovers portal their positioners into
+  the native dialog, and transforming one while it measures can dismiss it.
 - Use `DropdownMenu` for action menus and profile menus.
 - Tooltips supplement an accessible name; they never replace `aria-label`.
 - Use the shared `toast`/`Toaster` API for transient confirmation that warrants

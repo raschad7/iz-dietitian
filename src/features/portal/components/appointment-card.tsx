@@ -88,10 +88,10 @@ type AppointmentCardProps = {
 /**
  * The date tile's fill, per tone — one step of olive per step of emphasis.
  *
- * `featured` takes olive-100 rather than the olive-50 the other cards use, and
+ * `featured` takes green-100 rather than the green-50 the other cards use, and
  * that is a legibility floor before it is emphasis: the featured card's own
- * surface is n-50 (#F7F5EF) and olive-50 is #F5F8EF, so the two are the same
- * lightness in different hues and the tile all but vanished on it. olive-50 is
+ * surface is n-50 (#F7F5EF) and green-50 is #F5F8EF, so the two are the same
+ * lightness in different hues and the tile all but vanished on it. green-50 is
  * fine where it has always been, on the white card below.
  *
  * `past` drops out of the ramp entirely to the neutral pair. That is the tone
@@ -186,17 +186,17 @@ export function AppointmentCard({
   const markerBadge =
     marker === null ? null : (
       /*
-        olive-100, on every tone — not `Badge`'s default olive-50.
+        green-100, on every tone — not `Badge`'s default green-50.
 
-        This is the one chip on the page that says *how soon*, and olive-50
+        This is the one chip on the page that says *how soon*, and green-50
         (#F5F8EF) is a hair off white: against a white card the pill all but
         disappeared and "القادم" read as loose green text with no shape around
-        it. olive-100 (#E8F0DA) is the first step of the ramp that actually
-        reads as green at chip size, and the label stays olive-700 from the
+        it. green-100 (#E8F0DA) is the first step of the ramp that actually
+        reads as green at chip size, and the label stays green-700 from the
         variant — 6.51:1, so the fill is bought without touching contrast.
 
         It was already doing this on the featured card, and for a neighbouring
-        reason: that card's own surface is n-50, the same lightness as olive-50
+        reason: that card's own surface is n-50, the same lightness as green-50
         in a different hue. One fill for both cases is one thing to keep true.
       */
       <Badge className="bg-primary-subtle">{t(`appointments.marker.${marker}`)}</Badge>

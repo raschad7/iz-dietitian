@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
  * changes.
  *
  * **No colour of its own.** The tick paints in `currentColor`, so the caller
- * decides — olive-500, on every day this mark appears. `MealCheck` sets it
+ * decides — green-500, on every day this mark appears. `MealCheck` sets it
  * directly for today's live button; `PortalMealCard`'s `TICK_TONE` sets the
  * same class for a settled day's `SettledMealCheck`, now that every meal card
  * wears one shell regardless of standing — see the `--meal-*` note in

@@ -552,20 +552,33 @@ function SidebarMenuItem({ className, ...props }: React.ComponentProps<"li">) {
 }
 
 /*
-  Two departures from the registry defaults, both from docs/design-system.md.
+  Three departures from the registry defaults, all from docs/design-system.md.
 
-  **Hover is `--sidebar-hover`, not `--sidebar-accent`.** The registry uses one
-  colour for both, which here would paint a hovered row in the exact olive-50 of
-  the *active* one — the rail would appear to change page under the pointer. The
-  hover token is a neutral a step down from the rail for that reason.
+  **Hover is `--sidebar-hover` plus an ink change**, not `--sidebar-accent`.
+  The registry fills a hovered row in the same colour as the active one, which
+  made the rail look like it had changed page under the pointer — so hover
+  takes the lighter token, and the label and glyph move to
+  `--sidebar-accent-foreground` with it. The fill says "this row is a target";
+  the ink says which one.
 
-  **The idle glyph is `--sidebar-icon`**, a warm neutral rather than the label's
-  olive-800: the glyph is the thing you scan a rail by, and it reads as a
-  wayfinding mark rather than as brand. The active row overrides it, since olive
-  on olive-50 is the whole of how that state is marked.
+  **The active row is exempt from all of it.** `data-active:hover:` re-asserts
+  its own fill, so passing over the page you are already on changes nothing:
+  its ink is already that green and its background does not move. Hover answers
+  "what would I get if I clicked this", and on the current row the honest answer
+  is nothing. Without that override the one-variant `hover:` rule would repaint
+  the active row in the hover tint and lose the state entirely.
+
+  `:active` (the pressed frame) carries no background of its own. The pointer is
+  by definition over the row while it is pressed, so the hover fill is already
+  showing; a second, briefly different fill on the way to a navigation was noise.
+
+  **Idle label and idle glyph are one colour**, both `--sidebar-icon`. They used
+  to differ — a green-800 label beside a warm-neutral glyph — which made each row
+  read as two things rather than one target. The rail's brand green is now spent
+  entirely on the active row and on hover, where it carries meaning.
 */
 const sidebarMenuButtonVariants = cva(
-  "peer/menu-button group/menu-button flex w-full items-center gap-3 overflow-hidden rounded-md px-3 py-2 text-start text-sm ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pe-8 group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:px-2.5! group-data-[collapsible=icon]:py-0! hover:bg-sidebar-hover focus-visible:ring-2 active:bg-sidebar-hover disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-open:hover:bg-sidebar-hover data-active:bg-sidebar-accent data-active:font-semibold data-active:text-sidebar-accent-foreground [&_svg]:shrink-0 [&_svg]:text-sidebar-icon [&_svg:not([class*='size-'])]:size-5 data-active:[&_svg]:text-sidebar-accent-foreground [&>span:last-child]:truncate",
+  "peer/menu-button group/menu-button flex w-full items-center gap-3 overflow-hidden rounded-md px-3 py-2 text-start text-sm text-sidebar-icon ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pe-8 group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:px-2.5! group-data-[collapsible=icon]:py-0! hover:bg-sidebar-hover hover:text-sidebar-accent-foreground hover:[&_svg]:text-sidebar-accent-foreground focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-active:bg-sidebar-accent data-active:hover:bg-sidebar-accent data-active:font-semibold data-active:text-sidebar-accent-foreground [&_svg]:shrink-0 [&_svg]:text-sidebar-icon [&_svg:not([class*='size-'])]:size-5 data-active:[&_svg]:text-sidebar-accent-foreground [&>span:last-child]:truncate",
   {
     variants: {
       variant: {

@@ -30,7 +30,7 @@ will land already wearing the design.
 
 Extras the registry does not know about, which must survive the migration:
 `--primary-hover`, `--primary-subtle`, `--focus-halo`, `--overlay`, `--scrim`,
-`--accent-lime`, `--on-accent`, `--destructive-subtle`, `--auth-canvas`, the
+`--accent-green`, `--on-accent`, `--destructive-subtle`, `--auth-canvas`, the
 `--status-*` set, the `--viz-*` set, `--meal-*`, and the `--duration-*` motion
 tokens.
 

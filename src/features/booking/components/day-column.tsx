@@ -239,14 +239,14 @@ export function DayColumn({
       })}
 
       {/*
-        Hover affordance: the slot a click here would book, filled olive-50 and
+        Hover affordance: the slot a click here would book, filled green-50 and
         labelled with its time.
 
         The fill is the point — the label alone named a time without showing
         how much of the day it meant, and a 15-minute slot is small enough that
         "which quarter am I on?" was a question the ⊕ could not answer. Tinting
         the whole slot is the same "hover fills" language the fields speak, and
-        it previews the shortest bookable block at its real size. olive-700 on
+        it previews the shortest bookable block at its real size. green-700 on
         it is 7.37:1, so the time stays readable inside the tint.
       */}
       {hoverMinute !== null && !unbookable && (

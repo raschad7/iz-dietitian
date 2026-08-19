@@ -52,7 +52,7 @@ export function PasskeyButton({ locale }: { locale: Locale }) {
 
           Everything else follows the rules: `currentColor` so it inverts with
           the button's label on hover
-          (a hardcoded olive-950 stayed dark at rest, where the label is not),
+          (a hardcoded green-950 stayed dark at rest, where the label is not),
           and sized by the button rather than by a 2em intrinsic size that made
           it twice the width of the Google mark beside it.
         */}

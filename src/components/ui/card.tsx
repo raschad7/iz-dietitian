@@ -16,7 +16,7 @@ const cardVariants = cva(
   {
     variants: {
       variant: {
-        /** The default surface: white, hairline ring, olive-tinted shadow. */
+        /** The default surface: white, hairline ring, green-tinted shadow. */
         default: "overflow-hidden bg-card py-(--card-spacing) text-card-foreground shadow-card ring-1 ring-foreground/10",
 
         /** Brand-tinted. For a plan or a summary that belongs to the clinic. */
@@ -24,11 +24,11 @@ const cardVariants = cva(
           "overflow-hidden bg-secondary py-(--card-spacing) text-secondary-foreground shadow-card ring-1 ring-primary/15",
 
         /**
-         * Empty state — a dashed olive-300 outline, no fill and no shadow.
+         * Empty state — a dashed green-300 outline, no fill and no shadow.
          * Reads as a space waiting to be filled rather than a failed load.
          */
         empty:
-          "border border-dashed border-[var(--olive-300)] bg-transparent py-(--card-spacing) text-muted-foreground",
+          "border border-dashed border-[var(--green-300)] bg-transparent py-(--card-spacing) text-muted-foreground",
 
         /**
          * A row inside a group. Square and unshadowed — the group's container

@@ -32,33 +32,50 @@
  * else.
  */
 :root {
-  /* ── Olive (primary) ── */
-  --olive-50: #F5F8EF;
-  --olive-100: #E8F0DA;
-  --olive-200: #D2E2B9;
-  --olive-300: #B2CE8D;
-  --olive-400: #8CB35C;
-  --olive-500: #6B9639;
-  --olive-600: #4D7428;
-  --olive-700: #3D5C21;
-  --olive-800: #2E461A;
-  --olive-900: #223414;
-  --olive-950: #16220D;
+  /*
+   * ── Green (brand, primary) ──
+   *
+   * The brand ramp, and after the lime accent was removed the *only* green in
+   * the system: every green surface, mark, fill and edge in the app resolves to
+   * a step of this scale. Step 400 is the logo's own leaf colour and is what
+   * `--primary` maps to, which is why the ramp and the mark cannot drift apart
+   * — see `src/features/brand/logo.ts`.
+   *
+   * It replaced a muted olive scale of the same shape. Every token that read a
+   * step reads the same step now, so the change is a re-tone rather than a
+   * re-mapping; what moved is the hue, which is brighter and more saturated
+   * through the middle. The practical consequence is contrast: the light half
+   * of this ramp is *lighter* than the olive it replaced, so a mark or a label
+   * that only just cleared its floor on the old scale may not clear it on this
+   * one. Ratios quoted in comments below were measured against the olive and
+   * are indicative, not current.
+   */
+  --green-50: #F1FBEA;
+  --green-100: #DFF6D1;
+  --green-200: #C2EDA9;
+  --green-300: #9BE076;
+  --green-400: #75CF48;
+  --green-500: #58B52D;
+  --green-600: #419020;
+  --green-700: #346E1D;
+  --green-800: #2C581C;
+  --green-900: #284B1C;
+  --green-950: #11290A;
 
   /*
-   * ── Lime (accent) ──
-   * Fill and shape only. lime-400 is 1.37:1 on white, so it can never be a
-   * text or icon colour on a light surface. Text ON lime must be olive-950
-   * (12.04:1); olive-600 measures 3.98:1 and fails the 4.5:1 floor, which is
-   * why --on-accent below is not the primary token.
+   * ── Lime: removed ──
+   *
+   * A second, yellow-green accent family (`#CBEA24` and neighbours) used to
+   * live here, for accent fills, the focus ring, the comfort band and one
+   * chart series. It is gone, and nothing may reintroduce it: the product has
+   * one green — the brand ramp above — and every surface that reached for lime
+   * now takes a step of that ramp instead.
+   *
+   * Where each one went is recorded at the token that replaced it: see
+   * `--accent-green`, `--ring`, `--viz-band-*`, `--planner-tag-filling` and
+   * `--color-chart-2`. The pairing rule survived the swap — an accent fill is
+   * still a *fill*, never ink, and text on it is still `--on-accent`.
    */
-  --lime-100: #F2FBC9;
-  --lime-200: #E6F79A;
-  --lime-300: #D9F25C;
-  --lime-400: #CBEA24;
-  --lime-500: #B0CE12;
-  --lime-600: #8CA60C;
-  --lime-700: #6B7F0A;
 
   /* ── Warm neutrals (never pure gray) ── */
   --n-0: #FFFFFF;
@@ -144,7 +161,7 @@
    * anywhere else they would simply read as a foreign palette.
    *
    * Each is a mid-dark stop chosen to hold up as a small dot on `--muted` and
-   * as a rule on `--card`, matched in lightness to olive-500 / clay-600 so no
+   * as a rule on `--card`, matched in lightness to green-500 / clay-600 so no
    * one tag shouts louder than the rest.
    */
   --teal-500: #17827B;
@@ -176,7 +193,7 @@
   /*
    * ── Portal home glow ──
    * The ambient blur behind the portal's home screen, pinned to the exact
-   * Figma value rather than mapped onto the olive/lime ramp — it is a single
+   * Figma value rather than mapped onto the brand ramp — it is a single
    * decorative fill, not a step in a scale, and no other surface may reach
    * for it. See `.portal-home-glow` in `@layer components`.
    */
@@ -187,7 +204,7 @@
    * The "today" ring on the portal home screen's commitment card — pinned to
    * Figma values exactly like `--portal-home-glow` above, for the same
    * reason: a single decorative fill and its own two-stop track, not a step
-   * in the olive/lime ramp. Nothing else may reach for these.
+   * in the brand ramp. Nothing else may reach for these.
    *
    * `--portal-progress-fill` lands on the same hex as `--portal-home-glow` —
    * the badge floats on that wash and is meant to read as cut from the same
@@ -206,8 +223,8 @@
   /*
    * ── Meal check tick ──
    * `MealCheckMark`'s filled circle, pinned to the same hex as the home hero
-   * and the home glow above rather than `--primary`'s olive-500 — it happens
-   * to equal `--olive-600` today, but stays its own pinned literal rather
+   * and the home glow above rather than `--primary`'s green-500 — it happens
+   * to equal `--green-600` today, but stays its own pinned literal rather
    * than a reach for that token, matching the other two above it.
    */
   --meal-check-fill: #72AE34;
@@ -266,7 +283,7 @@
    */
   --radius-control: 10px;       /* button, field — all four corners */
 
-  /* ── Elevation — olive-tinted, never neutral black ── */
+  /* ── Elevation — green-tinted, never neutral black ── */
   --qiwam-shadow-1: 0 1px 2px rgba(34, 52, 20, .06), 0 1px 3px rgba(34, 52, 20, .05);
   --qiwam-shadow-2: 0 2px 6px rgba(34, 52, 20, .07), 0 8px 20px rgba(34, 52, 20, .06);
   --qiwam-shadow-3: 0 12px 32px rgba(34, 52, 20, .12);
@@ -410,8 +427,11 @@
    * hues rather than inventing new ones; confirm with design before a real
    * multi-series chart ships.
    */
-  --color-chart-1: var(--olive-600);
-  --color-chart-2: var(--lime-600);
+  --color-chart-1: var(--green-600);
+  /* Was lime-600. Separated from series 1 by lightness rather than hue now
+     that both are the same green — the same tactic `viz-cat-*` uses, and the
+     one that survives colour-vision simulation. */
+  --color-chart-2: var(--green-300);
   --color-chart-3: var(--amber-600);
   --color-chart-4: var(--clay-600);
   --color-chart-5: var(--n-600);
@@ -423,7 +443,7 @@
   /*
    * ── Data-visualisation scales ──
    *
-   * **Charts are not brand surfaces.** Olive is the action colour — buttons,
+   * **Charts are not brand surfaces.** Green is the action colour — buttons,
    * links, the rail, the one emphasised agenda row — and when the dashboard's
    * charts were olive too, the screen read as one wash of green and nothing
    * on it stood out as clickable. The rule the scales below encode: *olive
@@ -437,7 +457,7 @@
    * rather than flipping it automatically.
    *
    * `viz-cat-*` is the two-slot CATEGORICAL palette, for identity (which
-   * segment). Two olive stops far apart — olive-800 + olive-500 on the light
+   * segment). Two olive stops far apart — green-800 + green-500 on the light
    * surface — because the only categorical split the app draws is the sex
    * donut, nothing on that card is clickable, and the warm support hues it
    * used to take read as an alarm about the register rather than a
@@ -476,9 +496,9 @@
    * their olive for controls, so the page as a whole still separates the two.
    *
    * `viz-brand` is the mark — a line, a bar, the value the card is about — and
-   * is the same olive-500 as `--primary`, which is the lightest green in the
+   * is the same green-500 as `--primary`, which is the lightest green in the
    * ramp that still clears the 3:1 contrast floor a filled mark owes the
-   * reader on white. `viz-brand-soft` is olive-300, for the area fill and for
+   * reader on white. `viz-brand-soft` is green-300, for the area fill and for
    * the bars that are *not* the current week; it sits under that floor and is
    * only ever used where a darker mark of the same series carries the reading.
    *
@@ -495,11 +515,11 @@
   --color-border: var(--border);
 
   /*
-   * The one legal lime + text pairing: olive-950 on lime-400, 12.04:1.
+   * The one legal accent + text pairing: green-950 on green-300, ~9.9:1.
    * `--on-accent` is deliberately not the primary olive — see the note on the
-   * lime ramp above.
+   * `--accent-green`; a mid-ramp green on a light green fill fails.
    */
-  --color-accent-lime: var(--accent-lime);
+  --color-accent-green: var(--accent-green);
   --color-on-accent: var(--on-accent);
 
   --color-destructive: var(--destructive);
@@ -578,7 +598,7 @@
   --radius-lg: var(--qiwam-radius-lg);
   --radius-xl: var(--qiwam-radius-xl);
 
-  /* elevation.* — olive-tinted shadows, never neutral black. */
+  /* elevation.* — green-tinted shadows, never neutral black. */
   --shadow-card: var(--qiwam-shadow-1);
   --shadow-elevated: var(--qiwam-shadow-2);
   --shadow-overlay: var(--qiwam-shadow-3);
@@ -649,21 +669,26 @@
    * the same reason: a neutral-black scrim over a warm cream canvas reads as
    * dirty rather than as dimmed. First consumer is the client portal's menu.
    */
-  --scrim: color-mix(in srgb, var(--olive-950) 45%, transparent);
+  --scrim: color-mix(in srgb, var(--green-950) 45%, transparent);
 
   --popover: var(--n-0);
   --popover-foreground: var(--n-900);
-  --overlay: rgba(22, 34, 13, .45);     /* scrim — olive-950, never black */
+  --overlay: rgba(22, 34, 13, .45);     /* scrim — green-950, never black */
 
   /*
-   * action.primary.bg — pinned to the brand's own #72AE34 rather than a step
-   * of the olive ramp. White does not hold on it (~2.68:1), so
-   * `--primary-foreground` is n-900 instead, the same "dark label on a light
-   * fill" pairing `.dark` already used for olive-500 (~6.42:1 here,
-   * comfortably over AA's 4.5:1).
+   * action.primary.bg — the brand's own leaf green, `#75CF48`, so the action
+   * colour and the logo are one colour rather than two greens a shade apart.
+   * It is step 400 of the brand ramp; `--primary-hover` is green-600, two
+   * steps down, which is a large enough move to be felt on a fill this light.
+   *
+   * ⚠ **White does not hold on this fill — about 1.95:1, down from ~2.68:1 on
+   * the olive it replaced.** `--primary-foreground` (n-900) is the pairing
+   * that passes, at roughly 10.8:1, and it got *better* with this change. The
+   * one that got worse is `--primary-foreground-white`, which is what every
+   * solid primary button wears. See the note on that token below.
    */
-  --primary: #72AE34;
-  --primary-hover: var(--olive-600);
+  --primary: var(--green-400);
+  --primary-hover: var(--green-600);
   --primary-foreground: var(--n-900);
   /*
    * The *white* label on that same fill — what every solid primary button
@@ -674,19 +699,25 @@
    *
    * `--primary-foreground` (n-900) stays for the non-button surfaces that
    * still read it. See `default` in `components/ui/button.tsx` for the trade.
+   *
+   * ⚠ **This is now the weakest pairing in the app: ~1.95:1.** It was ~2.68:1
+   * while `--primary` was `#72AE34`, and the move to the brand's leaf green
+   * cost it. Switching this to `var(--n-900)` would take the same button to
+   * ~10.8:1 and is a one-line change — it is left as white because that is the
+   * look the product asked for, not because the number is acceptable.
    */
   --primary-foreground-white: var(--n-0);
   /*
    * The brand's quiet fill, mirroring `--destructive-subtle`. For a surface
    * that is *about* to be primary — the agenda's next session at rest, before
-   * the pointer fills it in. Distinct from `--secondary` (olive-50), which is
+   * the pointer fills it in. Distinct from `--secondary` (green-50), which is
    * a tint; this is a fill you can read n-900 on at 14.7:1 and still see as
    * olive against a white card.
    */
-  --primary-subtle: var(--olive-100);
+  --primary-subtle: var(--green-100);
 
-  --secondary: var(--olive-50);         /* bg.brand.subtle */
-  --secondary-foreground: var(--olive-700); /* text.brand — 7.37:1 */
+  --secondary: var(--green-50);         /* bg.brand.subtle */
+  --secondary-foreground: var(--green-700); /* text.brand — 7.37:1 */
 
   /*
    * bg.sunken — c-100, not c-50.
@@ -723,8 +754,8 @@
    * The tinted round or squared plate a glyph sits on: settings sections, the
    * clinic's contact actions, notification rows, preview cards, info rows.
    *
-   * It used to be the brand pair (`bg-secondary` + `text-primary`, olive-50
-   * under olive-500), which put a saturated olive dot beside every heading on
+   * It used to be the brand pair (`bg-secondary` + `text-primary`, green-50
+   * under green-500), which put a saturated olive dot beside every heading on
    * every screen — a dozen of them down a settings page, all saying nothing
    * about the row they belong to. A disc is a *place* for a glyph, not a
    * status, so it is drawn in the warm neutral ramp and brand colour is left
@@ -744,7 +775,9 @@
 
   /*
    * Ambient hover/highlight tint used by many primitives. This is NOT the
-   * brand accent — lime is, and it must never sit behind this token.
+   * brand accent — `--accent-green` is, and it must never sit behind this
+   * token. The names are one word apart and the roles are opposite: this is an
+   * ambient neutral tint, that is the one loud green fill on a screen.
    *
    * It follows `--muted` into the cool family and one step past it. It has to:
    * the register's sortable column heads are `hover:bg-accent` drawn directly
@@ -760,22 +793,37 @@
   --destructive-subtle: var(--clay-100);    /* 5.81:1 against clay-600 */
   --destructive-foreground: var(--n-0);
 
-  --accent-lime: var(--lime-400);       /* bg.accent */
-  --on-accent: var(--olive-950);        /* text.onAccent — the only legal text-on-lime */
+  /*
+   * bg.accent — green-300, the ramp's light-but-saturated stop, replacing
+   * lime-400. It sits two steps above `--primary` (green-400), so an accent
+   * fill and a primary button still tell apart at a glance, and it is a fill
+   * only: about 1.7:1 on white, so it can never be ink.
+   */
+  --accent-green: var(--green-300);
+  /* text.onAccent — green-950 on green-300 is ~9.9:1, comfortably over AA.
+     Still not `--primary`: a mid-ramp green on a light green fill fails. */
+  --on-accent: var(--green-950);
 
   /* Border & focus */
   --border: var(--n-200);               /* border.divider */
   --input: var(--n-500);                /* border.interactive — meets 3:1 */
   /*
    * Field hover edge. Now the *same* olive as `--primary`, because every olive
-   * quieter than 500 falls under the 3:1 a control boundary needs (olive-400 is
+   * quieter than 500 falls under the 3:1 a control boundary needs (green-400 is
    * 2.41:1 on white). Hover and focus therefore no longer differ by colour —
    * they differ by fill and by weight: hover tints the box and keeps a 1px
    * edge, focus empties the box and doubles the edge to 2px. See `.q-field`.
    */
-  --input-hover: var(--olive-500);
-  --ring: var(--lime-400);              /* focus.ring — inner ring, 2px */
-  --focus-halo: var(--olive-950);       /* focus.halo — outer ring, 2px */
+  --input-hover: var(--green-500);
+  /*
+   * focus.ring — inner ring, 2px. green-600 rather than the lime it replaced:
+   * a focus indicator owes 3:1 against what surrounds it, and green-600
+   * measures ~4.0:1 on white. The light steps of this ramp do not clear that
+   * on a white card, which is why the ring takes a dark stop while the accent
+   * fill beside it takes a light one.
+   */
+  --ring: var(--green-600);
+  --focus-halo: var(--green-950);       /* focus.halo — outer ring, 2px */
   /*
    * Fields deliberately do NOT use the lime ring buttons use: a form has many
    * fields, and lime firing on every tabbed-to field turns the accent into
@@ -784,8 +832,8 @@
    */
 
   /* Status — deliberately not a traffic light. */
-  --status-on-track-fg: var(--olive-700);
-  --status-on-track-bg: var(--olive-100);
+  --status-on-track-fg: var(--green-700);
+  --status-on-track-bg: var(--green-100);
   --status-attention-fg: var(--amber-700);
   --status-attention-bg: var(--amber-100);
   /* Missed/incomplete is neutral, never red — a missed day is information. */
@@ -793,8 +841,8 @@
   --status-incomplete-bg: var(--n-100);
   --status-medical-fg: var(--clay-700);
   --status-medical-bg: var(--clay-100);
-  --status-rest-fg: var(--olive-700);
-  --status-rest-bg: var(--olive-50);
+  --status-rest-fg: var(--green-700);
+  --status-rest-bg: var(--green-50);
   /*
    * A day the client finished. The only warm accent on the portal home
    * screen — if a second thing on that screen turns orange, one of them is
@@ -829,8 +877,11 @@
   --planner-tag-economical: var(--amber-600);
   --planner-tag-portable: var(--n-500);
   --planner-tag-quick: var(--flame-500);
-  --planner-tag-vegetarian: var(--olive-500);
-  --planner-tag-filling: var(--lime-600);
+  --planner-tag-vegetarian: var(--green-500);
+  /* Was lime-600, the one tag drawn in the second green. With lime gone it
+     takes green-700 — dark enough to stay distinct from `vegetarian` above it,
+     which is now the only other green in this set. */
+  --planner-tag-filling: var(--green-700);
   --planner-tag-local: var(--clay-600);
   --planner-tag-easy-prep: var(--plum-500);
   --planner-tag-no-cook: var(--teal-500);
@@ -840,27 +891,27 @@
    * The Q-arc's unfilled track (§9.6) — the dots the week has not reached yet.
    *
    * A stop of its own rather than status-on-track-bg, which is what it started
-   * as: the portal's progress card is a cream→olive-50→olive-100 gradient, and
-   * an olive-100 track sitting on an olive-100 ground is invisible. This is the
+   * as: the portal's progress card is a cream→green-50→green-100 gradient, and
+   * an green-100 track sitting on an green-100 ground is invisible. This is the
    * next stop down, chosen so an untouched week still reads as a whole circle
    * waiting to be filled rather than as an arc floating in space.
    */
-  --progress-track: var(--olive-200);
+  --progress-track: var(--green-200);
 
   /*
    * The ground that arc sits on — the home screen's progress card.
    *
    * The ramp the note above names, as tokens rather than as four hex values in
-   * the component: cream at the ring end, olive-100 at the text end, so the arc
+   * the component: cream at the ring end, green-100 at the text end, so the arc
    * has the lightest part of the card behind it and the copy has the softest.
    * Semantic rather than palette because the card has to invert — a primitive
-   * ramp would stay cream on an olive-950 canvas.
+   * ramp would stay cream on an green-950 canvas.
    */
   --progress-card-from: var(--n-25);
-  --progress-card-via: var(--olive-50);
-  --progress-card-to: var(--olive-100);
-  --progress-card-edge: var(--olive-200);
-  --progress-card-border: var(--olive-200);
+  --progress-card-via: var(--green-50);
+  --progress-card-to: var(--green-100);
+  --progress-card-edge: var(--green-200);
+  --progress-card-border: var(--green-200);
 
   /*
    * The home screen's "commitment today" hero.
@@ -874,10 +925,10 @@
    * twice below. The two ramp stops are gone; only the two foregrounds remain,
    * and they still need to invert.
    *
-   * olive-800 and olive-700 on white are 10.4:1 and 6.51:1.
+   * green-800 and green-700 on white are 10.4:1 and 6.51:1.
    */
-  --commitment-card-figure: var(--olive-800);
-  --commitment-card-stat: var(--olive-700);
+  --commitment-card-figure: var(--green-800);
+  --commitment-card-stat: var(--green-700);
 
   /*
    * The meal card's surface — one tone for every meal, so the list reads as one
@@ -887,13 +938,13 @@
    *
    * This deliberately does not vary by meal. Colour here would have to come from
    * somewhere, and every categorical palette in this system is spoken for: amber
-   * means "needs follow-up", clay is the only true alarm colour, and lime marks
-   * exactly one element per screen. Tinting meals from those would say things
+   * means "needs follow-up", clay is the only true alarm colour, and the green
+   * accent marks exactly one element per screen. Tinting meals from those would say things
    * about the food nobody meant. A tonal ramp down the olive scale avoided that,
    * but read as five weights of importance on five meals that are equally
    * important — so the meals are one surface, and the icon tells them apart.
    *
-   * **Warm neutral, not olive.** It was olive-100/olive-800, and on a screen that
+   * **Warm neutral, not olive.** It was green-100/green-800, and on a screen that
    * is a stack of five of these plus the day tile, the tint was most of what you
    * saw — brand colour used as the page's material rather than as its marking.
    * §Colour's rule is that olive marks what you can act on, and a plan where the
@@ -901,7 +952,7 @@
    * you cannot. The neutral ramp gives it back: the tick is now the only olive
    * left on the list, which is exactly the job olive has.
    *
-   * **One step off the canvas, and untinted.** It went olive-100 → n-100 → n-50
+   * **One step off the canvas, and untinted.** It went green-100 → n-100 → n-50
    * → here, and the last step is the one that makes the card read as paper
    * rather than as a filled block: n-100 is a tint you notice, this is a surface
    * you don't. `#FBFBFB` rather than n-50's `#F7F5EF` — the same lightness with
@@ -917,8 +968,8 @@
    *   The meal cards drop their shadow on the home screen, so that ring is now
    *   the only edge they have; lighten this any further and there is nothing
    *   left holding the card off the page.
-   * - The olive-500 tick on it is **3.35:1**, which clears the 3:1 a graphical
-   *   mark needs — it measured 2.96:1 on olive-100 *and* on n-100, both under.
+   * - The green-500 tick on it is **3.35:1**, which clears the 3:1 a graphical
+   *   mark needs — it measured 2.96:1 on green-100 *and* on n-100, both under.
    *   Lifting the shell is what finally fixed that, so the one olive left on this
    *   screen is also the first version of it that passes.
    *
@@ -938,9 +989,9 @@
   --meal-border-checked: color-mix(in srgb, var(--meal-fg) 30%, transparent);
 
   /* Data visualisation comfort band */
-  --viz-band-range: var(--lime-300);
-  --viz-band-edge: var(--lime-600);
-  --viz-band-marker: var(--olive-900);
+  --viz-band-range: var(--green-200);
+  --viz-band-edge: var(--green-500);
+  --viz-band-marker: var(--green-900);
 
   /*
    * Chart scales on the light surface. Validated against #FFFFFF: the
@@ -956,7 +1007,7 @@
    *
    * Separation still comes from lightness, not hue, which is what survives
    * colour-vision simulation — and it is now wider than the pair it replaced:
-   * olive-800 is 10.4:1 on white and olive-500 is 3.47:1, a 3.0:1 ratio
+   * green-800 is 10.4:1 on white and green-500 is 3.47:1, a 3.0:1 ratio
    * between the two fills against the old pair's 1.45:1. Both clear the 3:1
    * mark floor unaided.
    */
@@ -967,17 +1018,17 @@
   --viz-seq-5: var(--n-800);
   /*
    * Colour follows the entity, never its rank: female is always slot 1.
-   * Lightened to olive-100/olive-50 by design request — the pair no longer
+   * Lightened to green-100/green-50 by design request — the pair no longer
    * clears 3:1 on white unaided, which the mandatory legend beside the ring
    * is what carries the reading instead.
    */
-  --viz-cat-1: var(--olive-100);
-  --viz-cat-2: var(--olive-50);
+  --viz-cat-1: var(--green-100);
+  --viz-cat-2: var(--green-50);
   --viz-cat-none: var(--n-300);
 
   /* The dashboard's stat cards. See the note in `@theme` above. */
-  --viz-brand: var(--olive-500);
-  --viz-brand-soft: var(--olive-300);
+  --viz-brand: var(--green-500);
+  --viz-brand-soft: var(--green-300);
 
   /*
    * The adherence meter's fill — see `--gold-500`. One value across light,
@@ -991,36 +1042,38 @@
    * ── Sidebar — a near-white rail ──
    *
    * Full-bleed, separated from the canvas by a hairline rather than by
-   * elevation. The rail has been a dark olive-900 inset panel and then a pale
-   * olive-50 one; it is now #F9FAFB, a hair below the white page and the one
+   * elevation. The rail has been a dark green-900 inset panel and then a pale
+   * green-50 one; it is now #F9FAFB, a hair below the white page and the one
    * cool grey in a warm system. Deliberate: with the canvas white, an olive
    * rail was the only tinted furniture on screen and it read as a coloured
    * band rather than as a wall.
    *
    * **The active item is the only olive thing on the rail, and it is marked by
-   * tint rather than by weight.** olive-50 surface, olive-500 label and glyph.
+   * tint rather than by weight.** green-50 surface, green-500 label and glyph.
    * That inverts the pale-olive rail again, where the active item was the
    * *darkest* thing on it; here the rail has no colour of its own, so a tint
    * is enough to single an item out without a dark block interrupting a column
    * of quiet rows.
    *
-   * ⚠ olive-500 on olive-50 measures **2.95:1** — under the 4.5:1 a 16px label
-   * needs and under the 3:1 a glyph needs. It is what the design calls for, so
-   * it is what is here, but the active row is the one row on the rail that
-   * does not meet contrast. olive-600 on the same surface measures 5.09:1 and
-   * is a one-token fix if that matters more than the exact hue.
-   * `font-semibold` and `aria-current` carry the state for anyone the colour
-   * fails.
+   * The active row is green-900 on green-100, about **12.9:1** — it used to be
+   * green-500 on green-50 at 2.95:1, the one row on the rail that failed
+   * contrast. `font-semibold` and `aria-current` still carry the state for
+   * anyone the colour fails, but now the colour does not.
    *
-   * `--sidebar-hover` stays a neutral rather than a tint, one step down from
-   * the rail. It cannot be an olive: the active surface is olive-50, and a
-   * hover tinted the same family would either outrank the state it sits under
-   * or be mistaken for it.
+   * `--sidebar-hover` is the fill a hovered row takes, and it is now a tint of
+   * the brand ramp rather than the cool grey it used to be, so no green
+   * anywhere in the rail comes from outside the palette. It sits one step
+   * lighter than `--sidebar-accent`, which is enough separation on a rail this
+   * quiet and keeps a hovered row from being mistaken for the active one. The
+   * active row overrides it and does not respond to hover at all — see the note
+   * on `sidebarMenuButtonVariants` in `components/ui/sidebar.tsx`.
    *
-   * `--sidebar-icon` is its own token because the idle glyph is n-700 warm
-   * grey — 9.35:1 on the rail — while the idle label stays olive-800. The
-   * glyph is the thing you scan a rail by, and a neutral one reads as a
-   * wayfinding mark rather than as brand.
+   * `--sidebar-icon` is now the idle ink for the **label as well as the
+   * glyph** — n-700 warm grey, 9.35:1 on the rail. The label used to be
+   * green-800 beside it, which made each row read as two elements rather than
+   * one target, and spent brand colour on rows that are not the current page.
+   * `--sidebar-foreground` still dresses the rail's other text (group headings,
+   * counts), which is why it is unchanged.
    */
   /*
    * ── The product logo ──
@@ -1048,20 +1101,20 @@
   --brand-wordmark: #266805;
 
   --sidebar: var(--c-50);
-  --sidebar-foreground: var(--olive-800);   /* idle label — 10.02:1 on the rail */
+  --sidebar-foreground: var(--green-800);   /* idle label — 10.02:1 on the rail */
   --sidebar-icon: var(--n-700);             /* idle glyph — #46443B, 9.35:1 */
   --sidebar-primary: var(--primary);
-  --sidebar-primary-foreground: var(--olive-900); /* the wordmark, on a light rail */
-  --sidebar-accent: var(--olive-50);        /* the active surface */
-  --sidebar-accent-foreground: var(--olive-500); /* on it — 2.95:1, see above */
-  --sidebar-hover: var(--c-100);            /* one step down — 9.51:1 with the idle label */
+  --sidebar-primary-foreground: var(--green-900); /* the wordmark, on a light rail */
+  --sidebar-accent: var(--green-100);        /* the active surface */
+  --sidebar-accent-foreground: var(--green-900); /* on it — ~12.9:1, see above */
+  --sidebar-hover: var(--green-50);         /* one step lighter than active */
   /*
    * The divider is the darkest of the rail's three greys, and it is the whole
    * separation: #F9FAFB against the white canvas measures 1.02:1, so the two
    * fills are all but the same lightness and the line is not reinforcing a
    * boundary, it *is* the boundary.
    *
-   * It was olive-300 (1.68:1 against the canvas), which was the last olive left
+   * It was green-300 (1.68:1 against the canvas), which was the last olive left
    * in the shell furniture once the rail went grey — one green line with
    * nothing else near it to belong to. #D1D5DB is the same cool family as the
    * rail and its hover and measures 1.47:1: softer than the olive it replaces,
@@ -1070,15 +1123,15 @@
    */
   --sidebar-border: var(--c-300);
   /*
-   * NOT `--ring`. The global focus ring is lime-400, which measured 9.77:1 on
-   * the old olive-900 rail and measures 1.28:1 on this one — keeping it would
+   * NOT `--ring`. The global focus ring is green-600, which measured 9.77:1 on
+   * the old green-900 rail and measures 1.28:1 on this one — keeping it would
    * have left the rail's keyboard focus invisible. Buttons get away with lime
-   * because they pair it with an olive-950 halo; the rail has one ring and no
-   * halo, so the ring itself has to be the dark one. olive-950 is 15.86:1 on
-   * the rail and 15.42:1 on the active item's olive-50 surface — both well over
+   * because they pair it with an green-950 halo; the rail has one ring and no
+   * halo, so the ring itself has to be the dark one. green-950 is 15.86:1 on
+   * the rail and 15.42:1 on the active item's green-50 surface — both well over
    * the 3:1 floor a focus indicator has to clear.
    */
-  --sidebar-ring: var(--olive-950);
+  --sidebar-ring: var(--green-950);
 }
 
 .dark,
@@ -1093,104 +1146,115 @@
    * wrapper alone (see `src/features/portal/components/portal-theme.tsx`), so a
    * client choosing dark never darkens the practitioner app.
    */
-  --background: var(--olive-950);
+  --background: var(--green-950);
   --foreground: var(--n-25);
 
   /* One step off the canvas, the same relationship the light build has. */
-  --auth-canvas: var(--olive-950);
+  --auth-canvas: var(--green-950);
 
-  /* The canvas is already olive-950, so the scrim has to go denser to register. */
-  --scrim: color-mix(in srgb, var(--olive-950) 72%, transparent);
+  /* The canvas is already green-950, so the scrim has to go denser to register. */
+  --scrim: color-mix(in srgb, var(--green-950) 72%, transparent);
 
-  --card: var(--olive-900);             /* surface → olive-900 */
+  --card: var(--green-900);             /* surface → green-900 */
   --card-foreground: var(--n-25);
 
-  --popover: var(--olive-900);
+  --popover: var(--green-900);
   --popover-foreground: var(--n-25);
   --overlay: rgba(10, 16, 6, .6);
 
-  --primary: #72AE34;
-  --primary-hover: var(--olive-400);
-  --primary-foreground: var(--olive-950);
-  --primary-subtle: var(--olive-800);
+  /*
+   * The same leaf green as light mode — the action colour is the brand's, and
+   * the brand does not change with the theme.
+   *
+   * The hover does not follow light mode's green-600, though, and must not:
+   * on a dark surface a hover has to move *towards* the light to read as a
+   * response, so this steps *up* to green-300. Darkening it here would make a
+   * hovered button look disabled.
+   */
+  --primary: var(--green-400);
+  --primary-hover: var(--green-300);
+  --primary-foreground: var(--green-950);
+  --primary-subtle: var(--green-800);
 
-  --secondary: var(--olive-800);
+  --secondary: var(--green-800);
   --secondary-foreground: var(--n-25);
 
-  --muted: var(--olive-900);
-  --muted-foreground: var(--olive-200);
-  /* The same step down, taken in the neutral family: olive-200 is a tinted
+  --muted: var(--green-900);
+  --muted-foreground: var(--green-200);
+  /* The same step down, taken in the neutral family: green-200 is a tinted
      light stop, so a hint drawn in it reads as green rather than as absent.
      n-400 is the warm gray this scope already draws the field edge in. */
   --placeholder: var(--n-400);
 
   /* The plate cannot be `--muted` here: dark's muted and card are both
-     olive-900, so the disc would draw nothing at all. olive-800 is the stop
+     green-900, so the disc would draw nothing at all. green-800 is the stop
      that separates from the card it sits on. */
-  --icon-chip: var(--olive-800);
-  --icon-chip-foreground: var(--olive-200);
+  --icon-chip: var(--green-800);
+  --icon-chip-foreground: var(--green-200);
 
-  --accent: var(--olive-800);
+  --accent: var(--green-800);
   --accent-foreground: var(--n-25);
 
   --destructive: var(--clay-300);
-  --destructive-subtle: var(--olive-800);
-  --destructive-foreground: var(--olive-950);
+  --destructive-subtle: var(--green-800);
+  --destructive-foreground: var(--green-950);
 
-  --border: var(--olive-700);
+  --border: var(--green-700);
   --input: var(--n-400);
   /*
-   * Inverted against light mode: `--primary` is olive-500 here, so the hover
-   * edge steps *down* to olive-600 to stay a shade short of the focused one.
+   * Inverted against light mode: `--primary` is green-500 here, so the hover
+   * edge steps *down* to green-600 to stay a shade short of the focused one.
    */
-  --input-hover: var(--olive-600);
-  --ring: var(--lime-400);              /* lime-400 on olive-950 is 12.09:1 */
+  --input-hover: var(--green-600);
+  /* Light, not dark: on a green-950 ground the ring has to move towards the
+     light to be seen at all. green-300 measures ~9.9:1 there. */
+  --ring: var(--green-300);
   --focus-halo: var(--n-25);
 
-  --status-on-track-fg: var(--olive-700);
-  --status-on-track-bg: var(--olive-100);
+  --status-on-track-fg: var(--green-700);
+  --status-on-track-bg: var(--green-100);
   --status-attention-fg: var(--amber-700);
   --status-attention-bg: var(--amber-100);
   --status-incomplete-fg: var(--n-700);
   --status-incomplete-bg: var(--n-100);
   --status-medical-fg: var(--clay-700);
   --status-medical-bg: var(--clay-100);
-  --status-rest-fg: var(--olive-700);
-  --status-rest-bg: var(--olive-50);
+  --status-rest-fg: var(--green-700);
+  --status-rest-bg: var(--green-50);
   --status-complete-fg: var(--flame-700);
   --status-complete-bg: var(--flame-100);
   --status-complete-mark: var(--flame-500);
   --status-complete-mark-soft: var(--flame-300);
 
-  /* Dark's progress card sits on olive-900, so its track steps up, not down. */
-  --progress-track: var(--olive-700);
+  /* Dark's progress card sits on green-900, so its track steps up, not down. */
+  --progress-track: var(--green-700);
 
   /*
    * Same ramp inverted: the ring end stays the lighter one. The middle stop is
    * mixed rather than picked — the scale has no step between 800 and 900, and
    * landing on either makes the gradient a two-stop step with a visible edge.
    */
-  --progress-card-from: var(--olive-800);
-  --progress-card-via: color-mix(in oklch, var(--olive-800), var(--olive-900));
-  --progress-card-to: var(--olive-900);
-  --progress-card-edge: var(--olive-950);
-  --progress-card-border: var(--olive-800);
+  --progress-card-from: var(--green-800);
+  --progress-card-via: color-mix(in oklch, var(--green-800), var(--green-900));
+  --progress-card-to: var(--green-900);
+  --progress-card-edge: var(--green-950);
+  --progress-card-border: var(--green-800);
 
   /* The card is `--card` here as everywhere; only its two foregrounds go light to keep reading on the dark surface. */
   --commitment-card-figure: var(--n-25);
-  --commitment-card-stat: var(--olive-200);
+  --commitment-card-stat: var(--green-200);
 
-  --viz-band-range: var(--lime-300);
-  --viz-band-edge: var(--lime-600);
-  --viz-band-marker: var(--olive-900);
+  --viz-band-range: var(--green-200);
+  --viz-band-edge: var(--green-500);
+  --viz-band-marker: var(--green-900);
 
   /*
-   * The sequential ramp is re-anchored, not flipped: on the olive-900 card
+   * The sequential ramp is re-anchored, not flipped: on the green-900 card
    * more-is-*lighter*, and n-600 is the darkest step that still clears the
    * surface (2.03:1). Validated as an ordinal ramp against #223414.
    *
    * The categorical pair inverts with the surface: the light theme's dark
-   * olive would disappear into an olive-900 card, so slot 1 takes the lightest
+   * olive would disappear into an green-900 card, so slot 1 takes the lightest
    * step that stays distinct and slot 2 sits two stops below it. Against
    * #223414 that is 9.8:1 and 5.6:1 — a 1.76:1 separation, narrower than the
    * light theme's 3.0:1, which is the honest cost of drawing one hue on its
@@ -1203,47 +1267,47 @@
   --viz-seq-3: var(--n-400);
   --viz-seq-4: var(--n-300);
   --viz-seq-5: var(--n-200);
-  --viz-cat-1: var(--olive-200);
-  --viz-cat-2: var(--olive-400);
+  --viz-cat-1: var(--green-200);
+  --viz-cat-2: var(--green-400);
   --viz-cat-none: var(--n-600);
 
   /*
    * One step lighter than the light theme, for the same reason the sequential
-   * ramp re-anchors rather than flipping: olive-500 on an olive-950 card is
+   * ramp re-anchors rather than flipping: green-500 on an green-950 card is
    * the same dark green reading as a shadow. Olive-400 is the lightest green
    * the palette has that is still recognisably the brand.
    */
-  --viz-brand: var(--olive-400);
-  --viz-brand-soft: var(--olive-600);
+  --viz-brand: var(--green-400);
+  --viz-brand-soft: var(--green-600);
   /* Unchanged in dark — see the light block for why it needs no darker step. */
   --viz-progress: var(--gold-500);
 
   /*
-   * The dark rail keeps its dark treatment — a pale rail on an olive-950
+   * The dark rail keeps its dark treatment — a pale rail on an green-950
    * canvas would be the brightest surface on the screen, which is the same
    * mistake the dark rail made in light mode, inverted.
    */
   /* The wordmark takes the rail's own label colour on a dark rail — the brand
-     green is unreadable on olive-900. The leaf and its seeds are unchanged:
+     green is unreadable on green-900. The leaf and its seeds are unchanged:
      they sit on each other, not on the rail. */
-  --brand-wordmark: var(--olive-200);
+  --brand-wordmark: var(--green-200);
 
-  --sidebar: var(--olive-900);
-  --sidebar-foreground: var(--olive-200);
+  --sidebar: var(--green-900);
+  --sidebar-foreground: var(--green-200);
   /*
    * The glyph tracks the label here rather than taking light mode's n-700,
-   * which on an olive-900 rail would be all but invisible. Dark mode also
-   * keeps the olive-600 active surface: the light rail can single an item out
+   * which on an green-900 rail would be all but invisible. Dark mode also
+   * keeps the green-600 active surface: the light rail can single an item out
    * with a tint because it has no colour of its own, but a tint on a dark
    * olive rail is not a mark, it is a smudge.
    */
-  --sidebar-icon: var(--olive-200);
+  --sidebar-icon: var(--green-200);
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: var(--n-25);
-  --sidebar-accent: var(--olive-600);
+  --sidebar-accent: var(--green-600);
   --sidebar-accent-foreground: var(--n-0);
-  --sidebar-hover: var(--olive-800);
-  --sidebar-border: var(--olive-800);
+  --sidebar-hover: var(--green-800);
+  --sidebar-border: var(--green-800);
   --sidebar-ring: var(--ring);
 }
 
@@ -1265,87 +1329,88 @@
  */
 @media (prefers-color-scheme: dark) {
   [data-theme='system'] {
-    --background: var(--olive-950);
+    --background: var(--green-950);
     --foreground: var(--n-25);
 
-    --scrim: color-mix(in srgb, var(--olive-950) 72%, transparent);
+    --scrim: color-mix(in srgb, var(--green-950) 72%, transparent);
 
-    --card: var(--olive-900);
+    --card: var(--green-900);
     --card-foreground: var(--n-25);
 
-    --popover: var(--olive-900);
+    --popover: var(--green-900);
     --popover-foreground: var(--n-25);
 
-    --primary: #72AE34;
-    --primary-foreground: var(--olive-950);
+    /* Tracks `.dark` above — the system-preference scope is the same theme. */
+    --primary: var(--green-400);
+    --primary-foreground: var(--green-950);
 
-    --secondary: var(--olive-800);
+    --secondary: var(--green-800);
     --secondary-foreground: var(--n-25);
 
-    --muted: var(--olive-900);
-    --muted-foreground: var(--olive-200);
-    /* The same step down, taken in the neutral family: olive-200 is a tinted
+    --muted: var(--green-900);
+    --muted-foreground: var(--green-200);
+    /* The same step down, taken in the neutral family: green-200 is a tinted
        light stop, so a hint drawn in it reads as green rather than as absent.
        n-400 is the warm gray this scope already draws the field edge in. */
     --placeholder: var(--n-400);
 
     /* See the `.dark` block — muted and card are the same stop here. */
-    --icon-chip: var(--olive-800);
-    --icon-chip-foreground: var(--olive-200);
+    --icon-chip: var(--green-800);
+    --icon-chip-foreground: var(--green-200);
 
-    --accent: var(--olive-800);
+    --accent: var(--green-800);
     --accent-foreground: var(--n-25);
 
     --destructive: var(--clay-600);
     --destructive-foreground: var(--n-25);
 
-    --border: var(--olive-700);
+    --border: var(--green-700);
     --input: var(--n-400);
-    --ring: var(--lime-400);
+    --ring: var(--green-300);
     --focus-halo: var(--n-25);
 
-    --status-on-track-fg: var(--olive-700);
-    --status-on-track-bg: var(--olive-100);
+    --status-on-track-fg: var(--green-700);
+    --status-on-track-bg: var(--green-100);
     --status-attention-fg: var(--amber-700);
     --status-attention-bg: var(--amber-100);
     --status-incomplete-fg: var(--n-700);
     --status-incomplete-bg: var(--n-100);
     --status-medical-fg: var(--clay-700);
     --status-medical-bg: var(--clay-100);
-    --status-rest-fg: var(--olive-700);
-    --status-rest-bg: var(--olive-50);
+    --status-rest-fg: var(--green-700);
+    --status-rest-bg: var(--green-50);
     --status-complete-fg: var(--flame-700);
     --status-complete-bg: var(--flame-100);
     --status-complete-mark: var(--flame-500);
     --status-complete-mark-soft: var(--flame-300);
 
-    --progress-track: var(--olive-700);
+    --progress-track: var(--green-700);
 
-    --progress-card-from: var(--olive-800);
-    --progress-card-via: color-mix(in oklch, var(--olive-800), var(--olive-900));
-    --progress-card-to: var(--olive-900);
-    --progress-card-edge: var(--olive-950);
-    --progress-card-border: var(--olive-800);
+    --progress-card-from: var(--green-800);
+    --progress-card-via: color-mix(in oklch, var(--green-800), var(--green-900));
+    --progress-card-to: var(--green-900);
+    --progress-card-edge: var(--green-950);
+    --progress-card-border: var(--green-800);
 
     --commitment-card-figure: var(--n-25);
-    --commitment-card-stat: var(--olive-200);
+    --commitment-card-stat: var(--green-200);
 
-    --viz-band-range: var(--lime-300);
-    --viz-band-edge: var(--lime-600);
-    --viz-band-marker: var(--olive-900);
+    --viz-band-range: var(--green-200);
+    --viz-band-edge: var(--green-500);
+    --viz-band-marker: var(--green-900);
 
-    --viz-brand: var(--olive-400);
-    --viz-brand-soft: var(--olive-600);
+    --viz-brand: var(--green-400);
+    --viz-brand-soft: var(--green-600);
     /* Repeated here deliberately — see the note on this media query block. */
     --viz-progress: var(--gold-500);
 
-    --sidebar: var(--olive-900);
-    --sidebar-foreground: var(--olive-200);
+    --sidebar: var(--green-900);
+    --sidebar-foreground: var(--green-200);
     --sidebar-primary: var(--primary);
     --sidebar-primary-foreground: var(--n-0);
-    --sidebar-accent: var(--olive-800);
+    --sidebar-accent: var(--green-800);
     --sidebar-accent-foreground: var(--n-25);
-    --sidebar-border: var(--olive-700);
+    --sidebar-border: var(--green-700);
     --sidebar-ring: var(--ring);
   }
 }
@@ -1751,7 +1816,7 @@
    * ── No scrollbars, anywhere ──
    *
    * Every scroller in the app scrolls by wheel, trackpad, touch, keyboard and
-   * drag; none of them draws a bar. This replaced a 14px olive-100 bar styled
+   * drag; none of them draws a bar. This replaced a 14px green-100 bar styled
    * to match the platform's own track/thumb structure.
    *
    * **This is also what fixes the layout shift**, which is the reason it was
@@ -2004,7 +2069,7 @@
    * — the field is *offering* itself. Focus empties the fill back to the page
    * and doubles the edge to 2px — the field is *taken*, and the box goes quiet
    * because there is about to be text in it. Both edges are the same olive:
-   * `--primary` sits on olive-500 and nothing quieter clears 3:1.
+   * `--primary` sits on green-500 and nothing quieter clears 3:1.
    *
    * It replaces an olive line that grew along the block-end edge on focus plus
    * a 3px olive halo around the whole box. Both were drawing attention to the
@@ -2079,7 +2144,7 @@
    * **`type="search"` ships a clear button this design system did not draw.**
    *
    * WebKit and Blink paint their own `✕` inside a search field, at the browser's
-   * accent colour — which lands as a bright blue mark inside an olive-and-warm
+   * accent colour — which lands as a bright blue mark inside an green-and-warm
    * field, on the wrong side of the box in Arabic, at a size and hit area
    * nothing here controls. It appeared inside the dish editor's ingredient
    * search and read as a UI bug, because next to a design system that owns every
@@ -2112,10 +2177,10 @@
   /*
    * There is no emphasised-field class any more.
    *
-   * `.q-field-primary` gave a field an olive-600 edge and an olive-50 fill at
+   * `.q-field-primary` gave a field an green-600 edge and an green-50 fill at
    * rest, to mark the answers a record cannot start without. It is gone because
    * a field's resting state now has to mean one thing: with hover filling the
-   * box olive-50 and focus taking the olive edge, a field that already wore
+   * box green-50 and focus taking the olive edge, a field that already wore
    * both was saying "you are pointing at me" to nobody, and an untouched client
    * card opened as a block of green.
    *
@@ -2139,7 +2204,7 @@
   }
 
   /*
-   * §9.7 loading skeleton: an olive-tinted sweep across a sunken fill, 1600ms.
+   * §9.7 loading skeleton: an green-tinted sweep across a sunken fill, 1600ms.
    *
    * These bars stand in for the *contents* of a real `Card`, not for the card
    * itself, so they take the small radius rather than the card's. A caller that
@@ -2225,7 +2290,7 @@
     background: linear-gradient(
       to right,
       transparent,
-      color-mix(in oklch, var(--olive-100) 90%, transparent),
+      color-mix(in oklch, var(--green-100) 90%, transparent),
       transparent
     );
     transform: translateX(-100%);
@@ -2233,12 +2298,12 @@
   }
 
   .dark .q-skeleton::after {
-    /* olive-100 on an olive-800 fill would strobe; §15 keeps brand hues but the
+    /* green-100 on an green-800 fill would strobe; §15 keeps brand hues but the
        sweep is a surface effect, so it follows the surface. */
     background: linear-gradient(
       to right,
       transparent,
-      color-mix(in oklch, var(--olive-700) 90%, transparent),
+      color-mix(in oklch, var(--green-700) 90%, transparent),
       transparent
     );
   }
@@ -3013,31 +3078,34 @@
  * they need the forwards fill to hold the end state until the dialog actually
  * closes, and a closing dialog has nothing left to mis-anchor.
  */
+/*
+ * G. Seam is the standard dialog transition. The surface reveals from its own
+ * horizontal midpoint, so the same motion belongs to a phone sheet and a
+ * centred card without implying travel from an edge.
+ */
 .q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) {
-  animation: q-dialog-in-sheet 200ms var(--ease-sweep) backwards;
+  animation: q-dialog-seam-in 300ms var(--ease-sweep) backwards;
 }
 
 .q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer)::backdrop {
-  animation: q-dialog-backdrop-in 160ms ease-out backwards;
+  animation: q-dialog-backdrop-in 260ms var(--ease-sweep) backwards;
 }
 
 .q-dialog[data-closing='true']:not(.planner-context-sheet):not(.app-navigation-drawer) {
-  animation: q-dialog-out-sheet 140ms ease-in both;
+  animation: q-dialog-seam-out 130ms ease-in both;
 }
 
 .q-dialog[data-closing='true']:not(.planner-context-sheet):not(.app-navigation-drawer)::backdrop {
-  animation: app-navigation-backdrop-out 140ms ease-in both;
+  animation: app-navigation-backdrop-out 130ms ease-in both;
 }
 
-@media (min-width: 40rem) {
-  .q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) {
-    animation-name: q-dialog-in-card;
-  }
-
-  .q-dialog[data-closing='true']:not(.planner-context-sheet):not(.app-navigation-drawer) {
-    animation-name: q-dialog-out-card;
-  }
-}
+/*
+ * Only stable semantic regions belonging to this dialog settle behind the
+ * surface. The explicit direct/form/wrapper paths keep a nested dialog's slots
+ * out of its parent's animation. Popup positioners are also portaled directly
+ * into the native dialog; an arbitrary descendant selector would transform
+ * them while they measure and can make a calendar dismiss.
+ */
 
 /*
  * ══ A sheet stays a sheet on touch hardware, at every width ══
@@ -3082,20 +3150,6 @@
     border-radius: var(--radius-2xl, 1rem) var(--radius-2xl, 1rem) 0 0;
   }
 
-  /*
-    And it enters the way a sheet enters. Without this the surface would be
-    shaped like a sheet and animate like a card — a scale-and-fade in the middle
-    of the screen for something that arrived at the bottom edge. Declared after
-    the `min-width: 40rem` block above so it wins the `animation-name` on a
-    tablet, which is the one width where both queries match.
-  */
-  .q-dialog[data-placement='sheet'][open]:not(.planner-context-sheet):not(.app-navigation-drawer) {
-    animation-name: q-dialog-in-sheet;
-  }
-
-  .q-dialog[data-placement='sheet'][data-closing='true']:not(.planner-context-sheet):not(.app-navigation-drawer) {
-    animation-name: q-dialog-out-sheet;
-  }
 }
 
 /*
@@ -3132,36 +3186,43 @@
   }
 }
 
-/*
- * ── `placement="center"` takes the card's entrance to every width ──
- *
- * The rules above pick the keyframe by *breakpoint*, on the assumption that a
- * phone gets a sheet. `Dialog`'s `center` placement breaks that assumption: it
- * is a centred card below `sm` as well, and the sheet keyframe would have it
- * rise 1rem from an edge it is nowhere near — a movement describing a layout
- * that is not on the screen. `q-dialog-in-card` is the small scale-and-settle
- * that suits a card arriving in place.
- *
- * Doubled up as `.q-dialog.q-dialog-centered` rather than written as one class,
- * to outrank the base rules by specificity instead of by source order. They
- * carry four class-level selectors each (`.q-dialog`, `[open]`, and the two
- * `:not()` arguments); matching that exactly would leave this depending on
- * where it happens to sit in the file, and this stylesheet is long enough that
- * "below the other one" is not a property anybody should have to maintain.
- *
- * Above `sm` it changes nothing — the media query already names these same two
- * keyframes, so the declarations agree and only the specificity differs.
- *
- * The `:not()` pair is repeated because the planner's context sheet and the
- * navigation drawer own their entrances outright; neither is ever centred, but
- * a rule that could reach them if one day they were is a trap.
- */
-.q-dialog.q-dialog-centered[open]:not(.planner-context-sheet):not(.app-navigation-drawer) {
-  animation-name: q-dialog-in-card;
+/* Stable semantic regions settle after the Seam surface reveal. */
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > :where([data-slot='dialog-header'], [data-slot='dialog-body'], [data-slot='dialog-footer']),
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > form > :where([data-slot='dialog-header'], [data-slot='dialog-body'], [data-slot='dialog-footer']),
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > div > :where([data-slot='dialog-header'], [data-slot='dialog-body'], [data-slot='dialog-footer']) {
+  animation: q-dialog-seam-child-in 260ms var(--ease-sweep) backwards;
 }
 
-.q-dialog.q-dialog-centered[data-closing='true']:not(.planner-context-sheet):not(.app-navigation-drawer) {
-  animation-name: q-dialog-out-card;
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > [data-slot='dialog-header'],
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > form > [data-slot='dialog-header'],
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > div > [data-slot='dialog-header'] {
+  animation-delay: 90ms;
+}
+
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > [data-slot='dialog-body'],
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > form > [data-slot='dialog-body'],
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > div > [data-slot='dialog-body'] {
+  animation-delay: 140ms;
+}
+
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > [data-slot='dialog-footer'],
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > form > [data-slot='dialog-footer'],
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > div > [data-slot='dialog-footer'] {
+  animation-delay: 190ms;
+}
+
+.q-dialog[data-closing='true']:not(.planner-context-sheet):not(.app-navigation-drawer) > :where([data-slot='dialog-header'], [data-slot='dialog-body'], [data-slot='dialog-footer']),
+.q-dialog[data-closing='true']:not(.planner-context-sheet):not(.app-navigation-drawer) > form > :where([data-slot='dialog-header'], [data-slot='dialog-body'], [data-slot='dialog-footer']),
+.q-dialog[data-closing='true']:not(.planner-context-sheet):not(.app-navigation-drawer) > div > :where([data-slot='dialog-header'], [data-slot='dialog-body'], [data-slot='dialog-footer']) {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > :where([data-slot='dialog-header'], [data-slot='dialog-body'], [data-slot='dialog-footer']),
+  .q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > form > :where([data-slot='dialog-header'], [data-slot='dialog-body'], [data-slot='dialog-footer']),
+  .q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > div > :where([data-slot='dialog-header'], [data-slot='dialog-body'], [data-slot='dialog-footer']) {
+    animation: none;
+  }
 }
 
 /* The context sheet preserves its relationship to the board: up from the
@@ -3212,7 +3273,7 @@
   z-index: 0;
   width: 34%;
   content: '';
-  background: color-mix(in srgb, var(--accent-lime) 70%, transparent);
+  background: color-mix(in srgb, var(--accent-green) 70%, transparent);
   filter: blur(7px);
   opacity: 0;
   transform: translateX(-220%) skewX(-12deg);
@@ -3304,37 +3365,29 @@
   }
 }
 
-@keyframes q-dialog-in-sheet {
+@keyframes q-dialog-seam-in {
   from {
-    clip-path: inset(0.5rem 0 0 round 1rem);
-    filter: blur(1px);
-    opacity: 0.82;
-    transform: translateY(1rem);
+    clip-path: inset(50% 0 50% 0 round var(--qiwam-radius-lg, 0.75rem));
+    opacity: 0.4;
+  }
+
+  to {
+    clip-path: inset(0 0 0 0 round var(--qiwam-radius-lg, 0.75rem));
+    opacity: 1;
   }
 }
 
-@keyframes q-dialog-in-card {
+@keyframes q-dialog-seam-out {
+  to {
+    clip-path: inset(50% 0 50% 0 round var(--qiwam-radius-lg, 0.75rem));
+    opacity: 0.2;
+  }
+}
+
+@keyframes q-dialog-seam-child-in {
   from {
-    clip-path: inset(0.25rem round var(--qiwam-radius-lg));
-    filter: blur(1px);
-    opacity: 0.82;
-    transform: translateY(0.25rem) scale(0.985);
-  }
-}
-
-@keyframes q-dialog-out-sheet {
-  to {
-    filter: blur(1px);
-    transform: translateY(0.75rem);
     opacity: 0;
-  }
-}
-
-@keyframes q-dialog-out-card {
-  to {
-    filter: blur(1px);
-    transform: translateY(0.25rem) scale(0.985);
-    opacity: 0;
+    transform: translateY(0.5rem);
   }
 }
 
