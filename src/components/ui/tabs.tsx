@@ -112,6 +112,7 @@ const tabLinkVariants = cva(
      */
     'text-body-sm font-medium no-underline',
     'transition-colors duration-(--duration-label) ease-(--ease-sweep)',
+    'motion-reduce:transition-none',
     'outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-focus-halo',
   ],
   {
@@ -129,7 +130,10 @@ const tabLinkVariants = cva(
          * specificity and the winner was decided by stylesheet order, not by
          * which one was written last. The override lost, silently.
          */
-        true: 'font-semibold',
+        true: [
+          'font-semibold',
+          'motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 motion-safe:duration-(--duration-label)',
+        ],
         // The hover fill stops at the label rather than reaching the hairline,
         // which is why it is the sunken neutral and not a brand tint: a tint
         // here would read as a second active state.

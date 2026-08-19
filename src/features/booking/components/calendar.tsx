@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useOptimistic, useRef, useState, useTransition } from 'react';
 
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { useDialogPresenceValue } from '@/components/ui/dialog-motion';
 import { useRouter } from '@/i18n/navigation';
 import { type Locale } from '@/i18n/routing';
 import { normalizeForSearch } from '@/features/clients/search';
@@ -319,6 +320,8 @@ export function Calendar({
     null,
   );
   const [editing, setEditing] = useState<CalendarAppointment | null>(null);
+  const presentedNewClientFor = useDialogPresenceValue(newClientFor);
+  const presentedEditing = useDialogPresenceValue(editing);
   /** The two writes that ask first: rescheduling by drag, and deleting. */
   const [pendingMove, setPendingMove] = useState<PendingMove | null>(null);
   const [pendingDelete, setPendingDelete] = useState<CalendarAppointment | null>(null);
@@ -1484,24 +1487,26 @@ export function Calendar({
         />
       )}
 
-      {newClientFor && (
+      {presentedNewClientFor && (
         <NewClientDialog
-          pending={newClientFor.pending}
-          weeks={newClientFor.weeks}
+          open={newClientFor !== null}
+          pending={presentedNewClientFor.pending}
+          weeks={presentedNewClientFor.weeks}
           locale={locale}
           onCreate={createClientAndBook}
           onCancel={() => setNewClientFor(null)}
         />
       )}
 
-      {editing && (
+      {presentedEditing && (
         <AppointmentDialog
-          appointment={editing}
+          open={editing !== null}
+          appointment={presentedEditing}
           locale={locale}
           hours={hours}
           clients={clients}
           existingByDate={existingByDate}
-          completed={completedIds.has(editing.id)}
+          completed={completedIds.has(presentedEditing.id)}
           onSave={(next) => {
             // Changing the date must move the view too, or the appointment
             // vanishes from a calendar still showing the old week.
@@ -1512,7 +1517,7 @@ export function Calendar({
           // Closes the editor and hands the decision to the confirmation below,
           // rather than opening a second modal inside the one already open.
           onDelete={() => {
-            setPendingDelete(editing);
+            setPendingDelete(presentedEditing);
             setEditing(null);
           }}
           onClose={() => setEditing(null)}

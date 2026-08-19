@@ -1,0 +1,335 @@
+/*
+ * Dialog entrances — and exits — under consideration.
+ *
+ * A CSS Module rather than a block in `globals.css`: these are proposals, not
+ * system styles, and the point of the harness is that nothing it defines can
+ * reach a real screen. When one is chosen it moves into `globals.css` beside the
+ * existing `q-dialog-*` keyframes and this directory is deleted.
+ *
+ * **`!important` throughout, deliberately.** `.q-dialog[open]:not(...):not(...)`
+ * and its `[data-closing]` sibling in globals.css each carry four class-level
+ * selectors; a single module class cannot outrank them, and reproducing that
+ * chain here would tie the harness to the exact shape of a selector it is meant
+ * to be independent of. The exit selectors add `[data-closing='true']` so they
+ * outrank this file's own entrance rules while both match a closing dialog.
+ *
+ * Durations are literal ms rather than `--duration-*` tokens, because what the
+ * duration should be is part of the question.
+ *
+ * **Exits are ~130ms, and shorter than the entrances on purpose.** The shared
+ * `Dialog` unmounts 140ms after it sets `data-closing`, so an exit has to
+ * resolve inside that window — but that constraint agrees with the motion
+ * principle it enforces: an entrance invites and can take its time; an exit is a
+ * dismissal and should get out of the way. Each exit below is designed to look
+ * *finished* at 130ms, not like the first third of a reversed entrance.
+ *
+ * One thing every variant shares and is not up for debate: **the backdrop runs
+ * on the same clock and curve as the surface**, in both directions. The app's
+ * current entrance runs the card and the scrim on different clocks, which is the
+ * single biggest reason it reads as two things rather than one gesture.
+ */
+
+.stagger::backdrop,
+.depth::backdrop,
+.focusPull::backdrop,
+.seam::backdrop {
+  animation: harness-backdrop 260ms cubic-bezier(0.2, 0.6, 0.2, 1) backwards !important;
+}
+
+.stagger[data-closing='true']::backdrop,
+.depth[data-closing='true']::backdrop,
+.focusPull[data-closing='true']::backdrop,
+.seam[data-closing='true']::backdrop {
+  animation: harness-backdrop-out 130ms ease-in both !important;
+}
+
+@keyframes harness-backdrop {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes harness-backdrop-out {
+  to {
+    opacity: 0;
+  }
+}
+
+/* ═══ B — Rise and settle, contents staggered ═══════════════════════════════
+ *
+ * The chosen baseline. 16px of travel and a true 0 -> 1 fade (the app's current
+ * entrance moves 4px from 82% opacity, below what the eye resolves as motion),
+ * and the surface lands *before* its rows — the difference between a dialog that
+ * assembles and one that is switched on.
+ *
+ * The exit does NOT reverse the stagger. Contents leaving one at a time reads as
+ * the dialog coming apart reluctantly; a dismissal should be one quick, unified
+ * drop. So the whole surface falls 10px and fades as a single object in 130ms,
+ * and the rows go with it.
+ *
+ * Entrance delays come from `:nth-child` rather than a `--i` written onto each
+ * row, because `DialogHeader` takes a fixed prop list and does not spread
+ * arbitrary attributes. A harness that required changing the shared component to
+ * demonstrate a proposal would be answering the question it exists to ask. The
+ * production version sets `--i` at the call site, or lifts the rule into
+ * `globals.css` next to `.q-dialog`.
+ */
+.stagger {
+  animation: harness-rise 260ms cubic-bezier(0.2, 0.6, 0.2, 1) backwards !important;
+}
+
+.stagger[data-closing='true'],
+.depth[data-closing='true'],
+.focusPull[data-closing='true'] {
+  animation: harness-drop 130ms ease-in both !important;
+}
+
+@keyframes harness-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+}
+
+@keyframes harness-drop {
+  to {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+}
+
+/* The staggered entrance for the rows. Suppressed on close (see above): during
+ * `data-closing` the whole surface animates as one, so its children hold still
+ * and go with it. */
+.stagger > *,
+.depth > *,
+.focusPull > *,
+.seam > * {
+  animation: harness-child 260ms cubic-bezier(0.2, 0.6, 0.2, 1) backwards;
+}
+
+.stagger[data-closing='true'] > *,
+.depth[data-closing='true'] > *,
+.focusPull[data-closing='true'] > *,
+.seam[data-closing='true'] > * {
+  animation: none;
+}
+
+.stagger > *:nth-child(1),
+.depth > *:nth-child(1),
+.focusPull > *:nth-child(1),
+.seam > *:nth-child(1) {
+  animation-delay: 90ms;
+}
+
+.stagger > *:nth-child(2),
+.depth > *:nth-child(2),
+.focusPull > *:nth-child(2),
+.seam > *:nth-child(2) {
+  animation-delay: 140ms;
+}
+
+.stagger > *:nth-child(3),
+.depth > *:nth-child(3),
+.focusPull > *:nth-child(3),
+.seam > *:nth-child(3) {
+  animation-delay: 190ms;
+}
+
+@keyframes harness-child {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* ═══ E — Depth: the page recedes ═══════════════════════════════════════════
+ *
+ * The only variant that animates something other than the dialog: the page
+ * behind scales down and blurs while the surface rises, and on close the page
+ * comes back as the surface drops. Depth is communicated by the world moving
+ * away, not by the modal insisting it is in front.
+ *
+ * The surface uses B's rise/drop above. The page is a *transition*, not an
+ * animation — the harness toggles `.pageRecedes` on and off, and the transition
+ * carries both directions for free. It has to slightly outlast the dialog on
+ * close (the dialog is gone at 140ms; the page keeps settling), which reads as
+ * the room coming back to rest after the surface has left, not as a lag.
+ */
+.depth {
+  animation: harness-rise 260ms cubic-bezier(0.2, 0.6, 0.2, 1) backwards !important;
+}
+
+/* The page wrapper, always. The transition is what animates the return. */
+.page {
+  transition:
+    filter 260ms cubic-bezier(0.2, 0.6, 0.2, 1),
+    transform 260ms cubic-bezier(0.2, 0.6, 0.2, 1);
+}
+
+/* Added by the harness while a depth dialog is open. */
+.pageRecedes {
+  filter: blur(3px);
+  transform: scale(0.97);
+}
+
+/* ═══ F — Focus pull ════════════════════════════════════════════════════════
+ *
+ * Arrives larger than final (1.06) and heavily blurred, then resolves down into
+ * focus. Everything else grows from small; this shrinks. Describes attention
+ * rather than travel — nothing crossed the screen, something became legible.
+ *
+ * The exit is B's drop, not a reverse blur-out: a surface that de-focuses on the
+ * way out reads as the same expensive effect twice, and the whole point of a
+ * quick exit is that it is cheap. It resolves *into* focus and leaves *in*
+ * focus.
+ *
+ * ⚠ The expensive entrance. Animating `filter: blur()` on a large surface is a
+ * real per-frame cost, and this blurs 14px across the whole dialog. Judge it on
+ * a mid-range Android, not on this machine.
+ */
+.focusPull {
+  animation: harness-focus 320ms cubic-bezier(0.2, 0.6, 0.2, 1) backwards !important;
+}
+
+@keyframes harness-focus {
+  from {
+    opacity: 0;
+    filter: blur(14px);
+    transform: scale(1.06);
+  }
+}
+
+/* ═══ G — Seam: opens from a line ═══════════════════════════════════════════
+ *
+ * Starts as a horizontal line across its own middle and opens outward. No travel
+ * and no scale — the box is already exactly where it will end up, and only its
+ * extent changes. Mechanical and precise rather than soft.
+ *
+ * The exit collapses back to the seam it opened from: the dialog closes the way
+ * it opened, in reverse and faster. This is the one variant whose exit *is* a
+ * reverse, because the movement is a single continuous read (a line growing / a
+ * shape returning to a line) rather than a compound of travel and fade — there
+ * is nothing to look half-finished.
+ *
+ * `clip-path` rather than `scaleY`: scaling would squash the contents on the
+ * way, and a dialog whose text stretches looks broken for the length of it.
+ */
+.seam {
+  animation: harness-seam 300ms cubic-bezier(0.2, 0.6, 0.2, 1) backwards !important;
+}
+
+.seam[data-closing='true'] {
+  animation: harness-seam-out 130ms ease-in both !important;
+}
+
+@keyframes harness-seam {
+  from {
+    clip-path: inset(50% 0 50% 0 round var(--qiwam-radius-lg, 0.75rem));
+    opacity: 0.4;
+  }
+
+  to {
+    clip-path: inset(0 0 0 0 round var(--qiwam-radius-lg, 0.75rem));
+    opacity: 1;
+  }
+}
+
+@keyframes harness-seam-out {
+  to {
+    clip-path: inset(50% 0 50% 0 round var(--qiwam-radius-lg, 0.75rem));
+    opacity: 0.2;
+  }
+}
+
+/* ═══ H — Iris: the scrim opens from your click ═════════════════════════════
+ *
+ * The backdrop is the animated thing: darkness spreads in a circle out of the
+ * button you pressed, and the dialog fades in behind it. The strongest
+ * cause-and-effect here by a distance, and the most likely to wear out.
+ *
+ * The exit does NOT collapse the circle back to the point. A full-viewport
+ * circle contracting to nothing in 130ms is a snap, not a gesture, and a slower
+ * one would outlast the dialog. Instead the scrim fades as one and the surface
+ * goes with it — the iris is a spectacular *arrival* and a quiet *departure*,
+ * which is the right asymmetry for something this loud.
+ *
+ * `--cx`/`--cy` are the click position, written to the root by the harness. The
+ * radius is 150vmax so the circle clears the far corner of any viewport wherever
+ * it starts.
+ */
+.iris {
+  animation: harness-iris-surface 260ms cubic-bezier(0.2, 0.6, 0.2, 1) 140ms backwards !important;
+}
+
+.iris::backdrop {
+  animation: harness-iris 420ms cubic-bezier(0.2, 0.6, 0.2, 1) backwards !important;
+}
+
+.iris[data-closing='true'] {
+  animation: harness-drop 130ms ease-in both !important;
+}
+
+.iris[data-closing='true']::backdrop {
+  animation: harness-backdrop-out 130ms ease-in both !important;
+}
+
+@keyframes harness-iris {
+  from {
+    clip-path: circle(0 at var(--cx, 50%) var(--cy, 50%));
+  }
+
+  to {
+    clip-path: circle(150vmax at var(--cx, 50%) var(--cy, 50%));
+  }
+}
+
+@keyframes harness-iris-surface {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+
+/*
+ * Anyone who has asked for less motion gets a fade and nothing else — from
+ * every variant, in both directions, including the ones whose whole idea is the
+ * movement. This mirrors what the app does for the real dialog; a harness that
+ * ignored the preference would be demonstrating something that could never ship.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .stagger,
+  .depth,
+  .focusPull,
+  .seam,
+  .iris {
+    animation: harness-backdrop 120ms ease-out backwards !important;
+    clip-path: none !important;
+    filter: none !important;
+    transform: none !important;
+  }
+
+  .stagger[data-closing='true'],
+  .depth[data-closing='true'],
+  .focusPull[data-closing='true'],
+  .seam[data-closing='true'],
+  .iris[data-closing='true'] {
+    animation: harness-backdrop-out 100ms ease-in both !important;
+  }
+
+  .iris::backdrop,
+  .iris[data-closing='true']::backdrop {
+    animation: harness-backdrop 120ms ease-out backwards !important;
+  }
+
+  .page {
+    transition: none;
+  }
+
+  .stagger > *,
+  .depth > *,
+  .focusPull > *,
+  .seam > * {
+    animation: none;
+  }
+}

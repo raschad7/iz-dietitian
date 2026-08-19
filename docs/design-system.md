@@ -502,6 +502,17 @@ temporary display preference uses a segmented control.
 - Use `Dialog` for focused modal tasks and `Sheet` for secondary mobile/edge
   surfaces.
 - A dialog must have an accessible label and a deliberate dismissal policy.
+- G. Seam is the standard `Dialog` and `ConfirmDialog` transition: the surface
+  reveals from its horizontal midpoint and closes back into it. Planner context
+  sheets and application navigation drawers keep their own directional motion.
+- A conditionally rendered dialog must use `useDialogPresence(open)`. When the
+  dialog needs a state payload to paint its closing frame, use
+  `useDialogPresenceValue(value)` and pass the real desired-open boolean into
+  `Dialog`; never remove the subtree on the same render that closes it.
+- Dialog content motion belongs only to `DialogHeader`, `DialogBody`, and
+  `DialogFooter`. Do not animate arbitrary dialog children or descendants:
+  calendars, selects, comboboxes, and popovers portal their positioners into
+  the native dialog, and transforming one while it measures can dismiss it.
 - Use `DropdownMenu` for action menus and profile menus.
 - Tooltips supplement an accessible name; they never replace `aria-label`.
 - Use the shared `toast`/`Toaster` API for transient confirmation that warrants

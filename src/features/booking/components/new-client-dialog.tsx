@@ -29,6 +29,7 @@ import { NO_REPEAT, RepeatField } from './repeat-field';
  */
 
 export type NewClientDialogProps = {
+  open: boolean;
   pending: PendingBooking;
   locale: Locale;
   pendingLabel?: string;
@@ -43,6 +44,7 @@ export type NewClientDialogProps = {
 };
 
 export function NewClientDialog({
+  open,
   pending,
   locale,
   weeks: initialWeeks = NO_REPEAT,
@@ -71,7 +73,7 @@ export function NewClientDialog({
 
   return (
     <Dialog
-      open
+      open={open}
       onClose={onCancel}
       label={t('newClient.title')}
       dir={getLocaleDirection(locale)}

@@ -2483,62 +2483,70 @@
  * they need the forwards fill to hold the end state until the dialog actually
  * closes, and a closing dialog has nothing left to mis-anchor.
  */
+/*
+ * G. Seam is the standard dialog transition. The surface reveals from its own
+ * horizontal midpoint, so the same motion belongs to a phone sheet and a
+ * centred card without implying travel from an edge.
+ */
 .q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) {
-  animation: q-dialog-in-sheet 200ms var(--ease-sweep) backwards;
+  animation: q-dialog-seam-in 300ms var(--ease-sweep) backwards;
 }
 
 .q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer)::backdrop {
-  animation: q-dialog-backdrop-in 160ms ease-out backwards;
+  animation: q-dialog-backdrop-in 260ms var(--ease-sweep) backwards;
 }
 
 .q-dialog[data-closing='true']:not(.planner-context-sheet):not(.app-navigation-drawer) {
-  animation: q-dialog-out-sheet 140ms ease-in both;
+  animation: q-dialog-seam-out 130ms ease-in both;
 }
 
 .q-dialog[data-closing='true']:not(.planner-context-sheet):not(.app-navigation-drawer)::backdrop {
-  animation: app-navigation-backdrop-out 140ms ease-in both;
-}
-
-@media (min-width: 40rem) {
-  .q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) {
-    animation-name: q-dialog-in-card;
-  }
-
-  .q-dialog[data-closing='true']:not(.planner-context-sheet):not(.app-navigation-drawer) {
-    animation-name: q-dialog-out-card;
-  }
+  animation: app-navigation-backdrop-out 130ms ease-in both;
 }
 
 /*
- * ── `placement="center"` takes the card's entrance to every width ──
- *
- * The rules above pick the keyframe by *breakpoint*, on the assumption that a
- * phone gets a sheet. `Dialog`'s `center` placement breaks that assumption: it
- * is a centred card below `sm` as well, and the sheet keyframe would have it
- * rise 1rem from an edge it is nowhere near — a movement describing a layout
- * that is not on the screen. `q-dialog-in-card` is the small scale-and-settle
- * that suits a card arriving in place.
- *
- * Doubled up as `.q-dialog.q-dialog-centered` rather than written as one class,
- * to outrank the base rules by specificity instead of by source order. They
- * carry four class-level selectors each (`.q-dialog`, `[open]`, and the two
- * `:not()` arguments); matching that exactly would leave this depending on
- * where it happens to sit in the file, and this stylesheet is long enough that
- * "below the other one" is not a property anybody should have to maintain.
- *
- * Above `sm` it changes nothing — the media query already names these same two
- * keyframes, so the declarations agree and only the specificity differs.
- *
- * The `:not()` pair is repeated because the planner's context sheet and the
- * navigation drawer own their entrances outright; neither is ever centred, but
- * a rule that could reach them if one day they were is a trap.
+ * Only stable semantic regions belonging to this dialog settle behind the
+ * surface. The explicit direct/form/wrapper paths keep a nested dialog's slots
+ * out of its parent's animation. Popup positioners are also portaled directly
+ * into the native dialog; an arbitrary descendant selector would transform
+ * them while they measure and can make a calendar dismiss.
  */
-.q-dialog.q-dialog-centered[open]:not(.planner-context-sheet):not(.app-navigation-drawer) {
-  animation-name: q-dialog-in-card;
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > :where([data-slot='dialog-header'], [data-slot='dialog-body'], [data-slot='dialog-footer']),
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > form > :where([data-slot='dialog-header'], [data-slot='dialog-body'], [data-slot='dialog-footer']),
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > div > :where([data-slot='dialog-header'], [data-slot='dialog-body'], [data-slot='dialog-footer']) {
+  animation: q-dialog-seam-child-in 260ms var(--ease-sweep) backwards;
 }
 
-.q-dialog.q-dialog-centered[data-closing='true']:not(.planner-context-sheet):not(.app-navigation-drawer) {
-  animation-name: q-dialog-out-card;
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > [data-slot='dialog-header'],
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > form > [data-slot='dialog-header'],
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > div > [data-slot='dialog-header'] {
+  animation-delay: 90ms;
+}
+
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > [data-slot='dialog-body'],
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > form > [data-slot='dialog-body'],
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > div > [data-slot='dialog-body'] {
+  animation-delay: 140ms;
+}
+
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > [data-slot='dialog-footer'],
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > form > [data-slot='dialog-footer'],
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > div > [data-slot='dialog-footer'] {
+  animation-delay: 190ms;
+}
+
+.q-dialog[data-closing='true']:not(.planner-context-sheet):not(.app-navigation-drawer) > :where([data-slot='dialog-header'], [data-slot='dialog-body'], [data-slot='dialog-footer']),
+.q-dialog[data-closing='true']:not(.planner-context-sheet):not(.app-navigation-drawer) > form > :where([data-slot='dialog-header'], [data-slot='dialog-body'], [data-slot='dialog-footer']),
+.q-dialog[data-closing='true']:not(.planner-context-sheet):not(.app-navigation-drawer) > div > :where([data-slot='dialog-header'], [data-slot='dialog-body'], [data-slot='dialog-footer']) {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > :where([data-slot='dialog-header'], [data-slot='dialog-body'], [data-slot='dialog-footer']),
+  .q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > form > :where([data-slot='dialog-header'], [data-slot='dialog-body'], [data-slot='dialog-footer']),
+  .q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > div > :where([data-slot='dialog-header'], [data-slot='dialog-body'], [data-slot='dialog-footer']) {
+    animation: none;
+  }
 }
 
 /* The context sheet preserves its relationship to the board: up from the
@@ -2681,37 +2689,29 @@
   }
 }
 
-@keyframes q-dialog-in-sheet {
+@keyframes q-dialog-seam-in {
   from {
-    clip-path: inset(0.5rem 0 0 round 1rem);
-    filter: blur(1px);
-    opacity: 0.82;
-    transform: translateY(1rem);
+    clip-path: inset(50% 0 50% 0 round var(--qiwam-radius-lg, 0.75rem));
+    opacity: 0.4;
+  }
+
+  to {
+    clip-path: inset(0 0 0 0 round var(--qiwam-radius-lg, 0.75rem));
+    opacity: 1;
   }
 }
 
-@keyframes q-dialog-in-card {
+@keyframes q-dialog-seam-out {
+  to {
+    clip-path: inset(50% 0 50% 0 round var(--qiwam-radius-lg, 0.75rem));
+    opacity: 0.2;
+  }
+}
+
+@keyframes q-dialog-seam-child-in {
   from {
-    clip-path: inset(0.25rem round var(--qiwam-radius-lg));
-    filter: blur(1px);
-    opacity: 0.82;
-    transform: translateY(0.25rem) scale(0.985);
-  }
-}
-
-@keyframes q-dialog-out-sheet {
-  to {
-    filter: blur(1px);
-    transform: translateY(0.75rem);
     opacity: 0;
-  }
-}
-
-@keyframes q-dialog-out-card {
-  to {
-    filter: blur(1px);
-    transform: translateY(0.25rem) scale(0.985);
-    opacity: 0;
+    transform: translateY(0.5rem);
   }
 }
 

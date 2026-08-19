@@ -126,9 +126,11 @@ function PanelTabsTrigger({ className, ...props }: TabsPrimitive.Tab.Props) {
         'inline-flex h-full min-w-0 flex-auto items-center justify-center gap-1.5 truncate rounded-md px-2.5 whitespace-nowrap',
         'text-body-sm font-medium text-muted-foreground',
         'transition-[color,background-color,box-shadow] duration-(--duration-label) ease-(--ease-sweep)',
+        'motion-reduce:transition-none',
         'outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-focus-halo',
         'hover:bg-accent/60 hover:text-foreground',
         'data-active:bg-card data-active:font-semibold data-active:text-secondary-foreground data-active:shadow-card data-active:hover:bg-card',
+        'motion-safe:data-active:animate-in motion-safe:data-active:fade-in-0 motion-safe:data-active:zoom-in-95 motion-safe:data-active:duration-(--duration-label)',
         "[&_svg]:size-[1.0625rem] [&_svg]:shrink-0 [&_svg]:pointer-events-none",
         className,
       )}

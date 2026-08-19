@@ -3,6 +3,8 @@
 import * as React from 'react';
 
 import { Button } from '@/components/ui/button';
+import { isCurrentDialogEvent } from '@/components/ui/dialog-event';
+import { DIALOG_NATIVE_CLOSE_DELAY_MS } from '@/components/ui/dialog-motion';
 import { Icon } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 
@@ -93,11 +95,8 @@ type DialogProps = {
    * as a small one. Centred, the same content reads as a card that is simply
    * short.
    *
-   * ⚠ It also changes the entrance, and that is not decoration: a sheet
-   * animates *up* from the edge it belongs to, and a centred card that slid up
-   * from nowhere would be describing a movement it did not make. The keyframe
-   * swap is driven by the `q-dialog-centered` class this adds — see the block
-   * beside `.q-dialog[open]` in `globals.css`.
+   * Placement changes geometry only. Both shapes use the shared Seam entrance,
+   * which reveals from the surface itself rather than implying edge travel.
    */
   placement?: 'sheet' | 'center';
   /**
@@ -149,7 +148,7 @@ function Dialog({
     const timeout = window.setTimeout(() => {
       if (dialog.open) dialog.close();
       dialog.removeAttribute('data-closing');
-    }, reduceMotion ? 0 : 140);
+    }, reduceMotion ? 0 : DIALOG_NATIVE_CLOSE_DELAY_MS);
 
     return () => window.clearTimeout(timeout);
   }, [open]);
@@ -162,8 +161,11 @@ function Dialog({
       }}
       dir={dir}
       aria-label={label}
-      onClose={onClose}
+      onClose={(event) => {
+        if (isCurrentDialogEvent(event)) onClose();
+      }}
       onCancel={(event) => {
+        if (!isCurrentDialogEvent(event)) return;
         event.preventDefault();
         if (dismissible) onClose();
       }}
@@ -282,7 +284,7 @@ function DialogHeader({
   children?: React.ReactNode;
 }) {
   return (
-    <header className={cn('flex items-start gap-2 px-4 pt-4', className)}>
+    <header data-slot="dialog-header" className={cn('flex items-start gap-2 px-4 pt-4', className)}>
       <div className="min-w-0 flex-1">
         <h2 className="truncate text-heading-sm font-semibold" dir="auto">
           {title}
@@ -306,7 +308,7 @@ function DialogHeader({
 }
 
 function DialogBody({ className, ...props }: React.ComponentProps<'div'>) {
-  return <div className={cn('flex flex-col gap-3 p-4', className)} {...props} />;
+  return <div {...props} data-slot="dialog-body" className={cn('flex flex-col gap-3 p-4', className)} />;
 }
 
 /** Actions sit inline-end; the primary action is last in DOM order. */
@@ -332,11 +334,12 @@ function DialogBody({ className, ...props }: React.ComponentProps<'div'>) {
 function DialogFooter({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
+      {...props}
+      data-slot="dialog-footer"
       className={cn(
         'flex flex-wrap items-center justify-end gap-2 gap-y-2 border-t border-border bg-muted/50 p-4',
         className,
       )}
-      {...props}
     />
   );
 }

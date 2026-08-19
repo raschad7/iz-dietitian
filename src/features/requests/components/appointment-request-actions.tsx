@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
 import { Button } from '@/components/ui/button';
+import { useDialogPresence } from '@/components/ui/dialog-motion';
 import { Icon } from '@/components/ui/icon';
 import { type ClinicHours } from '@/features/booking/validation';
 import { type Locale } from '@/i18n/routing';
@@ -51,6 +52,7 @@ export function AppointmentRequestActions({
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const dialogPresent = useDialogPresence(open);
 
   /**
    * Renders whichever namespace the failure came from.
@@ -134,8 +136,9 @@ export function AppointmentRequestActions({
         </p>
       ) : null}
 
-      {open ? (
+      {dialogPresent ? (
         <ApproveDialog
+          open={open}
           request={request}
           locale={locale}
           hours={hours}
