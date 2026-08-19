@@ -1,97 +1,146 @@
 'use client';
 
-import { useLocale } from 'next-intl';
+import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 
 import { LocaleSwitcher } from '@/components/layout/locale-switcher';
 import { Button } from '@/components/ui/button';
-import { Icon } from '@/components/ui/icon';
-import { getLocaleDirection, type Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 
 /**
- * The one card every auth screen is built on: a card inside a card.
+ * The surface every auth screen is built on, following `v5.html`: a plain
+ * white page, the form in a column at the inline-start, and the illustration in
+ * a rounded panel at the inline-end that bleeds off the edge of the screen.
  *
- * The outer surface is solid olive edge to edge. The form is a second, white
- * card lying *over* it at 60% of the width — full height, flush to the outer
- * card's own edges, with only its inner corners visible. So the olive is not a
- * panel beside the form; it is the thing the form is sitting on, and the 40%
- * that shows is whatever the form is not covering.
+ * ## It mirrors with the language
  *
- * Both surfaces take the same 24px radius. The outer card clips, so the form's
- * outer corners are cut to the outer card's arc and only the two facing the
- * olive are its own — matching radii is what keeps a sliver of olive from
- * peeking through at each corner, which is what a smaller inner radius does the
- * moment the two are flush.
+ * **This screen used to lock its outer geometry to LTR** so that the picture and
+ * the form stayed on the same physical sides in both languages. That lock is
+ * gone, on request: the layout is now built from logical properties like every
+ * other screen, so English puts the form on the left and the picture on the
+ * right, and Arabic puts the form on the right and the picture on the left.
  *
- * ## The form card is the constant
+ * The language control mirrors with it — it is the first thing in the top row,
+ * so it sits at the inline-start and swaps sides when the locale does. That is
+ * the cost of the mirroring and it is a real one: the control you just used is
+ * not where you left it. It was a deliberate trade, and `docs/design-system.md`
+ * has been updated to match rather than left contradicting the code.
  *
- * Everything here is arranged so that the white card never changes size and the
- * two things that *do* move both leave it where it was:
+ * There is nothing left in here that needs a `dir` of its own. If a future bug
+ * looks like it wants one, it almost certainly wants a logical property instead.
  *
- * - **`formSide`** swaps the two halves. The form rests at the inline-end for
- *   signing in and travels to the inline-start for signing up, with the brand
- *   half sliding the other way to meet it. Both are `transform`s on a flex row,
- *   so the travel is a compositor job and neither half reflows mid-slide. The
- *   distances are each half's own share of the row expressed as a fraction of
- *   *itself*: the brand half crosses 60% of the row, which is 150% of its own
- *   40% width; the form crosses 40%, which is 66.67% of its own 60%. They need
- *   no `rtl:` counterparts, because the row itself is direction-locked — see
- *   `dir` below.
- * - **`showBrandPanel`** is the client view, and there the card *shrinks*
- *   rather than being replaced. The olive half collapses to nothing behind the
- *   form while the card narrows to 60% of the stage, and because the card is
- *   centred it takes 20% off each side — which lands the form, still 60% wide,
- *   in the middle of the page. Sign-in and sign-up both arrive there: the
- *   `formSide` transform runs down to zero on the way, so it does not matter
- *   which edge the form started from.
+ * ## The picture is inset on all four sides
  *
- * ## `pace`
+ * v5.html sets `padding: 20px 20px 20px 0` — three sides inset and the fourth
+ * flush, so the panel bleeds off the outer edge of the screen and shows only two
+ * of its four rounded corners. **That is deliberately not what this does.**
+ * Flush against the edge, the illustration read as unfinished rather than as
+ * full-bleed: it is a framed picture, not a background, and a framed picture
+ * with one edge cut off by the viewport looks like a layout bug.
  *
- * Those two gestures are different sizes and cannot share a duration, and a
- * single element cannot carry two of them: the card's width and the halves'
- * transforms move *together* while the card shrinks, and only the transforms
- * move while the halves swap. The caller knows which is in flight, so it says.
+ * So `p-*` on all four sides. The panel floats clear of the page on every side,
+ * all four corners take the 24px radius, and the inset is symmetrical, which
+ * means it is also identical in both languages — no `:dir()` rule, nothing to
+ * keep in step. In Arabic that is the gap down the left of the screen; in
+ * English the same gap lands on the right.
  *
- * ## The fields do not travel
+ * The panel is a flex child at `w-full` inside a flex container, so it takes the
+ * row's full height without anything having to state one — no `h-full` chasing a
+ * parent that has no definite height.
  *
- * `contentVisible` is what makes either gesture read as a swap rather than as a
- * carousel. The caller drops it the moment something changes and raises it once
- * the card has settled, so the fields — and the brand half's own contents —
- * fade out where they are, the empty card moves, and the new ones fade up in
- * place. Watching a form slide past is how you lose track of which field you
- * were in.
+ * `object-cover` on a `fill` image crops the artwork to the panel's aspect ratio
+ * rather than stretching it, and the crop is centred, which is what keeps the
+ * two figures at the table in frame when a 16:9 illustration is shown in a tall
+ * panel.
  *
- * ## Below `md` there is no split
+ * ## Three layouts, not two
  *
- * A 40/60 landscape card does not fit a phone, so the brand half is dropped and
- * the form fills the card at its natural height — no width or transform there
- * changes at all. The switch link has to survive that, which is why this
- * component renders it and not the caller: once on the brand half and once at
- * the foot of the form, with only ever one of the two displayed, so neither the
- * tab order nor the accessibility tree sees both.
+ * - **Mobile** (below `md`): the picture is not painted. A phone gets the form,
+ *   centred, and nothing else. Being precise about the mechanism, because it
+ *   matters: the element is in the markup at every width and `hidden md:flex`
+ *   decides whether it is shown, which is what keeps this a pure CSS breakpoint
+ *   with no `matchMedia` read and no hydration mismatch. `display: none` does
+ *   not reliably stop a browser fetching an image, and `priority` emits a
+ *   preload regardless — so the download is held down by `sizes` instead, whose
+ *   mobile branch resolves to `1px` and sends the browser to the smallest
+ *   candidate in the srcset rather than a desktop crop.
+ * - **Tablet** (`md` to `lg`): both columns stay, the picture at 44%. Because
+ *   every landscape tablet is already 1024 wide and therefore on the desktop
+ *   layout, this range is portrait only — so the panel also stops filling the
+ *   row and becomes a 4:5 card centred in the column. The note beside it
+ *   explains what a full-height panel does to the artwork at that shape.
+ * - **Desktop** (`lg` and up): 48% of the viewport with a 460px floor and no
+ *   ceiling. v5.html caps it at 800px; that cap is dropped, because a narrower
+ *   box at the same height is precisely how `object-cover` is made to zoom, and
+ *   it was costing visible width on any screen past about 1670px.
+ *
+ * ## And a fourth axis: height
+ *
+ * Width decides the columns; **height decides whether the form fits at all**,
+ * and on this screen it has to. See the `short` / `shorter` variants declared in
+ * `globals.css` — below 860px and 700px of viewport the column closes up its
+ * gaps, shrinks the heading, and finally drops the tagline, because a sign-up
+ * form is five fields deep and a 1366×768 laptop has about 650px to put them in
+ * once the browser has taken its share. Control heights never move: the layout
+ * gives up whitespace, not touch targets.
+ *
+ * ## `min-h-dvh`, never `h-dvh`
+ *
+ * The page is a *minimum* of one viewport tall and nothing inside it owns a
+ * scroll container. Written the other way once, this screen lost its passkey and
+ * Google buttons below the fold of a narrow column — and the app hides
+ * scrollbars globally, so nothing on screen said the column scrolled. Short
+ * forms leave the page exactly `100dvh`; tall forms grow it and let the *page*
+ * scroll. There is no state in which a control renders but cannot be reached.
+ *
+ * `overflow-hidden` appears once, on the picture's panel, and is safe there
+ * because that panel holds a decorative image and nothing else. Do not copy it
+ * onto the form column — a focus ring is drawn outside its control's box, and a
+ * clipped one is a missing one.
+ *
+ * `dvh` and not `vh`: on a phone `vh` measures the viewport with the browser
+ * chrome hidden, so `100vh` overshoots whenever the chrome is showing.
  */
+
+/**
+ * Where the illustration lives.
+ *
+ * A file under `public/`, not an import: it is artwork swapped by whoever owns
+ * the brand, not an asset the build needs to know about. Replacing the file
+ * replaces the picture, with no code change.
+ */
+const HERO_IMAGE_SRC = '/images/auth-hero.png';
+
+/**
+ * The brand lockup, in two files.
+ *
+ * The supplied artwork draws the wordmark in #266805, which vanishes into the
+ * app's dark surfaces, so `logo-full-dark.svg` repaints that one path in n-25
+ * and leaves the green disc alone. Swapping the file is the whole dark-mode
+ * story — no filter, no `invert`, which would have taken the green with it.
+ */
+const LOGO_LIGHT_SRC = '/images/logo-full.svg';
+const LOGO_DARK_SRC = '/images/logo-full-dark.svg';
+
 type AuthSplitCardProps = {
-  /** False for the client view — the olive collapses and the card shrinks to the form. */
-  showBrandPanel: boolean;
   /**
-   * Which edge the form card rests against. `end` is sign-in — the brand half
-   * leads, the way the reference layout has it — and `start` is sign-up.
-   * Ignored while `showBrandPanel` is false; there is no other half to sit
-   * beside.
+   * The page's heading, its tagline, and the role switch.
+   *
+   * Deliberately *outside* the `contentVisible` fade. The role switch is the
+   * control being clicked, and fading it out from under the pointer mid-click is
+   * how a control stops feeling connected to what it does. The heading names the
+   * form that is arriving, so it changes with the switch rather than with the
+   * fields.
    */
-  formSide: 'start' | 'end';
-  /** The brand half's one line of copy, under the leaf. */
-  tagline: string;
-  /** Which gesture is in flight, so the two can move at their own speeds. */
-  pace: 'panel' | 'card';
-  /** False while anything is travelling; see "The fields do not travel". */
+  header: ReactNode;
+  /** False while the form is being swapped; see `AuthScreen`. */
   contentVisible: boolean;
   /** The form itself. `AuthSplitCard` supplies the surface and nothing else. */
   children: ReactNode;
   /**
-   * The link that flips the card to the other form. Absent on the client view,
-   * which has no sign-up to flip to — clients are issued credentials.
+   * The link that flips to the other form. Absent on the client view, which has
+   * no sign-up to flip to — clients are issued credentials.
    */
   switcher?: {
     /** "Don't have an account?" */
@@ -102,179 +151,222 @@ type AuthSplitCardProps = {
   };
 };
 
-export function AuthSplitCard({
-  showBrandPanel,
-  formSide,
-  tagline,
-  pace,
-  contentVisible,
-  children,
-  switcher,
-}: AuthSplitCardProps) {
-  const reversed = showBrandPanel && formSide === 'start';
+export function AuthSplitCard({ header, contentVisible, children, switcher }: AuthSplitCardProps) {
+  const tApp = useTranslations('app');
 
-  /*
-   * The card's *layout* is locked to LTR; its contents are not.
-   *
-   * Sign-in puts the form on the right and sign-up puts it on the left, in both
-   * languages. Mirroring the split with the page turned the two states into
-   * four, and switching language flipped the card underneath someone who had
-   * only asked for different words — the halves swapping sides is this card's
-   * one gesture, and the language control is not allowed to spend it.
-   *
-   * So the flex row runs left-to-right regardless, and each half hands the
-   * document's own direction back to everything inside it. Only the geometry is
-   * pinned: every label, field, placeholder and glyph below still reads and
-   * aligns per locale. It is also what lets the `translate-x` pairs drop their
-   * `rtl:` counterparts — with the row pinned, +150% is the same side always.
-   */
-  const dir = getLocaleDirection(useLocale() as Locale);
-
-  /*
-   * `width` and `transform` share one duration per element, so the choice is
-   * per gesture rather than per property: while the card shrinks they have to
-   * move as one piece, and while the halves swap only the transforms are
-   * changing and the longer time would just be slack.
-   */
-  const travel = cn(
-    /*
-     * `translate`, not `transform`. Tailwind v4's `translate-x-*` sets the
-     * **standalone `translate` property** — `translate: var(--tw-translate-x)
-     * var(--tw-translate-y)` — and leaves `transform` untouched, which is why
-     * its own `transition-transform` expands to `transform, translate, scale,
-     * rotate` rather than to `transform` alone. Listing only `transform` here
-     * is a silent no-op: the class changes, the computed `translate` changes,
-     * nothing is in the transition list to animate it, and both halves snap
-     * into place instead of travelling.
-     */
-    'transition-[width,translate] ease-(--ease-sweep)',
-    pace === 'card' ? 'duration-(--duration-travel)' : 'duration-(--duration-arc)',
-  );
-
-  /* The fields' own fade — out fast, in a shade slower, and identical for both
-     gestures so the form always arrives the same way. */
+  /* The fields' own fade — out fast, in a shade slower, so the form always
+     arrives the same way. */
   const fade = cn(
     'transition-opacity ease-(--ease-sweep)',
-    contentVisible ? 'opacity-100 duration-(--duration-label)' : 'opacity-0 duration-(--duration-reverse)',
+    contentVisible
+      ? 'opacity-100 duration-(--duration-label)'
+      : 'opacity-0 duration-(--duration-reverse)',
   );
 
   return (
     /*
-     * The outer card. Solid olive with white on it — the system's known 3.47:1
-     * trade-off, documented in docs/design-system.md under Buttons and repeated
-     * on every `bg-primary text-primary-foreground` surface. The tagline is
-     * 24px, which clears the 3:1 large-text floor; the switch line does not, and
-     * rides the same brand decision the primary button already makes.
-     *
-     * No padding: the form card is flush to these edges, so the only inset the
-     * olive gets is the one the brand half carries itself. The height is fixed
-     * and only at the widths that have a split.
+     * `bg-background` — n-0, white in light mode, and the dark theme's own
+     * ground in dark. v5.html hardcodes #ffffff on three nested elements; one
+     * token on the outermost is the same picture and themes itself.
      */
-    <div
-      dir="ltr"
-      className={cn(
-        'relative mx-auto flex w-full flex-col overflow-hidden rounded-xl bg-primary text-primary-foreground',
-        'shadow-elevated md:h-[40rem] md:flex-row',
-        travel,
-        showBrandPanel ? 'md:w-full' : 'md:w-3/5',
-      )}
-    >
+    <div className="flex min-h-dvh w-full bg-background">
       {/*
-        `inert` while collapsed: the half is still in the DOM at zero width, and
-        the switch link inside it must not stay in the tab order.
+        The form column. v5.html's `.invisible-form-box`: it takes whatever the
+        picture leaves, and spaces its three rows apart — the top bar, the form,
+        the footer.
+
+        `justify-between` pins the bar to the top and the footer to the bottom;
+        `my-auto` on the middle row then takes the space between them and centres
+        the form in it, rather than letting it sit wherever the two ends happen
+        to leave it. Both are in v5.html and both are load bearing.
       */}
-      <aside
-        dir={dir}
-        inert={!showBrandPanel}
-        className={cn(
-          'hidden shrink-0 overflow-hidden md:flex',
-          travel,
-          showBrandPanel ? 'md:w-2/5' : 'md:w-0',
-          reversed ? 'md:translate-x-[150%]' : 'md:translate-x-0',
-        )}
-      >
-        {/*
-          The padding lives in here rather than on the half itself: with
-          `box-sizing: border-box` a padded box cannot narrow past its own
-          padding, so `w-0` would leave 80px of olive standing. This overflows
-          the collapsing half instead and is clipped by it — invisibly, since it
-          is faded out for the whole gesture.
-        */}
-        <div className={cn('flex h-full w-full min-w-0 flex-col p-10', fade)}>
-          <div className="flex flex-1 flex-col items-center justify-center gap-8 text-center">
-            {/*
-              Standing in for an illustration. Lime is a fill and never a
-              foreground, and this is a fill: a drawn shape carrying no text and
-              nothing a reader has to get from it.
-            */}
-            <Icon name="leaf" className="size-44 text-accent-lime/80 lg:size-60" />
-            {/* White rather than the olive card's inherited `primary-foreground`,
-                by request. At 24px it is large text, so the 3:1 floor is the one
-                that applies here rather than 4.5:1. */}
-            <p className="font-heading text-heading-lg text-white">{tagline}</p>
-          </div>
+      {/*
+        ⚠ **The vertical rhythm in this column is a budget, not a preference.**
 
-          {switcher ? <SwitchLink switcher={switcher} tone="onBrand" /> : null}
+        The whole screen is meant to land inside one viewport with no scrolling,
+        and it is close: on a 1920×900 laptop the column comes to roughly 800px
+        of content against ~860px of usable height. Every gap below was set with
+        that total in mind, so adding 40px anywhere is enough to push the footer
+        under the fold — and when the column overflows, the *page* grows, the row
+        grows with it, and the illustration beside it stretches and over-crops.
+        A scrollbar is not the only thing that goes wrong.
+
+        This column also carries one control the reference design does not: the
+        passkey button, worth about 60px with its gap. The tightened spacing here
+        is what pays for it. If a third alternate sign-in path is ever added, it
+        does not fit — collapse them behind one "other ways to sign in" control
+        rather than shaving these numbers further.
+      */}
+      {/*
+        Note the split: **inline padding takes width variants, block padding
+        takes height variants, and neither takes both.** `lg:px-12` alongside
+        `short:py-3` is fine because they set different properties; a
+        `lg:py-6` *and* a `short:py-3` would be two rules for `padding-block`
+        whose winner depends on which media query Tailwind emits last, which is
+        not something to leave to chance in a layout whose whole job is to fit.
+      */}
+      <div className="flex min-w-0 flex-1 flex-col justify-between px-4 py-6 sm:px-6 lg:px-12 short:py-3 shorter:py-2">
+        {/*
+          The top bar: the language control at the inline-start, the logo at the
+          inline-end. Both mirror with the locale — see the note at the top of
+          the file.
+
+          `max-w-[440px] mx-auto` on all three rows, not `items-center` on the
+          column: the bar has to line its two ends up with the *form's* edges,
+          which means sharing the form's width rather than merely being centred
+          in the same column.
+        */}
+        <div className="mx-auto mb-2 flex w-full max-w-110 short:mb-0 items-center justify-between gap-3">
+          <LocaleSwitcher variant="dropdown" />
+          <BrandLogo alt={tApp('shortName')} />
         </div>
-      </aside>
+
+        {/*
+          The form. `my-auto` centres it in the space the bar and the footer
+          leave; nothing here scrolls on its own, which is the point — see
+          "`min-h-dvh`, never `h-dvh`".
+        */}
+        {/* No block padding of its own. `my-auto` is what centres this row, and
+            padding on top of that was 32px spent twice — once here and again in
+            the column's own `py-*`. It is the first thing that went when the
+            footer started landing under the fold. */}
+        <div className="mx-auto my-auto w-full max-w-110">
+          {header}
+          {/*
+            `q-auth-fields` is the scoped field theme from globals.css: it fills
+            every `.q-field` below it at rest and empties it again on focus,
+            which is how v5.html draws its inputs. Scoped rather than applied to
+            `.q-field` itself, because the rest of the app's forms sit on cards
+            where a filled resting state reads as a column of grey slabs — the
+            reasoning is written out beside the rule.
+
+            It sits on the wrapper rather than on each form so all three faces —
+            staff sign-in, staff sign-up, client sign-in — pick it up without
+            each having to remember to.
+          */}
+          <div className={cn('q-auth-fields', fade)}>{children}</div>
+        </div>
+
+        {/*
+          The footer, pinned to the bottom of the column rather than hung under
+          the form — that is where v5.html puts it, and it is why the column is
+          `justify-between` at all.
+
+          It carries the same fade as the fields, because what it says depends on
+          which form is showing: it must not read "Already have an account?" for
+          140ms over a form that is on its way to being sign-in.
+
+          The row renders even when there is no switcher — the client view has
+          none — so that the form above it stays put instead of dropping half a
+          line when the card turns over. `min-h-6` is one line of it.
+        */}
+        <div className={cn('mx-auto min-h-6 w-full max-w-110 pt-4 text-center short:pt-2', fade)}>
+          {switcher ? <SwitchLink switcher={switcher} /> : null}
+        </div>
+      </div>
 
       {/*
-        The form card. Full height and flush to the outer card's edges — the flex
-        row stretches it, and neither surface carries padding between them.
+        The picture.
 
-        A nested panel normally takes no shadow of its own — but this one is not
-        part of the surface behind it, it is lying on top of it, so it keeps the
-        card shadow. Only the edge facing the olive shows it; the other three are
-        clipped by the outer card, which is exactly right.
+        Not rendered below `md` at all, rather than hidden with CSS: a
+        `display: none` image is still fetched, and on the one layout that has no
+        use for it that is the whole download wasted. This is a server-safe test
+        — Tailwind's `md:` is a media query, so the element is *always* in the
+        markup and CSS decides; `hidden md:flex` is what does the not-rendering,
+        and `sizes` below is what stops the fetch.
       */}
       <div
-        dir={dir}
         className={cn(
-          'flex w-full shrink-0 flex-col overflow-hidden rounded-xl bg-card text-card-foreground shadow-card',
-          travel,
-          showBrandPanel ? 'md:w-3/5' : 'md:w-full',
-          reversed ? 'md:-translate-x-[66.6667%]' : 'md:translate-x-0',
+          'hidden shrink-0 p-4 md:flex md:w-[44%]',
+          /*
+           * `h-dvh` and `sticky top-0`, and both are about the crop.
+           *
+           * Left to stretch — which is what a flex item does by default, and
+           * what this did — the panel takes the height of the *row*, and the row
+           * is as tall as the form column. Overflow the column by 100px and the
+           * picture silently grows 100px too; `object-cover` answers a taller,
+           * no-wider box by zooming in and throwing away more of the sides, so
+           * the first symptom of a layout that no longer fits is an
+           * illustration that looks cropped. The two are the same bug.
+           *
+           * A definite `h-dvh` decouples them: the panel is exactly one viewport
+           * tall no matter what happens beside it, so the framing is fixed and
+           * the picture cannot be zoomed by a form growing a field. `sticky
+           * top-0` then keeps the whole of it on screen in the one case that is
+           * left — a viewport too short for the column, where the page really
+           * must scroll and the alternative is the picture sliding away.
+           */
+          'md:sticky md:top-0 md:h-dvh',
+          /*
+           * **No `max-w-*` here.** v5.html caps this container at 800px, which
+           * on a 1920 screen holds the panel to ~760px against the ~880px that
+           * 48% would give it — and a *narrower* box at the same height is
+           * exactly how `object-cover` is made to zoom. The cap was quietly
+           * costing about 8% of the visible width of the artwork.
+           *
+           * A percentage is already self-limiting, so there is nothing for a cap
+           * to protect against: the panel stays 48% of whatever the screen is.
+           * `min-w-115` stays, because a *floor* is a real risk — below it the
+           * panel gets so narrow that cover crops the two figures out of frame.
+           */
+          'lg:w-[48%] lg:min-w-115 lg:p-5',
         )}
       >
         {/*
-          The language control, in the flow rather than pinned to a corner: a row
-          of its own reserves the space, so a tall form can never run underneath
-          it, and the form below centres in what is left — which is where the
-          reference layout puts it too.
+          `rounded-xl` is the system's 24px, which is v5.html's `--radius-xl` to
+          the pixel. `overflow-hidden` is safe here and only here — it clips the
+          image to that corner and there is nothing else in the box.
 
-          `dir="ltr"` on the row is deliberate and is the whole point. This is the
-          control that *causes* the direction flip, and a switcher that jumps to
-          the opposite corner the moment you use it reads as the page having
-          moved rather than as the language having changed — you lose the thing
-          you just clicked. Locking the row keeps it, its chevron and its open
-          menu on the same side in both locales.
-
-          It is the screen's only copy: there is neither a rail nor an app bar
-          here, and there is only ever one form card on the page.
+          `bg-muted` stands in for the artwork until it loads, so the panel is a
+          quiet grey rectangle rather than a white hole in the page.
         */}
-        <div dir="ltr" className="flex shrink-0 justify-end p-3">
-          <LocaleSwitcher variant="dropdown" />
-        </div>
-
         {/*
-          `min-h-0` is what lets this scroll: a flex child's default `min-height:
-          auto` refuses to shrink below its content, so without it the form would
-          push the card taller instead of scrolling inside a card whose height
-          cannot move.
-        */}
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          <div className="flex min-h-full items-center justify-center px-6 pb-8 sm:px-8">
-            <div className={cn('w-full max-w-md', fade)}>
-              {children}
+          ⚠ **The `md` range is a portrait tablet, and it needs its own shape.**
 
-              {/* The brand half's switcher, for the widths that have no brand half. */}
-              {switcher ? (
-                <div className="mt-8 border-t border-border pt-6 md:hidden">
-                  <SwitchLink switcher={switcher} tone="onCard" />
-                </div>
-              ) : null}
-            </div>
-          </div>
+          Anything 1024 and wider is `lg`, which means every landscape tablet is
+          already on the desktop layout. What is left here is 768–1023 *portrait*
+          — roughly 820×1100 — and a full-height 44% column there is a 340px-wide
+          strip a thousand pixels tall. `object-cover` answers a box that
+          extreme by throwing away about four fifths of the artwork's width, and
+          what survived was a slice of tabletop with both women's faces cropped
+          off either side of it. It was a picture of nothing.
+
+          So on `md` the panel stops taking the row's height and takes a 4:5
+          portrait card instead, centred in the column by `my-auto` — auto
+          margins on the cross axis are also what switches off the flex stretch
+          that would otherwise still be setting the height. At `lg` both are
+          undone and the panel goes back to filling the row.
+        */}
+        <div
+          className={cn(
+            'relative w-full overflow-hidden rounded-xl bg-muted',
+            'md:my-auto md:aspect-4/5',
+            'lg:my-0 lg:aspect-auto',
+          )}
+        >
+          {/*
+            `alt=""` because the illustration carries no information a reader
+            needs: everything the page actually says is in the column beside it.
+            An empty alt takes it out of the accessibility tree rather than
+            announcing a filename.
+
+            `priority` because on a desktop this is the largest element on the
+            screen and almost certainly the LCP — leaving it lazy would hold the
+            paint behind the form.
+
+            `sizes` earns its keep twice. It tells the optimiser the real widths
+            so a 48% column is not sent a full-viewport crop, and its `1px`
+            mobile branch is what keeps `priority`'s preload from pulling a
+            desktop image onto a phone that will never show it.
+          */}
+          <Image
+            src={HERO_IMAGE_SRC}
+            alt=""
+            fill
+            priority
+            sizes="(max-width: 767px) 1px, (max-width: 1023px) 38vw, 48vw"
+            className="object-cover object-center"
+          />
         </div>
       </div>
     </div>
@@ -282,40 +374,53 @@ export function AuthSplitCard({
 }
 
 /**
+ * The brand lockup, at v5.html's 40px.
+ *
+ * A plain `<img>`, not `next/image`: the file is an SVG, which the image
+ * optimiser refuses without `dangerouslyAllowSVG` and would have nothing to do
+ * with anyway — it is already resolution-independent and 2KB. `sidebar.tsx`
+ * takes the same exemption for the same reason.
+ *
+ * Two elements rather than one with a filter. `brightness-0 invert` would have
+ * turned the whole lockup white, disc included; painting the wordmark alone
+ * means shipping a second file, and a second file means a second `<img>`. The
+ * pair is CSS-switched, so there is no flash of the wrong one on load and no
+ * theme read during render.
+ */
+function BrandLogo({ alt }: { alt: string }) {
+  return (
+    <>
+      {/* eslint-disable-next-line @next/next/no-img-element -- an SVG has nothing for the image optimizer to do. */}
+      <img src={LOGO_LIGHT_SRC} alt={alt} className="block h-10 w-auto shorter:h-8 dark:hidden" />
+      {/*
+        `alt=""` on the second copy: both are in the markup at all times and only
+        one is painted, so naming them both would announce the brand twice to a
+        screen reader, which does not read `display`.
+      */}
+      {/* eslint-disable-next-line @next/next/no-img-element -- see above. */}
+      <img src={LOGO_DARK_SRC} alt="" className="hidden h-10 w-auto shorter:h-8 dark:block" />
+    </>
+  );
+}
+
+/**
  * "Already have an account? **Sign in**" — a line of text with one word in it
  * that does something, not a button.
  *
- * It used to be an `outline` button. On the brand half that put a second solid
- * box on the card, competing with the form's own submit for the one thing the
- * eye lands on; this is a way *out* of the form you are looking at, and it
- * should read as an aside. `Button variant="link"` rather than a bare `<button>`
- * so it keeps the system's focus ring and its disabled behaviour, with the
- * height and padding stripped — a link is a run of text and has no box.
+ * `Button variant="link"` rather than a bare `<button>` so it keeps the system's
+ * focus ring and its disabled behaviour, with the height and padding stripped —
+ * a link is a run of text and has no box. `variant="link"` already draws in
+ * olive, which is v5.html's `--primary-dark` on the same word.
  */
-function SwitchLink({
-  switcher,
-  tone,
-}: {
-  switcher: NonNullable<AuthSplitCardProps['switcher']>;
-  tone: 'onBrand' | 'onCard';
-}) {
+function SwitchLink({ switcher }: { switcher: NonNullable<AuthSplitCardProps['switcher']> }) {
   return (
-    /*
-      White on the olive half, by request — the prompt and the link together, so
-      the line reads as one sentence rather than as a dark question with a white
-      answer. `onCard` is the below-`md` copy, which sits on the white form card
-      and keeps the muted grey it has always had.
-    */
-    <p className={cn('text-center text-body-md', tone === 'onCard' ? 'text-muted-foreground' : 'text-white')}>
+    <p className="text-body-sm text-muted-foreground">
       {switcher.prompt}{' '}
       <Button
         type="button"
         variant="link"
         onClick={switcher.onClick}
-        className={cn(
-          'h-auto max-w-none p-0 align-baseline font-semibold underline',
-          tone === 'onBrand' && 'text-white',
-        )}
+        className="h-auto max-w-none p-0 align-baseline font-semibold"
       >
         {switcher.label}
       </Button>

@@ -240,7 +240,10 @@ drawn by the whole app, so the portal's request rows got `rescheduleRequest` and
 - Use Tailwind's 4px spacing scale. Default card spacing is 16px on mobile and
   20px from `sm` upward.
 - Use `shadow-card`, `shadow-elevated`, and `shadow-overlay`; shadows are
-  olive-tinted. Scrims use `--overlay`, not black.
+  olive-tinted. Scrims use `--overlay`, not black. Over a photograph use
+  `--overlay-strong`, which is the same olive one step heavier — a dialog scrim
+  only pushes the page back, while an image carrying UI has to give up enough of
+  its own contrast to read as a background.
 - Use the shared motion tokens: `--ease-sweep`, `--duration-arc`,
   `--duration-sweep`, `--duration-label`, `--duration-reverse`, and
   `--duration-travel`.
@@ -288,10 +291,18 @@ Phone numbers, times, IDs, units, and other LTR values must retain their interna
 order. Use `<span dir="ltr">` for an isolated value. Use a table's `numeric`
 prop only when the whole column should also align according to an LTR cell.
 
-The auth split and its language control deliberately lock their outer geometry
-to LTR so changing language does not move the furniture. Their content restores
-the locale direction. Do not introduce another direction lock to repair an RTL
-layout bug.
+**The auth screen no longer locks its direction.** It did: the split and its
+language control pinned their outer geometry to LTR so that changing language
+did not move the furniture. That lock has been removed on request, and the
+screen is now built from logical properties like every other one — the form sits
+at the inline-start and the illustration at the inline-end, so English puts the
+picture on the right and Arabic puts it on the left. The language control
+mirrors with the rest, which is the acknowledged cost: the control you just used
+is not where you left it.
+
+There is now no direction lock anywhere in the application. Do not introduce one
+to repair an RTL layout bug — the bug is a physical property that should be
+logical.
 
 ## Shared component contracts
 

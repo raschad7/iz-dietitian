@@ -23,6 +23,37 @@
 }
 
 /*
+ * ── Height breakpoints ──
+ *
+ * Every other breakpoint in this app is a *width*, because width is what
+ * decides whether content fits side by side. These two are heights, and they
+ * exist for one screen: the auth surface, which has to show a whole form — five
+ * fields on sign-up — inside a single viewport with nothing below the fold.
+ *
+ * Width tells you nothing about that. A 1920×1080 desktop and a 1920×720
+ * laptop are the same `2xl` and have 250px of difference in the only dimension
+ * that matters here, and the browser's own chrome takes another 100–150px off
+ * whatever the screen claims. So the auth screen tightens its vertical rhythm
+ * against the height it actually has.
+ *
+ * `short` is the common laptop case — roughly a 1440×900 or 1680×1050 screen
+ * once the browser has taken its share. `shorter` is a 1366×768, which is the
+ * smallest screen this is expected to fit on and needs the tagline dropped as
+ * well as the gaps closed.
+ *
+ * ⚠ These compact *spacing and type*. They must never shrink a control below
+ * the 48px touch floor — a short viewport is often a phone held sideways, which
+ * is the last place to be shaving hit targets. Everything below the floor stays
+ * where it is and the layout gives up its whitespace instead.
+ *
+ * Below `shorter` the page is allowed to scroll again, and that is deliberate:
+ * there is a height at which a five-field form genuinely does not fit, and the
+ * honest answer there is a scrollbar rather than a control nobody can reach.
+ */
+@custom-variant short (@media (max-height: 860px));
+@custom-variant shorter (@media (max-height: 700px));
+
+/*
  * Qiwam / قوام design system.
  *
  * Primitives below are the raw palette. They are never referenced directly
@@ -538,6 +569,7 @@
   --color-background: var(--background);
   --color-auth-canvas: var(--auth-canvas);
   --color-overlay: var(--overlay);
+  --color-overlay-strong: var(--overlay-strong);
   --color-scrim: var(--scrim);
 
   /* radius.* — sm 8 / md 12 / lg 16 / xl 24. Pill is rounded-full. Never 0. */
@@ -592,6 +624,14 @@
   --popover: var(--n-0);
   --popover-foreground: var(--n-900);
   --overlay: rgba(22, 34, 13, .45);     /* scrim — olive-950, never black */
+  /*
+   * The same scrim, heavier. For a scrim laid over a *photograph* rather than
+   * over the app's own surfaces: a dialog only needs the page behind it pushed
+   * back, while a photo carrying UI has to lose enough of its own contrast that
+   * the picture reads as a background. Still olive-950 — a neutral black over a
+   * warm photograph greys it rather than dimming it.
+   */
+  --overlay-strong: rgba(22, 34, 13, .6);
 
   /*
    * action.primary.bg — pinned to the brand's own #72AE34 rather than a step
@@ -990,6 +1030,8 @@
   --popover: var(--olive-900);
   --popover-foreground: var(--n-25);
   --overlay: rgba(10, 16, 6, .6);
+  /* See the light assignment — kept in step with it, one step heavier. */
+  --overlay-strong: rgba(10, 16, 6, .72);
 
   --primary: #72AE34;
   --primary-hover: var(--olive-400);
@@ -1899,6 +1941,51 @@
   .q-field[readonly] {
     background-color: var(--muted);
     border-color: transparent;
+  }
+
+  /*
+   * ── The auth surface's fields ──
+   *
+   * A scoped theme, in the manner of `.planner-theme`: put it on the element
+   * that wraps an auth form and every `.q-field` beneath it rests filled rather
+   * than transparent, and empties again on focus.
+   *
+   * It exists because the sign-in design (v5.html) draws its inputs as
+   * sunken grey boxes that turn white under the caret, and the app-wide field is
+   * transparent at rest. That difference is real and worth having *here*: the
+   * auth screen is one short form alone on an otherwise empty white page, where
+   * a transparent field has nothing but its own 1px edge to say a box is there.
+   * Every other form in the app sits on a card, in a stack of other forms, and
+   * the transparent resting state is what keeps those screens from reading as a
+   * column of grey slabs. Hence a scope and not a change to `.q-field`.
+   *
+   * ⚠ **The border stays `--input`.** v5.html pairs its fill with a hairline at
+   * #e2e8f0, roughly this system's `--border`, and that is the one thing here
+   * not copied. `--input` is n-500 and is chosen to clear WCAG 1.4.11's 3:1 for
+   * a control boundary; the fill cannot stand in for it, because `--muted` on
+   * `--background` is about 1.1:1 and invisible to anyone the rule is for. The
+   * fill is the look, the edge is the floor, and they are not the same job.
+   *
+   * The three rules are spelled out rather than layered on top of the base ones
+   * because `.q-auth-fields .q-field` and `.q-field:focus` have equal
+   * specificity — leaning on source order would have let the resting fill paint
+   * over the focus state, which is the one state that must never be ambiguous.
+   */
+  .q-auth-fields .q-field {
+    background-color: var(--muted);
+  }
+  .q-auth-fields .q-field:focus {
+    background-color: var(--card);
+    border-color: var(--primary);
+  }
+  /*
+   * Read-only and disabled already fill themselves from `--muted`; restating the
+   * pair here keeps them from inheriting the focus rule's `--card` if one of
+   * them is ever focusable, and costs nothing when they are not.
+   */
+  .q-auth-fields .q-field:disabled,
+  .q-auth-fields .q-field[readonly] {
+    background-color: var(--muted);
   }
 
   /*
