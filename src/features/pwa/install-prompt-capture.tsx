@@ -1,7 +1,9 @@
+'use client';
+
 import { INSTALL_PROMPT_EVENT, INSTALL_PROMPT_GLOBAL } from './install-prompt-globals';
 
 /**
- * Catches Chromium's `beforeinstallprompt` before React exists.
+ * Catches Chromium's `beforeinstallprompt` before React can miss it.
  *
  * ## The bug this fixes
  *
@@ -16,24 +18,34 @@ import { INSTALL_PROMPT_EVENT, INSTALL_PROMPT_GLOBAL } from './install-prompt-gl
  * ready to install. It looked like an installability failure and was actually
  * a timing failure.
  *
- * ## Why an inline script, and why it renders in the root layout's `<head>`
+ * ## Why there is no `<script>` here any more
  *
- * The listener has to be attached during parse, before any bundle evaluates,
- * which rules out every strategy `next/script` can honour outside the root
- * layout. A plain inline `<script>` runs at exactly the right moment.
+ * The listener has to be attached before hydration, and the obvious way to do
+ * that is an inline `<script>` in `<head>`. It works, and it is noisy: React
+ * logs "Encountered a script tag while rendering React component" every time a
+ * `<script>` element is produced by a *client* render, because such a script is
+ * never executed. Two attempts to place that tag somewhere quiet both failed:
  *
- * It renders from the root locale layout's `<head>`, not from the app and
- * portal layouts where it used to sit. Those two re-render on the client
- * during client-side navigation, and a `<script>` created by a client render
- * is never executed — React logs "Encountered a script tag while rendering
- * React component" for exactly that reason. The root layout's `<head>` is
- * emitted by the server once and afterwards only hydrated against the DOM
- * that is already there, so the tag both runs and stays quiet.
+ * - **Moving it to the root layout's `<head>`.** The premise was that a root
+ *   layout renders on the server and afterwards only hydrates. It does not: a
+ *   root layout re-renders on the client on every Fast Refresh in development,
+ *   and on any `router.refresh()` — which this app calls, from the intake
+ *   dialog among others. The warning simply moved.
+ * - **`next/script` with `strategy="beforeInteractive"`.** Next serialises the
+ *   snippet into `self.__next_s`, but the element carrying that push is still a
+ *   `<script>` that React renders, so React still warns — from inside
+ *   `<Script>` instead of from here.
  *
- * Both apps still get the capture they had before. The emitted script is
- * identical for either, and a given page load is one app or the other, never
- * both, so hoisting it to the shared root changes nothing about which event
- * ends up stashed.
+ * The tag is what React objects to, so there is no longer a tag. This module is
+ * a client module, and the two `addEventListener` calls below run when its
+ * chunk is evaluated — during the client bundle's bootstrap, before React
+ * begins hydrating and long before any `useEffect`. That is the same moment the
+ * `__next_s` queue was being drained at, reached without asking React to render
+ * an element it refuses to execute.
+ *
+ * The component itself renders `null`. It stays a component, and stays mounted
+ * from the root layout, so that this module is part of the initial chunk for
+ * every page rather than something a bundler could decide to defer.
  *
  * ## The handoff
  *
@@ -48,17 +60,36 @@ import { INSTALL_PROMPT_EVENT, INSTALL_PROMPT_GLOBAL } from './install-prompt-gl
  * inside the original event dispatch to suppress Chrome's own mini-infobar —
  * doing it later, from a stored reference, is too late.
  */
-export function InstallPromptCapture() {
-  const script = `(function(){try{
-var g=${JSON.stringify(INSTALL_PROMPT_GLOBAL)},e=${JSON.stringify(INSTALL_PROMPT_EVENT)};
-window.addEventListener('beforeinstallprompt',function(v){v.preventDefault();window[g]=v;window.dispatchEvent(new Event(e));});
-window.addEventListener('appinstalled',function(){window[g]=null;});
-}catch(_){}})();`;
 
-  /*
-    `dangerouslySetInnerHTML` is the only way to emit an inline script from a
-    server component; the content is a literal defined directly above with no
-    interpolated user input, so there is nothing here to inject.
-  */
-  return <script dangerouslySetInnerHTML={{ __html: script }} />;
+/**
+ * Guards the attach against running twice on one `window`.
+ *
+ * A module body executes once per module instance, which is normally once per
+ * document — but a Fast Refresh re-evaluates it, and a second copy of these
+ * listeners would `preventDefault()` an event that had already been stashed.
+ * The flag lives on `window` rather than in a module variable for exactly that
+ * reason: the module is what gets replaced.
+ */
+const ATTACHED = '__izInstallPromptCaptureAttached';
+
+if (typeof window !== 'undefined') {
+  const store = window as unknown as Record<string, unknown>;
+
+  if (!store[ATTACHED]) {
+    store[ATTACHED] = true;
+
+    window.addEventListener('beforeinstallprompt', (event) => {
+      event.preventDefault();
+      store[INSTALL_PROMPT_GLOBAL] = event;
+      window.dispatchEvent(new Event(INSTALL_PROMPT_EVENT));
+    });
+
+    window.addEventListener('appinstalled', () => {
+      store[INSTALL_PROMPT_GLOBAL] = null;
+    });
+  }
+}
+
+export function InstallPromptCapture() {
+  return null;
 }

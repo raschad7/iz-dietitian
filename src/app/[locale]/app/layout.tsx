@@ -179,10 +179,9 @@ export default async function AppLayout({ children, params }: AppLayoutProps) {
     <GuideProvider>
       {/*
         Renders nothing, so it carries no layout weight inside the shell. The
-        `beforeinstallprompt` capture that used to sit beside it now renders
-        from the root locale layout's <head> — see `InstallPromptCapture` for
-        why an inline script cannot live in a layout that re-renders on the
-        client.
+        `beforeinstallprompt` capture that used to sit beside it is mounted from
+        the root locale layout now, and is no longer a script tag at all — see
+        `InstallPromptCapture`.
       */}
       <ServiceWorkerRegister locale={locale} />
 
