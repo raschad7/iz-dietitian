@@ -14,6 +14,7 @@ import type { ReactNode } from 'react';
 import { DirectionProvider } from '@/components/ui/direction';
 import { Toaster } from '@/components/ui/toast';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { InstallPromptCapture } from '@/features/pwa/install-prompt-capture';
 import { resolveLocale } from '@/i18n/params';
 import { getLocaleDirection, routing } from '@/i18n/routing';
 
@@ -290,6 +291,15 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
       suppressHydrationWarning
       className={fontVariables}
     >
+      {/*
+        The only thing in <head> that has to be here rather than in the app or
+        portal layout: it is an inline script, and a script rendered from a
+        layout that re-renders on the client is both inert and noisy. See the
+        component.
+      */}
+      <head>
+        <InstallPromptCapture />
+      </head>
       {/*
         `suppressHydrationWarning` is needed on <body> as well as <html>: it only
         applies one level deep, and browser extensions (ColorZilla, Grammarly and

@@ -7,7 +7,6 @@ import { AppShell } from '@/components/layout/sidebar';
 import { type IconName } from '@/components/ui/icon';
 import { APP_THEME_COLOR_DARK, APP_THEME_COLOR_LIGHT } from '@/features/app-pwa/brand';
 import { ServiceWorkerRegister } from '@/features/app-pwa/service-worker-register';
-import { InstallPromptCapture } from '@/features/pwa/install-prompt-capture';
 import { getClinicBrand, isClinicOnboardingComplete } from '@/features/clinic-profile/queries';
 import { GuideLauncher } from '@/features/user-guide/guide-launcher';
 import { GuideProvider } from '@/features/user-guide/guide-provider';
@@ -179,13 +178,12 @@ export default async function AppLayout({ children, params }: AppLayoutProps) {
     */
     <GuideProvider>
       {/*
-        Both render nothing, so they carry no layout weight inside the shell.
-        `InstallPromptCapture` emits a synchronous inline script that listens
-        for `beforeinstallprompt` earlier than React can — see the component
-        for why the event is otherwise lost. It is shared with the portal, and
-        safely so: a given page load is either this app or that one, never both.
+        Renders nothing, so it carries no layout weight inside the shell. The
+        `beforeinstallprompt` capture that used to sit beside it now renders
+        from the root locale layout's <head> — see `InstallPromptCapture` for
+        why an inline script cannot live in a layout that re-renders on the
+        client.
       */}
-      <InstallPromptCapture />
       <ServiceWorkerRegister locale={locale} />
 
       <AppShell

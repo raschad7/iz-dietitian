@@ -3,7 +3,6 @@ import type { ReactNode } from 'react';
 
 import { PortalTheme } from '@/features/portal/components/portal-theme';
 import { PORTAL_THEME_COLOR } from '@/features/portal/pwa/brand';
-import { InstallPromptCapture } from '@/features/pwa/install-prompt-capture';
 import { ServiceWorkerRegister } from '@/features/portal/pwa/service-worker-register';
 import { requirePortalClient } from '@/features/portal/session';
 import { resolveLocale } from '@/i18n/params';
@@ -135,13 +134,12 @@ export default async function PortalLayout({ children, params }: PortalLayoutPro
         result rather than depending on it.
       */}
       {/*
-        Before anything else in this subtree: it emits a synchronous inline
-        script whose whole job is to be listening for `beforeinstallprompt`
-        earlier than React can. See the component for why the event was being
-        lost, and `use-install-prompt.ts` for how it is picked back up.
+        The `beforeinstallprompt` capture is no longer rendered here: an inline
+        script emitted from a layout that re-renders on the client never runs.
+        It is in the root locale layout's <head> instead — see
+        `InstallPromptCapture` for why, and `use-install-prompt.ts` for how the
+        event is picked back up.
       */}
-      <InstallPromptCapture />
-
       <ServiceWorkerRegister locale={locale} />
 
       {children}

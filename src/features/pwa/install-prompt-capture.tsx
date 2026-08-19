@@ -16,15 +16,24 @@ import { INSTALL_PROMPT_EVENT, INSTALL_PROMPT_GLOBAL } from './install-prompt-gl
  * ready to install. It looked like an installability failure and was actually
  * a timing failure.
  *
- * ## Why an inline script and not `next/script`
+ * ## Why an inline script, and why it renders in the root layout's `<head>`
  *
- * The listener has to be attached during parse, before any bundle evaluates.
- * `next/script`'s `beforeInteractive` is the documented way to do that, but it
- * is only honoured in the root layout — and this must stay scoped to
- * `/portal`, because the staff app has its own manifest and its own install
- * surfaces and the two must not share a captured event. A plain inline
- * `<script>` in this layout runs at exactly the right moment and stays where
- * it belongs.
+ * The listener has to be attached during parse, before any bundle evaluates,
+ * which rules out every strategy `next/script` can honour outside the root
+ * layout. A plain inline `<script>` runs at exactly the right moment.
+ *
+ * It renders from the root locale layout's `<head>`, not from the app and
+ * portal layouts where it used to sit. Those two re-render on the client
+ * during client-side navigation, and a `<script>` created by a client render
+ * is never executed — React logs "Encountered a script tag while rendering
+ * React component" for exactly that reason. The root layout's `<head>` is
+ * emitted by the server once and afterwards only hydrated against the DOM
+ * that is already there, so the tag both runs and stays quiet.
+ *
+ * Both apps still get the capture they had before. The emitted script is
+ * identical for either, and a given page load is one app or the other, never
+ * both, so hoisting it to the shared root changes nothing about which event
+ * ends up stashed.
  *
  * ## The handoff
  *
