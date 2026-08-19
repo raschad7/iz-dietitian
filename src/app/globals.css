@@ -2252,6 +2252,7 @@
    */
   .q-auth-fields .q-field {
     background-color: var(--muted);
+    border-color: var(--border);
   }
   .q-auth-fields .q-field:focus {
     background-color: var(--card);
@@ -2265,6 +2266,7 @@
   .q-auth-fields .q-field:disabled,
   .q-auth-fields .q-field[readonly] {
     background-color: var(--muted);
+    border-color: var(--border);
   }
 
   /*

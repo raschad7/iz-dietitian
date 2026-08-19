@@ -54,26 +54,12 @@ import { cn } from '@/lib/utils';
  * two figures at the table in frame when a 16:9 illustration is shown in a tall
  * panel.
  *
- * ## Three layouts, not two
+ * ## Layout behavior
  *
- * - **Mobile** (below `md`): the picture is not painted. A phone gets the form,
- *   centred, and nothing else. Being precise about the mechanism, because it
- *   matters: the element is in the markup at every width and `hidden md:flex`
- *   decides whether it is shown, which is what keeps this a pure CSS breakpoint
- *   with no `matchMedia` read and no hydration mismatch. `display: none` does
- *   not reliably stop a browser fetching an image, and `priority` emits a
- *   preload regardless — so the download is held down by `sizes` instead, whose
- *   mobile branch resolves to `1px` and sends the browser to the smallest
- *   candidate in the srcset rather than a desktop crop.
- * - **Tablet** (`md` to `lg`): both columns stay, the picture at 44%. Because
- *   every landscape tablet is already 1024 wide and therefore on the desktop
- *   layout, this range is portrait only — so the panel also stops filling the
- *   row and becomes a 4:5 card centred in the column. The note beside it
- *   explains what a full-height panel does to the artwork at that shape.
+ * - **Mobile and Tablet** (below `lg`): the picture is not rendered (`hidden lg:flex`).
+ *   Phones and tablets display the centered form column.
  * - **Desktop** (`lg` and up): 48% of the viewport with a 460px floor and no
- *   ceiling. v5.html caps it at 800px; that cap is dropped, because a narrower
- *   box at the same height is precisely how `object-cover` is made to zoom, and
- *   it was costing visible width on any screen past about 1670px.
+ *   ceiling. The right column displays the full-height hero illustration.
  *
  * ## And a fourth axis: height
  *
@@ -268,103 +254,22 @@ export function AuthSplitCard({ header, contentVisible, children, switcher }: Au
       {/*
         The picture.
 
-        Not rendered below `md` at all, rather than hidden with CSS: a
-        `display: none` image is still fetched, and on the one layout that has no
-        use for it that is the whole download wasted. This is a server-safe test
-        — Tailwind's `md:` is a media query, so the element is *always* in the
-        markup and CSS decides; `hidden md:flex` is what does the not-rendering,
-        and `sizes` below is what stops the fetch.
+        Not rendered below `lg` (mobile and tablet): Tailwind's `lg:` media query
+        keeps this hidden on mobile and tablet screens (`hidden lg:flex`).
       */}
       <div
         className={cn(
-          'hidden shrink-0 p-4 md:flex md:w-[44%]',
-          /*
-           * `h-dvh` and `sticky top-0`, and both are about the crop.
-           *
-           * Left to stretch — which is what a flex item does by default, and
-           * what this did — the panel takes the height of the *row*, and the row
-           * is as tall as the form column. Overflow the column by 100px and the
-           * picture silently grows 100px too; `object-cover` answers a taller,
-           * no-wider box by zooming in and throwing away more of the sides, so
-           * the first symptom of a layout that no longer fits is an
-           * illustration that looks cropped. The two are the same bug.
-           *
-           * A definite `h-dvh` decouples them: the panel is exactly one viewport
-           * tall no matter what happens beside it, so the framing is fixed and
-           * the picture cannot be zoomed by a form growing a field. `sticky
-           * top-0` then keeps the whole of it on screen in the one case that is
-           * left — a viewport too short for the column, where the page really
-           * must scroll and the alternative is the picture sliding away.
-           */
-          'md:sticky md:top-0 md:h-dvh',
-          /*
-           * **No `max-w-*` here.** v5.html caps this container at 800px, which
-           * on a 1920 screen holds the panel to ~760px against the ~880px that
-           * 48% would give it — and a *narrower* box at the same height is
-           * exactly how `object-cover` is made to zoom. The cap was quietly
-           * costing about 8% of the visible width of the artwork.
-           *
-           * A percentage is already self-limiting, so there is nothing for a cap
-           * to protect against: the panel stays 48% of whatever the screen is.
-           * `min-w-115` stays, because a *floor* is a real risk — below it the
-           * panel gets so narrow that cover crops the two figures out of frame.
-           */
-          'lg:w-[48%] lg:min-w-115 lg:p-5',
+          'hidden shrink-0 lg:flex lg:w-[48%] lg:min-w-115 lg:p-5',
+          'lg:sticky lg:top-0 lg:h-dvh',
         )}
       >
-        {/*
-          `rounded-xl` is the system's 24px, which is v5.html's `--radius-xl` to
-          the pixel. `overflow-hidden` is safe here and only here — it clips the
-          image to that corner and there is nothing else in the box.
-
-          `bg-muted` stands in for the artwork until it loads, so the panel is a
-          quiet grey rectangle rather than a white hole in the page.
-        */}
-        {/*
-          ⚠ **The `md` range is a portrait tablet, and it needs its own shape.**
-
-          Anything 1024 and wider is `lg`, which means every landscape tablet is
-          already on the desktop layout. What is left here is 768–1023 *portrait*
-          — roughly 820×1100 — and a full-height 44% column there is a 340px-wide
-          strip a thousand pixels tall. `object-cover` answers a box that
-          extreme by throwing away about four fifths of the artwork's width, and
-          what survived was a slice of tabletop with both women's faces cropped
-          off either side of it. It was a picture of nothing.
-
-          So on `md` the panel stops taking the row's height and takes a 4:5
-          portrait card instead, centred in the column by `my-auto` — auto
-          margins on the cross axis are also what switches off the flex stretch
-          that would otherwise still be setting the height. At `lg` both are
-          undone and the panel goes back to filling the row.
-        */}
-        <div
-          className={cn(
-            'relative w-full overflow-hidden rounded-xl bg-muted',
-            'md:my-auto md:aspect-4/5',
-            'lg:my-0 lg:aspect-auto',
-          )}
-        >
-          {/*
-            `alt=""` because the illustration carries no information a reader
-            needs: everything the page actually says is in the column beside it.
-            An empty alt takes it out of the accessibility tree rather than
-            announcing a filename.
-
-            `priority` because on a desktop this is the largest element on the
-            screen and almost certainly the LCP — leaving it lazy would hold the
-            paint behind the form.
-
-            `sizes` earns its keep twice. It tells the optimiser the real widths
-            so a 48% column is not sent a full-viewport crop, and its `1px`
-            mobile branch is what keeps `priority`'s preload from pulling a
-            desktop image onto a phone that will never show it.
-          */}
+        <div className="relative w-full overflow-hidden rounded-xl bg-muted">
           <Image
             src={HERO_IMAGE_SRC}
             alt=""
             fill
             priority
-            sizes="(max-width: 767px) 1px, (max-width: 1023px) 38vw, 48vw"
+            unoptimized
             className="object-cover object-center"
           />
         </div>
