@@ -3,7 +3,7 @@
  * than a CSS custom property.
  *
  * `src/app/globals.css` is the single source of truth for the token values
- * themselves (`--primary: #72AE34`, `--background: var(--n-0)` / `#FFFFFF`
+ * themselves (`--primary: #75CF48`, `--background: var(--n-0)` / `#FFFFFF`
  * in light mode — the portal is fixed to light appearance, see
  * `portal-theme.tsx`), but a web app manifest and a `<meta name="theme-color">`
  * tag are read by the OS/browser chrome before any stylesheet loads, so they
@@ -13,5 +13,5 @@
  * why these constants are exported from here instead of inlined at each call
  * site.
  */
-export const PORTAL_THEME_COLOR = '#72AE34';
+export const PORTAL_THEME_COLOR = '#75CF48';
 export const PORTAL_BACKGROUND_COLOR = '#FFFFFF';

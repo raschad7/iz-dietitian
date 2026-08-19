@@ -38,6 +38,7 @@ import { type StaffAppointmentRequest } from '../types';
  */
 
 export type ApproveDialogProps = {
+  open: boolean;
   request: StaffAppointmentRequest;
   locale: Locale;
   /** Null when the clinic's schedule is incomplete; the day is offered whole. */
@@ -143,6 +144,7 @@ function startChoices(hours: ClinicHours | null, current: number): number[] {
 }
 
 export function ApproveDialog({
+  open,
   request,
   locale,
   hours,
@@ -234,7 +236,7 @@ export function ApproveDialog({
     });
 
   return (
-    <Dialog open onClose={onClose} label={t(`approve.${request.kind}.title`)} dir={direction}>
+    <Dialog open={open} onClose={onClose} label={t(`approve.${request.kind}.title`)} dir={direction}>
       <form method="dialog" onSubmit={(event) => event.preventDefault()}>
         <DialogHeader
           title={request.clientName}

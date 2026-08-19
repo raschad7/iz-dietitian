@@ -209,7 +209,7 @@ export function AuthScreen({
           value={view.role}
           onChange={(role) => goTo({ role })}
           className="grid grid-cols-2"
-          activeClassName="bg-accent-lime text-on-accent"
+          activeClassName="bg-accent-green text-on-accent"
           options={ROLES.map((option) => ({
             value: option.value,
             label: t(option.labelKey),

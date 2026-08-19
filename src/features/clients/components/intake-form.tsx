@@ -835,7 +835,7 @@ function SectionRail({
               'flex h-10 shrink-0 items-center gap-2.5 rounded-[10px] px-3 text-body-sm whitespace-nowrap',
               'transition-colors duration-180 ease-out sm:h-11 sm:w-full',
               // The rail's active item is the one olive thing on it, matching
-              // `Sidebar`: an olive-50 surface with an olive label.
+              // `Sidebar`: an green-50 surface with an olive label.
               active
                 ? 'bg-secondary font-semibold text-primary'
                 : 'text-muted-foreground hover:bg-muted hover:text-foreground',
@@ -1060,8 +1060,8 @@ function NumberField({
         order, it is simply aligned to the reading edge.
 
         `focusTone="neutral"`: the group draws its own focus treatment, and the
-        brand default is the lime ring that `.q-field` deliberately refuses —
-        a form is a column of fields and lime firing on each one as it is
+        brand default is the accent ring that `.q-field` deliberately refuses —
+        a form is a column of fields and the accent firing on each one as it is
         tabbed through turns the accent into noise.
 
         48px and the system's control radius, so the group matches the fields

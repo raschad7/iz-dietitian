@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef } from 'react';
 
 import { Button } from '@/components/ui/button';
+import { DIALOG_NATIVE_CLOSE_DELAY_MS } from '@/components/ui/dialog-motion';
 import { getLocaleDirection, type Locale } from '@/i18n/routing';
 
 /**
@@ -96,7 +97,7 @@ export function ConfirmDialog({
     closeTimer.current = setTimeout(() => {
       settle(confirmed);
       if (dialog.open) dialog.close();
-    }, reduceMotion ? 0 : 140);
+    }, reduceMotion ? 0 : DIALOG_NATIVE_CLOSE_DELAY_MS);
   }
 
   return (
@@ -125,30 +126,34 @@ export function ConfirmDialog({
       }}
     >
       <div className="flex flex-col gap-3 p-4 text-start">
-        <h2 id={titleId} className="text-base font-semibold" dir="auto">
+        <h2 data-slot="dialog-header" id={titleId} className="text-base font-semibold" dir="auto">
           {title}
         </h2>
 
-        {description && (
-          <p className="text-sm text-muted-foreground" dir="auto">
-            {description}
-          </p>
-        )}
+        {description || note ? (
+          <div data-slot="dialog-body" className="flex flex-col gap-3">
+            {description && (
+              <p className="text-sm text-muted-foreground" dir="auto">
+                {description}
+              </p>
+            )}
 
-        {note && (
-          <p
-            className="rounded-md bg-status-attention-bg px-3 py-2 text-sm text-status-attention-fg"
-            dir="auto"
-          >
-            {note}
-          </p>
-        )}
+            {note && (
+              <p
+                className="rounded-md bg-status-attention-bg px-3 py-2 text-sm text-status-attention-fg"
+                dir="auto"
+              >
+                {note}
+              </p>
+            )}
+          </div>
+        ) : null}
 
         {/*
           Cancel first in the DOM, so the native dialog's own autofocus lands on
           it: pressing Enter the moment this appears must not delete anything.
         */}
-        <div className="mt-1 flex items-center justify-end gap-2">
+        <div data-slot="dialog-footer" className="mt-1 flex items-center justify-end gap-2">
           <Button type="button" variant="outline" size="sm" onClick={() => beginClose(false)}>
             {cancelLabel}
           </Button>

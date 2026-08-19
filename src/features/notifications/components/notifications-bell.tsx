@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom';
 
 import { buttonVariants } from '@/components/ui/button';
 import { Dialog, DialogHeader } from '@/components/ui/dialog';
+import { useDialogPresence } from '@/components/ui/dialog-motion';
 import { Icon } from '@/components/ui/icon';
 import { NotificationInboxPopover } from '@/components/ui/notification-inbox-popover';
 import { ScrollWindow } from '@/components/ui/scroll-window';
@@ -46,6 +47,7 @@ export function NotificationsBell({ attention }: { attention: StaffAttentionNoti
 
   const [open, setOpen] = useState(false);
   const [allOpen, setAllOpen] = useState(false);
+  const allDialogPresent = useDialogPresence(allOpen);
 
   const { state, markRead, markAllRead, dismiss } = useBrowserNotificationState();
 
@@ -66,10 +68,10 @@ export function NotificationsBell({ attention }: { attention: StaffAttentionNoti
   useEffect(() => {
     if (allOpen) {
       hasOpened.current = true;
-    } else if (hasOpened.current) {
+    } else if (hasOpened.current && !allDialogPresent) {
       bell.current?.querySelector('button')?.focus();
     }
-  }, [allOpen]);
+  }, [allDialogPresent, allOpen]);
 
   const read = new Set(state?.read ?? []);
   const view = notificationView(
@@ -178,10 +180,10 @@ export function NotificationsBell({ attention }: { attention: StaffAttentionNoti
         it has to, or its count would be a lie — so the dialog is the same array
         rendered at full length.
       */}
-      {allOpen
+      {allDialogPresent
         ? createPortal(
             <Dialog
-              open
+              open={allOpen}
               onClose={closeAll}
               label={t('title')}
               dir={getLocaleDirection(locale)}

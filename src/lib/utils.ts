@@ -14,7 +14,7 @@ import { extendTailwindMerge } from "tailwind-merge"
  * The names are the ones declared in `globals.css`; `text-xs`/`text-sm` are
  * already stock and stay where they are.
  *
- * The same blind spot applies to the olive-tinted shadow ramp. tailwind-merge
+ * The same blind spot applies to the green-tinted shadow ramp. tailwind-merge
  * knows `shadow-none` and the stock t-shirt sizes, so it filed `shadow-card`
  * as something else entirely and let the two coexist — `cn('shadow-card',
  * 'shadow-none')` emitted both, and which one won was down to the order

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import { createPortal } from 'react-dom';
 
 import { Dialog, DialogHeader } from '@/components/ui/dialog';
+import { useDialogPresence } from '@/components/ui/dialog-motion';
 import { loadClientFormAction } from '@/features/clients/actions';
 import { ClientForm } from '@/features/clients/components/client-form';
 import { type ClientFormValues } from '@/features/clients/types';
@@ -69,10 +70,10 @@ export function ClientFormTrigger({
   const [open, setOpen] = useState(false);
   const [client, setClient] = useState<ClientFormValues | null>(null);
   const [loading, startLoading] = useTransition();
+  const dialogPresent = useDialogPresence(open);
 
   const trigger = useRef<HTMLButtonElement>(null);
   const hasOpened = useRef(false);
-
   const close = useCallback(() => setOpen(false), []);
 
   /*
@@ -86,10 +87,10 @@ export function ClientFormTrigger({
   useEffect(() => {
     if (open) {
       hasOpened.current = true;
-    } else if (hasOpened.current) {
+    } else if (hasOpened.current && !dialogPresent) {
       trigger.current?.focus();
     }
-  }, [open]);
+  }, [dialogPresent, open]);
 
   const openCard = () => {
     if (!clientId) {
@@ -135,10 +136,10 @@ export function ClientFormTrigger({
         {children}
       </button>
 
-      {open
+      {dialogPresent
         ? createPortal(
             <Dialog
-              open
+              open={open}
               onClose={close}
               label={client ? t('editTitle') : t('createTitle')}
               dir={getLocaleDirection(locale)}

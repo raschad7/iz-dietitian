@@ -37,7 +37,7 @@ import { cn } from '@/lib/utils';
  * **The track is the well and the selected half is the raised thumb** — the
  * shadcn tab shape: a quiet neutral groove with a white, shadowed segment
  * sitting in it. That inverts what this shape used to draw, which was a white
- * card track with an olive-tinted half inside; a raised track holding a tinted
+ * card track with an green-tinted half inside; a raised track holding a tinted
  * segment reads as two surfaces at the same height with one of them coloured
  * in, and it spent the brand hue on a filter. Here the *elevation* carries the
  * state instead of the colour, so nothing on the screen has to compete with it,
@@ -160,6 +160,7 @@ function Segmented<T extends string>({
             className={cn(
               'flex items-center justify-center rounded-md font-medium',
               'transition-[color,background-color,box-shadow,transform] duration-(--duration-label) ease-(--ease-sweep)',
+              'motion-reduce:transition-none',
               'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-focus-halo focus-visible:outline-none',
               // `h-full`: the track owns the height (see above), the option
               // owns its inline padding.
@@ -175,7 +176,11 @@ function Segmented<T extends string>({
               // The default shape stays olive; recessed shapes lift a neutral
               // card out of their track unless the caller overrides it.
               active
-                ? cn(selectedClassName, 'scale-100 shadow-card')
+                ? cn(
+                    selectedClassName,
+                    'scale-100 shadow-card',
+                    'motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 motion-safe:duration-(--duration-label)',
+                  )
                 : inactiveClassName
                   ? inactiveClassName
                   : pill

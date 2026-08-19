@@ -142,6 +142,18 @@ export function generateStaticParams() {
 }
 
 /**
+ * The origin every relative metadata URL is resolved against.
+ *
+ * Open Graph tags must carry absolute URLs — a crawler has no page to resolve
+ * `/opengraph-image.png` against — and without this Next warns and falls back
+ * to `localhost:3000`, which is a broken preview in every chat app the link is
+ * pasted into. `NEXT_PUBLIC_APP_URL` is the same variable the rest of the app
+ * builds public links from; the localhost fallback is the dev default and is
+ * only ever right in dev.
+ */
+const metadataBase = new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000');
+
+/**
  * The viewport, for the whole app rather than the portal alone.
  *
  * Next emits `width=device-width, initial-scale=1` by default, which is what
@@ -187,8 +199,47 @@ export async function generateMetadata({ params }: Omit<LocaleLayoutProps, 'chil
   const t = await getTranslations({ locale, namespace: 'app' });
 
   return {
+    metadataBase,
     title: { default: t('name'), template: `%s · ${t('shortName')}` },
     description: t('tagline'),
+    /*
+      Both icons are named here rather than left to Next's `icon` /
+      `apple-icon` file conventions, which only emit their `<link>` from the
+      segment they sit in — and this app's root layout is *this* file, inside
+      `[locale]`, so a `src/app/icon.svg` served at `/icon.svg` but tagged no
+      page at all.
+
+      - `icon` lists the vector mark first — sharp at every tab size, and it
+        sits on the tab strip's own colour in either theme — then `favicon.ico`
+        for browsers that will not take an SVG. `public/favicon.ico` is also
+        served at its conventional path, which is how the crawlers and
+        link-preview bots that never read this tag find it.
+      - `apple` has to be a square raster — Safari ignores an SVG favicon when
+        it saves a page to the home screen — so it points at the generated PNG
+        tile. That route lives under the portal's PWA feature because that is
+        what first needed it, but the tile is the *product's*: both areas get
+        the same home-screen icon, which is the point.
+    */
+    icons: {
+      icon: [
+        { url: '/brand/mark.svg', type: 'image/svg+xml' },
+        { url: '/favicon.ico', sizes: '16x16 32x32 48x48' },
+      ],
+      apple: '/api/pwa-icons/apple-180',
+    },
+    /*
+      No `images` key: `opengraph-image.tsx` beside this file supplies the card
+      by file convention, for both Open Graph and Twitter, and naming it here as
+      well would emit the tag twice.
+    */
+    openGraph: {
+      type: 'website',
+      siteName: t('name'),
+      title: t('name'),
+      description: t('tagline'),
+      locale,
+    },
+    twitter: { card: 'summary_large_image', title: t('name'), description: t('tagline') },
   };
 }
 

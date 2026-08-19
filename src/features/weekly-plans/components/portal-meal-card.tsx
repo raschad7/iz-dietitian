@@ -54,7 +54,7 @@ const MEAL_SHELL = 'bg-meal-bg text-meal-fg';
  * The tick's colour on a day this component does not let you edit — past or
  * future's empty ring. The same `--meal-check-fill` green `MealCheck` wears
  * on the live button — see that token's comment in `globals.css` for why it
- * replaced olive-500 here. A meal ticked today must not look like a
+ * replaced green-500 here. A meal ticked today must not look like a
  * different kind of tick tomorrow, so this stays in lockstep with
  * `MealCheck`'s own colour rather than drifting back to `text-primary`.
  */

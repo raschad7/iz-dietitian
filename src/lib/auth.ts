@@ -396,7 +396,22 @@ export const auth = betterAuth({
      */
     passkey({
       rpID: new URL(authBaseURL).hostname,
-      rpName: 'Dietitian Clinic',
+      /*
+       * What the OS puts in its own passkey prompt — "Save a passkey for
+       * Enzyme" — and then beside the saved credential in the password
+       * manager, so it is brand-facing and belongs to the product's name.
+       *
+       * Not localised, unlike everything under `src/i18n/messages`: the string
+       * is stored with the credential at registration time, and this is a
+       * server module with no request locale to read anyway. The brand name is
+       * the same word in both languages, so there is nothing to choose between.
+       *
+       * Renaming it is safe for credentials already out there: a passkey is
+       * bound to `rpID` (the hostname), never to `rpName`. Changing the
+       * *hostname* would orphan every existing passkey; changing this only
+       * changes what new prompts say.
+       */
+      rpName: 'Enzyme',
       origin: authBaseURL,
     }),
 

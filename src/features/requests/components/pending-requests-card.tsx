@@ -65,7 +65,7 @@ import { RequestsWindow } from './requests-window';
  * **The way to the inbox is a labelled link in the header's block-start
  * inline-start corner, not a button under the list.** At the foot it was a
  * full-width-ish ghost button competing with the Accept on every tile above it
- * — three olive-ish controls in a column, one of which merely navigates. It
+ * — three green-ish controls in a column, one of which merely navigates. It
  * then spent a while as a lone chevron at the far inline-end of the header,
  * which is the furthest point on the card from the heading it qualifies and
  * needed a tooltip to say what it meant. It now sits directly under the title

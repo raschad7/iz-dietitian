@@ -26,8 +26,8 @@
 /** `--background` in light mode: `--n-0`. */
 export const APP_THEME_COLOR_LIGHT = '#FFFFFF';
 
-/** `--background` in dark mode: `--olive-950`. */
-export const APP_THEME_COLOR_DARK = '#16220D';
+/** `--background` in dark mode: `--green-950`. */
+export const APP_THEME_COLOR_DARK = '#11290A';
 
 /**
  * The manifest's `background_color` — the splash screen the OS paints before
@@ -36,6 +36,3 @@ export const APP_THEME_COLOR_DARK = '#16220D';
  * otherwise.
  */
 export const APP_BACKGROUND_COLOR = '#FFFFFF';
-
-/** The mark's fill on the generated staff icons — the brand olive, `--primary`. */
-export const APP_ICON_COLOR = '#72AE34';

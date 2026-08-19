@@ -355,7 +355,7 @@ export function SidebarProfile({
  * A letter on an opaque ground is what every account menu worth copying uses,
  * for exactly that reason: the glyph is centred and inset, so the *disc* is the
  * shape you see, and the ground is its own colour rather than whatever happens
- * to be behind it. The olive-500 → olive-700 sweep gives it depth at a size too
+ * to be behind it. The green-500 → green-700 sweep gives it depth at a size too
  * small for anything more; the inset hairline keeps its edge from dissolving
  * into the pale rail.
  *
@@ -377,7 +377,7 @@ function AccountAvatar({ name, className }: { name: string; className?: string }
       aria-hidden
       className={cn(
         'flex size-9 shrink-0 select-none items-center justify-center rounded-full',
-        'bg-linear-to-br from-[var(--olive-500)] to-[var(--olive-700)]',
+        'bg-linear-to-br from-[var(--green-500)] to-[var(--green-700)]',
         'font-heading text-body-sm font-semibold text-white',
         'ring-1 ring-white/20 ring-inset',
         className,

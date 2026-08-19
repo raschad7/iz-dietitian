@@ -207,7 +207,7 @@ export function AuthSplitCard({
               foreground, and this is a fill: a drawn shape carrying no text and
               nothing a reader has to get from it.
             */}
-            <Icon name="leaf" className="size-44 text-accent-lime/80 lg:size-60" />
+            <Icon name="leaf" className="size-44 text-accent-green/80 lg:size-60" />
             {/* White rather than the olive card's inherited `primary-foreground`,
                 by request. At 24px it is large text, so the 3:1 floor is the one
                 that applies here rather than 4.5:1. */}

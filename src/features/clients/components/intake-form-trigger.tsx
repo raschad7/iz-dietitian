@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import { createPortal } from 'react-dom';
 
 import { Dialog, DialogHeader } from '@/components/ui/dialog';
+import { useDialogPresence } from '@/components/ui/dialog-motion';
 import { loadIntakeAction } from '@/features/clients/actions';
 import { IntakeForm } from '@/features/clients/components/intake-form';
 import { type IntakeSectionId } from '@/features/clients/intake-sections';
@@ -48,6 +49,7 @@ export function IntakeFormTrigger({
   const [open, setOpen] = useState(false);
   const [intake, setIntake] = useState<ClientIntakeValues | null>(null);
   const [loading, startLoading] = useTransition();
+  const dialogPresent = useDialogPresence(open);
 
   const trigger = useRef<HTMLButtonElement>(null);
   const hasOpened = useRef(false);
@@ -74,10 +76,10 @@ export function IntakeFormTrigger({
   useEffect(() => {
     if (open) {
       hasOpened.current = true;
-    } else if (hasOpened.current) {
+    } else if (hasOpened.current && !dialogPresent) {
       trigger.current?.focus();
     }
-  }, [open]);
+  }, [dialogPresent, open]);
 
   const openDialog = () => {
     startLoading(async () => {
@@ -113,10 +115,10 @@ export function IntakeFormTrigger({
         {children}
       </button>
 
-      {open && intake
+      {dialogPresent && intake
         ? createPortal(
             <Dialog
-              open
+              open={open}
               onClose={close}
               label={intake.hasProfile ? t('intake.editTitle') : t('intake.createTitle')}
               dir={getLocaleDirection(locale)}
