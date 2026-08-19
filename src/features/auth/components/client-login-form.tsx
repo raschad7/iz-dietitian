@@ -68,7 +68,7 @@ export function ClientLoginForm({ locale }: { locale: Locale }) {
         noValidate
         onSubmit={validateBeforeSubmit}
         onChange={clearCorrectedField}
-        className="space-y-4"
+        className="space-y-4 short:space-y-3"
       >
         <input type="hidden" name="locale" value={locale} />
 

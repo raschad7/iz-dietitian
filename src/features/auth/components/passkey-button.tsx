@@ -42,7 +42,19 @@ export function PasskeyButton({ locale }: { locale: Locale }) {
 
   return (
     <div className="space-y-2">
-      <Button type="button" variant="outline" className="w-full max-w-none" disabled={pending} onClick={signIn}>
+      {/*
+        `neutral`, not `outline` — the lime hover flip is gone from both
+        alternate sign-in buttons for the reason written out on `GoogleButton`:
+        it out-shouted the olive submit above it, and v5.html tints neither.
+        Same transition, neutral fill.
+      */}
+      <Button
+        type="button"
+        variant="neutral"
+        className="w-full max-w-none"
+        disabled={pending}
+        onClick={signIn}
+      >
         {/*
           The FIDO fingerprint, hand-inlined rather than taken from `Icon`:
           this is the mark the platform prompts themselves use, so it is a

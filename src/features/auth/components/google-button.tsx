@@ -69,7 +69,32 @@ export function GoogleButton({ locale, requestSignUp = false, redirectTo }: Goog
 
   return (
     <div className="space-y-2">
-      <Button type="button" variant="outline" className="w-full max-w-none" disabled={pending} onClick={start}>
+      {/*
+        `neutral`, not `outline` — and it is also what v5.html draws: a white box
+        with a hairline border that takes a quiet grey fill and a slightly firmer
+        edge on hover, with no brand colour anywhere in the state.
+
+        `outline` flips to a solid lime fill on hover — `hover:border-accent-lime
+        hover:bg-accent-lime hover:text-on-accent`. That is the loudest hover the
+        system has, and it was firing on the two *alternate* sign-in paths while
+        the actual primary, the olive submit above them, only darkened a step.
+        Pointing at the second-choice button lit the screen up more than pressing
+        the first-choice one.
+
+        `neutral` is the variant that exists for this: a real box so it still
+        reads as pressable, a foreground label, and `hover:bg-accent` — the cool
+        neutral tint, `c-200`. Same 200ms and same easing as before, because the
+        transition lives on the button's base classes and no variant touches it;
+        only the colour changed. It leaves lime to the focus ring, which is the
+        one place the system spends it on every control alike.
+      */}
+      <Button
+        type="button"
+        variant="neutral"
+        className="w-full max-w-none"
+        disabled={pending}
+        onClick={start}
+      >
         <GoogleIcon />
         {t('continueWithGoogle')}
       </Button>
