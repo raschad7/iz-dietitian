@@ -134,11 +134,11 @@ export default async function PortalLayout({ children, params }: PortalLayoutPro
         result rather than depending on it.
       */}
       {/*
-        The `beforeinstallprompt` capture is no longer rendered here: an inline
-        script emitted from a layout that re-renders on the client never runs.
-        It is in the root locale layout's <head> instead — see
-        `InstallPromptCapture` for why, and `use-install-prompt.ts` for how the
-        event is picked back up.
+        The `beforeinstallprompt` capture is no longer rendered here: it is
+        mounted from the root locale layout, and it attaches its listener from
+        module scope rather than from a script tag — see `InstallPromptCapture`
+        for why, and `use-install-prompt.ts` for how the event is picked back
+        up.
       */}
       <ServiceWorkerRegister locale={locale} />
 

@@ -2769,8 +2769,10 @@
  * last row was a form field otherwise ended with that field under the home
  * indicator. `:has()` picks whichever applies, so a dialog never gets both.
  *
- * Held to below `sm`, because that is where `Dialog` stops being a sheet and
- * becomes the same centred card as `placement="center"`.
+ * Held to below `sm`, because that is where `Dialog` stops being a sheet under
+ * a *mouse* and becomes the same centred card as `placement="center"`. The
+ * tablet keeps the sheet past that width and takes the same inset a query
+ * lower down.
  */
 @media (max-width: 39.999rem) {
   .q-dialog[data-placement='sheet'] [data-slot='dialog-footer'] {
@@ -2778,6 +2780,40 @@
   }
 
   .q-dialog[data-placement='sheet']:not(:has([data-slot='dialog-footer'])) [data-slot='dialog-body'] {
+    padding-block-end: calc(1rem + var(--q-safe-b));
+  }
+}
+
+/*
+ * The same inset, for the tablet.
+ *
+ * The rule further down keeps the sheet shape on any coarse pointer at any
+ * width — an iPad at 820 or 1180 gets a surface pinned to the block-end edge
+ * exactly like the phone's — but the query above stops at 40rem, so on the one
+ * device family with both a home indicator and a large screen the footer's
+ * buttons sat in the gesture area. **Installed to the home screen it is worse
+ * than in a browser**: there is no toolbar below the sheet to absorb the strip,
+ * so Save is the control the swipe-up gesture reaches first.
+ *
+ * `(pointer: coarse)` and not a width, for the reason the sheet itself gives:
+ * the question is whether this is a touch screen with a home indicator, and a
+ * 900px desktop window is not. A tablet at the phone's width matches both this
+ * and the query above and gets one inset, not two — they set the same property
+ * to the same value.
+ *
+ * The two exclusions are the ones every sheet rule here carries: the planner
+ * sheet and the navigation drawer own their own geometry.
+ */
+@media (pointer: coarse) and (width >= 40rem) {
+  .q-dialog[data-placement='sheet']:not(.planner-context-sheet):not(.app-navigation-drawer)
+    [data-slot='dialog-footer'] {
+    padding-block-end: calc(1rem + var(--q-safe-b));
+  }
+
+  .q-dialog[data-placement='sheet']:not(.planner-context-sheet):not(.app-navigation-drawer):not(
+      :has([data-slot='dialog-footer'])
+    )
+    [data-slot='dialog-body'] {
     padding-block-end: calc(1rem + var(--q-safe-b));
   }
 }
@@ -3219,6 +3255,74 @@
 
   .q-dialog[data-placement='sheet'][data-size='wide']:not(.planner-context-sheet):not(.app-navigation-drawer) {
     width: var(--q-dialog-sheet-width, min(64rem, calc(100vw - 4rem)));
+  }
+}
+
+/*
+ * The intake form's rail, on a tablet held upright.
+ *
+ * `IntakeForm` puts its seven sections in a 14rem column beside the fields from
+ * `sm` up, and a scrolling row of tabs below it. Both arrangements are right;
+ * which one applies was being decided by the *window* width, and inside this
+ * dialog that is the wrong measurement twice over.
+ *
+ * The surface is a sheet here, not the window: `min(54rem, 100vw - 3rem)`. On a
+ * 768px tablet in portrait that is a 45rem sheet, and the window — 48rem — had
+ * already answered "wide", so the rail took its column out of a surface three
+ * quarters the size of the one the column was drawn for. What was left for the
+ * fields was 28rem, and the meal schedule's four-column row (label, time, share,
+ * delete) needs 25rem of that before the label input gets a pixel: the label
+ * came out around 50px wide. The tab bar the phone gets fits this sheet far
+ * better than the desktop's column does.
+ *
+ * ## Why the range, and why a media query rather than a container
+ *
+ * The lower bound is the tablet itself — `pointer: coarse` with a screen past
+ * the phone's 40rem, the same pair the sheet rules above are keyed to. A mouse
+ * never matches it at any size, so **the desktop arrangement is untouched**,
+ * including a desktop window narrowed to tablet width; and below 40rem the
+ * phone already renders exactly this shape from its own utilities, so it is
+ * untouched too.
+ *
+ * The upper bound is where the column stops costing more than it earns. Above
+ * 60rem the sheet has reached its 54rem ceiling, which leaves 37rem beside the
+ * rail — room for the schedule row and two field columns both — so a landscape
+ * iPad keeps the desktop arrangement it was already getting right.
+ *
+ * A container query would be the natural tool for "how wide is this dialog",
+ * and it is deliberately not used: it cannot ask whether the pointer is a
+ * finger, so the same rearrangement would also land on a desktop window at
+ * tablet width. That is a face this change is explicitly not touching.
+ *
+ * Unlayered, so these beat the `sm:` utilities on the elements without an
+ * `!important`; the `data-slot`s they hang on are declared in `intake-form.tsx`
+ * and carry no styling of their own.
+ */
+@media (pointer: coarse) and (40rem <= width < 60rem) {
+  [data-slot='intake-shell'] {
+    flex-direction: column;
+  }
+
+  [data-slot='intake-rail'] {
+    /* `sm:w-56 sm:flex-col sm:overflow-visible` put back to the row. */
+    width: auto;
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    /*
+      A flick that runs off the end of the tabs is the rail's own gesture. Left
+      to chain it scrolls the panel behind them, or on iOS starts the sheet's
+      own dismiss — from a control the finger is meant to be *reading* along.
+    */
+    overscroll-behavior-x: contain;
+    /* The divider moves with the rail: it separates rows now, not columns. */
+    border-inline-end-width: 0;
+    border-block-end-width: 1px;
+  }
+
+  [data-slot='intake-tab'] {
+    /* `sm:w-full` is for a column; in a row it would give each tab the rail. */
+    width: auto;
   }
 }
 

@@ -850,7 +850,8 @@
         "drugAllergies": "Penicillin",
         "familyHistory": "Diabetes on the father's side, obesity in the family",
         "activityNotes": "Walks 40 minutes most evenings, desk job",
-        "activityBarriers": "Knee pain"
+        "activityBarriers": "Knee pain",
+        "computedTarget": "Computed automatically"
       },
       "overrideDivider": "Manual figures",
       "unsetCount": "{count} fields not filled in",

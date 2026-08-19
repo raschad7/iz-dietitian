@@ -283,7 +283,16 @@ export function IntakeForm({
       <input type="hidden" name="locale" value={locale} />
       <input type="hidden" name="clientId" value={intake.clientId} />
 
-      <div className="flex min-h-0 flex-1 flex-col sm:flex-row">
+      {/*
+        The `data-slot`s here and on the rail carry no styling of their own.
+        They are what the tablet block in `globals.css` reaches for: the rail's
+        column is right on a desktop and wrong on a 768px tablet — where this
+        dialog is a sheet a good deal narrower than the screen — and the
+        arrangement has to turn on the *device*, not on a viewport width a
+        desktop window can also be dragged to. Only a media query can ask that,
+        so the rearrangement lives in CSS and these are its handles.
+      */}
+      <div data-slot="intake-shell" className="flex min-h-0 flex-1 flex-col sm:flex-row">
         <SectionRail
           current={section}
           filled={filled}
@@ -714,10 +723,20 @@ export function IntakeForm({
                 min={800}
                 max={6000}
                 step={50}
-                // Placeholder, never prefilled: an empty field means "keep using
-                // the formula", and prefilling would silently freeze today's
-                // number into a permanent override.
-                placeholder={targets.suggestedKcal?.toString() ?? ''}
+                /*
+                  Placeholder, never prefilled: an empty field means "keep using
+                  the formula", and prefilling would silently freeze today's
+                  number into a permanent override.
+
+                  The formula needs a weight, a height, a goal and an activity
+                  level, and until all four are in it returns nothing — which
+                  left this box showing an icon and no text at all, on the one
+                  screen where an empty box has a *meaning*. The fallback says
+                  what the emptiness is for.
+                */
+                placeholder={
+                  targets.suggestedKcal?.toString() ?? t('intake.placeholders.computedTarget')
+                }
                 defaultValue={intake.dailyKcalTarget?.toString() ?? ''}
                 error={errorFor('dailyKcalTarget')}
               />
@@ -728,7 +747,12 @@ export function IntakeForm({
                 min={20}
                 max={400}
                 step={5}
-                placeholder={suggestedProtein?.toString() ?? ''}
+                // Same fallback, and this one needs it more often: the protein
+                // suggestion runs on the weight alone, so it is blank only
+                // before the very first measurement is recorded.
+                placeholder={
+                  suggestedProtein?.toString() ?? t('intake.placeholders.computedTarget')
+                }
                 defaultValue={intake.proteinTargetGrams?.toString() ?? ''}
                 error={errorFor('proteinTargetGrams')}
               />
@@ -810,6 +834,7 @@ function SectionRail({
     <div
       ref={tabs}
       role="tablist"
+      data-slot="intake-rail"
       aria-orientation="vertical"
       aria-label={t('intake.sectionsLabel')}
       onKeyDown={onKeyDown}
@@ -826,6 +851,7 @@ function SectionRail({
             key={id}
             type="button"
             role="tab"
+            data-slot="intake-tab"
             data-section={id}
             aria-selected={active}
             aria-controls={panelId}

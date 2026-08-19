@@ -292,15 +292,6 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
       className={fontVariables}
     >
       {/*
-        The only thing in <head> that has to be here rather than in the app or
-        portal layout: it is an inline script, and a script rendered from a
-        layout that re-renders on the client is both inert and noisy. See the
-        component.
-      */}
-      <head>
-        <InstallPromptCapture />
-      </head>
-      {/*
         `suppressHydrationWarning` is needed on <body> as well as <html>: it only
         applies one level deep, and browser extensions (ColorZilla, Grammarly and
         friends) inject attributes like `cz-shortcut-listen` onto the body before
@@ -315,6 +306,15 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
         there is nothing to trade off.
       */}
       <body suppressHydrationWarning className="min-h-dvh">
+        {/*
+          Renders nothing. It is mounted from the root layout so that its module
+          — which attaches the `beforeinstallprompt` listener at chunk-evaluation
+          time, before hydration — is in the initial bundle for every page in
+          either app. It used to be an inline `<script>` in an explicit `<head>`;
+          that `<head>` existed only to hold it, and both are gone. See the
+          component for why the tag could not stay.
+        */}
+        <InstallPromptCapture />
         {/*
           No floating locale switcher here. The switcher lives in the app bar
           (`Header`) and on the login screens, which is the only place it should
