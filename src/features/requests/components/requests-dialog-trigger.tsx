@@ -119,6 +119,12 @@ export function RequestsDialogTrigger({
                 // default 28rem the buttons wrap under the message on every
                 // row.
                 'sm:w-[min(48rem,calc(100vw-2rem))]',
+                // The same measure again, for the tablet bottom sheet. The
+                // `(pointer: coarse)` block in `globals.css` is unlayered and
+                // would otherwise replace the width above with the `size="wide"`
+                // default of 64rem — so this dialog was 48rem under a mouse and
+                // 64rem under a thumb. See `--q-dialog-sheet-width` there.
+                '[--q-dialog-sheet-width:min(48rem,calc(100vw-2rem))]',
               )}
             >
               <DialogHeader

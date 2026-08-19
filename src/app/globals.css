@@ -2496,6 +2496,26 @@
  * ⚠ `display` is deliberately not touched. Base UI hides a closed popup by
  * setting `display: none` on the positioner, and an `!important` display here
  * would strand every closed popup on screen.
+ *
+ * ## What this no longer covers, and why that is the direction of travel
+ *
+ * The notifications inbox used to be the loudest customer of the
+ * `popover-positioner` line below. It is not any more: `NotificationInboxPopover`
+ * asks `useIsSheetSurface()` — the same width-or-coarse question this query
+ * asks — and renders a real `Sheet` on a touch device instead of a popover that
+ * gets redrawn as one here. That is the better arrangement wherever a surface
+ * can afford it, because a `Sheet` is a dialog: it brings a focus trap, a
+ * scrim, a close control and an entrance of its own, and above all the
+ * *component* knows which surface it is, so anything that has to measure or
+ * animate it can ask. A popover reshaped by a stylesheet leaves the component
+ * believing it is still anchored to its trigger.
+ *
+ * This block stays for the surfaces where that trade does not pay: `select`,
+ * `combobox` and `dropdown-menu` are list pickers whose whole content is rows,
+ * with nothing to focus-trap and no header to close, and swapping each of them
+ * for a dialog would be a large change to buy very little. `popover-positioner`
+ * stays too — the date pickers, the client filter and the planner's panels all
+ * still hang off a trigger and still want this on a tablet.
  */
 @media (pointer: coarse) {
   [data-slot='select-positioner'],
@@ -3120,15 +3140,31 @@
  * `margin-inline: auto` against the `margin-inline: 0` above; the block pair
  * stays `auto 0`, so the sheet is centred across the screen and still pinned to
  * the bottom of it.
+ *
+ * ## `--q-dialog-sheet-width`, for a call site that asked for a third width
+ *
+ * The two numbers below are the *defaults*, not the only answers. A dialog that
+ * passes its own `sm:w-[…]` — the requests inbox and the notifications feed both
+ * ask for `min(48rem, …)`, between the card and the wide — was having it
+ * silently replaced here, because these declarations are unlayered and beat any
+ * utility on the element. It got 64rem on a tablet and 48rem under a mouse: one
+ * surface, two widths, decided by which input device was in the reader's hand.
+ *
+ * The variable is the seam. Unset, everything behaves exactly as before; set on
+ * the element (`[--q-dialog-sheet-width:min(48rem,calc(100vw-2rem))]` in the
+ * class list, beside the `sm:w-[…]` it mirrors) the sheet honours the call
+ * site's own measure. It is a `var()` and not a relaxed selector because the
+ * `width: 100%` in the block above still has to win on a phone — the override
+ * has to stay, it just needs somewhere to read a different number from.
  */
 @media (pointer: coarse) and (width >= 40rem) {
   .q-dialog[data-placement='sheet']:not(.planner-context-sheet):not(.app-navigation-drawer) {
     margin-inline: auto;
-    width: min(28rem, calc(100vw - 2rem));
+    width: var(--q-dialog-sheet-width, min(28rem, calc(100vw - 2rem)));
   }
 
   .q-dialog[data-placement='sheet'][data-size='wide']:not(.planner-context-sheet):not(.app-navigation-drawer) {
-    width: min(64rem, calc(100vw - 4rem));
+    width: var(--q-dialog-sheet-width, min(64rem, calc(100vw - 4rem)));
   }
 }
 

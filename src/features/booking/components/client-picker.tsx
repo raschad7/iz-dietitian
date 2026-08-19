@@ -8,6 +8,7 @@ import { Icon } from '@/components/ui/icon';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useIsSheetSurface } from '@/hooks/use-mobile';
 import { getLocaleDirection, type Locale } from '@/i18n/routing';
 import { normalizeForSearch } from '@/features/clients/search';
 import { cn } from '@/lib/utils';
@@ -74,6 +75,15 @@ export function ClientPicker({
 }: ClientPickerProps) {
   const t = useTranslations('booking');
   const direction = getLocaleDirection(locale);
+
+  /*
+    The same question the notifications inbox and the guided tour ask — width
+    under 40rem, or a coarse pointer at any width. On a touch surface this
+    picker rises from the block-end edge instead of hanging off the point the
+    finger lifted from; see the class list on the panel below for why that is
+    the right shape for a booking made with a thumb.
+  */
+  const asSheet = useIsSheetSurface();
 
   const popoverRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
@@ -144,6 +154,16 @@ export function ClientPicker({
     const element = popoverRef.current;
     if (!element) return;
 
+    /*
+      None of this applies to the sheet. Its geometry is CSS — pinned to the
+      block-end edge and centred on auto margins — so there is no pointer to
+      clamp, nothing to measure, and no rotation case to re-measure for. Bailing
+      here also leaves `position` null, which the sheet branch of the class list
+      deliberately does not read: the anchored panel hides itself until measured
+      and the sheet has nothing to wait for.
+    */
+    if (asSheet) return;
+
     function place() {
       const node = popoverRef.current;
       if (!node) return;
@@ -169,7 +189,7 @@ export function ClientPicker({
       window.removeEventListener('resize', place);
       window.removeEventListener('orientationchange', place);
     };
-  }, [direction, pending.pointer]);
+  }, [asSheet, direction, pending.pointer]);
 
   /**
    * Outside-click, armed one tick late.
@@ -284,10 +304,42 @@ export function ClientPicker({
       aria-label={t('picker.title')}
       dir={direction}
       className={cn(
-        'fixed z-50 flex w-80 max-w-[calc(100vw-1rem)] flex-col gap-3 rounded-xl border border-border bg-popover p-3 shadow-xl',
-        position ? 'visible' : 'invisible',
+        'fixed z-50 flex flex-col gap-3 border-border bg-popover p-3',
+        asSheet
+          ? /*
+              ── The touch surface: a sheet on the block-end edge ──
+
+              Anchored to the pointer, this panel lands under the hand that just
+              painted the range — which is exactly where a finger already is, so
+              the finger covers the list it opened. `anchorPopover` then clamps
+              it inside the viewport, and near the foot of a screen that means
+              the panel jumps somewhere the reader did not press.
+
+              Risen from the edge instead, it is where a thumb reaches, it is
+              never underneath the hand, and it is the same shape every other
+              interrupting surface in this app now takes on a touch device — the
+              notifications inbox, the requests inbox, `Dialog`'s own sheet
+              placement. The range stays visible on the grid above it, which is
+              the one thing the anchored panel was buying and this keeps.
+
+              28rem centred from `sm` up, the measure `--q-dialog-sheet-width`
+              and the coarse-pointer popup rules in `globals.css` both settle on,
+              so a tablet shows one width for every surface that interrupts it.
+              `mx-auto` against the pinned inline insets centres it in a way that
+              stays correct in RTL, where a translate would not.
+            */
+            cn(
+              'inset-x-0 bottom-0 mx-auto w-full rounded-t-2xl border-t shadow-overlay',
+              'sm:max-w-[28rem]',
+              'pb-[calc(0.75rem+var(--q-safe-b))]',
+            )
+          : cn('w-80 max-w-[calc(100vw-1rem)] rounded-xl border shadow-xl', position ? 'visible' : 'invisible'),
       )}
-      style={{ insetInlineStart: position?.insetInlineStart ?? 0, insetBlockStart: position?.insetBlockStart ?? 0 }}
+      style={
+        asSheet
+          ? undefined
+          : { insetInlineStart: position?.insetInlineStart ?? 0, insetBlockStart: position?.insetBlockStart ?? 0 }
+      }
       onKeyDown={(event) => {
         if (event.key === 'Escape') {
           event.preventDefault();
