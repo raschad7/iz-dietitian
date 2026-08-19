@@ -670,6 +670,53 @@
   --q-safe-l: env(safe-area-inset-left, 0px);
   --q-safe-r: env(safe-area-inset-right, 0px);
 
+  /*
+   * ── The on-screen keyboard, as one number ──
+   *
+   * How much of the *layout* viewport the software keyboard is currently
+   * covering. `0px` whenever no keyboard is up, which is every desktop, every
+   * tablet with a hardware keyboard, and any phone that is only being read.
+   *
+   * It exists because there are two ways a browser can answer "the keyboard
+   * opened", and the app has to survive both:
+   *
+   * - **`interactiveWidget: 'resizes-content'`** (declared in the `viewport`
+   *   export in `[locale]/layout.tsx`, honoured by Chrome on Android) shrinks
+   *   the layout viewport itself, so `dvh` shrinks with it and everything
+   *   measured against the viewport is already correct. This token stays `0px`
+   *   there — `KeyboardInset` measures the gap between the layout viewport and
+   *   the visual one, and on this path there is none.
+   * - **iOS Safari ignores `interactive-widget` entirely.** The layout viewport
+   *   keeps its full height and the keyboard is simply drawn over the bottom of
+   *   it, so `100dvh` still reports a screen that is a third obscured and a
+   *   `position: fixed` surface pinned to the block-end edge — which is every
+   *   bottom sheet in this app — sits underneath the keys. No CSS unit
+   *   describes that; `window.visualViewport` is the only thing that does, and
+   *   publishing it here is what lets the stylesheet stay declarative.
+   *
+   * ⚠ **Never write `100dvh` where a surface has to stay clear of a keyboard.**
+   * Take `--q-viewport-block` below, which is `100dvh` with this subtracted, so
+   * one expression is right on both paths.
+   *
+   * Published by `KeyboardInset` (`components/ui/keyboard-inset.tsx`), mounted
+   * once in the root locale layout. With no script — the first paint, a hard
+   * failure, JS disabled — the declaration below stands and every surface
+   * behaves exactly as it did before the token existed.
+   */
+  --q-keyboard-inset: 0px;
+
+  /*
+   * The block extent a surface may actually occupy: the dynamic viewport less
+   * whatever the keyboard is covering.
+   *
+   * `dvh` and not `vh`, because a phone's address bar retracts and `vh` is
+   * frozen at the *large* viewport — the one with the chrome hidden — so `vh`
+   * overshoots the visible screen for as long as the chrome is showing. `dvh`
+   * and not `svh` because a surface should grow back into the space the bar
+   * gives up rather than reserving a strip it may never need.
+   */
+  --q-viewport-block: calc(100dvh - var(--q-keyboard-inset));
+
   /* Surface & text */
   /*
    * bg.canvas — plain white. It used to be the warm n-25, one step below the
@@ -2684,7 +2731,15 @@
   [data-slot='popover-positioner'] {
     position: fixed !important;
     inset-inline: 0 !important;
-    inset-block: auto 0 !important;
+    /*
+      Pinned to the block-end edge — of the *visible* viewport, not the layout
+      one. `--q-keyboard-inset` is `0px` unless a software keyboard is open on a
+      browser that leaves the layout viewport at full height (iOS), and there it
+      is the height of the keys. Without it a combobox opened from a field that
+      already has focus — which is the normal way one is opened — drew its list
+      underneath the keyboard the field had just raised.
+    */
+    inset-block: auto var(--q-keyboard-inset) !important;
     /*
       The anchored transform is what carried the popup to its trigger, and the
       transform origin with it. Both have to go, or the sheet arrives translated
@@ -2710,7 +2765,17 @@
       reads as a page of its own.
     */
     max-width: none !important;
-    max-height: min(75dvh, calc(100dvh - 3rem)) !important;
+    /*
+      Two terms doing two jobs. `75dvh` is the taste one — a list should not
+      take so much of the screen that the page behind it disappears and the
+      popup reads as a page of its own — and it is deliberately left in `dvh`.
+      The second is the safety one, and it is the term that moved:
+      `--q-viewport-block` is `100dvh` less whatever the keyboard is covering,
+      so once a field has raised one this becomes the binding limit and the list
+      is measured against what is left of the screen. A combobox filtered by
+      typing is the case that needs it, and it is the common one.
+    */
+    max-height: min(75dvh, calc(var(--q-viewport-block) - 3rem)) !important;
     /*
       Risen from the edge, so only the block-start corners exist — the same
       language `Dialog`'s sheet placement speaks, and the same radius.
@@ -2769,6 +2834,29 @@
 
   [data-slot='select-item'] {
     min-block-size: 44px;
+  }
+
+  /*
+    And the disclosure that opens a section, for the same reason.
+
+    `CollapsibleTrigger` ships unstyled — it is a headless Base UI trigger, so
+    it is exactly as tall as whatever text a caller puts in it. The dish
+    editor's "Additional details" row is one line of `text-label` with no
+    padding, which lands at 18px: a full-width control that a thumb misses more
+    often than it hits, and the only way into six fields.
+
+    Fixed here rather than in `dish-editor.tsx` because the height is not that
+    screen's problem — it is what an unstyled trigger measures anywhere, and
+    `sidebar-profile.tsx` already has a second one. The rule is scoped to a
+    coarse pointer so a mouse-driven window keeps the tighter row the type
+    scale asks for.
+
+    `align-items: center` because growing a row that was 18px tall to 44px
+    otherwise leaves its text sitting against the block-start edge.
+  */
+  [data-slot='collapsible-trigger'] {
+    min-block-size: 44px;
+    align-items: center;
   }
 }
 
@@ -3019,9 +3107,152 @@
  * it is against. Nothing is inset twice, and there is no gap between them,
  * because the shell itself is no longer inset at all.
  */
+/*
+ * ══ The application frame ══
+ *
+ *   ┌───────────────────────────┐
+ *   │  HEADER            fixed  │  a flex child that neither grows nor scrolls
+ *   ├───────────────────────────┤
+ *   │  MAIN         scrollable  │  [data-slot='shell-scroll'] — the one scroller
+ *   ├───────────────────────────┤
+ *   │  BOTTOM NAV        fixed  │  a flex child, in flow, never overlapping
+ *   └───────────────────────────┘
+ *
+ * Stated once, here, for every shell in the product — the staff app and the
+ * client portal both render `AppShell`, and `AppShell` always carries
+ * `q-app-shell`. **No layout, page or route opts in**, which is the point: a
+ * screen added tomorrow gets this frame without knowing it exists, and there is
+ * nowhere for a page-specific variation to be written.
+ *
+ * ## Why the *shell* is bounded and not the document
+ *
+ * With a bounded shell the window has nothing to scroll, so chrome pinned to
+ * either end simply stays where it is — no `position: fixed`, no `z-index`
+ * stack to keep straight, and above all **no clearance padding**. The portal's
+ * tab bar was `fixed` and the page underneath carried `pb-24` to miss it: two
+ * numbers that had to be kept equal by hand, in different files, and the tablet
+ * case had already drifted once. In flow, the bar occupies its own height and
+ * the arithmetic disappears.
+ *
+ * ## `svh`, deliberately, and not `dvh`
+ *
+ * `dvh` grows as a phone's address bar retracts — but the bar only retracts
+ * when the *document* scrolls, and here it never does. So `dvh` would resolve
+ * to `svh` in practice while adding a resize the layout cannot use. `svh` is
+ * also the safe direction to be wrong in: it is the *small* viewport, so the
+ * frame is never taller than what is on screen.
+ *
+ * The keyboard is not this box's problem. `interactiveWidget: 'resizes-content'`
+ * shrinks the layout viewport on Android and the frame follows; on iOS the
+ * dialog frame further down handles it against `--q-viewport-block`. A shell
+ * that resized under a keyboard would move the header and the tab bar while
+ * somebody was typing, which is the behaviour this avoids rather than wants.
+ *
+ * ## The safe area is already here
+ *
+ * The two declarations below predate this and do exactly the right thing under
+ * it: `box-sizing: border-box` is global, so a `100svh` box with these paddings
+ * has a *content* box of `100svh - safe-t - safe-b`. The header lands under the
+ * status bar and the bottom nav above the home indicator with no further
+ * arithmetic anywhere.
+ *
+ * ⚠ A shell child that is neither the scroller nor `shrink-0` will be squeezed
+ * rather than scrolled. Mark the scrolling region with `data-slot="shell-scroll"`
+ * and leave everything else alone.
+ */
 .q-app-shell {
+  block-size: 100svh;
+  overflow: hidden;
+
   padding-block-start: var(--q-safe-t);
   padding-block-end: var(--q-safe-b);
+}
+
+/*
+ * The column the header, the page and the bottom nav share.
+ *
+ * `min-block-size: 0` is the line the whole frame turns on: a flex item's
+ * default minimum is its content, so without it this box refuses to be shorter
+ * than the page inside it, grows past the shell, and hands the scroller a
+ * parent with nothing left to scroll inside. It is the same reason the dialog
+ * frame states it on every level between the surface and its body.
+ */
+.q-app-shell [data-slot='sidebar-inset'] {
+  min-block-size: 0;
+  overflow: hidden;
+}
+
+/*
+ * The one scrolling region, and the only element in the frame that scrolls.
+ *
+ * `overflow-x: auto` and never `hidden` — the shell refuses to be widened by a
+ * child, which is what stops *page-level* horizontal scrolling, while anything
+ * that still overflows stays reachable by wheel, trackpad, drag and keyboard.
+ * A clip here is how content goes missing silently; the staff layout says the
+ * same at greater length over the class this replaces.
+ *
+ * `overscroll-behavior-y: contain` stops a flick that runs off the end of the
+ * page from chaining to the document — which on iOS is what starts the browser's
+ * own pull-to-refresh from inside an app that has no document scroll to give.
+ */
+.q-app-shell [data-slot='shell-scroll'] {
+  min-block-size: 0;
+  flex: 1 1 auto;
+  overflow-x: auto;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+}
+
+/*
+ * A bottom navigation is against the glass, and the shell must stop insetting
+ * it away from one.
+ *
+ * `.q-app-shell`'s `padding-block-end` above is what keeps a *scrolling page*
+ * clear of the home indicator, and it is right whenever the page is the last
+ * thing in the column. A bottom bar is not a page: its fill is supposed to run
+ * under the indicator with only its labels held above, which is what the bar's
+ * own `padding-block-end` already does. Left in place, the shell's padding
+ * would lift the whole bar and leave a strip of bare canvas beneath it — on the
+ * one device family where the strip is 34px tall and impossible to miss.
+ *
+ * Keyed on `data-slot` rather than on `.portal-tab-bar`, so this is a statement
+ * about *a* bottom nav and not about the portal's. A second one added elsewhere
+ * gets the same treatment by carrying the slot.
+ *
+ * ⚠ The width mirrors the bar's own `lg:hidden`, and the two have to move
+ * together. Above `lg` the bar is `display: none` — `:has()` does not care, it
+ * still matches the element — so without the query the shell would drop its
+ * inset at desktop widths, where there is no bar to justify it and `main` runs
+ * to the block-end edge. An iPad in landscape reports ~20px there.
+ */
+@media (width < 64rem) {
+  .q-app-shell:has([data-slot='shell-bottom-nav']) {
+    padding-block-end: 0;
+  }
+}
+
+/*
+ * While a modal is open, the page beneath it does not move.
+ *
+ * A `<dialog>` opened with `showModal()` makes the rest of the document inert —
+ * it cannot be clicked, focused or read — but **inert does not stop it
+ * scrolling**, and the app's scroller is a `<div>` rather than the document, so
+ * none of the browser's own modal scroll handling reaches it either. A drag
+ * that began on the scrim, or one that ran past the end of a dialog whose body
+ * had no more to give, moved the page behind the surface being worked in.
+ *
+ * `overflow: hidden` rather than a class toggled from JavaScript: there is no
+ * open/close lifecycle to keep in step, nothing to leak if a dialog unmounts
+ * mid-animation, and it costs no layout shift because scrollbars are hidden
+ * app-wide already. `scrollTop` is preserved, so the page is exactly where it
+ * was when the dialog closes.
+ *
+ * The dialog's own body keeps its `overscroll-behavior: contain`, which is the
+ * other half of this: that stops the chaining, this stops the drag that never
+ * chained because it started outside.
+ */
+body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
+  overflow: hidden;
 }
 
 /*
@@ -3229,6 +3460,324 @@
  * they need the forwards fill to hold the end state until the dialog actually
  * closes, and a closing dialog has nothing left to mis-anchor.
  */
+/*
+ * ══ The responsive dialog frame ══
+ *
+ * Every `.q-dialog` in the app — the ones that exist and the ones nobody has
+ * written yet — is a header that stays, a body that scrolls and a footer that
+ * stays, inside a box that is never taller than the screen can show. This block
+ * is the whole of that contract. **A new dialog needs no responsive class of
+ * its own**; composing `Dialog`/`DialogHeader`/`DialogBody`/`DialogFooter` is
+ * what opts it in.
+ *
+ * ## What it replaces, and why it had to move here
+ *
+ * A `<dialog>` opened with `showModal()` gets two declarations from the UA
+ * stylesheet that between them are the source of nearly every "the dialog is
+ * cropped / Save is off screen" report:
+ *
+ * - `max-height: calc(100% - 6px - 2em)`, where `100%` is the *layout*
+ *   viewport. On iOS that is the large viewport — the one with the address bar
+ *   retracted — so the ceiling is taller than the screen actually shows for as
+ *   long as the chrome is up, and taller again by the height of the keyboard
+ *   once one is open.
+ * - `overflow: auto`, which makes **the dialog itself** the scroll container.
+ *   Header and footer are inside it, so both scroll away: the gallery dialog at
+ *   375×812 put its footer 31px past the bottom edge, and at 812×375 — a phone
+ *   held sideways — 468px of it was below the fold with Save among them. The
+ *   surface was reachable, which is why this survived review; it was reachable
+ *   only by scrolling past the title to find the button.
+ *
+ * Five call sites had each independently written `open:flex open:flex-col
+ * max-h-[90dvh] overflow-hidden` to escape that, and about fifteen had not, so
+ * whether a dialog fitted the screen depended on whether whoever wrote it had
+ * been bitten before. Stating it once, here, is the difference between a
+ * convention and an architecture.
+ *
+ * ## The height budget
+ *
+ * `--q-viewport-block` rather than `100dvh`: it is `100dvh` with the keyboard's
+ * own inset already subtracted, so the same expression is right on Android —
+ * where the layout viewport shrinks and the inset is `0px` — and on iOS, where
+ * it does not and the inset carries the whole correction. See the token.
+ *
+ * The gutter and the safe inset differ by shape, and they are variables rather
+ * than two copies of this rule so the difference is one line each:
+ *
+ * - A **centred card** floats clear of all four edges, so it owes clearance at
+ *   both ends of the block axis: the status bar, the home indicator, and 2rem
+ *   of scrim so the page is visibly still behind it.
+ * - A **sheet** is pinned to the block-end edge on purpose. Its fill *should*
+ *   run under the home indicator — the safe-area padding further up this file
+ *   moves its content, not its background — so it owes clearance at the top
+ *   only, and taking `--q-safe-b` off its ceiling as well would cost a phone
+ *   ~34px of usable height for nothing.
+ *
+ * ## `inset-block-end`, and why the cap alone is not enough
+ *
+ * A modal `<dialog>` is `position: fixed` with `inset: 0` from the UA, so its
+ * margins are resolved against the *layout* viewport. On iOS the keyboard does
+ * not change that box, so a shorter sheet still sits on the bottom edge of it —
+ * behind the keys, at exactly the height that was just freed up. Moving the
+ * box's block-end edge up by the keyboard's own inset is what puts the sheet
+ * back on top of the keyboard, and re-centres a centred card in what is left.
+ *
+ * A `transform` would be the obvious way to lift it and is deliberately not
+ * used: a transformed element becomes the containing block for every `fixed`
+ * descendant, and the select, combobox and popover positioners are portaled
+ * *into* this dialog (see `useDialogContainer`) and are `position: fixed` on a
+ * coarse pointer. Lifting the dialog that way would drag every popup in it out
+ * of position. `inset-block-end` moves the box without creating one.
+ *
+ * ## The fallback, for a dialog with no body
+ *
+ * `overflow: hidden` is only safe where something *else* has taken on the
+ * scrolling. Where a dialog has no `dialog-body` to hand it to — the portal's
+ * flame celebration is one — clipping would make its overflow unreachable
+ * rather than merely awkward, which is worse than what the UA does. So the
+ * `:has()` pair below gives the framed dialog `hidden` and leaves everything
+ * else scrolling as a whole, still under the ceiling and so still never
+ * cropped. The two exclusions are the ones every geometry rule in this file
+ * carries: a drawer that owns its own frame opts out by class.
+ */
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) {
+  /* The centred card's budget; the sheet narrows it in the two queries below. */
+  --q-dialog-block-gutter: 2rem;
+  --q-dialog-block-safe: calc(var(--q-safe-t) + var(--q-safe-b));
+
+  display: flex;
+  flex-direction: column;
+  /*
+    `min()` of two ceilings, and the order does not matter — whichever is
+    smaller wins, which is the point.
+
+    The second is the safety one and cannot be switched off. The first is a
+    call site's own taste, for a surface that should stop short of the screen
+    even when there is room — set `[--q-dialog-max-block:32rem]` in the class
+    list. **A `max-h-[…]` utility will not work**: this declaration is unlayered
+    and beats every Tailwind utility on the element, so a call site that reached
+    for one would find it silently doing nothing. The variable is the seam,
+    exactly as `--q-dialog-sheet-width` is for the width.
+  */
+  max-block-size: min(
+    var(--q-dialog-max-block, 100dvh),
+    calc(var(--q-viewport-block) - var(--q-dialog-block-safe) - var(--q-dialog-block-gutter))
+  );
+  inset-block-end: var(--q-keyboard-inset);
+}
+
+/*
+ * The sheet's budget, at the two widths a sheet is one at.
+ *
+ * `:not([data-placement])` is `ConfirmDialog`, which predates the attribute and
+ * is a `.q-dialog` written by hand: below `sm` it is `mt-auto mb-0` like every
+ * other sheet, so it wants the sheet's ceiling rather than the card's.
+ */
+@media (width < 40rem) {
+  .q-dialog[open][data-placement='sheet']:not(.planner-context-sheet):not(.app-navigation-drawer),
+  .q-dialog[open]:not([data-placement]):not(.planner-context-sheet):not(.app-navigation-drawer) {
+    --q-dialog-block-gutter: 1.5rem;
+    --q-dialog-block-safe: var(--q-safe-t);
+  }
+}
+
+/*
+ * …and on a tablet, where the sheet rule further down this file keeps the shape
+ * at any width. Same pairing as every other coarse-pointer rule here: the
+ * question is whether the surface is pinned to the block-end edge, and on touch
+ * hardware `placement="sheet"` still is.
+ */
+@media (pointer: coarse) {
+  .q-dialog[open][data-placement='sheet']:not(.planner-context-sheet):not(.app-navigation-drawer) {
+    --q-dialog-block-gutter: 1.5rem;
+    --q-dialog-block-safe: var(--q-safe-t);
+  }
+}
+
+/*
+ * ⚠ The `:has()` is **positional** — a body in one of the two places the frame
+ * actually drives, and not any descendant. A dialog may contain another one:
+ * the custom-food dialog renders inside the dish editor's own form, so a bare
+ * `:has([data-slot='dialog-body'])` let the *nested, closed* dialog's body
+ * answer for its host, and the host was clipped on the strength of a scrollport
+ * that was not its own and was `display: none` besides.
+ */
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer):has(
+    > [data-slot='dialog-body'],
+    > :where(form, div) > [data-slot='dialog-body']
+  ) {
+  overflow: hidden;
+}
+
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer):not(
+    :has(> [data-slot='dialog-body'], > :where(form, div) > [data-slot='dialog-body'])
+  ) {
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+/*
+ * The wrapper between the dialog and its slots.
+ *
+ * Most dialogs in this app do not put the three slots directly inside the
+ * `<dialog>`: about half wrap them in the `<form>` they submit through, and the
+ * rest — `ConfirmDialog`, the custom-food dialog, which cannot use a `<form>`
+ * because it renders inside another one — in a plain `<div>`. Left as a block
+ * box that wrapper absorbs the flex column and the body has no bounded parent
+ * to scroll inside, so the frame has to pass through it.
+ *
+ * `:has()` rather than `> form, > div`, so it lands on the element that
+ * actually holds the slots and not on a sibling a dialog happens to also
+ * render — a hidden input, a live region, the flame celebration's canvas.
+ *
+ * ⚠ **`:not([hidden])` is load-bearing.** `[hidden]` hides an element through
+ * `display: none` in the UA stylesheet, and any author `display` beats it —
+ * which is the same trap `open:flex` on a `<dialog>` exists to exploit, working
+ * against us here. The new-week dialog keeps its choices mounted and `hidden`
+ * while a week generates, so that its server action's subtree is not unmounted
+ * mid-request; without this the frame would put them back on screen underneath
+ * the loading state.
+ */
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer)
+  > :where(form, div):not([hidden]):has(
+    > :where([data-slot='dialog-header'], [data-slot='dialog-body'], [data-slot='dialog-footer'])
+  ) {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  /*
+    The line the whole frame turns on. A flex item's default `min-block-size` is
+    `auto`, which resolves to its content's size — so a wrapper full of fields
+    refuses to shrink below them, pushes past the ceiling above, and hands the
+    body a parent with nothing left to scroll inside. Every level between the
+    dialog and the scrollport needs this, which is why it is stated here and
+    again on the body itself.
+  */
+  min-block-size: 0;
+}
+
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer)
+  > :where([data-slot='dialog-header'], [data-slot='dialog-footer']),
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer)
+  > :where(form, div)
+  > :where([data-slot='dialog-header'], [data-slot='dialog-footer']) {
+  /* Neither grows nor shrinks: these are the two rows that must always be there. */
+  flex: 0 0 auto;
+}
+
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer)
+  > [data-slot='dialog-body'],
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer)
+  > :where(form, div)
+  > [data-slot='dialog-body'] {
+  flex: 1 1 auto;
+  min-block-size: 0;
+  /*
+    `auto` on both axes, not `overflow-y: auto` beside an `overflow-x: hidden`.
+    A clip is how content goes missing silently — the app shell says the same
+    thing at greater length over its own `overflow-x-auto` — and the two axes
+    cannot disagree anyway: a box with one axis `visible` and the other not
+    computes the visible one to `auto` by itself.
+  */
+  overflow: auto;
+  /*
+    A flick that runs off the end of the body is the body's gesture. Left to
+    chain it scrolls the page behind the scrim, or on iOS starts the browser's
+    own pull-to-refresh, from inside a modal.
+  */
+  overscroll-behavior: contain;
+  /*
+    Where a focused field lands when the keyboard pushes it into view. Without
+    it the browser stops with the input flush against the edge of the scrollport
+    and under the header's own shadow.
+  */
+  scroll-padding-block: 1rem;
+}
+
+/*
+ * ══ The same frame, for `Sheet` ══
+ *
+ * `Sheet` is a Base UI dialog rather than a native `<dialog>`, so it inherits
+ * none of the UA geometry the block above is correcting — and none of the
+ * ceiling either. `SheetContent`'s own utilities give the block-axis sides
+ * `h-auto`, which means "as tall as the content", with nothing to stop it: a
+ * bottom sheet with a long list grew straight off the top of the screen and its
+ * first rows were unreachable, because a `fixed` box pinned to the block-end
+ * edge overflows *upward* and no scrollbar exists in that direction.
+ *
+ * The three numbers here are the dialog's, deliberately: a bottom sheet and a
+ * `placement="sheet"` dialog are the same surface to a reader, and a reader who
+ * met them at two different heights would be right to call it a bug.
+ */
+[data-slot='sheet-content'] {
+  /*
+    Composed the same way `.q-dialog`'s ceiling is, and for the same reason: the
+    safety bound cannot be switched off, and a call site that wants its sheet
+    shorter still sets `[--q-sheet-max-block:85dvh]` rather than a `max-h-[…]`
+    utility this unlayered rule would beat.
+  */
+  max-block-size: min(
+    var(--q-sheet-max-block, 100dvh),
+    calc(var(--q-viewport-block) - var(--q-sheet-block-gutter, 0px))
+  );
+}
+
+[data-slot='sheet-content'][data-side='bottom'] {
+  /* Clear of the status bar, with 1.5rem of scrim left showing above it. */
+  --q-sheet-block-gutter: calc(var(--q-safe-t) + 1.5rem);
+  /* Lifted above the keyboard on iOS; `0px` and therefore inert everywhere else. */
+  inset-block-end: var(--q-keyboard-inset);
+}
+
+[data-slot='sheet-content'][data-side='top'] {
+  --q-sheet-block-gutter: calc(var(--q-safe-b) + 1.5rem);
+}
+
+/*
+ * The inline rails span the whole block axis, so the keyboard has to come out
+ * of their *height* rather than push them up.
+ *
+ * `block-size: auto` replaces the `h-full` utility on them, and is the same
+ * thing while no keyboard is open: a `fixed` box with both block insets set and
+ * an auto size is stretched to fill exactly as `height: 100%` stretches it.
+ * With one open, the insets shrink and the rail shrinks with them, which
+ * `height: 100%` would refuse to do.
+ */
+[data-slot='sheet-content'][data-side='inline-start'],
+[data-slot='sheet-content'][data-side='inline-end'] {
+  inset-block: 0 var(--q-keyboard-inset);
+  block-size: auto;
+}
+
+/*
+ * `SheetBody` is the scrollport, exactly as `DialogBody` is.
+ *
+ * The `:has()` pair is the dialog's too, and for the same reason: a sheet that
+ * has named its scrolling region is clipped so that nothing but that region
+ * moves, and one that has not scrolls as a whole — under the ceiling above, so
+ * still never cropped — rather than having its overflow clipped away.
+ */
+[data-slot='sheet-content']:has(> [data-slot='sheet-body']) {
+  overflow: hidden;
+}
+
+[data-slot='sheet-content']:not(:has(> [data-slot='sheet-body'])) {
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+[data-slot='sheet-body'] {
+  flex: 1 1 auto;
+  min-block-size: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scroll-padding-block: 1rem;
+}
+
+[data-slot='sheet-content'] > :where([data-slot='sheet-header'], [data-slot='sheet-footer']) {
+  flex: 0 0 auto;
+}
+
 /*
  * G. Seam is the standard dialog transition. The surface reveals from its own
  * horizontal midpoint, so the same motion belongs to a phone sheet and a

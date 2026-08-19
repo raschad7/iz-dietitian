@@ -125,15 +125,18 @@ export function IntakeFormTrigger({
               dir={getLocaleDirection(locale)}
               flat
               className={cn(
-                // `open:` and not a bare `flex`: a `display` utility on a
-                // <dialog> outranks the UA rule that hides it while closed.
+                // A fixed height rather than a fitted one: the panel scrolls
+                // inside the frame, so switching from a two-field section to the
+                // meal schedule must not resize the dialog under the pointer
+                // that just clicked the rail.
                 //
-                // Wide enough for the section rail *and* two field columns
-                // beside it, and a fixed height rather than a fitted one: the
-                // panel scrolls inside the frame, so switching from a two-field
-                // section to the meal schedule must not resize the dialog under
-                // the pointer that just clicked the rail.
-                'open:flex open:flex-col h-[min(46rem,90dvh)] overflow-hidden',
+                // `46rem` flat, with no `min()` against the viewport: the
+                // responsive dialog frame in `globals.css` caps every dialog at
+                // what the screen can actually show — keyboard included — so a
+                // second ceiling here would only be a worse copy of it. The flex
+                // column and the clip come from there too.
+                'h-[46rem]',
+                // Wide enough for the section rail *and* two field columns beside it.
                 'sm:w-[min(54rem,calc(100vw-3rem))]',
                 /*
                   The same measure said a second time, to the coarse-pointer

@@ -424,7 +424,15 @@ function NotificationInboxPopover<T extends string>({
           side="bottom"
           className={cn(
             MEASURES,
-            'max-h-[85dvh] gap-0 overflow-hidden rounded-t-lg p-0',
+            /*
+              `[--q-sheet-max-block:85dvh]` rather than `max-h-[85dvh]`: the
+              sheet frame in `globals.css` sets `max-block-size` unlayered, so a
+              utility here would be overridden without a word. The variable is
+              the seam it reads, and the frame still takes the *smaller* of this
+              and what the screen can show — so the taste ceiling stays and the
+              safety one, keyboard included, cannot be lost.
+            */
+            '[--q-sheet-max-block:85dvh] gap-0 overflow-hidden rounded-t-lg p-0',
             /*
               A measure from `sm` up, rather than the full width of the glass.
 

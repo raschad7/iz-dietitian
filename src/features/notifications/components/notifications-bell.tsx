@@ -190,9 +190,9 @@ export function NotificationsBell({ attention }: { attention: StaffAttentionNoti
               flat
               size="wide"
               className={cn(
-                // `open:` and not a bare `flex`: a `display` utility on a
-                // <dialog> outranks the UA rule that hides it while closed.
-                'open:flex open:flex-col max-h-[90dvh] overflow-hidden',
+                // Height, flex column and clip all come from the responsive
+                // dialog frame in `globals.css` now. Only the widths below are
+                // this surface's own.
                 // Narrower than the requests dialog: a notification is one line
                 // about one client, not a request carrying two buttons.
                 'sm:w-[min(40rem,calc(100vw-2rem))]',

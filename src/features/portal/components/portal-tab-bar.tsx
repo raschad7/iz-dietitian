@@ -16,9 +16,25 @@ import { cn } from '@/lib/utils';
  * inset it keeps is carried *inside* the bar, so the fill still reaches the
  * edges of the display on a notched phone while the labels stay clear of the
  * hardware: `env(safe-area-inset-bottom)` below, and the inline pair from the
- * `.portal-tab-bar > ul` rule in `globals.css` — this bar is `fixed`, so the
- * shell's own safe-area padding never reaches it, and in landscape the first
+ * `.portal-tab-bar > ul` rule in `globals.css` — in landscape the first
  * and last of four equal columns are exactly what a sensor housing covers.
+ *
+ * ## It is in flow, not `fixed`
+ *
+ * It used to be `fixed inset-x-0 bottom-0 z-40`, with the page underneath
+ * carrying `pb-24` so its last card would clear it. That is two numbers that
+ * had to stay equal, in two files, and they had already drifted — the clearance
+ * stopped at `md` while the bar runs to `lg`, so a tablet's last card sat under
+ * it. The shell is a bounded frame now (`.q-app-shell` in `globals.css`): the
+ * window does not scroll, `main` does, and a bar that is simply the last child
+ * of the shell column stays on screen by occupying its own height. No
+ * clearance, no `z-index`, no stacking order to keep straight.
+ *
+ * The block-end inset stays *inside* the bar rather than moving to the shell.
+ * The shell's own `padding-block-end` would inset this element as a whole, so
+ * its fill would stop short of the glass and leave a strip of canvas beneath
+ * it; kept here, the background still runs to the bottom of the display while
+ * the labels sit above the home indicator.
  *
  * Four equal columns, one style throughout — no tab is raised above the
  * others. Icons come from `PORTAL_NAV_ICONS`, the same map the desktop
@@ -55,19 +71,30 @@ export function PortalTabBar() {
       whether this bar is on the screen at all. The `(screen)` group renders no
       tab bar, and a toast there should sit at the app's ordinary offset.
     */
-    <nav className="portal-tab-bar fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card lg:hidden">
+    <nav
+      data-slot="shell-bottom-nav"
+      className="portal-tab-bar shrink-0 border-t border-border bg-card lg:hidden"
+    >
       {/*
-        `env(safe-area-inset-bottom)` keeps the labels clear of the home
-        indicator on a notched phone, where the viewport bottom is not the
-        bottom of the usable screen. It is padding, not a margin, so the fill
-        behind it still runs to the very edge.
+        `--q-safe-b` keeps the labels clear of the home indicator on a notched
+        phone, where the viewport bottom is not the bottom of the usable screen.
+        It is padding, not a margin, so the fill behind it still runs to the
+        very edge.
+
+        **The token, not `env(safe-area-inset-bottom)` inline.** This was the
+        last inset in the app reading `env()` at a call site, and globals.css
+        gives the reason the rest do not: a token has no comma to escape inside
+        a Tailwind arbitrary value, and it cannot be written without its `0px`
+        fallback by accident. It also makes this the only inset that could not
+        be exercised anywhere but on hardware — the tokens can be overridden in
+        a browser to simulate a notch, and `env()` cannot.
 
         `px-1` is the gutter in portrait and a floor in landscape: the rule in
         `globals.css` raises this element's inline padding to the safe-area
         insets with a `max()` against this same 0.25rem, so the two never
         disagree about which is larger.
       */}
-      <ul className="grid grid-cols-4 px-1 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+      <ul className="grid grid-cols-4 px-1 pb-[max(0.5rem,var(--q-safe-b))]">
         {PORTAL_NAV.map((item) => {
           // `/portal` is a prefix of the others, so it matches only exactly.
           const active = item.href === '/portal' ? pathname === item.href : pathname.startsWith(item.href);

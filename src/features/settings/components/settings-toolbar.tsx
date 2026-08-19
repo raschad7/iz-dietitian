@@ -31,6 +31,24 @@ import { Link } from '@/i18n/navigation';
  * commits its own field, so there is no page-level dirty state to report and no
  * navigation to guard — which is also why the leave-confirmation dialog and the
  * whole dirty-tracking context are gone.
+ *
+ * ## On a phone it is four icons
+ *
+ * The four labels are "Personal profile", "Clinic", "WhatsApp" and "Security",
+ * and `tabLinkVariants` keeps a tab's label on one line — correctly, a tab that
+ * wraps stops reading as one of a row of peers. Together those come to more
+ * than a phone is wide, so below `sm` the bar was a strip you had to drag
+ * sideways to reach Security: the one piece of navigation on the screen, and
+ * half of it past the edge of the glass.
+ *
+ * Icons alone fit four abreast at 320px with room over. The label is not
+ * removed, it is `sr-only` — so the link keeps its accessible name, and a screen
+ * reader, a search of the page and the browser's own status bar all still say
+ * "Security" rather than announcing four unlabelled links. `not-sr-only` puts it
+ * back from `sm` up, where it always fitted.
+ *
+ * `sm` and not `md`: 40rem is this app's phone boundary everywhere else (see
+ * `useIsPhone`), and the labels fit comfortably by 640px in both scripts.
  */
 
 const SETTINGS_LINKS = [
@@ -56,8 +74,12 @@ export function SettingsToolbar() {
             aria-current={active ? 'page' : undefined}
             className={tabLinkVariants({ active, appearance: 'contained' })}
           >
-            <Icon name={item.icon} className="size-[17px]" />
-            {t(`tabs.${item.key}`)}
+            {/*
+              A touch larger while it is carrying the tab on its own, back to
+              the row's shared 17px once the label is beside it again.
+            */}
+            <Icon name={item.icon} className="size-5 sm:size-[17px]" />
+            <span className="sr-only sm:not-sr-only">{t(`tabs.${item.key}`)}</span>
           </Link>
         );
       })}

@@ -12,6 +12,7 @@ import {
 import type { ReactNode } from 'react';
 
 import { DirectionProvider } from '@/components/ui/direction';
+import { KeyboardInset } from '@/components/ui/keyboard-inset';
 import { Toaster } from '@/components/ui/toast';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { InstallPromptCapture } from '@/features/pwa/install-prompt-capture';
@@ -315,6 +316,16 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
           component for why the tag could not stay.
         */}
         <InstallPromptCapture />
+        {/*
+          Also renders nothing, and mounted here for the same reason: the
+          keyboard inset it publishes is read by `globals.css` on behalf of
+          every dialog, sheet and coarse-pointer popup in both apps, so it has
+          to be above all of them. It writes one custom property on <html> and
+          only ever while a software keyboard is actually open — see the
+          component for why `interactiveWidget: 'resizes-content'` in the
+          viewport export above does not cover iOS.
+        */}
+        <KeyboardInset />
         {/*
           No floating locale switcher here. The switcher lives in the app bar
           (`Header`) and on the login screens, which is the only place it should
