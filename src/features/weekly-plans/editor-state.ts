@@ -1,4 +1,4 @@
-import { combineTotals, dishTotals, emptyTotals, type DishDetail } from './nutrition';
+import { combineTotals, dishGrams, dishTotals, emptyTotals, type DishDetail } from './nutrition';
 import type { Board, BoardDay, BoardMeal } from './queries';
 import type { MealType } from './schema';
 
@@ -82,6 +82,10 @@ function withDish(meal: BoardMeal, dish: DishDetail | null, servings: number): B
     // under a dish the dietitian chose would misattribute both.
     rationaleAr: dish && dish.id === meal.dish?.id ? meal.rationaleAr : null,
     totals: dish ? dishTotals(dish.ingredients, servings) : emptyTotals(),
+    grams: dish ? dishGrams(dish.ingredients, servings) : 0,
+    // Always live. Only a draft is editable (`editablePlan` refuses anything else),
+    // so an optimistic edit is by definition happening to unfrozen numbers.
+    nutritionFrozen: false,
   };
 }
 
@@ -157,6 +161,8 @@ export function applyEdit(board: Board, edit: BoardEdit): Board {
         dish: null,
         rationaleAr: null,
         totals: emptyTotals(),
+        grams: 0,
+        nutritionFrozen: false,
         // Unbudgeted. 0 already means "no budget" everywhere in this feature, and
         // recomputing the day's other budgets to make room would rewrite the
         // numbers the rest of the week was generated against.
@@ -203,6 +209,8 @@ export function applyEdit(board: Board, edit: BoardEdit): Board {
                     dish: null,
                     rationaleAr: null,
                     totals: emptyTotals(),
+                    grams: 0,
+                    nutritionFrozen: false,
                     budgetKcal: 0,
                     options: [],
                   },

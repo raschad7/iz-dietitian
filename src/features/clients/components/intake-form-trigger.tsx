@@ -5,12 +5,14 @@ import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import { createPortal } from 'react-dom';
 
 import { Dialog, DialogHeader } from '@/components/ui/dialog';
+import { useDialogPresence } from '@/components/ui/dialog-motion';
 import { loadIntakeAction } from '@/features/clients/actions';
 import { IntakeForm } from '@/features/clients/components/intake-form';
 import { type IntakeSectionId } from '@/features/clients/intake-sections';
 import { type ClientIntakeValues } from '@/features/clients/types';
 import { useRouter } from '@/i18n/navigation';
 import { getLocaleDirection, type Locale } from '@/i18n/routing';
+import { cn } from '@/lib/utils';
 
 /**
  * The intake dialog, and the control that opens it.
@@ -48,6 +50,7 @@ export function IntakeFormTrigger({
   const [open, setOpen] = useState(false);
   const [intake, setIntake] = useState<ClientIntakeValues | null>(null);
   const [loading, startLoading] = useTransition();
+  const dialogPresent = useDialogPresence(open);
 
   const trigger = useRef<HTMLButtonElement>(null);
   const hasOpened = useRef(false);
@@ -74,10 +77,10 @@ export function IntakeFormTrigger({
   useEffect(() => {
     if (open) {
       hasOpened.current = true;
-    } else if (hasOpened.current) {
+    } else if (hasOpened.current && !dialogPresent) {
       trigger.current?.focus();
     }
-  }, [open]);
+  }, [dialogPresent, open]);
 
   const openDialog = () => {
     startLoading(async () => {
@@ -113,15 +116,15 @@ export function IntakeFormTrigger({
         {children}
       </button>
 
-      {open && intake
+      {dialogPresent && intake
         ? createPortal(
             <Dialog
-              open
+              open={open}
               onClose={close}
               label={intake.hasProfile ? t('intake.editTitle') : t('intake.createTitle')}
               dir={getLocaleDirection(locale)}
               flat
-              className={
+              className={cn(
                 // `open:` and not a bare `flex`: a `display` utility on a
                 // <dialog> outranks the UA rule that hides it while closed.
                 //
@@ -130,8 +133,23 @@ export function IntakeFormTrigger({
                 // panel scrolls inside the frame, so switching from a two-field
                 // section to the meal schedule must not resize the dialog under
                 // the pointer that just clicked the rail.
-                'open:flex open:flex-col h-[min(46rem,90dvh)] overflow-hidden sm:w-[min(54rem,calc(100vw-3rem))]'
-              }
+                'open:flex open:flex-col h-[min(46rem,90dvh)] overflow-hidden',
+                'sm:w-[min(54rem,calc(100vw-3rem))]',
+                /*
+                  The same measure said a second time, to the coarse-pointer
+                  sheet in `globals.css`.
+
+                  Those rules are unlayered and so beat the `sm:w-[…]` above,
+                  and this dialog never set the variable they read — so on a
+                  *physical* tablet it took the 28rem fallback and drew its 14rem
+                  rail beside a two-column grid in the 14rem that was left. The
+                  same tablet driven by a mouse got 54rem: one surface, two
+                  widths, decided by the input device rather than by the screen.
+                  It is deliberately the same number as the line above. See
+                  `--q-dialog-sheet-width` in `globals.css`.
+                */
+                '[--q-dialog-sheet-width:min(54rem,calc(100vw-3rem))]',
+              )}
             >
               <DialogHeader
                 title={intake.hasProfile ? t('intake.editTitle') : t('intake.createTitle')}

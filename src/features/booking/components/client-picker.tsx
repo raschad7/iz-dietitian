@@ -2,11 +2,13 @@
 
 import { useTranslations } from 'next-intl';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Icon } from '@/components/ui/icon';
 
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useIsSheetSurface } from '@/hooks/use-mobile';
 import { getLocaleDirection, type Locale } from '@/i18n/routing';
 import { normalizeForSearch } from '@/features/clients/search';
 import { cn } from '@/lib/utils';
@@ -74,6 +76,15 @@ export function ClientPicker({
   const t = useTranslations('booking');
   const direction = getLocaleDirection(locale);
 
+  /*
+    The same question the notifications inbox and the guided tour ask — width
+    under 40rem, or a coarse pointer at any width. On a touch surface this
+    picker rises from the block-end edge instead of hanging off the point the
+    finger lifted from; see the class list on the panel below for why that is
+    the right shape for a booking made with a thumb.
+  */
+  const asSheet = useIsSheetSurface();
+
   const popoverRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
 
@@ -110,22 +121,75 @@ export function ClientPicker({
    * Position after measuring, not before: clamping needs the popover's real
    * size, and a width guessed from the content would put it half off screen on
    * a long client name. Hidden until measured, so there is no visible jump.
+   *
+   * ## And again whenever the viewport changes size
+   *
+   * `anchorPopover` takes the pointer that opened the picker and clamps the
+   * panel inside the viewport it was measured against. That viewport is not a
+   * constant on a phone or a tablet: turning the device swaps its two
+   * dimensions outright, and the on-screen keyboard shortens it by half under
+   * `interactiveWidget: 'resizes-content'` (see the `viewport` export in
+   * `[locale]/layout.tsx`) the moment the search field takes focus.
+   *
+   * Measured once, the panel kept coordinates clamped to a viewport that no
+   * longer existed — a picker opened near the foot of a portrait screen landed
+   * off the bottom of the same screen turned sideways, with the half-made
+   * booking it holds unreachable and no way back but dismissing it.
+   *
+   * Re-running the same clamp is the whole fix. The pointer is deliberately
+   * *not* re-derived: the tap it records happened in the old viewport and there
+   * is nothing to map it onto in the new one, so the honest behaviour is to
+   * keep the panel as close to where the reader left it as the new screen
+   * allows, which is exactly what clamping the old pointer does.
+   *
+   * Both events, because on a rotation they fire at different moments:
+   * `orientationchange` as the turn begins and `resize` once the new dimensions
+   * have settled. Running the clamp on each is two `getBoundingClientRect`
+   * reads and a `setState` that no-ops when the answer has not moved, which is
+   * cheaper than choosing wrong. `resize` alone still carries every other case
+   * — the keyboard, an iPad split-view divider, a desktop window edge — and is
+   * the same listener `meal-inspector.tsx` re-measures on.
    */
   useLayoutEffect(() => {
     const element = popoverRef.current;
     if (!element) return;
 
-    const rect = element.getBoundingClientRect();
+    /*
+      None of this applies to the sheet. Its geometry is CSS — pinned to the
+      block-end edge and centred on auto margins — so there is no pointer to
+      clamp, nothing to measure, and no rotation case to re-measure for. Bailing
+      here also leaves `position` null, which the sheet branch of the class list
+      deliberately does not read: the anchored panel hides itself until measured
+      and the sheet has nothing to wait for.
+    */
+    if (asSheet) return;
 
-    setPosition(
-      anchorPopover(
-        pending.pointer,
-        { width: rect.width, height: rect.height },
-        { width: window.innerWidth, height: window.innerHeight },
-        direction,
-      ),
-    );
-  }, [direction, pending.pointer]);
+    function place() {
+      const node = popoverRef.current;
+      if (!node) return;
+
+      const rect = node.getBoundingClientRect();
+
+      setPosition(
+        anchorPopover(
+          pending.pointer,
+          { width: rect.width, height: rect.height },
+          { width: window.innerWidth, height: window.innerHeight },
+          direction,
+        ),
+      );
+    }
+
+    place();
+
+    window.addEventListener('resize', place);
+    window.addEventListener('orientationchange', place);
+
+    return () => {
+      window.removeEventListener('resize', place);
+      window.removeEventListener('orientationchange', place);
+    };
+  }, [asSheet, direction, pending.pointer]);
 
   /**
    * Outside-click, armed one tick late.
@@ -202,7 +266,37 @@ export function ClientPicker({
     onPick(client.id, weeks);
   }
 
-  return (
+  /*
+    ── Portalled to <body>, like every other overlay in the app ──
+
+    This panel is `position: fixed`, and it was the last fixed overlay here
+    rendered *in place*: `Dialog` portals (see `client-form-trigger.tsx`), and
+    all four Base UI popups portal. Rendered inline it sat deep inside the
+    calendar, which means its containing block was not the viewport but the
+    nearest ancestor carrying a `transform`, `filter`, `backdrop-filter`,
+    `perspective`, `contain: paint` or `will-change` on any of them — and the
+    coordinates it computes come from `getBoundingClientRect`, which is measured
+    against the viewport. When those two disagree the panel lands offset by the
+    ancestor's own origin, and if that ancestor also clips (a `clip-path`, an
+    `overflow` on a transformed box) it is not merely displaced but invisible.
+
+    That is exactly the failure `.q-route-stage` was causing app-wide until the
+    `animation-fill-mode` fix, and the four notes elsewhere in this codebase
+    about working around that wrapper are the same bug found four times. A
+    portal to `<body>` ends the whole class of it: there is no ancestor left
+    between this element and the initial containing block, so no future
+    `transform` added anywhere in the calendar can move or hide the picker
+    again.
+
+    `dir` is already set explicitly below, so leaving the calendar's subtree
+    costs nothing — the panel never inherited direction from its parent.
+
+    Guarded on `document` so the first server render, where there is no body to
+    portal into, returns nothing rather than throwing.
+  */
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
     <div
       ref={popoverRef}
       role="dialog"
@@ -210,10 +304,42 @@ export function ClientPicker({
       aria-label={t('picker.title')}
       dir={direction}
       className={cn(
-        'fixed z-50 flex w-80 max-w-[calc(100vw-1rem)] flex-col gap-3 rounded-xl border border-border bg-popover p-3 shadow-xl',
-        position ? 'visible' : 'invisible',
+        'fixed z-50 flex flex-col gap-3 border-border bg-popover p-3',
+        asSheet
+          ? /*
+              ── The touch surface: a sheet on the block-end edge ──
+
+              Anchored to the pointer, this panel lands under the hand that just
+              painted the range — which is exactly where a finger already is, so
+              the finger covers the list it opened. `anchorPopover` then clamps
+              it inside the viewport, and near the foot of a screen that means
+              the panel jumps somewhere the reader did not press.
+
+              Risen from the edge instead, it is where a thumb reaches, it is
+              never underneath the hand, and it is the same shape every other
+              interrupting surface in this app now takes on a touch device — the
+              notifications inbox, the requests inbox, `Dialog`'s own sheet
+              placement. The range stays visible on the grid above it, which is
+              the one thing the anchored panel was buying and this keeps.
+
+              28rem centred from `sm` up, the measure `--q-dialog-sheet-width`
+              and the coarse-pointer popup rules in `globals.css` both settle on,
+              so a tablet shows one width for every surface that interrupts it.
+              `mx-auto` against the pinned inline insets centres it in a way that
+              stays correct in RTL, where a translate would not.
+            */
+            cn(
+              'inset-x-0 bottom-0 mx-auto w-full rounded-t-2xl border-t shadow-overlay',
+              'sm:max-w-[28rem]',
+              'pb-[calc(0.75rem+var(--q-safe-b))]',
+            )
+          : cn('w-80 max-w-[calc(100vw-1rem)] rounded-xl border shadow-xl', position ? 'visible' : 'invisible'),
       )}
-      style={{ insetInlineStart: position?.insetInlineStart ?? 0, insetBlockStart: position?.insetBlockStart ?? 0 }}
+      style={
+        asSheet
+          ? undefined
+          : { insetInlineStart: position?.insetInlineStart ?? 0, insetBlockStart: position?.insetBlockStart ?? 0 }
+      }
       onKeyDown={(event) => {
         if (event.key === 'Escape') {
           event.preventDefault();
@@ -382,6 +508,7 @@ export function ClientPicker({
           {t('picker.newClient')}
         </Button>
       ) : null}
-    </div>
+    </div>,
+    document.body,
   );
 }

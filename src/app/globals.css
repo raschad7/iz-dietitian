@@ -63,33 +63,50 @@
  * else.
  */
 :root {
-  /* ── Olive (primary) ── */
-  --olive-50: #F5F8EF;
-  --olive-100: #E8F0DA;
-  --olive-200: #D2E2B9;
-  --olive-300: #B2CE8D;
-  --olive-400: #8CB35C;
-  --olive-500: #6B9639;
-  --olive-600: #4D7428;
-  --olive-700: #3D5C21;
-  --olive-800: #2E461A;
-  --olive-900: #223414;
-  --olive-950: #16220D;
+  /*
+   * ── Green (brand, primary) ──
+   *
+   * The brand ramp, and after the lime accent was removed the *only* green in
+   * the system: every green surface, mark, fill and edge in the app resolves to
+   * a step of this scale. Step 400 is the logo's own leaf colour and is what
+   * `--primary` maps to, which is why the ramp and the mark cannot drift apart
+   * — see `src/features/brand/logo.ts`.
+   *
+   * It replaced a muted olive scale of the same shape. Every token that read a
+   * step reads the same step now, so the change is a re-tone rather than a
+   * re-mapping; what moved is the hue, which is brighter and more saturated
+   * through the middle. The practical consequence is contrast: the light half
+   * of this ramp is *lighter* than the olive it replaced, so a mark or a label
+   * that only just cleared its floor on the old scale may not clear it on this
+   * one. Ratios quoted in comments below were measured against the olive and
+   * are indicative, not current.
+   */
+  --green-50: #F1FBEA;
+  --green-100: #DFF6D1;
+  --green-200: #C2EDA9;
+  --green-300: #9BE076;
+  --green-400: #75CF48;
+  --green-500: #58B52D;
+  --green-600: #419020;
+  --green-700: #346E1D;
+  --green-800: #2C581C;
+  --green-900: #284B1C;
+  --green-950: #11290A;
 
   /*
-   * ── Lime (accent) ──
-   * Fill and shape only. lime-400 is 1.37:1 on white, so it can never be a
-   * text or icon colour on a light surface. Text ON lime must be olive-950
-   * (12.04:1); olive-600 measures 3.98:1 and fails the 4.5:1 floor, which is
-   * why --on-accent below is not the primary token.
+   * ── Lime: removed ──
+   *
+   * A second, yellow-green accent family (`#CBEA24` and neighbours) used to
+   * live here, for accent fills, the focus ring, the comfort band and one
+   * chart series. It is gone, and nothing may reintroduce it: the product has
+   * one green — the brand ramp above — and every surface that reached for lime
+   * now takes a step of that ramp instead.
+   *
+   * Where each one went is recorded at the token that replaced it: see
+   * `--accent-green`, `--ring`, `--viz-band-*`, `--planner-tag-filling` and
+   * `--color-chart-2`. The pairing rule survived the swap — an accent fill is
+   * still a *fill*, never ink, and text on it is still `--on-accent`.
    */
-  --lime-100: #F2FBC9;
-  --lime-200: #E6F79A;
-  --lime-300: #D9F25C;
-  --lime-400: #CBEA24;
-  --lime-500: #B0CE12;
-  --lime-600: #8CA60C;
-  --lime-700: #6B7F0A;
 
   /* ── Warm neutrals (never pure gray) ── */
   --n-0: #FFFFFF;
@@ -154,6 +171,35 @@
   --flame-700: #93490D;
 
   /*
+   * ── Tag identity hues: teal, plum, indigo ──
+   *
+   * Three cool stops added to a deliberately warm ramp, and they exist for
+   * exactly one job: dish tag identity marks.
+   *
+   * The catalog carries eight practical tags plus the computed high-protein
+   * label, and every mark has to be told apart from every other at 10px. The
+   * warm palette had five accent hues (olive, lime, amber, flame, clay) plus
+   * the neutral ramp, which left three tags either grey or wearing a
+   * near-duplicate of a hue that already means something else. A tag whose
+   * colour is almost another tag's colour is worse than no colour at all — it
+   * teaches a legend that then misfires on the weekly plan's meal cards, where
+   * the same hue is the only thing a 3px rule says.
+   *
+   * ⚠ **These are not status, action, or surface colours.** Nothing may reach
+   * for them outside `meal-tag-tone.ts`. They are cool on a warm page on
+   * purpose — an identity mark is *supposed* to sit outside the page's
+   * temperature, the way a highlighter does — and used as a fill or a border
+   * anywhere else they would simply read as a foreign palette.
+   *
+   * Each is a mid-dark stop chosen to hold up as a small dot on `--muted` and
+   * as a rule on `--card`, matched in lightness to green-500 / clay-600 so no
+   * one tag shouts louder than the rest.
+   */
+  --teal-500: #17827B;
+  --plum-500: #7D4F9B;
+  --indigo-500: #2F5FA8;
+
+  /*
    * ── Gold: the adherence meter's fill ──
    *
    * Not amber, and for the same reason flame is not amber: amber means "needs
@@ -178,7 +224,7 @@
   /*
    * ── Portal home glow ──
    * The ambient blur behind the portal's home screen, pinned to the exact
-   * Figma value rather than mapped onto the olive/lime ramp — it is a single
+   * Figma value rather than mapped onto the brand ramp — it is a single
    * decorative fill, not a step in a scale, and no other surface may reach
    * for it. See `.portal-home-glow` in `@layer components`.
    */
@@ -189,7 +235,7 @@
    * The "today" ring on the portal home screen's commitment card — pinned to
    * Figma values exactly like `--portal-home-glow` above, for the same
    * reason: a single decorative fill and its own two-stop track, not a step
-   * in the olive/lime ramp. Nothing else may reach for these.
+   * in the brand ramp. Nothing else may reach for these.
    *
    * `--portal-progress-fill` lands on the same hex as `--portal-home-glow` —
    * the badge floats on that wash and is meant to read as cut from the same
@@ -208,8 +254,8 @@
   /*
    * ── Meal check tick ──
    * `MealCheckMark`'s filled circle, pinned to the same hex as the home hero
-   * and the home glow above rather than `--primary`'s olive-500 — it happens
-   * to equal `--olive-600` today, but stays its own pinned literal rather
+   * and the home glow above rather than `--primary`'s green-500 — it happens
+   * to equal `--green-600` today, but stays its own pinned literal rather
    * than a reach for that token, matching the other two above it.
    */
   --meal-check-fill: #72AE34;
@@ -268,7 +314,7 @@
    */
   --radius-control: 10px;       /* button, field — all four corners */
 
-  /* ── Elevation — olive-tinted, never neutral black ── */
+  /* ── Elevation — green-tinted, never neutral black ── */
   --qiwam-shadow-1: 0 1px 2px rgba(34, 52, 20, .06), 0 1px 3px rgba(34, 52, 20, .05);
   --qiwam-shadow-2: 0 2px 6px rgba(34, 52, 20, .07), 0 8px 20px rgba(34, 52, 20, .06);
   --qiwam-shadow-3: 0 12px 32px rgba(34, 52, 20, .12);
@@ -412,8 +458,11 @@
    * hues rather than inventing new ones; confirm with design before a real
    * multi-series chart ships.
    */
-  --color-chart-1: var(--olive-600);
-  --color-chart-2: var(--lime-600);
+  --color-chart-1: var(--green-600);
+  /* Was lime-600. Separated from series 1 by lightness rather than hue now
+     that both are the same green — the same tactic `viz-cat-*` uses, and the
+     one that survives colour-vision simulation. */
+  --color-chart-2: var(--green-300);
   --color-chart-3: var(--amber-600);
   --color-chart-4: var(--clay-600);
   --color-chart-5: var(--n-600);
@@ -425,7 +474,7 @@
   /*
    * ── Data-visualisation scales ──
    *
-   * **Charts are not brand surfaces.** Olive is the action colour — buttons,
+   * **Charts are not brand surfaces.** Green is the action colour — buttons,
    * links, the rail, the one emphasised agenda row — and when the dashboard's
    * charts were olive too, the screen read as one wash of green and nothing
    * on it stood out as clickable. The rule the scales below encode: *olive
@@ -439,7 +488,7 @@
    * rather than flipping it automatically.
    *
    * `viz-cat-*` is the two-slot CATEGORICAL palette, for identity (which
-   * segment). Two olive stops far apart — olive-800 + olive-500 on the light
+   * segment). Two olive stops far apart — green-800 + green-500 on the light
    * surface — because the only categorical split the app draws is the sex
    * donut, nothing on that card is clickable, and the warm support hues it
    * used to take read as an alarm about the register rather than a
@@ -478,9 +527,9 @@
    * their olive for controls, so the page as a whole still separates the two.
    *
    * `viz-brand` is the mark — a line, a bar, the value the card is about — and
-   * is the same olive-500 as `--primary`, which is the lightest green in the
+   * is the same green-500 as `--primary`, which is the lightest green in the
    * ramp that still clears the 3:1 contrast floor a filled mark owes the
-   * reader on white. `viz-brand-soft` is olive-300, for the area fill and for
+   * reader on white. `viz-brand-soft` is green-300, for the area fill and for
    * the bars that are *not* the current week; it sits under that floor and is
    * only ever used where a darker mark of the same series carries the reading.
    *
@@ -497,11 +546,11 @@
   --color-border: var(--border);
 
   /*
-   * The one legal lime + text pairing: olive-950 on lime-400, 12.04:1.
+   * The one legal accent + text pairing: green-950 on green-300, ~9.9:1.
    * `--on-accent` is deliberately not the primary olive — see the note on the
-   * lime ramp above.
+   * `--accent-green`; a mid-ramp green on a light green fill fails.
    */
-  --color-accent-lime: var(--accent-lime);
+  --color-accent-green: var(--accent-green);
   --color-on-accent: var(--on-accent);
 
   --color-destructive: var(--destructive);
@@ -522,12 +571,15 @@
   --color-status-complete-bg: var(--status-complete-bg);
   --color-status-complete-mark: var(--status-complete-mark);
   --color-status-complete-mark-soft: var(--status-complete-mark-soft);
-  --color-planner-tag-cheap: var(--planner-tag-cheap);
+  --color-planner-tag-economical: var(--planner-tag-economical);
   --color-planner-tag-portable: var(--planner-tag-portable);
   --color-planner-tag-quick: var(--planner-tag-quick);
   --color-planner-tag-vegetarian: var(--planner-tag-vegetarian);
+  --color-planner-tag-filling: var(--planner-tag-filling);
+  --color-planner-tag-local: var(--planner-tag-local);
+  --color-planner-tag-easy-prep: var(--planner-tag-easy-prep);
+  --color-planner-tag-no-cook: var(--planner-tag-no-cook);
   --color-planner-tag-high-protein: var(--planner-tag-high-protein);
-  --color-planner-tag-diabetic-friendly: var(--planner-tag-diabetic-friendly);
   --color-progress-track: var(--progress-track);
   --color-progress-card-border: var(--progress-card-border);
 
@@ -578,7 +630,7 @@
   --radius-lg: var(--qiwam-radius-lg);
   --radius-xl: var(--qiwam-radius-xl);
 
-  /* elevation.* — olive-tinted shadows, never neutral black. */
+  /* elevation.* — green-tinted shadows, never neutral black. */
   --shadow-card: var(--qiwam-shadow-1);
   --shadow-elevated: var(--qiwam-shadow-2);
   --shadow-overlay: var(--qiwam-shadow-3);
@@ -588,6 +640,36 @@
 }
 
 :root {
+  /*
+   * ── The safe area, as four tokens ──
+   *
+   * `viewport-fit=cover` (see the `viewport` export in `[locale]/layout.tsx`)
+   * makes the document paint edge to edge, which is what an installed PWA
+   * should do and what stops iOS letterboxing it inside a band of theme colour.
+   * The other half of that bargain is that anything pinned to an edge now has
+   * to keep itself clear of the home indicator, the status bar and the rounded
+   * corners.
+   *
+   * Tokens rather than `env()` at each call site, for two reasons that both
+   * caught this codebase already. `env()` with no fallback invalidates the
+   * whole declaration it appears in wherever the function is unsupported, so
+   * every use needs the `, 0px` spelled out and one that forgets fails
+   * silently. And these are read from Tailwind arbitrary values, where the
+   * comma inside `env(…, 0px)` has to be escaped — a token has no commas, so
+   * `pb-(--q-safe-b)` just works.
+   *
+   * Named for the *logical* edges the app writes everywhere else, except that
+   * the physical mapping is correct as-is: the safe area is a property of the
+   * hardware, not of the text direction, so a notch stays at the top and the
+   * home indicator at the bottom in Arabic exactly as in English. The inline
+   * pair is deliberately physical-to-logical-agnostic for the same reason — a
+   * rounded corner is on the same side of the glass in both scripts.
+   */
+  --q-safe-t: env(safe-area-inset-top, 0px);
+  --q-safe-b: env(safe-area-inset-bottom, 0px);
+  --q-safe-l: env(safe-area-inset-left, 0px);
+  --q-safe-r: env(safe-area-inset-right, 0px);
+
   /* Surface & text */
   /*
    * bg.canvas — plain white. It used to be the warm n-25, one step below the
@@ -619,29 +701,40 @@
    * the same reason: a neutral-black scrim over a warm cream canvas reads as
    * dirty rather than as dimmed. First consumer is the client portal's menu.
    */
-  --scrim: color-mix(in srgb, var(--olive-950) 45%, transparent);
+  --scrim: color-mix(in srgb, var(--green-950) 45%, transparent);
 
   --popover: var(--n-0);
   --popover-foreground: var(--n-900);
-  --overlay: rgba(22, 34, 13, .45);     /* scrim — olive-950, never black */
+  --overlay: rgba(22, 34, 13, .45);     /* scrim — green-950, never black */
   /*
    * The same scrim, heavier. For a scrim laid over a *photograph* rather than
    * over the app's own surfaces: a dialog only needs the page behind it pushed
    * back, while a photo carrying UI has to lose enough of its own contrast that
-   * the picture reads as a background. Still olive-950 — a neutral black over a
+   * the picture reads as a background. Still green-950 — a neutral black over a
    * warm photograph greys it rather than dimming it.
+   *
+   * ⚠ Nothing consumes this today. The auth screen was its one caller and no
+   * longer dims its illustration at all. It is kept because the light value,
+   * the dark value and the `@theme` registration are three lines that must
+   * agree, and deleting one of them is what leaves the other two dangling —
+   * remove all three together or none.
    */
   --overlay-strong: rgba(22, 34, 13, .6);
 
   /*
-   * action.primary.bg — pinned to the brand's own #72AE34 rather than a step
-   * of the olive ramp. White does not hold on it (~2.68:1), so
-   * `--primary-foreground` is n-900 instead, the same "dark label on a light
-   * fill" pairing `.dark` already used for olive-500 (~6.42:1 here,
-   * comfortably over AA's 4.5:1).
+   * action.primary.bg — the brand's own leaf green, `#75CF48`, so the action
+   * colour and the logo are one colour rather than two greens a shade apart.
+   * It is step 400 of the brand ramp; `--primary-hover` is green-600, two
+   * steps down, which is a large enough move to be felt on a fill this light.
+   *
+   * ⚠ **White does not hold on this fill — about 1.95:1, down from ~2.68:1 on
+   * the olive it replaced.** `--primary-foreground` (n-900) is the pairing
+   * that passes, at roughly 10.8:1, and it got *better* with this change. The
+   * one that got worse is `--primary-foreground-white`, which is what every
+   * solid primary button wears. See the note on that token below.
    */
-  --primary: #72AE34;
-  --primary-hover: var(--olive-600);
+  --primary: var(--green-400);
+  --primary-hover: var(--green-600);
   --primary-foreground: var(--n-900);
   /*
    * The *white* label on that same fill — what every solid primary button
@@ -652,19 +745,25 @@
    *
    * `--primary-foreground` (n-900) stays for the non-button surfaces that
    * still read it. See `default` in `components/ui/button.tsx` for the trade.
+   *
+   * ⚠ **This is now the weakest pairing in the app: ~1.95:1.** It was ~2.68:1
+   * while `--primary` was `#72AE34`, and the move to the brand's leaf green
+   * cost it. Switching this to `var(--n-900)` would take the same button to
+   * ~10.8:1 and is a one-line change — it is left as white because that is the
+   * look the product asked for, not because the number is acceptable.
    */
   --primary-foreground-white: var(--n-0);
   /*
    * The brand's quiet fill, mirroring `--destructive-subtle`. For a surface
    * that is *about* to be primary — the agenda's next session at rest, before
-   * the pointer fills it in. Distinct from `--secondary` (olive-50), which is
+   * the pointer fills it in. Distinct from `--secondary` (green-50), which is
    * a tint; this is a fill you can read n-900 on at 14.7:1 and still see as
    * olive against a white card.
    */
-  --primary-subtle: var(--olive-100);
+  --primary-subtle: var(--green-100);
 
-  --secondary: var(--olive-50);         /* bg.brand.subtle */
-  --secondary-foreground: var(--olive-700); /* text.brand — 7.37:1 */
+  --secondary: var(--green-50);         /* bg.brand.subtle */
+  --secondary-foreground: var(--green-700); /* text.brand — 7.37:1 */
 
   /*
    * bg.sunken — c-100, not c-50.
@@ -701,8 +800,8 @@
    * The tinted round or squared plate a glyph sits on: settings sections, the
    * clinic's contact actions, notification rows, preview cards, info rows.
    *
-   * It used to be the brand pair (`bg-secondary` + `text-primary`, olive-50
-   * under olive-500), which put a saturated olive dot beside every heading on
+   * It used to be the brand pair (`bg-secondary` + `text-primary`, green-50
+   * under green-500), which put a saturated olive dot beside every heading on
    * every screen — a dozen of them down a settings page, all saying nothing
    * about the row they belong to. A disc is a *place* for a glyph, not a
    * status, so it is drawn in the warm neutral ramp and brand colour is left
@@ -722,7 +821,9 @@
 
   /*
    * Ambient hover/highlight tint used by many primitives. This is NOT the
-   * brand accent — lime is, and it must never sit behind this token.
+   * brand accent — `--accent-green` is, and it must never sit behind this
+   * token. The names are one word apart and the roles are opposite: this is an
+   * ambient neutral tint, that is the one loud green fill on a screen.
    *
    * It follows `--muted` into the cool family and one step past it. It has to:
    * the register's sortable column heads are `hover:bg-accent` drawn directly
@@ -738,22 +839,37 @@
   --destructive-subtle: var(--clay-100);    /* 5.81:1 against clay-600 */
   --destructive-foreground: var(--n-0);
 
-  --accent-lime: var(--lime-400);       /* bg.accent */
-  --on-accent: var(--olive-950);        /* text.onAccent — the only legal text-on-lime */
+  /*
+   * bg.accent — green-300, the ramp's light-but-saturated stop, replacing
+   * lime-400. It sits two steps above `--primary` (green-400), so an accent
+   * fill and a primary button still tell apart at a glance, and it is a fill
+   * only: about 1.7:1 on white, so it can never be ink.
+   */
+  --accent-green: var(--green-300);
+  /* text.onAccent — green-950 on green-300 is ~9.9:1, comfortably over AA.
+     Still not `--primary`: a mid-ramp green on a light green fill fails. */
+  --on-accent: var(--green-950);
 
   /* Border & focus */
   --border: var(--n-200);               /* border.divider */
   --input: var(--n-500);                /* border.interactive — meets 3:1 */
   /*
    * Field hover edge. Now the *same* olive as `--primary`, because every olive
-   * quieter than 500 falls under the 3:1 a control boundary needs (olive-400 is
+   * quieter than 500 falls under the 3:1 a control boundary needs (green-400 is
    * 2.41:1 on white). Hover and focus therefore no longer differ by colour —
    * they differ by fill and by weight: hover tints the box and keeps a 1px
    * edge, focus empties the box and doubles the edge to 2px. See `.q-field`.
    */
-  --input-hover: var(--olive-500);
-  --ring: var(--lime-400);              /* focus.ring — inner ring, 2px */
-  --focus-halo: var(--olive-950);       /* focus.halo — outer ring, 2px */
+  --input-hover: var(--green-500);
+  /*
+   * focus.ring — inner ring, 2px. green-600 rather than the lime it replaced:
+   * a focus indicator owes 3:1 against what surrounds it, and green-600
+   * measures ~4.0:1 on white. The light steps of this ramp do not clear that
+   * on a white card, which is why the ring takes a dark stop while the accent
+   * fill beside it takes a light one.
+   */
+  --ring: var(--green-600);
+  --focus-halo: var(--green-950);       /* focus.halo — outer ring, 2px */
   /*
    * Fields deliberately do NOT use the lime ring buttons use: a form has many
    * fields, and lime firing on every tabbed-to field turns the accent into
@@ -762,8 +878,8 @@
    */
 
   /* Status — deliberately not a traffic light. */
-  --status-on-track-fg: var(--olive-700);
-  --status-on-track-bg: var(--olive-100);
+  --status-on-track-fg: var(--green-700);
+  --status-on-track-bg: var(--green-100);
   --status-attention-fg: var(--amber-700);
   --status-attention-bg: var(--amber-100);
   /* Missed/incomplete is neutral, never red — a missed day is information. */
@@ -771,8 +887,8 @@
   --status-incomplete-bg: var(--n-100);
   --status-medical-fg: var(--clay-700);
   --status-medical-bg: var(--clay-100);
-  --status-rest-fg: var(--olive-700);
-  --status-rest-bg: var(--olive-50);
+  --status-rest-fg: var(--green-700);
+  --status-rest-bg: var(--green-50);
   /*
    * A day the client finished. The only warm accent on the portal home
    * screen — if a second thing on that screen turns orange, one of them is
@@ -784,30 +900,64 @@
   --status-complete-mark-soft: var(--flame-300);
 
   /*
+   * ── Dish tag identity colours ──
+   *
+   * A dish tag is an *identity* mark, not a status: `quick` is always the same
+   * hue, wherever the dish is drawn. These live at `:root` rather than inside
+   * `.planner-theme` because two screens now depend on them agreeing — the
+   * planner's meal card paints its top rule with them, and the dish catalog
+   * paints the matching tag dot — and a token scoped to one of those two
+   * surfaces is a promise the other cannot keep.
+   *
+   * Complete, not partial: every tag the catalog can show carries one, so the
+   * dot beside a tag name is always the same promise. `easy_prep` and `no_cook`
+   * reach for the two cool identity hues added above rather than a lighter
+   * flame, because they sit next to `quick` in the same effort family and three
+   * shades of one hue is not a legend anybody can read.
+   *
+   * `high_protein` is here too, and it is the odd one: it is *computed* from the
+   * recipe by `nutritionCategory()`, never stored, so it can never disagree with
+   * the dish's own numbers. It reads as a tag because that is what it is to a
+   * dietitian scanning the list; it simply is not one anybody typed.
+   */
+  --planner-tag-economical: var(--amber-600);
+  --planner-tag-portable: var(--n-500);
+  --planner-tag-quick: var(--flame-500);
+  --planner-tag-vegetarian: var(--green-500);
+  /* Was lime-600, the one tag drawn in the second green. With lime gone it
+     takes green-700 — dark enough to stay distinct from `vegetarian` above it,
+     which is now the only other green in this set. */
+  --planner-tag-filling: var(--green-700);
+  --planner-tag-local: var(--clay-600);
+  --planner-tag-easy-prep: var(--plum-500);
+  --planner-tag-no-cook: var(--teal-500);
+  --planner-tag-high-protein: var(--indigo-500);
+
+  /*
    * The Q-arc's unfilled track (§9.6) — the dots the week has not reached yet.
    *
    * A stop of its own rather than status-on-track-bg, which is what it started
-   * as: the portal's progress card is a cream→olive-50→olive-100 gradient, and
-   * an olive-100 track sitting on an olive-100 ground is invisible. This is the
+   * as: the portal's progress card is a cream→green-50→green-100 gradient, and
+   * an green-100 track sitting on an green-100 ground is invisible. This is the
    * next stop down, chosen so an untouched week still reads as a whole circle
    * waiting to be filled rather than as an arc floating in space.
    */
-  --progress-track: var(--olive-200);
+  --progress-track: var(--green-200);
 
   /*
    * The ground that arc sits on — the home screen's progress card.
    *
    * The ramp the note above names, as tokens rather than as four hex values in
-   * the component: cream at the ring end, olive-100 at the text end, so the arc
+   * the component: cream at the ring end, green-100 at the text end, so the arc
    * has the lightest part of the card behind it and the copy has the softest.
    * Semantic rather than palette because the card has to invert — a primitive
-   * ramp would stay cream on an olive-950 canvas.
+   * ramp would stay cream on an green-950 canvas.
    */
   --progress-card-from: var(--n-25);
-  --progress-card-via: var(--olive-50);
-  --progress-card-to: var(--olive-100);
-  --progress-card-edge: var(--olive-200);
-  --progress-card-border: var(--olive-200);
+  --progress-card-via: var(--green-50);
+  --progress-card-to: var(--green-100);
+  --progress-card-edge: var(--green-200);
+  --progress-card-border: var(--green-200);
 
   /*
    * The home screen's "commitment today" hero.
@@ -821,10 +971,10 @@
    * twice below. The two ramp stops are gone; only the two foregrounds remain,
    * and they still need to invert.
    *
-   * olive-800 and olive-700 on white are 10.4:1 and 6.51:1.
+   * green-800 and green-700 on white are 10.4:1 and 6.51:1.
    */
-  --commitment-card-figure: var(--olive-800);
-  --commitment-card-stat: var(--olive-700);
+  --commitment-card-figure: var(--green-800);
+  --commitment-card-stat: var(--green-700);
 
   /*
    * The meal card's surface — one tone for every meal, so the list reads as one
@@ -834,13 +984,13 @@
    *
    * This deliberately does not vary by meal. Colour here would have to come from
    * somewhere, and every categorical palette in this system is spoken for: amber
-   * means "needs follow-up", clay is the only true alarm colour, and lime marks
-   * exactly one element per screen. Tinting meals from those would say things
+   * means "needs follow-up", clay is the only true alarm colour, and the green
+   * accent marks exactly one element per screen. Tinting meals from those would say things
    * about the food nobody meant. A tonal ramp down the olive scale avoided that,
    * but read as five weights of importance on five meals that are equally
    * important — so the meals are one surface, and the icon tells them apart.
    *
-   * **Warm neutral, not olive.** It was olive-100/olive-800, and on a screen that
+   * **Warm neutral, not olive.** It was green-100/green-800, and on a screen that
    * is a stack of five of these plus the day tile, the tint was most of what you
    * saw — brand colour used as the page's material rather than as its marking.
    * §Colour's rule is that olive marks what you can act on, and a plan where the
@@ -848,7 +998,7 @@
    * you cannot. The neutral ramp gives it back: the tick is now the only olive
    * left on the list, which is exactly the job olive has.
    *
-   * **One step off the canvas, and untinted.** It went olive-100 → n-100 → n-50
+   * **One step off the canvas, and untinted.** It went green-100 → n-100 → n-50
    * → here, and the last step is the one that makes the card read as paper
    * rather than as a filled block: n-100 is a tint you notice, this is a surface
    * you don't. `#FBFBFB` rather than n-50's `#F7F5EF` — the same lightness with
@@ -864,8 +1014,8 @@
    *   The meal cards drop their shadow on the home screen, so that ring is now
    *   the only edge they have; lighten this any further and there is nothing
    *   left holding the card off the page.
-   * - The olive-500 tick on it is **3.35:1**, which clears the 3:1 a graphical
-   *   mark needs — it measured 2.96:1 on olive-100 *and* on n-100, both under.
+   * - The green-500 tick on it is **3.35:1**, which clears the 3:1 a graphical
+   *   mark needs — it measured 2.96:1 on green-100 *and* on n-100, both under.
    *   Lifting the shell is what finally fixed that, so the one olive left on this
    *   screen is also the first version of it that passes.
    *
@@ -885,9 +1035,9 @@
   --meal-border-checked: color-mix(in srgb, var(--meal-fg) 30%, transparent);
 
   /* Data visualisation comfort band */
-  --viz-band-range: var(--lime-300);
-  --viz-band-edge: var(--lime-600);
-  --viz-band-marker: var(--olive-900);
+  --viz-band-range: var(--green-200);
+  --viz-band-edge: var(--green-500);
+  --viz-band-marker: var(--green-900);
 
   /*
    * Chart scales on the light surface. Validated against #FFFFFF: the
@@ -903,7 +1053,7 @@
    *
    * Separation still comes from lightness, not hue, which is what survives
    * colour-vision simulation — and it is now wider than the pair it replaced:
-   * olive-800 is 10.4:1 on white and olive-500 is 3.47:1, a 3.0:1 ratio
+   * green-800 is 10.4:1 on white and green-500 is 3.47:1, a 3.0:1 ratio
    * between the two fills against the old pair's 1.45:1. Both clear the 3:1
    * mark floor unaided.
    */
@@ -914,17 +1064,17 @@
   --viz-seq-5: var(--n-800);
   /*
    * Colour follows the entity, never its rank: female is always slot 1.
-   * Lightened to olive-100/olive-50 by design request — the pair no longer
+   * Lightened to green-100/green-50 by design request — the pair no longer
    * clears 3:1 on white unaided, which the mandatory legend beside the ring
    * is what carries the reading instead.
    */
-  --viz-cat-1: var(--olive-100);
-  --viz-cat-2: var(--olive-50);
+  --viz-cat-1: var(--green-100);
+  --viz-cat-2: var(--green-50);
   --viz-cat-none: var(--n-300);
 
   /* The dashboard's stat cards. See the note in `@theme` above. */
-  --viz-brand: var(--olive-500);
-  --viz-brand-soft: var(--olive-300);
+  --viz-brand: var(--green-500);
+  --viz-brand-soft: var(--green-300);
 
   /*
    * The adherence meter's fill — see `--gold-500`. One value across light,
@@ -938,52 +1088,79 @@
    * ── Sidebar — a near-white rail ──
    *
    * Full-bleed, separated from the canvas by a hairline rather than by
-   * elevation. The rail has been a dark olive-900 inset panel and then a pale
-   * olive-50 one; it is now #F9FAFB, a hair below the white page and the one
+   * elevation. The rail has been a dark green-900 inset panel and then a pale
+   * green-50 one; it is now #F9FAFB, a hair below the white page and the one
    * cool grey in a warm system. Deliberate: with the canvas white, an olive
    * rail was the only tinted furniture on screen and it read as a coloured
    * band rather than as a wall.
    *
    * **The active item is the only olive thing on the rail, and it is marked by
-   * tint rather than by weight.** olive-50 surface, olive-500 label and glyph.
+   * tint rather than by weight.** green-50 surface, green-500 label and glyph.
    * That inverts the pale-olive rail again, where the active item was the
    * *darkest* thing on it; here the rail has no colour of its own, so a tint
    * is enough to single an item out without a dark block interrupting a column
    * of quiet rows.
    *
-   * ⚠ olive-500 on olive-50 measures **2.95:1** — under the 4.5:1 a 16px label
-   * needs and under the 3:1 a glyph needs. It is what the design calls for, so
-   * it is what is here, but the active row is the one row on the rail that
-   * does not meet contrast. olive-600 on the same surface measures 5.09:1 and
-   * is a one-token fix if that matters more than the exact hue.
-   * `font-semibold` and `aria-current` carry the state for anyone the colour
-   * fails.
+   * The active row is green-900 on green-100, about **12.9:1** — it used to be
+   * green-500 on green-50 at 2.95:1, the one row on the rail that failed
+   * contrast. `font-semibold` and `aria-current` still carry the state for
+   * anyone the colour fails, but now the colour does not.
    *
-   * `--sidebar-hover` stays a neutral rather than a tint, one step down from
-   * the rail. It cannot be an olive: the active surface is olive-50, and a
-   * hover tinted the same family would either outrank the state it sits under
-   * or be mistaken for it.
+   * `--sidebar-hover` is the fill a hovered row takes, and it is now a tint of
+   * the brand ramp rather than the cool grey it used to be, so no green
+   * anywhere in the rail comes from outside the palette. It sits one step
+   * lighter than `--sidebar-accent`, which is enough separation on a rail this
+   * quiet and keeps a hovered row from being mistaken for the active one. The
+   * active row overrides it and does not respond to hover at all — see the note
+   * on `sidebarMenuButtonVariants` in `components/ui/sidebar.tsx`.
    *
-   * `--sidebar-icon` is its own token because the idle glyph is n-700 warm
-   * grey — 9.35:1 on the rail — while the idle label stays olive-800. The
-   * glyph is the thing you scan a rail by, and a neutral one reads as a
-   * wayfinding mark rather than as brand.
+   * `--sidebar-icon` is now the idle ink for the **label as well as the
+   * glyph** — n-700 warm grey, 9.35:1 on the rail. The label used to be
+   * green-800 beside it, which made each row read as two elements rather than
+   * one target, and spent brand colour on rows that are not the current page.
+   * `--sidebar-foreground` still dresses the rail's other text (group headings,
+   * counts), which is why it is unchanged.
    */
+  /*
+   * ── The product logo ──
+   *
+   * The three fills of `BrandLogo`. They are pinned brand values, not steps in
+   * the olive ramp: the mark is the one thing on the screen that may not be
+   * re-toned to suit a surface, so it does not reach for `--primary` or any
+   * other semantic token. Nothing outside `brand-logo.tsx` may use them.
+   *
+   * They live here rather than as hexes in the component because that is the
+   * rule (`qiwam/no-raw-hex`) — and because one of them has to flip for dark,
+   * which a literal could not do.
+   *
+   * - `leaf` is the mark's body. Fixed: it reads on a light rail and a dark one.
+   * - `seed` is the two shapes *inside* the leaf. Fixed for a sharper reason —
+   *   they sit on the leaf, so the surface behind the logo never reaches them,
+   *   and flipping them with the theme would erase them at the one moment the
+   *   theme changed.
+   * - `wordmark` is the lettering, the only part printed straight onto the rail.
+   *   Brand green in light; see `.dark` for the other stop, where this value
+   *   would be a dark green word on a dark green field.
+   */
+  --brand-leaf: #75CF48;
+  --brand-seed: #266805;
+  --brand-wordmark: #266805;
+
   --sidebar: var(--c-50);
-  --sidebar-foreground: var(--olive-800);   /* idle label — 10.02:1 on the rail */
+  --sidebar-foreground: var(--green-800);   /* idle label — 10.02:1 on the rail */
   --sidebar-icon: var(--n-700);             /* idle glyph — #46443B, 9.35:1 */
   --sidebar-primary: var(--primary);
-  --sidebar-primary-foreground: var(--olive-900); /* the wordmark, on a light rail */
-  --sidebar-accent: var(--olive-50);        /* the active surface */
-  --sidebar-accent-foreground: var(--olive-500); /* on it — 2.95:1, see above */
-  --sidebar-hover: var(--c-100);            /* one step down — 9.51:1 with the idle label */
+  --sidebar-primary-foreground: var(--green-900); /* the wordmark, on a light rail */
+  --sidebar-accent: var(--green-100);        /* the active surface */
+  --sidebar-accent-foreground: var(--green-900); /* on it — ~12.9:1, see above */
+  --sidebar-hover: var(--green-50);         /* one step lighter than active */
   /*
    * The divider is the darkest of the rail's three greys, and it is the whole
    * separation: #F9FAFB against the white canvas measures 1.02:1, so the two
    * fills are all but the same lightness and the line is not reinforcing a
    * boundary, it *is* the boundary.
    *
-   * It was olive-300 (1.68:1 against the canvas), which was the last olive left
+   * It was green-300 (1.68:1 against the canvas), which was the last olive left
    * in the shell furniture once the rail went grey — one green line with
    * nothing else near it to belong to. #D1D5DB is the same cool family as the
    * rail and its hover and measures 1.47:1: softer than the olive it replaces,
@@ -992,15 +1169,15 @@
    */
   --sidebar-border: var(--c-300);
   /*
-   * NOT `--ring`. The global focus ring is lime-400, which measured 9.77:1 on
-   * the old olive-900 rail and measures 1.28:1 on this one — keeping it would
+   * NOT `--ring`. The global focus ring is green-600, which measured 9.77:1 on
+   * the old green-900 rail and measures 1.28:1 on this one — keeping it would
    * have left the rail's keyboard focus invisible. Buttons get away with lime
-   * because they pair it with an olive-950 halo; the rail has one ring and no
-   * halo, so the ring itself has to be the dark one. olive-950 is 15.86:1 on
-   * the rail and 15.42:1 on the active item's olive-50 surface — both well over
+   * because they pair it with an green-950 halo; the rail has one ring and no
+   * halo, so the ring itself has to be the dark one. green-950 is 15.86:1 on
+   * the rail and 15.42:1 on the active item's green-50 surface — both well over
    * the 3:1 floor a focus indicator has to clear.
    */
-  --sidebar-ring: var(--olive-950);
+  --sidebar-ring: var(--green-950);
 }
 
 .dark,
@@ -1015,106 +1192,117 @@
    * wrapper alone (see `src/features/portal/components/portal-theme.tsx`), so a
    * client choosing dark never darkens the practitioner app.
    */
-  --background: var(--olive-950);
+  --background: var(--green-950);
   --foreground: var(--n-25);
 
   /* One step off the canvas, the same relationship the light build has. */
-  --auth-canvas: var(--olive-950);
+  --auth-canvas: var(--green-950);
 
-  /* The canvas is already olive-950, so the scrim has to go denser to register. */
-  --scrim: color-mix(in srgb, var(--olive-950) 72%, transparent);
+  /* The canvas is already green-950, so the scrim has to go denser to register. */
+  --scrim: color-mix(in srgb, var(--green-950) 72%, transparent);
 
-  --card: var(--olive-900);             /* surface → olive-900 */
+  --card: var(--green-900);             /* surface → green-900 */
   --card-foreground: var(--n-25);
 
-  --popover: var(--olive-900);
+  --popover: var(--green-900);
   --popover-foreground: var(--n-25);
   --overlay: rgba(10, 16, 6, .6);
   /* See the light assignment — kept in step with it, one step heavier. */
   --overlay-strong: rgba(10, 16, 6, .72);
 
-  --primary: #72AE34;
-  --primary-hover: var(--olive-400);
-  --primary-foreground: var(--olive-950);
-  --primary-subtle: var(--olive-800);
+  /*
+   * The same leaf green as light mode — the action colour is the brand's, and
+   * the brand does not change with the theme.
+   *
+   * The hover does not follow light mode's green-600, though, and must not:
+   * on a dark surface a hover has to move *towards* the light to read as a
+   * response, so this steps *up* to green-300. Darkening it here would make a
+   * hovered button look disabled.
+   */
+  --primary: var(--green-400);
+  --primary-hover: var(--green-300);
+  --primary-foreground: var(--green-950);
+  --primary-subtle: var(--green-800);
 
-  --secondary: var(--olive-800);
+  --secondary: var(--green-800);
   --secondary-foreground: var(--n-25);
 
-  --muted: var(--olive-900);
-  --muted-foreground: var(--olive-200);
-  /* The same step down, taken in the neutral family: olive-200 is a tinted
+  --muted: var(--green-900);
+  --muted-foreground: var(--green-200);
+  /* The same step down, taken in the neutral family: green-200 is a tinted
      light stop, so a hint drawn in it reads as green rather than as absent.
      n-400 is the warm gray this scope already draws the field edge in. */
   --placeholder: var(--n-400);
 
   /* The plate cannot be `--muted` here: dark's muted and card are both
-     olive-900, so the disc would draw nothing at all. olive-800 is the stop
+     green-900, so the disc would draw nothing at all. green-800 is the stop
      that separates from the card it sits on. */
-  --icon-chip: var(--olive-800);
-  --icon-chip-foreground: var(--olive-200);
+  --icon-chip: var(--green-800);
+  --icon-chip-foreground: var(--green-200);
 
-  --accent: var(--olive-800);
+  --accent: var(--green-800);
   --accent-foreground: var(--n-25);
 
   --destructive: var(--clay-300);
-  --destructive-subtle: var(--olive-800);
-  --destructive-foreground: var(--olive-950);
+  --destructive-subtle: var(--green-800);
+  --destructive-foreground: var(--green-950);
 
-  --border: var(--olive-700);
+  --border: var(--green-700);
   --input: var(--n-400);
   /*
-   * Inverted against light mode: `--primary` is olive-500 here, so the hover
-   * edge steps *down* to olive-600 to stay a shade short of the focused one.
+   * Inverted against light mode: `--primary` is green-500 here, so the hover
+   * edge steps *down* to green-600 to stay a shade short of the focused one.
    */
-  --input-hover: var(--olive-600);
-  --ring: var(--lime-400);              /* lime-400 on olive-950 is 12.09:1 */
+  --input-hover: var(--green-600);
+  /* Light, not dark: on a green-950 ground the ring has to move towards the
+     light to be seen at all. green-300 measures ~9.9:1 there. */
+  --ring: var(--green-300);
   --focus-halo: var(--n-25);
 
-  --status-on-track-fg: var(--olive-700);
-  --status-on-track-bg: var(--olive-100);
+  --status-on-track-fg: var(--green-700);
+  --status-on-track-bg: var(--green-100);
   --status-attention-fg: var(--amber-700);
   --status-attention-bg: var(--amber-100);
   --status-incomplete-fg: var(--n-700);
   --status-incomplete-bg: var(--n-100);
   --status-medical-fg: var(--clay-700);
   --status-medical-bg: var(--clay-100);
-  --status-rest-fg: var(--olive-700);
-  --status-rest-bg: var(--olive-50);
+  --status-rest-fg: var(--green-700);
+  --status-rest-bg: var(--green-50);
   --status-complete-fg: var(--flame-700);
   --status-complete-bg: var(--flame-100);
   --status-complete-mark: var(--flame-500);
   --status-complete-mark-soft: var(--flame-300);
 
-  /* Dark's progress card sits on olive-900, so its track steps up, not down. */
-  --progress-track: var(--olive-700);
+  /* Dark's progress card sits on green-900, so its track steps up, not down. */
+  --progress-track: var(--green-700);
 
   /*
    * Same ramp inverted: the ring end stays the lighter one. The middle stop is
    * mixed rather than picked — the scale has no step between 800 and 900, and
    * landing on either makes the gradient a two-stop step with a visible edge.
    */
-  --progress-card-from: var(--olive-800);
-  --progress-card-via: color-mix(in oklch, var(--olive-800), var(--olive-900));
-  --progress-card-to: var(--olive-900);
-  --progress-card-edge: var(--olive-950);
-  --progress-card-border: var(--olive-800);
+  --progress-card-from: var(--green-800);
+  --progress-card-via: color-mix(in oklch, var(--green-800), var(--green-900));
+  --progress-card-to: var(--green-900);
+  --progress-card-edge: var(--green-950);
+  --progress-card-border: var(--green-800);
 
   /* The card is `--card` here as everywhere; only its two foregrounds go light to keep reading on the dark surface. */
   --commitment-card-figure: var(--n-25);
-  --commitment-card-stat: var(--olive-200);
+  --commitment-card-stat: var(--green-200);
 
-  --viz-band-range: var(--lime-300);
-  --viz-band-edge: var(--lime-600);
-  --viz-band-marker: var(--olive-900);
+  --viz-band-range: var(--green-200);
+  --viz-band-edge: var(--green-500);
+  --viz-band-marker: var(--green-900);
 
   /*
-   * The sequential ramp is re-anchored, not flipped: on the olive-900 card
+   * The sequential ramp is re-anchored, not flipped: on the green-900 card
    * more-is-*lighter*, and n-600 is the darkest step that still clears the
    * surface (2.03:1). Validated as an ordinal ramp against #223414.
    *
    * The categorical pair inverts with the surface: the light theme's dark
-   * olive would disappear into an olive-900 card, so slot 1 takes the lightest
+   * olive would disappear into an green-900 card, so slot 1 takes the lightest
    * step that stays distinct and slot 2 sits two stops below it. Against
    * #223414 that is 9.8:1 and 5.6:1 — a 1.76:1 separation, narrower than the
    * light theme's 3.0:1, which is the honest cost of drawing one hue on its
@@ -1127,42 +1315,47 @@
   --viz-seq-3: var(--n-400);
   --viz-seq-4: var(--n-300);
   --viz-seq-5: var(--n-200);
-  --viz-cat-1: var(--olive-200);
-  --viz-cat-2: var(--olive-400);
+  --viz-cat-1: var(--green-200);
+  --viz-cat-2: var(--green-400);
   --viz-cat-none: var(--n-600);
 
   /*
    * One step lighter than the light theme, for the same reason the sequential
-   * ramp re-anchors rather than flipping: olive-500 on an olive-950 card is
+   * ramp re-anchors rather than flipping: green-500 on an green-950 card is
    * the same dark green reading as a shadow. Olive-400 is the lightest green
    * the palette has that is still recognisably the brand.
    */
-  --viz-brand: var(--olive-400);
-  --viz-brand-soft: var(--olive-600);
+  --viz-brand: var(--green-400);
+  --viz-brand-soft: var(--green-600);
   /* Unchanged in dark — see the light block for why it needs no darker step. */
   --viz-progress: var(--gold-500);
 
   /*
-   * The dark rail keeps its dark treatment — a pale rail on an olive-950
+   * The dark rail keeps its dark treatment — a pale rail on an green-950
    * canvas would be the brightest surface on the screen, which is the same
    * mistake the dark rail made in light mode, inverted.
    */
-  --sidebar: var(--olive-900);
-  --sidebar-foreground: var(--olive-200);
+  /* The wordmark takes the rail's own label colour on a dark rail — the brand
+     green is unreadable on green-900. The leaf and its seeds are unchanged:
+     they sit on each other, not on the rail. */
+  --brand-wordmark: var(--green-200);
+
+  --sidebar: var(--green-900);
+  --sidebar-foreground: var(--green-200);
   /*
    * The glyph tracks the label here rather than taking light mode's n-700,
-   * which on an olive-900 rail would be all but invisible. Dark mode also
-   * keeps the olive-600 active surface: the light rail can single an item out
+   * which on an green-900 rail would be all but invisible. Dark mode also
+   * keeps the green-600 active surface: the light rail can single an item out
    * with a tint because it has no colour of its own, but a tint on a dark
    * olive rail is not a mark, it is a smudge.
    */
-  --sidebar-icon: var(--olive-200);
+  --sidebar-icon: var(--green-200);
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: var(--n-25);
-  --sidebar-accent: var(--olive-600);
+  --sidebar-accent: var(--green-600);
   --sidebar-accent-foreground: var(--n-0);
-  --sidebar-hover: var(--olive-800);
-  --sidebar-border: var(--olive-800);
+  --sidebar-hover: var(--green-800);
+  --sidebar-border: var(--green-800);
   --sidebar-ring: var(--ring);
 }
 
@@ -1184,87 +1377,88 @@
  */
 @media (prefers-color-scheme: dark) {
   [data-theme='system'] {
-    --background: var(--olive-950);
+    --background: var(--green-950);
     --foreground: var(--n-25);
 
-    --scrim: color-mix(in srgb, var(--olive-950) 72%, transparent);
+    --scrim: color-mix(in srgb, var(--green-950) 72%, transparent);
 
-    --card: var(--olive-900);
+    --card: var(--green-900);
     --card-foreground: var(--n-25);
 
-    --popover: var(--olive-900);
+    --popover: var(--green-900);
     --popover-foreground: var(--n-25);
 
-    --primary: #72AE34;
-    --primary-foreground: var(--olive-950);
+    /* Tracks `.dark` above — the system-preference scope is the same theme. */
+    --primary: var(--green-400);
+    --primary-foreground: var(--green-950);
 
-    --secondary: var(--olive-800);
+    --secondary: var(--green-800);
     --secondary-foreground: var(--n-25);
 
-    --muted: var(--olive-900);
-    --muted-foreground: var(--olive-200);
-    /* The same step down, taken in the neutral family: olive-200 is a tinted
+    --muted: var(--green-900);
+    --muted-foreground: var(--green-200);
+    /* The same step down, taken in the neutral family: green-200 is a tinted
        light stop, so a hint drawn in it reads as green rather than as absent.
        n-400 is the warm gray this scope already draws the field edge in. */
     --placeholder: var(--n-400);
 
     /* See the `.dark` block — muted and card are the same stop here. */
-    --icon-chip: var(--olive-800);
-    --icon-chip-foreground: var(--olive-200);
+    --icon-chip: var(--green-800);
+    --icon-chip-foreground: var(--green-200);
 
-    --accent: var(--olive-800);
+    --accent: var(--green-800);
     --accent-foreground: var(--n-25);
 
     --destructive: var(--clay-600);
     --destructive-foreground: var(--n-25);
 
-    --border: var(--olive-700);
+    --border: var(--green-700);
     --input: var(--n-400);
-    --ring: var(--lime-400);
+    --ring: var(--green-300);
     --focus-halo: var(--n-25);
 
-    --status-on-track-fg: var(--olive-700);
-    --status-on-track-bg: var(--olive-100);
+    --status-on-track-fg: var(--green-700);
+    --status-on-track-bg: var(--green-100);
     --status-attention-fg: var(--amber-700);
     --status-attention-bg: var(--amber-100);
     --status-incomplete-fg: var(--n-700);
     --status-incomplete-bg: var(--n-100);
     --status-medical-fg: var(--clay-700);
     --status-medical-bg: var(--clay-100);
-    --status-rest-fg: var(--olive-700);
-    --status-rest-bg: var(--olive-50);
+    --status-rest-fg: var(--green-700);
+    --status-rest-bg: var(--green-50);
     --status-complete-fg: var(--flame-700);
     --status-complete-bg: var(--flame-100);
     --status-complete-mark: var(--flame-500);
     --status-complete-mark-soft: var(--flame-300);
 
-    --progress-track: var(--olive-700);
+    --progress-track: var(--green-700);
 
-    --progress-card-from: var(--olive-800);
-    --progress-card-via: color-mix(in oklch, var(--olive-800), var(--olive-900));
-    --progress-card-to: var(--olive-900);
-    --progress-card-edge: var(--olive-950);
-    --progress-card-border: var(--olive-800);
+    --progress-card-from: var(--green-800);
+    --progress-card-via: color-mix(in oklch, var(--green-800), var(--green-900));
+    --progress-card-to: var(--green-900);
+    --progress-card-edge: var(--green-950);
+    --progress-card-border: var(--green-800);
 
     --commitment-card-figure: var(--n-25);
-    --commitment-card-stat: var(--olive-200);
+    --commitment-card-stat: var(--green-200);
 
-    --viz-band-range: var(--lime-300);
-    --viz-band-edge: var(--lime-600);
-    --viz-band-marker: var(--olive-900);
+    --viz-band-range: var(--green-200);
+    --viz-band-edge: var(--green-500);
+    --viz-band-marker: var(--green-900);
 
-    --viz-brand: var(--olive-400);
-    --viz-brand-soft: var(--olive-600);
+    --viz-brand: var(--green-400);
+    --viz-brand-soft: var(--green-600);
     /* Repeated here deliberately — see the note on this media query block. */
     --viz-progress: var(--gold-500);
 
-    --sidebar: var(--olive-900);
-    --sidebar-foreground: var(--olive-200);
+    --sidebar: var(--green-900);
+    --sidebar-foreground: var(--green-200);
     --sidebar-primary: var(--primary);
     --sidebar-primary-foreground: var(--n-0);
-    --sidebar-accent: var(--olive-800);
+    --sidebar-accent: var(--green-800);
     --sidebar-accent-foreground: var(--n-25);
-    --sidebar-border: var(--olive-700);
+    --sidebar-border: var(--green-700);
     --sidebar-ring: var(--ring);
   }
 }
@@ -1306,83 +1500,50 @@
 /*
  * The weekly planner board, and nothing else.
  *
- * Two deliberate departures from the app-wide tokens, both scoped to the one
+ * **One** deliberate departure from the app-wide tokens, scoped to the one
  * screen that is a dense working grid rather than a page of cards.
  *
- * **The face is Tajawal.** Re-pointing `--script-ui-font` / `--script-display-font`
- * is the whole mechanism — `.font-sans` and `.font-heading` compile to
- * `var(--script-ui-font), …`, so every descendant re-resolves the family with no
- * per-component override. The inner fallback matters for the same reason it does
- * on `:lang(ar)`: an undefined variable invalidates the entire `font-family`
- * declaration and drops the subtree to the system font.
+ * ─────────────────────────────────────────────────────────────────────────────
+ * **The board no longer sets its own face.** It ran on Tajawal while every other
+ * screen ran on Almarai, which made the planner read as a different product —
+ * and the rail beside it, which is shared chrome, kept the app face, so the two
+ * halves of the same window disagreed. The typeface is now Almarai here like
+ * everywhere else, inherited from the `:lang(ar)` block above with no override.
  *
- * ⚠ **The font rule has to match every descendant, not just the root.**
- * `:lang(ar)` matches every element in an Arabic document — not only `<html>` —
- * so each node inside the board re-declares `--script-ui-font` *for itself* and
- * never inherits the value set on `.planner-theme`. Setting it on the wrapper
- * alone therefore does nothing at all: the wrapper gets Tajawal and every child
- * immediately overrides itself back to Neo Sans. The `*` is what stops that,
- * and `:root ` in front is what wins the specificity (0,2,0 against 0,1,0)
- * regardless of source order.
+ * Reverting that took deleting two rules, not editing them: a `:root
+ * .planner-theme, :root .planner-theme *` block that re-pointed
+ * `--script-ui-font` / `--script-display-font` at `--font-tajawal`, and a
+ * `font-family` declaration on the scope root. Both were needed to make the
+ * override work at all (`:lang(ar)` re-declares the variable on *every* element,
+ * so the wrapper alone could not win), and both had to go for it to stop.
  *
- * The colour tokens below need no such treatment — nothing else re-declares
+ * `--font-tajawal` is still attached in `layout.tsx`. Nothing reads it now; drop
+ * the `Tajawal` import there too if the board is never going back.
+ * ─────────────────────────────────────────────────────────────────────────────
+ *
+ * **The neutrals go cool**, and that part stays. The page was already `#FFFFFF`;
+ * what read as warm was everything drawn *on* it — a board is mostly hairlines,
+ * and thirty-five cards edged in warm n-200 tint the whole surface. These four
+ * are the cool equivalents at matched lightness, which is what makes the board
+ * read as clinical white rather than as cream.
+ *
+ * These need no per-element rule the way the font did: nothing else re-declares
  * them per element, so ordinary inheritance carries them down the subtree.
- *
- * The Arabic `--lh-*` values in that `:lang(ar)` block are deliberately **not**
- * overridden — Tajawal needs the looser Arabic leading exactly as much as Neo
- * Sans does.
- *
- * **The neutrals go cool.** The page was already `#FFFFFF`; what read as warm
- * was everything drawn *on* it — a board is mostly hairlines, and thirty-five
- * cards edged in warm n-200 tint the whole surface. These four are the cool
- * equivalents at matched lightness, which is what makes the board read as
- * clinical white rather than as cream.
  *
  * This is the second place cool greys are allowed (the rail is the first) and
  * the exception is recorded in docs/design-system.md. It stays an exception:
  * a warm page surface beside a cool one is only coherent while the cool ones
  * are whole surfaces, not stray accents.
  */
-:root .planner-theme,
-:root .planner-theme * {
-  --script-ui-font: var(--font-tajawal, var(--font-ibm-plex-sans-arabic));
-  --script-display-font: var(--font-tajawal, var(--font-readex-pro));
-}
-
-/*
- * ⚠ And the family has to be *declared* here, not just re-pointed above.
- *
- * Re-pointing the variable only reaches elements that declare
- * `font-family: var(--script-ui-font), …` themselves — that is, elements
- * carrying `.font-sans` or `.font-heading`. Most of a page carries neither: it
- * inherits `font-family` from `<html>`, where the `var()` was already
- * substituted, so the *computed* Neo Sans stack is what comes down the tree and
- * no amount of changing the variable further down can touch it.
- *
- * The symptom is precise and easy to misread as "the override didn't apply":
- * the handful of elements with an explicit font utility switch to Tajawal while
- * every label, tab and paragraph around them stays on the old face. Declaring
- * the family on the scope root fixes those, and the variable rule above fixes
- * the ones that override it per element. Both are needed; neither is enough.
- */
-:root .planner-theme {
-  font-family: var(--script-ui-font), var(--font-ibm-plex-sans), ui-sans-serif, system-ui, sans-serif;
-}
-
 :root .planner-theme {
   --border: var(--c-200);               /* border.divider — the warm n-200's cool twin */
   --muted: var(--c-50);                 /* bg.sunken — now the app-wide value too */
   --accent: var(--c-100);               /* ambient hover tint */
   --muted-foreground: var(--c-600);     /* text.secondary — 7.46:1 on white, clears the 6.38:1 floor n-600 set */
 
-  /* Dish tags are identity marks, not statuses. These darker stops keep the
-     short accent legible without turning the meal card into a badge. */
-  --planner-tag-cheap: var(--amber-600);
-  --planner-tag-portable: var(--n-500);
-  --planner-tag-quick: var(--flame-500);
-  --planner-tag-vegetarian: var(--olive-500);
-  --planner-tag-high-protein: var(--lime-600);
-  --planner-tag-diabetic-friendly: var(--c-600);
+  /* The `--planner-tag-*` stops used to be redeclared here. They now live at
+     `:root` so the dish catalog can paint the same hues — see the block there.
+     The board inherits them unchanged; nothing about the meal card moved. */
 }
 
 /* Each row cell paints one segment of a continuous rule, reaching halfway
@@ -1639,6 +1800,57 @@
   button:not(:disabled) {
     cursor: pointer;
   }
+
+  /*
+   * ── Taps land immediately ──
+   *
+   * iOS Safari still watches for a double-tap-to-zoom on any element whose
+   * `touch-action` permits it, so the *first* tap on a control is held back
+   * until the gesture is known not to be the start of a zoom. The effect is a
+   * control that feels dead for a beat, a menu that opens after the finger has
+   * already lifted and moved on, and a second tap in quick succession that
+   * zooms the page instead of activating anything.
+   *
+   * ⚠ **This is invisible in DevTools device emulation.** Blink removed the
+   * delay outright for `width=device-width` documents years ago, so Chrome —
+   * including every iPad preset in its device toolbar, which is Blink wearing
+   * an iPad's dimensions — has nothing to demonstrate. WebKit kept the
+   * behaviour and only `touch-action` opts out of it. It is the single most
+   * likely reason a dropdown, sheet or select "works on the desktop and in the
+   * inspector but not on the iPad".
+   *
+   * `manipulation` disables double-tap zoom and the delay it implies while
+   * leaving panning and pinch-zoom alone, so nothing about scrolling or
+   * accessibility zoom changes.
+   *
+   * **The selector is elements plus `[role]`, and the layer is what keeps it
+   * safe.** Base UI renders its menu items, options and tabs as `<div>`s
+   * carrying a role rather than as buttons, so an element-only selector would
+   * miss exactly the popup rows this is meant to fix. Living in `@layer base`
+   * means any utility (`touch-none` on the scroll-area thumb) and any unlayered
+   * rule (`.planner-drag-handle`, `.calendar-drag-grip`, `.calendar-resize-grip`,
+   * which all claim `touch-action: none` so dnd-kit and the calendar's pointer
+   * capture own the gesture) still win without an `!important` anywhere.
+   */
+  button,
+  a[href],
+  label,
+  summary,
+  select,
+  [role='button'],
+  [role='link'],
+  [role='menuitem'],
+  [role='menuitemcheckbox'],
+  [role='menuitemradio'],
+  [role='option'],
+  [role='tab'],
+  [role='switch'],
+  [role='checkbox'],
+  [role='radio'],
+  [role='combobox'] {
+    touch-action: manipulation;
+  }
+
   body {
     @apply bg-background text-foreground;
     font-size: var(--text-body-md);
@@ -1652,7 +1864,7 @@
    * ── No scrollbars, anywhere ──
    *
    * Every scroller in the app scrolls by wheel, trackpad, touch, keyboard and
-   * drag; none of them draws a bar. This replaced a 14px olive-100 bar styled
+   * drag; none of them draws a bar. This replaced a 14px green-100 bar styled
    * to match the platform's own track/thumb structure.
    *
    * **This is also what fixes the layout shift**, which is the reason it was
@@ -1709,9 +1921,51 @@
    * the wheel's scroll chain skips the app shell's own `main` scroller
    * entirely; there is nothing else behind a dialog for a wheel to find.
    */
+  /*
+   * ⚠ **`overflow: hidden` is a wheel lock, not a touch lock.** A trackpad and a
+   * mouse wheel scroll the root through its overflow, so hiding it stops them.
+   * A finger on iOS does not go through the same path: WebKit keeps
+   * touch-panning and rubber-banding a root whose overflow is hidden, so on the
+   * hardware the page still slid under every modal while the desktop and every
+   * DevTools iPad preset — Blink, where the property does hold — showed a
+   * frozen page. `overscroll-behavior` is the half that WebKit does honour: it
+   * severs the scroll chain, so a pan that starts on the backdrop, or one that
+   * runs past the end of a scrollable dialog body, has nowhere to propagate to
+   * and the page behind stays put.
+   *
+   * `none` rather than `contain`, and only while a modal is open: it also
+   * suppresses the rubber-band overscroll, which is the visible half of the
+   * same problem — a dialog that bounces the whole page a centimetre when a
+   * list inside it is flicked past its end.
+   */
   html:has(dialog[open]),
   html:has(dialog[open]) body {
     overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  /*
+   * ── Anything that scrolls inside an overlay keeps its scroll to itself ──
+   *
+   * The rule above stops the chain at the root. This stops it at the source, so
+   * a flick that reaches the end of a menu, a select's list, a popover or a
+   * dialog body does not hand the remainder to whatever is behind it. It
+   * matters most for the surfaces Base UI portals to `<body>` — those sit
+   * *outside* the `<dialog>` the rule above keys on, so on a page with no
+   * dialog open there was nothing severing the chain at all.
+   *
+   * Keyed on the `data-slot` names this project already gives its overlays plus
+   * Base UI's own `[data-popup]`, rather than on `overflow` — there is no
+   * selector for "this element scrolls", and every one of these surfaces
+   * declares `overflow-y-auto` at the component.
+   */
+  [data-slot='dropdown-menu-content'],
+  [data-slot='select-content'],
+  [data-slot='popover-content'],
+  [data-slot='combobox-content'],
+  [data-slot='sheet-content'],
+  [data-slot='scroll-area-viewport'] {
+    overscroll-behavior: contain;
   }
 
   /*
@@ -1835,9 +2089,9 @@
    */
   @media (width >= 48rem) {
     .portal-home-glow {
-      inset-block-start: -25.94vh;
-      height: 74.64vh;
-      filter: blur(9.24vh);
+      inset-block-start: -25.94dvh;
+      height: 74.64dvh;
+      filter: blur(9.24dvh);
     }
   }
 
@@ -1863,7 +2117,7 @@
    * — the field is *offering* itself. Focus empties the fill back to the page
    * and doubles the edge to 2px — the field is *taken*, and the box goes quiet
    * because there is about to be text in it. Both edges are the same olive:
-   * `--primary` sits on olive-500 and nothing quieter clears 3:1.
+   * `--primary` sits on green-500 and nothing quieter clears 3:1.
    *
    * It replaces an olive line that grew along the block-end edge on focus plus
    * a 3px olive halo around the whole box. Both were drawing attention to the
@@ -1935,6 +2189,31 @@
     background-color: var(--muted);
   }
   /*
+   * **`type="search"` ships a clear button this design system did not draw.**
+   *
+   * WebKit and Blink paint their own `✕` inside a search field, at the browser's
+   * accent colour — which lands as a bright blue mark inside an green-and-warm
+   * field, on the wrong side of the box in Arabic, at a size and hit area
+   * nothing here controls. It appeared inside the dish editor's ingredient
+   * search and read as a UI bug, because next to a design system that owns every
+   * other glyph on the screen, that is what it is.
+   *
+   * Turned off for every search field in the app rather than patched at one call
+   * site: they are all `Input type="search"`, and a control that only some of
+   * them wear is worse than one none of them do. Nothing is lost — Escape still
+   * clears a search field, and the fields that need a visible clear draw their
+   * own, on the system's terms.
+   */
+  .q-field::-webkit-search-cancel-button,
+  .q-field::-webkit-search-decoration {
+    /* `display: none` as well as `appearance`, and not by belt-and-braces: the
+       build's CSS normaliser drops the `-webkit-`-prefixed `appearance` line and
+       keeps only the unprefixed one, which this pseudo-element does not always
+       honour. `display` is not ambiguous in any engine that paints the button. */
+    appearance: none;
+    display: none;
+  }
+  /*
    * Read-only is a sunken fill with no border: the control is still a value to
    * read, but it no longer advertises itself as editable.
    */
@@ -1991,10 +2270,10 @@
   /*
    * There is no emphasised-field class any more.
    *
-   * `.q-field-primary` gave a field an olive-600 edge and an olive-50 fill at
+   * `.q-field-primary` gave a field an green-600 edge and an green-50 fill at
    * rest, to mark the answers a record cannot start without. It is gone because
    * a field's resting state now has to mean one thing: with hover filling the
-   * box olive-50 and focus taking the olive edge, a field that already wore
+   * box green-50 and focus taking the olive edge, a field that already wore
    * both was saying "you are pointing at me" to nobody, and an untouched client
    * card opened as a block of green.
    *
@@ -2018,7 +2297,7 @@
   }
 
   /*
-   * §9.7 loading skeleton: an olive-tinted sweep across a sunken fill, 1600ms.
+   * §9.7 loading skeleton: an green-tinted sweep across a sunken fill, 1600ms.
    *
    * These bars stand in for the *contents* of a real `Card`, not for the card
    * itself, so they take the small radius rather than the card's. A caller that
@@ -2104,7 +2383,7 @@
     background: linear-gradient(
       to right,
       transparent,
-      color-mix(in oklch, var(--olive-100) 90%, transparent),
+      color-mix(in oklch, var(--green-100) 90%, transparent),
       transparent
     );
     transform: translateX(-100%);
@@ -2112,12 +2391,12 @@
   }
 
   .dark .q-skeleton::after {
-    /* olive-100 on an olive-800 fill would strobe; §15 keeps brand hues but the
+    /* green-100 on an green-800 fill would strobe; §15 keeps brand hues but the
        sweep is a surface effect, so it follows the surface. */
     background: linear-gradient(
       to right,
       transparent,
-      color-mix(in oklch, var(--olive-700) 90%, transparent),
+      color-mix(in oklch, var(--green-700) 90%, transparent),
       transparent
     );
   }
@@ -2339,6 +2618,488 @@
 }
 
 /*
+ * ══ Anchored popups become bottom sheets on touch hardware ══
+ *
+ * Select, Combobox, Dropdown menu and Popover all anchor themselves to their
+ * trigger, flip when there is no room and clamp to `--available-height`. That
+ * is the right control for a pointer, and it is the wrong one for a thumb: the
+ * list opens wherever the trigger happens to be, which on a tablet is often the
+ * middle of the screen with a keyboard about to cover the half of it that
+ * matters, and every row is a small target a long way from the hand.
+ *
+ * So on a coarse pointer they rise from the block-end edge instead — full
+ * width, rounded at the top, thumb-height rows, clear of the home indicator.
+ *
+ * ## Why `(pointer: coarse)` and not a width
+ *
+ * A width query cannot answer this question. An iPad is 810–1366 CSS px, which
+ * is desktop territory by every breakpoint in this file — so a `max-sm:` or
+ * even `max-lg:` rule leaves the exact device this was reported on with the
+ * anchored popup it could not use. `pointer: coarse` asks about the input
+ * hardware, which is the thing that actually decides whether a popup should be
+ * a sheet, and it is correct for a phone, a tablet and a touchscreen laptop
+ * alike while leaving every mouse-driven window untouched at any size.
+ *
+ * ## How it works, and why it is one rule rather than four components
+ *
+ * Base UI writes the anchored position as *inline* styles on the positioner, so
+ * a stylesheet needs `!important` to take it back — and once it has, the
+ * positioner is just a fixed box pinned to the bottom edge. Nothing about the
+ * popup's DOM, focus management, keyboard navigation, `dir` handling or
+ * dismissal changes; only where the box lands. `meal-inspector.tsx` already
+ * does exactly this at `max-sm`, per call site — this is the same move made
+ * once, on the `data-slot` hooks the four positioners now carry, so every
+ * existing caller and every future one gets it without knowing to ask.
+ *
+ * ⚠ `display` is deliberately not touched. Base UI hides a closed popup by
+ * setting `display: none` on the positioner, and an `!important` display here
+ * would strand every closed popup on screen.
+ *
+ * ## What this no longer covers, and why that is the direction of travel
+ *
+ * The notifications inbox used to be the loudest customer of the
+ * `popover-positioner` line below. It is not any more: `NotificationInboxPopover`
+ * asks `useIsSheetSurface()` — the same width-or-coarse question this query
+ * asks — and renders a real `Sheet` on a touch device instead of a popover that
+ * gets redrawn as one here. That is the better arrangement wherever a surface
+ * can afford it, because a `Sheet` is a dialog: it brings a focus trap, a
+ * scrim, a close control and an entrance of its own, and above all the
+ * *component* knows which surface it is, so anything that has to measure or
+ * animate it can ask. A popover reshaped by a stylesheet leaves the component
+ * believing it is still anchored to its trigger.
+ *
+ * This block stays for the surfaces where that trade does not pay: `select`,
+ * `combobox` and `dropdown-menu` are list pickers whose whole content is rows,
+ * with nothing to focus-trap and no header to close, and swapping each of them
+ * for a dialog would be a large change to buy very little. `popover-positioner`
+ * stays too — the date pickers, the client filter and the planner's panels all
+ * still hang off a trigger and still want this on a tablet.
+ */
+@media (pointer: coarse) {
+  [data-slot='select-positioner'],
+  [data-slot='combobox-positioner'],
+  [data-slot='dropdown-menu-positioner'],
+  [data-slot='popover-positioner'] {
+    position: fixed !important;
+    inset-inline: 0 !important;
+    inset-block: auto 0 !important;
+    /*
+      The anchored transform is what carried the popup to its trigger, and the
+      transform origin with it. Both have to go, or the sheet arrives translated
+      away from the edge it is now pinned to.
+    */
+    transform: none !important;
+    min-width: 0 !important;
+    width: auto !important;
+    max-width: none !important;
+    max-height: none !important;
+  }
+
+  [data-slot='select-content'],
+  [data-slot='combobox-content'],
+  [data-slot='dropdown-menu-content'],
+  [data-slot='popover-content'] {
+    width: 100% !important;
+    min-width: 0 !important;
+    /*
+      `--anchor-width` and `--available-*` describe a box anchored to a trigger.
+      A sheet is measured against the screen instead: tall enough to be worth
+      opening, never so tall that the page behind it disappears and the sheet
+      reads as a page of its own.
+    */
+    max-width: none !important;
+    max-height: min(75dvh, calc(100dvh - 3rem)) !important;
+    /*
+      Risen from the edge, so only the block-start corners exist — the same
+      language `Dialog`'s sheet placement speaks, and the same radius.
+    */
+    border-start-start-radius: var(--qiwam-radius-lg);
+    border-start-end-radius: var(--qiwam-radius-lg);
+    border-end-start-radius: 0;
+    border-end-end-radius: 0;
+    /*
+      The sheet's own fill runs under the home indicator; its last row does not.
+      Added to whatever padding the popup already carries rather than replacing
+      it, so a menu keeps its 4px gutter and gains the inset beneath it.
+    */
+    padding-block-end: calc(var(--q-safe-b) + 0.25rem);
+    /* A sheet is lifted off the page, not ringed against it. */
+    box-shadow: var(--shadow-overlay, 0 -8px 32px rgb(0 0 0 / 12%));
+  }
+
+  /*
+    The entrance. It replaces the anchored popup's zoom-and-fade, which
+    describes a box growing out of its trigger — a movement a sheet does not
+    make. `!important` because the utilities it replaces are `animation`
+    shorthands from `tw-animate-css` on the same element.
+
+    The reduced-motion block near the top of this file still wins: it caps
+    `animation-duration` with `!important` of its own and is declared later.
+  */
+  [data-slot='select-content'][data-open],
+  [data-slot='combobox-content'][data-open],
+  [data-slot='dropdown-menu-content'][data-open],
+  [data-slot='popover-content'][data-open] {
+    animation: q-popup-sheet-in 220ms var(--ease-sweep) !important;
+  }
+
+  [data-slot='select-content'][data-closed],
+  [data-slot='combobox-content'][data-closed],
+  [data-slot='dropdown-menu-content'][data-closed],
+  [data-slot='popover-content'][data-closed] {
+    animation: q-popup-sheet-out 160ms ease-in both !important;
+  }
+
+  /*
+    Rows reach the touch floor. The anchored menu's 1px/4px gutters are a mouse
+    target; a thumb needs the 44px the rest of this file already reserves for
+    coarse pointers (see `.planner-drag-handle` and `.calendar-drag-grip`).
+    `min-block-size` rather than a height, so a two-line row still grows.
+  */
+  [data-slot='dropdown-menu-item'],
+  [data-slot='dropdown-menu-checkbox-item'],
+  [data-slot='dropdown-menu-radio-item'],
+  [data-slot='dropdown-menu-sub-trigger'],
+  [data-slot='combobox-item'] {
+    min-block-size: 44px;
+    padding-inline: 0.75rem;
+  }
+
+  [data-slot='select-item'] {
+    min-block-size: 44px;
+  }
+}
+
+/*
+ * ══ …and stops being full-bleed once the screen is wider than a phone ══
+ *
+ * The block above is right about *where* a sheet belongs and says nothing
+ * useful about how wide it should be, because on the device it was written for
+ * the two questions have the same answer: a phone in portrait is 390–430px, and
+ * full-bleed is the only width there is. Turn that phone sideways and it is
+ * 850px; an iPad in landscape is 1180–1366px. A select with six options and a
+ * dropdown with four rows were being stretched across the whole of that — a
+ * band of empty popover with the labels stranded at the inline-start end and
+ * the check marks at the other, which is a longer journey for the eye than the
+ * anchored popup this replaced.
+ *
+ * So above `sm` the sheet takes a measure and centres on the block-end edge.
+ * It is still a sheet — still risen from the thumb's edge, still square at the
+ * bottom, still the same entrance — it simply stops being as wide as the glass.
+ *
+ * **28rem, which is the measure the app already uses for a modal surface** —
+ * `Dialog`'s own centred card is `min(28rem, …)`, and a menu is not a wider
+ * kind of thing than a dialog. It was briefly 40rem, on the reasoning that
+ * Material caps a large-screen bottom sheet there; on an iPad that is still
+ * two-thirds of the glass for a list of four rows, which is the width this was
+ * meant to stop. Sharing the number with the card is also the point: a tablet
+ * shows one width for every surface that interrupts the page, whether it rises
+ * from the edge or floats in the middle.
+ *
+ * Below 40rem nothing changes at all — a phone in portrait never matches this
+ * query, so the full-bleed behaviour the block above describes is exactly as it
+ * was.
+ *
+ * `min(100%, …)` rather than `max-width`, because the rule above sets
+ * `width: 100% !important` and an `!important` width outranks any max-width;
+ * the cap has to be inside the same declaration that beats it.
+ */
+@media (pointer: coarse) and (width >= 40rem) {
+  [data-slot='select-content'],
+  [data-slot='combobox-content'],
+  [data-slot='dropdown-menu-content'],
+  [data-slot='popover-content'] {
+    width: min(100%, 28rem) !important;
+    margin-inline: auto;
+  }
+}
+
+@keyframes q-popup-sheet-in {
+  from {
+    transform: translateY(100%);
+    opacity: 0.6;
+  }
+}
+
+@keyframes q-popup-sheet-out {
+  to {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+/*
+ * ══ The safe area, applied ══
+ *
+ * `viewport-fit=cover` is what makes an installed app fill the screen instead
+ * of sitting letterboxed in a band of theme colour, and the price of it is that
+ * every surface pinned to an edge is now responsible for keeping its own
+ * content clear of the home indicator, the status bar and the rounded corners.
+ * The `--q-safe-*` tokens beside the colour tokens are the four numbers; this
+ * is the list of surfaces that owe them.
+ *
+ * ⚠ **None of this is observable in device emulation.** DevTools reports zero
+ * for every inset whatever device it is imitating, so both before and after
+ * this block it renders identically there. The difference appears only on
+ * hardware with a home indicator or a notch, and most sharply in an installed
+ * PWA, which is the one context with no browser chrome to absorb the
+ * difference.
+ *
+ * Everything below adds padding *inside* a surface that already reaches the
+ * edge. Nothing is inset away from the edge itself — a bottom sheet still
+ * touches the bottom of the screen and its background still runs under the home
+ * indicator, which is what a bottom sheet should do; it is the *content* that
+ * moves up.
+ */
+
+/*
+ * The bottom sheet. `data-placement` comes from `Dialog`, and only the sheet
+ * gets this: a centred card floats clear of every edge already.
+ *
+ * The inset lands on the footer where there is one, so the footer's own
+ * `bg-muted/50` runs down into the safe area and the sheet reads as one
+ * surface. Where there is no footer, the body takes it instead — a sheet whose
+ * last row was a form field otherwise ended with that field under the home
+ * indicator. `:has()` picks whichever applies, so a dialog never gets both.
+ *
+ * Held to below `sm`, because that is where `Dialog` stops being a sheet under
+ * a *mouse* and becomes the same centred card as `placement="center"`. The
+ * tablet keeps the sheet past that width and takes the same inset a query
+ * lower down.
+ */
+@media (max-width: 39.999rem) {
+  .q-dialog[data-placement='sheet'] [data-slot='dialog-footer'] {
+    padding-block-end: calc(1rem + var(--q-safe-b));
+  }
+
+  .q-dialog[data-placement='sheet']:not(:has([data-slot='dialog-footer'])) [data-slot='dialog-body'] {
+    padding-block-end: calc(1rem + var(--q-safe-b));
+  }
+}
+
+/*
+ * The same inset, for the tablet.
+ *
+ * The rule further down keeps the sheet shape on any coarse pointer at any
+ * width — an iPad at 820 or 1180 gets a surface pinned to the block-end edge
+ * exactly like the phone's — but the query above stops at 40rem, so on the one
+ * device family with both a home indicator and a large screen the footer's
+ * buttons sat in the gesture area. **Installed to the home screen it is worse
+ * than in a browser**: there is no toolbar below the sheet to absorb the strip,
+ * so Save is the control the swipe-up gesture reaches first.
+ *
+ * `(pointer: coarse)` and not a width, for the reason the sheet itself gives:
+ * the question is whether this is a touch screen with a home indicator, and a
+ * 900px desktop window is not. A tablet at the phone's width matches both this
+ * and the query above and gets one inset, not two — they set the same property
+ * to the same value.
+ *
+ * The two exclusions are the ones every sheet rule here carries: the planner
+ * sheet and the navigation drawer own their own geometry.
+ */
+@media (pointer: coarse) and (width >= 40rem) {
+  .q-dialog[data-placement='sheet']:not(.planner-context-sheet):not(.app-navigation-drawer)
+    [data-slot='dialog-footer'] {
+    padding-block-end: calc(1rem + var(--q-safe-b));
+  }
+
+  .q-dialog[data-placement='sheet']:not(.planner-context-sheet):not(.app-navigation-drawer):not(
+      :has([data-slot='dialog-footer'])
+    )
+    [data-slot='dialog-body'] {
+    padding-block-end: calc(1rem + var(--q-safe-b));
+  }
+}
+
+/*
+ * Base UI's `Sheet`, which is a different component from the `<dialog>` above
+ * and reaches an edge on all four sides depending on its `side`. Each one takes
+ * the inset for the edge it is actually against; a start/end rail spans the
+ * full block axis, so it takes both.
+ */
+[data-slot='sheet-content'][data-side='bottom'] {
+  padding-block-end: var(--q-safe-b);
+}
+
+[data-slot='sheet-content'][data-side='top'] {
+  padding-block-start: var(--q-safe-t);
+}
+
+[data-slot='sheet-content'][data-side='inline-start'],
+[data-slot='sheet-content'][data-side='inline-end'] {
+  padding-block-start: var(--q-safe-t);
+  padding-block-end: var(--q-safe-b);
+}
+
+/*
+ * …and the inline edge each of those is against, which is the half that only
+ * appears once the device is turned. `data-side` is logical and the insets are
+ * physical, so each pairing is stated with the `dir` that makes it the same
+ * edge of the glass. In portrait every one of these resolves to `0px` and the
+ * rules are inert, which is why this is the piece that survives a review on a
+ * desk and fails in a hand.
+ */
+[dir='ltr'] [data-slot='sheet-content'][data-side='inline-start'],
+[dir='rtl'] [data-slot='sheet-content'][data-side='inline-end'] {
+  padding-left: var(--q-safe-l);
+}
+
+[dir='ltr'] [data-slot='sheet-content'][data-side='inline-end'],
+[dir='rtl'] [data-slot='sheet-content'][data-side='inline-start'] {
+  padding-right: var(--q-safe-r);
+}
+
+/*
+ * The portal's floating request button. It is `fixed` in the block-end inline-
+ * end corner — the one corner of the screen where *both* insets meet — and its
+ * `end-4` is a 16px gutter measured from the edge of the glass rather than from
+ * the edge of the safe area. In landscape a phone reports ~47px there, so a
+ * 56px circle sat a third of the way under the rounded corner and the sensor
+ * housing beside it, on the control that is how a client asks for an
+ * appointment at all.
+ *
+ * `max()` so the utility's 16px stays the floor: nothing changes in portrait,
+ * on a desktop, or on any screen that reports no inset. Physical properties for
+ * the reason recorded on `.q-app-shell` — `inset-inline-end` would apply the
+ * right-hand inset to the left of the glass in Arabic.
+ *
+ * The block-end edge needs nothing here: `--q-fab-offset-bottom` already adds
+ * `env(safe-area-inset-bottom)` through the tab bar's clearance, and the
+ * `1.5rem` fallback it falls back to on the `(screen)` group clears a home
+ * indicator on its own.
+ *
+ * Each rule clears the opposite edge to `auto`, which is a no-op in the case
+ * these are written for — the app sets `dir` on <html> and nowhere above this
+ * button — and the guard for the case they are not. `[dir='ltr'] X` is a
+ * *descendant* selector, so both rules match an RTL subtree of an LTR document;
+ * with `left` and `right` then both set on an auto-width fixed element, the
+ * button would stretch between them instead of sitting in its corner.
+ */
+[dir='ltr'] .q-fab {
+  right: max(1rem, var(--q-safe-r));
+  left: auto;
+}
+
+[dir='rtl'] .q-fab {
+  left: max(1rem, var(--q-safe-l));
+  right: auto;
+}
+
+/*
+ * The app shell — staff and portal both, since each of the portal's two route
+ * groups renders through the same `AppShell`.
+ *
+ * It is `h-svh overflow-hidden` in the staff area and a `min-h-dvh` column in
+ * the portal, and under `viewport-fit=cover` either measures the whole screen
+ * rather than the safe part of it. Padding rather than a smaller height, so the
+ * shell's fill still reaches both ends and only its contents move.
+ *
+ * ⚠ **The block pair is all this element can do, and the inline pair used to be
+ * here and was wrong twice over.**
+ *
+ * It was wrong *physically*: `padding-inline-start` resolves to the right-hand
+ * edge in Arabic, so it applied `--q-safe-l` — the inset for the left of the
+ * glass — to the right of it. The insets describe hardware, not text: a sensor
+ * housing does not move when the reader switches language. Anything consuming
+ * them has to say `left`/`right`, which is why every inline rule below does.
+ *
+ * And it was wrong *structurally*: the rail is `position: fixed`, so it is laid
+ * out against the viewport and every ancestor's padding — this one included —
+ * passes it by. Measured on an 852×393 landscape viewport with the four insets
+ * simulated at the values an iPhone reports there, the rail spanned 0→256 while
+ * `main` began at 303: a 47px stripe of bare canvas down the middle of the
+ * shell, with the rail's own first row still under the status bar and its
+ * inline-start column still under the housing. The inset had moved the one box
+ * that did not need it and missed both that did.
+ *
+ * So the inline insets now sit on the two boxes that are actually against the
+ * glass — `main` and the rail's own contents — and each is stated for the edge
+ * it is against. Nothing is inset twice, and there is no gap between them,
+ * because the shell itself is no longer inset at all.
+ */
+.q-app-shell {
+  padding-block-start: var(--q-safe-t);
+  padding-block-end: var(--q-safe-b);
+}
+
+/*
+ * `main`'s outer edge — the one facing the screen rather than the rail. In
+ * English the rail is on the left and this is the right-hand inset; in Arabic
+ * it is the mirror. The rail-facing edge needs nothing: the rail is 256px of
+ * fill between that edge and the glass, which is five times any inset a phone
+ * reports.
+ */
+[dir='ltr'] .q-app-shell [data-slot='sidebar-inset'] {
+  padding-right: var(--q-safe-r);
+}
+
+[dir='rtl'] .q-app-shell [data-slot='sidebar-inset'] {
+  padding-left: var(--q-safe-l);
+}
+
+/*
+ * Below `md` the rail is a Sheet rather than a column in flow, so `main` is the
+ * full width of the screen and both of its edges are against the glass. The
+ * breakpoint is `Sidebar`'s own `hidden md:block`, restated here in the range
+ * syntax the rest of this file uses.
+ *
+ * A locked icon rail *is* in flow at this width, and this rule insets `main`
+ * past it anyway. That costs nothing on real hardware: the inline insets are
+ * reported below `md` only in landscape, and no device is under 768px in
+ * landscape — a phone held sideways is 812px at its narrowest.
+ */
+@media (width < 48rem) {
+  .q-app-shell [data-slot='sidebar-inset'] {
+    padding-left: var(--q-safe-l);
+    padding-right: var(--q-safe-r);
+  }
+}
+
+/*
+ * The rail, which has to inset itself for the reason above: it is fixed to the
+ * viewport, so it is the shell's padding that misses it, not the other way
+ * round.
+ *
+ * On the inner rather than on the fixed container, so the rail's `bg-sidebar`
+ * still runs under the status bar, the home indicator and the rounded corner
+ * and only the navigation inside it moves. Both ends always — the rail spans
+ * the full block axis whichever side it is on — and one inline edge, the one it
+ * is pinned to. `data-side` is logical, so each is paired with the `dir` that
+ * makes it the physical edge the inset belongs to.
+ */
+[data-slot='sidebar-container'] > [data-slot='sidebar-inner'] {
+  padding-block: var(--q-safe-t) var(--q-safe-b);
+}
+
+[dir='ltr'] [data-slot='sidebar-container'][data-side='inline-start'] > [data-slot='sidebar-inner'],
+[dir='rtl'] [data-slot='sidebar-container'][data-side='inline-end'] > [data-slot='sidebar-inner'] {
+  padding-left: var(--q-safe-l);
+}
+
+[dir='ltr'] [data-slot='sidebar-container'][data-side='inline-end'] > [data-slot='sidebar-inner'],
+[dir='rtl'] [data-slot='sidebar-container'][data-side='inline-start'] > [data-slot='sidebar-inner'] {
+  padding-right: var(--q-safe-r);
+}
+
+/*
+ * The portal's tab bar. `fixed inset-x-0 bottom-0`, so it is the same story as
+ * the rail: it spans the glass and no ancestor's padding reaches it. It already
+ * carried the block-end inset inline in the component — that one is visible in
+ * portrait and so was the one anyone would have found — and had nothing for the
+ * pair that only appear when the phone is turned. Four tabs on a `grid` divided
+ * across the full width put the first and last icon squarely under the housing
+ * and the opposite corner.
+ *
+ * `max()` against the bar's own `px-1`, so the gutter it already has is a floor
+ * rather than something the inset replaces, and the fill still reaches every
+ * edge because this is padding on the list inside it.
+ */
+.portal-tab-bar > ul {
+  padding-left: max(0.25rem, var(--q-safe-l));
+  padding-right: max(0.25rem, var(--q-safe-r));
+}
+
+/*
  * Responsive staff navigation. The tablet rail stays in flow at 72px; this
  * full drawer enters in the top layer, so opening it never resizes the working
  * canvas. Logical positioning and direction-specific travel keep Arabic and
@@ -2355,6 +3116,14 @@
   margin: 0;
   border: 0;
   background: transparent;
+  /*
+    Full-height and against the inline-start edge, so it owes three insets. It
+    keeps `height: 100dvh` and takes them as padding — the drawer's own surface
+    should still reach every edge it is pinned to; only what is inside it moves
+    clear of the status bar, the home indicator and a rounded corner.
+  */
+  padding-block: var(--q-safe-t) var(--q-safe-b);
+  padding-inline-start: var(--q-safe-l);
   animation-duration: 260ms;
   animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -2386,8 +3155,46 @@
 /* Route content enters from the navigation's inline-start edge while the shell
  * remains still. The near-complete starting state prevents a flash on slower
  * devices; clip and blur make the gesture read as continuity, not decoration. */
+/*
+ * `backwards`, not `both` — the same bug, and the same fix, as the dialog
+ * entrance documented below. It is repeated here because this element is the
+ * wrapper *every* route in the app renders inside, so the blast radius is the
+ * whole product rather than one surface.
+ *
+ * The keyframes declare only a `from`. Under `both` the forwards fill keeps the
+ * animated properties applied for as long as the route is mounted, so a settled
+ * stage computes `transform: matrix(1, 0, 0, 1, 0, 0)` rather than `none` — and
+ * any transform other than `none` makes the element the containing block for
+ * every `position: fixed` descendant it has. Measured in the browser before
+ * this change: a `position: fixed; inset-block-start: 0; left: 0` probe
+ * appended to the stage resolved to `left: 256px`, the stage's own inline-start
+ * edge, instead of the viewport's.
+ *
+ * Base UI's popups portal to `<body>` and so were never caught by it, but every
+ * hand-positioned `fixed` overlay rendered *inside* a page was — which is why
+ * `AppointmentRequestFab`, `data-update-request`, `appointment-request-dialog`
+ * and the portal's `HomeGlow` each carry a note about working around this
+ * wrapper. They were treating the symptom one call site at a time; this is the
+ * cause.
+ *
+ * There is a second failure that only `backwards` removes, and it is the one
+ * that shows up on a tablet rather than a desktop. `both` also fills
+ * *backwards*, so before the animation's first frame the stage carries the
+ * from-state — including `clip-path: inset(0 1rem 0 0 round …)`, which clips
+ * fixed descendants as well as in-flow ones. A document that is loaded while
+ * hidden never advances that animation: iOS suspends timers for a backgrounded
+ * tab and restores pages from the back/forward cache and the app switcher
+ * without replaying them, so a route restored that way keeps the from-state
+ * indefinitely. Verified by reading `getAnimations()` on a hidden document:
+ * `playState: 'running'`, `clip-path: inset(0px 16px 0px 0px round 16px)`,
+ * with the probe above still landing at the stage's edge.
+ *
+ * `backwards` keeps the only thing the fill was wanted for — the from-state
+ * applied before the first frame, so there is no flash on slower devices — and
+ * drops the forwards half that never should have persisted.
+ */
 .q-route-stage {
-  animation: q-route-enter-ltr 190ms var(--ease-sweep) both;
+  animation: q-route-enter-ltr 190ms var(--ease-sweep) backwards;
 }
 
 [dir='rtl'] .q-route-stage {
@@ -2420,62 +3227,235 @@
  * they need the forwards fill to hold the end state until the dialog actually
  * closes, and a closing dialog has nothing left to mis-anchor.
  */
+/*
+ * G. Seam is the standard dialog transition. The surface reveals from its own
+ * horizontal midpoint, so the same motion belongs to a phone sheet and a
+ * centred card without implying travel from an edge.
+ */
 .q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) {
-  animation: q-dialog-in-sheet 200ms var(--ease-sweep) backwards;
+  animation: q-dialog-seam-in 300ms var(--ease-sweep) backwards;
 }
 
 .q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer)::backdrop {
-  animation: q-dialog-backdrop-in 160ms ease-out backwards;
+  animation: q-dialog-backdrop-in 260ms var(--ease-sweep) backwards;
 }
 
 .q-dialog[data-closing='true']:not(.planner-context-sheet):not(.app-navigation-drawer) {
-  animation: q-dialog-out-sheet 140ms ease-in both;
+  animation: q-dialog-seam-out 130ms ease-in both;
 }
 
 .q-dialog[data-closing='true']:not(.planner-context-sheet):not(.app-navigation-drawer)::backdrop {
-  animation: app-navigation-backdrop-out 140ms ease-in both;
+  animation: app-navigation-backdrop-out 130ms ease-in both;
 }
 
-@media (min-width: 40rem) {
-  .q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) {
-    animation-name: q-dialog-in-card;
+/*
+ * Only stable semantic regions belonging to this dialog settle behind the
+ * surface. The explicit direct/form/wrapper paths keep a nested dialog's slots
+ * out of its parent's animation. Popup positioners are also portaled directly
+ * into the native dialog; an arbitrary descendant selector would transform
+ * them while they measure and can make a calendar dismiss.
+ */
+
+/*
+ * ══ A sheet stays a sheet on touch hardware, at every width ══
+ *
+ * `placement="sheet"` used to mean "bottom sheet below `sm`, centred card
+ * above", and `sm` is 640px — so a tablet got the card. That is the right split
+ * for a *window*, which is narrow because someone dragged it narrow, and the
+ * wrong one for a *device*: an iPad is 810–1366 CSS px and lands on the desktop
+ * side of every breakpoint in this file while being operated entirely by thumb.
+ * The new-client form, the intake panels, the notification and request lists
+ * were all centred cards there, with their controls in the middle of a screen
+ * held at the edges.
+ *
+ * Same reasoning, and the same query, as the anchored popups higher up this
+ * file: `pointer: coarse` asks about the input hardware, which is the thing
+ * that actually decides whether a surface should rise from the thumb's edge.
+ * A mouse keeps the centred card at every size, including on a 500px-wide
+ * window, exactly as before.
+ *
+ * ⚠ **`placement="center"` is deliberately excluded.** That value exists
+ * precisely for the short modal that would read as a failed sheet — four rows
+ * along the bottom edge under two-thirds of blurred page. Those stay centred on
+ * a tablet too; see the prop's own documentation in `dialog.tsx`.
+ *
+ * Unlayered, so it beats the `sm:m-auto sm:rounded-lg sm:w-[…]` utilities on
+ * the element — including the per-call widths the client form, the intake form
+ * and the dish editor each pass — without an `!important` anywhere.
+ */
+@media (pointer: coarse) {
+  .q-dialog[data-placement='sheet']:not(.planner-context-sheet):not(.app-navigation-drawer) {
+    /* Full-bleed and pinned to the block-end edge — `mt-auto mb-0` in longhand. */
+    margin-block: auto 0;
+    margin-inline: 0;
+    width: 100%;
+    max-width: none;
+    /*
+      Only the block-start corners exist; the other two are off-screen. Stated
+      through the same token `rounded-t-2xl` resolves, so the tablet sheet and
+      the phone sheet are the same shape rather than two values that happen to
+      agree today.
+    */
+    border-radius: var(--radius-2xl, 1rem) var(--radius-2xl, 1rem) 0 0;
   }
 
-  .q-dialog[data-closing='true']:not(.planner-context-sheet):not(.app-navigation-drawer) {
-    animation-name: q-dialog-out-card;
+}
+
+/*
+ * The dialog's half of the measure above, and it needs two widths where the
+ * popups needed one: `size="wide"` exists precisely because the dish editor and
+ * the intake form do not fit a reading measure.
+ *
+ * Both are the surface's own `sm:w-[…]` utilities said again — `min(28rem,
+ * calc(100vw - 2rem))` and `min(64rem, calc(100vw - 4rem))` — because those are
+ * suppressed here by the `width: 100%` above and a sheet that agreed with the
+ * card by accident would drift the first time one of them was tuned. Restating
+ * them rather than inventing a third number is also what keeps a tablet from
+ * showing two widths for the same dialog depending on whether it is being
+ * pointed at or touched.
+ *
+ * The subtracted gutter is the half that matters on an iPad held upright: at
+ * 820px a bare `min(100%, 64rem)` resolves to the full 820, so a wide sheet was
+ * still edge to edge on exactly the device this measure exists for. Taking the
+ * card's own 4rem back leaves the scrim visible down both sides, which is what
+ * says the page is still there behind it.
+ *
+ * `margin-inline: auto` against the `margin-inline: 0` above; the block pair
+ * stays `auto 0`, so the sheet is centred across the screen and still pinned to
+ * the bottom of it.
+ *
+ * ## `--q-dialog-sheet-width`, for a call site that asked for a third width
+ *
+ * The two numbers below are the *defaults*, not the only answers. A dialog that
+ * passes its own `sm:w-[…]` — the requests inbox and the notifications feed both
+ * ask for `min(48rem, …)`, between the card and the wide — was having it
+ * silently replaced here, because these declarations are unlayered and beat any
+ * utility on the element. It got 64rem on a tablet and 48rem under a mouse: one
+ * surface, two widths, decided by which input device was in the reader's hand.
+ *
+ * The variable is the seam. Unset, everything behaves exactly as before; set on
+ * the element (`[--q-dialog-sheet-width:min(48rem,calc(100vw-2rem))]` in the
+ * class list, beside the `sm:w-[…]` it mirrors) the sheet honours the call
+ * site's own measure. It is a `var()` and not a relaxed selector because the
+ * `width: 100%` in the block above still has to win on a phone — the override
+ * has to stay, it just needs somewhere to read a different number from.
+ */
+@media (pointer: coarse) and (width >= 40rem) {
+  .q-dialog[data-placement='sheet']:not(.planner-context-sheet):not(.app-navigation-drawer) {
+    margin-inline: auto;
+    width: var(--q-dialog-sheet-width, min(28rem, calc(100vw - 2rem)));
+  }
+
+  .q-dialog[data-placement='sheet'][data-size='wide']:not(.planner-context-sheet):not(.app-navigation-drawer) {
+    width: var(--q-dialog-sheet-width, min(64rem, calc(100vw - 4rem)));
   }
 }
 
 /*
- * ── `placement="center"` takes the card's entrance to every width ──
+ * The intake form's rail, on a tablet held upright.
  *
- * The rules above pick the keyframe by *breakpoint*, on the assumption that a
- * phone gets a sheet. `Dialog`'s `center` placement breaks that assumption: it
- * is a centred card below `sm` as well, and the sheet keyframe would have it
- * rise 1rem from an edge it is nowhere near — a movement describing a layout
- * that is not on the screen. `q-dialog-in-card` is the small scale-and-settle
- * that suits a card arriving in place.
+ * `IntakeForm` puts its seven sections in a 14rem column beside the fields from
+ * `sm` up, and a scrolling row of tabs below it. Both arrangements are right;
+ * which one applies was being decided by the *window* width, and inside this
+ * dialog that is the wrong measurement twice over.
  *
- * Doubled up as `.q-dialog.q-dialog-centered` rather than written as one class,
- * to outrank the base rules by specificity instead of by source order. They
- * carry four class-level selectors each (`.q-dialog`, `[open]`, and the two
- * `:not()` arguments); matching that exactly would leave this depending on
- * where it happens to sit in the file, and this stylesheet is long enough that
- * "below the other one" is not a property anybody should have to maintain.
+ * The surface is a sheet here, not the window: `min(54rem, 100vw - 3rem)`. On a
+ * 768px tablet in portrait that is a 45rem sheet, and the window — 48rem — had
+ * already answered "wide", so the rail took its column out of a surface three
+ * quarters the size of the one the column was drawn for. What was left for the
+ * fields was 28rem, and the meal schedule's four-column row (label, time, share,
+ * delete) needs 25rem of that before the label input gets a pixel: the label
+ * came out around 50px wide. The tab bar the phone gets fits this sheet far
+ * better than the desktop's column does.
  *
- * Above `sm` it changes nothing — the media query already names these same two
- * keyframes, so the declarations agree and only the specificity differs.
+ * ## Why the range, and why a media query rather than a container
  *
- * The `:not()` pair is repeated because the planner's context sheet and the
- * navigation drawer own their entrances outright; neither is ever centred, but
- * a rule that could reach them if one day they were is a trap.
+ * The lower bound is the tablet itself — `pointer: coarse` with a screen past
+ * the phone's 40rem, the same pair the sheet rules above are keyed to. A mouse
+ * never matches it at any size, so **the desktop arrangement is untouched**,
+ * including a desktop window narrowed to tablet width; and below 40rem the
+ * phone already renders exactly this shape from its own utilities, so it is
+ * untouched too.
+ *
+ * The upper bound is where the column stops costing more than it earns. Above
+ * 60rem the sheet has reached its 54rem ceiling, which leaves 37rem beside the
+ * rail — room for the schedule row and two field columns both — so a landscape
+ * iPad keeps the desktop arrangement it was already getting right.
+ *
+ * A container query would be the natural tool for "how wide is this dialog",
+ * and it is deliberately not used: it cannot ask whether the pointer is a
+ * finger, so the same rearrangement would also land on a desktop window at
+ * tablet width. That is a face this change is explicitly not touching.
+ *
+ * Unlayered, so these beat the `sm:` utilities on the elements without an
+ * `!important`; the `data-slot`s they hang on are declared in `intake-form.tsx`
+ * and carry no styling of their own.
  */
-.q-dialog.q-dialog-centered[open]:not(.planner-context-sheet):not(.app-navigation-drawer) {
-  animation-name: q-dialog-in-card;
+@media (pointer: coarse) and (40rem <= width < 60rem) {
+  [data-slot='intake-shell'] {
+    flex-direction: column;
+  }
+
+  [data-slot='intake-rail'] {
+    /* `sm:w-56 sm:flex-col sm:overflow-visible` put back to the row. */
+    width: auto;
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    /*
+      A flick that runs off the end of the tabs is the rail's own gesture. Left
+      to chain it scrolls the panel behind them, or on iOS starts the sheet's
+      own dismiss — from a control the finger is meant to be *reading* along.
+    */
+    overscroll-behavior-x: contain;
+    /* The divider moves with the rail: it separates rows now, not columns. */
+    border-inline-end-width: 0;
+    border-block-end-width: 1px;
+  }
+
+  [data-slot='intake-tab'] {
+    /* `sm:w-full` is for a column; in a row it would give each tab the rail. */
+    width: auto;
+  }
 }
 
-.q-dialog.q-dialog-centered[data-closing='true']:not(.planner-context-sheet):not(.app-navigation-drawer) {
-  animation-name: q-dialog-out-card;
+/* Stable semantic regions settle after the Seam surface reveal. */
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > :where([data-slot='dialog-header'], [data-slot='dialog-body'], [data-slot='dialog-footer']),
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > form > :where([data-slot='dialog-header'], [data-slot='dialog-body'], [data-slot='dialog-footer']),
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > div > :where([data-slot='dialog-header'], [data-slot='dialog-body'], [data-slot='dialog-footer']) {
+  animation: q-dialog-seam-child-in 260ms var(--ease-sweep) backwards;
+}
+
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > [data-slot='dialog-header'],
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > form > [data-slot='dialog-header'],
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > div > [data-slot='dialog-header'] {
+  animation-delay: 90ms;
+}
+
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > [data-slot='dialog-body'],
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > form > [data-slot='dialog-body'],
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > div > [data-slot='dialog-body'] {
+  animation-delay: 140ms;
+}
+
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > [data-slot='dialog-footer'],
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > form > [data-slot='dialog-footer'],
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > div > [data-slot='dialog-footer'] {
+  animation-delay: 190ms;
+}
+
+.q-dialog[data-closing='true']:not(.planner-context-sheet):not(.app-navigation-drawer) > :where([data-slot='dialog-header'], [data-slot='dialog-body'], [data-slot='dialog-footer']),
+.q-dialog[data-closing='true']:not(.planner-context-sheet):not(.app-navigation-drawer) > form > :where([data-slot='dialog-header'], [data-slot='dialog-body'], [data-slot='dialog-footer']),
+.q-dialog[data-closing='true']:not(.planner-context-sheet):not(.app-navigation-drawer) > div > :where([data-slot='dialog-header'], [data-slot='dialog-body'], [data-slot='dialog-footer']) {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > :where([data-slot='dialog-header'], [data-slot='dialog-body'], [data-slot='dialog-footer']),
+  .q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > form > :where([data-slot='dialog-header'], [data-slot='dialog-body'], [data-slot='dialog-footer']),
+  .q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) > div > :where([data-slot='dialog-header'], [data-slot='dialog-body'], [data-slot='dialog-footer']) {
+    animation: none;
+  }
 }
 
 /* The context sheet preserves its relationship to the board: up from the
@@ -2526,7 +3506,7 @@
   z-index: 0;
   width: 34%;
   content: '';
-  background: color-mix(in srgb, var(--accent-lime) 70%, transparent);
+  background: color-mix(in srgb, var(--accent-green) 70%, transparent);
   filter: blur(7px);
   opacity: 0;
   transform: translateX(-220%) skewX(-12deg);
@@ -2618,37 +3598,29 @@
   }
 }
 
-@keyframes q-dialog-in-sheet {
+@keyframes q-dialog-seam-in {
   from {
-    clip-path: inset(0.5rem 0 0 round 1rem);
-    filter: blur(1px);
-    opacity: 0.82;
-    transform: translateY(1rem);
+    clip-path: inset(50% 0 50% 0 round var(--qiwam-radius-lg, 0.75rem));
+    opacity: 0.4;
+  }
+
+  to {
+    clip-path: inset(0 0 0 0 round var(--qiwam-radius-lg, 0.75rem));
+    opacity: 1;
   }
 }
 
-@keyframes q-dialog-in-card {
+@keyframes q-dialog-seam-out {
+  to {
+    clip-path: inset(50% 0 50% 0 round var(--qiwam-radius-lg, 0.75rem));
+    opacity: 0.2;
+  }
+}
+
+@keyframes q-dialog-seam-child-in {
   from {
-    clip-path: inset(0.25rem round var(--qiwam-radius-lg));
-    filter: blur(1px);
-    opacity: 0.82;
-    transform: translateY(0.25rem) scale(0.985);
-  }
-}
-
-@keyframes q-dialog-out-sheet {
-  to {
-    filter: blur(1px);
-    transform: translateY(0.75rem);
     opacity: 0;
-  }
-}
-
-@keyframes q-dialog-out-card {
-  to {
-    filter: blur(1px);
-    transform: translateY(0.25rem) scale(0.985);
-    opacity: 0;
+    transform: translateY(0.5rem);
   }
 }
 
@@ -2921,6 +3893,46 @@
   -webkit-user-select: none;
 }
 
+/*
+ * ── The iOS half of "this is a grip, not text" ──
+ *
+ * All three grips already say `user-select: none`, and on every engine but
+ * WebKit that is the whole of it. iOS has a second gesture bound to the same
+ * press: hold a moment and Safari raises the callout menu and the selection
+ * magnifier. The instant either appears WebKit takes ownership of the pointer
+ * and fires `pointercancel` — which is exactly the event both drag
+ * implementations here treat as "the gesture was abandoned"
+ * (`use-calendar-gestures.ts` listens for it explicitly; dnd-kit's sensors do
+ * the same internally). So a drag that begins with a deliberate press — which
+ * is how a finger starts every drag — died at about the moment it was meant to
+ * begin, and `touch-action: none` could not prevent it: that property decides
+ * whether the browser competes for the *scroll*, not whether it raises a
+ * callout.
+ *
+ * `-webkit-user-select: none` is often assumed to cover this and does not; the
+ * callout is a separate opt-out, and it is the only property in this file with
+ * no unprefixed equivalent for Lightning CSS to derive it from. Blink has no
+ * callout at all, so DevTools device emulation has nothing to reproduce — this
+ * is visible only on the hardware.
+ *
+ * Stated once for the three grips rather than three times, because it is one
+ * fact about touch hardware and not three decisions.
+ */
+.planner-drag-handle,
+.calendar-drag-grip,
+.calendar-resize-grip,
+/*
+  The empty booking canvas belongs on this list even though it is not a grip,
+  because `use-calendar-gestures.ts` now arms a paint-a-range gesture on a
+  *hold* there — and a hold is precisely the press iOS answers with the callout.
+  It gets the callout opt-out and nothing else: unlike the grips it must keep
+  `touch-action` free, since a finger that has not held still is scrolling the
+  week and the browser has to be able to take that gesture.
+*/
+.calendar-day-canvas {
+  -webkit-touch-callout: none;
+}
+
 @media (pointer: coarse) {
   .planner-drag-handle {
     display: grid;
@@ -3103,5 +4115,178 @@
 @keyframes q-bar-grow {
   from {
     height: 0;
+  }
+}
+
+/* ==========================================================================
+ * §  The guided tour
+ * ==========================================================================
+ *
+ * Three rules and one keyframe, for `src/features/user-guide/`. They are here
+ * rather than in the component for the reasons the rest of this section is:
+ * `--overlay` is a semantic token, `env(safe-area-inset-*)` has to be written
+ * out, and a `box-shadow` with a viewport-sized spread is not something a
+ * utility class can express.
+ *
+ * Everything positional stays in the component. These rules say what the
+ * surfaces *are*; the arithmetic that puts them where they go is in
+ * `place-card.ts`, because it depends on measurements CSS cannot take.
+ */
+
+/*
+ * The whole surface fades in once, when the tour opens. Individual steps do not
+ * re-run it — the element persists across them — so moving from step to step is
+ * the hole travelling to its next control rather than a screen blinking.
+ */
+/*
+ * ⚠ **Nothing in the tour animates `opacity`, and the dim has no entrance at
+ * all.** Both of those are deliberate, and they were paid for.
+ *
+ * The surface used to fade in from `opacity: 0`. That makes "the animation is
+ * not progressing" and "the entire feature is invisible" the same state. It is
+ * not a hypothetical: observed directly on a document whose timeline never
+ * advanced, the surface sat at `opacity: 0` indefinitely — mounted, positioned,
+ * correct in every other respect, and completely unseeable. Dropping the
+ * `backwards` fill did not help either, because an animation frozen *inside*
+ * its active interval keeps applying its `from` frame; fill modes only govern
+ * what happens outside it.
+ *
+ * So the rule for this feature is that motion may move things, and may not hide
+ * them. The cards keep their entrance as a pure `translate`, which fails safe:
+ * a frozen clock leaves a card twelve pixels from where it belongs, which is a
+ * blemish rather than an outage. The dim simply appears — a scrim easing in
+ * over 220ms is a nicety, and it is not worth being the single point of failure
+ * for everything drawn on top of it.
+ *
+ * This is also the house idiom rather than a departure: `.q-route-stage`
+ * animates the page in from an 8px translate for the same kind of reason.
+ */
+
+/*
+ * The hole, and the dim it casts.
+ *
+ * One `box-shadow` with a spread bigger than any viewport, rather than four
+ * rectangles fitted around the cut-out. Four boxes have to be kept in step
+ * through every scroll and they seam visibly at the corners on fractional
+ * device pixel ratios; one box has no corners to seam and no siblings to
+ * disagree with.
+ *
+ * `pointer-events: none` because the shell behind is already `inert` — the hole
+ * is a place to look, not a place to press. See the note on `GuideOverlay`.
+ */
+.q-guide-spotlight {
+  border-radius: var(--radius-lg);
+  /*
+   * `120vmax` of spread, where `100vmax` is the arithmetic minimum: a hole in
+   * one corner of the screen is `max(width, height)` away from the opposite
+   * edge, and the shadow grows outward from the hole in every direction at
+   * once. The extra fifth is headroom against sub-pixel rounding, which at the
+   * exact minimum leaves a hairline of undimmed page along one edge on
+   * fractional device pixel ratios.
+   */
+  box-shadow:
+    0 0 0 120vmax var(--overlay),
+    0 0 0 2px var(--ring);
+  pointer-events: none;
+}
+
+/*
+ * The step card. One surface, both layouts — floating beside the spotlight on a
+ * desktop, docked to an edge on anything narrower or any touch screen — because
+ * only its *position* changes between them, and a second visual treatment would
+ * be a second thing to keep in step.
+ */
+/*
+ * ⚠ **No `position` here, and that is not an oversight.**
+ *
+ * Everything in this block is unlayered, and unlayered CSS beats every
+ * `@layer` — Tailwind's utilities included (the note above `@layer components`
+ * further up this file spells out the ordering). A `position: relative` here
+ * therefore silently overrode the `fixed` and `absolute` the component asks
+ * for, and the card was statically positioned with its offsets applied as
+ * *relative* nudges instead. On a desktop that happened to land in the right
+ * place — the card's static origin is the surface's own top-left corner, so the
+ * measured offsets came out correct by coincidence — and on every phone and
+ * tablet the docked sheet was pushed off the top of the screen by its own
+ * `bottom` value.
+ *
+ * The component always supplies a position utility, and both of the ones it
+ * supplies establish a containing block, which is all this rule needed.
+ */
+.q-guide-card {
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border);
+  background-color: var(--card);
+  color: var(--card-foreground);
+  padding: 1rem;
+  /* The same elevation every other surface that floats over the page takes. */
+  box-shadow: var(--shadow-overlay);
+}
+
+/*
+ * Docked: pinned to one edge of the screen with the safe area added to the
+ * gutter, so the card clears a home indicator at the bottom and a notch or a
+ * status bar at the top. `1rem` is the same gutter the floating layout uses;
+ * `env()` is what a phone adds to it, and resolves to `0px` everywhere else.
+ *
+ * Which edge is decided in the component, from where the spotlight ended up —
+ * the card takes the edge furthest from it, so it never covers the control the
+ * step is about.
+ */
+.q-guide-card-bottom {
+  bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  animation: q-guide-card-up var(--duration-arc) var(--ease-sweep);
+}
+
+.q-guide-card-top {
+  top: calc(1rem + env(safe-area-inset-top, 0px));
+  animation: q-guide-card-down var(--duration-arc) var(--ease-sweep);
+}
+
+/*
+ * The docked card's width, and the inline safe areas it has to clear — a phone
+ * held sideways puts the housing over the edge the card is centred within.
+ *
+ * `left`/`right` rather than `inset-inline`, and this is the one place in the
+ * file where physical sides are the correct ones: `env(safe-area-inset-left)`
+ * *is* the left of the device, in both scripts. There is nothing to mirror. The
+ * card is centred between the two by `margin-inline: auto`, so Arabic and
+ * English put it in the same place — which is what a centred sheet means.
+ *
+ * `42rem` is the same ceiling `max-w-2xl` sets on the app's other wide reading
+ * surfaces. Below it the card is as wide as the screen allows; above it, a
+ * tablet in landscape gets a column that is still comfortable to read rather
+ * than a sentence stretched across 1024px.
+ */
+.q-guide-card-bottom,
+.q-guide-card-top {
+  left: calc(1rem + env(safe-area-inset-left, 0px));
+  right: calc(1rem + env(safe-area-inset-right, 0px));
+  margin-inline: auto;
+  width: auto;
+  max-width: 42rem;
+}
+
+@keyframes q-guide-card-up {
+  from {
+    transform: translateY(0.75rem);
+  }
+}
+
+@keyframes q-guide-card-down {
+  from {
+    transform: translateY(-0.75rem);
+  }
+}
+
+/*
+ * Reduced motion keeps the surfaces and drops the travel. The tour is a
+ * sequence of things appearing in different places, which is exactly the kind
+ * of movement this preference is about.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .q-guide-card-bottom,
+  .q-guide-card-top {
+    animation: none;
   }
 }

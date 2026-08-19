@@ -27,11 +27,13 @@ import {
   ClipboardList,
   Clock,
   Coffee,
+  Compass,
   Cookie,
   Copy,
   CupSoda,
   DoorClosed,
   DoorOpen,
+  Download,
   Droplet,
   Eraser,
   Eye,
@@ -76,6 +78,7 @@ import {
   Sandwich,
   Search,
   Settings,
+  Share2,
   ShieldCheck,
   SlidersHorizontal,
   Smile,
@@ -165,6 +168,8 @@ export const APP_ICONS = {
   edit: Pencil,
   copy: Copy,
   upload: Upload,
+  install: Download,
+  share: Share2,
   refresh: RefreshCw,
   archive: Archive,
   restore: ArchiveRestore,
@@ -263,6 +268,17 @@ export const APP_ICONS = {
 
   /* Support and legal */
   help: HelpCircle,
+  /*
+    The guided tour's own mark, in the rail beside five destinations and in the
+    eyebrow of every one of its cards.
+
+    A compass rather than `help`'s question mark or `settingsSupport`'s life
+    ring. Both of those are things you reach for when something has gone wrong;
+    the tour is not troubleshooting, it is orientation — the reader is not stuck,
+    they are new. A compass is also the only one of the three that is not already
+    in the rail's neighbourhood: `help` heads the portal's support list.
+  */
+  guide: Compass,
   /*
     Not a second shield. `security` is `ShieldCheck`, and the two sit six rows
     apart in the portal's one settings list — same shape, same weight, at 20px.

@@ -8,8 +8,10 @@ import { PortalHeader } from '@/features/portal/components/portal-header';
 import { PortalTabBar } from '@/features/portal/components/portal-tab-bar';
 import { greetingKey } from '@/features/portal/greeting';
 import { loadPortalNotifications } from '@/features/portal/page-data';
+import { InstallAppBanner } from '@/features/portal/pwa/install-app-banner';
 import { requirePortalClient } from '@/features/portal/session';
 import { resolveLocale } from '@/i18n/params';
+import { getLocaleDirection } from '@/i18n/routing';
 import { formatDate } from '@/lib/format';
 
 type PortalTabsLayoutProps = {
@@ -158,7 +160,17 @@ export default async function PortalTabsLayout({ children, params }: PortalTabsL
           it has to keep matching `PortalHeader`'s so the two columns line up.
         */}
         <main className="min-w-0 flex-1 px-4 pt-5 pb-24 md:px-6 md:pt-6 lg:pb-8">
-          <div className="mx-auto w-full max-w-3xl">{children}</div>
+          <div className="mx-auto w-full max-w-3xl">
+            {/*
+              Inline, not fixed — it scrolls away with the page, so it never
+              competes with `PortalTabBar`'s own fixed bottom edge. Mounted
+              once here rather than per-tab so switching tabs does not remount
+              (and therefore does not re-run) its dismissal logic.
+            */}
+            <InstallAppBanner dir={getLocaleDirection(locale)} />
+
+            {children}
+          </div>
         </main>
 
         <PortalTabBar />

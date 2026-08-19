@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom';
 
 import { buttonVariants } from '@/components/ui/button';
 import { Dialog, DialogHeader } from '@/components/ui/dialog';
+import { useDialogPresence } from '@/components/ui/dialog-motion';
 import { Icon } from '@/components/ui/icon';
 import { NotificationInboxPopover } from '@/components/ui/notification-inbox-popover';
 import { ScrollWindow } from '@/components/ui/scroll-window';
@@ -46,6 +47,7 @@ export function NotificationsBell({ attention }: { attention: StaffAttentionNoti
 
   const [open, setOpen] = useState(false);
   const [allOpen, setAllOpen] = useState(false);
+  const allDialogPresent = useDialogPresence(allOpen);
 
   const { state, markRead, markAllRead, dismiss } = useBrowserNotificationState();
 
@@ -66,10 +68,10 @@ export function NotificationsBell({ attention }: { attention: StaffAttentionNoti
   useEffect(() => {
     if (allOpen) {
       hasOpened.current = true;
-    } else if (hasOpened.current) {
+    } else if (hasOpened.current && !allDialogPresent) {
       bell.current?.querySelector('button')?.focus();
     }
-  }, [allOpen]);
+  }, [allDialogPresent, allOpen]);
 
   const read = new Set(state?.read ?? []);
   const view = notificationView(
@@ -105,6 +107,19 @@ export function NotificationsBell({ attention }: { attention: StaffAttentionNoti
           if (next) markAllRead(preview.map((item) => item.id));
         }}
         title={t('title')}
+        /*
+          The panel comes up from the bottom edge instead of hanging off the
+          bell on every touch surface — the same shape the "see all" dialog
+          behind it already takes there. The bell is in the inline-end corner of
+          the page header, which on a hand-held device is the corner furthest
+          from the hand holding it; the same rows arrive under the thumb
+          instead, with the page dimmed behind them.
+
+          No prop needed: `sheetOnTouch` defaults to `true`. It used to be
+          spelled `mobileSheet` and opted in here alone, which left the portal's
+          bell believing it was a popover while `globals.css` drew it as a
+          sheet — see the prop's own note.
+        */
         count={count}
         unread={unread}
         empty={empty}
@@ -165,10 +180,10 @@ export function NotificationsBell({ attention }: { attention: StaffAttentionNoti
         it has to, or its count would be a lie — so the dialog is the same array
         rendered at full length.
       */}
-      {allOpen
+      {allDialogPresent
         ? createPortal(
             <Dialog
-              open
+              open={allOpen}
               onClose={closeAll}
               label={t('title')}
               dir={getLocaleDirection(locale)}
@@ -181,6 +196,12 @@ export function NotificationsBell({ attention }: { attention: StaffAttentionNoti
                 // Narrower than the requests dialog: a notification is one line
                 // about one client, not a request carrying two buttons.
                 'sm:w-[min(40rem,calc(100vw-2rem))]',
+                // And the same measure for the tablet bottom sheet, which the
+                // unlayered `(pointer: coarse)` rule in `globals.css` would
+                // otherwise widen to the `size="wide"` default of 64rem. This is
+                // the surface in the tablet screenshots; see
+                // `--q-dialog-sheet-width`.
+                '[--q-dialog-sheet-width:min(40rem,calc(100vw-2rem))]',
               )}
             >
               <DialogHeader

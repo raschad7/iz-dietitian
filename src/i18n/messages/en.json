@@ -1,7 +1,7 @@
 {
   "app": {
-    "name": "Dietitian Clinic Management",
-    "shortName": "Dietitian Clinic",
+    "name": "Enzyme",
+    "shortName": "Enzyme",
     "tagline": "One platform for clients, nutrition plans and appointments."
   },
   "common": {
@@ -60,6 +60,7 @@
   "settingsWorkspace": {
     "title": "Settings",
     "description": "Manage your personal profile, clinic, communication and account security in one place.",
+    "version": "Version",
     "tabsLabel": "Settings sections",
     "tabs": {
       "profile": "Personal profile",
@@ -76,7 +77,9 @@
       "formDescription": "Update the details that identify you within the clinic team.",
       "accountEmail": "Account email",
       "accountEmailHint": "This email is managed through your sign-in account.",
-      "identityTitle": "Account"
+      "identityTitle": "Account",
+      "languageTitle": "Preferred language",
+      "languageDescription": "The language this workspace is shown in."
     },
     "clinic": {
       "title": "Clinic",
@@ -549,10 +552,10 @@
       "visitsSoFar": "Visits so far",
       "plansWritten": "Plans written",
       "tabs": {
-        "account": "Account",
+        "account": "Visits",
         "nutrition": "Nutrition",
         "progress": "Progress",
-        "security": "Security",
+        "security": "The Gate",
         "billing": "Plans"
       }
     },
@@ -823,6 +826,7 @@
       "override": "Manual",
       "shareTotal": "Shares total {value}%",
       "addSlot": "Add a meal",
+      "balanceShares": "Balance to 100%",
       "allergenHint": "Only the ticks above remove dishes from the catalog.",
       "dailyTarget": "Daily target",
       "bmi": "BMI",
@@ -846,7 +850,8 @@
         "drugAllergies": "Penicillin",
         "familyHistory": "Diabetes on the father's side, obesity in the family",
         "activityNotes": "Walks 40 minutes most evenings, desk job",
-        "activityBarriers": "Knee pain"
+        "activityBarriers": "Knee pain",
+        "computedTarget": "Computed automatically"
       },
       "overrideDivider": "Manual figures",
       "unsetCount": "{count} fields not filled in",
@@ -943,6 +948,36 @@
   "portal": {
     "title": "Client portal",
     "welcome": "Welcome, {name}",
+    "pwa": {
+      "name": "Enzyme — Client Portal",
+      "shortName": "Client Portal",
+      "description": "Track your plan, appointments and progress.",
+      "installBanner": {
+        "title": "Install the client portal",
+        "description": "Add it to your home screen for quicker, full-screen access.",
+        "install": "Install",
+        "iosInstructions": "How to install",
+        "dismiss": "Not now"
+      },
+      "iosDialog": {
+        "title": "Add to Home Screen",
+        "step1": "Tap the Share icon in Safari's toolbar.",
+        "step2": "Scroll down and tap \"Add to Home Screen\".",
+        "step3": "Tap \"Add\" to confirm.",
+        "close": "Got it"
+      },
+      "settingsRow": {
+        "label": "Install app",
+        "description": "Add the portal to your home screen",
+        "unavailableDescription": "Not available right now — tap for help"
+      },
+      "unavailableDialog": {
+        "title": "Installation isn't available yet",
+        "description": "Your browser hasn't offered to install this app on this visit.",
+        "tip": "Try reloading the page, or check your browser's menu for an \"Install app\" or \"Add to Home Screen\" option.",
+        "close": "Got it"
+      }
+    },
     "dashboard": {
       "nextAppointment": "Next appointment",
       "todaysMeals": "Today's meals",
@@ -1045,7 +1080,8 @@
       "markEaten": "Mark {meal} as eaten",
       "wasEaten": "{meal} — eaten",
       "wasNotEaten": "{meal} — not marked as eaten",
-      "portion": "{servings} × {label}",
+      "totalGrams": "≈ {value} g",
+      "mealQuantity": "Meal quantity",
       "orInstead": "You can eat this instead:",
       "noMeal": "No meal set"
     },
@@ -1428,7 +1464,9 @@
   "errors": {
     "notFound": "Page not found",
     "notFoundDescription": "The link you opened is incorrect or has moved.",
+    "notFoundCta": "Go to the home page",
     "unexpected": "Something went wrong",
+    "unexpectedBody": "Nothing you entered was saved anywhere. Try again, or start from the home page.",
     "screen": {
       "title": "This screen could not be displayed",
       "body": "Nothing in your data was affected. Try again, or go back to the dashboard.",
@@ -1484,6 +1522,8 @@
     "cm": "{value} cm",
     "years": "{value} years",
     "grams": "{value} g",
+    "gramsShort": "{value} g",
+    "totalGrams": "≈ {value} g",
     "unset": "Not set",
     "notComputable": "Cannot be computed",
     "override": "Manual",
@@ -1548,9 +1588,7 @@
     "publishing": "Publishing…",
     "unpublish": "Unpublish",
     "unpublishing": "Unpublishing…",
-    "portion": "{servings} × {label}",
-    "portionShort": "{servings} servings",
-    "portionLabel": "Portion",
+    "mealQuantity": "Meal quantity",
     "ingredients": "Ingredients",
     "nutrition": "Nutrition",
     "unmeasured": "Some ingredients were never measured for this nutrient, so the total is a floor",
@@ -1624,7 +1662,9 @@
       "unfilled": "Cannot publish while meals are unfilled.",
       "invalid": "Invalid data.",
       "clientNotFound": "Client not found.",
-      "unexpected": "Something went wrong."
+      "unexpected": "Something went wrong.",
+      "notFound": "Dish not found.",
+      "inUse": "This dish is used in an active plan and cannot be deleted."
     },
     "tabs": {
       "client": "Client",
@@ -1662,12 +1702,18 @@
     "searchDishes": "Search dishes",
     "dishFilters": "Filters",
     "clearFilters": "Clear filters",
+    "colorKey": "Dish colour key",
+    "colorKeyUntagged": "No properties",
     "filterTags": "Dish type",
     "filterForThisSlot": "Fits this slot",
     "dishOptions": {
       "fitsBudget": "Within budget",
       "notRecent": "Not used recently",
       "allergenSafe": "No allergens"
+    },
+    "filterNutrition": "Nutrition",
+    "nutritionFilters": {
+      "high_protein": "High protein"
     },
     "allMealTypes": "All meal types",
     "bestMatches": "Best matches for {value} kcal",
@@ -1683,12 +1729,14 @@
       "dinner": "Dinner"
     },
     "tags": {
-      "cheap": "Low cost",
-      "portable": "Portable",
+      "economical": "Economical",
       "quick": "Quick",
-      "vegetarian": "Vegetarian",
-      "high_protein": "High protein",
-      "diabetic_friendly": "Diabetic friendly"
+      "easy_prep": "Easy prep",
+      "no_cook": "No cook",
+      "portable": "Portable",
+      "filling": "Filling",
+      "local": "Local",
+      "vegetarian": "Vegetarian"
     },
     "dropHere": "Drop here",
     "addMeal": "Add a meal",
@@ -1711,18 +1759,16 @@
     "restoreSlot": "Add {slot} back to this day",
     "removeMeal": "Remove meal",
     "clearMeal": "Empty slot",
-    "morePortion": "Larger portion",
-    "lessPortion": "Smaller portion",
+    "morePortion": "Larger meal quantity",
+    "lessPortion": "Smaller meal quantity",
     "budgetHint": "This meal's budget is {value} kcal",
     "overBudget": "Over budget",
     "underBudget": "Under budget",
     "compareWith": "Compare with {date}",
     "compareShort": "Compare",
     "repeatedFromLastWeek": "Same as {date}",
-    "editPublished": "Edit plan",
-    "editPublishedDisabled": "Available once the plan is published",
-    "editPublishedWarning": "This plan is published. Changes are visible to the client immediately.",
-    "editPublishedConfirm": "This plan is published and the client is following it. Edits appear for them straight away. Continue?",
+    "editPublishedDisabled": "Available while the plan is a draft",
+    "publishedReadOnly": "This plan is published and read-only. Unpublish it to make changes, then publish again.",
     "retiredDish": "Retired from the catalog",
     "savedIndicator": "Saved",
     "savingIndicator": "Saving…",
@@ -1763,14 +1809,34 @@
   "dishes": {
     "title": "Dish catalog",
     "subtitle": "{count} approved dishes — the only thing the AI may choose from",
+    "addDish": "Add dish",
     "empty": "No dishes in the catalog yet",
     "emptyHint": "Approved dishes appear here once they are added.",
     "emptyFiltered": "No matching dishes",
     "emptyFilteredHint": "Try another name, or a different meal time.",
     "searchPlaceholder": "Search by dish name",
     "clearFilters": "Clear filters",
-    "allMealTypes": "All meal times",
+    "filters": "Filters",
+    "filtersReset": "Reset",
+    "allMealTypes": "All",
+    "count": "{count, plural, =0 {No dishes} one {# dish} other {# dishes}}",
     "moreTags": "+{count, number, integer}",
+    "notFoundPrompt": "Didn't find the dish you're looking for?",
+    "ownerFilter": {
+      "label": "Show dishes",
+      "all": "All",
+      "system": "Shared",
+      "clinic": "Mine"
+    },
+    "nutritionFilters": {
+      "high_protein": "High protein"
+    },
+    "detail": {
+      "ingredients": "Ingredients",
+      "edit": "Edit dish",
+      "open": "View {name}",
+      "nutrition": "Nutrition"
+    },
     "pagination": {
       "previous": "Previous",
       "next": "Next",
@@ -1780,10 +1846,29 @@
     "columns": {
       "name": "Dish",
       "mealTypes": "Meal time",
-      "tags": "Tags",
-      "kcal": "kcal / serving",
+      "tags": "Qualities",
+      "kcal": "Calories",
+      "carbs": "Carbs",
       "protein": "Protein",
-      "ingredients": "Ingredients"
+      "ingredients": "Ingredients",
+      "actions": "Actions"
+    },
+    "hiddenBadge": "Hidden",
+    "showHidden": "Show hidden",
+    "ownership": {
+      "system": "Shared",
+      "clinic": "Added by me"
+    },
+    "rowActions": {
+      "menuLabel": "More actions",
+      "hide": "Hide",
+      "unhide": "Show",
+      "deleteConfirmTitle": "Delete this dish?",
+      "deleteConfirmMessage": "\"{name}\" will be removed from your catalog. This can't be undone.",
+      "deleted": "Dish deleted",
+      "hidden": "Dish hidden from your catalog",
+      "unhidden": "Dish shown in your catalog",
+      "editFailed": "Couldn't open this dish for editing"
     },
     "mealTypes": {
       "breakfast": "Breakfast",
@@ -1792,12 +1877,14 @@
       "dinner": "Dinner"
     },
     "tags": {
-      "cheap": "Low cost",
-      "portable": "Portable",
+      "economical": "Economical",
       "quick": "Quick",
-      "vegetarian": "Vegetarian",
-      "high_protein": "High protein",
-      "diabetic_friendly": "Diabetes friendly"
+      "easy_prep": "Easy prep",
+      "no_cook": "No cook",
+      "portable": "Portable",
+      "filling": "Filling",
+      "local": "Local",
+      "vegetarian": "Vegetarian"
     },
     "allergens": {
       "nuts": "Nuts",
@@ -1806,6 +1893,114 @@
       "egg": "Egg",
       "fish": "Fish",
       "sesame": "Sesame"
+    }
+  },
+  "dishEditor": {
+    "foodPicker": {
+      "label": "Search for an ingredient",
+      "placeholder": "Search for an ingredient…",
+      "searching": "Searching…",
+      "kcalPer100g": "{kcal} kcal / 100g",
+      "startSearching": "Search for an ingredient, or add your own",
+      "noResults": "We couldn't find \"{name}\".",
+      "noResultTitle": "No matching ingredient",
+      "addNew": "Add a new ingredient",
+      "addNewShort": "Can't find it? Add a new ingredient",
+      "addCustom": "Add a custom ingredient",
+      "addNamed": "Add \"{name}\" as a new ingredient",
+      "moreResults": "Show more",
+      "otherLanguageResults": "More results (Arabic)",
+      "searchError": "Couldn't complete the search",
+      "retry": "Try again"
+    },
+    "customFoodDialog": {
+      "title": "Add a new ingredient",
+      "descriptionLabel": "English name (optional)",
+      "descriptionPlaceholder": "e.g. Grilled chicken breast",
+      "nameArLabel": "Ingredient name",
+      "nameArPlaceholder": "مثال: جميد بلدي",
+      "macrosHeading": "Nutrition per 100 g",
+      "kcalLabel": "Calories (kcal)",
+      "proteinLabel": "Protein (g)",
+      "carbsLabel": "Carbs (g)",
+      "fatLabel": "Fat (g)",
+      "macrosHint": "Values are per 100g",
+      "unitHeading": "Natural serving unit",
+      "unitLabel": "Serving unit",
+      "unitGramsLabel": "Weight per unit (g)",
+      "unitHint": "Lets the dietitian add this ingredient by the loaf, cup, piece… not only grams.",
+      "unitGrams": "grams",
+      "cancel": "Cancel",
+      "close": "Close",
+      "submit": "Add food",
+      "submitting": "Adding…",
+      "errors": {
+        "required": "This field is required",
+        "nonNegativeNumber": "Enter a number of 0 or more",
+        "unitGramsRequired": "Enter the weight of one unit in grams",
+        "createFailed": "Could not add the food. Check the values and try again."
+      }
+    },
+    "editor": {
+      "pageTitle": "Add dish",
+      "pageSubtitle": "Add a dish to the clinic's approved catalog",
+      "nameAr": "Dish name",
+      "nameArPlaceholder": "e.g. Chicken Maqluba",
+      "nameEn": "English name",
+      "nameEnPlaceholder": "e.g. Chicken Maqluba",
+      "additionalDetails": "Additional details",
+      "baseServingLabel": "Base serving label",
+      "baseServingHint": "Shown to the client as the unit for this dish, e.g. \"serving\" or \"plate\".",
+      "mealTypesLegend": "Meal time",
+      "labelsLegend": "Dish properties",
+      "labelsHint": "Each colour follows the dish into the catalog and the weekly plan.",
+      "allergensLegend": "Allergens",
+      "allergensHint": "These exclude the dish from clients with a matching allergy.",
+      "ingredientsHeading": "Ingredients",
+      "addIngredient": "Add ingredient",
+      "removeIngredient": "Remove ingredient",
+      "noIngredientsYet": "Search above to add the dish's ingredients.",
+      "ingredientCount": "{count, plural, =0 {No ingredients} one {# ingredient} other {# ingredients}}",
+      "pickFoodHint": "Search for a food to add it to this ingredient",
+      "changeFood": "Change food",
+      "amount": "Amount",
+      "unitAria": "Unit",
+      "rowKcal": "{kcal} kcal",
+      "rowGrams": "= {grams} g",
+      "units": {
+        "g": "g",
+        "piece": "piece",
+        "slice": "slice",
+        "loaf": "loaf",
+        "cup": "cup",
+        "tbsp": "tbsp",
+        "tsp": "tsp"
+      },
+      "liveNutrition": "Nutrition per base serving",
+      "nutritionTitle": "Nutrition",
+      "nutritionEmpty": "Add ingredients to see the nutrition.",
+      "perServing": "per {unit}",
+      "energyShare": "Bars show each macro's share of the calories.",
+      "categories": {
+        "high_protein": "High protein",
+        "high_carb": "High carbohydrate",
+        "high_fat": "High fat",
+        "balanced": "Balanced"
+      },
+      "errors": {
+        "nameRequired": "Dish name is required",
+        "mealTypeRequired": "Select at least one meal time",
+        "ingredientRequired": "Add at least one ingredient with a food and a positive amount"
+      },
+      "submit": "Create dish",
+      "saveChanges": "Save changes",
+      "submitting": "Saving…",
+      "editTitle": "Edit dish",
+      "editSubtitle": "Update this dish in your clinic's catalog",
+      "unsavedTitle": "Discard changes?",
+      "unsavedMessage": "You have unsaved changes that will be lost if you close.",
+      "discard": "Discard",
+      "keepEditing": "Keep editing"
     }
   },
   "whatsapp": {
@@ -1995,5 +2190,87 @@
     "logoHint": "PNG, JPG or WebP. Resized to 256×256 automatically.",
     "logoPreviewAlt": "Clinic logo",
     "closed": "Closed"
+  },
+  "userGuide": {
+    "title": "User guide",
+    "progress": "Step {current} of {total}",
+    "next": "Next",
+    "back": "Back",
+    "finish": "Finish",
+    "skip": "Skip guide",
+    "sections": {
+      "intro": "Getting started",
+      "dashboard": "Dashboard",
+      "clients": "Clients",
+      "calendar": "Calendar",
+      "planner": "Weekly plans",
+      "dishes": "Dish catalog"
+    },
+    "steps": {
+      "welcome": {
+        "title": "A quick tour of your clinic",
+        "body": "This walks through the five sections in the sidebar, from the dashboard to the dish catalog, and points out where each day’s work starts. Nothing here changes your data — the guide only shows you around. Press “Skip guide” at any time to leave."
+      },
+      "navigation": {
+        "title": "The sidebar is how you move around",
+        "body": "Dashboard, Clients, Calendar, Weekly Plans and Dish catalog, in the order a working day usually uses them. On a phone or a tablet the labels drop away and the icons stay."
+      },
+      "dashboardStats": {
+        "title": "The band you read first",
+        "body": "New clients this month and today’s appointments, each with its own trend beneath it, and beside them anything a client is waiting on. Three cards of the same height, so the row never changes shape."
+      },
+      "dashboardRequests": {
+        "title": "Client requests arrive here",
+        "body": "This is the client requests card. Anything a client asks for through their portal — a new appointment, a reschedule, a cancellation, a change to their record — waits here, and you can accept or decline it without leaving the dashboard. “All requests” opens the full inbox in a dialog over this page, including everything you have already answered."
+      },
+      "dashboardAgenda": {
+        "title": "This week’s appointments",
+        "body": "The diary for the days around today, with the appointment in progress marked and the next one pointed at. Open a row to reach that client’s record."
+      },
+      "clientsRegister": {
+        "title": "Every client you have",
+        "body": "The register: name, age, contact and status, sortable by any column. Open a row for the client’s full record — their measurements, their plans and their history."
+      },
+      "clientsSearch": {
+        "title": "Find, filter and archive",
+        "body": "Search by name or phone, narrow the list by status or another field, and reach the archive of clients who are no longer active. The archive is where a client goes when they stop coming; nothing is deleted."
+      },
+      "clientsNew": {
+        "title": "How to add a new client",
+        "body": "Press “New client” here. A card opens over the register with the client’s details, measurements and goals — fill it in and save, and they appear in the list straight away. The same card is how you edit anyone later, so adding or correcting someone never costs you your place in the register."
+      },
+      "calendarToolbar": {
+        "title": "Choosing what you are looking at",
+        "body": "Step through days or weeks with the arrows, jump to a date with the date button, and switch between the day, week and month views. Search finds an appointment by the client’s name."
+      },
+      "calendarBooking": {
+        "title": "How to book an appointment",
+        "body": "Drag down the grid across the time you want, on the day you want. Let go and a picker opens: choose the client, set how long the appointment runs, and repeat it weekly if it is a standing slot. If the person is not on your list yet, you can add them without leaving the picker. To move a booking afterwards, drag the block to its new time."
+      },
+      "plannerPicker": {
+        "title": "How to build a weekly plan",
+        "body": "Start by choosing whose week you are planning. Search here, or pick one of the suggested clients below — the ones whose plans are running out soonest."
+      },
+      "plannerBoard": {
+        "title": "The week, meal by meal",
+        "body": "Once a client is chosen you get their board: seven days across, their meals down each one. Fill a slot from the dish catalog beside it, or generate the week and edit what comes back. Each day shows how its calories and protein compare to the client’s target, and publishing sends the plan to their portal."
+      },
+      "dishesCatalog": {
+        "title": "What the plans draw from",
+        "body": "Every dish available to your weekly plans, with its calories, carbohydrates and protein on the card. Dishes marked as system dishes come with the app; the rest are your clinic’s own."
+      },
+      "dishesFilters": {
+        "title": "Narrowing the catalog",
+        "body": "Search by name, or filter by meal type, tag and nutrition. You can also switch between your clinic’s own dishes and the ones that came with the app."
+      },
+      "dishesAdd": {
+        "title": "How to add a new dish",
+        "body": "Press “Add dish”. The builder opens beside the catalog: name the dish in both languages, add its ingredients and their amounts, and the calories and macros are worked out as you go. Save it and it is available in every weekly plan from then on."
+      },
+      "finish": {
+        "title": "That is the whole tour",
+        "body": "You can start it again from “User guide” at the foot of the sidebar whenever you want. Each section also carries its own hints and empty states, which appear when there is something to explain."
+      }
+    }
   }
 }

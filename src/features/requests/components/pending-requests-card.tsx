@@ -58,14 +58,14 @@ import { RequestsWindow } from './requests-window';
  * moved up into the name's row instead of taking one of its own, an
  * appointment's aside clamped to one line instead of two, and the client's
  * avatar in place of the kind glyph. Nothing about *this* card changed to make
- * room — its padding, its header and its `max-h-[70vh]` ceiling are all as they
+ * room — its padding, its header and its `max-h-[70dvh]` ceiling are all as they
  * were. The band is still taller on a morning with three requests waiting than
  * on a quiet one; what it is not is three tiles' worth taller.
  *
  * **The way to the inbox is a labelled link in the header's block-start
  * inline-start corner, not a button under the list.** At the foot it was a
  * full-width-ish ghost button competing with the Accept on every tile above it
- * — three olive-ish controls in a column, one of which merely navigates. It
+ * — three green-ish controls in a column, one of which merely navigates. It
  * then spent a while as a lone chevron at the far inline-end of the header,
  * which is the furthest point on the card from the heading it qualifies and
  * needed a tooltip to say what it meant. It now sits directly under the title
@@ -131,7 +131,9 @@ export async function PendingRequestsCard({
       longer needs the `xl:shrink-0` it carried in the narrow column: it is a
       grid item now, not a flex child, and nothing is trying to compress it.
     */
-    <Card className="min-h-0">
+    /* `data-guide` marks this card for the guided tour's requests step — see
+       `src/features/user-guide/steps.ts`. */
+    <Card data-guide="dashboard-requests" className="min-h-0">
       {/* The register's header, disc and all — the same neutral mark, because
           the card is not a target and has nothing to promise the pointer. The
           count beside the title is what says this one is waiting on you. */}
@@ -269,7 +271,7 @@ export async function PendingRequestsCard({
             by the bottom edge, which is the clearest thing on the card saying
             the list goes on; the fade below is drawn over it.
 
-            `max-h-[70vh]` is the guard on top of it and is unchanged. It is the
+            `max-h-[70dvh]` is the guard on top of it and is unchanged. It is the
             looser of the two on a normal screen and the binding one on a short
             laptop, where it cuts the window shorter still rather than taking
             the appointments panel off the page.
@@ -279,7 +281,7 @@ export async function PendingRequestsCard({
             queue off the shell behind it.
           */
           <div className="relative min-h-0">
-            <RequestsWindow visible={VISIBLE_REQUESTS} count={total} className="max-h-[70vh]">
+            <RequestsWindow visible={VISIBLE_REQUESTS} count={total} className="max-h-[70dvh]">
               {appointments.map((request) => (
                 <li key={request.id}>
                   <AppointmentRequestCard

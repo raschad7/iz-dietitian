@@ -11,6 +11,8 @@ import {
 import { recomputeDayAdherence } from '@/features/portal/mutations';
 
 import type { GenerationOutcome, ReconciledMeal } from './generate';
+import { buildMealSnapshot } from './nutrition-snapshot';
+import { loadDishesByIds } from './queries';
 import type { GenerationScope } from './schema';
 import { planWeekDays, weekDateForDay } from './week';
 
@@ -368,7 +370,74 @@ export async function saveWeekInstructions(
 // ---------------------------------------------------------------------------
 
 /**
- * Publishes a draft to the client portal.
+ * Raised when a populated meal cannot be frozen, which aborts the publish.
+ *
+ * Carries the ids rather than a bare message: the only reason this fires is that a
+ * meal points at a dish that no longer loads, and whoever investigates needs to
+ * know which meal and which dish without re-deriving it from a stack trace.
+ */
+export class SnapshotFailedError extends Error {
+  constructor(
+    readonly planId: string,
+    readonly mealId: string,
+    readonly dishId: string,
+  ) {
+    super(`meal ${mealId} of plan ${planId} references dish ${dishId}, which could not be loaded`);
+    this.name = 'SnapshotFailedError';
+  }
+}
+
+/**
+ * Freezes the nutrition of every populated meal in a plan.
+ *
+ * Reads the recipes on the caller's transaction and runs the same
+ * `dishTotals`/`dishGrams` path `assembleBoard` uses, so a snapshot is by
+ * construction the number the dietitian was looking at when they published. There
+ * is no second formula anywhere — see `nutrition-snapshot.ts`.
+ *
+ * Empty slots are left null: there is nothing to freeze, and a fabricated zero
+ * would be indistinguishable from a meal that really contains nothing.
+ *
+ * Throws rather than skipping when a populated meal will not resolve. A published
+ * plan with a hole in its record is precisely the state this whole change exists to
+ * make impossible, so failing the transaction is the only correct outcome.
+ */
+async function snapshotPlanMeals(
+  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+  planId: string,
+): Promise<number> {
+  const meals = await tx
+    .select({
+      id: weeklyPlanMeals.id,
+      dishId: weeklyPlanMeals.dishId,
+      servings: weeklyPlanMeals.servings,
+    })
+    .from(weeklyPlanMeals)
+    .where(eq(weeklyPlanMeals.planId, planId));
+
+  const populated = meals.filter(
+    (meal): meal is typeof meal & { dishId: string } => meal.dishId !== null,
+  );
+  if (!populated.length) return 0;
+
+  const dishes = await loadDishesByIds([...new Set(populated.map((meal) => meal.dishId))], tx);
+  const dishById = new Map(dishes.map((dish) => [dish.id, dish]));
+
+  for (const meal of populated) {
+    const dish = dishById.get(meal.dishId);
+    if (!dish) throw new SnapshotFailedError(planId, meal.id, meal.dishId);
+
+    await tx
+      .update(weeklyPlanMeals)
+      .set({ nutritionSnapshot: buildMealSnapshot(dish.ingredients, meal.servings) })
+      .where(eq(weeklyPlanMeals.id, meal.id));
+  }
+
+  return populated.length;
+}
+
+/**
+ * Publishes a draft to the client portal, freezing what it prescribes.
  *
  * Archives whatever was published for that client and week first, in the same
  * transaction — the unique partial index on `(client_id, week_start_date) where
@@ -378,9 +447,15 @@ export async function saveWeekInstructions(
  * Refuses to publish a plan with unfilled slots. A client opening their portal to
  * find Wednesday's lunch blank is a worse outcome than the dietitian being made to
  * fill it in.
+ *
+ * **Publishing is the moment the nutrition stops being a calculation and becomes a
+ * record.** Every populated meal is snapshotted inside the same transaction that
+ * flips the status, so the two cannot come apart: if any meal will not freeze, the
+ * transaction rolls back and the plan stays a draft. There is deliberately no path
+ * that produces a published plan with an unfrozen meal.
  */
 export async function publishPlan(clinicId: string, planId: string): Promise<
-  { ok: true } | { ok: false; reason: 'not_found' | 'not_draft' | 'unfilled' }
+  { ok: true } | { ok: false; reason: 'not_found' | 'not_draft' | 'unfilled' | 'snapshot_failed' }
 > {
   const plan = await ownedPlan(clinicId, planId);
   if (!plan) return { ok: false, reason: 'not_found' };
@@ -393,50 +468,83 @@ export async function publishPlan(clinicId: string, planId: string): Promise<
 
   if ((gaps?.value ?? 0) > 0) return { ok: false, reason: 'unfilled' };
 
-  await db.transaction(async (tx) => {
-    const [target] = await tx
-      .select({ clientId: weeklyPlans.clientId, weekStartDate: weeklyPlans.weekStartDate })
-      .from(weeklyPlans)
-      .where(eq(weeklyPlans.id, planId))
-      .limit(1);
+  try {
+    await db.transaction(async (tx) => {
+      const [target] = await tx
+        .select({ clientId: weeklyPlans.clientId, weekStartDate: weeklyPlans.weekStartDate })
+        .from(weeklyPlans)
+        .where(eq(weeklyPlans.id, planId))
+        .limit(1);
 
-    if (!target) return;
+      if (!target) return;
 
-    await tx
-      .update(weeklyPlans)
-      .set({ status: 'archived', updatedAt: new Date() })
-      .where(
-        and(
-          eq(weeklyPlans.clientId, target.clientId),
-          eq(weeklyPlans.weekStartDate, target.weekStartDate),
-          eq(weeklyPlans.status, 'published'),
-          ne(weeklyPlans.id, planId),
-        ),
-      );
+      // Freeze before the status changes. Ordering is not what makes this atomic —
+      // the transaction is — but it keeps the failure case obvious: nothing is
+      // published until every meal has a record.
+      await snapshotPlanMeals(tx, planId);
 
-    await tx
-      .update(weeklyPlans)
-      .set({ status: 'published', publishedAt: new Date(), updatedAt: new Date() })
-      .where(eq(weeklyPlans.id, planId));
-  });
+      await tx
+        .update(weeklyPlans)
+        .set({ status: 'archived', updatedAt: new Date() })
+        .where(
+          and(
+            eq(weeklyPlans.clientId, target.clientId),
+            eq(weeklyPlans.weekStartDate, target.weekStartDate),
+            eq(weeklyPlans.status, 'published'),
+            ne(weeklyPlans.id, planId),
+          ),
+        );
+
+      await tx
+        .update(weeklyPlans)
+        .set({ status: 'published', publishedAt: new Date(), updatedAt: new Date() })
+        .where(eq(weeklyPlans.id, planId));
+    });
+  } catch (error) {
+    if (error instanceof SnapshotFailedError) {
+      console.error('[weekly-plans] publish aborted, nutrition could not be frozen', error);
+      return { ok: false, reason: 'snapshot_failed' };
+    }
+    throw error;
+  }
 
   return { ok: true };
 }
 
 /**
- * Takes a published plan back to draft so it can be edited.
+ * Takes a published plan back to draft so it can be edited, thawing its nutrition.
  *
  * The client loses access immediately, which is the point: an unpublished plan is
  * one nobody should be following.
+ *
+ * **Clearing the snapshots is what makes this the supported route back to editing.**
+ * A published plan is immutable precisely because its numbers are frozen; once it
+ * is a draft again it must behave like every other draft and recalculate live, or
+ * the dietitian would edit a recipe and watch the totals refuse to move. Both
+ * changes happen in one transaction, so there is no instant where a draft still
+ * carries frozen numbers. Republishing freezes it afresh.
+ *
+ * Note the deliberate limit: this preserves the plan's identity, not a separate
+ * historical version of what was previously published. Once unpublished, the
+ * earlier frozen values are gone. Copy-on-write publishing — where each publish
+ * mints an immutable version and editing forks a new draft — would keep both, and
+ * is out of scope here.
  */
 export async function unpublishPlan(clinicId: string, planId: string): Promise<boolean> {
   const plan = await ownedPlan(clinicId, planId);
   if (!plan || plan.status !== 'published') return false;
 
-  await db
-    .update(weeklyPlans)
-    .set({ status: 'draft', publishedAt: null, updatedAt: new Date() })
-    .where(eq(weeklyPlans.id, planId));
+  await db.transaction(async (tx) => {
+    await tx
+      .update(weeklyPlanMeals)
+      .set({ nutritionSnapshot: null })
+      .where(eq(weeklyPlanMeals.planId, planId));
+
+    await tx
+      .update(weeklyPlans)
+      .set({ status: 'draft', publishedAt: null, updatedAt: new Date() })
+      .where(eq(weeklyPlans.id, planId));
+  });
 
   return true;
 }

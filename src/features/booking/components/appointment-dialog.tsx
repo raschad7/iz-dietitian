@@ -40,6 +40,7 @@ import {
  */
 
 export type AppointmentDialogProps = {
+  open: boolean;
   appointment: CalendarAppointment;
   locale: Locale;
   hours: ClinicHours;
@@ -101,6 +102,7 @@ function startChoices(hours: ClinicHours, current: number): number[] {
 }
 
 export function AppointmentDialog({
+  open,
   appointment,
   locale,
   hours,
@@ -205,7 +207,7 @@ export function AppointmentDialog({
   const message = error ?? liveError;
 
   return (
-    <Dialog open onClose={onClose} label={t('dialog.title')} dir={direction}>
+    <Dialog open={open} onClose={onClose} label={t('dialog.title')} dir={direction}>
       <form method="dialog" onSubmit={(event) => event.preventDefault()}>
         {/*
           No X in the corner. The footer of this card already ends in Cancel —

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import { createPortal } from 'react-dom';
 
 import { Dialog, DialogHeader } from '@/components/ui/dialog';
+import { useDialogPresence } from '@/components/ui/dialog-motion';
 import { loadClientFormAction } from '@/features/clients/actions';
 import { ClientForm } from '@/features/clients/components/client-form';
 import { type ClientFormValues } from '@/features/clients/types';
@@ -44,6 +45,15 @@ type ClientFormTriggerProps = {
   children: React.ReactNode;
   className?: string;
   'aria-label'?: string;
+  /**
+   * Marks this trigger for the guided tour to point at.
+   *
+   * Named rather than swept up in a rest spread, because there is exactly one
+   * attribute a caller is allowed to add to the control and a spread would be
+   * an invitation to reach past the props above. See
+   * `src/features/user-guide/steps.ts`.
+   */
+  'data-guide'?: string;
 };
 
 export function ClientFormTrigger({
@@ -52,6 +62,7 @@ export function ClientFormTrigger({
   children,
   className,
   'aria-label': ariaLabel,
+  'data-guide': dataGuide,
 }: ClientFormTriggerProps) {
   const t = useTranslations('clients');
   const router = useRouter();
@@ -59,10 +70,10 @@ export function ClientFormTrigger({
   const [open, setOpen] = useState(false);
   const [client, setClient] = useState<ClientFormValues | null>(null);
   const [loading, startLoading] = useTransition();
+  const dialogPresent = useDialogPresence(open);
 
   const trigger = useRef<HTMLButtonElement>(null);
   const hasOpened = useRef(false);
-
   const close = useCallback(() => setOpen(false), []);
 
   /*
@@ -76,10 +87,10 @@ export function ClientFormTrigger({
   useEffect(() => {
     if (open) {
       hasOpened.current = true;
-    } else if (hasOpened.current) {
+    } else if (hasOpened.current && !dialogPresent) {
       trigger.current?.focus();
     }
-  }, [open]);
+  }, [dialogPresent, open]);
 
   const openCard = () => {
     if (!clientId) {
@@ -113,6 +124,7 @@ export function ClientFormTrigger({
         ref={trigger}
         type="button"
         aria-label={ariaLabel}
+        data-guide={dataGuide}
         // The pending state belongs on the control, not in an empty card: the
         // read takes a round trip, and a card that appears blank and then fills
         // in is a card that looked, for a moment, like it had lost the record.
@@ -124,10 +136,10 @@ export function ClientFormTrigger({
         {children}
       </button>
 
-      {open
+      {dialogPresent
         ? createPortal(
             <Dialog
-              open
+              open={open}
               onClose={close}
               label={client ? t('editTitle') : t('createTitle')}
               dir={getLocaleDirection(locale)}

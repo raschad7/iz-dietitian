@@ -3,7 +3,6 @@
 import { useTranslations } from 'next-intl';
 import { useRef } from 'react';
 
-import { LocaleSwitcher } from '@/components/layout/locale-switcher';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   DropdownMenu,
@@ -32,17 +31,24 @@ import { cn } from '@/lib/utils';
  *
  * ## Two widths, two appropriate disclosures
  *
- * At full width, the footer is an inline disclosure: the account row stays
- * anchored at the bottom and its actions unfold above it. The controls remain
- * part of the rail instead of covering the page, and the identity does not need
- * to be repeated a few pixels above itself. The mobile sheet has the same usable
- * width, so it follows this mode too.
+ * At full width — which now means `lg` and up, and only there — the footer is
+ * an inline disclosure: the account row stays anchored at the bottom and its
+ * actions unfold above it. The controls remain part of the rail instead of
+ * covering the page, and the identity does not need to be repeated a few pixels
+ * above itself.
  *
- * At 56px there is no useful inline layout to reveal, so the collapsed rail
- * keeps the positioned `DropdownMenu`. Its trigger is just the avatar — a
- * person is the one thing in this rail that still identifies itself at 40px
- * without a label. The popup reuses the same action-surface design as the
- * inline drawer, so changing widths does not introduce a second visual system.
+ * ⚠ This paragraph used to end "the mobile sheet has the same usable width, so
+ * it follows this mode too", and that sheet no longer exists — the staff rail is
+ * locked to 56px at every width below `lg`, phones included. See the note on
+ * `usesInlineDisclosure` below for what that stale branch was doing to a phone.
+ *
+ * At 56px there is no useful inline layout to reveal, so the collapsed rail —
+ * every phone and every tablet — keeps the positioned `DropdownMenu`. Its
+ * trigger is just the avatar: a person is the one thing in this rail that still
+ * identifies itself at 40px without a label. The popup reuses the same
+ * action-surface design as the inline drawer, so changing widths does not
+ * introduce a second visual system, and because it portals to <body> it is
+ * ranked against the page rather than trapped inside a 56px column.
  *
  * The destinations moved out of the rail proper rather than being copied into
  * it: the same link in two lists is two answers to "where does this live".
@@ -85,8 +91,35 @@ export function SidebarProfile({
 }) {
   const t = useTranslations('nav');
   const tCommon = useTranslations('common');
-  const { state: sidebarState, isMobile, openMobile } = useSidebar();
-  const usesInlineDisclosure = isMobile || sidebarState === 'expanded';
+  const { state: sidebarState } = useSidebar();
+  /*
+    ⚠ **The width decides this, and nothing else.** It used to read
+    `isMobile || sidebarState === 'expanded'`, and the `isMobile` half was
+    written for a rail that below `md` was a full-width `Sheet` — where an
+    inline disclosure has room, which is what the note above still describes.
+
+    That Sheet is gone. `SidebarProvider` sets `locked = railOnly && isCompact`,
+    and `railOnly` is `Boolean(user)` — so on every staff screen under 1024px
+    the rail is drawn as the 56px icon column at *every* width, phones included,
+    and `Sidebar`'s `isMobile && !locked` drawer branch is never taken. `isMobile`
+    was still true below 768px, so the account row went on unfolding a 256px
+    panel inside a 56px column. The rows spilled out of the rail over the page,
+    where the rail's `z-10` puts them *under* every sticky header and positioned
+    surface a page carries — which is the "profile menu is behind the page"
+    this fixes. The labels that stayed inside the column were clipped to their
+    first letter.
+
+    `sidebarState === 'expanded'` is the honest question: unfold in place only
+    when the rail is actually wide. It is `'collapsed'` whenever the rail is
+    locked, so a phone and a tablet now both get the positioned menu below —
+    portalled to <body> at `z-50`, above every page surface, and a bottom sheet
+    on a coarse pointer (see the `(pointer: coarse)` block in `globals.css`),
+    which is the right shape for a thumb on either device.
+
+    Nothing changes from `lg` up, where the rail expands and this was always
+    `true` for the reason it says.
+  */
+  const usesInlineDisclosure = sidebarState === 'expanded';
 
   /*
    * Signing out is a POST to a server action, not a client call: the session
@@ -112,11 +145,14 @@ export function SidebarProfile({
             sequence.
           */}
           <Collapsible
-            // Remount after dismissing the mobile sheet, so it always reopens
-            // with a folded footer. Switching to the icon rail unmounts this
-            // whole branch and provides the same reset on desktop.
-            key={isMobile ? `mobile-${openMobile ? 'open' : 'closed'}` : 'desktop'}
-            className="flex flex-col-reverse gap-2"
+            /*
+              `-m-2` cancels `SidebarFooter`'s padding on all four sides, so the
+              row and the panel it opens both run edge to edge across the rail
+              and sit flush against its foot. No gap between them either: open,
+              the two are one white block interrupted by nothing, which is what
+              a disclosure that belongs to its trigger should look like.
+            */
+            className="-m-2 flex flex-col-reverse"
           >
             <CollapsibleTrigger
               render={
@@ -124,7 +160,23 @@ export function SidebarProfile({
                   type="button"
                   size="lg"
                   aria-label={name}
-                  className="px-3 data-panel-open:bg-sidebar-hover"
+                  /*
+                    Open, the row takes the panel's own white ground rather than
+                    the rail's hover fill, so trigger and drawer read as one
+                    surface split by the rail's edge instead of two shades of
+                    olive stacked on each other. The colours cross on the
+                    system's own curve, over the longer `--duration-travel`, so
+                    the change of state is something you watch rather than
+                    something that has already happened.
+                  */
+                  className={cn(
+                    'rounded-none px-4',
+                    // Slower than the panel's own travel and on the same curve:
+                    // the fill has to be legible as a change of state, and 220ms
+                    // read as a flicker under the height animation.
+                    'transition-colors duration-(--duration-travel) ease-(--ease-sweep) motion-reduce:transition-none',
+                    'data-panel-open:bg-card data-panel-open:text-card-foreground data-panel-open:[&_svg]:text-card-foreground',
+                  )}
                 >
                   <AccountAvatar name={name} />
                   <ProfileIdentity name={name} email={email} />
@@ -137,13 +189,25 @@ export function SidebarProfile({
             />
 
             <CollapsibleContent className="h-(--collapsible-panel-height) overflow-hidden opacity-100 transition-[height,opacity] duration-(--duration-arc) ease-(--ease-sweep) data-ending-style:h-0 data-ending-style:opacity-0 data-starting-style:h-0 data-starting-style:opacity-0 motion-reduce:transition-none [&[hidden]:not([hidden='until-found'])]:hidden">
-              <div className="flex flex-col gap-1 rounded-md bg-card p-1 text-card-foreground">
+              {/*
+                No padding, no corners and no rule against the trigger: the
+                panel is the same white surface continued, not a card sitting
+                inside the rail. Its rows carry their own inline padding, so the
+                fill reaches all four edges.
+
+                The one hairline it does carry is at its far edge, and it is the
+                footer's own `--sidebar-border` rather than `--border` — that
+                rule is what closes the account block against the navigation
+                when the panel is shut, so the open block has to end on the same
+                line rather than on a second, differently coloured one.
+              */}
+              <div className="flex flex-col border-t border-sidebar-border bg-card text-card-foreground">
                 <SidebarMenu>
                   {LINKS.map((link) => (
                     <SidebarMenuItem key={link.href}>
                       <SidebarMenuButton
                         size="lg"
-                        className="gap-2.5"
+                        className="gap-2.5 rounded-none px-4"
                         render={
                           <Link
                             href={link.href}
@@ -158,14 +222,12 @@ export function SidebarProfile({
                   ))}
                 </SidebarMenu>
 
-                <LocaleSwitcher variant="menu" />
-
-                <SidebarMenu className="mt-1">
+                <SidebarMenu>
                   <SidebarMenuItem>
                     <SidebarMenuButton
                       type="button"
                       size="lg"
-                      className="gap-2.5 text-destructive hover:bg-destructive-subtle hover:text-destructive [&_svg]:text-destructive"
+                      className="gap-2.5 rounded-none px-4 text-destructive hover:bg-destructive-subtle hover:text-destructive [&_svg]:text-destructive"
                       onClick={() => signOutRef.current?.requestSubmit()}
                     >
                       <Icon name="signOut" className="size-4.5" />
@@ -189,11 +251,12 @@ export function SidebarProfile({
         </form>
 
         {/*
-          `modal={false}` because this menu hosts a nested Select (the language
-          switcher). A modal menu makes everything outside its own popup inert,
-          which would swallow every click on the Select's own popup — it is
-          portalled to the body, outside this menu. Non-modal, the two popups
-          coexist and the account menu still closes on an outside press.
+          `modal={false}` so the page behind the menu stays live. It was
+          required while the language Select still sat in here — its popup is
+          portalled to the body, and a modal menu made everything outside its
+          own popup inert. That control now lives in personal settings;
+          non-modal stays the right default for a short list of rows, and the
+          menu still closes on an outside press.
         */}
         <DropdownMenu modal={false}>
           {/*
@@ -253,8 +316,6 @@ export function SidebarProfile({
               ))}
             </DropdownMenuGroup>
 
-            <LocaleSwitcher variant="menu" />
-
             {/*
               Last, and clay. Ending a session is reversible in the sense that
               you can sign back in, but it is the one row that throws away what
@@ -294,7 +355,7 @@ export function SidebarProfile({
  * A letter on an opaque ground is what every account menu worth copying uses,
  * for exactly that reason: the glyph is centred and inset, so the *disc* is the
  * shape you see, and the ground is its own colour rather than whatever happens
- * to be behind it. The olive-500 → olive-700 sweep gives it depth at a size too
+ * to be behind it. The green-500 → green-700 sweep gives it depth at a size too
  * small for anything more; the inset hairline keeps its edge from dissolving
  * into the pale rail.
  *
@@ -316,7 +377,7 @@ function AccountAvatar({ name, className }: { name: string; className?: string }
       aria-hidden
       className={cn(
         'flex size-9 shrink-0 select-none items-center justify-center rounded-full',
-        'bg-linear-to-br from-[var(--olive-500)] to-[var(--olive-700)]',
+        'bg-linear-to-br from-[var(--green-500)] to-[var(--green-700)]',
         'font-heading text-body-sm font-semibold text-white',
         'ring-1 ring-white/20 ring-inset',
         className,

@@ -21,6 +21,7 @@ import {
 import { Link, usePathname } from '@/i18n/navigation';
 import type { Locale } from '@/i18n/routing';
 
+import { BrandLogo } from './brand-logo';
 import { SidebarProfile } from './sidebar-profile';
 
 export type NavItem = {
@@ -73,6 +74,10 @@ type ShellProps = {
    * collapses to a bare word.
    *
    * A `data:` URI, per `clinics.logoUrl`.
+   *
+   * ⚠ `logoUrl` is currently drawn nowhere: the rail head leads with the product
+   * logo. It stays on the type because the value is real and the settings screen
+   * still captures it — see the note above `AppSidebar`.
    */
   brand?: { logoUrl: string | null; name: string };
   user?: { name: string; email?: string | null; locale: Locale };
@@ -92,6 +97,20 @@ type ShellProps = {
    * hand the overflow to, so a fixed frame would clip them.
    */
   className?: string;
+  /**
+   * An extra block at the foot of the rail's content, below the destinations
+   * and above the account row.
+   *
+   * A slot rather than a flag, because what goes there is not this component's
+   * business: the staff layout puts `GuideLauncher` in it, and the shell has no
+   * reason to know what a guided tour is — the portal renders the same rail and
+   * passes nothing.
+   *
+   * Whatever is passed is responsible for its own spacing. `SidebarContent` is
+   * a flex column, so a block that wants to sit against the footer says
+   * `mt-auto` itself.
+   */
+  secondary?: React.ReactNode;
   children: React.ReactNode;
 };
 
@@ -130,6 +149,7 @@ export function AppShell({
   user,
   icons,
   className,
+  secondary,
   children,
 }: ShellProps) {
   return (
@@ -146,8 +166,28 @@ export function AppShell({
       app with a bottom tab bar carrying the same five destinations; a permanent
       rail there would be a second navigation for one set of screens.
     */
-    <SidebarProvider className={className} railOnly={Boolean(user)}>
-      <AppSidebar items={items} title={title} showTitle={showTitle} brand={brand} user={user} icons={icons} />
+    /*
+      `q-app-shell` carries the safe-area padding — see the rule in
+      `globals.css`. It belongs on the outermost box of the shell rather than on
+      the rail or on `main`, because the two of them sit side by side and each
+      would otherwise have to know about the insets separately; padding here
+      inset the pair as one, and the shell's own background still reaches every
+      edge of the screen.
+
+      Prepended to `className` rather than appended, so a caller's own class
+      still wins where the two overlap — the staff layout passes `h-svh
+      overflow-hidden` through here.
+    */
+    <SidebarProvider className={cn('q-app-shell', className)} railOnly={Boolean(user)}>
+      <AppSidebar
+        items={items}
+        title={title}
+        showTitle={showTitle}
+        brand={brand}
+        user={user}
+        icons={icons}
+        secondary={secondary}
+      />
       <SidebarInset>
         {/*
           The phone app bar is gone with the drawer it existed to open.
@@ -168,34 +208,27 @@ export function AppShell({
 }
 
 
-/**
- * The clinic's mark at the head of the rail.
+/*
+ * `BrandMark` — the clinic's own uploaded logo, drawn as a 28px rounded square
+ * at the head of the rail — used to live here. The head now leads with the
+ * product logo instead (see `BrandLogo` in the header below), so the component
+ * had no caller and is gone rather than left to rot.
  *
- * A **plain `<img>`**, not `next/image`: the source is a `data:` URI already
- * sized to 256px by the upload control, so there is no remote fetch to
- * optimise and no srcset to generate.
- *
- * Falling back to the app glyph rather than to initials — a clinic that has not
- * uploaded a mark has no mark, and inventing one from its name would put a
- * second lettered disc on a rail whose foot already carries the account's.
+ * `brand.logoUrl` still travels down from the staff layout and the settings
+ * screen that captures it still works; nothing in the rail reads it any more.
+ * Restoring a clinic mark means deciding where it goes now that the head is
+ * taken — the account row at the foot is the obvious candidate.
  */
-function BrandMark({ logoUrl, name }: { logoUrl: string | null; name: string }) {
-  return (
-    <span
-      aria-hidden
-      className="grid size-7 shrink-0 place-items-center overflow-hidden rounded-md bg-sidebar-accent ring-1 ring-sidebar-border"
-    >
-      {logoUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element -- a data: URI has nothing for the image optimizer to do.
-        <img src={logoUrl} alt="" className="size-full object-contain" />
-      ) : (
-        <Icon name="dishes" className="size-4 text-sidebar-icon" aria-label={name} />
-      )}
-    </span>
-  );
-}
 
-function AppSidebar({ items, title, showTitle = true, brand, user, icons }: Omit<ShellProps, 'children'>) {
+function AppSidebar({
+  items,
+  title,
+  showTitle = true,
+  brand,
+  user,
+  icons,
+  secondary,
+}: Omit<ShellProps, 'children'>) {
   const t = useTranslations('nav');
   const pathname = usePathname();
 
@@ -220,16 +253,35 @@ function AppSidebar({ items, title, showTitle = true, brand, user, icons }: Omit
             state, so nothing may compete with it for the row.
           */}
           <div className="flex min-w-0 items-center gap-2 group-data-[collapsible=icon]:hidden">
-            {brand ? <BrandMark logoUrl={brand.logoUrl} name={brand.name} /> : null}
+            {/*
+              The staff rail leads with the product logo — the leaf and the
+              wordmark as one mark — where it used to draw the clinic's own
+              square mark beside the clinic's name in text.
+
+              ⚠ **The clinic's name is no longer visible here.** It is still the
+              rail's accessible name (the `sr-only` span below), and the account
+              row at the foot still says whose session this is, but the head now
+              identifies the *product* rather than the practice. That is the
+              trade: one logo reads as a brand where a lettered square plus a
+              name read as a row of two things. `brand.logoUrl` — a clinic's own
+              uploaded mark — is consequently unused by this rail; the settings
+              screen that captures it still works, it simply has nowhere here to
+              appear.
+            */}
+            {brand ? <BrandLogo className="h-9 shrink-0" /> : null}
             {/*
               `sr-only` rather than absent when hidden: the string is the rail's
               accessible name, and the mobile drawer needs one whether or not
               anybody is meant to read it on screen. See `showTitle`.
+
+              Always `sr-only` once the logo is drawn — the logo carries the
+              wordmark, so a heading beside it would be the name twice, once as
+              a picture and once as text.
             */}
             <span
               className={cn(
                 'truncate font-heading text-heading-sm font-semibold group-data-[collapsible=icon]:hidden',
-                !showTitle && 'sr-only',
+                (!showTitle || brand) && 'sr-only',
               )}
             >
               {brand?.name ?? title}
@@ -242,7 +294,10 @@ function AppSidebar({ items, title, showTitle = true, brand, user, icons }: Omit
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupContent>
-            <SidebarMenu>
+            {/* The guided tour's first anchor: the whole list, not a row of it.
+                Its opening step is about the rail as a thing — see
+                `features/user-guide/steps.ts`. */}
+            <SidebarMenu data-guide="nav">
               {items.map((item) => {
                 const icon = icons?.[item.labelKey];
                 const label = t(item.labelKey);
@@ -275,6 +330,10 @@ function AppSidebar({ items, title, showTitle = true, brand, user, icons }: Omit
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* See `secondary` on `ShellProps`. The staff shell puts the user
+            guide here; the portal passes nothing and this renders nothing. */}
+        {secondary}
       </SidebarContent>
 
       {/*

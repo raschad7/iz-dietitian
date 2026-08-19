@@ -175,7 +175,18 @@ export function DayColumn({
       ref={canvasRef}
       data-day={date}
       className={cn(
-        'relative flex-1 select-none border-s border-border',
+        /*
+          `calendar-day-canvas` carries one declaration and it is what makes the
+          hold-to-book gesture possible on a finger: `-webkit-touch-callout:
+          none`. See the rule in `globals.css` — without it iOS answers the same
+          press with its own callout and magnifier, cancels the pointer, and the
+          gesture ends at the moment it was meant to arm.
+
+          Deliberately not `touch-action: none`: this surface has to stay
+          pannable, which is the whole reason the gesture needs a hold in the
+          first place.
+        */
+        'calendar-day-canvas relative flex-1 select-none border-s border-border',
         // Two weights, because they mean different things. A closed day refuses
         // a booking, so it is the heavier fill; a past day merely *is* past, and
         // now takes bookings like any other, so it gets half as much — enough to
@@ -228,14 +239,14 @@ export function DayColumn({
       })}
 
       {/*
-        Hover affordance: the slot a click here would book, filled olive-50 and
+        Hover affordance: the slot a click here would book, filled green-50 and
         labelled with its time.
 
         The fill is the point — the label alone named a time without showing
         how much of the day it meant, and a 15-minute slot is small enough that
         "which quarter am I on?" was a question the ⊕ could not answer. Tinting
         the whole slot is the same "hover fills" language the fields speak, and
-        it previews the shortest bookable block at its real size. olive-700 on
+        it previews the shortest bookable block at its real size. green-700 on
         it is 7.37:1, so the time stays readable inside the tint.
       */}
       {hoverMinute !== null && !unbookable && (

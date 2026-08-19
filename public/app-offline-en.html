@@ -1,0 +1,140 @@
+<!doctype html>
+<!--
+  The staff app's offline fallback, in English.
+
+  A static file rather than a Next.js route on purpose: this page has to render
+  when the network is gone, which rules out anything that needs the server. It
+  is precached by `app-sw.js` at install time and served only when a
+  navigation inside the staff app fails. Its Arabic twin is `app-offline-ar.html`;
+  the worker picks between them by reading the locale out of its own
+  registration scope, so neither file has to know how it was chosen.
+
+  Everything is inline — no stylesheet, no font file, no image request. A page
+  shown precisely when the network is unavailable cannot depend on a second
+  fetch succeeding. The colours are the portal's own brand tokens written as
+  literals for the same reason `src/features/app-pwa/brand.ts` exists.
+-->
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#72AE34" />
+    <title>Offline — Dietitian Clinic</title>
+    <style>
+      :root {
+        --brand: #72AE34;
+        --bg: #ffffff;
+        --fg: #1a1c19;
+        --muted: #5c6157;
+        --border: #e3e6e0;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        min-height: 100dvh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: calc(1.5rem + env(safe-area-inset-top, 0px)) calc(1.5rem + env(safe-area-inset-right, 0px))
+          calc(1.5rem + env(safe-area-inset-bottom, 0px)) calc(1.5rem + env(safe-area-inset-left, 0px));
+        background: var(--bg);
+        color: var(--fg);
+        font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+        line-height: 1.6;
+        -webkit-text-size-adjust: 100%;
+      }
+
+      .card {
+        width: 100%;
+        max-width: 26rem;
+        text-align: center;
+      }
+
+      .mark {
+        width: 4rem;
+        height: 4rem;
+        margin: 0 auto 1.25rem;
+        display: grid;
+        place-items: center;
+        border-radius: 1.25rem;
+        background: var(--brand);
+      }
+
+      h1 {
+        margin: 0 0 0.5rem;
+        font-size: 1.25rem;
+        font-weight: 600;
+      }
+
+      p {
+        margin: 0 0 1.75rem;
+        font-size: 0.9375rem;
+        color: var(--muted);
+      }
+
+      button {
+        font: inherit;
+        font-weight: 600;
+        color: #ffffff;
+        background: var(--brand);
+        border: 0;
+        border-radius: 0.75rem;
+        padding: 0.75rem 1.75rem;
+        min-height: 2.75rem;
+        cursor: pointer;
+      }
+
+      button:focus-visible {
+        outline: 2px solid var(--brand);
+        outline-offset: 3px;
+      }
+
+      @media (prefers-reduced-motion: no-preference) {
+        button {
+          transition: opacity 150ms ease;
+        }
+      }
+
+      button:hover {
+        opacity: 0.9;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <div class="mark" aria-hidden="true">
+        <svg
+          width="34"
+          height="34"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#ffffff"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
+          <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+          <path d="M12 11h4" />
+          <path d="M12 16h4" />
+          <path d="M8 11h.01" />
+          <path d="M8 16h.01" />
+        </svg>
+      </div>
+
+      <h1>You’re offline</h1>
+      <p>The clinic management app can’t be reached right now. Check your connection and try again.</p>
+
+      <button type="button" onclick="location.reload()">Try again</button>
+    </main>
+  </body>
+</html>

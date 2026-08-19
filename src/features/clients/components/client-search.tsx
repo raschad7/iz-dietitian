@@ -150,7 +150,10 @@ export function ClientSearch({ input, locale }: { input: ListClientsInput; local
   return (
     // `shrink-0`: this row is chrome the register scrolls under, never something
     // the list squeezes to make room for itself. See the page component.
-    <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
+    <div
+      data-guide="clients-search"
+      className="flex shrink-0 flex-wrap items-center justify-between gap-3"
+    >
       {/*
         The glyph is inside the field's box rather than beside it. `relative` on
         the wrapper and `start-4` on the icon keep it on the reading edge in
@@ -401,6 +404,8 @@ export function ClientSearch({ input, locale }: { input: ListClientsInput; local
             of this button. */}
         <ClientFormTrigger
           locale={locale}
+          /* The guided tour's "how to add a new client" step points here. */
+          data-guide="clients-new"
           className={cn(
             buttonVariants({ variant: 'default' }),
             'flex-1 max-sm:px-0 lg:flex-none',

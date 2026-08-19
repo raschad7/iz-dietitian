@@ -22,7 +22,7 @@ import { boardRows } from '../board-rows';
 import { dayKey } from '../schema';
 import { slotFillKey } from '../skeleton';
 import type { RecentUse } from '../usage';
-import { dayOfWeekForDate, orderedWeekdays } from '../week';
+import { dayOfWeekForDate, orderedWeekdays, planColumnDates } from '../week';
 
 import { BoardEditor, useEditor } from './board-dnd';
 import { DayColumn } from './day-column';
@@ -32,6 +32,7 @@ import type { GhostMeal } from './meal-card';
 import { MealInspector } from './meal-inspector';
 import { NewWeekDialog, type NewWeekProps } from './new-week-dialog';
 import { PublishButton } from './publish-button';
+import { TagColorKey } from './tag-color-key';
 
 type BoardProps = {
   board: Board;
@@ -60,29 +61,22 @@ type BoardProps = {
  * published-plan toggle and the editor share one answer.
  */
 export function PlanBoard(props: BoardProps) {
-  // A published plan is read-only until the dietitian says otherwise. Editing what
-  // a client is already following should be a decision, not a slip.
-  const [allowPublished, setAllowPublished] = useState(false);
   const [catalogOpen, setCatalogOpen] = useState(false);
 
-  const editable =
-    props.board.status === 'draft' || (props.board.status === 'published' && allowPublished);
+  // Only a draft is editable. A published plan's nutrition is frozen at publish
+  // time, so editing one in place would leave a card showing the previous dish's
+  // calories under the new dish's name. Unpublish first — which clears the frozen
+  // numbers and makes it a live draft again — then republish. See `editablePlan`.
+  const editable = props.board.status === 'draft';
 
   return (
     <BoardEditor
       board={props.board}
       editable={editable}
-      allowPublished={allowPublished}
       locale={props.locale}
       onDishDragStart={() => setCatalogOpen(false)}
     >
-      <BoardBody
-        {...props}
-        allowPublished={allowPublished}
-        onAllowPublished={setAllowPublished}
-        catalogOpen={catalogOpen}
-        onCatalogOpenChange={setCatalogOpen}
-      />
+      <BoardBody {...props} catalogOpen={catalogOpen} onCatalogOpenChange={setCatalogOpen} />
     </BoardEditor>
   );
 }
@@ -96,13 +90,9 @@ function BoardBody({
   history,
   newWeek,
   children,
-  allowPublished,
-  onAllowPublished,
   catalogOpen,
   onCatalogOpenChange,
 }: BoardProps & {
-  allowPublished: boolean;
-  onAllowPublished: (value: boolean) => void;
   catalogOpen: boolean;
   onCatalogOpenChange: (value: boolean) => void;
 }) {
@@ -126,6 +116,15 @@ function BoardBody({
       return day ? [day] : [];
     });
   }, [board.days, board.weekStartDate]);
+
+  /* The calendar date behind each column heading, keyed by weekday so a rotated
+     week (one starting on a Wednesday) still lands each date on its own column.
+     `namesMonth` travels with it — see `planColumnDates` for why the month is
+     printed on some columns and not others. */
+  const columnDates = useMemo(
+    () => new Map(planColumnDates(board.weekStartDate).map((column) => [column.dayOfWeek, column])),
+    [board.weekStartDate],
+  );
 
   const mealsById = useMemo(
     () => new Map(board.days.flatMap((day) => day.meals).map((meal) => [meal.id, meal])),
@@ -183,6 +182,7 @@ function BoardBody({
 
         ghosts[meal.slotKey] = {
           nameAr: before.nameAr,
+          nameEn: before.nameEn,
           isRepeat: meal.dish?.id === before.dishId,
         };
       }
@@ -257,7 +257,7 @@ function BoardBody({
             <PopoverContent
               align="end"
               side="bottom"
-              className="max-h-[min(36rem,75vh)] w-80 overflow-y-auto p-3"
+              className="max-h-[min(36rem,75dvh)] w-80 overflow-y-auto p-3"
             >
               <PopoverTitle className="pb-2 text-label font-semibold">
                 {t('moreActions')}
@@ -279,26 +279,13 @@ function BoardBody({
                   </Button>
                 )}
 
-                {board.status === 'published' && (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    aria-pressed={allowPublished}
-                    className="w-full max-w-none justify-start"
-                    onClick={() => {
-                      if (allowPublished) {
-                        onAllowPublished(false);
-                        return;
-                      }
+              </div>
 
-                      if (window.confirm(t('editPublishedConfirm'))) onAllowPublished(true);
-                    }}
-                  >
-                    <Icon name="edit" />
-                    {t('editPublished')}
-                  </Button>
-                )}
+              {/* The key to the cards' coloured rules. Reference rather than an
+                  action, so it sits under the actions and above the history —
+                  and inside this popover it costs the board no space at all. */}
+              <div className="mt-2 border-t border-border pt-2 empty:hidden">
+                <TagColorKey days={board.days} />
               </div>
 
               <div className="mt-2 border-t border-border pt-2">
@@ -336,9 +323,13 @@ function BoardBody({
         </div>
       </header>
 
-      {allowPublished && (
+      {/* A published plan is a record, not a working copy: its nutrition is frozen
+          and its composition is locked. Said here rather than left to a control
+          that would only fail — the route back to editing is Unpublish, which the
+          header already offers. */}
+      {board.status === 'published' && (
         <p className="rounded-md bg-status-attention-bg px-3 py-2 text-body-sm text-status-attention-fg">
-          {t('editPublishedWarning')}
+          {t('publishedReadOnly')}
         </p>
       )}
 
@@ -416,6 +407,8 @@ function BoardBody({
               <DayColumn
                 key={day.dayOfWeek}
                 day={day}
+                date={columnDates.get(day.dayOfWeek)?.date ?? null}
+                namesMonth={columnDates.get(day.dayOfWeek)?.namesMonth ?? false}
                 rows={rows}
                 dailyTarget={dailyTarget}
                 editable={editable}

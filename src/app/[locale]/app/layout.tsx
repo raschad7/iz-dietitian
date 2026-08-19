@@ -1,10 +1,15 @@
 import { getTranslations } from 'next-intl/server';
+import type { Metadata, Viewport } from 'next';
 import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 import { AppShell } from '@/components/layout/sidebar';
 import { type IconName } from '@/components/ui/icon';
+import { APP_THEME_COLOR_DARK, APP_THEME_COLOR_LIGHT } from '@/features/app-pwa/brand';
+import { ServiceWorkerRegister } from '@/features/app-pwa/service-worker-register';
 import { getClinicBrand, isClinicOnboardingComplete } from '@/features/clinic-profile/queries';
+import { GuideLauncher } from '@/features/user-guide/guide-launcher';
+import { GuideProvider } from '@/features/user-guide/guide-provider';
 import { resolveLocale } from '@/i18n/params';
 import { requireStaffClinic } from '@/lib/session';
 
@@ -51,6 +56,75 @@ const NAV_ICONS = {
   dishes: 'dishes',
 } as const satisfies Record<(typeof NAV_ITEMS)[number]['labelKey'], IconName>;
 
+/**
+ * PWA metadata for the staff app only — never the client portal, which has its
+ * own set in `portal/layout.tsx`. Scoped here so `<link rel="manifest">`, the
+ * apple-web-app tags and the icons appear on `/app/*` pages and nowhere else.
+ *
+ * `manifest` points at the per-locale Route Handler in
+ * `app/manifest.webmanifest/route.ts` rather than a static file, because
+ * `scope`/`start_url` have to carry the locale prefix every URL in this app
+ * already has (`routing.localePrefix: 'always'`).
+ *
+ * **`icons` carries the home-screen icon only — deliberately no favicon.** The
+ * `apple` entry is the tile iOS draws when the app is added to the home screen,
+ * which the install is not really an install without; it is the `staff-`
+ * variant of the generated artwork, an olive clipboard on white and the inverse
+ * of the portal's white salad on olive, so a device carrying both can tell the
+ * two tiles apart.
+ *
+ * There is no `icon` entry, and no `src/app/favicon.ico`, `icon.tsx` or
+ * `apple-icon.*` anywhere in the tree either — so the browser tab keeps the
+ * default placeholder. That is a decision, not an oversight: leave it out
+ * rather than reinstating it here.
+ */
+export async function generateMetadata({ params }: Omit<AppLayoutProps, 'children'>): Promise<Metadata> {
+  const locale = await resolveLocale(params);
+  const t = await getTranslations({ locale, namespace: 'app' });
+
+  return {
+    manifest: `/${locale}/app/manifest.webmanifest`,
+    icons: {
+      apple: '/api/pwa-icons/staff-apple-180',
+    },
+    appleWebApp: {
+      capable: true,
+      /*
+        `title` is what iOS writes under the home-screen icon. Without it Safari
+        falls back to the page `<title>`, which here is a per-screen string
+        ending in the app name — "Clients · Dietitian Clinic" as an icon label.
+        Naming it explicitly pins it to the app, not to whichever page happened
+        to be open when the client tapped "Add to Home Screen".
+      */
+      title: t('shortName'),
+      statusBarStyle: 'default',
+    },
+  };
+}
+
+/**
+ * The browser chrome's colour, as a light/dark pair.
+ *
+ * Unlike the portal — which is pinned to light appearance and therefore has one
+ * theme colour — the staff app follows the system, so its status bar has to as
+ * well. Next emits one `<meta name="theme-color">` per entry with the `media`
+ * attribute attached, which is the only way to express "follow the device" in a
+ * tag that is read before any stylesheet loads.
+ *
+ * Only `themeColor` is declared here. Next merges a nested viewport export over
+ * its parent field by field, so naming any other field would silently replace
+ * the app-wide one from `[locale]/layout.tsx` — `viewportFit: 'cover'` and
+ * `interactiveWidget` in particular.
+ */
+export function generateViewport(): Viewport {
+  return {
+    themeColor: [
+      { media: '(prefers-color-scheme: light)', color: APP_THEME_COLOR_LIGHT },
+      { media: '(prefers-color-scheme: dark)', color: APP_THEME_COLOR_DARK },
+    ],
+  };
+}
+
 export default async function AppLayout({ children, params }: AppLayoutProps) {
   const locale = await resolveLocale(params);
 
@@ -93,14 +167,33 @@ export default async function AppLayout({ children, params }: AppLayoutProps) {
       goes back to the page. Each page owns its own heading, which is where the
       `h1` lives.
     */
-    <AppShell
-      items={NAV_ITEMS}
-      title={t('shortName')}
-      brand={brand ?? undefined}
-      user={{ name: session.user.name, email: session.user.email, locale }}
-      icons={NAV_ICONS}
-      className="h-svh overflow-hidden"
-    >
+    /*
+      The guided tour wraps the shell rather than sitting inside it, and it has
+      to: the tour crosses five routes, so its state cannot live in any of them,
+      and the control that starts it is in the rail while the overlay it opens
+      covers the page. This layout is the only component that is above both and
+      stays mounted while the reader moves between sections.
+
+      Staff only. The portal renders the same `AppShell` and is not wrapped.
+    */
+    <GuideProvider>
+      {/*
+        Renders nothing, so it carries no layout weight inside the shell. The
+        `beforeinstallprompt` capture that used to sit beside it is mounted from
+        the root locale layout now, and is no longer a script tag at all — see
+        `InstallPromptCapture`.
+      */}
+      <ServiceWorkerRegister locale={locale} />
+
+      <AppShell
+        items={NAV_ITEMS}
+        title={t('shortName')}
+        brand={brand ?? undefined}
+        user={{ name: session.user.name, email: session.user.email, locale }}
+        icons={NAV_ICONS}
+        secondary={<GuideLauncher />}
+        className="h-svh overflow-hidden"
+      >
       {/*
         `overflow-x-auto`, not the `overflow-x-hidden` this carried.
 
@@ -123,9 +216,10 @@ export default async function AppLayout({ children, params }: AppLayoutProps) {
         `Tabs`, `PanelTabsList` and `.planner-week-scroll` are the precedents —
         and `overflow-x-hidden` must not come back here or go anywhere else.
       */}
-      <main className="min-h-0 min-w-0 flex-1 overflow-x-auto overflow-y-auto p-3 md:p-5">
-        {children}
-      </main>
-    </AppShell>
+        <main className="min-h-0 min-w-0 flex-1 overflow-x-auto overflow-y-auto p-3 md:p-5">
+          {children}
+        </main>
+      </AppShell>
+    </GuideProvider>
   );
 }

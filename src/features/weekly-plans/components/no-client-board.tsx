@@ -39,13 +39,16 @@ export function NoClientBoard({
             <p className="mt-2 text-body-sm leading-relaxed text-muted-foreground">
               {t('noClientHint')}
             </p>
-            <div className="mx-auto mt-6 max-w-lg text-start">
+            <div data-guide="planner-picker" className="mx-auto mt-6 max-w-lg text-start">
               <ClientPicker clients={clients} />
             </div>
           </div>
 
           {suggestions.length > 0 ? (
-            <div className="mt-12">
+            /* The tour's planner-board step points here. It is `optional` in
+               `steps.ts` because a clinic with no plans yet has no suggestions
+               to make, and the step falls back to a centred card. */
+            <div data-guide="planner-suggestions" className="mt-12">
               <div className="mb-4 text-center">
                   <h3 className="font-heading text-heading-sm font-semibold">
                     {t('suggestedClientsTitle')}

@@ -5,6 +5,7 @@ import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom';
 
 import { Dialog, DialogHeader } from '@/components/ui/dialog';
+import { useDialogPresence } from '@/components/ui/dialog-motion';
 import { Icon } from '@/components/ui/icon';
 import { ScrollWindow } from '@/components/ui/scroll-window';
 import { getLocaleDirection, type Locale } from '@/i18n/routing';
@@ -73,6 +74,7 @@ export function RequestsDialogTrigger({
   const tCommon = useTranslations('common');
 
   const [open, setOpen] = useState(false);
+  const dialogPresent = useDialogPresence(open);
 
   const trigger = useRef<HTMLButtonElement>(null);
   const hasOpened = useRef(false);
@@ -88,10 +90,10 @@ export function RequestsDialogTrigger({
   useEffect(() => {
     if (open) {
       hasOpened.current = true;
-    } else if (hasOpened.current) {
+    } else if (hasOpened.current && !dialogPresent) {
       trigger.current?.focus();
     }
-  }, [open]);
+  }, [dialogPresent, open]);
 
   return (
     <>
@@ -100,10 +102,10 @@ export function RequestsDialogTrigger({
         <Icon name="chevronEnd" className="size-3.5" />
       </button>
 
-      {open
+      {dialogPresent
         ? createPortal(
             <Dialog
-              open
+              open={open}
               onClose={close}
               label={t('title')}
               dir={getLocaleDirection(locale)}
@@ -119,6 +121,12 @@ export function RequestsDialogTrigger({
                 // default 28rem the buttons wrap under the message on every
                 // row.
                 'sm:w-[min(48rem,calc(100vw-2rem))]',
+                // The same measure again, for the tablet bottom sheet. The
+                // `(pointer: coarse)` block in `globals.css` is unlayered and
+                // would otherwise replace the width above with the `size="wide"`
+                // default of 64rem — so this dialog was 48rem under a mouse and
+                // 64rem under a thumb. See `--q-dialog-sheet-width` there.
+                '[--q-dialog-sheet-width:min(48rem,calc(100vw-2rem))]',
               )}
             >
               <DialogHeader

@@ -97,15 +97,60 @@ The form split it used to have was not, and cost the app a client whose height
 lived on one screen and whose weight lived on another. `saveIntake` writes both
 in one transaction; nothing else may write either half on its own.
 
-`foods` and curated `dishes` are shared reference data rather than clinic-owned
-records. Their nutrition values are derived from the committed datasets and
-must not be replaced by model-generated facts.
+### The food catalog
 
-No screen reads `foods` directly — it is reached only through
+`catalog_foods` is the **only** food table. It is the canonical, app-owned
+catalog: each row stores an Arabic and an English name, an explicit preparation
+state (`raw` / `cooked` / `dry` / …), per-100 g nutrition where a null means
+"never measured" rather than zero, and a provenance reference. Two tables hang
+off it:
+
+- `catalog_food_aliases` — regional synonyms (`طماطم` for `بندورة`), each with
+  the language it is written in. Aliases are **search-only**; a food is always
+  displayed under its canonical name.
+- `catalog_food_portions` — the household measures a food may be entered in
+  (`رغيف` 60 g, `كوب` 158 g), with bilingual labels and a weight in grams.
+
+Neither carries a `clinic_id`. Their scope is inherited from the food, so it
+cannot disagree with itself.
+
+`catalog_foods` and curated `dishes` are shared reference data rather than
+clinic-owned records; a clinic may also add its own private food, which stays
+`needs_review` and never promotes itself to the shared set. Their nutrition
+values come from the committed datasets and must not be replaced by
+model-generated facts.
+
+**The legacy `foods` and `food_aliases` tables no longer exist.** They held
+7,793 USDA SR Legacy rows and were dropped in migration `0030`, along with
+`dish_ingredients.food_id`. `data/usda-sr-legacy.ndjson` is kept as an offline
+provenance source that `bun run db:build-catalog` validates the committed
+dataset against; nothing at runtime reads it.
+
+`dish_ingredients.catalog_food_id` is NOT NULL and `on delete restrict`, so
+there is exactly one food identity per recipe line and an in-use food cannot be
+deleted out from under a plan. A line may also record `portion_id` and
+`portion_quantity` — how the dietitian typed the amount — but
+**`quantity_grams` is the only figure any nutrition calculation reads**, and the
+server derives it from the portion rather than trusting a submitted gram count.
+
+No screen reads `catalog_foods` directly for a recipe — it is reached through
 `dish_ingredients`. A dish stores no nutrition of its own, so every calorie the
 board, the generation prompt, and the client portal display is derived from this
-join at read time. Do not remove the table on the grounds that nothing in the UI
-references it.
+join at read time, except on a published plan.
+
+### Published plans carry frozen nutrition
+
+Publishing writes a `weekly_plan_meals.nutrition_snapshot` for every populated
+meal — the same `dishTotals` / `dishGrams` arithmetic, run once and stored — so
+editing a recipe afterwards cannot rewrite what a patient was prescribed.
+Drafts hold no snapshot and keep calculating live.
+
+The rule is version-aware and fails loudly. A published or archived meal whose
+snapshot is **missing, malformed, or of an unsupported version** raises
+`MealSnapshotError` rather than falling back to a live calculation: falling back
+is invisible, and an invisible fallback is the exact failure the freeze exists
+to prevent. `bun run db:check` validates every stored blob through the same
+reader, and `bun run db:backfill:plan-snapshots --apply` repairs what it finds.
 
 ## Localization and RTL
 
@@ -136,7 +181,7 @@ lint rule. See [Design system](design-system.md) for the complete UI contract.
 - `dashboard`: staff overview and attention items
 - `portal`: client dashboard, appointments, profile, and published plan access
 - `weekly-plans`: dish-based generation, review, publish, and the shared
-  nutrition arithmetic over the `foods` reference table
+  nutrition arithmetic over the `catalog_foods` reference table
 - `whatsapp`: gateway configuration, messages, reminders, and inbound replies
 
 ## External services

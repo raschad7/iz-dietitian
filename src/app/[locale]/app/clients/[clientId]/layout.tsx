@@ -38,18 +38,10 @@ type ClientLayoutProps = {
  */
 export default async function ClientLayout({ children, params }: ClientLayoutProps) {
   const locale = await resolveLocale(params);
-  const { session, clinicId } = await requireStaffClinic(locale);
+  const { clinicId } = await requireStaffClinic(locale);
 
   const { clientId } = await params;
   const client = await getClient(clinicId, clientId);
-
-  // TEMP DEBUG — remove once the client-detail 404 is root-caused.
-  console.log('[client-layout-debug]', {
-    userEmail: session.user.email,
-    sessionClinicId: clinicId,
-    requestedClientId: clientId,
-    found: Boolean(client),
-  });
 
   if (!client) {
     notFound();
@@ -83,7 +75,7 @@ export default async function ClientLayout({ children, params }: ClientLayoutPro
         ⚠ **The padding is what stops the cards looking sliced.** Setting
         `overflow-y` to anything but `visible` forces `overflow-x` to compute to
         `auto` as well, so this box clips on all four edges — and a `Card` draws
-        a 1px ring plus an olive-tinted shadow *outside* its border box. Flush
+        a 1px ring plus an green-tinted shadow *outside* its border box. Flush
         against the clip, that ring vanished on whichever edge the card touched:
         the inline edges always, the block-start edge at rest, the block-end edge
         once scrolled. The result read as cards with a side missing.

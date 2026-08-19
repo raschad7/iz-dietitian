@@ -3,6 +3,7 @@ import {
   date,
   index,
   integer,
+  jsonb,
   pgTable,
   real,
   text,
@@ -11,6 +12,8 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
+
+import type { MealNutritionSnapshot } from '@/features/weekly-plans/nutrition-snapshot';
 
 import { clients } from './clients';
 import { clinics } from './clinics';
@@ -164,6 +167,32 @@ export const weeklyPlanMeals = pgTable(
 
     /** The model's short Arabic explanation. Its words, shown as a suggestion. */
     rationaleAr: text('rationale_ar'),
+
+    /**
+     * The nutrition this meal was prescribed at, frozen when the plan was published.
+     *
+     * Null means "not frozen — compute live", which is every draft. Non-null means
+     * the numbers are a historical record and the current recipe must not be
+     * consulted for them. That single rule is implemented once, in
+     * `resolveMealNutrition` (`nutrition-snapshot.ts`), and shared by the staff
+     * board, the patient portal, and archived plans.
+     *
+     * It exists because a plan stores only `dish_id + servings`. Everything else
+     * about the food is a join away, so before this column a clinic editing a
+     * recipe — or the coming migration off USDA to a canonical catalog — silently
+     * rewrote the calories on plans patients were already following.
+     *
+     * `jsonb` rather than a spread of `real` columns: the frozen value is the whole
+     * `NutrientTotals` shape (12 nutrients, each with its `unmeasured` count) plus
+     * the dish's total weight, and flattening that would be ~25 columns that still
+     * could not carry a future nutrient. Validated on read with Zod rather than
+     * trusted, because a `jsonb` column accepts anything.
+     *
+     * Options (`weekly_plan_meal_options`) deliberately carry no snapshot: an
+     * alternative is an offer, not the prescription. Their energy figures are still
+     * live and may drift on an old plan.
+     */
+    nutritionSnapshot: jsonb('nutrition_snapshot').$type<MealNutritionSnapshot>(),
 
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

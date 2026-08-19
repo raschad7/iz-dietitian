@@ -1,6 +1,9 @@
+import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 
 import { PortalTheme } from '@/features/portal/components/portal-theme';
+import { PORTAL_THEME_COLOR } from '@/features/portal/pwa/brand';
+import { ServiceWorkerRegister } from '@/features/portal/pwa/service-worker-register';
 import { requirePortalClient } from '@/features/portal/session';
 import { resolveLocale } from '@/i18n/params';
 
@@ -8,6 +11,60 @@ type PortalLayoutProps = {
   children: ReactNode;
   params: Promise<{ locale: string }>;
 };
+
+/**
+ * PWA metadata for the client portal only — never the staff app. Scoped here
+ * rather than in the root layout so `<link rel="manifest">`, the theme-color
+ * meta tag and the apple-web-app tags appear solely on `/portal/*` pages;
+ * everything under `(secured)`/`(screen)`/`(tabs)` and `set-password` inherits
+ * it, nothing outside `/portal` does.
+ *
+ * `manifest` points at the per-locale Route Handler in
+ * `portal/manifest.webmanifest/route.ts`, not a static file — the portal's
+ * `start_url`/`scope` need to carry the locale prefix every portal URL
+ * already has (`routing.localePrefix: 'always'`).
+ */
+export async function generateMetadata({ params }: Omit<PortalLayoutProps, 'children'>): Promise<Metadata> {
+  const locale = await resolveLocale(params);
+
+  return {
+    manifest: `/${locale}/portal/manifest.webmanifest`,
+    icons: {
+      icon: '/api/pwa-icons/192',
+      apple: '/api/pwa-icons/apple-180',
+    },
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: 'default',
+    },
+  };
+}
+
+/**
+ * `themeColor` moved out of `metadata` and into its own export in the App
+ * Router; putting it here (rather than the root layout) keeps the staff app's
+ * browser chrome untouched. The portal is fixed to light appearance
+ * (`PortalTheme` below), so there is one theme color, not a dark-mode pair.
+ *
+ * **`viewportFit: 'cover'` now lives in the root layout**, so this export no
+ * longer needs to mention it and must not restate it. It used to say the
+ * opposite — that `cover` was deliberately left off and `PortalTabBar`'s
+ * `env(safe-area-inset-bottom)` therefore resolved to `0`. That was true and it
+ * was the bug: an installed portal was letterboxed inside the safe area with
+ * the theme colour filling the margin, which is what "the PWA has cut edges"
+ * describes. See the `viewport` export in `[locale]/layout.tsx` for the whole
+ * of the reasoning, and `--q-safe-b` in `globals.css` for the inset every
+ * block-end surface now carries.
+ *
+ * Only `themeColor` is declared here, and only because it is portal-specific:
+ * Next merges a nested viewport export over its parent field by field, so
+ * naming a field here would silently replace the app-wide one.
+ */
+export function generateViewport(): Viewport {
+  return {
+    themeColor: PORTAL_THEME_COLOR,
+  };
+}
 
 /**
  * Shell for the whole client area: authenticates, sets the client app's
@@ -70,6 +127,21 @@ export default async function PortalLayout({ children, params }: PortalLayoutPro
       the screen went back to scrolling as one document.
     */
     <PortalTheme className="portal-shell relative isolate flex min-h-dvh flex-col bg-background text-foreground">
+      {/*
+        Registered once for the whole client area, including `set-password` —
+        renders nothing, so it carries no chrome or layout weight here. See
+        the component for why registration lives outside `requirePortalClient`'s
+        result rather than depending on it.
+      */}
+      {/*
+        The `beforeinstallprompt` capture is no longer rendered here: it is
+        mounted from the root locale layout, and it attaches its listener from
+        module scope rather than from a script tag — see `InstallPromptCapture`
+        for why, and `use-install-prompt.ts` for how the event is picked back
+        up.
+      */}
+      <ServiceWorkerRegister locale={locale} />
+
       {children}
     </PortalTheme>
   );

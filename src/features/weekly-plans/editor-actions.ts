@@ -232,7 +232,6 @@ export async function placeDishAction(
     mealId: formData.get('mealId'),
     dishId: formData.get('dishId'),
     servings: formData.get('servings'),
-    allowPublished: formData.get('allowPublished'),
   });
 
   if (!parsed.success) return { status: 'error', messageKey: 'errors.invalid' };
@@ -247,7 +246,6 @@ export async function placeDishAction(
       parsed.data.mealId,
       parsed.data.dishId,
       parsed.data.servings,
-      parsed.data.allowPublished,
     ),
   );
 }
@@ -263,7 +261,6 @@ export async function setServingsAction(
     planId: formData.get('planId'),
     mealId: formData.get('mealId'),
     servings: formData.get('servings'),
-    allowPublished: formData.get('allowPublished'),
   });
 
   if (!parsed.success) return { status: 'error', messageKey: 'errors.invalid' };
@@ -277,7 +274,6 @@ export async function setServingsAction(
       parsed.data.planId,
       parsed.data.mealId,
       parsed.data.servings,
-      parsed.data.allowPublished,
     ),
   );
 }
@@ -292,7 +288,6 @@ export async function clearMealAction(
   const parsed = mealEditSchema.safeParse({
     planId: formData.get('planId'),
     mealId: formData.get('mealId'),
-    allowPublished: formData.get('allowPublished'),
   });
 
   if (!parsed.success) return { status: 'error', messageKey: 'errors.invalid' };
@@ -301,7 +296,7 @@ export async function clearMealAction(
   if (!clientId) return { status: 'error', messageKey: 'errors.planNotFound' };
 
   return runEdit(locale, clientId, () =>
-    clearMeal(clinicId, parsed.data.planId, parsed.data.mealId, parsed.data.allowPublished),
+    clearMeal(clinicId, parsed.data.planId, parsed.data.mealId),
   );
 }
 
@@ -315,7 +310,6 @@ export async function removeMealAction(
   const parsed = mealEditSchema.safeParse({
     planId: formData.get('planId'),
     mealId: formData.get('mealId'),
-    allowPublished: formData.get('allowPublished'),
   });
 
   if (!parsed.success) return { status: 'error', messageKey: 'errors.invalid' };
@@ -324,7 +318,7 @@ export async function removeMealAction(
   if (!clientId) return { status: 'error', messageKey: 'errors.planNotFound' };
 
   return runEdit(locale, clientId, () =>
-    removeMeal(clinicId, parsed.data.planId, parsed.data.mealId, parsed.data.allowPublished),
+    removeMeal(clinicId, parsed.data.planId, parsed.data.mealId),
   );
 }
 
@@ -341,7 +335,6 @@ export async function addMealAction(
     slotKey: formData.get('slotKey'),
     label: formData.get('label'),
     timeOfDay: formData.get('timeOfDay'),
-    allowPublished: formData.get('allowPublished'),
   });
 
   if (!parsed.success) return { status: 'error', messageKey: 'errors.invalid' };
@@ -359,7 +352,6 @@ export async function addMealAction(
         label: parsed.data.label,
         timeOfDay: parsed.data.timeOfDay,
       },
-      parsed.data.allowPublished,
     );
 
     return added !== null;
@@ -385,7 +377,6 @@ export async function addWeekMealAction(
     slotKey: formData.get('slotKey'),
     label: formData.get('label'),
     timeOfDay: formData.get('timeOfDay'),
-    allowPublished: formData.get('allowPublished'),
   });
 
   if (!parsed.success) return { status: 'error', messageKey: 'errors.invalid' };
@@ -402,7 +393,6 @@ export async function addWeekMealAction(
         label: parsed.data.label,
         timeOfDay: parsed.data.timeOfDay,
       },
-      parsed.data.allowPublished,
     );
 
     return added > 0;
@@ -421,7 +411,6 @@ export async function moveMealAction(
     fromMealId: formData.get('fromMealId'),
     toMealId: formData.get('toMealId'),
     mode: formData.get('mode'),
-    allowPublished: formData.get('allowPublished'),
   });
 
   if (!parsed.success) return { status: 'error', messageKey: 'errors.invalid' };
@@ -436,7 +425,6 @@ export async function moveMealAction(
       parsed.data.fromMealId,
       parsed.data.toMealId,
       parsed.data.mode,
-      parsed.data.allowPublished,
     ),
   );
 }
@@ -458,7 +446,6 @@ export async function removeWeekMealAction(
   const parsed = removeWeekMealSchema.safeParse({
     planId: formData.get('planId'),
     slotKey: formData.get('slotKey'),
-    allowPublished: formData.get('allowPublished'),
   });
 
   if (!parsed.success) return { status: 'error', messageKey: 'errors.invalid' };
@@ -471,7 +458,6 @@ export async function removeWeekMealAction(
       clinicId,
       parsed.data.planId,
       parsed.data.slotKey,
-      parsed.data.allowPublished,
     );
 
     return removed > 0;

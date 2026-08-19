@@ -41,11 +41,31 @@ Generate a development authentication secret and place it in `.env.local`:
 bunx @better-auth/cli@latest secret
 ```
 
-Apply migrations and start the app:
+Set the database up and start the app:
 
 ```bash
-bun run db:migrate
+bun run db:setup
+```
+
+```bash
 bun run dev
+```
+
+`db:setup` is the one command that brings a database to a servable state. It
+runs, in the only order that works: migrate → seed the canonical food catalog →
+seed the dish catalog → freeze any published plan that predates snapshots →
+check readiness. It stops at the first failure and is safe to re-run.
+
+**Migrating alone is not enough.** Every food query reads `catalog_foods`, so a
+database that is migrated but not seeded looks completely healthy — the app
+boots, nothing throws — and then every ingredient search returns nothing and the
+dish catalog is empty, with no error anywhere saying why. `bun run db:check`
+exists to catch exactly that, and `db:setup` runs it for you.
+
+Add demo data — a clinic, clients, appointments — separately:
+
+```bash
+bun run db:seed
 ```
 
 The default local URL is <http://localhost:3000>, which redirects to `/ar`.
@@ -77,10 +97,15 @@ in another committed `.env` file.
 | `bun run lint` | Run ESLint, including design-token and RTL rules |
 | `bun run typecheck` | Run TypeScript without emitting files |
 | `bun run test` | Run the test suite using `.env.test.local` |
+| `bun run db:setup` | Migrate, seed the catalogs, and verify — the one setup command |
+| `bun run db:check` | Report whether the database is in a servable state |
 | `bun run db:migrate` | Apply development database migrations |
 | `bun run db:migrate:test` | Apply migrations to the test database |
 | `bun run db:generate` | Generate a Drizzle migration after a schema change |
-| `bun run db:seed` | Seed the development database |
+| `bun run db:seed` | Seed demo data (clinic, clients, appointments) |
+| `bun run db:seed:catalog` | Seed the canonical food catalog; add `--apply` to write |
+| `bun run db:seed:dishes` | Seed the shipped dish catalog |
+| `bun run db:build-catalog` | Regenerate `data/catalog-foods.json` from the offline USDA source |
 | `bun run db:reset` | Destructively rebuild the local development schema |
 | `bun run wa:reminders` | Process due WhatsApp reminders once |
 
@@ -99,8 +124,50 @@ Database schemas live in `src/db/schema/` and generated migrations live in
 5. Run the relevant tests, then the full verification commands.
 
 Tenant-owned records must include a clinic boundary. Reference datasets such as
-foods and curated dishes are intentionally shared; see
+the food catalog and curated dishes are intentionally shared; see
 [Architecture](architecture.md#database).
+
+## The food catalog
+
+`catalog_foods`, `catalog_food_aliases` and `catalog_food_portions` are the
+app's own canonical catalog and the only food source any screen reads. The
+legacy USDA tables `foods` and `food_aliases` were dropped in migration `0030`;
+`data/usda-sr-legacy.ndjson` is kept only as an offline provenance source that
+`bun run db:build-catalog` validates the committed dataset against.
+
+The committed dataset is self-contained and checksum-protected: seeding a fresh
+database does not require loading the 7,793-row USDA file. To change the
+catalog, edit `data/catalog-foods.json`, run `bun run db:build-catalog` to
+regenerate the derived half and the checksum, then `bun run db:seed:catalog
+--apply`. The seed refuses to run on a checksum mismatch or a validation
+failure, and `bun run db:check` compares the database against the committed
+files rather than against a hard-coded number.
+
+## Deploying this release: a clean database
+
+**This release intentionally cuts over on a clean, disposable database.** There
+are no real users and no production data to preserve, so the first deployment is
+`bun run db:setup` against an empty database rather than an upgrade.
+
+> **Warning.** The migration chain up to `0030` must **not** be used to upgrade a
+> populated legacy database. `0030` drops `foods` and `food_aliases` and sets
+> `dish_ingredients.catalog_food_id` NOT NULL, and drizzle-kit applies all
+> pending migrations in a single transaction — so it cannot pause to seed the
+> catalog before the NOT NULL constraint is enforced, and a database with
+> unmapped ingredient rows fails and rolls back the whole chain. Upgrading a
+> populated legacy production database is **not supported**; it would need a
+> separate, purpose-written migration path that does not exist.
+
+The development database was reset on this basis on 2026-08-18. If you have a
+local database from before the catalog work, reset and rebuild it:
+
+```bash
+bun run db:reset
+```
+
+```bash
+bun run db:setup
+```
 
 ## Tests and verification
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useLocale, useTranslations } from 'next-intl';
+import { useFormatter, useLocale, useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/dialog';
@@ -43,6 +43,8 @@ const LAST_ROW = { gridRow: '-2 / -1' } as const;
  */
 export function DayColumn({
   day,
+  date,
+  namesMonth,
   rows,
   dailyTarget,
   editable,
@@ -53,6 +55,10 @@ export function DayColumn({
   showOnPhone,
 }: {
   day: BoardDay;
+  /** This column's calendar date, `YYYY-MM-DD`. Null if the plan's start is unreadable. */
+  date: string | null;
+  /** Whether this column prints its month as well as the day number. */
+  namesMonth: boolean;
   /** The week's rows, so every column renders the same ones in the same order. */
   rows: readonly BoardRow[];
   dailyTarget: number;
@@ -70,6 +76,7 @@ export function DayColumn({
 }) {
   const t = useTranslations('weeklyPlans');
   const tDays = useTranslations('weeklyPlans.days');
+  const format = useFormatter();
 
   const dayName = tDays(dayKey(day.dayOfWeek));
   const kcal = roundForDisplay('kcal', day.totals.kcal.value);
@@ -112,11 +119,37 @@ export function DayColumn({
               semibold, so the week had nothing to be scanned by.
 
               Centred over its column: the day name is the column's title now
-              that the cards under it no longer carry any of their own. */}
-          <span className="min-w-0 flex-1 truncate text-center text-body-sm font-bold">
+              that the cards under it no longer carry any of their own.
+
+              16px at 500, where this was 14px at 700. A column heading is read
+              at a glance from across seven columns, and bold-at-14 was doing
+              that job by weight rather than by size — which makes a row of seven
+              headings look heavy without making any one of them easier to pick
+              out. Size carries it now, and the lighter weight leaves the day
+              name clearly ahead of the figures under it without shouting. */}
+          <span className="min-w-0 flex-1 truncate text-center text-body-md font-medium">
             {dayName}
           </span>
         </div>
+
+        {/*
+          The calendar date, under the day name.
+
+          `namesMonth` is the whole idea: printing "أغسطس" over all seven columns
+          says the same word seven times and adds nothing, but never printing it
+          leaves a week that ends on the 2nd unreadable. So the month appears at
+          the start of the week and again wherever the week crosses into the next
+          one — exactly the places a bare day number could be misread — and the
+          other five columns carry the number alone. See `planColumnDates`.
+        */}
+        {date && (
+          <span className="mt-0.5 block text-center text-caption text-muted-foreground" dir="auto">
+            {format.dateTime(new Date(`${date}T00:00:00`), {
+              day: 'numeric',
+              ...(namesMonth ? { month: 'short' } : {}),
+            })}
+          </span>
+        )}
 
         {/* The total, and — when the day misses the target — an arrow and the
             attention colour. The arrow is decorative; the amber figure beside

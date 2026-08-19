@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils"
 /**
  * A placeholder for content that is still on its way.
  *
- * The look is §9.7's: a sunken fill under an olive-tinted sweep, 1600ms. The
+ * The look is §9.7's: a sunken fill under an green-tinted sweep, 1600ms. The
  * animation itself lives in `globals.css` as `.q-skeleton`, because it needs a
  * pseudo-element, a `:dir()` flip and a reduced-motion rule — none of which a
  * utility class can carry.

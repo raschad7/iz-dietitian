@@ -90,7 +90,7 @@ export function EmptyPlanBoard({
                 <Icon name="moreActions" />
                 <span className="sr-only">{t('moreActions')}</span>
               </PopoverTrigger>
-              <PopoverContent align="end" side="bottom" className="max-h-[min(32rem,70vh)] w-80 overflow-y-auto p-3">
+              <PopoverContent align="end" side="bottom" className="max-h-[min(32rem,70dvh)] w-80 overflow-y-auto p-3">
                 <PopoverTitle className="pb-1 text-label font-semibold">{t('history')}</PopoverTitle>
                 {history}
               </PopoverContent>

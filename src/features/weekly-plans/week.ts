@@ -161,3 +161,43 @@ export function planWeekDays(weekStartDate: string): { dayOfWeek: number; date: 
 export function weekDateForDay(weekStartDate: string, dayOfWeek: number): string | null {
   return planWeekDays(weekStartDate).find((day) => day.dayOfWeek === dayOfWeek)?.date ?? null;
 }
+
+/** One column heading's date, and whether it has to name its month. */
+export type PlanColumnDate = {
+  dayOfWeek: number;
+  date: string;
+  /**
+   * Whether this column prints the month as well as the day number.
+   *
+   * True on the first day of the week, and on any day whose month differs from
+   * the day before it.
+   */
+  namesMonth: boolean;
+};
+
+/**
+ * The week's dates, in column order, each told whether to name its month.
+ *
+ * A board heading that repeats "August" over all seven columns is printing the
+ * same word seven times to say nothing; one that never prints it leaves a week
+ * ending on the 2nd unreadable. So the month is stated exactly where it can
+ * change the answer — at the start of the week, and again at a month boundary
+ * inside it, which is the one place a reader could otherwise be wrong about
+ * which month a day number belongs to.
+ *
+ * Returns `[]` for an unreadable `week_start_date`, matching `weekDates` — a
+ * heading with no date is a heading, and better than one with a wrong date.
+ */
+export function planColumnDates(weekStartDate: string): PlanColumnDate[] {
+  let previousMonth: string | null = null;
+
+  return planWeekDays(weekStartDate).map(({ dayOfWeek, date }) => {
+    // Slice the ISO string rather than build a `Date`: this module is string-in,
+    // string-out precisely so a time zone can never move a calendar day.
+    const month = date.slice(0, 7);
+    const namesMonth = month !== previousMonth;
+    previousMonth = month;
+
+    return { dayOfWeek, date, namesMonth };
+  });
+}

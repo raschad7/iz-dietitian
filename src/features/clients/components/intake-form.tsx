@@ -25,6 +25,7 @@ import {
   WEIGHT_KG_RANGE,
 } from '@/features/clients/form-rules';
 import { initialIntakeFormState, type IntakeFormState } from '@/features/clients/form-state';
+import { balanceToHundred } from '@/features/clients/meal-split';
 import { mergedNotes } from '@/features/clients/notes';
 import {
   ALLERGENS,
@@ -282,7 +283,16 @@ export function IntakeForm({
       <input type="hidden" name="locale" value={locale} />
       <input type="hidden" name="clientId" value={intake.clientId} />
 
-      <div className="flex min-h-0 flex-1 flex-col sm:flex-row">
+      {/*
+        The `data-slot`s here and on the rail carry no styling of their own.
+        They are what the tablet block in `globals.css` reaches for: the rail's
+        column is right on a desktop and wrong on a 768px tablet — where this
+        dialog is a sheet a good deal narrower than the screen — and the
+        arrangement has to turn on the *device*, not on a viewport width a
+        desktop window can also be dragged to. Only a media query can ask that,
+        so the rearrangement lives in CSS and these are its handles.
+      */}
+      <div data-slot="intake-shell" className="flex min-h-0 flex-1 flex-col sm:flex-row">
         <SectionRail
           current={section}
           filled={filled}
@@ -713,10 +723,20 @@ export function IntakeForm({
                 min={800}
                 max={6000}
                 step={50}
-                // Placeholder, never prefilled: an empty field means "keep using
-                // the formula", and prefilling would silently freeze today's
-                // number into a permanent override.
-                placeholder={targets.suggestedKcal?.toString() ?? ''}
+                /*
+                  Placeholder, never prefilled: an empty field means "keep using
+                  the formula", and prefilling would silently freeze today's
+                  number into a permanent override.
+
+                  The formula needs a weight, a height, a goal and an activity
+                  level, and until all four are in it returns nothing — which
+                  left this box showing an icon and no text at all, on the one
+                  screen where an empty box has a *meaning*. The fallback says
+                  what the emptiness is for.
+                */
+                placeholder={
+                  targets.suggestedKcal?.toString() ?? t('intake.placeholders.computedTarget')
+                }
                 defaultValue={intake.dailyKcalTarget?.toString() ?? ''}
                 error={errorFor('dailyKcalTarget')}
               />
@@ -727,7 +747,12 @@ export function IntakeForm({
                 min={20}
                 max={400}
                 step={5}
-                placeholder={suggestedProtein?.toString() ?? ''}
+                // Same fallback, and this one needs it more often: the protein
+                // suggestion runs on the weight alone, so it is blank only
+                // before the very first measurement is recorded.
+                placeholder={
+                  suggestedProtein?.toString() ?? t('intake.placeholders.computedTarget')
+                }
                 defaultValue={intake.proteinTargetGrams?.toString() ?? ''}
                 error={errorFor('proteinTargetGrams')}
               />
@@ -809,6 +834,7 @@ function SectionRail({
     <div
       ref={tabs}
       role="tablist"
+      data-slot="intake-rail"
       aria-orientation="vertical"
       aria-label={t('intake.sectionsLabel')}
       onKeyDown={onKeyDown}
@@ -825,6 +851,7 @@ function SectionRail({
             key={id}
             type="button"
             role="tab"
+            data-slot="intake-tab"
             data-section={id}
             aria-selected={active}
             aria-controls={panelId}
@@ -834,7 +861,7 @@ function SectionRail({
               'flex h-10 shrink-0 items-center gap-2.5 rounded-[10px] px-3 text-body-sm whitespace-nowrap',
               'transition-colors duration-180 ease-out sm:h-11 sm:w-full',
               // The rail's active item is the one olive thing on it, matching
-              // `Sidebar`: an olive-50 surface with an olive label.
+              // `Sidebar`: an green-50 surface with an olive label.
               active
                 ? 'bg-secondary font-semibold text-primary'
                 : 'text-muted-foreground hover:bg-muted hover:text-foreground',
@@ -1059,8 +1086,8 @@ function NumberField({
         order, it is simply aligned to the reading edge.
 
         `focusTone="neutral"`: the group draws its own focus treatment, and the
-        brand default is the lime ring that `.q-field` deliberately refuses —
-        a form is a column of fields and lime firing on each one as it is
+        brand default is the accent ring that `.q-field` deliberately refuses —
+        a form is a column of fields and the accent firing on each one as it is
         tabbed through turns the accent into noise.
 
         48px and the system's control radius, so the group matches the fields
@@ -1473,7 +1500,17 @@ function MealScheduleField({
             type="number"
             min={0}
             max={100}
-            defaultValue={Math.round(slot.kcalShare * 100)}
+            value={Math.round(slot.kcalShare * 100)}
+            onChange={(event) => {
+              const nextPercent = Number(event.target.value);
+              onChange(
+                slots.map((current, position) =>
+                  position === index
+                    ? { ...current, kcalShare: Number.isFinite(nextPercent) ? nextPercent / 100 : 0 }
+                    : current,
+                ),
+              );
+            }}
             aria-label={t('fields.slotShare')}
           />
 
@@ -1522,6 +1559,21 @@ function MealScheduleField({
           information rather than an error — but a dietitian aiming at 100 wants
           to know where they are, and the badge is quiet until they are off it.
         */}
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          disabled={percent === 100}
+          onClick={() => {
+            const balanced = balanceToHundred(slots.map((slot) => Math.round(slot.kcalShare * 100)));
+            onChange(
+              slots.map((slot, position) => ({ ...slot, kcalShare: balanced[position]! / 100 })),
+            );
+          }}
+        >
+          {t('intake.balanceShares')}
+        </Button>
+
         <Badge variant={percent === 100 ? 'muted' : 'attention'}>
           {t('intake.shareTotal', { value: percent })}
         </Badge>

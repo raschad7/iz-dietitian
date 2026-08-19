@@ -1,6 +1,6 @@
 import { NextIntlClientProvider } from 'next-intl';
 import { getTranslations } from 'next-intl/server';
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import {
   Almarai,
   IBM_Plex_Mono,
@@ -14,6 +14,7 @@ import type { ReactNode } from 'react';
 import { DirectionProvider } from '@/components/ui/direction';
 import { Toaster } from '@/components/ui/toast';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { InstallPromptCapture } from '@/features/pwa/install-prompt-capture';
 import { resolveLocale } from '@/i18n/params';
 import { getLocaleDirection, routing } from '@/i18n/routing';
 
@@ -141,13 +142,105 @@ export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
 }
 
+/**
+ * The origin every relative metadata URL is resolved against.
+ *
+ * Open Graph tags must carry absolute URLs — a crawler has no page to resolve
+ * `/opengraph-image.png` against — and without this Next warns and falls back
+ * to `localhost:3000`, which is a broken preview in every chat app the link is
+ * pasted into. `NEXT_PUBLIC_APP_URL` is the same variable the rest of the app
+ * builds public links from; the localhost fallback is the dev default and is
+ * only ever right in dev.
+ */
+const metadataBase = new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000');
+
+/**
+ * The viewport, for the whole app rather than the portal alone.
+ *
+ * Next emits `width=device-width, initial-scale=1` by default, which is what
+ * this document had. The two additions are both about hardware the browser's
+ * device emulation cannot reproduce.
+ *
+ * ## `viewportFit: 'cover'`
+ *
+ * `env(safe-area-inset-*)` resolves to `0` unless the document asks for the
+ * full screen, and until now nothing did. That made three separate pieces of
+ * inset handling dead code that read as if it worked: the portal tab bar's
+ * `pb-[max(0.5rem,env(safe-area-inset-bottom))]`, the `--q-toast-offset-bottom`
+ * calc in `globals.css`, and the request FAB derived from it. Each was written
+ * to clear the home indicator and each computed to nothing on the device it was
+ * written for.
+ *
+ * Without `cover`, iOS letterboxes a standalone web app inside the safe area
+ * and fills the margin with the theme colour, so an installed PWA sits in a
+ * band of olive with its own background stopping short of the screen — the
+ * "cut" edges an installed app shows and a browser tab does not. With `cover`
+ * the document paints edge to edge and the insets become real numbers, which is
+ * what the surfaces along those edges were always asking for. The block-end
+ * inset is applied to every one of them — see `--q-safe-b` in `globals.css`.
+ *
+ * ## `interactiveWidget: 'resizes-content'`
+ *
+ * When the on-screen keyboard opens, the default (`resizes-visual`) leaves the
+ * layout viewport at its full height and merely scrolls it, so a dialog sized
+ * in `dvh` keeps a height that no longer fits above the keyboard and its footer
+ * — the row with the submit button — ends up underneath it. Resizing the
+ * content instead means `dvh` shrinks with the keyboard and the footer stays
+ * reachable, which is the behaviour every form in a bottom sheet depends on.
+ */
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  interactiveWidget: 'resizes-content',
+};
+
 export async function generateMetadata({ params }: Omit<LocaleLayoutProps, 'children'>): Promise<Metadata> {
   const locale = await resolveLocale(params);
   const t = await getTranslations({ locale, namespace: 'app' });
 
   return {
+    metadataBase,
     title: { default: t('name'), template: `%s · ${t('shortName')}` },
     description: t('tagline'),
+    /*
+      Both icons are named here rather than left to Next's `icon` /
+      `apple-icon` file conventions, which only emit their `<link>` from the
+      segment they sit in — and this app's root layout is *this* file, inside
+      `[locale]`, so a `src/app/icon.svg` served at `/icon.svg` but tagged no
+      page at all.
+
+      - `icon` lists the vector mark first — sharp at every tab size, and it
+        sits on the tab strip's own colour in either theme — then `favicon.ico`
+        for browsers that will not take an SVG. `public/favicon.ico` is also
+        served at its conventional path, which is how the crawlers and
+        link-preview bots that never read this tag find it.
+      - `apple` has to be a square raster — Safari ignores an SVG favicon when
+        it saves a page to the home screen — so it points at the generated PNG
+        tile. That route lives under the portal's PWA feature because that is
+        what first needed it, but the tile is the *product's*: both areas get
+        the same home-screen icon, which is the point.
+    */
+    icons: {
+      icon: [
+        { url: '/brand/mark.svg', type: 'image/svg+xml' },
+        { url: '/favicon.ico', sizes: '16x16 32x32 48x48' },
+      ],
+      apple: '/api/pwa-icons/apple-180',
+    },
+    /*
+      No `images` key: `opengraph-image.tsx` beside this file supplies the card
+      by file convention, for both Open Graph and Twitter, and naming it here as
+      well would emit the tag twice.
+    */
+    openGraph: {
+      type: 'website',
+      siteName: t('name'),
+      title: t('name'),
+      description: t('tagline'),
+      locale,
+    },
+    twitter: { card: 'summary_large_image', title: t('name'), description: t('tagline') },
   };
 }
 
@@ -213,6 +306,15 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
         there is nothing to trade off.
       */}
       <body suppressHydrationWarning className="min-h-dvh">
+        {/*
+          Renders nothing. It is mounted from the root layout so that its module
+          — which attaches the `beforeinstallprompt` listener at chunk-evaluation
+          time, before hydration — is in the initial bundle for every page in
+          either app. It used to be an inline `<script>` in an explicit `<head>`;
+          that `<head>` existed only to hold it, and both are gone. See the
+          component for why the tag could not stay.
+        */}
+        <InstallPromptCapture />
         {/*
           No floating locale switcher here. The switcher lives in the app bar
           (`Header`) and on the login screens, which is the only place it should

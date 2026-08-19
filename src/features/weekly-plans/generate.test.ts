@@ -15,20 +15,22 @@ const CATALOG: CatalogDish[] = [
     slug: 'mujaddara',
     nameAr: 'مجدرة',
     mealTypes: ['lunch', 'dinner'],
-    tags: ['cheap'],
+    tags: ['economical'],
     allergenTags: [],
     baseKcal: 620,
     baseProtein: 22,
+    nutritionCategory: 'balanced',
   },
   {
     id: 'dish-fasolia',
     slug: 'fasolia',
     nameAr: 'فاصولياء',
     mealTypes: ['lunch', 'dinner'],
-    tags: ['cheap'],
+    tags: ['economical'],
     allergenTags: [],
     baseKcal: 600,
     baseProtein: 20,
+    nutritionCategory: 'balanced',
   },
   {
     id: 'dish-nuts',
@@ -39,6 +41,7 @@ const CATALOG: CatalogDish[] = [
     allergenTags: ['nuts'],
     baseKcal: 610,
     baseProtein: 18,
+    nutritionCategory: 'balanced',
   },
   {
     id: 'dish-labaneh',
@@ -49,6 +52,7 @@ const CATALOG: CatalogDish[] = [
     allergenTags: ['lactose'],
     baseKcal: 380,
     baseProtein: 18,
+    nutritionCategory: 'balanced',
   },
   {
     id: 'dish-tiny',
@@ -59,6 +63,7 @@ const CATALOG: CatalogDish[] = [
     allergenTags: [],
     baseKcal: 120,
     baseProtein: 4,
+    nutritionCategory: 'balanced',
   },
 ];
 
