@@ -17,8 +17,8 @@ export function useDialogPresence(open: boolean): boolean {
 
   React.useEffect(() => {
     if (open) {
-      setRetained(true);
-      return;
+      const timeout = window.setTimeout(() => setRetained(true), 0);
+      return () => window.clearTimeout(timeout);
     }
 
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -40,9 +40,11 @@ export function useDialogPresenceValue<T>(value: T | null | undefined): T | null
 
   React.useEffect(() => {
     if (value != null) {
-      setRetained(value);
+      const timeout = window.setTimeout(() => setRetained(value), 0);
+      return () => window.clearTimeout(timeout);
     } else if (!present) {
-      setRetained(null);
+      const timeout = window.setTimeout(() => setRetained(null), 0);
+      return () => window.clearTimeout(timeout);
     }
   }, [present, value]);
 

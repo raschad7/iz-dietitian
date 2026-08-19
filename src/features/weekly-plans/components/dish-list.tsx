@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useFormatter, useTranslations } from 'next-intl';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -171,25 +171,55 @@ export function DishList({
   return (
     <>
       {/*
-        The frame scrolls in both axes: vertically inside the page on `md` and up
-        (which is what makes the sticky header worth having), horizontally on a
-        phone, because five columns of real data do not compress to 375px and a
-        table that scrolls sideways is better than one whose numbers wrap.
+        The frame scrolls vertically inside the page on `md` and up, which is
+        what makes the sticky header worth having.
+
+        It used to scroll *horizontally* on a phone as well, on the grounds that
+        seven columns do not compress to 375px and a sideways table beats one
+        whose numbers wrap. Both halves of that are true and the conclusion was
+        still wrong: it is the bottom rung of the Rearrange → Stack →
+        Internal-scroll ladder, and in practice it meant looking at half a row
+        and swiping for the rest. So the phone rearranges instead — see the
+        column heads below — and `overflow-x-auto` stays only as the floor under
+        a case the rearrangement cannot absorb.
       */}
-      <TableRoot className="md:min-h-0 md:flex-1 md:overflow-y-auto">
+      <TableRoot data-guide="dishes-list" className="md:min-h-0 md:flex-1 md:overflow-y-auto">
         <Table>
           <TableHeader sticky>
+            {/*
+              Which columns a width can afford, in two steps.
+
+              Under `sm` a row is the name, the energy and the row menu: the
+              subject, the figure being budgeted against, and the only way to
+              act on either. `sm` buys back the two macros. `md` buys back the
+              two classification columns.
+
+              Nothing that stands down is the only way to read its fact. The
+              classifications fold into the name cell as the glyph and the dots
+              they already are, and the macros are one tap away in the detail
+              drawer the name opens.
+
+              ⚠ Every `hidden … table-cell` here has a twin on the matching cell
+              in `DishRow`. A head that stands down while its cell does not
+              shifts every column after it by one.
+            */}
             <TableRow>
-              <TableHead>{t('columns.name')}</TableHead>
-              <TableHead>{t('columns.mealTypes')}</TableHead>
-              <TableHead>{t('columns.tags')}</TableHead>
+              {/* `w-full max-w-0` is what lets the name truncate at all: an
+                  auto-layout table sizes a column to its content, so without a
+                  cell that claims the leftover width and caps its own, a long
+                  dish name widens the table instead of eliding — which is the
+                  sideways scroll coming back in through the one column that
+                  cannot stand down. */}
+              <TableHead className="w-full max-w-0">{t('columns.name')}</TableHead>
+              <TableHead className="hidden md:table-cell">{t('columns.mealTypes')}</TableHead>
+              <TableHead className="hidden md:table-cell">{t('columns.tags')}</TableHead>
               <TableHead numeric className="text-end">
                 {t('columns.kcal')}
               </TableHead>
-              <TableHead numeric className="text-end">
+              <TableHead numeric className="hidden text-end sm:table-cell">
                 {t('columns.carbs')}
               </TableHead>
-              <TableHead numeric className="text-end">
+              <TableHead numeric className="hidden text-end sm:table-cell">
                 {t('columns.protein')}
               </TableHead>
               {/* The actions column is named for a screen reader only — a visible
@@ -242,6 +272,10 @@ function DishRow({
   onEdit: () => void;
 }) {
   const t = useTranslations('dishes');
+  // `format.list` and not a hardcoded '، ': that separator is an Arabic comma,
+  // so the English build was joining its own tag names with it too. Same repair
+  // as `ClientNutrition`.
+  const format = useFormatter();
 
   const mealTypes = membersOf(MEAL_TYPES, dish.mealTypes);
   const tags = membersOf(DISH_TAGS, dish.tags);
@@ -250,7 +284,7 @@ function DishRow({
 
   return (
     <TableRow linked className={cn(dish.hidden && '[&>td]:opacity-60')}>
-      <TableCell>
+      <TableCell className="w-full max-w-0">
         <div className="flex min-w-0 flex-col">
           <div className="flex items-center gap-2">
             {/*
@@ -291,12 +325,54 @@ function DishRow({
           <span className="text-caption text-muted-foreground">
             {t(dish.isSystem ? 'ownership.system' : 'ownership.clinic')}
           </span>
+
+          {/*
+            What the two classification columns say, at the widths where they
+            are not there to say it.
+
+            Not a summary of the row and not a second rendering of it: the meal
+            category keeps its own glyph and the qualities keep their own dots,
+            which is the whole vocabulary those columns use. What gets dropped
+            is the words beside them — a 295px row has no space for them, and
+            the glyph and the colour are the parts that are scanned anyway.
+
+            `shownTags`, so a heavily tagged dish folds to the same three marks
+            its own column would have printed rather than to a run of dots that
+            crowds the name above it.
+          */}
+          {(mealTypes.length > 0 || dish.highProtein || shownTags.length > 0) && (
+            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 md:hidden">
+              {mealTypes.map((type) => (
+                <Icon
+                  key={type}
+                  name={MEAL_ICON[type]}
+                  label={t(`mealTypes.${type}`)}
+                  className="size-4 text-muted-foreground"
+                />
+              ))}
+
+              {(dish.highProtein || shownTags.length > 0) && (
+                <span
+                  className="flex items-center gap-1"
+                  title={format.list([
+                    ...(dish.highProtein ? [t('nutritionFilters.high_protein')] : []),
+                    ...shownTags.map((tag) => t(`tags.${tag}`)),
+                  ])}
+                >
+                  {dish.highProtein && <span aria-hidden className={highProteinDotClasses()} />}
+                  {shownTags.map((tag) => (
+                    <span key={tag} aria-hidden className={dishTagDotClasses(tag)} />
+                  ))}
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </TableCell>
 
       {/* Category, not quality: which meal of the day this belongs to. Given its
           own glyph so the column is scannable without reading a word of it. */}
-      <TableCell>
+      <TableCell className="hidden md:table-cell">
         {mealTypes.length === 0 ? (
           <Empty />
         ) : (
@@ -323,7 +399,7 @@ function DishRow({
         eye enters the cell rather than after three tags about shopping and
         effort.
       */}
-      <TableCell>
+      <TableCell className="hidden md:table-cell">
         {!dish.highProtein && tags.length === 0 ? (
           <Empty />
         ) : (
@@ -338,7 +414,7 @@ function DishRow({
               <span
                 className="text-caption text-muted-foreground tabular-nums"
                 dir="ltr"
-                title={tags.slice(TAG_LIMIT).map((tag) => t(`tags.${tag}`)).join('، ')}
+                title={format.list(tags.slice(TAG_LIMIT).map((tag) => t(`tags.${tag}`)))}
               >
                 {t('moreTags', { count: overflow })}
               </span>
@@ -351,8 +427,12 @@ function DishRow({
           The unit rides with the value rather than only in the head: a figure
           scrolled away from its header still has to say what it is. */}
       <NutrientCell value={dish.kcal} unit={NUTRIENT_UNITS.kcal} lead />
-      <NutrientCell value={dish.carbs} unit={NUTRIENT_UNITS.carbs} />
-      <NutrientCell value={dish.protein} unit={NUTRIENT_UNITS.protein} />
+      <NutrientCell value={dish.carbs} unit={NUTRIENT_UNITS.carbs} className="hidden sm:table-cell" />
+      <NutrientCell
+        value={dish.protein}
+        unit={NUTRIENT_UNITS.protein}
+        className="hidden sm:table-cell"
+      />
 
       {/* `relative` lifts the menu above the stretched button in the first cell,
           so it captures its own clicks. */}
@@ -389,9 +469,20 @@ function TagChip({ dot, label }: { dot: string; label: string }) {
  * `lead` is energy: it is the number a dietitian is actually budgeting against,
  * so it carries the row's weight and the macros beside it stay quiet.
  */
-function NutrientCell({ value, unit, lead }: { value: number; unit: string; lead?: boolean }) {
+function NutrientCell({
+  value,
+  unit,
+  lead,
+  className,
+}: {
+  value: number;
+  unit: string;
+  lead?: boolean;
+  /** The width this figure stands down at, if it stands down at all. */
+  className?: string;
+}) {
   return (
-    <TableCell numeric className="whitespace-nowrap text-end">
+    <TableCell numeric className={cn('whitespace-nowrap text-end', className)}>
       <span className={cn('text-body-sm', lead ? 'font-semibold' : 'text-foreground')}>{value}</span>
       <span className="ms-0.5 text-caption text-muted-foreground">{unit}</span>
     </TableCell>

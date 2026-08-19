@@ -1,182 +1,84 @@
 'use client';
 
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, XAxis } from 'recharts';
+import dynamic from 'next/dynamic';
 
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from '@/components/ui/chart';
-import { type Direction } from '@/i18n/routing';
+import { cn } from '@/lib/utils';
 
 /**
- * The two plots on the dashboard's stat cards — and the only client-side
- * charts in the codebase.
+ * The dashboard's two plots, held behind a dynamic import.
  *
- * Everything else that draws data here is server-rendered SVG in the `viz-*`
- * ramp with a CSS-only hover (`docs/design-system.md`, "Charts"). These two are
- * Recharts, on the dashboard's own request, and the boundary is drawn as
- * tightly as it will go: **only the plot is a client component.** The card
- * around it, its heading, its headline figure, its footer and every translated
- * or `Intl`-formatted string stay on the server and arrive here as plain
- * `{ label, value }` pairs. Nothing in this file knows what a locale is.
+ * ## Why this module exists at all
  *
- * ## Three things Recharts does not do for us
+ * The plots themselves are in `stat-plots.tsx` and are unchanged — this file
+ * adds nothing to the dashboard and takes nothing away from it. What it changes
+ * is *when* Recharts is fetched, parsed and evaluated.
  *
- * **1. It does not mirror.** There is no RTL mode; a chart under `dir="rtl"`
- * still runs its category axis left to right, so in Arabic the oldest month
- * would sit where the reader expects the newest. `reversed` on the `XAxis` is
- * what fixes it, and it is driven by the `direction` prop rather than by a
- * media query or a `document.dir` read, because the locale is already known on
- * the server and guessing it again in the browser is how the two get to
- * disagree. **Any chart added to this file must take `direction` and pass it
- * to its axis** — this is the one thing that will not fail loudly.
+ * Recharts is by a wide margin the largest thing this product asks a browser to
+ * run: 8.2MB installed, and the built bundle is the biggest single dependency
+ * in the client graph. Imported statically, it sat in the dashboard's own
+ * first-load JavaScript — so every visit paid to download it, parse it and
+ * evaluate it before the page could respond to a tap, whether or not the reader
+ * ever looked at either card. That cost lands on Total Blocking Time almost
+ * exactly: it is main-thread work, it is unavoidable once the module is in the
+ * graph, and it happens during the window Lighthouse measures.
  *
- * **2. It has no colours of its own worth using.** The `ChartConfig` below
- * points `--color-*` at `viz-brand`, the clinic's own green — the documented
- * exception to the rule that charts are drawn in neutrals, and the reasoning
- * for it lives beside the token in `globals.css`. The short version: these two
- * plots are the whole content of their cards, nothing inside them is
- * clickable, and each card's one target is a glyph in the corner that no bar
- * could be mistaken for.
+ * There was no code splitting anywhere in this codebase before this — not one
+ * `next/dynamic` and not one `React.lazy` — so this is also the first instance
+ * of a pattern the two other Recharts call sites now follow (see
+ * `client-progress-chart.tsx`, which is the same three lines).
  *
- * **3. It sizes itself from its container.** `ChartContainer` defaults to
- * `aspect-video`, which on the dashboard's one-screen layout would push the
- * register off the bottom of the page. Both plots take an explicit height
- * instead, and the cards above them are what decides it.
- */
-
-export type ChartPoint = {
-  /** Already formatted for the locale — an axis tick, not a date. */
-  label: string;
-  value: number;
-};
-
-type ChartProps = {
-  data: ChartPoint[];
-  direction: Direction;
-  /** What the tooltip calls the measure, e.g. "New clients". Already translated. */
-  seriesLabel: string;
-};
-
-/**
- * The plot height, in pixels.
+ * ## Why the call sites did not have to change
  *
- * Fixed rather than proportional: the dashboard does not scroll at `xl`, so a
- * plot that grew with its container would take the space out of the register
- * below it. 132px is enough for six area points to have a readable shape and
- * for eight bars to keep a pointer-sized width.
+ * `stat-cards.tsx` imports `AppointmentsChart`, `ClientIntakeChart` and
+ * `ChartPoint` from this path and still does. Keeping the module specifier and
+ * the export names is the whole point: a dynamic boundary that required every
+ * caller to know about it would be a refactor rather than an enhancement, and
+ * this is meant to be invisible above the fold of the diff.
+ *
+ * `ChartPoint` is re-exported as a type, which costs nothing at runtime —
+ * `export type` is erased, so naming it here does not drag `stat-plots.tsx`
+ * back into the static graph.
+ *
+ * ## `ssr: false`, and what fills the gap
+ *
+ * Both plots are already client-only in every sense that matters: Recharts
+ * measures its container to lay itself out, so its server render is a wrapper
+ * with no chart in it, replaced on hydration. Rendering it on the server was
+ * therefore buying a flash rather than content, and `ssr: false` drops the
+ * duplicate work without changing what anybody sees.
+ *
+ * ⚠ **The placeholder must be exactly the plot's height or this trades TBT for
+ * CLS.** `PLOT_HEIGHT` is 132px in `stat-plots.tsx` and is restated here rather
+ * *restated* here rather than imported: importing any value — not just a
+ * component — from that module would put it back in the static graph and undo
+ * the split entirely. That makes these two constants a pair with nothing but
+ * this note holding them together, so **whoever changes the plot height has to
+ * change it in both files**.
  */
 const PLOT_HEIGHT = 'h-[132px] w-full';
 
-const CONFIG = {
-  value: { color: 'var(--color-viz-brand)' },
-} satisfies ChartConfig;
-
 /**
- * Six months of intake.
+ * What stands in while Recharts arrives.
  *
- * An area rather than a line because the shape of a small clinic's intake is
- * the point — three, then one, then five is a jagged line and a legible mass.
- * `type="monotone"`, not shadcn's `"natural"`: a natural spline overshoots
- * between points, and on counts that cannot go below zero it draws a curve
- * dipping under the axis between two quiet months. Monotone never invents a
- * value the data does not have.
+ * Deliberately empty rather than a skeleton with a shimmer: the plots sit
+ * *inside* stat cards that are fully server-rendered — heading, headline figure
+ * and footer are all painted already — so the card reads as complete and only
+ * its illustration is late. A pulsing block there would announce a wait the
+ * reader has no reason to care about, and would draw the eye away from the
+ * number the card exists to show.
  */
-export function ClientIntakeChart({ data, direction, seriesLabel }: ChartProps) {
-  const config = { value: { ...CONFIG.value, label: seriesLabel } } satisfies ChartConfig;
-
-  return (
-    <ChartContainer config={config} className={PLOT_HEIGHT}>
-      <AreaChart accessibilityLayer data={data} margin={{ top: 4, left: 4, right: 4, bottom: 0 }}>
-        <defs>
-          {/*
-            The fill fades out downward so the area reads as a mass under the
-            line rather than as a filled block competing with the card. A flat
-            `fillOpacity` gets muddy against the card's own tint at this size.
-          */}
-          <linearGradient id="dashboard-intake-fill" x1="0" y1="0" x2="0" y2="1">
-            {/* The soft green, not the line's own colour: a wash of the mark
-                colour at low opacity goes grey-green against the card, where
-                green-300 stays recognisably the light green the brand uses. */}
-            <stop offset="0%" stopColor="var(--color-viz-brand-soft)" stopOpacity={0.7} />
-            <stop offset="100%" stopColor="var(--color-viz-brand-soft)" stopOpacity={0.05} />
-          </linearGradient>
-        </defs>
-
-        {/* Horizontal rules only. Vertical ones would fence six points into six
-            boxes and say nothing the axis labels do not. */}
-        <CartesianGrid vertical={false} />
-
-        <XAxis
-          dataKey="label"
-          reversed={direction === 'rtl'}
-          tickLine={false}
-          axisLine={false}
-          tickMargin={8}
-          interval="preserveStartEnd"
-        />
-
-        <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="line" />} />
-
-        <Area
-          dataKey="value"
-          type="monotone"
-          stroke="var(--color-value)"
-          strokeWidth={2}
-          fill="url(#dashboard-intake-fill)"
-        />
-      </AreaChart>
-    </ChartContainer>
-  );
+function PlotPlaceholder() {
+  return <div aria-hidden="true" className={cn(PLOT_HEIGHT, 'shrink-0')} />;
 }
 
-/**
- * Eight weeks of the diary.
- *
- * **The last bar is the full green; the rest are the soft one.** That is the
- * week the card's headline number counts, and without the distinction the
- * reader has to work out which end of the axis is "now" — twice, since the
- * axis flips between Arabic and English. Two steps of one hue, marking *which
- * bar the headline is about*: a fact about the card, not about the data.
- */
-export function AppointmentsChart({ data, direction, seriesLabel }: ChartProps) {
-  const config = { value: { ...CONFIG.value, label: seriesLabel } } satisfies ChartConfig;
+export type { ChartPoint } from './stat-plots';
 
-  /*
-   * The current week is the last point, in Arabic and in English alike.
-   * `reversed` on the axis changes where a point is *painted*, not the order of
-   * the array, so this index needs no mirroring — and a `Cell` still indexes by
-   * data position.
-   */
-  const currentIndex = data.length - 1;
+export const ClientIntakeChart = dynamic(
+  () => import('./stat-plots').then((m) => m.ClientIntakeChart),
+  { ssr: false, loading: PlotPlaceholder },
+);
 
-  return (
-    <ChartContainer config={config} className={PLOT_HEIGHT}>
-      <BarChart accessibilityLayer data={data} margin={{ top: 4, left: 4, right: 4, bottom: 0 }}>
-        <CartesianGrid vertical={false} />
-
-        <XAxis
-          dataKey="label"
-          reversed={direction === 'rtl'}
-          tickLine={false}
-          axisLine={false}
-          tickMargin={8}
-          interval="preserveStartEnd"
-        />
-
-        <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="line" />} />
-
-        <Bar dataKey="value" radius={4}>
-          {data.map((point, index) => (
-            <Cell
-              key={point.label}
-              fill={index === currentIndex ? 'var(--color-viz-brand)' : 'var(--color-viz-brand-soft)'}
-            />
-          ))}
-        </Bar>
-      </BarChart>
-    </ChartContainer>
-  );
-}
+export const AppointmentsChart = dynamic(
+  () => import('./stat-plots').then((m) => m.AppointmentsChart),
+  { ssr: false, loading: PlotPlaceholder },
+);

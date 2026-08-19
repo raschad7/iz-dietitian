@@ -39,7 +39,14 @@ export function AddDishButton({
           that row's fixed height. The word drops below `sm` for the same reason
           the Filters label does: at 375px the row cannot hold both words, and a
           `+` on the page's primary action is unambiguous. */}
-      <Button type="button" className="shrink-0" aria-label={t('addDish')} onClick={() => setOpen(true)}>
+      <Button
+        type="button"
+        /* The guided tour's "how to add a new dish" step points here. */
+        data-guide="dishes-add"
+        className="shrink-0"
+        aria-label={t('addDish')}
+        onClick={() => setOpen(true)}
+      >
         <Icon name="add" />
         <span className="hidden sm:inline">{t('addDish')}</span>
       </Button>

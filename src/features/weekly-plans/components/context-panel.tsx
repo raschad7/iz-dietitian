@@ -142,7 +142,7 @@ export function ContextPanel({
             <Icon name="info" />
             <span className="sr-only">{t('planningNotes')}</span>
           </PopoverTrigger>
-          <PopoverContent align="end" side="bottom" className="max-h-[min(32rem,70vh)] w-80 overflow-y-auto p-4">
+          <PopoverContent align="end" side="bottom" className="max-h-[min(32rem,70dvh)] w-80 overflow-y-auto p-4">
             <PopoverTitle className="text-label font-semibold">{t('planningNotes')}</PopoverTitle>
 
             {targets.missing.length > 0 && (

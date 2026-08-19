@@ -160,6 +160,22 @@ function Dialog({
         setContainer(node);
       }}
       dir={dir}
+      /*
+        Published so CSS can tell the two surfaces apart without re-deriving the
+        breakpoint. The safe-area inset in `globals.css` is owed to the sheet —
+        which reaches the block-end edge of the screen and so can land under the
+        home indicator — and not to the centred card, which floats clear of
+        every edge at any width.
+      */
+      data-placement={placement}
+      /*
+        And its size, for the same reason and to the same reader. The coarse-
+        pointer sheet in `globals.css` takes the surface's width back from the
+        `sm:w-[…]` utilities below, so above 40rem it has to know which of the
+        two widths it is putting back — and `size` is otherwise legible only
+        from the class list it is compiled into.
+      */
+      data-size={size}
       aria-label={label}
       onClose={(event) => {
         if (isCurrentDialogEvent(event)) onClose();

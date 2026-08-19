@@ -104,8 +104,16 @@ export function AppointmentRequestFab({ label }: AppointmentRequestFabProps) {
             is on screen; the `1.5rem` fallback is what a desktop, where the bar
             is gone, gets instead. Set in `globals.css` beside the toast's own
             clearance, which is the same measurement.
+
+            `q-fab` styles nothing here. It is the hook the safe-area rule in
+            `globals.css` keys on, and it exists because this is one of the
+            places `end-4` is not enough on its own: the inline safe-area insets
+            are a *physical* fact about the glass — a sensor housing does not
+            swap sides when the reader switches to Arabic — so the rule that
+            raises this 1rem to clear a rounded corner in landscape has to say
+            `left`/`right`, which no utility on this element can.
           */
-          'fixed bottom-[var(--q-fab-offset-bottom,1.5rem)] end-4 z-40',
+          'q-fab fixed bottom-[var(--q-fab-offset-bottom,1.5rem)] end-4 z-40',
           /*
             Above the page, below the surfaces that interrupt it. The tab bar
             is `z-40` too and this sits clear of it by ~11px, so they never

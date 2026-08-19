@@ -45,6 +45,15 @@ type ClientFormTriggerProps = {
   children: React.ReactNode;
   className?: string;
   'aria-label'?: string;
+  /**
+   * Marks this trigger for the guided tour to point at.
+   *
+   * Named rather than swept up in a rest spread, because there is exactly one
+   * attribute a caller is allowed to add to the control and a spread would be
+   * an invitation to reach past the props above. See
+   * `src/features/user-guide/steps.ts`.
+   */
+  'data-guide'?: string;
 };
 
 export function ClientFormTrigger({
@@ -53,6 +62,7 @@ export function ClientFormTrigger({
   children,
   className,
   'aria-label': ariaLabel,
+  'data-guide': dataGuide,
 }: ClientFormTriggerProps) {
   const t = useTranslations('clients');
   const router = useRouter();
@@ -114,6 +124,7 @@ export function ClientFormTrigger({
         ref={trigger}
         type="button"
         aria-label={ariaLabel}
+        data-guide={dataGuide}
         // The pending state belongs on the control, not in an empty card: the
         // read takes a round trip, and a card that appears blank and then fills
         // in is a card that looked, for a moment, like it had lost the record.

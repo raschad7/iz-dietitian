@@ -5,6 +5,8 @@ import type { ReactNode } from 'react';
 import { AppShell } from '@/components/layout/sidebar';
 import { type IconName } from '@/components/ui/icon';
 import { getClinicBrand, isClinicOnboardingComplete } from '@/features/clinic-profile/queries';
+import { GuideLauncher } from '@/features/user-guide/guide-launcher';
+import { GuideProvider } from '@/features/user-guide/guide-provider';
 import { resolveLocale } from '@/i18n/params';
 import { requireStaffClinic } from '@/lib/session';
 
@@ -93,14 +95,25 @@ export default async function AppLayout({ children, params }: AppLayoutProps) {
       goes back to the page. Each page owns its own heading, which is where the
       `h1` lives.
     */
-    <AppShell
-      items={NAV_ITEMS}
-      title={t('shortName')}
-      brand={brand ?? undefined}
-      user={{ name: session.user.name, email: session.user.email, locale }}
-      icons={NAV_ICONS}
-      className="h-svh overflow-hidden"
-    >
+    /*
+      The guided tour wraps the shell rather than sitting inside it, and it has
+      to: the tour crosses five routes, so its state cannot live in any of them,
+      and the control that starts it is in the rail while the overlay it opens
+      covers the page. This layout is the only component that is above both and
+      stays mounted while the reader moves between sections.
+
+      Staff only. The portal renders the same `AppShell` and is not wrapped.
+    */
+    <GuideProvider>
+      <AppShell
+        items={NAV_ITEMS}
+        title={t('shortName')}
+        brand={brand ?? undefined}
+        user={{ name: session.user.name, email: session.user.email, locale }}
+        icons={NAV_ICONS}
+        secondary={<GuideLauncher />}
+        className="h-svh overflow-hidden"
+      >
       {/*
         `overflow-x-auto`, not the `overflow-x-hidden` this carried.
 
@@ -123,9 +136,10 @@ export default async function AppLayout({ children, params }: AppLayoutProps) {
         `Tabs`, `PanelTabsList` and `.planner-week-scroll` are the precedents —
         and `overflow-x-hidden` must not come back here or go anywhere else.
       */}
-      <main className="min-h-0 min-w-0 flex-1 overflow-x-auto overflow-y-auto p-3 md:p-5">
-        {children}
-      </main>
-    </AppShell>
+        <main className="min-h-0 min-w-0 flex-1 overflow-x-auto overflow-y-auto p-3 md:p-5">
+          {children}
+        </main>
+      </AppShell>
+    </GuideProvider>
   );
 }

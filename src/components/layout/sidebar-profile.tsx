@@ -31,17 +31,24 @@ import { cn } from '@/lib/utils';
  *
  * ## Two widths, two appropriate disclosures
  *
- * At full width, the footer is an inline disclosure: the account row stays
- * anchored at the bottom and its actions unfold above it. The controls remain
- * part of the rail instead of covering the page, and the identity does not need
- * to be repeated a few pixels above itself. The mobile sheet has the same usable
- * width, so it follows this mode too.
+ * At full width — which now means `lg` and up, and only there — the footer is
+ * an inline disclosure: the account row stays anchored at the bottom and its
+ * actions unfold above it. The controls remain part of the rail instead of
+ * covering the page, and the identity does not need to be repeated a few pixels
+ * above itself.
  *
- * At 56px there is no useful inline layout to reveal, so the collapsed rail
- * keeps the positioned `DropdownMenu`. Its trigger is just the avatar — a
- * person is the one thing in this rail that still identifies itself at 40px
- * without a label. The popup reuses the same action-surface design as the
- * inline drawer, so changing widths does not introduce a second visual system.
+ * ⚠ This paragraph used to end "the mobile sheet has the same usable width, so
+ * it follows this mode too", and that sheet no longer exists — the staff rail is
+ * locked to 56px at every width below `lg`, phones included. See the note on
+ * `usesInlineDisclosure` below for what that stale branch was doing to a phone.
+ *
+ * At 56px there is no useful inline layout to reveal, so the collapsed rail —
+ * every phone and every tablet — keeps the positioned `DropdownMenu`. Its
+ * trigger is just the avatar: a person is the one thing in this rail that still
+ * identifies itself at 40px without a label. The popup reuses the same
+ * action-surface design as the inline drawer, so changing widths does not
+ * introduce a second visual system, and because it portals to <body> it is
+ * ranked against the page rather than trapped inside a 56px column.
  *
  * The destinations moved out of the rail proper rather than being copied into
  * it: the same link in two lists is two answers to "where does this live".
@@ -84,8 +91,35 @@ export function SidebarProfile({
 }) {
   const t = useTranslations('nav');
   const tCommon = useTranslations('common');
-  const { state: sidebarState, isMobile, openMobile } = useSidebar();
-  const usesInlineDisclosure = isMobile || sidebarState === 'expanded';
+  const { state: sidebarState } = useSidebar();
+  /*
+    ⚠ **The width decides this, and nothing else.** It used to read
+    `isMobile || sidebarState === 'expanded'`, and the `isMobile` half was
+    written for a rail that below `md` was a full-width `Sheet` — where an
+    inline disclosure has room, which is what the note above still describes.
+
+    That Sheet is gone. `SidebarProvider` sets `locked = railOnly && isCompact`,
+    and `railOnly` is `Boolean(user)` — so on every staff screen under 1024px
+    the rail is drawn as the 56px icon column at *every* width, phones included,
+    and `Sidebar`'s `isMobile && !locked` drawer branch is never taken. `isMobile`
+    was still true below 768px, so the account row went on unfolding a 256px
+    panel inside a 56px column. The rows spilled out of the rail over the page,
+    where the rail's `z-10` puts them *under* every sticky header and positioned
+    surface a page carries — which is the "profile menu is behind the page"
+    this fixes. The labels that stayed inside the column were clipped to their
+    first letter.
+
+    `sidebarState === 'expanded'` is the honest question: unfold in place only
+    when the rail is actually wide. It is `'collapsed'` whenever the rail is
+    locked, so a phone and a tablet now both get the positioned menu below —
+    portalled to <body> at `z-50`, above every page surface, and a bottom sheet
+    on a coarse pointer (see the `(pointer: coarse)` block in `globals.css`),
+    which is the right shape for a thumb on either device.
+
+    Nothing changes from `lg` up, where the rail expands and this was always
+    `true` for the reason it says.
+  */
+  const usesInlineDisclosure = sidebarState === 'expanded';
 
   /*
    * Signing out is a POST to a server action, not a client call: the session
@@ -111,10 +145,6 @@ export function SidebarProfile({
             sequence.
           */}
           <Collapsible
-            // Remount after dismissing the mobile sheet, so it always reopens
-            // with a folded footer. Switching to the icon rail unmounts this
-            // whole branch and provides the same reset on desktop.
-            key={isMobile ? `mobile-${openMobile ? 'open' : 'closed'}` : 'desktop'}
             /*
               `-m-2` cancels `SidebarFooter`'s padding on all four sides, so the
               row and the panel it opens both run edge to edge across the rail
