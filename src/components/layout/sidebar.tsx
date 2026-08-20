@@ -1,5 +1,6 @@
 'use client';
 
+import { Fragment } from 'react';
 import { useTranslations } from 'next-intl';
 
 import { cn } from '@/lib/utils';
@@ -333,7 +334,7 @@ function AppSidebar({
 
         {/* See `secondary` on `ShellProps`. The staff shell puts the user
             guide here; the portal passes nothing and this renders nothing. */}
-        {secondary}
+        {secondary ? <Fragment key="secondary">{secondary}</Fragment> : null}
       </SidebarContent>
 
       {/*
