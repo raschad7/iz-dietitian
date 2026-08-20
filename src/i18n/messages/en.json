@@ -1464,7 +1464,8 @@
   "errors": {
     "notFound": "Page not found",
     "notFoundDescription": "The link you opened is incorrect or has moved.",
-    "notFoundCta": "Go to the home page",
+    "notFoundCtaDashboard": "Go to the dashboard",
+    "notFoundCtaHome": "Go to the home page",
     "unexpected": "Something went wrong",
     "unexpectedBody": "Nothing you entered was saved anywhere. Try again, or start from the home page.",
     "screen": {

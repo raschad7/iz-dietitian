@@ -335,6 +335,37 @@ Avoid card-inside-card styling. A nested item uses `Card variant="tile"`,
   touch, wheel, trackpad, keyboard, and drag. Overflowing surfaces must provide
   another visible cue that more content exists.
 
+### Viewport height, the keyboard, and the safe area
+
+Three tokens in [`globals.css`](../src/app/globals.css) describe the screen. Use
+them; do not re-derive any of them at a call site.
+
+| Token | What it is |
+|---|---|
+| `--q-safe-t` / `-b` / `-l` / `-r` | `env(safe-area-inset-*)`, with the `0px` fallback already written |
+| `--q-keyboard-inset` | How much of the layout viewport the software keyboard covers; `0px` otherwise |
+| `--q-viewport-block` | `100dvh` less that inset — **the block extent a surface may actually occupy** |
+
+Rules:
+
+- **Never size a surface in `100vh`.** `vh` is frozen at the large viewport, so
+  it overshoots the screen for as long as a phone's address bar is showing.
+- **`100dvh` is only correct where a keyboard cannot appear.** `dvh` shrinks
+  with the address bar but not with the keyboard: `interactiveWidget:
+  'resizes-content'` makes Android shrink the layout viewport, and iOS Safari
+  ignores it. Anything that can contain a field — a dialog, a sheet, a popover
+  with a search box — measures against `--q-viewport-block` instead.
+- A surface pinned to the block-end edge also needs `inset-block-end:
+  var(--q-keyboard-inset)`, or it stays on an edge that is now behind the keys.
+  Never lift it with a `transform`: that makes it the containing block for the
+  popup positioners portaled into it.
+- `viewport-fit=cover` is on, so anything touching an edge owes that edge its
+  inset — as padding, so the surface's own fill still reaches the glass.
+
+`KeyboardInset` in [`keyboard-inset.tsx`](../src/components/ui/keyboard-inset.tsx)
+publishes the keyboard token from the root layout. It is mounted once; nothing
+else should read `window.visualViewport`.
+
 ## RTL and bilingual behavior
 
 Arabic and English use the same component tree. Use logical direction
@@ -513,6 +544,35 @@ temporary display preference uses a segmented control.
 - Use `Dialog` for focused modal tasks and `Sheet` for secondary mobile/edge
   surfaces.
 - A dialog must have an accessible label and a deliberate dismissal policy.
+
+#### The responsive frame — do not write one per dialog
+
+Every `.q-dialog` gets a frame from `globals.css`: a height ceiling bound to
+`--q-viewport-block`, a flex column, a header and footer that stay, and a body
+that scrolls. **Composing `DialogHeader` / `DialogBody` / `DialogFooter` is what
+opts a surface in.** `Sheet` gets the same frame through `SheetBody`.
+
+So a new dialog needs *no* responsive class. In particular, do not add:
+
+- `max-h-[90dvh]`, `h-[…dvh]`, or any other viewport height — the ceiling is
+  already there, already keyboard-aware, and already tighter than a hand-written
+  one on a landscape phone;
+- `open:flex open:flex-col` — the frame supplies both;
+- `overflow-hidden` — the frame clips only when there is a body to scroll, and
+  deliberately does not when there is not.
+
+Two consequences worth knowing:
+
+- These declarations are **unlayered**, so they beat any Tailwind utility on the
+  element. A `max-h-[…]` at a call site does nothing at all. To make one surface
+  shorter than the screen allows, set `[--q-dialog-max-block:32rem]` (or
+  `[--q-sheet-max-block:…]`); the frame takes the smaller of that and what the
+  screen can show, so taste can tighten the ceiling and never remove it.
+- Put the middle of the surface in `DialogBody`. Content outside it is in the
+  header/footer band and will not scroll.
+
+`src/components/ui/dialog-responsive.test.ts` asserts all of this against the
+stylesheet and against the call sites the frame replaced.
 - G. Seam is the standard `Dialog` and `ConfirmDialog` transition: the surface
   reveals from its horizontal midpoint and closes back into it. Planner context
   sheets and application navigation drawers keep their own directional motion.
