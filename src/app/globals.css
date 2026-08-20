@@ -4841,3 +4841,132 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
     animation: none;
   }
 }
+
+/*
+ * ══ The 404 page's entrance, and its ghost ══
+ *
+ * `src/app/[locale]/not-found.tsx`. The screen assembles itself once, from the
+ * outside in: the logo and the two digits arrive first, the ghost drops into
+ * the gap they leave, then the sentence and the button. Nothing here is a
+ * response to the reader — it is the page introducing itself — so the timings
+ * sit above the app's `--duration-*` scale, which measures reactions.
+ *
+ * `--duration-travel` (420ms) is the longest of those and the one this borrows
+ * for the pieces that only fade and rise; the digits and the ghost, which cross
+ * more distance, are given their own longer numbers.
+ *
+ * Every keyframe below animates `translate` and `opacity`, never `transform`.
+ * That is a hard requirement rather than a style: three of these classes land
+ * on elements *inside* an SVG, where `transform-origin` does not resolve to the
+ * viewBox the way it does on the root element. Measured in this very frame, a
+ * CSS flip on an inner `<text>` pivoted on x = 0 rather than its own centre and
+ * threw the glyph a full frame-width sideways. The `translate` property takes
+ * no origin, so there is nothing left to resolve.
+ *
+ * `backwards` on every entrance, never `both` — the same rule the route stage
+ * and the dialogs above follow, and for the same reason: a forwards fill leaves
+ * the animated properties applied for as long as the element is mounted, which
+ * makes it the containing block for any `position: fixed` descendant it has.
+ */
+.q-404-enter {
+  animation: q-404-enter var(--duration-travel) var(--ease-sweep) backwards;
+}
+
+/*
+ * The stagger, as delays rather than as a timeline. Three steps is few enough
+ * that naming them costs less than a keyframe per position, and a call site
+ * reads as "this one is second" instead of as a number.
+ */
+.q-404-enter-2 {
+  animation-delay: 140ms;
+}
+
+.q-404-enter-3 {
+  animation-delay: 220ms;
+}
+
+@keyframes q-404-enter {
+  from {
+    opacity: 0;
+    translate: 0 1.25rem;
+  }
+}
+
+/*
+ * The digits swing in from the outside edges of the frame.
+ *
+ * `left`/`right` in these names are physical, and here that is the correct
+ * pair. The row is a symmetric `4 … 4`: what each digit is doing is entering
+ * from the near edge of the picture, which is the same edge in both scripts.
+ * There is no reading order in it to mirror.
+ */
+.q-404-digit-out-left {
+  animation: q-404-digit-out-left 640ms var(--ease-sweep) backwards;
+}
+
+.q-404-digit-out-right {
+  animation: q-404-digit-out-right 640ms var(--ease-sweep) backwards;
+}
+
+@keyframes q-404-digit-out-left {
+  from {
+    opacity: 0;
+    translate: -40px 14px;
+  }
+}
+
+@keyframes q-404-digit-out-right {
+  from {
+    opacity: 0;
+    translate: 40px 14px;
+  }
+}
+
+/*
+ * The ghost: one entrance, then a drift that never stops.
+ *
+ * Two animations on one property, and the order in the list is what makes it
+ * work — the later one wins wherever both apply. The drift is delayed by
+ * exactly the entrance's own duration and carries no backwards fill, so it is
+ * inert until the moment the entrance finishes and takes over on the frame
+ * after. The seam is invisible because both end and begin at `translate: 0 -5px`.
+ */
+.q-404-ghost {
+  animation:
+    q-404-ghost-in 520ms var(--ease-sweep) backwards,
+    q-404-ghost-drift 2400ms ease-in-out 520ms infinite alternate;
+}
+
+@keyframes q-404-ghost-in {
+  from {
+    opacity: 0;
+    translate: 0 16px;
+  }
+  to {
+    translate: 0 -5px;
+  }
+}
+
+@keyframes q-404-ghost-drift {
+  from {
+    translate: 0 -5px;
+  }
+  to {
+    translate: 0 5px;
+  }
+}
+
+/*
+ * Reduced motion keeps the whole picture and drops all of it moving. The drift
+ * is the clearest case in the file — an animation with no end state at all —
+ * and the entrances are a screen assembling itself in front of someone who
+ * asked for that not to happen.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .q-404-enter,
+  .q-404-digit-out-left,
+  .q-404-digit-out-right,
+  .q-404-ghost {
+    animation: none;
+  }
+}
