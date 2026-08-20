@@ -84,6 +84,15 @@ type CreateGesture = {
   /** `'mouse' | 'pen' | 'touch'`, as reported by the originating event. */
   pointerType: string;
   /**
+   * Whether `pointercancel` has already ended this gesture's pointer stream.
+   *
+   * Once it fires there are no more `pointermove`s and no `pointerup` for this
+   * pointer — the gesture has to be carried, and finished, on the touch events
+   * instead. See `handleCancel` for why a cancel no longer means the gesture is
+   * over.
+   */
+  pointerCancelled: boolean;
+  /**
    * The last coordinates this gesture actually saw, for the release to fall
    * back on.
    *
@@ -250,6 +259,7 @@ export function useCalendarGestures({
         lastClientX: event.clientX,
         lastClientY: event.clientY,
         pointerType: event.pointerType,
+        pointerCancelled: false,
       };
 
       /*
@@ -272,7 +282,22 @@ export function useCalendarGestures({
         starts on the grid passes through untouched.
       */
       const handleTouchMove = (touchEvent: TouchEvent) => {
-        if (createRef.current?.armed && touchEvent.cancelable) touchEvent.preventDefault();
+        const gesture = createRef.current;
+        if (!gesture) return;
+
+        if (gesture.armed && touchEvent.cancelable) touchEvent.preventDefault();
+
+        /*
+          After a `pointercancel` this is the only movement this gesture will
+          ever see again — the pointer stream is finished for good — so the
+          drift test and the range painting have to run from here instead. While
+          the pointer stream is alive `handleMove` is doing it and this would
+          only be duplicating the work.
+        */
+        if (gesture.pointerCancelled) {
+          const touch = touchEvent.touches[0];
+          if (touch) advance(touch.clientX, touch.clientY);
+        }
       };
       window.addEventListener('touchmove', handleTouchMove, { passive: false });
 
@@ -301,14 +326,20 @@ export function useCalendarGestures({
           }, HOLD_TO_PAINT_MS)
         : null;
 
-      const handleMove = (moveEvent: PointerEvent) => {
+      /**
+       * Advance the gesture to a point, whichever stream that point came from.
+       *
+       * A `function` declaration rather than a `const`, so it is hoisted above
+       * `handleTouchMove`, which is defined earlier and calls it.
+       */
+      function advance(clientX: number, clientY: number) {
         const gesture = createRef.current;
         if (!gesture) return;
 
         // Recorded on every move, armed or not, so the release always has a real
         // point to fall back on. See `lastClientX` on the gesture type.
-        gesture.lastClientX = moveEvent.clientX;
-        gesture.lastClientY = moveEvent.clientY;
+        gesture.lastClientX = clientX;
+        gesture.lastClientY = clientY;
 
         /*
           Before a finger has armed, travel means this was a scroll all along:
@@ -317,10 +348,7 @@ export function useCalendarGestures({
           the vertical-only test below would not see it.
         */
         if (!gesture.armed) {
-          const drift = Math.hypot(
-            moveEvent.clientX - gesture.originClientX,
-            moveEvent.clientY - gesture.originClientY,
-          );
+          const drift = Math.hypot(clientX - gesture.originClientX, clientY - gesture.originClientY);
           if (drift > HOLD_TOLERANCE_PX) {
             if (holdTimer !== null) window.clearTimeout(holdTimer);
             teardown();
@@ -329,10 +357,10 @@ export function useCalendarGestures({
         }
 
         // Still a click until the pointer has actually travelled.
-        if (!gesture.moved && Math.abs(moveEvent.clientY - gesture.originClientY) < DRAG_THRESHOLD_PX) return;
+        if (!gesture.moved && Math.abs(clientY - gesture.originClientY) < DRAG_THRESHOLD_PX) return;
         gesture.moved = true;
 
-        const current = minuteAt(moveEvent.clientY, gesture.gridTop, snapToSlot);
+        const current = minuteAt(clientY, gesture.gridTop, snapToSlot);
         const startMinute = Math.min(gesture.anchorMinute, current);
         // At least one slot, so a drag that barely moves is still bookable.
         const endMinute = Math.max(gesture.anchorMinute + SLOT_MINUTES, current);
@@ -345,6 +373,10 @@ export function useCalendarGestures({
           // optionality is for.
           valid: isValid({ ...range, practitionerId: latest.current.practitionerId }),
         });
+      }
+
+      const handleMove = (moveEvent: PointerEvent) => {
+        advance(moveEvent.clientX, moveEvent.clientY);
       };
 
       /**
@@ -360,6 +392,8 @@ export function useCalendarGestures({
         window.removeEventListener('pointerup', handleUp);
         window.removeEventListener('pointercancel', handleCancel);
         window.removeEventListener('touchmove', handleTouchMove);
+        window.removeEventListener('touchend', handleTouchEnd);
+        window.removeEventListener('touchcancel', handleTouchCancel);
         if (holdTimer !== null) window.clearTimeout(holdTimer);
 
         createRef.current = null;
@@ -381,17 +415,58 @@ export function useCalendarGestures({
        * writes nothing. Nothing changes for a mouse, where `pointercancel`
        * essentially never fires.
        *
-       * It stays a teardown now that a finger can arm the gesture, and that is
-       * deliberate rather than an oversight: once armed, `handleTouchMove` is
-       * holding the gesture with `preventDefault()`, so the browser has no
-       * reason to claim it and a `pointercancel` that arrives anyway — a second
+       * ⚠ **But it must not tear down an unarmed *finger*, and that is what
+       * made hold-to-book impossible on the hardware.**
+       *
+       * `teardown` clears the hold timer. On iOS the compositor fires
+       * `pointercancel` speculatively — the moment it starts considering the
+       * touch for a scroller, which on a pannable grid is almost immediately and
+       * well inside the 450ms hold. The finger has not moved and nothing has
+       * scrolled, but the timer is already gone, so the hold could never once
+       * reach the line that arms it. Blink's device emulation never fires this,
+       * which is the whole of why the gesture worked in DevTools and not on an
+       * iPad.
+       *
+       * So an unarmed touch keeps its hold. Nothing is lost by waiting: if this
+       * really was a scroll the finger travels, and the drift test in `advance`
+       * ends the gesture then, exactly as it did before. If the finger never
+       * travels, nothing scrolls — a still finger cannot pan anything — and the
+       * hold is precisely what the reader meant by holding still.
+       *
+       * What the cancel does cost is the pointer stream: there will be no
+       * further `pointermove` and no `pointerup` for this pointer, ever. From
+       * here the gesture runs on `touchmove` and finishes on `touchend`, which
+       * is what `pointerCancelled` switches on.
+       *
+       * Once *armed*, a cancel is still a teardown, unchanged: `handleTouchMove`
+       * is holding the gesture with `preventDefault()` by then, so the browser
+       * has no reason to claim it and a cancel that arrives anyway — a second
        * finger, a system gesture, a call coming in — really is an interruption.
        */
       const handleCancel = () => {
-        teardown();
+        const gesture = createRef.current;
+
+        if (!gesture || gesture.armed || gesture.pointerType !== 'touch') {
+          teardown();
+          return;
+        }
+
+        gesture.pointerCancelled = true;
       };
 
-      const handleUp = (upEvent: PointerEvent) => {
+      /**
+       * Finish the gesture and ask for the booking.
+       *
+       * Takes the release point rather than an event, because there are now two
+       * ways a create gesture can end: `pointerup` in the ordinary case, and
+       * `touchend` when `pointercancel` has already killed the pointer stream
+       * (see `handleCancel`). Both land here so the two paths cannot drift.
+       *
+       * Safe to reach twice. An uncancelled touch fires *both* `pointerup` and
+       * `touchend`; whichever arrives first tears down and clears `createRef`,
+       * and the second finds nothing and returns below.
+       */
+      function completeGesture(release: { x: number; y: number } | null) {
         const gesture = createRef.current;
 
         /*
@@ -404,10 +479,28 @@ export function useCalendarGestures({
 
         const { hours: currentHours } = latest.current;
 
+        /*
+          Where the gesture actually ended.
+
+          The release event's own coordinates where they are real, and the last
+          point the gesture saw where they are not — see `lastClientX` on the
+          gesture type for the WebKit behaviour this guards. `0, 0` is the
+          sentinel because it is both the value a mis-reported touch release
+          carries and a point no real release inside the grid can produce: the
+          grid never reaches the very corner of the viewport, since the shell's
+          rail and the calendar's own toolbar are always above and beside it.
+
+          `null` — a `touchend` that carried no `changedTouches` — falls back the
+          same way.
+        */
+        const usable = release !== null && !(release.x === 0 && release.y === 0);
+        const releaseX = usable ? release.x : gesture.lastClientX;
+        const releaseY = usable ? release.y : gesture.lastClientY;
+
         let request: BookingRequest;
 
         if (gesture.moved) {
-          const current = minuteAt(upEvent.clientY, gesture.gridTop, snapToSlot);
+          const current = minuteAt(releaseY, gesture.gridTop, snapToSlot);
           const startMinute = Math.min(gesture.anchorMinute, current);
           const endMinute = Math.max(gesture.anchorMinute + SLOT_MINUTES, current);
           request = { date: gesture.date, startMinute, durationMinutes: endMinute - startMinute };
@@ -422,30 +515,43 @@ export function useCalendarGestures({
           };
         }
 
-        /*
-          Where to open the picker.
-
-          `pointerup`'s own coordinates where they are real, and the last point
-          the gesture actually saw where they are not — see `lastClientX` on the
-          gesture type for the WebKit behaviour this guards. `0, 0` is the
-          sentinel because it is both the value a mis-reported touch release
-          carries and a point no real release inside the grid can produce: the
-          grid never reaches the very corner of the viewport, since the shell's
-          rail and the calendar's own toolbar are always above and beside it.
-        */
-        const releasedAtOrigin = upEvent.clientX === 0 && upEvent.clientY === 0;
-        const pointer = releasedAtOrigin
-          ? { x: gesture.lastClientX, y: gesture.lastClientY }
-          : { x: upEvent.clientX, y: upEvent.clientY };
-
         // Nothing is written here. The picker opens, and only choosing a client
         // creates anything — so an abandoned gesture leaves no trace.
-        latest.current.onRequestBooking(request, pointer);
+        latest.current.onRequestBooking(request, { x: releaseX, y: releaseY });
+      }
+
+      const handleUp = (upEvent: PointerEvent) => {
+        completeGesture({ x: upEvent.clientX, y: upEvent.clientY });
+      };
+
+      /**
+       * The touch stream's own release, for the gesture whose pointer stream
+       * `pointercancel` already ended.
+       *
+       * Registered for every touch gesture rather than only the cancelled ones,
+       * because by the time a cancel arrives it is too late to start listening —
+       * and it costs nothing: on an uncancelled touch `pointerup` gets there
+       * first, tears down, and this finds no gesture to finish.
+       */
+      const handleTouchEnd = (touchEvent: TouchEvent) => {
+        const touch = touchEvent.changedTouches[0];
+        completeGesture(touch ? { x: touch.clientX, y: touch.clientY } : null);
+      };
+
+      /**
+       * A touch the system took away — a second finger, a call, the app going
+       * to the background. Unlike `pointercancel` this one is genuine, so it
+       * abandons the gesture and writes nothing.
+       */
+      const handleTouchCancel = () => {
+        teardown();
       };
 
       window.addEventListener('pointermove', handleMove);
       window.addEventListener('pointerup', handleUp);
       window.addEventListener('pointercancel', handleCancel);
+      window.addEventListener('touchend', handleTouchEnd);
+      window.addEventListener('touchcancel', handleTouchCancel);
     },
     [isValid, minuteAt],
   );

@@ -8,7 +8,7 @@ import { Icon, type IconName } from '@/components/ui/icon';
 import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from '@/components/ui/popover';
 import { Segmented } from '@/components/ui/segmented';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { useIsPhone } from '@/hooks/use-mobile';
+import { useIsSheetSurface } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 
 /**
@@ -102,7 +102,7 @@ function NotificationInboxPopover<T extends string>({
   open,
   onOpenChange,
   align = 'end',
-  mobileSheet = false,
+  sheetOnTouch = true,
   className,
   triggerClassName,
   badgeClassName,
@@ -138,20 +138,25 @@ function NotificationInboxPopover<T extends string>({
   onOpenChange?: (open: boolean) => void;
   align?: 'start' | 'center' | 'end';
   /**
-   * On a phone, open the same panel as a sheet off the bottom edge instead of a
+   * On a touch surface, open the same panel as a real bottom sheet instead of a
    * popover hanging from the bell.
    *
-   * Opt-in rather than the default, because the two callers are not standing in
-   * the same place. The practitioner bell sits in the inline-end corner of a
-   * page header: on a phone the panel it drops is a 90vw box pinned to the top
-   * corner of the screen, as far from the thumb as the layout allows, and it
-   * opens with nothing dimmed behind it. Off the bottom edge it arrives where
-   * the hand already is, takes the screen's whole width, and brings a scrim
-   * that says the list is the only thing to read. The portal's bell is on a
-   * screen that is a phone at every width and keeps the popover it was drawn
-   * with.
+   * **Defaults to `true`, and used to be opt-in.** The argument for opting in
+   * was that the portal's bell sits on a screen that is phone-shaped at every
+   * width and could keep its popover — but that was only ever true of the
+   * *markup*. `globals.css` has a `(pointer: coarse)` block that rewrites every
+   * popover positioner into sheet shape with `!important`, so on any touch
+   * device the portal's "popover" was already being drawn as a sheet; the
+   * component simply did not know it. Two mechanisms described one surface, and
+   * only one of them could be asked about it in JavaScript.
+   *
+   * Opting in by default collapses that: on a touch surface both bells now
+   * render the same `Sheet` — a real dialog, with its own focus trap, its own
+   * scrim, its own close button and an entrance that belongs to it — and the
+   * stylesheet override never applies to either. Pass `false` only for a
+   * caller that genuinely wants an anchored popup under a finger.
    */
-  mobileSheet?: boolean;
+  sheetOnTouch?: boolean;
   className?: string;
   /**
    * Appended to the trigger's own classes, for a caller whose bell already has
@@ -183,18 +188,23 @@ function NotificationInboxPopover<T extends string>({
   const isEmpty = empty !== undefined && React.Children.count(children) === 0;
 
   /*
-    Which of the two surfaces this is, decided at the same 40rem line the app's
-    dialogs already turn into bottom sheets at — so the bell and the "see all"
-    dialog it leads to are never one a sheet and the other a centred card.
+    Which of the two surfaces this is.
 
-    `useIsPhone` answers `false` on the server and on the hydrating render, so
-    the markup that ships is always the popover's and the swap happens on the
-    first client pass — with the panel closed either way, so nothing the reader
-    is looking at moves. It is read unconditionally, before `mobileSheet` is
-    consulted, because a hook behind a `&&` is a hook that stops being called.
+    `useIsSheetSurface` asks about width *and* pointer, which is what makes this
+    correct on a tablet: the old `useIsPhone` asked only "narrower than 40rem?",
+    so an iPad answered `false`, took the popover branch, and then had that
+    popover redrawn as a sheet by the `(pointer: coarse)` block in
+    `globals.css`. The component and the stylesheet disagreed about what was on
+    screen. They ask the same question now — see the hook for the whole of it.
+
+    It answers `false` on the server and on the hydrating render, so the markup
+    that ships is always the popover's and the swap happens on the first client
+    pass — with the panel closed either way, so nothing the reader is looking at
+    moves. Read unconditionally, before `sheetOnTouch` is consulted, because a
+    hook behind a `&&` is a hook that stops being called.
   */
-  const isPhone = useIsPhone();
-  const asSheet = mobileSheet && isPhone;
+  const isSheetSurface = useIsSheetSurface();
+  const asSheet = sheetOnTouch && isSheetSurface;
 
   /*
     The trigger's glyph and its count, drawn once and handed to whichever
@@ -412,7 +422,28 @@ function NotificationInboxPopover<T extends string>({
         */}
         <SheetContent
           side="bottom"
-          className={cn(MEASURES, 'max-h-[85dvh] gap-0 overflow-hidden rounded-t-lg p-0', className)}
+          className={cn(
+            MEASURES,
+            'max-h-[85dvh] gap-0 overflow-hidden rounded-t-lg p-0',
+            /*
+              A measure from `sm` up, rather than the full width of the glass.
+
+              Below `sm` this is a phone and full-bleed is the only width there
+              is. Above it this is a tablet, and a list of four notification rows
+              stretched across 1194px of iPad is a band of empty panel with the
+              names stranded at one end — the same thing the `(pointer: coarse)`
+              block in `globals.css` caps its popup sheets at, and at the same
+              number. 28rem is `Dialog`'s own centred-card measure, so every
+              surface that interrupts the page on a tablet is one width.
+
+              `mx-auto` against `SheetContent`'s `inset-x-0`: a fixed box with
+              both inline insets pinned and a width narrower than the gap
+              centres on auto margins, which stays correct in RTL where a
+              translate would not.
+            */
+            'sm:mx-auto sm:max-w-[28rem]',
+            className,
+          )}
         >
           {header(SheetTitle, 'pe-12')}
 

@@ -14,6 +14,7 @@ import type { ReactNode } from 'react';
 import { DirectionProvider } from '@/components/ui/direction';
 import { Toaster } from '@/components/ui/toast';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { InstallPromptCapture } from '@/features/pwa/install-prompt-capture';
 import { resolveLocale } from '@/i18n/params';
 import { getLocaleDirection, routing } from '@/i18n/routing';
 
@@ -305,6 +306,15 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
         there is nothing to trade off.
       */}
       <body suppressHydrationWarning className="min-h-dvh">
+        {/*
+          Renders nothing. It is mounted from the root layout so that its module
+          — which attaches the `beforeinstallprompt` listener at chunk-evaluation
+          time, before hydration — is in the initial bundle for every page in
+          either app. It used to be an inline `<script>` in an explicit `<head>`;
+          that `<head>` existed only to hold it, and both are gone. See the
+          component for why the tag could not stay.
+        */}
+        <InstallPromptCapture />
         {/*
           No floating locale switcher here. The switcher lives in the app bar
           (`Header`) and on the login screens, which is the only place it should

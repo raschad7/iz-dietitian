@@ -25,24 +25,26 @@ import { type Locale } from '@/i18n/routing';
  * Deleting the `Segmented` and pinning `role` to `'staff'` is the whole removal;
  * nothing else here depends on it.
  *
- * ## One card, two gestures
+ * ## Two columns, one gesture
  *
- * The title and the role switch sit *above* the card and stay put. Below them
- * is a single `AuthSplitCard` that changes shape rather than being swapped out,
- * and what it does depends on what changed:
+ * The screen is a single `AuthSplitCard`, built to `v5.html`: the form in a
+ * column at the inline-start and the illustration in a rounded panel at the
+ * inline-end. The title, the tagline and the role switch all ride at the head of
+ * the *form* column — the other side is a picture and has nowhere to put a
+ * control. The layout mirrors with the locale, so the picture is on the right in
+ * English and on the left in Arabic.
  *
- * - **Signing in ↔ signing up** swaps the card's two halves, at
- *   `--duration-arc`. It is the same person filling in a different form — a
- *   control changing state, and it should feel like one.
- * - **Clinic team ↔ client** shrinks the card, at the slower
- *   `--duration-travel`: the olive half collapses behind the form and the card
- *   narrows around it until the form is centred on the page. A different door
- *   rather than a different form, and the forms behind it post to different
- *   endpoints — so it gets its own gesture, and a longer one, because the whole
- *   surface is resizing rather than sliding inside itself.
+ * Changing role or mode does one thing, and the columns do not move for it: the
+ * fields fade out, are replaced while they are invisible, and fade back up in
+ * place. That is `view` versus `shown` below.
  *
- * Either way the fields do the same thing: fade out, hold while the card moves,
- * fade back in where they belong. That is `view` versus `shown` below.
+ * The card used to animate as well — the two halves sliding past each other
+ * between sign-in and sign-up, and the whole card shrinking around the form on
+ * the client view. Both needed a card with room around it to move in, and the
+ * panels are the page now: there is nothing for them to slide within and no
+ * width to give up. The crossfade is what survived, and it is the part that was
+ * doing the work, because it is what stops a form being swapped out from under a
+ * pointer that is already in a field.
  */
 
 type Role = 'staff' | 'client';
@@ -57,14 +59,19 @@ const ROLES = [
 ] as const satisfies readonly { value: Role; labelKey: string }[];
 
 /**
- * How long each gesture takes, in milliseconds. **These mirror
- * `--duration-arc` and `--duration-travel` in `globals.css`** — the CSS moves
- * the card and these drive the swap of what is inside it, and the two have to
- * agree or the new form appears while the old one is still in flight. Change
- * each pair together.
+ * How long to hold the faded-out form before swapping what is inside it, in
+ * milliseconds. **This mirrors `--duration-reverse` in `globals.css`**, which is
+ * the speed `AuthSplitCard`'s fade runs out at — the CSS takes the fields down
+ * and this decides when they are safe to replace, and the two have to agree or
+ * the new form appears while the old one is still on screen. Change them
+ * together.
+ *
+ * It used to be a pair, 220ms and 420ms, because the card had two gestures of
+ * different sizes to wait out: the halves sliding past each other, and the card
+ * resizing around the form. The panels have neither. All that is left is
+ * the crossfade, so there is one number and it is the fade's own.
  */
-const PANEL_SWAP_MS = 220;
-const CARD_RESIZE_MS = 420;
+const CROSSFADE_MS = 140;
 
 /**
  * The URL each face of the card is addressable at.
@@ -159,20 +166,18 @@ export function AuthScreen({
     window.history.replaceState(null, '', `/${locale}/${pathForView(target)}${window.location.search}`);
 
     /*
-     * Two ways there is no movement to wait out, and holding an empty card
-     * through either of them is just dead time: `prefers-reduced-motion`
-     * collapses the transition globally, and below `md` the card has no split
-     * to swap and no width to lose — so the change is only ever a crossfade.
+     * `prefers-reduced-motion` collapses the fade globally, and holding a blank
+     * form panel through a transition that is not running is just dead time.
+     *
+     * There is no width test here any more. There used to be one — below the
+     * card's breakpoint it had no split to swap and no width to lose — but the
+     * panels crossfade identically at every width, so the only question left is
+     * whether the fade runs at all.
      */
-    const instant =
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
-      !window.matchMedia('(width >= 48rem)').matches;
-
-    /* A role change resizes the whole card; anything else only swaps its halves. */
-    const settle = target.role === current.role ? PANEL_SWAP_MS : CARD_RESIZE_MS;
+    const instant = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     if (swapTimer.current) clearTimeout(swapTimer.current);
-    swapTimer.current = setTimeout(() => setShown(target), instant ? 0 : settle);
+    swapTimer.current = setTimeout(() => setShown(target), instant ? 0 : CROSSFADE_MS);
   }, [locale]);
 
   /*
@@ -183,75 +188,136 @@ export function AuthScreen({
   const title =
     view.role === 'client' ? t('clientTitle') : view.mode === 'signUp' ? t('signUpHeading') : t('title');
 
-  /* Which gesture is in flight: a role change resizes the card, anything else
-     only swaps its halves. */
-  const pace = view.role === shown.role ? 'panel' : 'card';
-
   return (
-    <main className="q-route-stage flex min-h-dvh w-full flex-col items-center justify-center gap-6 overflow-x-hidden bg-auth-canvas px-4 py-12 sm:px-6">
-      <header className="flex w-full max-w-6xl flex-col items-center gap-5 text-center">
-        {/*
-          Keyed on the title so React remounts it and the fade replays. The
-          heading is one line of a few words either way, so nothing below it
-          moves when it changes.
-        */}
-        <h1 key={title} className="font-heading text-display-sm motion-safe:animate-in motion-safe:fade-in">
-          {title}
-        </h1>
+    /*
+     * A bare wrapper, and deliberately nothing more. No background, no padding,
+     * no `max-w-*` and nothing centred out here: `AuthSplitCard` owns the page
+     * colour, the column padding and the form's width cap, and a second set of
+     * any of them at this level would show up as a margin nobody asked for.
+     *
+     * `min-h-dvh` and no `overflow-hidden`, deliberately — see the note at the
+     * top of `AuthSplitCard`. Capping this at `h-dvh` is what once hid the
+     * passkey and Google buttons below the fold of a scroll container nobody
+     * could see.
+     *
+     * `q-route-stage` stays absent from this route. Its enter animation starts
+     * from `clip-path: inset(0 1rem 0 0 round var(--qiwam-radius-lg))`, which
+     * clips against the element's own box — and this element's box is the full
+     * viewport, not the card, so the strip it opens from is bare document
+     * background down the edge of the screen rather than a surface sliding in.
+     * Staging the *card* would be the way to give this screen an entrance; the
+     * wrapper is the wrong element for it.
+     */
+    <main className="min-h-dvh w-full">
+      <AuthSplitCard
+        contentVisible={view.role === shown.role && view.mode === shown.mode}
+        /*
+         * The role switch, which now lives at the top of the form panel — the
+         * left panel is a photograph and has nowhere to put a control.
+         */
+        header={
+          <>
+            {/*
+              v5.html's `.title-group` — heading and one line under it, centred,
+              24px clear of the control below.
 
-        {/*
-          A radiogroup, not a tablist: this picks which form to fill in, not
-          which view of the same content to show.
-        */}
-        <Segmented
-          role="radiogroup"
-          label={t('roleQuestion')}
-          value={view.role}
-          onChange={(role) => goTo({ role })}
-          className="grid grid-cols-2"
-          activeClassName="bg-accent-green text-on-accent"
-          options={ROLES.map((option) => ({
-            value: option.value,
-            label: t(option.labelKey),
-          }))}
-        />
-      </header>
+              The heading is visible; it spent a revision `sr-only` because the
+              full-bleed layout had no room above the fields for it. **The words
+              are the catalogue's own** — `title` / `signUpHeading` /
+              `clientTitle`, unchanged. v5.html says "Welcome Back" over its own
+              subtitle, but copy is localisation, not styling, and replacing
+              approved Arabic with a mockup's placeholder is not a visual change.
 
-      <div className="w-full max-w-6xl">
-        <AuthSplitCard
-          showBrandPanel={view.role === 'staff'}
-          formSide={view.mode === 'signUp' ? 'start' : 'end'}
-          tagline={t('brandTagline')}
-          pace={pace}
-          contentVisible={view.role === shown.role && view.mode === shown.mode}
-          /*
-           * Keyed off `shown` rather than `view`, so it fades out with the
-           * fields it belongs beside instead of vanishing the instant something
-           * is clicked. The client view has none: those credentials come from a
-           * dietitian, so there is nothing to sign up for.
-           */
-          switcher={
-            shown.role === 'client'
-              ? undefined
-              : shown.mode === 'signUp'
-                ? { prompt: t('haveAccount'), label: t('signInLink'), onClick: () => goTo({ mode: 'signIn' }) }
-                : { prompt: t('noAccount'), label: t('signUpLink'), onClick: () => goTo({ mode: 'signUp' }) }
-          }
-        >
-          {shown.role === 'client' ? (
-            <ClientLoginForm locale={locale} />
-          ) : shown.mode === 'signUp' ? (
-            <StaffSignUpForm locale={locale} showGoogle={showGoogle} />
-          ) : (
-            <StaffLoginForm
-              locale={locale}
-              showGoogle={showGoogle}
-              redirectTo={redirectTo}
-              oauthError={oauthError}
+              `font-heading` picks up Readex Pro in English and Almarai in
+              Arabic. `font-bold` is v5.html's 800 as near as the loaded weights
+              go. No `tracking-*` even though v5.html asks for -0.02em:
+              docs/design-system.md forbids letter spacing on Arabic, and Arabic
+              is this app's default locale.
+            */}
+            <div className="mb-5 text-center short:mb-3">
+              <h1 className="font-heading text-display-sm font-bold text-foreground short:text-heading-lg">{title}</h1>
+
+              {/*
+                `brandTagline` — a string that has been in the catalogue since an
+                older brand panel carried it, and that a later revision orphaned
+                along with the panel. One line under the heading is what it was
+                written for, and it says the same true thing on all three faces
+                of the screen, so it does not have to change when the card turns
+                over.
+              */}
+              {/*
+                `shorter:hidden` — the one piece of copy on this screen that is
+                allowed to go. It is brand atmosphere, not instruction: nothing
+                about signing in depends on reading it, and on a 1366×768 laptop
+                its 30px is the difference between the sign-up form fitting and
+                the footer sitting under the fold. Every other line here names a
+                field, a control or an error, and none of those may be hidden to
+                win space.
+              */}
+              <p className="mt-2 text-body-sm text-muted-foreground shorter:hidden">
+                {t('brandTagline')}
+              </p>
+            </div>
+
+            {/*
+              A radiogroup, not a tablist: this picks which form to fill in, not
+              which view of the same content to show.
+
+              `shape="pill"` is already v5.html's `.role-toggle` almost to the
+              pixel — a neutral well, two equal halves, and the selected one
+              lifted out of it as a white card. The two differences are both the
+              design system winning on purpose: the well is 14px/10px where
+              v5.html draws 12px/8px, and the halves are 44px tall where v5.html
+              is ~39px, which is under this project's touch floor.
+
+              **No `activeClassName`.** It used to pass `bg-accent-lime
+              text-on-accent`, which spent the system's scarcest colour on a
+              question nobody came to this page to answer — and v5.html tints
+              nothing here either. Dropping the override hands the control back to
+              `Segmented`'s own pill treatment, where elevation carries the
+              selection instead of hue.
+            */}
+            <Segmented
+              role="radiogroup"
+              shape="pill"
+              label={t('roleQuestion')}
+              value={view.role}
+              onChange={(role) => goTo({ role })}
+              className="mb-5 short:mb-3"
+              options={ROLES.map((option) => ({
+                value: option.value,
+                label: t(option.labelKey),
+              }))}
             />
-          )}
-        </AuthSplitCard>
-      </div>
+          </>
+        }
+        /*
+         * Keyed off `shown` rather than `view`, so it fades out with the fields
+         * it belongs beside instead of vanishing the instant something is
+         * clicked. The client view has none: those credentials come from a
+         * dietitian, so there is nothing to sign up for.
+         */
+        switcher={
+          shown.role === 'client'
+            ? undefined
+            : shown.mode === 'signUp'
+              ? { prompt: t('haveAccount'), label: t('signInLink'), onClick: () => goTo({ mode: 'signIn' }) }
+              : { prompt: t('noAccount'), label: t('signUpLink'), onClick: () => goTo({ mode: 'signUp' }) }
+        }
+      >
+        {shown.role === 'client' ? (
+          <ClientLoginForm locale={locale} />
+        ) : shown.mode === 'signUp' ? (
+          <StaffSignUpForm locale={locale} showGoogle={showGoogle} />
+        ) : (
+          <StaffLoginForm
+            locale={locale}
+            showGoogle={showGoogle}
+            redirectTo={redirectTo}
+            oauthError={oauthError}
+          />
+        )}
+      </AuthSplitCard>
     </main>
   );
 }

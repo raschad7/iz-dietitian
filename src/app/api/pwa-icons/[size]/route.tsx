@@ -1,25 +1,45 @@
 import { ImageResponse } from 'next/og';
 import { NextResponse } from 'next/server';
 
-import { BRAND_LEAF, BRAND_ON_COLOR, renderBrandMarkSvg, svgDataUri } from '@/features/brand/logo';
+import { APP_BACKGROUND_COLOR } from '@/features/app-pwa/brand';
+import {
+  BRAND_LEAF,
+  BRAND_ON_COLOR,
+  BRAND_SEED,
+  renderBrandMarkSvg,
+  svgDataUri,
+} from '@/features/brand/logo';
 
 /**
  * The PNG app icons: the client portal's manifest icons and the apple-touch
- * icon, plus the staff app's home-screen icon.
+ * icon, plus the staff app's own home-screen set.
  *
- * These draw the real brand mark — the leaf, reversed out of a brand-green
- * tile — from the shared geometry in `@/features/brand/logo`. They used to
- * draw lucide's `salad` glyph as a placeholder, from before the repo had a
- * brand asset at all.
+ * These draw the real brand mark — the leaf — from the shared geometry in
+ * `@/features/brand/logo`. They used to draw lucide's `salad` and
+ * `clipboard-list` glyphs as placeholders, from before the repo had a brand
+ * asset at all.
  *
- * **Reversed on a green tile, not the mark on white.** A home-screen icon is
- * rendered edge to edge against whatever wallpaper the phone has, so it needs
- * to supply its own ground; the leaf on transparent would sit on an arbitrary
- * photo. The seeds are filled with the tile's own green rather than the brand's
- * dark green, so they read as holes punched through the leaf — this is the
- * reversed lockup from the brand sheet, not an inversion invented here. The
- * browser-tab favicon is the opposite case and is `src/app/icon.svg`: a tab
- * strip is a flat surface in both themes, so there the mark goes on transparent.
+ * **Two apps, two tiles.** Two installable apps on one origin must not share an
+ * icon: a dietitian who installs both ends up with two tiles on the same home
+ * screen, and if they carry the same artwork the only way to tell the clinic's
+ * workspace from a client's portal is to open one. Same geometry, same
+ * generator, inverted ground — see `TILES` below.
+ *
+ * **The portal is reversed on a green tile, not the mark on white.** A
+ * home-screen icon is rendered edge to edge against whatever wallpaper the
+ * phone has, so it needs to supply its own ground; the leaf on transparent
+ * would sit on an arbitrary photo. The seeds are filled with the tile's own
+ * green rather than the brand's dark green, so they read as holes punched
+ * through the leaf — this is the reversed lockup from the brand sheet, not an
+ * inversion invented here. The staff app takes the other half of that sheet:
+ * the mark in its own colours on the app's white ground, which is the same
+ * `background_color` its manifest paints the splash screen with. That reads as
+ * one family at a glance and still tells the two tiles apart at 48px behind a
+ * rounded mask — which a colour-only difference would not.
+ *
+ * The browser-tab favicon is a third case again and is `src/app/icon.svg`: a
+ * tab strip is a flat surface in both themes, so there the mark goes on
+ * transparent.
  *
  * **PNG, and why the route exists at all.** `next/og`'s `ImageResponse` ships
  * with Next.js, so this needs no image dependency, and a manifest wants raster
@@ -50,6 +70,11 @@ const SIZES = {
   '512': { px: 512 },
   'maskable-512': { px: 512 },
   'apple-180': { px: 180 },
+  /* The staff app's own set — same sizes, different tile. See `TILES`. */
+  'staff-192': { px: 192 },
+  'staff-512': { px: 512 },
+  'staff-maskable-512': { px: 512 },
+  'staff-apple-180': { px: 180 },
 } as const;
 
 type SizeKey = keyof typeof SIZES;
@@ -59,15 +84,29 @@ function isSizeKey(value: string): value is SizeKey {
 }
 
 /**
+ * The two treatments of the one mark.
+ *
+ * `portal` is the reversed lockup: a white leaf on brand green, seeds punched
+ * back to the ground. `staff` is the mark on the app's own white ground, in its
+ * own colours. Neither invents a colour — both come from `@/features/brand/logo`
+ * and, for the staff ground, the staff manifest's `background_color`.
+ */
+const TILES = {
+  portal: { leaf: BRAND_ON_COLOR, seed: BRAND_LEAF, background: BRAND_LEAF },
+  staff: { leaf: BRAND_LEAF, seed: BRAND_SEED, background: APP_BACKGROUND_COLOR },
+} as const;
+
+/**
  * How much of the tile the leaf takes.
  *
  * The maskable variant is rendered by the OS inside a shape that can crop up to
  * the outer ~20% of the canvas (Android's "safe zone"), so its mark is drawn
- * smaller to stay clear of that crop. The tile's green fills the canvas either
- * way, so the crop only ever eats ground, never the mark.
+ * smaller to stay clear of that crop. Matched on the suffix so both apps'
+ * maskable keys are covered. The tile's ground fills the canvas either way, so
+ * the crop only ever eats ground, never the mark.
  */
 function markScale(size: SizeKey): number {
-  return size === 'maskable-512' ? 0.5 : 0.66;
+  return size.endsWith('maskable-512') ? 0.5 : 0.66;
 }
 
 export async function GET(_request: Request, { params }: { params: Promise<{ size: string }> }) {
@@ -82,10 +121,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ siz
   const tile = svgDataUri(
     renderBrandMarkSvg({
       size: px,
-      // Reversed: white leaf, seeds punched back to the ground colour.
-      leaf: BRAND_ON_COLOR,
-      seed: BRAND_LEAF,
-      background: BRAND_LEAF,
+      ...(rawSize.startsWith('staff-') ? TILES.staff : TILES.portal),
       scale: markScale(rawSize),
     }),
   );

@@ -109,7 +109,7 @@ export function StaffLoginForm({ locale, showGoogle, redirectTo, oauthError }: S
         noValidate
         onSubmit={validateBeforeSubmit}
         onChange={clearCorrectedField}
-        className="space-y-4"
+        className="space-y-4 short:space-y-3"
       >
         <input type="hidden" name="locale" value={locale} />
         <input type="hidden" name="redirectTo" value={redirectTo ?? ''} />
@@ -150,8 +150,27 @@ export function StaffLoginForm({ locale, showGoogle, redirectTo, oauthError }: S
           error={fieldErrors.password ? t(fieldErrors.password) : undefined}
         />
 
-        <p className="text-end text-sm">
-          <Link href="/forgot-password" className="font-medium text-foreground underline-offset-4 hover:underline">
+        {/*
+          v5.html's `.options-row`, minus one thing.
+
+          That row holds a "remember me on this device" checkbox and this link.
+          The checkbox is **not** here, and its absence is deliberate: nothing in
+          this application implements a remembered device, so the control would
+          be a painted box that changes nothing about the session it appears to
+          govern. Wiring it is a real change to `signInWithPassword` and the
+          session lifetime, not a restyle. If it is wanted, that is the work —
+          not this checkbox.
+
+          With one item left the row is just the link, pushed to the inline-end
+          where v5.html puts it. `font-semibold` and the muted-to-olive hover are
+          that file's `.forgot-link`; `text-body-sm` is the system's 14px token
+          standing in for its 13.5px.
+        */}
+        <p className="text-end text-body-sm">
+          <Link
+            href="/forgot-password"
+            className="font-semibold text-muted-foreground underline-offset-4 transition-colors duration-(--duration-label) hover:text-secondary-foreground hover:underline"
+          >
             {t('forgotLink')}
           </Link>
         </p>
@@ -175,14 +194,36 @@ export function StaffLoginForm({ locale, showGoogle, redirectTo, oauthError }: S
         <AuthSubmitButton label={t('submit')} />
       </form>
 
-      <div className="my-6 flex items-center gap-3 text-xs text-muted-foreground">
+      {/*
+        v5.html's `.divider-wrap`: 14px gutters, a hairline each side, and the
+        word in 12px semibold.
+
+        `text-caption` is the system token for 12px; `text-xs` was the raw
+        Tailwind step at the same size. No `uppercase` even though v5.html asks
+        for it — docs/design-system.md forbids case transforms on Arabic, and
+        this string is "أو" by default.
+      */}
+      <div className="my-4 short:my-2.5 flex items-center gap-3.5 text-caption font-semibold text-muted-foreground">
         <span className="h-px flex-1 bg-border" />
         {t('orUsePassword')}
         <span className="h-px flex-1 bg-border" />
       </div>
 
-      {/* Alternate sign-in, once the primary path is filled in above. */}
-      <div className="space-y-3">
+      {/*
+        Alternate sign-in, once the primary path is filled in above.
+
+        Stacked and full width, which is v5.html's `.btn-google` shape. That file
+        has one such button and this application has two — a passkey is a sign-in
+        path here and there is no version of "preserve existing functionality"
+        that drops it — so the pattern repeats rather than the pair being squeezed
+        into one row. It also means both keep their full labels: "المتابعة
+        باستخدام مفتاح المرور" does not fit a half-width box on one line, and
+        `Button` never wraps.
+
+        `space-y-3` rather than a grid: each button ships its own error paragraph
+        underneath, and a stack lets the failing one grow without moving the other.
+      */}
+      <div className="space-y-2.5 short:space-y-2">
         <PasskeyButton locale={locale} />
         {/* No `requestSignUp`: this door admits existing accounts only. */}
         {showGoogle ? <GoogleButton locale={locale} redirectTo={redirectTo} /> : null}

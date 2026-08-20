@@ -60,6 +60,7 @@
   "settingsWorkspace": {
     "title": "الإعدادات",
     "description": "أدر ملفك الشخصي وبيانات العيادة والتواصل وأمان الحساب من مكان واحد.",
+    "version": "الإصدار",
     "tabsLabel": "أقسام الإعدادات",
     "tabs": {
       "profile": "الملف الشخصي",
@@ -849,7 +850,8 @@
         "drugAllergies": "بنسلين",
         "familyHistory": "سكري لدى الأب، سمنة في العائلة",
         "activityNotes": "مشي 40 دقيقة معظم المساءات، عمل مكتبي",
-        "activityBarriers": "ألم في الركبة"
+        "activityBarriers": "ألم في الركبة",
+        "computedTarget": "يُحسب تلقائيًا"
       },
       "overrideDivider": "أرقام يدوية",
       "unsetCount": "{count} حقول غير مُدخلة",

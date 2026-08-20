@@ -102,7 +102,7 @@ export function StaffSignUpForm({ locale, showGoogle }: StaffSignUpFormProps) {
         noValidate
         onSubmit={validateBeforeSubmit}
         onChange={clearCorrectedField}
-        className="space-y-4"
+        className="space-y-4 short:space-y-3"
       >
         <input type="hidden" name="locale" value={locale} />
 
@@ -113,7 +113,7 @@ export function StaffSignUpForm({ locale, showGoogle }: StaffSignUpFormProps) {
           phone, where this form is already five fields long. `sm:` because at
           320px two ten-character boxes are narrower than the text in them.
         */}
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2 short:gap-3">
           <div className="space-y-2">
             <Label htmlFor="signup-first-name">{t('firstName')}</Label>
             <Input
@@ -207,7 +207,10 @@ export function StaffSignUpForm({ locale, showGoogle }: StaffSignUpFormProps) {
       */}
       {showGoogle ? (
         <>
-          <div className="my-6 flex items-center gap-3 text-xs text-muted-foreground">
+          {/* The same rule sign-in draws — see `StaffLoginForm` for the tokens
+              and for why there is no `uppercase` on it. The two faces of this
+              screen must not disagree about a divider. */}
+          <div className="my-4 short:my-2.5 flex items-center gap-3.5 text-caption font-semibold text-muted-foreground">
             <span className="h-px flex-1 bg-border" />
             {t('orUsePassword')}
             <span className="h-px flex-1 bg-border" />

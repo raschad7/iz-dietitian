@@ -133,6 +133,13 @@ export default async function PortalLayout({ children, params }: PortalLayoutPro
         the component for why registration lives outside `requirePortalClient`'s
         result rather than depending on it.
       */}
+      {/*
+        The `beforeinstallprompt` capture is no longer rendered here: it is
+        mounted from the root locale layout, and it attaches its listener from
+        module scope rather than from a script tag — see `InstallPromptCapture`
+        for why, and `use-install-prompt.ts` for how the event is picked back
+        up.
+      */}
       <ServiceWorkerRegister locale={locale} />
 
       {children}

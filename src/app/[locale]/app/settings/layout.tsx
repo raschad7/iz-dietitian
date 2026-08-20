@@ -2,6 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
 
 import { SettingsToolbar } from '@/features/settings/components/settings-toolbar';
+import { APP_VERSION } from '@/lib/version';
 
 /**
  * The settings surface: one heading, one tab bar, and the page.
@@ -45,6 +46,12 @@ export default async function SettingsLayout({ children }: { children: ReactNode
       <SettingsToolbar />
 
       {children}
+
+      <footer className="mt-6 border-t border-border/60 pt-4 text-start">
+        <p className="text-caption text-muted-foreground">
+          <span>{t('version')}:</span> <span dir="ltr">v{APP_VERSION}</span>
+        </p>
+      </footer>
     </div>
   );
 }
