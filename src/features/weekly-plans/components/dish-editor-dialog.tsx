@@ -83,9 +83,10 @@ export function DishEditorDialog({
         label={isEditing ? t('editTitle') : t('pageTitle')}
         dir={getLocaleDirection(activeLocale)}
         size="wide"
-        // A workspace: wider and taller than the default card, a flex column so the
-        // header stays put and the editor body scrolls inside it.
-        className="max-h-[92dvh] overflow-hidden open:flex open:flex-col sm:w-[min(70rem,calc(100vw-4rem))]"
+        // A workspace: wider than the default card. Its height, its flex column
+        // and its scrolling body come from the responsive dialog frame in
+        // `globals.css`; only the width is this surface's own.
+        className="sm:w-[min(70rem,calc(100vw-4rem))]"
       >
         <DialogHeader
           title={isEditing ? t('editTitle') : t('pageTitle')}

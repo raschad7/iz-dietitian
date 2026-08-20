@@ -58,7 +58,7 @@ export function AppointmentTabs({
 
           This switch sits directly under the page's one button and directly
           above the next appointment. Every tinted version of it — the solid
-          olive, then an green-100 fill with a 3px olive rule, then that fill
+          olive, then an olive-100 fill with a 3px olive rule, then that fill
           alone — was a brand-coloured block competing with the two things
           around it for the same 200px, and the rule at one point read as an
           underlined *link*: the one decoration on the page that looked

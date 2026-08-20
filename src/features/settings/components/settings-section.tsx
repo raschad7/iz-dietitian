@@ -146,7 +146,25 @@ export function SettingsRow({
 }) {
   return (
     <div className={cn('flex flex-wrap items-center justify-between gap-x-6 gap-y-3 py-4', className)}>
-      <div className="flex min-w-0 flex-col gap-1.5">
+      {/*
+        `wrap-anywhere` beside the `min-w-0`, and it takes both.
+
+        `min-w-0` lets this column shrink past its content; it does not make the
+        content *break*. Most settings values are a word or two and wrap at their
+        spaces anyway — but the ones that matter here are exactly the ones that
+        have no spaces to wrap at: an account email, a WhatsApp number, a clinic
+        URL. `mohammad.qannam.clinic@verylongdomainname.example.com` measured
+        461px inside a 296px row on a 320px phone, ran 165px past the end of it,
+        and took the *document* to 474px wide — so the whole settings page
+        scrolled sideways because of one address.
+
+        `anywhere` rather than `break-word`: it also lowers the element's
+        min-content contribution, which is what lets the flex column agree to be
+        narrow in the first place instead of breaking only after it has already
+        won the space. It costs nothing where a value fits — it breaks a line
+        only where one would otherwise overflow.
+      */}
+      <div className="flex min-w-0 flex-col gap-1.5 wrap-anywhere">
         <p className="text-label text-muted-foreground">{label}</p>
         <div className="text-body-md text-foreground">
           {isolate ? <span dir="ltr" className="tabular">{value}</span> : value}

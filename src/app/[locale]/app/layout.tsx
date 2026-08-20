@@ -7,6 +7,7 @@ import { AppShell } from '@/components/layout/sidebar';
 import { type IconName } from '@/components/ui/icon';
 import { APP_THEME_COLOR_DARK, APP_THEME_COLOR_LIGHT } from '@/features/app-pwa/brand';
 import { ServiceWorkerRegister } from '@/features/app-pwa/service-worker-register';
+import { SplashScreen } from '@/features/brand/splash-screen';
 import { getClinicBrand, isClinicOnboardingComplete } from '@/features/clinic-profile/queries';
 import { GuideLauncher } from '@/features/user-guide/guide-launcher';
 import { GuideProvider } from '@/features/user-guide/guide-provider';
@@ -36,7 +37,7 @@ type AppLayoutProps = {
 const NAV_ITEMS = [
   { href: '/app', labelKey: 'dashboard' },
   { href: '/app/clients', labelKey: 'clients' },
-  { href: '/app/calendar', labelKey: 'calendar' },
+  { href: '/app/calendar/week', labelKey: 'calendar' },
   { href: '/app/weekly-plans', labelKey: 'weeklyPlans' },
   { href: '/app/dishes', labelKey: 'dishes' },
 ] as const;
@@ -144,7 +145,12 @@ export default async function AppLayout({ children, params }: AppLayoutProps) {
       page that manages its own scrolling — the calendar — can claim the full
       height with `h-full` and keep its toolbar fixed.
 
-      **`h-svh overflow-hidden` is what makes that true, and it was missing.**
+      **The frame is `.q-app-shell` in `globals.css` now**, not an `h-svh
+      overflow-hidden` this layout passed down — the portal needed the same
+      thing and was building it a second way, so it is stated once for every
+      shell in the product and no layout opts in. `data-slot="shell-scroll"`
+      below is how `main` claims the scrolling region.
+
       The registry's shell is `min-h-svh`, so the box grew to whatever its
       content came to and `main`'s `overflow-y-auto` had nothing to clip — the
       *document* scrolled instead, and `main` sat there as a scroll container
@@ -185,6 +191,20 @@ export default async function AppLayout({ children, params }: AppLayoutProps) {
       */}
       <ServiceWorkerRegister locale={locale} />
 
+      {/*
+        The launch screen. Above the shell rather than inside it: `.q-app-shell`
+        is an `overflow-hidden` frame the height of the viewport, and a tile that
+        has to cover the whole screen — including whatever the guided tour or a
+        dialog has put on top of it — does not belong inside a box whose job is
+        to clip its children.
+
+        The staff app is the desktop-leaning half of the product, and this is
+        the same two seconds there as on a phone. It takes no pointer events and
+        the first click anywhere cuts it short, so a dietitian who opens the app
+        to do one thing is not made to watch it. See the component.
+      */}
+      <SplashScreen />
+
       <AppShell
         items={NAV_ITEMS}
         title={t('shortName')}
@@ -192,7 +212,6 @@ export default async function AppLayout({ children, params }: AppLayoutProps) {
         user={{ name: session.user.name, email: session.user.email, locale }}
         icons={NAV_ICONS}
         secondary={<GuideLauncher key="guide-launcher" />}
-        className="h-svh overflow-hidden"
       >
       {/*
         `overflow-x-auto`, not the `overflow-x-hidden` this carried.
@@ -216,7 +235,7 @@ export default async function AppLayout({ children, params }: AppLayoutProps) {
         `Tabs`, `PanelTabsList` and `.planner-week-scroll` are the precedents —
         and `overflow-x-hidden` must not come back here or go anywhere else.
       */}
-        <main className="min-h-0 min-w-0 flex-1 overflow-x-auto overflow-y-auto p-3 md:p-5">
+        <main data-slot="shell-scroll" className="min-w-0 p-3 md:p-5">
           {children}
         </main>
       </AppShell>

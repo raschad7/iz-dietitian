@@ -1464,7 +1464,8 @@
   "errors": {
     "notFound": "الصفحة غير موجودة",
     "notFoundDescription": "الرابط الذي فتحته غير صحيح أو تم نقله.",
-    "notFoundCta": "الذهاب إلى الصفحة الرئيسية",
+    "notFoundCtaDashboard": "الذهاب إلى لوحة التحكم",
+    "notFoundCtaHome": "الذهاب إلى الصفحة الرئيسية",
     "unexpected": "حدث خطأ غير متوقع",
     "unexpectedBody": "لم يُحفظ أي شيء أدخلته. أعد المحاولة، أو ابدأ من الصفحة الرئيسية.",
     "screen": {

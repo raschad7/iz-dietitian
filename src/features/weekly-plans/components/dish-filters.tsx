@@ -255,7 +255,9 @@ export function DishFilters({
           side="bottom"
           align="end"
           sideOffset={6}
-          className="max-h-[min(32rem,calc(100svh-8rem))] w-[min(22rem,calc(100vw-2rem))] overflow-y-auto p-0"
+          // `--q-viewport-block` in place of `100svh`: the panel holds a search
+          // field, and neither `svh` nor `dvh` shrinks for the keyboard on iOS.
+          className="max-h-[min(32rem,calc(var(--q-viewport-block)-8rem))] w-[min(22rem,calc(100vw-2rem))] overflow-y-auto p-0"
         >
           {/*
             The reset control is **always** rendered, and disabled when there

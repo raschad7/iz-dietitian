@@ -128,7 +128,17 @@ export function NewWeekDialog({
         dir={getLocaleDirection(activeLocale)}
         size="wide"
         dismissible={!generating}
-        className="sm:h-[min(52rem,calc(100dvh-1rem))] sm:max-h-none sm:overflow-hidden"
+        /*
+          A fixed stage from `sm` up, so the surface does not resize under the
+          pointer when the generate door swaps for the loading one.
+
+          `52rem` flat, and **no `sm:max-h-none`**: that used to be here to stop
+          a `max-h` utility fighting the height, and it would now switch off the
+          responsive dialog frame's own ceiling — the one thing keeping this
+          surface inside a 1366×768 laptop or a landscape phone. The frame caps
+          the height; this only asks for one.
+        */
+        className="sm:h-[52rem]"
       >
         {/* The choices stay mounted while hidden. The server action and its
             lifecycle observer belong to that subtree; unmounting it during the

@@ -8,6 +8,7 @@ import { useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { DialogBody, DialogFooter } from '@/components/ui/dialog';
 import { Field, FieldError, FieldHint } from '@/components/ui/field';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
@@ -326,7 +327,7 @@ export function DishEditor({
       ))}
 
       {/* The dialog's only scroll region; its header and action footer stay outside. */}
-      <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-5 py-6 sm:px-6">
+      <DialogBody className="no-scrollbar min-h-0 flex-1 gap-0 overflow-y-auto px-5 py-6 sm:px-6">
         <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
           {/* The name leads the task and remains close to duplicate feedback. */}
           <div className="max-w-3xl">
@@ -476,10 +477,10 @@ export function DishEditor({
             </Collapsible>
           </section>
         </div>
-      </div>
+      </DialogBody>
 
       {/* 7. Save — a fixed footer so it stays reachable on a long recipe (spec §38). */}
-      <div className="flex shrink-0 items-center gap-3 border-t border-border px-5 py-4 sm:px-6">
+      <DialogFooter className="shrink-0 gap-3 bg-background px-5 py-4 sm:px-6">
         <FormMessage state={state} />
         <Button
           type="button"
@@ -494,7 +495,7 @@ export function DishEditor({
           label={t(isEditing ? 'editor.saveChanges' : 'editor.submit')}
           pendingLabel={t('editor.submitting')}
         />
-      </div>
+      </DialogFooter>
     </form>
   );
 }

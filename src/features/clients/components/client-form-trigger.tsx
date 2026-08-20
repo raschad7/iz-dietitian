@@ -145,9 +145,10 @@ export function ClientFormTrigger({
               dir={getLocaleDirection(locale)}
               flat
               className={cn(
-                // `open:` and not a bare `flex`: a `display` utility on a
-                // <dialog> outranks the UA rule that hides it while closed.
-                'open:flex open:flex-col max-h-[90dvh] overflow-hidden',
+                // No height, no flex, no clip: the responsive dialog frame in
+                // `globals.css` gives every `.q-dialog` a viewport-bounded
+                // ceiling, a header and footer that stay, and a body that
+                // scrolls. This surface used to state all three itself.
                 // One width, because there is one set of fields. The card used
                 // to animate between 30rem and 50rem as its disclosure opened;
                 // the disclosure is gone, and a fixed width is one fewer thing

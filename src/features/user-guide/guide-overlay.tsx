@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 import { useGuide } from './guide-context';
 import { placeCard } from './place-card';
 import { GUIDE_SECTION_ICONS, stepIsOptional, stepSide, type GuideStep } from './steps';
-import { useGuideAnchor, type AnchorRect } from './use-guide-anchor';
+import { useGuideAnchor, type AnchorRect, type AnchorState } from './use-guide-anchor';
 
 /**
  * Where the card stops being a floating panel and becomes a docked sheet.
@@ -55,6 +55,16 @@ function useIsDocked() {
 /** Keep-out margin against the edges of the screen, and around the spotlight. */
 const GUTTER = 16;
 const GAP = 12;
+
+/**
+ * How much roomier one side of the spotlight has to be before the docked card
+ * moves to it. See the note where it is used.
+ *
+ * 48px is a touch target: below that the "roomier" side has not got enough extra
+ * space to be worth crossing the screen for, so the difference is noise and the
+ * card should stay where a thumb expects it.
+ */
+const DOCK_MARGIN = 48;
 
 /**
  * Whether React has hydrated, which is the same question as "is there a
@@ -223,7 +233,11 @@ function GuideSurface({ step }: { step: GuideStep }) {
         */
         <div className="absolute inset-0 bg-[var(--overlay)]" aria-hidden />
       ) : (
-        <Spotlight rect={rect} />
+        /*
+          `anchor` whole rather than `rect`, because the hole does not render
+          from the settled box — it subscribes to the live one. See `Spotlight`.
+        */
+        <Spotlight anchor={anchor} stepId={step.id} />
       )}
 
       <GuideCard
@@ -241,23 +255,193 @@ function GuideSurface({ step }: { step: GuideStep }) {
   );
 }
 
+/** How long the hole takes to travel from one step's control to the next. */
+const TRAVEL_MS = 380;
+
+/**
+ * The curve the rest of the app moves on, taken from the stylesheet rather than
+ * copied into this file.
+ *
+ * `element.animate` wants a string and cannot resolve a custom property itself,
+ * so the choice is between reading the token here and pinning `cubic-bezier(...)`
+ * at this call site. Pinning it is how the guide ends up on a curve the rest of
+ * the app has since moved off — the same failure the design system's rule about
+ * not writing a colour at a call site is about. `--ease-sweep` is defined on
+ * `:root`, so any node in the document inherits it.
+ *
+ * The fallback is only reached if the stylesheet has not applied at all, which
+ * on a document that has already painted the dimmed overlay it has.
+ */
+function travelEasing(node: Element): string {
+  const token = getComputedStyle(node).getPropertyValue('--ease-sweep').trim();
+  return token === '' ? 'ease-out' : token;
+}
+
+function prefersReducedMotion(): boolean {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+function geometry(rect: AnchorRect): Record<string, string> {
+  return {
+    top: `${rect.top}px`,
+    left: `${rect.left}px`,
+    width: `${rect.width}px`,
+    height: `${rect.height}px`,
+  };
+}
+
+function writeGeometry(node: HTMLElement, rect: AnchorRect): void {
+  const style = geometry(rect);
+  for (const [property, value] of Object.entries(style)) {
+    node.style.setProperty(property, value);
+  }
+}
+
 /**
  * The hole, and the dim that is cast by it.
  *
- * No transition on its position. The rect it is given is re-read every animation
- * frame while the step is up (see `useGuideAnchor`), so the box already moves at
- * the refresh rate of the thing it is tracking — a transition on top of that
- * would make the hole lag behind its own control during the scroll that brings
- * it into view.
+ * ## It does not render its own position
+ *
+ * The box is written onto this node from `useGuideAnchor`'s live channel, in the
+ * measurement loop's own frame. React renders this component once per step and
+ * then has nothing further to do with where the hole is.
+ *
+ * That is not a micro-optimisation, it is the fix for the shaking on steps 9 and
+ * 10. Positioning through `useState` meant a full reconcile, commit and repaint
+ * of the overlay on every frame of every scroll — and the thing being repainted
+ * is `120vmax` of `box-shadow`, whose cost scales with the size of the hole. The
+ * calendar toolbar and the calendar grid are the two largest anchors in the
+ * tour, so they were the two that pushed a phone past its frame budget, and a
+ * hole that misses its frame is a hole that is somewhere else than the control
+ * it is cut around. The note on `SETTLE_MS` records the same finding from the
+ * hook's side.
+ *
+ * ## Travel, and when it is suspended
+ *
+ * Between steps the hole moves from the old control to the new one instead of
+ * cutting, which is what makes the tour read as one continuous surface rather
+ * than sixteen unrelated dims. `stepId` is what tells this component that the
+ * next box it is handed belongs somewhere else.
+ *
+ * While that travel plays, live measurements are **held, not applied** — the
+ * newest is kept and written the moment the animation finishes. Applying them
+ * mid-flight is the one thing that would reintroduce the fault this component
+ * was rewritten to remove: two authorities writing the same four properties on
+ * alternating frames is, precisely, a shake.
+ *
+ * Within a step there is no travel at all. The box is re-read every frame, so it
+ * already moves at the refresh rate of whatever is moving it; a tween on top of
+ * that would make the hole lag its own control through the scroll that brings it
+ * into view.
  */
-function Spotlight({ rect }: { rect: AnchorRect }) {
-  return (
-    <div
-      aria-hidden
-      className="q-guide-spotlight absolute"
-      style={{ top: rect.top, left: rect.left, width: rect.width, height: rect.height }}
-    />
-  );
+function Spotlight({ anchor, stepId }: { anchor: AnchorState; stepId: string }) {
+  const node = useRef<HTMLDivElement>(null);
+  const { subscribe, peek } = anchor;
+
+  useEffect(() => {
+    const element = node.current;
+    if (element === null) return;
+
+    /*
+      The box this step is travelling *from*: whatever is on screen right now.
+      Read off the node rather than remembered in a ref, because on the first
+      step there is nothing to remember and the node's own inline style is the
+      single honest answer in both cases.
+    */
+    const from = element.style.top === '' ? null : element.getBoundingClientRect();
+
+    let travel: Animation | null = null;
+    /** The newest measurement that arrived while `travel` was playing. */
+    let held: AnchorRect | null = null;
+    let arrived = false;
+
+    function apply(rect: AnchorRect | null): void {
+      const element = node.current;
+      if (element === null || rect === null) return;
+
+      /* Mid-flight: keep the newest and let the animation land on it. */
+      if (travel !== null) {
+        held = rect;
+        return;
+      }
+
+      /*
+        The first box of a new step is the one worth travelling to. Everything
+        after it is this step's control moving under a live measurement, which
+        is tracked rather than tweened.
+      */
+      if (!arrived) {
+        arrived = true;
+
+        if (from !== null && !prefersReducedMotion()) {
+          travel = element.animate([geometry(from), geometry(rect)], {
+            duration: TRAVEL_MS,
+            easing: travelEasing(element),
+          });
+
+          /*
+            The final box is written by hand rather than left to `fill:
+            'forwards'`. A filling animation keeps overriding the inline style
+            for as long as it exists, so every live measurement after this one
+            would be computed correctly and then drawn at the stale value — the
+            hole silently unsticking itself from its control the moment the
+            control moved.
+          */
+          travel.onfinish = () => {
+            travel = null;
+            const latest = held ?? rect;
+            held = null;
+            writeGeometry(element, latest);
+          };
+
+          /*
+            `oncancel` as well as `onfinish`: an animation is cancelled when the
+            node is torn down mid-travel, and a handler that only ran on finish
+            would leave `travel` non-null forever on a step the reader skipped
+            through. Nothing to write here — the node is going away.
+          */
+          travel.oncancel = () => {
+            travel = null;
+          };
+
+          return;
+        }
+      }
+
+      writeGeometry(element, rect);
+    }
+
+    /*
+      First mount only: catch up with a loop that may already have measured, so
+      the hole is never drawn at the browser's default corner while waiting for
+      the next frame.
+
+      Written straight to the node rather than through `apply`, and the
+      difference matters on every step after the first. Child effects run before
+      parent ones, so at the moment this runs the hook above has not yet started
+      the new step's search and `peek` still answers with the *previous* step's
+      box. Feeding that to `apply` would spend this step's one arrival on the
+      place the hole is already sitting, and the travel would be a 380ms
+      animation from a box to itself — after which the real anchor would simply
+      appear, which is the cut this was built to remove.
+
+      When `from` is non-null the node is already displaying that same box
+      anyway, so there is nothing to catch up on and skipping it costs nothing.
+    */
+    if (from === null) {
+      const initial = peek();
+      if (initial !== null) writeGeometry(element, initial);
+    }
+
+    const unsubscribe = subscribe(apply);
+
+    return () => {
+      unsubscribe();
+      travel?.cancel();
+    };
+  }, [subscribe, peek, stepId]);
+
+  return <div ref={node} aria-hidden className="q-guide-spotlight absolute" />;
 }
 
 function GuideCard({
@@ -341,8 +525,43 @@ function GuideCard({
     The sheet takes the edge the spotlight is furthest from, so it never covers
     the thing the step is about. An unanchored step has no preference and takes
     the bottom, where a thumb is.
+
+    ## Why there are two thresholds and not one
+
+    There used to be one, at `0.55`, and on the calendar steps it sat almost
+    exactly under the answer. Both of those anchors are close to viewport-sized
+    once `pad` has clamped them — the toolbar spans the full width, the grid
+    spans nearly the whole screen — so the centre of the hole lands within a
+    percent or two of the middle, which is within a percent or two of the line.
+
+    A single threshold there is a coin balanced on its edge, and a phone is
+    exactly the device that keeps nudging it: hiding the URL bar changes
+    `innerHeight`, the grid re-lays-out against the new height, the centre of the
+    hole crosses the line, and the card jumps from one edge of the screen to the
+    other — replaying its entrance animation on the way. That is a layout jump
+    with the same cause as the shake and it deserves the same treatment.
+
+    So the question changed instead of gaining a memory. Hysteresis was the first
+    answer and it is not available here: remembering the last decision means
+    either a ref read back during render or a `setState` in an effect, and this
+    project's lint rules reject both — correctly, and the second of them is the
+    cascading render `useGuideAnchor` was just rewritten to stop paying.
+
+    What is asked now is the thing the card actually needs to know — **which side
+    has room for it** — rather than a proxy for it, and it has to win by
+    {@link DOCK_MARGIN} to count. Two properties fall out of that. A hole with
+    nothing above it and half the screen below can never be a close call, so the
+    ordinary steps answer the same way they always did. And a hole so large that
+    neither side has room answers `false` and keeps answering `false`, because
+    two numbers that are both nearly zero cannot differ by 48px — which is
+    exactly the calendar case, now settled rather than balanced.
+
+    Bottom is the right way to fail: it is where a thumb is, and it is what an
+    unanchored step takes for the same reason.
   */
-  const dockTop = rect !== null && rect.top + rect.height / 2 > window.innerHeight * 0.55;
+  const spaceAbove = rect === null ? 0 : rect.top;
+  const spaceBelow = rect === null ? 0 : window.innerHeight - (rect.top + rect.height);
+  const dockTop = rect !== null && spaceAbove > spaceBelow + DOCK_MARGIN;
 
   return (
     <div
@@ -370,94 +589,111 @@ function GuideCard({
       style={docked ? undefined : { top: placement?.top ?? 0, left: placement?.left ?? 0 }}
     >
       {/*
-        Section, then position, on one line.
+        The step's own contents, remounted on every step so their entrance
+        replays.
 
-        The count used to sit in the controls row on its own, which is the row
-        that now has to hold Skip as well as Back and Next — three controls and a
-        sentence do not fit across a 375px phone. Up here it reads as what it is:
-        a qualifier on the section name, the way a page number qualifies a
-        chapter. `aria-live` so a screen reader is told the position changed
-        without the whole card being re-read.
+        `key={step.id}` rather than a transition on the text, because what
+        changes between two steps is every line of the card at once — eyebrow,
+        title, sentence, and which of Back and Skip are present. Cross-fading
+        four independently-changing nodes reads as four things twitching;
+        replacing the block once reads as a page being turned.
+
+        It is a wrapper rather than a class on the card itself for the same
+        reason the card is not keyed: keying the card would throw away the
+        measured `placement` on every step and flash it `invisible` at the
+        corner before re-measuring. The shell stays, the contents turn over.
       */}
-      <p
-        className="flex items-center gap-1.5 text-caption font-medium text-muted-foreground"
-        aria-live="polite"
-      >
-        <Icon name={GUIDE_SECTION_ICONS[step.section]} className="size-4 shrink-0" />
-        <span className="min-w-0 truncate">{t(`sections.${step.section}`)}</span>
-        <span aria-hidden className="shrink-0 opacity-60">
-          ·
-        </span>
-        <span className="shrink-0 tabular-nums">{t('progress', { current: index + 1, total })}</span>
-      </p>
+      <div key={step.id} className="q-guide-card-step">
+        {/*
+          Section, then position, on one line.
 
-      <h2 id="q-guide-title" className="mt-1 font-heading text-heading-sm font-semibold [text-wrap:balance]">
-        {t(`steps.${step.id}.title`)}
-      </h2>
+          The count used to sit in the controls row on its own, which is the row
+          that now has to hold Skip as well as Back and Next — three controls and a
+          sentence do not fit across a 375px phone. Up here it reads as what it is:
+          a qualifier on the section name, the way a page number qualifies a
+          chapter. `aria-live` so a screen reader is told the position changed
+          without the whole card being re-read.
+        */}
+        <p
+          className="flex items-center gap-1.5 text-caption font-medium text-muted-foreground"
+          aria-live="polite"
+        >
+          <Icon name={GUIDE_SECTION_ICONS[step.section]} className="size-4 shrink-0" />
+          <span className="min-w-0 truncate">{t(`sections.${step.section}`)}</span>
+          <span aria-hidden className="shrink-0 opacity-60">
+            ·
+          </span>
+          <span className="shrink-0 tabular-nums">{t('progress', { current: index + 1, total })}</span>
+        </p>
 
-      {/*
-        The body is the one part of the card allowed to scroll, and the reason
-        it is the *body* rather than the card is the row underneath it.
+        <h2 id="q-guide-title" className="mt-1 font-heading text-heading-sm font-semibold [text-wrap:balance]">
+          {t(`steps.${step.id}.title`)}
+        </h2>
 
-        A step's sentence is two or three lines on a desktop and can be six on a
-        375px phone in Arabic, at which point a short screen in landscape cannot
-        hold the whole card. Scrolling the card would take Next and the close
-        button off the bottom of it — the two controls that must never be more
-        than one look away, because on a touch screen there is no Escape key to
-        fall back on. Scrolling only the prose keeps the eyebrow, the title, the
-        progress line and both controls where they were.
+        {/*
+          The body is the one part of the card allowed to scroll, and the reason
+          it is the *body* rather than the card is the row underneath it.
 
-        `overscroll-contain` so reaching the end of a long step does not hand the
-        gesture to the inert page behind it.
-      */}
-      <p className="mt-1.5 max-h-[38svh] overflow-y-auto overscroll-contain text-body-sm leading-relaxed text-muted-foreground">
-        {t(`steps.${step.id}.body`)}
-      </p>
+          A step's sentence is two or three lines on a desktop and can be six on a
+          375px phone in Arabic, at which point a short screen in landscape cannot
+          hold the whole card. Scrolling the card would take Next and the close
+          button off the bottom of it — the two controls that must never be more
+          than one look away, because on a touch screen there is no Escape key to
+          fall back on. Scrolling only the prose keeps the eyebrow, the title, the
+          progress line and both controls where they were.
 
-      {/*
-        Leaving on one side, moving on the other.
+          `overscroll-contain` so reaching the end of a long step does not hand the
+          gesture to the inert page behind it.
+        */}
+        <p className="mt-1.5 max-h-[38svh] overflow-y-auto overscroll-contain text-body-sm leading-relaxed text-muted-foreground">
+          {t(`steps.${step.id}.body`)}
+        </p>
 
-        **Skip is a labelled button, not the X this corner used to carry.** The
-        two were the same action wearing two looks — a glyph in the corner and
-        the Escape key — and neither said what it did. A tour is something a
-        reader has agreed to be led through, so the way out of it has to be as
-        plainly readable as the way onward; a bare ✕ on a panel that is already
-        covering the whole screen reads as "close this card", not "stop the
-        guide". Escape still does the same thing for anyone who reaches for it.
+        {/*
+          Leaving on one side, moving on the other.
 
-        It stands down on the last step, where Finish is the same action with a
-        better name.
-      */}
-      <div className="mt-4 flex items-center justify-between gap-2">
-        {isLast ? (
-          <span />
-        ) : (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="-ms-3 text-muted-foreground"
-            onClick={onStop}
-          >
-            {t('skip')}
-          </Button>
-        )}
+          **Skip is a labelled button, not the X this corner used to carry.** The
+          two were the same action wearing two looks — a glyph in the corner and
+          the Escape key — and neither said what it did. A tour is something a
+          reader has agreed to be led through, so the way out of it has to be as
+          plainly readable as the way onward; a bare ✕ on a panel that is already
+          covering the whole screen reads as "close this card", not "stop the
+          guide". Escape still does the same thing for anyone who reaches for it.
 
-        <div className="flex shrink-0 items-center gap-2">
-          {/*
-            Back is omitted on the first step rather than disabled. A control
-            that exists only to be unusable is a control the reader has to
-            examine before ignoring, and this row is already three wide.
-          */}
-          {isFirst ? null : (
-            <Button type="button" variant="ghost" size="sm" onClick={onPrevious}>
-              {t('back')}
+          It stands down on the last step, where Finish is the same action with a
+          better name.
+        */}
+        <div className="mt-4 flex items-center justify-between gap-2">
+          {isLast ? (
+            <span />
+          ) : (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="-ms-3 text-muted-foreground"
+              onClick={onStop}
+            >
+              {t('skip')}
             </Button>
           )}
 
-          <Button type="button" size="sm" onClick={isLast ? onStop : onNext}>
-            {isLast ? t('finish') : t('next')}
-          </Button>
+          <div className="flex shrink-0 items-center gap-2">
+            {/*
+              Back is omitted on the first step rather than disabled. A control
+              that exists only to be unusable is a control the reader has to
+              examine before ignoring, and this row is already three wide.
+            */}
+            {isFirst ? null : (
+              <Button type="button" variant="ghost" size="sm" onClick={onPrevious}>
+                {t('back')}
+              </Button>
+            )}
+
+            <Button type="button" size="sm" onClick={isLast ? onStop : onNext}>
+              {isLast ? t('finish') : t('next')}
+            </Button>
+          </div>
         </div>
       </div>
     </div>

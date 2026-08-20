@@ -670,6 +670,53 @@
   --q-safe-l: env(safe-area-inset-left, 0px);
   --q-safe-r: env(safe-area-inset-right, 0px);
 
+  /*
+   * ── The on-screen keyboard, as one number ──
+   *
+   * How much of the *layout* viewport the software keyboard is currently
+   * covering. `0px` whenever no keyboard is up, which is every desktop, every
+   * tablet with a hardware keyboard, and any phone that is only being read.
+   *
+   * It exists because there are two ways a browser can answer "the keyboard
+   * opened", and the app has to survive both:
+   *
+   * - **`interactiveWidget: 'resizes-content'`** (declared in the `viewport`
+   *   export in `[locale]/layout.tsx`, honoured by Chrome on Android) shrinks
+   *   the layout viewport itself, so `dvh` shrinks with it and everything
+   *   measured against the viewport is already correct. This token stays `0px`
+   *   there — `KeyboardInset` measures the gap between the layout viewport and
+   *   the visual one, and on this path there is none.
+   * - **iOS Safari ignores `interactive-widget` entirely.** The layout viewport
+   *   keeps its full height and the keyboard is simply drawn over the bottom of
+   *   it, so `100dvh` still reports a screen that is a third obscured and a
+   *   `position: fixed` surface pinned to the block-end edge — which is every
+   *   bottom sheet in this app — sits underneath the keys. No CSS unit
+   *   describes that; `window.visualViewport` is the only thing that does, and
+   *   publishing it here is what lets the stylesheet stay declarative.
+   *
+   * ⚠ **Never write `100dvh` where a surface has to stay clear of a keyboard.**
+   * Take `--q-viewport-block` below, which is `100dvh` with this subtracted, so
+   * one expression is right on both paths.
+   *
+   * Published by `KeyboardInset` (`components/ui/keyboard-inset.tsx`), mounted
+   * once in the root locale layout. With no script — the first paint, a hard
+   * failure, JS disabled — the declaration below stands and every surface
+   * behaves exactly as it did before the token existed.
+   */
+  --q-keyboard-inset: 0px;
+
+  /*
+   * The block extent a surface may actually occupy: the dynamic viewport less
+   * whatever the keyboard is covering.
+   *
+   * `dvh` and not `vh`, because a phone's address bar retracts and `vh` is
+   * frozen at the *large* viewport — the one with the chrome hidden — so `vh`
+   * overshoots the visible screen for as long as the chrome is showing. `dvh`
+   * and not `svh` because a surface should grow back into the space the bar
+   * gives up rather than reserving a strip it may never need.
+   */
+  --q-viewport-block: calc(100dvh - var(--q-keyboard-inset));
+
   /* Surface & text */
   /*
    * bg.canvas — plain white. It used to be the warm n-25, one step below the
@@ -2684,7 +2731,15 @@
   [data-slot='popover-positioner'] {
     position: fixed !important;
     inset-inline: 0 !important;
-    inset-block: auto 0 !important;
+    /*
+      Pinned to the block-end edge — of the *visible* viewport, not the layout
+      one. `--q-keyboard-inset` is `0px` unless a software keyboard is open on a
+      browser that leaves the layout viewport at full height (iOS), and there it
+      is the height of the keys. Without it a combobox opened from a field that
+      already has focus — which is the normal way one is opened — drew its list
+      underneath the keyboard the field had just raised.
+    */
+    inset-block: auto var(--q-keyboard-inset) !important;
     /*
       The anchored transform is what carried the popup to its trigger, and the
       transform origin with it. Both have to go, or the sheet arrives translated
@@ -2710,7 +2765,17 @@
       reads as a page of its own.
     */
     max-width: none !important;
-    max-height: min(75dvh, calc(100dvh - 3rem)) !important;
+    /*
+      Two terms doing two jobs. `75dvh` is the taste one — a list should not
+      take so much of the screen that the page behind it disappears and the
+      popup reads as a page of its own — and it is deliberately left in `dvh`.
+      The second is the safety one, and it is the term that moved:
+      `--q-viewport-block` is `100dvh` less whatever the keyboard is covering,
+      so once a field has raised one this becomes the binding limit and the list
+      is measured against what is left of the screen. A combobox filtered by
+      typing is the case that needs it, and it is the common one.
+    */
+    max-height: min(75dvh, calc(var(--q-viewport-block) - 3rem)) !important;
     /*
       Risen from the edge, so only the block-start corners exist — the same
       language `Dialog`'s sheet placement speaks, and the same radius.
@@ -2769,6 +2834,29 @@
 
   [data-slot='select-item'] {
     min-block-size: 44px;
+  }
+
+  /*
+    And the disclosure that opens a section, for the same reason.
+
+    `CollapsibleTrigger` ships unstyled — it is a headless Base UI trigger, so
+    it is exactly as tall as whatever text a caller puts in it. The dish
+    editor's "Additional details" row is one line of `text-label` with no
+    padding, which lands at 18px: a full-width control that a thumb misses more
+    often than it hits, and the only way into six fields.
+
+    Fixed here rather than in `dish-editor.tsx` because the height is not that
+    screen's problem — it is what an unstyled trigger measures anywhere, and
+    `sidebar-profile.tsx` already has a second one. The rule is scoped to a
+    coarse pointer so a mouse-driven window keeps the tighter row the type
+    scale asks for.
+
+    `align-items: center` because growing a row that was 18px tall to 44px
+    otherwise leaves its text sitting against the block-start edge.
+  */
+  [data-slot='collapsible-trigger'] {
+    min-block-size: 44px;
+    align-items: center;
   }
 }
 
@@ -3019,9 +3107,178 @@
  * it is against. Nothing is inset twice, and there is no gap between them,
  * because the shell itself is no longer inset at all.
  */
+/*
+ * ══ The application frame ══
+ *
+ *   ┌───────────────────────────┐
+ *   │  HEADER            fixed  │  a flex child that neither grows nor scrolls
+ *   ├───────────────────────────┤
+ *   │  MAIN         scrollable  │  [data-slot='shell-scroll'] — the one scroller
+ *   ├───────────────────────────┤
+ *   │  BOTTOM NAV        fixed  │  a flex child, in flow, never overlapping
+ *   └───────────────────────────┘
+ *
+ * Stated once, here, for every shell in the product — the staff app and the
+ * client portal both render `AppShell`, and `AppShell` always carries
+ * `q-app-shell`. **No layout, page or route opts in**, which is the point: a
+ * screen added tomorrow gets this frame without knowing it exists, and there is
+ * nowhere for a page-specific variation to be written.
+ *
+ * ## Why the *shell* is bounded and not the document
+ *
+ * With a bounded shell the window has nothing to scroll, so chrome pinned to
+ * either end simply stays where it is — no `position: fixed`, no `z-index`
+ * stack to keep straight, and above all **no clearance padding**. The portal's
+ * tab bar was `fixed` and the page underneath carried `pb-24` to miss it: two
+ * numbers that had to be kept equal by hand, in different files, and the tablet
+ * case had already drifted once. In flow, the bar occupies its own height and
+ * the arithmetic disappears.
+ *
+ * ## `svh`, deliberately, and not `dvh`
+ *
+ * `dvh` grows as a phone's address bar retracts — but the bar only retracts
+ * when the *document* scrolls, and here it never does. So `dvh` would resolve
+ * to `svh` in practice while adding a resize the layout cannot use. `svh` is
+ * also the safe direction to be wrong in: it is the *small* viewport, so the
+ * frame is never taller than what is on screen.
+ *
+ * The keyboard is not this box's problem. `interactiveWidget: 'resizes-content'`
+ * shrinks the layout viewport on Android and the frame follows; on iOS the
+ * dialog frame further down handles it against `--q-viewport-block`. A shell
+ * that resized under a keyboard would move the header and the tab bar while
+ * somebody was typing, which is the behaviour this avoids rather than wants.
+ *
+ * ## The safe area is already here
+ *
+ * The two declarations below predate this and do exactly the right thing under
+ * it: `box-sizing: border-box` is global, so a `100svh` box with these paddings
+ * has a *content* box of `100svh - safe-t - safe-b`. The header lands under the
+ * status bar and the bottom nav above the home indicator with no further
+ * arithmetic anywhere.
+ *
+ * ⚠ A shell child that is neither the scroller nor `shrink-0` will be squeezed
+ * rather than scrolled. Mark the scrolling region with `data-slot="shell-scroll"`
+ * and leave everything else alone.
+ */
 .q-app-shell {
+  block-size: 100svh;
+  overflow: hidden;
+
   padding-block-start: var(--q-safe-t);
   padding-block-end: var(--q-safe-b);
+}
+
+/*
+ * The column the header, the page and the bottom nav share.
+ *
+ * `min-block-size: 0` is the line the whole frame turns on: a flex item's
+ * default minimum is its content, so without it this box refuses to be shorter
+ * than the page inside it, grows past the shell, and hands the scroller a
+ * parent with nothing left to scroll inside. It is the same reason the dialog
+ * frame states it on every level between the surface and its body.
+ */
+.q-app-shell [data-slot='sidebar-inset'] {
+  min-block-size: 0;
+  overflow: hidden;
+}
+
+/*
+ * The one scrolling region, and the only element in the frame that scrolls.
+ *
+ * `overflow-x: auto` and never `hidden` — the shell refuses to be widened by a
+ * child, which is what stops *page-level* horizontal scrolling, while anything
+ * that still overflows stays reachable by wheel, trackpad, drag and keyboard.
+ * A clip here is how content goes missing silently; the staff layout says the
+ * same at greater length over the class this replaces.
+ *
+ * `overscroll-behavior-y: contain` stops a flick that runs off the end of the
+ * page from chaining to the document — which on iOS is what starts the browser's
+ * own pull-to-refresh from inside an app that has no document scroll to give.
+ */
+.q-app-shell [data-slot='shell-scroll'] {
+  min-block-size: 0;
+  flex: 1 1 auto;
+  overflow-x: auto;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+}
+
+/*
+ * A bottom navigation is against the glass, and the shell must stop insetting
+ * it away from one.
+ *
+ * `.q-app-shell`'s `padding-block-end` above is what keeps a *scrolling page*
+ * clear of the home indicator, and it is right whenever the page is the last
+ * thing in the column. A bottom bar is not a page: its fill is supposed to run
+ * under the indicator with only its labels held above, which is what the bar's
+ * own `padding-block-end` already does. Left in place, the shell's padding
+ * would lift the whole bar and leave a strip of bare canvas beneath it — on the
+ * one device family where the strip is 34px tall and impossible to miss.
+ *
+ * Keyed on `data-slot` rather than on `.portal-tab-bar`, so this is a statement
+ * about *a* bottom nav and not about the portal's. A second one added elsewhere
+ * gets the same treatment by carrying the slot.
+ *
+ * ⚠ The width mirrors the bar's own `lg:hidden`, and the two have to move
+ * together. Above `lg` the bar is `display: none` — `:has()` does not care, it
+ * still matches the element — so without the query the shell would drop its
+ * inset at desktop widths, where there is no bar to justify it and `main` runs
+ * to the block-end edge. An iPad in landscape reports ~20px there.
+ */
+@media (width < 64rem) {
+  .q-app-shell:has([data-slot='shell-bottom-nav']) {
+    padding-block-end: 0;
+  }
+}
+
+/*
+ * While a modal is open, the page beneath it does not move.
+ *
+ * A `<dialog>` opened with `showModal()` makes the rest of the document inert —
+ * it cannot be clicked, focused or read — but **inert does not stop it
+ * scrolling**, and the app's scroller is a `<div>` rather than the document, so
+ * none of the browser's own modal scroll handling reaches it either. A drag
+ * that began on the scrim, or one that ran past the end of a dialog whose body
+ * had no more to give, moved the page behind the surface being worked in.
+ *
+ * `overflow: hidden` rather than a class toggled from JavaScript: there is no
+ * open/close lifecycle to keep in step, nothing to leak if a dialog unmounts
+ * mid-animation, and it costs no layout shift because scrollbars are hidden
+ * app-wide already. `scrollTop` is preserved, so the page is exactly where it
+ * was when the dialog closes.
+ *
+ * The dialog's own body keeps its `overscroll-behavior: contain`, which is the
+ * other half of this: that stops the chaining, this stops the drag that never
+ * chained because it started outside.
+ */
+body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
+  overflow: hidden;
+}
+
+/*
+ * ⚠ The client portal opts out of the frame above.
+ *
+ * Its layouts carry the arrangement they have always had: `.portal-shell` is a
+ * `min-h-dvh` column that grows with its content, the *window* scrolls, and
+ * `PortalTabBar` is `fixed` with the page under it reserving `pb-24` of
+ * clearance. None of them mark a `data-slot='shell-scroll'`, so a bounded
+ * shell has nothing to hand the overflow to and clips every portal screen at
+ * the foot of the frame instead — which is what this undoes.
+ *
+ * Scoped rather than deleted: the staff app renders the same `AppShell` and
+ * still wants the frame. Written as an override after the rules it reverses,
+ * rather than as a `:not()` woven into them, so the frame stays stated in one
+ * place and this reads as the exception it is. Unlayered like the rules above,
+ * and more specific, so it wins on both counts.
+ */
+.portal-shell .q-app-shell {
+  block-size: auto;
+  overflow: visible;
+}
+
+.portal-shell .q-app-shell [data-slot='sidebar-inset'] {
+  min-block-size: auto;
+  overflow: visible;
 }
 
 /*
@@ -3229,6 +3486,324 @@
  * they need the forwards fill to hold the end state until the dialog actually
  * closes, and a closing dialog has nothing left to mis-anchor.
  */
+/*
+ * ══ The responsive dialog frame ══
+ *
+ * Every `.q-dialog` in the app — the ones that exist and the ones nobody has
+ * written yet — is a header that stays, a body that scrolls and a footer that
+ * stays, inside a box that is never taller than the screen can show. This block
+ * is the whole of that contract. **A new dialog needs no responsive class of
+ * its own**; composing `Dialog`/`DialogHeader`/`DialogBody`/`DialogFooter` is
+ * what opts it in.
+ *
+ * ## What it replaces, and why it had to move here
+ *
+ * A `<dialog>` opened with `showModal()` gets two declarations from the UA
+ * stylesheet that between them are the source of nearly every "the dialog is
+ * cropped / Save is off screen" report:
+ *
+ * - `max-height: calc(100% - 6px - 2em)`, where `100%` is the *layout*
+ *   viewport. On iOS that is the large viewport — the one with the address bar
+ *   retracted — so the ceiling is taller than the screen actually shows for as
+ *   long as the chrome is up, and taller again by the height of the keyboard
+ *   once one is open.
+ * - `overflow: auto`, which makes **the dialog itself** the scroll container.
+ *   Header and footer are inside it, so both scroll away: the gallery dialog at
+ *   375×812 put its footer 31px past the bottom edge, and at 812×375 — a phone
+ *   held sideways — 468px of it was below the fold with Save among them. The
+ *   surface was reachable, which is why this survived review; it was reachable
+ *   only by scrolling past the title to find the button.
+ *
+ * Five call sites had each independently written `open:flex open:flex-col
+ * max-h-[90dvh] overflow-hidden` to escape that, and about fifteen had not, so
+ * whether a dialog fitted the screen depended on whether whoever wrote it had
+ * been bitten before. Stating it once, here, is the difference between a
+ * convention and an architecture.
+ *
+ * ## The height budget
+ *
+ * `--q-viewport-block` rather than `100dvh`: it is `100dvh` with the keyboard's
+ * own inset already subtracted, so the same expression is right on Android —
+ * where the layout viewport shrinks and the inset is `0px` — and on iOS, where
+ * it does not and the inset carries the whole correction. See the token.
+ *
+ * The gutter and the safe inset differ by shape, and they are variables rather
+ * than two copies of this rule so the difference is one line each:
+ *
+ * - A **centred card** floats clear of all four edges, so it owes clearance at
+ *   both ends of the block axis: the status bar, the home indicator, and 2rem
+ *   of scrim so the page is visibly still behind it.
+ * - A **sheet** is pinned to the block-end edge on purpose. Its fill *should*
+ *   run under the home indicator — the safe-area padding further up this file
+ *   moves its content, not its background — so it owes clearance at the top
+ *   only, and taking `--q-safe-b` off its ceiling as well would cost a phone
+ *   ~34px of usable height for nothing.
+ *
+ * ## `inset-block-end`, and why the cap alone is not enough
+ *
+ * A modal `<dialog>` is `position: fixed` with `inset: 0` from the UA, so its
+ * margins are resolved against the *layout* viewport. On iOS the keyboard does
+ * not change that box, so a shorter sheet still sits on the bottom edge of it —
+ * behind the keys, at exactly the height that was just freed up. Moving the
+ * box's block-end edge up by the keyboard's own inset is what puts the sheet
+ * back on top of the keyboard, and re-centres a centred card in what is left.
+ *
+ * A `transform` would be the obvious way to lift it and is deliberately not
+ * used: a transformed element becomes the containing block for every `fixed`
+ * descendant, and the select, combobox and popover positioners are portaled
+ * *into* this dialog (see `useDialogContainer`) and are `position: fixed` on a
+ * coarse pointer. Lifting the dialog that way would drag every popup in it out
+ * of position. `inset-block-end` moves the box without creating one.
+ *
+ * ## The fallback, for a dialog with no body
+ *
+ * `overflow: hidden` is only safe where something *else* has taken on the
+ * scrolling. Where a dialog has no `dialog-body` to hand it to — the portal's
+ * flame celebration is one — clipping would make its overflow unreachable
+ * rather than merely awkward, which is worse than what the UA does. So the
+ * `:has()` pair below gives the framed dialog `hidden` and leaves everything
+ * else scrolling as a whole, still under the ceiling and so still never
+ * cropped. The two exclusions are the ones every geometry rule in this file
+ * carries: a drawer that owns its own frame opts out by class.
+ */
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer) {
+  /* The centred card's budget; the sheet narrows it in the two queries below. */
+  --q-dialog-block-gutter: 2rem;
+  --q-dialog-block-safe: calc(var(--q-safe-t) + var(--q-safe-b));
+
+  display: flex;
+  flex-direction: column;
+  /*
+    `min()` of two ceilings, and the order does not matter — whichever is
+    smaller wins, which is the point.
+
+    The second is the safety one and cannot be switched off. The first is a
+    call site's own taste, for a surface that should stop short of the screen
+    even when there is room — set `[--q-dialog-max-block:32rem]` in the class
+    list. **A `max-h-[…]` utility will not work**: this declaration is unlayered
+    and beats every Tailwind utility on the element, so a call site that reached
+    for one would find it silently doing nothing. The variable is the seam,
+    exactly as `--q-dialog-sheet-width` is for the width.
+  */
+  max-block-size: min(
+    var(--q-dialog-max-block, 100dvh),
+    calc(var(--q-viewport-block) - var(--q-dialog-block-safe) - var(--q-dialog-block-gutter))
+  );
+  inset-block-end: var(--q-keyboard-inset);
+}
+
+/*
+ * The sheet's budget, at the two widths a sheet is one at.
+ *
+ * `:not([data-placement])` is `ConfirmDialog`, which predates the attribute and
+ * is a `.q-dialog` written by hand: below `sm` it is `mt-auto mb-0` like every
+ * other sheet, so it wants the sheet's ceiling rather than the card's.
+ */
+@media (width < 40rem) {
+  .q-dialog[open][data-placement='sheet']:not(.planner-context-sheet):not(.app-navigation-drawer),
+  .q-dialog[open]:not([data-placement]):not(.planner-context-sheet):not(.app-navigation-drawer) {
+    --q-dialog-block-gutter: 1.5rem;
+    --q-dialog-block-safe: var(--q-safe-t);
+  }
+}
+
+/*
+ * …and on a tablet, where the sheet rule further down this file keeps the shape
+ * at any width. Same pairing as every other coarse-pointer rule here: the
+ * question is whether the surface is pinned to the block-end edge, and on touch
+ * hardware `placement="sheet"` still is.
+ */
+@media (pointer: coarse) {
+  .q-dialog[open][data-placement='sheet']:not(.planner-context-sheet):not(.app-navigation-drawer) {
+    --q-dialog-block-gutter: 1.5rem;
+    --q-dialog-block-safe: var(--q-safe-t);
+  }
+}
+
+/*
+ * ⚠ The `:has()` is **positional** — a body in one of the two places the frame
+ * actually drives, and not any descendant. A dialog may contain another one:
+ * the custom-food dialog renders inside the dish editor's own form, so a bare
+ * `:has([data-slot='dialog-body'])` let the *nested, closed* dialog's body
+ * answer for its host, and the host was clipped on the strength of a scrollport
+ * that was not its own and was `display: none` besides.
+ */
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer):has(
+    > [data-slot='dialog-body'],
+    > :where(form, div) > [data-slot='dialog-body']
+  ) {
+  overflow: hidden;
+}
+
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer):not(
+    :has(> [data-slot='dialog-body'], > :where(form, div) > [data-slot='dialog-body'])
+  ) {
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+/*
+ * The wrapper between the dialog and its slots.
+ *
+ * Most dialogs in this app do not put the three slots directly inside the
+ * `<dialog>`: about half wrap them in the `<form>` they submit through, and the
+ * rest — `ConfirmDialog`, the custom-food dialog, which cannot use a `<form>`
+ * because it renders inside another one — in a plain `<div>`. Left as a block
+ * box that wrapper absorbs the flex column and the body has no bounded parent
+ * to scroll inside, so the frame has to pass through it.
+ *
+ * `:has()` rather than `> form, > div`, so it lands on the element that
+ * actually holds the slots and not on a sibling a dialog happens to also
+ * render — a hidden input, a live region, the flame celebration's canvas.
+ *
+ * ⚠ **`:not([hidden])` is load-bearing.** `[hidden]` hides an element through
+ * `display: none` in the UA stylesheet, and any author `display` beats it —
+ * which is the same trap `open:flex` on a `<dialog>` exists to exploit, working
+ * against us here. The new-week dialog keeps its choices mounted and `hidden`
+ * while a week generates, so that its server action's subtree is not unmounted
+ * mid-request; without this the frame would put them back on screen underneath
+ * the loading state.
+ */
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer)
+  > :where(form, div):not([hidden]):has(
+    > :where([data-slot='dialog-header'], [data-slot='dialog-body'], [data-slot='dialog-footer'])
+  ) {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  /*
+    The line the whole frame turns on. A flex item's default `min-block-size` is
+    `auto`, which resolves to its content's size — so a wrapper full of fields
+    refuses to shrink below them, pushes past the ceiling above, and hands the
+    body a parent with nothing left to scroll inside. Every level between the
+    dialog and the scrollport needs this, which is why it is stated here and
+    again on the body itself.
+  */
+  min-block-size: 0;
+}
+
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer)
+  > :where([data-slot='dialog-header'], [data-slot='dialog-footer']),
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer)
+  > :where(form, div)
+  > :where([data-slot='dialog-header'], [data-slot='dialog-footer']) {
+  /* Neither grows nor shrinks: these are the two rows that must always be there. */
+  flex: 0 0 auto;
+}
+
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer)
+  > [data-slot='dialog-body'],
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer)
+  > :where(form, div)
+  > [data-slot='dialog-body'] {
+  flex: 1 1 auto;
+  min-block-size: 0;
+  /*
+    `auto` on both axes, not `overflow-y: auto` beside an `overflow-x: hidden`.
+    A clip is how content goes missing silently — the app shell says the same
+    thing at greater length over its own `overflow-x-auto` — and the two axes
+    cannot disagree anyway: a box with one axis `visible` and the other not
+    computes the visible one to `auto` by itself.
+  */
+  overflow: auto;
+  /*
+    A flick that runs off the end of the body is the body's gesture. Left to
+    chain it scrolls the page behind the scrim, or on iOS starts the browser's
+    own pull-to-refresh, from inside a modal.
+  */
+  overscroll-behavior: contain;
+  /*
+    Where a focused field lands when the keyboard pushes it into view. Without
+    it the browser stops with the input flush against the edge of the scrollport
+    and under the header's own shadow.
+  */
+  scroll-padding-block: 1rem;
+}
+
+/*
+ * ══ The same frame, for `Sheet` ══
+ *
+ * `Sheet` is a Base UI dialog rather than a native `<dialog>`, so it inherits
+ * none of the UA geometry the block above is correcting — and none of the
+ * ceiling either. `SheetContent`'s own utilities give the block-axis sides
+ * `h-auto`, which means "as tall as the content", with nothing to stop it: a
+ * bottom sheet with a long list grew straight off the top of the screen and its
+ * first rows were unreachable, because a `fixed` box pinned to the block-end
+ * edge overflows *upward* and no scrollbar exists in that direction.
+ *
+ * The three numbers here are the dialog's, deliberately: a bottom sheet and a
+ * `placement="sheet"` dialog are the same surface to a reader, and a reader who
+ * met them at two different heights would be right to call it a bug.
+ */
+[data-slot='sheet-content'] {
+  /*
+    Composed the same way `.q-dialog`'s ceiling is, and for the same reason: the
+    safety bound cannot be switched off, and a call site that wants its sheet
+    shorter still sets `[--q-sheet-max-block:85dvh]` rather than a `max-h-[…]`
+    utility this unlayered rule would beat.
+  */
+  max-block-size: min(
+    var(--q-sheet-max-block, 100dvh),
+    calc(var(--q-viewport-block) - var(--q-sheet-block-gutter, 0px))
+  );
+}
+
+[data-slot='sheet-content'][data-side='bottom'] {
+  /* Clear of the status bar, with 1.5rem of scrim left showing above it. */
+  --q-sheet-block-gutter: calc(var(--q-safe-t) + 1.5rem);
+  /* Lifted above the keyboard on iOS; `0px` and therefore inert everywhere else. */
+  inset-block-end: var(--q-keyboard-inset);
+}
+
+[data-slot='sheet-content'][data-side='top'] {
+  --q-sheet-block-gutter: calc(var(--q-safe-b) + 1.5rem);
+}
+
+/*
+ * The inline rails span the whole block axis, so the keyboard has to come out
+ * of their *height* rather than push them up.
+ *
+ * `block-size: auto` replaces the `h-full` utility on them, and is the same
+ * thing while no keyboard is open: a `fixed` box with both block insets set and
+ * an auto size is stretched to fill exactly as `height: 100%` stretches it.
+ * With one open, the insets shrink and the rail shrinks with them, which
+ * `height: 100%` would refuse to do.
+ */
+[data-slot='sheet-content'][data-side='inline-start'],
+[data-slot='sheet-content'][data-side='inline-end'] {
+  inset-block: 0 var(--q-keyboard-inset);
+  block-size: auto;
+}
+
+/*
+ * `SheetBody` is the scrollport, exactly as `DialogBody` is.
+ *
+ * The `:has()` pair is the dialog's too, and for the same reason: a sheet that
+ * has named its scrolling region is clipped so that nothing but that region
+ * moves, and one that has not scrolls as a whole — under the ceiling above, so
+ * still never cropped — rather than having its overflow clipped away.
+ */
+[data-slot='sheet-content']:has(> [data-slot='sheet-body']) {
+  overflow: hidden;
+}
+
+[data-slot='sheet-content']:not(:has(> [data-slot='sheet-body'])) {
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+[data-slot='sheet-body'] {
+  flex: 1 1 auto;
+  min-block-size: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scroll-padding-block: 1rem;
+}
+
+[data-slot='sheet-content'] > :where([data-slot='sheet-header'], [data-slot='sheet-footer']) {
+  flex: 0 0 auto;
+}
+
 /*
  * G. Seam is the standard dialog transition. The surface reveals from its own
  * horizontal midpoint, so the same motion belongs to a phone sheet and a
@@ -4290,5 +4865,694 @@
   .q-guide-card-bottom,
   .q-guide-card-top {
     animation: none;
+  }
+}
+
+/*
+ * The surface the tour draws on.
+ *
+ * This class was applied by `GuideOverlay` for a long time with no rule behind
+ * it anywhere in this file. It has one now, and it is doing the single cheapest
+ * thing available for the fault that sent us here.
+ *
+ * `contain: paint` promises the browser that nothing inside this box paints
+ * outside it. The box is `fixed inset-0`, so "outside it" is "off screen" — and
+ * what is painting off screen is the spotlight's `120vmax` box-shadow, whose
+ * spread is deliberately larger than any viewport (see the note on it above).
+ * Without the promise, a phone rasterises that whole spread; with it, the work
+ * is clipped to the screen. On the two steps with the largest holes — the
+ * calendar toolbar and the calendar grid — that is the difference between
+ * finishing a frame and not, and a spotlight that misses frames is a spotlight
+ * that visibly shakes.
+ *
+ * ⚠ `contain: paint` also makes this element the containing block for any
+ * `position: fixed` descendant, which the docked card is. That is a no-op
+ * *here* and only here: this box is `fixed inset-0`, so it already is the
+ * viewport, and the card resolves its edges against exactly the same rectangle
+ * either way. Do not copy this line onto a surface that is not full-screen.
+ */
+.q-guide-surface {
+  contain: paint;
+}
+
+/*
+ * The floating card glides between steps instead of cutting.
+ *
+ * Only on the floating layout: the docked sheet keeps its edge from one step to
+ * the next and has nothing to travel. `top`/`left` rather than a transform
+ * because those are the two properties `placeCard` produces, and a transform on
+ * top of them would be a second coordinate system to keep in agreement with the
+ * first.
+ *
+ * These are laid-out properties, so this is not a compositor animation — and it
+ * does not need to be. It runs once per step, on one element, on the screens
+ * wide enough to have chosen this layout in the first place. The thing that had
+ * to stop costing layout per frame is the hole, and that is handled in
+ * `Spotlight` rather than here.
+ *
+ * `--duration-travel` (420ms) is the app's existing long-travel duration, and
+ * the right one: the card is crossing the screen, not nudging.
+ */
+.q-guide-card:not(.q-guide-card-top):not(.q-guide-card-bottom) {
+  transition:
+    top var(--duration-travel) var(--ease-sweep),
+    left var(--duration-travel) var(--ease-sweep);
+}
+
+/*
+ * The card's contents, replaced whole on every step.
+ *
+ * A short rise and fade, deliberately shorter than the hole's travel: the words
+ * should have settled by the time the reader's eye follows the spotlight back to
+ * them. `q-guide-card-step` is remounted by its React key, which is what
+ * restarts this — see the note at the call site for why the *card* is not keyed.
+ */
+.q-guide-card-step {
+  animation: q-guide-step-in var(--duration-arc) var(--ease-sweep) backwards;
+}
+
+@keyframes q-guide-step-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.375rem);
+  }
+}
+
+/*
+ * Reduced motion drops every one of the three travels above and keeps the
+ * surfaces. The hole's own travel is suspended in `Spotlight`, which checks the
+ * same query in script — `element.animate` is not reached by a stylesheet.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .q-guide-card:not(.q-guide-card-top):not(.q-guide-card-bottom) {
+    transition: none;
+  }
+
+  .q-guide-card-step {
+    animation: none;
+  }
+}
+
+/*
+ * ══ The 404 page's entrance, and its ghost ══
+ *
+ * `src/app/[locale]/not-found.tsx`. The screen assembles itself once, from the
+ * outside in: the logo and the two digits arrive first, the ghost drops into
+ * the gap they leave, then the sentence and the button. Nothing here is a
+ * response to the reader — it is the page introducing itself — so the timings
+ * sit above the app's `--duration-*` scale, which measures reactions.
+ *
+ * `--duration-travel` (420ms) is the longest of those and the one this borrows
+ * for the pieces that only fade and rise; the digits and the ghost, which cross
+ * more distance, are given their own longer numbers.
+ *
+ * Every keyframe below animates `translate` and `opacity`, never `transform`.
+ * That is a hard requirement rather than a style: three of these classes land
+ * on elements *inside* an SVG, where `transform-origin` does not resolve to the
+ * viewBox the way it does on the root element. Measured in this very frame, a
+ * CSS flip on an inner `<text>` pivoted on x = 0 rather than its own centre and
+ * threw the glyph a full frame-width sideways. The `translate` property takes
+ * no origin, so there is nothing left to resolve.
+ *
+ * `backwards` on every entrance, never `both` — the same rule the route stage
+ * and the dialogs above follow, and for the same reason: a forwards fill leaves
+ * the animated properties applied for as long as the element is mounted, which
+ * makes it the containing block for any `position: fixed` descendant it has.
+ */
+.q-404-enter {
+  animation: q-404-enter var(--duration-travel) var(--ease-sweep) backwards;
+}
+
+/*
+ * The stagger, as delays rather than as a timeline. Three steps is few enough
+ * that naming them costs less than a keyframe per position, and a call site
+ * reads as "this one is second" instead of as a number.
+ */
+.q-404-enter-2 {
+  animation-delay: 140ms;
+}
+
+.q-404-enter-3 {
+  animation-delay: 220ms;
+}
+
+@keyframes q-404-enter {
+  from {
+    opacity: 0;
+    translate: 0 1.25rem;
+  }
+}
+
+/*
+ * The digits swing in from the outside edges of the frame.
+ *
+ * `left`/`right` in these names are physical, and here that is the correct
+ * pair. The row is a symmetric `4 … 4`: what each digit is doing is entering
+ * from the near edge of the picture, which is the same edge in both scripts.
+ * There is no reading order in it to mirror.
+ */
+.q-404-digit-out-left {
+  animation: q-404-digit-out-left 640ms var(--ease-sweep) backwards;
+}
+
+.q-404-digit-out-right {
+  animation: q-404-digit-out-right 640ms var(--ease-sweep) backwards;
+}
+
+@keyframes q-404-digit-out-left {
+  from {
+    opacity: 0;
+    translate: -40px 14px;
+  }
+}
+
+@keyframes q-404-digit-out-right {
+  from {
+    opacity: 0;
+    translate: 40px 14px;
+  }
+}
+
+/*
+ * The ghost: one entrance, then a drift that never stops.
+ *
+ * Two animations on one property, and the order in the list is what makes it
+ * work — the later one wins wherever both apply. The drift is delayed by
+ * exactly the entrance's own duration and carries no backwards fill, so it is
+ * inert until the moment the entrance finishes and takes over on the frame
+ * after. The seam is invisible because both end and begin at `translate: 0 -5px`.
+ */
+.q-404-ghost {
+  animation:
+    q-404-ghost-in 520ms var(--ease-sweep) backwards,
+    q-404-ghost-drift 2400ms ease-in-out 520ms infinite alternate;
+}
+
+@keyframes q-404-ghost-in {
+  from {
+    opacity: 0;
+    translate: 0 16px;
+  }
+  to {
+    translate: 0 -5px;
+  }
+}
+
+@keyframes q-404-ghost-drift {
+  from {
+    translate: 0 -5px;
+  }
+  to {
+    translate: 0 5px;
+  }
+}
+
+/*
+ * Reduced motion keeps the whole picture and drops all of it moving. The drift
+ * is the clearest case in the file — an animation with no end state at all —
+ * and the entrances are a screen assembling itself in front of someone who
+ * asked for that not to happen.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .q-404-enter,
+  .q-404-digit-out-left,
+  .q-404-digit-out-right,
+  .q-404-ghost {
+    animation: none;
+  }
+}
+
+/*
+ * ══ The splash screen ══
+ *
+ * `src/features/brand/splash-screen.tsx`, mounted by both app shells and by
+ * neither public screen. All of the motion is here; the component draws two
+ * SVGs, plays three blips, and takes the element out of the DOM once the exit
+ * below has finished. That split is a safety property rather than a preference
+ * — the tile clears itself with no script at all — and the note in the
+ * component explains why it is worth the duplication. The numbers on the two
+ * sides have to agree. **Change one, change the other.**
+ *
+ * The timeline, in one place. Milliseconds from first paint:
+ *
+ *     0    the mark comes in off the near edge     ⎫ q-splash-hop, three arcs
+ *   300    first landing                           ⎬ across, each one shorter,
+ *   600    second landing                          ⎪ over q-splash-grow, which
+ *   900    it arrives in the middle, full size     ⎭ takes it 0.42 → 1
+ *   900    the arrival settles on its feet           q-splash-land
+ *   920    the name rises underneath it              q-splash-word-in
+ *  1620    the tile fades                            q-splash-out
+ *  1920    the component unmounts
+ *
+ * None of this is on the app's `--duration-*` scale. Those measure *reactions*
+ * — a field arcing, a switch knob travelling — and are tens of milliseconds
+ * because somebody is waiting on the other end of them. This screen is not a
+ * reaction to anyone; it is the app introducing itself, and the number that
+ * matters is that the whole introduction is over inside two seconds.
+ *
+ * `--ease-sweep` is not used for the arcs either, and cannot be: one curve
+ * cannot describe a hop. A rise decelerates into its apex and a fall
+ * accelerates out of it, so the two halves of every arc carry opposite easings,
+ * written per keyframe. The two pieces that only fade — the name and the tile —
+ * do use the app's curve, because they are ordinary entrances.
+ */
+
+.q-splash {
+  /*
+   * The mark's edge length. Everything else on the screen is derived from it,
+   * so this one value is the composition's scale — the name's width, the clear
+   * space under the mark, how far out it starts and how high it hops.
+   *
+   * `clamp` rather than a breakpoint: the tile is full-bleed on a 360px phone
+   * and on a 27" display, and a mark that took a fixed fraction of either would
+   * be a postage stamp on one and a wall on the other. 30vw is the phone's
+   * answer — with the name at 1.7 × below it, that puts the composition at
+   * roughly half the width of the screen, which is the presence the reference
+   * lockup has. The two bounds are where a fraction stops being the answer.
+   *
+   * `min()` with a height fraction because a splash has to survive a phone
+   * turned sideways, where 30vw is most of the screen's *height*. The stacked
+   * composition comes to about 2.1 × the mark, so 20dvh keeps it inside a
+   * landscape viewport with room to spare; on every portrait screen the width
+   * fraction is the smaller of the two and this term does nothing.
+   */
+  --q-splash-mark-size: clamp(96px, min(30vw, 20dvh), 140px);
+
+  /*
+   * How far to the side of its resting place the mark starts.
+   *
+   * Half the viewport puts the mark's *centre* on the edge with half of it
+   * still showing, so something has to be added to that. The 0.4 is what — and
+   * it is 0.4 rather than the 0.6 this needed before the figure started small:
+   * at `q-splash-grow`'s opening scale the mark is 42% of its width, so 0.21 of
+   * a mark-size clears the edge and everything past that is margin. Worked
+   * through, the first frame sits 0.19 × the mark's size beyond the edge at
+   * every viewport the `clamp` above can produce — off screen on all of them,
+   * and not so far off that the first leap is spent out of sight.
+   */
+  --q-splash-travel: calc(50vw + var(--q-splash-mark-size) * 0.4);
+
+  /*
+   * Which side that is, as a sign the keyframes multiply by.
+   *
+   * The mark comes in from the **reading-start edge** — the left in English,
+   * the right in Arabic — so it travels the way the page is read rather than
+   * against it. Anything else and the figure enters by crossing the direction
+   * every other thing on the screen is going.
+   *
+   * A sign rather than the pair of `-ltr`/`-rtl` keyframe sets used by the
+   * route stage and the app drawer, and the difference is worth stating: those
+   * mirror three-keyframe fades, where a duplicate is cheap. This is an
+   * eight-stop arc with per-keyframe easings, and a second copy of it is a
+   * second thing to retune every time the bounce is adjusted — one of which
+   * would eventually not be. The variable is not animated, so it is substituted
+   * once per element and costs nothing at run time.
+   */
+  --q-splash-from: -1;
+
+  /*
+   * The apex of the first hop, and the unit the other two are fractions of.
+   *
+   * `min` against the viewport because the mark rests *above* the middle — the
+   * name is under it — so its headroom is well under half the screen, and on a
+   * phone held sideways it is a couple of hundred pixels at most. 1.15 × the
+   * mark is the hop the figure wants; 15dvh is the hop the screen can hold, and
+   * the smaller of the two is the one that does not clip the top of the arc.
+   */
+  --q-splash-hop-height: min(calc(var(--q-splash-mark-size) * 1.15), 15dvh);
+
+  /*
+   * The tile's two colours, and they are two rather than a theme's worth.
+   *
+   * Neither of them moves with the theme, which is the point: the staff app
+   * follows the system and the portal is pinned to light, and a brand tile that
+   * came up white for one of them would not be the brand tile. `--n-0` is a
+   * primitive, so it is `#FFFFFF` everywhere by construction; `--primary` is a
+   * semantic token, but it is `--green-400` in the light block and `--green-400`
+   * again in `.dark` — §15 keeps brand hues out of the remap. Between them they
+   * are the white-on-green reversal `public/brand/mark-on-color.svg` already
+   * draws for a coloured icon.
+   *
+   * `--q-splash-ground` is also what the mark's eyes are painted in — they are
+   * holes, so they have to be exactly the green behind them. The component
+   * reads this variable rather than naming a colour, so the two cannot drift.
+   */
+  --q-splash-ground: var(--primary);
+  --q-splash-figure: var(--n-0);
+
+  position: fixed;
+  inset: 0;
+  /*
+   * Above everything. The app's scale tops out at 50 — the portal's tab bar is
+   * 40, its flame celebration 50 — and this is the one surface that is in front
+   * of a whole application rather than in front of a page. It is also the only
+   * one that removes itself after two seconds, so nothing else ever has to rank
+   * against it.
+   */
+  z-index: 60;
+  display: grid;
+  place-items: center;
+
+  /*
+   * The tile never takes a tap.
+   *
+   * A reader who knows where they are going should reach the app through it,
+   * and that same tap is what cuts the splash short (`data-skip`, below). An
+   * overlay that swallowed the first gesture would be charging two seconds of
+   * attention for a screen that has nothing to ask.
+   */
+  pointer-events: none;
+
+  /*
+   * `overflow: hidden` because the mark spends its first frames past the side
+   * edge, and a fixed element's overflow still counts toward the document's
+   * scrollable area in some engines — a splash that gave the page a horizontal
+   * scrollbar for a third of a second would be a jump in the layout underneath
+   * it.
+   */
+  overflow: hidden;
+
+  /*
+   * A flat fill and a wash over it, in that order, so the tile is still the
+   * brand green if the gradient is ever the thing that fails.
+   *
+   * The wash is one step down the same ramp, centred a little above the middle
+   * — behind the mark's resting place, so the figure sits in the lightest part
+   * of the field and the corners fall away from it. Full-bleed `--primary` on
+   * its own is a lot of a very saturated green; this is the same colour with
+   * somewhere to look.
+   */
+  background-color: var(--q-splash-ground);
+  background-image: radial-gradient(115% 85% at 50% 42%, var(--primary) 0%, var(--green-500) 100%);
+
+  animation: q-splash-out 300ms var(--ease-sweep) 1620ms forwards;
+}
+
+/*
+ * Arabic reads from the right, so the mark arrives from the right.
+ *
+ * `[dir]` on the document element and not a `:lang()` or a class: direction is
+ * what this is actually about, it is already set on `<html>` by the locale
+ * layout, and the portal and the staff app inherit it without either of them
+ * having to pass anything down.
+ */
+[dir='rtl'] .q-splash {
+  --q-splash-from: 1;
+}
+
+/*
+ * The reader cut it short. Restating the whole shorthand — rather than only the
+ * delay — is what restarts the exit from this frame instead of resuming a
+ * countdown that has most of a second left on it.
+ */
+.q-splash[data-skip] {
+  animation: q-splash-out 160ms var(--ease-sweep) forwards;
+}
+
+/*
+ * Mark over name, centred as a pair.
+ *
+ * The mark's resting place is therefore a little above the middle of the
+ * screen, not on it — which is what "in the middle" means for a composition of
+ * two things, and what the lockup does horizontally. The name holds its box
+ * from the first frame even while it is invisible, so the column is already its
+ * final height and the mark's landing spot cannot move underneath it.
+ */
+.q-splash-figure {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* Proportional, not a step off the spacing scale: this gap is the clear space
+     inside a logo lockup rather than the distance between two components, so it
+     has to hold its ratio as the mark grows from 96px to 140px. */
+  gap: calc(var(--q-splash-mark-size) * 0.22);
+}
+
+/* The travel, across and up. `translate` only — the element below owns
+   `scale` and `rotate`, so all three compose instead of overwriting. */
+.q-splash-mark {
+  inline-size: var(--q-splash-mark-size);
+  animation: q-splash-hop 900ms linear;
+}
+
+/*
+ * The approach: small at the far edge, full size by the time it stops.
+ *
+ * A third element and a third animation, because `scale` is already spoken for
+ * on the one below — the squash and the landing both write it, and a fourth
+ * animation on the same property would simply win over them rather than
+ * combining. Nested, the two scales multiply, which is exactly the arithmetic
+ * wanted: the figure is 42% of its size *and* squashing 1.16 × 0.84 on the
+ * first landing.
+ *
+ * The stops are the three landings. 0.42 → 0.66 → 0.87 → 1, so the steps
+ * shorten (0.24, 0.21, 0.13) the way the travel and the hop heights do — it
+ * reads as something arriving from a distance and settling rather than as a
+ * box being tweened. The last stop is exactly 1, which is also this element's
+ * resting style and the size its layout box has held all along, so the arrival
+ * is the drawing reaching its own dimensions and nothing reflows.
+ *
+ * Same `transform-origin` as the squash below, and it matters for the same
+ * reason: growing from the foot keeps the figure standing on one ground line
+ * across all three landings. Growing from the centre would have it rising as it
+ * grew, which is a different — and much less legible — piece of information.
+ */
+.q-splash-grow {
+  display: block;
+  transform-origin: 50% 100%;
+  animation: q-splash-grow 900ms linear;
+}
+
+@keyframes q-splash-grow {
+  0% {
+    scale: 0.42;
+  }
+  33.33% {
+    scale: 0.66;
+  }
+  66.67% {
+    scale: 0.87;
+  }
+  100% {
+    scale: 1;
+  }
+}
+
+/*
+ * The squash, on its own element and its own property so the two compose
+ * instead of the later one erasing the earlier.
+ *
+ * `transform-origin` at the foot of the mark: a landing flattens against the
+ * ground it hit, so the bottom edge is the part that must not move. Anything
+ * else reads as the mark being pressed from both sides in mid-air.
+ *
+ * Two animations on `scale`, sequenced the way `.q-404-ghost` sequences its
+ * two: the second is delayed by exactly the first's run and carries no
+ * backwards fill, so it is inert until the moment the hops finish and takes
+ * over on the frame after. Both end at `scale: 1`, which is also this element's
+ * resting style — so neither needs a forwards fill, and a browser that drops
+ * the animation shows a mark at its proper size rather than a squashed one.
+ */
+.q-splash-body {
+  display: block;
+  transform-origin: 50% 100%;
+  animation:
+    q-splash-squash 300ms linear 3,
+    q-splash-land 300ms cubic-bezier(0.22, 0.9, 0.3, 1) 900ms;
+}
+
+.q-splash-body svg {
+  display: block;
+  inline-size: 100%;
+  block-size: auto;
+}
+
+/*
+ * The name. 1.7 × the mark, which is a little wider than the lockup sets it
+ * beside the mark (1.39 ×) — stacked, the lettering has the full width of the
+ * composition to hold, and at the lockup's ratio it reads as a caption under a
+ * logo rather than as the other half of one.
+ *
+ * `block-size: auto` and no ratio of its own: the `viewBox` gives the element an
+ * intrinsic one, so the height follows the width and cannot be set wrong here.
+ */
+.q-splash-word {
+  display: block;
+  inline-size: calc(var(--q-splash-mark-size) * 1.7);
+  block-size: auto;
+  animation: q-splash-word-in 380ms var(--ease-sweep) 920ms backwards;
+}
+
+/*
+ * Three hops across the tile, each shorter than the last, ending in the middle.
+ *
+ * Both axes are in the one `translate`, which is what makes it an arc rather
+ * than a slide with a bounce bolted on. Read the two columns separately:
+ *
+ *   %        across            up          what it is
+ *   0        1.00              0           off the reading-start edge, crouched
+ *   16.67    0.70            −1.00         apex of the leap that carries it in
+ *   33.33    0.42              0           first landing, fully on screen
+ *   50       0.28            −0.62         apex, lower
+ *   66.67    0.16              0           second landing
+ *   83.33    0.07            −0.34         apex, lower again
+ *   100      0                 0           the middle
+ *
+ * The across column is multiplied by `--q-splash-from`, which is −1 in English
+ * and +1 in Arabic — the sign is the whole of the mirroring. Its steps shorten
+ * (0.58, 0.26, 0.16) and the apexes drop with them, so the figure reads as
+ * arriving with momentum and spending it, rather than as three identical hops.
+ *
+ * Every rise carries a decelerating curve and every fall an accelerating one,
+ * declared on the keyframe the segment *starts* at, because that is the one
+ * that governs it. Getting those two the wrong way round is the difference
+ * between a hop and a hover. They ease the horizontal too, which a thrown
+ * object would not do — that is a stylised hop rather than a ballistic one, and
+ * it is the reading an animator would give it.
+ */
+@keyframes q-splash-hop {
+  0% {
+    translate: calc(var(--q-splash-travel) * var(--q-splash-from)) 0;
+    animation-timing-function: cubic-bezier(0.22, 0.62, 0.36, 1);
+  }
+  16.67% {
+    translate: calc(var(--q-splash-travel) * var(--q-splash-from) * 0.7)
+      calc(var(--q-splash-hop-height) * -1);
+    animation-timing-function: cubic-bezier(0.6, 0, 0.78, 0.42);
+  }
+  33.33% {
+    translate: calc(var(--q-splash-travel) * var(--q-splash-from) * 0.42) 0;
+    animation-timing-function: cubic-bezier(0.22, 0.62, 0.36, 1);
+  }
+  50% {
+    translate: calc(var(--q-splash-travel) * var(--q-splash-from) * 0.28)
+      calc(var(--q-splash-hop-height) * -0.62);
+    animation-timing-function: cubic-bezier(0.6, 0, 0.78, 0.42);
+  }
+  66.67% {
+    translate: calc(var(--q-splash-travel) * var(--q-splash-from) * 0.16) 0;
+    animation-timing-function: cubic-bezier(0.22, 0.62, 0.36, 1);
+  }
+  83.33% {
+    translate: calc(var(--q-splash-travel) * var(--q-splash-from) * 0.07)
+      calc(var(--q-splash-hop-height) * -0.34);
+    animation-timing-function: cubic-bezier(0.6, 0, 0.78, 0.42);
+  }
+  100% {
+    translate: 0 0;
+  }
+}
+
+/*
+ * One hop's worth of squash and stretch, run three times.
+ *
+ * `0%` and `100%` are the same flattened shape on purpose: it is the impact at
+ * the end of one arc and the crouch the next one launches from, so the seam
+ * between iterations is the landing itself and there is nothing to hide.
+ *
+ * The volume is roughly preserved through all of it — wider is shorter, taller
+ * is narrower — because a mark that gains area on impact reads as inflating
+ * rather than as hitting something.
+ *
+ * `rotate` rides along now that the travel is sideways: the figure tips into
+ * the direction it is going at the top of each arc and is upright again on
+ * every landing. Five degrees, which is small enough that nobody reads it as
+ * the logo spinning and large enough that the hop has a body leaning over its
+ * feet. It is a third individual transform property, so it composes with the
+ * `scale` here and the `translate` on the parent without any of the three
+ * overwriting the others — and it pivots on the same `transform-origin`, which
+ * is why it looks like leaning rather than like tumbling.
+ *
+ * The sign is `--q-splash-from` negated: the mark travels *towards* the middle,
+ * which is the opposite way from the edge it came in over.
+ */
+@keyframes q-splash-squash {
+  0%,
+  100% {
+    scale: 1.16 0.84;
+    rotate: 0deg;
+  }
+  12% {
+    scale: 0.9 1.12;
+  }
+  38% {
+    scale: 1 1;
+  }
+  50% {
+    rotate: calc(5deg * var(--q-splash-from) * -1);
+  }
+  74% {
+    scale: 1 1;
+  }
+  92% {
+    scale: 0.93 1.08;
+  }
+}
+
+/* The last impact, and the only one that is allowed to settle. */
+@keyframes q-splash-land {
+  0% {
+    scale: 1.18 0.82;
+  }
+  45% {
+    scale: 0.96 1.05;
+  }
+  100% {
+    scale: 1 1;
+  }
+}
+
+/*
+ * The name arrives *because* the mark landed — it starts on the same frame as
+ * the settle, and rises the short distance a thing knocked loose would.
+ * `backwards`, so it is hidden through the delay rather than sitting there
+ * waiting to move.
+ */
+@keyframes q-splash-word-in {
+  from {
+    opacity: 0;
+    translate: 0 0.75rem;
+  }
+}
+
+/*
+ * The tile leaves. `visibility` is in here as well as `opacity` because this
+ * fill has a forwards fill and outlives its own animation: an element at zero
+ * opacity is still a hit-testable, focusable, screen-reader-visible element,
+ * and the component's `animationend` handler is the *usual* way this one gets
+ * removed rather than the guaranteed one.
+ */
+@keyframes q-splash-out {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+/*
+ * Reduced motion keeps the whole screen and drops every part of it that moves.
+ *
+ * The mark is simply in the middle with its name under it from the first frame
+ * — which is the picture the animation was assembling, so nothing is lost but
+ * the assembling. Both entrances declare only a `from`, so removing them leaves
+ * each element at its resting style and there is no state to restore.
+ *
+ * The hold is shortened with them. Two seconds is the length of the
+ * choreography; with no choreography left it is two seconds of a green
+ * rectangle, and the whole reason to look at it has been turned off.
+ *
+ * The sound goes too, in `splash-sound.ts` — the same query, read from script,
+ * with the reasoning for treating a motion preference as a sound preference.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .q-splash-mark,
+  .q-splash-grow,
+  .q-splash-body,
+  .q-splash-word {
+    animation: none;
+  }
+
+  .q-splash {
+    animation: q-splash-out 240ms var(--ease-sweep) 760ms forwards;
   }
 }
