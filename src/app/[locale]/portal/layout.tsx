@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 
+import { SplashScreen } from '@/features/brand/splash-screen';
 import { PortalTheme } from '@/features/portal/components/portal-theme';
 import { PORTAL_THEME_COLOR } from '@/features/portal/pwa/brand';
 import { ServiceWorkerRegister } from '@/features/portal/pwa/service-worker-register';
@@ -134,6 +135,19 @@ export default async function PortalLayout({ children, params }: PortalLayoutPro
         result rather than depending on it.
       */}
       <ServiceWorkerRegister locale={locale} />
+
+      {/*
+        The launch screen, and it is mounted here rather than inside `(secured)`
+        for the same reason the service worker is: `set-password` is part of the
+        client app too, and a client who lands there on a cold start is opening
+        the app exactly as much as one who lands on the home tab.
+
+        Inside this wrapper's `isolate` context, at z-60 — ahead of the tab bar
+        (40) and the flame celebration (50), which are the only two things in
+        the portal it can ever be ranked against. It takes no pointer events and
+        removes itself after two seconds. See the component.
+      */}
+      <SplashScreen />
 
       {children}
     </PortalTheme>
