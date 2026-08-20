@@ -1265,6 +1265,21 @@
         "thisWeek": "This week"
       }
     },
+    "journey": {
+      "title": "Your journey",
+      "subtitle": "This week",
+      "barLabel": "Your plan adherence this week",
+      "message": {
+        "empty": "Tick off a meal in your plan and your journey begins.",
+        "start": "Every journey starts with one meal. You've got this.",
+        "building": "A good start — you're building a habit.",
+        "consistent": "You're staying consistent. Keep it up.",
+        "progressing": "You're making real progress this week!",
+        "closer": "You're getting closer — a strong week so far.",
+        "almost": "Almost a perfect week. Nearly there!",
+        "complete": "You followed your plan all week! 🎉"
+      }
+    },
     "header": {
       "notifications": "Notifications",
       "notificationsWaiting": "Notifications, {count, number, integer} request awaiting a reply",

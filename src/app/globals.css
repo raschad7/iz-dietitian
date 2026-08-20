@@ -2494,6 +2494,152 @@
   [data-reveal='seen'] .q-bar {
     animation: q-bar-grow 880ms cubic-bezier(.2, .6, .2, 1) both;
   }
+
+  /*
+   * ── The journey mascot ──
+   * `ProgressMascot`, on the home and progress tabs. Four things happen to the
+   * character and each is a separate element, because each is a separate
+   * `transform` and one element can only hold one at a time: `.q-mascot-float`
+   * breathes forever, `.q-mascot-figure` performs, `.q-mascot-art` swaps, and
+   * the burst sits in its own absolutely-positioned layer.
+   *
+   * **Everything here is `transform` and `opacity`.** §21 of the mascot brief
+   * asks for it and the shape of the thing demands it: this is a raster image
+   * up to 200px square running an infinite loop, and an animation touching
+   * layout would have the browser re-laying-out the card behind it several
+   * times a second for as long as the screen is open.
+   *
+   * **`prefers-reduced-motion` is not handled here.** The global block further
+   * down this file collapses every duration and iteration count, which is the
+   * right answer for all five of these: the float stops, the swap becomes a
+   * cut, and the celebrations resolve instantly to the character standing
+   * still. Nothing here communicates anything the numbers beside it do not
+   * already say in words, so there is nothing lost by removing the motion.
+   *
+   * Durations are multiples of `--duration-arc` (220ms), the unit the streak
+   * celebration and the chart entrances above are both built from — 4× to
+   * evolve, 6× to cheer, 9× for a fully-kept week. They are mirrored in
+   * `MASCOT_CELEBRATION_MS` in `use-mascot-progression.ts`, which removes the
+   * class when the timer fires; the two have to stay in step or an animation
+   * gets cut off part-way through.
+   */
+  .q-mascot {
+    position: relative;
+    /*
+      Its own stacking context, so the goal glow's `-z-10` sits behind the
+      character and in front of the card — without it, a negative index escapes
+      to the nearest context and the wash paints *under* the card's own surface,
+      where it is invisible. Same `relative isolate` pairing `TodayFlameCell`
+      uses around the flame's glow.
+    */
+    isolation: isolate;
+    display: grid;
+    place-items: center;
+    inline-size: var(--q-mascot-size);
+    block-size: var(--q-mascot-size);
+  }
+
+  /*
+   * The resting state: alive, not busy. A 6px rise over 3.6s with a half-percent
+   * of scale under it — slow enough that it reads as breathing rather than as a
+   * bounce, which is the one thing §8 rules out by name.
+   */
+  .q-mascot-float {
+    display: grid;
+    place-items: center;
+    inline-size: 100%;
+    block-size: 100%;
+    animation: q-mascot-float 3600ms ease-in-out infinite;
+  }
+
+  /*
+   * The float is switched off while a celebration runs. Both would otherwise be
+   * writing `transform` on their own element in the same moment — legal, and it
+   * reads as the hop developing a wobble it was not choreographed to have.
+   */
+  .q-mascot[data-celebration]:not([data-celebration='none']) .q-mascot-float {
+    animation: none;
+  }
+
+  .q-mascot-figure {
+    display: grid;
+    place-items: center;
+    inline-size: 100%;
+    block-size: 100%;
+  }
+
+  /*
+   * The evolution: a small crouch before the rise, which is what makes the
+   * character look like it is doing something rather than being resized. The
+   * art cross-fades underneath it on its own timing, so the new drawing arrives
+   * at the bottom of the crouch and comes up as itself.
+   */
+  .q-mascot[data-celebration='evolve'] .q-mascot-figure {
+    animation: q-mascot-evolve 880ms var(--ease-sweep) both;
+  }
+
+  .q-mascot[data-celebration='milestone'] .q-mascot-figure {
+    animation: q-mascot-cheer 1320ms var(--ease-sweep) both;
+  }
+
+  .q-mascot[data-celebration='goal'] .q-mascot-figure {
+    animation: q-mascot-triumph 1980ms var(--ease-sweep) both;
+  }
+
+  /*
+   * One drawing stacked on the next during a swap. The outgoing copy is taken
+   * out of flow so the two occupy the same square — without that the grid would
+   * put them side by side for the length of the cross-fade and the card would
+   * visibly widen and snap back.
+   */
+  .q-mascot-art {
+    grid-area: 1 / 1;
+    inline-size: 100%;
+    block-size: auto;
+    /* §16: never stretched. The exports are square and centred, so a square box
+       shows the whole figure at its own proportions. */
+    object-fit: contain;
+  }
+
+  .q-mascot-art-in {
+    animation: q-mascot-art-in 440ms var(--ease-sweep) both;
+  }
+
+  .q-mascot-art-out {
+    animation: q-mascot-art-out 440ms var(--ease-sweep) both;
+  }
+
+  /*
+   * The burst, for a milestone and for a completed week.
+   *
+   * The keyframe is `q-flame-particle-burst`, reused rather than restated — it
+   * is already written against `--q-tx`/`--q-ty` set per dot by the component,
+   * with nothing flame-specific in it. Only the ink and the size differ: olive,
+   * because this marks the client's own adherence, which is the thing §Colour
+   * says olive is for, and the flame's orange is spoken for as a one-per-screen
+   * streak accent.
+   */
+  .q-mascot-particle {
+    position: absolute;
+    inset-inline-start: calc(50% - 3px);
+    inset-block-start: calc(50% - 3px);
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    background: var(--primary);
+    animation: q-flame-particle-burst 880ms var(--ease-sweep) both;
+  }
+
+  /*
+   * A wash behind the character on a completed week only. Not on a milestone:
+   * the burst already marks those, and a glow on every quarter would leave the
+   * one that actually finishes the week with nothing of its own.
+   */
+  .q-mascot-glow {
+    border-radius: 9999px;
+    background: radial-gradient(circle, var(--primary) 0%, transparent 70%);
+    animation: q-mascot-glow-pulse 1320ms var(--ease-sweep) both;
+  }
 }
 
 /*
@@ -3882,6 +4028,138 @@
 @keyframes q-bar-grow {
   from {
     height: 0;
+  }
+}
+
+/*
+ * The journey mascot's five movements — see `.q-mascot*` in `@layer components`
+ * for which element carries each and why they are on separate elements.
+ *
+ * The two `q-mascot-art-*` pairs deliberately state both ends rather than
+ * relying on the implicit-`to` contract the chart keyframes above document.
+ * They run with `both`, on an element that is mounted only for the length of
+ * the swap, so there is no resting style for an implicit keyframe to resolve
+ * against — the outgoing copy in particular must finish invisible, and its
+ * resting style is fully opaque.
+ */
+@keyframes q-mascot-float {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-6px) scale(1.005);
+  }
+}
+
+/*
+ * Crouch, then rise, then settle. The dip is the whole trick: without it the
+ * character reads as having been swapped out, and with it as having decided to
+ * change.
+ */
+@keyframes q-mascot-evolve {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  22% {
+    transform: translateY(3px) scale(0.94);
+  }
+  62% {
+    transform: translateY(-8px) scale(1.06);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* A milestone: the same crouch, followed by a real hop off the ground. */
+@keyframes q-mascot-cheer {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  16% {
+    transform: translateY(5px) scale(0.92);
+  }
+  44% {
+    transform: translateY(-18px) scale(1.08);
+  }
+  68% {
+    transform: translateY(2px) scale(0.98);
+  }
+  86% {
+    transform: translateY(-5px) scale(1.02);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+/*
+ * A completed week: two hops, the second smaller, with a slight lean into the
+ * first. The rotation is the only one in the set and stays under two degrees —
+ * enough to read as delight, short of the cartoon wobble §10 warns against.
+ */
+@keyframes q-mascot-triumph {
+  0% {
+    transform: translateY(0) scale(1) rotate(0deg);
+  }
+  12% {
+    transform: translateY(6px) scale(0.9) rotate(0deg);
+  }
+  32% {
+    transform: translateY(-24px) scale(1.1) rotate(-1.5deg);
+  }
+  50% {
+    transform: translateY(0) scale(0.98) rotate(0deg);
+  }
+  66% {
+    transform: translateY(-12px) scale(1.05) rotate(1.5deg);
+  }
+  82% {
+    transform: translateY(0) scale(0.99) rotate(0deg);
+  }
+  92% {
+    transform: translateY(-4px) scale(1.01) rotate(0deg);
+  }
+  100% {
+    transform: translateY(0) scale(1) rotate(0deg);
+  }
+}
+
+@keyframes q-mascot-art-in {
+  from {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes q-mascot-art-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.12);
+  }
+}
+
+@keyframes q-mascot-glow-pulse {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  35% {
+    opacity: 0.35;
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.35);
   }
 }
 

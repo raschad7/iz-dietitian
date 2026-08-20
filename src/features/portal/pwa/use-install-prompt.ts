@@ -93,6 +93,33 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 };
 
+/*
+  The captured `beforeinstallprompt` event, held at module scope rather than
+  in a `useState` inside the hook below — this is what makes it visible to
+  every surface that asks, not just whichever one happened to be mounted the
+  instant Chrome fired it.
+
+  `(secured)/(tabs)/layout.tsx` (the banner) and the settings screen live in
+  sibling route groups: navigating from a tab to Settings unmounts the tabs
+  layout entirely, including the banner's own `useInstallPrompt()` call. The
+  event fires once per page load and never again, so a `useState` there would
+  capture it, then take it into the void the moment that component unmounts —
+  the settings row, mounting fresh afterwards, would find nothing to offer
+  and report `'unavailable'` even though Chrome had already made the offer.
+  A module-level value survives every unmount for the life of the tab, so
+  whichever surface is on screen when the event fires leaves it here for
+  every surface after.
+*/
+let capturedPrompt: BeforeInstallPromptEvent | null = null;
+
+function getPromptSnapshot(): BeforeInstallPromptEvent | null {
+  return capturedPrompt;
+}
+
+function getPromptServerSnapshot(): BeforeInstallPromptEvent | null {
+  return null;
+}
+
 function getStandaloneSnapshot(): boolean {
   // The standard signal, and Safari's own pre-standard one (`navigator.standalone`
   // is not in `lib.dom.d.ts`, hence the cast) — iOS never fires
@@ -145,19 +172,22 @@ export function useInstallPrompt() {
   const persisted = useSyncExternalStore(subscribe, readState, getServerInstallState);
   const standalone = useSyncExternalStore(subscribeToNothing, getStandaloneSnapshot, getStandaloneServerSnapshot);
   const iosSafari = useSyncExternalStore(subscribeToNothing, getIosSafariSnapshot, getIosSafariServerSnapshot);
-
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  // Shared across every mounted surface — see the note above `capturedPrompt`.
+  const deferredPrompt = useSyncExternalStore(subscribe, getPromptSnapshot, getPromptServerSnapshot);
   // Captured once per mount, not read live — see the note above `subscribeToNothing`.
   const [now] = useState(() => Date.now());
 
   useEffect(() => {
     const onBeforeInstallPrompt = (event: Event) => {
       event.preventDefault();
-      setDeferredPrompt(event as BeforeInstallPromptEvent);
+      capturedPrompt = event as BeforeInstallPromptEvent;
+      listeners.forEach((listener) => listener());
     };
 
     const onAppInstalled = () => {
-      setDeferredPrompt(null);
+      capturedPrompt = null;
+      // Notifies every subscriber, including this hook's own `deferredPrompt`
+      // snapshot — one shared broadcast, not two.
       writeState({ ...readState(), installed: true });
     };
 
@@ -201,10 +231,15 @@ export function useInstallPrompt() {
 
     await deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
-    setDeferredPrompt(null);
+    // Spent either way — Chrome does not allow a captured prompt to be
+    // replayed, and a rejected one will not fire again this page load.
+    capturedPrompt = null;
 
     if (outcome === 'accepted') {
+      // Notifies every subscriber, including the cleared prompt above.
       writeState({ ...readState(), installed: true });
+    } else {
+      listeners.forEach((listener) => listener());
     }
   }, [deferredPrompt]);
 

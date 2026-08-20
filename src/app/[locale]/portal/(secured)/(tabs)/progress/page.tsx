@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 
 import { AdherenceStreakCard } from '@/features/portal/components/adherence-streak-card';
 import { AdherenceTrendCard } from '@/features/portal/components/adherence-trend-card';
+import { JourneyCard } from '@/features/portal/components/journey-card';
 import { TodayAdherenceCard } from '@/features/portal/components/today-adherence-card';
 import { loadProgressPage } from '@/features/portal/page-data';
 import { requirePortalClient } from '@/features/portal/session';
@@ -29,18 +30,36 @@ export async function generateMetadata({ params }: ProgressPageProps): Promise<M
  * different clinical question from "how are you doing", and a client tracking
  * one should not have to read the other's numbers to find it.
  *
- * Three sections, in the order a client asks them: how today went (and the
- * one place to say so), how many days running, and the longer four-week arc.
+ * Four sections, in the order a client asks them: how today went (and the one
+ * place to say so), how the week is going as a whole, how many days running,
+ * and the longer four-week arc — each one a wider window than the last.
  */
 export default async function ProgressPage({ params }: ProgressPageProps) {
   const locale = await resolveLocale(params);
 
   const context = await requirePortalClient(locale);
-  const { today, streak, continuity, monthlyTrend } = await loadProgressPage(context);
+  const { today, journey, streak, continuity, monthlyTrend } = await loadProgressPage(context);
 
   return (
     <div className="space-y-4">
       <TodayAdherenceCard today={today} locale={locale} />
+
+      {/*
+        The week, as the mascot draws it. Second rather than first: the ring
+        above is the figure a client opens this tab to check, and the journey
+        card is the context around it. The home tab places the same two in the
+        same order for the same reason, so moving between the tabs does not
+        rearrange them.
+
+        `journey` comes off `loadProgressPage` already reduced — the page does
+        not compute a fraction of its own, which is what keeps this card
+        identical to the one on the home tab. See `journeyProgressOf`.
+      */}
+      <JourneyCard
+        fraction={journey.fraction}
+        weekStartDate={journey.weekStartDate}
+        locale={locale}
+      />
 
       {/*
         Both cards animate from the moment the page paints — the ring counts up

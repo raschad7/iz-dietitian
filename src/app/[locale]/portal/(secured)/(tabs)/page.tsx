@@ -3,7 +3,8 @@ import type { Metadata } from 'next';
 
 import { EmptyState } from '@/components/ui/empty-state';
 import { HomeToday, type HomeTodayMeal } from '@/features/portal/components/home-today';
-import { loadPlanPage } from '@/features/portal/page-data';
+import { JourneyCard } from '@/features/portal/components/journey-card';
+import { loadJourneyProgress, loadPlanPage } from '@/features/portal/page-data';
 import { planSearchSchema } from '@/features/portal/schema';
 import { requirePortalClient } from '@/features/portal/session';
 import { PlanDayCompletionProvider } from '@/features/weekly-plans/components/plan-day-completion';
@@ -88,7 +89,14 @@ export default async function PortalPage({ params, searchParams }: PortalPagePro
 
   const { day } = planSearchSchema.parse(await searchParams);
 
-  const plan = await loadPlanPage(context, day);
+  /*
+    In parallel, and independent on purpose. `loadPlanPage` returns null for a
+    client whose dietitian has not published anything yet; the journey card is
+    still drawn for them, sitting at the start of the week with nothing
+    reported — which is the honest picture and the one that explains what the
+    plan below is for once it arrives.
+  */
+  const [plan, journey] = await Promise.all([loadPlanPage(context, day), loadJourneyProgress(context)]);
 
   const t = await getTranslations('portal');
 
@@ -162,6 +170,31 @@ export default async function PortalPage({ params, searchParams }: PortalPagePro
         <HomeToday
           meals={selectedMeals}
           countOnMount={selectedDaySummary?.isToday ?? false}
+        />
+
+        {/*
+          The week's journey, under the open day's ring and above the plan.
+
+          **The two figures above and below it are different on purpose, and
+          both are labelled.** The ring answers "how is the open day going";
+          this card answers "how is the week going", which is the same number
+          the progress tab draws and is titled "this week" on both. The
+          week-average card that used to sit here — see the module note above —
+          was removed because it repeated the progress tab's figure as a bare
+          percentage with nothing else to say. This one is not that: it is the
+          same figure made into the client's own journey, and it is the reason
+          it is worth a place on the home screen.
+
+          Inside the completion provider, so it sits in the page's one column —
+          but it reads none of it. The provider is scoped to the open day and
+          the journey is a week, so this card deliberately does not move when a
+          meal is ticked; it moves on the next load, once the day's report has
+          actually been written.
+        */}
+        <JourneyCard
+          fraction={journey.fraction}
+          weekStartDate={journey.weekStartDate}
+          locale={locale}
         />
 
         {plan ? (
