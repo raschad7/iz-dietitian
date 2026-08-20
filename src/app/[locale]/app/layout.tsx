@@ -191,7 +191,7 @@ export default async function AppLayout({ children, params }: AppLayoutProps) {
         brand={brand ?? undefined}
         user={{ name: session.user.name, email: session.user.email, locale }}
         icons={NAV_ICONS}
-        secondary={<GuideLauncher />}
+        secondary={<GuideLauncher key="guide-launcher" />}
         className="h-svh overflow-hidden"
       >
       {/*

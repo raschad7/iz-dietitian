@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { useTranslations } from 'next-intl';
@@ -327,19 +327,9 @@ export function DishEditor({
 
       {/* The dialog's only scroll region; its header and action footer stay outside. */}
       <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-5 py-6 sm:px-6">
-        {/*
-          Two independent desktop stacks: **what you build** and **what it comes
-          to / how it is classified**.
-
-          Meal types, qualities, and optional details used to begin only after the
-          entire recipe row ended, leaving a tall blank strip beneath the shorter
-          nutrition panel while the dialog scrolled. Keeping them in the supporting
-          stack removes that artificial grid-row gap. Below `lg`, the same two
-          stacks collapse into one natural form flow.
-        */}
-        <div className="grid gap-x-8 gap-y-7 lg:grid-cols-2">
-          <div className="flex min-w-0 flex-col gap-6">
-            {/* 1. Dish name — Arabic is the primary, working name (spec §14). */}
+        <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
+          {/* The name leads the task and remains close to duplicate feedback. */}
+          <div className="max-w-3xl">
             <Field>
               <Label htmlFor="nameAr">{t('editor.nameAr')}</Label>
               <Input
@@ -360,73 +350,43 @@ export function DishEditor({
                 search={searchDishNames}
               />
             </Field>
-
-            {/*
-              2. The ingredient builder.
-
-              A bordered panel, where it used to be loose elements on the page
-              ground. The recipe is a *container* — a heading, a search that
-              feeds it, and a list that grows — and drawing it as one gave the
-              search box something to belong to instead of floating between a
-              heading and a dashed box that repeated what it already said.
-            */}
-            <section className="flex flex-col overflow-hidden rounded-xl border border-border">
-              <div className="flex items-center justify-between gap-2 border-b border-border bg-muted/40 px-4 py-3">
-                <h2 className="text-label font-semibold">{t('editor.ingredientsHeading')}</h2>
-                <span className="text-caption text-muted-foreground">
-                  {t('editor.ingredientCount', { count: rows.length })}
-                </span>
-              </div>
-
-              <div className="p-4">
-                {/* The search *is* how an ingredient is added (spec §15). */}
-                <IngredientSearch locale={locale} onPick={addFood} search={search} />
-              </div>
-
-              {/*
-                No empty-state line of its own. The panel header already says
-                "no ingredients" and the search below it already says "search for
-                an ingredient, or add your own" — a third sentence between them
-                telling you to search above was the same instruction a third
-                time, and it was the widest thing in the panel.
-              */}
-              {rows.length > 0 && (
-                <ul className="flex flex-col border-t border-border">
-                  {preparedRows.map(({ row, options, unit, grams }) => (
-                    <IngredientRow
-                      key={row.key}
-                      row={row}
-                      options={options}
-                      unit={unit}
-                      grams={grams}
-                      locale={locale}
-                      autoFocusQuantity={row.key === focusRowKey}
-                      onChange={(patch) => updateRow(row.key, patch)}
-                      onRemove={() => setRows((prev) => prev.filter((entry) => entry.key !== row.key))}
-                    />
-                  ))}
-                </ul>
-              )}
-            </section>
-
-            {attempted && !ingredientsValid && (
-              <FieldError>{t('editor.errors.ingredientRequired')}</FieldError>
-            )}
           </div>
 
           {/*
-            3. Live nutrition — the other half, and it stays where it is put.
-
-            This was `sticky top-0`, which meant the panel detached from the
-            recipe and slid up the column the moment the dialog scrolled. Sticky
-            earns its keep for a toolbar you reach for at any moment; this panel
-            is read *against* the ingredient list beside it, and a figure that
-            drifts out of line with the row that produced it is harder to read,
-            not easier. It also never had a fixed anchor to stick to — the
-            dialog's scroll container is its own box — so it slid past its own
-            heading on the way.
+            The recipe and its calculated result are one workbench. Nutrition
+            belongs directly below the ingredient rows so the visual order is
+            the same as the causal order: change the recipe, see its outcome.
           */}
-          <aside className="flex min-w-0 flex-col gap-7">
+          <section className="flex flex-col overflow-hidden rounded-xl border border-border bg-background shadow-xs">
+            <div className="flex items-center justify-between gap-2 border-b border-border bg-muted/40 px-4 py-3 sm:px-5">
+              <h2 className="text-label font-semibold">{t('editor.ingredientsHeading')}</h2>
+              <span className="text-caption text-muted-foreground">
+                {t('editor.ingredientCount', { count: rows.length })}
+              </span>
+            </div>
+
+            <div className="p-4 sm:p-5">
+              <IngredientSearch locale={locale} onPick={addFood} search={search} />
+            </div>
+
+            {rows.length > 0 && (
+              <ul className="flex flex-col border-t border-border">
+                {preparedRows.map(({ row, options, unit, grams }) => (
+                  <IngredientRow
+                    key={row.key}
+                    row={row}
+                    options={options}
+                    unit={unit}
+                    grams={grams}
+                    locale={locale}
+                    autoFocusQuantity={row.key === focusRowKey}
+                    onChange={(patch) => updateRow(row.key, patch)}
+                    onRemove={() => setRows((prev) => prev.filter((entry) => entry.key !== row.key))}
+                  />
+                ))}
+              </ul>
+            )}
+
             <NutritionSummary
               totals={totals}
               empty={completeRows.length === 0}
@@ -437,36 +397,47 @@ export function DishEditor({
               shareLabel={t('editor.energyShare')}
               label={(key) => tNutrients(key)}
             />
+          </section>
 
-            <div className="border-t border-border pt-6">
-              <PillCheckboxGroup
-                legend={t('editor.mealTypesLegend')}
-                options={MEAL_CATEGORY_ORDER.filter((value) => MEAL_TYPES.includes(value)).map((value) => ({
-                  value,
-                  label: tDishes(`mealTypes.${value}`),
-                  icon: MEAL_ICON[value],
-                }))}
-                selected={mealTypes}
-                onToggle={(value) => toggle(mealTypes, value, setMealTypes)}
-              />
-              {attempted && !mealTypesValid && (
-                <FieldError className="mt-2">{t('editor.errors.mealTypeRequired')}</FieldError>
-              )}
+          {attempted && !ingredientsValid && (
+            <FieldError>{t('editor.errors.ingredientRequired')}</FieldError>
+          )}
+
+          {/* Classification comes after the recipe is understood. */}
+          <section className="overflow-hidden rounded-xl border border-border bg-background">
+            <div className="grid gap-6 p-4 sm:p-5 lg:grid-cols-2 lg:gap-0">
+              <div className="min-w-0 lg:pe-6">
+                <PillCheckboxGroup
+                  legend={t('editor.mealTypesLegend')}
+                  options={MEAL_CATEGORY_ORDER.filter((value) => MEAL_TYPES.includes(value)).map((value) => ({
+                    value,
+                    label: tDishes(`mealTypes.${value}`),
+                    icon: MEAL_ICON[value],
+                  }))}
+                  selected={mealTypes}
+                  onToggle={(value) => toggle(mealTypes, value, setMealTypes)}
+                />
+                {attempted && !mealTypesValid && (
+                  <FieldError className="mt-2">{t('editor.errors.mealTypeRequired')}</FieldError>
+                )}
+              </div>
+
+              <div className="min-w-0 border-t border-border pt-6 lg:border-t-0 lg:border-s lg:ps-6 lg:pt-0">
+                <PillCheckboxGroup
+                  legend={t('editor.labelsLegend')}
+                  hint={t('editor.labelsHint')}
+                  options={DISH_LABELS.map((value) => ({
+                    value,
+                    label: tDishes(`tags.${value}`),
+                    dot: dishTagDotClasses(value),
+                  }))}
+                  selected={tags}
+                  onToggle={(value) => toggle(tags, value, setTags)}
+                />
+              </div>
             </div>
 
-            <PillCheckboxGroup
-              legend={t('editor.labelsLegend')}
-              hint={t('editor.labelsHint')}
-              options={DISH_LABELS.map((value) => ({
-                value,
-                label: tDishes(`tags.${value}`),
-                dot: dishTagDotClasses(value),
-              }))}
-              selected={tags}
-              onToggle={(value) => toggle(tags, value, setTags)}
-            />
-
-            <Collapsible className="border-t border-border pt-6">
+            <Collapsible className="border-t border-border px-4 py-4 sm:px-5">
               <CollapsibleTrigger
                 type="button"
                 className="group flex w-full items-center gap-2 text-label font-semibold text-foreground"
@@ -478,7 +449,7 @@ export function DishEditor({
                 {t('editor.additionalDetails')}
               </CollapsibleTrigger>
 
-              <CollapsibleContent className="flex flex-col gap-5 pt-4">
+              <CollapsibleContent className="grid gap-5 pt-5 lg:grid-cols-2 lg:gap-6">
                 <Field>
                   <Label htmlFor="nameEn">{t('editor.nameEn')}</Label>
                   <Input
@@ -503,7 +474,7 @@ export function DishEditor({
                 </div>
               </CollapsibleContent>
             </Collapsible>
-          </aside>
+          </section>
         </div>
       </div>
 
@@ -677,29 +648,8 @@ function ExistingDishMatches({
 }
 
 /**
- * The live nutrition read-out, computed from the rows on screen (spec §31).
- *
- * ## Why there are meters now
- *
- * The panel used to print four numbers: energy, then protein / carbs / fat in
- * grams. Correct, and it left the one question the panel is actually answering
- * unanswered — *why does this dish say "balanced"?* That badge comes from
- * `nutritionCategory()`, which reads the share of **energy** each macro
- * contributes (protein ≥ 30% → high protein, carbs ≥ 55%, fat ≥ 40%), and the
- * share of energy is exactly what grams do not show: 4.2 g of fat next to 17.4 g
- * of carbs looks like a quarter as much and is more than half as much energy.
- *
- * So each macro now prints its grams *and* its share of the dish's calories,
- * with a meter for the share. The badge stops being an opinion the panel hands
- * down and becomes something the reader can see the arithmetic of.
- *
- * ## Why one hue and not three
- *
- * These are three meters of the same measure, not three categories, so they
- * share a hue and the *length* carries the value — no categorical palette to
- * validate, nothing colour-blind-unsafe, and no legend needed because every row
- * is directly labelled with its own figure. A stacked bar would have needed
- * three distinguishable hues to say less.
+ * The live result of the recipe above it. Four aligned readings make the
+ * nutrition scannable; the three quiet meters explain the derived category.
  */
 function NutritionSummary({
   totals,
@@ -720,83 +670,69 @@ function NutritionSummary({
   categoryLabel: string;
   /** Names what the meters measure, so the bars are never unexplained. */
   shareLabel: string;
-  label: (key: 'protein' | 'carbs' | 'fat') => string;
+  label: (key: 'kcal' | 'protein' | 'carbs' | 'fat') => string;
 }) {
   const split = energySplit(totals);
 
   return (
-    <section className="flex flex-col overflow-hidden rounded-xl border border-border bg-muted/40">
-      <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
-        <h2 className="text-label font-semibold">{title}</h2>
-        {!empty && <Badge variant="outline" size="sm">{categoryLabel}</Badge>}
+    <section className="flex flex-col border-t border-border bg-muted/30">
+      <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-5">
+        <div className="flex min-w-0 items-baseline gap-2">
+          <h2 className="text-label font-semibold">{title}</h2>
+          {!empty && <span className="text-caption text-muted-foreground">{servingLabel}</span>}
+        </div>
+        {!empty && (
+          <Badge variant="outline" size="sm" className="shrink-0">
+            {categoryLabel}
+          </Badge>
+        )}
       </div>
 
       {empty ? (
-        <p className="px-4 py-8 text-center text-body-sm text-muted-foreground">{emptyLabel}</p>
+        <p className="border-t border-border px-4 py-6 text-center text-body-sm text-muted-foreground">
+          {emptyLabel}
+        </p>
       ) : (
-        <>
-          {/* The headline. Energy is what a slot is budgeted in, so it is the one
-              figure allowed to be large; everything under it is composition. */}
-          <div className="flex items-baseline justify-between gap-3 px-4 py-4">
-            <p className="font-heading text-heading-lg font-semibold tabular-nums" dir="ltr">
-              {roundForDisplay('kcal', totals.kcal.value)}
-              <span className="ms-1.5 text-body-md font-normal text-muted-foreground">
-                {NUTRIENT_UNITS.kcal}
-              </span>
-            </p>
-            <p className="text-caption text-muted-foreground">{servingLabel}</p>
-          </div>
+        <div className="border-t border-border px-4 py-4 sm:px-5">
+          <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-4">
+            {(['kcal', 'protein', 'carbs', 'fat'] as const).map((key) => (
+              <div key={key} className="min-w-0 bg-background px-3 py-3.5 sm:px-4">
+                <dt className="truncate text-caption text-muted-foreground">{label(key)}</dt>
+                <dd className="mt-1 font-heading text-heading-md font-semibold tabular-nums">
+                  <span dir="ltr" className="inline-flex items-baseline gap-1">
+                    {roundForDisplay(key, totals[key].value)}
+                    <span className="text-body-sm font-normal text-muted-foreground">
+                      {NUTRIENT_UNITS[key]}
+                    </span>
+                  </span>
+                </dd>
+              </div>
+            ))}
+          </dl>
 
-          {/*
-            One row per macro, and every part of it in its own column.
-
-            The bars used to run the full width of the panel under each label,
-            with the grams and the share floating above them — three things at
-            three different measures, so nothing lined up with anything and the
-            block read as six loose lines rather than three readings. Now it is a
-            four-column grid: name, meter, grams, share. Each column shares an
-            edge down the whole panel, which is the entire reason a table beats a
-            list — you can compare a column by running your eye down it instead
-            of re-finding the number on every line.
-
-            `max-content` on the label so the longest macro name sets the column
-            and the meters all start at the same place; fixed widths on the two
-            figure columns so 9.9g and 35.6g end on the same digit.
-          */}
-          <dl className="grid grid-cols-[max-content_minmax(2rem,1fr)_auto_auto] items-center gap-x-3 gap-y-3 border-t border-border px-4 py-4 text-body-sm">
+          <div className="mt-4 grid gap-3 sm:grid-cols-3 sm:gap-5">
             {(['protein', 'carbs', 'fat'] as const).map((key) => {
               const percent = Math.round(split[key].percent * 100);
 
               return (
-                <Fragment key={key}>
-                  <dt className="text-muted-foreground">{label(key)}</dt>
-
-                  <dd aria-hidden className="h-1.5 overflow-hidden rounded-full bg-border">
+                <div key={key}>
+                  <div className="mb-1.5 flex items-center justify-between gap-2 text-caption">
+                    <span className="text-muted-foreground">{label(key)}</span>
+                    <span className="font-medium tabular-nums" dir="ltr">{percent}%</span>
+                  </div>
+                  <div aria-hidden className="h-1.5 overflow-hidden rounded-full bg-border">
                     <div
                       className="h-full rounded-full bg-viz-seq-3 transition-[inline-size] duration-300 ease-out"
                       style={{ inlineSize: `${percent}%` }}
                     />
-                  </dd>
-
-                  {/* Grams and the share are both printed: the meter is the
-                      quick read, these are the answer. */}
-                  <dd className="w-14 text-end font-medium tabular-nums" dir="ltr">
-                    {roundForDisplay(key, totals[key].value)}
-                    {NUTRIENT_UNITS[key]}
-                  </dd>
-
-                  <dd className="w-9 text-end text-caption text-muted-foreground tabular-nums" dir="ltr">
-                    {percent}%
-                  </dd>
-                </Fragment>
+                  </div>
+                </div>
               );
             })}
-          </dl>
+          </div>
 
-          <p className="border-t border-border px-4 py-2.5 text-caption text-muted-foreground">
-            {shareLabel}
-          </p>
-        </>
+          <p className="mt-3 text-caption text-muted-foreground">{shareLabel}</p>
+        </div>
       )}
     </section>
   );
