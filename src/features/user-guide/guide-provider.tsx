@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { CALENDAR_PHONE_QUERY } from '@/features/booking/components/calendar-view-guard';
 import { usePathname, useRouter } from '@/i18n/navigation';
 
 import { GuideContext, type GuideValue } from './guide-context';
 import { GuideOverlay } from './guide-overlay';
-import { GUIDE_STEPS, GUIDE_STEP_COUNT } from './steps';
+import { GUIDE_STEPS, GUIDE_STEP_COUNT, stepHrefForScreen, stepScreenMatches } from './steps';
 
 /**
  * Owns the tour: which step is showing, which screen that step needs, and the
@@ -95,8 +96,29 @@ export function GuideProvider({
   useEffect(() => {
     if (!routed) return;
     if (step === null) return;
-    if (pathname === step.href) return;
-    router.push(step.href);
+
+    /*
+      The step's screen, corrected for this device before anything is pushed.
+
+      A phone cannot draw the week view, so steps 9 and 10 are walked to
+      `/app/calendar/day` instead of asking for a week that `CalendarViewGuard`
+      would mount, paint and immediately replace. Read here, in the effect,
+      rather than subscribed to: the guard never moves a reader *up* to a wider
+      view when a window grows, and a tour that did would put back exactly the
+      screen-swap this removes. See `stepHrefForScreen`.
+    */
+    const href = stepHrefForScreen(step.href, window.matchMedia(CALENDAR_PHONE_QUERY).matches);
+
+    /*
+      `stepScreenMatches` rather than `pathname === href`, and the difference is
+      still load-bearing even though the href above is now the corrected one: a
+      screen is allowed to redirect within itself, and the tour has to accept
+      where it landed instead of insisting on the path it asked for. Equality
+      here is what made the calendar steps push against `CalendarViewGuard`
+      forever — the note in `steps.ts` records the loop in full.
+    */
+    if (stepScreenMatches(href, pathname)) return;
+    router.push(href);
   }, [routed, step, pathname, router]);
 
   /*

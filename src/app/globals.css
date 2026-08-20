@@ -4290,3 +4290,88 @@
     animation: none;
   }
 }
+
+/*
+ * The surface the tour draws on.
+ *
+ * This class was applied by `GuideOverlay` for a long time with no rule behind
+ * it anywhere in this file. It has one now, and it is doing the single cheapest
+ * thing available for the fault that sent us here.
+ *
+ * `contain: paint` promises the browser that nothing inside this box paints
+ * outside it. The box is `fixed inset-0`, so "outside it" is "off screen" — and
+ * what is painting off screen is the spotlight's `120vmax` box-shadow, whose
+ * spread is deliberately larger than any viewport (see the note on it above).
+ * Without the promise, a phone rasterises that whole spread; with it, the work
+ * is clipped to the screen. On the two steps with the largest holes — the
+ * calendar toolbar and the calendar grid — that is the difference between
+ * finishing a frame and not, and a spotlight that misses frames is a spotlight
+ * that visibly shakes.
+ *
+ * ⚠ `contain: paint` also makes this element the containing block for any
+ * `position: fixed` descendant, which the docked card is. That is a no-op
+ * *here* and only here: this box is `fixed inset-0`, so it already is the
+ * viewport, and the card resolves its edges against exactly the same rectangle
+ * either way. Do not copy this line onto a surface that is not full-screen.
+ */
+.q-guide-surface {
+  contain: paint;
+}
+
+/*
+ * The floating card glides between steps instead of cutting.
+ *
+ * Only on the floating layout: the docked sheet keeps its edge from one step to
+ * the next and has nothing to travel. `top`/`left` rather than a transform
+ * because those are the two properties `placeCard` produces, and a transform on
+ * top of them would be a second coordinate system to keep in agreement with the
+ * first.
+ *
+ * These are laid-out properties, so this is not a compositor animation — and it
+ * does not need to be. It runs once per step, on one element, on the screens
+ * wide enough to have chosen this layout in the first place. The thing that had
+ * to stop costing layout per frame is the hole, and that is handled in
+ * `Spotlight` rather than here.
+ *
+ * `--duration-travel` (420ms) is the app's existing long-travel duration, and
+ * the right one: the card is crossing the screen, not nudging.
+ */
+.q-guide-card:not(.q-guide-card-top):not(.q-guide-card-bottom) {
+  transition:
+    top var(--duration-travel) var(--ease-sweep),
+    left var(--duration-travel) var(--ease-sweep);
+}
+
+/*
+ * The card's contents, replaced whole on every step.
+ *
+ * A short rise and fade, deliberately shorter than the hole's travel: the words
+ * should have settled by the time the reader's eye follows the spotlight back to
+ * them. `q-guide-card-step` is remounted by its React key, which is what
+ * restarts this — see the note at the call site for why the *card* is not keyed.
+ */
+.q-guide-card-step {
+  animation: q-guide-step-in var(--duration-arc) var(--ease-sweep) backwards;
+}
+
+@keyframes q-guide-step-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.375rem);
+  }
+}
+
+/*
+ * Reduced motion drops every one of the three travels above and keeps the
+ * surfaces. The hole's own travel is suspended in `Spotlight`, which checks the
+ * same query in script — `element.animate` is not reached by a stylesheet.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .q-guide-card:not(.q-guide-card-top):not(.q-guide-card-bottom) {
+    transition: none;
+  }
+
+  .q-guide-card-step {
+    animation: none;
+  }
+}

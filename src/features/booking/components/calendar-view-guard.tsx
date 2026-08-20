@@ -46,6 +46,17 @@ import { type CalendarView } from '../schema';
  * still one Back press behind it — and pressing Back would bounce straight
  * forward again, which is a trap rather than a history.
  */
+/**
+ * The width below which the calendar offers the day view and nothing else.
+ *
+ * Exported because the rule stopped being only this component's. The guided
+ * tour names `/app/calendar/week` for its two calendar steps, and on a phone it
+ * has to walk the reader straight to the day view rather than push a week this
+ * guard would immediately replace — see `stepHrefForScreen` in
+ * `user-guide/steps.ts`. Two copies of `48rem` is one of them going stale.
+ */
+export const CALENDAR_PHONE_QUERY = '(width < 48rem)';
+
 export function CalendarViewGuard({
   view,
   onFallback,
@@ -63,7 +74,7 @@ export function CalendarViewGuard({
     // the listeners are not worth attaching.
     if (view === 'day') return;
 
-    const phone = window.matchMedia('(width < 48rem)');
+    const phone = window.matchMedia(CALENDAR_PHONE_QUERY);
 
     function check() {
       if (phone.matches) onFallback('day');
