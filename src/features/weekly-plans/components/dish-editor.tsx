@@ -13,11 +13,13 @@ import { Icon, type IconName } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SelectField } from '@/components/ui/select-field';
+import { Spinner } from '@/components/ui/spinner';
 import { ALLERGENS } from '@/features/clients/nutrition';
 import { useRouter } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
 
-import { createDishAction, updateDishAction } from '../catalog-actions';
+import { createDishAction, searchDishNamesAction, updateDishAction } from '../catalog-actions';
+import { normalizeArabic } from '../arabic-normalize';
 import { initialCatalogFormState, type CatalogFormState } from '../catalog-form-state';
 import { localizedName } from '../food-display';
 import {
@@ -41,7 +43,7 @@ import {
 } from '../nutrition';
 import { dishTagDotClasses } from '../meal-tag-tone';
 import type { RefinedFood } from '../ingredient-refine';
-import type { DishEditData, FoodSearchResult } from '../queries';
+import type { DishEditData, DishNameSuggestion, FoodSearchResult } from '../queries';
 import { DISH_TAGS, MEAL_TYPES } from '../schema';
 
 import { IngredientSearch } from './food-picker';
@@ -116,6 +118,7 @@ export function DishEditor({
   onCancel,
   onDirtyChange,
   search,
+  searchDishNames,
 }: {
   locale: string;
   /**
@@ -132,6 +135,12 @@ export function DishEditor({
   onDirtyChange?: (dirty: boolean) => void;
   /** Injectable ingredient search for the dev harness; defaults to the real action. */
   search?: (locale: string, query: string) => Promise<RefinedFood[]>;
+  /** Injectable existing-dish search for the dev harness; defaults to the real action. */
+  searchDishNames?: (
+    locale: string,
+    query: string,
+    excludeDishId?: string,
+  ) => Promise<DishNameSuggestion[]>;
 }): React.JSX.Element {
   const t = useTranslations('dishEditor');
   const tCommon = useTranslations('common');
@@ -154,7 +163,10 @@ export function DishEditor({
   // lives in "additional details" (spec §14).
   const [nameAr, setNameAr] = useState(() => dish?.nameAr ?? '');
   const [nameEn, setNameEn] = useState(() => dish?.nameEn ?? '');
-  const [baseServingLabel, setBaseServingLabel] = useState(() => dish?.baseServingLabel ?? 'حصة');
+  // Kept as a storage compatibility detail, not a user decision. Existing
+  // dishes retain their saved label; new dishes use the catalog's established
+  // Arabic-first default.
+  const baseServingLabel = dish?.baseServingLabel ?? 'حصة';
   const [mealTypes, setMealTypes] = useState<string[]>(() => dish?.mealTypes ?? []);
   const [tags, setTags] = useState<string[]>(() => dish?.tags ?? []);
   const [allergenTags, setAllergenTags] = useState<string[]>(() => dish?.allergenTags ?? []);
@@ -173,7 +185,6 @@ export function DishEditor({
   const snapshot = JSON.stringify({
     nameAr,
     nameEn,
-    baseServingLabel,
     mealTypes,
     tags,
     allergenTags,
@@ -314,17 +325,17 @@ export function DishEditor({
         <input key={value} type="hidden" name="allergenTags" value={value} />
       ))}
 
-      {/* The scroll region — the sticky nutrition sidebar tracks against it. */}
+      {/* The dialog's only scroll region; its header and action footer stay outside. */}
       <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-5 py-6 sm:px-6">
         {/*
-          Two equal columns: **what you build** and **what it comes to**.
+          Two independent desktop stacks: **what you build** and **what it comes
+          to / how it is classified**.
 
-          The nutrition used to ride in a 15rem gutter beside a builder that got
-          everything else, which said the numbers were a footnote. They are not —
-          they are the reason the dish exists in a dietitian's catalog, and they
-          change on every keystroke in the other column. Equal halves say the two
-          are the same conversation. Below `lg` it collapses to one column and the
-          nutrition falls in under the recipe it describes.
+          Meal types, qualities, and optional details used to begin only after the
+          entire recipe row ended, leaving a tall blank strip beneath the shorter
+          nutrition panel while the dialog scrolled. Keeping them in the supporting
+          stack removes that artificial grid-row gap. Below `lg`, the same two
+          stacks collapse into one natural form flow.
         */}
         <div className="grid gap-x-8 gap-y-7 lg:grid-cols-2">
           <div className="flex min-w-0 flex-col gap-6">
@@ -342,6 +353,12 @@ export function DishEditor({
                 aria-invalid={(attempted && !nameArValid) || undefined}
               />
               {attempted && !nameArValid && <FieldError>{t('editor.errors.nameRequired')}</FieldError>}
+              <ExistingDishMatches
+                locale={locale}
+                query={nameAr}
+                excludeDishId={dish?.id}
+                search={searchDishNames}
+              />
             </Field>
 
             {/*
@@ -409,123 +426,84 @@ export function DishEditor({
             dialog's scroll container is its own box — so it slid past its own
             heading on the way.
           */}
-          <aside className="min-w-0 lg:pt-[1.85rem]">
-            <div>
-              <NutritionSummary
-                totals={totals}
-                empty={completeRows.length === 0}
-                title={t('editor.nutritionTitle')}
-                servingLabel={t('editor.perServing', { unit: baseServingLabel.trim() || 'حصة' })}
-                emptyLabel={t('editor.nutritionEmpty')}
-                categoryLabel={t(`editor.categories.${category}`)}
-                shareLabel={t('editor.energyShare')}
-                label={(key) => tNutrients(key)}
-              />
-            </div>
-          </aside>
-        </div>
-
-        {/*
-          Classification, in the same two columns as the workspace above.
-
-          It used to be two full-width runs of pills stacked at the bottom —
-          twelve identical outlined capsules spanning 70rem, which reads as a
-          wall rather than as two questions. Side by side they are what they are:
-          *when* this dish is eaten, and *what it is like*.
-        */}
-        <div className="mt-8 grid gap-x-8 gap-y-7 border-t border-border pt-7 lg:grid-cols-2">
-          {/* 4. Meal category — a category, so each option carries the meal's own
-              glyph, the same one the catalog and the planner draw. */}
-          <div>
-            <PillCheckboxGroup
-              legend={t('editor.mealTypesLegend')}
-              options={MEAL_CATEGORY_ORDER.filter((value) => MEAL_TYPES.includes(value)).map((value) => ({
-                value,
-                label: tDishes(`mealTypes.${value}`),
-                icon: MEAL_ICON[value],
-              }))}
-              selected={mealTypes}
-              onToggle={(value) => toggle(mealTypes, value, setMealTypes)}
+          <aside className="flex min-w-0 flex-col gap-7">
+            <NutritionSummary
+              totals={totals}
+              empty={completeRows.length === 0}
+              title={t('editor.nutritionTitle')}
+              servingLabel={t('editor.perServing', { unit: baseServingLabel })}
+              emptyLabel={t('editor.nutritionEmpty')}
+              categoryLabel={t(`editor.categories.${category}`)}
+              shareLabel={t('editor.energyShare')}
+              label={(key) => tNutrients(key)}
             />
-            {attempted && !mealTypesValid && (
-              <FieldError className="mt-2">{t('editor.errors.mealTypeRequired')}</FieldError>
-            )}
-          </div>
 
-          {/*
-            5. Practical tags — each carrying its colour.
-
-            This is the smarter version of a row of identical capsules: the dot
-            beside "سريع" here is the same token the catalog prints in its tags
-            column and the planner paints across the top of a meal card. So the
-            dietitian is not ticking an abstract label, they are choosing the
-            mark this dish will wear everywhere else — and they can see, while
-            choosing, which colour they are assigning.
-          */}
-          <PillCheckboxGroup
-            legend={t('editor.labelsLegend')}
-            hint={t('editor.labelsHint')}
-            options={DISH_LABELS.map((value) => ({
-              value,
-              label: tDishes(`tags.${value}`),
-              dot: dishTagDotClasses(value),
-            }))}
-            selected={tags}
-            onToggle={(value) => toggle(tags, value, setTags)}
-          />
-        </div>
-
-        <div className="mt-7">
-          {/* 6. Additional details — the rarely-touched fields, out of the main flow. */}
-          <Collapsible>
-            <CollapsibleTrigger
-              type="button"
-              className="group flex w-full items-center gap-2 text-label font-semibold text-foreground"
-            >
-              <Icon
-                name="chevronDown"
-                className="size-4 text-muted-foreground transition-transform group-data-[panel-open]:rotate-180"
+            <div className="border-t border-border pt-6">
+              <PillCheckboxGroup
+                legend={t('editor.mealTypesLegend')}
+                options={MEAL_CATEGORY_ORDER.filter((value) => MEAL_TYPES.includes(value)).map((value) => ({
+                  value,
+                  label: tDishes(`mealTypes.${value}`),
+                  icon: MEAL_ICON[value],
+                }))}
+                selected={mealTypes}
+                onToggle={(value) => toggle(mealTypes, value, setMealTypes)}
               />
-              {t('editor.additionalDetails')}
-            </CollapsibleTrigger>
+              {attempted && !mealTypesValid && (
+                <FieldError className="mt-2">{t('editor.errors.mealTypeRequired')}</FieldError>
+              )}
+            </div>
 
-            <CollapsibleContent className="flex flex-col gap-5 pt-4">
-              <Field>
-                <Label htmlFor="nameEn">{t('editor.nameEn')}</Label>
-                <Input
-                  id="nameEn"
-                  dir="ltr"
-                  maxLength={120}
-                  value={nameEn}
-                  onChange={(event) => setNameEn(event.target.value)}
-                  placeholder={t('editor.nameEnPlaceholder')}
-                />
-              </Field>
+            <PillCheckboxGroup
+              legend={t('editor.labelsLegend')}
+              hint={t('editor.labelsHint')}
+              options={DISH_LABELS.map((value) => ({
+                value,
+                label: tDishes(`tags.${value}`),
+                dot: dishTagDotClasses(value),
+              }))}
+              selected={tags}
+              onToggle={(value) => toggle(tags, value, setTags)}
+            />
 
-              <div>
-                <PillCheckboxGroup
-                  legend={t('editor.allergensLegend')}
-                  options={ALLERGENS.map((value) => ({ value, label: tDishes(`allergens.${value}`) }))}
-                  selected={allergenTags}
-                  onToggle={(value) => toggle(allergenTags, value, setAllergenTags)}
-                  tone="medical"
+            <Collapsible className="border-t border-border pt-6">
+              <CollapsibleTrigger
+                type="button"
+                className="group flex w-full items-center gap-2 text-label font-semibold text-foreground"
+              >
+                <Icon
+                  name="chevronDown"
+                  className="size-4 text-muted-foreground transition-transform group-data-[panel-open]:rotate-180"
                 />
-                <FieldHint className="mt-2">{t('editor.allergensHint')}</FieldHint>
-              </div>
+                {t('editor.additionalDetails')}
+              </CollapsibleTrigger>
 
-              <Field className="sm:max-w-xs">
-                <Label htmlFor="baseServingLabel">{t('editor.baseServingLabel')}</Label>
-                <Input
-                  id="baseServingLabel"
-                  dir="auto"
-                  maxLength={60}
-                  value={baseServingLabel}
-                  onChange={(event) => setBaseServingLabel(event.target.value)}
-                />
-                <FieldHint>{t('editor.baseServingHint')}</FieldHint>
-              </Field>
-            </CollapsibleContent>
-          </Collapsible>
+              <CollapsibleContent className="flex flex-col gap-5 pt-4">
+                <Field>
+                  <Label htmlFor="nameEn">{t('editor.nameEn')}</Label>
+                  <Input
+                    id="nameEn"
+                    dir="ltr"
+                    maxLength={120}
+                    value={nameEn}
+                    onChange={(event) => setNameEn(event.target.value)}
+                    placeholder={t('editor.nameEnPlaceholder')}
+                  />
+                </Field>
+
+                <div>
+                  <PillCheckboxGroup
+                    legend={t('editor.allergensLegend')}
+                    options={ALLERGENS.map((value) => ({ value, label: tDishes(`allergens.${value}`) }))}
+                    selected={allergenTags}
+                    onToggle={(value) => toggle(allergenTags, value, setAllergenTags)}
+                    tone="medical"
+                  />
+                  <FieldHint className="mt-2">{t('editor.allergensHint')}</FieldHint>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          </aside>
         </div>
       </div>
 
@@ -547,6 +525,154 @@ export function DishEditor({
         />
       </div>
     </form>
+  );
+}
+
+type ExistingDishStatus = 'idle' | 'loading' | 'done' | 'error';
+
+/**
+ * A quiet duplicate check attached to the name field, not a second picker.
+ *
+ * The dietitian is still naming a new dish, so the matches are intentionally
+ * read-only: turning this into a combobox would imply that choosing an existing
+ * dish fills this creation form. Prefix results appear after two characters,
+ * stay visible while the next request runs, and an exact normalized match is
+ * called out without hard-blocking a legitimate clinic-specific variation.
+ */
+function ExistingDishMatches({
+  locale,
+  query,
+  excludeDishId,
+  search = searchDishNamesAction,
+}: {
+  locale: string;
+  query: string;
+  excludeDishId?: string;
+  search?: (
+    locale: string,
+    query: string,
+    excludeDishId?: string,
+  ) => Promise<DishNameSuggestion[]>;
+}) {
+  const t = useTranslations('dishEditor.editor');
+  const tDishes = useTranslations('dishes');
+  const [matches, setMatches] = useState<DishNameSuggestion[]>([]);
+  const [status, setStatus] = useState<ExistingDishStatus>('idle');
+  const [statusKey, setStatusKey] = useState('');
+  const requestSeq = useRef(0);
+  const cache = useRef(new Map<string, DishNameSuggestion[]>());
+
+  useEffect(() => {
+    const term = query.trim();
+    if (normalizeArabic(term).length < 2) {
+      requestSeq.current += 1;
+      return;
+    }
+
+    const key = `${excludeDishId ?? ''}:${term}`;
+    const cached = cache.current.get(key);
+    const timeout = window.setTimeout(async () => {
+      const seq = (requestSeq.current += 1);
+      setStatusKey(key);
+      if (cached) {
+        setMatches(cached);
+        setStatus('done');
+        return;
+      }
+
+      setStatus('loading');
+      try {
+        const found = await search(locale, term, excludeDishId);
+        cache.current.set(key, found);
+        if (seq !== requestSeq.current) return;
+        setMatches(found);
+        setStatus('done');
+      } catch {
+        if (seq !== requestSeq.current) return;
+        setMatches([]);
+        setStatus('error');
+      }
+    }, cached ? 0 : 200);
+
+    return () => window.clearTimeout(timeout);
+  }, [excludeDishId, locale, query, search]);
+
+  const normalizedQuery = normalizeArabic(query.trim());
+  const currentKey = `${excludeDishId ?? ''}:${query.trim()}`;
+  const currentStatus = statusKey === currentKey ? status : 'idle';
+  const visibleMatches = matches.filter(
+    (dish) =>
+      normalizeArabic(dish.nameAr).startsWith(normalizedQuery) ||
+      normalizeArabic(dish.nameEn).startsWith(normalizedQuery),
+  );
+  const exactMatch = visibleMatches.some(
+    (dish) =>
+      normalizeArabic(dish.nameAr) === normalizedQuery ||
+      normalizeArabic(dish.nameEn) === normalizedQuery,
+  );
+
+  if (normalizedQuery.length < 2 || currentStatus === 'idle') return null;
+
+  return (
+    <div aria-live="polite" className="flex flex-col gap-2">
+      {currentStatus === 'error' ? (
+        <FieldHint>{t('existingSearchError')}</FieldHint>
+      ) : visibleMatches.length > 0 ? (
+        <div className="overflow-hidden rounded-lg border border-border bg-muted/30">
+          <div className="flex items-start gap-2 border-b border-border px-3 py-2.5">
+            <Icon
+              name={exactMatch ? 'attention' : 'info'}
+              className={cn(
+                'mt-0.5 size-4 shrink-0',
+                exactMatch ? 'text-status-attention-fg' : 'text-muted-foreground',
+              )}
+            />
+            <div className="min-w-0 flex-1">
+              <p className="text-label font-semibold">
+                {t(exactMatch ? 'exactMatchTitle' : 'existingMatchesTitle')}
+              </p>
+              <p className="text-caption text-muted-foreground">
+                {t(exactMatch ? 'exactMatchHint' : 'existingMatchesHint')}
+              </p>
+            </div>
+            {currentStatus === 'loading' ? <Spinner className="mt-0.5" /> : null}
+          </div>
+
+          <ul className="divide-y divide-border" aria-label={t('existingMatchesTitle')}>
+            {visibleMatches.map((dish) => {
+              const exact =
+                normalizeArabic(dish.nameAr) === normalizedQuery ||
+                normalizeArabic(dish.nameEn) === normalizedQuery;
+
+              return (
+                <li key={dish.id} className="flex items-center gap-3 px-3 py-2.5">
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-body-sm font-medium" dir="auto">
+                      {locale === 'ar' ? dish.nameAr : dish.nameEn || dish.nameAr}
+                    </span>
+                    {dish.nameEn && dish.nameEn !== dish.nameAr ? (
+                      <span className="block truncate text-caption text-muted-foreground" dir="auto">
+                        {locale === 'ar' ? dish.nameEn : dish.nameAr}
+                      </span>
+                    ) : null}
+                  </span>
+                  <Badge variant={exact ? 'attention' : 'muted'} size="sm">
+                    {exact
+                      ? t('exactMatch')
+                      : tDishes(dish.clinicId ? 'ownership.clinic' : 'ownership.system')}
+                  </Badge>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ) : currentStatus === 'loading' ? (
+        <span className="flex items-center gap-2 text-caption text-muted-foreground">
+          <Spinner />
+          {t('checkingExisting')}
+        </span>
+      ) : null}
+    </div>
   );
 }
 

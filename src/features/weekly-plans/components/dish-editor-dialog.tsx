@@ -9,7 +9,7 @@ import { getLocaleDirection, type Locale } from '@/i18n/routing';
 
 import { decideDialogClose } from '../dialog-close';
 import type { RefinedFood } from '../ingredient-refine';
-import type { DishEditData } from '../queries';
+import type { DishEditData, DishNameSuggestion } from '../queries';
 
 import { DishEditor } from './dish-editor';
 
@@ -36,6 +36,7 @@ export function DishEditorDialog({
   dish,
   onSaved,
   search,
+  searchDishNames,
 }: {
   locale: string;
   open: boolean;
@@ -46,6 +47,12 @@ export function DishEditorDialog({
   onSaved: () => void;
   /** Injectable ingredient search for the dev harness; defaults to the real action. */
   search?: (locale: string, query: string) => Promise<RefinedFood[]>;
+  /** Injectable existing-dish search for the dev harness; defaults to the real action. */
+  searchDishNames?: (
+    locale: string,
+    query: string,
+    excludeDishId?: string,
+  ) => Promise<DishNameSuggestion[]>;
 }) {
   const t = useTranslations('dishEditor.editor');
   const tCommon = useTranslations('common');
@@ -78,7 +85,7 @@ export function DishEditorDialog({
         size="wide"
         // A workspace: wider and taller than the default card, a flex column so the
         // header stays put and the editor body scrolls inside it.
-        className="open:flex open:flex-col max-h-[92dvh] sm:w-[min(70rem,calc(100vw-4rem))]"
+        className="max-h-[92dvh] overflow-hidden open:flex open:flex-col sm:w-[min(70rem,calc(100vw-4rem))]"
       >
         <DialogHeader
           title={isEditing ? t('editTitle') : t('pageTitle')}
@@ -97,6 +104,7 @@ export function DishEditorDialog({
           onCancel={requestClose}
           onDirtyChange={setDirty}
           search={search}
+          searchDishNames={searchDishNames}
         />
       </Dialog>
 

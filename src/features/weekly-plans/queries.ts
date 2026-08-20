@@ -509,6 +509,67 @@ export type DishEditData = {
 
 export const DISHES_PAGE_SIZE = 20;
 
+export type DishNameSuggestion = {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+  /** Shared/system dish when null, otherwise a dish owned by this clinic. */
+  clinicId: string | null;
+};
+
+/**
+ * Lightweight prefix matches for the add-dish name field.
+ *
+ * This deliberately does not call `listDishes`: that reader loads every recipe
+ * and computes nutrition because the catalog needs those values, while this
+ * interaction only needs enough identity to warn about an existing name. The
+ * left join applies the same visible-catalog boundary — active shared dishes the
+ * clinic has not hidden, plus this clinic's own dishes — without exposing another
+ * clinic's names.
+ */
+export async function searchDishNameSuggestions(input: {
+  clinicId: string;
+  query: string;
+  excludeDishId?: string;
+  limit?: number;
+}): Promise<DishNameSuggestion[]> {
+  const term = normalizeArabic(input.query.trim());
+  if (term.length < 2) return [];
+
+  const visibleNames = await db
+    .select({
+      id: dishes.id,
+      nameAr: dishes.nameAr,
+      nameEn: dishes.nameEn,
+      clinicId: dishes.clinicId,
+    })
+    .from(dishes)
+    .leftJoin(
+      clinicHiddenDishes,
+      and(
+        eq(clinicHiddenDishes.dishId, dishes.id),
+        eq(clinicHiddenDishes.clinicId, input.clinicId),
+      ),
+    )
+    .where(
+      and(
+        eq(dishes.isActive, true),
+        or(isNull(dishes.clinicId), eq(dishes.clinicId, input.clinicId)),
+        isNull(clinicHiddenDishes.id),
+        input.excludeDishId ? ne(dishes.id, input.excludeDishId) : undefined,
+      ),
+    );
+
+  return visibleNames
+    .filter(
+      (dish) =>
+        normalizeArabic(dish.nameAr).startsWith(term) ||
+        normalizeArabic(dish.nameEn).startsWith(term),
+    )
+    .sort((a, b) => a.nameAr.localeCompare(b.nameAr, 'ar'))
+    .slice(0, Math.max(1, Math.min(input.limit ?? 5, 10)));
+}
+
 /**
  * The browsable catalog — one clinic's visible dishes, searched and paginated.
  *
