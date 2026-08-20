@@ -45,11 +45,12 @@ import { createSplashSound, LANDING_COUNT, type PendingLanding } from './splash-
  *
  * `pointer-events: none` on the overlay from the first frame, so a reader who
  * knows where they are going taps straight through it to the app underneath.
- * That same tap also cuts the splash short — see `skip` below. Nothing here is
- * in the accessibility tree either (`aria-hidden`): the mark and the wordmark
- * are the product's name in picture form, in front of a document whose title
- * already says it, and a screen reader that announced "Enzyme" here would be
- * saying it twice before anyone had asked for it once.
+ * The splash plays out in full either way — a tap reaches the app without
+ * cutting the introduction short, so the two seconds are the same two seconds
+ * every time. Nothing here is in the accessibility tree either (`aria-hidden`):
+ * the mark and the wordmark are the product's name in picture form, in front of
+ * a document whose title already says it, and a screen reader that announced
+ * "Enzyme" here would be saying it twice before anyone had asked for it once.
  */
 
 /** ms. One hop; three of them carry the mark from below the fold to the middle. */
@@ -68,26 +69,15 @@ const OUT_DELAY_MS = 1620;
 const OUT_MS = 300;
 
 /**
- * ms the picture will wait for the browser to answer about audio.
+ * ms the sound will wait for the browser to answer about audio.
  *
- * The whole point of the hold — see the effect. It is short because a browser
- * that is *going* to allow audio says so in a frame or two: a permitted context
- * opens `running` and never reaches the wait at all, and a `resume()` that can
- * succeed succeeds immediately. This budget is only ever spent in full by a
- * browser that was never going to answer, where it buys nothing and costs a
- * fifth of a second of a tile that is already fully painted.
+ * The picture never waits on this — the character sets off on the first frame
+ * regardless. A permitted context opens `running` and answers immediately; a
+ * `resume()` that arrives later still gets whichever landings are left, so the
+ * budget runs to the last landing rather than stopping at the first. Past it
+ * there is nothing left to play and the context is released.
  */
-const AUDIO_GRACE_MS = 200;
-
-/**
- * ms of elapsed animation past which the hold is not worth taking.
- *
- * Pausing is invisible while the character is still off screen and obvious the
- * moment it is not — a frozen figure mid-arc reads as the page having hung. The
- * first hop clears the edge at around 150ms, so this stops short of that. Past
- * it the splash runs on time and the sound takes whichever landings are left.
- */
-const HOLD_LIMIT_MS = 120;
+const AUDIO_GRACE_MS = LANDING_MS[LANDING_MS.length - 1] ?? 900;
 
 /**
  * ms of slack on the fallback below.
@@ -102,7 +92,6 @@ const FALLBACK_SLACK_MS = 400;
 export function SplashScreen() {
   const [present, setPresent] = useState(true);
   const overlayRef = useRef<HTMLDivElement>(null);
-  const markRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const overlay = overlayRef.current;
@@ -117,15 +106,18 @@ export function SplashScreen() {
       "now" would be that much late — the blips would land after the hops that
       caused them, which is worse than silence.
 
-      `getAnimations()` on the hopping element returns the one CSS animation it
-      carries, and its `currentTime` is the browser's own answer to "how far in
-      are we". Reduced motion removes the animation, so the list is empty and
-      this reads 0 — which is correct there too: nothing is moving, so nothing
-      is behind.
+      `getAnimations()` on the overlay itself returns its one CSS animation —
+      the exit — whose `currentTime` counts from first paint and keeps counting
+      through its 1620ms delay, so it is the browser's own answer to "how far
+      in are we" for the splash's *whole* life. The hop cannot serve here: a
+      finished animation with no fill drops out of `getAnimations()`, so past
+      900ms it would read 0 and everything timed off it would think the splash
+      had just begun. If the list is somehow empty this reads 0, which only
+      errs toward scheduling sound that `schedule`'s late-tolerance filters.
     */
     const readElapsed = () => {
-      const [hop] = markRef.current?.getAnimations() ?? [];
-      return typeof hop?.currentTime === 'number' ? hop.currentTime : 0;
+      const [exit] = overlay.getAnimations();
+      return typeof exit?.currentTime === 'number' ? exit.currentTime : 0;
     };
 
     const elapsedMs = readElapsed();
@@ -134,40 +126,27 @@ export function SplashScreen() {
       LANDING_MS.map((at, index) => ({ index, delayMs: at - from }));
 
     /*
-      Every jump gets its landing, which is the whole reason this is not simply
-      "schedule and hope".
+      The picture never waits for the sound.
 
       A browser will not start audio without a user gesture, and a cold load has
       not had one — so on the loads where the answer is no, there is nothing any
-      of this can do and the splash is silent. What it *can* do is make sure
-      that whenever the answer is yes, it is yes in time for the **first** hop
-      rather than the second. Asking takes a moment; the character waits off
-      screen for that moment rather than setting off without us, so the three
-      blips land on three impacts instead of on however many were left over.
+      of this can do and the splash is silent. The character sets off on the
+      first frame either way; the question is asked alongside the animation, and
+      the moment the answer is yes the blips are scheduled onto whichever
+      landings are still ahead. An answer that arrives after the first landing
+      simply plays the remaining two — a hop already made is not scored late.
 
-      The wait is taken on the animations themselves rather than on a delay in
-      the stylesheet, because the stylesheet cannot know the answer and because
-      pausing preserves each one's position — including the tile's own exit, so
-      the hold shifts the entire timeline rather than eating into the end of it.
+      The wait runs to the last landing rather than a couple of frames, because
+      with nothing paused there is no cost to keeping the question open: a
+      resume that comes up at 700ms still catches the arrival.
 
-      It is skipped when the splash is already under way (`HOLD_LIMIT_MS`) and
-      when there is no sound to wait for at all — reduced motion, or a browser
-      with no `AudioContext` — in which case `createSplashSound` returns null
-      and the picture is never touched.
+      When there is no sound to wait for at all — reduced motion, or a browser
+      with no `AudioContext` — `createSplashSound` returns null and none of
+      this runs.
     */
     const sound = createSplashSound();
-    const held = sound !== null && elapsedMs < HOLD_LIMIT_MS ? overlay.getAnimations({ subtree: true }) : [];
 
-    for (const animation of held) animation.pause();
-
-    let released = false;
-
-    void sound?.whenAudible(AUDIO_GRACE_MS).then((audible) => {
-      if (released) return;
-      released = true;
-
-      // The picture goes on either way. Only the sound depended on the answer.
-      for (const animation of held) animation.play();
+    void sound?.whenAudible(Math.max(0, AUDIO_GRACE_MS - elapsedMs)).then((audible) => {
       if (audible) sound.schedule(landingsAfter(readElapsed()));
     });
 
@@ -183,53 +162,16 @@ export function SplashScreen() {
       if (event.animationName === 'q-splash-out') dismiss();
     };
 
-    /*
-      Cut it short the moment the reader does anything at all.
-
-      Not a courtesy — an interface that cannot be interrupted is the thing this
-      screen is most at risk of being. The overlay does not take pointer events,
-      so this fires on the reader's *real* first tap on the app behind it: the
-      tap does what they meant it to do, and the splash gets out of the way of
-      its own accord rather than eating the gesture.
-
-      `data-skip` restarts `q-splash-out` with no delay — see the rule beside
-      the keyframe. The sound goes with it: a blip left ringing over a screen
-      that has already gone is a sound with nothing to explain it.
-    */
-    const skip = () => {
-      overlay.dataset.skip = '';
-      sound?.stop();
-    };
-
     overlay.addEventListener('animationend', onAnimationEnd);
-    window.addEventListener('pointerdown', skip, { once: true, passive: true });
-    window.addEventListener('keydown', skip, { once: true });
 
-    /*
-      `AUDIO_GRACE_MS` is in here because the hold above pushes the tile's own
-      exit back by up to that much, and this fallback exists precisely for the
-      case where that exit never fires an event to say it happened.
-    */
     const fallback = window.setTimeout(
       dismiss,
-      Math.max(0, OUT_DELAY_MS + OUT_MS - elapsedMs) + AUDIO_GRACE_MS + FALLBACK_SLACK_MS,
+      Math.max(0, OUT_DELAY_MS + OUT_MS - elapsedMs) + FALLBACK_SLACK_MS,
     );
 
     return () => {
       overlay.removeEventListener('animationend', onAnimationEnd);
-      window.removeEventListener('pointerdown', skip);
-      window.removeEventListener('keydown', skip);
       window.clearTimeout(fallback);
-      /*
-        An unmount while the picture is still held would leave it paused, and
-        React reuses nothing here — but StrictMode's double mount runs this
-        cleanup against animations the second effect is about to adopt, so they
-        have to be handed back running.
-      */
-      if (!released) {
-        released = true;
-        for (const animation of held) animation.play();
-      }
       sound?.stop();
     };
   }, []);
@@ -256,7 +198,7 @@ export function SplashScreen() {
           pivoting on x = 0 and throwing itself a frame-width sideways for
           exactly that reason.
         */}
-        <div ref={markRef} className="q-splash-mark">
+        <div className="q-splash-mark">
           <div className="q-splash-grow">
             <div className="q-splash-body">
               <svg viewBox={MARK_VIEWBOX} fill="none" xmlns="http://www.w3.org/2000/svg">
