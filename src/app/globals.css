@@ -3256,6 +3256,32 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
 }
 
 /*
+ * ⚠ The client portal opts out of the frame above.
+ *
+ * Its layouts carry the arrangement they have always had: `.portal-shell` is a
+ * `min-h-dvh` column that grows with its content, the *window* scrolls, and
+ * `PortalTabBar` is `fixed` with the page under it reserving `pb-24` of
+ * clearance. None of them mark a `data-slot='shell-scroll'`, so a bounded
+ * shell has nothing to hand the overflow to and clips every portal screen at
+ * the foot of the frame instead — which is what this undoes.
+ *
+ * Scoped rather than deleted: the staff app renders the same `AppShell` and
+ * still wants the frame. Written as an override after the rules it reverses,
+ * rather than as a `:not()` woven into them, so the frame stays stated in one
+ * place and this reads as the exception it is. Unlayered like the rules above,
+ * and more specific, so it wins on both counts.
+ */
+.portal-shell .q-app-shell {
+  block-size: auto;
+  overflow: visible;
+}
+
+.portal-shell .q-app-shell [data-slot='sidebar-inset'] {
+  min-block-size: auto;
+  overflow: visible;
+}
+
+/*
  * `main`'s outer edge — the one facing the screen rather than the rail. In
  * English the rail is on the left and this is the right-hand inset; in Arabic
  * it is the mirror. The rail-facing edge needs nothing: the rail is 256px of

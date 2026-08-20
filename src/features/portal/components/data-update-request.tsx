@@ -278,8 +278,9 @@ function RequestDialogTrigger({
           two that have to be kept in step.
         */
         placement="center"
-        // No responsive class of its own: the ceiling, the flex column and the
-        // scrolling body come from the responsive dialog frame in `globals.css`.
+        // `open:` rather than a bare `flex`: a `display` utility on a
+        // <dialog> outranks the UA rule that hides it while closed.
+        className="open:flex open:flex-col max-h-[90dvh] overflow-hidden"
       >
         {/*
           No close button in the corner: the footer ends in Cancel, and Escape
@@ -289,11 +290,9 @@ function RequestDialogTrigger({
         <DialogHeader title={t(actionKey)} />
 
         {/*
-          The frame in `globals.css` gives this wrapper its flex column and its
-          `min-block-size: 0` — it matches the `:has()` rule there — so the body
-          is what scrolls on a short phone in landscape rather than the dialog
-          growing past its ceiling and taking its own footer off screen. Left
-          stated here as well because it costs nothing and reads as intent.
+          `min-h-0` so the body is what scrolls on a short phone in landscape,
+          rather than the dialog growing past `max-h-[90dvh]` and taking its own
+          footer off screen with it.
         */}
         <form ref={formRef} action={formAction} className="flex min-h-0 flex-1 flex-col">
           <input type="hidden" name="locale" value={locale} />

@@ -1,10 +1,9 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useEffect, useState, useTransition } from 'react';
+import { useState, useTransition } from 'react';
 
 import { Dialog, DialogBody, DialogHeader } from '@/components/ui/dialog';
-import { useDialogPresence } from '@/components/ui/dialog-motion';
 import { RequestForm } from '@/features/portal/components/request-form';
 import { type RequestPageData } from '@/features/portal/types';
 import { usePathname, useRouter } from '@/i18n/navigation';
@@ -29,9 +28,10 @@ import { getLocaleDirection, type Locale } from '@/i18n/routing';
  * that read does not happen on an ordinary visit to the appointments list.
  *
  * **Closing is a navigation, but the exit animation still plays.** `close()`
- * drops the local flag first. Shared dialog presence retains this tree through
- * native close, and only then does the effect below navigate away. Sending is
- * the same story from the other end:
+ * drops the local flag first and then navigates inside `startTransition`, which
+ * keeps the current tree on screen until the new page is ready — so `Dialog`
+ * gets its 140ms `data-closing` pass before this component is unmounted by the
+ * route it just asked for. Sending is the same story from the other end:
  * `requestAppointmentAction` redirects to `?sent=1`, which carries no
  * `request`, so the dialog closes itself and the page it lands on is the one
  * showing the confirmation.
@@ -61,20 +61,15 @@ export function AppointmentRequestDialog({
     closes it lands.
   */
   const [open, setOpen] = useState(true);
-  const dialogPresent = useDialogPresence(open);
 
   function close() {
     setOpen(false);
-  }
-
-  useEffect(() => {
-    if (dialogPresent || open) return;
 
     // Bare `pathname`, so `request`, `date`, `kind` and `appointmentId` all go
     // at once. `replace`, not `push`: opening and closing a form should not put
     // an entry in history that the back button walks back into.
     startTransition(() => router.replace(pathname));
-  }, [dialogPresent, open, pathname, router, startTransition]);
+  }
 
   const title = t(`request.heading.${data.kind}`);
 
@@ -85,9 +80,9 @@ export function AppointmentRequestDialog({
       label={title}
       dir={getLocaleDirection(locale)}
       flat
-      // No responsive class of its own: the height ceiling, the flex column and
-      // the scrolling body all come from the responsive dialog frame in
-      // `globals.css`, which every `.q-dialog` gets.
+      // `open:` rather than a bare `flex`: a `display` utility on a <dialog>
+      // outranks the UA rule that hides it while closed.
+      className="open:flex open:flex-col max-h-[90dvh] overflow-hidden"
     >
       {/*
         No corner close, matching the correction dialog: the way out is the

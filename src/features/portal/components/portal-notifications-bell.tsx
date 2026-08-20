@@ -181,12 +181,7 @@ export function PortalNotificationsBell({
       /*
         `align="start"`: this bell sits at the header's inline-start — the right
         in Arabic, the left in English — so a panel aligned to its inline-end
-        would open across the screen and collide with the far edge.
-
-        Only the popover reads this, which now means only a mouse-driven window:
-        on any touch surface the shell renders a bottom sheet, which is pinned
-        to the screen's edges and has no trigger to align against. The prop
-        still matters for the desktop it is left for.
+        would open across the screen and collide with the far edge on a phone.
       */
       align="start"
       onOpenChange={(open) => {
