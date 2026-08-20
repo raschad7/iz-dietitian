@@ -29,6 +29,7 @@ export type NavItem = {
     | '/app'
     | '/app/clients'
     | '/app/calendar'
+    | '/app/calendar/week'
     | '/app/weekly-plans'
     | '/app/dishes'
     | '/portal'
@@ -239,7 +240,14 @@ function AppSidebar({
    */
   function isActive(href: NavItem['href']): boolean {
     if (href === '/app' || href === '/portal') return pathname === href;
-    return pathname === href || pathname.startsWith(`${href}/`);
+    /*
+     * The calendar row points straight at a view (`/app/calendar/week`) rather
+     * than at the redirect stub, so a click is one client navigation instead of
+     * a request that bounces. Its section is still the whole of `/app/calendar`
+     * though — day and month have to light the row up too.
+     */
+    const section = href.startsWith('/app/calendar') ? '/app/calendar' : href;
+    return pathname === section || pathname.startsWith(`${section}/`);
   }
 
   return (
@@ -312,7 +320,19 @@ function AppSidebar({
                     <SidebarMenuButton
                       tooltip={label}
                       isActive={isActive(item.href)}
-                      render={<Link href={item.href} />}
+                      render={
+                        <Link
+                          href={item.href}
+                          /*
+                            Clicking the row you are already standing on used to
+                            push the same URL again, which re-runs the page for
+                            no change on screen. The click is swallowed instead.
+                          */
+                          onClick={(event) => {
+                            if (pathname === item.href) event.preventDefault();
+                          }}
+                        />
+                      }
                     >
                       {/*
                         20px, explicitly. `Icon` ships `size-4` in its own class

@@ -36,7 +36,7 @@ type AppLayoutProps = {
 const NAV_ITEMS = [
   { href: '/app', labelKey: 'dashboard' },
   { href: '/app/clients', labelKey: 'clients' },
-  { href: '/app/calendar', labelKey: 'calendar' },
+  { href: '/app/calendar/week', labelKey: 'calendar' },
   { href: '/app/weekly-plans', labelKey: 'weeklyPlans' },
   { href: '/app/dishes', labelKey: 'dishes' },
 ] as const;
