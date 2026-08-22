@@ -28,9 +28,22 @@ const ibmPlexSans = IBM_Plex_Sans({
   display: 'swap',
 });
 
+/*
+ * The default UI face for *both* locales — `--script-ui-font` at `:root`, which
+ * `:lang(ar)` then overrides with Almarai. So English body text is this, and
+ * Arabic falls back to it while Almarai swaps in.
+ *
+ * 300 is loaded for the same one line Almarai's is: the auth screen's brand
+ * tagline. Without it `font-light` there would match the 400 face on the English
+ * locale and quietly render at normal weight — the class would be a no-op rather
+ * than an error, which is the kind of difference nobody notices until the two
+ * languages are put side by side. Nothing else in the type scale asks for 300;
+ * a browser only fetches the weights a page actually paints, so the file rides
+ * along on the auth screen and nowhere else.
+ */
 const ibmPlexSansArabic = IBM_Plex_Sans_Arabic({
   subsets: ['arabic', 'latin'],
-  weight: ['400', '500', '600', '700'],
+  weight: ['300', '400', '500', '600', '700'],
   variable: '--font-ibm-plex-sans-arabic',
   display: 'swap',
 });
@@ -44,20 +57,26 @@ const ibmPlexSansArabic = IBM_Plex_Sans_Arabic({
  * block in globals.css, so an English page neither downloads it nor
  * references it.
  *
- * **Two real weights, and they cover four.** Almarai ships static 400/700/800
- * files and no variable axis; 500 and 600 have no file of their own, but the
- * CSS font-matching algorithm doesn't fake them — it picks the nearest
- * *already-loaded* face instead. Desired weights at or below 500 search
+ * **Three real weights, and they cover five.** Almarai ships static
+ * 300/400/700/800 files and no variable axis; 500 and 600 have no file of their
+ * own, but the CSS font-matching algorithm doesn't fake them — it picks the
+ * nearest *already-loaded* face instead. Desired weights at or below 500 search
  * downward first, so `font-medium` (500) resolves to the real 400 outlines;
  * desired weights above 500 search upward first, so `font-semibold` (600)
- * resolves to the real 700 outlines. `font-normal` and `font-bold` are exact
- * matches. Nothing is synthesised — see "Synthesised bold" below for why that
- * distinction matters. 800 is not loaded: nothing in the type scale asks for
- * it, so shipping it would be dead weight.
+ * resolves to the real 700 outlines. `font-light` (300), `font-normal` and
+ * `font-bold` are exact matches. Nothing is synthesised — see "Synthesised bold"
+ * below for why that distinction matters. 800 is not loaded: nothing in the type
+ * scale asks for it, so shipping it would be dead weight.
+ *
+ * ⚠ **300 is for atmosphere, never for instruction.** It was added for the auth
+ * screen's brand tagline, which is one decorative line above a form. Arabic
+ * letterforms carry more of their identity in stroke contrast than Latin ones
+ * do, so a 300 face at body sizes gives up real legibility — do not reach for
+ * `font-light` on a label, a field, an error or anything a reader has to act on.
  */
 const almarai = Almarai({
   subsets: ['arabic', 'latin'],
-  weight: ['400', '700'],
+  weight: ['300', '400', '700'],
   variable: '--font-almarai',
   display: 'swap',
   // The Arabic fallback already in the stack, so the swap-in is not a reflow.

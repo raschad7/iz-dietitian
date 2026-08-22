@@ -3,6 +3,9 @@ import {
   LOCKUP_SEED_CX,
   LOCKUP_VIEWBOX,
   LOCKUP_WORDMARK_PATH,
+  MARK_LEAF_PATH,
+  MARK_SEED_CX,
+  MARK_VIEWBOX,
   SEED_CY,
   SEED_ROTATION,
   SEED_RX,
@@ -65,6 +68,37 @@ export function BrandLogo({ className, ...props }: React.ComponentProps<'svg'>) 
       <path d={LOCKUP_LEAF_PATH} fill="var(--brand-leaf)" />
       <Seeds centres={LOCKUP_SEED_CX} />
       <path d={LOCKUP_WORDMARK_PATH} fill="var(--brand-wordmark)" />
+    </svg>
+  );
+}
+
+/**
+ * The leaf alone, with no wordmark beside it.
+ *
+ * For the places that are *already* saying the product's name in words — the
+ * auth screens, whose `h1` names the form and the clinic in the same breath.
+ * The full lockup there put "Enzyme" in the corner, again in the heading, and a
+ * third time in the tagline underneath, all within the top third of the page.
+ * The mark keeps the brand present without spending the reader's attention on
+ * the same word three times.
+ *
+ * Square, so a caller controls it with a single dimension — unlike `BrandLogo`,
+ * where 2.6:1 forces height to be the controlled axis. The seeds take
+ * `--brand-seed` here exactly as they do in the lockup: they sit *on* the leaf,
+ * so the surface behind the mark never reaches them.
+ */
+export function BrandMark({ className, ...props }: React.ComponentProps<'svg'>) {
+  return (
+    <svg
+      viewBox={MARK_VIEWBOX}
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden
+      className={className}
+      {...props}
+    >
+      <path d={MARK_LEAF_PATH} fill="var(--brand-leaf)" />
+      <Seeds centres={MARK_SEED_CX} />
     </svg>
   );
 }

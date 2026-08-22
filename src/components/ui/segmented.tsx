@@ -23,10 +23,28 @@ import { cn } from '@/lib/utils';
  * ## Shape
  *
  * The track carries the radius; the thumb takes a smaller one, so it reads as
- * sitting inside the track rather than as a second track. The thumb moves by
- * re-tinting rather than by translating a shared element,
- * because the options are not a fixed width in two languages and an animated
- * offset would need measuring on every locale change.
+ * sitting inside the track rather than as a second track.
+ *
+ * **`pill` moves a real thumb; every other shape re-tints.** The distinction is
+ * not taste, it is arithmetic. `pill` lays its options out `flex-1`, so they are
+ * *equal* by construction and the selected one's offset is `index / count` of
+ * the track — a number this component already knows, with nothing to measure.
+ * `default` and `contained` size their options to their labels, which are two
+ * different widths in two languages, so a travelling thumb there really would
+ * need measuring on every locale change and re-measuring on every font swap.
+ * Those shapes keep the re-tint.
+ *
+ * The offset is written to `inset-inline-start` rather than to a `translate`.
+ * A transform would need the sign flipped in Arabic — positive X is rightward
+ * in both directions — which means either a `:dir()` rule or reading the
+ * computed direction during render. The logical inset resolves to `left` in
+ * English and `right` in Arabic on its own, and at this size the difference in
+ * paint cost is not measurable against a correctness trap.
+ *
+ * ⚠ The thumb assumes **every option is visible**. `SegmentedOption.className`
+ * can gate an option by width (the calendar does this), which would leave the
+ * thumb counting a segment that is not on screen — so do not combine that gate
+ * with `shape="pill"`.
  *
  * `shape="pill"` is the phone form: a track spanning the row with two equal
  * halves inside it. It exists because a switch that is the *first* thing on a
@@ -114,12 +132,30 @@ function Segmented<T extends string>({
     activeClassName ??
     (pill || contained ? 'bg-card text-foreground' : 'bg-primary text-primary-foreground');
 
+  /*
+   * Where the travelling thumb is, for `pill` only. `-1` — a value that is not
+   * in `options` — parks it out of sight rather than snapping it to the first
+   * segment, so a controlled caller passing an unknown value shows *no*
+   * selection instead of a wrong one.
+   */
+  const selectedIndex = options.findIndex((option) => option.value === value);
+  const showThumb = pill && selectedIndex >= 0;
+
+  /*
+   * The track's own padding, as a number the thumb and the CSS below can agree
+   * on. `p-1` is 4px, so the segments share `100% - 8px` between them.
+   */
+  const trackPad = '0.25rem';
+  const segmentWidth = `calc((100% - ${trackPad} * 2) / ${options.length})`;
+
   return (
     <div
       role={role}
       aria-label={label}
       className={cn(
         'inline-flex rounded-lg border border-border p-0.5',
+        // The thumb is positioned against this box.
+        pill && 'relative isolate',
         /*
          * 44px segments inside 4px of track, so the control lands at 52px and
          * every half clears the touch minimum on its own. `w-full` rather than
@@ -146,6 +182,34 @@ function Segmented<T extends string>({
         className,
       )}
     >
+      {/*
+        The thumb.
+
+        `aria-hidden` and `pointer-events-none`: it is the selection *drawn*, and
+        the selection is already announced by `aria-checked` / `aria-selected` on
+        the button it sits under. A screen reader that met this would find an
+        unlabelled element between the options.
+
+        `-z-10` against the track's `isolate` puts it behind the labels without
+        escaping into any stacking context the caller happens to be inside.
+      */}
+      {showThumb ? (
+        <span
+          aria-hidden="true"
+          className={cn(
+            'pointer-events-none absolute inset-y-1 -z-10 rounded-[10px]',
+            'transition-[inset-inline-start] duration-(--duration-arc) ease-(--ease-sweep)',
+            'motion-reduce:transition-none',
+            selectedClassName,
+            'shadow-card',
+          )}
+          style={{
+            inlineSize: segmentWidth,
+            insetInlineStart: `calc(${trackPad} + ${selectedIndex} * ${segmentWidth})`,
+          }}
+        />
+      ) : null}
+
       {options.map((option) => {
         const active = option.value === value;
 
@@ -171,16 +235,33 @@ function Segmented<T extends string>({
               // 10px against the track's 14px less its 4px of padding:
               // concentric, so the half sits inside the well rather than
               // looking pasted onto it.
-              pill && 'relative h-11 flex-1 rounded-[10px] px-3 py-0 font-semibold',
+              // `font-normal`, not the base `font-medium`: in Arabic the two are
+              // the same 400 file anyway, and this is the one weight that is a
+              // real step down in both scripts.
+              pill && 'relative h-11 flex-1 rounded-[10px] px-3 py-0 font-normal',
               contained && 'h-full min-w-0 flex-auto rounded-md px-2.5 py-0',
               // The default shape stays olive; recessed shapes lift a neutral
               // card out of their track unless the caller overrides it.
               active
-                ? cn(
-                    selectedClassName,
-                    'scale-100 shadow-card',
-                    'motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 motion-safe:duration-(--duration-label)',
-                  )
+                ? pill
+                  ? /*
+                      Label colour and nothing else. The fill, the radius and the
+                      shadow are all on the thumb behind this button now —
+                      repainting them here would put an opaque box over the
+                      element that is doing the travelling, and the segment would
+                      appear to arrive before the thumb did.
+
+                      No `animate-in` either, for the same reason: a segment that
+                      zooms itself in on selection is a *second* answer to "which
+                      one is picked", fired at the moment the first one starts
+                      moving.
+                    */
+                    'text-foreground'
+                  : cn(
+                      selectedClassName,
+                      'scale-100 shadow-card',
+                      'motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 motion-safe:duration-(--duration-label)',
+                    )
                 : inactiveClassName
                   ? inactiveClassName
                   : pill

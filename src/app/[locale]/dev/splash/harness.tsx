@@ -39,9 +39,8 @@ export function SplashHarness() {
       <div className="space-y-2">
         <h1 className="font-heading text-heading-lg font-semibold">Splash screen</h1>
         <p className="text-body-md text-muted-foreground">
-          Three hops to the middle, the name under the landing, then the tile leaves. Tap or press a
-          key while it is running to cut it short — that path is as much a part of the screen as the
-          animation is.
+          Three hops to the middle, the name under the landing, then the tile leaves. It always
+          plays out in full.
         </p>
       </div>
 

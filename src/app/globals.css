@@ -5216,10 +5216,10 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
   /*
    * The tile never takes a tap.
    *
-   * A reader who knows where they are going should reach the app through it,
-   * and that same tap is what cuts the splash short (`data-skip`, below). An
-   * overlay that swallowed the first gesture would be charging two seconds of
-   * attention for a screen that has nothing to ask.
+   * A reader who knows where they are going should reach the app through it —
+   * the splash plays out in full regardless, but an overlay that swallowed the
+   * first gesture would be charging two seconds of attention for a screen that
+   * has nothing to ask.
    */
   pointer-events: none;
 
@@ -5261,15 +5261,6 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
 }
 
 /*
- * The reader cut it short. Restating the whole shorthand — rather than only the
- * delay — is what restarts the exit from this frame instead of resuming a
- * countdown that has most of a second left on it.
- */
-.q-splash[data-skip] {
-  animation: q-splash-out 160ms var(--ease-sweep) forwards;
-}
-
-/*
  * Mark over name, centred as a pair.
  *
  * The mark's resting place is therefore a little above the middle of the
@@ -5292,6 +5283,17 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
    `scale` and `rotate`, so all three compose instead of overwriting. */
 .q-splash-mark {
   inline-size: var(--q-splash-mark-size);
+  /*
+   * `will-change` on the three animated elements, and only for the splash's
+   * two seconds of life. The hops run while the app behind the tile is
+   * hydrating and fetching its first route — the busiest the main thread ever
+   * is — and these properties are all compositable, so once each element has
+   * its own layer the motion runs off that thread entirely. Promotion
+   * normally happens on the animation's first frame; declaring it here moves
+   * that work to style time, before the first frame, which is exactly the
+   * frame that was dropping.
+   */
+  will-change: translate;
   animation: q-splash-hop 900ms linear;
 }
 
@@ -5320,6 +5322,7 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
 .q-splash-grow {
   display: block;
   transform-origin: 50% 100%;
+  will-change: scale;
   animation: q-splash-grow 900ms linear;
 }
 
@@ -5356,6 +5359,7 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
 .q-splash-body {
   display: block;
   transform-origin: 50% 100%;
+  will-change: scale, rotate;
   animation:
     q-splash-squash 300ms linear 3,
     q-splash-land 300ms cubic-bezier(0.22, 0.9, 0.3, 1) 900ms;
