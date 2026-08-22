@@ -289,8 +289,8 @@ async function AccountView({
             */
             href={
               visits.summary.next
-                ? `/app/calendar/day?date=${visits.summary.next.date}`
-                : '/app/calendar/day'
+                ? `/app/calendar?view=day&date=${visits.summary.next.date}`
+                : '/app/calendar?view=day'
             }
             emptyAction={t('trail.bookVisit')}
           />

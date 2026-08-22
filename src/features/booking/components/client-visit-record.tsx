@@ -95,7 +95,7 @@ export async function ClientVisitRecord({ visits, locale, today }: ClientVisitRe
           <Icon name="calendar" className="size-6 text-muted-foreground" />
           <p className="text-body-md text-muted-foreground">{t('empty')}</p>
           <Link
-            href="/app/calendar/day"
+            href="/app/calendar?view=day"
             className={buttonVariants({ variant: 'outline', size: 'sm' })}
           >
             {t('book')}
@@ -282,7 +282,7 @@ function VisitFacts({
         </dl>
 
         <Link
-          href="/app/calendar/day"
+          href="/app/calendar?view=day"
           className={buttonVariants({ variant: 'outline', size: 'sm' })}
         >
           <Icon name="bookAppointment" />
@@ -447,7 +447,7 @@ function NextVisitPanel({
 
   return (
     <Link
-      href={`/app/calendar/day?date=${visit.date}`}
+      href={`/app/calendar?view=day&date=${visit.date}`}
       className="group flex items-center gap-4 rounded-xl border border-border bg-card p-3 transition-colors hover:border-primary/30 hover:bg-primary-subtle/30"
     >
       <DateMark
@@ -521,7 +521,7 @@ function VisitRow({
   return (
     <li>
       <Link
-        href={`/app/calendar/day?date=${visit.date}`}
+        href={`/app/calendar?view=day&date=${visit.date}`}
         className="group flex items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-muted/70"
       >
         <DateMark

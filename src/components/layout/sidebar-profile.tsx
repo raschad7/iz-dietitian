@@ -62,9 +62,9 @@ import { cn } from '@/lib/utils';
 
 /** Destinations, block-start to block-end. */
 const LINKS = [
-  { href: '/app/settings/profile', labelKey: 'settings', icon: 'settings' },
+  { href: '/app/settings', labelKey: 'settings', icon: 'settings' },
 ] as const satisfies ReadonlyArray<{
-  href: '/app/settings/profile';
+  href: '/app/settings';
   labelKey: 'settings';
   icon: IconName;
 }>;

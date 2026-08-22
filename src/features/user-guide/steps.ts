@@ -48,12 +48,22 @@ import type { IconName } from '@/lib/icons';
  */
 export type GuideSide = 'block-start' | 'block-end' | 'inline-start' | 'inline-end';
 
-/** A route the tour is allowed to send the reader to. */
+/**
+ * A route the tour is allowed to send the reader to.
+ *
+ * The two calendar entries carry a query string because day, week and month are
+ * one route told apart by `?view=` — see `app/[locale]/app/calendar/page.tsx`.
+ * They were `/app/calendar/week` and `/app/calendar/day`, which are now
+ * redirects: sending the tour through one would cost it a server hop and land
+ * the reader on the screen by *replacing* the one it had just drawn, which is
+ * the mount-then-correct jitter the note on {@link stepHrefForScreen} exists to
+ * prevent. Naming the real address avoids the hop entirely.
+ */
 export type GuideHref =
   | '/app'
   | '/app/clients'
-  | '/app/calendar/week'
-  | '/app/calendar/day'
+  | '/app/calendar?view=week'
+  | '/app/calendar?view=day'
   | '/app/weekly-plans'
   | '/app/dishes';
 
@@ -160,8 +170,8 @@ export const GUIDE_STEPS = [
 
   /* — Calendar: booking is a gesture on the grid, which is the whole reason
        this section needs a guide at all. — */
-  { id: 'calendarToolbar', section: 'calendar', href: '/app/calendar/week', anchor: 'calendar-toolbar', side: 'block-end' },
-  { id: 'calendarBooking', section: 'calendar', href: '/app/calendar/week', anchor: 'calendar-grid', side: 'block-start' },
+  { id: 'calendarToolbar', section: 'calendar', href: '/app/calendar?view=week', anchor: 'calendar-toolbar', side: 'block-end' },
+  { id: 'calendarBooking', section: 'calendar', href: '/app/calendar?view=week', anchor: 'calendar-grid', side: 'block-start' },
 
   /* — Weekly plans — */
   { id: 'plannerPicker', section: 'planner', href: '/app/weekly-plans', anchor: 'planner-picker', side: 'block-end' },
@@ -271,7 +281,7 @@ const GUIDE_SCREEN_ROOTS = ['/app/calendar'] as const;
  * the tour is already allowed to visit.
  */
 const NARROW_SCREEN_HREFS: Partial<Record<GuideHref, GuideHref>> = {
-  '/app/calendar/week': '/app/calendar/day',
+  '/app/calendar?view=week': '/app/calendar?view=day',
 };
 
 /**
@@ -310,11 +320,22 @@ export function stepHrefForScreen(href: GuideHref, narrow: boolean): GuideHref {
  * Exact equality everywhere except under a {@link GUIDE_SCREEN_ROOTS} root,
  * where any child counts. The boundary is checked with a trailing slash so a
  * future `/app/calendar-settings` cannot be mistaken for a calendar view.
+ *
+ * ⚠ **Both sides are reduced to their path first, and that is load-bearing.**
+ * A step's href now carries the calendar's `?view=`, while `pathname` never
+ * carries a query at all — so comparing the two raw strings could never match a
+ * reader who was standing on exactly the screen the step asked for. Stripping
+ * the query is also what keeps the week step satisfied by the day view a phone
+ * is corrected to: the three views are one screen, and this predicate asks
+ * "which screen", not "which view of it".
  */
 export function stepScreenMatches(href: GuideHref, pathname: string): boolean {
-  if (pathname === href) return true;
+  const hrefPath = href.split('?')[0] ?? href;
+  const path = pathname.split('?')[0] ?? pathname;
+
+  if (path === hrefPath) return true;
 
   return GUIDE_SCREEN_ROOTS.some(
-    (root) => href.startsWith(root) && (pathname === root || pathname.startsWith(`${root}/`)),
+    (root) => hrefPath.startsWith(root) && (path === root || path.startsWith(`${root}/`)),
   );
 }
