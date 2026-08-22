@@ -572,7 +572,7 @@ export async function removePasskeyAction(
 
   await auth.api.deletePasskey({ body: { id }, headers: await headers() });
 
-  revalidatePath(`/${locale}/app/settings/security`);
+  revalidatePath(`/${locale}/app/settings`);
 
   return { status: 'success', messageKey: 'passkeyRemoved' };
 }

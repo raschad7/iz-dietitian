@@ -29,7 +29,7 @@ export type NavItem = {
     | '/app'
     | '/app/clients'
     | '/app/calendar'
-    | '/app/calendar/week'
+    | '/app/calendar?view=week'
     | '/app/weekly-plans'
     | '/app/dishes'
     | '/portal'

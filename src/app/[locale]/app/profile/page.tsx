@@ -4,5 +4,5 @@ import { resolveLocale } from '@/i18n/params';
 
 export default async function LegacyProfilePage({ params }: { params: Promise<{ locale: string }> }) {
   const locale = await resolveLocale(params);
-  redirect(`/${locale}/app/settings/profile`);
+  redirect(`/${locale}/app/settings`);
 }

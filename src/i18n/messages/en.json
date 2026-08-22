@@ -74,22 +74,17 @@
       "staffMember": "Clinic team member",
       "active": "Active",
       "formTitle": "Professional information",
-      "formDescription": "Update the details that identify you within the clinic team.",
       "accountEmail": "Account email",
-      "accountEmailHint": "This email is managed through your sign-in account.",
       "identityTitle": "Account",
-      "languageTitle": "Preferred language",
-      "languageDescription": "The language this workspace is shown in."
+      "languageTitle": "Preferred language"
     },
     "clinic": {
       "title": "Clinic",
       "description": "Contact details and working hours used for booking and client communication.",
       "formTitle": "Clinic details",
-      "formDescription": "Essential contact information used by the team and clients.",
       "hoursTitle": "Working hours",
       "hoursDescription": "Choose the days and times available for appointments.",
       "identityTitle": "Clinic identity",
-      "identityDescription": "The logo and name your clients see.",
       "hoursSummaryLabel": "Opening days and hours"
     },
     "whatsapp": {
@@ -2011,7 +2006,6 @@
   },
   "whatsapp": {
     "title": "WhatsApp",
-    "description": "Link the clinic's WhatsApp number to send appointment reminders and confirmations automatically.",
     "disabled": "WhatsApp is not enabled on this installation. Set WHATSAPP_ENABLED and the gateway variables in .env.local, then restart the server.",
     "gatewayUnreachable": "The WhatsApp gateway did not answer. Make sure it is running, then try again.",
     "connection": {

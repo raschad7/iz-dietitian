@@ -25,14 +25,14 @@ import { cn } from '@/lib/utils';
  * The track carries the radius; the thumb takes a smaller one, so it reads as
  * sitting inside the track rather than as a second track.
  *
- * **`pill` moves a real thumb; every other shape re-tints.** The distinction is
- * not taste, it is arithmetic. `pill` lays its options out `flex-1`, so they are
- * *equal* by construction and the selected one's offset is `index / count` of
- * the track — a number this component already knows, with nothing to measure.
- * `default` and `contained` size their options to their labels, which are two
+ * **`pill` and `contained` move a real thumb; `default` re-tints.** The
+ * distinction is not taste, it is arithmetic. Both lay their options out
+ * `flex-1`, so they are *equal* by construction and the selected one's offset is
+ * `index / count` of the track — a number this component already knows, with
+ * nothing to measure. `default` sizes its options to their labels, which are two
  * different widths in two languages, so a travelling thumb there really would
- * need measuring on every locale change and re-measuring on every font swap.
- * Those shapes keep the re-tint.
+ * need measuring on every locale change and re-measuring on every font swap. It
+ * keeps the re-tint.
  *
  * The offset is written to `inset-inline-start` rather than to a `translate`.
  * A transform would need the sign flipped in Arabic — positive X is rightward
@@ -42,9 +42,20 @@ import { cn } from '@/lib/utils';
  * paint cost is not measurable against a correctness trap.
  *
  * ⚠ The thumb assumes **every option is visible**. `SegmentedOption.className`
- * can gate an option by width (the calendar does this), which would leave the
- * thumb counting a segment that is not on screen — so do not combine that gate
- * with `shape="pill"`.
+ * can gate an option by width, which would leave the thumb counting a segment
+ * that is not on screen — so do not combine that gate with `pill` or
+ * `contained`. The calendar's view switch is `contained`, and it gates the whole
+ * control below `md` rather than any single segment, so all three are always
+ * present together whenever the thumb is.
+ *
+ * ⚠ **Never pass a `display` utility in `className` on a thumbed shape.** The
+ * equal-thirds arithmetic above is only true because `contained` is an
+ * `inline-grid` of equal columns (and `pill` a `w-full` flex row). The calendar
+ * hid its switch with `hidden md:inline-flex`, which reinstated flex from `md`
+ * up — segments then sized to their own labels, and since Arabic's "يوم" is far
+ * shorter than "أسبوع" the raised card landed across the wrong segment and hung
+ * off the end of the track. Hide a thumbed control with `max-*:hidden`, which
+ * only ever writes `display: none` and leaves the layout to this component.
  *
  * `shape="pill"` is the phone form: a track spanning the row with two equal
  * halves inside it. It exists because a switch that is the *first* thing on a
@@ -133,13 +144,15 @@ function Segmented<T extends string>({
     (pill || contained ? 'bg-card text-foreground' : 'bg-primary text-primary-foreground');
 
   /*
-   * Where the travelling thumb is, for `pill` only. `-1` — a value that is not
-   * in `options` — parks it out of sight rather than snapping it to the first
-   * segment, so a controlled caller passing an unknown value shows *no*
+   * Where the travelling thumb is, for `pill` and `contained` — the two shapes
+   * whose segments are equal-width by construction, so the selected one's offset
+   * is `index / count` of the track with nothing to measure. `-1` — a value that
+   * is not in `options` — parks it out of sight rather than snapping it to the
+   * first segment, so a controlled caller passing an unknown value shows *no*
    * selection instead of a wrong one.
    */
   const selectedIndex = options.findIndex((option) => option.value === value);
-  const showThumb = pill && selectedIndex >= 0;
+  const showThumb = (pill || contained) && selectedIndex >= 0;
 
   /*
    * The track's own padding, as a number the thumb and the CSS below can agree
@@ -155,7 +168,7 @@ function Segmented<T extends string>({
       className={cn(
         'inline-flex rounded-lg border border-border p-0.5',
         // The thumb is positioned against this box.
-        pill && 'relative isolate',
+        (pill || contained) && 'relative isolate',
         /*
          * 44px segments inside 4px of track, so the control lands at 52px and
          * every half clears the touch minimum on its own. `w-full` rather than
@@ -166,8 +179,19 @@ function Segmented<T extends string>({
         // and the selected half is the only thing on this control that lifts.
         pill && 'w-full rounded-[14px] border-transparent bg-muted p-1',
         // Matches the contained link tabs used by Settings: the same 44px
-        // recessed track with a raised card for the selected view.
-        contained && 'h-11 gap-0.5 rounded-lg border-transparent bg-muted p-1',
+        // recessed track with a raised card for the selected view. No `gap`
+        // between the segments — like `pill`, they sit flush so the travelling
+        // thumb, sized to `100% / count`, lands exactly on one of them.
+        //
+        // `inline-grid` with equal `fr` columns, **not** flex. The track sizes
+        // to its content (it lives in a toolbar and must not stretch across its
+        // grid track), and `flex-1` cannot equalise segments inside a
+        // shrink-to-fit flex box — with no free space to distribute, each
+        // segment collapses to its own label and "day"/"week"/"month" come out
+        // three different widths, which the equal-thirds thumb would then miss.
+        // Equal `fr` columns in a shrink-to-fit grid all resolve to the widest
+        // label, so the segments are equal *and* the control stays content-wide.
+        contained && 'inline-grid auto-cols-fr grid-flow-col h-11 rounded-lg border-transparent bg-muted p-1',
         /*
          * `sm` is pinned to 40px so the control matches `Button size="sm"` and
          * a 40px field beside it — the height is set on the *track*, and the
@@ -197,7 +221,10 @@ function Segmented<T extends string>({
         <span
           aria-hidden="true"
           className={cn(
-            'pointer-events-none absolute inset-y-1 -z-10 rounded-[10px]',
+            'pointer-events-none absolute inset-y-1 -z-10',
+            // Concentric with the segment it sits under: 10px inside the pill's
+            // 14px well, 6px (`rounded-md`) inside the contained track's `lg`.
+            pill ? 'rounded-[10px]' : 'rounded-md',
             'transition-[inset-inline-start] duration-(--duration-arc) ease-(--ease-sweep)',
             'motion-reduce:transition-none',
             selectedClassName,
@@ -239,11 +266,15 @@ function Segmented<T extends string>({
               // the same 400 file anyway, and this is the one weight that is a
               // real step down in both scripts.
               pill && 'relative h-11 flex-1 rounded-[10px] px-3 py-0 font-normal',
-              contained && 'h-full min-w-0 flex-auto rounded-md px-2.5 py-0',
+              // Equal-width by the track's grid columns (see the track above),
+              // so the travelling thumb behind them lands on one exactly. The
+              // button stretches to fill its `1fr` cell on its own — no `flex-1`,
+              // which would be inert on a grid item anyway.
+              contained && 'relative h-full rounded-md px-2.5 py-0',
               // The default shape stays olive; recessed shapes lift a neutral
               // card out of their track unless the caller overrides it.
               active
-                ? pill
+                ? pill || contained
                   ? /*
                       Label colour and nothing else. The fill, the radius and the
                       shadow are all on the thumb behind this button now —
@@ -264,7 +295,7 @@ function Segmented<T extends string>({
                     )
                 : inactiveClassName
                   ? inactiveClassName
-                  : pill
+                  : pill || contained
                   ? // Label colour alone, with no hover fill of its own: the
                     // track *is* a fill, so tinting a half on hover puts a
                     // second grey inside the first and reads as a half that has

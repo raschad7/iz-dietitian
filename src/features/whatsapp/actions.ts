@@ -40,7 +40,7 @@ import { type ConnectionView } from './types';
  */
 
 function settingsPath(locale: Locale): string {
-  return `/${locale}/app/settings/whatsapp`;
+  return `/${locale}/app/settings`;
 }
 
 function readLocale(formData: FormData): Locale {
