@@ -361,8 +361,8 @@ function Secret({
           about to copy is not that.
         */}
         <span className="text-label text-muted-foreground">{label}</span>
-        <span className="truncate font-mono text-body-md" dir="ltr">
-          {value}
+        <span className="truncate font-mono text-body-md">
+          <bdi dir="ltr">{value}</bdi>
         </span>
       </span>
       <CopyButton value={value} label={copyLabel} copiedLabel={t('copy.copied')} />

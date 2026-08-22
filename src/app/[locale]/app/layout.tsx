@@ -211,7 +211,7 @@ export default async function AppLayout({ children, params }: AppLayoutProps) {
         brand={brand ?? undefined}
         user={{ name: session.user.name, email: session.user.email, locale }}
         icons={NAV_ICONS}
-        secondary={<GuideLauncher />}
+        secondary={<GuideLauncher key="guide-launcher" />}
       >
       {/*
         `overflow-x-auto`, not the `overflow-x-hidden` this carried.

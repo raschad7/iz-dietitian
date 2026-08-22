@@ -4,7 +4,7 @@ import { db } from '@/db';
 import { clinicHiddenDishes, dishes } from '@/db/schema';
 import { createTestClinic, resetDatabase } from '../../../tests/helpers';
 
-import { listDishes } from './queries';
+import { listDishes, searchDishNameSuggestions } from './queries';
 
 /**
  * The catalog page's read. Two things it must get right: it shows exactly the
@@ -79,5 +79,54 @@ describe('listDishes Arabic-natural search', () => {
 
     expect((await listDishes({ clinicId, q: 'grilled', page: 1 })).total).toBe(1);
     expect((await listDishes({ clinicId, q: 'grilled-chicken', page: 1 })).total).toBe(1);
+  });
+});
+
+describe('searchDishNameSuggestions', () => {
+  test('returns visible prefix matches only and can exclude the dish being edited', async () => {
+    const otherClinicId = await createTestClinic();
+    const [shared] = await seedDish({
+      slug: 'maqluba-shared',
+      nameAr: 'مقلوبة دجاج',
+      nameEn: 'Chicken Maqluba',
+    });
+    const [own] = await seedDish({
+      clinicId,
+      slug: 'maqluba-own',
+      nameAr: 'مقلوبة باذنجان',
+      nameEn: 'Eggplant Maqluba',
+    });
+    const [hidden] = await seedDish({
+      slug: 'maqluba-hidden',
+      nameAr: 'مقلوبة مخفية',
+      nameEn: 'Hidden Maqluba',
+    });
+    await seedDish({
+      clinicId: otherClinicId,
+      slug: 'maqluba-other-clinic',
+      nameAr: 'مقلوبة عيادة أخرى',
+      nameEn: 'Other clinic Maqluba',
+    });
+    await seedDish({
+      clinicId,
+      slug: 'maqluba-not-prefix',
+      nameAr: 'أرز مع مقلوبة',
+      nameEn: 'Rice with Maqluba',
+    });
+    await db.insert(clinicHiddenDishes).values({ clinicId, dishId: hidden!.id });
+
+    const matches = await searchDishNameSuggestions({
+      clinicId,
+      query: 'مق',
+      excludeDishId: own!.id,
+    });
+
+    expect(matches.map((dish) => dish.id)).toEqual([shared!.id]);
+  });
+
+  test('waits for two normalized characters before searching', async () => {
+    await seedDish({ slug: 'maqluba', nameAr: 'مقلوبة', nameEn: 'Maqluba' });
+
+    expect(await searchDishNameSuggestions({ clinicId, query: 'م' })).toEqual([]);
   });
 });

@@ -353,7 +353,18 @@ function AppSidebar({
 
         {/* See `secondary` on `ShellProps`. The staff shell puts the user
             guide here; the portal passes nothing and this renders nothing. */}
-        {secondary}
+        {secondary ? (
+          /*
+            A real wrapper is intentional here. A Fragment is flattened into
+            `SidebarContent`'s child list, which leaves a slotted element owned
+            by the calling layout in that list and makes React ask that caller
+            for a key. `display: contents` keeps the launcher's `mt-auto`
+            behaviour while giving the named slot a stable local child.
+          */
+          <div data-slot="sidebar-secondary" className="contents">
+            {secondary}
+          </div>
+        ) : null}
       </SidebarContent>
 
       {/*
