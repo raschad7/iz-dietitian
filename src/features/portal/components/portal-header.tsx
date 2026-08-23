@@ -323,45 +323,23 @@ export function PortalHeader({
   }, [seen, notificationIds]);
 
   /*
-    **White chrome on home, ordinary foreground everywhere else.**
+    **Primary-fill chrome on home, ordinary foreground everywhere else.**
 
-    The home tab is the only one with the glow behind it, and the bar is
-    unfilled there (see the note on `<header>` below) — so the bell and the
-    gear are sitting on the green wash rather than on a white card, and white
-    is what reads on it. The other four tabs keep `bg-card`, where a white
-    glyph would be a glyph you cannot see; they stay on `text-foreground`.
+    The home tab fills the bar with `--primary`, so the bell and the gear sit
+    on solid brand green rather than on a white card — `text-primary-foreground`
+    is what the design system already pairs with that fill (see the token note
+    in `globals.css`). The other four tabs keep `bg-card`, where that same tone
+    would not read, so they stay on `text-foreground`.
 
-    The hover fill follows the same split for the same reason: `bg-muted` is a
-    cool grey that shows as a smudge over the wash, so on home the press target
-    tints with white at 15% instead.
+    The hover fill follows the same split: `bg-muted` is a cool grey that would
+    vanish into the green, so on home the press target tints with
+    `--primary-foreground` at 10% instead.
   */
-  /*
-    ⚠ **The white only holds while the glow is behind it**, and that is the one
-    thing to check before adding a breakpoint here. `HomeGlow` was `md:hidden`
-    for a while and this was not, so from 768px up the bell and the gear
-    rendered, took their space, stayed keyboard-reachable — and were white on a
-    white page. The only trace was the bell's own antialiasing.
-
-    The glow now runs at every width, so this does too: no `md:`/`lg:` variant
-    on either, which is what keeps them impossible to get out of step.
-  */
-  const iconTone = isHome ? 'text-white hover:bg-white/15' : 'text-foreground hover:bg-muted';
+  const iconTone = isHome
+    ? 'text-primary-foreground hover:bg-primary-foreground/10'
+    : 'text-foreground hover:bg-muted';
 
   return (
-    /*
-      **On the home tab the bar is unfilled, and that is what lets the glow
-      reach the top of the screen.** `HomeGlow` paints behind everything at
-      `-z-10`; an opaque `bg-card` here was a white band across the first 120px
-      of the page, so the green appeared to start below the greeting rather
-      than behind it. Dropping the fill on that one tab is also what
-      §Navigation already specifies for this bar — "deliberately unfilled: no
-      background, no border, no elevation. The page's own cards carry the
-      weight."
-
-      The other four tabs keep the fill. They have no glow to reveal, so an
-      unfilled bar there would only be a header that had lost the separation
-      from the content underneath.
-    */
     /*
       `md:px-6` matches `main`'s own `px-4 md:px-6` in `(tabs)/layout.tsx`.
       Both cap at `max-w-3xl` and centre, and they now share the same parent
@@ -373,11 +351,9 @@ export function PortalHeader({
     <header
       className={cn(
         'px-4 pt-3 pb-4 md:px-6',
-        // Unfilled on home at every width, so the glow reaches the top of the
-        // screen. The other four tabs have no glow to reveal, so an unfilled
-        // bar there would only be a header that lost its separation from the
-        // content underneath.
-        isHome ? 'bg-transparent' : 'bg-card',
+        // Filled with the brand primary on home; the other four tabs keep the
+        // neutral card fill.
+        isHome ? 'bg-primary' : 'bg-card',
       )}
     >
       <div className="mx-auto w-full max-w-3xl">
@@ -462,7 +438,7 @@ export function PortalHeader({
               home tab draws this block at all, so there is no second surface
               to check them against.
             */}
-            <p className="flex items-center gap-1.5 text-sm text-white">
+            <p className="flex items-center gap-1.5 text-sm text-primary-foreground">
               {t(`greeting.${greeting}`)}
               <Icon name="greetingSun" className="size-4 text-status-complete-mark-soft" />
             </p>
@@ -474,10 +450,10 @@ export function PortalHeader({
               resting on the same line as its text.
             */}
             <p className="flex items-baseline justify-between gap-3">
-              <span className="truncate font-heading text-xl font-semibold text-white">{name}</span>
+              <span className="truncate font-heading text-xl font-semibold text-primary-foreground">{name}</span>
 
               {date ? (
-                <span className="shrink-0 text-xs font-medium text-white">{date}</span>
+                <span className="shrink-0 text-xs font-medium text-primary-foreground">{date}</span>
               ) : null}
             </p>
           </div>

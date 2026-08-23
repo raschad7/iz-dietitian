@@ -228,7 +228,7 @@
    * decorative fill, not a step in a scale, and no other surface may reach
    * for it. See `.portal-home-glow` in `@layer components`.
    */
-  --portal-home-glow: #72AE34;
+  --portal-home-glow: #73AE35;
 
   /*
    * ── Home hero progress ring ──
@@ -1225,6 +1225,23 @@
    * the 3:1 floor a focus indicator has to clear.
    */
   --sidebar-ring: var(--green-950);
+}
+
+/*
+ * The client portal's own brand green — `[data-theme='light']` is the
+ * attribute `PortalTheme` sets on the portal's root alone (see
+ * `src/features/portal/components/portal-theme.tsx`), so this never touches
+ * the practitioner app's `--primary` (green-400, set on `:root` above).
+ *
+ * ⚠ White on this fill is ~2.68:1 — the same ratio the app's own olive
+ * predecessor measured (see the note on `--primary` at `:root`), below the
+ * 4.5:1 body-text floor. It is white because that is what was asked for; the
+ * pairing is a deliberate exception to the app's own AA rule, not an
+ * oversight.
+ */
+[data-theme='light'] {
+  --primary: #73ae35;
+  --primary-foreground: var(--n-0);
 }
 
 .dark,
@@ -2541,6 +2558,33 @@
   }
 
   /*
+   * ── The day-complete claim card ──
+   * `TodayFlameCell`'s dialog, the moment a client finishes every meal of the
+   * day. Two more layers on top of the trio above: a wide, gentle wash behind
+   * the whole card (green and flame both, faded, so the card reads as one
+   * warm surface rather than a white rectangle with icons on it) and a
+   * handful of sparkles that twinkle on their own independent delays.
+   *
+   * Both loop for as long as the card is open, unlike every other one-shot
+   * celebration in this file — the difference is deliberate: this card
+   * blocks (`dismissible={false}`) until the client presses its own button,
+   * so it is never open for more than a few seconds, and a wash or a
+   * sparkle that finished mid-read would leave the card looking unfinished
+   * for whatever time was left. `prefers-reduced-motion` still collapses
+   * both to their resting frame, same as everywhere else in this file.
+   */
+  .q-claim-glow {
+    background:
+      radial-gradient(120% 65% at 50% 0%, color-mix(in srgb, var(--flame-300) 38%, transparent) 0%, transparent 65%),
+      radial-gradient(90% 55% at 50% 58%, color-mix(in srgb, var(--primary) 26%, transparent) 0%, transparent 70%);
+    animation: q-claim-glow-pulse 3200ms ease-in-out infinite;
+  }
+
+  .q-claim-sparkle {
+    animation: q-claim-sparkle-twinkle 2200ms ease-in-out infinite;
+  }
+
+  /*
    * ── The streak curve drawing itself in ──
    * `AdherenceStreakCard` on the progress tab. The card is server-rendered SVG
    * and stays that way (§Charts: no chart is a client component), so the whole
@@ -2638,32 +2682,26 @@
   }
 
   /*
-   * ── The journey mascot ──
-   * `ProgressMascot`, on the home and progress tabs. Four things happen to the
-   * character and each is a separate element, because each is a separate
-   * `transform` and one element can only hold one at a time: `.q-mascot-float`
-   * breathes forever, `.q-mascot-figure` performs, `.q-mascot-art` swaps, and
-   * the burst sits in its own absolutely-positioned layer.
+   * ── The reactive mascot ──
+   * `ReactiveMascot`, on the home and progress tabs. The character itself is
+   * `MascotFace` — one inline SVG, the same mark `logo-mark.svg` draws, whose
+   * eyes and body `transform` React sets directly per emotion (see
+   * `eye-choreography.ts`). What lives here is only what has no per-emotion
+   * data of its own: the continuous idle breathing, and the milestone/goal
+   * burst — both of which run identically no matter which emotion is showing.
    *
    * **Everything here is `transform` and `opacity`.** §21 of the mascot brief
-   * asks for it and the shape of the thing demands it: this is a raster image
-   * up to 200px square running an infinite loop, and an animation touching
-   * layout would have the browser re-laying-out the card behind it several
-   * times a second for as long as the screen is open.
+   * asks for it, and an animation touching layout would have the browser
+   * re-laying-out the card behind it for as long as the screen stays open.
    *
-   * **`prefers-reduced-motion` is not handled here.** The global block further
-   * down this file collapses every duration and iteration count, which is the
-   * right answer for all five of these: the float stops, the swap becomes a
-   * cut, and the celebrations resolve instantly to the character standing
-   * still. Nothing here communicates anything the numbers beside it do not
-   * already say in words, so there is nothing lost by removing the motion.
-   *
-   * Durations are multiples of `--duration-arc` (220ms), the unit the streak
-   * celebration and the chart entrances above are both built from — 4× to
-   * evolve, 6× to cheer, 9× for a fully-kept week. They are mirrored in
-   * `MASCOT_CELEBRATION_MS` in `use-mascot-progression.ts`, which removes the
-   * class when the timer fires; the two have to stay in step or an animation
-   * gets cut off part-way through.
+   * **`prefers-reduced-motion` is not handled here for the float or the
+   * burst.** The global block further down this file collapses every
+   * duration and iteration count, which is the right answer for both: the
+   * float stops and the burst resolves instantly to its finished, invisible
+   * state. `MascotFace`'s own per-emotion sequence is the one animation in
+   * this system that *is* handled in JavaScript — see its own doc comment for
+   * why a collapsed `transition-duration` alone is not enough for a multi-step
+   * sequence.
    */
   .q-mascot {
     position: relative;
@@ -2695,60 +2733,21 @@
   }
 
   /*
-   * The float is switched off while a celebration runs. Both would otherwise be
-   * writing `transform` on their own element in the same moment — legal, and it
-   * reads as the hop developing a wobble it was not choreographed to have.
+   * Switched off while an emotion pulse is actively holding — `data-mascot-
+   * pulse` is set by `ReactiveMascot` for exactly as long as the hook in
+   * `use-reactive-mascot.ts` is holding a temporary emotion. Without this, the
+   * breathing float and the pulse's own squash/bounce would both be writing
+   * `transform` on ancestor elements in the same moment, which reads as the
+   * reaction developing a wobble it was not choreographed to have.
    */
-  .q-mascot[data-celebration]:not([data-celebration='none']) .q-mascot-float {
+  .q-mascot[data-mascot-pulse='true'] .q-mascot-float {
     animation: none;
   }
 
-  .q-mascot-figure {
-    display: grid;
-    place-items: center;
-    inline-size: 100%;
-    block-size: 100%;
-  }
-
-  /*
-   * The evolution: a small crouch before the rise, which is what makes the
-   * character look like it is doing something rather than being resized. The
-   * art cross-fades underneath it on its own timing, so the new drawing arrives
-   * at the bottom of the crouch and comes up as itself.
-   */
-  .q-mascot[data-celebration='evolve'] .q-mascot-figure {
-    animation: q-mascot-evolve 880ms var(--ease-sweep) both;
-  }
-
-  .q-mascot[data-celebration='milestone'] .q-mascot-figure {
-    animation: q-mascot-cheer 1320ms var(--ease-sweep) both;
-  }
-
-  .q-mascot[data-celebration='goal'] .q-mascot-figure {
-    animation: q-mascot-triumph 1980ms var(--ease-sweep) both;
-  }
-
-  /*
-   * One drawing stacked on the next during a swap. The outgoing copy is taken
-   * out of flow so the two occupy the same square — without that the grid would
-   * put them side by side for the length of the cross-fade and the card would
-   * visibly widen and snap back.
-   */
-  .q-mascot-art {
-    grid-area: 1 / 1;
+  .q-mascot-svg {
+    display: block;
     inline-size: 100%;
     block-size: auto;
-    /* §16: never stretched. The exports are square and centred, so a square box
-       shows the whole figure at its own proportions. */
-    object-fit: contain;
-  }
-
-  .q-mascot-art-in {
-    animation: q-mascot-art-in 440ms var(--ease-sweep) both;
-  }
-
-  .q-mascot-art-out {
-    animation: q-mascot-art-out 440ms var(--ease-sweep) both;
   }
 
   /*
@@ -2781,6 +2780,18 @@
     border-radius: 9999px;
     background: radial-gradient(circle, var(--primary) 0%, transparent 70%);
     animation: q-mascot-glow-pulse 1320ms var(--ease-sweep) both;
+  }
+
+  /*
+   * The home card's energy mascot, one meal advancing its tier — a brief
+   * overshoot in place of the idle float for as long as the bump runs.
+   * `TodayEnergyMascot` sets `data-energy-bump` for `q-energy-bump-ms`
+   * (see that component) and clears it itself; this rule's own higher
+   * specificity is what lets it take over `.q-mascot-float` without the
+   * breathing keyframe fighting it for the same property.
+   */
+  .q-mascot[data-energy-bump='true'] .q-mascot-float {
+    animation: q-energy-bump 640ms var(--ease-sweep);
   }
 }
 
@@ -4816,15 +4827,13 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
 }
 
 /*
- * The journey mascot's five movements — see `.q-mascot*` in `@layer components`
- * for which element carries each and why they are on separate elements.
- *
- * The two `q-mascot-art-*` pairs deliberately state both ends rather than
- * relying on the implicit-`to` contract the chart keyframes above document.
- * They run with `both`, on an element that is mounted only for the length of
- * the swap, so there is no resting style for an implicit keyframe to resolve
- * against — the outgoing copy in particular must finish invisible, and its
- * resting style is fully opaque.
+ * The mascot's idle breathing — see `.q-mascot*` in `@layer components`. Every
+ * other movement (gaze, blink, tilt, squash, bounce) is `ReactiveMascot`'s own
+ * eye choreography, driven as inline `transform`s on the SVG itself rather
+ * than a CSS keyframe here, since each emotion's motion is data (see
+ * `eye-choreography.ts`) rather than a fixed shape a stylesheet can name.
+ * This one keyframe is the exception: it runs continuously regardless of
+ * emotion, so it stays a plain, always-on rule.
  */
 @keyframes q-mascot-float {
   0%,
@@ -4833,102 +4842,6 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
   }
   50% {
     transform: translateY(-6px) scale(1.005);
-  }
-}
-
-/*
- * Crouch, then rise, then settle. The dip is the whole trick: without it the
- * character reads as having been swapped out, and with it as having decided to
- * change.
- */
-@keyframes q-mascot-evolve {
-  0% {
-    transform: translateY(0) scale(1);
-  }
-  22% {
-    transform: translateY(3px) scale(0.94);
-  }
-  62% {
-    transform: translateY(-8px) scale(1.06);
-  }
-  100% {
-    transform: translateY(0) scale(1);
-  }
-}
-
-/* A milestone: the same crouch, followed by a real hop off the ground. */
-@keyframes q-mascot-cheer {
-  0% {
-    transform: translateY(0) scale(1);
-  }
-  16% {
-    transform: translateY(5px) scale(0.92);
-  }
-  44% {
-    transform: translateY(-18px) scale(1.08);
-  }
-  68% {
-    transform: translateY(2px) scale(0.98);
-  }
-  86% {
-    transform: translateY(-5px) scale(1.02);
-  }
-  100% {
-    transform: translateY(0) scale(1);
-  }
-}
-
-/*
- * A completed week: two hops, the second smaller, with a slight lean into the
- * first. The rotation is the only one in the set and stays under two degrees —
- * enough to read as delight, short of the cartoon wobble §10 warns against.
- */
-@keyframes q-mascot-triumph {
-  0% {
-    transform: translateY(0) scale(1) rotate(0deg);
-  }
-  12% {
-    transform: translateY(6px) scale(0.9) rotate(0deg);
-  }
-  32% {
-    transform: translateY(-24px) scale(1.1) rotate(-1.5deg);
-  }
-  50% {
-    transform: translateY(0) scale(0.98) rotate(0deg);
-  }
-  66% {
-    transform: translateY(-12px) scale(1.05) rotate(1.5deg);
-  }
-  82% {
-    transform: translateY(0) scale(0.99) rotate(0deg);
-  }
-  92% {
-    transform: translateY(-4px) scale(1.01) rotate(0deg);
-  }
-  100% {
-    transform: translateY(0) scale(1) rotate(0deg);
-  }
-}
-
-@keyframes q-mascot-art-in {
-  from {
-    opacity: 0;
-    transform: scale(0.82);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes q-mascot-art-out {
-  from {
-    opacity: 1;
-    transform: scale(1);
-  }
-  to {
-    opacity: 0;
-    transform: scale(1.12);
   }
 }
 
@@ -4944,6 +4857,40 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
   100% {
     opacity: 0;
     transform: scale(1.35);
+  }
+}
+
+@keyframes q-energy-bump {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.08);
+  }
+}
+
+/* A slow breathing wash behind the day-complete claim card — see `.q-claim-glow`. */
+@keyframes q-claim-glow-pulse {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* One sparkle's twinkle — see `.q-claim-sparkle`. A spin as well as a fade so six of these on independent delays never quite line up. */
+@keyframes q-claim-sparkle-twinkle {
+  0%,
+  100% {
+    opacity: 0.15;
+    transform: scale(0.6) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1) rotate(20deg);
   }
 }
 

@@ -7,13 +7,72 @@ import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { adherenceFraction, type AdherenceDay } from '@/features/portal/adherence';
+import { MascotFace } from '@/features/portal/mascot/mascot-face';
+import { FINAL_MASCOT_STATE } from '@/features/portal/mascot/states';
 import { usePlanDayCompletion } from '@/features/weekly-plans/components/plan-day-completion';
 import { getLocaleDirection, type Locale } from '@/i18n/routing';
+import { playCelebrationChime } from '@/lib/celebration-chime';
+import { cn } from '@/lib/utils';
 
 import { DayFlame } from './day-flame';
 
-/** The dialog's own flame, drawn at hero scale — see `DayFlame`'s `size` prop. */
-const HERO_SIZE = 96;
+/**
+ * The flame's own badge size inside the card — small, since it now shares the
+ * row with the meal count rather than standing alone at hero scale. Still
+ * what `heroRef` below measures for the claim's flight, so the FLIP math is
+ * unaffected by the size chosen here; it only changes how far the flame
+ * travels visually.
+ */
+const HERO_SIZE = 40;
+
+/**
+ * The mascot's own size in the claim card — the character that leads it, the
+ * same reactive mark the journey card draws on the progress tab, larger here
+ * than anywhere else it appears because this card exists to be looked at.
+ */
+const MASCOT_SIZE = 132;
+
+/**
+ * Six sparkles scattered around the card's top half, each its own size, ink
+ * and delay so the twinkle in `globals.css` (`q-claim-sparkle-twinkle`) never
+ * reads as one pattern repeating. Positions are logical (`start`/`end`), the
+ * project's own convention for anything absolutely placed, so the scatter
+ * mirrors correctly under Arabic rather than only ever leaning one way.
+ * Alternates the flame's own ink (`--status-complete-mark`) and the brand
+ * green so the card reads as one family of colour, not a generic gold.
+ */
+const SPARKLES: readonly { key: number; className: string; delayMs: number }[] = [
+  { key: 0, className: 'start-[10%] top-[6%] size-3 text-status-complete-mark/80', delayMs: 0 },
+  { key: 1, className: 'end-[8%] top-[4%] size-4 text-primary/70', delayMs: 260 },
+  { key: 2, className: 'start-[4%] top-[42%] size-2.5 text-primary/60', delayMs: 620 },
+  { key: 3, className: 'end-[4%] top-[46%] size-3 text-status-complete-mark/70', delayMs: 140 },
+  { key: 4, className: 'start-[16%] top-[78%] size-2 text-status-complete-mark/60', delayMs: 460 },
+  { key: 5, className: 'end-[18%] top-[80%] size-3.5 text-primary/50', delayMs: 340 },
+];
+
+/** A four-point sparkle glyph — no icon in `Icon`'s own registry draws this, and it exists nowhere else in the app. */
+function SparkleGlyph({ className, delayMs }: { className: string; delayMs: number }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+      className={cn('q-claim-sparkle pointer-events-none absolute', className)}
+      style={{ animationDelay: `${delayMs}ms` }}
+    >
+      <path d="M12 2 14 10 22 12 14 14 12 22 10 14 2 12 10 10Z" />
+    </svg>
+  );
+}
+
+/** The small curved accent flanking the title — a decorative flourish, never a directional arrow, so the same path mirrors under `dir="rtl"` with a plain horizontal flip. */
+function SwooshGlyph({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 28 14" fill="none" aria-hidden="true" className={className}>
+      <path d="M2 12C7 2 17 1 26 5" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 /** The flight from the dialog down to the strip. Not a named `--duration-*`
  * token: those are for micro-interactions inside a surface, and this is a
@@ -122,6 +181,17 @@ export function TodayFlameCell({ day }: { day: AdherenceDay }) {
     if (isComplete) setPhase('awaitingClaim');
   }
 
+  /*
+    The chime, once per genuine claim opportunity — `phase` only ever becomes
+    `'awaitingClaim'` from the render-time edge above, the same guarantee that
+    keeps the dialog itself from reopening on an ordinary re-render, so this
+    effect firing on that same transition cannot replay the sound on ticks
+    that do not actually complete the day.
+  */
+  useEffect(() => {
+    if (phase === 'awaitingClaim') playCelebrationChime();
+  }, [phase]);
+
   useEffect(() => {
     if (!landing) return;
     const timer = window.setTimeout(() => setLanding(false), LANDING_MS);
@@ -222,33 +292,101 @@ export function TodayFlameCell({ day }: { day: AdherenceDay }) {
               dismissible={false}
               label={t('celebration.title')}
               dir={getLocaleDirection(locale)}
-              className="m-auto w-[min(22rem,calc(100vw-2rem))] max-w-none rounded-2xl"
+              /*
+                Always the centred card, on a phone too — this is a short,
+                one-thing modal (a claim, not a browsing surface), exactly
+                the case `Dialog`'s own `placement="center"` doc calls out
+                over its `'sheet'` default: a bottom sheet this short reads
+                as a strip that failed to finish opening.
+              */
+              placement="center"
+              className="w-[min(23rem,calc(100vw-2rem))] overflow-hidden rounded-3xl"
             >
-              <div className="flex flex-col items-center gap-5 px-6 py-10 text-center">
-                <span ref={heroRef} className="relative isolate grid place-items-center">
-                  <DayFlame day={liveDay} size={HERO_SIZE} className="q-flame-celebrate" />
+              <div className="relative isolate flex flex-col items-center gap-3 px-6 pt-9 pb-8 text-center">
+                {/*
+                  A soft warm wash behind the whole card — `q-claim-glow` in
+                  globals.css, a gentler, wider cousin of `.q-mascot-glow`
+                  built for a card-sized surface rather than a small badge.
+                  Behind everything (`-z-10`), so the sparkles and the
+                  character both sit on top of it rather than in front of a
+                  flat card colour.
+                */}
+                <span aria-hidden="true" className="q-claim-glow pointer-events-none absolute inset-0 -z-10" />
 
-                  {/*
-                    The burst `TodayFlameCell` plays when the claimed flame
-                    lands in the strip, played once here instead on the
-                    dialog's own open — one celebration, reused where it is
-                    earned, not a second effect invented for the card. No
-                    `q-flame-glow` here: the dialog's hero flame already sits
-                    on its own card surface, and the orange radial behind it
-                    read as a stray shadow rather than a glow at this size —
-                    the strip's landing glow (below, in `TodayFlameCell`) is
-                    unaffected.
-                  */}
-                  <span aria-hidden="true" className="pointer-events-none absolute inset-0">
-                    {HERO_PARTICLES.map((particle) => (
-                      <span key={particle.key} className="q-flame-particle" style={particle.style} />
-                    ))}
-                  </span>
+                {/*
+                  Six sparkles, scattered and twinkling on their own delays —
+                  see the constant above for why the positions and inks vary.
+                  `-z-10`, same reasoning as the wash: they read as part of
+                  the card's own light, not as a layer floating over the
+                  character.
+                */}
+                <span aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
+                  {SPARKLES.map((sparkle) => (
+                    <SparkleGlyph key={sparkle.key} className={sparkle.className} delayMs={sparkle.delayMs} />
+                  ))}
                 </span>
 
-                <h2 className="font-heading text-heading-sm font-semibold text-balance">
+                {/*
+                  The title leads, flanked by the same curved accent mirrored
+                  left and right — purely decorative, the flourish the brief
+                  for this card asked for, never a direction cue (see
+                  `SwooshGlyph`'s own doc).
+                */}
+                <h2 className="flex items-center justify-center gap-2 font-heading text-heading-md font-extrabold text-primary text-balance">
+                  <SwooshGlyph className="h-3.5 w-6 shrink-0 -scale-x-100" />
                   {t('celebration.title')}
+                  <SwooshGlyph className="h-3.5 w-6 shrink-0" />
                 </h2>
+
+                <p className="text-sm text-muted-foreground">{t('celebration.subtitle')}</p>
+
+                {/*
+                  The character — the same reactive mark the journey card
+                  draws on the progress tab, here playing its `celebration`
+                  beat once on the card's own entrance, with its own soft
+                  glow directly behind it. `FINAL_MASCOT_STATE` (not this
+                  client's actual weekly tier): a claimed streak is its own
+                  achievement, not a read on the week average, so the eyes
+                  lean into the happiest baseline regardless of what tier the
+                  week is otherwise at.
+                */}
+                <span className="relative isolate mt-1 grid place-items-center">
+                  <span aria-hidden="true" className="q-mascot-glow pointer-events-none absolute -inset-6 -z-10" />
+                  <MascotFace emotion="celebration" tier={FINAL_MASCOT_STATE} size={MASCOT_SIZE} />
+                </span>
+
+                {/*
+                  The flame and the day's own count, together in one pill —
+                  what used to be the flame alone at hero scale is now this
+                  badge, since the character carries the card's main weight
+                  now. `heroRef` wraps only the flame itself, not the whole
+                  pill, so the claim's FLIP flight below still measures the
+                  flame's own box rather than the wider row around it.
+                */}
+                <span className="mt-1 inline-flex items-center gap-2 rounded-full bg-muted/70 py-1.5 ps-2 pe-4">
+                  <span ref={heroRef} className="relative isolate grid place-items-center">
+                    <DayFlame day={liveDay} size={HERO_SIZE} className="q-flame-celebrate" />
+
+                    {/*
+                      The burst `TodayFlameCell` plays when the claimed flame
+                      lands in the strip, played once here instead on the
+                      dialog's own open — one celebration, reused where it is
+                      earned, not a second effect invented for the card.
+                    */}
+                    <span aria-hidden="true" className="pointer-events-none absolute inset-0">
+                      {HERO_PARTICLES.map((particle) => (
+                        <span key={particle.key} className="q-flame-particle" style={particle.style} />
+                      ))}
+                    </span>
+                  </span>
+
+                  <span className="text-sm font-semibold">
+                    {t('celebration.mealsCompleted', {
+                      completed: liveDay.completedMeals,
+                      total: liveDay.totalMeals,
+                    })}
+                  </span>
+                </span>
 
                 {/*
                   `text-white`, not the button's own `text-primary-foreground`
@@ -257,7 +395,7 @@ export function TodayFlameCell({ day }: { day: AdherenceDay }) {
                   for white text specifically, so it overrides the default
                   pairing rather than reopening it globally.
                 */}
-                <Button type="button" size="default" className="w-full text-white" onClick={handleClaim}>
+                <Button type="button" size="default" className="mt-2 w-full text-white" onClick={handleClaim}>
                   {t('celebration.claim')}
                 </Button>
               </div>

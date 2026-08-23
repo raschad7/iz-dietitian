@@ -22,6 +22,7 @@ import {
 } from './adherence';
 import { splitAppointments, type SplitAppointments } from './appointments';
 import { weekDates, STREAK_WINDOW_DAYS } from './check-ins';
+import { isStreakAtRisk } from './mascot/streak-risk';
 import { buildNotifications, type PortalNotification } from './notifications';
 import {
   getAssignedPractitioner,
@@ -123,6 +124,42 @@ export async function loadJourneyProgress(context: PortalContext): Promise<Journ
   const rows = await listPlanAdherence(context.id, from, to);
 
   return journeyProgressOf(summariseAdherenceWeek(rows, context.now.date), from);
+}
+
+export type HomeMascotSignals = {
+  journey: JourneyProgress;
+  /** Consecutive days kept — the same reading `loadProgressPage` exposes, so the mascot's streak can never disagree with the streak card. */
+  streak: number;
+  /** Whether that streak is close to lapsing — see `mascot/streak-risk.ts`. */
+  streakAtRisk: boolean;
+};
+
+/**
+ * Everything the home-tab mascot needs beyond the plan itself: the same
+ * journey fraction `loadJourneyProgress` returns, plus the streak reading
+ * that screen has never needed before now. Reads the bounded
+ * {@link STREAK_WINDOW_DAYS} window `loadProgressPage` already uses rather
+ * than the narrower one `loadJourneyProgress` does — `currentAdherenceStreak`
+ * needs the longer lookback, and a second, wider read of the same table is a
+ * fair price for one more mascot signal on the screen most clients open
+ * first. `loadJourneyProgress` itself is untouched; this is an additional
+ * loader, not a replacement.
+ */
+export async function loadHomeMascotSignals(context: PortalContext): Promise<HomeMascotSignals> {
+  const dates = weekDates(context.now.date);
+  const to = dates[dates.length - 1] ?? context.now.date;
+  const from = addDays(context.now.date, -(STREAK_WINDOW_DAYS - 1));
+
+  const rows = await listPlanAdherence(context.id, from, to);
+  const week = summariseAdherenceWeek(rows, context.now.date);
+  const streak = currentAdherenceStreak(rows, context.now.date);
+  const todayLevel = todayAdherenceOf(rows, context.now.date)?.level ?? null;
+
+  return {
+    journey: journeyProgressOf(week, dates[0] ?? context.now.date),
+    streak,
+    streakAtRisk: isStreakAtRisk(streak, todayLevel, context.now),
+  };
 }
 
 export type ProgressPageData = {
