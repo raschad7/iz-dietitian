@@ -49,13 +49,30 @@ export function AdherenceTrendCard({ weeks }: { weeks: MonthlyTrendWeek[] }) {
         <p className="text-xs text-muted-foreground">{t('subtitle')}</p>
       </CardHeader>
 
-      <CardContent>
+      {/*
+        `flex-1` here and down the chain to the bar track, so the plot takes
+        whatever height the card is given rather than always being 96px with the
+        remainder left blank beneath it.
+
+        It buys nothing on a phone, where this card is alone in its row and
+        `min-h-24` is the whole of it — the same 96px it drew before. It matters
+        from `lg`, where the progress screen sets this card beside the taller
+        "today" ring (`progress/page.tsx`): a grid row stretches both to the
+        same height, and without this the extra ~100px was dead space under four
+        short bars instead of four taller ones.
+      */}
+      <CardContent className="flex flex-1 flex-col">
         {/*
           The only client code on this card: it watches for the bars entering
           the viewport and flips `data-reveal`, which `.q-bar` keys off.
           Everything inside stays server-rendered — see `RevealOnView`.
+
+          `items-stretch` rather than `items-end`: every column holds the same
+          three things, so they were already the same height and the alignment
+          did nothing — but it now has to let each column fill the row so the
+          track inside it can.
         */}
-        <RevealOnView className="flex items-end justify-between gap-3">
+        <RevealOnView className="flex flex-1 items-stretch justify-between gap-3">
           {weeks.map((week, index) => {
             const percent = week.averageFraction ?? 0;
             const heightPercent = Math.max(percent * 100, week.averageFraction === null ? 0 : 6);
@@ -77,7 +94,13 @@ export function AdherenceTrendCard({ weeks }: { weeks: MonthlyTrendWeek[] }) {
                   {week.averageFraction === null ? '—' : formatNumber(locale, week.averageFraction, { style: 'percent' })}
                 </span>
 
-                <div className="flex h-24 w-full items-end rounded-md bg-muted">
+                {/*
+                  `min-h-24` and not `h-24`: `flex-1` sets the flex basis to
+                  zero, so a fixed height would be the one thing the track
+                  cannot honour while still growing with the card. The minimum
+                  is the old fixed value, which is what a phone still gets.
+                */}
+                <div className="flex min-h-24 w-full flex-1 items-end rounded-md bg-muted">
                   {/*
                     `--q-bar-h` rather than an inline `height`: the stylesheet
                     has to hold this bar at zero while the card is still off
