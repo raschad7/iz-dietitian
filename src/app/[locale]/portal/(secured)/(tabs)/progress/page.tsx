@@ -30,7 +30,10 @@ export async function generateMetadata({ params }: ProgressPageProps): Promise<M
  * one should not have to read the other's numbers to find it.
  *
  * Three sections, in the order a client asks them: how today went (and the
- * one place to say so), how many days running, and the longer four-week arc.
+ * one place to say so), how many days running, and the longer four-week arc —
+ * each one a wider window than the last. The week's own journey card — the
+ * mascot and the week-average fraction — used to sit between the first two;
+ * it is gone from this screen, kept only on the home tab.
  */
 export default async function ProgressPage({ params }: ProgressPageProps) {
   const locale = await resolveLocale(params);
