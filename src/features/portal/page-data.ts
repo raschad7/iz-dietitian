@@ -1,4 +1,4 @@
-import { addDays } from '@/features/booking/date';
+import { addDays, type IsoDate } from '@/features/booking/date';
 import { getClinicHours } from '@/features/booking/queries';
 import { type ClinicHours } from '@/features/booking/validation';
 import {
@@ -22,6 +22,7 @@ import {
 } from './adherence';
 import { splitAppointments, type SplitAppointments } from './appointments';
 import { weekDates, STREAK_WINDOW_DAYS } from './check-ins';
+import { isStreakAtRisk } from './mascot/streak-risk';
 import { buildNotifications, type PortalNotification } from './notifications';
 import {
   getAssignedPractitioner,
@@ -68,6 +69,99 @@ async function requireHours(clinicId: string): Promise<ClinicHours> {
   return { ...hours, workingDays: [...hours.workingDays] };
 }
 
+/**
+ * The week as the journey mascot reads it: one fraction, and the week it
+ * belongs to.
+ *
+ * **This type exists to be the single seam.** The mascot appears on two tabs
+ * loaded by two different functions, and §13 of its brief is emphatic that both
+ * must draw the same figure — so neither page computes one. `loadProgressPage`
+ * derives this from the `WeekAdherence` it already has, `loadJourneyProgress`
+ * derives it from one of its own, and both go through
+ * {@link journeyProgressOf}, which is four lines and no arithmetic.
+ */
+export type JourneyProgress = {
+  /**
+   * The week's average adherence, 0–1, or null when no day of it has been
+   * reported. Exactly `WeekAdherence.averageFraction` — the mean of each
+   * reported day's own `completed ÷ total`, per day rather than per meal. See
+   * `adherence.ts` for why that average is taken the way it is.
+   */
+  fraction: number | null;
+  /** The Sunday the week begins — the mascot's celebration scope. */
+  weekStartDate: IsoDate;
+};
+
+/**
+ * The seam itself. Deliberately trivial: its value is that it is the only
+ * expression in the app allowed to say what the mascot's progress *is*, so the
+ * definition cannot be changed on one tab and left alone on the other.
+ */
+export function journeyProgressOf(week: WeekAdherence, weekStartDate: IsoDate): JourneyProgress {
+  return { fraction: week.averageFraction, weekStartDate };
+}
+
+/**
+ * The same reading, for a page that has not already summarised the week.
+ *
+ * The home tab, which loads a plan rather than a progress report. One extra
+ * read of `client_plan_adherence` bounded to the seven dates of this calendar
+ * week — narrower than `loadProgressPage`'s own, which reaches back
+ * `STREAK_WINDOW_DAYS` for the streak.
+ *
+ * **The narrower read cannot produce a different answer.**
+ * `summariseAdherenceWeek` only ever looks at the seven dates of `today`'s
+ * week and ignores every other row it is handed, so feeding it exactly those
+ * seven and feeding it thirty give the same `averageFraction` by construction.
+ * That is what makes the two tabs provably equal rather than equal by
+ * inspection.
+ */
+export async function loadJourneyProgress(context: PortalContext): Promise<JourneyProgress> {
+  const dates = weekDates(context.now.date);
+  const from = dates[0] ?? context.now.date;
+  const to = dates[dates.length - 1] ?? context.now.date;
+
+  const rows = await listPlanAdherence(context.id, from, to);
+
+  return journeyProgressOf(summariseAdherenceWeek(rows, context.now.date), from);
+}
+
+export type HomeMascotSignals = {
+  journey: JourneyProgress;
+  /** Consecutive days kept — the same reading `loadProgressPage` exposes, so the mascot's streak can never disagree with the streak card. */
+  streak: number;
+  /** Whether that streak is close to lapsing — see `mascot/streak-risk.ts`. */
+  streakAtRisk: boolean;
+};
+
+/**
+ * Everything the home-tab mascot needs beyond the plan itself: the same
+ * journey fraction `loadJourneyProgress` returns, plus the streak reading
+ * that screen has never needed before now. Reads the bounded
+ * {@link STREAK_WINDOW_DAYS} window `loadProgressPage` already uses rather
+ * than the narrower one `loadJourneyProgress` does — `currentAdherenceStreak`
+ * needs the longer lookback, and a second, wider read of the same table is a
+ * fair price for one more mascot signal on the screen most clients open
+ * first. `loadJourneyProgress` itself is untouched; this is an additional
+ * loader, not a replacement.
+ */
+export async function loadHomeMascotSignals(context: PortalContext): Promise<HomeMascotSignals> {
+  const dates = weekDates(context.now.date);
+  const to = dates[dates.length - 1] ?? context.now.date;
+  const from = addDays(context.now.date, -(STREAK_WINDOW_DAYS - 1));
+
+  const rows = await listPlanAdherence(context.id, from, to);
+  const week = summariseAdherenceWeek(rows, context.now.date);
+  const streak = currentAdherenceStreak(rows, context.now.date);
+  const todayLevel = todayAdherenceOf(rows, context.now.date)?.level ?? null;
+
+  return {
+    journey: journeyProgressOf(week, dates[0] ?? context.now.date),
+    streak,
+    streakAtRisk: isStreakAtRisk(streak, todayLevel, context.now),
+  };
+}
+
 export type ProgressPageData = {
   /**
    * Today's own report — its exact fraction and the meals behind it — or null
@@ -84,6 +178,13 @@ export type ProgressPageData = {
   continuity: ContinuityDay[];
   /** The last four calendar weeks, oldest first. */
   monthlyTrend: MonthlyTrendWeek[];
+  /**
+   * The same `week` above, reduced to what the journey mascot draws. Carried
+   * rather than recomputed by the page, so the progress tab and the home tab —
+   * which has no `WeekAdherence` of its own — arrive at one figure through one
+   * function. See {@link journeyProgressOf}.
+   */
+  journey: JourneyProgress;
 };
 
 /**
@@ -112,6 +213,7 @@ export async function loadProgressPage(context: PortalContext): Promise<Progress
     streak: currentAdherenceStreak(rows, context.now.date),
     continuity: continuityPath(rows, context.now.date),
     monthlyTrend: fourWeekTrend(rows, context.now.date),
+    journey: journeyProgressOf(week, dates[0] ?? context.now.date),
   };
 }
 

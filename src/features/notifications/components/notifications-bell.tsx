@@ -196,12 +196,6 @@ export function NotificationsBell({ attention }: { attention: StaffAttentionNoti
                 // Narrower than the requests dialog: a notification is one line
                 // about one client, not a request carrying two buttons.
                 'sm:w-[min(40rem,calc(100vw-2rem))]',
-                // And the same measure for the tablet bottom sheet, which the
-                // unlayered `(pointer: coarse)` rule in `globals.css` would
-                // otherwise widen to the `size="wide"` default of 64rem. This is
-                // the surface in the tablet screenshots; see
-                // `--q-dialog-sheet-width`.
-                '[--q-dialog-sheet-width:min(40rem,calc(100vw-2rem))]',
               )}
             >
               <DialogHeader

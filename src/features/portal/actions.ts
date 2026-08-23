@@ -150,7 +150,16 @@ export async function toggleMealCompletionAction(
     parsed.data.completed,
   );
 
-  if (result.ok) revalidatePortal(locale);
+  if (result.ok) {
+    revalidatePortal(locale);
+
+    // The dietitian's own Progress tab reads the same `client_plan_adherence`
+    // row this just wrote (see `ClientProgressPanel`), and Next's router
+    // cache would otherwise keep serving whatever it last rendered for this
+    // client until the dietitian did a hard navigation — a client ticking a
+    // meal would not show up there until well after the fact.
+    revalidatePath(`/${locale}/app/clients/${clientId}`);
+  }
 
   return result;
 }

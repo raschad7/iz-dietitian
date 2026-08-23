@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { useState, useTransition } from 'react';
 
-import { Dialog, DialogBody, DialogHeader } from '@/components/ui/dialog';
+import { Dialog, DialogHeader } from '@/components/ui/dialog';
 import { RequestForm } from '@/features/portal/components/request-form';
 import { type RequestPageData } from '@/features/portal/types';
 import { usePathname, useRouter } from '@/i18n/navigation';
@@ -89,21 +89,25 @@ export function AppointmentRequestDialog({
         backdrop, or Escape on a keyboard. §Fields — "a third exit only crowds
         the corner the title starts from".
 
-        Stated honestly, because this dialog has no footer to leave by either:
-        that makes the backdrop the *only* exit a touch client has, and it is
-        an unlabelled one. It is the shape asked for, and it is consistent
+        Stated honestly, because `RequestForm`'s own footer (`pinFooter`
+        below) holds only the submit action, not a Cancel beside it: that
+        makes the backdrop the *only* exit a touch client has, and it is an
+        unlabelled one. It is the shape asked for, and it is consistent
         across both of the portal's dialogs, which is the argument for it — a
         client who learns to dismiss one has learned to dismiss the other.
       */}
       <DialogHeader title={title} />
 
-      <DialogBody className="min-h-0 flex-1 overflow-y-auto">
-        {/* The sentence that stops this reading as a booking screen: the
-            dietitian confirms, and until they do nothing is held. */}
-        <p className="text-sm text-muted-foreground">{t(`request.description.${data.kind}`)}</p>
-
-        <RequestForm {...data} locale={locale} />
-      </DialogBody>
+      <RequestForm
+        {...data}
+        locale={locale}
+        pinFooter
+        description={
+          // The sentence that stops this reading as a booking screen: the
+          // dietitian confirms, and until they do nothing is held.
+          <p className="text-sm text-muted-foreground">{t(`request.description.${data.kind}`)}</p>
+        }
+      />
     </Dialog>
   );
 }

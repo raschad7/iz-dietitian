@@ -18,16 +18,16 @@ import { usePathname, useRouter } from '@/i18n/navigation';
  * the previous week's numbers stay on screen, dimmed, until the new ones
  * arrive instead of flashing to a loading state.
  *
- * **`?tab=` is left exactly as it is.** This control only exists inside the
- * Progress panel, which `ClientProfileTabs` has already mounted client-side
- * by the time anyone can reach it — so there is nothing to "switch to."
- * Writing `tab=progress` here used to change `ClientProfileTabs`'s
- * `defaultTab` prop on an already-mounted, uncontrolled `PanelTabs`, and Base
- * UI reads `defaultValue` once at mount: a prop that changes after that is
- * the exact "uncontrolled component receiving a new default" case it warns
- * about. Carrying `searchParams` forward untouched keeps whatever `tab` was
- * already there — or wasn't — instead of asserting a value the mounted tree
- * cannot legally accept.
+ * **`?tab=` is left exactly as it is, and it is already right.**
+ * `ClientProfileTabs` writes the live view into the URL with a shallow
+ * `history.replaceState` the moment it is switched, and `useSearchParams` reads
+ * that — so copying the params forward here carries `tab=progress` on its own.
+ * There is nothing for this control to assert.
+ *
+ * It matters that it does not assert one anyway. This navigation re-runs the
+ * page, so `defaultTab` arrives at the tab bar again; that bar seeds its state
+ * from the prop once and is controlled from itself afterwards, precisely so a
+ * re-render cannot move the reader off the view they are reading.
  */
 export function ClientProgressWeekSelect({
   weeks,

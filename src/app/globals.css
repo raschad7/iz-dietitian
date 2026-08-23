@@ -228,7 +228,7 @@
    * decorative fill, not a step in a scale, and no other surface may reach
    * for it. See `.portal-home-glow` in `@layer components`.
    */
-  --portal-home-glow: #72AE34;
+  --portal-home-glow: #73AE35;
 
   /*
    * ── Home hero progress ring ──
@@ -1285,6 +1285,23 @@
    */
   --scrollbar-arrow-up: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234B5563' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 15.5 12 8.8l7 6.7'/%3E%3C/svg%3E");
   --scrollbar-arrow-down: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234B5563' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 8.5 12 15.2l7-6.7'/%3E%3C/svg%3E");
+}
+
+/*
+ * The client portal's own brand green — `[data-theme='light']` is the
+ * attribute `PortalTheme` sets on the portal's root alone (see
+ * `src/features/portal/components/portal-theme.tsx`), so this never touches
+ * the practitioner app's `--primary` (green-400, set on `:root` above).
+ *
+ * ⚠ White on this fill is ~2.68:1 — the same ratio the app's own olive
+ * predecessor measured (see the note on `--primary` at `:root`), below the
+ * 4.5:1 body-text floor. It is white because that is what was asked for; the
+ * pairing is a deliberate exception to the app's own AA rule, not an
+ * oversight.
+ */
+[data-theme='light'] {
+  --primary: #73ae35;
+  --primary-foreground: var(--n-0);
 }
 
 .dark,
@@ -2600,6 +2617,33 @@
   }
 
   /*
+   * ── The day-complete claim card ──
+   * `TodayFlameCell`'s dialog, the moment a client finishes every meal of the
+   * day. Two more layers on top of the trio above: a wide, gentle wash behind
+   * the whole card (green and flame both, faded, so the card reads as one
+   * warm surface rather than a white rectangle with icons on it) and a
+   * handful of sparkles that twinkle on their own independent delays.
+   *
+   * Both loop for as long as the card is open, unlike every other one-shot
+   * celebration in this file — the difference is deliberate: this card
+   * blocks (`dismissible={false}`) until the client presses its own button,
+   * so it is never open for more than a few seconds, and a wash or a
+   * sparkle that finished mid-read would leave the card looking unfinished
+   * for whatever time was left. `prefers-reduced-motion` still collapses
+   * both to their resting frame, same as everywhere else in this file.
+   */
+  .q-claim-glow {
+    background:
+      radial-gradient(120% 65% at 50% 0%, color-mix(in srgb, var(--flame-300) 38%, transparent) 0%, transparent 65%),
+      radial-gradient(90% 55% at 50% 58%, color-mix(in srgb, var(--primary) 26%, transparent) 0%, transparent 70%);
+    animation: q-claim-glow-pulse 3200ms ease-in-out infinite;
+  }
+
+  .q-claim-sparkle {
+    animation: q-claim-sparkle-twinkle 2200ms ease-in-out infinite;
+  }
+
+  /*
    * ── The streak curve drawing itself in ──
    * `AdherenceStreakCard` on the progress tab. The card is server-rendered SVG
    * and stays that way (§Charts: no chart is a client component), so the whole
@@ -2695,6 +2739,119 @@
   [data-reveal='seen'] .q-bar {
     animation: q-bar-grow 880ms cubic-bezier(.2, .6, .2, 1) both;
   }
+
+  /*
+   * ── The reactive mascot ──
+   * `ReactiveMascot`, on the home and progress tabs. The character itself is
+   * `MascotFace` — one inline SVG, the same mark `logo-mark.svg` draws, whose
+   * eyes and body `transform` React sets directly per emotion (see
+   * `eye-choreography.ts`). What lives here is only what has no per-emotion
+   * data of its own: the continuous idle breathing, and the milestone/goal
+   * burst — both of which run identically no matter which emotion is showing.
+   *
+   * **Everything here is `transform` and `opacity`.** §21 of the mascot brief
+   * asks for it, and an animation touching layout would have the browser
+   * re-laying-out the card behind it for as long as the screen stays open.
+   *
+   * **`prefers-reduced-motion` is not handled here for the float or the
+   * burst.** The global block further down this file collapses every
+   * duration and iteration count, which is the right answer for both: the
+   * float stops and the burst resolves instantly to its finished, invisible
+   * state. `MascotFace`'s own per-emotion sequence is the one animation in
+   * this system that *is* handled in JavaScript — see its own doc comment for
+   * why a collapsed `transition-duration` alone is not enough for a multi-step
+   * sequence.
+   */
+  .q-mascot {
+    position: relative;
+    /*
+      Its own stacking context, so the goal glow's `-z-10` sits behind the
+      character and in front of the card — without it, a negative index escapes
+      to the nearest context and the wash paints *under* the card's own surface,
+      where it is invisible. Same `relative isolate` pairing `TodayFlameCell`
+      uses around the flame's glow.
+    */
+    isolation: isolate;
+    display: grid;
+    place-items: center;
+    inline-size: var(--q-mascot-size);
+    block-size: var(--q-mascot-size);
+  }
+
+  /*
+   * The resting state: alive, not busy. A 6px rise over 3.6s with a half-percent
+   * of scale under it — slow enough that it reads as breathing rather than as a
+   * bounce, which is the one thing §8 rules out by name.
+   */
+  .q-mascot-float {
+    display: grid;
+    place-items: center;
+    inline-size: 100%;
+    block-size: 100%;
+    animation: q-mascot-float 3600ms ease-in-out infinite;
+  }
+
+  /*
+   * Switched off while an emotion pulse is actively holding — `data-mascot-
+   * pulse` is set by `ReactiveMascot` for exactly as long as the hook in
+   * `use-reactive-mascot.ts` is holding a temporary emotion. Without this, the
+   * breathing float and the pulse's own squash/bounce would both be writing
+   * `transform` on ancestor elements in the same moment, which reads as the
+   * reaction developing a wobble it was not choreographed to have.
+   */
+  .q-mascot[data-mascot-pulse='true'] .q-mascot-float {
+    animation: none;
+  }
+
+  .q-mascot-svg {
+    display: block;
+    inline-size: 100%;
+    block-size: auto;
+  }
+
+  /*
+   * The burst, for a milestone and for a completed week.
+   *
+   * The keyframe is `q-flame-particle-burst`, reused rather than restated — it
+   * is already written against `--q-tx`/`--q-ty` set per dot by the component,
+   * with nothing flame-specific in it. Only the ink and the size differ: olive,
+   * because this marks the client's own adherence, which is the thing §Colour
+   * says olive is for, and the flame's orange is spoken for as a one-per-screen
+   * streak accent.
+   */
+  .q-mascot-particle {
+    position: absolute;
+    inset-inline-start: calc(50% - 3px);
+    inset-block-start: calc(50% - 3px);
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    background: var(--primary);
+    animation: q-flame-particle-burst 880ms var(--ease-sweep) both;
+  }
+
+  /*
+   * A wash behind the character on a completed week only. Not on a milestone:
+   * the burst already marks those, and a glow on every quarter would leave the
+   * one that actually finishes the week with nothing of its own.
+   */
+  .q-mascot-glow {
+    border-radius: 9999px;
+    background: radial-gradient(circle, var(--primary) 0%, transparent 70%);
+    animation: q-mascot-glow-pulse 1320ms var(--ease-sweep) both;
+  }
+
+  /*
+   * The home card's energy mascot, one meal advancing its tier — a brief
+   * overshoot in place of the idle float for as long as the bump runs.
+   * `TodayEnergyMascot` sets `data-energy-bump` for `q-energy-bump-ms`
+   * (see that component) and clears it itself; this rule's own higher
+   * specificity is what lets it take over `.q-mascot-float` without the
+   * breathing keyframe fighting it for the same property.
+   */
+  .q-mascot[data-energy-bump='true'] .q-mascot-float {
+    animation: q-energy-bump 640ms var(--ease-sweep);
+  }
 }
 
 /*
@@ -2726,27 +2883,29 @@
 }
 
 /*
- * ══ Anchored popups become bottom sheets on touch hardware ══
+ * ══ Anchored popups become bottom sheets on a phone ══
  *
  * Select, Combobox, Dropdown menu and Popover all anchor themselves to their
  * trigger, flip when there is no room and clamp to `--available-height`. That
- * is the right control for a pointer, and it is the wrong one for a thumb: the
- * list opens wherever the trigger happens to be, which on a tablet is often the
- * middle of the screen with a keyboard about to cover the half of it that
- * matters, and every row is a small target a long way from the hand.
+ * is the right control everywhere there is room for it, and on a phone there is
+ * not: a list anchored to a field halfway down a 390px screen has a keyboard
+ * about to cover the half of it that matters.
  *
- * So on a coarse pointer they rise from the block-end edge instead — full
- * width, rounded at the top, thumb-height rows, clear of the home indicator.
+ * So below `sm` they rise from the block-end edge instead — full width, rounded
+ * at the top, thumb-height rows, clear of the home indicator.
  *
- * ## Why `(pointer: coarse)` and not a width
+ * ## Why a width, and not `(pointer: coarse)`
  *
- * A width query cannot answer this question. An iPad is 810–1366 CSS px, which
- * is desktop territory by every breakpoint in this file — so a `max-sm:` or
- * even `max-lg:` rule leaves the exact device this was reported on with the
- * anchored popup it could not use. `pointer: coarse` asks about the input
- * hardware, which is the thing that actually decides whether a popup should be
- * a sheet, and it is correct for a phone, a tablet and a touchscreen laptop
- * alike while leaving every mouse-driven window untouched at any size.
+ * This block was briefly keyed on the pointer, which took the tablet with it:
+ * every select, menu and popover on an iPad became a bottom sheet, and so did
+ * every `placement="sheet"` dialog. **That is deliberately reverted.** A tablet
+ * is 810–1366 CSS px — it has the room the anchored popup was designed for, and
+ * the popup next to its trigger is the thing the reader was already looking at.
+ * The tablet face is the desktop face: anchored popups, centred dialogs.
+ *
+ * What survives from that layer is the part that was never about shape — the
+ * 44px touch targets in the `(pointer: coarse)` block just below, which apply at
+ * every width because they are a question about the finger, not the surface.
  *
  * ## How it works, and why it is one rule rather than four components
  *
@@ -2754,36 +2913,17 @@
  * a stylesheet needs `!important` to take it back — and once it has, the
  * positioner is just a fixed box pinned to the bottom edge. Nothing about the
  * popup's DOM, focus management, keyboard navigation, `dir` handling or
- * dismissal changes; only where the box lands. `meal-inspector.tsx` already
- * does exactly this at `max-sm`, per call site — this is the same move made
- * once, on the `data-slot` hooks the four positioners now carry, so every
- * existing caller and every future one gets it without knowing to ask.
+ * dismissal changes; only where the box lands.
  *
  * ⚠ `display` is deliberately not touched. Base UI hides a closed popup by
  * setting `display: none` on the positioner, and an `!important` display here
  * would strand every closed popup on screen.
  *
- * ## What this no longer covers, and why that is the direction of travel
- *
- * The notifications inbox used to be the loudest customer of the
- * `popover-positioner` line below. It is not any more: `NotificationInboxPopover`
- * asks `useIsSheetSurface()` — the same width-or-coarse question this query
- * asks — and renders a real `Sheet` on a touch device instead of a popover that
- * gets redrawn as one here. That is the better arrangement wherever a surface
- * can afford it, because a `Sheet` is a dialog: it brings a focus trap, a
- * scrim, a close control and an entrance of its own, and above all the
- * *component* knows which surface it is, so anything that has to measure or
- * animate it can ask. A popover reshaped by a stylesheet leaves the component
- * believing it is still anchored to its trigger.
- *
- * This block stays for the surfaces where that trade does not pay: `select`,
- * `combobox` and `dropdown-menu` are list pickers whose whole content is rows,
- * with nothing to focus-trap and no header to close, and swapping each of them
- * for a dialog would be a large change to buy very little. `popover-positioner`
- * stays too — the date pickers, the client filter and the planner's panels all
- * still hang off a trigger and still want this on a tablet.
+ * Full-bleed is the only width a phone in portrait has, so unlike the coarse
+ * version this block once had, it needs no companion query capping the measure
+ * on a larger screen — there is no larger screen inside it.
  */
-@media (pointer: coarse) {
+@media (width < 40rem) {
   [data-slot='select-positioner'],
   [data-slot='combobox-positioner'],
   [data-slot='dropdown-menu-positioner'],
@@ -2876,6 +3016,17 @@
     animation: q-popup-sheet-out 160ms ease-in both !important;
   }
 
+}
+
+/*
+ * ══ Touch targets, at any width ══
+ *
+ * The sheet block above is scoped to the phone; this one is not. Row height is
+ * a question about the *finger*, not about the shape of the surface it lands
+ * in, so a tablet running the anchored popup still owes its rows the 44px the
+ * rest of this file reserves for a coarse pointer.
+ */
+@media (pointer: coarse) {
   /*
     Rows reach the touch floor. The anchored menu's 1px/4px gutters are a mouse
     target; a thumb needs the 44px the rest of this file already reserves for
@@ -2916,50 +3067,6 @@
   [data-slot='collapsible-trigger'] {
     min-block-size: 44px;
     align-items: center;
-  }
-}
-
-/*
- * ══ …and stops being full-bleed once the screen is wider than a phone ══
- *
- * The block above is right about *where* a sheet belongs and says nothing
- * useful about how wide it should be, because on the device it was written for
- * the two questions have the same answer: a phone in portrait is 390–430px, and
- * full-bleed is the only width there is. Turn that phone sideways and it is
- * 850px; an iPad in landscape is 1180–1366px. A select with six options and a
- * dropdown with four rows were being stretched across the whole of that — a
- * band of empty popover with the labels stranded at the inline-start end and
- * the check marks at the other, which is a longer journey for the eye than the
- * anchored popup this replaced.
- *
- * So above `sm` the sheet takes a measure and centres on the block-end edge.
- * It is still a sheet — still risen from the thumb's edge, still square at the
- * bottom, still the same entrance — it simply stops being as wide as the glass.
- *
- * **28rem, which is the measure the app already uses for a modal surface** —
- * `Dialog`'s own centred card is `min(28rem, …)`, and a menu is not a wider
- * kind of thing than a dialog. It was briefly 40rem, on the reasoning that
- * Material caps a large-screen bottom sheet there; on an iPad that is still
- * two-thirds of the glass for a list of four rows, which is the width this was
- * meant to stop. Sharing the number with the card is also the point: a tablet
- * shows one width for every surface that interrupts the page, whether it rises
- * from the edge or floats in the middle.
- *
- * Below 40rem nothing changes at all — a phone in portrait never matches this
- * query, so the full-bleed behaviour the block above describes is exactly as it
- * was.
- *
- * `min(100%, …)` rather than `max-width`, because the rule above sets
- * `width: 100% !important` and an `!important` width outranks any max-width;
- * the cap has to be inside the same declaration that beats it.
- */
-@media (pointer: coarse) and (width >= 40rem) {
-  [data-slot='select-content'],
-  [data-slot='combobox-content'],
-  [data-slot='dropdown-menu-content'],
-  [data-slot='popover-content'] {
-    width: min(100%, 28rem) !important;
-    margin-inline: auto;
   }
 }
 
@@ -3026,39 +3133,6 @@
   }
 }
 
-/*
- * The same inset, for the tablet.
- *
- * The rule further down keeps the sheet shape on any coarse pointer at any
- * width — an iPad at 820 or 1180 gets a surface pinned to the block-end edge
- * exactly like the phone's — but the query above stops at 40rem, so on the one
- * device family with both a home indicator and a large screen the footer's
- * buttons sat in the gesture area. **Installed to the home screen it is worse
- * than in a browser**: there is no toolbar below the sheet to absorb the strip,
- * so Save is the control the swipe-up gesture reaches first.
- *
- * `(pointer: coarse)` and not a width, for the reason the sheet itself gives:
- * the question is whether this is a touch screen with a home indicator, and a
- * 900px desktop window is not. A tablet at the phone's width matches both this
- * and the query above and gets one inset, not two — they set the same property
- * to the same value.
- *
- * The two exclusions are the ones every sheet rule here carries: the planner
- * sheet and the navigation drawer own their own geometry.
- */
-@media (pointer: coarse) and (width >= 40rem) {
-  .q-dialog[data-placement='sheet']:not(.planner-context-sheet):not(.app-navigation-drawer)
-    [data-slot='dialog-footer'] {
-    padding-block-end: calc(1rem + var(--q-safe-b));
-  }
-
-  .q-dialog[data-placement='sheet']:not(.planner-context-sheet):not(.app-navigation-drawer):not(
-      :has([data-slot='dialog-footer'])
-    )
-    [data-slot='dialog-body'] {
-    padding-block-end: calc(1rem + var(--q-safe-b));
-  }
-}
 
 /*
  * Base UI's `Sheet`, which is a different component from the `<dialog>` above
@@ -3840,8 +3914,9 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
     even when there is room — set `[--q-dialog-max-block:32rem]` in the class
     list. **A `max-h-[…]` utility will not work**: this declaration is unlayered
     and beats every Tailwind utility on the element, so a call site that reached
-    for one would find it silently doing nothing. The variable is the seam,
-    exactly as `--q-dialog-sheet-width` is for the width.
+    for one would find it silently doing nothing. The variable is the seam; the
+    width has no equivalent, because a sheet is only a sheet at phone width now
+    and there is exactly one width there.
   */
   max-block-size: min(
     var(--q-dialog-max-block, 100dvh),
@@ -3851,32 +3926,189 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
 }
 
 /*
- * The sheet's budget, at the two widths a sheet is one at.
+ * ══ The phone sheet stops short of the top, and the gap is a control ══
  *
- * `:not([data-placement])` is `ConfirmDialog`, which predates the attribute and
- * is a `.q-dialog` written by hand: below `sm` it is `mt-auto mb-0` like every
- * other sheet, so it wants the sheet's ceiling rather than the card's.
+ * A `placement="sheet"` dialog on a phone rises from the block-end edge and
+ * leaves a band of scrim above itself. It is **not** full screen, and the band
+ * is not decoration: it is the surface's second dismissal, the one a thumb can
+ * reach without travelling to a corner.
+ *
+ * That is what makes the size of it a real decision rather than a taste one.
+ * The old 1.5rem was enough to *see* the page behind and not enough to *press*
+ * — 24px is half a touch target, sitting directly above a sheet where a miss
+ * lands on the header. `--q-sheet-top-gap` is 3rem, which clears the 44px floor
+ * this file reserves for a coarse pointer everywhere else, plus the status bar
+ * on top of it. Set the variable on a call site's class list to ask for more.
+ *
+ * The block-start safe inset is *added to* the gap rather than being spent
+ * against it, so the strip is 3rem of pressable scrim on every device instead
+ * of 3rem minus whatever the notch took.
+ *
+ * ## How the tap works, and why there is no handler for it
+ *
+ * There is nothing to wire. A modal `<dialog>` fills the viewport as far as
+ * hit-testing is concerned, so a press on the band targets the dialog element
+ * itself — which is exactly the backdrop test `Dialog` already runs on every
+ * click, comparing the pointer against the surface's own rectangle. The gap is
+ * outside that rectangle, so it closes. `ConfirmDialog` runs the same test, and
+ * a Base UI `Sheet` has a real backdrop element behind it that does the same
+ * thing on its own.
+ *
+ * This is why the sheet went back to leaving a gap at all: full-bleed, that
+ * whole mechanism had nowhere left to happen, and a full-height surface with no
+ * backdrop is a surface whose only exits are a 40px close button and a keyboard
+ * the phone only sometimes has.
+ *
+ * ## Height
+ *
+ * A ceiling, not a size. A tall dialog grows until it meets the gap and stops;
+ * a short one stays short. `--q-viewport-block` rather than `100dvh` is the
+ * frame's own reasoning: with a keyboard open it is what is left of the screen,
+ * and paired with `inset-block-end: var(--q-keyboard-inset)` the sheet sits on
+ * top of the keys rather than behind them.
+ *
+ * The block-start corners stay rounded — the sheet has a visible top edge again
+ * — and the other two are off-screen. The block-end safe inset is handled
+ * further up: the fill runs under the home indicator, the content does not.
+ *
+ * `:not([data-placement])` is `ConfirmDialog`, written by hand before the
+ * attribute existed. It is `mt-auto mb-0` below `sm` like every other sheet, so
+ * it takes the same shape.
  */
 @media (width < 40rem) {
   .q-dialog[open][data-placement='sheet']:not(.planner-context-sheet):not(.app-navigation-drawer),
   .q-dialog[open]:not([data-placement]):not(.planner-context-sheet):not(.app-navigation-drawer) {
-    --q-dialog-block-gutter: 1.5rem;
+    --q-dialog-block-gutter: var(--q-sheet-top-gap, 3rem);
     --q-dialog-block-safe: var(--q-safe-t);
   }
 }
 
 /*
- * …and on a tablet, where the sheet rule further down this file keeps the shape
- * at any width. Same pairing as every other coarse-pointer rule here: the
- * question is whether the surface is pinned to the block-end edge, and on touch
- * hardware `placement="sheet"` still is.
+ * ══ The grip, and the gesture it advertises ══
+ *
+ * The sheet's two thumb-reachable exits are the band of scrim above it and this
+ * pill: tap the gap to put it away, or push the pill down to the edge it rose
+ * from. Both beat the alternatives on a phone — Escape needs a keyboard the
+ * device only sometimes has, and the close button is at the corner furthest
+ * from the hand holding it. `dialog-drag.tsx` is the whole of the drag's
+ * behaviour; this is the whole of its appearance.
+ *
+ * **`display: none` is the default and the phone opts in**, rather than the
+ * other way round, so a centred card cannot grow a grip by omission at any
+ * width. It is a stylesheet question rather than a media hook in the component
+ * for the ordinary reason: the markup then matches on the server and on the
+ * first client pass.
+ *
+ * ⚠ `touch-action: none` is load-bearing. Without it the browser claims a
+ * vertical drag as a scroll before `pointermove` is ever dispatched, and the
+ * gesture simply never fires on a touch screen — which is every screen this
+ * band appears on.
  */
-@media (pointer: coarse) {
-  .q-dialog[open][data-placement='sheet']:not(.planner-context-sheet):not(.app-navigation-drawer) {
-    --q-dialog-block-gutter: 1.5rem;
-    --q-dialog-block-safe: var(--q-safe-t);
+[data-slot='sheet-grip'] {
+  display: none;
+}
+
+@media (width < 40rem) {
+  .q-dialog[data-placement='sheet'] > [data-slot='sheet-grip'],
+  .q-dialog:not([data-placement]) > [data-slot='sheet-grip'],
+  [data-slot='sheet-content'][data-side='bottom'] > [data-slot='sheet-grip'] {
+    /* Neither grows nor shrinks: it is a row that must always be there. */
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    /*
+      The band is what the thumb lands on and the pill is only what it sees, so
+      the padding is the target: ~28px of height for a 4px mark. No status-bar
+      inset here — the sheet now stops short of the top and the gap above it
+      already clears the notch.
+    */
+    padding-block: 0.75rem 0.5rem;
+    touch-action: none;
+    cursor: grab;
+  }
+
+  .q-dialog[data-placement='sheet'] > [data-slot='sheet-grip']::after,
+  .q-dialog:not([data-placement]) > [data-slot='sheet-grip']::after,
+  [data-slot='sheet-content'][data-side='bottom'] > [data-slot='sheet-grip']::after {
+    content: '';
+    block-size: 4px;
+    inline-size: 2.25rem;
+    border-radius: 999px;
+    background: var(--border);
   }
 }
+
+/*
+ * ══ The drag itself ══
+ *
+ * `translate` and not `transform`, and the choice is not cosmetic. `Dialog`'s
+ * Seam entrance animates `clip-path`, and `SheetContent` writes its own
+ * entrance and exit as Tailwind's `translate-y-10` — which compiles to the
+ * standalone `translate` property. Using the same property means the drag
+ * replaces that offset outright rather than composing with a stale one, and it
+ * leaves `transform` free for anything that still wants it.
+ *
+ * `--q-sheet-drag` is written by the hook, in `px` while the finger is down and
+ * as `100%` for the dismissing slide — a percentage there resolves against the
+ * surface's own height, so one declaration is right whatever the sheet turned
+ * out to be.
+ */
+.q-dialog[data-drag],
+[data-slot='sheet-content'][data-drag] {
+  translate: 0 var(--q-sheet-drag, 0px);
+}
+
+/*
+ * Following the finger, so nothing may smooth it. `SheetContent` carries a
+ * blanket `transition` from its own class list — `translate` is among the
+ * properties Tailwind's `transition` names — and a transitioned drag lags the
+ * thumb by the whole of its duration.
+ */
+.q-dialog[data-drag='active'],
+[data-slot='sheet-content'][data-drag='active'] {
+  transition: none;
+}
+
+/* Let go short of the threshold and it springs back. `SETTLE_DURATION_MS`. */
+.q-dialog[data-drag='settling'],
+[data-slot='sheet-content'][data-drag='settling'] {
+  transition: translate 220ms var(--ease-sweep);
+}
+
+/*
+ * …and past it, out through the edge it was pushed toward. 130ms is
+ * `DIALOG_EXIT_DURATION_MS`, which fits inside the 140ms `Dialog` gives itself
+ * before the native `close()`.
+ */
+.q-dialog[data-drag='dismissing'],
+[data-slot='sheet-content'][data-drag='dismissing'] {
+  transition: translate 130ms ease-in;
+}
+
+/*
+ * The Seam exit stands down for a dismissed sheet.
+ *
+ * Seam closes a dialog by clipping it toward its own horizontal midpoint, which
+ * is the right motion for a surface that was never touched and the wrong one
+ * for a surface already travelling toward the bottom edge: the two play at once
+ * and the sheet collapses inward while it slides away. The push is the reader's
+ * own gesture, so the push is what finishes. The backdrop still fades on its
+ * own rule.
+ */
+.q-dialog[data-drag='dismissing'][data-closing='true']:not(.planner-context-sheet):not(
+    .app-navigation-drawer
+  ) {
+  animation: none;
+}
+
+/*
+ * Reduced motion keeps the gesture and drops only the easing of its two
+ * releases — the drag is the finger's own movement, which is not something to
+ * suppress. The global `prefers-reduced-motion` block near the top of this file
+ * already caps every `transition-duration` with `!important`, so the two rules
+ * above land at 0.01ms there and the sheet simply arrives.
+ */
 
 /*
  * ⚠ The `:has()` is **positional** — a body in one of the two places the frame
@@ -4117,100 +4349,7 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
  * them while they measure and can make a calendar dismiss.
  */
 
-/*
- * ══ A sheet stays a sheet on touch hardware, at every width ══
- *
- * `placement="sheet"` used to mean "bottom sheet below `sm`, centred card
- * above", and `sm` is 640px — so a tablet got the card. That is the right split
- * for a *window*, which is narrow because someone dragged it narrow, and the
- * wrong one for a *device*: an iPad is 810–1366 CSS px and lands on the desktop
- * side of every breakpoint in this file while being operated entirely by thumb.
- * The new-client form, the intake panels, the notification and request lists
- * were all centred cards there, with their controls in the middle of a screen
- * held at the edges.
- *
- * Same reasoning, and the same query, as the anchored popups higher up this
- * file: `pointer: coarse` asks about the input hardware, which is the thing
- * that actually decides whether a surface should rise from the thumb's edge.
- * A mouse keeps the centred card at every size, including on a 500px-wide
- * window, exactly as before.
- *
- * ⚠ **`placement="center"` is deliberately excluded.** That value exists
- * precisely for the short modal that would read as a failed sheet — four rows
- * along the bottom edge under two-thirds of blurred page. Those stay centred on
- * a tablet too; see the prop's own documentation in `dialog.tsx`.
- *
- * Unlayered, so it beats the `sm:m-auto sm:rounded-lg sm:w-[…]` utilities on
- * the element — including the per-call widths the client form, the intake form
- * and the dish editor each pass — without an `!important` anywhere.
- */
-@media (pointer: coarse) {
-  .q-dialog[data-placement='sheet']:not(.planner-context-sheet):not(.app-navigation-drawer) {
-    /* Full-bleed and pinned to the block-end edge — `mt-auto mb-0` in longhand. */
-    margin-block: auto 0;
-    margin-inline: 0;
-    width: 100%;
-    max-width: none;
-    /*
-      Only the block-start corners exist; the other two are off-screen. Stated
-      through the same token `rounded-t-2xl` resolves, so the tablet sheet and
-      the phone sheet are the same shape rather than two values that happen to
-      agree today.
-    */
-    border-radius: var(--radius-2xl, 1rem) var(--radius-2xl, 1rem) 0 0;
-  }
 
-}
-
-/*
- * The dialog's half of the measure above, and it needs two widths where the
- * popups needed one: `size="wide"` exists precisely because the dish editor and
- * the intake form do not fit a reading measure.
- *
- * Both are the surface's own `sm:w-[…]` utilities said again — `min(28rem,
- * calc(100vw - 2rem))` and `min(64rem, calc(100vw - 4rem))` — because those are
- * suppressed here by the `width: 100%` above and a sheet that agreed with the
- * card by accident would drift the first time one of them was tuned. Restating
- * them rather than inventing a third number is also what keeps a tablet from
- * showing two widths for the same dialog depending on whether it is being
- * pointed at or touched.
- *
- * The subtracted gutter is the half that matters on an iPad held upright: at
- * 820px a bare `min(100%, 64rem)` resolves to the full 820, so a wide sheet was
- * still edge to edge on exactly the device this measure exists for. Taking the
- * card's own 4rem back leaves the scrim visible down both sides, which is what
- * says the page is still there behind it.
- *
- * `margin-inline: auto` against the `margin-inline: 0` above; the block pair
- * stays `auto 0`, so the sheet is centred across the screen and still pinned to
- * the bottom of it.
- *
- * ## `--q-dialog-sheet-width`, for a call site that asked for a third width
- *
- * The two numbers below are the *defaults*, not the only answers. A dialog that
- * passes its own `sm:w-[…]` — the requests inbox and the notifications feed both
- * ask for `min(48rem, …)`, between the card and the wide — was having it
- * silently replaced here, because these declarations are unlayered and beat any
- * utility on the element. It got 64rem on a tablet and 48rem under a mouse: one
- * surface, two widths, decided by which input device was in the reader's hand.
- *
- * The variable is the seam. Unset, everything behaves exactly as before; set on
- * the element (`[--q-dialog-sheet-width:min(48rem,calc(100vw-2rem))]` in the
- * class list, beside the `sm:w-[…]` it mirrors) the sheet honours the call
- * site's own measure. It is a `var()` and not a relaxed selector because the
- * `width: 100%` in the block above still has to win on a phone — the override
- * has to stay, it just needs somewhere to read a different number from.
- */
-@media (pointer: coarse) and (width >= 40rem) {
-  .q-dialog[data-placement='sheet']:not(.planner-context-sheet):not(.app-navigation-drawer) {
-    margin-inline: auto;
-    width: var(--q-dialog-sheet-width, min(28rem, calc(100vw - 2rem)));
-  }
-
-  .q-dialog[data-placement='sheet'][data-size='wide']:not(.planner-context-sheet):not(.app-navigation-drawer) {
-    width: var(--q-dialog-sheet-width, min(64rem, calc(100vw - 4rem)));
-  }
-}
 
 /*
  * The intake form's rail, on a tablet held upright.
@@ -4979,6 +5118,74 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
   }
 }
 
+/*
+ * The mascot's idle breathing — see `.q-mascot*` in `@layer components`. Every
+ * other movement (gaze, blink, tilt, squash, bounce) is `ReactiveMascot`'s own
+ * eye choreography, driven as inline `transform`s on the SVG itself rather
+ * than a CSS keyframe here, since each emotion's motion is data (see
+ * `eye-choreography.ts`) rather than a fixed shape a stylesheet can name.
+ * This one keyframe is the exception: it runs continuously regardless of
+ * emotion, so it stays a plain, always-on rule.
+ */
+@keyframes q-mascot-float {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-6px) scale(1.005);
+  }
+}
+
+@keyframes q-mascot-glow-pulse {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  35% {
+    opacity: 0.35;
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+}
+
+@keyframes q-energy-bump {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.08);
+  }
+}
+
+/* A slow breathing wash behind the day-complete claim card — see `.q-claim-glow`. */
+@keyframes q-claim-glow-pulse {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* One sparkle's twinkle — see `.q-claim-sparkle`. A spin as well as a fade so six of these on independent delays never quite line up. */
+@keyframes q-claim-sparkle-twinkle {
+  0%,
+  100% {
+    opacity: 0.15;
+    transform: scale(0.6) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1) rotate(20deg);
+  }
+}
+
 /* ==========================================================================
  * §  The guided tour
  * ==========================================================================
@@ -5385,14 +5592,33 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
  *   900    it arrives in the middle, full size     ⎭ takes it 0.42 → 1
  *   900    the arrival settles on its feet           q-splash-land
  *   920    the name rises underneath it              q-splash-word-in
- *  1620    the tile fades                            q-splash-out
- *  1920    the component unmounts
+ *  1300    the composition is whole, and holds
+ *  1360    it gathers itself — a crouch, the name   ⎫ q-splash-burst on the mark,
+ *          going with it                           ⎬ q-splash-word-out on the
+ *  1520    the mark blows out past the frame        ⎭ name
+ *  1660    the white it throws opens to the edges    q-splash-flood
+ *  1820    the screen is white; it holds
+ *  1980    the tile fades, white into the app        q-splash-out
+ *  2260    the component unmounts
  *
  * None of this is on the app's `--duration-*` scale. Those measure *reactions*
  * — a field arcing, a switch knob travelling — and are tens of milliseconds
  * because somebody is waiting on the other end of them. This screen is not a
  * reaction to anyone; it is the app introducing itself, and the number that
- * matters is that the whole introduction is over inside two seconds.
+ * matters is that the whole introduction is over inside two and a bit seconds.
+ *
+ * ## The arrival is not the end of it
+ *
+ * The mark hops in, stops in the middle with its name — and then goes off. The
+ * hold at 1300 is what makes that read: an explosion with no pause in front of
+ * it is a transition, and a beat of stillness is what turns it into something
+ * the figure *does*. The crouch at 1360 is the same idea one level down, the
+ * anticipation any thrown thing gets before it goes.
+ *
+ * The white is the tile's own figure colour, so the burst is the mark's own ink
+ * flooding the screen rather than a flash bolted over it — and the tile fades
+ * out of white rather than out of green, which is the colour most of the app is
+ * on the other side. There is no green edge left to notice.
  *
  * `--ease-sweep` is not used for the arcs either, and cannot be: one curve
  * cannot describe a hop. A rise decelerates into its apex and a fall
@@ -5437,22 +5663,30 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
   --q-splash-travel: calc(50vw + var(--q-splash-mark-size) * 0.4);
 
   /*
-   * Which side that is, as a sign the keyframes multiply by.
+   * Which side the mark comes in from, as a sign the keyframes multiply by.
    *
-   * The mark comes in from the **reading-start edge** — the left in English,
-   * the right in Arabic — so it travels the way the page is read rather than
-   * against it. Anything else and the figure enters by crossing the direction
-   * every other thing on the screen is going.
+   * `1` is the right-hand edge, so the character enters on the right and travels
+   * **right to left** into the middle. `-1` would be the mirror of that.
    *
-   * A sign rather than the pair of `-ltr`/`-rtl` keyframe sets used by the
-   * route stage and the app drawer, and the difference is worth stating: those
-   * mirror three-keyframe fades, where a duplicate is cheap. This is an
-   * eight-stop arc with per-keyframe easings, and a second copy of it is a
-   * second thing to retune every time the bounce is adjusted — one of which
-   * would eventually not be. The variable is not animated, so it is substituted
-   * once per element and costs nothing at run time.
+   * ⚠ **One value, both languages.** This used to be `-1` here and `1` under a
+   * `[dir='rtl']` override, so the arc entered from the reading-start edge and
+   * the two locales got mirrored launches. That is deliberately gone: Arabic and
+   * English are meant to get the *same* animation, and this is the only
+   * declaration that decided otherwise. Do not re-add a `[dir]` rule for it —
+   * the wordmark under the mark is what carries language here, and it is chosen
+   * per locale in `SplashScreen`.
+   *
+   * It stays a signed variable rather than becoming a literal because the
+   * keyframes are written around it: the arc's eight stops and the lean in
+   * `q-splash-squash` are all expressed as multiples of this, so the direction
+   * is stated once instead of being spelled into a dozen `calc()`s. A pair of
+   * `-ltr`/`-rtl` keyframe sets — the route stage's approach — was never right
+   * for an eight-stop arc with per-keyframe easings; that is a second copy to
+   * retune every time the bounce is touched, and one of them would eventually
+   * not be. The variable is not animated, so it is substituted once per element
+   * and costs nothing at run time.
    */
-  --q-splash-from: -1;
+  --q-splash-from: 1;
 
   /*
    * The apex of the first hop, and the unit the other two are fractions of.
@@ -5483,6 +5717,23 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
    */
   --q-splash-ground: var(--primary);
   --q-splash-figure: var(--n-0);
+
+  /*
+   * Where the mark's centre is, as a distance from the middle of the screen —
+   * the point the burst goes off from.
+   *
+   * It has to be derived rather than guessed, because the mark does not rest on
+   * the centre: it is the top half of a two-part column, so the column's own
+   * centre is the middle and the mark sits above it. Read off `.q-splash-figure`
+   * — mark (1), gap (0.22), name (1.7 ÷ 1.924 = 0.884) — the column is 2.104
+   * mark-sizes tall and the mark's centre is 0.552 of one above the middle of
+   * it. Every term in that sum is declared elsewhere in this block; **if the gap
+   * or the name's width changes, this number changes with them**, or the flood
+   * will open from a point the character is not standing on, which is the one
+   * error in this whole sequence that is obvious to somebody who has never seen
+   * the animation before.
+   */
+  --q-splash-burst-y: calc(50% - var(--q-splash-mark-size) * 0.552);
 
   position: fixed;
   inset: 0;
@@ -5529,20 +5780,15 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
   background-color: var(--q-splash-ground);
   background-image: radial-gradient(115% 85% at 50% 42%, var(--primary) 0%, var(--green-500) 100%);
 
-  animation: q-splash-out 300ms var(--ease-sweep) 1620ms forwards;
+  animation: q-splash-out 280ms var(--ease-sweep) 1980ms forwards;
 }
 
 /*
- * Arabic reads from the right, so the mark arrives from the right.
- *
- * `[dir]` on the document element and not a `:lang()` or a class: direction is
- * what this is actually about, it is already set on `<html>` by the locale
- * layout, and the portal and the staff app inherit it without either of them
- * having to pass anything down.
+ * ⚠ A `[dir='rtl'] .q-splash { --q-splash-from: 1 }` stood here and is gone on
+ * purpose — the tile is the same animation in both languages now. The whole of
+ * the reasoning is beside the `--q-splash-from` declaration above; it is not
+ * repeated here so the two cannot drift apart.
  */
-[dir='rtl'] .q-splash {
-  --q-splash-from: 1;
-}
 
 /*
  * Mark over name, centred as a pair.
@@ -5579,6 +5825,127 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
    */
   will-change: translate;
   animation: q-splash-hop 900ms linear;
+}
+
+/*
+ * The going off. Nothing until 1360ms, then a crouch and an expansion out past
+ * the frame.
+ *
+ * A fourth element in the stack for a fourth reason, and it is the pivot rather
+ * than the property: the three below all turn on `transform-origin: 50% 100%`
+ * because they are a figure standing on a ground line, and this one is an
+ * explosion, which has no floor. It goes off from the middle of the mark and
+ * therefore in every direction at once. Nested above `.q-splash-grow`, so its
+ * scale multiplies the arrival's 1 rather than replacing it.
+ *
+ * `opacity` here and not on `.q-splash-body`, so it takes the seeds with it —
+ * they are ground-coloured holes, and a leaf that faded while its two green eyes
+ * stayed put would be a very strange last frame. One opacity on the wrapper
+ * fades the drawing as one object.
+ *
+ * `forwards`, because this animation does not return anything to a resting
+ * style: it ends with the mark gone. The tile is 20ms from starting its own fade
+ * by then and the flood is over the top of it either way, but a fill that
+ * snapped the mark back to full size for the last quarter second would be
+ * visible through both.
+ */
+.q-splash-burst {
+  display: block;
+  transform-origin: 50% 50%;
+  will-change: scale, opacity;
+  animation: q-splash-burst 700ms 1360ms forwards;
+}
+
+/*
+ * The crouch and the blow-out, in one animation because they are one gesture.
+ *
+ * 23% of 700ms is 161ms of gathering — enough to be read as intent and not so
+ * much that it looks like a stall — and the 0.82 it gathers to is roughly the
+ * squash the landings were already making, so the shape is one the eye has seen
+ * three times by now. Out of it the curve is front-loaded, because an explosion
+ * leaves fast and slows against nothing, but only moderately so: the 539ms it
+ * has to cover is deliberately long enough that the mark can be *watched*
+ * expanding rather than being replaced by a bigger one. An earlier cut of this
+ * put the same 8 × into 340ms on a much steeper curve and the figure was simply
+ * gone — technically an explosion, and legible as a cut.
+ *
+ * It stops at 8 rather than at something screen-covering, and does not need to
+ * go further: past about 4 × the mark's silhouette is off the edges of the
+ * viewport in every direction anyway, and `q-splash-flood` is the thing that
+ * actually paints the screen white. Keeping the number small keeps the raster
+ * of a scaled SVG somewhere sane.
+ *
+ * The opacity holds while the shape is still legible and only lets go once it
+ * is mostly frame — the mark thins into the white rather than blinking out.
+ */
+@keyframes q-splash-burst {
+  0% {
+    scale: 1;
+    opacity: 1;
+    animation-timing-function: cubic-bezier(0.34, 0, 0.64, 1);
+  }
+  23% {
+    scale: 0.82;
+    opacity: 1;
+    animation-timing-function: cubic-bezier(0.26, 0.58, 0.36, 1);
+  }
+  58% {
+    opacity: 0.85;
+  }
+  100% {
+    scale: 8;
+    opacity: 0;
+  }
+}
+
+/*
+ * The white, opening out of the mark's centre until it is the whole screen.
+ *
+ * **A clipped full-bleed element, not a disc that scales.** A disc has to be
+ * laid out at two to three viewports to be sure of covering the corners from an
+ * off-centre origin, and a compositor layer that size is tens of megabytes on
+ * the phone this is running on — at the exact moment the app behind it is
+ * hydrating and fetching its first route. Clipping costs one viewport of paint
+ * whatever the radius is, and the fill is a flat colour.
+ *
+ * `circle(0%)` is the resting style, so this element is nothing at all until its
+ * animation starts and nothing again if animations are off. That is what lets it
+ * sit in the markup unconditionally — see the reduced-motion block, where it is
+ * simply switched off and disappears rather than needing to be hidden.
+ *
+ * 120%: `clip-path` resolves a percentage radius against the box's own diagonal
+ * over √2, so 100% is a circle through the corners of a *centred* origin. This
+ * one is above centre by up to 0.552 of the mark, and the far corners are that
+ * much further away — worked through, the widest and the narrowest viewport the
+ * `clamp` can produce both need about 85%, and 120% is that with enough margin
+ * that no aspect ratio leaves a green wedge in a corner. It is deliberately not
+ * much more than that: every percent past coverage is time the animation spends
+ * doing nothing anybody can see, and this one already has 150ms of white to sit
+ * in before the tile fades. The circle is in fact still growing when the fade
+ * starts at 1980 and that is fine — everything past 1820 is happening outside
+ * the viewport.
+ *
+ * The curve is quick out of the character and eases into the edges — the flood
+ * is something the mark threw rather than a wipe that happened to start there —
+ * but it is gentler than the burst it comes out of, and it starts 139ms after
+ * the crouch bottoms out rather than on the same frame. Both of those are the
+ * same correction: the white used to have the screen 60ms in, which meant the
+ * mark's expansion was over before anybody could read it. The explosion has to
+ * be *visible* first, and the white is what it leaves behind.
+ */
+.q-splash-flood {
+  position: absolute;
+  inset: 0;
+  background-color: var(--q-splash-figure);
+  clip-path: circle(0% at 50% var(--q-splash-burst-y));
+  will-change: clip-path;
+  animation: q-splash-flood 420ms cubic-bezier(0.34, 0.5, 0.32, 1) 1660ms forwards;
+}
+
+@keyframes q-splash-flood {
+  to {
+    clip-path: circle(120% at 50% var(--q-splash-burst-y));
+  }
 }
 
 /*
@@ -5668,7 +6035,52 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
   display: block;
   inline-size: calc(var(--q-splash-mark-size) * 1.7);
   block-size: auto;
-  animation: q-splash-word-in 380ms var(--ease-sweep) 920ms backwards;
+  animation:
+    q-splash-word-in 380ms var(--ease-sweep) 920ms backwards,
+    q-splash-word-out 220ms cubic-bezier(0.5, 0, 0.75, 0) 1360ms forwards;
+}
+
+/*
+ * The English name, set as type rather than drawn.
+ *
+ * The brand sheet has one wordmark and it is the Arabic one — إنزيم — so there
+ * is no Latin path to import the way `.q-splash-word` imports its curves from
+ * `logo.ts`. This is the product's own display face instead, which is the same
+ * type the app sets every heading in, at the weight the mark's stroke asks for.
+ * **If a drawn Latin lockup ever arrives, this rule is what it replaces.**
+ *
+ * It takes the same box and the same entrance as the drawn wordmark so the
+ * composition does not move between locales: `block-size` is pinned to what the
+ * Arabic `viewBox` resolves to at this width (1.7 ÷ 1.924 of the mark), and the
+ * type is centred inside it. Without that pin the column would be a different
+ * height in each language and the mark's landing spot would sit somewhere
+ * slightly different — the one thing that must not differ.
+ *
+ * `line-height: 1` and `display: grid` + `place-items: center` rather than any
+ * vertical padding: the box is fixed, so the lettering is centred in it optically
+ * instead of being pushed around by the font's own metrics.
+ */
+.q-splash-word-type {
+  display: grid;
+  place-items: center;
+  inline-size: calc(var(--q-splash-mark-size) * 1.7);
+  block-size: calc(var(--q-splash-mark-size) * 1.7 / 1.924);
+  font-family: var(--font-heading);
+  /*
+   * 0.46 of the mark. The Arabic wordmark fills its box edge to edge because it
+   * is artwork; a line of type at that size would tower over the character, so
+   * this is set to the height the Arabic lettering actually reads at rather than
+   * to the height of its frame.
+   */
+  font-size: calc(var(--q-splash-mark-size) * 0.46);
+  font-weight: 700;
+  line-height: 1;
+  /* The curves of the drawn mark are tight; loose default tracking looks unset beside them. */
+  letter-spacing: -0.02em;
+  color: var(--q-splash-figure);
+  animation:
+    q-splash-word-in 380ms var(--ease-sweep) 920ms backwards,
+    q-splash-word-out 220ms cubic-bezier(0.5, 0, 0.75, 0) 1360ms forwards;
 }
 
 /*
@@ -5686,10 +6098,11 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
  *   83.33    0.07            −0.34         apex, lower again
  *   100      0                 0           the middle
  *
- * The across column is multiplied by `--q-splash-from`, which is −1 in English
- * and +1 in Arabic — the sign is the whole of the mirroring. Its steps shorten
- * (0.58, 0.26, 0.16) and the apexes drop with them, so the figure reads as
- * arriving with momentum and spending it, rather than as three identical hops.
+ * The across column is multiplied by `--q-splash-from`, which is `+1` in every
+ * locale: the figure starts at the right-hand edge and works right to left into
+ * the middle, in Arabic and English alike. Its steps shorten (0.58, 0.26, 0.16)
+ * and the apexes drop with them, so the figure reads as arriving with momentum
+ * and spending it, rather than as three identical hops.
  *
  * Every rise carries a decelerating curve and every fall an accelerating one,
  * declared on the keyframe the segment *starts* at, because that is the one
@@ -5804,6 +6217,28 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
 }
 
 /*
+ * The name goes on the crouch, not on the blast.
+ *
+ * It starts at 1360 with `q-splash-burst`'s gather and is gone by 1580, which is
+ * before the mark has finished expanding — deliberately, because the two cannot
+ * both be leaving at once without the screen reading as cluttered at the moment
+ * it is supposed to read as one thing letting go. The name draws back into the
+ * figure and the figure blows out; that ordering is what makes it a gathering
+ * rather than two elements fading in parallel.
+ *
+ * `scale` rather than the `translate` its entrance used — it is being taken in
+ * by the mark above it, not knocked down — and the two properties are separate,
+ * so the entrance's fill and this one never write the same thing. An accelerating
+ * curve, since this is an exit.
+ */
+@keyframes q-splash-word-out {
+  to {
+    opacity: 0;
+    scale: 0.9;
+  }
+}
+
+/*
  * The tile leaves. `visibility` is in here as well as `opacity` because this
  * fill has a forwards fill and outlives its own animation: an element at zero
  * opacity is still a hit-testable, focusable, screen-reader-visible element,
@@ -5836,7 +6271,17 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
   .q-splash-mark,
   .q-splash-grow,
   .q-splash-body,
-  .q-splash-word {
+  /* The burst and the white it throws are the most motion on this screen and
+     the first two things off it. Both rest at nothing — `scale: 1` on the mark,
+     `circle(0%)` on the flood — so switching them off leaves the still picture
+     rather than a mark stuck at 8 × or a white sheet over the app. */
+  .q-splash-burst,
+  .q-splash-flood,
+  .q-splash-word,
+  /* The English name is type rather than the drawn path, and takes the same
+     entrance — so it has to be stilled here too, or reduced motion would quiet
+     the whole tile in Arabic and leave one thing rising in English. */
+  .q-splash-word-type {
     animation: none;
   }
 

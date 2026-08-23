@@ -2,7 +2,6 @@ import { getTranslations } from 'next-intl/server';
 
 import { BrandLogo } from '@/components/layout/brand-logo';
 import { buttonVariants } from '@/components/ui/button';
-import { SplashScreen } from '@/features/brand/splash-screen';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/params';
 
@@ -19,20 +18,11 @@ export default async function LandingPage({ params }: LandingPageProps) {
   return (
     <>
       {/*
-        The launch screen, in front of the choice rather than after it.
-
-        This page is where somebody who is not signed in actually arrives, and
-        the two buttons below it are a fork — clinic team, or client — so the
-        product has to have introduced itself *before* the question, not once
-        the answer has already been given. The two shells carry the same tile
-        for the case that skips this page entirely: an installed PWA opens
-        straight into `/app` or `/portal` and never sees a landing page.
-
-        A fragment and a sibling rather than a wrapper, because the tile is
-        `position: fixed` and would only be inheriting this column's max-width
-        and padding for no reason.
+        No `SplashScreen` here either — `[locale]/layout.tsx` mounts it for every
+        route, this page included, so the introduction still comes before the
+        fork below. Mounting it per page was what made it a property of the
+        route rather than of the app starting. Do not add it back.
       */}
-      <SplashScreen />
       <main className="q-route-stage mx-auto flex min-h-dvh max-w-3xl flex-col justify-center gap-8 px-6 py-16">
         <div className="space-y-4 text-start">
           {/*

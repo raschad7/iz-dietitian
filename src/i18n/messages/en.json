@@ -825,6 +825,11 @@
       "allergenHint": "Only the ticks above remove dishes from the catalog.",
       "dailyTarget": "Daily target",
       "bmi": "BMI",
+      "bmiScale": "Where it falls on the scale",
+      "dismissWarning": "Dismiss this warning",
+      "sectionEmpty": "Not recorded yet",
+      "fillSection": "Add this section",
+      "foodFrequency": "Food frequency",
       "sectionsLabel": "Intake sections",
       "hasContent": "Has content",
       "allergyDetailPlaceholder": "Mild reaction to walnuts but not almonds",
@@ -855,7 +860,6 @@
       "completeness": "Record completeness",
       "filledOf": "{filled} of {total} fields filled in",
       "sectionEmpty": "Nothing recorded yet.",
-      "gapsHeading": "Fill in the patient's information from these sections",
       "kcalMismatch": "The manual target is far from the computed one",
       "kcalMismatchDetail": "{manual} kcal was entered by hand, but the measurements and goal give {computed} kcal. Check the number, or clear it to compute it automatically.",
       "bmiValueText": "{value} — {category}",
@@ -868,10 +872,7 @@
       "removeAllergen": "Remove {name}",
       "goalLine": "Goal",
       "activityLine": "Activity",
-      "completeShort": "Complete",
       "editRecord": "Edit record",
-      "scheduleSummary": "{count, plural, one {1 meal} other {# meals}} on {kcal} kcal",
-      "gapsPrompt": "{count, plural, =0 {Everything is filled in} one {1 field has no data yet} other {# fields have no data yet}}",
       "allergyLine": "Allergies",
       "privateBadge": "Clinic only",
       "notesDivider": "Notes",
@@ -1210,6 +1211,14 @@
           "missed": "That's alright — tomorrow is a fresh start.",
           "partial": "A good step toward your plan.",
           "full": "Wonderful commitment today!"
+        },
+        "energy": {
+          "empty": "Start your healthy day!",
+          "starting": "A great start!",
+          "halfway": "You're halfway there!",
+          "strong": "Well done! Almost there.",
+          "completeTitle": "Day complete!",
+          "complete": "Well done! You completed all your meals."
         }
       },
       "week": {
@@ -1231,7 +1240,9 @@
           "future": "{day}: still to come"
         },
         "celebration": {
-          "title": "You earned today's streak!",
+          "title": "You did it!",
+          "subtitle": "Every meal today, logged.",
+          "mealsCompleted": "{completed, number, integer} of {total, number, integer} {total, plural, one {meal} other {meals}} completed",
           "claim": "Claim today's fire",
           "claimed": "Today's streak claimed."
         }
@@ -1262,6 +1273,34 @@
         "thisWeek": "This week"
       }
     },
+    "journey": {
+      "title": "Your journey",
+      "subtitle": "This week",
+      "barLabel": "Your plan adherence this week",
+      "message": {
+        "empty": "Tick off a meal in your plan and your journey begins.",
+        "start": "Every journey starts with one meal. You've got this.",
+        "building": "A good start — you're building a habit.",
+        "consistent": "You're staying consistent. Keep it up.",
+        "progressing": "You're making real progress this week!",
+        "closer": "You're getting closer — a strong week so far.",
+        "almost": "Almost a perfect week. Nearly there!",
+        "complete": "You followed your plan all week! 🎉"
+      }
+    },
+    "mascot": {
+      "welcome": "Welcome back to your journey.",
+      "mealReminder": "A meal in today's plan is coming up.",
+      "missedMeal": "A meal from earlier today is still open — no worries, log it when you can.",
+      "streakAtRisk": "Your streak is still open today — a quick log keeps it going.",
+      "streakLost": "Your streak reset — every journey has a fresh start in it.",
+      "backOnTrack": "Good to see you logging again. Keep going.",
+      "milestone25": "A quarter of the way through the week — nice start.",
+      "milestone50": "Halfway through the week. Keep it up.",
+      "milestone75": "Three quarters there — almost a full week.",
+      "goalComplete": "You followed your plan all week! 🎉",
+      "consistency": "That's a real run of consistent days."
+    },
     "header": {
       "notifications": "Notifications",
       "notificationsWaiting": "Notifications, {count, number, integer} request awaiting a reply",
@@ -1276,6 +1315,7 @@
     },
     "notifications": {
       "title": "Notifications",
+      "seeAll": "See all notifications",
       "empty": {
         "title": "No new notifications",
         "body": "Appointment reminders, plan updates and replies from the clinic will show up here as they happen."

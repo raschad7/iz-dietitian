@@ -190,12 +190,14 @@ function NotificationInboxPopover<T extends string>({
   /*
     Which of the two surfaces this is.
 
-    `useIsSheetSurface` asks about width *and* pointer, which is what makes this
-    correct on a tablet: the old `useIsPhone` asked only "narrower than 40rem?",
-    so an iPad answered `false`, took the popover branch, and then had that
-    popover redrawn as a sheet by the `(pointer: coarse)` block in
-    `globals.css`. The component and the stylesheet disagreed about what was on
-    screen. They ask the same question now — see the hook for the whole of it.
+    `useIsSheetSurface` asks about width and nothing else — `40rem`, the same
+    line the popup-sheet block in `globals.css` is keyed on, so the component's
+    belief and the stylesheet's drawing never disagree about what is on screen.
+
+    ⚠ It briefly asked about the pointer too, which made this a sheet on a
+    tablet. That is reverted: an iPad has the room the popover was designed for,
+    and the panel next to the bell is the thing the reader was already looking
+    at. See the hook for the whole of it.
 
     It answers `false` on the server and on the hydrating render, so the markup
     that ships is always the popover's and the swap happens on the first client
@@ -422,6 +424,8 @@ function NotificationInboxPopover<T extends string>({
         */}
         <SheetContent
           side="bottom"
+          // Pushable back down to the edge it rose from — see `onDismiss`.
+          onDismiss={() => onOpenChange?.(false)}
           className={cn(
             MEASURES,
             /*

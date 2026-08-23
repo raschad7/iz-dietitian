@@ -825,6 +825,11 @@
       "allergenHint": "الخانات أعلاه هي وحدها ما يستبعد الأطباق من الكتالوج.",
       "dailyTarget": "الهدف اليومي",
       "bmi": "مؤشر كتلة الجسم",
+      "bmiScale": "موضع المؤشر على السلّم",
+      "dismissWarning": "إخفاء هذا التنبيه",
+      "sectionEmpty": "لم تُسجَّل بعد",
+      "fillSection": "إضافة بيانات هذا القسم",
+      "foodFrequency": "تكرار الأطعمة",
       "sectionsLabel": "أقسام بيانات التغذية",
       "hasContent": "يحتوي على بيانات",
       "allergyDetailPlaceholder": "حساسية خفيفة من الجوز دون اللوز",
@@ -855,7 +860,6 @@
       "completeness": "اكتمال السجل",
       "filledOf": "{filled} من {total} حقلاً مُدخلة",
       "sectionEmpty": "لا توجد بيانات مسجّلة بعد.",
-      "gapsHeading": "أكمل بيانات المريض من هذه الأقسام",
       "kcalMismatch": "الهدف اليدوي بعيد عن المحسوب",
       "kcalMismatchDetail": "أُدخل {manual} kcal يدويًا، بينما القياسات والهدف يعطيان {computed} kcal. راجعي الرقم أو احذفيه ليُحسب تلقائيًا.",
       "bmiValueText": "{value} — {category}",
@@ -868,10 +872,7 @@
       "removeAllergen": "حذف {name}",
       "goalLine": "الهدف",
       "activityLine": "النشاط",
-      "completeShort": "مكتمل",
       "editRecord": "تعديل السجل",
-      "scheduleSummary": "{count, plural, one {وجبة واحدة} two {وجبتان} few {# وجبات} many {# وجبة} other {# وجبة}} على {kcal} سعرة",
-      "gapsPrompt": "{count, plural, =0 {كل الحقول مُدخلة} one {حقل واحد بلا بيانات} two {حقلان بلا بيانات} few {# حقول بلا بيانات} many {# حقلاً بلا بيانات} other {# حقل بلا بيانات}}",
       "allergyLine": "الحساسية",
       "privateBadge": "خاص بالعيادة",
       "notesDivider": "ملاحظات",
@@ -1210,6 +1211,14 @@
           "missed": "لا بأس، غدًا فرصة جديدة.",
           "partial": "خطوة جيدة نحو خطتك.",
           "full": "التزام رائع اليوم!"
+        },
+        "energy": {
+          "empty": "ابدأ يومك الصحي!",
+          "starting": "بداية رائعة!",
+          "halfway": "أنت في منتصف الطريق!",
+          "strong": "أحسنت! اقتربت من إكمال يومك.",
+          "completeTitle": "مكتمل اليوم!",
+          "complete": "أحسنت! أكملت جميع وجباتك."
         }
       },
       "week": {
@@ -1231,7 +1240,9 @@
           "future": "{day}: لم يأتِ بعد"
         },
         "celebration": {
-          "title": "كسبتَ شعلة اليوم!",
+          "title": "أنجزتَها!",
+          "subtitle": "سجّلتَ كل وجبة اليوم.",
+          "mealsCompleted": "{completed, number, integer} من {total, number, integer} {total, plural, one {وجبة} two {وجبتين} few {وجبات} many {وجبة} other {وجبة}} مكتملة",
           "claim": "احصل على شعلة اليوم",
           "claimed": "تم تأكيد شعلة اليوم."
         }
@@ -1262,6 +1273,34 @@
         "thisWeek": "هذا الأسبوع"
       }
     },
+    "journey": {
+      "title": "رحلتك",
+      "subtitle": "هذا الأسبوع",
+      "barLabel": "التزامك بالخطة هذا الأسبوع",
+      "message": {
+        "empty": "سجّل وجبة من خطتك لتبدأ رحلتك.",
+        "start": "كل رحلة تبدأ بوجبة واحدة. أنت قادر.",
+        "building": "بداية طيبة — أنت تبني عادة.",
+        "consistent": "استمراريتك واضحة، واصل.",
+        "progressing": "تقدّم حقيقي هذا الأسبوع!",
+        "closer": "اقتربت — أسبوع قوي حتى الآن.",
+        "almost": "أسبوع شبه مثالي، بقي القليل!",
+        "complete": "التزمتَ بخطتك طوال الأسبوع! 🎉"
+      }
+    },
+    "mascot": {
+      "welcome": "أهلاً بعودتك إلى رحلتك.",
+      "mealReminder": "هناك وجبة قادمة في خطة اليوم.",
+      "missedMeal": "لا تزال وجبة سابقة اليوم غير مسجّلة — سجّلها متى استطعت.",
+      "streakAtRisk": "سلسلتك ما زالت مفتوحة اليوم — تسجيل سريع يبقيها مستمرة.",
+      "streakLost": "انقطعت سلسلتك — كل رحلة فيها بداية جديدة.",
+      "backOnTrack": "جميل أن تعود للتسجيل. واصل.",
+      "milestone25": "ربع الأسبوع مضى — بداية جيدة.",
+      "milestone50": "منتصف الأسبوع. واصل.",
+      "milestone75": "ثلاثة أرباع الطريق — كدت تكمل الأسبوع.",
+      "goalComplete": "التزمتَ بخطتك طوال الأسبوع! 🎉",
+      "consistency": "استمرارية حقيقية في أيامك الأخيرة."
+    },
     "header": {
       "notifications": "الإشعارات",
       "notificationsWaiting": "الإشعارات، {count, number, integer} طلب بانتظار الردّ",
@@ -1276,6 +1315,7 @@
     },
     "notifications": {
       "title": "الإشعارات",
+      "seeAll": "عرض كل الإشعارات",
       "empty": {
         "title": "لا توجد إشعارات جديدة",
         "body": "ستظهر هنا تذكيرات المواعيد، وتحديثات خطتك، وردود العيادة، أولًا بأول."

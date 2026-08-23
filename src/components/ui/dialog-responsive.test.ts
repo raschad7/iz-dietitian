@@ -172,7 +172,7 @@ describe('the sheet frame', () => {
   });
 });
 
-describe('the coarse-pointer popup sheets', () => {
+describe('the phone popup sheets', () => {
   test('sit above the keyboard and are measured against what is left of the screen', () => {
     // A combobox is normally opened from a field that already has focus, so the
     // keyboard is up before the list is.

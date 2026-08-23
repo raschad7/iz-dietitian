@@ -1,5 +1,6 @@
 'use client';
 
+import { useLocale } from 'next-intl';
 import * as React from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -34,13 +35,21 @@ export function SplashHarness() {
   */
   const [take, setTake] = React.useState(0);
 
+  /*
+    Read from context here, unlike the root layout's copy which is handed the
+    locale as a prop — this harness is a page, so it sits inside
+    `NextIntlClientProvider` and can simply ask. Switching the URL between
+    `/en/dev/splash` and `/ar/dev/splash` is how the two wordmarks are compared.
+  */
+  const locale = useLocale();
+
   return (
     <main className="mx-auto flex min-h-dvh max-w-lg flex-col items-center justify-center gap-6 p-6 text-center">
       <div className="space-y-2">
         <h1 className="font-heading text-heading-lg font-semibold">Splash screen</h1>
         <p className="text-body-md text-muted-foreground">
-          Three hops to the middle, the name under the landing, then the tile leaves. It always
-          plays out in full.
+          Three hops to the middle, the name under the landing, a beat, then the mark bursts and its
+          white fills the screen on the way out. It always plays out in full.
         </p>
       </div>
 
@@ -48,7 +57,18 @@ export function SplashHarness() {
 
       <p className="text-body-sm text-muted-foreground">Take {take + 1}</p>
 
-      <SplashScreen key={take} />
+      {/*
+        `replay` opts out of the once-per-document rule, which for a harness
+        built to watch the tile ten times would mean watching it once. This
+        mounts `SplashScreen` directly, so it never goes through
+        `SplashLaunchGate` and is unaffected by which kind of reload got you
+        here — Replay works even on a page the gate stayed quiet for.
+
+        Nothing on take 0: when the gate does send a tile, it is already playing
+        on this page's load, and two stacked copies of the same animation is not
+        what anyone came here to judge.
+      */}
+      {take > 0 && <SplashScreen key={take} locale={locale} replay />}
     </main>
   );
 }

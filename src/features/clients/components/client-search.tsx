@@ -304,7 +304,12 @@ export function ClientSearch({ input, locale }: { input: ListClientsInput; local
             behaviour on this side, so the panel is exactly the field and the
             button tall and the register stays visible above it.
           */}
-          <SheetContent side="bottom" className="gap-0 rounded-t-lg p-4">
+          <SheetContent
+            side="bottom"
+            // Pushable back down to the edge it rose from — see `onDismiss`.
+            onDismiss={() => setSearchOpen(false)}
+            className="gap-0 rounded-t-lg p-4"
+          >
             <SheetTitle className="font-heading text-body-md font-semibold">
               {t('searchAction')}
             </SheetTitle>

@@ -129,26 +129,25 @@ export function PortalMealCard({
     */
     <Card
       className={cn(
-    'gap-0 p-1.5 shadow-none ring-0 transition-colors duration-(--duration-label)',
+    'gap-0 p-1 shadow-none ring-0 transition-colors duration-(--duration-label)',
     'group-open:bg-meal-bg-checked/70 group-open:ring-1 group-open:ring-meal-border-checked',
     'has-[[aria-checked=true]]:bg-meal-bg-checked/70 has-[[aria-checked=true]]:ring-1 has-[[aria-checked=true]]:ring-meal-border-checked',
-    MEAL_SHELL, 
-  )} 
+    MEAL_SHELL,
+  )}
     >
       <details className="q-disclosure group">
         {/*
-          The whole row is the control — 48px tall and full width, so it is a
-          target that cannot be missed rather than a chevron that has to be aimed
-          at, while still clearing the 44px tick's own footprint. `list-none`
-          plus the WebKit marker rule removes the default triangle in every
-          engine.
+          The whole row is the control — full width, and no shorter than the
+          44px tick's own footprint (`min-h-11`), so it stays a target that
+          cannot be missed rather than a chevron that has to be aimed at.
+          `list-none` plus the WebKit marker rule removes the default
+          triangle in every engine.
         */}
         {/*
-          `gap-2.5` again: the kcal pill left the row, so four elements share
-          three gaps where five shared four, and the eight pixels that were
-          taken out of them go back.
+          `gap-2`: the kcal pill left the row, so four elements share three
+          gaps where five shared four.
         */}
-        <summary className="flex min-h-12 cursor-pointer list-none items-center gap-2.5 rounded-md px-2.5 py-1.5 outline-none transition-colors hover:bg-foreground/5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-focus-halo [&::-webkit-details-marker]:hidden">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-md px-2 py-1 outline-none transition-colors hover:bg-foreground/5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-focus-halo [&::-webkit-details-marker]:hidden">
           {/*
             The tick leads the row, at the **inline-start** — the edge a column of
             five is read down, so "which of these have I eaten" is answered by one
@@ -181,15 +180,16 @@ export function PortalMealCard({
           */}
           <span className="min-w-0 flex-1">
             {/*
-              `text-heading-sm` (20px/600) rather than `text-base`: this row is
-              the card's title — the one thing a client is scanning five of to
-              find "which meal" — and the scale's own role table names that
-              exact job (§Typography "Card titles, dialog titles"). The step
-              bakes its own leading and weight, so it replaces
-              `leading-snug font-semibold` rather than joining them.
+              `text-sm font-semibold`, down from `text-heading-sm` (20px):
+              five of these stacked was taller than a client wanted to scroll
+              past to reach the plan below, and the tick beside it already
+              carries the row's own 44px — the title no longer has to match
+              that height to stay legible.
             */}
-            <span className="block font-heading text-heading-sm text-meal-fg/70">{meal.label}</span>
-            <span className="block truncate text-sm text-meal-fg/70">
+            <span className="block font-heading text-sm leading-snug font-semibold text-meal-fg/70">
+              {meal.label}
+            </span>
+            <span className="block truncate text-xs text-meal-fg/70">
               {/* `dir="ltr"`: a clock time reads the same way in both languages. */}
               <span dir="ltr" className="tabular-nums">
                 {meal.timeOfDay}
@@ -207,7 +207,7 @@ export function PortalMealCard({
           */}
           <Icon
             name="chevronDown"
-            className="size-4 shrink-0 opacity-70 transition-transform duration-(--duration-sweep) ease-(--ease-sweep) group-open:rotate-180"
+            className="size-3.5 shrink-0 opacity-70 transition-transform duration-(--duration-sweep) ease-(--ease-sweep) group-open:rotate-180"
           />
 
           {/*
@@ -218,7 +218,7 @@ export function PortalMealCard({
             — everything that identifies the meal is at the start, everything that
             is chrome is here. `opacity-70` to match the label and chevron beside it.
           */}
-          <Icon name={mealIcon} className="size-5 shrink-0 opacity-70" />
+          <Icon name={mealIcon} className="size-4 shrink-0 opacity-70" />
         </summary>
 
         {/*
