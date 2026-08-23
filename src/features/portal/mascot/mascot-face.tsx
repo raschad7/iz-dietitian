@@ -32,6 +32,23 @@ import type { MascotState } from './states';
  */
 const VIEWBOX = 743;
 
+/**
+ * Breathing room, in the drawing's own units, added on every side of the
+ * viewBox so a body transform can move the leaf without crossing the SVG's
+ * own default `overflow: hidden` boundary — an SVG clips to its viewBox by
+ * default, and `BODY_PATH` already touches all four edges of `0 0 743 743`,
+ * so any `scale`/`translateY` on it had nowhere to go but into that clip.
+ *
+ * Sized to `celebration`'s launch frame in `eye-choreography.ts`
+ * (`scaleY: 1.12`, `translateY: -24`), the sequence's most extreme mover:
+ * scaling by 1.12 about the centre pushes each edge ~44.6 units out, and the
+ * translate adds 24 more on top for the leading edge, landing the top edge
+ * ~68.6 units past `y=0`. 90 covers that with room to spare, and every other
+ * emotion's transform is smaller still.
+ */
+const VIEWBOX_PADDING = 90;
+const PADDED_VIEWBOX = VIEWBOX + VIEWBOX_PADDING * 2;
+
 const BODY_PATH = MARK_LEAF_PATH;
 const BODY_FILL = 'var(--brand-leaf)';
 const EYE_FILL = 'var(--brand-seed)';
@@ -165,11 +182,29 @@ export function MascotFace({ emotion, tier, size, className }: MascotFaceProps) 
 
   const { scaleX, scaleY, rotate, translateY } = target.body;
 
+  /*
+    The rendered box grows by the same factor as the padded viewBox, so the
+    743-unit leaf itself still lands at exactly `size` px at rest — the
+    padding is invisible extra canvas around it, not a change in the
+    mascot's own apparent size or position. `style` (not just the `width`/
+    `height` attributes) is what makes this hold everywhere `MascotFace` is
+    used: `.q-mascot-svg` sets `inline-size: 100%`, which — inside
+    `ReactiveMascot`'s fixed-width `.q-mascot` — would otherwise win over a
+    plain attribute and force the padding back down to nothing. An inline
+    style outranks that class rule in every context, so the drawing is
+    always sized off `size` itself, never off an ancestor's box, and the
+    extra canvas is free to overflow that box (none of `.q-mascot`,
+    `.q-mascot-float`, or this SVG's own container clips it) while staying
+    centred by the grids around it.
+  */
+  const renderedSize = (size * PADDED_VIEWBOX) / VIEWBOX;
+
   return (
     <svg
-      viewBox={`0 0 ${VIEWBOX} ${VIEWBOX}`}
-      width={size}
-      height={size}
+      viewBox={`${-VIEWBOX_PADDING} ${-VIEWBOX_PADDING} ${PADDED_VIEWBOX} ${PADDED_VIEWBOX}`}
+      width={renderedSize}
+      height={renderedSize}
+      style={{ width: renderedSize, height: renderedSize }}
       // Decorative — see `ReactiveMascot` for the text every emotion here
       // has an accessible equivalent for. Two identical drawings side by
       // side (this and any visible copy) would only ever repeat one label.

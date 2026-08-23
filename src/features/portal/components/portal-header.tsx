@@ -165,9 +165,10 @@ function useSeen() {
  * name, matching the current design.
  *
  * **The bell means something, and it can be answered.** It carries the number
- * of notifications this browser has not seen yet, and opens the feed in a
- * popover over whatever tab the client is on — see `PortalNotificationsBell`
- * for why that stopped being a screen of its own.
+ * of notifications this browser has not seen yet, and opens a preview of the
+ * feed in a popover over whatever tab the client is on — see
+ * `PortalNotificationsBell` for the preview, and `/portal/notifications` for
+ * the full screen its "see all" leads to.
  *
  * It was a red disc drawn straight off a server count of unanswered requests,
  * and that had both halves wrong. The count was of a different thing than what
@@ -365,13 +366,12 @@ export function PortalHeader({
         */}
         <div className={cn('flex items-center', showNav ? 'justify-between' : 'justify-end')}>
           {/*
-            **The feed opens over the page, not as one.**
+            **The bell opens a preview over the page; "see all" is the link
+            to `/portal/notifications`.**
 
-            This was a `<Link>` to `/portal/notifications`, a screen with a back
-            control and four one-line rows on it. That route is gone;
-            `PortalNotificationsBell` has the whole argument for why, and is the
-            portal's use of the same inbox shell the practitioner bell already
-            opens.
+            `PortalNotificationsBell` is the portal's use of the same inbox
+            shell the practitioner bell already opens — five rows and a link
+            to the full screen, rather than a bare `<Link>` to it directly.
 
             `showNav` still decides whether there is a control here at all: a
             client who has not replaced their temporary password can reach one

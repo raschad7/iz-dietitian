@@ -1315,6 +1315,7 @@
     },
     "notifications": {
       "title": "Notifications",
+      "seeAll": "See all notifications",
       "empty": {
         "title": "No new notifications",
         "body": "Appointment reminders, plan updates and replies from the clinic will show up here as they happen."
