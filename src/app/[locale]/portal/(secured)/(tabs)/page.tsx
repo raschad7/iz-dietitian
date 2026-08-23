@@ -199,7 +199,6 @@ export default async function PortalPage({ params, searchParams }: PortalPagePro
                 board={plan.board}
                 days={plan.days}
                 selectedDay={plan.selectedDay}
-                completedMealIds={plan.completedMealIds}
                 today={plan.today}
               />
             ) : (

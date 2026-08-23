@@ -4,7 +4,8 @@ import { MealCheckMark } from './meal-check-mark';
 import { useMealCompletion } from './plan-day-completion';
 
 /**
- * The "I had this" circle on a meal card — **today's only**.
+ * The "I had this" circle on a meal card — today's, and any day already
+ * behind it.
  *
  * Ticking writes through `useMealCompletion` to `weekly_plan_meal_completions`
  * — the source of truth the whole progress tab is now derived from (see
@@ -16,12 +17,12 @@ import { useMealCompletion } from './plan-day-completion';
  * the browser; a `useState` anywhere in `MealCard` would pull all of it into the
  * bundle. This is the only interactive part, so this is the only part that ships.
  *
- * **A day other than today never renders this at all.** `MealCard` draws
- * `SettledMealCheck` for a day that has ended and nothing whatsoever for one
- * that has not arrived — so there is no disabled state here to reason about, and
- * a past day's plan carries no click handler to the phone. The rule those three
- * branches come from is `dayStanding`, and the server enforces the same one in
- * `toggleMealCompletion`: hiding a control is a courtesy, not a guard.
+ * **A day still ahead never renders this at all.** `MealCard` draws nothing
+ * whatsoever for a day that has not arrived — so there is no disabled state
+ * here to reason about, and a future day's plan carries no click handler to
+ * the phone. The rule that split comes from is `dayStanding`, and the server
+ * enforces the same one in `toggleMealCompletion`: hiding a control is a
+ * courtesy, not a guard.
  *
  * **The click is stopped from opening the card.** The button sits inside
  * `<summary>`, whose activation behaviour is what toggles a `<details>`, and a

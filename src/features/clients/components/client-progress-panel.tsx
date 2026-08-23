@@ -263,11 +263,12 @@ async function DayRow({
 }
 
 /**
- * Whether a meal was eaten, stated rather than offered — the dashboard's own
- * version of `SettledMealCheck` (`weekly-plans/components/meal-check-mark.tsx`).
- * Same reasoning: `role="img"` and no hover, cursor or focus ring, because
- * this is a dietitian reading a past week's record, not a control anyone
- * here can tick.
+ * Whether a meal was eaten, stated rather than offered: `role="img"` and no
+ * hover, cursor or focus ring, because this is a dietitian reading a past
+ * week's record, not a control anyone here can tick — unlike the client's
+ * own portal, where a past day's meal stays live (`MealCheck`,
+ * `weekly-plans/components/meal-check.tsx`) so they can correct it
+ * themselves. The dietitian's record of it is read-only regardless.
  *
  * A small outline ring rather than a filled disc: a solid green/red pair
  * reads as an alert pair, and a missed meal is not an error (§Design
