@@ -11,6 +11,7 @@ import {
 } from 'next/font/google';
 import type { ReactNode } from 'react';
 
+import { NavigationProgress } from '@/components/layout/navigation-progress';
 import { DirectionProvider } from '@/components/ui/direction';
 import { KeyboardInset } from '@/components/ui/keyboard-inset';
 import { Toaster } from '@/components/ui/toast';
@@ -375,6 +376,20 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
           viewport export above does not cover iOS.
         */}
         <KeyboardInset />
+        {/*
+          Renders nothing at rest, and the third of this group for a reason of
+          its own: it is the one thing on the page that has to survive every
+          navigation in the product, because it is the thing reporting them.
+          Mounted anywhere lower — either shell, a template — it would be
+          unmounted and remounted by the very navigation it was drawing, and the
+          bar would vanish halfway across.
+
+          It watches the address bar and hands the bar to nprogress, which
+          appends `#nprogress` to <body> only for navigations slow enough to be
+          worth reporting. Styled in `globals.css`; armed by the wrapped `Link`
+          and `useRouter` in `@/i18n/navigation`.
+        */}
+        <NavigationProgress />
         {/*
           No floating locale switcher here. The switcher lives in the app bar
           (`Header`) and on the login screens, which is the only place it should

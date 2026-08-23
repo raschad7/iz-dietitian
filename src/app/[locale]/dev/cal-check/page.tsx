@@ -34,7 +34,7 @@ export default async function CalCheckPage({ params }: { params: Promise<{ local
     <div className="q-app-shell flex flex-col">
       <div data-slot="sidebar-inset" className="flex min-h-0 w-full flex-1 flex-col">
         <main data-slot="shell-scroll" className="min-w-0 p-3 md:p-5">
-          <div className="q-route-stage h-full min-h-0 min-w-0">
+          <div className="h-full min-h-0 min-w-0">
             <div className="flex h-full min-h-0 flex-col" data-probe="page">
               <div className="min-h-0 flex-1" data-probe="calendar-slot">
                 <Calendar

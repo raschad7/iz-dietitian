@@ -31,6 +31,7 @@ import { hasEnded, isCompleted, localWallClock } from '../completed';
 import { PX_PER_SLOT, minuteToY } from '../geometry';
 import { type CalendarView, type NewClientInput } from '../schema';
 import { type ActionErrorKey, type CalendarAppointment, type CalendarClient } from '../types';
+import { CalendarGridSkeleton } from './calendar-skeleton';
 import { useCalendarClock } from '../use-calendar-clock';
 import { useCalendarGestures, type BookingRequest } from '../use-calendar-gestures';
 import { useScrollToMatch } from '../use-scroll-to-match';
@@ -201,6 +202,21 @@ function verticalScrollbarWidth(): number {
  *
  * Keep the inline halves in step with the layout's padding.
  */
+/**
+ * `PrefetchKind.FULL`, written out rather than imported.
+ *
+ * Next's enum for this lives at
+ * `next/dist/client/components/router-reducer/router-reducer-types` and is
+ * exported from no public entry point, so importing it would pin this file to
+ * an internal path that can move in a patch release. The runtime value is the
+ * string below — the enum is a string enum — and the cast is only what
+ * TypeScript needs to accept a literal where it wants the enum member.
+ *
+ * See `prefetchView`, the one caller, for why the default `auto` kind is not
+ * enough here.
+ */
+const FULL_PREFETCH = 'full' as never;
+
 const FULL_BLEED = '-mx-3 h-full md:-mx-5';
 
 /**
@@ -273,7 +289,17 @@ export function Calendar({
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [isPending, startTransition] = useTransition();
+  /*
+    Only the setter is taken. The pending flag used to dim the grid a tenth
+    while a navigation was in flight; a view change replaces the panel outright
+    now (see `switchingView`) and a date change is not worth a flicker, so
+    nothing reads it. The transition itself still matters — it is what lets
+    `applyOptimistic` hold while an appointment write is in flight — those
+    callbacks `await` the action, so the transition is pending for as long as
+    the write is. It is not what moves the view thumb; see `requestedView` for
+    why that could never have worked.
+  */
+  const [, startTransition] = useTransition();
   const now = useCalendarClock();
 
   /**
@@ -319,24 +345,62 @@ export function Calendar({
   );
 
   /**
-   * The view the toolbar's thumb points at *right now*, which leads the real
-   * `view` prop by one navigation.
+   * The view that has been asked for and has not arrived yet, or null.
    *
-   * Day, week and month are one route distinguished by `?view=`, so switching is
-   * a same-route navigation: this component is not remounted, the server re-runs
-   * and hands back the new `view`. `useOptimistic` lets the thumb slide the
-   * instant a tab is pressed — showing the target view while the request is in
-   * flight — and fall back to the prop the moment it lands, with no snap because
-   * the two now agree.
+   * Day, week and month are one route told apart by `?view=`, so switching is a
+   * same-route navigation: this component stays mounted, the server re-runs and
+   * hands back the new `view` prop. Something has to stand in for that prop in
+   * the meantime, or pressing a tab does nothing at all until the server
+   * answers.
    *
-   * It is the thumb's value and nothing else's. The grid's animation used to be
-   * derived from it too, by treating `optimisticView !== view` as a mid-switch
-   * state, and that is precisely what made the animation intermittent: a warm
-   * navigation resolves before the browser paints it. See `viewPanelRef`.
-   * Acknowledging the press is this value's job; confirming the arrival is the
-   * panel's.
+   * ⚠ **This was `useOptimistic`, and `useOptimistic` could not work here.** An
+   * optimistic value only holds while the transition it was set in is pending,
+   * and `startTransition(() => router.push(href))` is pending for no time at
+   * all: the callback hands the navigation to the router and returns, so React
+   * ends the transition in the same tick and the value snaps back before the
+   * browser paints. Measured on a switch whose server render took 1707ms:
+   * `isPending` was `false` and the optimistic view was still `week` for the
+   * whole of it. Nothing on screen moved — not the thumb, not the grid — which
+   * is why pressing a tab read as the app having ignored you.
+   *
+   * (The `useOptimistic` beside this one, for appointment writes, is fine and
+   * must stay: those transitions wrap an `await`ed server action, so they are
+   * genuinely pending for the length of the write.)
+   *
+   * Plain state has no such dependency. It records the view asked for *and* the
+   * one it was asked from, and `switchingView` below reads the second of those
+   * to know when the request has expired — so nothing has to clear it.
    */
-  const [optimisticView, setOptimisticView] = useOptimistic(view);
+  const [requestedView, setRequestedView] = useState<{ target: CalendarView; from: CalendarView } | null>(
+    null,
+  );
+
+  /**
+   * True between pressing a view tab and the screen answering.
+   *
+   * The request records which view it was made *from*, and that is what expires
+   * it: the moment `view` is anything other than that, the request is history
+   * and this is false. No effect clears it and there is nothing to reset —
+   * which is the point, because a `useEffect` calling `setState` is a cascading
+   * render and the lint rule that forbids it is right.
+   *
+   * Keying on the origin rather than on the destination is what makes the
+   * awkward case correct too: `CalendarViewGuard` can answer a request for the
+   * month with the day, on a screen too narrow for a month grid. The request
+   * still expires, because `view` still moved.
+   */
+  const switchingView = requestedView !== null && requestedView.from === view && requestedView.target !== view;
+
+  /**
+   * The view the screen should be speaking about — the one on its way if there
+   * is one, otherwise the one that is here.
+   *
+   * The toolbar's thumb reads this so it moves on press, and the panel draws
+   * this view's skeleton for the same reason: for the length of the switch both
+   * agree about where the reader is going, instead of the tabs saying one thing
+   * over a grid saying another.
+   */
+  const shownView = switchingView && requestedView !== null ? requestedView.target : view;
 
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -438,15 +502,50 @@ export function Calendar({
    * and — when the view itself changes — the thumb is moved optimistically the
    * moment the tab is pressed rather than after the server answers.
    */
-  function navigate(next: { view?: CalendarView; date?: string }): void {
+  function viewHref(next: { view?: CalendarView; date?: string }): string {
     const params = new URLSearchParams(searchParams.toString());
     params.set('date', next.date ?? anchorDate);
     params.set('view', next.view ?? view);
-    startTransition(() => {
-      if (next.view && next.view !== view) setOptimisticView(next.view);
-      router.push(`${basePath}?${params.toString()}`);
-    });
+    return `${basePath}?${params.toString()}`;
   }
+
+  function navigate(next: { view?: CalendarView; date?: string }): void {
+    const href = viewHref(next);
+    if (next.view && next.view !== view) setRequestedView({ target: next.view, from: view });
+    router.push(href);
+  }
+
+  /**
+   * Fetch a view before it is asked for, while the pointer is still on its tab.
+   *
+   * Switching view is a server round trip: `loadCalendarPage` reads a different
+   * span of appointments for a day than for a month, so the grid cannot simply
+   * be re-cut on the client. That round trip is the whole of what makes the
+   * switch feel slow — and hover leads the click that follows it by a couple of
+   * hundred milliseconds, which is most of it. By the time the tab is pressed
+   * the payload is usually in the router cache and the switch is a re-render.
+   *
+   * `kind: 'full'` and not the default. An `auto` prefetch of a dynamic route —
+   * and every staff screen is one — stops at the nearest `loading.tsx`, which
+   * for this route is a grid of grey columns. Prefetching the skeleton would
+   * warm exactly the thing the reader is not waiting for.
+   *
+   * Nothing is prefetched up front. Warming all three views on arrival would be
+   * three renders of a page to serve one, repeated on every press of the date
+   * arrows; hover asks only for the view someone is actually reaching for.
+   * Next dedupes and caches the result, so sweeping across the track fetches
+   * each view once, not once per frame.
+   */
+  const prefetchView = useCallback(
+    (next: CalendarView) => {
+      if (next === view) return;
+      const params = new URLSearchParams(searchParams.toString());
+      params.set('date', anchorDate);
+      params.set('view', next);
+      router.prefetch(`${basePath}?${params.toString()}`, { kind: FULL_PREFETCH });
+    },
+    [anchorDate, basePath, router, searchParams, view],
+  );
 
   /**
    * The same move, without a history entry — for the view guard.
@@ -464,12 +563,10 @@ export function Calendar({
       const params = new URLSearchParams(searchParams.toString());
       params.set('date', anchorDate);
       params.set('view', next);
-      startTransition(() => {
-        setOptimisticView(next);
-        router.replace(`${basePath}?${params.toString()}`);
-      });
+      setRequestedView({ target: next, from: view });
+      router.replace(`${basePath}?${params.toString()}`);
     },
-    [anchorDate, basePath, router, searchParams, setOptimisticView],
+    [anchorDate, basePath, router, searchParams, view],
   );
 
   const step = view === 'month' ? 'month' : view === 'week' ? 7 : 1;
@@ -591,8 +688,8 @@ export function Calendar({
    * a CSS transition on the pending state, because a transition there was only
    * *sometimes* visible — which is the bug this replaced.
    *
-   * The old version fell out of `optimisticView !== view`: pressing a tab set
-   * the optimistic view, that condition went true, the panel was given
+   * The old version fell out of a `switching` condition: pressing a tab set
+   * the requested view, that condition went true, the panel was given
    * `opacity-0`, and when the navigation landed the two agreed again and it
    * animated back to `opacity-100`. The fade therefore depended on the browser
    * painting a frame *during* the pending window. It usually did on a cold
@@ -614,7 +711,7 @@ export function Calendar({
    * until it finished, which means delaying content the reader has asked for to
    * show them something they are done with — and on a warm switch that delay is
    * the entire cost of the interaction. The toolbar thumb already moves on
-   * press (see `optimisticView`), so the gesture is acknowledged instantly and
+   * press (see `requestedView`), so the gesture is acknowledged instantly and
    * this animation is what confirms the arrival.
    */
   const viewPanelRef = useRef<HTMLDivElement>(null);
@@ -1162,10 +1259,10 @@ export function Calendar({
       <div data-guide="calendar-toolbar" className={cn('pt-4 md:pt-6', contentInset)}>
         <CalendarToolbar
           locale={locale}
-          // The thumb follows the *optimistic* view so it moves the instant a
-          // tab is pressed; everything else here is keyed to the real `view`,
-          // which lags by the one navigation. See `optimisticView`.
-          view={optimisticView}
+          // The thumb follows the view being *asked for*, so it moves the
+          // instant a tab is pressed; everything else here is keyed to the real
+          // `view`, which lags by the one navigation. See `requestedView`.
+          view={shownView}
           rangeLabel={rangeLabel}
           anchorDate={anchorDate}
           range={visibleRange}
@@ -1174,6 +1271,9 @@ export function Calendar({
           onQueryChange={setQuery}
           hideSearch={hideSearch}
           onViewChange={(next) => navigate({ view: next })}
+          // Fetch the view under the pointer before it is chosen — see
+          // `prefetchView` for why hover is where this belongs.
+          onViewHover={prefetchView}
           onPrevious={() => shift(-1)}
           onNext={() => shift(1)}
           // Picking a date keeps the current view and moves it there — the
@@ -1227,6 +1327,31 @@ export function Calendar({
         animation has no business touching.
       */}
       <div ref={viewPanelRef} className="flex min-h-0 flex-1 flex-col gap-3">
+        {switchingView ? (
+          /*
+            Mid-switch: the shape of the view being asked for, not the one being
+            left.
+
+            The panel used to keep the outgoing grid on screen for the whole
+            round trip, dimmed by a tenth — so between pressing "Day" and the
+            server answering, the toolbar's thumb sat on Day above a week. The
+            control was telling the truth about the request and lying about the
+            screen, which is the part of this that read as broken rather than
+            merely slow.
+
+            `switchingView` is state, not an optimistic value — see
+            `requestedView` for the measurement that showed why the optimistic
+            version never held. It is deliberately not what drives the panel's
+            arrival animation; that runs from an effect, for the paint-timing
+            reason set out on `viewPanelRef`.
+
+            A switch served from the router cache commits before the browser
+            paints, so no skeleton is ever shown for one, and `prefetchView` is
+            what makes most switches that kind. This is what the cold ones get.
+          */
+          <CalendarGridSkeleton view={shownView} />
+        ) : (
+        <>
         {view === 'month' && (
           <p className={cn('text-sm text-muted-foreground', contentInset)}>{t('monthReadOnly')}</p>
         )}
@@ -1272,8 +1397,12 @@ export function Calendar({
             //
             // `relative` on top of that is the positioning context for the
             // overflow cue pinned to this panel's bottom edge.
+            // `isPending` used to dim this by a tenth while a switch was in
+            // flight. The panel is replaced outright now — see `switchingView`
+            // — so the only thing left for the dim to cover was a date change,
+            // where a barely-visible fade on a grid that is about to shift its
+            // range one week said nothing worth the flicker.
             'relative flex min-h-0 flex-1 flex-col overflow-hidden border-t border-border',
-            isPending && 'opacity-90',
           )}
         >
           {/*
@@ -1591,6 +1720,8 @@ export function Calendar({
           </div>
         </div>
       )}
+        </>
+        )}
       </div>
 
       {pendingBooking && (

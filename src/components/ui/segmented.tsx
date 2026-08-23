@@ -102,6 +102,7 @@ function Segmented<T extends string>({
   options,
   value,
   onChange,
+  onOptionHover,
   label,
   role = 'tablist',
   size = 'default',
@@ -113,6 +114,19 @@ function Segmented<T extends string>({
   options: readonly SegmentedOption<T>[];
   value: T;
   onChange: (value: T) => void;
+  /**
+   * A segment is about to be chosen — the pointer is on it, or focus has
+   * reached it. Optional, and for preparing the *result* of a choice, never for
+   * making one: it fires for segments the reader then moves off.
+   *
+   * The calendar uses it to prefetch the view under the pointer, so that by the
+   * time the click lands the page is already in the router cache. Hover leads a
+   * click by a couple of hundred milliseconds, which is most of a round trip.
+   *
+   * `onFocus` as well as `onMouseEnter`, so a keyboard arrowing along the track
+   * gets the same head start a pointer does.
+   */
+  onOptionHover?: (value: T) => void;
   /** Names the group for a screen reader, e.g. "Calendar view". */
   label: string;
   role?: 'tablist' | 'radiogroup';
@@ -248,6 +262,8 @@ function Segmented<T extends string>({
             aria-selected={isTablist ? active : undefined}
             aria-checked={isTablist ? undefined : active}
             onClick={() => onChange(option.value)}
+            onMouseEnter={onOptionHover ? () => onOptionHover(option.value) : undefined}
+            onFocus={onOptionHover ? () => onOptionHover(option.value) : undefined}
             className={cn(
               'flex items-center justify-center rounded-md font-medium',
               'transition-[color,background-color,box-shadow,transform] duration-(--duration-label) ease-(--ease-sweep)',
