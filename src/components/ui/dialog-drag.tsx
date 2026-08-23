@@ -14,13 +14,14 @@ import { cn } from '@/lib/utils';
  * here — a reader who learns the gesture on one has learned it on the other,
  * which is the whole reason this is a hook and not a `<dialog>` feature.
  *
- * A surface that fills the screen and arrives from an edge is one a reader
- * expects to be able to push back to that edge, and on a phone the alternatives
- * are worse than they look: Escape needs a keyboard, the backdrop is the one
- * strip of page a full-height sheet does not leave, and the close button is at
- * the top corner furthest from the thumb holding the device. The grip is at the
- * top too, but it is a full-width band rather than a 40px target, and the
- * gesture it starts can be finished anywhere.
+ * A surface that arrives from an edge is one a reader expects to be able to
+ * push back to that edge, and on a phone the alternatives ask more of the hand:
+ * Escape needs a keyboard the device only sometimes has, and the close button
+ * is at the top corner furthest from the thumb holding it. The sheet's other
+ * thumb-reachable exit is the band of scrim it leaves above itself — a tap
+ * there closes it through the ordinary backdrop test, no code of its own. This
+ * is the second: a full-width band rather than a 40px target, starting a
+ * gesture that can be finished anywhere.
  *
  * ## What this is not
  *

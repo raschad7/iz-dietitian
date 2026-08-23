@@ -3668,33 +3668,50 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
 }
 
 /*
- * ══ The phone sheet is full screen ══
+ * ══ The phone sheet stops short of the top, and the gap is a control ══
  *
- * A `placement="sheet"` dialog on a phone takes the whole of the glass, not a
- * measure of it. It was capped at `100dvh` less the status bar less a 1.5rem
- * gutter, which left a strip of blurred page above the surface: enough to see
- * that something is behind, not enough to read or to reach, so the strip is
- * spent proving a point nobody needs proved on a 390px screen. The dialogs that
- * live at this width are the ones you *work in* — the client form, the intake
- * panels, the meal inspector — and every row of height they can have is a row
- * of the form the reader does not have to scroll to.
+ * A `placement="sheet"` dialog on a phone rises from the block-end edge and
+ * leaves a band of scrim above itself. It is **not** full screen, and the band
+ * is not decoration: it is the surface's second dismissal, the one a thumb can
+ * reach without travelling to a corner.
  *
- * `block-size`, not just a ceiling: the surface is the screen at this width
- * whatever its content measures. A short modal that would read as a half-empty
- * page is what `placement="center"` exists for — it is excluded here and stays
- * a centred card at every width. See the prop in `dialog.tsx`.
+ * That is what makes the size of it a real decision rather than a taste one.
+ * The old 1.5rem was enough to *see* the page behind and not enough to *press*
+ * — 24px is half a touch target, sitting directly above a sheet where a miss
+ * lands on the header. `--q-sheet-top-gap` is 3rem, which clears the 44px floor
+ * this file reserves for a coarse pointer everywhere else, plus the status bar
+ * on top of it. Set the variable on a call site's class list to ask for more.
  *
- * `--q-viewport-block` and not `100dvh`, for the reason the frame above gives:
- * with a keyboard open it is what is left of the screen, and paired with the
- * frame's `inset-block-end: var(--q-keyboard-inset)` the sheet sits on top of
- * the keys instead of behind them.
+ * The block-start safe inset is *added to* the gap rather than being spent
+ * against it, so the strip is 3rem of pressable scrim on every device instead
+ * of 3rem minus whatever the notch took.
  *
- * The corners go square and the header takes the status bar's inset, because a
- * surface that reaches the top edge is no longer rising from the bottom one:
- * rounded corners there frame the notch rather than the sheet, and a title
- * under it is a title nobody can read. The block-end safe inset is already
- * handled further up — the fill runs under the home indicator, the content does
- * not.
+ * ## How the tap works, and why there is no handler for it
+ *
+ * There is nothing to wire. A modal `<dialog>` fills the viewport as far as
+ * hit-testing is concerned, so a press on the band targets the dialog element
+ * itself — which is exactly the backdrop test `Dialog` already runs on every
+ * click, comparing the pointer against the surface's own rectangle. The gap is
+ * outside that rectangle, so it closes. `ConfirmDialog` runs the same test, and
+ * a Base UI `Sheet` has a real backdrop element behind it that does the same
+ * thing on its own.
+ *
+ * This is why the sheet went back to leaving a gap at all: full-bleed, that
+ * whole mechanism had nowhere left to happen, and a full-height surface with no
+ * backdrop is a surface whose only exits are a 40px close button and a keyboard
+ * the phone only sometimes has.
+ *
+ * ## Height
+ *
+ * A ceiling, not a size. A tall dialog grows until it meets the gap and stops;
+ * a short one stays short. `--q-viewport-block` rather than `100dvh` is the
+ * frame's own reasoning: with a keyboard open it is what is left of the screen,
+ * and paired with `inset-block-end: var(--q-keyboard-inset)` the sheet sits on
+ * top of the keys rather than behind them.
+ *
+ * The block-start corners stay rounded — the sheet has a visible top edge again
+ * — and the other two are off-screen. The block-end safe inset is handled
+ * further up: the fill runs under the home indicator, the content does not.
  *
  * `:not([data-placement])` is `ConfirmDialog`, written by hand before the
  * attribute existed. It is `mt-auto mb-0` below `sm` like every other sheet, so
@@ -3703,42 +3720,20 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
 @media (width < 40rem) {
   .q-dialog[open][data-placement='sheet']:not(.planner-context-sheet):not(.app-navigation-drawer),
   .q-dialog[open]:not([data-placement]):not(.planner-context-sheet):not(.app-navigation-drawer) {
-    --q-dialog-block-gutter: 0px;
-    --q-dialog-block-safe: 0px;
-
-    block-size: var(--q-viewport-block);
-    border-radius: 0;
-  }
-  /*
-    The status bar's clearance goes to whichever row is actually first.
-
-    A full-screen sheet reaches the top of the glass, so its first row is under
-    the notch unless something pays for it. Where there is a grip that is the
-    grip's job — the pill would otherwise be the thing hidden — and where there
-    is not, the header's. `:has()` picks one, so no surface ever pays twice.
-  */
-  .q-dialog[open][data-placement='sheet']:not(.planner-context-sheet):not(.app-navigation-drawer):not(
-      :has(> [data-slot='sheet-grip'])
-    )
-    [data-slot='dialog-header'],
-  .q-dialog[open]:not([data-placement]):not(.planner-context-sheet):not(.app-navigation-drawer):not(
-      :has(> [data-slot='sheet-grip'])
-    )
-    [data-slot='dialog-header'] {
-    padding-block-start: calc(1rem + var(--q-safe-t));
+    --q-dialog-block-gutter: var(--q-sheet-top-gap, 3rem);
+    --q-dialog-block-safe: var(--q-safe-t);
   }
 }
 
 /*
  * ══ The grip, and the gesture it advertises ══
  *
- * A full-screen sheet is the one surface in the app with no backdrop to tap:
- * it covers the page completely, Escape needs a keyboard the phone only
- * sometimes has, and the close button is at the corner furthest from the thumb
- * holding the device. Pushing it back down to the edge it rose from is the
- * gesture a reader already expects, and this band is the visible promise that
- * it will work. `dialog-drag.tsx` is the whole of the behaviour; this is the
- * whole of the appearance.
+ * The sheet's two thumb-reachable exits are the band of scrim above it and this
+ * pill: tap the gap to put it away, or push the pill down to the edge it rose
+ * from. Both beat the alternatives on a phone — Escape needs a keyboard the
+ * device only sometimes has, and the close button is at the corner furthest
+ * from the hand holding it. `dialog-drag.tsx` is the whole of the drag's
+ * behaviour; this is the whole of its appearance.
  *
  * **`display: none` is the default and the phone opts in**, rather than the
  * other way round, so a centred card cannot grow a grip by omission at any
@@ -3766,11 +3761,11 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
     justify-content: center;
     /*
       The band is what the thumb lands on and the pill is only what it sees, so
-      the padding is the target: ~28px of height for a 4px mark. The block-start
-      half also carries the status bar on a full-screen sheet — see the `:has()`
-      pair above, which takes the same inset off the header when this is here.
+      the padding is the target: ~28px of height for a 4px mark. No status-bar
+      inset here — the sheet now stops short of the top and the gap above it
+      already clears the notch.
     */
-    padding-block: calc(0.5rem + var(--q-safe-t)) 0.5rem;
+    padding-block: 0.75rem 0.5rem;
     touch-action: none;
     cursor: grab;
   }
