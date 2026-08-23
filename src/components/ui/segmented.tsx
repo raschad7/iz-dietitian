@@ -265,7 +265,16 @@ function Segmented<T extends string>({
               // `font-normal`, not the base `font-medium`: in Arabic the two are
               // the same 400 file anyway, and this is the one weight that is a
               // real step down in both scripts.
-              pill && 'relative h-11 flex-1 rounded-[10px] px-3 py-0 font-normal',
+              // ⚠ `min-w-0` is what makes `flex-1` here actually mean *equal
+              // fifths*, and the thumb depends on it. A flex item's default
+              // `min-width: auto` refuses to shrink below its own content, so
+              // once the labels no longer fit — five views in the client record
+              // at a narrow desktop width, where four settings tabs never did —
+              // the segments size to their labels instead, come out unequal, and
+              // the thumb behind them (sized `100% / count`) lands across a
+              // seam. With it they stay equal and the longest label truncates,
+              // which is the failure this control can survive.
+              pill && 'relative h-11 min-w-0 flex-1 rounded-[10px] px-3 py-0 font-normal',
               // Equal-width by the track's grid columns (see the track above),
               // so the travelling thumb behind them lands on one exactly. The
               // button stretches to fill its `1fr` cell on its own — no `flex-1`,

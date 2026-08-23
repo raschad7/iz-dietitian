@@ -58,9 +58,33 @@ type CalloutProps = React.ComponentProps<'div'> &
      * happened and *what to do*; a single-sentence callout needs no title.
      */
     title?: React.ReactNode;
+    /**
+     * Adds a dismiss control at the inline-end. Passing it makes this a client
+     * subtree — a handler cannot cross the RSC boundary — which is why it lives
+     * on the prop rather than being built in: a server-rendered callout keeps
+     * costing nothing.
+     *
+     * ⚠ **Only for a callout the reader may legitimately stop seeing.** A
+     * missing-field notice disappears when the field is filled and has no
+     * business being dismissible; a standing contradiction the dietitian has
+     * looked at and accepted does. Dismissal is the caller's to remember — see
+     * `DismissibleCallout` for the one that persists it.
+     */
+    onDismiss?: () => void;
+    /** Accessible name for the dismiss control. Required whenever `onDismiss` is. */
+    dismissLabel?: string;
   };
 
-function Callout({ tone, icon, title, className, children, ...props }: CalloutProps) {
+function Callout({
+  tone,
+  icon,
+  title,
+  onDismiss,
+  dismissLabel,
+  className,
+  children,
+  ...props
+}: CalloutProps) {
   // `??` and not a destructured default: cva's `VariantProps` admits `null` as
   // well as `undefined`, and a default parameter only answers the second.
   const resolved = tone ?? 'neutral';
@@ -82,6 +106,35 @@ function Callout({ tone, icon, title, className, children, ...props }: CalloutPr
         {title ? <p className="font-semibold">{title}</p> : null}
         {children}
       </div>
+
+      {/*
+        The dismiss control, in the callout's own colour.
+
+        ⚠ **`text-current` and `bg-current/10`, never a `Button` variant.** Every
+        variant in the button scale pins its own foreground and hover fill —
+        `ghost` is `text-secondary-foreground` over `hover:bg-accent` — and on an
+        amber or clay callout that paints a grey chip inside a tinted box. Here
+        the glyph *is* the tone, dimmed at rest and full-strength under the
+        pointer, so one control reads correctly on all three surfaces without
+        the component knowing which one it is on.
+
+        The focus ring is the system's, not `current`: an amber ring on an amber
+        fill is a ring nobody can see.
+
+        `size-10` is the design system's floor for a control; the negative
+        margins claw back the space it would otherwise add to a two-line callout
+        so the box does not grow around its own close button.
+      */}
+      {onDismiss ? (
+        <button
+          type="button"
+          onClick={onDismiss}
+          aria-label={dismissLabel}
+          className="-mt-1.5 -me-2 grid size-10 shrink-0 cursor-pointer place-items-center rounded-full text-current/60 transition-colors duration-(--duration-label) ease-(--ease-sweep) hover:bg-current/10 hover:text-current focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-focus-halo focus-visible:outline-none motion-reduce:transition-none"
+        >
+          <Icon name="close" className="size-4" />
+        </button>
+      ) : null}
     </div>
   );
 }

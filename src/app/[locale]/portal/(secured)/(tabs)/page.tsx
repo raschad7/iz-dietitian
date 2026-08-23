@@ -8,6 +8,7 @@ import { planSearchSchema } from '@/features/portal/schema';
 import { requirePortalClient } from '@/features/portal/session';
 import { PlanDayCompletionProvider } from '@/features/weekly-plans/components/plan-day-completion';
 import { PlanDayPicker, PortalPlan } from '@/features/weekly-plans/components/portal-plan';
+import { roundForDisplay } from '@/features/weekly-plans/nutrition';
 import { resolveLocale } from '@/i18n/params';
 
 type PortalPageProps = {
@@ -27,7 +28,7 @@ export async function generateMetadata({ params }: PortalPageProps): Promise<Met
  *
  * **Three pieces, in one order.** Which day is being read, then that day's
  * own commitment figure, then that day's meals — `PlanDayPicker` chooses,
- * and everything under it, including the mascot, answers for whichever day it
+ * and everything under it, including the ring, answers for whichever day it
  * chose. `PlanDayPicker` sits where a three-day yesterday/today/tomorrow
  * glance used to live in the header above this page (`portal-header.tsx`,
  * still shared chrome for the other four tabs) — that glance chose nothing
@@ -36,7 +37,7 @@ export async function generateMetadata({ params }: PortalPageProps): Promise<Met
  *
  * The week's own average-adherence card is gone from here — it repeated the
  * same fraction `WeekAdherenceSummary` already owns on the progress tab, once
- * `HomeToday`'s mascot started drawing today's adherence right above it.
+ * `HomeToday`'s ring started drawing today's adherence right above it.
  *
  * **What is deliberately not here.** The five-metric summary — energy, sleep,
  * appetite, mood, water — moved off this screen: it repeated in five rows what
@@ -68,16 +69,16 @@ export async function generateMetadata({ params }: PortalPageProps): Promise<Met
  * animation — was lost in the merge, only its second, non-interactive copy.
  *
  * **One completion provider for the whole page, not one per section.** The
- * picker's own day strip, `HomeToday`'s mascot, and `PortalPlan`'s meal list
+ * picker's own day strip, `HomeToday`'s ring, and `PortalPlan`'s meal list
  * all read the same `PlanDayCompletionProvider`, keyed to the *open* day —
  * `plan?.selectedDay`, remounted (`key={plan?.selectedDay}`) each time it
  * changes — see `plan-day-completion.tsx`. Neither component mounts a
  * provider of its own for exactly this reason: a second, independent one
- * would let a tick inside the plan's meal list and the mascot above it drift
+ * would let a tick inside the plan's meal list and the ring above it drift
  * out of sync. Ticking only ever happens on today's own day regardless of
  * which one is open — `MealCheck` never renders on a past or future day, so
  * `toggle` is simply unused by the provider on any other day, while the
- * mascot and the strip still read its live completed/total counts for
+ * ring and the strip still read its live completed/total counts for
  * whichever day that is.
  */
 export default async function PortalPage({ params, searchParams }: PortalPageProps) {
@@ -91,13 +92,21 @@ export default async function PortalPage({ params, searchParams }: PortalPagePro
 
   const t = await getTranslations('portal');
 
-  // Only the ids cross into `PlanDayCompletionProvider` — dish, options and
-  // rationale on each `BoardMeal` stay server-side, same reasoning
-  // `portal-plan.tsx` documents for the plan section itself. `HomeToday`
-  // reads its own completed/total counts off that provider's context, not
-  // off this list, so nothing else on this page needs the meals themselves.
+  // The open day's own board row, not always today's — `HomeToday`'s ring
+  // now answers for whichever day `PlanDayPicker` chose, the same day
+  // `PortalPlan` renders meals for below it.
   const selectedBoardDay = plan?.board.days.find((candidate) => candidate.dayOfWeek === plan.selectedDay);
-  const selectedMealIds = (selectedBoardDay?.meals ?? []).map((meal) => meal.id);
+
+  // Only the shape `HomeToday` draws crosses into its client bundle — the
+  // dish, options and rationale on each `BoardMeal` stay server-side, same
+  // reasoning `portal-plan.tsx` documents for the plan section itself.
+  const selectedMeals = (selectedBoardDay?.meals ?? []).map((meal) => ({
+    id: meal.id,
+    slotKey: meal.slotKey,
+    label: meal.label,
+    timeOfDay: meal.timeOfDay,
+    kcal: roundForDisplay('kcal', meal.totals.kcal.value),
+  }));
 
   return (
     /*
@@ -116,9 +125,9 @@ export default async function PortalPage({ params, searchParams }: PortalPagePro
     */
     <div className="flex flex-col gap-4">
       {/*
-        One provider over the strip, the mascot, and the plan section below —
+        One provider over the strip, the ring, and the plan section below —
         see the module doc above and `plan-day-completion.tsx`. Today's cell
-        in the strip needs the same live completed/total counts the mascot and
+        in the strip needs the same live completed/total counts the ring and
         the plan's own meal list read, so that ticking the last meal moves all
         three the instant it happens rather than waiting on `router.refresh()`.
 
@@ -132,37 +141,77 @@ export default async function PortalPage({ params, searchParams }: PortalPagePro
       <PlanDayCompletionProvider
         key={plan?.selectedDay ?? 0}
         dayOfWeek={plan?.selectedDay ?? 0}
-        mealIds={selectedMealIds}
+        mealIds={selectedMeals.map((meal) => meal.id)}
         initialCompletedMealIds={plan?.completedMealIds ?? []}
       >
-        {plan ? <PlanDayPicker days={plan.days} selectedDay={plan.selectedDay} /> : null}
-
         {/*
-          No count-up on arrival. This subtree remounts on every visit — the
-          `key` above forces it whenever the open day changes, and a fresh
-          navigation back to this tab (switching tabs, reopening the app)
-          remounts it anyway — so an entrance animation here would replay on
-          every one of those instead of only when a meal is actually ticked.
-          `TodayEnergyMascot` already draws its real figure on first paint by
-          default and animates solely when the number later moves; see
-          `useRisingFraction`.
-        */}
-        <HomeToday />
+          ── The desktop face: what chooses a day beside what that day holds ──
 
-        {plan ? (
-          <PortalPlan
-            board={plan.board}
-            days={plan.days}
-            selectedDay={plan.selectedDay}
-            completedMealIds={plan.completedMealIds}
-            today={plan.today}
-          />
-        ) : (
-          <div className="space-y-6">
-            <h2 className="font-heading text-2xl font-semibold tracking-tight">{t('plan.title')}</h2>
-            <EmptyState icon="myPlan" title={t('plan.noneTitle')} description={t('plan.none')} />
+          On a phone this is one column and the order is the argument: pick a
+          day, read how much of it you have done, then work down its meals. The
+          same stack on a 1440px screen is that phone held up in the middle of a
+          monitor — a 176px ring alone on a 1136px-wide card, five meal rows
+          each with half a metre of nothing to their inline-end.
+
+          From `lg` the first two become an aside. The strip goes back to
+          roughly the width it was designed against — seven cells across 20rem
+          rather than across the whole screen, where each would have been 158px
+          of air around a day name — and the ring sits under it, both inside the
+          band the glow covers. The day's meals take the rest.
+
+          `lg` and not `md`: this is the same line the rail arrives on and the
+          tab bar leaves on. See `features/portal/layout.ts`.
+
+          `lg:items-start` so the aside is its own height rather than being
+          stretched down a long meal list. **Not `lg:sticky`**, which is the
+          obvious next thought and is wrong here: `HomeToday`'s heading is white
+          because it is drawn on the glow, and the glow is painted into the page
+          rather than pinned to the viewport (`portal/layout.tsx`). Pinning the
+          aside would slide that heading off the green and onto the page's own
+          white, where it is white on white.
+        */}
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] lg:items-start lg:gap-6">
+          <div className="flex min-w-0 flex-col gap-4">
+            {plan ? <PlanDayPicker days={plan.days} selectedDay={plan.selectedDay} /> : null}
+
+            {/*
+              No count-up on arrival. This subtree remounts on every visit —
+              the `key` above forces it whenever the open day changes, and a
+              fresh navigation back to this tab (switching tabs, reopening the
+              app) remounts it anyway — so an entrance animation here would
+              replay on every one of those instead of only when a meal is
+              actually ticked. `TodayEnergyMascot` already draws its real
+              figure on first paint by default and animates solely when the
+              number later moves; see `useRisingFraction`.
+            */}
+            <HomeToday />
           </div>
-        )}
+
+          {/*
+            `min-w-0`: the meal rows inside carry long dish names, and a grid
+            track defaults to `min-content` rather than shrinking — without this
+            a single unbroken name would push the column past its share and take
+            the aside's width with it.
+          */}
+          <div className="min-w-0">
+            {plan ? (
+              <PortalPlan
+                board={plan.board}
+                days={plan.days}
+                selectedDay={plan.selectedDay}
+                completedMealIds={plan.completedMealIds}
+                today={plan.today}
+              />
+            ) : (
+              <div className="space-y-6">
+                <h2 className="font-heading text-2xl font-semibold tracking-tight">
+                  {t('plan.title')}
+                </h2>
+                <EmptyState icon="myPlan" title={t('plan.noneTitle')} description={t('plan.none')} />
+              </div>
+            )}
+          </div>
+        </div>
       </PlanDayCompletionProvider>
     </div>
   );

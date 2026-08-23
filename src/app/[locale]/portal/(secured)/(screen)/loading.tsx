@@ -1,3 +1,6 @@
+import { PORTAL_COLUMN } from '@/features/portal/layout';
+import { cn } from '@/lib/utils';
+
 /**
  * What the account screens look like while their data is on the way.
  *
@@ -18,7 +21,7 @@ export default function ScreenLoading() {
   return (
     <>
       <div className="sticky top-0 z-30 border-b border-border bg-card/95">
-        <div className="mx-auto flex w-full max-w-3xl items-center gap-1 px-2 py-2 md:px-4">
+        <div className={cn('flex items-center gap-1 px-2 py-2 md:px-4', PORTAL_COLUMN)}>
           <span className="size-11 shrink-0" />
           <span className="mx-auto h-4 w-32 animate-pulse rounded-full bg-muted" />
           <span className="size-11 shrink-0" />
@@ -26,13 +29,23 @@ export default function ScreenLoading() {
       </div>
 
       <main className="min-w-0 flex-1 px-4 py-5 md:px-6" aria-busy="true">
-        <div className="mx-auto w-full max-w-3xl space-y-4">
+        {/*
+          `PORTAL_COLUMN`, and the blocks fall into two columns from `lg` — the
+          same measure and the same break the account screens themselves use.
+          A skeleton that is a phone column under a header that is not would
+          re-introduce the jump this file exists to prevent, one breakpoint up.
+        */}
+        <div className={cn('grid gap-4 lg:grid-cols-2 lg:items-start', PORTAL_COLUMN)}>
           {/*
             One tall block for the identity card and two shorter ones for the
             sections under it — the shape of the real screen, so the wait reads
             as this page loading rather than as a generic spinner.
+
+            The first spans both columns from `lg`, because on every screen in
+            this group the thing it stands for — a heading, a record's first
+            card — runs the full width above the split.
           */}
-          <div className="h-28 animate-pulse rounded-lg rounded-ee-4xl bg-card ring-1 ring-foreground/10" />
+          <div className="h-28 animate-pulse rounded-lg rounded-ee-4xl bg-card ring-1 ring-foreground/10 lg:col-span-2" />
           <div className="h-52 animate-pulse rounded-lg rounded-ee-4xl bg-card ring-1 ring-foreground/10" />
           <div className="h-52 animate-pulse rounded-lg rounded-ee-4xl bg-card ring-1 ring-foreground/10" />
         </div>

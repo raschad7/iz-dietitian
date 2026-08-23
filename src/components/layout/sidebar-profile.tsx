@@ -39,7 +39,7 @@ import { cn } from '@/lib/utils';
  *
  * ⚠ This paragraph used to end "the mobile sheet has the same usable width, so
  * it follows this mode too", and that sheet no longer exists — the staff rail is
- * locked to 56px at every width below `lg`, phones included. See the note on
+ * locked to 56px on a phone. See the note on
  * `usesInlineDisclosure` below for what that stale branch was doing to a phone.
  *
  * At 56px there is no useful inline layout to reveal, so the collapsed rail —
@@ -98,9 +98,9 @@ export function SidebarProfile({
     written for a rail that below `md` was a full-width `Sheet` — where an
     inline disclosure has room, which is what the note above still describes.
 
-    That Sheet is gone. `SidebarProvider` sets `locked = railOnly && isCompact`,
+    That Sheet is gone. `SidebarProvider` sets `locked = railOnly && isMobile`,
     and `railOnly` is `Boolean(user)` — so on every staff screen under 1024px
-    the rail is drawn as the 56px icon column at *every* width, phones included,
+    the rail is drawn as the 56px icon column on a phone,
     and `Sidebar`'s `isMobile && !locked` drawer branch is never taken. `isMobile`
     was still true below 768px, so the account row went on unfolding a 256px
     panel inside a 56px column. The rows spilled out of the rail over the page,
@@ -116,7 +116,7 @@ export function SidebarProfile({
     on a coarse pointer (see the `(pointer: coarse)` block in `globals.css`),
     which is the right shape for a thumb on either device.
 
-    Nothing changes from `lg` up, where the rail expands and this was always
+    Nothing changes from `md` up once the rail is expanded, where this was always
     `true` for the reason it says.
   */
   const usesInlineDisclosure = sidebarState === 'expanded';

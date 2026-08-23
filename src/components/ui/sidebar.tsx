@@ -5,7 +5,7 @@ import { mergeProps } from "@base-ui/react/merge-props"
 import { useRender } from "@base-ui/react/use-render"
 import { cva, type VariantProps } from "class-variance-authority"
 
-import { useIsCompact, useIsMobile } from "@/hooks/use-mobile"
+import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -67,13 +67,20 @@ function useSidebar() {
 }
 
 /**
- * @param railOnly Lock the rail to its icon width below `lg`, with no drawer and
- *   no way to open it.
+ * @param railOnly Lock the rail to its icon width on a **phone**, with no drawer
+ *   and no way to open it.
  *
- *   This is the staff app's shape on a tablet and a phone: navigation is always
- *   on screen as a column of icons, and the expanded 16rem column is a desktop
- *   affordance. It replaces a `<dialog>` drawer that had to be opened before any
- *   destination could be reached and then covered the page while it was.
+ *   Navigation is always on screen there as a column of icons, replacing a
+ *   `<dialog>` drawer that had to be opened before any destination could be
+ *   reached and then covered the page while it was.
+ *
+ *   ⚠ **The tablet is deliberately not locked.** This was briefly keyed on
+ *   `isCompact` (`width < 64rem`), which took 768–1023px with it: an iPad got
+ *   the icon rail with the trigger removed, and the expanded 16rem column —
+ *   with the destination labels on it — was unreachable on the device most of
+ *   the day's work happens on. From `md` up the rail is collapsible again and
+ *   `SidebarTrigger` is back in its head, so the tablet opens and closes it
+ *   exactly as the desktop does. The stored preference drives both.
  *
  *   Opt-in rather than the default, because the other shell that renders this is
  *   the patient portal — a phone-first app with a bottom tab bar carrying the
@@ -96,8 +103,12 @@ function SidebarProvider({
   railOnly?: boolean
 }) {
   const isMobile = useIsMobile()
-  const isCompact = useIsCompact()
-  const locked = railOnly && isCompact
+  /*
+    The phone, not the tablet. `useIsMobile` is `width < 768px`, which is
+    exactly the range where the rail has no room to expand and no drawer to
+    stand in for it; from `md` up the trigger comes back. See `railOnly`.
+  */
+  const locked = railOnly && isMobile
   const [openMobile, setOpenMobile] = React.useState(false)
 
   // This is the internal state of the sidebar.
