@@ -370,7 +370,12 @@ export function DishCatalog({
           )}
         </div>
       ) : (
-        <ul className="no-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden pt-1">
+        /* No `no-scrollbar` here. This is the longest list in the planner and
+           the drawer holding it shows no other sign that it continues, so the
+           desktop rail is the cue — see "The desktop scrollbar" in
+           globals.css. It costs nothing on a phone, where that rule does not
+           apply and the bar stays hidden as before. */
+        <ul className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pt-1">
           {shown.map((dish) => {
             const servings = slot ? (bestServings(dish.baseKcal, slot.budgetKcal) ?? 1) : 1;
             const allowed = editable && dish.blockedBy.length === 0;

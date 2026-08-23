@@ -1,0 +1,279 @@
+<!doctype html>
+<!-- Standalone prototype: the Rail scrollbar for Qiwam, colour study. Production maps this to a shadcn ScrollArea variant. -->
+<html lang="en" dir="ltr" data-c="green-dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Qiwam — Scrollbar colours</title>
+<style>
+:root{
+  /* brand ramp (globals.css) */
+  --green-50:#F1FBEA;--green-100:#DFF6D1;--green-200:#C2EDA9;--green-300:#9BE076;--green-400:#75CF48;
+  --green-500:#58B52D;--green-600:#419020;--green-700:#346E1D;--green-800:#2C581C;--green-900:#284B1C;--green-950:#11290A;
+  --n-0:#FFFFFF;--n-25:#FCFBF7;--n-50:#F7F5EF;--n-100:#EFEDE4;--n-200:#E2DFD3;--n-300:#CDC9B9;
+  --n-400:#A8A493;--n-500:#837F6E;--n-600:#605D50;--n-700:#46443B;--n-800:#2F2E28;--n-900:#1C1B17;
+  /* cool neutrals — the track lives here */
+  --c-50:#F9FAFB;--c-100:#F3F4F6;--c-200:#E5E7EB;--c-300:#D1D5DB;--c-400:#9CA3AF;--c-500:#6B7280;--c-600:#4B5563;
+
+  /* ---- Rail tokens ---- */
+  --sb-size:14px;               /* rail width incl. padding */
+  --sb-thumb-size:8px;          /* visual thumb width */
+  --sb-thumb-min:34px;          /* never shorter than this */
+  --sb-track:var(--c-100);      /* light grey, resting */
+  --sb-track-hover:var(--c-200);
+  --sb-arrow:var(--green-700);
+  --sb-arrow-hover:var(--green-800);
+  --sb-arrow-bg:var(--c-100);
+  --sb-arrow-muted:var(--c-300);
+  --sb-radius:999px;
+  --ease:cubic-bezier(.2,.6,.2,1);
+}
+
+/* ══════════ the colour options — only three tokens change ══════════ */
+[data-c="green-dark"]{--sb-thumb:color-mix(in srgb,var(--green-800) 45%,transparent);--sb-thumb-hover:var(--green-700);--sb-thumb-active:var(--green-800);--sb-arrow:var(--green-700);--sb-arrow-hover:var(--green-800)}
+[data-c="green-light"]{--sb-thumb:color-mix(in srgb,var(--green-500) 55%,transparent);--sb-thumb-hover:var(--green-500);--sb-thumb-active:var(--green-600);--sb-arrow:var(--green-600);--sb-arrow-hover:var(--green-700)}
+[data-c="green-leaf"]{--sb-thumb:color-mix(in srgb,var(--green-400) 70%,transparent);--sb-thumb-hover:var(--green-400);--sb-thumb-active:var(--green-500);--sb-arrow:var(--green-600);--sb-arrow-hover:var(--green-700)}
+[data-c="grey-dark"]{--sb-thumb:color-mix(in srgb,var(--c-600) 55%,transparent);--sb-thumb-hover:var(--c-600);--sb-thumb-active:#374151;--sb-arrow:var(--c-600);--sb-arrow-hover:#1F2937}
+[data-c="grey-light"]{--sb-thumb:var(--c-300);--sb-thumb-hover:var(--c-400);--sb-thumb-active:var(--c-500);--sb-arrow:var(--c-500);--sb-arrow-hover:var(--c-600)}
+[data-c="stone"]{--sb-thumb:var(--n-300);--sb-thumb-hover:var(--n-500);--sb-thumb-active:var(--n-600);--sb-arrow:var(--n-500);--sb-arrow-hover:var(--n-700)}
+[data-c="ink"]{--sb-thumb:color-mix(in srgb,var(--green-950) 35%,transparent);--sb-thumb-hover:var(--green-950);--sb-thumb-active:#000;--sb-arrow:var(--green-950);--sb-arrow-hover:#000}
+[data-c="duo"]{--sb-thumb:var(--c-300);--sb-thumb-hover:var(--green-700);--sb-thumb-active:var(--green-800);--sb-arrow:var(--c-500);--sb-arrow-hover:var(--green-700)}
+
+*{box-sizing:border-box}
+html{background:var(--n-25);color:var(--n-900)}
+body{margin:0;font-family:"Segoe UI",Inter,system-ui,Arial,sans-serif;font-size:15px;line-height:1.6}
+button{font:inherit;color:inherit}
+h1{margin:0 0 6px;font-size:28px;letter-spacing:-.02em}
+h2{margin:0 0 4px;font-size:17px}
+p{margin:0;color:var(--n-600)}
+svg{display:block}
+:focus-visible{outline:3px solid color-mix(in srgb,var(--green-500) 40%,transparent);outline-offset:2px;border-radius:6px}
+.page{max-width:1120px;margin:0 auto;padding:36px 34px 90px}
+.head{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:22px;flex-wrap:wrap}
+.toggles{display:flex;gap:8px;flex-wrap:wrap}
+.tgl{min-height:38px;border:1px solid var(--c-300);border-radius:10px;background:var(--n-0);padding:0 14px;font-weight:600;cursor:pointer}
+.tgl[aria-pressed="true"]{border-color:var(--green-600);background:var(--green-50);color:var(--green-800)}
+.hint{margin-bottom:20px;border:1px solid var(--c-200);border-radius:12px;background:var(--n-0);padding:12px 16px;color:var(--n-500);font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px}
+.card{position:relative;border:1px solid var(--c-200);border-radius:16px;background:var(--n-0);box-shadow:0 10px 28px rgba(34,52,20,.06),0 2px 5px rgba(34,52,20,.04);overflow:hidden}
+.card.pickedq{border-color:var(--green-600);box-shadow:0 0 0 3px color-mix(in srgb,var(--green-400) 26%,transparent),0 10px 28px rgba(34,52,20,.08)}
+.card-head{display:flex;align-items:center;gap:10px;padding:15px 18px 11px;border-bottom:1px solid var(--c-100)}
+.swatch{flex:0 0 auto;width:26px;height:26px;border-radius:8px;border:1px solid var(--c-200);background:var(--sb-thumb-hover)}
+.card-head h2{font-size:15px;margin:0}
+.card-head small{display:block;color:var(--n-500);font-size:12px;line-height:1.4}
+.use{margin-inline-start:auto;min-height:32px;border:1px solid var(--c-300);border-radius:8px;background:var(--n-0);padding:0 11px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
+.use:hover{border-color:var(--green-600);background:var(--green-50);color:var(--green-800)}
+.card.pickedq .use{border-color:var(--green-600);background:var(--green-600);color:#fff}
+.card-body{padding:12px}
+.demo{height:210px}
+.rows{margin:0;padding:0;list-style:none}
+.rows li{padding:10px 14px;border-radius:10px;font-size:14px}
+.rows li:nth-child(odd){background:var(--c-50)}
+.rules{margin-top:26px;border:1px solid var(--c-200);border-radius:16px;background:var(--n-0);padding:20px 22px}
+.rules ul{margin:10px 0 0;padding-inline-start:20px;color:var(--n-700);font-size:14px}
+.rules li{margin-bottom:7px}
+.rules code{background:var(--c-50);border:1px solid var(--c-200);border-radius:5px;padding:1px 5px;font-size:12px}
+.filler{margin-top:26px;display:grid;gap:14px}
+.filler div{border:1px dashed var(--c-200);border-radius:14px;background:var(--n-0);padding:22px;color:var(--n-500)}
+
+/* ══════════════════ the Rail ══════════════════ */
+html{scrollbar-width:none}                 /* the page keeps its own custom rail */
+html::-webkit-scrollbar{display:none}
+.qs{position:relative;overflow:hidden}
+.qs-viewport{height:100%;width:100%;overflow:auto;scrollbar-width:none;-ms-overflow-style:none}
+.qs-viewport::-webkit-scrollbar{display:none}
+.qs-bar{position:absolute;inset-block:3px;inset-inline-end:3px;width:var(--sb-size);display:flex;flex-direction:column;align-items:center;gap:3px;
+  opacity:0;transition:opacity 180ms var(--ease);touch-action:none;user-select:none;z-index:5}
+.qs[data-scrollable="false"] .qs-bar{display:none}
+.qs.is-visible>.qs-bar,.qs:hover>.qs-bar,.qs:focus-within>.qs-bar{opacity:1}
+.qs[data-persist="true"]>.qs-bar{opacity:1}
+.qs-arrow{flex:0 0 auto;display:grid;place-items:center;width:var(--sb-size);height:var(--sb-size);padding:0;border:0;background:transparent;color:var(--sb-arrow);border-radius:7px;cursor:pointer;
+  opacity:0;transition:opacity 160ms var(--ease),background 160ms var(--ease),color 160ms var(--ease),transform 160ms var(--ease)}
+.qs-arrow svg{width:11px;height:11px}
+.qs:hover .qs-arrow,.qs.is-dragging .qs-arrow,.qs[data-persist="true"] .qs-arrow{opacity:1}
+.qs-arrow:hover{background:var(--sb-arrow-bg);color:var(--sb-arrow-hover)}
+.qs-arrow:active{transform:scale(.88)}
+.qs-arrow[disabled]{color:var(--sb-arrow-muted);cursor:default;background:transparent;transform:none}
+.qs-track{position:relative;flex:1 1 auto;width:var(--sb-thumb-size);border-radius:var(--sb-radius);background:var(--sb-track);transition:background 180ms var(--ease)}
+.qs:hover .qs-track{background:var(--sb-track-hover)}
+.qs-thumb{position:absolute;inset-inline:0;border-radius:var(--sb-radius);background:var(--sb-thumb);transition:background 160ms var(--ease)}
+.qs:hover .qs-thumb{background:var(--sb-thumb-hover)}
+.qs.is-dragging .qs-thumb{background:var(--sb-thumb-active)}
+/* the page-level rail: same component, fixed to the viewport edge */
+.qs-page{position:fixed;inset-block:10px;inset-inline-end:6px;width:26px;overflow:visible;z-index:60}
+.qs-page>.qs-bar{inset-inline-end:4px}
+
+/* touch: no arrows, fatter thumb */
+@media (pointer:coarse){.qs-arrow{display:none}.qs{--sb-thumb-size:12px}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media(max-width:700px){.page{padding:24px 16px 70px}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" aria-hidden="true" style="position:absolute">
+  <symbol id="chev-up" viewBox="0 0 24 24"><path d="M5 15.5 12 8.8l7 6.7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="chev-down" viewBox="0 0 24 24"><path d="M5 8.5 12 15.2l7-6.7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg>
+
+<div class="page">
+  <header class="head">
+    <div>
+      <h1>Rail scrollbar — colour study</h1>
+      <p>Same rail, same arrows, same hover behaviour. Only the thumb colour changes.</p>
+    </div>
+    <div class="toggles">
+      <button class="tgl" id="dir" type="button" aria-pressed="false">RTL</button>
+      <button class="tgl" id="persist" type="button" aria-pressed="true">Always visible</button>
+    </div>
+  </header>
+
+  <p class="hint">Hover a list to see the resting → hover step. <strong>Use this one</strong> puts that colour on the page rail at the right edge, so you can judge it full height.</p>
+
+  <div class="grid" id="grid"></div>
+
+  <section class="rules">
+    <h2>How to read them</h2>
+    <ul>
+      <li><strong>Two states per colour.</strong> Resting is a softened version, hover is the full colour, drag is one step darker. The track stays light grey (<code>--c-100</code>) in every option.</li>
+      <li><strong>Dark green</strong> is the branded default: clearly ours, still quiet at rest.</li>
+      <li><strong>Light green</strong> and <strong>Leaf</strong> are friendlier but sit close to the green used for chips and active states, so the bar competes a little with real content.</li>
+      <li><strong>Dark grey</strong> is the most neutral and never fights the page; it also reads as the most "system default".</li>
+      <li><strong>Light grey</strong> is the quietest. It is a step darker than the track so it stays visible, but on a busy list it can get lost.</li>
+      <li><strong>Stone</strong> is the warm-neutral twin of dark grey, tuned to the cream canvas rather than the cool one.</li>
+      <li><strong>Ink</strong> uses green-950, the near-black already used for scrims. Premium and very calm.</li>
+      <li><strong>Grey → green</strong> is my pick: neutral while you are reading, brand green the moment you reach for it. Quiet by default, unmistakably ours on interaction.</li>
+    </ul>
+  </section>
+
+  <div class="filler">
+    <div>Scroll the page itself. The rail on the right edge uses whichever colour you picked.</div>
+    <div>It fades in while you scroll and whenever the pointer comes near the edge, then fades out again.</div>
+    <div>The rail is an overlay, so switching colours never moves the layout.</div>
+    <div>End of the page. The bottom arrow is disabled here.</div>
+  </div>
+</div>
+
+<script>
+const COLOURS=[
+  {v:"green-dark", n:"Dark green (current)", d:"green-800 45% → green-700"},
+  {v:"green-light",n:"Light green",          d:"green-500 55% → green-500"},
+  {v:"green-leaf", n:"Leaf (brand 400)",     d:"green-400 70% → green-400"},
+  {v:"grey-dark",  n:"Dark grey",            d:"c-600 55% → c-600"},
+  {v:"grey-light", n:"Light grey",           d:"c-300 → c-400, a step over the track"},
+  {v:"stone",      n:"Stone (warm grey)",    d:"n-300 → n-500, matches the cream canvas"},
+  {v:"ink",        n:"Ink (green-950)",      d:"near-black, the scrim colour"},
+  {v:"duo",        n:"Grey → green",         d:"c-300 at rest, green-700 on hover"}
+];
+const words=["Weekly plan review","Client intake — Sara","Calorie split · 40/30/30","Follow-up call","Body composition","Meal template: breakfast","Hydration target","Supplement notes","Appointment · Sunday","Progress photos","Macro adjustment","Bloodwork received","Plan sent on WhatsApp","Archived subscriber","Payment recorded"];
+const rows=n=>Array.from({length:n},(_,i)=>"<li>"+String(i+1).padStart(2,"0")+" · "+words[i%words.length]+"</li>").join("");
+
+grid.innerHTML=COLOURS.map(c=>
+  '<section class="card" data-c="'+c.v+'">'
+  +'<div class="card-head"><span class="swatch"></span><div><h2>'+c.n+'</h2><small>'+c.d+'</small></div>'
+  +'<button class="use" type="button" data-use="'+c.v+'">Use this one</button></div>'
+  +'<div class="card-body"><div class="qs demo" data-qs data-persist="true"><div class="qs-viewport"><ul class="rows">'+rows(28)+'</ul></div></div></div>'
+  +'</section>').join("");
+
+const STEP=64,MIN=34;
+const reduce=matchMedia("(prefers-reduced-motion:reduce)").matches;
+const icon=id=>'<svg viewBox="0 0 24 24"><use href="#'+id+'"/></svg>';
+
+/* one rail, mounted on any scroller. `host` takes the state classes. */
+function attach(host,vp,scrollTarget){
+  const bar=document.createElement("div");
+  bar.className="qs-bar";
+  bar.innerHTML=
+    '<button class="qs-arrow" data-d="-1" tabindex="-1" aria-hidden="true">'+icon("chev-up")+'</button>'
+    +'<div class="qs-track"><div class="qs-thumb"></div></div>'
+    +'<button class="qs-arrow" data-d="1" tabindex="-1" aria-hidden="true">'+icon("chev-down")+'</button>';
+  host.appendChild(bar);
+  const track=bar.querySelector(".qs-track"),thumb=bar.querySelector(".qs-thumb"),arrows=[...bar.querySelectorAll(".qs-arrow")];
+  let hide;
+
+  const sync=()=>{
+    const max=vp.scrollHeight-vp.clientHeight;
+    host.dataset.scrollable=max>1;
+    if(max<=1)return;
+    const th=track.clientHeight;
+    const h=Math.max(MIN,th*(vp.clientHeight/vp.scrollHeight));
+    const p=Math.min(1,Math.max(0,vp.scrollTop/max));
+    thumb.style.height=h+"px";
+    thumb.style.transform="translateY("+p*(th-h)+"px)";
+    arrows[0].disabled=vp.scrollTop<=0;
+    arrows[1].disabled=vp.scrollTop>=max-1;
+  };
+  const flash=()=>{host.classList.add("is-visible");clearTimeout(hide);hide=setTimeout(()=>host.classList.remove("is-visible"),1000)};
+
+  (scrollTarget||vp).addEventListener("scroll",()=>{sync();flash()},{passive:true});
+  new ResizeObserver(sync).observe(vp===document.scrollingElement?document.body:vp);
+
+  /* drag the thumb */
+  thumb.addEventListener("pointerdown",e=>{
+    e.preventDefault();
+    thumb.setPointerCapture(e.pointerId);
+    host.classList.add("is-dragging");
+    const startY=e.clientY,startTop=vp.scrollTop,th=track.clientHeight,h=thumb.offsetHeight,max=vp.scrollHeight-vp.clientHeight;
+    const move=ev=>{vp.scrollTop=startTop+((ev.clientY-startY)/(th-h))*max};
+    const up=()=>{host.classList.remove("is-dragging");thumb.removeEventListener("pointermove",move);thumb.removeEventListener("pointerup",up)};
+    thumb.addEventListener("pointermove",move);
+    thumb.addEventListener("pointerup",up);
+  });
+
+  /* click the track = page jump */
+  track.addEventListener("pointerdown",e=>{
+    if(e.target===thumb)return;
+    const r=track.getBoundingClientRect();
+    const up=e.clientY<r.top+thumb.offsetTop;
+    vp.scrollBy({top:up?-vp.clientHeight*.9:vp.clientHeight*.9,behavior:reduce?"auto":"smooth"});
+  });
+
+  /* arrows: click steps, hold repeats */
+  arrows.forEach(btn=>{
+    let t,i;
+    const step=()=>vp.scrollBy({top:STEP*Number(btn.dataset.d),behavior:reduce?"auto":"smooth"});
+    const stop=()=>{clearTimeout(t);clearInterval(i)};
+    btn.addEventListener("pointerdown",e=>{e.preventDefault();step();t=setTimeout(()=>{i=setInterval(step,60)},400)});
+    ["pointerup","pointerleave","pointercancel"].forEach(ev=>btn.addEventListener(ev,stop));
+  });
+
+  sync();
+  return {sync,flash};
+}
+
+document.querySelectorAll("[data-qs]").forEach(root=>attach(root,root.querySelector(".qs-viewport")));
+
+/* the page itself */
+const pageHost=document.createElement("div");
+pageHost.className="qs qs-page";
+document.body.appendChild(pageHost);
+const pageBar=attach(pageHost,document.scrollingElement,window);
+addEventListener("pointermove",e=>{
+  const rtl=document.documentElement.dir==="rtl";
+  if(rtl?e.clientX<70:e.clientX>innerWidth-70)pageBar.flash();
+},{passive:true});
+
+/* controls */
+const mark=v=>{
+  document.documentElement.dataset.c=v;
+  document.querySelectorAll(".card").forEach(c=>c.classList.toggle("pickedq",c.dataset.c===v));
+  pageBar.flash();
+};
+grid.addEventListener("click",e=>{
+  const btn=e.target.closest("[data-use]");
+  if(btn)mark(btn.dataset.use);
+});
+mark("green-dark");
+dir.addEventListener("click",()=>{
+  const rtl=document.documentElement.dir!=="rtl";
+  document.documentElement.dir=rtl?"rtl":"ltr";
+  dir.setAttribute("aria-pressed",rtl);
+  dir.textContent=rtl?"LTR":"RTL";
+});
+persist.addEventListener("click",()=>{
+  const on=persist.getAttribute("aria-pressed")!=="true";
+  persist.setAttribute("aria-pressed",on);
+  document.querySelectorAll(".qs").forEach(el=>el.dataset.persist=on);
+});
+</script>
+</body>
+</html>

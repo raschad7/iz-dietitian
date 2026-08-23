@@ -334,6 +334,13 @@ Avoid card-inside-card styling. A nested item uses `Card variant="tile"`,
 - Scrollbars are globally hidden while scrolling remains available through
   touch, wheel, trackpad, keyboard, and drag. Overflowing surfaces must provide
   another visible cue that more content exists.
+- One exception: the staff app draws a grey rail on desktop pointers. It is
+  scoped to `.q-desk-scrollbars` (passed by the staff layout to `AppShell`) and
+  gated on `(width >= 64rem) and (pointer: fine)`, so the client portal, phones
+  and tablets keep bare scrollers. It covers the shell scroller, dialog bodies,
+  and anything marked `q-scrollbar`; the cue rule above still applies, because
+  most viewports never see the rail. Colors come from the `--scrollbar-*`
+  tokens in [`globals.css`](../src/app/globals.css).
 
 ### Viewport height, the keyboard, and the safe area
 

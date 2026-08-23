@@ -1225,6 +1225,44 @@
    * the 3:1 floor a focus indicator has to clear.
    */
   --sidebar-ring: var(--green-950);
+
+  /*
+   * ── The desktop scrollbar ──
+   *
+   * Consumed by the `.q-desk-scrollbars` block in the application-frame
+   * section, which is the only place these are read. Bars are off everywhere
+   * else in the product — see "No scrollbars, anywhere" — so a token here does
+   * nothing until that scope opts a scroller in.
+   *
+   * **Grey, not green, and deliberately.** Four colours were built and compared
+   * as full-height rails (`design-prototypes/scrollbar.html`); the brand greens
+   * all sat at the same value as the chips and active states, so the bar
+   * competed with real content for attention. The cool grey family is the one
+   * the rail furniture already uses (`--sidebar-border` is `--c-300`), it never
+   * reads as a status, and it leaves green meaning "this is yours to act on".
+   *
+   * The thumb is the only part that carries colour: the track is a light grey
+   * groove, the thumb is `--c-600` softened at rest and solid under the
+   * pointer, one step darker while dragged. The arrows follow the thumb.
+   */
+  --scrollbar-size: 14px;                   /* rail width — 8px thumb + 3px each side */
+  --scrollbar-track: var(--c-100);
+  --scrollbar-track-hover: var(--c-200);
+  --scrollbar-thumb: color-mix(in srgb, var(--c-600) 55%, transparent);
+  --scrollbar-thumb-hover: var(--c-600);
+  --scrollbar-thumb-active: color-mix(in srgb, var(--c-600) 82%, var(--n-900));
+  --scrollbar-arrow-hover-bg: var(--c-200);
+  /*
+   * The two chevrons, as data URIs, because `::-webkit-scrollbar-button` can
+   * only be given a glyph through `background-image`.
+   *
+   * ⚠ `%234B5563` is `--c-600` written out. A data URI is an opaque string to
+   * CSS — `var()` does not resolve inside one — so this is the one place in the
+   * file where a palette value has to be repeated as a literal. If `--c-600`
+   * moves, both of these move with it.
+   */
+  --scrollbar-arrow-up: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234B5563' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 15.5 12 8.8l7 6.7'/%3E%3C/svg%3E");
+  --scrollbar-arrow-down: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234B5563' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 8.5 12 15.2l7-6.7'/%3E%3C/svg%3E");
 }
 
 .dark,
@@ -3256,6 +3294,205 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
 }
 
 /*
+ * ══ The desktop scrollbar ══
+ *
+ * The one exception to "No scrollbars, anywhere" (see the base layer). It is
+ * narrow on purpose, in three directions at once:
+ *
+ * 1. **Staff only.** The scope class is passed by the staff layout to
+ *    `AppShell` and lands on `.q-app-shell`. The client portal renders the same
+ *    shell without it, so a client never sees a bar — the portal is a
+ *    phone-first, dark-capable surface with its own affordances, and none of
+ *    the colours below are tuned for its palette.
+ * 2. **Pointer only.** `pointer: fine` is the real condition: a bar you cannot
+ *    hover and would rather flick past is worth nothing on a touch screen, and
+ *    a 14px rail under a fingertip is a mis-tap waiting to happen. The width
+ *    query keeps it off the tablets that *do* carry a mouse but lay out like a
+ *    phone. Both must hold — an iPad in landscape is 1180px wide and coarse, a
+ *    narrowed desktop window is fine but under `lg`; neither gets a bar.
+ * 3. **Every scroller in the staff app, with two exemptions.** It started as a
+ *    list of slots — the shell scroller and dialog bodies — and that was wrong
+ *    on this layout: the shell is a bounded frame, so most desktop screens hand
+ *    their overflow to an *inner* box (the calendar's timeline, the client
+ *    panel, a bounded table) and the shell scroller itself never overflows.
+ *    Scoping by slot meant a bar almost nowhere. The exemptions are
+ *    `.no-scrollbar`, which is how a surface says it draws its own affordance,
+ *    and anything inside a popup positioner — select, combobox, dropdown,
+ *    popover — which already carries scroll buttons and would otherwise say the
+ *    same thing twice. Horizontal bars are off for everyone, so a chip rail or
+ *    a wide table keeps `.q-scroll-cue` and a box that scrolls both ways still
+ *    grows only the vertical rail.
+ *
+ * ## The gutter is what makes this safe
+ *
+ * Hiding bars app-wide was, in its own words, "what fixes the layout shift":
+ * a classic bar takes its width out of the content box, so a surface that
+ * grows past its container loses 14px at the instant the bar appears and
+ * everything inside it jumps sideways. `scrollbar-gutter: stable` reserves that
+ * width whether or not the bar is drawn, which answers the same problem from
+ * the other side — including the case the rule directly above creates, where a
+ * dialog opening flips the page scroller to `overflow: hidden`. Chromium keeps
+ * a stable gutter on a hidden scroll container, so the page behind the scrim
+ * does not shift by a bar's width as the dialog opens.
+ *
+ * ## What each engine draws
+ *
+ * Chromium and WebKit take the whole rail: grey groove, rounded thumb inset by
+ * transparent borders, and a chevron button at each end that steps the scroller
+ * (press and hold to repeat — the platform does that part). Firefox has no
+ * `::-webkit-` pseudo-elements and no buttons at all; it gets the same two
+ * colours in the platform's own shape, which is the correct amount of
+ * divergence to accept.
+ *
+ * ⚠ **`scrollbar-width` and `::-webkit-scrollbar` are mutually exclusive.**
+ * Chromium ignores every `::-webkit-scrollbar` rule on a box whose
+ * `scrollbar-width` is anything but `auto` — so the base layer's
+ * `* { scrollbar-width: none }` would silently cancel this whole block, and
+ * writing `thin` here for Firefox's benefit would cancel it just as thoroughly.
+ * Hence `auto` in the main rule, and the Firefox half fenced behind
+ * `@supports not selector(::-webkit-scrollbar)` where Chromium never reads it.
+ *
+ * ⚠ Unlayered, like the frame rules above, so it beats the base layer's
+ * `* { scrollbar-width: none }` and `::-webkit-scrollbar { display: none }`.
+ * It beats the `no-scrollbar` utility for the same reason, which is why that
+ * one is written into the selector as `:not()` rather than left to the cascade.
+ */
+@media (width >= 64rem) and (pointer: fine) {
+  .q-desk-scrollbars :not(.no-scrollbar) {
+    /* Undoes the base layer's `none`, which is what re-enables the rail. */
+    scrollbar-width: auto;
+
+    &::-webkit-scrollbar {
+      display: block;
+      inline-size: var(--scrollbar-size);
+    }
+
+    /* Vertical only. A rail that scrolls sideways keeps its `.q-scroll-cue`. */
+    &::-webkit-scrollbar:horizontal,
+    &::-webkit-scrollbar-button:horizontal,
+    &::-webkit-scrollbar-corner {
+      display: none;
+    }
+
+    &::-webkit-scrollbar-track {
+      background-color: var(--scrollbar-track);
+      border-radius: 9999px;
+    }
+
+    /*
+     * The thumb is `--scrollbar-size` wide and painted 8px: the 3px borders are
+     * transparent and `padding-box` clipping keeps the fill off them, which is
+     * how a bar gets breathing room without a second element to inset it.
+     */
+    &::-webkit-scrollbar-thumb {
+      min-block-size: 34px;
+      border: 3px solid transparent;
+      border-radius: 9999px;
+      background-color: var(--scrollbar-thumb);
+      background-clip: padding-box;
+    }
+
+    &::-webkit-scrollbar-button {
+      block-size: var(--scrollbar-size);
+      border-radius: var(--radius-sm);
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: 9px 9px;
+    }
+
+    &::-webkit-scrollbar-button:vertical:decrement {
+      background-image: var(--scrollbar-arrow-up);
+    }
+
+    &::-webkit-scrollbar-button:vertical:increment {
+      background-image: var(--scrollbar-arrow-down);
+    }
+
+    /*
+     * Chromium draws *four* buttons — one of each direction at both ends. Only
+     * the outer two mean anything; the inner pair points back the way it came.
+     */
+    &::-webkit-scrollbar-button:vertical:start:increment,
+    &::-webkit-scrollbar-button:vertical:end:decrement {
+      display: none;
+    }
+
+    /* Under the pointer the whole rail firms up: groove, thumb and arrows. */
+    &:hover::-webkit-scrollbar-track {
+      background-color: var(--scrollbar-track-hover);
+    }
+
+    &:hover::-webkit-scrollbar-thumb {
+      background-color: var(--scrollbar-thumb-hover);
+      background-clip: padding-box;
+    }
+
+    &::-webkit-scrollbar-thumb:active {
+      background-color: var(--scrollbar-thumb-active);
+      background-clip: padding-box;
+    }
+
+    &::-webkit-scrollbar-button:hover {
+      background-color: var(--scrollbar-arrow-hover-bg);
+    }
+  }
+
+  /*
+   * Firefox, and any engine that ships the standard property without the
+   * legacy pseudo-elements. `thin` there is ~10px of platform-drawn bar with no
+   * buttons and no groove of ours; the two colours are the whole of what can be
+   * expressed, and they are the two that matter.
+   */
+  @supports not selector(::-webkit-scrollbar) {
+    .q-desk-scrollbars :not(.no-scrollbar) {
+      scrollbar-width: thin;
+      scrollbar-color: var(--scrollbar-thumb-hover) var(--scrollbar-track);
+    }
+  }
+
+  /*
+   * The popups keep their own affordance and stay bare.
+   *
+   * A select, a combobox, a menu and a popover all mount inside a
+   * `*-positioner`, and all of them are already scrollable surfaces with
+   * arrows of their own — the select's scroll buttons are the pattern this file
+   * points at as the model. A rail *and* those buttons is the same sentence
+   * twice, in the one place where 14px of it is a quarter of the surface.
+   *
+   * They are only in scope at all when a dialog is open: a popup normally
+   * portals to `document.body`, outside `.q-desk-scrollbars` entirely, but one
+   * opened inside a `<dialog>` is portaled into the dialog so it can be clicked
+   * at all — see `useDialogContainer` — and lands back under this scope.
+   */
+  .q-desk-scrollbars [data-slot$='-positioner'] * {
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+}
+
+/*
+ * The gutter, and note the *absence* of a media query.
+ *
+ * A gutter is the width of the bar it reserves, and outside the query above
+ * every one of these boxes is still `scrollbar-width: none` — a bar of zero
+ * width, so a stable gutter of zero. It therefore costs nothing on a phone, on
+ * a tablet or in the portal, and stating it unconditionally is what keeps the
+ * reserved width and the drawn bar from ever being decided by two different
+ * conditions.
+ *
+ * Only the two scrollers a whole page is read in, and not every scroller the
+ * rule above reaches: on a small box inside a card a permanent 14px gutter
+ * costs more than the shift it prevents. Add `scrollbar-gutter: stable` at the
+ * call site for an inner scroller whose content grows while it is on screen.
+ */
+.q-desk-scrollbars :is([data-slot='shell-scroll'], [data-slot='dialog-body']) {
+  scrollbar-gutter: stable;
+}
+
+/*
  * ⚠ The client portal opts out of the frame above.
  *
  * Its layouts carry the arrangement they have always had: `.portal-shell` is a
@@ -3718,6 +3955,32 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
     and under the header's own shadow.
   */
   scroll-padding-block: 1rem;
+}
+
+/*
+ * A body that hands its scrolling to a child.
+ *
+ * The frame decides what a dialog does with its overflow by looking for a
+ * `dialog-body`, and that is the *only* way to tell it — so a form whose real
+ * scrollport is nested deeper has to declare one anyway or the dialog scrolls
+ * as a whole. The intake record is the case: a section rail beside a scrolling
+ * panel, where the row must stay put and only the panel may move.
+ *
+ * Left as an ordinary body that wrapper is a scroll container with nothing to
+ * scroll, which is harmless until a bar exists — then `scrollbar-gutter:
+ * stable` reserves a rail's width beside a panel that is already reserving one,
+ * and the surface pays 28px for a single scrollbar. `data-scroll="inner"` says
+ * the scrolling belongs to a descendant: the clip and the bounded height stay,
+ * the gutter goes.
+ *
+ * Written with the frame's own prefix so it outweighs the rule above; the two
+ * are otherwise identical selectors and the cascade would keep the first.
+ */
+.q-dialog[open]:not(.planner-context-sheet):not(.app-navigation-drawer)
+  > :where(form, div)
+  > [data-slot='dialog-body'][data-scroll='inner'] {
+  overflow: hidden;
+  scrollbar-gutter: auto;
 }
 
 /*
