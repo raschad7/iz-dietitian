@@ -42,21 +42,36 @@ const [LEFT_EYE, RIGHT_EYE] = MARK_SEED_CX.map((cx) => ({ cx, cy: SEED_CY, rx: S
 ];
 
 /**
- * The energy's own shape: a gentle two-crest wave along the top, extending
- * far below the viewBox so translating it up to `0` still leaves the bottom
- * fully covered. Clipped to `MARK_LEAF_PATH` below, so only the silhouette
- * ever shows it — this rectangle-with-a-wavy-top never reads as a shape of
- * its own.
+ * The energy's own shape: a gentle two-crest wave along the top, baked
+ * directly into the path's `d` string rather than moved with a `transform`.
+ *
+ * It used to be a static wave shifted by `style={{ transform:
+ * translateY(riseY) }}` — a `transform` animated on a shape sitting inside a
+ * static `clip-path` (see the `<g>` below), which is what produced a
+ * hairline seam along the shape's own static edges while the 900ms rise was
+ * in flight: the browser composites a transformed child onto its own layer
+ * and re-rasterises the clip against it every frame, and the rounding in
+ * that per-frame recomposite is the seam. `d` is itself an animatable CSS
+ * property for an SVG `<path>` (SVG2's Geometry Properties), so adding
+ * `riseY` straight into every command's own y-coordinate and transitioning
+ * `d` gets the same smooth rise without a `transform` for the seam to come
+ * from — the same fix the fill's `<rect>` predecessor used for its `y`.
+ *
+ * Every command keeps the same shape between renders — only the constant
+ * offset changes — which is what lets the browser interpolate `d` smoothly
+ * rather than snapping between two unrelated paths.
  */
-const WAVE_FILL_PATH = [
-  'M -80 12',
-  'C 60 -12 180 -12 300 12',
-  'C 420 36 540 -12 660 12',
-  'C 740 28 800 4 823 12',
-  'L 823 900',
-  'L -80 900',
-  'Z',
-].join(' ');
+function wavePath(riseY: number): string {
+  return [
+    `M -80 ${12 + riseY}`,
+    `C 60 ${-12 + riseY} 180 ${-12 + riseY} 300 ${12 + riseY}`,
+    `C 420 ${36 + riseY} 540 ${-12 + riseY} 660 ${12 + riseY}`,
+    `C 740 ${28 + riseY} 800 ${4 + riseY} 823 ${12 + riseY}`,
+    'L 823 900',
+    'L -80 900',
+    'Z',
+  ].join(' ');
+}
 
 /** How long the fill rises and the eyes settle into their next pose. */
 const FILL_TRANSITION_MS = 900;
@@ -153,23 +168,20 @@ export function TodayEnergyMascot({
 
             {/*
               The clip has to live on a *static* wrapper, not on the animated
-              path itself. `clip-path` is evaluated in the coordinate system
-              the element's own `transform` produces — so putting both on the
-              same `<path>` drags the leaf-shaped clip window along with the
-              fill as it rises, instead of holding it fixed over a fill that
-              slides underneath it. That misalignment is what briefly shipped
-              here and showed up as a second, mismatched shape rather than a
-              clean fill — this `<g>` keeps the clip anchored to the leaf
-              outline while only its child transforms.
+              path itself — `clip-path` is evaluated in the coordinate system
+              the element's own `transform` would produce, so putting both on
+              the same `<path>` would drag the leaf-shaped clip window along
+              with a fill that is meant to slide underneath it. `wavePath`
+              itself carries no `transform` any more (see its own doc
+              comment), but the clip stays on this separate `<g>` regardless,
+              since nothing here depends on the fill being transform-free to
+              stay correct.
             */}
             <g clipPath={`url(#${clipId})`}>
               <path
-                d={WAVE_FILL_PATH}
+                d={wavePath(riseY)}
                 fill={ENERGY_FILL}
-                style={{
-                  transform: `translateY(${riseY}px)`,
-                  transition: `transform ${FILL_TRANSITION_MS}ms var(--ease-sweep, ease)`,
-                }}
+                style={{ transition: `d ${FILL_TRANSITION_MS}ms var(--ease-sweep, ease)` }}
               />
             </g>
 
@@ -228,12 +240,6 @@ export function TodayEnergyMascot({
 
         {total > 0 ? (
           <span className="text-caption leading-none text-muted-foreground">{t('meals', { completed, total })}</span>
-        ) : null}
-
-        {complete ? (
-          <span className="font-heading text-xl leading-snug font-bold text-primary">
-            {t('energy.completeTitle')}
-          </span>
         ) : null}
 
         <p className="font-heading text-lg leading-snug font-bold text-foreground">{t(`energy.${messageKey}`)}</p>
