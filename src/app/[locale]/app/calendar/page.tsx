@@ -40,7 +40,7 @@ export default async function CalendarPage({ params, searchParams }: CalendarPag
   const { session, clinicId } = await requireStaffClinic(locale);
 
   const [data, t] = await Promise.all([
-    loadCalendarPage({ clinicId, ownerName: session.user.name }, view, resolvedSearch),
+    loadCalendarPage({ clinicId, ownerName: session.user.name }, resolvedSearch),
     getTranslations('booking'),
   ]);
 

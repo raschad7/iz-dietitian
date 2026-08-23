@@ -18,6 +18,23 @@ export const MIN_PASSWORD_LENGTH = 10;
 export const SESSION_TTL_SECONDS = 60 * DAY_IN_SECONDS;
 export const SESSION_REFRESH_AGE_SECONDS = DAY_IN_SECONDS;
 
+/**
+ * How long a signed copy of the session may be trusted from the cookie alone,
+ * without reading the database. See `session.cookieCache` in `auth.ts`.
+ *
+ * A minute, and the number is a balance between two costs. Every navigation in
+ * either app reads the session — it is the first thing every guard does — and
+ * each read is a round trip to Postgres that the page then waits on. Against
+ * that: a session revoked, a role changed or a clinic reassigned is not visible
+ * until the copy expires, because nothing has gone back to the row to notice.
+ *
+ * Sixty seconds keeps that window shorter than a coffee break while still
+ * covering the burst of navigations a working minute actually produces. It is
+ * deliberately not measured in the same units as the values above; those are
+ * how long a session *lives*, this is how stale a reading of it may be.
+ */
+export const SESSION_COOKIE_CACHE_SECONDS = MINUTE_IN_SECONDS;
+
 const HOUR_IN_SECONDS = 60 * MINUTE_IN_SECONDS;
 
 /** How long a "verify your email" link stays valid. */

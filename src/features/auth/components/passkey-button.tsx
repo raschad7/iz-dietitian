@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
+import { startNavigationProgress } from '@/components/layout/navigation-progress';
 import { Button } from '@/components/ui/button';
 import { authClient } from '@/lib/auth-client';
 import { type Locale } from '@/i18n/routing';
@@ -37,6 +38,17 @@ export function PasskeyButton({ locale }: { locale: Locale }) {
       return;
     }
 
+    /*
+      The bar is armed by hand here, which no other navigation in the app has to
+      do. This is the one place that holds `next/navigation`'s router rather
+      than the wrapped one from `@/i18n/navigation` — the href already carries
+      its locale, and the locale-aware router would prefix it a second time — so
+      it is also the one place outside that module that has to say so itself.
+
+      Worth the line: signing in lands on a cold dashboard with every query on
+      it still to run, which makes this the longest wait in the product.
+    */
+    startNavigationProgress();
     router.push(`/${locale}/app`);
   }
 

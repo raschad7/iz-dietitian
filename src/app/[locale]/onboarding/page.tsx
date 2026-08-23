@@ -14,7 +14,7 @@ export default async function OnboardingPage({ params }: { params: Promise<{ loc
   if (profile.onboardingCompletedAt) redirect(`/${locale}/app`);
 
   return (
-    <main className="q-route-stage min-h-dvh bg-background px-4">
+    <main className="min-h-dvh bg-background px-4">
       <OnboardingWizard locale={locale} profile={profile} />
     </main>
   );

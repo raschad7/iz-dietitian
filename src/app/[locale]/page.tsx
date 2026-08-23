@@ -23,7 +23,7 @@ export default async function LandingPage({ params }: LandingPageProps) {
         fork below. Mounting it per page was what made it a property of the
         route rather than of the app starting. Do not add it back.
       */}
-      <main className="q-route-stage mx-auto flex min-h-dvh max-w-3xl flex-col justify-center gap-8 px-6 py-16">
+      <main className="mx-auto flex min-h-dvh max-w-3xl flex-col justify-center gap-8 px-6 py-16">
         <div className="space-y-4 text-start">
           {/*
             The one page anyone can reach without an account, and it named the

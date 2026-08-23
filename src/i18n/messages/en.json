@@ -228,7 +228,6 @@
     "monthOther": "Other {count, number, integer}",
     "hiddenBelow": "+{count, number, integer} more",
     "hiddenBelowAction": "Scroll down to {count, number, integer} more appointments on this day",
-    "monthReadOnly": "Month view is an overview. Click a day to book or edit.",
     "nav": {
       "today": "Today",
       "previous": "Previous",

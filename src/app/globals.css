@@ -3743,53 +3743,140 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
   animation: app-navigation-backdrop-out 180ms ease-in both;
 }
 
-/* Route content enters from the navigation's inline-start edge while the shell
- * remains still. The near-complete starting state prevents a flash on slower
- * devices; clip and blur make the gesture read as continuity, not decoration. */
 /*
- * `backwards`, not `both` — the same bug, and the same fix, as the dialog
- * entrance documented below. It is repeated here because this element is the
- * wrapper *every* route in the app renders inside, so the blast radius is the
- * whole product rather than one surface.
+ * ══ There is no route entrance animation ══
  *
- * The keyframes declare only a `from`. Under `both` the forwards fill keeps the
- * animated properties applied for as long as the route is mounted, so a settled
- * stage computes `transform: matrix(1, 0, 0, 1, 0, 0)` rather than `none` — and
- * any transform other than `none` makes the element the containing block for
- * every `position: fixed` descendant it has. Measured in the browser before
- * this change: a `position: fixed; inset-block-start: 0; left: 0` probe
- * appended to the stage resolved to `left: 256px`, the stage's own inline-start
- * edge, instead of the viewport's.
+ * `.q-route-stage` used to slide each new route in from the navigation's edge
+ * over 190ms, clipped and slightly faded. It is gone, and the class with it.
  *
- * Base UI's popups portal to `<body>` and so were never caught by it, but every
- * hand-positioned `fixed` overlay rendered *inside* a page was — which is why
- * `AppointmentRequestFab`, `data-update-request`, `appointment-request-dialog`
- * and the portal's `HomeGlow` each carry a note about working around this
- * wrapper. They were treating the symptom one call site at a time; this is the
- * cause.
+ * It was removed because it is a cost paid on every single navigation in the
+ * product by the person who navigates most. A dietitian moves between the rail's
+ * five sections dozens of times a morning, and a flourish that is charming the
+ * first time is 190ms of nothing the fiftieth — pure latency, added to a wait
+ * that the loading boundaries had just finished removing. An app that answers
+ * instantly and then makes you watch it arrive has not answered instantly.
  *
- * There is a second failure that only `backwards` removes, and it is the one
- * that shows up on a tablet rather than a desktop. `both` also fills
- * *backwards*, so before the animation's first frame the stage carries the
- * from-state — including `clip-path: inset(0 1rem 0 0 round …)`, which clips
- * fixed descendants as well as in-flow ones. A document that is loaded while
- * hidden never advances that animation: iOS suspends timers for a backgrounded
- * tab and restores pages from the back/forward cache and the app switcher
- * without replaying them, so a route restored that way keeps the from-state
- * indefinitely. Verified by reading `getAnimations()` on a hidden document:
- * `playState: 'running'`, `clip-path: inset(0px 16px 0px 0px round 16px)`,
- * with the probe above still landing at the stage's edge.
+ * ⚠ **It also took a whole class of layout bug with it, so do not reinstate it
+ * casually.** The animation put a `transform` on the wrapper every route
+ * renders inside, and a transformed element is the containing block for every
+ * `position: fixed` descendant it has. Any overlay positioned against the
+ * viewport from inside a page resolved against that wrapper instead — see the
+ * notes still standing on `AppointmentRequestFab`, `data-update-request`, the
+ * appointment request dialog and the portal's `HomeGlow`, each of which was
+ * written to work around exactly this. The keyframes are gone too
+ * (`q-route-enter-ltr` / `q-route-enter-rtl`); anything reaching for them is
+ * reaching for the bug.
  *
- * `backwards` keeps the only thing the fill was wanted for — the from-state
- * applied before the first frame, so there is no flash on slower devices — and
- * drops the forwards half that never should have persisted.
+ * What is left in their place: `loading.tsx` boundaries, which show the shape
+ * of the screen being opened, and the progress bar below for the navigations
+ * slow enough to need one. Both say something. The slide only said "a
+ * navigation happened", which the reader already knew — they caused it.
  */
-.q-route-stage {
-  animation: q-route-enter-ltr 190ms var(--ease-sweep) backwards;
+
+/*
+ * ══ The navigation progress bar ══
+ *
+ * nprogress writes the markup — `#nprogress > .bar > .peg` — appended to
+ * `<body>` while a navigation is slow enough to be worth reporting, and removed
+ * again the moment it lands. It ships a stylesheet too, which this app does not
+ * import: it is a blue bar at `left: 0` with a spinner in the corner, on none of
+ * the product's tokens and with no idea that half its readers are in Arabic.
+ * The timing settings are in `navigation-progress.tsx`; the look is here.
+ *
+ * **Most navigations never draw this.** The bar is armed on click and only
+ * rendered if the route is still loading 80ms later — see `APPEAR_AFTER_MS`.
+ * Everything below describes the slow case.
+ *
+ * `#nprogress` is the fixed rail and `.bar` is absolute inside it, rather than
+ * nprogress's own arrangement of a fixed bar and an unpositioned wrapper. That
+ * is what makes the Arabic flip a single declaration: nprogress drives the bar
+ * with an *inline* `transform: translate3d(-97%, 0, 0)`, which no stylesheet can
+ * override, so the way to make it grow from the other edge is to mirror the rail
+ * it grows inside.
+ */
+#nprogress {
+  position: fixed;
+  inset-block-start: 0;
+  inset-inline: 0;
+  block-size: 2px;
+  /*
+   * Above the app, below the launch screen.
+   *
+   * Sheets and dialogs are 50 and the splash is 60 — see its own note. A
+   * navigation can be started from inside a dialog (the client picker, the
+   * notification inbox), so the bar has to clear one; it must never draw over
+   * the other, which owns the whole window for its two seconds.
+   */
+  z-index: 55;
+  /* The rail spans the top edge of every screen in the product. Two pixels of
+     it swallowing a click would be two pixels of every header. */
+  pointer-events: none;
 }
 
-[dir='rtl'] .q-route-stage {
-  animation-name: q-route-enter-rtl;
+/*
+ * Arabic grows from the inline-start edge like everything else, which on this
+ * page is the right.
+ *
+ * The mirror is on the rail, not the bar, for the reason in the note above —
+ * and it takes the peg's fade with it, so the leading edge stays the leading
+ * edge rather than trailing behind the bar it is supposed to be pulling.
+ */
+[dir='rtl'] #nprogress {
+  scale: -1 1;
+}
+
+/*
+ * ⚠ **Everything inside the rail is physical — `left`, `right`, `to right` —
+ * and that is the one place in this stylesheet where it is correct.**
+ *
+ * The rail above is already mirrored for Arabic, and nprogress drives the bar
+ * with an inline `translate3d(-55%, 0, 0)` that knows nothing about direction.
+ * A logical property in here would flip a second time, against a bar that never
+ * flipped once. Measured before this note existed: `inset-inline-end` put the
+ * peg at 1888px on a 1280px viewport — the whole glow off the side of the
+ * screen, in Arabic only, which is the default language.
+ *
+ * So: the mirror is stated once, on the rail, and everything it contains is
+ * written as though the page were English.
+ */
+#nprogress .bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  background: var(--primary);
+}
+
+/*
+ * The glow the bar drags behind its leading edge. nprogress positions the bar;
+ * the fade is ours, and it is the difference between a bar that is moving and a
+ * rectangle that is getting wider.
+ */
+#nprogress .peg {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  inline-size: 6rem;
+  background: linear-gradient(to right, transparent, var(--primary));
+  opacity: 0.6;
+}
+
+/*
+ * Reduced motion keeps the bar and drops the travel.
+ *
+ * The global block near the top of this file collapses every transition to
+ * nothing, which nprogress's inline `transition: all 260ms …` is subject to as
+ * well — so the bar steps between positions instead of sliding, and the peg,
+ * whose whole subject is speed, has nothing left to say. Removing it leaves a
+ * plain marker that a navigation is in flight, which is the part of this that
+ * is information rather than decoration.
+ */
+@media (prefers-reduced-motion: reduce) {
+  #nprogress .peg {
+    display: none;
+  }
 }
 
 /*
@@ -4573,22 +4660,6 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
   from {
     transform: translateY(2rem);
     opacity: 0.78;
-  }
-}
-
-@keyframes q-route-enter-ltr {
-  from {
-    clip-path: inset(0 1rem 0 0 round var(--qiwam-radius-lg));
-    opacity: 0.88;
-    transform: translateX(-0.5rem);
-  }
-}
-
-@keyframes q-route-enter-rtl {
-  from {
-    clip-path: inset(0 0 0 1rem round var(--qiwam-radius-lg));
-    opacity: 0.88;
-    transform: translateX(0.5rem);
   }
 }
 

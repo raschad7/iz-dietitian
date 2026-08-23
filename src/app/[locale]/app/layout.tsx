@@ -233,10 +233,9 @@ export default async function AppLayout({ children, params }: AppLayoutProps) {
         `auto` keeps the containment — the shell still refuses to be widened by a
         child, which is what stops *page-level* horizontal scrolling — while
         leaving wheel, trackpad, touch drag and keyboard able to reach anything
-        that still overflows. It also matters that nothing appears: the route
-        entrance in `.q-route-stage` animates from an 8px translate, and with a
-        clip that was invisible while with a *bar* it would flash a scrollbar on
-        every navigation. There are no bars.
+        that still overflows. It also matters that nothing appears, and nothing does:
+        the global `* { scrollbar-width: none }` in globals.css takes the bars
+        off every scroller in the app, this one included.
 
         This is a safety net, not a licence. Every real overflow is fixed at its
         source with the Rearrange → Stack → Internal-scroll ladder — `TableRoot`,
