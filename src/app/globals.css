@@ -5153,22 +5153,30 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
   --q-splash-travel: calc(50vw + var(--q-splash-mark-size) * 0.4);
 
   /*
-   * Which side that is, as a sign the keyframes multiply by.
+   * Which side the mark comes in from, as a sign the keyframes multiply by.
    *
-   * The mark comes in from the **reading-start edge** — the left in English,
-   * the right in Arabic — so it travels the way the page is read rather than
-   * against it. Anything else and the figure enters by crossing the direction
-   * every other thing on the screen is going.
+   * `1` is the right-hand edge, so the character enters on the right and travels
+   * **right to left** into the middle. `-1` would be the mirror of that.
    *
-   * A sign rather than the pair of `-ltr`/`-rtl` keyframe sets used by the
-   * route stage and the app drawer, and the difference is worth stating: those
-   * mirror three-keyframe fades, where a duplicate is cheap. This is an
-   * eight-stop arc with per-keyframe easings, and a second copy of it is a
-   * second thing to retune every time the bounce is adjusted — one of which
-   * would eventually not be. The variable is not animated, so it is substituted
-   * once per element and costs nothing at run time.
+   * ⚠ **One value, both languages.** This used to be `-1` here and `1` under a
+   * `[dir='rtl']` override, so the arc entered from the reading-start edge and
+   * the two locales got mirrored launches. That is deliberately gone: Arabic and
+   * English are meant to get the *same* animation, and this is the only
+   * declaration that decided otherwise. Do not re-add a `[dir]` rule for it —
+   * the wordmark under the mark is what carries language here, and it is chosen
+   * per locale in `SplashScreen`.
+   *
+   * It stays a signed variable rather than becoming a literal because the
+   * keyframes are written around it: the arc's eight stops and the lean in
+   * `q-splash-squash` are all expressed as multiples of this, so the direction
+   * is stated once instead of being spelled into a dozen `calc()`s. A pair of
+   * `-ltr`/`-rtl` keyframe sets — the route stage's approach — was never right
+   * for an eight-stop arc with per-keyframe easings; that is a second copy to
+   * retune every time the bounce is touched, and one of them would eventually
+   * not be. The variable is not animated, so it is substituted once per element
+   * and costs nothing at run time.
    */
-  --q-splash-from: -1;
+  --q-splash-from: 1;
 
   /*
    * The apex of the first hop, and the unit the other two are fractions of.
@@ -5249,16 +5257,11 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
 }
 
 /*
- * Arabic reads from the right, so the mark arrives from the right.
- *
- * `[dir]` on the document element and not a `:lang()` or a class: direction is
- * what this is actually about, it is already set on `<html>` by the locale
- * layout, and the portal and the staff app inherit it without either of them
- * having to pass anything down.
+ * ⚠ A `[dir='rtl'] .q-splash { --q-splash-from: 1 }` stood here and is gone on
+ * purpose — the tile is the same animation in both languages now. The whole of
+ * the reasoning is beside the `--q-splash-from` declaration above; it is not
+ * repeated here so the two cannot drift apart.
  */
-[dir='rtl'] .q-splash {
-  --q-splash-from: 1;
-}
 
 /*
  * Mark over name, centred as a pair.
@@ -5388,6 +5391,47 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
 }
 
 /*
+ * The English name, set as type rather than drawn.
+ *
+ * The brand sheet has one wordmark and it is the Arabic one — إنزيم — so there
+ * is no Latin path to import the way `.q-splash-word` imports its curves from
+ * `logo.ts`. This is the product's own display face instead, which is the same
+ * type the app sets every heading in, at the weight the mark's stroke asks for.
+ * **If a drawn Latin lockup ever arrives, this rule is what it replaces.**
+ *
+ * It takes the same box and the same entrance as the drawn wordmark so the
+ * composition does not move between locales: `block-size` is pinned to what the
+ * Arabic `viewBox` resolves to at this width (1.7 ÷ 1.924 of the mark), and the
+ * type is centred inside it. Without that pin the column would be a different
+ * height in each language and the mark's landing spot would sit somewhere
+ * slightly different — the one thing that must not differ.
+ *
+ * `line-height: 1` and `display: grid` + `place-items: center` rather than any
+ * vertical padding: the box is fixed, so the lettering is centred in it optically
+ * instead of being pushed around by the font's own metrics.
+ */
+.q-splash-word-type {
+  display: grid;
+  place-items: center;
+  inline-size: calc(var(--q-splash-mark-size) * 1.7);
+  block-size: calc(var(--q-splash-mark-size) * 1.7 / 1.924);
+  font-family: var(--font-heading);
+  /*
+   * 0.46 of the mark. The Arabic wordmark fills its box edge to edge because it
+   * is artwork; a line of type at that size would tower over the character, so
+   * this is set to the height the Arabic lettering actually reads at rather than
+   * to the height of its frame.
+   */
+  font-size: calc(var(--q-splash-mark-size) * 0.46);
+  font-weight: 700;
+  line-height: 1;
+  /* The curves of the drawn mark are tight; loose default tracking looks unset beside them. */
+  letter-spacing: -0.02em;
+  color: var(--q-splash-figure);
+  animation: q-splash-word-in 380ms var(--ease-sweep) 920ms backwards;
+}
+
+/*
  * Three hops across the tile, each shorter than the last, ending in the middle.
  *
  * Both axes are in the one `translate`, which is what makes it an arc rather
@@ -5402,10 +5446,11 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
  *   83.33    0.07            −0.34         apex, lower again
  *   100      0                 0           the middle
  *
- * The across column is multiplied by `--q-splash-from`, which is −1 in English
- * and +1 in Arabic — the sign is the whole of the mirroring. Its steps shorten
- * (0.58, 0.26, 0.16) and the apexes drop with them, so the figure reads as
- * arriving with momentum and spending it, rather than as three identical hops.
+ * The across column is multiplied by `--q-splash-from`, which is `+1` in every
+ * locale: the figure starts at the right-hand edge and works right to left into
+ * the middle, in Arabic and English alike. Its steps shorten (0.58, 0.26, 0.16)
+ * and the apexes drop with them, so the figure reads as arriving with momentum
+ * and spending it, rather than as three identical hops.
  *
  * Every rise carries a decelerating curve and every fall an accelerating one,
  * declared on the keyframe the segment *starts* at, because that is the one
@@ -5552,7 +5597,11 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
   .q-splash-mark,
   .q-splash-grow,
   .q-splash-body,
-  .q-splash-word {
+  .q-splash-word,
+  /* The English name is type rather than the drawn path, and takes the same
+     entrance — so it has to be stilled here too, or reduced motion would quiet
+     the whole tile in Arabic and leave one thing rising in English. */
+  .q-splash-word-type {
     animation: none;
   }
 

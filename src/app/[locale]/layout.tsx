@@ -15,6 +15,7 @@ import { DirectionProvider } from '@/components/ui/direction';
 import { KeyboardInset } from '@/components/ui/keyboard-inset';
 import { Toaster } from '@/components/ui/toast';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { SplashLaunchGate } from '@/features/brand/splash-launch-gate';
 import { InstallPromptCapture } from '@/features/pwa/install-prompt-capture';
 import { resolveLocale } from '@/i18n/params';
 import { getLocaleDirection, routing } from '@/i18n/routing';
@@ -326,6 +327,35 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
         there is nothing to trade off.
       */}
       <body suppressHydrationWarning className="min-h-dvh">
+        {/*
+          The launch screen, mounted once for the whole product.
+
+          It used to be mounted three times — both shells and the landing page —
+          which meant it was tied to *where* the reader was rather than to the
+          app starting. A document is loaded on whatever route was last open, so
+          reloading a nested route under `/app` played nothing, while every
+          sign-in and sign-out replayed it because those land on a route that
+          mounts a shell.
+
+          Here it is neither. This layout is the highest thing in either app and
+          it survives every client-side navigation within a locale, so no route
+          change, sign-in or sign-out can replay it, and every route — at any
+          depth, and the installed PWA — is covered without knowing about it.
+
+          `SplashLaunchGate` rather than `SplashScreen` directly: whether a
+          given document load plays the tile at all is decided on the server,
+          from the request's own cache headers, because that is the only place a
+          hard reload can be told apart from a quick one. It renders nothing on
+          the loads that should stay quiet. ⚠ It reads `headers()`, so it makes
+          every route dynamic — see the component, which explains the trade.
+
+          Outside `DirectionProvider` and the theme wrappers deliberately: it is
+          a full-screen `position: fixed` tile that reads `dir` off <html> and
+          paints in brand green in every theme, so it needs nothing either of
+          them provide, and being above them keeps it above the portal's
+          `isolate` stacking context too.
+        */}
+        <SplashLaunchGate locale={locale} />
         {/*
           Renders nothing. It is mounted from the root layout so that its module
           — which attaches the `beforeinstallprompt` listener at chunk-evaluation

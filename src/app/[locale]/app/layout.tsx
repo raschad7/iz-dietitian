@@ -7,7 +7,6 @@ import { AppShell } from '@/components/layout/sidebar';
 import { type IconName } from '@/components/ui/icon';
 import { APP_THEME_COLOR_DARK, APP_THEME_COLOR_LIGHT } from '@/features/app-pwa/brand';
 import { ServiceWorkerRegister } from '@/features/app-pwa/service-worker-register';
-import { SplashScreen } from '@/features/brand/splash-screen';
 import { getClinicBrand, isClinicOnboardingComplete } from '@/features/clinic-profile/queries';
 import { GuideLauncher } from '@/features/user-guide/guide-launcher';
 import { GuideProvider } from '@/features/user-guide/guide-provider';
@@ -192,19 +191,12 @@ export default async function AppLayout({ children, params }: AppLayoutProps) {
       <ServiceWorkerRegister locale={locale} />
 
       {/*
-        The launch screen. Above the shell rather than inside it: `.q-app-shell`
-        is an `overflow-hidden` frame the height of the viewport, and a tile that
-        has to cover the whole screen — including whatever the guided tour or a
-        dialog has put on top of it — does not belong inside a box whose job is
-        to clip its children.
-
-        The staff app is the desktop-leaning half of the product, and this is
-        the same two seconds there as on a phone. It takes no pointer events and
-        the first click anywhere cuts it short, so a dietitian who opens the app
-        to do one thing is not made to watch it. See the component.
+        No `SplashScreen` here. It is mounted once from `[locale]/layout.tsx`
+        now, for the whole product — a shell is entered by a client-side
+        navigation as often as by a document load, so mounting the tile here
+        tied it to signing in rather than to the app starting, and left a
+        reloaded nested route with no tile at all. Do not add it back.
       */}
-      <SplashScreen />
-
       <AppShell
         items={NAV_ITEMS}
         title={t('shortName')}
