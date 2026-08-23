@@ -17,8 +17,8 @@ import {
 import { createSplashSound, LANDING_COUNT, type PendingLanding } from './splash-sound';
 
 /**
- * The launch screen: a green tile, the mark hopping up it, and the name landing
- * underneath.
+ * The launch screen: a green tile, the mark hopping across it, the name landing
+ * underneath, and the pair going off in a burst of white that becomes the app.
  *
  * **Mounted once, from `[locale]/layout.tsx`, and nowhere else.** Not from the
  * two shells and not from the landing page, which is where it used to live: a
@@ -72,8 +72,8 @@ import { createSplashSound, LANDING_COUNT, type PendingLanding } from './splash-
  * `pointer-events: none` on the overlay from the first frame, so a reader who
  * knows where they are going taps straight through it to the app underneath.
  * The splash plays out in full either way — a tap reaches the app without
- * cutting the introduction short, so the two seconds are the same two seconds
- * every time. Nothing here is in the accessibility tree either (`aria-hidden`):
+ * cutting the introduction short, so the two-odd seconds are the same two-odd
+ * seconds every time. Nothing here is in the accessibility tree either (`aria-hidden`):
  * the mark and the wordmark are the product's name in picture form, in front of
  * a document whose title already says it, and a screen reader that announced
  * "Enzyme" here would be saying it twice before anyone had asked for it once.
@@ -90,9 +90,17 @@ const HOP_MS = 300;
  */
 const LANDING_MS = Array.from({ length: LANDING_COUNT }, (_, index) => (index + 1) * HOP_MS);
 
-/** ms from first paint. `q-splash-out`'s delay, then its duration. */
-const OUT_DELAY_MS = 1620;
-const OUT_MS = 300;
+/**
+ * ms from first paint. `q-splash-out`'s delay, then its duration.
+ *
+ * The delay is the end of the burst rather than a pause after the landing: the
+ * mark crouches at 1360, blows out at 1520 and the white it throws has covered
+ * the screen by 1820. The tile leaves from *there* — a white sheet dissolving
+ * into the app — so this cannot be moved without moving `q-splash-flood` with
+ * it, or the green would come back for a frame before the fade.
+ */
+const OUT_DELAY_MS = 1980;
+const OUT_MS = 280;
 
 /**
  * ms the sound will wait for the browser to answer about audio.
@@ -247,9 +255,9 @@ export function SplashScreen({ locale, replay = false }: SplashScreenProps) {
 
     /*
       `animationName` and not just "an animation ended": this listener is on the
-      overlay, and animation events bubble, so the hop, the squash, the landing
-      and the wordmark all arrive here first. Only the overlay's own exit means
-      the splash is over.
+      overlay, and animation events bubble, so the hop, the squash, the landing,
+      the wordmark, the burst and the flood all arrive here first. Only the
+      overlay's own exit means the splash is over.
     */
     const onAnimationEnd = (event: AnimationEvent) => {
       if (event.animationName === 'q-splash-out') dismiss();
@@ -300,30 +308,42 @@ export function SplashScreen({ locale, replay = false }: SplashScreenProps) {
           exactly that reason.
         */}
         <div className="q-splash-mark">
-          <div className="q-splash-grow">
-            <div className="q-splash-body">
-              <svg viewBox={MARK_VIEWBOX} fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d={MARK_LEAF_PATH} fill="var(--q-splash-figure)" />
-                {/*
-                  The seeds are painted in the tile's own green rather than the
-                  brand's dark seed colour — they are holes in a white mark on a
-                  green ground, which is the reversed lockup `mark-on-color.svg`
-                  draws for a coloured tile. The two greens have to be the same
-                  green, so this reads the ground's variable rather than naming
-                  one: change the tile and the eyes follow it.
-                */}
-                {MARK_SEED_CX.map((cx) => (
-                  <ellipse
-                    key={cx}
-                    cx={cx}
-                    cy={SEED_CY}
-                    rx={SEED_RX}
-                    ry={SEED_RY}
-                    transform={`rotate(${SEED_ROTATION} ${cx} ${SEED_CY})`}
-                    fill="var(--q-splash-ground)"
-                  />
-                ))}
-              </svg>
+          {/*
+            The burst, on a fourth element for the reason the other three exist:
+            it writes `scale` too, and it is the only one of the four that wants
+            its `transform-origin` in the *centre* of the mark rather than at its
+            feet. An explosion that pivoted on the ground line would climb the
+            screen as it grew; this one goes outwards in every direction from the
+            figure that made it, which is what makes it read as a burst rather
+            than as a zoom. `opacity` rides here as well, so the whole mark —
+            leaf, seeds and squash alike — thins out as one thing.
+          */}
+          <div className="q-splash-burst">
+            <div className="q-splash-grow">
+              <div className="q-splash-body">
+                <svg viewBox={MARK_VIEWBOX} fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d={MARK_LEAF_PATH} fill="var(--q-splash-figure)" />
+                  {/*
+                    The seeds are painted in the tile's own green rather than the
+                    brand's dark seed colour — they are holes in a white mark on a
+                    green ground, which is the reversed lockup `mark-on-color.svg`
+                    draws for a coloured tile. The two greens have to be the same
+                    green, so this reads the ground's variable rather than naming
+                    one: change the tile and the eyes follow it.
+                  */}
+                  {MARK_SEED_CX.map((cx) => (
+                    <ellipse
+                      key={cx}
+                      cx={cx}
+                      cy={SEED_CY}
+                      rx={SEED_RX}
+                      ry={SEED_RY}
+                      transform={`rotate(${SEED_ROTATION} ${cx} ${SEED_CY})`}
+                      fill="var(--q-splash-ground)"
+                    />
+                  ))}
+                </svg>
+              </div>
             </div>
           </div>
         </div>
@@ -364,6 +384,26 @@ export function SplashScreen({ locale, replay = false }: SplashScreenProps) {
           <div className="q-splash-word-type">{LATIN_WORDMARK}</div>
         )}
       </div>
+
+      {/*
+        The flood: the white the burst throws, opening out of the mark's own
+        centre until it is the whole screen.
+
+        A sibling *after* the figure so it passes over it — the mark is white on
+        green and this is the same white, so the figure does not get covered up
+        so much as absorbed into what it just let off. It is one element with a
+        `clip-path` circle rather than a scaled-up disc, and that is a memory
+        decision: a disc big enough to cover a desktop from an off-centre point
+        has to be laid out at two or three times the viewport, which is a
+        compositor layer of tens of megabytes on the phone this runs on while
+        the app behind it is still hydrating. A full-bleed element clipped to a
+        growing circle is one viewport of paint, whatever the radius says.
+
+        It is inert until 1660ms — `circle(0%)` is its resting style, so a
+        browser that runs no animations shows a green tile with a mark on it and
+        never a white sheet, which is also what reduced motion gets.
+      */}
+      <div className="q-splash-flood" />
     </div>
   );
 }
