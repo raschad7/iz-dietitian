@@ -123,11 +123,15 @@ function InputGroupText({ className, ...props }: React.ComponentProps<"span">) {
 
 function InputGroupInput({
   className,
+  inputShellClassName,
+  unclippedTextClassName,
   ...props
-}: React.ComponentProps<"input">) {
+}: React.ComponentProps<typeof Input>) {
   return (
     <Input
       data-slot="input-group-control"
+      inputShellClassName={cn("w-auto flex-1 self-stretch", inputShellClassName)}
+      unclippedTextClassName={cn("ps-5 pe-1.5", unclippedTextClassName)}
       className={cn(
         "h-full flex-1 rounded-none border-0 bg-transparent py-0 shadow-none ring-0 focus:outline-none focus-visible:ring-0 disabled:bg-transparent aria-invalid:ring-0 dark:bg-transparent dark:disabled:bg-transparent",
         className

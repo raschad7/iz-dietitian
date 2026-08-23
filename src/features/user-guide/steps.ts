@@ -48,11 +48,22 @@ import type { IconName } from '@/lib/icons';
  */
 export type GuideSide = 'block-start' | 'block-end' | 'inline-start' | 'inline-end';
 
-/** A route the tour is allowed to send the reader to. */
+/**
+ * A route the tour is allowed to send the reader to.
+ *
+ * The two calendar entries carry a query string because day, week and month are
+ * one route told apart by `?view=` — see `app/[locale]/app/calendar/page.tsx`.
+ * They were `/app/calendar/week` and `/app/calendar/day`, which are now
+ * redirects: sending the tour through one would cost it a server hop and land
+ * the reader on the screen by *replacing* the one it had just drawn, which is
+ * the mount-then-correct jitter the note on {@link stepHrefForScreen} exists to
+ * prevent. Naming the real address avoids the hop entirely.
+ */
 export type GuideHref =
   | '/app'
   | '/app/clients'
-  | '/app/calendar/week'
+  | '/app/calendar?view=week'
+  | '/app/calendar?view=day'
   | '/app/weekly-plans'
   | '/app/dishes';
 
@@ -159,8 +170,8 @@ export const GUIDE_STEPS = [
 
   /* — Calendar: booking is a gesture on the grid, which is the whole reason
        this section needs a guide at all. — */
-  { id: 'calendarToolbar', section: 'calendar', href: '/app/calendar/week', anchor: 'calendar-toolbar', side: 'block-end' },
-  { id: 'calendarBooking', section: 'calendar', href: '/app/calendar/week', anchor: 'calendar-grid', side: 'block-start' },
+  { id: 'calendarToolbar', section: 'calendar', href: '/app/calendar?view=week', anchor: 'calendar-toolbar', side: 'block-end' },
+  { id: 'calendarBooking', section: 'calendar', href: '/app/calendar?view=week', anchor: 'calendar-grid', side: 'block-start' },
 
   /* — Weekly plans — */
   { id: 'plannerPicker', section: 'planner', href: '/app/weekly-plans', anchor: 'planner-picker', side: 'block-end' },
@@ -210,4 +221,121 @@ export function stepSide(step: GuideStep): GuideSide {
 /** Whether a missing anchor is expected for this step. See `optional` above. */
 export function stepIsOptional(step: GuideStep): boolean {
   return 'optional' in step ? step.optional : false;
+}
+
+/**
+ * Routes whose children are all the same *screen* as far as the tour is
+ * concerned, so a step naming one of them is satisfied by any of its children.
+ *
+ * ## Why this exists
+ *
+ * A step names one exact path, and the provider walks the reader to it whenever
+ * they are not on it. That is the right rule for a screen the app will leave
+ * alone, and the calendar is not one: `CalendarViewGuard` sends any phone that
+ * lands on `/app/calendar/week` or `/month` straight to `/app/calendar/day`,
+ * because those two views need a width a phone has not got.
+ *
+ * Between them those two correct rules made an infinite loop. The guide pushed
+ * `/app/calendar/week`, the guard replaced it with `/app/calendar/day`, the
+ * guide saw a path that was not the step's and pushed `week` again — for as long
+ * as the step was on screen. The anchor was not moving; it was being unmounted
+ * and rebuilt several times a second, and every measurement the spotlight took
+ * was of a different element.
+ *
+ * ## This is the second line of defence, not the first
+ *
+ * Accepting where the guard landed stops the loop. It does not stop the *first*
+ * push, and that one push is still visible: a phone entering step 9 rendered a
+ * full week grid, then had it swapped for the day view a frame later, which is
+ * a whole screen changing under a card that has just told the reader to look at
+ * it. {@link stepHrefForScreen} is what removes that — a phone is walked
+ * straight to the day view and the week is never mounted at all.
+ *
+ * So this predicate is what keeps the two rules from disagreeing *afterwards*:
+ * the guard and the tour read the same breakpoint, but they read it at
+ * different moments, and a tablet rotated mid-step is enough to make one of
+ * them answer differently. Without this, that disagreement is the loop again.
+ *
+ * ## Why the tour yields rather than the guard
+ *
+ * The guard is answering a question about the device, and it is right. The tour
+ * is expressing a preference about which view illustrates the step best, and on
+ * a screen that cannot draw a week, the day view is what the reader has — so it
+ * is also what the step should be describing. Both calendar anchors exist in the
+ * day view, so the two steps read correctly there without any other change.
+ *
+ * Written as a root list rather than as a rule about the calendar so the next
+ * screen that redirects within itself is one line here, not another loop.
+ */
+const GUIDE_SCREEN_ROOTS = ['/app/calendar'] as const;
+
+/**
+ * Where a step goes instead, on a screen too narrow for the view it names.
+ *
+ * One entry, and it is the calendar: `CalendarViewGuard` offers a phone the day
+ * view and nothing else, so a step asking for the week is asking for something
+ * this device does not have. Declared as a map rather than as an `if` so the
+ * next step that names a view some screen declines to show is a line here.
+ *
+ * Both sides are `GuideHref`, so a substitution can only ever point at a route
+ * the tour is already allowed to visit.
+ */
+const NARROW_SCREEN_HREFS: Partial<Record<GuideHref, GuideHref>> = {
+  '/app/calendar?view=week': '/app/calendar?view=day',
+};
+
+/**
+ * The screen this step should actually be walked to, on this device.
+ *
+ * ## Why the tour resolves this itself
+ *
+ * It could let the guard correct it, and for one release it did: the tour pushed
+ * the week view, the guard replaced it with the day view, and — once
+ * {@link stepScreenMatches} stopped the two from arguing about it — the reader
+ * ended up in the right place. "Ends up in the right place" is not the same as
+ * "was never in the wrong one", though. The week grid mounted, laid out, painted
+ * and was thrown away, and what the reader saw was the entire screen changing
+ * out from under a card that had just asked for their attention. On steps 9 and
+ * 10 that is the jitter, and it survived every fix aimed at how the spotlight is
+ * drawn, because the spotlight was drawing a page that really was being replaced.
+ *
+ * The guard exists for URLs the tour does not control — a bookmark, a shared
+ * link, a rotated tablet. The tour does control its own, so the correction it
+ * can make before navigating is one the reader never has to watch.
+ *
+ * `narrow` is passed in rather than read from `matchMedia` here so this stays a
+ * pure function with a test, and so the one place that owns the breakpoint stays
+ * `CALENDAR_PHONE_QUERY`.
+ *
+ * @param href The screen the step declares.
+ * @param narrow Whether the viewport is below `CALENDAR_PHONE_QUERY`.
+ */
+export function stepHrefForScreen(href: GuideHref, narrow: boolean): GuideHref {
+  return (narrow ? NARROW_SCREEN_HREFS[href] : undefined) ?? href;
+}
+
+/**
+ * Whether the reader is already on the screen this step belongs to.
+ *
+ * Exact equality everywhere except under a {@link GUIDE_SCREEN_ROOTS} root,
+ * where any child counts. The boundary is checked with a trailing slash so a
+ * future `/app/calendar-settings` cannot be mistaken for a calendar view.
+ *
+ * ⚠ **Both sides are reduced to their path first, and that is load-bearing.**
+ * A step's href now carries the calendar's `?view=`, while `pathname` never
+ * carries a query at all — so comparing the two raw strings could never match a
+ * reader who was standing on exactly the screen the step asked for. Stripping
+ * the query is also what keeps the week step satisfied by the day view a phone
+ * is corrected to: the three views are one screen, and this predicate asks
+ * "which screen", not "which view of it".
+ */
+export function stepScreenMatches(href: GuideHref, pathname: string): boolean {
+  const hrefPath = href.split('?')[0] ?? href;
+  const path = pathname.split('?')[0] ?? pathname;
+
+  if (path === hrefPath) return true;
+
+  return GUIDE_SCREEN_ROOTS.some(
+    (root) => hrefPath.startsWith(root) && (path === root || path.startsWith(`${root}/`)),
+  );
 }

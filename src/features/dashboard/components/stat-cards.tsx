@@ -215,7 +215,7 @@ export async function StatCards({ stats, today, locale }: StatCardsProps) {
         value={formatNumber(locale, stats.appointmentsThisWeek)}
         caption={formatLongDateRange(locale, weekStart, addDays(weekStart, 6))}
         action={
-          <Link href="/app/calendar/week" className={ACTION_CLASS} aria-label={t('appointments.action')}>
+          <Link href="/app/calendar?view=week" className={ACTION_CLASS} aria-label={t('appointments.action')}>
             <Icon name="linkArrow" className="size-5" />
           </Link>
         }

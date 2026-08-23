@@ -302,6 +302,20 @@ export function Calendar({
     },
   );
 
+  /**
+   * The view the toolbar's thumb points at *right now*, which leads the real
+   * `view` prop by one navigation.
+   *
+   * Day, week and month are one route distinguished by `?view=`, so switching is
+   * a same-route navigation: this component is not remounted, the server re-runs
+   * and hands back the new `view`. `useOptimistic` lets the thumb slide the
+   * instant a tab is pressed — showing the target view while the request is in
+   * flight — and fall back to the prop the moment it lands, with no snap because
+   * the two now agree. It also drives the grid's cross-fade below: while
+   * `optimisticView !== view` the panel is mid-switch. See `navigate`.
+   */
+  const [optimisticView, setOptimisticView] = useOptimistic(view);
+
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   /** The freshly created booking, highlighted briefly. Creating never opens the dialog. */
@@ -392,14 +406,24 @@ export function Calendar({
   const matchId = useScrollToMatch(query, optimisticAppointments, days);
 
   /**
-   * Day, week and month are separate routes, so switching view is a navigation,
-   * not a query-string flip. The date rides along as a search param because it
-   * is a position within a view rather than a different page.
+   * Day, week and month are one route now, told apart by `?view=`, so switching
+   * view is a query-string flip on the same address rather than a jump to
+   * another page — which is what keeps this component mounted across the change
+   * so the thumb can slide and the grid can cross-fade. The date rides along as
+   * the other search param, a position within a view.
+   *
+   * Wrapped in `startTransition` so the navigation's pending state is visible,
+   * and — when the view itself changes — the thumb is moved optimistically the
+   * moment the tab is pressed rather than after the server answers.
    */
   function navigate(next: { view?: CalendarView; date?: string }): void {
     const params = new URLSearchParams(searchParams.toString());
     params.set('date', next.date ?? anchorDate);
-    router.push(`${basePath}/${next.view ?? view}?${params.toString()}`);
+    params.set('view', next.view ?? view);
+    startTransition(() => {
+      if (next.view && next.view !== view) setOptimisticView(next.view);
+      router.push(`${basePath}?${params.toString()}`);
+    });
   }
 
   /**
@@ -417,9 +441,13 @@ export function Calendar({
     (next: CalendarView) => {
       const params = new URLSearchParams(searchParams.toString());
       params.set('date', anchorDate);
-      router.replace(`${basePath}/${next}?${params.toString()}`);
+      params.set('view', next);
+      startTransition(() => {
+        setOptimisticView(next);
+        router.replace(`${basePath}?${params.toString()}`);
+      });
     },
-    [anchorDate, basePath, router, searchParams],
+    [anchorDate, basePath, router, searchParams, setOptimisticView],
   );
 
   const step = view === 'month' ? 'month' : view === 'week' ? 7 : 1;
@@ -1042,7 +1070,10 @@ export function Calendar({
       <div data-guide="calendar-toolbar" className={cn('pt-4 md:pt-6', contentInset)}>
         <CalendarToolbar
           locale={locale}
-          view={view}
+          // The thumb follows the *optimistic* view so it moves the instant a
+          // tab is pressed; everything else here is keyed to the real `view`,
+          // which lags by the one navigation. See `optimisticView`.
+          view={optimisticView}
           rangeLabel={rangeLabel}
           anchorDate={anchorDate}
           range={visibleRange}
@@ -1092,11 +1123,28 @@ export function Calendar({
         The month view's note stays, because it says something the grid cannot:
         that nothing here can be edited.
       */}
-      {view === 'month' && (
-        <p className={cn('text-sm text-muted-foreground', contentInset)}>{t('monthReadOnly')}</p>
-      )}
+      {/*
+        One panel that cross-fades as the view changes. `optimisticView !== view`
+        is the mid-switch state: the thumb has already moved to the pressed tab
+        (it reads the optimistic value) while this fades the outgoing grid down;
+        once the navigation lands and the two views agree, the incoming one fades
+        back up. The wrapper is a single persistent element so its opacity can
+        transition — keyed content would mount already-visible and never fade.
+      */}
+      <div
+        className={cn(
+          'flex min-h-0 flex-1 flex-col gap-3',
+          'transition-[opacity,translate] ease-(--ease-sweep) motion-reduce:transition-none motion-reduce:translate-y-0',
+          optimisticView !== view
+            ? 'opacity-0 translate-y-1 duration-(--duration-reverse)'
+            : 'opacity-100 translate-y-0 duration-(--duration-label)',
+        )}
+      >
+        {view === 'month' && (
+          <p className={cn('text-sm text-muted-foreground', contentInset)}>{t('monthReadOnly')}</p>
+        )}
 
-      {view === 'month' ? (
+        {view === 'month' ? (
         <MonthView
           anchorDate={anchorDate}
           locale={locale}
@@ -1456,6 +1504,7 @@ export function Calendar({
           </div>
         </div>
       )}
+      </div>
 
       {pendingBooking && (
         <ClientPicker

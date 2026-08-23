@@ -55,9 +55,9 @@ export function SettingsArticleBlock({ title, children }: { title: string; child
  * olive, the disc and the heading ran together as one coloured lump at the
  * start of every card.
  *
- * **The heading is ink, not brand.** It was green-700 — the palette's
+ * **The heading is ink, not brand.** It was olive-700 — the palette's
  * `text.brand`, contrast-safe at 7.37:1 and never `text-primary`, which is
- * green-500 at 3.47:1 and fails outright on a heading. Safe was not the
+ * olive-500 at 3.47:1 and fails outright on a heading. Safe was not the
  * question. These four screens are the help, privacy and terms pages: every
  * card on them opens with one of these headings, so the olive was not marking
  * anything out — it was the colour of *all* the headings, four to a screen,

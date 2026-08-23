@@ -3413,6 +3413,32 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
 }
 
 /*
+ * ⚠ The client portal opts out of the frame above.
+ *
+ * Its layouts carry the arrangement they have always had: `.portal-shell` is a
+ * `min-h-dvh` column that grows with its content, the *window* scrolls, and
+ * `PortalTabBar` is `fixed` with the page under it reserving `pb-24` of
+ * clearance. None of them mark a `data-slot='shell-scroll'`, so a bounded
+ * shell has nothing to hand the overflow to and clips every portal screen at
+ * the foot of the frame instead — which is what this undoes.
+ *
+ * Scoped rather than deleted: the staff app renders the same `AppShell` and
+ * still wants the frame. Written as an override after the rules it reverses,
+ * rather than as a `:not()` woven into them, so the frame stays stated in one
+ * place and this reads as the exception it is. Unlayered like the rules above,
+ * and more specific, so it wins on both counts.
+ */
+.portal-shell .q-app-shell {
+  block-size: auto;
+  overflow: visible;
+}
+
+.portal-shell .q-app-shell [data-slot='sidebar-inset'] {
+  min-block-size: auto;
+  overflow: visible;
+}
+
+/*
  * `main`'s outer edge — the one facing the screen rather than the rail. In
  * English the rail is on the left and this is the right-hand inset; in Arabic
  * it is the mirror. The rail-facing edge needs nothing: the rail is 256px of
@@ -5068,6 +5094,91 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
 }
 
 /*
+ * The surface the tour draws on.
+ *
+ * This class was applied by `GuideOverlay` for a long time with no rule behind
+ * it anywhere in this file. It has one now, and it is doing the single cheapest
+ * thing available for the fault that sent us here.
+ *
+ * `contain: paint` promises the browser that nothing inside this box paints
+ * outside it. The box is `fixed inset-0`, so "outside it" is "off screen" — and
+ * what is painting off screen is the spotlight's `120vmax` box-shadow, whose
+ * spread is deliberately larger than any viewport (see the note on it above).
+ * Without the promise, a phone rasterises that whole spread; with it, the work
+ * is clipped to the screen. On the two steps with the largest holes — the
+ * calendar toolbar and the calendar grid — that is the difference between
+ * finishing a frame and not, and a spotlight that misses frames is a spotlight
+ * that visibly shakes.
+ *
+ * ⚠ `contain: paint` also makes this element the containing block for any
+ * `position: fixed` descendant, which the docked card is. That is a no-op
+ * *here* and only here: this box is `fixed inset-0`, so it already is the
+ * viewport, and the card resolves its edges against exactly the same rectangle
+ * either way. Do not copy this line onto a surface that is not full-screen.
+ */
+.q-guide-surface {
+  contain: paint;
+}
+
+/*
+ * The floating card glides between steps instead of cutting.
+ *
+ * Only on the floating layout: the docked sheet keeps its edge from one step to
+ * the next and has nothing to travel. `top`/`left` rather than a transform
+ * because those are the two properties `placeCard` produces, and a transform on
+ * top of them would be a second coordinate system to keep in agreement with the
+ * first.
+ *
+ * These are laid-out properties, so this is not a compositor animation — and it
+ * does not need to be. It runs once per step, on one element, on the screens
+ * wide enough to have chosen this layout in the first place. The thing that had
+ * to stop costing layout per frame is the hole, and that is handled in
+ * `Spotlight` rather than here.
+ *
+ * `--duration-travel` (420ms) is the app's existing long-travel duration, and
+ * the right one: the card is crossing the screen, not nudging.
+ */
+.q-guide-card:not(.q-guide-card-top):not(.q-guide-card-bottom) {
+  transition:
+    top var(--duration-travel) var(--ease-sweep),
+    left var(--duration-travel) var(--ease-sweep);
+}
+
+/*
+ * The card's contents, replaced whole on every step.
+ *
+ * A short rise and fade, deliberately shorter than the hole's travel: the words
+ * should have settled by the time the reader's eye follows the spotlight back to
+ * them. `q-guide-card-step` is remounted by its React key, which is what
+ * restarts this — see the note at the call site for why the *card* is not keyed.
+ */
+.q-guide-card-step {
+  animation: q-guide-step-in var(--duration-arc) var(--ease-sweep) backwards;
+}
+
+@keyframes q-guide-step-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.375rem);
+  }
+}
+
+/*
+ * Reduced motion drops every one of the three travels above and keeps the
+ * surfaces. The hole's own travel is suspended in `Spotlight`, which checks the
+ * same query in script — `element.animate` is not reached by a stylesheet.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .q-guide-card:not(.q-guide-card-top):not(.q-guide-card-bottom) {
+    transition: none;
+  }
+
+  .q-guide-card-step {
+    animation: none;
+  }
+}
+
+/*
  * ══ The 404 page's entrance, and its ghost ══
  *
  * `src/app/[locale]/not-found.tsx`. The screen assembles itself once, from the
@@ -5193,5 +5304,484 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
   .q-404-digit-out-right,
   .q-404-ghost {
     animation: none;
+  }
+}
+
+/*
+ * ══ The splash screen ══
+ *
+ * `src/features/brand/splash-screen.tsx`, mounted by both app shells and by
+ * neither public screen. All of the motion is here; the component draws two
+ * SVGs, plays three blips, and takes the element out of the DOM once the exit
+ * below has finished. That split is a safety property rather than a preference
+ * — the tile clears itself with no script at all — and the note in the
+ * component explains why it is worth the duplication. The numbers on the two
+ * sides have to agree. **Change one, change the other.**
+ *
+ * The timeline, in one place. Milliseconds from first paint:
+ *
+ *     0    the mark comes in off the near edge     ⎫ q-splash-hop, three arcs
+ *   300    first landing                           ⎬ across, each one shorter,
+ *   600    second landing                          ⎪ over q-splash-grow, which
+ *   900    it arrives in the middle, full size     ⎭ takes it 0.42 → 1
+ *   900    the arrival settles on its feet           q-splash-land
+ *   920    the name rises underneath it              q-splash-word-in
+ *  1620    the tile fades                            q-splash-out
+ *  1920    the component unmounts
+ *
+ * None of this is on the app's `--duration-*` scale. Those measure *reactions*
+ * — a field arcing, a switch knob travelling — and are tens of milliseconds
+ * because somebody is waiting on the other end of them. This screen is not a
+ * reaction to anyone; it is the app introducing itself, and the number that
+ * matters is that the whole introduction is over inside two seconds.
+ *
+ * `--ease-sweep` is not used for the arcs either, and cannot be: one curve
+ * cannot describe a hop. A rise decelerates into its apex and a fall
+ * accelerates out of it, so the two halves of every arc carry opposite easings,
+ * written per keyframe. The two pieces that only fade — the name and the tile —
+ * do use the app's curve, because they are ordinary entrances.
+ */
+
+.q-splash {
+  /*
+   * The mark's edge length. Everything else on the screen is derived from it,
+   * so this one value is the composition's scale — the name's width, the clear
+   * space under the mark, how far out it starts and how high it hops.
+   *
+   * `clamp` rather than a breakpoint: the tile is full-bleed on a 360px phone
+   * and on a 27" display, and a mark that took a fixed fraction of either would
+   * be a postage stamp on one and a wall on the other. 30vw is the phone's
+   * answer — with the name at 1.7 × below it, that puts the composition at
+   * roughly half the width of the screen, which is the presence the reference
+   * lockup has. The two bounds are where a fraction stops being the answer.
+   *
+   * `min()` with a height fraction because a splash has to survive a phone
+   * turned sideways, where 30vw is most of the screen's *height*. The stacked
+   * composition comes to about 2.1 × the mark, so 20dvh keeps it inside a
+   * landscape viewport with room to spare; on every portrait screen the width
+   * fraction is the smaller of the two and this term does nothing.
+   */
+  --q-splash-mark-size: clamp(96px, min(30vw, 20dvh), 140px);
+
+  /*
+   * How far to the side of its resting place the mark starts.
+   *
+   * Half the viewport puts the mark's *centre* on the edge with half of it
+   * still showing, so something has to be added to that. The 0.4 is what — and
+   * it is 0.4 rather than the 0.6 this needed before the figure started small:
+   * at `q-splash-grow`'s opening scale the mark is 42% of its width, so 0.21 of
+   * a mark-size clears the edge and everything past that is margin. Worked
+   * through, the first frame sits 0.19 × the mark's size beyond the edge at
+   * every viewport the `clamp` above can produce — off screen on all of them,
+   * and not so far off that the first leap is spent out of sight.
+   */
+  --q-splash-travel: calc(50vw + var(--q-splash-mark-size) * 0.4);
+
+  /*
+   * Which side that is, as a sign the keyframes multiply by.
+   *
+   * The mark comes in from the **reading-start edge** — the left in English,
+   * the right in Arabic — so it travels the way the page is read rather than
+   * against it. Anything else and the figure enters by crossing the direction
+   * every other thing on the screen is going.
+   *
+   * A sign rather than the pair of `-ltr`/`-rtl` keyframe sets used by the
+   * route stage and the app drawer, and the difference is worth stating: those
+   * mirror three-keyframe fades, where a duplicate is cheap. This is an
+   * eight-stop arc with per-keyframe easings, and a second copy of it is a
+   * second thing to retune every time the bounce is adjusted — one of which
+   * would eventually not be. The variable is not animated, so it is substituted
+   * once per element and costs nothing at run time.
+   */
+  --q-splash-from: -1;
+
+  /*
+   * The apex of the first hop, and the unit the other two are fractions of.
+   *
+   * `min` against the viewport because the mark rests *above* the middle — the
+   * name is under it — so its headroom is well under half the screen, and on a
+   * phone held sideways it is a couple of hundred pixels at most. 1.15 × the
+   * mark is the hop the figure wants; 15dvh is the hop the screen can hold, and
+   * the smaller of the two is the one that does not clip the top of the arc.
+   */
+  --q-splash-hop-height: min(calc(var(--q-splash-mark-size) * 1.15), 15dvh);
+
+  /*
+   * The tile's two colours, and they are two rather than a theme's worth.
+   *
+   * Neither of them moves with the theme, which is the point: the staff app
+   * follows the system and the portal is pinned to light, and a brand tile that
+   * came up white for one of them would not be the brand tile. `--n-0` is a
+   * primitive, so it is `#FFFFFF` everywhere by construction; `--primary` is a
+   * semantic token, but it is `--green-400` in the light block and `--green-400`
+   * again in `.dark` — §15 keeps brand hues out of the remap. Between them they
+   * are the white-on-green reversal `public/brand/mark-on-color.svg` already
+   * draws for a coloured icon.
+   *
+   * `--q-splash-ground` is also what the mark's eyes are painted in — they are
+   * holes, so they have to be exactly the green behind them. The component
+   * reads this variable rather than naming a colour, so the two cannot drift.
+   */
+  --q-splash-ground: var(--primary);
+  --q-splash-figure: var(--n-0);
+
+  position: fixed;
+  inset: 0;
+  /*
+   * Above everything. The app's scale tops out at 50 — the portal's tab bar is
+   * 40, its flame celebration 50 — and this is the one surface that is in front
+   * of a whole application rather than in front of a page. It is also the only
+   * one that removes itself after two seconds, so nothing else ever has to rank
+   * against it.
+   */
+  z-index: 60;
+  display: grid;
+  place-items: center;
+
+  /*
+   * The tile never takes a tap.
+   *
+   * A reader who knows where they are going should reach the app through it —
+   * the splash plays out in full regardless, but an overlay that swallowed the
+   * first gesture would be charging two seconds of attention for a screen that
+   * has nothing to ask.
+   */
+  pointer-events: none;
+
+  /*
+   * `overflow: hidden` because the mark spends its first frames past the side
+   * edge, and a fixed element's overflow still counts toward the document's
+   * scrollable area in some engines — a splash that gave the page a horizontal
+   * scrollbar for a third of a second would be a jump in the layout underneath
+   * it.
+   */
+  overflow: hidden;
+
+  /*
+   * A flat fill and a wash over it, in that order, so the tile is still the
+   * brand green if the gradient is ever the thing that fails.
+   *
+   * The wash is one step down the same ramp, centred a little above the middle
+   * — behind the mark's resting place, so the figure sits in the lightest part
+   * of the field and the corners fall away from it. Full-bleed `--primary` on
+   * its own is a lot of a very saturated green; this is the same colour with
+   * somewhere to look.
+   */
+  background-color: var(--q-splash-ground);
+  background-image: radial-gradient(115% 85% at 50% 42%, var(--primary) 0%, var(--green-500) 100%);
+
+  animation: q-splash-out 300ms var(--ease-sweep) 1620ms forwards;
+}
+
+/*
+ * Arabic reads from the right, so the mark arrives from the right.
+ *
+ * `[dir]` on the document element and not a `:lang()` or a class: direction is
+ * what this is actually about, it is already set on `<html>` by the locale
+ * layout, and the portal and the staff app inherit it without either of them
+ * having to pass anything down.
+ */
+[dir='rtl'] .q-splash {
+  --q-splash-from: 1;
+}
+
+/*
+ * Mark over name, centred as a pair.
+ *
+ * The mark's resting place is therefore a little above the middle of the
+ * screen, not on it — which is what "in the middle" means for a composition of
+ * two things, and what the lockup does horizontally. The name holds its box
+ * from the first frame even while it is invisible, so the column is already its
+ * final height and the mark's landing spot cannot move underneath it.
+ */
+.q-splash-figure {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* Proportional, not a step off the spacing scale: this gap is the clear space
+     inside a logo lockup rather than the distance between two components, so it
+     has to hold its ratio as the mark grows from 96px to 140px. */
+  gap: calc(var(--q-splash-mark-size) * 0.22);
+}
+
+/* The travel, across and up. `translate` only — the element below owns
+   `scale` and `rotate`, so all three compose instead of overwriting. */
+.q-splash-mark {
+  inline-size: var(--q-splash-mark-size);
+  /*
+   * `will-change` on the three animated elements, and only for the splash's
+   * two seconds of life. The hops run while the app behind the tile is
+   * hydrating and fetching its first route — the busiest the main thread ever
+   * is — and these properties are all compositable, so once each element has
+   * its own layer the motion runs off that thread entirely. Promotion
+   * normally happens on the animation's first frame; declaring it here moves
+   * that work to style time, before the first frame, which is exactly the
+   * frame that was dropping.
+   */
+  will-change: translate;
+  animation: q-splash-hop 900ms linear;
+}
+
+/*
+ * The approach: small at the far edge, full size by the time it stops.
+ *
+ * A third element and a third animation, because `scale` is already spoken for
+ * on the one below — the squash and the landing both write it, and a fourth
+ * animation on the same property would simply win over them rather than
+ * combining. Nested, the two scales multiply, which is exactly the arithmetic
+ * wanted: the figure is 42% of its size *and* squashing 1.16 × 0.84 on the
+ * first landing.
+ *
+ * The stops are the three landings. 0.42 → 0.66 → 0.87 → 1, so the steps
+ * shorten (0.24, 0.21, 0.13) the way the travel and the hop heights do — it
+ * reads as something arriving from a distance and settling rather than as a
+ * box being tweened. The last stop is exactly 1, which is also this element's
+ * resting style and the size its layout box has held all along, so the arrival
+ * is the drawing reaching its own dimensions and nothing reflows.
+ *
+ * Same `transform-origin` as the squash below, and it matters for the same
+ * reason: growing from the foot keeps the figure standing on one ground line
+ * across all three landings. Growing from the centre would have it rising as it
+ * grew, which is a different — and much less legible — piece of information.
+ */
+.q-splash-grow {
+  display: block;
+  transform-origin: 50% 100%;
+  will-change: scale;
+  animation: q-splash-grow 900ms linear;
+}
+
+@keyframes q-splash-grow {
+  0% {
+    scale: 0.42;
+  }
+  33.33% {
+    scale: 0.66;
+  }
+  66.67% {
+    scale: 0.87;
+  }
+  100% {
+    scale: 1;
+  }
+}
+
+/*
+ * The squash, on its own element and its own property so the two compose
+ * instead of the later one erasing the earlier.
+ *
+ * `transform-origin` at the foot of the mark: a landing flattens against the
+ * ground it hit, so the bottom edge is the part that must not move. Anything
+ * else reads as the mark being pressed from both sides in mid-air.
+ *
+ * Two animations on `scale`, sequenced the way `.q-404-ghost` sequences its
+ * two: the second is delayed by exactly the first's run and carries no
+ * backwards fill, so it is inert until the moment the hops finish and takes
+ * over on the frame after. Both end at `scale: 1`, which is also this element's
+ * resting style — so neither needs a forwards fill, and a browser that drops
+ * the animation shows a mark at its proper size rather than a squashed one.
+ */
+.q-splash-body {
+  display: block;
+  transform-origin: 50% 100%;
+  will-change: scale, rotate;
+  animation:
+    q-splash-squash 300ms linear 3,
+    q-splash-land 300ms cubic-bezier(0.22, 0.9, 0.3, 1) 900ms;
+}
+
+.q-splash-body svg {
+  display: block;
+  inline-size: 100%;
+  block-size: auto;
+}
+
+/*
+ * The name. 1.7 × the mark, which is a little wider than the lockup sets it
+ * beside the mark (1.39 ×) — stacked, the lettering has the full width of the
+ * composition to hold, and at the lockup's ratio it reads as a caption under a
+ * logo rather than as the other half of one.
+ *
+ * `block-size: auto` and no ratio of its own: the `viewBox` gives the element an
+ * intrinsic one, so the height follows the width and cannot be set wrong here.
+ */
+.q-splash-word {
+  display: block;
+  inline-size: calc(var(--q-splash-mark-size) * 1.7);
+  block-size: auto;
+  animation: q-splash-word-in 380ms var(--ease-sweep) 920ms backwards;
+}
+
+/*
+ * Three hops across the tile, each shorter than the last, ending in the middle.
+ *
+ * Both axes are in the one `translate`, which is what makes it an arc rather
+ * than a slide with a bounce bolted on. Read the two columns separately:
+ *
+ *   %        across            up          what it is
+ *   0        1.00              0           off the reading-start edge, crouched
+ *   16.67    0.70            −1.00         apex of the leap that carries it in
+ *   33.33    0.42              0           first landing, fully on screen
+ *   50       0.28            −0.62         apex, lower
+ *   66.67    0.16              0           second landing
+ *   83.33    0.07            −0.34         apex, lower again
+ *   100      0                 0           the middle
+ *
+ * The across column is multiplied by `--q-splash-from`, which is −1 in English
+ * and +1 in Arabic — the sign is the whole of the mirroring. Its steps shorten
+ * (0.58, 0.26, 0.16) and the apexes drop with them, so the figure reads as
+ * arriving with momentum and spending it, rather than as three identical hops.
+ *
+ * Every rise carries a decelerating curve and every fall an accelerating one,
+ * declared on the keyframe the segment *starts* at, because that is the one
+ * that governs it. Getting those two the wrong way round is the difference
+ * between a hop and a hover. They ease the horizontal too, which a thrown
+ * object would not do — that is a stylised hop rather than a ballistic one, and
+ * it is the reading an animator would give it.
+ */
+@keyframes q-splash-hop {
+  0% {
+    translate: calc(var(--q-splash-travel) * var(--q-splash-from)) 0;
+    animation-timing-function: cubic-bezier(0.22, 0.62, 0.36, 1);
+  }
+  16.67% {
+    translate: calc(var(--q-splash-travel) * var(--q-splash-from) * 0.7)
+      calc(var(--q-splash-hop-height) * -1);
+    animation-timing-function: cubic-bezier(0.6, 0, 0.78, 0.42);
+  }
+  33.33% {
+    translate: calc(var(--q-splash-travel) * var(--q-splash-from) * 0.42) 0;
+    animation-timing-function: cubic-bezier(0.22, 0.62, 0.36, 1);
+  }
+  50% {
+    translate: calc(var(--q-splash-travel) * var(--q-splash-from) * 0.28)
+      calc(var(--q-splash-hop-height) * -0.62);
+    animation-timing-function: cubic-bezier(0.6, 0, 0.78, 0.42);
+  }
+  66.67% {
+    translate: calc(var(--q-splash-travel) * var(--q-splash-from) * 0.16) 0;
+    animation-timing-function: cubic-bezier(0.22, 0.62, 0.36, 1);
+  }
+  83.33% {
+    translate: calc(var(--q-splash-travel) * var(--q-splash-from) * 0.07)
+      calc(var(--q-splash-hop-height) * -0.34);
+    animation-timing-function: cubic-bezier(0.6, 0, 0.78, 0.42);
+  }
+  100% {
+    translate: 0 0;
+  }
+}
+
+/*
+ * One hop's worth of squash and stretch, run three times.
+ *
+ * `0%` and `100%` are the same flattened shape on purpose: it is the impact at
+ * the end of one arc and the crouch the next one launches from, so the seam
+ * between iterations is the landing itself and there is nothing to hide.
+ *
+ * The volume is roughly preserved through all of it — wider is shorter, taller
+ * is narrower — because a mark that gains area on impact reads as inflating
+ * rather than as hitting something.
+ *
+ * `rotate` rides along now that the travel is sideways: the figure tips into
+ * the direction it is going at the top of each arc and is upright again on
+ * every landing. Five degrees, which is small enough that nobody reads it as
+ * the logo spinning and large enough that the hop has a body leaning over its
+ * feet. It is a third individual transform property, so it composes with the
+ * `scale` here and the `translate` on the parent without any of the three
+ * overwriting the others — and it pivots on the same `transform-origin`, which
+ * is why it looks like leaning rather than like tumbling.
+ *
+ * The sign is `--q-splash-from` negated: the mark travels *towards* the middle,
+ * which is the opposite way from the edge it came in over.
+ */
+@keyframes q-splash-squash {
+  0%,
+  100% {
+    scale: 1.16 0.84;
+    rotate: 0deg;
+  }
+  12% {
+    scale: 0.9 1.12;
+  }
+  38% {
+    scale: 1 1;
+  }
+  50% {
+    rotate: calc(5deg * var(--q-splash-from) * -1);
+  }
+  74% {
+    scale: 1 1;
+  }
+  92% {
+    scale: 0.93 1.08;
+  }
+}
+
+/* The last impact, and the only one that is allowed to settle. */
+@keyframes q-splash-land {
+  0% {
+    scale: 1.18 0.82;
+  }
+  45% {
+    scale: 0.96 1.05;
+  }
+  100% {
+    scale: 1 1;
+  }
+}
+
+/*
+ * The name arrives *because* the mark landed — it starts on the same frame as
+ * the settle, and rises the short distance a thing knocked loose would.
+ * `backwards`, so it is hidden through the delay rather than sitting there
+ * waiting to move.
+ */
+@keyframes q-splash-word-in {
+  from {
+    opacity: 0;
+    translate: 0 0.75rem;
+  }
+}
+
+/*
+ * The tile leaves. `visibility` is in here as well as `opacity` because this
+ * fill has a forwards fill and outlives its own animation: an element at zero
+ * opacity is still a hit-testable, focusable, screen-reader-visible element,
+ * and the component's `animationend` handler is the *usual* way this one gets
+ * removed rather than the guaranteed one.
+ */
+@keyframes q-splash-out {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+/*
+ * Reduced motion keeps the whole screen and drops every part of it that moves.
+ *
+ * The mark is simply in the middle with its name under it from the first frame
+ * — which is the picture the animation was assembling, so nothing is lost but
+ * the assembling. Both entrances declare only a `from`, so removing them leaves
+ * each element at its resting style and there is no state to restore.
+ *
+ * The hold is shortened with them. Two seconds is the length of the
+ * choreography; with no choreography left it is two seconds of a green
+ * rectangle, and the whole reason to look at it has been turned off.
+ *
+ * The sound goes too, in `splash-sound.ts` — the same query, read from script,
+ * with the reasoning for treating a motion preference as a sound preference.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .q-splash-mark,
+  .q-splash-grow,
+  .q-splash-body,
+  .q-splash-word {
+    animation: none;
+  }
+
+  .q-splash {
+    animation: q-splash-out 240ms var(--ease-sweep) 760ms forwards;
   }
 }

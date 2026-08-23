@@ -74,22 +74,17 @@
       "staffMember": "عضو في فريق العيادة",
       "active": "نشط",
       "formTitle": "المعلومات المهنية",
-      "formDescription": "حدّث البيانات التي تعرّف بك داخل فريق العيادة.",
       "accountEmail": "البريد الإلكتروني للحساب",
-      "accountEmailHint": "تتم إدارة هذا البريد من خلال حساب تسجيل الدخول.",
       "identityTitle": "الحساب",
-      "languageTitle": "اللغة المفضلة",
-      "languageDescription": "اللغة التي تُعرض بها هذه المساحة."
+      "languageTitle": "اللغة المفضلة"
     },
     "clinic": {
       "title": "العيادة",
       "description": "بيانات التواصل وساعات العمل المستخدمة في الحجز والتواصل مع المشتركين.",
       "formTitle": "بيانات العيادة",
-      "formDescription": "بيانات التواصل الأساسية التي يعتمد عليها الفريق والمشتركون.",
       "hoursTitle": "ساعات العمل",
       "hoursDescription": "حدّد الأيام والأوقات المتاحة لحجز المواعيد.",
       "identityTitle": "هوية العيادة",
-      "identityDescription": "الشعار والاسم اللذان يظهران للمشتركين.",
       "hoursSummaryLabel": "أيام وأوقات العمل"
     },
     "whatsapp": {
@@ -1988,8 +1983,13 @@
       "nameEn": "الاسم بالإنجليزية",
       "nameEnPlaceholder": "مثال: Chicken Maqluba",
       "additionalDetails": "تفاصيل إضافية",
-      "baseServingLabel": "تسمية الحصة الأساسية",
-      "baseServingHint": "تظهر للمشترك كوحدة هذا الطبق، مثل \"حصة\" أو \"طبق\".",
+      "checkingExisting": "جارٍ التحقق من الأطباق الموجودة…",
+      "existingMatchesTitle": "أطباق موجودة تبدأ بهذا الاسم",
+      "existingMatchesHint": "راجعها قبل إضافة طبق جديد لتفادي التكرار.",
+      "exactMatchTitle": "هذا الاسم مستخدم بالفعل",
+      "exactMatchHint": "راجع الطبق الموجود قبل إنشاء نسخة أخرى.",
+      "exactMatch": "مطابقة تامة",
+      "existingSearchError": "تعذّر التحقق من الأطباق الموجودة. يمكنك متابعة إنشاء الطبق.",
       "mealTypesLegend": "وقت الوجبة",
       "labelsLegend": "خصائص الطبق",
       "labelsHint": "لون كل خاصية يرافق الطبق في الكتالوج وفي الخطة الأسبوعية.",
@@ -2044,7 +2044,6 @@
   },
   "whatsapp": {
     "title": "واتساب",
-    "description": "اربط رقم العيادة على واتساب لإرسال تذكيرات المواعيد وتأكيداتها تلقائيًا.",
     "disabled": "ميزة واتساب غير مفعّلة على هذا التثبيت. اضبط WHATSAPP_ENABLED ومتغيّرات البوّابة في .env.local ثم أعد تشغيل الخدمة.",
     "gatewayUnreachable": "لم تستجب بوّابة واتساب. تأكد من أنها تعمل ثم أعد المحاولة.",
     "connection": {

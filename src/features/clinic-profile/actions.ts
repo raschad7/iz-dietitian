@@ -101,7 +101,7 @@ export async function updateClinicFieldAction(
     return { status: 'error', messageKey: 'unexpected' };
   }
 
-  revalidatePath(`/${locale}/app/settings/clinic`);
+  revalidatePath(`/${locale}/app/settings`);
   // The rail draws the clinic's mark and name, and it is rendered by the app
   // layout — so a logo or rename that only revalidated this page would leave
   // the old one on screen until a full reload.
@@ -138,7 +138,7 @@ export async function updateProfessionalFieldAction(
     return { status: 'error', messageKey: 'unexpected' };
   }
 
-  revalidatePath(`/${locale}/app/settings/profile`);
+  revalidatePath(`/${locale}/app/settings`);
   // `name` is mirrored onto `user.name`, which the rail's account row draws.
   revalidatePath(`/${locale}/app`, 'layout');
   return { status: 'success' };
@@ -155,7 +155,7 @@ export async function saveClinicInformationAction(
 
   try {
     if (!(await saveClinicInformation(clinicId, parsed.data.clinic!))) return { status: 'error', messageKey: 'unexpected' };
-    revalidatePath(`/${locale}/app/settings/clinic`);
+    revalidatePath(`/${locale}/app/settings`);
     return { status: 'success', messageKey: 'saved' };
   } catch (error) {
     console.error('[clinic-profile] clinic information save failed', error);
@@ -176,7 +176,7 @@ export async function saveWeeklyScheduleAction(
     const schedule = parsed.data.schedule!;
     const conflictCount = await countFutureScheduleConflicts(clinicId, schedule.days, today());
     await saveWeeklySchedule(clinicId, schedule);
-    revalidatePath(`/${locale}/app/settings/clinic`);
+    revalidatePath(`/${locale}/app/settings`);
     revalidatePath(`/${locale}/app/calendar`);
     return conflictCount > 0
       ? { status: 'warning', messageKey: 'scheduleConflict', conflictCount }
@@ -200,7 +200,7 @@ export async function saveProfessionalProfileAction(
     if (!(await saveProfessionalProfile(clinicId, session.user.id, parsed.data.professional!))) {
       return { status: 'error', messageKey: 'unexpected' };
     }
-    revalidatePath(`/${locale}/app/settings/profile`);
+    revalidatePath(`/${locale}/app/settings`);
     return { status: 'success', messageKey: 'saved' };
   } catch (error) {
     console.error('[clinic-profile] professional profile save failed', error);

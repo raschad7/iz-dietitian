@@ -401,25 +401,22 @@ export function ClientPicker({
         idPrefix="picker-repeat"
       />
 
-      <div className="relative">
-        <Icon name="search" className="pointer-events-none absolute start-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          autoFocus
-          type="search"
-          value={query}
-          onChange={(event) => {
-            setQuery(event.target.value);
-            // Reset here rather than in an effect on `query`: a filtered list
-            // can be shorter than the highlight that was on screen, and the
-            // event that shortened it is the right place to fix it — an effect
-            // would render one frame with the stale index first.
-            setHighlight(0);
-          }}
-          placeholder={t('picker.searchPlaceholder')}
-          aria-label={t('picker.searchPlaceholder')}
-          className="ps-8"
-        />
-      </div>
+      <Input
+        autoFocus
+        type="search"
+        icon="search"
+        value={query}
+        onChange={(event) => {
+          setQuery(event.target.value);
+          // Reset here rather than in an effect on `query`: a filtered list
+          // can be shorter than the highlight that was on screen, and the
+          // event that shortened it is the right place to fix it — an effect
+          // would render one frame with the stale index first.
+          setHighlight(0);
+        }}
+        placeholder={t('picker.searchPlaceholder')}
+        aria-label={t('picker.searchPlaceholder')}
+      />
 
       <ul ref={listRef} className="max-h-56 overflow-y-auto" role="listbox" aria-label={t('picker.clients')}>
         {results.length === 0 && <li className="px-2 py-3 text-sm text-muted-foreground">{t('picker.noMatches')}</li>}

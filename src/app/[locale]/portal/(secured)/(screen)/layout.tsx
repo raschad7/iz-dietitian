@@ -47,16 +47,7 @@ export default async function PortalScreenLayout({ children, params }: PortalScr
    */
   return (
     <AppShell items={PORTAL_NAV} title={t('title')} showTitle={false} icons={PORTAL_NAV_ICONS}>
-      {/*
-        This group's scrolling region. It has no `PortalHeader` and no
-        `PortalTabBar` — a settings screen carries its own back link — so the
-        column is this box alone, and under the bounded shell
-        (`.q-app-shell` in `globals.css`) it has to claim the scroll or its
-        content would be clipped at the foot of the frame rather than reachable.
-      */}
-      <div data-slot="shell-scroll" className="flex min-w-0 flex-col">
-        {children}
-      </div>
+      <div className="flex min-w-0 flex-1 flex-col">{children}</div>
     </AppShell>
   );
 }

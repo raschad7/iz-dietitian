@@ -17,6 +17,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { toast } from '@/components/ui/toast';
+import { TooltipHint } from '@/components/ui/tooltip-hint';
 import { useRouter } from '@/i18n/navigation';
 import { membersOf } from '@/lib/enum';
 import { cn } from '@/lib/utils';
@@ -49,8 +50,18 @@ export type DishCardData = {
   hidden: boolean;
 };
 
-/** How many tags a row prints before it folds the rest into a `+n`. */
-const TAG_LIMIT = 3;
+/** How many qualities a row prints before it folds the rest into a `+n`. */
+const PROPERTY_LIMIT = 2;
+
+/**
+ * One predictable scan line per dish.
+ *
+ * The compact row needs one extra step for the classification marks folded
+ * under the name. From `md` those marks move into their own columns, so the
+ * row can tighten without letting a tag-heavy dish change the rhythm of the
+ * whole register.
+ */
+const ROW_HEIGHT = 'h-22 md:h-18';
 
 /** The category's own glyph — the same one the planner draws for that meal. */
 const MEAL_ICON: Record<MealType, IconName> = {
@@ -184,7 +195,18 @@ export function DishList({
         a case the rearrangement cannot absorb.
       */}
       <TableRoot data-guide="dishes-list" className="md:min-h-0 md:flex-1 md:overflow-y-auto">
-        <Table>
+        {/*
+          Fixed layout is the distribution rule: the six information columns
+          share the available width evenly and the action well keeps only the
+          48px it needs. The old auto-layout name track claimed every spare
+          pixel (`w-full`), leaving the other five facts compressed together at
+          the opposite edge of a wide screen.
+
+          The responsive `hidden … table-cell` pairs below still remove their
+          tracks at smaller widths, so the remaining columns redistribute that
+          space instead of preserving empty desktop gaps.
+        */}
+        <Table className="table-fixed">
           <TableHeader sticky>
             {/*
               Which columns a width can afford, in two steps.
@@ -204,13 +226,7 @@ export function DishList({
               shifts every column after it by one.
             */}
             <TableRow>
-              {/* `w-full max-w-0` is what lets the name truncate at all: an
-                  auto-layout table sizes a column to its content, so without a
-                  cell that claims the leftover width and caps its own, a long
-                  dish name widens the table instead of eliding — which is the
-                  sideways scroll coming back in through the one column that
-                  cannot stand down. */}
-              <TableHead className="w-full max-w-0">{t('columns.name')}</TableHead>
+              <TableHead>{t('columns.name')}</TableHead>
               <TableHead className="hidden md:table-cell">{t('columns.mealTypes')}</TableHead>
               <TableHead className="hidden md:table-cell">{t('columns.tags')}</TableHead>
               <TableHead numeric className="text-end">
@@ -224,7 +240,7 @@ export function DishList({
               </TableHead>
               {/* The actions column is named for a screen reader only — a visible
                   head over a menu button is a label for a thing that has one. */}
-              <TableHead className="w-px">
+              <TableHead className="w-12 ps-2 pe-2">
                 <span className="sr-only">{t('columns.actions')}</span>
               </TableHead>
             </TableRow>
@@ -279,12 +295,29 @@ function DishRow({
 
   const mealTypes = membersOf(MEAL_TYPES, dish.mealTypes);
   const tags = membersOf(DISH_TAGS, dish.tags);
-  const shownTags = tags.slice(0, TAG_LIMIT);
-  const overflow = tags.length - shownTags.length;
+  const properties = [
+    ...(dish.highProtein
+      ? [
+          {
+            key: 'high-protein',
+            dot: highProteinDotClasses(),
+            label: t('nutritionFilters.high_protein'),
+          },
+        ]
+      : []),
+    ...tags.map((tag) => ({
+      key: tag,
+      dot: dishTagDotClasses(tag),
+      label: t(`tags.${tag}`),
+    })),
+  ];
+  const shownProperties = properties.slice(0, PROPERTY_LIMIT);
+  const hiddenProperties = properties.slice(PROPERTY_LIMIT);
+  const hiddenPropertyLabels = format.list(hiddenProperties.map((property) => property.label));
 
   return (
-    <TableRow linked className={cn(dish.hidden && '[&>td]:opacity-60')}>
-      <TableCell className="w-full max-w-0">
+    <TableRow linked className={cn(ROW_HEIGHT, dish.hidden && '[&>td]:opacity-60')}>
+      <TableCell>
         <div className="flex min-w-0 flex-col">
           <div className="flex items-center gap-2">
             {/*
@@ -336,11 +369,11 @@ function DishRow({
             is the words beside them — a 295px row has no space for them, and
             the glyph and the colour are the parts that are scanned anyway.
 
-            `shownTags`, so a heavily tagged dish folds to the same three marks
-            its own column would have printed rather than to a run of dots that
-            crowds the name above it.
+            The first two qualities stay as marks and the remainder folds into
+            the same `+n` count as the full column, so a heavily tagged dish
+            cannot crowd the name above it.
           */}
-          {(mealTypes.length > 0 || dish.highProtein || shownTags.length > 0) && (
+          {(mealTypes.length > 0 || properties.length > 0) && (
             <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 md:hidden">
               {mealTypes.map((type) => (
                 <Icon
@@ -351,18 +384,19 @@ function DishRow({
                 />
               ))}
 
-              {(dish.highProtein || shownTags.length > 0) && (
+              {properties.length > 0 && (
                 <span
                   className="flex items-center gap-1"
-                  title={format.list([
-                    ...(dish.highProtein ? [t('nutritionFilters.high_protein')] : []),
-                    ...shownTags.map((tag) => t(`tags.${tag}`)),
-                  ])}
+                  title={format.list(properties.map((property) => property.label))}
                 >
-                  {dish.highProtein && <span aria-hidden className={highProteinDotClasses()} />}
-                  {shownTags.map((tag) => (
-                    <span key={tag} aria-hidden className={dishTagDotClasses(tag)} />
+                  {shownProperties.map((property) => (
+                    <span key={property.key} aria-hidden className={property.dot} />
                   ))}
+                  {hiddenProperties.length > 0 && (
+                    <span className="text-caption text-muted-foreground tabular-nums" dir="ltr">
+                      {t('moreTags', { count: hiddenProperties.length })}
+                    </span>
+                  )}
                 </span>
               )}
             </div>
@@ -376,14 +410,15 @@ function DishRow({
         {mealTypes.length === 0 ? (
           <Empty />
         ) : (
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <div className="flex min-w-0 flex-nowrap items-center gap-2 overflow-hidden">
             {mealTypes.map((type) => (
               <span
                 key={type}
-                className="inline-flex items-center gap-1.5 whitespace-nowrap text-body-sm text-muted-foreground"
+                title={t(`mealTypes.${type}`)}
+                className="inline-flex min-w-0 items-center gap-1.5 text-body-sm text-muted-foreground"
               >
                 <Icon name={MEAL_ICON[type]} className="size-4 shrink-0 text-muted-foreground" />
-                {t(`mealTypes.${type}`)}
+                <span className="truncate">{t(`mealTypes.${type}`)}</span>
               </span>
             ))}
           </div>
@@ -399,25 +434,20 @@ function DishRow({
         eye enters the cell rather than after three tags about shopping and
         effort.
       */}
-      <TableCell className="hidden md:table-cell">
-        {!dish.highProtein && tags.length === 0 ? (
+      <TableCell className="relative hidden md:table-cell">
+        {properties.length === 0 ? (
           <Empty />
         ) : (
-          <div className="flex flex-wrap items-center gap-1">
-            {dish.highProtein && (
-              <TagChip dot={highProteinDotClasses()} label={t('nutritionFilters.high_protein')} />
-            )}
-            {shownTags.map((tag) => (
-              <TagChip key={tag} dot={dishTagDotClasses(tag)} label={t(`tags.${tag}`)} />
+          <div className="flex min-w-0 flex-nowrap items-center gap-1 overflow-hidden">
+            {shownProperties.map((property) => (
+              <TagChip key={property.key} dot={property.dot} label={property.label} />
             ))}
-            {overflow > 0 && (
-              <span
-                className="text-caption text-muted-foreground tabular-nums"
-                dir="ltr"
-                title={format.list(tags.slice(TAG_LIMIT).map((tag) => t(`tags.${tag}`)))}
-              >
-                {t('moreTags', { count: overflow })}
-              </span>
+            {hiddenProperties.length > 0 && (
+              <PropertyOverflow
+                count={hiddenProperties.length}
+                label={hiddenPropertyLabels}
+                moreLabel={t('moreTags', { count: hiddenProperties.length })}
+              />
             )}
           </div>
         )}
@@ -436,7 +466,7 @@ function DishRow({
 
       {/* `relative` lifts the menu above the stretched button in the first cell,
           so it captures its own clicks. */}
-      <TableCell className="relative w-px pe-2 text-end">
+      <TableCell className="relative w-12 ps-2 pe-2 text-end">
         {editing ? (
           <span className="flex size-8 items-center justify-center">
             <Spinner />
@@ -456,10 +486,37 @@ function DishRow({
 /** One tag in the qualities column: its colour dot, then its name. */
 function TagChip({ dot, label }: { dot: string; label: string }) {
   return (
-    <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-muted px-2 py-0.5 text-caption font-medium text-foreground">
-      <span aria-hidden className={dot} />
-      {label}
-    </span>
+    <TooltipHint label={<span dir="auto">{label}</span>} className="relative min-w-0 shrink">
+      <span className="inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-full bg-muted px-2 py-0.5 text-caption font-medium text-foreground">
+        <span aria-hidden className={cn('shrink-0', dot)} />
+        <span className="truncate">{label}</span>
+      </span>
+    </TooltipHint>
+  );
+}
+
+/** The qualities that do not fit in the two-chip scan line. */
+function PropertyOverflow({
+  count,
+  label,
+  moreLabel,
+}: {
+  count: number;
+  label: string;
+  moreLabel: string;
+}) {
+  return (
+    <TooltipHint label={<span dir="auto">{label}</span>} className="relative shrink-0">
+      <button
+        type="button"
+        aria-label={`${moreLabel}: ${label}`}
+        className="shrink-0 rounded-sm px-1 text-caption text-muted-foreground tabular-nums focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+      >
+        <span aria-hidden dir="ltr">
+          +{count}
+        </span>
+      </button>
+    </TooltipHint>
   );
 }
 
@@ -483,8 +540,8 @@ function NutrientCell({
 }) {
   return (
     <TableCell numeric className={cn('whitespace-nowrap text-end', className)}>
-      <span className={cn('text-body-sm', lead ? 'font-semibold' : 'text-foreground')}>{value}</span>
-      <span className="ms-0.5 text-caption text-muted-foreground">{unit}</span>
+      <span className={cn('text-body-md', lead ? 'font-semibold' : 'text-foreground')}>{value}</span>
+      <span className="ms-0.5 text-body-sm text-muted-foreground">{unit}</span>
     </TableCell>
   );
 }

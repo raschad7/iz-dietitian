@@ -62,7 +62,7 @@ export function ClientProgressRing({
   return (
     <span className="relative grid size-36 shrink-0 place-items-center sm:size-40">
       <svg viewBox="0 0 100 100" className="absolute inset-0 size-full -rotate-90" aria-hidden="true">
-        <circle cx="50" cy="50" r={RADIUS} strokeWidth={STROKE} className="fill-none stroke-border" />
+        <circle cx="50" cy="50" r={RADIUS} strokeWidth={STROKE} className="fill-none stroke-muted" />
 
         {drawn ? (
           <circle

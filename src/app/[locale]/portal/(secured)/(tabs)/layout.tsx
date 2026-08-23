@@ -81,6 +81,8 @@ export default async function PortalTabsLayout({ children, params }: PortalTabsL
         box. It decides for itself whether this is the home tab; see the note
         in `home-glow.tsx`.
       */}
+      <HomeGlow />
+
       {/*
         `showTitle={false}`: the portal's name is not drawn anywhere in the
         client's own app. `PortalHeader` directly above already opens the
@@ -151,38 +153,13 @@ export default async function PortalTabsLayout({ children, params }: PortalTabsL
         />
 
         {/*
-          The frame's one scrolling region — see `[data-slot='shell-scroll']` in
-          `globals.css`. `PortalHeader` above and `PortalTabBar` below are its
-          siblings in the shell column, so both stay put while this scrolls.
-
-          **`pb-24` is gone, and its absence is the point.** It existed to keep
-          the last card clear of a `fixed` tab bar — a clearance that had to
-          equal the bar's own height, was maintained by hand in two files, and
-          had already drifted once (it ran to `lg` because the bar does, and a
-          tablet's last card had been landing underneath it). The bar is in flow
-          now and occupies its own height, so nothing has to be reserved for it.
-
-          `relative` is for `HomeGlow`, which moved in here: the wash belongs to
-          the top of the *page*, and with the page scrolling in this box rather
-          than in the document, a glow outside it would be welded to the screen
-          again — the exact thing it was moved off `position: fixed` to stop.
-
-          The horizontal padding still steps at `md`. It is a measure, not a
-          clearance, and it has to keep matching `PortalHeader`'s so the two
-          columns line up.
+          `pb-24` runs to `lg`, not `md`: it is what keeps the last card off
+          `PortalTabBar`, and that bar is now on screen until `lg`. Dropping it
+          at `md` put a tablet's last card underneath the bar. The horizontal
+          padding still steps at `md` — it is a measure, not a clearance, and
+          it has to keep matching `PortalHeader`'s so the two columns line up.
         */}
-        <main data-slot="shell-scroll" className="relative min-w-0 px-4 pt-5 pb-8 md:px-6 md:pt-6">
-          {/*
-            Inside the scroller now, and `absolute` against it. Outside, in the
-            shell column, it would be pinned to the screen while the cards slid
-            up through it — which is what it read as before it was moved off
-            `position: fixed`, and what the note in `home-glow.tsx` exists to
-            prevent. It is still above `.q-route-stage` for the reason recorded
-            there: that wrapper is transformed during its entrance, and a
-            transformed ancestor becomes the containing block for its children.
-          */}
-          <HomeGlow />
-
+        <main className="min-w-0 flex-1 px-4 pt-5 pb-24 md:px-6 md:pt-6 lg:pb-8">
           <div className="mx-auto w-full max-w-3xl">
             {/*
               Inline, not fixed — it scrolls away with the page, so it never

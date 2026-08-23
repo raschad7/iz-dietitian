@@ -80,7 +80,6 @@ function ConnectionSection({ locale, connection, onRefresh }: {
   return (
     <SettingsSection
       title={t('connection.title')}
-      description={t('description')}
       icon="whatsapp"
       action={
         <Button type="button" variant="neutral" size="sm" onClick={() => { void refreshWhatsappStatusAction(locale).then(onRefresh); }}>

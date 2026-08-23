@@ -317,7 +317,7 @@ export function DayAppointments({
 
   if (!day) return null;
 
-  const dayHref = (date: string) => ({ pathname: '/app/calendar/day' as const, query: { date } });
+  const dayHref = (date: string) => ({ pathname: '/app/calendar' as const, query: { view: 'day', date } });
 
   const step = (by: number) => {
     const next = days[index + by];

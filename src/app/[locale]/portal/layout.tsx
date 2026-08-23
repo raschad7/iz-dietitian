@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 
+import { SplashScreen } from '@/features/brand/splash-screen';
 import { PortalTheme } from '@/features/portal/components/portal-theme';
 import { PORTAL_THEME_COLOR } from '@/features/portal/pwa/brand';
 import { ServiceWorkerRegister } from '@/features/portal/pwa/service-worker-register';
@@ -120,39 +121,33 @@ export default async function PortalLayout({ children, params }: PortalLayoutPro
       and the shell's own `<main>` unpainted so the glow can show through it.
       Both live beside `.portal-home-glow`.
 
-      **The window no longer scrolls; `main` does.** This wrapper carried
-      `min-h-dvh` and grew with its content, which put the portal's header on
-      the page rather than above it — scroll the appointments tab and the
-      greeting, the client's name and the notification bell all left the screen,
-      while the tab bar stayed. Two pieces of chrome for one app, behaving
-      differently. The frame is `.q-app-shell` in `globals.css`, shared with the
-      staff shell; this wrapper only supplies the stacking context and the fill,
-      so it has no height of its own and shrink-wraps to the frame inside it.
-
-      ⚠ This is **not** the `100dvh` home screen the note beside
-      `.portal-home-glow` records the removal of, and it must not become one.
-      That arrangement failed because it left *two* scrolling regions inside one
-      screen — the meal list scrolled, the card above it did not, and the same
-      swipe did different things depending on where it landed. Here `main` is
-      the single scroller on every tab, home included; the objection was to
-      nesting, not to a bounded shell. **Do not reintroduce a scroll container
-      inside `main`.**
+      This wrapper is a `min-h-dvh` column that grows on every tab, home
+      included, and the window does the scrolling. It was a clipped `100dvh`
+      frame on the home tab for a while, so that the meal list inside it could
+      be the only thing that scrolled; the ⚠ note beside that rule records why
+      the screen went back to scrolling as one document.
     */
-    <PortalTheme className="portal-shell relative isolate flex flex-col bg-background text-foreground">
+    <PortalTheme className="portal-shell relative isolate flex min-h-dvh flex-col bg-background text-foreground">
       {/*
         Registered once for the whole client area, including `set-password` —
         renders nothing, so it carries no chrome or layout weight here. See
         the component for why registration lives outside `requirePortalClient`'s
         result rather than depending on it.
       */}
-      {/*
-        The `beforeinstallprompt` capture is no longer rendered here: it is
-        mounted from the root locale layout, and it attaches its listener from
-        module scope rather than from a script tag — see `InstallPromptCapture`
-        for why, and `use-install-prompt.ts` for how the event is picked back
-        up.
-      */}
       <ServiceWorkerRegister locale={locale} />
+
+      {/*
+        The launch screen, and it is mounted here rather than inside `(secured)`
+        for the same reason the service worker is: `set-password` is part of the
+        client app too, and a client who lands there on a cold start is opening
+        the app exactly as much as one who lands on the home tab.
+
+        Inside this wrapper's `isolate` context, at z-60 — ahead of the tab bar
+        (40) and the flame celebration (50), which are the only two things in
+        the portal it can ever be ranked against. It takes no pointer events and
+        removes itself after two seconds. See the component.
+      */}
+      <SplashScreen />
 
       {children}
     </PortalTheme>

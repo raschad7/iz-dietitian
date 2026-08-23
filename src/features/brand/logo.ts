@@ -46,6 +46,23 @@ export const MARK_VIEWBOX = '0 0 743 743';
 /** Leaf plus wordmark. 2.6:1, so height is the dimension a caller controls. */
 export const LOCKUP_VIEWBOX = '0 0 1930 743';
 
+/**
+ * The wordmark alone, framed on its own ink.
+ *
+ * `LOCKUP_WORDMARK_PATH` is drawn in `LOCKUP_VIEWBOX`'s coordinates, where it
+ * starts fourteen units from the origin and stops two thirds of the way across
+ * a 1930-unit canvas — the remainder of that canvas is the leaf. A caller that
+ * wants the lettering *under* the mark rather than beside it — the splash
+ * screen — needs the same path framed by itself, and redrawing it at the origin
+ * would be a second copy of the one thing this module exists to keep single.
+ *
+ * These four numbers are the path's own bounding box instead, measured off its
+ * control points. A cubic is contained by the hull of its control points, so
+ * the frame is the ink plus at most a hair of the curves' slack — never a crop.
+ * 1.924:1, so width is the dimension a caller controls.
+ */
+export const WORDMARK_VIEWBOX = '14 111 1033 537';
+
 /** The bitten circle, drawn at the origin of `MARK_VIEWBOX`. */
 export const MARK_LEAF_PATH =
   'M371.5 0C421.797 0 469.759 9.99605 513.508 28.1089C520.466 30.9895 522.551 39.7041 518.553 46.0856C504.918 67.848 497.035 93.5815 497.035 121.156C497.035 199.356 560.429 262.749 638.629 262.749C662.921 262.749 685.784 256.63 705.762 245.851C712.393 242.273 720.958 244.92 723.379 252.054C736.1 289.54 743 329.714 743 371.5C743 576.674 576.674 743 371.5 743C166.326 743 0 576.674 0 371.5C0 166.326 166.326 0 371.5 0Z';

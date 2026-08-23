@@ -57,15 +57,10 @@ export function PersonalProfileSettings({ locale, profile, email }: {
           not to this form. A Change button that cannot change anything is
           worse than no button at all.
         */}
-        <SettingsRow
-          label={t('profile.accountEmail')}
-          value={email}
-          isolate
-          description={t('profile.accountEmailHint')}
-        />
+        <SettingsRow label={t('profile.accountEmail')} value={email} isolate />
       </SettingsSection>
 
-      <SettingsSection title={t('profile.formTitle')} description={t('profile.formDescription')} icon="notes">
+      <SettingsSection title={t('profile.formTitle')} icon="notes">
         {/*
           A professional phone and a licence number sat under these two and are
           gone from every screen by decision — see the ⚠ on
@@ -83,11 +78,7 @@ export function PersonalProfileSettings({ locale, profile, email }: {
         is the one that states the endonym, which is what a settings row's
         action slot has room for.
       */}
-      <SettingsSection
-        title={t('profile.languageTitle')}
-        description={t('profile.languageDescription')}
-        icon="language"
-      >
+      <SettingsSection title={t('profile.languageTitle')} icon="language">
         <SettingsRow
           label={tl('label')}
           value={<span lang={locale}>{tl(`${locale}Name`)}</span>}
@@ -105,11 +96,10 @@ export function ClinicSettings({ locale, profile }: { locale: Locale; profile: C
 
   return (
     <div className="flex flex-col">
-      <SettingsSection title={t('clinic.identityTitle')} description={t('clinic.identityDescription')} icon="dishes">
+      <SettingsSection title={t('clinic.identityTitle')} icon="dishes">
         <SettingsRow
           label={tc('logo')}
           value={<ClinicLogo src={clinic.logoUrl ?? null} alt={tc('logoPreviewAlt')} className="size-14" />}
-          description={tc('logoHint')}
           action={
             <SettingsEditDialog
               locale={locale}
@@ -132,7 +122,7 @@ export function ClinicSettings({ locale, profile }: { locale: Locale; profile: C
         <ClinicRow locale={locale} field="name" label={tc('clinicName')} value={clinic.name} />
       </SettingsSection>
 
-      <SettingsSection title={t('clinic.formTitle')} description={t('clinic.formDescription')} icon="contact">
+      <SettingsSection title={t('clinic.formTitle')} icon="contact">
         <ClinicRow locale={locale} field="phone" label={tc('clinicPhone')} value={clinic.phone} isolate type="tel" />
         <ClinicRow locale={locale} field="contactEmail" label={tc('email')} value={clinic.contactEmail} isolate type="email" />
         <ClinicRow locale={locale} field="address" label={tc('address')} value={clinic.address} />

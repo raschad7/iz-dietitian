@@ -62,9 +62,9 @@ import { cn } from '@/lib/utils';
 
 /** Destinations, block-start to block-end. */
 const LINKS = [
-  { href: '/app/settings/profile', labelKey: 'settings', icon: 'settings' },
+  { href: '/app/settings', labelKey: 'settings', icon: 'settings' },
 ] as const satisfies ReadonlyArray<{
-  href: '/app/settings/profile';
+  href: '/app/settings';
   labelKey: 'settings';
   icon: IconName;
 }>;
@@ -392,8 +392,11 @@ function AccountAvatar({ name, className }: { name: string; className?: string }
  * Name over email. `min-w-0` on the stack and `truncate` on both lines is what
  * stops a long address from pushing the avatar off a 256px rail.
  *
- * The email is `dir="ltr"` under an Arabic name: an address is Latin text and a
- * bidi run would otherwise drag its dot-com to the wrong end.
+ * The email is isolated as an inline LTR run under an Arabic name: an address
+ * is Latin text and a bidi run would otherwise drag its dot-com to the wrong
+ * end. The direction belongs on the run, not this full-width line; putting it
+ * on the line also resolves `text-start` as LTR and sends the address to the
+ * opposite edge from the name.
  */
 function ProfileIdentity({ name, email }: { name: string; email?: string | null }) {
   return (
@@ -402,8 +405,8 @@ function ProfileIdentity({ name, email }: { name: string; email?: string | null 
         {name}
       </span>
       {email ? (
-        <span className="truncate text-caption text-muted-foreground" dir="ltr">
-          {email}
+        <span className="truncate text-caption text-muted-foreground">
+          <bdi dir="ltr">{email}</bdi>
         </span>
       ) : null}
     </span>

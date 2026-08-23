@@ -8,20 +8,28 @@ import { Icon } from '@/components/ui/icon';
 import { useRouter } from '@/i18n/navigation';
 
 import type { RefinedFood } from '../ingredient-refine';
+import type { DishNameSuggestion } from '../queries';
 
 import { DishEditorDialog } from './dish-editor-dialog';
 
 /**
- * The catalog's primary action: "add dish", opening the builder as a side sheet
- * over the catalog rather than navigating away from it (spec §12).
+ * The catalog's primary action: "add dish", opening the builder as a focused
+ * workspace dialog over the catalog rather than navigating away from it (spec §12).
  */
 export function AddDishButton({
   locale,
   search,
+  searchDishNames,
 }: {
   locale: string;
   /** Injectable ingredient search for the dev harness; defaults to the real action. */
   search?: (locale: string, query: string) => Promise<RefinedFood[]>;
+  /** Injectable existing-dish search for the dev harness; defaults to the real action. */
+  searchDishNames?: (
+    locale: string,
+    query: string,
+    excludeDishId?: string,
+  ) => Promise<DishNameSuggestion[]>;
 }) {
   const t = useTranslations('dishes');
   const router = useRouter();
@@ -57,6 +65,7 @@ export function AddDishButton({
         onOpenChange={setOpen}
         onSaved={handleSaved}
         search={search}
+        searchDishNames={searchDishNames}
       />
     </>
   );
