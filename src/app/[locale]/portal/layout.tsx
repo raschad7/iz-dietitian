@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 
-import { SplashScreen } from '@/features/brand/splash-screen';
 import { PortalTheme } from '@/features/portal/components/portal-theme';
 import { PORTAL_THEME_COLOR } from '@/features/portal/pwa/brand';
 import { ServiceWorkerRegister } from '@/features/portal/pwa/service-worker-register';
@@ -137,18 +136,12 @@ export default async function PortalLayout({ children, params }: PortalLayoutPro
       <ServiceWorkerRegister locale={locale} />
 
       {/*
-        The launch screen, and it is mounted here rather than inside `(secured)`
-        for the same reason the service worker is: `set-password` is part of the
-        client app too, and a client who lands there on a cold start is opening
-        the app exactly as much as one who lands on the home tab.
-
-        Inside this wrapper's `isolate` context, at z-60 — ahead of the tab bar
-        (40) and the flame celebration (50), which are the only two things in
-        the portal it can ever be ranked against. It takes no pointer events and
-        removes itself after two seconds. See the component.
+        No `SplashScreen` here. It is mounted once from `[locale]/layout.tsx`
+        now, for the whole product, and being outside this wrapper's `isolate`
+        context does not cost it anything: the tab bar (40) and the flame
+        celebration (50) are sealed inside that context, so a `position: fixed`
+        tile at document level still paints over both. Do not add it back.
       */}
-      <SplashScreen />
-
       {children}
     </PortalTheme>
   );

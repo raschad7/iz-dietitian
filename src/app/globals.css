@@ -5326,14 +5326,33 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
  *   900    it arrives in the middle, full size     ⎭ takes it 0.42 → 1
  *   900    the arrival settles on its feet           q-splash-land
  *   920    the name rises underneath it              q-splash-word-in
- *  1620    the tile fades                            q-splash-out
- *  1920    the component unmounts
+ *  1300    the composition is whole, and holds
+ *  1360    it gathers itself — a crouch, the name   ⎫ q-splash-burst on the mark,
+ *          going with it                           ⎬ q-splash-word-out on the
+ *  1520    the mark blows out past the frame        ⎭ name
+ *  1660    the white it throws opens to the edges    q-splash-flood
+ *  1820    the screen is white; it holds
+ *  1980    the tile fades, white into the app        q-splash-out
+ *  2260    the component unmounts
  *
  * None of this is on the app's `--duration-*` scale. Those measure *reactions*
  * — a field arcing, a switch knob travelling — and are tens of milliseconds
  * because somebody is waiting on the other end of them. This screen is not a
  * reaction to anyone; it is the app introducing itself, and the number that
- * matters is that the whole introduction is over inside two seconds.
+ * matters is that the whole introduction is over inside two and a bit seconds.
+ *
+ * ## The arrival is not the end of it
+ *
+ * The mark hops in, stops in the middle with its name — and then goes off. The
+ * hold at 1300 is what makes that read: an explosion with no pause in front of
+ * it is a transition, and a beat of stillness is what turns it into something
+ * the figure *does*. The crouch at 1360 is the same idea one level down, the
+ * anticipation any thrown thing gets before it goes.
+ *
+ * The white is the tile's own figure colour, so the burst is the mark's own ink
+ * flooding the screen rather than a flash bolted over it — and the tile fades
+ * out of white rather than out of green, which is the colour most of the app is
+ * on the other side. There is no green edge left to notice.
  *
  * `--ease-sweep` is not used for the arcs either, and cannot be: one curve
  * cannot describe a hop. A rise decelerates into its apex and a fall
@@ -5378,22 +5397,30 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
   --q-splash-travel: calc(50vw + var(--q-splash-mark-size) * 0.4);
 
   /*
-   * Which side that is, as a sign the keyframes multiply by.
+   * Which side the mark comes in from, as a sign the keyframes multiply by.
    *
-   * The mark comes in from the **reading-start edge** — the left in English,
-   * the right in Arabic — so it travels the way the page is read rather than
-   * against it. Anything else and the figure enters by crossing the direction
-   * every other thing on the screen is going.
+   * `1` is the right-hand edge, so the character enters on the right and travels
+   * **right to left** into the middle. `-1` would be the mirror of that.
    *
-   * A sign rather than the pair of `-ltr`/`-rtl` keyframe sets used by the
-   * route stage and the app drawer, and the difference is worth stating: those
-   * mirror three-keyframe fades, where a duplicate is cheap. This is an
-   * eight-stop arc with per-keyframe easings, and a second copy of it is a
-   * second thing to retune every time the bounce is adjusted — one of which
-   * would eventually not be. The variable is not animated, so it is substituted
-   * once per element and costs nothing at run time.
+   * ⚠ **One value, both languages.** This used to be `-1` here and `1` under a
+   * `[dir='rtl']` override, so the arc entered from the reading-start edge and
+   * the two locales got mirrored launches. That is deliberately gone: Arabic and
+   * English are meant to get the *same* animation, and this is the only
+   * declaration that decided otherwise. Do not re-add a `[dir]` rule for it —
+   * the wordmark under the mark is what carries language here, and it is chosen
+   * per locale in `SplashScreen`.
+   *
+   * It stays a signed variable rather than becoming a literal because the
+   * keyframes are written around it: the arc's eight stops and the lean in
+   * `q-splash-squash` are all expressed as multiples of this, so the direction
+   * is stated once instead of being spelled into a dozen `calc()`s. A pair of
+   * `-ltr`/`-rtl` keyframe sets — the route stage's approach — was never right
+   * for an eight-stop arc with per-keyframe easings; that is a second copy to
+   * retune every time the bounce is touched, and one of them would eventually
+   * not be. The variable is not animated, so it is substituted once per element
+   * and costs nothing at run time.
    */
-  --q-splash-from: -1;
+  --q-splash-from: 1;
 
   /*
    * The apex of the first hop, and the unit the other two are fractions of.
@@ -5424,6 +5451,23 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
    */
   --q-splash-ground: var(--primary);
   --q-splash-figure: var(--n-0);
+
+  /*
+   * Where the mark's centre is, as a distance from the middle of the screen —
+   * the point the burst goes off from.
+   *
+   * It has to be derived rather than guessed, because the mark does not rest on
+   * the centre: it is the top half of a two-part column, so the column's own
+   * centre is the middle and the mark sits above it. Read off `.q-splash-figure`
+   * — mark (1), gap (0.22), name (1.7 ÷ 1.924 = 0.884) — the column is 2.104
+   * mark-sizes tall and the mark's centre is 0.552 of one above the middle of
+   * it. Every term in that sum is declared elsewhere in this block; **if the gap
+   * or the name's width changes, this number changes with them**, or the flood
+   * will open from a point the character is not standing on, which is the one
+   * error in this whole sequence that is obvious to somebody who has never seen
+   * the animation before.
+   */
+  --q-splash-burst-y: calc(50% - var(--q-splash-mark-size) * 0.552);
 
   position: fixed;
   inset: 0;
@@ -5470,20 +5514,15 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
   background-color: var(--q-splash-ground);
   background-image: radial-gradient(115% 85% at 50% 42%, var(--primary) 0%, var(--green-500) 100%);
 
-  animation: q-splash-out 300ms var(--ease-sweep) 1620ms forwards;
+  animation: q-splash-out 280ms var(--ease-sweep) 1980ms forwards;
 }
 
 /*
- * Arabic reads from the right, so the mark arrives from the right.
- *
- * `[dir]` on the document element and not a `:lang()` or a class: direction is
- * what this is actually about, it is already set on `<html>` by the locale
- * layout, and the portal and the staff app inherit it without either of them
- * having to pass anything down.
+ * ⚠ A `[dir='rtl'] .q-splash { --q-splash-from: 1 }` stood here and is gone on
+ * purpose — the tile is the same animation in both languages now. The whole of
+ * the reasoning is beside the `--q-splash-from` declaration above; it is not
+ * repeated here so the two cannot drift apart.
  */
-[dir='rtl'] .q-splash {
-  --q-splash-from: 1;
-}
 
 /*
  * Mark over name, centred as a pair.
@@ -5520,6 +5559,127 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
    */
   will-change: translate;
   animation: q-splash-hop 900ms linear;
+}
+
+/*
+ * The going off. Nothing until 1360ms, then a crouch and an expansion out past
+ * the frame.
+ *
+ * A fourth element in the stack for a fourth reason, and it is the pivot rather
+ * than the property: the three below all turn on `transform-origin: 50% 100%`
+ * because they are a figure standing on a ground line, and this one is an
+ * explosion, which has no floor. It goes off from the middle of the mark and
+ * therefore in every direction at once. Nested above `.q-splash-grow`, so its
+ * scale multiplies the arrival's 1 rather than replacing it.
+ *
+ * `opacity` here and not on `.q-splash-body`, so it takes the seeds with it —
+ * they are ground-coloured holes, and a leaf that faded while its two green eyes
+ * stayed put would be a very strange last frame. One opacity on the wrapper
+ * fades the drawing as one object.
+ *
+ * `forwards`, because this animation does not return anything to a resting
+ * style: it ends with the mark gone. The tile is 20ms from starting its own fade
+ * by then and the flood is over the top of it either way, but a fill that
+ * snapped the mark back to full size for the last quarter second would be
+ * visible through both.
+ */
+.q-splash-burst {
+  display: block;
+  transform-origin: 50% 50%;
+  will-change: scale, opacity;
+  animation: q-splash-burst 700ms 1360ms forwards;
+}
+
+/*
+ * The crouch and the blow-out, in one animation because they are one gesture.
+ *
+ * 23% of 700ms is 161ms of gathering — enough to be read as intent and not so
+ * much that it looks like a stall — and the 0.82 it gathers to is roughly the
+ * squash the landings were already making, so the shape is one the eye has seen
+ * three times by now. Out of it the curve is front-loaded, because an explosion
+ * leaves fast and slows against nothing, but only moderately so: the 539ms it
+ * has to cover is deliberately long enough that the mark can be *watched*
+ * expanding rather than being replaced by a bigger one. An earlier cut of this
+ * put the same 8 × into 340ms on a much steeper curve and the figure was simply
+ * gone — technically an explosion, and legible as a cut.
+ *
+ * It stops at 8 rather than at something screen-covering, and does not need to
+ * go further: past about 4 × the mark's silhouette is off the edges of the
+ * viewport in every direction anyway, and `q-splash-flood` is the thing that
+ * actually paints the screen white. Keeping the number small keeps the raster
+ * of a scaled SVG somewhere sane.
+ *
+ * The opacity holds while the shape is still legible and only lets go once it
+ * is mostly frame — the mark thins into the white rather than blinking out.
+ */
+@keyframes q-splash-burst {
+  0% {
+    scale: 1;
+    opacity: 1;
+    animation-timing-function: cubic-bezier(0.34, 0, 0.64, 1);
+  }
+  23% {
+    scale: 0.82;
+    opacity: 1;
+    animation-timing-function: cubic-bezier(0.26, 0.58, 0.36, 1);
+  }
+  58% {
+    opacity: 0.85;
+  }
+  100% {
+    scale: 8;
+    opacity: 0;
+  }
+}
+
+/*
+ * The white, opening out of the mark's centre until it is the whole screen.
+ *
+ * **A clipped full-bleed element, not a disc that scales.** A disc has to be
+ * laid out at two to three viewports to be sure of covering the corners from an
+ * off-centre origin, and a compositor layer that size is tens of megabytes on
+ * the phone this is running on — at the exact moment the app behind it is
+ * hydrating and fetching its first route. Clipping costs one viewport of paint
+ * whatever the radius is, and the fill is a flat colour.
+ *
+ * `circle(0%)` is the resting style, so this element is nothing at all until its
+ * animation starts and nothing again if animations are off. That is what lets it
+ * sit in the markup unconditionally — see the reduced-motion block, where it is
+ * simply switched off and disappears rather than needing to be hidden.
+ *
+ * 120%: `clip-path` resolves a percentage radius against the box's own diagonal
+ * over √2, so 100% is a circle through the corners of a *centred* origin. This
+ * one is above centre by up to 0.552 of the mark, and the far corners are that
+ * much further away — worked through, the widest and the narrowest viewport the
+ * `clamp` can produce both need about 85%, and 120% is that with enough margin
+ * that no aspect ratio leaves a green wedge in a corner. It is deliberately not
+ * much more than that: every percent past coverage is time the animation spends
+ * doing nothing anybody can see, and this one already has 150ms of white to sit
+ * in before the tile fades. The circle is in fact still growing when the fade
+ * starts at 1980 and that is fine — everything past 1820 is happening outside
+ * the viewport.
+ *
+ * The curve is quick out of the character and eases into the edges — the flood
+ * is something the mark threw rather than a wipe that happened to start there —
+ * but it is gentler than the burst it comes out of, and it starts 139ms after
+ * the crouch bottoms out rather than on the same frame. Both of those are the
+ * same correction: the white used to have the screen 60ms in, which meant the
+ * mark's expansion was over before anybody could read it. The explosion has to
+ * be *visible* first, and the white is what it leaves behind.
+ */
+.q-splash-flood {
+  position: absolute;
+  inset: 0;
+  background-color: var(--q-splash-figure);
+  clip-path: circle(0% at 50% var(--q-splash-burst-y));
+  will-change: clip-path;
+  animation: q-splash-flood 420ms cubic-bezier(0.34, 0.5, 0.32, 1) 1660ms forwards;
+}
+
+@keyframes q-splash-flood {
+  to {
+    clip-path: circle(120% at 50% var(--q-splash-burst-y));
+  }
 }
 
 /*
@@ -5609,7 +5769,52 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
   display: block;
   inline-size: calc(var(--q-splash-mark-size) * 1.7);
   block-size: auto;
-  animation: q-splash-word-in 380ms var(--ease-sweep) 920ms backwards;
+  animation:
+    q-splash-word-in 380ms var(--ease-sweep) 920ms backwards,
+    q-splash-word-out 220ms cubic-bezier(0.5, 0, 0.75, 0) 1360ms forwards;
+}
+
+/*
+ * The English name, set as type rather than drawn.
+ *
+ * The brand sheet has one wordmark and it is the Arabic one — إنزيم — so there
+ * is no Latin path to import the way `.q-splash-word` imports its curves from
+ * `logo.ts`. This is the product's own display face instead, which is the same
+ * type the app sets every heading in, at the weight the mark's stroke asks for.
+ * **If a drawn Latin lockup ever arrives, this rule is what it replaces.**
+ *
+ * It takes the same box and the same entrance as the drawn wordmark so the
+ * composition does not move between locales: `block-size` is pinned to what the
+ * Arabic `viewBox` resolves to at this width (1.7 ÷ 1.924 of the mark), and the
+ * type is centred inside it. Without that pin the column would be a different
+ * height in each language and the mark's landing spot would sit somewhere
+ * slightly different — the one thing that must not differ.
+ *
+ * `line-height: 1` and `display: grid` + `place-items: center` rather than any
+ * vertical padding: the box is fixed, so the lettering is centred in it optically
+ * instead of being pushed around by the font's own metrics.
+ */
+.q-splash-word-type {
+  display: grid;
+  place-items: center;
+  inline-size: calc(var(--q-splash-mark-size) * 1.7);
+  block-size: calc(var(--q-splash-mark-size) * 1.7 / 1.924);
+  font-family: var(--font-heading);
+  /*
+   * 0.46 of the mark. The Arabic wordmark fills its box edge to edge because it
+   * is artwork; a line of type at that size would tower over the character, so
+   * this is set to the height the Arabic lettering actually reads at rather than
+   * to the height of its frame.
+   */
+  font-size: calc(var(--q-splash-mark-size) * 0.46);
+  font-weight: 700;
+  line-height: 1;
+  /* The curves of the drawn mark are tight; loose default tracking looks unset beside them. */
+  letter-spacing: -0.02em;
+  color: var(--q-splash-figure);
+  animation:
+    q-splash-word-in 380ms var(--ease-sweep) 920ms backwards,
+    q-splash-word-out 220ms cubic-bezier(0.5, 0, 0.75, 0) 1360ms forwards;
 }
 
 /*
@@ -5627,10 +5832,11 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
  *   83.33    0.07            −0.34         apex, lower again
  *   100      0                 0           the middle
  *
- * The across column is multiplied by `--q-splash-from`, which is −1 in English
- * and +1 in Arabic — the sign is the whole of the mirroring. Its steps shorten
- * (0.58, 0.26, 0.16) and the apexes drop with them, so the figure reads as
- * arriving with momentum and spending it, rather than as three identical hops.
+ * The across column is multiplied by `--q-splash-from`, which is `+1` in every
+ * locale: the figure starts at the right-hand edge and works right to left into
+ * the middle, in Arabic and English alike. Its steps shorten (0.58, 0.26, 0.16)
+ * and the apexes drop with them, so the figure reads as arriving with momentum
+ * and spending it, rather than as three identical hops.
  *
  * Every rise carries a decelerating curve and every fall an accelerating one,
  * declared on the keyframe the segment *starts* at, because that is the one
@@ -5745,6 +5951,28 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
 }
 
 /*
+ * The name goes on the crouch, not on the blast.
+ *
+ * It starts at 1360 with `q-splash-burst`'s gather and is gone by 1580, which is
+ * before the mark has finished expanding — deliberately, because the two cannot
+ * both be leaving at once without the screen reading as cluttered at the moment
+ * it is supposed to read as one thing letting go. The name draws back into the
+ * figure and the figure blows out; that ordering is what makes it a gathering
+ * rather than two elements fading in parallel.
+ *
+ * `scale` rather than the `translate` its entrance used — it is being taken in
+ * by the mark above it, not knocked down — and the two properties are separate,
+ * so the entrance's fill and this one never write the same thing. An accelerating
+ * curve, since this is an exit.
+ */
+@keyframes q-splash-word-out {
+  to {
+    opacity: 0;
+    scale: 0.9;
+  }
+}
+
+/*
  * The tile leaves. `visibility` is in here as well as `opacity` because this
  * fill has a forwards fill and outlives its own animation: an element at zero
  * opacity is still a hit-testable, focusable, screen-reader-visible element,
@@ -5777,7 +6005,17 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
   .q-splash-mark,
   .q-splash-grow,
   .q-splash-body,
-  .q-splash-word {
+  /* The burst and the white it throws are the most motion on this screen and
+     the first two things off it. Both rest at nothing — `scale: 1` on the mark,
+     `circle(0%)` on the flood — so switching them off leaves the still picture
+     rather than a mark stuck at 8 × or a white sheet over the app. */
+  .q-splash-burst,
+  .q-splash-flood,
+  .q-splash-word,
+  /* The English name is type rather than the drawn path, and takes the same
+     entrance — so it has to be stilled here too, or reduced motion would quiet
+     the whole tile in Arabic and leave one thing rising in English. */
+  .q-splash-word-type {
     animation: none;
   }
 

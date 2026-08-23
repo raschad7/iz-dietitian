@@ -17,13 +17,39 @@ import {
 import { createSplashSound, LANDING_COUNT, type PendingLanding } from './splash-sound';
 
 /**
- * The launch screen: a green tile, the mark hopping up it, and the name landing
- * underneath.
+ * The launch screen: a green tile, the mark hopping across it, the name landing
+ * underneath, and the pair going off in a burst of white that becomes the app.
  *
- * Mounted by both shells — `[locale]/app/layout.tsx` and
- * `[locale]/portal/layout.tsx` — and by neither of the public screens. A splash
- * belongs to an app being opened; on a login form or the marketing page it is a
- * two-second wall in front of a page somebody navigated to on purpose.
+ * **Mounted once, from `[locale]/layout.tsx`, and nowhere else.** Not from the
+ * two shells and not from the landing page, which is where it used to live: a
+ * document is loaded on whatever route the reader was last on, so a tile that
+ * only exists under `/app` and `/portal` is a tile that does not appear when a
+ * deep route is reloaded. One mount at the root covers every route in both
+ * apps, nested ones included, without any route knowing about it.
+ *
+ * ## When it plays is not decided here
+ *
+ * **This component draws the tile; `SplashLaunchGate` decides whether it exists
+ * at all.** A hard reload plays it and a quick reload does not, and the only
+ * place those two can be told apart is the request — so the gate is a Server
+ * Component reading the navigation's cache headers, and a load that should stay
+ * quiet is sent no tile at all. Nothing can flash if nothing was sent, which is
+ * why there is no inline script here and no `display: none` rule in
+ * `globals.css` any more. See that file for the whole of it.
+ *
+ * Two things below still matter to the rule, both about *this* document:
+ *
+ *  1. The mount is in the root layout, which survives every client-side
+ *     navigation in a locale, so the component is not remounted and cannot
+ *     replay. That is what keeps signing in, signing up and signing out quiet:
+ *     all three are `redirect()` out of a Server Action, which the App Router
+ *     runs as a client navigation, never a load.
+ *  2. `playedInThisDocument`, for the remounts that happen anyway — a locale
+ *     switch rebuilds this subtree, and React may remount a component for its
+ *     own reasons.
+ *
+ * Nothing here reads session or auth state, and nothing about the design, the
+ * timings or the sound changed to arrange any of it.
  *
  * ## The motion is CSS, and that is a safety property
  *
@@ -46,8 +72,8 @@ import { createSplashSound, LANDING_COUNT, type PendingLanding } from './splash-
  * `pointer-events: none` on the overlay from the first frame, so a reader who
  * knows where they are going taps straight through it to the app underneath.
  * The splash plays out in full either way — a tap reaches the app without
- * cutting the introduction short, so the two seconds are the same two seconds
- * every time. Nothing here is in the accessibility tree either (`aria-hidden`):
+ * cutting the introduction short, so the two-odd seconds are the same two-odd
+ * seconds every time. Nothing here is in the accessibility tree either (`aria-hidden`):
  * the mark and the wordmark are the product's name in picture form, in front of
  * a document whose title already says it, and a screen reader that announced
  * "Enzyme" here would be saying it twice before anyone had asked for it once.
@@ -64,9 +90,17 @@ const HOP_MS = 300;
  */
 const LANDING_MS = Array.from({ length: LANDING_COUNT }, (_, index) => (index + 1) * HOP_MS);
 
-/** ms from first paint. `q-splash-out`'s delay, then its duration. */
-const OUT_DELAY_MS = 1620;
-const OUT_MS = 300;
+/**
+ * ms from first paint. `q-splash-out`'s delay, then its duration.
+ *
+ * The delay is the end of the burst rather than a pause after the landing: the
+ * mark crouches at 1360, blows out at 1520 and the white it throws has covered
+ * the screen by 1820. The tile leaves from *there* — a white sheet dissolving
+ * into the app — so this cannot be moved without moving `q-splash-flood` with
+ * it, or the green would come back for a frame before the fade.
+ */
+const OUT_DELAY_MS = 1980;
+const OUT_MS = 280;
 
 /**
  * ms the sound will wait for the browser to answer about audio.
@@ -89,13 +123,80 @@ const AUDIO_GRACE_MS = LANDING_MS[LANDING_MS.length - 1] ?? 900;
  */
 const FALLBACK_SLACK_MS = 400;
 
-export function SplashScreen() {
-  const [present, setPresent] = useState(true);
+/**
+ * Whether this document has already played the tile.
+ *
+ * A module variable rather than React state, a ref or a context, because the
+ * lifetime wanted is precisely the module's: a fresh document evaluates the
+ * chunk again and starts at `false`, while nothing the app does inside one
+ * document can reset it. It is also read during render, before any provider
+ * could have supplied it.
+ */
+let playedInThisDocument = false;
+
+/**
+ * The product's name in Latin letters, for every locale that is not Arabic.
+ *
+ * A literal rather than a lookup through `t('app.name')`, and deliberately: this
+ * component is mounted above `NextIntlClientProvider` in the root layout — it
+ * has to be, because it is a `position: fixed` tile that must outrank the whole
+ * tree — so there is no translator in scope, and giving it one would mean moving
+ * the tile down into the app for a string that is a *logo*. Wordmarks are not
+ * translated copy; the Arabic side of this is a drawn path for the same reason.
+ *
+ * It matches `app.name` in `en.json`, and the two are expected to stay equal.
+ */
+const LATIN_WORDMARK = 'Enzyme';
+
+/** The one locale whose name is drawn rather than typeset. */
+const ARABIC_LOCALE = 'ar';
+
+type SplashScreenProps = {
+  /**
+   * Which language's name goes under the mark.
+   *
+   * Passed in rather than read from context, for the reason `LATIN_WORDMARK`
+   * gives. It changes the wordmark and nothing else — the hop, the travel, the
+   * scale and the landing are identical in every locale.
+   */
+  locale: string;
+
+  /**
+   * Play even though this document has already played it.
+   *
+   * For `dev/splash` and nothing else: a harness whose whole purpose is to watch
+   * the tile ten times cannot be subject to `playedInThisDocument`. It has no
+   * bearing on `SplashLaunchGate`, which the harness does not go through — it
+   * mounts this component directly.
+   */
+  replay?: boolean;
+};
+
+export function SplashScreen({ locale, replay = false }: SplashScreenProps) {
+  const isArabic = locale === ARABIC_LOCALE;
+
+  /*
+    Asked during render, not from an effect.
+
+    A remount that must not play has to return `null` before anything reaches
+    the DOM — an effect could only remove the tile a frame late, and a frame of
+    full-screen green is the whole thing being avoided. Hydration is safe
+    because the flag is still `false` during a document's first render pass: it
+    is armed from the effect below, and effects run after render.
+  */
+  const [present, setPresent] = useState(() => replay || !playedInThisDocument);
   const overlayRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const overlay = overlayRef.current;
     if (!overlay) return;
+
+    /*
+      This playing is the document's one playing. Set before anything below can
+      bail out, so a remount is suppressed even if the sound or the animation
+      never got going.
+    */
+    playedInThisDocument = true;
 
     /*
       How far into the splash we already are.
@@ -154,9 +255,9 @@ export function SplashScreen() {
 
     /*
       `animationName` and not just "an animation ended": this listener is on the
-      overlay, and animation events bubble, so the hop, the squash, the landing
-      and the wordmark all arrive here first. Only the overlay's own exit means
-      the splash is over.
+      overlay, and animation events bubble, so the hop, the squash, the landing,
+      the wordmark, the burst and the flood all arrive here first. Only the
+      overlay's own exit means the splash is over.
     */
     const onAnimationEnd = (event: AnimationEvent) => {
       if (event.animationName === 'q-splash-out') dismiss();
@@ -164,6 +265,14 @@ export function SplashScreen() {
 
     overlay.addEventListener('animationend', onAnimationEnd);
 
+    /*
+      A tile that was never painted is dismissed on the next tick instead. It has
+      no exit to wait for — `display: none` runs no animation and so fires no
+      `animationend` either — which makes this timeout the only thing that would
+      ever take it out of the tree. A tick rather than a synchronous
+      `setPresent(false)`, because a `setState` in an effect body is a cascading
+      render.
+    */
     const fallback = window.setTimeout(
       dismiss,
       Math.max(0, OUT_DELAY_MS + OUT_MS - elapsedMs) + FALLBACK_SLACK_MS,
@@ -174,7 +283,7 @@ export function SplashScreen() {
       window.clearTimeout(fallback);
       sound?.stop();
     };
-  }, []);
+  }, [replay]);
 
   if (!present) return null;
 
@@ -199,57 +308,102 @@ export function SplashScreen() {
           exactly that reason.
         */}
         <div className="q-splash-mark">
-          <div className="q-splash-grow">
-            <div className="q-splash-body">
-              <svg viewBox={MARK_VIEWBOX} fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d={MARK_LEAF_PATH} fill="var(--q-splash-figure)" />
-                {/*
-                  The seeds are painted in the tile's own green rather than the
-                  brand's dark seed colour — they are holes in a white mark on a
-                  green ground, which is the reversed lockup `mark-on-color.svg`
-                  draws for a coloured tile. The two greens have to be the same
-                  green, so this reads the ground's variable rather than naming
-                  one: change the tile and the eyes follow it.
-                */}
-                {MARK_SEED_CX.map((cx) => (
-                  <ellipse
-                    key={cx}
-                    cx={cx}
-                    cy={SEED_CY}
-                    rx={SEED_RX}
-                    ry={SEED_RY}
-                    transform={`rotate(${SEED_ROTATION} ${cx} ${SEED_CY})`}
-                    fill="var(--q-splash-ground)"
-                  />
-                ))}
-              </svg>
+          {/*
+            The burst, on a fourth element for the reason the other three exist:
+            it writes `scale` too, and it is the only one of the four that wants
+            its `transform-origin` in the *centre* of the mark rather than at its
+            feet. An explosion that pivoted on the ground line would climb the
+            screen as it grew; this one goes outwards in every direction from the
+            figure that made it, which is what makes it read as a burst rather
+            than as a zoom. `opacity` rides here as well, so the whole mark —
+            leaf, seeds and squash alike — thins out as one thing.
+          */}
+          <div className="q-splash-burst">
+            <div className="q-splash-grow">
+              <div className="q-splash-body">
+                <svg viewBox={MARK_VIEWBOX} fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d={MARK_LEAF_PATH} fill="var(--q-splash-figure)" />
+                  {/*
+                    The seeds are painted in the tile's own green rather than the
+                    brand's dark seed colour — they are holes in a white mark on a
+                    green ground, which is the reversed lockup `mark-on-color.svg`
+                    draws for a coloured tile. The two greens have to be the same
+                    green, so this reads the ground's variable rather than naming
+                    one: change the tile and the eyes follow it.
+                  */}
+                  {MARK_SEED_CX.map((cx) => (
+                    <ellipse
+                      key={cx}
+                      cx={cx}
+                      cy={SEED_CY}
+                      rx={SEED_RX}
+                      ry={SEED_RY}
+                      transform={`rotate(${SEED_ROTATION} ${cx} ${SEED_CY})`}
+                      fill="var(--q-splash-ground)"
+                    />
+                  ))}
+                </svg>
+              </div>
             </div>
           </div>
         </div>
 
         {/*
-          The name, under the mark rather than beside it.
+          The name, under the mark rather than beside it — and in the reader's
+          own language, which is the one thing on this screen that is not the
+          same in both.
 
-          `WORDMARK_VIEWBOX` is the lettering framed on its own ink — the lockup
-          path, cropped rather than redrawn, so there is still one copy of these
-          curves in the repository. The lockup itself is not used here: it sets
-          the name *beside* the mark and reads right to left, which is a
-          horizontal composition, and this screen is a vertical one.
+          **Arabic gets the drawn wordmark.** `WORDMARK_VIEWBOX` is the lettering
+          framed on its own ink — the lockup path, cropped rather than redrawn,
+          so there is still one copy of these curves in the repository. The
+          lockup itself is not used here: it sets the name *beside* the mark and
+          reads right to left, which is a horizontal composition, and this screen
+          is a vertical one.
 
-          It holds its width from the first frame even while it is still
-          invisible, so the column below the mark is already the right height
-          and the mark's landing spot does not move underneath it when the name
-          arrives.
+          **English gets type.** The brand sheet draws one wordmark and it is the
+          Arabic one, so there is no Latin path to crop; `.q-splash-word-type`
+          sets the name in the product's own display face at the same size and in
+          the same box. See that rule for what to change if a drawn Latin lockup
+          is ever produced.
+
+          Either way it holds its box from the first frame while it is still
+          invisible, so the column below the mark is already the right height and
+          the mark's landing spot does not move underneath it when the name
+          arrives — and the two locales get a composition of identical size.
         */}
-        <svg
-          className="q-splash-word"
-          viewBox={WORDMARK_VIEWBOX}
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path d={LOCKUP_WORDMARK_PATH} fill="var(--q-splash-figure)" />
-        </svg>
+        {isArabic ? (
+          <svg
+            className="q-splash-word"
+            viewBox={WORDMARK_VIEWBOX}
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path d={LOCKUP_WORDMARK_PATH} fill="var(--q-splash-figure)" />
+          </svg>
+        ) : (
+          <div className="q-splash-word-type">{LATIN_WORDMARK}</div>
+        )}
       </div>
+
+      {/*
+        The flood: the white the burst throws, opening out of the mark's own
+        centre until it is the whole screen.
+
+        A sibling *after* the figure so it passes over it — the mark is white on
+        green and this is the same white, so the figure does not get covered up
+        so much as absorbed into what it just let off. It is one element with a
+        `clip-path` circle rather than a scaled-up disc, and that is a memory
+        decision: a disc big enough to cover a desktop from an off-centre point
+        has to be laid out at two or three times the viewport, which is a
+        compositor layer of tens of megabytes on the phone this runs on while
+        the app behind it is still hydrating. A full-bleed element clipped to a
+        growing circle is one viewport of paint, whatever the radius says.
+
+        It is inert until 1660ms — `circle(0%)` is its resting style, so a
+        browser that runs no animations shows a green tile with a mark on it and
+        never a white sheet, which is also what reduced motion gets.
+      */}
+      <div className="q-splash-flood" />
     </div>
   );
 }
