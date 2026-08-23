@@ -3,6 +3,24 @@
 import { useEffect } from 'react';
 
 /**
+ * The worker's own URL, carrying whether this is a development build.
+ *
+ * The worker keeps `/_next/static/*` cache-first on the grounds that those URLs
+ * are content-hashed and so can never go stale. `next dev` does not hash them —
+ * it names a chunk after the modules in it — so in development that rule pins
+ * every chunk to the first bytes the browser ever saw, and it holds them
+ * through a restarted dev server, a deleted `.next` and a hard reload, none of
+ * which are Cache Storage. A flag on the URL is how a static file in `public/`
+ * with no build of its own gets told which it is; see `isImmutableBuildAsset`
+ * in `public/app-sw.js`.
+ *
+ * A registration is keyed by its **scope**, not by its script URL, so this
+ * replaces an existing registration rather than adding a second one beside it.
+ */
+const SCRIPT_URL =
+  process.env.NODE_ENV === 'production' ? '/app-sw.js' : '/app-sw.js?dev=1';
+
+/**
  * Registers `public/app-sw.js`, scoped to this locale's `/app` tree — the
  * staff-side counterpart to `features/portal/pwa/service-worker-register.tsx`.
  *
@@ -28,7 +46,7 @@ export function ServiceWorkerRegister({ locale }: { locale: string }) {
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
 
-    navigator.serviceWorker.register('/app-sw.js', { scope: `/${locale}/app` }).catch(() => {
+    navigator.serviceWorker.register(SCRIPT_URL, { scope: `/${locale}/app` }).catch(() => {
       // Best-effort only: a failed registration should never block the staff
       // app from working without a service worker.
     });
