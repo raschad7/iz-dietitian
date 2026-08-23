@@ -138,20 +138,6 @@ export function IntakeFormTrigger({
                 'h-[46rem]',
                 // Wide enough for the section rail *and* two field columns beside it.
                 'sm:w-[min(54rem,calc(100vw-3rem))]',
-                /*
-                  The same measure said a second time, to the coarse-pointer
-                  sheet in `globals.css`.
-
-                  Those rules are unlayered and so beat the `sm:w-[…]` above,
-                  and this dialog never set the variable they read — so on a
-                  *physical* tablet it took the 28rem fallback and drew its 14rem
-                  rail beside a two-column grid in the 14rem that was left. The
-                  same tablet driven by a mouse got 54rem: one surface, two
-                  widths, decided by the input device rather than by the screen.
-                  It is deliberately the same number as the line above. See
-                  `--q-dialog-sheet-width` in `globals.css`.
-                */
-                '[--q-dialog-sheet-width:min(54rem,calc(100vw-3rem))]',
               )}
             >
               <DialogHeader

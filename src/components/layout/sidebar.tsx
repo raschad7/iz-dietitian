@@ -157,11 +157,17 @@ export function AppShell({
     /*
       `railOnly` on the staff shell, and only there.
 
-      Below `lg` the rail is locked to its 56px icon column: always on screen,
-      never expandable, no drawer. It replaces a `<dialog>` drawer that had to be
-      opened before any destination could be reached and covered the page while
-      it was open — two taps and an occlusion to change screen, on the devices
-      where changing screen is most of what you do.
+      On a **phone** the rail is locked to its 56px icon column: always on
+      screen, never expandable, no drawer. It replaces a `<dialog>` drawer that
+      had to be opened before any destination could be reached and covered the
+      page while it was open — two taps and an occlusion to change screen, on
+      the device where changing screen is most of what you do.
+
+      From `md` up — the tablet included — the rail is the ordinary collapsible
+      one, with `SidebarTrigger` in its head and the stored preference deciding
+      whether it opens as icons or as the 16rem column. The lock was briefly
+      `width < 64rem`, which took the tablet with it and left an iPad no way to
+      read the destination labels at all.
 
       The portal passes nothing and keeps the drawer, because it is a phone-first
       app with a bottom tab bar carrying the same five destinations; a permanent

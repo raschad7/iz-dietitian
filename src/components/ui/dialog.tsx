@@ -3,6 +3,7 @@
 import * as React from 'react';
 
 import { Button } from '@/components/ui/button';
+import { resetSheetDrag, SheetGrip, useSheetDrag } from '@/components/ui/dialog-drag';
 import { isCurrentDialogEvent } from '@/components/ui/dialog-event';
 import { DIALOG_NATIVE_CLOSE_DELAY_MS } from '@/components/ui/dialog-motion';
 import { Icon } from '@/components/ui/icon';
@@ -131,11 +132,31 @@ function Dialog({
    */
   const [container, setContainer] = React.useState<HTMLDialogElement | null>(null);
 
+  /*
+    Swipe-down-to-dismiss, and the band that advertises it. Armed only for a
+    sheet — a centred card has no edge to be pushed back to — and only where
+    dismissal is allowed at all, so a dialog guarding a submission in flight is
+    as un-pushable as it is un-escapable. The hook asks the width itself at
+    `pointerdown`; see `dialog-drag.tsx` for why that is where the question
+    belongs.
+  */
+  const canDrag = placement === 'sheet' && dismissible;
+  const dragProps = useSheetDrag(ref, { enabled: canDrag, onDismiss: onClose });
+
   React.useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
 
     if (open) {
+      /*
+        The drag state survives `close()` — both the attribute and the custom
+        property are still on the element — so a sheet that was pushed away and
+        then reopened would arrive already translated off the bottom of the
+        screen. Cleared on the way in rather than on the way out, because the
+        dismissing slide has to hold its end state until the native close
+        actually happens.
+      */
+      resetSheetDrag(dialog);
       dialog.removeAttribute('data-closing');
       if (!dialog.open) dialog.showModal();
       return;
@@ -148,6 +169,7 @@ function Dialog({
     const timeout = window.setTimeout(() => {
       if (dialog.open) dialog.close();
       dialog.removeAttribute('data-closing');
+      resetSheetDrag(dialog);
     }, reduceMotion ? 0 : DIALOG_NATIVE_CLOSE_DELAY_MS);
 
     return () => window.clearTimeout(timeout);
@@ -268,6 +290,14 @@ function Dialog({
       )}
     >
       <DialogContainerContext.Provider value={container}>
+        {/*
+          First child, so the pill is the first row of the flex column the frame
+          in `globals.css` makes of this element and the header sits under it.
+          `display: none` from `sm` up lives in that stylesheet rather than
+          behind a media hook here, so the server's markup and the client's
+          first pass are the same.
+        */}
+        {canDrag ? <SheetGrip {...dragProps} /> : null}
         {children}
       </DialogContainerContext.Provider>
     </dialog>
