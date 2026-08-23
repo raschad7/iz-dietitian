@@ -1210,6 +1210,14 @@
           "missed": "That's alright — tomorrow is a fresh start.",
           "partial": "A good step toward your plan.",
           "full": "Wonderful commitment today!"
+        },
+        "energy": {
+          "empty": "Start your healthy day!",
+          "starting": "A great start!",
+          "halfway": "You're halfway there!",
+          "strong": "Well done! Almost there.",
+          "completeTitle": "Day complete!",
+          "complete": "Well done! You completed all your meals."
         }
       },
       "week": {
@@ -1231,7 +1239,9 @@
           "future": "{day}: still to come"
         },
         "celebration": {
-          "title": "You earned today's streak!",
+          "title": "You did it!",
+          "subtitle": "Every meal today, logged.",
+          "mealsCompleted": "{completed, number, integer} of {total, number, integer} {total, plural, one {meal} other {meals}} completed",
           "claim": "Claim today's fire",
           "claimed": "Today's streak claimed."
         }
@@ -1261,6 +1271,34 @@
         "subtitle": "Last 4 weeks",
         "thisWeek": "This week"
       }
+    },
+    "journey": {
+      "title": "Your journey",
+      "subtitle": "This week",
+      "barLabel": "Your plan adherence this week",
+      "message": {
+        "empty": "Tick off a meal in your plan and your journey begins.",
+        "start": "Every journey starts with one meal. You've got this.",
+        "building": "A good start — you're building a habit.",
+        "consistent": "You're staying consistent. Keep it up.",
+        "progressing": "You're making real progress this week!",
+        "closer": "You're getting closer — a strong week so far.",
+        "almost": "Almost a perfect week. Nearly there!",
+        "complete": "You followed your plan all week! 🎉"
+      }
+    },
+    "mascot": {
+      "welcome": "Welcome back to your journey.",
+      "mealReminder": "A meal in today's plan is coming up.",
+      "missedMeal": "A meal from earlier today is still open — no worries, log it when you can.",
+      "streakAtRisk": "Your streak is still open today — a quick log keeps it going.",
+      "streakLost": "Your streak reset — every journey has a fresh start in it.",
+      "backOnTrack": "Good to see you logging again. Keep going.",
+      "milestone25": "A quarter of the way through the week — nice start.",
+      "milestone50": "Halfway through the week. Keep it up.",
+      "milestone75": "Three quarters there — almost a full week.",
+      "goalComplete": "You followed your plan all week! 🎉",
+      "consistency": "That's a real run of consistent days."
     },
     "header": {
       "notifications": "Notifications",

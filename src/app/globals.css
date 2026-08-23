@@ -228,7 +228,7 @@
    * decorative fill, not a step in a scale, and no other surface may reach
    * for it. See `.portal-home-glow` in `@layer components`.
    */
-  --portal-home-glow: #72AE34;
+  --portal-home-glow: #73AE35;
 
   /*
    * ── Home hero progress ring ──
@@ -1225,6 +1225,23 @@
    * the 3:1 floor a focus indicator has to clear.
    */
   --sidebar-ring: var(--green-950);
+}
+
+/*
+ * The client portal's own brand green — `[data-theme='light']` is the
+ * attribute `PortalTheme` sets on the portal's root alone (see
+ * `src/features/portal/components/portal-theme.tsx`), so this never touches
+ * the practitioner app's `--primary` (green-400, set on `:root` above).
+ *
+ * ⚠ White on this fill is ~2.68:1 — the same ratio the app's own olive
+ * predecessor measured (see the note on `--primary` at `:root`), below the
+ * 4.5:1 body-text floor. It is white because that is what was asked for; the
+ * pairing is a deliberate exception to the app's own AA rule, not an
+ * oversight.
+ */
+[data-theme='light'] {
+  --primary: #73ae35;
+  --primary-foreground: var(--n-0);
 }
 
 .dark,
@@ -2541,6 +2558,33 @@
   }
 
   /*
+   * ── The day-complete claim card ──
+   * `TodayFlameCell`'s dialog, the moment a client finishes every meal of the
+   * day. Two more layers on top of the trio above: a wide, gentle wash behind
+   * the whole card (green and flame both, faded, so the card reads as one
+   * warm surface rather than a white rectangle with icons on it) and a
+   * handful of sparkles that twinkle on their own independent delays.
+   *
+   * Both loop for as long as the card is open, unlike every other one-shot
+   * celebration in this file — the difference is deliberate: this card
+   * blocks (`dismissible={false}`) until the client presses its own button,
+   * so it is never open for more than a few seconds, and a wash or a
+   * sparkle that finished mid-read would leave the card looking unfinished
+   * for whatever time was left. `prefers-reduced-motion` still collapses
+   * both to their resting frame, same as everywhere else in this file.
+   */
+  .q-claim-glow {
+    background:
+      radial-gradient(120% 65% at 50% 0%, color-mix(in srgb, var(--flame-300) 38%, transparent) 0%, transparent 65%),
+      radial-gradient(90% 55% at 50% 58%, color-mix(in srgb, var(--primary) 26%, transparent) 0%, transparent 70%);
+    animation: q-claim-glow-pulse 3200ms ease-in-out infinite;
+  }
+
+  .q-claim-sparkle {
+    animation: q-claim-sparkle-twinkle 2200ms ease-in-out infinite;
+  }
+
+  /*
    * ── The streak curve drawing itself in ──
    * `AdherenceStreakCard` on the progress tab. The card is server-rendered SVG
    * and stays that way (§Charts: no chart is a client component), so the whole
@@ -2635,6 +2679,119 @@
 
   [data-reveal='seen'] .q-bar {
     animation: q-bar-grow 880ms cubic-bezier(.2, .6, .2, 1) both;
+  }
+
+  /*
+   * ── The reactive mascot ──
+   * `ReactiveMascot`, on the home and progress tabs. The character itself is
+   * `MascotFace` — one inline SVG, the same mark `logo-mark.svg` draws, whose
+   * eyes and body `transform` React sets directly per emotion (see
+   * `eye-choreography.ts`). What lives here is only what has no per-emotion
+   * data of its own: the continuous idle breathing, and the milestone/goal
+   * burst — both of which run identically no matter which emotion is showing.
+   *
+   * **Everything here is `transform` and `opacity`.** §21 of the mascot brief
+   * asks for it, and an animation touching layout would have the browser
+   * re-laying-out the card behind it for as long as the screen stays open.
+   *
+   * **`prefers-reduced-motion` is not handled here for the float or the
+   * burst.** The global block further down this file collapses every
+   * duration and iteration count, which is the right answer for both: the
+   * float stops and the burst resolves instantly to its finished, invisible
+   * state. `MascotFace`'s own per-emotion sequence is the one animation in
+   * this system that *is* handled in JavaScript — see its own doc comment for
+   * why a collapsed `transition-duration` alone is not enough for a multi-step
+   * sequence.
+   */
+  .q-mascot {
+    position: relative;
+    /*
+      Its own stacking context, so the goal glow's `-z-10` sits behind the
+      character and in front of the card — without it, a negative index escapes
+      to the nearest context and the wash paints *under* the card's own surface,
+      where it is invisible. Same `relative isolate` pairing `TodayFlameCell`
+      uses around the flame's glow.
+    */
+    isolation: isolate;
+    display: grid;
+    place-items: center;
+    inline-size: var(--q-mascot-size);
+    block-size: var(--q-mascot-size);
+  }
+
+  /*
+   * The resting state: alive, not busy. A 6px rise over 3.6s with a half-percent
+   * of scale under it — slow enough that it reads as breathing rather than as a
+   * bounce, which is the one thing §8 rules out by name.
+   */
+  .q-mascot-float {
+    display: grid;
+    place-items: center;
+    inline-size: 100%;
+    block-size: 100%;
+    animation: q-mascot-float 3600ms ease-in-out infinite;
+  }
+
+  /*
+   * Switched off while an emotion pulse is actively holding — `data-mascot-
+   * pulse` is set by `ReactiveMascot` for exactly as long as the hook in
+   * `use-reactive-mascot.ts` is holding a temporary emotion. Without this, the
+   * breathing float and the pulse's own squash/bounce would both be writing
+   * `transform` on ancestor elements in the same moment, which reads as the
+   * reaction developing a wobble it was not choreographed to have.
+   */
+  .q-mascot[data-mascot-pulse='true'] .q-mascot-float {
+    animation: none;
+  }
+
+  .q-mascot-svg {
+    display: block;
+    inline-size: 100%;
+    block-size: auto;
+  }
+
+  /*
+   * The burst, for a milestone and for a completed week.
+   *
+   * The keyframe is `q-flame-particle-burst`, reused rather than restated — it
+   * is already written against `--q-tx`/`--q-ty` set per dot by the component,
+   * with nothing flame-specific in it. Only the ink and the size differ: olive,
+   * because this marks the client's own adherence, which is the thing §Colour
+   * says olive is for, and the flame's orange is spoken for as a one-per-screen
+   * streak accent.
+   */
+  .q-mascot-particle {
+    position: absolute;
+    inset-inline-start: calc(50% - 3px);
+    inset-block-start: calc(50% - 3px);
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    background: var(--primary);
+    animation: q-flame-particle-burst 880ms var(--ease-sweep) both;
+  }
+
+  /*
+   * A wash behind the character on a completed week only. Not on a milestone:
+   * the burst already marks those, and a glow on every quarter would leave the
+   * one that actually finishes the week with nothing of its own.
+   */
+  .q-mascot-glow {
+    border-radius: 9999px;
+    background: radial-gradient(circle, var(--primary) 0%, transparent 70%);
+    animation: q-mascot-glow-pulse 1320ms var(--ease-sweep) both;
+  }
+
+  /*
+   * The home card's energy mascot, one meal advancing its tier — a brief
+   * overshoot in place of the idle float for as long as the bump runs.
+   * `TodayEnergyMascot` sets `data-energy-bump` for `q-energy-bump-ms`
+   * (see that component) and clears it itself; this rule's own higher
+   * specificity is what lets it take over `.q-mascot-float` without the
+   * breathing keyframe fighting it for the same property.
+   */
+  .q-mascot[data-energy-bump='true'] .q-mascot-float {
+    animation: q-energy-bump 640ms var(--ease-sweep);
   }
 }
 
@@ -4692,6 +4849,74 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
 @keyframes q-bar-grow {
   from {
     height: 0;
+  }
+}
+
+/*
+ * The mascot's idle breathing — see `.q-mascot*` in `@layer components`. Every
+ * other movement (gaze, blink, tilt, squash, bounce) is `ReactiveMascot`'s own
+ * eye choreography, driven as inline `transform`s on the SVG itself rather
+ * than a CSS keyframe here, since each emotion's motion is data (see
+ * `eye-choreography.ts`) rather than a fixed shape a stylesheet can name.
+ * This one keyframe is the exception: it runs continuously regardless of
+ * emotion, so it stays a plain, always-on rule.
+ */
+@keyframes q-mascot-float {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-6px) scale(1.005);
+  }
+}
+
+@keyframes q-mascot-glow-pulse {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  35% {
+    opacity: 0.35;
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+}
+
+@keyframes q-energy-bump {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.08);
+  }
+}
+
+/* A slow breathing wash behind the day-complete claim card — see `.q-claim-glow`. */
+@keyframes q-claim-glow-pulse {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* One sparkle's twinkle — see `.q-claim-sparkle`. A spin as well as a fade so six of these on independent delays never quite line up. */
+@keyframes q-claim-sparkle-twinkle {
+  0%,
+  100% {
+    opacity: 0.15;
+    transform: scale(0.6) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1) rotate(20deg);
   }
 }
 
