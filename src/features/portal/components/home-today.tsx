@@ -35,7 +35,7 @@ import { TodayEnergyMascot } from './today-energy-mascot';
  * props — which is what lets the mascot update the instant `MealCheck` flips
  * a meal below, rather than waiting on the next navigation.
  */
-function TodayProgress({ countOnMount }: { countOnMount: boolean }) {
+function TodayProgress() {
   const locale = useLocale() as Locale;
   const t = useTranslations('portal.progress.today');
   const context = usePlanDayCompletion();
@@ -73,39 +73,18 @@ function TodayProgress({ countOnMount }: { countOnMount: boolean }) {
     // Back on its own white card — the mascot centred on it, filling the
     // whole card by itself now that the calorie legend row below it is gone.
     <div className="flex min-h-[150px] w-full flex-col items-center justify-center gap-3 rounded-[30px] bg-card px-4 py-4">
-      <TodayEnergyMascot
-        fraction={fraction}
-        completed={completed}
-        total={total}
-        locale={locale}
-        countOnMount={countOnMount}
-      />
+      <TodayEnergyMascot fraction={fraction} completed={completed} total={total} locale={locale} />
     </div>
   );
 }
 
-export function HomeToday({
-  countOnMount = false,
-}: {
-  /**
-   * Draw the mascot's figure and energy fill up from zero when it first
-   * appears, the way the progress tab's copy does.
-   *
-   * ⚠ **Only true when the open day is today, and that guard is load-bearing.**
-   * `PlanDayPicker` changes days with `router.replace(?day=N)` and the page
-   * keys `PlanDayCompletionProvider` on the selection, so every day tap
-   * remounts this card — ungated, each one would replay the full count-up and
-   * put a multi-second animation between the tap and the number it was asking
-   * for. The entrance belongs to arriving on the screen, not to browsing it.
-   */
-  countOnMount?: boolean;
-}) {
+export function HomeToday() {
   const tToday = useTranslations('portal.progress.today');
 
   return (
     <section className="space-y-3">
       <p className="text-sm font-medium text-white">{tToday('heading')}</p>
-      <TodayProgress countOnMount={countOnMount} />
+      <TodayProgress />
     </section>
   );
 }

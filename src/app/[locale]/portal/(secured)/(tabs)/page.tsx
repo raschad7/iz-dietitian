@@ -91,10 +91,6 @@ export default async function PortalPage({ params, searchParams }: PortalPagePro
 
   const t = await getTranslations('portal');
 
-  // The strip's own row for the open day, read for `isToday` — the same flag
-  // `PlanDayPicker` marks its today cell with.
-  const selectedDaySummary = plan?.days.find((candidate) => candidate.dayOfWeek === plan.selectedDay);
-
   // Only the ids cross into `PlanDayCompletionProvider` — dish, options and
   // rationale on each `BoardMeal` stay server-side, same reasoning
   // `portal-plan.tsx` documents for the plan section itself. `HomeToday`
@@ -142,15 +138,16 @@ export default async function PortalPage({ params, searchParams }: PortalPagePro
         {plan ? <PlanDayPicker days={plan.days} selectedDay={plan.selectedDay} /> : null}
 
         {/*
-          The mascot counts up from zero on arrival — but only while the day
-          it is drawing is today's. Stepping to another day re-navigates and
-          remounts this whole subtree (see the `key` above), so an unconditional
-          entrance would replay the climb on every tap of the strip and delay
-          the very figure the tap asked for. `isToday` comes off the same
-          `PlanDaySummary` the picker marks its own cell with, so the two can
-          never disagree about which day that is.
+          No count-up on arrival. This subtree remounts on every visit — the
+          `key` above forces it whenever the open day changes, and a fresh
+          navigation back to this tab (switching tabs, reopening the app)
+          remounts it anyway — so an entrance animation here would replay on
+          every one of those instead of only when a meal is actually ticked.
+          `TodayEnergyMascot` already draws its real figure on first paint by
+          default and animates solely when the number later moves; see
+          `useRisingFraction`.
         */}
-        <HomeToday countOnMount={selectedDaySummary?.isToday ?? false} />
+        <HomeToday />
 
         {plan ? (
           <PortalPlan

@@ -2880,12 +2880,18 @@
  * for a dialog would be a large change to buy very little. `popover-positioner`
  * stays too — the date pickers, the client filter and the planner's panels all
  * still hang off a trigger and still want this on a tablet.
+ *
+ * `[data-force-anchored]` is the one escape from it, and it is opt-in per
+ * instance rather than a second `data-slot` — see `PopoverContent`'s own prop
+ * of the same name. The portal's notification bell is the one caller: it wants
+ * to read as a small popup anchored to its icon on a phone rather than as
+ * another bottom sheet on a screen that already opens the full feed as a page.
  */
 @media (pointer: coarse) {
   [data-slot='select-positioner'],
   [data-slot='combobox-positioner'],
   [data-slot='dropdown-menu-positioner'],
-  [data-slot='popover-positioner'] {
+  [data-slot='popover-positioner']:not([data-force-anchored]) {
     position: fixed !important;
     inset-inline: 0 !important;
     /*
@@ -2912,7 +2918,7 @@
   [data-slot='select-content'],
   [data-slot='combobox-content'],
   [data-slot='dropdown-menu-content'],
-  [data-slot='popover-content'] {
+  [data-slot='popover-content']:not([data-force-anchored]) {
     width: 100% !important;
     min-width: 0 !important;
     /*
@@ -2963,14 +2969,14 @@
   [data-slot='select-content'][data-open],
   [data-slot='combobox-content'][data-open],
   [data-slot='dropdown-menu-content'][data-open],
-  [data-slot='popover-content'][data-open] {
+  [data-slot='popover-content'][data-open]:not([data-force-anchored]) {
     animation: q-popup-sheet-in 220ms var(--ease-sweep) !important;
   }
 
   [data-slot='select-content'][data-closed],
   [data-slot='combobox-content'][data-closed],
   [data-slot='dropdown-menu-content'][data-closed],
-  [data-slot='popover-content'][data-closed] {
+  [data-slot='popover-content'][data-closed]:not([data-force-anchored]) {
     animation: q-popup-sheet-out 160ms ease-in both !important;
   }
 
@@ -3055,7 +3061,7 @@
   [data-slot='select-content'],
   [data-slot='combobox-content'],
   [data-slot='dropdown-menu-content'],
-  [data-slot='popover-content'] {
+  [data-slot='popover-content']:not([data-force-anchored]) {
     width: min(100%, 28rem) !important;
     margin-inline: auto;
   }
