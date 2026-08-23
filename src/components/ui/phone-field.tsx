@@ -206,6 +206,23 @@ export function PhoneField({
             sideOffset={4}
             align="start"
             className="z-50"
+            /*
+              The two hooks `globals.css` reshapes an anchored popup by on a
+              coarse pointer. This field builds its list out of raw Base UI
+              primitives rather than `components/ui/select`, so it does not
+              inherit the `data-slot`s that component sets — and without them it
+              was the one list in the app that stayed anchored to its trigger on
+              a phone while every other select rose from the block-end edge.
+
+              That mattered for more than consistency. The coarse-pointer rule
+              pins the sheet clear of `--q-keyboard-inset` and caps it against
+              `--q-viewport-block`; an anchored popup is measured with
+              `--available-height`, which Base UI derives from the *layout*
+              viewport and which therefore knows nothing about a software
+              keyboard on iOS. Opening the country list from a phone field whose
+              keyboard is already up drew it behind the keys.
+            */
+            data-slot="select-positioner"
             alignItemWithTrigger={false}
             /*
               **Inside a dialog the list has to position itself `fixed`.**
@@ -225,6 +242,8 @@ export function PhoneField({
             positionMethod={container ? 'fixed' : undefined}
           >
             <Select.Popup
+              /* The other half of the pair above — see the positioner. */
+              data-slot="select-content"
               className={cn(
                 /*
                   `max-h-(--available-height)` rather than a flat `max-h-72`:

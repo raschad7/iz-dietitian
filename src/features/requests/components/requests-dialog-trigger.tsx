@@ -112,9 +112,9 @@ export function RequestsDialogTrigger({
               flat
               size="wide"
               className={cn(
-                // `open:` and not a bare `flex`: a `display` utility on a
-                // <dialog> outranks the UA rule that hides it while closed.
-                'open:flex open:flex-col max-h-[90dvh] overflow-hidden',
+                // Height, flex column and clip all come from the responsive
+                // dialog frame in `globals.css` now. Only the widths below are
+                // this surface's own.
                 // Wider than the app's ordinary dialog and narrower than the
                 // page: the inbox's own column is `max-w-3xl`, and a request
                 // row is a name, a badge and two buttons — at the dialog's

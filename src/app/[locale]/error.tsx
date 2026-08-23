@@ -62,9 +62,16 @@ export default function LocaleError({
         </Button>
 
         {/* A link styled as a button, not `<Button render={<Link/>}>` — Base UI's
-            Button warns when it renders anything but a real `<button>`. */}
+            Button warns when it renders anything but a real `<button>`.
+
+            `notFoundCtaHome` because this link goes to `/`. The key was
+            `notFoundCta` and served both this screen and the 404 page; that one
+            now picks its destination from the session, so the label was split
+            in two by where it leads. This is a client component and cannot read
+            a session, but it has no need to — the public home is the right
+            landing for a public screen that failed. */}
         <Link href="/" className={buttonVariants({ variant: 'ghost' })}>
-          {t('notFoundCta')}
+          {t('notFoundCtaHome')}
         </Link>
       </div>
     </main>

@@ -70,7 +70,10 @@ export default async function DevShellPage({ params }: DevShellPageProps) {
         }}
         secondary={<GuideLauncher />}
       >
-        <main className="min-h-0 min-w-0 flex-1 overflow-y-auto p-5">
+        {/* `shell-scroll` for the same reason the staff layout carries it: the
+            shell is a bounded frame, so a child that does not claim the scroll
+            is clipped rather than scrolled. See `globals.css`. */}
+        <main data-slot="shell-scroll" className="min-w-0 p-5">
           <h1 className="text-heading-lg font-semibold">Shell</h1>
           <p className="mt-2 text-body-sm text-muted-foreground">
             Collapse the sidebar with the trigger in its header, or the rail on its edge. Collapsed,

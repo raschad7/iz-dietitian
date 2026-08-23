@@ -114,6 +114,28 @@ function SheetHeader({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
+/**
+ * The sheet's scrolling region — everything between the header and the footer.
+ *
+ * The counterpart of `DialogBody`, and the same contract: **wrap the middle of
+ * a sheet in this and it scrolls while the header and the footer stay.** The
+ * geometry lives on the `data-slot` in `globals.css` beside the dialog frame,
+ * so the two surfaces cannot drift apart.
+ *
+ * It is optional, and a sheet that omits it still cannot be cropped — the
+ * ceiling applies either way and the sheet scrolls as a whole instead. Reach
+ * for it wherever a sheet has an action a reader has to get back to.
+ */
+function SheetBody({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="sheet-body"
+      className={cn("flex flex-col gap-3 p-4", className)}
+      {...props}
+    />
+  )
+}
+
 function SheetFooter({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
@@ -156,6 +178,7 @@ export {
   SheetClose,
   SheetContent,
   SheetHeader,
+  SheetBody,
   SheetFooter,
   SheetTitle,
   SheetDescription,

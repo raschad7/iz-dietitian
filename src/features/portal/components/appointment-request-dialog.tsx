@@ -85,9 +85,9 @@ export function AppointmentRequestDialog({
       label={title}
       dir={getLocaleDirection(locale)}
       flat
-      // `open:` rather than a bare `flex`: a `display` utility on a <dialog>
-      // outranks the UA rule that hides it while closed.
-      className="open:flex open:flex-col max-h-[90dvh] overflow-hidden"
+      // No responsive class of its own: the height ceiling, the flex column and
+      // the scrolling body all come from the responsive dialog frame in
+      // `globals.css`, which every `.q-dialog` gets.
     >
       {/*
         No corner close, matching the correction dialog: the way out is the
