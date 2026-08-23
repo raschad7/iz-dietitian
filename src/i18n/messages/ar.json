@@ -825,6 +825,11 @@
       "allergenHint": "الخانات أعلاه هي وحدها ما يستبعد الأطباق من الكتالوج.",
       "dailyTarget": "الهدف اليومي",
       "bmi": "مؤشر كتلة الجسم",
+      "bmiScale": "موضع المؤشر على السلّم",
+      "dismissWarning": "إخفاء هذا التنبيه",
+      "sectionEmpty": "لم تُسجَّل بعد",
+      "fillSection": "إضافة بيانات هذا القسم",
+      "foodFrequency": "تكرار الأطعمة",
       "sectionsLabel": "أقسام بيانات التغذية",
       "hasContent": "يحتوي على بيانات",
       "allergyDetailPlaceholder": "حساسية خفيفة من الجوز دون اللوز",
@@ -855,7 +860,6 @@
       "completeness": "اكتمال السجل",
       "filledOf": "{filled} من {total} حقلاً مُدخلة",
       "sectionEmpty": "لا توجد بيانات مسجّلة بعد.",
-      "gapsHeading": "أكمل بيانات المريض من هذه الأقسام",
       "kcalMismatch": "الهدف اليدوي بعيد عن المحسوب",
       "kcalMismatchDetail": "أُدخل {manual} kcal يدويًا، بينما القياسات والهدف يعطيان {computed} kcal. راجعي الرقم أو احذفيه ليُحسب تلقائيًا.",
       "bmiValueText": "{value} — {category}",
@@ -868,10 +872,7 @@
       "removeAllergen": "حذف {name}",
       "goalLine": "الهدف",
       "activityLine": "النشاط",
-      "completeShort": "مكتمل",
       "editRecord": "تعديل السجل",
-      "scheduleSummary": "{count, plural, one {وجبة واحدة} two {وجبتان} few {# وجبات} many {# وجبة} other {# وجبة}} على {kcal} سعرة",
-      "gapsPrompt": "{count, plural, =0 {كل الحقول مُدخلة} one {حقل واحد بلا بيانات} two {حقلان بلا بيانات} few {# حقول بلا بيانات} many {# حقلاً بلا بيانات} other {# حقل بلا بيانات}}",
       "allergyLine": "الحساسية",
       "privateBadge": "خاص بالعيادة",
       "notesDivider": "ملاحظات",
@@ -1314,6 +1315,7 @@
     },
     "notifications": {
       "title": "الإشعارات",
+      "seeAll": "عرض كل الإشعارات",
       "empty": {
         "title": "لا توجد إشعارات جديدة",
         "body": "ستظهر هنا تذكيرات المواعيد، وتحديثات خطتك، وردود العيادة، أولًا بأول."

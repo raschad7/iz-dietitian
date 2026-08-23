@@ -153,11 +153,31 @@ export async function ClientProfile({
       filling a phone's viewport with a 500px identity panel leaves a scroll port
       too short to read anything in.
 
-      `17.5rem` and not a fraction: the panel holds label/value pairs at a fixed
+      `23rem` and not a fraction: the panel holds label/value pairs at a fixed
       type size, and a percentage track re-wraps every one of those rows at every
       window width.
+
+      ⚠ **Every pixel it has gained over the original `17.5rem` belongs to the
+      detail list, and all of it went into one gap.** That list is a two-column
+      grid whose labels are as wide as `البريد الإلكتروني`; the values begin
+      after them, and how far in they sit is the gap and nothing else. The
+      binding constraint is the widest value on the panel — a phone number, about
+      115px of tabular digits — so at 17.5rem there were only about 11px of slack
+      and opening the gap broke a phone number across two lines. The track has
+      been widened three times to buy that room: 17.5 → 19 → 21 → 23rem, against
+      `gap-x-6` → `gap-x-10` → `gap-x-18` → `gap-x-24` in `ClientProfilePanel`.
+
+      ⚠ **Stop here.** At 23rem the values start about 201px in and have roughly
+      135px left to render 115px of phone number. The next step does not belong
+      in this file: widening the track again charges the record's own views for a
+      gap inside a sidebar, and 88px is already the most that trade is worth. See
+      the note on the detail grid in `ClientProfilePanel` for the structural
+      change that lifts the ceiling instead.
+
+      The views column pays the 88px. It holds a spine of full-width rows whose
+      lattices reflow on their own, so it is the side that can absorb it.
     */
-    <div className="flex flex-col gap-3 lg:grid lg:h-full lg:min-h-0 lg:grid-cols-[17.5rem_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)]">
+    <div className="flex flex-col gap-3 lg:grid lg:h-full lg:min-h-0 lg:grid-cols-[23rem_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)]">
       <ClientProfilePanel
         client={client}
         locale={locale}
