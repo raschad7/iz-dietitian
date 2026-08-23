@@ -832,11 +832,11 @@
    * *is* content: a caption, a unit, a secondary label. At n-600 an empty
    * field read as already answered, and the intake dialog — twenty of them
    * down one column — was twenty lines of warm olive ink saying nothing. One
-   * stop lighter takes the chroma down with it and settles the hint level
-   * with the edge it sits inside, `--input` being the same n-500: box and
-   * hint read as one piece of chrome, and the typed value is the only content
-   * in the field. 4.02:1 on white — past the 3:1 a non-essential hint needs,
-   * and well clear of the 2.2:1 n-400 would have faded to.
+   * stop lighter takes the chroma down with it and leaves the typed value as
+   * the only real content in the field. 4.02:1 on white — past the 3:1 a
+   * non-essential hint needs, and well clear of the 2.2:1 n-400 would have
+   * faded to. It stays a step darker than `--input`: the hint is still text
+   * and has to out-read the box it sits in.
    */
   --placeholder: var(--n-500);
 
@@ -899,7 +899,29 @@
 
   /* Border & focus */
   --border: var(--n-200);               /* border.divider */
-  --input: var(--n-500);                /* border.interactive — meets 3:1 */
+  /*
+   * A field's resting edge. It was n-500 — the same stop as `--placeholder`,
+   * chosen so box and hint read as one piece of chrome and so the boundary
+   * cleared WCAG 1.4.11's 3:1. On a dense form that turned out to be too much
+   * ink: a dialog of twenty inputs read as twenty hard olive rectangles before
+   * a single value had been typed into any of them.
+   *
+   * It is now c-300 — light, and out of the warm ramp entirely. Two changes,
+   * one intent: lighter drops the weight of the outline, and cool drops its
+   * colour, so the box stops reading as olive chrome and reads as a plain grey
+   * hairline. It joins `--muted` (c-100) and `--accent` (c-200) in the cool
+   * family, which is where this system already puts neutral surface work, so a
+   * field edge and the fills around it are finally the same temperature.
+   *
+   * The state that has to be unmistakable — focus — still takes an olive 2px
+   * edge, and invalid still takes clay. Only the resting edge got quieter, and
+   * the quieter it is, the louder those two read against it.
+   *
+   * ⚠ c-300 is ~1.5:1 on white, under the 3:1 a control boundary owes. A
+   * deliberate trade for the resting state only: focus and invalid keep their
+   * contrast, and every field carries a visible `Label` above it.
+   */
+  --input: var(--c-300);                /* border.interactive */
   /*
    * Field hover edge. Now the *same* olive as `--primary`, because every olive
    * quieter than 500 falls under the 3:1 a control boundary needs (green-400 is
@@ -2325,10 +2347,9 @@
    *
    * ⚠ **The border stays `--input`.** v5.html pairs its fill with a hairline at
    * #e2e8f0, roughly this system's `--border`, and that is the one thing here
-   * not copied. `--input` is n-500 and is chosen to clear WCAG 1.4.11's 3:1 for
-   * a control boundary; the fill cannot stand in for it, because `--muted` on
-   * `--background` is about 1.1:1 and invisible to anyone the rule is for. The
-   * fill is the look, the edge is the floor, and they are not the same job.
+   * not copied: the fill cannot stand in for an edge, because `--muted` on
+   * `--background` is about 1.1:1 and invisible to anyone reading shape. The
+   * fill is the look, the edge is the boundary, and they are not the same job.
    *
    * The three rules are spelled out rather than layered on top of the base ones
    * because `.q-auth-fields .q-field` and `.q-field:focus` have equal
