@@ -228,7 +228,6 @@
     "monthOther": "أخرى {count, number, integer}",
     "hiddenBelow": "+{count, number, integer} أخرى",
     "hiddenBelowAction": "انزل إلى {count, number, integer} مواعيد أخرى في هذا اليوم",
-    "monthReadOnly": "عرض الشهر للاطّلاع فقط. انقر على أي يوم للحجز أو التعديل.",
     "nav": {
       "today": "اليوم",
       "previous": "السابق",

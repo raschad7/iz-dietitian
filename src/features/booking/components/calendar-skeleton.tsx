@@ -6,16 +6,14 @@ import { type CalendarView } from '../schema';
 /**
  * The grid, drawn empty — one shape per view.
  *
- * Two callers, and they are the two waits this screen has:
+ * One caller: `app/calendar/loading.tsx`, for arriving at the calendar from
+ * elsewhere, which is the only wait this screen has left.
  *
- * 1. `app/calendar/loading.tsx`, for arriving at the calendar from elsewhere.
- * 2. `Calendar` itself, for the moment between pressing a view tab and that
- *    view landing. Switching view is a server round trip — a day and a month
- *    read different spans of appointments — and until this existed the panel
- *    kept the *old* grid on screen underneath the *new* tab, so for the length
- *    of that trip the toolbar said "Day" over a week. Showing the shape of what
- *    is coming is the honest answer, and it is the same answer arriving at the
- *    screen gets.
+ * `Calendar` used to draw this too, for the moment between pressing a view tab
+ * and that view landing. It does not any more, and nothing does — the loader
+ * reads one span that holds all three views (see `loadedRangeFor`), so pressing
+ * a tab re-arranges appointments the browser is already holding and the new
+ * grid is there in the same frame. There is no moment left to fill.
  *
  * The measurements are the grid's own, imported in spirit from `calendar.tsx`:
  * `GUTTER_WIDTH` is `w-16`, a column's floor is `min-w-28`, and the month lays
