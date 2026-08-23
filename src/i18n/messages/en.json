@@ -741,7 +741,7 @@
       "confirmDeleteTitle": "Delete this record permanently?",
       "confirmDelete": "This permanently deletes {name} and their portal account. It cannot be undone.",
       "confirmArchiveTitle": "Archive this client?",
-      "confirmArchive": "They will be removed from the register. You can restore them at any time from the Archive page."
+      "confirmArchive": "They will be removed from the register. You can restore them at any time from the Archived list."
     },
     "plan": {
       "published": "Active plan",

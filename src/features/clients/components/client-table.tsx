@@ -3,13 +3,13 @@ import { useTranslations } from 'next-intl';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
 import { Progress } from '@/components/ui/progress';
 import {
   Table,
   TableBody,
   TableCell,
+  TableEmpty,
   TableHead,
   TableHeader,
   TableRoot,
@@ -66,9 +66,9 @@ import { cn } from '@/lib/utils';
  *
  * **Status is gone.** It said "active" on virtually every row, which is the
  * design system's own test for a column that marks nothing (see "A badge is a
- * state"). Archived clients have a page of their own now, so which half of the
- * register you are reading is a property of the page rather than of each line
- * in it.
+ * state"). The archive is a view of the register now — the toolbar's toggle —
+ * so which half you are reading is a property of the list rather than of each
+ * line in it.
  *
  * **Age is new**, and it is the column the register was missing. It is the one
  * fact a dietitian re-derives constantly — targets, plan sizing and what counts
@@ -157,7 +157,6 @@ export function ClientTable({
   input,
   filtered,
   locale,
-  basePath = '/app/clients',
   archived = false,
 }: {
   result: ClientListResult;
@@ -165,36 +164,20 @@ export function ClientTable({
   filtered: boolean;
   locale: Locale;
   /**
-   * The route this table's own links point back at — its sort headers and its
-   * "clear filters" way out. The archive is the same table over the other half
-   * of the register, and a sort header there must not navigate to the active
-   * list.
+   * Archived rows offer Restore where active ones offer Archive.
+   *
+   * The archive is not a route of its own any more — it is `/app/clients` with
+   * `?status=archived` on it — so this table's own links (its sort headers, its
+   * "clear filters" way out) carry that parameter rather than a different
+   * `basePath`. Dropping it would sort the archive and land the reader back in
+   * the active register.
    */
-  basePath?: '/app/clients' | '/app/clients/archived';
-  /** Archived rows offer Restore where active ones offer Archive. */
   archived?: boolean;
 }) {
+  /** Ridden along by every link this table draws — see `archived`. */
+  const statusQuery = archived ? { status: 'archived' } : {};
   const t = useTranslations('clients');
   const tNav = useTranslations('nav');
-
-  if (result.items.length === 0) {
-    return (
-      <Card variant="empty" className="items-center gap-4 p-8 text-center">
-        <p>{filtered ? t('emptyFiltered') : archived ? t('archive.empty') : t('empty')}</p>
-
-        {/* An empty list with no way out is a dead end; offer the next step. */}
-        {filtered ? (
-          <Link href={basePath} className={buttonVariants({ variant: 'outline', size: 'sm' })}>
-            {t('clearFilters')}
-          </Link>
-        ) : archived ? null : (
-          <ClientFormTrigger locale={locale} className={buttonVariants({ variant: 'default', size: 'sm' })}>
-            {t('new')}
-          </ClientFormTrigger>
-        )}
-      </Card>
-    );
-  }
 
   /**
    * Where a header points.
@@ -205,8 +188,9 @@ export function ClientTable({
    * page 3 of a differently ordered list is not the same page 3.
    */
   const sortHref = (key: ClientSort) => ({
-    pathname: basePath,
+    pathname: '/app/clients' as const,
     query: {
+      ...statusQuery,
       ...(input.q ? { q: input.q } : {}),
       ...(input.filterBy && input.filterValue
         ? { filterBy: input.filterBy, filterValue: input.filterValue }
@@ -274,6 +258,50 @@ export function ClientTable({
           </TableRow>
         </TableHeader>
         <TableBody>
+          {/*
+            An empty list is still this table.
+
+            It used to replace the whole thing with a dashed card carrying one
+            sentence — which is a different object on the screen from the one
+            that was there a moment ago, and on the archive it was the *only*
+            thing: a lone box floating under the header with no column names
+            above it and no way to tell what you were looking at an empty
+            version of. Switching between the register and the archive swapped
+            the table for a card and back, so the toggle read as going
+            somewhere rather than as changing what the table shows.
+
+            The columns stay, and the message sits in the body under them, which
+            is what says "this list, with nothing in it" instead of "no list".
+            `colSpan` counts every column including the actions head, so the
+            row spans the table at any width — the hidden ones cost nothing.
+          */}
+          {result.items.length === 0 ? (
+            <TableEmpty colSpan={COLUMNS.length + 1}>
+              <div className="flex flex-col items-center gap-4">
+                <p>{filtered ? t('emptyFiltered') : archived ? t('archive.empty') : t('empty')}</p>
+
+                {/* An empty list with no way out is a dead end; offer the next
+                    step — except in the archive, where an empty archive is
+                    nothing to act on. */}
+                {filtered ? (
+                  <Link
+                    href={{ pathname: '/app/clients', query: statusQuery }}
+                    className={buttonVariants({ variant: 'outline', size: 'sm' })}
+                  >
+                    {t('clearFilters')}
+                  </Link>
+                ) : archived ? null : (
+                  <ClientFormTrigger
+                    locale={locale}
+                    className={buttonVariants({ variant: 'default', size: 'sm' })}
+                  >
+                    {t('new')}
+                  </ClientFormTrigger>
+                )}
+              </div>
+            </TableEmpty>
+          ) : null}
+
           {result.items.map((client) => (
             <TableRow key={client.id} linked>
               {/*
@@ -584,10 +612,26 @@ function WeeklyProgress({
   // No published plan covers today, so there is no period to measure over.
   if (!progress) return <NoProgress label={t('progress.ariaNoPlan')} />;
 
-  const percentLabel =
-    progress.averageFraction === null
-      ? null
-      : formatNumber(locale, progress.averageFraction, { style: 'percent' });
+  /*
+    A period is running but nothing in it has been recorded yet, so there is no
+    figure to draw — the same nothing as the two branches above, and it is drawn
+    the same way rather than as a track sitting at zero. The day count stays:
+    unlike the two above, this cell knows how long the period is and how much of
+    it has been kept, and "0 of 7 days" is a fact rather than a placeholder.
+  */
+  if (progress.averageFraction === null) {
+    return (
+      <NoProgress
+        label={t('progress.ariaEmpty', { total: progress.periodDays })}
+        note={t('progress.daysCompleted', {
+          completed: progress.fullyCompletedCount,
+          total: progress.periodDays,
+        })}
+      />
+    );
+  }
+
+  const percentLabel = formatNumber(locale, progress.averageFraction, { style: 'percent' });
 
   return (
     /*
@@ -606,28 +650,23 @@ function WeeklyProgress({
         `value` is 0–100; the fraction is 0–1. One multiplication, here, at the
         only place the two scales meet.
 
-        A period with nothing recorded draws the bare track at zero — the same
-        empty bar `NoProgress` below uses, because "no figure" should look like
-        "no figure" wherever it comes from.
+        Never null by this point: a period with nothing recorded has already
+        returned above, so every track this branch draws is a real measurement.
       */
-      value={(progress.averageFraction ?? 0) * 100}
+      value={progress.averageFraction * 100}
       // A quantity, not an action — see `INDICATOR_TONE` on the component.
       tone="measure"
       // Both spans are `aria-hidden`, so this is the whole cell as a screen
       // reader receives it.
-      aria-label={
-        percentLabel === null
-          ? t('progress.ariaEmpty', { total: progress.periodDays })
-          : t('progress.aria', {
-              percent: percentLabel,
-              completed: progress.fullyCompletedCount,
-              total: progress.periodDays,
-            })
-      }
+      aria-label={t('progress.aria', {
+        percent: percentLabel,
+        completed: progress.fullyCompletedCount,
+        total: progress.periodDays,
+      })}
       className="w-full max-w-32 gap-x-2 gap-y-1.5"
     >
       <span aria-hidden className="tabular text-body-sm font-medium">
-        {percentLabel ?? <Missing />}
+        {percentLabel}
       </span>
 
       {/*
@@ -656,8 +695,27 @@ function WeeklyProgress({
 }
 
 /**
- * The progress cell with nothing to measure: the bare track, a dash where the
- * figure goes, and no day count.
+ * The progress cell with nothing to measure: a dash, and no track at all.
+ *
+ * ## Why the empty track went
+ *
+ * It used to draw the same bar as a measured cell, sitting at zero — the
+ * argument being that a column where every row carries a bar is a column you
+ * can scan. What it actually produced was a grey capsule under a dash on every
+ * row of a quiet register, which is the exact shape of a loading skeleton: the
+ * reader's first reading of the column was "this has not finished loading",
+ * and their second was "these people are at 0%" — the one accusation this cell
+ * exists to avoid making.
+ *
+ * A track is a *quantity*, so it is drawn only where there is one. Absence gets
+ * the mark the rest of this table already uses for it — the muted em dash of
+ * {@link Missing}, the same one an unrecorded phone number or an unbelievable
+ * birth date gets — so an empty cell here reads as the same kind of nothing as
+ * an empty cell anywhere else on the row, rather than as a bar that failed.
+ *
+ * The column still scans, and arguably better: what the eye now picks out is
+ * the rows that *have* a gold bar, instead of a page of identical grey ones
+ * with a few gold ones among them.
  *
  * ## Why it says nothing about why
  *
@@ -685,21 +743,35 @@ function WeeklyProgress({
  * so a screen reader is told which of the two absences this is rather than
  * being handed a silent zero.
  */
-function NoProgress({ label }: { label: string }) {
+function NoProgress({ label, note }: { label: string; note?: string }) {
   return (
-    // The same geometry as a cell with a figure in it — an empty track under a
-    // dash — so the column keeps one shape down the page and an empty row does
-    // not read as a different kind of thing from a full one.
-    <Progress
-      value={0}
-      tone="measure"
-      aria-label={label}
-      className="w-full max-w-32 gap-x-2 gap-y-1.5"
-    >
+    /*
+      The same width and the same first line as a measured cell — the dash sits
+      where the percentage sits, and the day count where the day count sits — so
+      the column stays aligned down the page. Only the track is missing, which
+      is the whole point: there is no quantity to draw one for.
+    */
+    <span className="flex w-full max-w-32 items-baseline gap-x-2">
+      {/*
+        The reason, for a screen reader only. The dash is `aria-hidden` and
+        always was; without this the cell would be announced as nothing at all,
+        where "no plan is running" and "this client cannot log anything" are two
+        different answers and worth keeping.
+      */}
+      <span className="sr-only">{label}</span>
+
       <span aria-hidden className="tabular text-body-sm font-medium">
         <Missing />
       </span>
-    </Progress>
+
+      {/* `ms-auto` to the cell's far edge, logical so it lands correctly in
+          both directions — the measured cell's own day count does the same. */}
+      {note ? (
+        <span aria-hidden className="tabular ms-auto text-caption text-muted-foreground">
+          {note}
+        </span>
+      ) : null}
+    </span>
   );
 }
 

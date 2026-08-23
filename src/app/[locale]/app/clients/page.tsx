@@ -37,10 +37,24 @@ export default async function ClientsPage({ params, searchParams }: ClientsPageP
     sort: single(raw.sort),
     dir: single(raw.dir),
     page: single(raw.page),
-    // The route decides which half of the register this is; see
-    // `/app/clients/archived` for the other one.
-    status: 'active',
+    /*
+      Which half of the register this is, read from the query string.
+
+      The archive used to be a route of its own (`/app/clients/archived`) and is
+      now a view of this page: `?status=archived` swaps the rows and the row
+      action, and nothing else about the screen moves. Leaving the register to
+      look at the archive meant losing the toolbar you were standing at — the
+      search you had typed, the filter you had set — and arriving somewhere that
+      had to redraw a header, a title and a way back for a list of the same
+      people. The old address still works; it redirects here.
+
+      Anything else in the parameter falls back to `active` through the schema's
+      `.catch()`, so a hand-edited value shows the register rather than erroring.
+    */
+    status: single(raw.status),
   });
+
+  const archived = input.status === 'archived';
 
   const [result, t] = await Promise.all([listClients(clinicId, input), getTranslations('clients')]);
 
@@ -73,8 +87,14 @@ export default async function ClientsPage({ params, searchParams }: ClientsPageP
       */}
       <PageHeader
         locale={locale}
-        title={t('title')}
-        subtitle={t('resultCount', { total: result.total })}
+        /* The archive is this same screen reading the other half of the
+           register, so it says so here rather than on a page of its own. */
+        title={archived ? t('archive.title') : t('title')}
+        subtitle={
+          archived
+            ? `${t('archive.subtitle')} · ${t('resultCount', { total: result.total })}`
+            : t('resultCount', { total: result.total })
+        }
         clinicId={clinicId}
       />
 
@@ -88,6 +108,7 @@ export default async function ClientsPage({ params, searchParams }: ClientsPageP
         input={input}
         filtered={Boolean(input.q) || Boolean(input.filterBy && input.filterValue)}
         locale={locale}
+        archived={archived}
       />
 
       {/* Renders nothing on an empty register, so it is a direct child: an

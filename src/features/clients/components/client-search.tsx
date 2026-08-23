@@ -80,6 +80,9 @@ export function ClientSearch({ input, locale }: { input: ListClientsInput; local
   const searchParams = useSearchParams();
   const [, startTransition] = useTransition();
 
+  /** Which half of the register is on screen — the archive toggle's state. */
+  const archived = input.status === 'archived';
+
   const [q, setQ] = useState(input.q ?? '');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
@@ -127,6 +130,29 @@ export function ClientSearch({ input, locale }: { input: ListClientsInput; local
     startTransition(() => {
       router.replace(`${pathname}?${next.toString()}`);
     });
+  }
+
+  /**
+   * The archive toggle's destination.
+   *
+   * The archive is a view of this page rather than a page of its own — see the
+   * register's own note — so the control adds or removes one parameter and
+   * leaves everything else in the address bar exactly where it was: the term
+   * you have typed, the filter you have set and the column you are sorted by
+   * all survive the switch, which is the point of the two lists sharing a
+   * screen.
+   *
+   * `page` is dropped, because page 3 of the register is not page 3 of the
+   * archive.
+   */
+  function statusHref(next: 'active' | 'archived') {
+    const params = new URLSearchParams(searchParams);
+    if (next === 'archived') params.set('status', 'archived');
+    else params.delete('status');
+    params.delete('page');
+
+    const query = params.toString();
+    return query ? `${pathname}?${query}` : pathname;
   }
 
   function handleChange(value: string) {
@@ -388,9 +414,23 @@ export function ClientSearch({ input, locale }: { input: ListClientsInput; local
           control with 40px of empty padding in it.
         */}
         <Link
-          href="/app/clients/archived"
+          href={statusHref(archived ? 'active' : 'archived')}
+          /*
+            A toggle, not a way somewhere else. It used to link to
+            `/app/clients/archived`, which took the reader off the register to a
+            second screen listing the same people — and took their search and
+            their filter with it. It now swaps which half of the register the
+            table below is showing, and pressing it again swaps back.
+
+            `aria-pressed` is what says so to a screen reader: this is one
+            control with two states, and the state it is in is the list on
+            screen. The state is drawn with `soft` — the quiet olive fill — so
+            the toggle looks held down while the archive is up without becoming
+            a second solid button beside "New client".
+          */
+          aria-pressed={archived}
           className={cn(
-            buttonVariants({ variant: 'neutral' }),
+            buttonVariants({ variant: archived ? 'soft' : 'neutral' }),
             'flex-1 max-sm:px-0 lg:flex-none',
           )}
         >
