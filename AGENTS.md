@@ -11,8 +11,7 @@ Important: Before creating any new UI component, check the existing shadcn/ui co
   [`docs/architecture.md`](docs/architecture.md)
 - Setup, environment files, database workflow, and commands:
   [`docs/development.md`](docs/development.md)
-- UI and RTL work: [`docs/design-system.md`](docs/design-system.md), with the
-  full Qiwam HTML file used only for detailed visual reference
+- UI and RTL work: [`docs/design-system.md`](docs/design-system.md)
 
 ## Hard rules
 

@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from 'next';
 import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
+import { DesktopScrollbars } from '@/components/layout/desktop-scrollbars';
 import { AppShell } from '@/components/layout/sidebar';
 import { type IconName } from '@/components/ui/icon';
 import { APP_THEME_COLOR_DARK, APP_THEME_COLOR_LIGHT } from '@/features/app-pwa/brand';
@@ -197,6 +198,21 @@ export default async function AppLayout({ children, params }: AppLayoutProps) {
         tied it to signing in rather than to the app starting, and left a
         reloaded nested route with no tile at all. Do not add it back.
       */}
+      {/*
+        The staff app's opt-in to the one visible scrollbar in the product — see
+        "The desktop scrollbar" in globals.css. It marks `<html>` rather than
+        the shell because dialogs, sheets and popups are portalled to `<body>`,
+        and the two longest scrolling surfaces in the app sit inside portalled
+        ones.
+
+        Mounted here and nowhere else: the portal renders the same `AppShell`,
+        and a bar tuned to this app's cool grey furniture would be the wrong
+        colour on the portal's palette. The rules themselves are gated on
+        `pointer: fine` and `lg`, so this attaches the intent and the media
+        query decides whether it applies.
+      */}
+      <DesktopScrollbars />
+
       <AppShell
         items={NAV_ITEMS}
         title={t('shortName')}

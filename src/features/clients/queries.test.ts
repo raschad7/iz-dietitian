@@ -100,7 +100,7 @@ describe('listClients', () => {
   });
 
   /* The two halves of the register are two routes, not a filter: `/app/clients`
-     passes `active` and `/app/clients/archived` passes `archived`. Neither list
+     passes `active` and `?status=archived` passes `archived`. Neither list
      ever mixes the two, which is what let the status column go. */
   test('reads one status at a time, active by default', async () => {
     const { id } = await createClient(clinicId, { fullName: 'أحمد', preferredLocale: 'ar' });

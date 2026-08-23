@@ -44,6 +44,22 @@ import { MonthView } from './month-view';
 import { NewClientDialog } from './new-client-dialog';
 
 /**
+ * A CSS duration token — `180ms`, `0.18s` — as a number of milliseconds.
+ *
+ * The view-change animation reads its timing from the same custom properties
+ * the CSS animations use, and `element.animate` wants a number. Anything
+ * unparseable falls back rather than producing `NaN`, which would throw.
+ */
+function parseCssDuration(value: string, fallback: number): number {
+  const trimmed = value.trim();
+  const amount = Number.parseFloat(trimmed);
+
+  if (!Number.isFinite(amount)) return fallback;
+
+  return trimmed.endsWith('ms') ? amount : amount * 1000;
+}
+
+/**
  * The calendar shell: it owns the state the views share and is the only place
  * that talks to the server actions.
  *
@@ -311,8 +327,14 @@ export function Calendar({
    * and hands back the new `view`. `useOptimistic` lets the thumb slide the
    * instant a tab is pressed — showing the target view while the request is in
    * flight — and fall back to the prop the moment it lands, with no snap because
-   * the two now agree. It also drives the grid's cross-fade below: while
-   * `optimisticView !== view` the panel is mid-switch. See `navigate`.
+   * the two now agree.
+   *
+   * It is the thumb's value and nothing else's. The grid's animation used to be
+   * derived from it too, by treating `optimisticView !== view` as a mid-switch
+   * state, and that is precisely what made the animation intermittent: a warm
+   * navigation resolves before the browser paints it. See `viewPanelRef`.
+   * Acknowledging the press is this value's job; confirming the arrival is the
+   * panel's.
    */
   const [optimisticView, setOptimisticView] = useOptimistic(view);
 
@@ -560,6 +582,76 @@ export function Calendar({
   const [datesBelowFold, setDatesBelowFold] = useState<readonly { date: string; count: number }[]>(
     [],
   );
+
+  /**
+   * ── The view-change animation ──
+   *
+   * The panel below plays a short fade-and-rise whenever the view actually
+   * changes. It is driven from here, with the Web Animations API, and not from
+   * a CSS transition on the pending state, because a transition there was only
+   * *sometimes* visible — which is the bug this replaced.
+   *
+   * The old version fell out of `optimisticView !== view`: pressing a tab set
+   * the optimistic view, that condition went true, the panel was given
+   * `opacity-0`, and when the navigation landed the two agreed again and it
+   * animated back to `opacity-100`. The fade therefore depended on the browser
+   * painting a frame *during* the pending window. It usually did on a cold
+   * switch, where the server round-trip is tens of milliseconds. It usually did
+   * not on a warm one — Next serves a view already in the router cache from
+   * memory, the transition resolves inside the same task, and both class
+   * changes land in one commit. No `opacity-0` frame is ever painted, so
+   * nothing fades and the grid simply swaps. Same code, same gesture, different
+   * outcome depending on whether that view had been visited: exactly the
+   * "works sometimes" the report describes.
+   *
+   * `element.animate` has no such dependency. It is asked for once, from an
+   * effect that runs after the commit that changed `view`, and the browser
+   * plays it to completion on the compositor. Whether the navigation took two
+   * milliseconds or two hundred changes when the animation starts, never
+   * whether it runs.
+   *
+   * Enter only. A leaving half would have to hold the outgoing grid on screen
+   * until it finished, which means delaying content the reader has asked for to
+   * show them something they are done with — and on a warm switch that delay is
+   * the entire cost of the interaction. The toolbar thumb already moves on
+   * press (see `optimisticView`), so the gesture is acknowledged instantly and
+   * this animation is what confirms the arrival.
+   */
+  const viewPanelRef = useRef<HTMLDivElement>(null);
+  /**
+   * The view the panel was last animated for. Seeded with the first `view` so
+   * the effect below is a no-op on mount: the calendar arriving as part of a
+   * page load is not a view *change*, and animating it there would fight the
+   * shell's own entrance.
+   */
+  const animatedViewRef = useRef(view);
+
+  useEffect(() => {
+    if (animatedViewRef.current === view) return;
+    animatedViewRef.current = view;
+
+    const node = viewPanelRef.current;
+    if (!node) return;
+
+    // Matching `motion-reduce:` in the class-based animations elsewhere: the
+    // grid still changes, it just changes without moving.
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    // Read from the element rather than hardcoding, so the animation stays tied
+    // to the same tokens the CSS animations use and a change to the design
+    // system's timing reaches this too.
+    const styles = getComputedStyle(node);
+    const easing = styles.getPropertyValue('--ease-sweep').trim() || 'ease-out';
+    const duration = parseCssDuration(styles.getPropertyValue('--duration-label'), 180);
+
+    node.animate(
+      [
+        { opacity: 0, transform: 'translateY(4px)' },
+        { opacity: 1, transform: 'translateY(0)' },
+      ],
+      { duration, easing, fill: 'backwards' },
+    );
+  }, [view]);
 
   /**
    * How wide the timeline's own vertical scrollbar is, in pixels.
@@ -1124,22 +1216,17 @@ export function Calendar({
         that nothing here can be edited.
       */}
       {/*
-        One panel that cross-fades as the view changes. `optimisticView !== view`
-        is the mid-switch state: the thumb has already moved to the pressed tab
-        (it reads the optimistic value) while this fades the outgoing grid down;
-        once the navigation lands and the two views agree, the incoming one fades
-        back up. The wrapper is a single persistent element so its opacity can
-        transition — keyed content would mount already-visible and never fade.
+        One panel, which plays a short fade-and-rise each time the view lands.
+        The animation is asked for in an effect keyed on `view` rather than
+        expressed as a CSS transition on the pending state — see
+        `viewPanelRef` for why the transition only fired some of the time.
+
+        A single persistent element rather than keyed content: the timeline's
+        scroll listeners and measurements hang off the grid inside it, and
+        remounting that subtree on every switch would throw away work the
+        animation has no business touching.
       */}
-      <div
-        className={cn(
-          'flex min-h-0 flex-1 flex-col gap-3',
-          'transition-[opacity,translate] ease-(--ease-sweep) motion-reduce:transition-none motion-reduce:translate-y-0',
-          optimisticView !== view
-            ? 'opacity-0 translate-y-1 duration-(--duration-reverse)'
-            : 'opacity-100 translate-y-0 duration-(--duration-label)',
-        )}
-      >
+      <div ref={viewPanelRef} className="flex min-h-0 flex-1 flex-col gap-3">
         {view === 'month' && (
           <p className={cn('text-sm text-muted-foreground', contentInset)}>{t('monthReadOnly')}</p>
         )}
