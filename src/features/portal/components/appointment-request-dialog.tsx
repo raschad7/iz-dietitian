@@ -1,9 +1,10 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 
 import { Dialog, DialogHeader } from '@/components/ui/dialog';
+import { useDialogPresence } from '@/components/ui/dialog-motion';
 import { RequestForm } from '@/features/portal/components/request-form';
 import { type RequestPageData } from '@/features/portal/types';
 import { usePathname, useRouter } from '@/i18n/navigation';
@@ -27,11 +28,17 @@ import { getLocaleDirection, type Locale } from '@/i18n/routing';
  * `loadRequestPage` reads the clinic's hours and a month of its bookings, and
  * that read does not happen on an ordinary visit to the appointments list.
  *
- * **Closing is a navigation, but the exit animation still plays.** `close()`
- * drops the local flag first and then navigates inside `startTransition`, which
- * keeps the current tree on screen until the new page is ready — so `Dialog`
- * gets its 140ms `data-closing` pass before this component is unmounted by the
- * route it just asked for. Sending is the same story from the other end:
+ * **Closing is a navigation, and it waits for the exit animation.** `close()`
+ * only drops the local flag; the navigation is fired from an effect once
+ * `useDialogPresence` reports the dialog is gone. Firing both at once — the
+ * flag and then `router.replace` inside `startTransition` — leant on the
+ * transition holding the old tree on screen for the length of the exit, which
+ * it does when the next page needs a round trip and does not when that page is
+ * already cached. The animation was therefore played or cut depending on
+ * timing. Presence is the same clock the dialog's own exit runs on, so the two
+ * cannot disagree.
+ *
+ * Sending is the same story from the other end:
  * `requestAppointmentAction` redirects to `?sent=1`, which carries no
  * `request`, so the dialog closes itself and the page it lands on is the one
  * showing the confirmation.
@@ -62,14 +69,21 @@ export function AppointmentRequestDialog({
   */
   const [open, setOpen] = useState(true);
 
+  /** False once the surface has finished its exit and may be unmounted. */
+  const dialogPresent = useDialogPresence(open);
+
   function close() {
     setOpen(false);
+  }
+
+  useEffect(() => {
+    if (dialogPresent || open) return;
 
     // Bare `pathname`, so `request`, `date`, `kind` and `appointmentId` all go
     // at once. `replace`, not `push`: opening and closing a form should not put
     // an entry in history that the back button walks back into.
     startTransition(() => router.replace(pathname));
-  }
+  }, [dialogPresent, open, pathname, router, startTransition]);
 
   const title = t(`request.heading.${data.kind}`);
 

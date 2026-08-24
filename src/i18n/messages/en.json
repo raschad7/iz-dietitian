@@ -228,7 +228,6 @@
     "monthOther": "Other {count, number, integer}",
     "hiddenBelow": "+{count, number, integer} more",
     "hiddenBelowAction": "Scroll down to {count, number, integer} more appointments on this day",
-    "monthReadOnly": "Month view is an overview. Click a day to book or edit.",
     "nav": {
       "today": "Today",
       "previous": "Previous",
@@ -741,7 +740,7 @@
       "confirmDeleteTitle": "Delete this record permanently?",
       "confirmDelete": "This permanently deletes {name} and their portal account. It cannot be undone.",
       "confirmArchiveTitle": "Archive this client?",
-      "confirmArchive": "They will be removed from the register. You can restore them at any time from the Archive page."
+      "confirmArchive": "They will be removed from the register. You can restore them at any time from the Archived list."
     },
     "plan": {
       "published": "Active plan",

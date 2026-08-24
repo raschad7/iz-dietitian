@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from 'next';
 import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
+import { DesktopScrollbars } from '@/components/layout/desktop-scrollbars';
 import { AppShell } from '@/components/layout/sidebar';
 import { type IconName } from '@/components/ui/icon';
 import { APP_THEME_COLOR_DARK, APP_THEME_COLOR_LIGHT } from '@/features/app-pwa/brand';
@@ -197,6 +198,21 @@ export default async function AppLayout({ children, params }: AppLayoutProps) {
         tied it to signing in rather than to the app starting, and left a
         reloaded nested route with no tile at all. Do not add it back.
       */}
+      {/*
+        The staff app's opt-in to the one visible scrollbar in the product — see
+        "The desktop scrollbar" in globals.css. It marks `<html>` rather than
+        the shell because dialogs, sheets and popups are portalled to `<body>`,
+        and the two longest scrolling surfaces in the app sit inside portalled
+        ones.
+
+        Mounted here and nowhere else: the portal renders the same `AppShell`,
+        and a bar tuned to this app's cool grey furniture would be the wrong
+        colour on the portal's palette. The rules themselves are gated on
+        `pointer: fine` and `lg`, so this attaches the intent and the media
+        query decides whether it applies.
+      */}
+      <DesktopScrollbars />
+
       <AppShell
         items={NAV_ITEMS}
         title={t('shortName')}
@@ -217,10 +233,9 @@ export default async function AppLayout({ children, params }: AppLayoutProps) {
         `auto` keeps the containment — the shell still refuses to be widened by a
         child, which is what stops *page-level* horizontal scrolling — while
         leaving wheel, trackpad, touch drag and keyboard able to reach anything
-        that still overflows. It also matters that nothing appears: the route
-        entrance in `.q-route-stage` animates from an 8px translate, and with a
-        clip that was invisible while with a *bar* it would flash a scrollbar on
-        every navigation. There are no bars.
+        that still overflows. It also matters that nothing appears, and nothing does:
+        the global `* { scrollbar-width: none }` in globals.css takes the bars
+        off every scroller in the app, this one included.
 
         This is a safety net, not a licence. Every real overflow is fixed at its
         source with the Rearrange → Stack → Internal-scroll ladder — `TableRoot`,

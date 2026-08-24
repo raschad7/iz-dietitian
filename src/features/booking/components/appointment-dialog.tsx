@@ -272,6 +272,8 @@ export function AppointmentDialog({
                 locale={locale}
                 value={date}
                 disabled={completed}
+                caption="dropdowns"
+                selectedTone="primary"
                 label={t('fields.openDatePicker')}
                 onChange={commitDateText}
               />

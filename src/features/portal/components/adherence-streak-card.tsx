@@ -149,19 +149,27 @@ function tangents(points: Point[]): number[] {
   const dx: number[] = [];
   const secant: number[] = [];
 
+  /*
+    The non-null assertions through the rest of this function are all the same
+    claim: every index here is derived from `count`, `secant` was just filled
+    with exactly `count - 1` entries, and the early return above guarantees
+    `count >= 2`. `noUncheckedIndexedAccess` cannot see any of that, and
+    threading `?? 0` fallbacks through an interpolation would invent data
+    points rather than describe them.
+  */
   for (let index = 0; index < count - 1; index += 1) {
-    const step = points[index + 1].x - points[index].x;
+    const step = points[index + 1]!.x - points[index]!.x;
     dx.push(step);
-    secant.push(step === 0 ? 0 : (points[index + 1].y - points[index].y) / step);
+    secant.push(step === 0 ? 0 : (points[index + 1]!.y - points[index]!.y) / step);
   }
 
   const slope: number[] = new Array(count);
-  slope[0] = secant[0];
-  slope[count - 1] = secant[count - 2];
+  slope[0] = secant[0]!;
+  slope[count - 1] = secant[count - 2]!;
 
   for (let index = 1; index < count - 1; index += 1) {
-    const before = secant[index - 1];
-    const after = secant[index];
+    const before = secant[index - 1]!;
+    const after = secant[index]!;
     // A local peak or floor gets a flat tangent — forcing a slope through a
     // point the data itself turns around at is what overshoot comes from.
     slope[index] = before === 0 || after === 0 || before > 0 !== after > 0 ? 0 : (before + after) / 2;
@@ -171,15 +179,15 @@ function tangents(points: Point[]): number[] {
   // preserving their ratio, whenever they would carry the curve past either
   // endpoint — the guarantee that makes clamping unnecessary anywhere else.
   for (let index = 0; index < count - 1; index += 1) {
-    const step = secant[index];
+    const step = secant[index]!;
     if (step === 0) {
       slope[index] = 0;
       slope[index + 1] = 0;
       continue;
     }
 
-    const a = slope[index] / step;
-    const b = slope[index + 1] / step;
+    const a = slope[index]! / step;
+    const b = slope[index + 1]! / step;
     const magnitude = Math.hypot(a, b);
 
     if (magnitude > 3) {
@@ -200,13 +208,15 @@ function curve(points: Point[]): string {
   const slope = tangents(points);
   let path = `M ${round(first.x)} ${round(first.y)}`;
 
+  // Same claim as in `tangents`: `index` and `index + 1` are both inside a
+  // list this loop is bounded by, and `slope` has one entry per point.
   for (let index = 0; index < points.length - 1; index += 1) {
-    const start = points[index];
-    const end = points[index + 1];
+    const start = points[index]!;
+    const end = points[index + 1]!;
     const step = (end.x - start.x) / 3;
 
-    const c1 = { x: start.x + step, y: start.y + slope[index] * step };
-    const c2 = { x: end.x - step, y: end.y - slope[index + 1] * step };
+    const c1 = { x: start.x + step, y: start.y + slope[index]! * step };
+    const c2 = { x: end.x - step, y: end.y - slope[index + 1]! * step };
 
     path += ` C ${round(c1.x)} ${round(c1.y)}, ${round(c2.x)} ${round(c2.y)}, ${round(end.x)} ${round(end.y)}`;
   }

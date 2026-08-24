@@ -81,7 +81,7 @@ export default async function NotFound() {
   const cta = staff ? t('notFoundCtaDashboard') : t('notFoundCtaHome');
 
   return (
-    <main className="q-route-stage mx-auto flex min-h-dvh max-w-xl flex-col items-center justify-center gap-8 px-6 py-16 text-center">
+    <main className="mx-auto flex min-h-dvh max-w-xl flex-col items-center justify-center gap-8 px-6 py-16 text-center">
       {/*
         Decoration, all of it — `aria-hidden` covers the digits as well as the
         ghost. A screen reader that announced "44" here would be reading two

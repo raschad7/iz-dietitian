@@ -330,6 +330,28 @@ function AppSidebar({
                         <Link
                           href={item.href}
                           /*
+                            Prefetch the shell on sight, the whole page on hover.
+
+                            Every screen behind this rail is dynamic — they all
+                            read the session — and Next will only fetch a
+                            dynamic route ahead as far as its `loading.tsx`. So
+                            the default gets the skeleton ready and leaves the
+                            data to the click, which is most of what is left of
+                            the wait now that the navigation itself is instant.
+                            This asks for the rest the moment the pointer lands
+                            on the row, which on a desktop is a beat or two
+                            before the click: the page is usually already in the
+                            router cache by the time it happens, and the
+                            skeleton never appears at all.
+
+                            **Scoped to this list on purpose.** Hovering renders
+                            a whole route on the server, so this belongs on a
+                            fixed set of five deliberate destinations and
+                            nowhere near a table of a hundred client rows. It
+                            costs nothing on a phone, where there is no hover.
+                          */
+                          unstable_dynamicOnHover
+                          /*
                             Clicking the row you are already standing on used to
                             push the same URL again, which re-runs the page for
                             no change on screen. The click is swallowed instead.
@@ -346,6 +368,14 @@ function AppSidebar({
                         default never reaches it — the glyph has to ask. This is
                         the rail's one job at 56px wide, and 16px of it was too
                         little to aim at or to tell apart at a glance.
+
+                        The glyph does not change while the row is loading. It
+                        was swapped for a spinner via `useLinkStatus` for one
+                        release: the rail is five fixed marks a reader navigates
+                        by shape, and replacing one of them mid-navigation took
+                        away the landmark at the moment it was being used. The
+                        progress bar reports the wait instead — see
+                        `navigation-progress.tsx`.
                       */}
                       {icon ? <Icon name={icon} className="size-5" /> : null}
                       <span>{label}</span>

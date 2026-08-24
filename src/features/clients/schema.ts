@@ -456,14 +456,16 @@ export type ClientSort = (typeof CLIENT_SORTS)[number];
  * thing.
  *
  * **`status` is not one of them any more.** It was in here as a filter value —
- * "Status → All" — which is how an archived client used to be found. Archived
- * clients have their own page now (`/app/clients/archived`), and a *place* is a
- * better answer than a filter for a list you either are or are not looking at:
- * it can be linked to, it can say what it is at the top, and it puts Restore in
- * front of you instead of leaving you to spot which rows are grey. Leaving the
- * filter in as well would be two answers to the same question, and it would let
- * the register mix the two states in one list, where the status column it
- * needed has just been removed for saying "active" on every row.
+ * "Status → All" — which is how an archived client used to be found. It has its
+ * own control now: the toggle in the toolbar, which swaps the whole list
+ * between the register and the archive (`?status=archived`) rather than mixing
+ * the two states into one. That is a better answer than a filter value for a
+ * list you either are or are not looking at — it says what it is in the page
+ * title and it puts Restore in front of you, instead of leaving you to spot
+ * which rows are grey. Leaving the filter in as well would be two answers to
+ * the same question, and it would let the register mix the two states in one
+ * list, where the status column it needed has just been removed for saying
+ * "active" on every row.
  *
  * **`phone` and `email` are not here either, and that leaves one.** They were
  * substring matches on two columns nobody searches a register by: a dietitian
@@ -537,12 +539,13 @@ export const CLIENT_FILTER_VALUES = {
 export const listClientsSchema = z.object({
   q: z.preprocess(blankToUndefined, z.string().trim().max(120).optional()),
   /**
-   * Which half of the register this is.
+   * Which half of the register this is: the active list, or the archive.
    *
-   * Set by the route, not by the reader: `/app/clients` is `active` and
-   * `/app/clients/archived` is `archived`, and both pass it explicitly. It is
-   * still parsed from the same object because both pages share one schema and
-   * one query — the only thing that differs between them is this value.
+   * It comes off the query string now. The archive was a route of its own and
+   * is a view of `/app/clients` — `?status=archived` — so the toolbar's toggle
+   * swaps this one parameter and leaves the search, the filter and the sort
+   * where they are. `.catch('active')` is what makes anything else in the
+   * parameter show the register rather than throw.
    */
   status: z.enum(CLIENT_STATUSES).catch('active'),
   filterBy: z.preprocess(blankToUndefined, z.enum(CLIENT_FILTERS).optional().catch(undefined)),

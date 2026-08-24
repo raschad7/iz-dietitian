@@ -11,8 +11,7 @@ live in focused documents so they are loaded only when relevant.
   boundaries, authentication, database access, or integrations.
 - Read [`docs/development.md`](docs/development.md) for setup, environment files,
   migrations, commands, and test safety.
-- Read [`docs/design-system.md`](docs/design-system.md) before any UI work. Open
-  the full Qiwam HTML reference only when detailed visual guidance is needed.
+- Read [`docs/design-system.md`](docs/design-system.md) before any UI work.
 
 ## Repository rules
 

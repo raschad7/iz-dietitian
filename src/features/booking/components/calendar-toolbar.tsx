@@ -77,6 +77,12 @@ export type CalendarToolbarProps = {
   query: string;
   onQueryChange: (query: string) => void;
   onViewChange: (view: CalendarView) => void;
+  /**
+   * The pointer has landed on a view, or focus has reached it. The calendar
+   * prefetches that view so the click that usually follows is served from the
+   * router cache instead of a round trip. See `Segmented`'s `onOptionHover`.
+   */
+  onViewHover?: (view: CalendarView) => void;
   onPrevious: () => void;
   onNext: () => void;
   onDateChange: (date: string) => void;
@@ -98,6 +104,7 @@ export function CalendarToolbar({
   query,
   onQueryChange,
   onViewChange,
+  onViewHover,
   onPrevious,
   onNext,
   onDateChange,
@@ -190,6 +197,7 @@ export function CalendarToolbar({
           shape="contained"
           value={view}
           onChange={onViewChange}
+          onOptionHover={onViewHover}
           /*
             ⚠ `max-md:hidden`, **not** `hidden md:inline-flex`. Both hide the
             switch below `md`, but the second one also *sets the display* at

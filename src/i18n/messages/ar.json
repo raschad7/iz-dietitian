@@ -228,7 +228,6 @@
     "monthOther": "أخرى {count, number, integer}",
     "hiddenBelow": "+{count, number, integer} أخرى",
     "hiddenBelowAction": "انزل إلى {count, number, integer} مواعيد أخرى في هذا اليوم",
-    "monthReadOnly": "عرض الشهر للاطّلاع فقط. انقر على أي يوم للحجز أو التعديل.",
     "nav": {
       "today": "اليوم",
       "previous": "السابق",
@@ -741,7 +740,7 @@
       "confirmDeleteTitle": "حذف السجل نهائيًا؟",
       "confirmDelete": "سيُحذف سجل «{name}» نهائيًا مع حسابه في البوابة، ولا يمكن التراجع.",
       "confirmArchiveTitle": "أرشفة هذا العميل؟",
-      "confirmArchive": "سيُزال من السجل، ويمكنك استعادته في أي وقت من صفحة الأرشيف."
+      "confirmArchive": "سيُزال من السجل، ويمكنك استعادته في أي وقت من قائمة المؤرشفين."
     },
     "plan": {
       "published": "خطة نشطة",
