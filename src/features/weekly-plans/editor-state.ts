@@ -79,6 +79,8 @@ export type BoardEdit =
   | { kind: 'add'; dayOfWeek: number; label: string; timeOfDay: string; slotKey: string }
   | { kind: 'addWeek'; label: string; timeOfDay: string; slotKey: string }
   | { kind: 'removeWeek'; slotKey: string }
+  /** The undo of `removeWeek` — the meals it took, back in the days they came from. */
+  | { kind: 'restoreWeek'; meals: readonly { dayOfWeek: number; meal: BoardMeal }[] }
   | { kind: 'move'; fromMealId: string; toMealId: string; mode: 'move' | 'copy' };
 
 /** Finds a meal anywhere on the board. */
@@ -262,6 +264,39 @@ export function applyEdit(board: Board, edit: BoardEdit): Board {
           ...day,
           meals: day.meals.filter((meal) => meal.slotKey !== edit.slotKey),
         })),
+      );
+    }
+
+    /*
+     * The undo of `removeWeek`, replaying the exact meals that were taken.
+     *
+     * Not `addWeek` with a slot key: that builds seven empty cells, and what
+     * this puts back is seven cells with a week of dishes in them. The caller
+     * captured the real `BoardMeal` objects before the removal, so the
+     * optimistic board is not a reconstruction — it is the rows themselves,
+     * totals included. The ids will differ once the server's own insert comes
+     * back on revalidation, which is invisible: nothing on the board keys off a
+     * meal id between one render and the next.
+     *
+     * Guarded per day, the same way `addWeek` is: a day that somehow already
+     * carries the slot is left alone rather than given a duplicate row, which
+     * would make the board's slot lookup ambiguous.
+     */
+    case 'restoreWeek': {
+      const byDay = new Map<number, BoardMeal[]>();
+      for (const meal of edit.meals) {
+        byDay.set(meal.dayOfWeek, [...(byDay.get(meal.dayOfWeek) ?? []), meal.meal]);
+      }
+
+      return recountBoard(
+        board,
+        board.days.map((day) => {
+          const restored = (byDay.get(day.dayOfWeek) ?? []).filter(
+            (meal) => !day.meals.some((existing) => existing.slotKey === meal.slotKey),
+          );
+
+          return restored.length ? { ...day, meals: [...day.meals, ...restored] } : day;
+        }),
       );
     }
 

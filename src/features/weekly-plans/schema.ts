@@ -295,6 +295,46 @@ export const removeWeekMealSchema = z.object({
   slotKey: mealSlotSchema.shape.slotKey,
 });
 
+/**
+ * Puts a removed slot back, with the dishes it was carrying.
+ *
+ * The undo half of `removeWeekMealSchema`, and it needs its own shape because
+ * `addWeekMealSchema` cannot express it: adding a slot to the week creates
+ * seven *empty* cells, and what was removed was seven cells with dishes in
+ * them. The client sends back what it had on screen a moment ago, which is the
+ * only place that information still exists once the rows are deleted.
+ *
+ * `days` arrives as JSON in a form field, so it is parsed here rather than
+ * trusted: every dish id is re-checked against the clinic's catalog by
+ * `restoreMealToWeek` before anything is written.
+ */
+export const restoreWeekMealSchema = z.object({
+  ...editBase,
+  slotKey: mealSlotSchema.shape.slotKey,
+  label: mealSlotSchema.shape.label,
+  timeOfDay: timeOfDaySchema,
+  days: z.preprocess(
+    (value) => {
+      if (typeof value !== 'string') return value;
+      try {
+        return JSON.parse(value);
+      } catch {
+        return undefined;
+      }
+    },
+    z
+      .array(
+        z.object({
+          dayOfWeek: dayOfWeekSchema,
+          dishId: z.uuid().nullable(),
+          servings: z.number().positive().max(20),
+          budgetKcal: z.number().min(0).max(20000),
+        }),
+      )
+      .max(7),
+  ),
+});
+
 export const moveMealSchema = z.object({
   ...editBase,
   fromMealId: mealIdSchema,

@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import { Icon, type IconName } from '@/components/ui/icon';
+import { TooltipHint } from '@/components/ui/tooltip-hint';
 import { cn } from '@/lib/utils';
 
 import { publishPlanAction, unpublishPlanAction } from '../actions';
@@ -122,13 +123,12 @@ function Submit({
 }) {
   const { pending } = useFormStatus();
 
-  return (
+  const button = (
     <Button
       type="submit"
       size="sm"
       variant={variant}
       disabled={pending || disabled}
-      title={title}
       aria-busy={pending}
       data-pending={pending}
       data-confirmed={confirmed || undefined}
@@ -159,6 +159,21 @@ function Submit({
       </span>
     </Button>
   );
+
+  if (!title) return button;
+
+  /*
+    The reason it is disabled, in this app's tooltip rather than the browser's
+    `title`.
+
+    A disabled button swallows its own pointer events, which is exactly why the
+    native tip was chosen here and exactly why it was the wrong choice: it works
+    only for a mouse, waits a second, and is drawn by the OS. `TooltipHint`
+    wraps the button in a span, and the span is what the pointer hovers — so the
+    explanation arrives on the one control whose whole problem is that it cannot
+    be pressed.
+  */
+  return <TooltipHint label={title}>{button}</TooltipHint>;
 }
 
 function Message({ state }: { state: PlanActionState }) {

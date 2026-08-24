@@ -1,5 +1,6 @@
 'use client';
 
+import { useCallback } from 'react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { useLocale, useTranslations } from 'next-intl';
 
@@ -7,7 +8,7 @@ import { Icon } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 
 import { MEAL_TOLERANCE, driftState } from '@/features/weekly-plans/drift';
-import { roundForDisplay, roundGrams } from '@/features/weekly-plans/nutrition';
+import { roundForDisplay } from '@/features/weekly-plans/nutrition';
 import { localizedName } from '../food-display';
 import { dishTagAccentClass } from '../meal-tag-tone';
 import type { BoardMeal } from '../queries';
@@ -65,6 +66,7 @@ export function MealCard({
     attributes,
     listeners,
     setNodeRef: setDragRef,
+    setActivatorNodeRef,
     isDragging,
   } = useDraggable({
     id: `meal:${meal.id}`,
@@ -79,6 +81,7 @@ export function MealCard({
             dishName: localizedName(meal.dish, locale),
             kcal,
             servings: meal.dish.servings,
+            tags: meal.dish.tags,
           }
         : undefined,
     },
@@ -96,9 +99,44 @@ export function MealCard({
         ? localizedName(dragging.dish, locale)
         : null;
 
+  /*
+   * No tip on the card, of any kind.
+   *
+   * The budget lived here as a `title` and then briefly as a real tooltip, and
+   * the real one is what made the problem visible: thirty-five cards that each
+   * raise a panel when the pointer crosses them turn an ordinary sweep across
+   * the board into a trail of popups. The figure it carried is the same five
+   * numbers repeated down every column, and it is already in the meal's detail
+   * panel and in the rail's schedule — both places you go on purpose.
+   */
+  /*
+   * **The draggable node is the card; the handle is only the activator.**
+   *
+   * `setNodeRef` used to sit on the grip, which made a 32px span the thing
+   * dnd-kit was dragging — and `onDragStart` measures `active.rect` to size the
+   * overlay, so the card under the pointer was sized from the grip and not from
+   * the card. dnd-kit splits these on purpose: `setNodeRef` marks *what moves*
+   * and `setActivatorNodeRef` marks *what you grab it by*. With the two
+   * separated the lifted card is exactly the size of the card it came from, at
+   * every column width, every time.
+   *
+   * Composed with the drop ref rather than replacing it: this element is both
+   * ends of a drag — the thing you can pick up, and the thing another card can
+   * land on.
+   */
+  const setCardRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      setDropRef(node);
+      setDragRef(node);
+    },
+    [setDropRef, setDragRef],
+  );
+
   return (
     <div
-      ref={setDropRef}
+      ref={setCardRef}
+      // What `onDragStart` measures the lifted card against — see `board-dnd.tsx`.
+      data-meal-card=""
       className={cn(
         'group relative min-h-0 overflow-hidden rounded-lg border bg-card transition-[border-color,background-color,transform,opacity,box-shadow] duration-(--duration-sweep) ease-(--ease-sweep)',
         selected ? 'border-primary ring-1 ring-primary' : 'border-border',
@@ -112,10 +150,6 @@ export function MealCard({
         type="button"
         onClick={(event) => onSelect(event.currentTarget)}
         aria-pressed={selected}
-        // The budget is not printed on the card — it is the same five figures
-        // repeated down every column. It stays reachable here, in the detail
-        // panel, and in the rail's schedule.
-        title={meal.budgetKcal > 0 ? t('budgetHint', { value: meal.budgetKcal }) : undefined}
         className={cn(
           'flex h-full min-h-0 w-full flex-col text-start',
           selected ? 'bg-primary/5' : 'hover:bg-accent/50',
@@ -161,11 +195,14 @@ export function MealCard({
             board of thirty-five cards, and the card is about the dish. 14px is
             the dense-table step, and the UI face is where the tabular figures
             actually live. */}
-        <span
-          className={cn(
-            'relative mt-1 flex shrink-0 items-baseline justify-between gap-2 px-2 pb-1.5 pt-2.5',
-          )}
-        >
+        {/* One figure at the foot, centred under the name.
+            The dish's total weight used to sit opposite it. It is a number
+            nobody plans against — the target is calories, the portion is set by
+            ingredient in the detail panel — and printing it on all thirty-five
+            cards made every card a two-column table whose second column was
+            never read. With it gone the calories stop being pushed to one edge
+            and sit under the dish they belong to. */}
+        <span className="relative mt-1 flex shrink-0 items-baseline justify-center gap-2 px-2 pb-1.5 pt-2.5">
           <span
             aria-hidden
             className={cn(
@@ -192,12 +229,6 @@ export function MealCard({
               <small className="text-caption font-normal text-muted-foreground">kcal</small>
             )}
           </span>
-
-          {meal.dish && (
-            <span className="shrink-0 text-caption text-muted-foreground tabular-nums">
-              {t('totalGrams', { value: roundGrams(meal.grams, 5) })}
-            </span>
-          )}
         </span>
 
         {ghost && (
@@ -225,14 +256,21 @@ export function MealCard({
           is why it has to reappear on focus as well as on hover. */}
       {editable && meal.dish && (
         <span
-          ref={setDragRef}
+          ref={setActivatorNodeRef}
           {...listeners}
           {...attributes}
           aria-label={localizedName(meal.dish, locale)}
-          // `top-1`, not `top-7`. The old offset cleared the metadata row that
-          // used to sit above the dish name; with that row in the slot rail the
-          // handle would have floated in the middle of the name it belongs to.
-          className="planner-drag-handle absolute end-0.5 top-0.5 z-30 cursor-grab rounded-full p-1.5 text-muted-foreground opacity-0 transition-[opacity,background-color,color] hover:bg-secondary hover:text-primary active:cursor-grabbing group-hover:opacity-100 focus-visible:bg-secondary focus-visible:text-primary focus-visible:opacity-100 max-md:opacity-100"
+          /*
+            `start`, not `end` — the leading corner of the card.
+
+            In Arabic that is the top right, which is where the reader's eye
+            enters the card and where every other leading affordance in this app
+            sits; `end` put it at the top left, the corner an RTL reader arrives
+            at last. It mirrors to the top left in English for the same reason,
+            so the grip is always the first thing in the card rather than always
+            on one physical side.
+          */
+          className="planner-drag-handle absolute start-0.5 top-0.5 z-30 cursor-grab rounded-full p-1.5 text-muted-foreground opacity-0 transition-[opacity,background-color,color] hover:bg-secondary hover:text-primary active:cursor-grabbing group-hover:opacity-100 focus-visible:bg-secondary focus-visible:text-primary focus-visible:opacity-100 max-md:opacity-100"
         >
           <Icon name="dragHandle" className="size-5" />
         </span>
@@ -286,11 +324,7 @@ export function MealCardSnapshot({ meal }: { meal: BoardMeal }) {
         </span>
       </span>
 
-      <span
-        className={cn(
-          'relative mt-1 flex shrink-0 items-baseline justify-between gap-2 px-2 pb-1.5 pt-2.5',
-        )}
-      >
+      <span className="relative mt-1 flex shrink-0 items-baseline justify-center gap-2 px-2 pb-1.5 pt-2.5">
         <span
           aria-hidden
           className={cn(
@@ -308,12 +342,6 @@ export function MealCardSnapshot({ meal }: { meal: BoardMeal }) {
           <span dir="ltr">{meal.dish ? kcal : '—'}</span>
           {meal.dish && <small className="text-caption font-normal text-muted-foreground">kcal</small>}
         </span>
-
-        {meal.dish && (
-          <span className="text-caption text-muted-foreground tabular-nums">
-            {t('totalGrams', { value: roundGrams(meal.grams, 5) })}
-          </span>
-        )}
       </span>
     </div>
   );

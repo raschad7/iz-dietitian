@@ -4934,22 +4934,65 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
 }
 
 
-/* Tablet is a three-day-wide work surface, not a compressed seven-column
+/* Tablet is a few-days-wide work surface, not a compressed seven-column
  * desktop. The rest of the week stays one touch swipe away, with the frozen
- * meal rail preserving row context and no scrollbar consuming canvas space. */
+ * meal rail preserving row context and no scrollbar consuming canvas space.
+ *
+ * The arithmetic, once, because it is the same in both blocks below. The grid
+ * is wider than its frame on purpose: `n` day columns plus the 6rem rail have
+ * to add up to exactly the frame's width, so that a swipe lands the next group
+ * of `n` flush against the rail. Solving `n × day + 6rem = W` for a grid of
+ * seven equal columns gives `inline-size: (7/n)×W − (7/n − 1)×6rem`, which is
+ * where the percentages and the subtracted rems come from.
+ */
 @media (min-width: 48rem) and (max-width: 79.999rem) {
   .planner-week-scroll {
     scroll-snap-type: inline proximity;
   }
 
+  .planner-day-column {
+    scroll-snap-align: start;
+  }
+}
+
+/* Portrait tablet: three days. 768px less the rail is 672px, which is 224px a
+ * day — about where a two-line dish name stops wrapping to three. */
+@media (min-width: 48rem) and (max-width: 63.999rem) {
   .planner-week-grid {
     inline-size: calc(233.333% - 8rem);
     grid-template-columns: 6rem repeat(7, minmax(0, 1fr));
   }
+}
 
-  .planner-day-column {
-    scroll-snap-align: start;
+/* Landscape tablet and the small laptop: four. Three columns across 1024px is
+ * 306px a day — half again as wide as a meal card needs, spent on showing less
+ * than half the week. Four holds the same 224px-and-up column and puts a whole
+ * working stretch of the week on screen at once, which is what the swipe was
+ * costing.
+ */
+@media (min-width: 64rem) and (max-width: 79.999rem) {
+  .planner-week-grid {
+    inline-size: calc(175% - 4.5rem);
+    grid-template-columns: 6rem repeat(7, minmax(0, 1fr));
   }
+}
+
+/*
+ * The card under the pointer, promoted to its own compositor layer.
+ *
+ * dnd-kit writes a `transform` on this element on every pointer move. Without a
+ * promotion hint the browser is free to repaint the card's text, border and
+ * shadow into the page layer each frame — which on a board carrying
+ * thirty-five other cards is exactly where the dragging felt like it was
+ * catching. `will-change` costs one layer for the length of a gesture and
+ * gives the whole drag back to the compositor.
+ *
+ * `backface-visibility` is the other half on WebKit, where a transformed layer
+ * carrying text is otherwise rasterised at the pre-transform size and resampled.
+ */
+.planner-drag-preview {
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 /*

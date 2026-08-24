@@ -1,8 +1,9 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull, or } from 'drizzle-orm';
 
 import { db } from '@/db';
 import {
   clients,
+  dishes,
   weeklyPlanMealIngredients,
   weeklyPlanMealOptions,
   weeklyPlanMeals,
@@ -35,9 +36,9 @@ import { planWeekDays, weekDateForDay } from './week';
  * read a plan with meals in it as a week with no data at all. Placing a dish,
  * changing its servings, clearing a slot back to empty, or moving a dish
  * between two slots never changes a day's meal *count*, so none of those
- * three touch adherence — only the five writes that add or remove a row do:
- * `createPlanFromSkeleton`, `addMeal`, `addMealToWeek`, `removeMeal`, and
- * `removeMealFromWeek`.
+ * three touch adherence — only the six writes that add or remove a row do:
+ * `createPlanFromSkeleton`, `addMeal`, `addMealToWeek`, `restoreMealToWeek`,
+ * `removeMeal`, and `removeMealFromWeek`.
  */
 
 /** Confirms a client belongs to this clinic. */
@@ -505,6 +506,109 @@ export async function addMealToWeek(
 
     const affectedDays = new Set(values.map((value) => value.dayOfWeek));
     for (const dayOfWeek of affectedDays) {
+      await recomputePlanDay(tx, clinicId, plan, dayOfWeek);
+    }
+
+    return added.length;
+  });
+}
+
+/** One day's worth of what a removed slot was holding. */
+export type RestoredSlotDay = {
+  dayOfWeek: number;
+  dishId: string | null;
+  servings: number;
+  budgetKcal: number;
+};
+
+/**
+ * Puts a removed slot back, with the dishes that were in it.
+ *
+ * The undo half of `removeMealFromWeek`, and it exists because `addMealToWeek`
+ * cannot be it: that one creates seven empty cells, and what the delete took
+ * was seven cells with a week of dishes in them. Undo has to mean *undo*, not
+ * "make an empty row of the same name", so the caller hands back the rows it
+ * had on screen and this writes them.
+ *
+ * **The dish ids are re-checked, not trusted.** They arrive from the browser,
+ * and `weekly_plan_meals.dish_id` is only a foreign key to `dishes` — nothing
+ * in the column stops one clinic's plan pointing at another clinic's private
+ * dish. Anything not visible to this clinic is restored as an empty slot rather
+ * than refused: the row still belongs in the week, and silently dropping it
+ * would make undo do less than it said.
+ *
+ * One transaction and one insert, for the reason `addMealToWeek` gives: a
+ * half-applied restore leaves a row that exists on four days and not on three.
+ */
+export async function restoreMealToWeek(
+  clinicId: string,
+  planId: string,
+  slot: { slotKey: string; label: string; timeOfDay: string },
+  days: readonly RestoredSlotDay[],
+): Promise<number> {
+  const plan = await editablePlan(clinicId, planId);
+  if (!plan) return 0;
+
+  const requested = [...new Set(days.map((day) => day.dishId).filter((id) => id !== null))];
+  const allowed = new Set(
+    requested.length === 0
+      ? []
+      : (
+          await db
+            .select({ id: dishes.id })
+            .from(dishes)
+            .where(
+              and(
+                inArray(dishes.id, requested),
+                or(isNull(dishes.clinicId), eq(dishes.clinicId, clinicId)),
+              ),
+            )
+        ).map((row) => row.id),
+  );
+
+  return db.transaction(async (tx) => {
+    const existing = await tx
+      .select({
+        dayOfWeek: weeklyPlanMeals.dayOfWeek,
+        slotKey: weeklyPlanMeals.slotKey,
+        sortOrder: weeklyPlanMeals.sortOrder,
+      })
+      .from(weeklyPlanMeals)
+      .where(eq(weeklyPlanMeals.planId, planId));
+
+    const nextSortOrder = new Map<number, number>();
+    const alreadyHas = new Set<number>();
+
+    for (const row of existing) {
+      const seen = nextSortOrder.get(row.dayOfWeek) ?? 0;
+      nextSortOrder.set(row.dayOfWeek, Math.max(seen, row.sortOrder + 1));
+      if (row.slotKey === slot.slotKey) alreadyHas.add(row.dayOfWeek);
+    }
+
+    const values = days
+      .filter((day) => !alreadyHas.has(day.dayOfWeek))
+      .map((day) => ({
+        planId,
+        dayOfWeek: day.dayOfWeek,
+        slotKey: slot.slotKey,
+        label: slot.label,
+        timeOfDay: slot.timeOfDay,
+        budgetKcal: day.budgetKcal,
+        sortOrder: nextSortOrder.get(day.dayOfWeek) ?? 0,
+        dishId: day.dishId && allowed.has(day.dishId) ? day.dishId : null,
+        servings: snapServings(day.servings),
+      }));
+
+    if (values.length === 0) return 0;
+
+    const added = await tx
+      .insert(weeklyPlanMeals)
+      .values(values)
+      .returning({ id: weeklyPlanMeals.id });
+
+    await touchPlan(tx, planId);
+
+    for (const dayOfWeek of new Set(values.map((value) => value.dayOfWeek))) {
       await recomputePlanDay(tx, clinicId, plan, dayOfWeek);
     }
 

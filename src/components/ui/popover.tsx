@@ -152,8 +152,26 @@ function PopoverDescription({
   )
 }
 
+/**
+ * A control inside the popup that dismisses it.
+ *
+ * Reach for this rather than driving `Popover`'s `open` from a `useState` when
+ * all a call site wants is "this entry finishes the menu". A controlled popup
+ * closed by setting state leaves the popup mounted and fully opaque — Base UI's
+ * exit animation never runs, so it never sees `animationend` and never
+ * unmounts, and the menu stays on screen for good. Going through Base UI's own
+ * close path does not have that problem.
+ *
+ * `render` takes the real control, so a menu row stays a `Button` with its own
+ * variant and handler; this only adds the dismissal.
+ */
+function PopoverClose({ ...props }: PopoverPrimitive.Close.Props) {
+  return <PopoverPrimitive.Close data-slot="popover-close" {...props} />
+}
+
 export {
   Popover,
+  PopoverClose,
   PopoverContent,
   PopoverDescription,
   PopoverHeader,

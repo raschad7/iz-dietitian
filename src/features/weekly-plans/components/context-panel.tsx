@@ -67,11 +67,21 @@ export function ContextPanel({
     <section
       aria-label={t('planningSnapshot')}
       className={cn(
-        'bg-card px-4 py-3',
+        'bg-card px-3 py-2',
         !embedded && 'rounded-lg border border-border shadow-card',
       )}
     >
-      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center xl:grid-cols-[minmax(17rem,1.05fr)_minmax(34rem,2fr)_auto]">
+      {/*
+        The two-row shape arrives at `md`, not at `lg`.
+
+        Below `lg` this used to stack three blocks — the picker, a 3×2 grid of
+        facts, then the buttons — which on an iPad is about 230px of header
+        before the first meal card, on a screen 768px tall in landscape. The
+        facts fit five across from 768px once they stopped being 16px semibold
+        (see `SummaryFact`), so the tablet gets the same two rows the desktop
+        gets: name and buttons on one line, the week's numbers on the next.
+      */}
+      <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_auto] md:items-center xl:grid-cols-[minmax(15rem,1fr)_minmax(30rem,2fr)_auto]">
         {/* `gap-2`, not `gap-3`. The disc and the name are one thing — a person
             — and the same gutter that separates them from the profile button
             made them read as two items in a toolbar. */}
@@ -88,7 +98,11 @@ export function ContextPanel({
           */}
           {selectedClient ? (
             <span className="patient-tone contents" style={patientToneStyle(selectedClient.seq)}>
-              <Avatar name={selectedClient.fullName} color="var(--tone-mark)" size="planner" />
+              {/* `lg` (44px), not `planner` (56px). That size exists to match
+                  the fact tiles beside it, and those tiles are 44px now — a
+                  56px disc would be the one thing in the row still setting the
+                  old height, which is the height this pass is removing. */}
+              <Avatar name={selectedClient.fullName} color="var(--tone-mark)" size="lg" />
             </span>
           ) : null}
 
@@ -102,7 +116,7 @@ export function ContextPanel({
 
         </div>
 
-        <div className="grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-3 lg:col-span-2 lg:grid-cols-5 xl:col-span-1 xl:col-start-2 xl:row-start-1">
+        <div className="grid min-w-0 grid-cols-2 gap-1.5 sm:grid-cols-3 md:col-span-2 md:grid-cols-5 xl:col-span-1 xl:col-start-2 xl:row-start-1">
           <SummaryFact label={t('dailyTarget')} numeric>
             {context.effectiveKcal === null ? t('unset') : t('kcalValue', { value: context.effectiveKcal })}
           </SummaryFact>
@@ -117,62 +131,121 @@ export function ContextPanel({
           <SummaryFact label={t('goal')}>
             {isMember(CLIENT_GOALS, context.goal) ? tGoals(context.goal) : t('unset')}
           </SummaryFact>
+          {/*
+            **The short form in the tile, the sentence in the tip.**
+
+            This one carried the full warning — "لم تُسجّل معلومات الحساسية. تأكد
+            منها قبل نشر الخطة." — as its value, which is a sentence in a box
+            sized for a number. It wrapped to four lines, and because these five
+            are grid siblings that made *all five* 81px, so a client with no
+            allergies recorded got a header half again as tall as one who had.
+            Two words go in the tile; the sentence is one hover away and is also
+            in the notes popover, where the rest of the profile lives.
+          */}
           <SummaryFact
             label={t('allergies')}
-            wrap
+            hint={allergyText || t('allergiesMissing')}
             className={cn(
               allergyText ? 'text-status-medical-fg' : 'text-status-attention-fg',
               'col-span-2 sm:col-span-1',
             )}
           >
-            {allergyText || t('allergiesMissing')}
+            {allergyText || t('allergiesMissingShort')}
           </SummaryFact>
         </div>
 
-        <div className="flex items-center gap-1 rounded-lg bg-muted/70 p-1 lg:col-start-2 lg:row-start-1 xl:col-start-3 xl:flex-col">
+        {/* Side by side at every width. This pair used to stack into a column
+            at `xl`, which made the header as tall as two icon buttons plus
+            their gap — taller than the row of facts it sits beside, so it, not
+            the content, was setting the panel's height. */}
+        <div className="flex items-center gap-1 rounded-lg bg-muted/70 p-1 md:col-start-2 md:row-start-1 xl:col-start-3">
           <Popover>
-          <PopoverTrigger
-            aria-label={t('planningNotes')}
-            title={t('planningNotes')}
-            className={buttonVariants({
-              variant: 'neutral',
-              size: 'icon-sm',
-            })}
+          <TooltipHint label={t('planningNotes')}>
+            <PopoverTrigger
+              aria-label={t('planningNotes')}
+              className={buttonVariants({
+                variant: 'neutral',
+                size: 'icon-sm',
+              })}
+            >
+              <Icon name="info" />
+              <span className="sr-only">{t('planningNotes')}</span>
+            </PopoverTrigger>
+          </TooltipHint>
+          {/*
+            ── The planning notes, as a panel rather than a printout ──
+
+            What was here was a 13px title with no space under it, a two-column
+            `dl` whose second cell had to fit "80 كغ · 170 سم · 28 سنة" in
+            150px (it never did — it wrapped mid-run, twice), and four
+            hairline-separated rows that mostly said "غير محدد" in exactly the
+            weight and colour a real answer would have. Nothing in it was
+            wrong; it just had no rhythm, so the eye had nowhere to land and an
+            empty profile looked identical to a full one.
+
+            Three changes carry the fix. The heading gets the app's heading face
+            and a rule under it, and stays put while the notes scroll — the
+            popover is tall enough to scroll and a title that leaves is a
+            surface you can lose your place in. The two derived facts become a
+            spec list, label at the inline-start and value at the inline-end on
+            one row each, which is the shape that gives a long measurement
+            string the whole width instead of half of it. And an unanswered note
+            drops to the muted colour, so "not recorded yet" reads as absence
+            rather than as content.
+          */}
+          <PopoverContent
+            align="end"
+            side="bottom"
+            className="max-h-[min(34rem,72dvh)] w-[min(22rem,calc(100vw-2rem))] overflow-y-auto p-0"
           >
-            <Icon name="info" />
-            <span className="sr-only">{t('planningNotes')}</span>
-          </PopoverTrigger>
-          <PopoverContent align="end" side="bottom" className="max-h-[min(32rem,70dvh)] w-80 overflow-y-auto p-4">
-            <PopoverTitle className="text-label font-semibold">{t('planningNotes')}</PopoverTitle>
-
-            {targets.missing.length > 0 && (
-              <p className="rounded-md bg-status-attention-bg px-3 py-2 text-body-sm text-status-attention-fg">
-                {t('missingFields', {
-                  fields: targets.missing.map((field) => t(`fields.${field}`)).join('، '),
-                })}
+            <div className="sticky top-0 z-10 border-b border-border bg-popover px-4 py-3">
+              <PopoverTitle className="font-heading text-body-md font-semibold">
+                {t('planningNotes')}
+              </PopoverTitle>
+              <p className="mt-0.5 truncate text-caption text-muted-foreground" dir="auto">
+                {context.fullName}
               </p>
-            )}
+            </div>
 
-            <dl className="grid grid-cols-2 gap-3 border-y border-border py-3 text-body-sm">
-              <DetailFact label={t('activityLevel')}>
-                {isMember(CLIENT_ACTIVITY_LEVELS, context.activityLevel)
-                  ? tActivity(context.activityLevel)
-                  : t('unset')}
-              </DetailFact>
-              <DetailFact label={t('measurements')}>
-                {measurements.length ? measurements.join(' · ') : t('unset')}
-              </DetailFact>
-            </dl>
+            <div className="space-y-4 p-4">
+              {targets.missing.length > 0 && (
+                <p className="rounded-md bg-status-attention-bg px-3 py-2 text-body-sm leading-relaxed text-status-attention-fg">
+                  {t('missingFields', {
+                    fields: targets.missing.map((field) => t(`fields.${field}`)).join('، '),
+                  })}
+                </p>
+              )}
 
-            <div className="divide-y divide-border">
-              {notes.map((note) => (
-                <div key={note.key} className="py-2.5 first:pt-0 last:pb-0">
-                  <p className="text-caption font-semibold text-muted-foreground">{note.label}</p>
-                  <p className="mt-1 text-body-sm leading-relaxed [overflow-wrap:anywhere]" dir="auto">
-                    {note.body || t('unset')}
-                  </p>
-                </div>
-              ))}
+              {/* The sunken fill the header's fact tiles use, so the popover
+                  reads as the same object opened up rather than as a second
+                  design of the same information. */}
+              <dl className="divide-y divide-border rounded-lg bg-muted/70 px-3">
+                <SpecRow label={t('activityLevel')}>
+                  {isMember(CLIENT_ACTIVITY_LEVELS, context.activityLevel)
+                    ? tActivity(context.activityLevel)
+                    : t('unset')}
+                </SpecRow>
+                <SpecRow label={t('measurements')}>
+                  {measurements.length ? measurements.join(' · ') : t('unset')}
+                </SpecRow>
+              </dl>
+
+              <div className="space-y-3">
+                {notes.map((note) => (
+                  <div key={note.key}>
+                    <p className="text-caption font-medium text-muted-foreground">{note.label}</p>
+                    <p
+                      className={cn(
+                        'mt-1 text-body-sm leading-relaxed [overflow-wrap:anywhere]',
+                        !note.body && 'text-muted-foreground',
+                      )}
+                      dir="auto"
+                    >
+                      {note.body || t('unset')}
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
           </PopoverContent>
           </Popover>
@@ -210,43 +283,85 @@ export function ContextPanel({
 function SummaryFact({
   label,
   numeric,
-  wrap,
+  hint,
   className,
   children,
 }: {
   label: string;
   numeric?: boolean;
-  wrap?: boolean;
+  /**
+   * The long version, for a tile whose value is a shortened stand-in.
+   *
+   * Only the fact that actually has more to say gets one. A tip on "27.7"
+   * would repeat what is already fully readable an inch below the pointer, and
+   * five tiles that each raise a panel turn reading the header into a game of
+   * avoiding them.
+   */
+  hint?: string;
   className?: string;
   children: React.ReactNode;
 }) {
+  const value = (
+    <p
+      className={cn(
+        // 14px at 500, where this was 16px at 600.
+        //
+        // A fact tile is a caption with a number under it, and at semibold-16
+        // five of them across the top of the board were the loudest thing on
+        // the screen — heavier than the client's own name beside them and
+        // heavier than any dish on the board below. The label carries the
+        // hierarchy instead, at 12px and muted; the value only has to be the
+        // darker, larger of the two, which 14px at 500 already is. The 12px
+        // this gives back per tile is 12px of meal card.
+        //
+        // `truncate` on every one of them, without exception: these five are
+        // grid siblings, so one value allowed to wrap sets the height of the
+        // other four.
+        'w-full truncate text-body-sm font-medium',
+        numeric && 'tabular-nums',
+      )}
+      dir={numeric ? 'ltr' : 'auto'}
+    >
+      {children}
+    </p>
+  );
+
   return (
     <div
       className={cn(
-        'flex min-h-14 min-w-0 flex-col items-center justify-center rounded-md bg-muted/70 px-2 py-2 text-center',
+        'flex min-h-11 min-w-0 flex-col items-center justify-center rounded-md bg-muted/70 px-2 py-1 text-center',
         className,
       )}
     >
-      <p className="text-body-sm text-muted-foreground">{label}</p>
-      <p
-        className={cn(
-          'mt-0.5 w-full text-body-md font-semibold',
-          wrap ? 'leading-snug xl:truncate xl:leading-normal' : 'truncate',
-        )}
-        dir={numeric ? 'ltr' : 'auto'}
-        title={String(children)}
-      >
-        {children}
-      </p>
+      <p className="text-caption leading-tight text-muted-foreground">{label}</p>
+      {hint ? (
+        <TooltipHint label={hint} className="w-full min-w-0 justify-center">
+          {value}
+        </TooltipHint>
+      ) : (
+        value
+      )}
     </div>
   );
 }
 
-function DetailFact({ label, children }: { label: string; children: React.ReactNode }) {
+/**
+ * One derived fact, as a row rather than a cell.
+ *
+ * Label at the inline-start, value at the inline-end, both on one baseline —
+ * the shape a spec sheet uses, and the reason it is right here is that the two
+ * values are wildly different lengths. "متوسط" is five characters and
+ * "80 كغ · 170 سم · 28 سنة" is twenty-three; in a two-column grid the second
+ * one wraps while the first leaves half its cell empty. Given the row, the long
+ * one has the width it needs and the short one costs nothing.
+ */
+function SpecRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div>
-      <dt className="text-caption text-muted-foreground">{label}</dt>
-      <dd className="mt-1" dir="auto">{children}</dd>
+    <div className="flex items-baseline justify-between gap-3 py-2 text-body-sm">
+      <dt className="shrink-0 text-muted-foreground">{label}</dt>
+      <dd className="min-w-0 text-end" dir="auto">
+        {children}
+      </dd>
     </div>
   );
 }

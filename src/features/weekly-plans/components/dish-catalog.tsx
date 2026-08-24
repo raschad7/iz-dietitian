@@ -492,17 +492,20 @@ function CatalogRow({
   const t = useTranslations('weeklyPlans');
   const locale = useLocale();
 
+  const kcal = roundForDisplay('kcal', dish.baseKcal * servings);
+
+  // Declared before the hook because the payload carries `kcal` — the lifted
+  // card shows the same figure this row does rather than deriving its own.
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `dish:${dish.id}`,
     disabled: !draggable,
-    data: { kind: 'dish', dish, servings },
+    data: { kind: 'dish', dish, servings, kcal },
   });
 
   const blocked = dish.blockedBy.length > 0;
   // Catalog order, so the leading dot is the same tag the meal card will paint —
   // see `primaryDishTag`, which resolves through `DISH_TAGS` for this reason.
   const dishTags = membersOf(DISH_TAGS, dish.tags).slice(0, DOT_LIMIT);
-  const kcal = roundForDisplay('kcal', dish.baseKcal * servings);
   const delta = budgetKcal === null ? null : kcal - budgetKcal;
   const deltaLabel = delta === null ? null : `${delta > 0 ? '+' : ''}${delta}`;
 

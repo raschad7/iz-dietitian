@@ -27,13 +27,15 @@ import {
   removeMealAction,
   removeWeekMealAction,
   resetMealIngredientsAction,
+  restoreWeekMealAction,
   setMealIngredientAction,
   setServingsAction,
 } from '../editor-actions';
 import { applyEdit, type BoardEdit } from '../editor-state';
 import { localizedName } from '../food-display';
+import { dishTagAccentClass } from '../meal-tag-tone';
 import { initialPlanActionState, type PlanActionState } from '../form-state';
-import type { Board } from '../queries';
+import type { Board, BoardMeal } from '../queries';
 
 /**
  * The message keys an edit can fail with.
@@ -75,6 +77,15 @@ type SavedMove = {
   toastId: string;
 };
 
+/** Everything needed to put a removed slot back — see `undoSlotRemoval`. */
+type SavedSlotRemoval = {
+  slotKey: string;
+  label: string;
+  timeOfDay: string;
+  meals: readonly { dayOfWeek: number; meal: BoardMeal }[];
+  toastId: string;
+};
+
 const EditorContext = createContext<EditorValue | null>(null);
 
 export function useEditor(): EditorValue {
@@ -85,7 +96,18 @@ export function useEditor(): EditorValue {
 
 /** What a draggable puts in `data`, so drop handling stays type-safe. */
 export type DragPayload =
-  | { kind: 'dish'; dish: DishDetail; servings: number }
+  | {
+      kind: 'dish';
+      dish: DishDetail;
+      servings: number;
+      /**
+       * The energy the catalog row was showing, carried so the lifted card can
+       * show the same figure a meal card would. Taken from the row rather than
+       * recomputed here: the row already has `baseKcal × servings`, and a second
+       * derivation is a second chance for the two to disagree.
+       */
+      kcal: number;
+    }
   | {
       kind: 'meal';
       mealId: string;
@@ -95,6 +117,13 @@ export type DragPayload =
         dishName: string;
         kcal: number;
         servings: number;
+        /**
+         * The dish's tags, carried purely so the lifted card can draw the same
+         * coloured rule its resting self does. Without them the preview loses
+         * the one mark that says *which kind* of dish is in flight, at the
+         * moment that is the only thing on screen answering the question.
+         */
+        tags: string[];
       };
     };
 
@@ -125,6 +154,13 @@ export function BoardEditor({
    * strip — became a small card the moment it left the drawer. dnd-kit measures
    * the source node at drag start, so the real dimensions are already there for
    * the asking.
+   *
+   * **What it measures is the card, and only since `setActivatorNodeRef`.** The
+   * draggable node used to be the grip inside the card, so `active.rect` was a
+   * 32px square and the "measured" size was the size of the handle — which is
+   * why a lifted card sometimes came out far smaller than the card it left, and
+   * why it depended on where in the card you happened to grab it. See
+   * `meal-card.tsx`.
    */
   const [dragSize, setDragSize] = useState<{ width: number; height: number } | null>(null);
   const [settledMealId, setSettledMealId] = useState<string | null>(null);
@@ -192,6 +228,49 @@ export function BoardEditor({
     );
   }
 
+  /**
+   * Puts a removed slot back exactly as it was — dishes, portions and budgets.
+   *
+   * The removal takes seven meals at once and any dish in them, which used to
+   * make it the one edit on this board with no way back: `addWeek` would have
+   * returned seven empty cells, so an Undo built on it would have been a button
+   * that quietly did something else. `restoreWeekMealAction` writes the rows
+   * themselves, and `saved` is where they still exist — captured off the board
+   * before the delete, because a moment later they exist nowhere at all.
+   */
+  function undoSlotRemoval(saved: SavedSlotRemoval): void {
+    toast.dismiss(saved.toastId);
+
+    runAction(
+      { kind: 'restoreWeek', meals: saved.meals },
+      restoreWeekMealAction,
+      {
+        slotKey: saved.slotKey,
+        label: saved.label,
+        timeOfDay: saved.timeOfDay,
+        days: JSON.stringify(
+          saved.meals.map(({ dayOfWeek, meal }) => ({
+            dayOfWeek,
+            dishId: meal.dish?.id ?? null,
+            servings: meal.dish?.servings ?? 1,
+            budgetKcal: meal.budgetKcal,
+          })),
+        ),
+      },
+    );
+  }
+
+  function showSlotRemovedToast(saved: SavedSlotRemoval): void {
+    toast.success(t('slotRemoved', { slot: saved.label }), {
+      id: saved.toastId,
+      description: t('slotRemovedHint'),
+      action: {
+        label: t('undo'),
+        onClick: () => undoSlotRemoval(saved),
+      },
+    });
+  }
+
   function showMoveToast(move: SavedMove): void {
     toast.success(t('mealMoved', { name: move.dishName }), {
       id: move.toastId,
@@ -208,7 +287,25 @@ export function BoardEditor({
     const payload = (event.active.data.current as DragPayload | undefined) ?? null;
     setDragging(payload);
 
-    const rect = event.active.rect.current.initial;
+    /*
+     * The card's own box, measured here, rather than `active.rect.current.initial`.
+     *
+     * That field is dnd-kit's *measured* rect and it is filled in by the
+     * measuring pass, which has not necessarily run by the time `onDragStart`
+     * fires — so it was `null` about as often as it was not, and the overlay
+     * silently fell through to its fixed fallback width. The same card came out
+     * its real size on one drag and 176px on the next, which is exactly the
+     * "sometimes it gets smaller" this looked like from the outside.
+     *
+     * `activatorEvent` is the pointer event that began the gesture, so its
+     * target is the grip and `closest` walks up to the card the grip belongs
+     * to. Reading the box off the DOM is synchronous and always available.
+     */
+    const activator = event.activatorEvent.target;
+    const node =
+      activator instanceof Element ? activator.closest('[data-meal-card]') : null;
+
+    const rect = node?.getBoundingClientRect() ?? event.active.rect.current.initial;
     setDragSize(rect ? { width: rect.width, height: rect.height } : null);
 
     if (payload?.kind === 'dish') onDishDragStart?.();
@@ -347,7 +444,33 @@ export function BoardEditor({
               });
             },
             removeWeek: (slotKey) => {
-              runAction({ kind: 'removeWeek', slotKey }, removeWeekMealAction, { slotKey });
+              /*
+                Captured before the edit, not after: `applyOptimistic` is about
+                to filter these rows out of the board, and once the server's
+                delete lands they are gone from the database too. This closure
+                is the last place the week's dishes for this slot exist.
+              */
+              const saved: SavedSlotRemoval = {
+                slotKey,
+                label:
+                  optimisticBoard.days
+                    .flatMap((day) => day.meals)
+                    .find((meal) => meal.slotKey === slotKey)?.label ?? slotKey,
+                timeOfDay:
+                  optimisticBoard.days
+                    .flatMap((day) => day.meals)
+                    .find((meal) => meal.slotKey === slotKey)?.timeOfDay ?? '12:00',
+                meals: optimisticBoard.days.flatMap((day) =>
+                  day.meals
+                    .filter((meal) => meal.slotKey === slotKey)
+                    .map((meal) => ({ dayOfWeek: day.dayOfWeek, meal })),
+                ),
+                toastId: `${board.id}-slot-${++moveToastSequence.current}`,
+              };
+
+              runAction({ kind: 'removeWeek', slotKey }, removeWeekMealAction, { slotKey }, () =>
+                showSlotRemovedToast(saved),
+              );
             },
             addWeek: (slotKey, label, timeOfDay) => {
               runAction({ kind: 'addWeek', slotKey, label, timeOfDay }, addWeekMealAction, {
@@ -383,12 +506,19 @@ function DragPreview({
   // A meal's preview name was already localized when the drag started; a dish
   // dragged out of the catalog carries both names and is localized here.
   const name = isMeal ? payload.preview.dishName : localizedName(payload.dish, locale);
+  const tags = isMeal ? payload.preview.tags : payload.dish.tags;
+  const kcal = isMeal ? payload.preview.kcal : payload.kcal;
 
   /*
    * A lifted card keeps the size it had in its column; a dish lifted out of the
-   * catalog does not, because the row it came from is a full-width strip and the
+   * catalog cannot, because the row it came from is a full-width strip and the
    * thing it is about to become is a card. So the meal drag is measured and the
-   * dish drag falls back to the card's own width.
+   * dish drag takes a card's own footprint instead — `w-44` and the board's own
+   * `4.5rem` row floor, which is the smallest a real meal card is ever drawn.
+   *
+   * `size` is the *card's* rect now, not the grip's: see `setActivatorNodeRef`
+   * in `meal-card.tsx`. That is what fixed lifted cards coming out smaller than
+   * the cards they left.
    */
   const measured = isMeal && size ? { width: size.width, height: size.height } : undefined;
 
@@ -396,25 +526,24 @@ function DragPreview({
     /*
      * The thing under the pointer has to be the thing being moved.
      *
-     * This still had the old card's anatomy — a metadata row above the name and
-     * a tinted shelf under it — so lifting a card visibly changed it into a
-     * different object mid-drag. It now matches `meal-card.tsx` exactly: name
-     * centred at the top, a hairline, figures at the foot, no fill. The slot
-     * label and time are gone from it for the same reason they are gone from
-     * the card — they belong to the row, and a card in flight is between rows.
-     */
-    /*
-     * No rotation and no scale either. Both were the same mistake as the fixed
-     * width in a different register: the card the pointer picked up has to be
-     * the card it put down, and a tilt is a second, smaller lie about what is
-     * being moved. What says "lifted" now is the shadow, which is what depth is
-     * for.
+     * **Including when it comes from the catalog.** A dish drag used to render
+     * as a name in a box with no figures and no rule — so dragging out of the
+     * drawer produced an object that existed nowhere else in the product, and
+     * the dietitian could not tell from it what they were about to drop. Both
+     * kinds draw the same card now: name centred, coloured tag rule, calories
+     * at the foot. The slot label and time are on neither, for the same reason
+     * they are on no resting card — they belong to the row, and a card in
+     * flight is between rows.
+     *
+     * No rotation and no scale. The card the pointer picked up has to be the
+     * card it puts down, and a tilt is a second, smaller lie about what is
+     * being moved. What says "lifted" is the shadow, which is what depth is for.
      */
     <div
       style={measured}
       className={cn(
-        'flex cursor-grabbing flex-col overflow-hidden rounded-lg border border-primary bg-card shadow-overlay',
-        !measured && 'w-40',
+        'planner-drag-preview flex cursor-grabbing flex-col overflow-hidden rounded-lg border border-primary bg-card shadow-overlay',
+        !measured && 'min-h-[4.5rem] w-44',
       )}
     >
       <span className="flex min-h-0 flex-1 items-center justify-center px-2 pt-2">
@@ -426,17 +555,16 @@ function DragPreview({
         </span>
       </span>
 
-      {isMeal && (
-        <span className="mt-1 flex shrink-0 items-baseline justify-between gap-2 px-2 pb-1.5 pt-2.5">
-          <span className="inline-flex items-baseline gap-1 text-body-sm font-semibold tabular-nums" dir="ltr">
-            {payload.preview.kcal}
-            <small className="text-caption font-normal text-muted-foreground">kcal</small>
-          </span>
-          <span className="shrink-0 text-caption text-muted-foreground" dir="ltr">
-            ×{payload.preview.servings}
-          </span>
+      <span className="relative mt-1 flex shrink-0 items-baseline justify-center gap-2 px-2 pb-1.5 pt-2.5">
+        <span
+          aria-hidden
+          className={cn('absolute start-4 end-4 top-0 h-[3px] rounded-full', dishTagAccentClass(tags))}
+        />
+        <span className="inline-flex items-baseline gap-1 text-body-sm font-semibold tabular-nums" dir="ltr">
+          {kcal}
+          <small className="text-caption font-normal text-muted-foreground">kcal</small>
         </span>
-      )}
+      </span>
     </div>
   );
 }

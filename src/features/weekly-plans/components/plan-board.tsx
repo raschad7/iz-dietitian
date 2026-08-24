@@ -1,16 +1,25 @@
 'use client';
 
 import * as React from 'react';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
 
 import { Button, buttonVariants } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Icon } from '@/components/ui/icon';
-import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Popover,
+  PopoverClose,
+  PopoverContent,
+  PopoverTitle,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { TooltipHint } from '@/components/ui/tooltip-hint';
 
 import type { Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 
+import { deletePlanAction } from '../actions';
 import type {
   Board,
   BoardDay,
@@ -97,6 +106,7 @@ function BoardBody({
   onCatalogOpenChange: (value: boolean) => void;
 }) {
   const t = useTranslations('weeklyPlans');
+  const tCommon = useTranslations('common');
   // The optimistic board, not the server one: everything below renders the edit
   // just made, before it has finished being written.
   const { board, editable, error } = useEditor();
@@ -105,6 +115,8 @@ function BoardBody({
   const [selectedMealAnchor, setSelectedMealAnchor] = useState<HTMLButtonElement | null>(null);
   const [catalogContextMealId, setCatalogContextMealId] = useState<string | null>(null);
   const [comparing, setComparing] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, startDeleting] = useTransition();
   const firstDay = dayOfWeekForDate(board.weekStartDate) ?? 0;
   const [selectedDay, setSelectedDay] = useState(firstDay);
 
@@ -199,11 +211,19 @@ function BoardBody({
           the workspace, not a card floating on it, and a shadow under something
           that spans the frame reads as a seam rather than as depth. The border
           is what separates it from the board. */}
-      <header className="grid overflow-hidden rounded-lg border border-border bg-card 2xl:grid-cols-[minmax(0,1fr)_auto]">
+      {/* `xl`, not `2xl`, for the moment the bar moves up beside the client.
+          At 1280px the summary needs about 46rem and the four controls about
+          22rem, which fits — waiting until 1536px meant every laptop and every
+          tablet spent a second full-width row on a toolbar that had the room to
+          sit in the first one. */}
+      <header className="grid overflow-hidden rounded-lg border border-border bg-card lg:grid-cols-[minmax(0,1fr)_auto]">
         <h2 className="sr-only">{board.clientName}</h2>
         <div className="min-w-0">{children}</div>
 
-        <div className="planner-action-bar mx-2 mb-2 flex max-w-full flex-wrap items-center justify-end gap-1.5 rounded-lg bg-muted/70 p-1.5 2xl:my-2 2xl:me-2 2xl:ms-0 2xl:w-auto 2xl:self-center 2xl:flex-nowrap 2xl:justify-center">
+        {/* `md:flex-nowrap`: below `xl` this is still its own row, and there is
+            far more width in it than four controls need — wrapping could only
+            ever turn one 52px row into two. */}
+        <div className="planner-action-bar mx-2 mb-2 flex max-w-full flex-wrap items-center justify-end gap-1.5 rounded-lg bg-muted/70 p-1.5 md:flex-nowrap lg:my-2 lg:me-2 lg:ms-0 lg:w-auto lg:self-center lg:justify-center">
           {/* Publish leads the bar. It is the only thing here that changes what
               the client sees, and it was sitting second behind a catalog opener —
               a shortcut to a drawer, which is a smaller promise than the one
@@ -220,18 +240,24 @@ function BoardBody({
             locale={locale}
           />
 
-          <Button
-            type="button"
-            size="sm"
-            variant="neutral"
-            className="px-3 2xl:size-10 2xl:px-0"
-            aria-label={t('tabs.dishes')}
-            title={t('tabs.dishes')}
-            onClick={() => onCatalogOpenChange(true)}
-          >
-            <Icon name="dishes" />
-            <span className="2xl:sr-only">{t('tabs.dishes')}</span>
-          </Button>
+          {/* This app's tooltip, not the browser's `title` — the same swap the
+              whole board makes in this pass. A native tip is drawn by the OS in
+              its own font and colour, after its own delay, and cannot be
+              reached from a keyboard; on a toolbar where every other transient
+              surface is a themed popover it reads as a seam. */}
+          <TooltipHint label={t('tabs.dishes')}>
+            <Button
+              type="button"
+              size="sm"
+              variant="neutral"
+              className="px-3 xl:size-10 xl:px-0"
+              aria-label={t('tabs.dishes')}
+              onClick={() => onCatalogOpenChange(true)}
+            >
+              <Icon name="dishes" />
+              <span className="xl:sr-only">{t('tabs.dishes')}</span>
+            </Button>
+          </TooltipHint>
 
           <NewWeekDialog
             clientId={board.clientId}
@@ -243,17 +269,18 @@ function BoardBody({
           />
 
           <Popover>
-            <PopoverTrigger
-              aria-label={t('moreActions')}
-              title={t('moreActions')}
-              // `size-10` and the base radius rather than `icon-sm`, which is a
-              // disc: the four controls in this bar are one set and share a
-              // shape.
-              className={cn(buttonVariants({ variant: 'neutral', size: 'sm' }), 'size-10 px-0')}
-            >
-              <Icon name="moreActions" />
-              <span className="sr-only">{t('moreActions')}</span>
-            </PopoverTrigger>
+            <TooltipHint label={t('moreActions')}>
+              <PopoverTrigger
+                aria-label={t('moreActions')}
+                // `size-10` and the base radius rather than `icon-sm`, which is a
+                // disc: the four controls in this bar are one set and share a
+                // shape.
+                className={cn(buttonVariants({ variant: 'neutral', size: 'sm' }), 'size-10 px-0')}
+              >
+                <Icon name="moreActions" />
+                <span className="sr-only">{t('moreActions')}</span>
+              </PopoverTrigger>
+            </TooltipHint>
             <PopoverContent
               align="end"
               side="bottom"
@@ -271,14 +298,56 @@ function BoardBody({
                     variant="ghost"
                     aria-pressed={comparing}
                     className="w-full max-w-none justify-start"
-                    title={t('compareWith', { date: previous.weekStartDate })}
                     onClick={() => setComparing((value) => !value)}
                   >
                     <Icon name="history" />
-                    {t('compareShort')}
+                    {/* Which week it compares against, said in the row rather
+                        than hidden in a `title` nobody hovers a menu item long
+                        enough to see. */}
+                    <span className="min-w-0 flex-1 truncate text-start">
+                      {t('compareWith', { date: previous.weekStartDate })}
+                    </span>
                   </Button>
                 )}
 
+                {/*
+                  Deleting the week, at the bottom of the menu and coloured for
+                  what it is.
+
+                  Last in the list and under a rule, because it is the one entry
+                  here that destroys something: the other rows change what is on
+                  screen, and a mis-click on this one takes the plan, its meals
+                  and the client's copy of it. `ConfirmDialog` with the
+                  destructive tone is the same guard the dish catalog puts on the
+                  same kind of act.
+
+                  The rule sits on this wrapper rather than on the button,
+                  because `size="sm"` is a fixed 40px box — a border and its
+                  padding drawn on the button itself would come out of the
+                  label's own height rather than out of the space above it.
+                */}
+                <div className="mt-1 border-t border-border pt-1">
+                  {/* `PopoverClose`, not a `setOpen(false)` of our own: the menu
+                      has done its job once this is pressed, and leaving it open
+                      behind the modal means cancelling drops you back into a
+                      popover you had already finished with. See `PopoverClose`
+                      for why the state route does not work here. */}
+                  <PopoverClose
+                    render={
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        disabled={deleting}
+                        className="w-full max-w-none justify-start text-destructive hover:bg-destructive-subtle hover:text-destructive"
+                        onClick={() => setConfirmingDelete(true)}
+                      />
+                    }
+                  >
+                    <Icon name="trash" />
+                    {t('deletePlan')}
+                  </PopoverClose>
+                </div>
               </div>
 
               {/* The key to the cards' coloured rules. Reference rather than an
@@ -465,6 +534,36 @@ function BoardBody({
         locale={locale}
       />
 
+      {confirmingDelete && (
+        <ConfirmDialog
+          locale={locale}
+          title={t('deletePlanConfirmTitle')}
+          description={t('deletePlanConfirmMessage', { date: board.weekStartDate })}
+          /* The consequence the title does not carry: a published week is one
+             the client is reading right now, and deleting it takes their copy
+             with it. Only said when there is one to lose. */
+          note={board.status === 'published' ? t('deletePlanPublishedNote') : undefined}
+          confirmLabel={tCommon('delete')}
+          cancelLabel={tCommon('cancel')}
+          tone="destructive"
+          onConfirm={() => {
+            setConfirmingDelete(false);
+
+            /* The action ends in a `redirect`, so there is no result to read
+               and nothing to reset afterwards — the transition exists to keep
+               the board interactive while the delete lands, and to hold the
+               menu entry disabled so it cannot be fired twice. */
+            startDeleting(async () => {
+              const formData = new FormData();
+              formData.set('locale', locale);
+              formData.set('planId', board.id);
+              formData.set('clientId', board.clientId);
+              await deletePlanAction(formData);
+            });
+          }}
+          onCancel={() => setConfirmingDelete(false)}
+        />
+      )}
     </div>
   );
 }

@@ -42,7 +42,7 @@ import {
   FileText,
   Flame,
   Footprints,
-  GripVertical,
+  GripHorizontal,
   Heart,
   HelpCircle,
   History,
@@ -176,7 +176,17 @@ export const APP_ICONS = {
   filter: ListFilter,
   sort: ArrowUpDown,
   moreActions: MoreVertical,
-  dragHandle: GripVertical,
+  /*
+    Horizontal grip, not vertical.
+
+    The vertical grip is the mark for a row in a list you reorder up and down —
+    a settings list, a queue. A meal card moves in two dimensions here: to
+    another slot in its own day, and to the same slot on another day. The
+    horizontal bars read as "pick this up" rather than as "drag me up or down",
+    and the glyph is wider than it is tall, which is the shape of the corner it
+    sits in.
+  */
+  dragHandle: GripHorizontal,
   clearSlot: Eraser,
   repeat: Repeat,
   history: History,

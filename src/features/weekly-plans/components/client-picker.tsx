@@ -115,6 +115,40 @@ export function ClientPicker({
           bar && '[&_input]:text-center [&_input]:font-heading [&_input]:text-heading-sm [&_input]:font-medium',
           pending && 'pointer-events-none opacity-60',
         )}
+        /*
+          **The same three declarations again, on the text layer.**
+
+          On an Arabic page `Input` paints the value in an ordinary span over a
+          transparent native input, because Chromium clips Almarai's descenders
+          inside a real `<input>` (see `unclippedText` there). So the line above
+          restyles the half nobody sees, and the half everybody sees stayed
+          14px, in the UI face, aligned to the start.
+
+          That was invisible until the native text painted again — and it does,
+          the instant it is selected, which is the first thing clicking a
+          combobox does. Chromium draws selected text through
+          `-webkit-text-fill-color: transparent`, so the name appeared twice at
+          once: centred and 20px under the caret, and start-aligned and 14px
+          where the mirror had it. Typing then filtered the list from a caret
+          that was nowhere near the letters.
+
+          `[&>span]` for the alignment because the inner span sets `text-start`
+          itself, and a `text-center` on the wrapper loses to it.
+
+          `pe-5` because centred text is centred *in its box*, and the two boxes
+          did not match: `InputGroupInput` gives the text layer `pe-1.5` to
+          clear the chevron, and `InputGroup` gives the real input the same
+          through `[&>input]` — which never reaches it here, because the Arabic
+          text layer wraps the input in a span and it is no longer a direct
+          child. So the input kept its symmetric 20px and the mirror did not,
+          and the two centres sat 7px apart. Symmetric on both, and the 6px the
+          chevron wanted is not worth a name that misses its own caret.
+          (`pe-5`, not `px-5`: `tailwind-merge` here does not read `px` as
+          conflicting with the logical `pe`, so the earlier class would win.)
+        */
+        unclippedTextClassName={
+          bar ? 'pe-5 font-heading text-heading-sm font-medium [&>span]:text-center' : undefined
+        }
       />
 
       <ComboboxContent className={cn(PLANNER_THEME, 'min-w-72')}>

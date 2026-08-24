@@ -9,6 +9,7 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { Icon } from '@/components/ui/icon';
 import { Dialog, DialogBody, DialogHeader } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { TooltipHint } from '@/components/ui/tooltip-hint';
 import { getLocaleDirection, type Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 
@@ -20,6 +21,28 @@ import type { ClientContext } from '../queries';
 import { GenerateForm } from './generate-form';
 import { GenerationLoadingScreen } from './generation-loading-screen';
 import type { PlanSummary } from './plan-history';
+
+/**
+ * Says out loud what a control's own caption stopped saying.
+ *
+ * The planner's action bar collapses its buttons to icons once it moves up
+ * beside the client summary, and an icon with no words on it needs somewhere to
+ * put them. Below that width the caption is right there on the button and a tip
+ * repeating it is noise, so this passes the child straight through.
+ */
+function ShowLabelWhenHidden({
+  hidden,
+  label,
+  children,
+}: {
+  hidden: boolean;
+  label: string;
+  children: React.ReactNode;
+}) {
+  if (!hidden) return children;
+
+  return <TooltipHint label={label}>{children}</TooltipHint>;
+}
 
 /** Everything the three doors need that the board itself does not carry. */
 export type NewWeekProps = {
@@ -96,26 +119,29 @@ export function NewWeekDialog({
 
   return (
     <>
-      <Button
-        type="button"
-        size="sm"
-        variant={triggerVariant}
-        aria-label={compactTrigger ? (triggerLabel ?? t('newWeek')) : undefined}
-        title={compactTrigger ? (triggerLabel ?? t('newWeek')) : undefined}
-        // Square-shouldered even when it collapses to an icon: the planner's
-        // action bar is one set of controls and they share the base radius.
-        className={compactTrigger ? 'px-3 2xl:size-10 2xl:px-0' : undefined}
-        onClick={() => {
-          setGenerating(false);
-          setWeekStartDate(newWeek.weekStartDate);
-          setOpen(true);
-        }}
-      >
-        <Icon name="add" />
-        <span className={compactTrigger ? '2xl:sr-only' : undefined}>
-          {triggerLabel ?? t('newWeek')}
-        </span>
-      </Button>
+      {/* The tip only exists in the compact state, because that is the only
+          state where the label is not already printed on the control. */}
+      <ShowLabelWhenHidden hidden={compactTrigger} label={triggerLabel ?? t('newWeek')}>
+        <Button
+          type="button"
+          size="sm"
+          variant={triggerVariant}
+          aria-label={compactTrigger ? (triggerLabel ?? t('newWeek')) : undefined}
+          // Square-shouldered even when it collapses to an icon: the planner's
+          // action bar is one set of controls and they share the base radius.
+          className={compactTrigger ? 'px-3 xl:size-10 xl:px-0' : undefined}
+          onClick={() => {
+            setGenerating(false);
+            setWeekStartDate(newWeek.weekStartDate);
+            setOpen(true);
+          }}
+        >
+          <Icon name="add" />
+          <span className={compactTrigger ? 'xl:sr-only' : undefined}>
+            {triggerLabel ?? t('newWeek')}
+          </span>
+        </Button>
+      </ShowLabelWhenHidden>
 
       <Dialog
         open={open}
