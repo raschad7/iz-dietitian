@@ -45,40 +45,31 @@ export function TodayAdherenceCard({ today, locale }: { today: TodayAdherence | 
     <Card>
       <CardContent className="flex flex-col gap-4">
         {/*
-          Character and figure beside the words, and stacked under them on the
-          narrowest phones.
+          No `countOnMount`: this used to draw the figure up from zero every
+          time the tab was opened, the same entrance the progress ring gets
+          on arrival — but unlike that ring, this card is revisited constantly
+          as a client switches tabs, and replaying a multi-second count-up on
+          every single visit reads as the app re-announcing a number it
+          already told you, not as a fresh achievement. The home screen's own
+          mascot never counts on mount either (see `TodayEnergyMascot`'s call
+          site), so leaving this at the hook's own default — paint the real
+          figure immediately, animate only when it later moves — is what
+          keeps the two screens' character in step rather than one of them
+          performing and the other not. The narrow-phone stacking is
+          `TodayMascotFigure`'s own concern now that the heading and level
+          sentence render inside it.
 
-          At 320px the card's content box is about 256px, so the figure and
-          the `gap-4` take most of it and leave too little for the heading
-          beside it to read as more than a couple of clipped characters — the
-          same problem the ring this replaced had at that width, and the same
-          fix: stacking below 400px gives both the full width in turn, centred
-          so the character stays the anchor. From 400px up, where the text
-          column is wide enough to read, the row is side by side.
+          The level sentence is still the one thing here that reads the level
+          rather than the number: encouragement is a sentence, and there is no
+          way to write one per percentage. It never contradicts the figure
+          above it — both come off the same `today`.
         */}
-        <div className="flex items-center gap-4 max-[25rem]:flex-col max-[25rem]:text-center">
-          {/*
-            `countOnMount`: this figure is what the client opened the tab to
-            read, and it does not move while they are reading it — there are no
-            meals to tick on this screen. So the number draws itself up from
-            zero on arrival instead of appearing already finished — see
-            `rising-fraction.ts`.
-          */}
-          <TodayMascotFigure fraction={today?.fraction ?? null} locale={locale} countOnMount />
-
-          <div className="min-w-0 flex-1 space-y-1">
-            <h2 className="font-heading text-lg leading-snug font-medium">{t('heading')}</h2>
-            {/*
-              The one thing on this card that still reads the level rather
-              than the number: encouragement is a sentence, and there is no
-              way to write one per percentage. It never contradicts the
-              figure — both come off the same row.
-            */}
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              {today ? t(`level.${today.level}`) : t('prompt')}
-            </p>
-          </div>
-        </div>
+        <TodayMascotFigure
+          fraction={today?.fraction ?? null}
+          locale={locale}
+          heading={t('heading')}
+          levelText={today ? t(`level.${today.level}`) : t('prompt')}
+        />
 
         {/*
           `/portal`, not `/${locale}/portal`: `Link` here is the locale-aware
