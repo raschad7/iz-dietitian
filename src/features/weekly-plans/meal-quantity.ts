@@ -2,16 +2,16 @@
  * How much of each food a planned meal actually contains — in the unit the
  * dietitian wrote it in.
  *
- * The board stores a meal as `dish_id + servings`, and `servings` is a multiplier
- * over the dish's base recipe: 2.25 means "two and a quarter of this dish". That
- * number is correct, it is what every total is scaled by, and it is meaningless to
- * the person holding the plan. `×2.25 portion` tells a client nothing they can put
- * on a plate; `1½ رغيف` and `150 غ` do.
+ * A meal used to be `dish_id + servings`, where `servings` was a multiplier over
+ * the whole recipe: 2.25 meant "two and a quarter of this dish". That number was
+ * correct, it was what every total was scaled by, and it was meaningless to the
+ * person holding the plan. `×2.25 portion` tells a client nothing they can put on
+ * a plate; `1½ رغيف` and `150 غ` do.
  *
- * So this module answers one question per recipe line: **at this meal's serving
- * multiplier, how much of this food is it?** It multiplies the amount the line was
- * saved with — a portion count where there is one, grams otherwise — by the
- * multiplier, and formats the result the way each language writes it.
+ * So this module formats an amount the way each language writes it. Working out
+ * *what* that amount is belongs to `meal-ingredients.ts`, which resolves a meal's
+ * lines from its own stored rows or from the scaled recipe; everything arriving
+ * here is already the amount in this meal.
  *
  * ## It is not a second nutrition path
  *
@@ -26,12 +26,12 @@
 import { isArabicLocale, localizedPortionLabel } from './food-display';
 import { roundGrams } from './nutrition';
 
-/** The fields a recipe line must carry to be quantified. A subset of `DishIngredientDetail`. */
+/** The fields a line must carry to be quantified. A subset of `DishIngredientDetail`. */
 export type QuantifiableIngredient = {
-  /** The authoritative amount for one base serving. */
+  /** The authoritative amount in this meal. */
   quantityGrams: number;
   portion?: { labelAr: string; labelEn: string; grams: number } | null;
-  /** How many of that portion the line was written as. */
+  /** How many of that portion this amount is, in this meal. */
   portionQuantity?: number | null;
 };
 
@@ -145,7 +145,13 @@ export function portionText(
 }
 
 /**
- * One recipe line's amount at a meal's serving multiplier.
+ * One line's amount, written for the reader.
+ *
+ * The line arriving here is already the amount **in this meal** — scaled by
+ * `mealIngredientLines`, or stored that way because the dietitian set it. Nothing
+ * is multiplied here. The multiplier used to be a second argument every caller had
+ * to remember to pass, which is exactly the kind of obligation that gets forgotten
+ * on the one surface nobody re-reads.
  *
  * Falls back to the authoritative grams whenever the portion cannot be trusted to
  * describe the amount: no portion saved, a portion since retired (`portion_id` is
@@ -155,10 +161,8 @@ export function portionText(
  */
 export function ingredientAmount(
   ingredient: QuantifiableIngredient,
-  servings: number,
   locale: string,
 ): IngredientAmount {
-  const multiplier = Number.isFinite(servings) && servings > 0 ? servings : 1;
   const { portion, portionQuantity } = ingredient;
 
   if (
@@ -168,14 +172,12 @@ export function ingredientAmount(
     portionQuantity > 0 &&
     portion.grams > 0
   ) {
-    const count = portionQuantity * multiplier;
-
     // "ثلاثة أرباع نصف كوب" is not a quantity anyone acts on. A whole number of
     // half-cups still is, so only the fractional case falls back.
-    if (Number.isInteger(count) || !FRACTIONAL_LABEL.test(portion.labelEn)) {
-      return { kind: 'portion', text: portionText(portion, count, locale) };
+    if (Number.isInteger(portionQuantity) || !FRACTIONAL_LABEL.test(portion.labelEn)) {
+      return { kind: 'portion', text: portionText(portion, portionQuantity, locale) };
     }
   }
 
-  return { kind: 'grams', grams: roundGrams(ingredient.quantityGrams * multiplier, 1) };
+  return { kind: 'grams', grams: roundGrams(ingredient.quantityGrams, 1) };
 }

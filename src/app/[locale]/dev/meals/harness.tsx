@@ -8,7 +8,11 @@ import {
 } from '@/features/weekly-plans/components/board-dnd';
 import { MealDetailPanel } from '@/features/weekly-plans/components/meal-detail-panel';
 import { PortalMealCard } from '@/features/weekly-plans/components/portal-meal-card';
-import { dishGrams, dishTotals, type DishIngredientDetail } from '@/features/weekly-plans/nutrition';
+import {
+  mealGrams,
+  mealTotals,
+  type MealIngredientLine,
+} from '@/features/weekly-plans/meal-ingredients';
 import type { BoardMeal } from '@/features/weekly-plans/queries';
 
 /**
@@ -21,9 +25,10 @@ import type { BoardMeal } from '@/features/weekly-plans/queries';
  * display has to get right: mixed units in one meal, a grams-only meal, and a long
  * ingredient list.
  *
- * The stepper is wired to local state through the real `EditorActionsContext`, so
- * pressing + or − exercises the same `setServings` path the board uses and every
- * quantity below it re-renders from the same `servings` value.
+ * The ingredient controls are wired to local state through the real
+ * `EditorActionsContext`, so pressing + or − exercises the same `setIngredient`
+ * path the board uses — including `nextIngredientAmount`, which is what decides
+ * that a loaf steps by half, an egg by one, and chicken by ten grams.
  *
  * Dev-only: 404 in production. It ships no data access and no session guard.
  */
@@ -47,13 +52,17 @@ type Line = {
   kcal: number;
   portion?: { labelAr: string; labelEn: string; grams: number };
   portionQuantity?: number;
+  /** Marks a line that gets a −/+ — `dish_ingredients.is_primary`. */
+  primary?: boolean;
 };
 
-function ingredient(line: Line): DishIngredientDetail {
+function ingredient(line: Line, index: number): MealIngredientLine {
   return {
     quantityGrams: line.grams,
     portion: line.portion ? { id: `${line.id}-portion`, ...line.portion } : null,
     portionQuantity: line.portionQuantity ?? null,
+    isPrimary: line.primary ?? false,
+    sortOrder: index,
     food: {
       id: line.id,
       nameAr: line.nameAr,
@@ -78,6 +87,7 @@ const MIXED: Line[] = [
     kcal: 275,
     portion: { labelAr: 'رغيف', labelEn: 'Loaf', grams: 60 },
     portionQuantity: 1,
+    primary: true,
   },
   {
     id: 'egg',
@@ -87,6 +97,7 @@ const MIXED: Line[] = [
     kcal: 155,
     portion: { labelAr: 'حبة', labelEn: 'Piece', grams: 50 },
     portionQuantity: 2,
+    primary: true,
   },
   {
     id: 'rice',
@@ -110,7 +121,7 @@ const MIXED: Line[] = [
 
 /** No household measures at all — meat, poultry and fish are grams-only by choice. */
 const GRAMS_ONLY: Line[] = [
-  { id: 'chicken', nameAr: 'صدر دجاج', nameEn: 'Chicken breast', grams: 180, kcal: 165 },
+  { id: 'chicken', nameAr: 'صدر دجاج', nameEn: 'Chicken breast', grams: 180, kcal: 165, primary: true },
   { id: 'zucchini', nameAr: 'كوسا', nameEn: 'Zucchini', grams: 120, kcal: 17 },
   { id: 'onion', nameAr: 'بصل', nameEn: 'Onion', grams: 45, kcal: 40 },
 ];
@@ -129,17 +140,17 @@ const LONG: Line[] = [
   { id: 'l9', nameAr: 'صنوبر محمّص', nameEn: 'Toasted pine nuts', grams: 12, kcal: 673 },
 ];
 
-function meal(id: string, label: string, lines: Line[], servings: number): BoardMeal {
-  const ingredients = lines.map(ingredient);
-
+function meal(id: string, label: string, lines: readonly MealIngredientLine[]): BoardMeal {
   return {
     id,
     slotKey: 'lunch',
     label,
     timeOfDay: '13:30',
     rationaleAr: 'وجبة متوازنة تناسب ميزانية الغداء.',
-    totals: dishTotals(ingredients, servings),
-    grams: dishGrams(ingredients, servings),
+    lines: [...lines],
+    hasOwnAmounts: false,
+    totals: mealTotals(lines),
+    grams: mealGrams(lines),
     nutritionFrozen: false,
     budgetKcal: 650,
     options: [],
@@ -154,17 +165,19 @@ function meal(id: string, label: string, lines: Line[], servings: number): Board
       allergenTags: [],
       baseServingLabel: 'حصة',
       isActive: true,
-      ingredients,
-      servings,
+      ingredients: [...lines],
+      // Spent the moment a control is touched, and irrelevant before then: the
+      // lines above are already the amounts.
+      servings: 1,
     },
   };
 }
 
 /**
- * Keyed on **real dish slugs**, so the serving-guide registry is exercised rather
- * than mocked: `eggs-toast-tomato` has a whole-egg guide stepping by 1,
- * `bamia-lahm` has the rice-and-meat guide stepping by 0.5, and `maqluba-chicken`
- * has none — which is the fallback case.
+ * The three cases the ingredient controls have to get right: a meal mixing units
+ * (a loaf stepping by half, eggs by one), a long list where only two lines are
+ * adjustable and twelve are not, and a grams-only meal — meat, poultry and fish
+ * carry no household unit by product choice, so their control steps in grams.
  */
 const FIXTURES = {
   'eggs-toast-tomato': { label: 'فطور', lines: MIXED },
@@ -176,15 +189,49 @@ type FixtureKey = keyof typeof FIXTURES;
 
 export function MealsHarness({ locale }: { locale: string }) {
   const [fixture, setFixture] = useState<FixtureKey>('eggs-toast-tomato');
-  const [servings, setServings] = useState(1);
 
-  const { label, lines } = FIXTURES[fixture];
-  const current = meal(fixture, label, lines, servings);
+  /*
+   * The meal's lines, held locally exactly as the server holds
+   * `weekly_plan_meal_ingredients` once a control has been touched — which is why
+   * `touched` is tracked separately: it is what turns "back to recipe" on, and it
+   * is the one piece of state the harness cannot derive from the amounts.
+   */
+  const [amounts, setAmounts] = useState<MealIngredientLine[]>(() =>
+    FIXTURES[fixture].lines.map(ingredient),
+  );
+  const [touched, setTouched] = useState(false);
 
-  // Only `setServings` does anything; the rest are inert so a stray click in the
-  // harness cannot look like a working edit.
+  function pick(key: FixtureKey): void {
+    setFixture(key);
+    setAmounts(FIXTURES[key].lines.map(ingredient));
+    setTouched(false);
+  }
+
+  const { label } = FIXTURES[fixture];
+  const current = { ...meal(fixture, label, amounts), hasOwnAmounts: touched };
+
+  // Only the ingredient edits do anything; the rest are inert so a stray click in
+  // the harness cannot look like a working edit.
   const actions: EditorActions = {
-    setServings: (_mealId, next) => setServings(next),
+    setIngredient: (_mealId, amount) => {
+      setTouched(true);
+      setAmounts((previous) =>
+        previous.map((line) =>
+          line.food.id === amount.foodId
+            ? {
+                ...line,
+                quantityGrams: amount.quantityGrams,
+                portionQuantity: amount.portionQuantity,
+              }
+            : line,
+        ),
+      );
+    },
+    resetIngredients: () => {
+      setAmounts(FIXTURES[fixture].lines.map(ingredient));
+      setTouched(false);
+    },
+    setServings: () => {},
     place: () => {},
     clear: () => {},
     remove: () => {},
@@ -204,7 +251,7 @@ export function MealsHarness({ locale }: { locale: string }) {
               key={key}
               type="button"
               data-testid={`fixture-${key}`}
-              onClick={() => setFixture(key)}
+              onClick={() => pick(key)}
               className={`rounded-md border px-3 py-1.5 text-body-sm ${
                 fixture === key ? 'border-primary text-primary' : 'border-border text-muted-foreground'
               }`}
@@ -213,7 +260,7 @@ export function MealsHarness({ locale }: { locale: string }) {
             </button>
           ))}
           <span className="text-caption text-muted-foreground" dir="ltr">
-            servings ×{servings}
+            {touched ? 'own amounts' : 'following recipe'}
           </span>
         </div>
 

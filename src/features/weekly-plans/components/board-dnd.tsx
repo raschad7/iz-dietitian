@@ -26,6 +26,8 @@ import {
   placeDishAction,
   removeMealAction,
   removeWeekMealAction,
+  resetMealIngredientsAction,
+  setMealIngredientAction,
   setServingsAction,
 } from '../editor-actions';
 import { applyEdit, type BoardEdit } from '../editor-state';
@@ -295,6 +297,33 @@ export function BoardEditor({
                 servings,
               });
             },
+            setIngredient: (mealId, amount) => {
+              runAction(
+                {
+                  kind: 'ingredient',
+                  mealId,
+                  foodId: amount.foodId,
+                  quantityGrams: amount.quantityGrams,
+                  portionQuantity: amount.portionQuantity,
+                },
+                setMealIngredientAction,
+                {
+                  mealId,
+                  foodId: amount.foodId,
+                  quantityGrams: amount.quantityGrams,
+                  // A grams line sends both fields empty. `formFor` writes the
+                  // value it is given, and '' is what the action reads back as
+                  // "no portion" — the pair stays whole in both directions.
+                  portionId: amount.portionId ?? '',
+                  portionQuantity: amount.portionQuantity ?? '',
+                },
+              );
+            },
+            resetIngredients: (mealId) => {
+              runAction({ kind: 'resetIngredients', mealId }, resetMealIngredientsAction, {
+                mealId,
+              });
+            },
             place: (mealId, dish, servings) => {
               runAction({ kind: 'place', mealId, dish, servings }, placeDishAction, {
                 mealId,
@@ -423,6 +452,24 @@ export type EditorActions = {
    */
   place: (mealId: string, dish: DishDetail, servings: number) => void;
   setServings: (mealId: string, servings: number) => void;
+  /**
+   * Moves one ingredient inside one meal.
+   *
+   * Takes the whole amount rather than a direction, because the arithmetic —
+   * which unit, what step, what that is in grams — belongs to the control that
+   * knows the line, not to a context that would have to look it up again.
+   */
+  setIngredient: (
+    mealId: string,
+    amount: {
+      foodId: string;
+      quantityGrams: number;
+      portionId: string | null;
+      portionQuantity: number | null;
+    },
+  ) => void;
+  /** Puts a meal back on its dish's recipe, discarding hand-set amounts. */
+  resetIngredients: (mealId: string) => void;
   clear: (mealId: string) => void;
   remove: (mealId: string) => void;
   /** Restores one day's skipped slot. The exception — see `addWeek`. */

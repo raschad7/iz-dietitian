@@ -239,6 +239,31 @@ export const setServingsSchema = z.object({
   servings: z.coerce.number().min(MIN_SERVINGS).max(MAX_SERVINGS),
 });
 
+/**
+ * One ingredient's amount inside one meal.
+ *
+ * `quantityGrams` is what the server stores and computes from; the portion pair
+ * beside it records the unit the dietitian was counting in, and is accepted only
+ * together — a unit with no count, or a count with no unit, describes nothing.
+ *
+ * The upper bound matches `MAX_INGREDIENT_GRAMS`, and is a guard on form input
+ * rather than a clinical limit. The mutation re-checks it: this schema protects
+ * the action, and the mutation protects everything that is not this action.
+ */
+export const setMealIngredientSchema = z
+  .object({
+    ...editBase,
+    mealId: mealIdSchema,
+    foodId: z.uuid(),
+    quantityGrams: z.coerce.number().positive().max(2000),
+    portionId: z.uuid().nullish(),
+    portionQuantity: z.coerce.number().positive().nullish(),
+  })
+  .refine(
+    (value) => (value.portionId == null) === (value.portionQuantity == null),
+    'a portion and its count must be given together',
+  );
+
 export const mealEditSchema = z.object({ ...editBase, mealId: mealIdSchema });
 
 export const addMealSchema = z.object({

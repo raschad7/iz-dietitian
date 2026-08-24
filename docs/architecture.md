@@ -133,10 +133,46 @@ deleted out from under a plan. A line may also record `portion_id` and
 **`quantity_grams` is the only figure any nutrition calculation reads**, and the
 server derives it from the portion rather than trusting a submitted gram count.
 
+`dish_ingredients.is_primary` marks the two or three lines a dietitian adjusts
+by hand — the chicken and the rice in a maqluba, not the pine nuts. It is
+metadata about the interface, never an input to a calculation, and a dish with
+nothing marked simply shows no controls.
+
 No screen reads `catalog_foods` directly for a recipe — it is reached through
 `dish_ingredients`. A dish stores no nutrition of its own, so every calorie the
 board, the generation prompt, and the client portal display is derived from this
 join at read time, except on a published plan.
+
+### What a planned meal contains
+
+A meal is normally `dish_id + servings`, where `servings` scales every line of
+the recipe together. That is one number for the whole plate, and it is not how a
+plan is written: a dietitian raises the chicken, drops the rice by a spoon, and
+leaves the oil and the spices where the recipe put them.
+
+So a meal may instead carry its own `weekly_plan_meal_ingredients` rows —
+`catalog_food_id`, `quantity_grams`, an optional `portion_id` /
+`portion_quantity`, `is_primary`, `sort_order`. **When those rows exist they are
+the meal, and `servings` is not consulted.** The rule is stated once, in
+`mealIngredientLines` (`src/features/weekly-plans/meal-ingredients.ts`), and
+every surface — board, meal panel, patient portal, publish snapshot, nutrition
+totals — resolves through it, so a meal can never be described one way by its
+calories and another way by its ingredient list.
+
+Two properties are load-bearing:
+
+- **The rows are written all at once.** The first hand-set amount copies the
+  whole recipe down at its current amounts and sets `servings` to 1. A single
+  stored override beside a live multiplier would leave "raise the whole dish"
+  and "I pinned the chicken" fighting over one meal.
+- **The rows are self-contained.** They name a `catalog_food`, not a
+  `dish_ingredients` line, because `db:seed:dishes` replaces every recipe
+  wholesale — and because a prescribed meal should not change when the dish it
+  came from is edited.
+
+Grams remain the only input to nutrition on both paths. A portion count travels
+beside them as a display of the same quantity in the unit it was counted in, and
+the server derives grams from the portion rather than trusting a submitted count.
 
 ### Published plans carry frozen nutrition
 

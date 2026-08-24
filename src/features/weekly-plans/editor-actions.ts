@@ -19,6 +19,8 @@ import {
   placeDish,
   removeMeal,
   removeMealFromWeek,
+  resetMealIngredients,
+  setMealIngredient,
   setMealServings,
 } from './editor-mutations';
 import type { NewWeekState, PlanActionState } from './form-state';
@@ -30,6 +32,7 @@ import {
   moveMealSchema,
   placeDishSchema,
   removeWeekMealSchema,
+  setMealIngredientSchema,
   setServingsSchema,
   startEmptyWeekSchema,
   startWeekFromPlanSchema,
@@ -275,6 +278,71 @@ export async function setServingsAction(
       parsed.data.mealId,
       parsed.data.servings,
     ),
+  );
+}
+
+/**
+ * Moves one ingredient inside one meal — more chicken, one spoon less rice.
+ *
+ * The door the `−/+` beside a primary ingredient goes through. Everything that
+ * makes it interesting happens in `setMealIngredient`: the first call copies the
+ * whole meal down at its current amounts and retires the dish multiplier.
+ *
+ * `portionId` and `portionQuantity` arrive as empty strings from a form field that
+ * was not filled, which is not the same as absent — `null` before parsing keeps
+ * the schema's "both or neither" rule reading the truth rather than the encoding.
+ */
+export async function setMealIngredientAction(
+  _previousState: PlanActionState,
+  formData: FormData,
+): Promise<PlanActionState> {
+  const locale = readLocale(formData);
+  const { clinicId } = await requireStaffClinic(locale);
+
+  const parsed = setMealIngredientSchema.safeParse({
+    planId: formData.get('planId'),
+    mealId: formData.get('mealId'),
+    foodId: formData.get('foodId'),
+    quantityGrams: formData.get('quantityGrams'),
+    portionId: formData.get('portionId') || null,
+    portionQuantity: formData.get('portionQuantity') || null,
+  });
+
+  if (!parsed.success) return { status: 'error', messageKey: 'errors.invalid' };
+
+  const clientId = await planClientId(clinicId, parsed.data.planId);
+  if (!clientId) return { status: 'error', messageKey: 'errors.planNotFound' };
+
+  return runEdit(locale, clientId, () =>
+    setMealIngredient(clinicId, parsed.data.planId, parsed.data.mealId, {
+      foodId: parsed.data.foodId,
+      quantityGrams: parsed.data.quantityGrams,
+      portionId: parsed.data.portionId ?? null,
+      portionQuantity: parsed.data.portionQuantity ?? null,
+    }),
+  );
+}
+
+/** Puts a meal back on its dish's recipe, discarding amounts set by hand. */
+export async function resetMealIngredientsAction(
+  _previousState: PlanActionState,
+  formData: FormData,
+): Promise<PlanActionState> {
+  const locale = readLocale(formData);
+  const { clinicId } = await requireStaffClinic(locale);
+
+  const parsed = mealEditSchema.safeParse({
+    planId: formData.get('planId'),
+    mealId: formData.get('mealId'),
+  });
+
+  if (!parsed.success) return { status: 'error', messageKey: 'errors.invalid' };
+
+  const clientId = await planClientId(clinicId, parsed.data.planId);
+  if (!clientId) return { status: 'error', messageKey: 'errors.planNotFound' };
+
+  return runEdit(locale, clientId, () =>
+    resetMealIngredients(clinicId, parsed.data.planId, parsed.data.mealId),
   );
 }
 

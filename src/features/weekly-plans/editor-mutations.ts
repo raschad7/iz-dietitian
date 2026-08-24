@@ -1,9 +1,18 @@
 import { and, desc, eq } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { clients, weeklyPlanMealOptions, weeklyPlanMeals, weeklyPlans } from '@/db/schema';
+import {
+  clients,
+  weeklyPlanMealIngredients,
+  weeklyPlanMealOptions,
+  weeklyPlanMeals,
+  weeklyPlans,
+  type NewWeeklyPlanMealIngredient,
+} from '@/db/schema';
 import { recomputeDayAdherence } from '@/features/portal/mutations';
 
+import { MAX_INGREDIENT_GRAMS, mealIngredientLines } from './meal-ingredients';
+import { loadDishesByIds, ownAmountsByMeal, type DbExecutor } from './queries';
 import { DAYS_OF_WEEK } from './schema';
 import { snapServings } from './similar';
 import type { SkeletonMeal } from './skeleton';
@@ -247,6 +256,9 @@ export async function placeDish(
       .set({ dishId, servings: snapServings(servings), rationaleAr: null, updatedAt: new Date() })
       .where(eq(weeklyPlanMeals.id, mealId));
 
+    // A new dish means the hand-set amounts describe food that is no longer here.
+    if (meal.dishId !== dishId) await clearOwnAmounts(tx, mealId);
+
     await touchPlan(tx, planId);
 
     return true;
@@ -301,6 +313,9 @@ export async function clearMeal(
       .returning({ id: weeklyPlanMeals.id });
 
     if (!updated.length) return false;
+
+    // The slot is empty now; there are no ingredients for it to still own.
+    await clearOwnAmounts(tx, mealId);
 
     await touchPlan(tx, planId);
 
@@ -549,6 +564,18 @@ export async function moveMealDish(
 
     if (!updated.length) return false;
 
+    // The amounts travel with the dish they describe. Read both sides before
+    // either is written, because a move is a swap and writing the target first
+    // would have the source read back rows that had already moved.
+    const sourceAmounts = await ownAmountRows(tx, fromMealId);
+    const targetAmounts = await ownAmountRows(tx, toMealId);
+
+    await replaceOwnAmounts(
+      tx,
+      toMealId,
+      sourceAmounts.map((row) => ({ ...row, mealId: toMealId })),
+    );
+
     if (mode === 'move') {
       await tx
         .update(weeklyPlanMeals)
@@ -559,8 +586,191 @@ export async function moveMealDish(
           updatedAt: new Date(),
         })
         .where(and(eq(weeklyPlanMeals.id, fromMealId), eq(weeklyPlanMeals.planId, planId)));
+
+      await replaceOwnAmounts(
+        tx,
+        fromMealId,
+        // The target had no dish, so it had no amounts to hand back; the source
+        // must not keep the ones that just left with its own dish.
+        target.dishId ? targetAmounts.map((row) => ({ ...row, mealId: fromMealId })) : [],
+      );
     }
 
+    await touchPlan(tx, planId);
+
+    return true;
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Ingredient amounts
+// ---------------------------------------------------------------------------
+
+/** The meal's own rows, as stored. Empty means it still follows its dish. */
+async function ownAmountRows(
+  tx: DbExecutor,
+  mealId: string,
+): Promise<NewWeeklyPlanMealIngredient[]> {
+  const rows = await tx
+    .select({
+      catalogFoodId: weeklyPlanMealIngredients.catalogFoodId,
+      quantityGrams: weeklyPlanMealIngredients.quantityGrams,
+      portionId: weeklyPlanMealIngredients.portionId,
+      portionQuantity: weeklyPlanMealIngredients.portionQuantity,
+      isPrimary: weeklyPlanMealIngredients.isPrimary,
+      sortOrder: weeklyPlanMealIngredients.sortOrder,
+    })
+    .from(weeklyPlanMealIngredients)
+    .where(eq(weeklyPlanMealIngredients.mealId, mealId))
+    .orderBy(weeklyPlanMealIngredients.sortOrder);
+
+  return rows.map((row) => ({ ...row, mealId }));
+}
+
+/**
+ * Replaces a meal's amounts wholesale.
+ *
+ * Delete-then-insert rather than a diff, for the reason `seed-dishes.ts` gives
+ * about recipes: the set of lines is a single fact about the meal, and a
+ * half-applied change to it is worse than either outcome. Twelve rows at most.
+ */
+async function replaceOwnAmounts(
+  tx: DbExecutor,
+  mealId: string,
+  rows: readonly NewWeeklyPlanMealIngredient[],
+): Promise<void> {
+  await tx.delete(weeklyPlanMealIngredients).where(eq(weeklyPlanMealIngredients.mealId, mealId));
+  if (rows.length) await tx.insert(weeklyPlanMealIngredients).values([...rows]);
+}
+
+/**
+ * Drops a meal's hand-set amounts, returning it to its dish.
+ *
+ * Called wherever the meal's *dish* changes. The rows describe foods that were in
+ * the dish that just left; keeping them would have the meal claim to contain
+ * ingredients its own recipe has never heard of.
+ */
+async function clearOwnAmounts(tx: DbExecutor, mealId: string): Promise<void> {
+  await tx.delete(weeklyPlanMealIngredients).where(eq(weeklyPlanMealIngredients.mealId, mealId));
+}
+
+/**
+ * Sets one ingredient's amount in one meal.
+ *
+ * **The first call materialises the meal.** Until a dietitian touches a control, a
+ * meal is a dish and a multiplier and nothing is stored here; the moment she moves
+ * the chicken, the whole recipe is written down at the amounts it currently has —
+ * chicken at its new weight, everything else at what the multiplier had made it —
+ * and `servings` drops to 1 because there is no longer a multiplier to apply.
+ *
+ * Copying every line rather than only the moved one is what makes the meal
+ * describable at all afterwards. A single stored override beside a live multiplier
+ * would leave "raise the whole dish" and "I pinned the chicken" fighting over the
+ * same meal, with no answer for what the chicken should do.
+ *
+ * The food must already be in the meal. This changes an amount; it does not add an
+ * ingredient, and a food id that is not on the plate is a stale board or a forged
+ * request — neither of which should be able to write a new line.
+ */
+export async function setMealIngredient(
+  clinicId: string,
+  planId: string,
+  mealId: string,
+  input: {
+    foodId: string;
+    quantityGrams: number;
+    /** The unit the count is in, or null when the amount is grams. */
+    portionId: string | null;
+    portionQuantity: number | null;
+  },
+): Promise<boolean> {
+  const plan = await editablePlan(clinicId, planId);
+  if (!plan) return false;
+
+  if (!Number.isFinite(input.quantityGrams)) return false;
+  if (input.quantityGrams <= 0 || input.quantityGrams > MAX_INGREDIENT_GRAMS) return false;
+
+  return db.transaction(async (tx) => {
+    const [meal] = await tx
+      .select({ id: weeklyPlanMeals.id, dishId: weeklyPlanMeals.dishId, servings: weeklyPlanMeals.servings })
+      .from(weeklyPlanMeals)
+      .where(and(eq(weeklyPlanMeals.id, mealId), eq(weeklyPlanMeals.planId, planId)))
+      .limit(1);
+
+    // An empty slot has no ingredients to move.
+    if (!meal?.dishId) return false;
+
+    const [dish] = await loadDishesByIds([meal.dishId], tx);
+    if (!dish) return false;
+
+    const stored = (await ownAmountsByMeal([mealId], tx)).get(mealId);
+
+    // The same resolution the board renders from, so what is written is what she
+    // was looking at — with her one change applied to it.
+    const lines = mealIngredientLines({
+      recipe: dish.ingredients,
+      servings: meal.servings,
+      stored,
+    });
+
+    if (!lines.some((line) => line.food.id === input.foodId)) return false;
+
+    await replaceOwnAmounts(
+      tx,
+      mealId,
+      lines.map((line) => {
+        const target = line.food.id === input.foodId;
+
+        return {
+          mealId,
+          catalogFoodId: line.food.id,
+          quantityGrams: target ? input.quantityGrams : line.quantityGrams,
+          portionId: target ? input.portionId : (line.portion?.id ?? null),
+          portionQuantity: target ? input.portionQuantity : line.portionQuantity,
+          isPrimary: line.isPrimary,
+          sortOrder: line.sortOrder,
+        };
+      }),
+    );
+
+    // The multiplier is spent: these rows are the amounts now, and leaving 2.25
+    // behind would invite a later reader to apply it a second time.
+    await tx
+      .update(weeklyPlanMeals)
+      .set({ servings: 1, updatedAt: new Date() })
+      .where(eq(weeklyPlanMeals.id, mealId));
+
+    await touchPlan(tx, planId);
+
+    return true;
+  });
+}
+
+/**
+ * Returns a meal to its dish's recipe, discarding hand-set amounts.
+ *
+ * The way back from an adjustment. Without it the only route to the recipe is to
+ * drop the dish on the slot again, which also clears the rationale and demotes the
+ * dish to an alternative — three consequences for one intention.
+ */
+export async function resetMealIngredients(
+  clinicId: string,
+  planId: string,
+  mealId: string,
+): Promise<boolean> {
+  const plan = await editablePlan(clinicId, planId);
+  if (!plan) return false;
+
+  return db.transaction(async (tx) => {
+    const [meal] = await tx
+      .select({ id: weeklyPlanMeals.id })
+      .from(weeklyPlanMeals)
+      .where(and(eq(weeklyPlanMeals.id, mealId), eq(weeklyPlanMeals.planId, planId)))
+      .limit(1);
+
+    if (!meal) return false;
+
+    await clearOwnAmounts(tx, mealId);
     await touchPlan(tx, planId);
 
     return true;

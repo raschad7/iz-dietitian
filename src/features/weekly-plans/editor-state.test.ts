@@ -23,6 +23,8 @@ function dish(id: string): DishDetail {
     ingredients: [
       {
         quantityGrams: 100,
+        isPrimary: true,
+        sortOrder: 0,
         food: {
           id: `food-${id}`,
           nameAr: 'طعام تجريبي',
@@ -52,6 +54,8 @@ function meal(id: string, overrides: Partial<BoardMeal> = {}): BoardMeal {
     label: 'غداء',
     timeOfDay: '14:00',
     dish: null,
+    lines: [],
+    hasOwnAmounts: false,
     rationaleAr: null,
     totals: emptyTotals(),
     grams: 0,
