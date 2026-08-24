@@ -1,26 +1,16 @@
 import { Icon } from '@/components/ui/icon';
-import { cn } from '@/lib/utils';
 
 /**
- * The tick itself, drawn without any opinion about whether it can be pressed.
+ * The tick itself.
  *
- * It exists because the same mark is now drawn two ways: as the face of a button
- * on today, and as a plain statement of record on a day that has already
- * happened. Those are different components — one ships to the browser, one never
- * does — and a meal a client ticked this morning must not look like a different
- * kind of tick tomorrow, so the drawing lives in one place and only its wrapper
- * changes.
+ * Split out of `MealCheck` — the only caller left, now that a past day's plan
+ * uses the same live button today does (`portal-meal-card.tsx`) — so the
+ * drawing stays independent of the button around it if a second caller ever
+ * needs the same face again.
  *
  * **No colour of its own.** The tick paints in `currentColor`, so the caller
- * decides — green-500, on every day this mark appears. `MealCheck` sets it
- * directly for today's live button; `PortalMealCard`'s `TICK_TONE` sets the
- * same class for a settled day's `SettledMealCheck`, now that every meal card
- * wears one shell regardless of standing — see the `--meal-*` note in
- * `globals.css` for the measured pair this protects.
- *
- * Deliberately **not** a client component, and there is no `'use client'` above:
- * a module without the directive can be imported from both sides, which is what
- * lets a past day's plan reach the phone as pure HTML.
+ * decides — `MealCheck` sets `--meal-check-fill` directly. See that token's
+ * comment in `globals.css` for why it replaced green-500 here.
  */
 export function MealCheckMark({ checked }: { checked: boolean }) {
   return (
@@ -48,45 +38,6 @@ export function MealCheckMark({ checked }: { checked: boolean }) {
         // tapped.
         <span className="size-6 rounded-full border-2 border-muted-foreground/45 bg-card" />
       )}
-    </span>
-  );
-}
-
-/**
- * The same mark on a day that has already happened: a record, not a control.
- *
- * **`role="img"`, not a disabled checkbox.** A checkbox — even one marked
- * read-only — is a widget, and announcing one on a day nobody can change invites
- * the exact attempt the screen is refusing. This is a picture of what was
- * reported, so it says so in a sentence and takes no part in the tab order. The
- * label is the whole state in words, because the difference between a filled
- * circle and an empty one is the one thing a screen reader cannot infer.
- *
- * It keeps the button's 44px footprint even though nothing here is a target. The
- * tick leads every row at the inline-start precisely so a column of five can be
- * read straight down the margin, and a settled day whose marks sat 10px further
- * in would break that line the moment a client stepped back a day.
- *
- * No hover, no cursor, no focus ring — the three things that would make it look
- * pressable are all absent, which is the visual half of the same statement.
- */
-export function SettledMealCheck({
-  checked,
-  label,
-  className,
-}: {
-  checked: boolean;
-  label: string;
-  /** The tick's colour, which depends on the shell the card is wearing. */
-  className?: string;
-}) {
-  return (
-    <span
-      role="img"
-      aria-label={label}
-      className={cn('grid size-11 shrink-0 place-items-center', className)}
-    >
-      <MealCheckMark checked={checked} />
     </span>
   );
 }
