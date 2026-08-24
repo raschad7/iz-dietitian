@@ -228,7 +228,7 @@
    * decorative fill, not a step in a scale, and no other surface may reach
    * for it. See `.portal-home-glow` in `@layer components`.
    */
-  --portal-home-glow: #73AE35;
+  --portal-home-glow: #76CF4A;
 
   /*
    * ── Home hero progress ring ──
@@ -243,9 +243,9 @@
    * (an ambient blur vs. a solid, shadowed disc) and the glow's own comment
    * reserves it for that one use.
    */
-  --portal-progress-fill: #72AE34;
+  --portal-progress-fill: #76CF4A;
   /* The dashed arc drawn to the completed fraction — see `TodayRing`. */
-  --portal-progress-track: #76CB26;
+  --portal-progress-track: #76CF4A;
   /* The full background track behind it, standing for what's not yet complete. */
   --portal-progress-track-soft: rgba(92, 150, 38, .16);
   --portal-progress-figure: #F3FFE5;
@@ -258,7 +258,7 @@
    * to equal `--green-600` today, but stays its own pinned literal rather
    * than a reach for that token, matching the other two above it.
    */
-  --meal-check-fill: #72AE34;
+  --meal-check-fill: #76CF4A;
 
   /*
    * ── Leading, per script ──
@@ -1240,8 +1240,14 @@
  * oversight.
  */
 [data-theme='light'] {
-  --primary: #73ae35;
+  --primary: #76CF4A;
   --primary-foreground: var(--n-0);
+  --primary-hover: #76CF4A;
+  --secondary-foreground: #76CF4A;
+  --ring: #76CF4A;
+  --input-hover: #76CF4A;
+  /* n-50 (#F7F5EF) reads warm/cream against the portal's own cooler surfaces — c-100 matches `--muted` instead. */
+  --icon-chip: var(--c-100);
 }
 
 .dark,
@@ -2560,24 +2566,21 @@
   /*
    * ── The day-complete claim card ──
    * `TodayFlameCell`'s dialog, the moment a client finishes every meal of the
-   * day. Two more layers on top of the trio above: a wide, gentle wash behind
-   * the whole card (green and flame both, faded, so the card reads as one
-   * warm surface rather than a white rectangle with icons on it) and a
-   * handful of sparkles that twinkle on their own independent delays.
+   * day. `.q-claim-glow` is a plain `--card` fill behind the character and
+   * sparkles — it used to be a warm green/flame wash, deliberately flattened
+   * to white so the card reads as a clean surface rather than a tinted one.
+   * The sparkles still twinkle on their own independent delays on top of it.
    *
-   * Both loop for as long as the card is open, unlike every other one-shot
-   * celebration in this file — the difference is deliberate: this card
-   * blocks (`dismissible={false}`) until the client presses its own button,
-   * so it is never open for more than a few seconds, and a wash or a
-   * sparkle that finished mid-read would leave the card looking unfinished
-   * for whatever time was left. `prefers-reduced-motion` still collapses
-   * both to their resting frame, same as everywhere else in this file.
+   * The sparkles loop for as long as the card is open, unlike every other
+   * one-shot celebration in this file — the difference is deliberate: this
+   * card blocks (`dismissible={false}`) until the client presses its own
+   * button, so it is never open for more than a few seconds, and a sparkle
+   * that finished mid-read would leave the card looking unfinished for
+   * whatever time was left. `prefers-reduced-motion` still collapses it to
+   * its resting frame, same as everywhere else in this file.
    */
   .q-claim-glow {
-    background:
-      radial-gradient(120% 65% at 50% 0%, color-mix(in srgb, var(--flame-300) 38%, transparent) 0%, transparent 65%),
-      radial-gradient(90% 55% at 50% 58%, color-mix(in srgb, var(--primary) 26%, transparent) 0%, transparent 70%);
-    animation: q-claim-glow-pulse 3200ms ease-in-out infinite;
+    background: var(--card);
   }
 
   .q-claim-sparkle {
@@ -2792,6 +2795,16 @@
    */
   .q-mascot[data-energy-bump='true'] .q-mascot-float {
     animation: q-energy-bump 640ms var(--ease-sweep);
+  }
+
+  /*
+   * The three "Z"s at 100% — see `ZZZ_LETTERS` in `today-energy-mascot.tsx`.
+   * Each rises and fades on its own delay so the cascade reads as one
+   * continuous drift rather than three letters blinking in unison.
+   */
+  .q-mascot-zzz {
+    line-height: 1;
+    animation: q-mascot-zzz-float 2400ms ease-in-out infinite;
   }
 }
 
@@ -4895,6 +4908,26 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
   }
 }
 
+/* One "Z" of the 100% sleep cascade — see `.q-mascot-zzz`. */
+@keyframes q-mascot-zzz-float {
+  0% {
+    opacity: 0;
+    transform: translateY(4px) scale(0.85);
+  }
+  25% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1);
+  }
+  75% {
+    opacity: 1;
+    transform: translateY(-10px) scale(1.05);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-18px) scale(1.1);
+  }
+}
+
 @keyframes q-energy-bump {
   0%,
   100% {
@@ -4902,17 +4935,6 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
   }
   40% {
     transform: scale(1.08);
-  }
-}
-
-/* A slow breathing wash behind the day-complete claim card — see `.q-claim-glow`. */
-@keyframes q-claim-glow-pulse {
-  0%,
-  100% {
-    opacity: 0.6;
-  }
-  50% {
-    opacity: 1;
   }
 }
 
@@ -6032,3 +6054,5 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
     animation: q-splash-out 240ms var(--ease-sweep) 760ms forwards;
   }
 }
+
+

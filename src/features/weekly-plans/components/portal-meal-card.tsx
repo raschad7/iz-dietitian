@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { localizedName } from '../food-display';
 import { servingGuideFor, servingGuideLines } from '../serving-guide';
 
+import { AnimatedDisclosure } from './animated-disclosure';
 import { MealCheck } from './meal-check';
 import { ServingGuideList } from './serving-guide-list';
 import type { BoardMeal } from '../queries';
@@ -206,6 +207,7 @@ export function PortalMealCard({
           opens inside of, not as a second, whiter surface floating on top.
         */}
         <div className="mt-1.5 rounded-lg bg-meal-bg p-4">
+          <AnimatedDisclosure />
           {dish ? (
             <div className="space-y-4">
               {/*

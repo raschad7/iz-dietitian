@@ -219,6 +219,27 @@ export function TodayEnergyMascot({
             ))}
           </span>
         ) : null}
+
+        {/*
+          Three "Z"s drifting up and fading, only at 100% — the closed eyes
+          alone (`ENERGY_EYE_POSES[4]` in `energy-progress.ts`) read as
+          ambiguous on their own, so this makes the "asleep, resting" beat
+          unmistakable. Cascades off the mark's own top-inline-end corner,
+          each letter on its own delay so they never rise in lockstep.
+        */}
+        {complete ? (
+          <span aria-hidden="true" className="pointer-events-none absolute inset-0">
+            {ZZZ_LETTERS.map((letter) => (
+              <span
+                key={letter.key}
+                className={`q-mascot-zzz absolute font-heading font-bold text-primary ${letter.className}`}
+                style={{ animationDelay: `${letter.delayMs}ms` }}
+              >
+                Z
+              </span>
+            ))}
+          </span>
+        ) : null}
       </span>
 
       <span className="flex flex-col items-center gap-1 text-center">
@@ -242,7 +263,7 @@ export function TodayEnergyMascot({
           <span className="text-caption leading-none text-muted-foreground">{t('meals', { completed, total })}</span>
         ) : null}
 
-        <p className="font-heading text-lg leading-snug font-bold text-foreground">{t(`energy.${messageKey}`)}</p>
+        <p className="pt-4 font-heading text-lg leading-snug font-bold text-[#6D6C65]">{t(`energy.${messageKey}`)}</p>
       </span>
     </span>
   );
@@ -260,3 +281,17 @@ const SPARKLE_POSITIONS = [0, 90, 180, 270].map((angle) => {
     } as CSSProperties,
   };
 });
+
+/**
+ * A diagonal cascade of three "Z"s off the mark's top-inline-end corner —
+ * `end`/`top` rather than a physical side, so it mirrors correctly under
+ * `dir="rtl"` like every other absolutely-placed decoration in this feature
+ * (see `SPARKLES` in `today-flame-celebration.tsx`). Growing size and rising
+ * delay read as the classic sleep cue, smallest and soonest closest to the
+ * mark.
+ */
+const ZZZ_LETTERS: readonly { key: number; className: string; delayMs: number }[] = [
+  { key: 0, className: 'end-[3%] top-[16%] text-[13px]', delayMs: 0 },
+  { key: 1, className: 'end-[-8%] top-[6%] text-[17px]', delayMs: 300 },
+  { key: 2, className: 'end-[-20%] top-[-4%] text-[21px]', delayMs: 600 },
+];

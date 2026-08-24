@@ -134,7 +134,7 @@ export function AppointmentRequestFab({ label }: AppointmentRequestFabProps) {
         ].join(' '),
       })}
     >
-      <Icon name="bookAppointment" />
+      <Icon name="bookAppointment" className="size-7" />
     </Link>,
     document.body,
   );

@@ -63,7 +63,7 @@ function TodayProgress() {
   */
   if (fraction === null) {
     return (
-      <div className="flex min-h-[150px] w-full items-center justify-center rounded-[30px] bg-card px-4 py-4">
+      <div className="flex min-h-[150px] w-full items-center justify-center rounded-[30px] bg-card px-4 py-4 ring-1 ring-meal-border-checked">
         <p className="text-sm text-muted-foreground">{t('noMeals')}</p>
       </div>
     );
@@ -72,7 +72,10 @@ function TodayProgress() {
   return (
     // Back on its own white card — the mascot centred on it, filling the
     // whole card by itself now that the calorie legend row below it is gone.
-    <div className="flex min-h-[150px] w-full flex-col items-center justify-center gap-3 rounded-[30px] bg-card px-4 py-4">
+    // `ring-meal-border-checked`: the same hairline the meal cards below draw
+    // once opened/checked (`portal-meal-card.tsx`), so this card reads as
+    // part of the same family rather than a borderless one floating above it.
+    <div className="flex min-h-[150px] w-full flex-col items-center justify-center gap-3 rounded-[30px] bg-card px-4 py-4 ring-1 ring-[#E0ECD9]">
       <TodayEnergyMascot fraction={fraction} completed={completed} total={total} locale={locale} />
     </div>
   );

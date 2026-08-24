@@ -64,14 +64,15 @@ const ENERGY_EYE_POSES: Record<EnergyTier, EyePose> = {
   2: { gazeX: 0, gazeY: 0, openness: 1, tilt: 0 },
   3: { gazeX: 0, gazeY: -6, openness: 1.12, tilt: 2 },
   /*
-   * Complete: a clear happy squint rather than the subtle lean the other
-   * tiers use — a low `openness` flattens the existing oval into a joyful
-   * closed-eye arc, the strongest read this shape can give without adding
-   * a feature the mark does not already draw (no mouth, no eyebrows — see
-   * the module doc). `tilt` is pushed further than any other tier so the
-   * flattened arc reads as curving upward, not just as a squashed ellipse.
+   * Complete: a fully closed, happy squint rather than the subtle lean the
+   * other tiers use — a near-zero `openness` flattens the existing oval into
+   * a shut, joyful arc, the strongest read this shape can give without
+   * adding a feature the mark does not already draw (no mouth, no eyebrows
+   * — see the module doc). `tilt` is pushed further than any other tier so
+   * the flattened arc reads as curving upward, not just as a squashed
+   * ellipse.
    */
-  4: { gazeX: 0, gazeY: -9, openness: 0.28, tilt: 8 },
+  4: { gazeX: 0, gazeY: -9, openness: 0.1, tilt: 10 },
 };
 
 export function energyEyePose(tier: EnergyTier): EyePose {

@@ -1,5 +1,7 @@
 'use client';
 
+import { playMealFillSound } from '@/lib/meal-fill-sound';
+
 import { MealCheckMark } from './meal-check-mark';
 import { useMealCompletion } from './plan-day-completion';
 
@@ -46,6 +48,9 @@ export function MealCheck({ mealId, label }: { mealId: string; label: string }) 
       onClick={(event) => {
         event.preventDefault();
         event.stopPropagation();
+        // Only marking a meal eaten pours — unchecking is a correction, not
+        // a second helping, so it stays silent.
+        if (!checked) playMealFillSound();
         toggle();
       }}
       // `text-meal-check-fill`, not `text-primary`: a design reference asked
