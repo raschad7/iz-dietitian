@@ -138,7 +138,7 @@ export function MealCard({
       // What `onDragStart` measures the lifted card against — see `board-dnd.tsx`.
       data-meal-card=""
       className={cn(
-        'group relative min-h-0 overflow-hidden rounded-lg border bg-card transition-[border-color,background-color,transform,opacity,box-shadow] duration-(--duration-sweep) ease-(--ease-sweep)',
+        'planner-meal-card group relative min-h-0 overflow-hidden rounded-lg border bg-card transition-[border-color,background-color,transform,opacity,box-shadow] duration-(--duration-sweep) ease-(--ease-sweep)',
         selected ? 'border-primary ring-1 ring-primary' : 'border-border',
         meal.dish === null && 'border-dashed bg-muted/40',
         wouldLand && 'scale-[1.01] border-primary bg-secondary shadow-elevated',

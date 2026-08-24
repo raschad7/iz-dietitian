@@ -1571,7 +1571,7 @@
     "saving": "Saving…",
     "saved": "Saved",
     "emptySlot": "Not filled",
-    "unfilledWarning": "{count} meals could not be filled — fill them before publishing",
+    "unfilledWarning": "{count, plural, one {One meal is still empty — fill it before publishing} other {# meals are still empty — fill them before publishing}}",
     "dailyTarget": "Daily target",
     "proteinTarget": "Protein {value} g",
     "goal": "Goal",

@@ -303,7 +303,16 @@ export function BoardHarness({ locale }: { locale: Locale }) {
   );
 
   return (
-    <div className={`${PLANNER_THEME} flex min-h-full min-w-0 flex-col text-start md:h-full md:min-h-0`}>
+    /* `h-dvh`, where the real screen says `h-full`.
+
+       The app shell is a `100svh` box with a chain of `min-h-0` under it, so
+       the board there is handed a *definite* height and has to fit inside it.
+       `h-full` here resolves against `body`, which has none — so the harness
+       let the board grow to whatever it wanted and reported that everything
+       fitted. Which made the one measurement this page exists to take, on the
+       one screen where vertical room is the whole problem, the one it could not
+       be trusted on. */
+    <div className={`${PLANNER_THEME} flex min-h-full min-w-0 flex-col text-start md:h-dvh md:min-h-0`}>
       {/* The switches, not a page header: the real screen's header is
           `PageHeader`, and reproducing it here would only take height away from
           the thing being looked at. */}

@@ -42,7 +42,7 @@ export function SlotRail({
        inherit the same tracks the cards do and can never drift out of step with
        them. `sticky` applies to the whole column rather than to each cell,
        because it spans the full template and travels as one. */
-    <div className="sticky start-0 z-20 row-span-full grid w-20 grid-rows-subgrid bg-background md:w-24">
+    <div className="planner-slot-rail sticky start-0 z-20 row-span-full grid w-20 grid-rows-subgrid bg-background md:w-24">
       {/* The corner. Blank, and deliberately so: it sits above both the day
           names and the slot labels, and anything written in it would belong to
           neither axis. */}

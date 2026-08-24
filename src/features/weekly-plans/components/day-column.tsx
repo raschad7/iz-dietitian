@@ -479,8 +479,12 @@ function RemoveSlot({ row }: { row: BoardRow }) {
         `before:` widens the hit area to ~40px on touch without moving the 22px
         mark, which has to stay small: it sits in the corner of a slot label and
         a larger visible control would crowd the label it belongs to.
+
+        `-inset-3` and not `-inset-2`: the glyph's own box is 22px, so the
+        smaller reach came to 38px — close enough to look solved and still
+        under the 44px floor a finger actually needs.
       */
-      className="relative rounded-full p-1 text-muted-foreground opacity-0 transition-[opacity,color,background-color] hover:bg-destructive-subtle hover:text-destructive focus-visible:opacity-100 group-hover/slot:opacity-100 pointer-coarse:opacity-60 pointer-coarse:before:absolute pointer-coarse:before:-inset-2 pointer-coarse:before:content-['']"
+      className="relative rounded-full p-1 text-muted-foreground opacity-0 transition-[opacity,color,background-color] hover:bg-destructive-subtle hover:text-destructive focus-visible:opacity-100 group-hover/slot:opacity-100 pointer-coarse:opacity-60 pointer-coarse:before:absolute pointer-coarse:before:-inset-3 pointer-coarse:before:content-['']"
     >
       <Icon name="trash" className="size-3.5" />
     </button>

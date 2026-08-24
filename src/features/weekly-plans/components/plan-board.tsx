@@ -90,6 +90,30 @@ export function PlanBoard(props: BoardProps) {
   );
 }
 
+/**
+ * A standing note above the board — the plan is published and read-only, or a
+ * meal is still empty and publishing is blocked on it.
+ *
+ * Two sizes, because this is a band across the whole board and it is paid for
+ * in meal cards. On a phone it is a 14px sentence with room around it, which is
+ * how a warning should read on a page that scrolls and where a band costs
+ * nothing anyone can see. From `md` up the board is pinned to the frame and
+ * every pixel above it is taken off the week, so it becomes a 12px line with
+ * the glyph carrying the alarm the fill used to carry alone: 24px instead of
+ * 40, saying exactly the same thing.
+ *
+ * The glyph takes no `label`, which is what makes `Icon` mark it `aria-hidden`.
+ * The sentence beside it already names the condition.
+ */
+function BoardNotice({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="flex items-center gap-2 rounded-md bg-status-attention-bg px-3 py-2 text-body-sm text-status-attention-fg md:py-1 md:text-caption">
+      <Icon name="attention" className="size-4 shrink-0" />
+      <span className="min-w-0">{children}</span>
+    </p>
+  );
+}
+
 function BoardBody({
   candidates,
   catalog,
@@ -167,11 +191,29 @@ function BoardBody({
    * as a stable footer track for the add control. That footer remains reserved
    * after publishing so hiding the control cannot resize every meal row.
    *
-   * The real remaining canvas, not the viewport, distributes the flexible rows.
-   * The 4.5rem floor protects the dish name and nutrition shelf when an unusually
-   * long schedule still needs to scroll.
+   * ── `auto`, not `1fr`, for the meal rows ──
+   *
+   * `1fr` makes every row the same height, which is tidy and is also why a
+   * landscape iPad could not show a whole day. `1fr` tracks are all sized to
+   * the largest one's content, so a single dish name long enough to wrap —
+   * "Hummus with tahini and bread", one card of thirty-five — added 22px to
+   * *all five* rows. On a 768px-tall screen that is 110px, which is the last
+   * meal of the day pushed under the fold, on the one screen where the point is
+   * seeing the day at once.
+   *
+   * An `auto` maximum sizes each row to what that row actually holds, and grid's
+   * own `align-content: normal` still stretches auto tracks to fill the frame
+   * when there is room to spare — so a tall window fills exactly as before, and
+   * a short one shows five rows instead of four and a bit. Rows can now differ
+   * from one another by a line of dish name, which is what a table does.
+   *
+   * `min-content` on the header row so the stretch passes it by: it holds the
+   * day name and the day's total, and space added there would open a gap
+   * between the name and the first card rather than going to the meals.
+   *
+   * The 4.5rem floor still protects the dish name and the figure under it.
    */
-  const rowTemplate = `auto repeat(${slotRows}, minmax(4.5rem, 1fr)) 2.75rem`;
+  const rowTemplate = `min-content repeat(${slotRows}, minmax(4.5rem, auto)) 2.75rem`;
 
   /**
    * The previous plan's dish for each slot, marked where it repeats.
@@ -206,24 +248,30 @@ function BoardBody({
   }, [comparing, previous, board.days]);
 
   return (
-    <div className="relative flex min-h-0 min-w-0 flex-1 flex-col gap-3">
+    /* `md:gap-2`: from the tablet up, every gutter above the board is board
+       that is not being drawn. 12px is right on a phone, where this column
+       scrolls and the rhythm is what separates one block from the next; on a
+       768px-tall landscape screen the same gutters come off the week. */
+    <div className="relative flex min-h-0 min-w-0 flex-1 flex-col gap-3 md:gap-2">
       {/* No `shadow-card`. The header is a full-width band pinned to the top of
           the workspace, not a card floating on it, and a shadow under something
           that spans the frame reads as a seam rather than as depth. The border
           is what separates it from the board. */}
-      {/* `xl`, not `2xl`, for the moment the bar moves up beside the client.
-          At 1280px the summary needs about 46rem and the four controls about
-          22rem, which fits — waiting until 1536px meant every laptop and every
-          tablet spent a second full-width row on a toolbar that had the room to
-          sit in the first one. */}
-      <header className="grid overflow-hidden rounded-lg border border-border bg-card lg:grid-cols-[minmax(0,1fr)_auto]">
+      {/* `md`, for the moment the bar moves up beside the client — and it is
+          the tablet that this is for. The four controls need about 18rem once
+          they are down to one label and three glyphs (below), and the client
+          row needs about 14rem, so from 768px they share a line. Every stop
+          short of that spent a whole 52px band of a 768px-tall landscape iPad
+          on a toolbar that had the room to sit in the row above it. */}
+      <header className="grid overflow-hidden rounded-lg border border-border bg-card md:grid-cols-[minmax(0,1fr)_auto]">
         <h2 className="sr-only">{board.clientName}</h2>
         <div className="min-w-0">{children}</div>
 
-        {/* `md:flex-nowrap`: below `xl` this is still its own row, and there is
-            far more width in it than four controls need — wrapping could only
-            ever turn one 52px row into two. */}
-        <div className="planner-action-bar mx-2 mb-2 flex max-w-full flex-wrap items-center justify-end gap-1.5 rounded-lg bg-muted/70 p-1.5 md:flex-nowrap lg:my-2 lg:me-2 lg:ms-0 lg:w-auto lg:self-center lg:justify-center">
+        {/* `flex-wrap` only below `md`, where this is still a row of its own and
+            a narrow phone may genuinely need two lines. From `md` up it is
+            beside the client and must never wrap: a second line here would take
+            the header's height back from the board. */}
+        <div className="planner-action-bar mx-2 mb-2 flex max-w-full flex-wrap items-center justify-end gap-1.5 rounded-lg bg-muted/70 p-1.5 md:my-2 md:me-2 md:ms-0 md:w-auto md:flex-nowrap md:justify-center md:self-center">
           {/* Publish leads the bar. It is the only thing here that changes what
               the client sees, and it was sitting second behind a catalog opener —
               a shortcut to a drawer, which is a smaller promise than the one
@@ -250,12 +298,18 @@ function BoardBody({
               type="button"
               size="sm"
               variant="neutral"
-              className="px-3 xl:size-10 xl:px-0"
+              /* Glyph only from `md`, where the label was the difference
+                 between this bar fitting beside the client and costing a row.
+                 Publish keeps its words — it is the one control here that
+                 changes what someone else sees, and a green disc is not a
+                 promise anyone should have to guess at. The other three are
+                 openers, and the tooltip and the `aria-label` both survive. */
+              className="px-3 md:size-10 md:px-0"
               aria-label={t('tabs.dishes')}
               onClick={() => onCatalogOpenChange(true)}
             >
               <Icon name="dishes" />
-              <span className="xl:sr-only">{t('tabs.dishes')}</span>
+              <span className="md:sr-only">{t('tabs.dishes')}</span>
             </Button>
           </TooltipHint>
 
@@ -396,25 +450,27 @@ function BoardBody({
           and its composition is locked. Said here rather than left to a control
           that would only fail — the route back to editing is Unpublish, which the
           header already offers. */}
-      {board.status === 'published' && (
-        <p className="rounded-md bg-status-attention-bg px-3 py-2 text-body-sm text-status-attention-fg">
-          {t('publishedReadOnly')}
-        </p>
-      )}
+      {board.status === 'published' && <BoardNotice>{t('publishedReadOnly')}</BoardNotice>}
 
       {board.unfilled > 0 && (
-        <p className="rounded-md bg-status-attention-bg px-3 py-2 text-body-sm text-status-attention-fg">
-          {t('unfilledWarning', { count: board.unfilled })}
-        </p>
+        <BoardNotice>{t('unfilledWarning', { count: board.unfilled })}</BoardNotice>
       )}
 
       <BoardDayStrip days={orderedDays} selectedDay={selectedDay} onSelect={setSelectedDay} />
 
-      <div className="flex min-h-0 flex-1">
-        {/* Phones render one selected day. Tablets make the week itself a
-            three-column-wide swipe surface, so the day picker no longer spends
-            two rows above the work. The seven-column desktop uses the available
-            width; only unusually long schedules need exceptional overflow. */}
+      {/* `planner-week-frame` is the board's size container. Every question
+          about how wide a day is and how many of them fit is asked of this
+          box rather than of the window — see the rules it names in
+          `globals.css`. It is on the wrapper and not on the scrollport
+          itself, because `container-type` brings `contain: layout` with it
+          and the scrollport is the one box on this screen that a
+          `position: fixed` drag preview must be free of. */}
+      <div className="planner-week-frame flex min-h-0 flex-1">
+        {/* Phones render one selected day. Every width above that makes the week
+            itself the swipe surface — as many whole days as the frame can hold
+            at a readable column width, the rest one gesture away — so the day
+            picker no longer spends two rows above the work. How many that is
+            per width is decided in `globals.css`, against this frame. */}
         {/* The canvas under the cards is `canvas` — n-25, one stop off white —
             so a white card reads as a surface sitting on the board rather than
             as a bordered box on the page. Not `muted` (n-50): that is the
@@ -444,20 +500,31 @@ function BoardBody({
               which puts it at the inline-start, on the right in Arabic and the
               left in English, with no override either way.
 
-              The row gap is declared here and only here: a subgrid inherits its
-              parent's gutters, and repeating them on the day column would let the
-              two drift out of step.
+              Both gutters are declared in `globals.css` and nowhere else. A
+              subgrid inherits its parent's, so restating them on the day column
+              would let the two drift out of step — and two other rules read
+              them as well: the day-width sum needs the column gap to make the
+              week land flush, and `.planner-row-cell::before` reaches exactly
+              half of each to draw its rule. A gutter this file could change on
+              its own is a gutter three other things would be wrong about.
+
+              The seven-track template arrives at `md`, which is where seven
+              days start being rendered at all. It is a fallback: from `md` up
+              the container rules in `globals.css` replace both tracks with
+              measured widths. What it guarantees is that a browser that cannot
+              read a `@container` query still gets seven columns sharing the
+              frame rather than seven days stacking into one.
 
               **`min-h-full`, not `h-full`, and the clip is on one axis.** The
-              `1fr` rows do need a definite height to share out, which is what
+              rows need a definite height to stretch into, which is what
               `h-full` was for — but it also pinned the grid to the frame, and
               `overflow-clip` then cut off whatever would not fit. On a 720px
               window that was a whole row of seven meals: drawn nowhere,
               reachable by nothing, with no scrollbar to suggest they existed.
-              `min-h-full` keeps the fr distribution when the week fits and lets
-              the grid grow past the frame when the readability floor says it
-              must — which is the case the frame's own
-              `overflow-auto` was always there to handle.
+              `min-h-full` keeps the stretch when the week fits and lets the
+              grid grow past the frame when the readability floor says it
+              must — which is the case the frame's own `overflow-auto` was
+              always there to handle.
 
               The clip stays on the inline axis, because that is the one it was
               for: `.planner-row-cell::before` reaches half into the column
@@ -467,7 +534,7 @@ function BoardBody({
               does not force the other axis to become a scroll container — so
               the block overflow travels up to the frame the way it should. */}
           <div
-            className="planner-week-grid grid min-h-full grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-4 overflow-x-clip p-2 xl:grid-cols-[auto_repeat(7,minmax(0,1fr))] xl:gap-x-4 2xl:gap-x-6"
+            className="planner-week-grid grid min-h-full grid-cols-[auto_minmax(0,1fr)] overflow-x-clip p-2 md:grid-cols-[auto_repeat(7,minmax(0,1fr))]"
             style={{ gridTemplateRows: rowTemplate }}
           >
             <SlotRail rows={rows} editable={editable} />
@@ -496,6 +563,22 @@ function BoardBody({
           </div>
         </div>
 
+        {/* The one mark that says the week continues past the edge.
+
+            An exact fit is what the geometry above is for — four whole days,
+            the last of them flush with the frame — and the cost of getting it
+            right is that the board now looks finished. Nothing is half-drawn at
+            the edge any more, the scrollbar is hidden, and a dietitian who has
+            never swiped this surface has no reason to think there is anything
+            to swipe to. A soft fade on the trailing edge is the ordinary signal
+            that a surface runs on, and it costs no height, which is the whole
+            currency of this screen.
+
+            A span rather than a pseudo-element on the frame, because the frame
+            is the size container and a container query can only reach things
+            inside it — this is how the fade knows to switch itself off at the
+            width where all seven days fit and there is nothing left to say. */}
+        <span aria-hidden className="planner-week-fade" />
       </div>
 
       <MealInspector

@@ -72,16 +72,16 @@ export function ContextPanel({
       )}
     >
       {/*
-        The two-row shape arrives at `md`, not at `lg`.
+        Two rows at every width, and three columns where the numbers have room
+        to sit beside the client rather than under them.
 
-        Below `lg` this used to stack three blocks — the picker, a 3×2 grid of
-        facts, then the buttons — which on an iPad is about 230px of header
-        before the first meal card, on a screen 768px tall in landscape. The
-        facts fit five across from 768px once they stopped being 16px semibold
-        (see `SummaryFact`), so the tablet gets the same two rows the desktop
-        gets: name and buttons on one line, the week's numbers on the next.
+        This used to stack three separate blocks — the picker, then a grid of
+        facts, then the two profile buttons — until `lg`, which is 230px of
+        header before the first meal card on a screen 768px tall in landscape.
+        There is no width where a 44px avatar and two 40px buttons cannot share
+        a line, so they always do, and the facts take the row under them.
       */}
-      <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_auto] md:items-center xl:grid-cols-[minmax(15rem,1fr)_minmax(30rem,2fr)_auto]">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 xl:grid-cols-[minmax(15rem,1fr)_minmax(30rem,2fr)_auto]">
         {/* `gap-2`, not `gap-3`. The disc and the name are one thing — a person
             — and the same gutter that separates them from the profile button
             made them read as two items in a toolbar. */}
@@ -116,7 +116,28 @@ export function ContextPanel({
 
         </div>
 
-        <div className="grid min-w-0 grid-cols-2 gap-1.5 sm:grid-cols-3 md:col-span-2 md:grid-cols-5 xl:col-span-1 xl:col-start-2 xl:row-start-1">
+        {/*
+          ── A strip, and only a grid of tiles where there is width to spend ──
+
+          What these five hold is five short answers: a target, a target, a
+          ratio, a word, and a word. As 44px tiles they were a second band
+          across the top of the board — three rows of them on a phone, two on a
+          tablet — and the board pays for every one of those in meal cards.
+
+          So the default is a line of label-and-value pairs inside one muted
+          bar, wrapping as many times as it must: 24px a line instead of 44 a
+          row, with nothing dropped and nothing hidden behind a control. The
+          tiles come back at `xl`, where they sit in their own column beside the
+          client rather than under them and cost the board nothing.
+
+          Wrapping rather than scrolling is deliberate. The width where five
+          pairs do not fit on one line is 768px in English, and a second 24px
+          line is the graceful answer to it — graceful in the right direction,
+          too, since that width is portrait, where the height exists, and
+          landscape fits on one. A scroll would have put the allergy fact behind
+          a gesture with nothing on screen to suggest it.
+        */}
+        <div className="col-span-2 flex min-w-0 flex-wrap items-center gap-x-4 rounded-md bg-muted/70 px-2.5 py-1 xl:col-span-1 xl:col-start-2 xl:row-start-1 xl:grid xl:grid-cols-5 xl:gap-1.5 xl:rounded-none xl:bg-transparent xl:p-0">
           <SummaryFact label={t('dailyTarget')} numeric>
             {context.effectiveKcal === null ? t('unset') : t('kcalValue', { value: context.effectiveKcal })}
           </SummaryFact>
@@ -145,10 +166,7 @@ export function ContextPanel({
           <SummaryFact
             label={t('allergies')}
             hint={allergyText || t('allergiesMissing')}
-            className={cn(
-              allergyText ? 'text-status-medical-fg' : 'text-status-attention-fg',
-              'col-span-2 sm:col-span-1',
-            )}
+            className={allergyText ? 'text-status-medical-fg' : 'text-status-attention-fg'}
           >
             {allergyText || t('allergiesMissingShort')}
           </SummaryFact>
@@ -158,7 +176,7 @@ export function ContextPanel({
             at `xl`, which made the header as tall as two icon buttons plus
             their gap — taller than the row of facts it sits beside, so it, not
             the content, was setting the panel's height. */}
-        <div className="flex items-center gap-1 rounded-lg bg-muted/70 p-1 md:col-start-2 md:row-start-1 xl:col-start-3">
+        <div className="col-start-2 row-start-1 flex items-center gap-1 rounded-lg bg-muted/70 p-1 xl:col-start-3">
           <Popover>
           <TooltipHint label={t('planningNotes')}>
             <PopoverTrigger
@@ -317,7 +335,11 @@ function SummaryFact({
         // `truncate` on every one of them, without exception: these five are
         // grid siblings, so one value allowed to wrap sets the height of the
         // other four.
-        'w-full truncate text-body-sm font-medium',
+        // `max-w-40` in the strip: these are flex items there rather than grid
+        // siblings, so a long value cannot set anyone else's height — but it
+        // can still push the other four onto a line of their own. The cap is
+        // the same answer the tile shape reaches by truncating.
+        'max-w-40 truncate text-body-sm font-medium xl:w-full xl:max-w-none',
         numeric && 'tabular-nums',
       )}
       dir={numeric ? 'ltr' : 'auto'}
@@ -329,7 +351,11 @@ function SummaryFact({
   return (
     <div
       className={cn(
-        'flex min-h-11 min-w-0 flex-col items-center justify-center rounded-md bg-muted/70 px-2 py-1 text-center',
+        // The strip: label and value on one baseline, the muted fill handed up
+        // to the bar that holds all five. The tile — a stacked box with its own
+        // fill and a 44px floor — is the `xl` shape. See the container above.
+        'flex min-w-0 shrink-0 items-baseline gap-1.5 text-start',
+        'xl:min-h-11 xl:shrink xl:flex-col xl:items-center xl:justify-center xl:gap-0 xl:rounded-md xl:bg-muted/70 xl:px-2 xl:py-1 xl:text-center',
         className,
       )}
     >

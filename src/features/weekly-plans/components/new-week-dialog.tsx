@@ -129,7 +129,7 @@ export function NewWeekDialog({
           aria-label={compactTrigger ? (triggerLabel ?? t('newWeek')) : undefined}
           // Square-shouldered even when it collapses to an icon: the planner's
           // action bar is one set of controls and they share the base radius.
-          className={compactTrigger ? 'px-3 xl:size-10 xl:px-0' : undefined}
+          className={compactTrigger ? 'px-3 md:size-10 md:px-0' : undefined}
           onClick={() => {
             setGenerating(false);
             setWeekStartDate(newWeek.weekStartDate);
@@ -137,7 +137,7 @@ export function NewWeekDialog({
           }}
         >
           <Icon name="add" />
-          <span className={compactTrigger ? 'xl:sr-only' : undefined}>
+          <span className={compactTrigger ? 'md:sr-only' : undefined}>
             {triggerLabel ?? t('newWeek')}
           </span>
         </Button>
