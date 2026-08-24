@@ -4957,17 +4957,31 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
  *
  * `n` days have to add up to *exactly* the frame, so a swipe lands the next day
  * flush against the rail rather than half under it. Reading across the frame
- * from its start edge at rest: the grid's start padding, the sticky rail, then
- * `n` days each preceded by a column gap. So
+ * from its start edge at rest: the sticky rail, then `n` days each preceded by
+ * a column gap. So
  *
- *     P + R + n×G + n×D = W    ⟹    D = (W − P − R − n×G) / n
+ *     R + n×G + n×D = W    ⟹    D = (W − R − n×G) / n
  *
  * where `W` is `100cqi`. Two things have to agree with that sum or it is
- * fiction, and both are stated below: the rail sticks at `P` rather than at 0,
- * and the scroll snapport starts at `P + R + G`, which is where a day sits once
- * the rail is frozen over the start of the frame.
+ * fiction, and both are stated below: the grid has no start padding, and the
+ * scroll snapport starts at `R + G`, which is where a day sits once the rail is
+ * frozen over the start of the frame.
  *
- * The three constants live on the frame rather than on the grid, because the
+ * ── Why the start padding had to go ──
+ *
+ * The rail is `sticky start-0`, which pins it to the scrollport's start edge —
+ * so with 0.5rem of grid padding in front of it, its resting position and its
+ * stuck position were 8px apart and it slid sideways on the first pixel of
+ * scroll. Sticking it at the padding instead fixed the slide and opened
+ * something worse: an 8px window at the very edge of the frame that the rail no
+ * longer covered, with the week sliding past behind it. Slivers of dish names
+ * and calories, in a strip too narrow to read and too visible to ignore.
+ *
+ * Neither position is wrong; having a gutter in front of a frozen column is.
+ * The grid keeps its padding on the block axis and at the inline end, and the
+ * rail starts where the board starts.
+ *
+ * The constants live on the frame rather than on the grid, because the
  * scrollport needs two of them as well — its `scroll-padding` is the rail plus
  * the gap — and a custom property set on the grid is a property the scrollport,
  * its parent, cannot see. `--planner-day-w` has to stay on the grid: container
@@ -4981,7 +4995,6 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
   --planner-rail-w: 6rem;
   --planner-col-gap: 0.75rem;
   --planner-row-gap: 1rem;
-  --planner-grid-pad: 0.5rem;
 }
 
 /*
@@ -5013,10 +5026,8 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
 .planner-week-grid {
   --planner-days: 7;
   --planner-day-w: calc(
-    (
-        100cqi - var(--planner-grid-pad) - var(--planner-rail-w) - var(--planner-col-gap) *
-          var(--planner-days)
-      ) / var(--planner-days)
+    (100cqi - var(--planner-rail-w) - var(--planner-col-gap) * var(--planner-days)) /
+      var(--planner-days)
   );
 
   column-gap: var(--planner-col-gap);
@@ -5053,9 +5064,7 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
    */
   .planner-week-scroll {
     scroll-snap-type: inline proximity;
-    scroll-padding-inline-start: calc(
-      var(--planner-grid-pad) + var(--planner-rail-w) + var(--planner-col-gap)
-    );
+    scroll-padding-inline-start: calc(var(--planner-rail-w) + var(--planner-col-gap));
   }
 
   .planner-day-column {
@@ -5063,21 +5072,15 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
   }
 
   /*
-   * The rail sticks where it already rests.
-   *
-   * `sticky start-0` pins it to the scrollport's start edge, but its resting
-   * place is the grid's start padding — so the first sideways pixel of scroll
-   * slid the whole rail 8px under the day it was labelling, and it never slid
-   * back. Sticking it at `P` means it does not move at all, and it is the same
-   * `P` the day-width sum above is counting on.
+   * No gutter in front of the frozen column — see the block comment above for
+   * the sliver of scrolling week that one leaves behind. The rail's resting
+   * place and its stuck place are both the frame's start edge now, so it does
+   * not move and nothing passes beside it.
    */
-  .planner-week-grid > .planner-slot-rail {
-    inset-inline-start: var(--planner-grid-pad);
-  }
-
   .planner-week-grid {
     grid-template-columns: var(--planner-rail-w) repeat(7, var(--planner-day-w));
     inline-size: max-content;
+    padding-inline-start: 0;
   }
 
   /*
@@ -5115,10 +5118,11 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
      and up.
 
      `1fr` and an `auto` width here rather than the measured track, because this
-     is the one band with nothing left to swipe to: the sum above reserves the
-     frame's start padding and not its end, which is right while the grid runs
-     off the edge and leaves an 8px scroll behind once it stops. A board that
-     fits is an ordinary grid again, and `1fr` divides what is actually there. */
+     is the one band with nothing left to swipe to. The sum above distributes
+     the whole frame and takes no account of the grid's end padding, which is
+     right while the grid runs off the edge and leaves an 8px scroll behind once
+     it stops. A board that fits is an ordinary grid again, and `1fr` divides
+     what is actually there. */
   @container planner-board (width >= 106rem) {
     .planner-week-grid {
       grid-template-columns: var(--planner-rail-w) repeat(7, minmax(0, 1fr));

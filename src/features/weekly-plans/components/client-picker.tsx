@@ -112,7 +112,14 @@ export function ClientPicker({
           // The header's copy is the client's name — the subject of the screen,
           // in the display face. `font-medium`, not semibold: it needs no help
           // being read, and at semibold it competed with the figures beside it.
-          bar && '[&_input]:text-center [&_input]:font-heading [&_input]:text-heading-sm [&_input]:font-medium',
+          //
+          // Start-aligned, where this used to centre. The control is a wide box
+          // beside a 44px avatar disc, and a centred name sat in the middle of
+          // that box rather than next to the face it belongs to — with the
+          // chevron stranded at the far end and a hand's width of nothing
+          // between them. A name reads as the disc's caption when it starts
+          // where the disc ends.
+          bar && '[&_input]:text-start [&_input]:font-heading [&_input]:text-heading-sm [&_input]:font-medium',
           pending && 'pointer-events-none opacity-60',
         )}
         /*
@@ -132,23 +139,14 @@ export function ClientPicker({
           where the mirror had it. Typing then filtered the list from a caret
           that was nowhere near the letters.
 
-          `[&>span]` for the alignment because the inner span sets `text-start`
-          itself, and a `text-center` on the wrapper loses to it.
-
-          `pe-5` because centred text is centred *in its box*, and the two boxes
-          did not match: `InputGroupInput` gives the text layer `pe-1.5` to
-          clear the chevron, and `InputGroup` gives the real input the same
-          through `[&>input]` — which never reaches it here, because the Arabic
-          text layer wraps the input in a span and it is no longer a direct
-          child. So the input kept its symmetric 20px and the mirror did not,
-          and the two centres sat 7px apart. Symmetric on both, and the 6px the
-          chevron wanted is not worth a name that misses its own caret.
-          (`pe-5`, not `px-5`: `tailwind-merge` here does not read `px` as
-          conflicting with the logical `pe`, so the earlier class would win.)
+          Only the face and the size now that both halves are start-aligned. The
+          alignment override and the padding that went with it are gone with the
+          centring: centred text is centred *in its box*, so the two layers'
+          unequal end padding put the two names 7px apart and both had to be
+          forced symmetric. Text that starts at the start edge starts in the
+          same place whatever the padding after it is.
         */
-        unclippedTextClassName={
-          bar ? 'pe-5 font-heading text-heading-sm font-medium [&>span]:text-center' : undefined
-        }
+        unclippedTextClassName={bar ? 'font-heading text-heading-sm font-medium' : undefined}
       />
 
       <ComboboxContent className={cn(PLANNER_THEME, 'min-w-72')}>

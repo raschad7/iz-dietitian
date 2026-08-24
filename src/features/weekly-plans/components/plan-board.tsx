@@ -257,21 +257,41 @@ function BoardBody({
           the workspace, not a card floating on it, and a shadow under something
           that spans the frame reads as a seam rather than as depth. The border
           is what separates it from the board. */}
-      {/* `md`, for the moment the bar moves up beside the client — and it is
-          the tablet that this is for. The four controls need about 18rem once
-          they are down to one label and three glyphs (below), and the client
-          row needs about 14rem, so from 768px they share a line. Every stop
-          short of that spent a whole 52px band of a 768px-tall landscape iPad
-          on a toolbar that had the room to sit in the row above it. */}
-      <header className="grid overflow-hidden rounded-lg border border-border bg-card md:grid-cols-[minmax(0,1fr)_auto]">
+      {/*
+        ── The header is the grid, and the panel inside it is not ──
+
+        `ContextPanel` hands back two siblings — the client row and the line of
+        figures — and they are placed here rather than inside a box of their
+        own. That is the whole point: a box would have given the figures the
+        card's width less the action bar's, which at 768px is not enough for
+        five of them, and the allergy fact spent a line on its own.
+
+        Three shapes. One column on a phone: client, figures, actions, stacked.
+        Two from `md`, where the four controls need about 18rem once they are
+        down to one label and three glyphs and the client row needs about 14rem
+        — so they share the first line and the figures run the full width of the
+        second. Three at `2xl`, where there is finally room for the figures to
+        move up beside the client and the header is one 48px line again; see
+        `context-panel.tsx` for why that stop and not `xl`.
+
+        `minmax(21rem, 1fr)` on the client column, because it holds a 44px disc,
+        an 11rem name and a 94px pill and a `1fr` will happily hand it less than
+        that — which it did at exactly 1280px, and the pill spilled over the
+        figures beside it.
+
+        The padding is on this element now rather than on the panel, so the two
+        rows and the action bar are spaced by one `gap` instead of by a margin,
+        a padding and a self-alignment that all had to be kept in step.
+      */}
+      <header className="grid gap-2 overflow-hidden rounded-lg border border-border bg-card p-2 md:grid-cols-[minmax(0,1fr)_auto] 2xl:grid-cols-[minmax(21rem,1fr)_minmax(0,2fr)_auto]">
         <h2 className="sr-only">{board.clientName}</h2>
-        <div className="min-w-0">{children}</div>
+        {children}
 
         {/* `flex-wrap` only below `md`, where this is still a row of its own and
             a narrow phone may genuinely need two lines. From `md` up it is
             beside the client and must never wrap: a second line here would take
             the header's height back from the board. */}
-        <div className="planner-action-bar mx-2 mb-2 flex max-w-full flex-wrap items-center justify-end gap-1.5 rounded-lg bg-muted/70 p-1.5 md:my-2 md:me-2 md:ms-0 md:w-auto md:flex-nowrap md:justify-center md:self-center">
+        <div className="planner-action-bar flex max-w-full flex-wrap items-center justify-end gap-1.5 rounded-lg bg-muted/70 p-1 md:col-start-2 md:row-start-1 md:w-auto md:flex-nowrap md:justify-center md:self-center 2xl:col-start-3">
           {/* Publish leads the bar. It is the only thing here that changes what
               the client sees, and it was sitting second behind a catalog opener —
               a shortcut to a drawer, which is a smaller promise than the one

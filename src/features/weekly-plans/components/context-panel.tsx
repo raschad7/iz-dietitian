@@ -18,10 +18,34 @@ import { ALLERGENS } from '../schema';
 import { ClientPicker } from './client-picker';
 
 /**
- * The client facts needed while planning, now part of the board header instead
- * of a permanent side tab. The short strip answers the common questions; the
- * popover keeps the longer clinical notes one action away without narrowing the
- * seven-day workspace.
+ * The client facts needed while planning, as the board header's first row and
+ * the line under it.
+ *
+ * ── Two siblings, not one box ──
+ *
+ * `embedded` — which is how both boards use this — returns the client row and
+ * the line of figures as a fragment, for the header's own grid to place.
+ *
+ * They used to be one `section` sitting in the *first column* of that grid,
+ * which is the card's width less whatever the action bar was taking: about
+ * 26rem at 768px, for five label-and-value pairs that need thirty-eight. So
+ * they wrapped, and the allergy fact — the one that matters most and reads last
+ * — spent a line of the header on its own. As siblings the figures get a row of
+ * their own that runs the full width of the card, and they fit on it at every
+ * width the board is used at.
+ *
+ * The placement lives in `plan-board.tsx` and `empty-plan-board.tsx`, which are
+ * grids of the same shape. Nothing here says which column anything is in beyond
+ * the one thing that is this component's own business: that from `2xl` the
+ * figures have room to move up beside the client instead of under them.
+ *
+ * `2xl` and not `xl` for that, because the five of them need about 41rem in
+ * Arabic and the client column and the action bar need 40rem between them. A
+ * 1280px laptop with the staff rail beside it has about 74rem of card, which is
+ * four short — and being four short does not look like a layout that does not
+ * quite fit, it looks like five values that have all been cut off. The row of
+ * its own is the readable answer at that width; the third column is for the
+ * screens that really have room for it.
  */
 export function ContextPanel({
   context,
@@ -63,128 +87,54 @@ export function ContextPanel({
   ].filter((entry): entry is string => entry !== null);
   const selectedClient = clients.find((client) => client.id === context.clientId);
 
-  return (
-    <section
-      aria-label={t('planningSnapshot')}
-      className={cn(
-        'bg-card px-3 py-2',
-        !embedded && 'rounded-lg border border-border shadow-card',
-      )}
-    >
+  const identity = (
+    <div className="flex min-w-0 items-center gap-2">
       {/*
-        Two rows at every width, and three columns where the numbers have room
-        to sit beside the client rather than under them.
-
-        This used to stack three separate blocks — the picker, then a grid of
-        facts, then the two profile buttons — until `lg`, which is 230px of
-        header before the first meal card on a screen 768px tall in landscape.
-        There is no width where a 44px avatar and two 40px buttons cannot share
-        a line, so they always do, and the facts take the row under them.
+        The client's calendar colour — the disc heading the week being planned is
+        the one their appointments are drawn in. See `patient-color.ts`;
+        `contents` keeps this scope out of the row's own layout.
       */}
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 xl:grid-cols-[minmax(15rem,1fr)_minmax(30rem,2fr)_auto]">
-        {/* `gap-2`, not `gap-3`. The disc and the name are one thing — a person
-            — and the same gutter that separates them from the profile button
-            made them read as two items in a toolbar. */}
-        {/* Two things, always: the disc and the name. Nothing else joins this
-            row — the profile control lives in the action column with the other
-            profile control, so the header keeps one layout whatever state the
-            client is in. */}
-        <div className="flex min-w-0 flex-wrap items-center gap-2 xl:flex-nowrap">
-          {/*
-            The client's calendar colour — the disc heading the week being
-            planned is the one their appointments are drawn in. See
-            `patient-color.ts`; `contents` keeps this scope out of the row's
-            own layout.
-          */}
-          {selectedClient ? (
-            <span className="patient-tone contents" style={patientToneStyle(selectedClient.seq)}>
-              {/* `lg` (44px), not `planner` (56px). That size exists to match
-                  the fact tiles beside it, and those tiles are 44px now — a
-                  56px disc would be the one thing in the row still setting the
-                  old height, which is the height this pass is removing. */}
-              <Avatar name={selectedClient.fullName} color="var(--tone-mark)" size="lg" />
-            </span>
-          ) : null}
+      {selectedClient ? (
+        <span className="patient-tone contents" style={patientToneStyle(selectedClient.seq)}>
+          {/* `lg` (44px), not `planner` (56px). That size exists to match a row
+              of fact tiles, and the facts are a line of text now — a 56px disc
+              would be the one thing left setting the old height. */}
+          <Avatar name={selectedClient.fullName} color="var(--tone-mark)" size="lg" />
+        </span>
+      ) : null}
 
-          <div className="min-w-44 flex-1">
-            <ClientPicker
-              clients={clients}
-              selectedClientId={context.clientId}
-              appearance="bar"
-            />
-          </div>
+      {/*
+        `max-w-72`, where this was `flex-1` with no ceiling.
 
-        </div>
+        The picker is a borderless control whose copy is the client's name, and
+        given the whole column it took it — a 550px box with the name adrift in
+        the middle of it and the chevron a hand's width away at the far end. It
+        is a name, not a field: it needs the width a name needs. Capped here and
+        start-aligned in `client-picker.tsx`, it reads as the caption to the disc
+        it sits against.
+      */}
+      <div className="min-w-44 max-w-72 flex-1">
+        <ClientPicker clients={clients} selectedClientId={context.clientId} appearance="bar" />
+      </div>
 
-        {/*
-          ── A strip, and only a grid of tiles where there is width to spend ──
+      {/*
+        The two client controls, pushed to the end of their column — which puts
+        them against the plan's action bar, so the header carries one strip of
+        controls rather than two clusters with a gap of nothing between them.
+        Same pill, same gutter and the same 40px squares as that bar; they were
+        a shorter pill of round discs, which is the sort of difference that reads
+        as an accident.
 
-          What these five hold is five short answers: a target, a target, a
-          ratio, a word, and a word. As 44px tiles they were a second band
-          across the top of the board — three rows of them on a phone, two on a
-          tablet — and the board pays for every one of those in meal cards.
-
-          So the default is a line of label-and-value pairs inside one muted
-          bar, wrapping as many times as it must: 24px a line instead of 44 a
-          row, with nothing dropped and nothing hidden behind a control. The
-          tiles come back at `xl`, where they sit in their own column beside the
-          client rather than under them and cost the board nothing.
-
-          Wrapping rather than scrolling is deliberate. The width where five
-          pairs do not fit on one line is 768px in English, and a second 24px
-          line is the graceful answer to it — graceful in the right direction,
-          too, since that width is portrait, where the height exists, and
-          landscape fits on one. A scroll would have put the allergy fact behind
-          a gesture with nothing on screen to suggest it.
-        */}
-        <div className="col-span-2 flex min-w-0 flex-wrap items-center gap-x-4 rounded-md bg-muted/70 px-2.5 py-1 xl:col-span-1 xl:col-start-2 xl:row-start-1 xl:grid xl:grid-cols-5 xl:gap-1.5 xl:rounded-none xl:bg-transparent xl:p-0">
-          <SummaryFact label={t('dailyTarget')} numeric>
-            {context.effectiveKcal === null ? t('unset') : t('kcalValue', { value: context.effectiveKcal })}
-          </SummaryFact>
-          <SummaryFact label={t('fields.proteinTargetGrams')} numeric>
-            {context.effectiveProteinGrams === null
-              ? t('unset')
-              : t('grams', { value: context.effectiveProteinGrams })}
-          </SummaryFact>
-          <SummaryFact label={t('bmi')} numeric>
-            {targets.bmi === null ? t('unset') : targets.bmi.toFixed(1)}
-          </SummaryFact>
-          <SummaryFact label={t('goal')}>
-            {isMember(CLIENT_GOALS, context.goal) ? tGoals(context.goal) : t('unset')}
-          </SummaryFact>
-          {/*
-            **The short form in the tile, the sentence in the tip.**
-
-            This one carried the full warning — "لم تُسجّل معلومات الحساسية. تأكد
-            منها قبل نشر الخطة." — as its value, which is a sentence in a box
-            sized for a number. It wrapped to four lines, and because these five
-            are grid siblings that made *all five* 81px, so a client with no
-            allergies recorded got a header half again as tall as one who had.
-            Two words go in the tile; the sentence is one hover away and is also
-            in the notes popover, where the rest of the profile lives.
-          */}
-          <SummaryFact
-            label={t('allergies')}
-            hint={allergyText || t('allergiesMissing')}
-            className={allergyText ? 'text-status-medical-fg' : 'text-status-attention-fg'}
-          >
-            {allergyText || t('allergiesMissingShort')}
-          </SummaryFact>
-        </div>
-
-        {/* Side by side at every width. This pair used to stack into a column
-            at `xl`, which made the header as tall as two icon buttons plus
-            their gap — taller than the row of facts it sits beside, so it, not
-            the content, was setting the panel's height. */}
-        <div className="col-start-2 row-start-1 flex items-center gap-1 rounded-lg bg-muted/70 p-1 xl:col-start-3">
-          <Popover>
+        Still a pill of their own rather than four more buttons in the action
+        bar, because the seam is real: these two open the person, the four beside
+        them act on the week.
+      */}
+      <div className="ms-auto flex shrink-0 items-center gap-1.5 rounded-lg bg-muted/70 p-1">
+        <Popover>
           <TooltipHint label={t('planningNotes')}>
             <PopoverTrigger
               aria-label={t('planningNotes')}
-              className={buttonVariants({
-                variant: 'neutral',
-                size: 'icon-sm',
-              })}
+              className={cn(buttonVariants({ variant: 'neutral', size: 'sm' }), 'size-10 px-0')}
             >
               <Icon name="info" />
               <span className="sr-only">{t('planningNotes')}</span>
@@ -234,9 +184,9 @@ export function ContextPanel({
                 </p>
               )}
 
-              {/* The sunken fill the header's fact tiles use, so the popover
-                  reads as the same object opened up rather than as a second
-                  design of the same information. */}
+              {/* The sunken fill the header's own line of figures uses, so the
+                  popover reads as the same object opened up rather than as a
+                  second design of the same information. */}
               <dl className="divide-y divide-border rounded-lg bg-muted/70 px-3">
                 <SpecRow label={t('activityLevel')}>
                   {isMember(CLIENT_ACTIVITY_LEVELS, context.activityLevel)
@@ -266,35 +216,115 @@ export function ContextPanel({
               </div>
             </div>
           </PopoverContent>
-          </Popover>
+        </Popover>
 
-          {/*
-            One control in two states, in one place — the same rule the publish
-            button follows.
+        {/*
+          One control in two states, in one place — the same rule the publish
+          button follows.
 
-            Creating the first profile and editing an existing one open the same
-            form and mean the same thing to the layout, so they are the same
-            button: a plus until there is a profile, a pencil after. It used to
-            be two different controls in two different places — a labelled
-            "create profile" button wedged in beside the client's name, and a
-            pencil down here — so filling in a profile moved a control across
-            the header and changed its shape on the way. The header now has one
-            layout, whatever state the client is in.
-          */}
-          <TooltipHint label={profile ? t('editProfile') : t('createProfile')}>
-            <IntakeFormTrigger
-              locale={locale}
-              clientId={context.clientId}
-              aria-label={profile ? t('editProfile') : t('createProfile')}
-              className={buttonVariants({ variant: 'neutral', size: 'icon-sm' })}
-            >
-              <Icon name={profile ? 'edit' : 'add'} />
-              <span className="sr-only">{profile ? t('editProfile') : t('createProfile')}</span>
-            </IntakeFormTrigger>
-          </TooltipHint>
-        </div>
+          Creating the first profile and editing an existing one open the same
+          form and mean the same thing to the layout, so they are the same
+          button: a plus until there is a profile, a pencil after. It used to be
+          two different controls in two different places — a labelled "create
+          profile" button wedged in beside the client's name, and a pencil down
+          here — so filling in a profile moved a control across the header and
+          changed its shape on the way. The header now has one layout, whatever
+          state the client is in.
+        */}
+        <TooltipHint label={profile ? t('editProfile') : t('createProfile')}>
+          <IntakeFormTrigger
+            locale={locale}
+            clientId={context.clientId}
+            aria-label={profile ? t('editProfile') : t('createProfile')}
+            className={cn(buttonVariants({ variant: 'neutral', size: 'sm' }), 'size-10 px-0')}
+          >
+            <Icon name={profile ? 'edit' : 'add'} />
+            <span className="sr-only">{profile ? t('editProfile') : t('createProfile')}</span>
+          </IntakeFormTrigger>
+        </TooltipHint>
       </div>
+    </div>
+  );
+
+  /*
+    ── The week's numbers, on one line, edge to edge ──
+
+    Five short answers — a target, a target, a ratio, a word, and a word — read
+    once when the screen opens and glanced at while planning. They were 44px
+    tiles stacked two and three deep, which is a second band across the top of
+    the board, and every pixel of that band comes out of the meal cards under it.
+
+    One muted bar, one line, `justify-between` so the five spread across the
+    whole card instead of crowding one end of it and leaving the other empty.
+    The label carries the hierarchy at 12px muted and the value answers at 14px,
+    which is the same pairing the tiles used, laid along the line instead of
+    down it.
+
+    One line from `md`, and every value truncates rather than growing: a client
+    with a long allergy list shortens their own fact instead of pushing the
+    other four onto a row of their own. The full text is in the tip and in the
+    notes panel.
+
+    A phone wraps instead. 375px less its gutters is 357, and five pairs need
+    a good deal more than that — held to one line they would all five be cut
+    off, and half of "2178 kcal" is not a number. The page scrolls there, so the
+    two extra lines cost nothing anyone can see, which is exactly the trade that
+    does not hold on the board's own screen.
+  */
+  const summary = (
+    <section
+      aria-label={t('planningSnapshot')}
+      className="col-span-full flex min-w-0 flex-wrap items-center gap-x-4 overflow-hidden rounded-md bg-muted/70 px-3 py-1 md:flex-nowrap md:justify-between 2xl:col-span-1 2xl:col-start-2 2xl:row-start-1"
+    >
+      <SummaryFact label={t('dailyTarget')} numeric>
+        {context.effectiveKcal === null
+          ? t('unset')
+          : t('kcalValue', { value: context.effectiveKcal })}
+      </SummaryFact>
+      <SummaryFact label={t('fields.proteinTargetGrams')} numeric>
+        {context.effectiveProteinGrams === null
+          ? t('unset')
+          : t('grams', { value: context.effectiveProteinGrams })}
+      </SummaryFact>
+      <SummaryFact label={t('bmi')} numeric>
+        {targets.bmi === null ? t('unset') : targets.bmi.toFixed(1)}
+      </SummaryFact>
+      <SummaryFact label={t('goal')}>
+        {isMember(CLIENT_GOALS, context.goal) ? tGoals(context.goal) : t('unset')}
+      </SummaryFact>
+      {/*
+        **The short form on the line, the sentence in the tip.**
+
+        This one carried the full warning — "لم تُسجّل معلومات الحساسية. تأكد
+        منها قبل نشر الخطة." — as its value, which is a sentence where a number
+        goes. Two words go on the line; the sentence is one hover away and is
+        also in the notes popover, where the rest of the profile lives.
+      */}
+      <SummaryFact
+        label={t('allergies')}
+        hint={allergyText || t('allergiesMissing')}
+        className={allergyText ? 'text-status-medical-fg' : 'text-status-attention-fg'}
+      >
+        {allergyText || t('allergiesMissingShort')}
+      </SummaryFact>
     </section>
+  );
+
+  if (embedded) {
+    return (
+      <>
+        {identity}
+        {summary}
+      </>
+    );
+  }
+
+  /* Standing on its own — no board header around it — it needs the card back. */
+  return (
+    <div className="grid gap-2 rounded-lg border border-border bg-card px-3 py-2 shadow-card">
+      {identity}
+      {summary}
+    </div>
   );
 }
 
@@ -308,11 +338,11 @@ function SummaryFact({
   label: string;
   numeric?: boolean;
   /**
-   * The long version, for a tile whose value is a shortened stand-in.
+   * The long version, for a fact whose value is a shortened stand-in.
    *
-   * Only the fact that actually has more to say gets one. A tip on "27.7"
-   * would repeat what is already fully readable an inch below the pointer, and
-   * five tiles that each raise a panel turn reading the header into a game of
+   * Only the one that actually has more to say gets one. A tip on "27.7" would
+   * repeat what is already fully readable an inch below the pointer, and five
+   * facts that each raise a panel turn reading the header into a game of
    * avoiding them.
    */
   hint?: string;
@@ -324,22 +354,17 @@ function SummaryFact({
       className={cn(
         // 14px at 500, where this was 16px at 600.
         //
-        // A fact tile is a caption with a number under it, and at semibold-16
-        // five of them across the top of the board were the loudest thing on
-        // the screen — heavier than the client's own name beside them and
-        // heavier than any dish on the board below. The label carries the
-        // hierarchy instead, at 12px and muted; the value only has to be the
-        // darker, larger of the two, which 14px at 500 already is. The 12px
-        // this gives back per tile is 12px of meal card.
+        // A fact is a caption with a number beside it, and at semibold-16 five
+        // of them across the top of the board were the loudest thing on the
+        // screen — heavier than the client's own name and heavier than any dish
+        // below. The label carries the hierarchy instead, at 12px and muted; the
+        // value only has to be the darker, larger of the two, which 14px at 500
+        // already is.
         //
-        // `truncate` on every one of them, without exception: these five are
-        // grid siblings, so one value allowed to wrap sets the height of the
-        // other four.
-        // `max-w-40` in the strip: these are flex items there rather than grid
-        // siblings, so a long value cannot set anyone else's height — but it
-        // can still push the other four onto a line of their own. The cap is
-        // the same answer the tile shape reaches by truncating.
-        'max-w-40 truncate text-body-sm font-medium xl:w-full xl:max-w-none',
+        // `truncate` on every one of them, without exception: five facts share
+        // one line, and one value allowed to grow is four values pushed off the
+        // end of it.
+        'truncate text-body-sm font-medium',
         numeric && 'tabular-nums',
       )}
       dir={numeric ? 'ltr' : 'auto'}
@@ -349,19 +374,14 @@ function SummaryFact({
   );
 
   return (
-    <div
-      className={cn(
-        // The strip: label and value on one baseline, the muted fill handed up
-        // to the bar that holds all five. The tile — a stacked box with its own
-        // fill and a 44px floor — is the `xl` shape. See the container above.
-        'flex min-w-0 shrink-0 items-baseline gap-1.5 text-start',
-        'xl:min-h-11 xl:shrink xl:flex-col xl:items-center xl:justify-center xl:gap-0 xl:rounded-md xl:bg-muted/70 xl:px-2 xl:py-1 xl:text-center',
-        className,
-      )}
-    >
-      <p className="text-caption leading-tight text-muted-foreground">{label}</p>
+    <div className={cn('flex min-w-0 items-baseline gap-1.5 text-start', className)}>
+      {/* The label never truncates. It is two or three words naming what the
+          number is, and half of "مؤشر كتلة الج…" names nothing — if something
+          has to give up width here it is the value, which has a tip and a panel
+          behind it. */}
+      <p className="shrink-0 text-caption leading-tight text-muted-foreground">{label}</p>
       {hint ? (
-        <TooltipHint label={hint} className="w-full min-w-0 justify-center">
+        <TooltipHint label={hint} className="min-w-0">
           {value}
         </TooltipHint>
       ) : (
