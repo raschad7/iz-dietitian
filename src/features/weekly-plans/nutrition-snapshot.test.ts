@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
+import { scaleRecipe } from './meal-ingredients';
 import { dishGrams, dishTotals, type DishIngredientDetail } from './nutrition';
 import {
   SNAPSHOT_VERSION,
@@ -32,6 +33,8 @@ import {
 function ingredient(quantityGrams: number): DishIngredientDetail {
   return {
     quantityGrams,
+    isPrimary: false,
+    sortOrder: 0,
     food: {
       id: 'food-1',
       nameAr: 'مادة أساسية',
@@ -54,21 +57,30 @@ function ingredient(quantityGrams: number): DishIngredientDetail {
 
 const recipe = [ingredient(200)];
 
+/**
+ * The recipe at a multiplier, as `mealIngredientLines` would hand it over.
+ *
+ * `buildMealSnapshot` and `resolveMealNutrition` take resolved lines now, not a
+ * recipe and a number — scaling happens once, upstream, so a meal whose amounts
+ * were set by hand and one still following its dish reach them identically.
+ */
+const at = (servings: number) => scaleRecipe(recipe, servings);
+
 describe('buildMealSnapshot', () => {
   test('freezes exactly what dishTotals and dishGrams produce', () => {
-    const snapshot = buildMealSnapshot(recipe, 1.5);
+    const snapshot = buildMealSnapshot(at(1.5));
 
     expect(snapshot.totals).toEqual(dishTotals(recipe, 1.5));
     expect(snapshot.grams).toBe(dishGrams(recipe, 1.5));
   });
 
   test('carries its version, so a later reader knows what it is holding', () => {
-    expect(buildMealSnapshot(recipe, 1).version).toBe(SNAPSHOT_VERSION);
+    expect(buildMealSnapshot(at(1)).version).toBe(SNAPSHOT_VERSION);
   });
 
-  test('scales with servings rather than storing a base serving', () => {
-    const single = buildMealSnapshot(recipe, 1);
-    const double = buildMealSnapshot(recipe, 2);
+  test('freezes the amounts it was given, not a base serving', () => {
+    const single = buildMealSnapshot(at(1));
+    const double = buildMealSnapshot(at(2));
 
     expect(double.totals.kcal.value).toBeCloseTo(single.totals.kcal.value * 2, 6);
     expect(double.grams).toBeCloseTo(single.grams * 2, 6);
@@ -77,7 +89,7 @@ describe('buildMealSnapshot', () => {
 
 describe('serialization preserves the unmeasured/zero distinction', () => {
   test('an unmeasured nutrient survives a JSON round trip as unmeasured, not zero', () => {
-    const snapshot = buildMealSnapshot(recipe, 1);
+    const snapshot = buildMealSnapshot(at(1));
 
     // Exactly what postgres does to a jsonb column and back.
     const roundTripped = parseMealSnapshot(JSON.parse(JSON.stringify(snapshot)));
@@ -89,7 +101,7 @@ describe('serialization preserves the unmeasured/zero distinction', () => {
   });
 
   test('a measured zero stays measured', () => {
-    const snapshot = buildMealSnapshot(recipe, 1);
+    const snapshot = buildMealSnapshot(at(1));
     const roundTripped = parseMealSnapshot(JSON.parse(JSON.stringify(snapshot)))!;
 
     // Cholesterol is a real measured 0 on this food, unlike fibre.
@@ -98,7 +110,7 @@ describe('serialization preserves the unmeasured/zero distinction', () => {
   });
 
   test('every nutrient the app tracks is present after the round trip', () => {
-    const snapshot = buildMealSnapshot(recipe, 1);
+    const snapshot = buildMealSnapshot(at(1));
     const roundTripped = parseMealSnapshot(JSON.parse(JSON.stringify(snapshot)))!;
 
     expect(roundTripped.totals).toEqual(snapshot.totals);
@@ -107,7 +119,7 @@ describe('serialization preserves the unmeasured/zero distinction', () => {
 
 describe('parseMealSnapshot', () => {
   test('accepts what buildMealSnapshot produced', () => {
-    expect(parseMealSnapshot(buildMealSnapshot(recipe, 1))).not.toBeNull();
+    expect(parseMealSnapshot(buildMealSnapshot(at(1)))).not.toBeNull();
   });
 
   test('treats null and undefined as "never frozen"', () => {
@@ -128,7 +140,7 @@ describe('parseMealSnapshot', () => {
   });
 
   test('rejects a total that lost its unmeasured count', () => {
-    const snapshot = buildMealSnapshot(recipe, 1) as unknown as {
+    const snapshot = buildMealSnapshot(at(1)) as unknown as {
       totals: Record<string, unknown>;
     };
     const damaged = { ...snapshot, totals: { ...snapshot.totals, kcal: 400 } };
@@ -137,7 +149,7 @@ describe('parseMealSnapshot', () => {
   });
 
   test('rejects an unknown version rather than guessing at its shape', () => {
-    expect(parseMealSnapshot({ ...buildMealSnapshot(recipe, 1), version: 99 })).toBeNull();
+    expect(parseMealSnapshot({ ...buildMealSnapshot(at(1)), version: 99 })).toBeNull();
   });
 });
 
@@ -148,7 +160,7 @@ describe('readMealSnapshot', () => {
   });
 
   test('a snapshot this build wrote reads back as valid', () => {
-    const read = readMealSnapshot(buildMealSnapshot(recipe, 1));
+    const read = readMealSnapshot(buildMealSnapshot(at(1)));
 
     expect(read.status).toBe('valid');
   });
@@ -156,7 +168,7 @@ describe('readMealSnapshot', () => {
   test('a future version is unsupported, which is not the same as malformed', () => {
     // Worth telling apart: an unsupported blob may be perfectly good data a later
     // build can read, and a malformed one never will be.
-    const read = readMealSnapshot({ ...buildMealSnapshot(recipe, 1), version: 2 });
+    const read = readMealSnapshot({ ...buildMealSnapshot(at(1)), version: 2 });
 
     expect(read).toEqual({ status: 'unsupported', version: 2 });
   });
@@ -173,14 +185,13 @@ describe('resolveMealNutrition', () => {
   const published = { requiresSnapshot: true };
 
   test('uses the snapshot when there is one, ignoring the current recipe', () => {
-    const snapshot = buildMealSnapshot(recipe, 1);
+    const snapshot = buildMealSnapshot(at(1));
 
     // A recipe that is now four times the size. The snapshot must win.
     const resolved = resolveMealNutrition({
       ...published,
       snapshot: readMealSnapshot(snapshot),
-      ingredients: [ingredient(800)],
-      servings: 1,
+      lines: [ingredient(800)],
     });
 
     expect(resolved.frozen).toBe(true);
@@ -192,8 +203,7 @@ describe('resolveMealNutrition', () => {
     const resolved = resolveMealNutrition({
       ...draft,
       snapshot: readMealSnapshot(null),
-      ingredients: recipe,
-      servings: 2,
+      lines: at(2),
     });
 
     expect(resolved.frozen).toBe(false);
@@ -205,8 +215,7 @@ describe('resolveMealNutrition', () => {
     const resolved = resolveMealNutrition({
       ...draft,
       snapshot: readMealSnapshot(null),
-      ingredients: null,
-      servings: 1,
+      lines: null,
     });
 
     expect(resolved.frozen).toBe(false);
@@ -219,20 +228,18 @@ describe('resolveMealNutrition', () => {
     const resolved = resolveMealNutrition({
       ...published,
       snapshot: readMealSnapshot(null),
-      ingredients: null,
-      servings: 1,
+      lines: null,
     });
 
     expect(resolved.grams).toBe(0);
   });
 
   test('a snapshot on a dish that no longer loads still resolves', () => {
-    const snapshot = buildMealSnapshot(recipe, 1);
+    const snapshot = buildMealSnapshot(at(1));
     const resolved = resolveMealNutrition({
       ...published,
       snapshot: readMealSnapshot(snapshot),
-      ingredients: null,
-      servings: 1,
+      lines: null,
     });
 
     expect(resolved.frozen).toBe(true);
@@ -251,8 +258,7 @@ describe('resolveMealNutrition', () => {
       resolveMealNutrition({
         ...published,
         snapshot: readMealSnapshot(null),
-        ingredients: recipe,
-        servings: 1,
+        lines: at(1),
       }),
     ).toThrow(MealSnapshotError);
   });
@@ -262,8 +268,7 @@ describe('resolveMealNutrition', () => {
       resolveMealNutrition({
         ...published,
         snapshot: readMealSnapshot({ version: 1, totals: {}, grams: 0 }),
-        ingredients: recipe,
-        servings: 1,
+        lines: at(1),
       }),
     ).toThrow(MealSnapshotError);
   });
@@ -272,9 +277,8 @@ describe('resolveMealNutrition', () => {
     expect(() =>
       resolveMealNutrition({
         ...published,
-        snapshot: readMealSnapshot({ ...buildMealSnapshot(recipe, 1), version: 7 }),
-        ingredients: recipe,
-        servings: 1,
+        snapshot: readMealSnapshot({ ...buildMealSnapshot(at(1)), version: 7 }),
+        lines: at(1),
       }),
     ).toThrow(/version 7/);
   });
@@ -283,8 +287,7 @@ describe('resolveMealNutrition', () => {
     const resolved = resolveMealNutrition({
       ...draft,
       snapshot: readMealSnapshot({ nonsense: true }),
-      ingredients: recipe,
-      servings: 1,
+      lines: at(1),
     });
 
     expect(resolved.frozen).toBe(false);

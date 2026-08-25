@@ -54,7 +54,13 @@ type CuratedPortion = {
   grams: number;
   isDefault: boolean;
   sortOrder: number;
-  sourceRef?: string | null;
+  /**
+   * Where this weight came from, when it is not the food's own USDA measure.
+   *
+   * Only a curated portion carries one — a unit a dietitian uses that USDA does
+   * not publish. Matches `PortionSeed` so the build and the seed hold one shape.
+   */
+  sourceRef?: string;
 };
 
 export type CuratedFood = {
@@ -67,7 +73,16 @@ export type CuratedFood = {
   sourceRef: string;
   note: string;
   nutrition: Record<string, number | null>;
+  /**
+   * Every portion this food offers, derived and curated alike. **This is what the
+   * seed writes** — `db:build-catalog` has already folded `extraPortions` in.
+   */
   portions: CuratedPortion[];
+  /**
+   * The hand-written portions, kept so the build can re-fold them and so a reader
+   * can tell a clinic's unit from a USDA measure. Never read by the seed.
+   */
+  extraPortions?: CuratedPortion[];
   aliasesAr: string[];
   aliasesEn: string[];
 };

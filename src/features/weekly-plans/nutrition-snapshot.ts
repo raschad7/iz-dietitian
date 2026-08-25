@@ -28,7 +28,7 @@ import {
   NUTRIENT_KEYS,
   dishGrams,
   dishTotals,
-  type DishIngredientDetail,
+  type NutrientSource,
   type NutrientTotals,
 } from './nutrition';
 
@@ -87,20 +87,21 @@ export const mealNutritionSnapshotSchema = z.object({
 export type MealNutritionSnapshot = z.infer<typeof mealNutritionSnapshotSchema>;
 
 /**
- * Freezes one meal from the recipe it was prescribed at.
+ * Freezes one meal from the lines it was prescribed at.
  *
- * Reuses `dishTotals` and `dishGrams` exactly as `assembleBoard` does, so a
- * snapshot can never disagree with what the draft showed a moment before it was
- * published.
+ * Takes the meal's **resolved** lines — `mealIngredientLines` has already decided
+ * between the meal's own amounts and the scaled recipe, and has already scaled.
+ * Reusing that one resolution, rather than re-deriving from a dish and a
+ * multiplier, is what stops a snapshot disagreeing with the draft the dietitian
+ * was looking at a moment before they published.
  */
 export function buildMealSnapshot(
-  ingredients: readonly DishIngredientDetail[],
-  servings: number,
+  lines: readonly NutrientSource[],
 ): MealNutritionSnapshot {
   return {
     version: SNAPSHOT_VERSION,
-    totals: dishTotals(ingredients, servings),
-    grams: dishGrams(ingredients, servings),
+    totals: dishTotals(lines, 1),
+    grams: dishGrams(lines, 1),
   };
 }
 
@@ -234,24 +235,31 @@ export function resolveMealNutrition(input: {
   snapshot: SnapshotRead;
   /** True for a published or archived plan — see {@link requiresFrozenNutrition}. */
   requiresSnapshot: boolean;
-  /** The dish as it stands today, or null for an empty slot. */
-  ingredients: readonly DishIngredientDetail[] | null;
-  servings: number;
+  /**
+   * The meal's resolved lines at the amounts prescribed, or null for an empty slot.
+   *
+   * Absolute, not per-serving: `mealIngredientLines` has already chosen between the
+   * meal's own stored amounts and the scaled recipe. There is no multiplier here
+   * because by this point there is nothing left to multiply — which is what keeps
+   * a meal the dietitian adjusted by hand and one still following its dish on the
+   * same single path.
+   */
+  lines: readonly NutrientSource[] | null;
 }): ResolvedMealNutrition {
   if (input.snapshot.status === 'valid') {
     return { totals: input.snapshot.snapshot.totals, grams: input.snapshot.snapshot.grams, frozen: true };
   }
 
   // An empty slot has nothing to freeze and nothing to calculate, on any status.
-  if (!input.ingredients) {
-    return { totals: dishTotals([], input.servings), grams: 0, frozen: false };
+  if (!input.lines) {
+    return { totals: dishTotals([], 1), grams: 0, frozen: false };
   }
 
   if (input.requiresSnapshot) throw new MealSnapshotError(input.snapshot);
 
   return {
-    totals: dishTotals(input.ingredients, input.servings),
-    grams: dishGrams(input.ingredients, input.servings),
+    totals: dishTotals(input.lines, 1),
+    grams: dishGrams(input.lines, 1),
     frozen: false,
   };
 }

@@ -1,16 +1,25 @@
 'use client';
 
 import * as React from 'react';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
 
 import { Button, buttonVariants } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Icon } from '@/components/ui/icon';
-import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Popover,
+  PopoverClose,
+  PopoverContent,
+  PopoverTitle,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { TooltipHint } from '@/components/ui/tooltip-hint';
 
 import type { Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 
+import { deletePlanAction } from '../actions';
 import type {
   Board,
   BoardDay,
@@ -32,6 +41,7 @@ import type { GhostMeal } from './meal-card';
 import { MealInspector } from './meal-inspector';
 import { NewWeekDialog, type NewWeekProps } from './new-week-dialog';
 import { PublishButton } from './publish-button';
+import { WeekPager } from './week-pager';
 import { TagColorKey } from './tag-color-key';
 
 type BoardProps = {
@@ -81,6 +91,21 @@ export function PlanBoard(props: BoardProps) {
   );
 }
 
+/**
+ * A standing note above the board — the plan is published and read-only, or a
+ * meal is still empty and publishing is blocked on it.
+ *
+ * Two sizes, because this is a band across the whole board and it is paid for
+ * in meal cards. On a phone it is a 14px sentence with room around it, which is
+ * how a warning should read on a page that scrolls and where a band costs
+ * nothing anyone can see. From `md` up the board is pinned to the frame and
+ * every pixel above it is taken off the week, so it becomes a 12px line with
+ * the glyph carrying the alarm the fill used to carry alone: 24px instead of
+ * 40, saying exactly the same thing.
+ *
+ * The glyph takes no `label`, which is what makes `Icon` mark it `aria-hidden`.
+ * The sentence beside it already names the condition.
+ */
 function BoardBody({
   candidates,
   catalog,
@@ -97,6 +122,7 @@ function BoardBody({
   onCatalogOpenChange: (value: boolean) => void;
 }) {
   const t = useTranslations('weeklyPlans');
+  const tCommon = useTranslations('common');
   // The optimistic board, not the server one: everything below renders the edit
   // just made, before it has finished being written.
   const { board, editable, error } = useEditor();
@@ -105,6 +131,12 @@ function BoardBody({
   const [selectedMealAnchor, setSelectedMealAnchor] = useState<HTMLButtonElement | null>(null);
   const [catalogContextMealId, setCatalogContextMealId] = useState<string | null>(null);
   const [comparing, setComparing] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, startDeleting] = useTransition();
+  // The two boxes `WeekPager` drives: the frame carries the scroll state the
+  // fade and the chevrons both read, the scrollport is what actually moves.
+  const weekFrameRef = useRef<HTMLDivElement>(null);
+  const weekScrollRef = useRef<HTMLDivElement>(null);
   const firstDay = dayOfWeekForDate(board.weekStartDate) ?? 0;
   const [selectedDay, setSelectedDay] = useState(firstDay);
 
@@ -151,15 +183,38 @@ function BoardBody({
   const slotRows = Math.max(rows.length, 1);
 
   /*
-   * One row template for the week: a header row, a row per meal slot, and — only
-   * as a stable footer track for the add control. That footer remains reserved
-   * after publishing so hiding the control cannot resize every meal row.
+   * One row template for the week: a header row and a row per meal slot.
    *
-   * The real remaining canvas, not the viewport, distributes the flexible rows.
-   * The 4.5rem floor protects the dish name and nutrition shelf when an unusually
-   * long schedule still needs to scroll.
+   * There used to be a third kind — a 2.75rem footer track holding the
+   * "add a meal" control, reserved across all eight columns and kept reserved
+   * after publishing so that hiding the control could not resize every meal
+   * row. That is 56px of board, gutter included, spent on one button and seven
+   * empty cells beside it. The control is in the rail's corner now, which is a
+   * cell the header row was drawing blank anyway. See `SlotRail`.
+   *
+   * ── `auto`, not `1fr`, for the meal rows ──
+   *
+   * `1fr` makes every row the same height, which is tidy and is also why a
+   * landscape iPad could not show a whole day. `1fr` tracks are all sized to
+   * the largest one's content, so a single dish name long enough to wrap —
+   * "Hummus with tahini and bread", one card of thirty-five — added 22px to
+   * *all five* rows. On a 768px-tall screen that is 110px, which is the last
+   * meal of the day pushed under the fold, on the one screen where the point is
+   * seeing the day at once.
+   *
+   * An `auto` maximum sizes each row to what that row actually holds, and grid's
+   * own `align-content: normal` still stretches auto tracks to fill the frame
+   * when there is room to spare — so a tall window fills exactly as before, and
+   * a short one shows five rows instead of four and a bit. Rows can now differ
+   * from one another by a line of dish name, which is what a table does.
+   *
+   * `min-content` on the header row so the stretch passes it by: it holds the
+   * day name and the day's total, and space added there would open a gap
+   * between the name and the first card rather than going to the meals.
+   *
+   * The 4.5rem floor still protects the dish name and the figure under it.
    */
-  const rowTemplate = `auto repeat(${slotRows}, minmax(4.5rem, 1fr)) 2.75rem`;
+  const rowTemplate = `min-content repeat(${slotRows}, minmax(4.5rem, auto))`;
 
   /**
    * The previous plan's dish for each slot, marked where it repeats.
@@ -194,16 +249,43 @@ function BoardBody({
   }, [comparing, previous, board.days]);
 
   return (
-    <div className="relative flex min-h-0 min-w-0 flex-1 flex-col gap-3">
+    /* `md:gap-2`: from the tablet up, every gutter above the board is board
+       that is not being drawn. 12px is right on a phone, where this column
+       scrolls and the rhythm is what separates one block from the next; on a
+       768px-tall landscape screen the same gutters come off the week. */
+    <div className="relative flex min-h-0 min-w-0 flex-1 flex-col gap-3 md:gap-2">
       {/* No `shadow-card`. The header is a full-width band pinned to the top of
           the workspace, not a card floating on it, and a shadow under something
           that spans the frame reads as a seam rather than as depth. The border
           is what separates it from the board. */}
-      <header className="grid overflow-hidden rounded-lg border border-border bg-card 2xl:grid-cols-[minmax(0,1fr)_auto]">
-        <h2 className="sr-only">{board.clientName}</h2>
-        <div className="min-w-0">{children}</div>
+      {/*
+        ── The header is the grid, and the panel inside it is not ──
 
-        <div className="planner-action-bar mx-2 mb-2 flex max-w-full flex-wrap items-center justify-end gap-1.5 rounded-lg bg-muted/70 p-1.5 2xl:my-2 2xl:me-2 2xl:ms-0 2xl:w-auto 2xl:self-center 2xl:flex-nowrap 2xl:justify-center">
+        `ContextPanel` hands back two siblings — the client row and the line of
+        figures — and they are placed here rather than inside a box of their
+        own. That is the whole point: a box would have given the figures the
+        card's width less the action bar's, which at 768px is not enough for
+        five of them, and the allergy fact spent a line on its own.
+
+        Its three shapes are in `globals.css` under `.planner-board-header`,
+        with the reasoning: one column on a phone, two from `md` where the
+        client and the four controls share a line and the figures are not drawn
+        at all (see `context-panel.tsx`), three from `xl` where the figures come
+        back in a column of their own.
+
+        The padding is on this element now rather than on the panel, so the two
+        rows and the action bar are spaced by one `gap` instead of by a margin,
+        a padding and a self-alignment that all had to be kept in step.
+      */}
+      <header className="planner-board-header overflow-hidden rounded-lg border border-border bg-card p-2">
+        <h2 className="sr-only">{board.clientName}</h2>
+        {children}
+
+        {/* `flex-wrap` only below `md`, where this is still a row of its own and
+            a narrow phone may genuinely need two lines. From `md` up it is
+            beside the client and must never wrap: a second line here would take
+            the header's height back from the board. */}
+        <div className="planner-action-bar flex max-w-full flex-wrap items-center justify-end gap-1.5 rounded-lg bg-muted/70 p-1 md:col-start-2 md:row-start-1 md:w-auto md:flex-nowrap md:justify-center md:self-center xl:col-start-3">
           {/* Publish leads the bar. It is the only thing here that changes what
               the client sees, and it was sitting second behind a catalog opener —
               a shortcut to a drawer, which is a smaller promise than the one
@@ -220,18 +302,30 @@ function BoardBody({
             locale={locale}
           />
 
-          <Button
-            type="button"
-            size="sm"
-            variant="neutral"
-            className="px-3 2xl:size-10 2xl:px-0"
-            aria-label={t('tabs.dishes')}
-            title={t('tabs.dishes')}
-            onClick={() => onCatalogOpenChange(true)}
-          >
-            <Icon name="dishes" />
-            <span className="2xl:sr-only">{t('tabs.dishes')}</span>
-          </Button>
+          {/* This app's tooltip, not the browser's `title` — the same swap the
+              whole board makes in this pass. A native tip is drawn by the OS in
+              its own font and colour, after its own delay, and cannot be
+              reached from a keyboard; on a toolbar where every other transient
+              surface is a themed popover it reads as a seam. */}
+          <TooltipHint label={t('tabs.dishes')}>
+            <Button
+              type="button"
+              size="sm"
+              variant="neutral"
+              /* Glyph only from `md`, where the label was the difference
+                 between this bar fitting beside the client and costing a row.
+                 Publish keeps its words — it is the one control here that
+                 changes what someone else sees, and a green disc is not a
+                 promise anyone should have to guess at. The other three are
+                 openers, and the tooltip and the `aria-label` both survive. */
+              className="px-3 md:size-10 md:px-0"
+              aria-label={t('tabs.dishes')}
+              onClick={() => onCatalogOpenChange(true)}
+            >
+              <Icon name="dishes" />
+              <span className="md:sr-only">{t('tabs.dishes')}</span>
+            </Button>
+          </TooltipHint>
 
           <NewWeekDialog
             clientId={board.clientId}
@@ -243,17 +337,18 @@ function BoardBody({
           />
 
           <Popover>
-            <PopoverTrigger
-              aria-label={t('moreActions')}
-              title={t('moreActions')}
-              // `size-10` and the base radius rather than `icon-sm`, which is a
-              // disc: the four controls in this bar are one set and share a
-              // shape.
-              className={cn(buttonVariants({ variant: 'neutral', size: 'sm' }), 'size-10 px-0')}
-            >
-              <Icon name="moreActions" />
-              <span className="sr-only">{t('moreActions')}</span>
-            </PopoverTrigger>
+            <TooltipHint label={t('moreActions')}>
+              <PopoverTrigger
+                aria-label={t('moreActions')}
+                // `size-10` and the base radius rather than `icon-sm`, which is a
+                // disc: the four controls in this bar are one set and share a
+                // shape.
+                className={cn(buttonVariants({ variant: 'neutral', size: 'sm' }), 'size-10 px-0')}
+              >
+                <Icon name="moreActions" />
+                <span className="sr-only">{t('moreActions')}</span>
+              </PopoverTrigger>
+            </TooltipHint>
             <PopoverContent
               align="end"
               side="bottom"
@@ -271,14 +366,56 @@ function BoardBody({
                     variant="ghost"
                     aria-pressed={comparing}
                     className="w-full max-w-none justify-start"
-                    title={t('compareWith', { date: previous.weekStartDate })}
                     onClick={() => setComparing((value) => !value)}
                   >
                     <Icon name="history" />
-                    {t('compareShort')}
+                    {/* Which week it compares against, said in the row rather
+                        than hidden in a `title` nobody hovers a menu item long
+                        enough to see. */}
+                    <span className="min-w-0 flex-1 truncate text-start">
+                      {t('compareWith', { date: previous.weekStartDate })}
+                    </span>
                   </Button>
                 )}
 
+                {/*
+                  Deleting the week, at the bottom of the menu and coloured for
+                  what it is.
+
+                  Last in the list and under a rule, because it is the one entry
+                  here that destroys something: the other rows change what is on
+                  screen, and a mis-click on this one takes the plan, its meals
+                  and the client's copy of it. `ConfirmDialog` with the
+                  destructive tone is the same guard the dish catalog puts on the
+                  same kind of act.
+
+                  The rule sits on this wrapper rather than on the button,
+                  because `size="sm"` is a fixed 40px box — a border and its
+                  padding drawn on the button itself would come out of the
+                  label's own height rather than out of the space above it.
+                */}
+                <div className="mt-1 border-t border-border pt-1">
+                  {/* `PopoverClose`, not a `setOpen(false)` of our own: the menu
+                      has done its job once this is pressed, and leaving it open
+                      behind the modal means cancelling drops you back into a
+                      popover you had already finished with. See `PopoverClose`
+                      for why the state route does not work here. */}
+                  <PopoverClose
+                    render={
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        disabled={deleting}
+                        className="w-full max-w-none justify-start text-destructive hover:bg-destructive-subtle hover:text-destructive"
+                        onClick={() => setConfirmingDelete(true)}
+                      />
+                    }
+                  >
+                    <Icon name="trash" />
+                    {t('deletePlan')}
+                  </PopoverClose>
+                </div>
               </div>
 
               {/* The key to the cards' coloured rules. Reference rather than an
@@ -323,29 +460,49 @@ function BoardBody({
         </div>
       </header>
 
-      {/* A published plan is a record, not a working copy: its nutrition is frozen
-          and its composition is locked. Said here rather than left to a control
-          that would only fail — the route back to editing is Unpublish, which the
-          header already offers. */}
-      {board.status === 'published' && (
-        <p className="rounded-md bg-status-attention-bg px-3 py-2 text-body-sm text-status-attention-fg">
-          {t('publishedReadOnly')}
-        </p>
-      )}
+      {/*
+        ── Two banners used to live here, and neither said anything new ──
 
-      {board.unfilled > 0 && (
-        <p className="rounded-md bg-status-attention-bg px-3 py-2 text-body-sm text-status-attention-fg">
-          {t('unfilledWarning', { count: board.unfilled })}
-        </p>
-      )}
+        One announced that a published plan is read-only; the other counted the
+        empty slots left before it could be published. Both were full-width
+        amber bars between the header and the board, which is the worst place in
+        this layout for anything conditional: the board is pinned to the frame
+        and cannot grow, so each bar took ~34px off the week *and* shoved the
+        whole grid down the moment it appeared. Filling the last empty slot —
+        the one action that ought to feel like finishing — made the board jump.
 
+        Both facts already had a home, and it is the same control:
+
+        - Read-only. The publish button is an eye that fills green to publish
+          and a struck-through outlined eye to take it back. A published plan is
+          therefore already announced by the only control in the header that
+          changed, and the sentence explaining what to do about it now hangs off
+          that button as its tip. The place a reader actually meets the wall is
+          the meal panel, and that is where the sentence is repeated — see
+          `meal-detail-panel.tsx`.
+
+        - Unfilled slots. Publishing is *disabled* while any slot is empty, and
+          a disabled control has always carried the reason in its tip. The tip
+          now carries the count as well, which is everything the banner said.
+
+        Nothing conditional is rendered between the header and the board any
+        more, and the grid's block start never moves.
+      */}
       <BoardDayStrip days={orderedDays} selectedDay={selectedDay} onSelect={setSelectedDay} />
 
-      <div className="flex min-h-0 flex-1">
-        {/* Phones render one selected day. Tablets make the week itself a
-            three-column-wide swipe surface, so the day picker no longer spends
-            two rows above the work. The seven-column desktop uses the available
-            width; only unusually long schedules need exceptional overflow. */}
+      {/* `planner-week-frame` is the board's size container. Every question
+          about how wide a day is and how many of them fit is asked of this
+          box rather than of the window — see the rules it names in
+          `globals.css`. It is on the wrapper and not on the scrollport
+          itself, because `container-type` brings `contain: layout` with it
+          and the scrollport is the one box on this screen that a
+          `position: fixed` drag preview must be free of. */}
+      <div ref={weekFrameRef} className="planner-week-frame flex min-h-0 flex-1">
+        {/* Phones render one selected day. Every width above that makes the week
+            itself the swipe surface — as many whole days as the frame can hold
+            at a readable column width, the rest one gesture away — so the day
+            picker no longer spends two rows above the work. How many that is
+            per width is decided in `globals.css`, against this frame. */}
         {/* The canvas under the cards is `canvas` — n-25, one stop off white —
             so a white card reads as a surface sitting on the board rather than
             as a bordered box on the page. Not `muted` (n-50): that is the
@@ -361,6 +518,7 @@ function BoardBody({
             move from. Naming the axis keeps the gesture guard and gives the
             wheel back. */}
         <div
+          ref={weekScrollRef}
           className="planner-week-scroll no-scrollbar min-w-0 flex-1 overflow-auto rounded-lg bg-background overscroll-x-contain"
           tabIndex={0}
           aria-label={t('title')}
@@ -375,20 +533,31 @@ function BoardBody({
               which puts it at the inline-start, on the right in Arabic and the
               left in English, with no override either way.
 
-              The row gap is declared here and only here: a subgrid inherits its
-              parent's gutters, and repeating them on the day column would let the
-              two drift out of step.
+              Both gutters are declared in `globals.css` and nowhere else. A
+              subgrid inherits its parent's, so restating them on the day column
+              would let the two drift out of step — and two other rules read
+              them as well: the day-width sum needs the column gap to make the
+              week land flush, and `.planner-row-cell::before` reaches exactly
+              half of each to draw its rule. A gutter this file could change on
+              its own is a gutter three other things would be wrong about.
+
+              The seven-track template arrives at `md`, which is where seven
+              days start being rendered at all. It is a fallback: from `md` up
+              the container rules in `globals.css` replace both tracks with
+              measured widths. What it guarantees is that a browser that cannot
+              read a `@container` query still gets seven columns sharing the
+              frame rather than seven days stacking into one.
 
               **`min-h-full`, not `h-full`, and the clip is on one axis.** The
-              `1fr` rows do need a definite height to share out, which is what
+              rows need a definite height to stretch into, which is what
               `h-full` was for — but it also pinned the grid to the frame, and
               `overflow-clip` then cut off whatever would not fit. On a 720px
               window that was a whole row of seven meals: drawn nowhere,
               reachable by nothing, with no scrollbar to suggest they existed.
-              `min-h-full` keeps the fr distribution when the week fits and lets
-              the grid grow past the frame when the readability floor says it
-              must — which is the case the frame's own
-              `overflow-auto` was always there to handle.
+              `min-h-full` keeps the stretch when the week fits and lets the
+              grid grow past the frame when the readability floor says it
+              must — which is the case the frame's own `overflow-auto` was
+              always there to handle.
 
               The clip stays on the inline axis, because that is the one it was
               for: `.planner-row-cell::before` reaches half into the column
@@ -398,7 +567,7 @@ function BoardBody({
               does not force the other axis to become a scroll container — so
               the block overflow travels up to the frame the way it should. */}
           <div
-            className="planner-week-grid grid min-h-full grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-4 overflow-x-clip p-2 xl:grid-cols-[auto_repeat(7,minmax(0,1fr))] xl:gap-x-4 2xl:gap-x-6"
+            className="planner-week-grid grid min-h-full grid-cols-[auto_minmax(0,1fr)] overflow-x-clip p-2 md:grid-cols-[auto_repeat(7,minmax(0,1fr))]"
             style={{ gridTemplateRows: rowTemplate }}
           >
             <SlotRail rows={rows} editable={editable} />
@@ -427,6 +596,22 @@ function BoardBody({
           </div>
         </div>
 
+        {/* What says the week continues past the edge, and what takes you there.
+
+            An exact fit is what the geometry above is for — four whole days,
+            the last of them flush with the frame — and the cost of getting it
+            right is that the board looks finished. Nothing is half-drawn at the
+            edge, the scrollbar is hidden, and a dietitian who has never swiped
+            this surface has no reason to think there is anything to swipe to.
+            The fade is the ordinary signal that a surface runs on; the chevrons
+            beside it are the way to act on that without a touchscreen.
+
+            Both are children of the frame rather than pseudo-elements on it,
+            because the frame is the size container and a container query can
+            only reach things *inside* it — which is how they know to switch
+            themselves off at the width where all seven days fit. */}
+        <span aria-hidden className="planner-week-fade" />
+        <WeekPager frameRef={weekFrameRef} scrollRef={weekScrollRef} />
       </div>
 
       <MealInspector
@@ -465,6 +650,36 @@ function BoardBody({
         locale={locale}
       />
 
+      {confirmingDelete && (
+        <ConfirmDialog
+          locale={locale}
+          title={t('deletePlanConfirmTitle')}
+          description={t('deletePlanConfirmMessage', { date: board.weekStartDate })}
+          /* The consequence the title does not carry: a published week is one
+             the client is reading right now, and deleting it takes their copy
+             with it. Only said when there is one to lose. */
+          note={board.status === 'published' ? t('deletePlanPublishedNote') : undefined}
+          confirmLabel={tCommon('delete')}
+          cancelLabel={tCommon('cancel')}
+          tone="destructive"
+          onConfirm={() => {
+            setConfirmingDelete(false);
+
+            /* The action ends in a `redirect`, so there is no result to read
+               and nothing to reset afterwards — the transition exists to keep
+               the board interactive while the delete lands, and to hold the
+               menu entry disabled so it cannot be fired twice. */
+            startDeleting(async () => {
+              const formData = new FormData();
+              formData.set('locale', locale);
+              formData.set('planId', board.id);
+              formData.set('clientId', board.clientId);
+              await deletePlanAction(formData);
+            });
+          }}
+          onCancel={() => setConfirmingDelete(false)}
+        />
+      )}
     </div>
   );
 }

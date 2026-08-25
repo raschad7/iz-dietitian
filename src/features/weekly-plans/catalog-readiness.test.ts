@@ -237,7 +237,7 @@ describe('published plans must carry a readable snapshot', () => {
   }
 
   test('a valid snapshot passes', async () => {
-    await publishedMealWith(buildMealSnapshot(RECIPE, 1));
+    await publishedMealWith(buildMealSnapshot(RECIPE));
 
     expect(named(await checkCatalogReadiness(), 'frozen nutrition').problem).toBeNull();
   });
@@ -262,7 +262,7 @@ describe('published plans must carry a readable snapshot', () => {
   });
 
   test('a snapshot from an unsupported version fails and is counted apart', async () => {
-    await publishedMealWith({ ...buildMealSnapshot(RECIPE, 1), version: 2 });
+    await publishedMealWith({ ...buildMealSnapshot(RECIPE), version: 2 });
 
     expect(named(await checkCatalogReadiness(), 'frozen nutrition').problem).toContain(
       '1 of an unsupported version',

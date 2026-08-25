@@ -148,6 +148,25 @@ export const dishIngredients = pgTable(
     /** How many of `portion_id` were entered. Null exactly when `portion_id` is. */
     portionQuantity: real('portion_quantity'),
 
+    /**
+     * Whether a dietitian adjusts this line by hand when planning a meal.
+     *
+     * The chicken and the rice in a maqluba are primary; the eggplant, the oil and
+     * the pine nuts are not. Only primary lines get a `−/+` control on the board —
+     * everything else is listed and left alone, because a control for every
+     * ingredient is a control nobody uses on a line nobody adjusts.
+     *
+     * Stored rather than computed. Ranking by energy picks the rice in a maqluba
+     * (right) and the olive oil in a salad (wrong), and no rule over the numbers
+     * can tell "carries the meal" from "contributes calories". Two or three lines
+     * per dish, decided by a person, is the only version of this that is correct.
+     *
+     * Not an input to any calculation: grams remain the only thing nutrition is
+     * built from, and a dish with nothing marked simply falls back to scaling the
+     * whole recipe the way every plan did before this column existed.
+     */
+    isPrimary: boolean('is_primary').notNull().default(false),
+
     sortOrder: integer('sort_order').notNull().default(0),
 
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

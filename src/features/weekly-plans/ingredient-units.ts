@@ -112,6 +112,78 @@ export function rowGrams(options: readonly UnitOption[], quantity: number, value
 }
 
 /**
+ * What one press of `−` or `+` changes an ingredient by, in its own unit.
+ *
+ * Keyed on the English label because that is a closed vocabulary — `FAMILY_ROWS`
+ * in `portion-derivation.ts` and `CUSTOM_UNIT_LABELS` are the only things that
+ * write these strings, and the Arabic label is a translation of them rather than a
+ * second source.
+ *
+ * The steps are the increments a dietitian actually writes. Bread moves by half a
+ * loaf because half a loaf is a real instruction; an egg does not, because half an
+ * egg is not. A unit whose own label already names a fraction (`نصف كوب`) steps by
+ * whole ones — quarter of a half cup is arithmetic nobody serves.
+ */
+const UNIT_STEPS: Record<string, number> = {
+  Cup: 0.25,
+  Loaf: 0.5,
+  Container: 0.5,
+};
+
+/**
+ * How many grams one press moves an ungrammed ingredient by.
+ *
+ * Ten, not five or twenty-five: meat and fish are the foods measured this way, a
+ * dietitian moves them in tens, and a finer step turns "add 30 g of chicken" into
+ * six presses.
+ */
+export const GRAMS_STEP = 10;
+
+/**
+ * The step for one unit — its own increment, or {@link GRAMS_STEP} for grams.
+ *
+ * Takes the label alone rather than a whole portion row, so a planned meal's line
+ * (which carries only what it needs to render) can ask without reconstructing a
+ * `FoodPortion` it has no other use for.
+ */
+export function unitStep(portion: { labelEn: string } | null | undefined): number {
+  if (!portion) return GRAMS_STEP;
+  return UNIT_STEPS[portion.labelEn] ?? 1;
+}
+
+/**
+ * The next quantity after a press, snapped to the unit's own grid and never
+ * falling to nothing.
+ *
+ * Clamped at one step rather than at zero: an ingredient at zero is a line that
+ * reads "0 رغيف", which is not a smaller portion but a removed one, and removing
+ * an ingredient is a different action from making it smaller.
+ */
+export function stepQuantity(quantity: number, step: number, direction: -1 | 1): number {
+  // Move to the next point on the step grid **in the direction pressed**, rather
+  // than adding a step and rounding. The two agree on a value already on the grid
+  // and disagree on one that is not: 1.35 loaves + half a loaf rounds to 2, which
+  // is a whole loaf and a bit more than the press asked for. Walking the grid
+  // gives 1.5 — tidied up, and one press away.
+  //
+  // A value off the grid is normal, not exotic: it is what a scaled recipe leaves
+  // behind, and every press afterwards should be bringing it back to something
+  // countable.
+  const grid = quantity / step;
+  // Float representation: 1.5 / 0.5 can be 2.9999999999999996, and flooring that
+  // would step to the value it is already at.
+  const epsilon = 1e-9;
+  const next =
+    direction === 1 ? Math.floor(grid + epsilon) + 1 : Math.ceil(grid - epsilon) - 1;
+
+  // Float noise again on the way back out: 0.1 + 0.2 must not print as
+  // 0.30000000000000004 loaves.
+  const clean = Math.round(next * step * 1000) / 1000;
+
+  return Math.max(step, clean);
+}
+
+/**
  * Reopens a saved ingredient as a `{ unit, quantity }` row **without ever changing
  * the grams it holds**.
  *

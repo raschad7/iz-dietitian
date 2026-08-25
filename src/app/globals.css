@@ -339,6 +339,21 @@
   --duration-travel: 420ms;
 
   /*
+   * How long a finger rests on something before it picks it up.
+   *
+   * Not a reaction like the four durations above — it is a *requirement*, the
+   * length of the press the planner asks for before a meal card or a catalog row
+   * leaves the surface on a touch screen. It is spent on the card's arming
+   * animation, so the charge finishes at the instant the drag begins.
+   *
+   * ⚠ The same number lives in `HOLD_TO_DRAG_MS` in
+   * `src/features/weekly-plans/components/board-dnd.tsx`, which is what actually
+   * arms dnd-kit. Change one and change the other, or the card finishes charging
+   * before or after the thing it is charging towards.
+   */
+  --duration-hold: 320ms;
+
+  /*
    * ── Third-party brand marks ──
    * Fixed by the brand's own guidelines, not the Qiwam palette — same in light
    * and dark, never swapped for a semantic token. Currently only Google's "G".
@@ -1677,7 +1692,14 @@
 }
 
 /* Each row cell paints one segment of a continuous rule, reaching halfway
-   across the responsive column gutter without becoming the card's own edge. */
+   across the gutter without becoming the card's own edge.
+
+   Halfway is read off the gutters themselves rather than restated. It used to
+   be three hard-coded reaches under two breakpoints, kept in step with the
+   column gap by hand, and they drifted the moment the gap moved: a rule reaching
+   0.5rem into a 0.375rem half-gutter crosses the midline and starts drawing
+   inside the next column. Both tokens are declared once, on `.planner-week-frame`
+   with the rest of the board's arithmetic. */
 .planner-row-cell {
   position: relative;
   min-width: 0;
@@ -1686,8 +1708,8 @@
 .planner-row-cell::before {
   position: absolute;
   z-index: 0;
-  inset-block-start: -0.5rem;
-  inset-inline: -0.375rem;
+  inset-block-start: calc(var(--planner-row-gap, 1rem) / -2);
+  inset-inline: calc(var(--planner-col-gap, 0.75rem) / -2);
   border-block-start: 2px solid var(--border);
   content: '';
 }
@@ -1700,18 +1722,6 @@
   position: relative;
   z-index: 1;
   height: 100%;
-}
-
-@media (min-width: 80rem) {
-  .planner-row-cell::before {
-    inset-inline: -0.5rem;
-  }
-}
-
-@media (min-width: 96rem) {
-  .planner-row-cell::before {
-    inset-inline: -0.75rem;
-  }
 }
 
 /*
@@ -4974,22 +4984,326 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
 }
 
 
-/* Tablet is a three-day-wide work surface, not a compressed seven-column
- * desktop. The rest of the week stays one touch swipe away, with the frozen
- * meal rail preserving row context and no scrollbar consuming canvas space. */
-@media (min-width: 48rem) and (max-width: 79.999rem) {
-  .planner-week-scroll {
-    scroll-snap-type: inline proximity;
+/*
+ * ── How many days the board shows, and why it is the frame that decides ──
+ *
+ * The board is a seven-day grid that is usually wider than the space it has, so
+ * the question every width has to answer is "how many whole days fit at a width
+ * a dish name can still be read at". The floor is about 13.5rem a column —
+ * under it a two-word Arabic dish name wraps to a third line and takes all
+ * thirty-five cards' height with it — and the answer is the largest `n` whose
+ * columns clear it.
+ *
+ * **The container, not the viewport.** This was a `@media` query, and it was
+ * asking the wrong box. The board is not the window: it is the window less the
+ * 56px staff rail, less the page's gutters, less whatever the drawer is
+ * holding. On a landscape iPad the window says 1024px and the frame is nearer
+ * 900px — so a viewport rule confident that four days fit was cutting each one
+ * to 196px, under the very floor it had been written to protect. `@container`
+ * asks the frame, which is the only box that knows.
+ *
+ * The `@media` wrapped around them all is a different question and stays a
+ * viewport one: whether the week is on screen at all. Below `md` the board
+ * renders one chosen day and the day strip appears above it — decided in React,
+ * against the viewport — and these rules must not fire underneath that, or six
+ * `display: none` columns would still be reserving tracks.
+ *
+ * ── The arithmetic ──
+ *
+ * `n` days have to add up to *exactly* the frame, so a swipe lands the next day
+ * flush against the rail rather than half under it. Reading across the frame
+ * from its start edge at rest: the sticky rail, then `n` days each preceded by
+ * a column gap. So
+ *
+ *     R + n×G + n×D = W    ⟹    D = (W − R − n×G) / n
+ *
+ * where `W` is `100cqi`. Two things have to agree with that sum or it is
+ * fiction, and both are stated below: the grid has no start padding, and the
+ * scroll snapport starts at `R + G`, which is where a day sits once the rail is
+ * frozen over the start of the frame.
+ *
+ * ── Why the start padding had to go ──
+ *
+ * The rail is `sticky start-0`, which pins it to the scrollport's start edge —
+ * so with 0.5rem of grid padding in front of it, its resting position and its
+ * stuck position were 8px apart and it slid sideways on the first pixel of
+ * scroll. Sticking it at the padding instead fixed the slide and opened
+ * something worse: an 8px window at the very edge of the frame that the rail no
+ * longer covered, with the week sliding past behind it. Slivers of dish names
+ * and calories, in a strip too narrow to read and too visible to ignore.
+ *
+ * Neither position is wrong; having a gutter in front of a frozen column is.
+ * The grid keeps its padding on the block axis and at the inline end, and the
+ * rail starts where the board starts.
+ *
+ * The constants live on the frame rather than on the grid, because the
+ * scrollport needs two of them as well — its `scroll-padding` is the rail plus
+ * the gap — and a custom property set on the grid is a property the scrollport,
+ * its parent, cannot see. `--planner-day-w` has to stay on the grid: container
+ * query units resolve against an element's nearest *ancestor* container, so
+ * `100cqi` written on `.planner-week-frame` would measure the wrong box.
+ */
+/*
+ * ── The board header's three shapes ──
+ *
+ * Stated here rather than as an arbitrary `grid-cols-[…]` utility because it is
+ * arithmetic, and the arithmetic has to hold against the two other things this
+ * file already sizes: the client column's floor is built out of the 44px disc,
+ * the 10rem name and the 94px control pill it holds, and what is left over is
+ * what the five figures beside it have to fit in.
+ *
+ * One column on a phone — client, figures, actions, stacked, on a page that
+ * scrolls. Two from `md`, where the client and the four controls share the
+ * first line and nothing else is drawn. Three from `xl`, where the figures come
+ * back in a column of their own; `ContextPanel` and the action bar name their
+ * own cells with ordinary placement utilities.
+ *
+ * `minmax(20rem, 1fr)` and not `1fr` on the client column, because a plain `1fr`
+ * will hand it less than its contents at exactly 1280px and the control pill
+ * spills over the figures beside it.
+ */
+.planner-board-header {
+  display: grid;
+  gap: 0.5rem;
+}
+
+@media (width >= 48rem) {
+  .planner-board-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+}
+
+@media (width >= 80rem) {
+  .planner-board-header {
+    grid-template-columns: minmax(20rem, 1fr) minmax(0, 2fr) auto;
+  }
+}
+
+.planner-week-frame {
+  container: planner-board / inline-size;
+  position: relative;
+
+  --planner-rail-w: 6rem;
+  --planner-col-gap: 0.75rem;
+  --planner-row-gap: 1rem;
+}
+
+/*
+ * The fade over the trailing edge — see `PlanBoard` for what it is for.
+ *
+ * Off by default and switched on by the bands below, so it exists at exactly
+ * the widths where a day is hidden past the edge and nowhere else. The gradient
+ * needs a physical direction, which is the one thing in this block that cannot
+ * be written logically; both are stated rather than one plus an override, so
+ * neither script is the exception.
+ */
+.planner-week-fade {
+  display: none;
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  inline-size: 2.5rem;
+  pointer-events: none;
+}
+
+[dir='ltr'] .planner-week-fade {
+  background-image: linear-gradient(to right, transparent, var(--background));
+}
+
+[dir='rtl'] .planner-week-fade {
+  background-image: linear-gradient(to left, transparent, var(--background));
+}
+
+/*
+ * The two pagers — a chevron on each edge of the board, each one a day-group
+ * forward or back.
+ *
+ * The fade alone said the week continued and gave nobody a way to go there
+ * except a swipe, which is a gesture a trackpad does badly and a mouse does not
+ * do at all. These are the same affordance a carousel has always had, and they
+ * are the only controls on this screen that a keyboard could not otherwise
+ * reach — the board's own `tabIndex` scrolls it by arrow key, but there is
+ * nothing to tab *to* that says the week is longer than the frame.
+ *
+ * `display: none` by default and switched on by the band above, so they exist
+ * only where the board actually overflows, and only on the side that has
+ * somewhere to go.
+ *
+ * Vertically centred against the *cards* rather than the whole frame: the day
+ * names and the total sit in a sticky 42px header at the top, and a chevron
+ * halfway down the frame reads as belonging to the row it happens to land on.
+ * Off the block-start by that header's height and centred in what is left.
+ */
+.planner-week-pager {
+  display: none;
+  position: absolute;
+  z-index: 1;
+  inset-block-start: calc(50% + 1.25rem);
+  translate: 0 -50%;
+  place-items: center;
+
+  inline-size: 2.25rem;
+  block-size: 2.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full, 9999px);
+  background-color: var(--card);
+  color: var(--muted-foreground);
+  box-shadow: var(--shadow-elevated);
+  transition: color 150ms, background-color 150ms;
+}
+
+.planner-week-pager:hover {
+  background-color: var(--secondary);
+  color: var(--primary);
+}
+
+.planner-week-pager[data-towards='start'] {
+  inset-inline-start: 0.25rem;
+}
+
+.planner-week-pager[data-towards='end'] {
+  inset-inline-end: 0.25rem;
+}
+
+.planner-week-grid {
+  --planner-days: 7;
+  --planner-day-w: calc(
+    (100cqi - var(--planner-rail-w) - var(--planner-col-gap) * var(--planner-days)) /
+      var(--planner-days)
+  );
+
+  column-gap: var(--planner-col-gap);
+  row-gap: var(--planner-row-gap);
+}
+
+@media (width >= 48rem) {
+  /*
+   * A tighter row gutter from the tablet up.
+   *
+   * 1rem between rows is right on a phone, where one day column is the whole
+   * board and the space between meals is what gives it rhythm. On a landscape
+   * tablet the same gutter appears six times down a 768px-tall screen, and 24px
+   * of it is most of a sixth meal row. 0.75rem still reads as a separation —
+   * the rule drawn across the middle of it is doing that work anyway.
+   */
+  .planner-week-frame {
+    --planner-row-gap: 0.75rem;
   }
 
-  .planner-week-grid {
-    inline-size: calc(233.333% - 8rem);
-    grid-template-columns: 6rem repeat(7, minmax(0, 1fr));
+  /*
+   * `scroll-padding-inline-start` is the half of the frozen rail nobody wrote,
+   * and it is the bug in the screenshot this pass started from.
+   * `scroll-snap-align: start` parks a day column at the *scrollport's* start
+   * edge — which is the 6rem the rail is stuck over. So every swipe ended with
+   * the leading day's name, its total and the top of its first card underneath
+   * the slot labels, and the board looked like two things printed on top of
+   * each other. Insetting the snapport past the rail and the gap after it puts
+   * the day where the eye already expects it.
+   *
+   * `proximity` rather than `mandatory`: someone dragging a card towards the
+   * edge is scrolling on purpose, and a mandatory snap fights that. It is
+   * enough that a flick comes to rest on a day boundary.
+   */
+  .planner-week-scroll {
+    scroll-snap-type: inline proximity;
+    scroll-padding-inline-start: calc(var(--planner-rail-w) + var(--planner-col-gap));
   }
 
   .planner-day-column {
     scroll-snap-align: start;
   }
+
+  /*
+   * No gutter in front of the frozen column — see the block comment above for
+   * the sliver of scrolling week that one leaves behind. The rail's resting
+   * place and its stuck place are both the frame's start edge now, so it does
+   * not move and nothing passes beside it.
+   */
+  .planner-week-grid {
+    grid-template-columns: var(--planner-rail-w) repeat(7, var(--planner-day-w));
+    inline-size: max-content;
+    padding-inline-start: 0;
+  }
+
+  /*
+   * ── Two bands, and then the whole week ──
+   *
+   * A desk gets all seven days at once. That is what this screen is for: a
+   * dietitian looks across the week to see where the heavy days are, and the
+   * moment Saturday is behind a swipe they are comparing from memory. So the
+   * swipe surface is the tablet's answer to not having the room, not a
+   * readability floor applied everywhere — at 72rem of frame the seven columns
+   * come to about 8.5rem each, which is tight for a dish name and still the
+   * right trade against losing three days.
+   *
+   * 72rem is where a 1280px window lands once the staff rail and the page's
+   * gutters are taken off it, which is the width this board has always shown
+   * the whole week at.
+   */
+  @container planner-board (width < 64rem) {
+    .planner-week-grid {
+      --planner-days: 3;
+    }
+  }
+
+  @container planner-board (64rem <= width < 72rem) {
+    .planner-week-grid {
+      --planner-days: 4;
+    }
+  }
+
+  /* `1fr` and an `auto` width rather than the measured track, because this is
+     the band with nothing left to swipe to. The sum above distributes the whole
+     frame and takes no account of the grid's end padding, which is right while
+     the grid runs off the edge and leaves an 8px scroll behind once it stops. A
+     board that fits is an ordinary grid again, and `1fr` divides what is
+     actually there. */
+  @container planner-board (width >= 72rem) {
+    .planner-week-grid {
+      grid-template-columns: var(--planner-rail-w) repeat(7, minmax(0, 1fr));
+      inline-size: auto;
+    }
+  }
+
+  /*
+   * The fade and the two pagers, at the widths where a day is hidden past an
+   * edge and no other. Each also answers to `data-at-start` / `data-at-end`,
+   * which `WeekPager` keeps on the frame: there is no reason to offer a way
+   * forward, or to veil the last column, once the week has run out.
+   *
+   * The two read those attributes in opposite directions on purpose. The fade
+   * takes `:not([data-at-end='true'])`, so it is right before the attribute
+   * exists — a board opens at the start of the week, where there is always more
+   * to the end of it. The chevrons take `='false'`, so they wait for the
+   * measurement rather than guessing: `data-at-start` is missing on a server
+   * pass too, and a "back" chevron on a board that has not moved is an offer to
+   * go nowhere.
+   */
+  @container planner-board (width < 72rem) {
+    .planner-week-frame:not([data-at-end='true']) .planner-week-fade,
+    .planner-week-frame[data-at-end='false'] .planner-week-pager[data-towards='end'],
+    .planner-week-frame[data-at-start='false'] .planner-week-pager[data-towards='start'] {
+      display: grid;
+    }
+  }
+}
+
+/*
+ * The card under the pointer, promoted to its own compositor layer.
+ *
+ * dnd-kit writes a `transform` on this element on every pointer move. Without a
+ * promotion hint the browser is free to repaint the card's text, border and
+ * shadow into the page layer each frame — which on a board carrying
+ * thirty-five other cards is exactly where the dragging felt like it was
+ * catching. `will-change` costs one layer for the length of a gesture and
+ * gives the whole drag back to the compositor.
+ *
+ * `backface-visibility` is the other half on WebKit, where a transformed layer
+ * carrying text is otherwise rasterised at the pre-transform size and resampled.
+ */
+.planner-drag-preview {
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 /*
@@ -5044,14 +5358,100 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
   -webkit-touch-callout: none;
 }
 
+/*
+ * ── On glass there is no grip; the card itself is held ──
+ *
+ * A finger cannot hover, so the grip a mouse only sees when it is wanted had to
+ * be permanent here — first a 44px disc dropped on the leading corner of a 78px
+ * card, then a 2rem strip down its leading edge with the card's content padded
+ * clear of it. Both were the same bargain: the touch floor and the card's one
+ * piece of content sharing a box only big enough for one of them, and every
+ * card on a tablet reading "‎⋯‎ـنة مع جوز وعسل".
+ *
+ * The bargain is off, because the gesture changed. A press and hold anywhere on
+ * the card picks it up (`HOLD_TO_DRAG_MS` in `board-dnd.tsx`), so the whole card
+ * is the handle and there is nothing left for a strip to promise. The dish name
+ * gets its full width back on the one screen size where it was short of it.
+ *
+ * The grip stays in the markup and in the tab order: a tablet with a keyboard
+ * attached is a coarse pointer *and* a keyboard, and the keyboard sensor can
+ * only start a drag from the activator node. So it is untouchable rather than
+ * removed — `pointer-events: none` keeps a finger from landing on a thing it
+ * cannot see, and focus hands it back, at which point the base rule has already
+ * made it visible.
+ */
 @media (pointer: coarse) {
   .planner-drag-handle {
-    display: grid;
-    inline-size: 44px;
-    block-size: 44px;
-    place-items: center;
-    padding: 0;
-    opacity: 1;
+    pointer-events: none;
+  }
+
+  .planner-drag-handle:focus-visible {
+    pointer-events: auto;
+  }
+
+  /*
+   * The two opt-outs a hold needs from the platform, on the surfaces that now
+   * answer one.
+   *
+   * A long press is also how a touch OS starts selecting text, and on iOS how
+   * it raises the callout and the magnifier — and the instant either appears
+   * WebKit takes the pointer and fires `pointercancel`, which every drag
+   * implementation here reads as "abandoned". Which is to say the platform's
+   * own long-press would kill ours at roughly the moment it fired. See the
+   * `-webkit-touch-callout` note above the grips; this is the same fact,
+   * arriving now for the card and the catalog row because they are what a
+   * finger holds.
+   *
+   * `touch-action` is deliberately *not* touched. The column under a meal card
+   * scrolls, the week beside it pans, and the catalog is the longest list in
+   * the planner — claiming the gesture here would trade a scroll for a drag.
+   * A hold needs no such trade: a finger that has not moved is not scrolling,
+   * and dnd-kit only starts calling `preventDefault` once the hold has been
+   * met.
+   */
+  .planner-meal-card,
+  .planner-catalog-row {
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+}
+
+/*
+ * ── The press, made visible ──
+ *
+ * A hold that gives nothing back until it fires is a gesture nobody discovers
+ * and nobody trusts: the finger is down, the screen is still, and there is no
+ * way to tell whether something is happening or whether this card simply does
+ * not do that. So the surface under the finger settles — a small, slow press
+ * inwards over exactly the length of the hold, ending at the instant the card
+ * lifts, so the two read as one movement rather than as a pause and a jump.
+ *
+ * Scale and a ring, nothing else. This runs under a fingertip that is covering
+ * most of the card, so the signal has to be carried by the card's outline,
+ * which is the part still visible around the finger.
+ *
+ * The class is applied from React (`holdingId`), not from `:active`. `:active`
+ * has no memory of *how long* — it would fire on every tap, including the taps
+ * that open the meal detail panel, and announce a drag that is not coming.
+ */
+.planner-holding {
+  transform: scale(0.96);
+  transition:
+    transform var(--duration-hold) var(--ease-sweep),
+    box-shadow var(--duration-hold) var(--ease-sweep);
+  box-shadow: 0 0 0 2px var(--primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /*
+    The ring alone. The press is the part that is motion; the outline is the
+    part that is information, and a reader who has asked for less movement has
+    not asked to be told less.
+  */
+  .planner-holding {
+    transform: none;
+    transition: box-shadow var(--duration-hold) var(--ease-sweep);
   }
 }
 

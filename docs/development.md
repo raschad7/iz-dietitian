@@ -143,6 +143,27 @@ regenerate the derived half and the checksum, then `bun run db:seed:catalog
 failure, and `bun run db:check` compares the database against the committed
 files rather than against a hard-coded number.
 
+### Recipes: adjustable lines and household units
+
+Each line of `data/dishes.json` may carry three optional fields:
+
+| Field | Meaning |
+| --- | --- |
+| `primary` | This line gets a `−/+` on the board. At most three per dish. |
+| `unit` | The English portion label the amount is counted in (`Loaf`, `Piece`). |
+| `count` | How many of `unit`. Required with it, meaningless without it. |
+
+`grams` stays required and authoritative. Where `unit` and `count` are given,
+`bun run db:seed:dishes` checks that `count × portion.grams` matches `grams` and
+**aborts the whole seed** if they disagree — a unit and a weight are two
+statements of one amount, and a drift between them would put one number in the
+nutrition and a different one on the card.
+
+A staple is recorded in the state it is eaten in: recipes carry cooked rice, not
+raw, because a dietitian counts spoons of cooked rice and no household unit can
+be attached to a food nobody eats dry. `bun run db:check` verifies that the
+marking and the units survived the seed.
+
 ## Deploying this release: a clean database
 
 **This release intentionally cuts over on a clean, disposable database.** There

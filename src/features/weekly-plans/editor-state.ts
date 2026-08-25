@@ -1,4 +1,10 @@
-import { combineTotals, dishGrams, dishTotals, emptyTotals, type DishDetail } from './nutrition';
+import {
+  mealGrams,
+  mealTotals,
+  scaleRecipe,
+  type MealIngredientLine,
+} from './meal-ingredients';
+import { combineTotals, emptyTotals, type DishDetail } from './nutrition';
 import type { Board, BoardDay, BoardMeal } from './queries';
 import type { MealType } from './schema';
 
@@ -52,11 +58,29 @@ export function nextSlotKey(
 export type BoardEdit =
   | { kind: 'place'; mealId: string; dish: DishDetail; servings: number }
   | { kind: 'servings'; mealId: string; servings: number }
+  /**
+   * One ingredient's amount, set by hand.
+   *
+   * Named by food rather than by row index: the board holds the meal's resolved
+   * lines and the server holds rows keyed on `catalog_food_id`, so a food id is
+   * the one identifier both sides already agree on.
+   */
+  | {
+      kind: 'ingredient';
+      mealId: string;
+      foodId: string;
+      quantityGrams: number;
+      portionQuantity: number | null;
+    }
+  /** Puts a meal back on its dish's recipe, discarding hand-set amounts. */
+  | { kind: 'resetIngredients'; mealId: string }
   | { kind: 'clear'; mealId: string }
   | { kind: 'remove'; mealId: string }
   | { kind: 'add'; dayOfWeek: number; label: string; timeOfDay: string; slotKey: string }
   | { kind: 'addWeek'; label: string; timeOfDay: string; slotKey: string }
   | { kind: 'removeWeek'; slotKey: string }
+  /** The undo of `removeWeek` — the meals it took, back in the days they came from. */
+  | { kind: 'restoreWeek'; meals: readonly { dayOfWeek: number; meal: BoardMeal }[] }
   | { kind: 'move'; fromMealId: string; toMealId: string; mode: 'move' | 'copy' };
 
 /** Finds a meal anywhere on the board. */
@@ -75,16 +99,52 @@ function findMeal(board: Board, mealId: string): BoardMeal | null {
  * a stale total is worse than no total, because it looks authoritative.
  */
 function withDish(meal: BoardMeal, dish: DishDetail | null, servings: number): BoardMeal {
+  // A different dish means the old hand-set amounts described food that is no
+  // longer in this meal, so the recipe takes over again — which is exactly what
+  // `replaceMealIngredients` does on the server when the dish changes.
+  const lines = dish ? scaleRecipe(dish.ingredients, servings) : [];
+
   return {
     ...meal,
     dish: dish ? { ...dish, servings } : null,
     // The rationale explained the dish that was there. Leaving the model's words
     // under a dish the dietitian chose would misattribute both.
     rationaleAr: dish && dish.id === meal.dish?.id ? meal.rationaleAr : null,
-    totals: dish ? dishTotals(dish.ingredients, servings) : emptyTotals(),
-    grams: dish ? dishGrams(dish.ingredients, servings) : 0,
+    lines,
+    hasOwnAmounts: false,
+    totals: dish ? mealTotals(lines) : emptyTotals(),
+    grams: dish ? mealGrams(lines) : 0,
     // Always live. Only a draft is editable (`editablePlan` refuses anything else),
     // so an optimistic edit is by definition happening to unfrozen numbers.
+    nutritionFrozen: false,
+  };
+}
+
+/**
+ * A meal with one ingredient moved.
+ *
+ * Rewrites the whole `lines` array, not only the line that changed, because that
+ * is what the meal now is: the first hand-set amount turns the meal's own lines
+ * into the record, and the dish multiplier stops applying. The server writes the
+ * same whole-meal copy in the same moment, so the optimistic board and the row it
+ * is anticipating are the same shape by construction rather than by agreement.
+ */
+function withIngredient(
+  meal: BoardMeal,
+  foodId: string,
+  quantityGrams: number,
+  portionQuantity: number | null,
+): BoardMeal {
+  const lines: MealIngredientLine[] = meal.lines.map((line) =>
+    line.food.id === foodId ? { ...line, quantityGrams, portionQuantity } : line,
+  );
+
+  return {
+    ...meal,
+    lines,
+    hasOwnAmounts: true,
+    totals: mealTotals(lines),
+    grams: mealGrams(lines),
     nutritionFrozen: false,
   };
 }
@@ -144,6 +204,23 @@ export function applyEdit(board: Board, edit: BoardEdit): Board {
         meal.id === edit.mealId && meal.dish ? withDish(meal, meal.dish, edit.servings) : meal,
       );
 
+    case 'ingredient':
+      return mapMeals(board, (meal) =>
+        meal.id === edit.mealId && meal.dish
+          ? withIngredient(meal, edit.foodId, edit.quantityGrams, edit.portionQuantity)
+          : meal,
+      );
+
+    case 'resetIngredients':
+      // `withDish` rebuilds the lines from the recipe, which is exactly what
+      // dropping the stored rows leaves behind on the server. The multiplier is
+      // already 1 there — materialising spent it — so both sides land together.
+      return mapMeals(board, (meal) =>
+        meal.id === edit.mealId && meal.dish
+          ? withDish(meal, meal.dish, meal.dish.servings)
+          : meal,
+      );
+
     case 'clear':
       return mapMeals(board, (meal) => (meal.id === edit.mealId ? withDish(meal, null, 1) : meal));
 
@@ -159,6 +236,8 @@ export function applyEdit(board: Board, edit: BoardEdit): Board {
         label: edit.label,
         timeOfDay: edit.timeOfDay,
         dish: null,
+        lines: [],
+        hasOwnAmounts: false,
         rationaleAr: null,
         totals: emptyTotals(),
         grams: 0,
@@ -188,6 +267,39 @@ export function applyEdit(board: Board, edit: BoardEdit): Board {
       );
     }
 
+    /*
+     * The undo of `removeWeek`, replaying the exact meals that were taken.
+     *
+     * Not `addWeek` with a slot key: that builds seven empty cells, and what
+     * this puts back is seven cells with a week of dishes in them. The caller
+     * captured the real `BoardMeal` objects before the removal, so the
+     * optimistic board is not a reconstruction — it is the rows themselves,
+     * totals included. The ids will differ once the server's own insert comes
+     * back on revalidation, which is invisible: nothing on the board keys off a
+     * meal id between one render and the next.
+     *
+     * Guarded per day, the same way `addWeek` is: a day that somehow already
+     * carries the slot is left alone rather than given a duplicate row, which
+     * would make the board's slot lookup ambiguous.
+     */
+    case 'restoreWeek': {
+      const byDay = new Map<number, BoardMeal[]>();
+      for (const meal of edit.meals) {
+        byDay.set(meal.dayOfWeek, [...(byDay.get(meal.dayOfWeek) ?? []), meal.meal]);
+      }
+
+      return recountBoard(
+        board,
+        board.days.map((day) => {
+          const restored = (byDay.get(day.dayOfWeek) ?? []).filter(
+            (meal) => !day.meals.some((existing) => existing.slotKey === meal.slotKey),
+          );
+
+          return restored.length ? { ...day, meals: [...day.meals, ...restored] } : day;
+        }),
+      );
+    }
+
     case 'addWeek': {
       return recountBoard(
         board,
@@ -207,6 +319,8 @@ export function applyEdit(board: Board, edit: BoardEdit): Board {
                     label: edit.label,
                     timeOfDay: edit.timeOfDay,
                     dish: null,
+                    lines: [],
+                    hasOwnAmounts: false,
                     rationaleAr: null,
                     totals: emptyTotals(),
                     grams: 0,
