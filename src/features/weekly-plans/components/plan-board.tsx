@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useMemo, useState, useTransition } from 'react';
+import { useMemo, useRef, useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
 
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -41,6 +41,7 @@ import type { GhostMeal } from './meal-card';
 import { MealInspector } from './meal-inspector';
 import { NewWeekDialog, type NewWeekProps } from './new-week-dialog';
 import { PublishButton } from './publish-button';
+import { WeekPager } from './week-pager';
 import { TagColorKey } from './tag-color-key';
 
 type BoardProps = {
@@ -141,6 +142,10 @@ function BoardBody({
   const [comparing, setComparing] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, startDeleting] = useTransition();
+  // The two boxes `WeekPager` drives: the frame carries the scroll state the
+  // fade and the chevrons both read, the scrollport is what actually moves.
+  const weekFrameRef = useRef<HTMLDivElement>(null);
+  const weekScrollRef = useRef<HTMLDivElement>(null);
   const firstDay = dayOfWeekForDate(board.weekStartDate) ?? 0;
   const [selectedDay, setSelectedDay] = useState(firstDay);
 
@@ -187,9 +192,14 @@ function BoardBody({
   const slotRows = Math.max(rows.length, 1);
 
   /*
-   * One row template for the week: a header row, a row per meal slot, and — only
-   * as a stable footer track for the add control. That footer remains reserved
-   * after publishing so hiding the control cannot resize every meal row.
+   * One row template for the week: a header row and a row per meal slot.
+   *
+   * There used to be a third kind — a 2.75rem footer track holding the
+   * "add a meal" control, reserved across all eight columns and kept reserved
+   * after publishing so that hiding the control could not resize every meal
+   * row. That is 56px of board, gutter included, spent on one button and seven
+   * empty cells beside it. The control is in the rail's corner now, which is a
+   * cell the header row was drawing blank anyway. See `SlotRail`.
    *
    * ── `auto`, not `1fr`, for the meal rows ──
    *
@@ -213,7 +223,7 @@ function BoardBody({
    *
    * The 4.5rem floor still protects the dish name and the figure under it.
    */
-  const rowTemplate = `min-content repeat(${slotRows}, minmax(4.5rem, auto)) 2.75rem`;
+  const rowTemplate = `min-content repeat(${slotRows}, minmax(4.5rem, auto))`;
 
   /**
    * The previous plan's dish for each slot, marked where it repeats.
@@ -266,24 +276,17 @@ function BoardBody({
         card's width less the action bar's, which at 768px is not enough for
         five of them, and the allergy fact spent a line on its own.
 
-        Three shapes. One column on a phone: client, figures, actions, stacked.
-        Two from `md`, where the four controls need about 18rem once they are
-        down to one label and three glyphs and the client row needs about 14rem
-        — so they share the first line and the figures run the full width of the
-        second. Three at `2xl`, where there is finally room for the figures to
-        move up beside the client and the header is one 48px line again; see
-        `context-panel.tsx` for why that stop and not `xl`.
-
-        `minmax(21rem, 1fr)` on the client column, because it holds a 44px disc,
-        an 11rem name and a 94px pill and a `1fr` will happily hand it less than
-        that — which it did at exactly 1280px, and the pill spilled over the
-        figures beside it.
+        Its three shapes are in `globals.css` under `.planner-board-header`,
+        with the reasoning: one column on a phone, two from `md` where the
+        client and the four controls share a line and the figures are not drawn
+        at all (see `context-panel.tsx`), three from `xl` where the figures come
+        back in a column of their own.
 
         The padding is on this element now rather than on the panel, so the two
         rows and the action bar are spaced by one `gap` instead of by a margin,
         a padding and a self-alignment that all had to be kept in step.
       */}
-      <header className="grid gap-2 overflow-hidden rounded-lg border border-border bg-card p-2 md:grid-cols-[minmax(0,1fr)_auto] 2xl:grid-cols-[minmax(21rem,1fr)_minmax(0,2fr)_auto]">
+      <header className="planner-board-header overflow-hidden rounded-lg border border-border bg-card p-2">
         <h2 className="sr-only">{board.clientName}</h2>
         {children}
 
@@ -291,7 +294,7 @@ function BoardBody({
             a narrow phone may genuinely need two lines. From `md` up it is
             beside the client and must never wrap: a second line here would take
             the header's height back from the board. */}
-        <div className="planner-action-bar flex max-w-full flex-wrap items-center justify-end gap-1.5 rounded-lg bg-muted/70 p-1 md:col-start-2 md:row-start-1 md:w-auto md:flex-nowrap md:justify-center md:self-center 2xl:col-start-3">
+        <div className="planner-action-bar flex max-w-full flex-wrap items-center justify-end gap-1.5 rounded-lg bg-muted/70 p-1 md:col-start-2 md:row-start-1 md:w-auto md:flex-nowrap md:justify-center md:self-center xl:col-start-3">
           {/* Publish leads the bar. It is the only thing here that changes what
               the client sees, and it was sitting second behind a catalog opener —
               a shortcut to a drawer, which is a smaller promise than the one
@@ -485,7 +488,7 @@ function BoardBody({
           itself, because `container-type` brings `contain: layout` with it
           and the scrollport is the one box on this screen that a
           `position: fixed` drag preview must be free of. */}
-      <div className="planner-week-frame flex min-h-0 flex-1">
+      <div ref={weekFrameRef} className="planner-week-frame flex min-h-0 flex-1">
         {/* Phones render one selected day. Every width above that makes the week
             itself the swipe surface — as many whole days as the frame can hold
             at a readable column width, the rest one gesture away — so the day
@@ -506,6 +509,7 @@ function BoardBody({
             move from. Naming the axis keeps the gesture guard and gives the
             wheel back. */}
         <div
+          ref={weekScrollRef}
           className="planner-week-scroll no-scrollbar min-w-0 flex-1 overflow-auto rounded-lg bg-background overscroll-x-contain"
           tabIndex={0}
           aria-label={t('title')}
@@ -583,22 +587,22 @@ function BoardBody({
           </div>
         </div>
 
-        {/* The one mark that says the week continues past the edge.
+        {/* What says the week continues past the edge, and what takes you there.
 
             An exact fit is what the geometry above is for — four whole days,
             the last of them flush with the frame — and the cost of getting it
-            right is that the board now looks finished. Nothing is half-drawn at
-            the edge any more, the scrollbar is hidden, and a dietitian who has
-            never swiped this surface has no reason to think there is anything
-            to swipe to. A soft fade on the trailing edge is the ordinary signal
-            that a surface runs on, and it costs no height, which is the whole
-            currency of this screen.
+            right is that the board looks finished. Nothing is half-drawn at the
+            edge, the scrollbar is hidden, and a dietitian who has never swiped
+            this surface has no reason to think there is anything to swipe to.
+            The fade is the ordinary signal that a surface runs on; the chevrons
+            beside it are the way to act on that without a touchscreen.
 
-            A span rather than a pseudo-element on the frame, because the frame
-            is the size container and a container query can only reach things
-            inside it — this is how the fade knows to switch itself off at the
-            width where all seven days fit and there is nothing left to say. */}
+            Both are children of the frame rather than pseudo-elements on it,
+            because the frame is the size container and a container query can
+            only reach things *inside* it — which is how they know to switch
+            themselves off at the width where all seven days fit. */}
         <span aria-hidden className="planner-week-fade" />
+        <WeekPager frameRef={weekFrameRef} scrollRef={weekScrollRef} />
       </div>
 
       <MealInspector

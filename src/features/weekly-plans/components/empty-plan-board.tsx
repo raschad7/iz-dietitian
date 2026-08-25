@@ -57,10 +57,10 @@ export function EmptyPlanBoard({
         nothing to publish and the first week is the only reason to be on this
         screen, so that button keeps the solid fill.
       */}
-      <header className="grid gap-2 overflow-hidden rounded-lg border border-border bg-card p-2 md:grid-cols-[minmax(0,1fr)_auto] 2xl:grid-cols-[minmax(21rem,1fr)_minmax(0,2fr)_auto]">
+      <header className="planner-board-header overflow-hidden rounded-lg border border-border bg-card p-2">
         {profile}
 
-        <div className="planner-action-bar flex max-w-full flex-wrap items-center justify-end gap-1.5 rounded-lg bg-muted/70 p-1 md:col-start-2 md:row-start-1 md:w-auto md:flex-nowrap md:justify-center md:self-center 2xl:col-start-3">
+        <div className="planner-action-bar flex max-w-full flex-wrap items-center justify-end gap-1.5 rounded-lg bg-muted/70 p-1 md:col-start-2 md:row-start-1 md:w-auto md:flex-nowrap md:justify-center md:self-center xl:col-start-3">
             <TooltipHint label={t('tabs.dishes')}>
               <Button
                 type="button"

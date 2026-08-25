@@ -112,8 +112,14 @@ export function ContextPanel({
         is a name, not a field: it needs the width a name needs. Capped here and
         start-aligned in `client-picker.tsx`, it reads as the caption to the disc
         it sits against.
+
+        `min-w-40` and not `min-w-44` for the floor, because that floor is what
+        the client column's own minimum is built out of and every 16px of it is
+        16px the five figures beside it do not have on a 1280px laptop. 10rem
+        holds a name at 20px with its chevron and still leaves the row nothing
+        to complain about.
       */}
-      <div className="min-w-44 max-w-72 flex-1">
+      <div className="min-w-40 max-w-72 flex-1">
         <ClientPicker clients={clients} selectedClientId={context.clientId} appearance="bar" />
       </div>
 
@@ -188,6 +194,32 @@ export function ContextPanel({
                   popover reads as the same object opened up rather than as a
                   second design of the same information. */}
               <dl className="divide-y divide-border rounded-lg bg-muted/70 px-3">
+                {/* The week's five figures, which the header only prints on a
+                    phone and on a desk — see the note on `summary`. This is
+                    where a tablet reads them, so they lead the list rather than
+                    following the two derived facts. */}
+                <SpecRow label={t('dailyTarget')}>
+                  {context.effectiveKcal === null
+                    ? t('unset')
+                    : t('kcalValue', { value: context.effectiveKcal })}
+                </SpecRow>
+                <SpecRow label={t('fields.proteinTargetGrams')}>
+                  {context.effectiveProteinGrams === null
+                    ? t('unset')
+                    : t('grams', { value: context.effectiveProteinGrams })}
+                </SpecRow>
+                <SpecRow label={t('bmi')}>
+                  {targets.bmi === null ? t('unset') : targets.bmi.toFixed(1)}
+                </SpecRow>
+                <SpecRow label={t('goal')}>
+                  {isMember(CLIENT_GOALS, context.goal) ? tGoals(context.goal) : t('unset')}
+                </SpecRow>
+                <SpecRow
+                  label={t('allergies')}
+                  tone={allergyText ? 'medical' : 'attention'}
+                >
+                  {allergyText || t('allergiesMissing')}
+                </SpecRow>
                 <SpecRow label={t('activityLevel')}>
                   {isMember(CLIENT_ACTIVITY_LEVELS, context.activityLevel)
                     ? tActivity(context.activityLevel)
@@ -247,34 +279,35 @@ export function ContextPanel({
   );
 
   /*
-    ── The week's numbers, on one line, edge to edge ──
+    ── The week's numbers, where there is a line to spare for them ──
 
     Five short answers — a target, a target, a ratio, a word, and a word — read
-    once when the screen opens and glanced at while planning. They were 44px
-    tiles stacked two and three deep, which is a second band across the top of
-    the board, and every pixel of that band comes out of the meal cards under it.
+    once when the screen opens and glanced at while planning. They are reference,
+    not work: the daily target is printed under every day name on the board
+    below, and the other four settle nothing that happens on this screen.
 
-    One muted bar, one line, `justify-between` so the five spread across the
-    whole card instead of crowding one end of it and leaving the other empty.
-    The label carries the hierarchy at 12px muted and the value answers at 14px,
-    which is the same pairing the tiles used, laid along the line instead of
-    down it.
+    The rule is one line: **they are on screen when they can share a line with
+    the client, and nowhere else.** From `xl` they take a column of their own
+    beside the name and cost the board nothing — spread `justify-between` across
+    the whole of it rather than crowding one end, with every value truncating
+    rather than growing, so a client with a long allergy list shortens their own
+    fact instead of pushing the other four off the line. The tip carries the
+    full text.
 
-    One line from `md`, and every value truncates rather than growing: a client
-    with a long allergy list shortens their own fact instead of pushing the
-    other four onto a row of their own. The full text is in the tip and in the
-    notes panel.
+    Below that they would need a row, and a row is 42px of a board that is
+    pinned to the frame and cannot grow. On a tablet they are gone: the notes
+    panel is one press away, holds all five, and is where the rest of the
+    profile already lives.
 
-    A phone wraps instead. 375px less its gutters is 357, and five pairs need
-    a good deal more than that — held to one line they would all five be cut
-    off, and half of "2178 kcal" is not a number. The page scrolls there, so the
-    two extra lines cost nothing anyone can see, which is exactly the trade that
-    does not hold on the board's own screen.
+    A phone is the exception, and only because the page scrolls there — the row
+    costs nothing anyone can see. It wraps to as many lines as it needs, since
+    five pairs on 357px held to one line would be five values all cut off, and
+    half of "2178 kcal" is not a number.
   */
   const summary = (
     <section
       aria-label={t('planningSnapshot')}
-      className="col-span-full flex min-w-0 flex-wrap items-center gap-x-4 overflow-hidden rounded-md bg-muted/70 px-3 py-1 md:flex-nowrap md:justify-between 2xl:col-span-1 2xl:col-start-2 2xl:row-start-1"
+      className="col-span-full flex min-w-0 flex-wrap items-center gap-x-4 overflow-hidden rounded-md bg-muted/70 px-3 py-1 md:hidden xl:px-2 xl:col-span-1 xl:col-start-2 xl:row-start-1 xl:flex xl:flex-nowrap xl:justify-between xl:gap-x-2"
     >
       <SummaryFact label={t('dailyTarget')} numeric>
         {context.effectiveKcal === null
@@ -289,7 +322,13 @@ export function ContextPanel({
       <SummaryFact label={t('bmi')} numeric>
         {targets.bmi === null ? t('unset') : targets.bmi.toFixed(1)}
       </SummaryFact>
-      <SummaryFact label={t('goal')}>
+      {/* A hint on this one for the same reason the allergy fact has one: it is
+          a phrase rather than a figure, so it is one of the two that gives up
+          width when the line is tight. */}
+      <SummaryFact
+        label={t('goal')}
+        hint={isMember(CLIENT_GOALS, context.goal) ? tGoals(context.goal) : t('unset')}
+      >
         {isMember(CLIENT_GOALS, context.goal) ? tGoals(context.goal) : t('unset')}
       </SummaryFact>
       {/*
@@ -374,7 +413,29 @@ function SummaryFact({
   );
 
   return (
-    <div className={cn('flex min-w-0 items-baseline gap-1.5 text-start', className)}>
+    <div
+      className={cn(
+        // The gutter between a label and its own value closes to 4px on the
+        // one line where all five compete for the same 40rem — 10px across the
+        // row, which is most of what stands between "إنقاص الوزن" and an
+        // ellipsis at 1280px.
+        'flex min-w-0 items-baseline gap-1.5 text-start xl:gap-1',
+        /*
+          **The figures do not give up width; the phrases do.**
+
+          Five facts on one line need about 41rem in Arabic and the column they
+          share with the client and the action bar is nearer 39rem on a 1280px
+          laptop, so something has to shrink. Left to itself flexbox took the
+          same slice off all five, which meant a daily target reading "2178 k…"
+          — and half of a number is not a smaller number, it is a wrong one.
+          These three are short and fixed and keep their width; the two that
+          hold words absorb the whole squeeze, and both carry the full text in a
+          tip.
+        */
+        numeric && 'shrink-0',
+        className,
+      )}
+    >
       {/* The label never truncates. It is two or three words naming what the
           number is, and half of "مؤشر كتلة الج…" names nothing — if something
           has to give up width here it is the value, which has a tip and a panel
@@ -401,11 +462,27 @@ function SummaryFact({
  * one wraps while the first leaves half its cell empty. Given the row, the long
  * one has the width it needs and the short one costs nothing.
  */
-function SpecRow({ label, children }: { label: string; children: React.ReactNode }) {
+function SpecRow({
+  label,
+  tone,
+  children,
+}: {
+  label: string;
+  /** Colours the value where the value is a warning — allergies, and only that. */
+  tone?: 'medical' | 'attention';
+  children: React.ReactNode;
+}) {
   return (
     <div className="flex items-baseline justify-between gap-3 py-2 text-body-sm">
       <dt className="shrink-0 text-muted-foreground">{label}</dt>
-      <dd className="min-w-0 text-end" dir="auto">
+      <dd
+        className={cn(
+          'min-w-0 text-end',
+          tone === 'medical' && 'text-status-medical-fg',
+          tone === 'attention' && 'text-status-attention-fg',
+        )}
+        dir="auto"
+      >
         {children}
       </dd>
     </div>

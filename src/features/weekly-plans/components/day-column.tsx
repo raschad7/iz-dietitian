@@ -10,6 +10,7 @@ import { Field } from '@/components/ui/field';
 import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { SelectField } from '@/components/ui/select-field';
 import { TooltipHint } from '@/components/ui/tooltip-hint';
 import { getLocaleDirection, type Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
@@ -18,7 +19,7 @@ import { roundForDisplay } from '@/features/weekly-plans/nutrition';
 import { bandGeometry } from '../band';
 import type { BoardRow } from '../board-rows';
 import { nextSlotKey } from '../editor-state';
-import { MEAL_ICON_OPTIONS } from '../meal-icons';
+import { MEAL_ICON_OPTIONS, MEAL_NAME_SUGGESTIONS } from '../meal-icons';
 import type { BoardDay } from '../queries';
 import { dayKey } from '../schema';
 
@@ -26,15 +27,11 @@ import { useEditorActions } from './board-dnd';
 import { MealCard, type GhostMeal } from './meal-card';
 
 /**
- * Pins the add control to the last row of the week's grid.
- *
- * Everything else in the column is auto-placed, which is right for the header and
- * the cards. The add control is not: a day holding fewer meals than the week's
- * longest would place it one row early and end out of line with its neighbours.
- * `-2 / -1` is the last row of whatever template the column inherited, so it does
- * not need to know the slot count.
+ * The value `choice` holds when the reader wants to name the row themselves —
+ * see `AddSlot`. A sentinel rather than an empty string, because empty is what
+ * `SelectField` shows a placeholder for and this is a row that was chosen.
  */
-const LAST_ROW = { gridRow: '-2 / -1' } as const;
+const CUSTOM_MEAL_NAME = 'custom';
 
 /**
  * One day of the week, as a column of meal cards.
@@ -297,31 +294,73 @@ function SkippedSlot({
  * need it loses it individually afterwards, which leaves a `SkippedSlot` above
  * rather than a ragged column.
  *
- * Label and time are asked for rather than defaulted: the dietitian is
- * inventing a meal that is not in the client's schedule, and a row reading
- * "Meal 6" at 00:00 would be worse than one more small form.
+ * ── One question, not three ──
+ *
+ * The form asked for a name, an hour and a glyph, and the name was a free-text
+ * box. Nearly every row anyone adds is one of eight things, and each of those
+ * eight answers the other two questions on its own — nobody puts "before
+ * training" at 07:30, and nobody draws it with a dinner plate. So the name is a
+ * list now, and picking from it fills the hour and the glyph in behind you;
+ * both stay editable, because a client who trains at six in the morning exists.
+ *
+ * Names already on the board are struck from the list rather than left there to
+ * be chosen twice — the slot key would be new but the rail would read the same
+ * word twice down the column.
+ *
+ * The free-text box survives as the last entry, for the clinic that calls its
+ * rows something else. It is where the whole control used to be, which is the
+ * right place for the case that is now the exception.
  */
 export function AddSlot({ rows }: { rows: readonly BoardRow[] }) {
   const t = useTranslations('weeklyPlans');
   const activeLocale = useLocale();
   const { addWeek } = useEditorActions();
   const [open, setOpen] = useState(false);
+  // `null` rather than a first suggestion, so the dialog opens asking the
+  // question instead of answering it. Save stays disabled until a row is
+  // picked; pre-selecting one would let a distracted press add "سناك مسائي" to
+  // all seven days.
+  const [choice, setChoice] = useState<string | null>(null);
   const [label, setLabel] = useState('');
   const [time, setTime] = useState('17:00');
   const [mealIconId, setMealIconId] = useState<(typeof MEAL_ICON_OPTIONS)[number]['id']>('snack');
 
+  const taken = new Set(rows.map((row) => row.label.trim()));
+  const options = [
+    ...MEAL_NAME_SUGGESTIONS.map((suggestion) => ({
+      value: suggestion.id,
+      label: t(`mealNameSuggestions.${suggestion.id}`),
+    })).filter((option) => !taken.has(option.label)),
+    { value: CUSTOM_MEAL_NAME, label: t('addMealCustom') },
+  ];
+
+  const custom = choice === CUSTOM_MEAL_NAME;
+  const name = custom ? label.trim() : (options.find((o) => o.value === choice)?.label ?? '');
+
+  function pick(value: string): void {
+    setChoice(value);
+
+    const suggestion = MEAL_NAME_SUGGESTIONS.find((entry) => entry.id === value);
+    if (!suggestion) return;
+
+    // The hour and the glyph follow the name, and go on following it while the
+    // reader keeps changing their mind — until they touch either one directly.
+    setTime(suggestion.time);
+    setMealIconId(suggestion.icon);
+  }
+
   function submit(): void {
-    const trimmed = label.trim();
-    if (!trimmed) return;
+    if (!name) return;
 
     const iconChoice =
       MEAL_ICON_OPTIONS.find((option) => option.id === mealIconId) ?? MEAL_ICON_OPTIONS[2];
 
     addWeek(
       nextSlotKey(rows.map((row) => row.slotKey), iconChoice.type, iconChoice.slotPrefix),
-      trimmed,
+      name,
       time,
     );
+    setChoice(null);
     setLabel('');
     setTime('17:00');
     setMealIconId('snack');
@@ -330,15 +369,27 @@ export function AddSlot({ rows }: { rows: readonly BoardRow[] }) {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        style={LAST_ROW}
-        className="mx-1 mb-1 grid place-items-center rounded-lg border border-dashed border-border py-1 text-caption text-muted-foreground transition-colors hover:border-primary hover:bg-secondary hover:text-secondary-foreground"
-      >
-        <Icon name="add" className="size-4" />
-        {t('addMeal')}
-      </button>
+      {/*
+        In the rail's corner cell, which the header row was drawing blank — see
+        `SlotRail`. The cell is 96px of a 42px row, so the label rides with the
+        glyph and truncates rather than wrapping; the tip carries it in full at
+        the width where it cannot.
+
+        A phone's rail is 80px, which is 14px short of the same label, and
+        "Add a m…" names nothing. There the glyph stands on its own, with the
+        name still in `aria-label` for anyone reading the page aloud.
+      */}
+      <TooltipHint label={t('addMeal')} className="w-full min-w-0">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-label={t('addMeal')}
+          className="flex w-full min-w-0 items-center justify-center gap-1 rounded-lg border border-dashed border-border px-1.5 py-1.5 text-caption text-muted-foreground transition-colors hover:border-primary hover:bg-secondary hover:text-secondary-foreground"
+        >
+          <Icon name="add" className="size-4" />
+          <span className="hidden min-w-0 truncate md:inline">{t('addMeal')}</span>
+        </button>
+      </TooltipHint>
 
       {/*
        * A dialog, not an inline form.
@@ -366,17 +417,31 @@ export function AddSlot({ rows }: { rows: readonly BoardRow[] }) {
 
           <DialogBody className="flex flex-col gap-4">
             <Field>
-              <Label htmlFor="add-slot-label">{t('addMealLabel')}</Label>
-              <Input
-                id="add-slot-label"
-                value={label}
-                onChange={(event) => setLabel(event.target.value)}
-                placeholder={t('addMealPlaceholder')}
-                maxLength={60}
-                autoFocus
-                required
+              <Label htmlFor="add-slot-name">{t('addMealLabel')}</Label>
+              <SelectField
+                id="add-slot-name"
+                value={choice}
+                onValueChange={pick}
+                options={options}
+                placeholder={t('addMealNamePlaceholder')}
+                aria-label={t('addMealLabel')}
               />
             </Field>
+
+            {custom && (
+              <Field>
+                <Label htmlFor="add-slot-label">{t('addMealCustom')}</Label>
+                <Input
+                  id="add-slot-label"
+                  value={label}
+                  onChange={(event) => setLabel(event.target.value)}
+                  placeholder={t('addMealPlaceholder')}
+                  maxLength={60}
+                  autoFocus
+                  required
+                />
+              </Field>
+            )}
 
             <Field>
               <Label htmlFor="add-slot-time">{t('addMealTime')}</Label>
@@ -420,7 +485,7 @@ export function AddSlot({ rows }: { rows: readonly BoardRow[] }) {
           <DialogFooter>
             {/* Source order, so the primary sits at the inline-start of the
                 group in both locales — see docs/design-system.md § Buttons. */}
-            <Button type="submit" disabled={label.trim().length === 0}>
+            <Button type="submit" disabled={name.length === 0}>
               {t('save')}
             </Button>
             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>

@@ -1545,6 +1545,8 @@
       "updated": "آخر تعديل"
     },
     "history": "الخطط السابقة",
+    "previousDays": "أيام الأسبوع السابقة",
+    "nextDays": "أيام الأسبوع التالية",
     "moreActions": "المزيد من إجراءات الخطة",
     "deletePlan": "حذف هذه الخطة",
     "deletePlanConfirmTitle": "حذف هذه الخطة؟",
@@ -1785,6 +1787,18 @@
     "addMealPlaceholder": "سناك مسائي",
     "addMealTime": "الوقت",
     "addMealIcon": "اختر أيقونة طعام",
+    "mealNameSuggestions": {
+      "breakfast": "فطور",
+      "morningSnack": "سناك صباحي",
+      "lunch": "غداء",
+      "afternoonSnack": "سناك عصر",
+      "dinner": "عشاء",
+      "eveningSnack": "سناك مسائي",
+      "preWorkout": "قبل التمرين",
+      "postWorkout": "بعد التمرين"
+    },
+    "addMealCustom": "اسم آخر…",
+    "addMealNamePlaceholder": "اختر وجبة",
     "mealIconChoices": {
       "tea": "كوب شاي",
       "hotDrink": "مشروب ساخن",

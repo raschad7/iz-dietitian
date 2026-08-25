@@ -4988,6 +4988,42 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
  * query units resolve against an element's nearest *ancestor* container, so
  * `100cqi` written on `.planner-week-frame` would measure the wrong box.
  */
+/*
+ * ── The board header's three shapes ──
+ *
+ * Stated here rather than as an arbitrary `grid-cols-[…]` utility because it is
+ * arithmetic, and the arithmetic has to hold against the two other things this
+ * file already sizes: the client column's floor is built out of the 44px disc,
+ * the 10rem name and the 94px control pill it holds, and what is left over is
+ * what the five figures beside it have to fit in.
+ *
+ * One column on a phone — client, figures, actions, stacked, on a page that
+ * scrolls. Two from `md`, where the client and the four controls share the
+ * first line and nothing else is drawn. Three from `xl`, where the figures come
+ * back in a column of their own; `ContextPanel` and the action bar name their
+ * own cells with ordinary placement utilities.
+ *
+ * `minmax(20rem, 1fr)` and not `1fr` on the client column, because a plain `1fr`
+ * will hand it less than its contents at exactly 1280px and the control pill
+ * spills over the figures beside it.
+ */
+.planner-board-header {
+  display: grid;
+  gap: 0.5rem;
+}
+
+@media (width >= 48rem) {
+  .planner-board-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+}
+
+@media (width >= 80rem) {
+  .planner-board-header {
+    grid-template-columns: minmax(20rem, 1fr) minmax(0, 2fr) auto;
+  }
+}
+
 .planner-week-frame {
   container: planner-board / inline-size;
   position: relative;
@@ -5011,7 +5047,7 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
   position: absolute;
   inset-block: 0;
   inset-inline-end: 0;
-  inline-size: 1.5rem;
+  inline-size: 2.5rem;
   pointer-events: none;
 }
 
@@ -5021,6 +5057,57 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
 
 [dir='rtl'] .planner-week-fade {
   background-image: linear-gradient(to left, transparent, var(--background));
+}
+
+/*
+ * The two pagers — a chevron on each edge of the board, each one a day-group
+ * forward or back.
+ *
+ * The fade alone said the week continued and gave nobody a way to go there
+ * except a swipe, which is a gesture a trackpad does badly and a mouse does not
+ * do at all. These are the same affordance a carousel has always had, and they
+ * are the only controls on this screen that a keyboard could not otherwise
+ * reach — the board's own `tabIndex` scrolls it by arrow key, but there is
+ * nothing to tab *to* that says the week is longer than the frame.
+ *
+ * `display: none` by default and switched on by the band above, so they exist
+ * only where the board actually overflows, and only on the side that has
+ * somewhere to go.
+ *
+ * Vertically centred against the *cards* rather than the whole frame: the day
+ * names and the total sit in a sticky 42px header at the top, and a chevron
+ * halfway down the frame reads as belonging to the row it happens to land on.
+ * Off the block-start by that header's height and centred in what is left.
+ */
+.planner-week-pager {
+  display: none;
+  position: absolute;
+  z-index: 1;
+  inset-block-start: calc(50% + 1.25rem);
+  translate: 0 -50%;
+  place-items: center;
+
+  inline-size: 2.25rem;
+  block-size: 2.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full, 9999px);
+  background-color: var(--card);
+  color: var(--muted-foreground);
+  box-shadow: var(--shadow-elevated);
+  transition: color 150ms, background-color 150ms;
+}
+
+.planner-week-pager:hover {
+  background-color: var(--secondary);
+  color: var(--primary);
+}
+
+.planner-week-pager[data-towards='start'] {
+  inset-inline-start: 0.25rem;
+}
+
+.planner-week-pager[data-towards='end'] {
+  inset-inline-end: 0.25rem;
 }
 
 .planner-week-grid {
@@ -5084,10 +5171,19 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
   }
 
   /*
-   * The bands, each the width at which one more day clears the floor —
-   * `W ≥ n × (13.5rem + G) + R + P`, rounded to a whole rem. Every one of them
-   * lands a column between 13.4rem and 17rem, so no width is ever showing three
-   * luxuriously wide days where four would have fitted.
+   * ── Two bands, and then the whole week ──
+   *
+   * A desk gets all seven days at once. That is what this screen is for: a
+   * dietitian looks across the week to see where the heavy days are, and the
+   * moment Saturday is behind a swipe they are comparing from memory. So the
+   * swipe surface is the tablet's answer to not having the room, not a
+   * readability floor applied everywhere — at 72rem of frame the seven columns
+   * come to about 8.5rem each, which is tight for a dish name and still the
+   * right trade against losing three days.
+   *
+   * 72rem is where a 1280px window lands once the staff rail and the page's
+   * gutters are taken off it, which is the width this board has always shown
+   * the whole week at.
    */
   @container planner-board (width < 64rem) {
     .planner-week-grid {
@@ -5095,46 +5191,44 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
     }
   }
 
-  @container planner-board (64rem <= width < 78rem) {
+  @container planner-board (64rem <= width < 72rem) {
     .planner-week-grid {
       --planner-days: 4;
     }
   }
 
-  @container planner-board (78rem <= width < 92rem) {
-    .planner-week-grid {
-      --planner-days: 5;
-    }
-  }
-
-  @container planner-board (92rem <= width < 106rem) {
-    .planner-week-grid {
-      --planner-days: 6;
-    }
-  }
-
-  /* The whole week, and the end of the sideways scroll. Seven columns at the
-     floor need 106rem of frame, which is a maximised window on a 1728px laptop
-     and up.
-
-     `1fr` and an `auto` width here rather than the measured track, because this
-     is the one band with nothing left to swipe to. The sum above distributes
-     the whole frame and takes no account of the grid's end padding, which is
-     right while the grid runs off the edge and leaves an 8px scroll behind once
-     it stops. A board that fits is an ordinary grid again, and `1fr` divides
-     what is actually there. */
-  @container planner-board (width >= 106rem) {
+  /* `1fr` and an `auto` width rather than the measured track, because this is
+     the band with nothing left to swipe to. The sum above distributes the whole
+     frame and takes no account of the grid's end padding, which is right while
+     the grid runs off the edge and leaves an 8px scroll behind once it stops. A
+     board that fits is an ordinary grid again, and `1fr` divides what is
+     actually there. */
+  @container planner-board (width >= 72rem) {
     .planner-week-grid {
       grid-template-columns: var(--planner-rail-w) repeat(7, minmax(0, 1fr));
       inline-size: auto;
     }
   }
 
-  /* And the fade, at every band below that one — which is every width where a
-     day is hidden past the trailing edge, and no other. */
-  @container planner-board (width < 106rem) {
-    .planner-week-fade {
-      display: block;
+  /*
+   * The fade and the two pagers, at the widths where a day is hidden past an
+   * edge and no other. Each also answers to `data-at-start` / `data-at-end`,
+   * which `WeekPager` keeps on the frame: there is no reason to offer a way
+   * forward, or to veil the last column, once the week has run out.
+   *
+   * The two read those attributes in opposite directions on purpose. The fade
+   * takes `:not([data-at-end='true'])`, so it is right before the attribute
+   * exists — a board opens at the start of the week, where there is always more
+   * to the end of it. The chevrons take `='false'`, so they wait for the
+   * measurement rather than guessing: `data-at-start` is missing on a server
+   * pass too, and a "back" chevron on a board that has not moved is an offer to
+   * go nowhere.
+   */
+  @container planner-board (width < 72rem) {
+    .planner-week-frame:not([data-at-end='true']) .planner-week-fade,
+    .planner-week-frame[data-at-end='false'] .planner-week-pager[data-towards='end'],
+    .planner-week-frame[data-at-start='false'] .planner-week-pager[data-towards='start'] {
+      display: grid;
     }
   }
 }

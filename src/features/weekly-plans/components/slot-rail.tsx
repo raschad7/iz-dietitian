@@ -43,10 +43,25 @@ export function SlotRail({
        them. `sticky` applies to the whole column rather than to each cell,
        because it spans the full template and travels as one. */
     <div className="planner-slot-rail sticky start-0 z-20 row-span-full grid w-20 grid-rows-subgrid bg-background md:w-24">
-      {/* The corner. Blank, and deliberately so: it sits above both the day
-          names and the slot labels, and anything written in it would belong to
-          neither axis. */}
-      <div className="sticky top-0 z-10 bg-background" />
+      {/*
+        The corner, and the control that adds a row to the week.
+
+        It was blank on the grounds that it sits above both axes and belongs to
+        neither — which is true of anything *written* there and not of a control
+        that acts on the rail itself. What it adds is a row, so the rail is
+        where it goes, and the corner is the one cell of the rail that is not a
+        row.
+
+        It used to sit at the foot instead, which cost a 2.75rem track plus a
+        gutter across all eight columns: 56px of board reserved for one button,
+        held even after publishing so that hiding the control could not resize
+        every meal row. In the corner it costs nothing at all — that cell exists
+        either way — and it is at the top of the rail rather than below the fold
+        of a board that scrolls.
+      */}
+      <div className="sticky top-0 z-10 grid min-w-0 place-items-center bg-background pb-1">
+        {editable && <AddSlot rows={rows} />}
+      </div>
 
       {rows.map((row, rowIndex) => (
         <div
@@ -70,11 +85,6 @@ export function SlotRail({
         </div>
       ))}
 
-      {/* The add control lives on this axis, because what it adds is a row.
-          It sat at the foot of every day column when a slot belonged to one
-          day; seven copies of a control that now acts on the whole week would
-          be seven ways to do one thing. */}
-      {editable && <AddSlot rows={rows} />}
     </div>
   );
 }

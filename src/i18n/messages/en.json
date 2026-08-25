@@ -1545,6 +1545,8 @@
       "updated": "Last edited"
     },
     "history": "Earlier plans",
+    "previousDays": "Earlier days of the week",
+    "nextDays": "Later days of the week",
     "moreActions": "More plan actions",
     "deletePlan": "Delete this plan",
     "deletePlanConfirmTitle": "Delete this plan?",
@@ -1785,6 +1787,18 @@
     "addMealPlaceholder": "Evening snack",
     "addMealTime": "Time",
     "addMealIcon": "Choose a food icon",
+    "mealNameSuggestions": {
+      "breakfast": "Breakfast",
+      "morningSnack": "Morning snack",
+      "lunch": "Lunch",
+      "afternoonSnack": "Afternoon snack",
+      "dinner": "Dinner",
+      "eveningSnack": "Evening snack",
+      "preWorkout": "Before training",
+      "postWorkout": "After training"
+    },
+    "addMealCustom": "Another name…",
+    "addMealNamePlaceholder": "Pick a meal",
     "mealIconChoices": {
       "tea": "Tea cup",
       "hotDrink": "Hot drink",
