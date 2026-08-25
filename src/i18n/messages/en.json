@@ -1595,6 +1595,8 @@
     "planningNotes": "Planning notes",
     "dishCatalog": "Dish catalog",
     "dishCatalogHint": "Drag a dish onto a meal. The catalog closes when the drag begins.",
+    "catalogNeedsPlan": "Create a week first",
+    "catalogNeedsPlanHint": "This client has no plan yet, so there is nowhere to put a dish. Create a week, then drag from here.",
     "allergiesMissing": "Allergy information has not been recorded. Confirm it before publishing.",
     "allergiesMissingShort": "Not recorded",
     "suggested": "Suggested: {value}",

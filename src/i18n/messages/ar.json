@@ -1595,6 +1595,8 @@
     "planningNotes": "ملاحظات التخطيط",
     "dishCatalog": "كتالوج الأطباق",
     "dishCatalogHint": "اسحب طبقًا إلى وجبة. يُغلق الكتالوج عند بدء السحب.",
+    "catalogNeedsPlan": "أنشئ أسبوعًا أولاً",
+    "catalogNeedsPlanHint": "لا توجد خطة لهذا المشترك بعد، فلا مكان تضع فيه طبقًا. أنشئ أسبوعًا، ثم اسحب من هنا.",
     "allergiesMissing": "لم تُسجّل معلومات الحساسية. تأكد منها قبل نشر الخطة.",
     "allergiesMissingShort": "لم تُسجّل بعد",
     "suggested": "المقترح: {value}",

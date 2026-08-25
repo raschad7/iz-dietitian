@@ -5,7 +5,9 @@ import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/toast';
 import { ContextPanel } from '@/features/weekly-plans/components/context-panel';
+import { EmptyPlanBoard } from '@/features/weekly-plans/components/empty-plan-board';
 import { PlanBoard } from '@/features/weekly-plans/components/plan-board';
+import type { NewWeekProps } from '@/features/weekly-plans/components/new-week-dialog';
 import { PLANNER_THEME } from '@/features/weekly-plans/theme';
 import {
   dishGrams,
@@ -234,6 +236,15 @@ export function BoardHarness({ locale }: { locale: Locale }) {
   /** Which cases the fixture puts on screen, so one page covers several. */
   const [published, setPublished] = useState(false);
   const [emptyProfile, setEmptyProfile] = useState(true);
+  /*
+    The screen a client has before their first week — a different component
+    (`EmptyPlanBoard`), the same header, and the only place the dish catalog
+    opens with nothing to be dragged onto. It could not be looked at here at
+    all, which made the blurred "create a week first" panel over the catalog the
+    one surface in the planner with no way to see it short of a real client with
+    no plan.
+  */
+  const [noPlan, setNoPlan] = useState(false);
 
   const board = useMemo<Board>(() => {
     const days = [0, 1, 2, 3, 4, 5, 6].map(buildDay);
@@ -327,6 +338,9 @@ export function BoardHarness({ locale }: { locale: Locale }) {
         <Button type="button" size="sm" variant="neutral" onClick={() => setEmptyProfile((v) => !v)}>
           {emptyProfile ? 'filled notes' : 'empty notes'}
         </Button>
+        <Button type="button" size="sm" variant="neutral" onClick={() => setNoPlan((v) => !v)}>
+          {noPlan ? 'has plan' : 'no plan'}
+        </Button>
         {/* The board's own toasts only fire after a server action succeeds, and
             nothing here reaches a server — so the one surface this page could
             not otherwise show gets a button. */}
@@ -346,27 +360,47 @@ export function BoardHarness({ locale }: { locale: Locale }) {
       </div>
 
       <div className="flex min-h-0 min-w-0 flex-1 gap-4">
-        <PlanBoard
-          key={board.status}
-          board={board}
-          candidates={{}}
-          catalog={CATALOG}
-          usage={{}}
-          previous={null}
-          locale={locale}
-          history={<p className="text-body-sm text-muted-foreground">—</p>}
-          newWeek={{
-            weekStartDate: '2026-09-06',
-            plans: [],
-            blocked: false,
-            generateBlocked: null,
-            context,
-            defaultInstruction: null,
-          }}
-        >
-          <ContextPanel context={context} clients={CLIENTS} locale={locale} embedded />
-        </PlanBoard>
+        {noPlan ? (
+          <EmptyPlanBoard
+            clientId={context.clientId}
+            catalog={CATALOG}
+            usage={{}}
+            locale={locale}
+            history={<p className="text-body-sm text-muted-foreground">—</p>}
+            profile={
+              <ContextPanel context={context} clients={CLIENTS} locale={locale} embedded />
+            }
+            newWeek={NEW_WEEK(context)}
+          />
+        ) : (
+          <PlanBoard
+            key={board.status}
+            board={board}
+            candidates={{}}
+            catalog={CATALOG}
+            usage={{}}
+            previous={null}
+            locale={locale}
+            history={<p className="text-body-sm text-muted-foreground">—</p>}
+            newWeek={NEW_WEEK(context)}
+          >
+            <ContextPanel context={context} clients={CLIENTS} locale={locale} embedded />
+          </PlanBoard>
+        )}
       </div>
     </div>
   );
+}
+
+/** What both boards hand their "new week" dialog. One fixture, so the two
+    states of this harness cannot drift into two different dialogs. */
+function NEW_WEEK(context: ClientContext): NewWeekProps {
+  return {
+    weekStartDate: '2026-09-06',
+    plans: [],
+    blocked: false,
+    generateBlocked: null,
+    context,
+    defaultInstruction: null,
+  };
 }

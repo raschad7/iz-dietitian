@@ -86,7 +86,7 @@ export function MealIngredientEditor({
             className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2"
           >
             <span
-              className="min-w-0 flex-1 text-body-md font-medium [overflow-wrap:anywhere]"
+              className="min-w-0 flex-1 text-body-md [overflow-wrap:anywhere]"
               dir="auto"
             >
               {localizedName(line.food, locale)}
@@ -99,10 +99,25 @@ export function MealIngredientEditor({
                 line={line}
                 onPress={(amount) => setIngredient(mealId, amount)}
               />
+              {/*
+                18px at normal weight, not 16px at semibold.
+
+                It is the one figure on the row that changes, and the weight was
+                doing the work of making it findable — which is what a heavier
+                face is for when a bigger one is available and the row has the
+                height to spend. Setting it a step up the scale and letting it
+                sit at the same weight as the name beside it reads as a quantity
+                rather than as a label shouting.
+
+                **Never `font-light` here.** Almarai's 300 is loaded and is for
+                atmosphere only — see the ⚠ in `[locale]/layout.tsx`. This is a
+                prescribed amount, which is as close to "instruction" as this
+                app gets.
+              */}
               <IngredientAmount
                 line={line}
                 locale={locale}
-                className="min-w-24 px-1 text-center text-body-md font-semibold"
+                className="min-w-28 px-1 text-center text-body-lg"
               />
               <Step
                 direction={1}

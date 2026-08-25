@@ -34,6 +34,7 @@ export function DishCatalogDrawer({
   slot,
   editable,
   locale,
+  onCreateWeek,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -42,6 +43,12 @@ export function DishCatalogDrawer({
   slot: { slotKey: string; budgetKcal: number } | null;
   editable: boolean;
   locale: Locale;
+  /**
+   * Given, this client has no plan yet — so the catalog is a list of things
+   * with nowhere to go, and the panel says so over a blurred copy of it and
+   * offers the week that would fix it. Absent, the catalog behaves normally.
+   */
+  onCreateWeek?: () => void;
 }) {
   const t = useTranslations('weeklyPlans');
   const direction = getLocaleDirection(locale);
@@ -109,10 +116,72 @@ export function DishCatalogDrawer({
             </SheetClose>
         </header>
 
-        <div className="min-h-0 flex-1 px-4 pb-4 pt-3">
-          <DishCatalog catalog={catalog} usage={usage} slot={slot} editable={editable} />
+        {/*
+          ── With no plan, the list is behind glass ──
+
+          The dishes are still drawn, blurred and unreachable, rather than
+          replaced by an empty state. Which sounds like decoration and is not:
+          this drawer opens from a screen that has nothing on it, and a dietitian
+          pressing "dishes" there is asking *what is in the catalog* as often as
+          they are trying to place something. An empty state answers neither
+          question and reads as "there are no dishes" — which is the opposite of
+          true, and exactly the wrong thing to tell someone deciding whether this
+          product has their food in it. The blur says: all of this is here, and
+          one thing is missing before you can use it.
+
+          `pointer-events-none` and `aria-hidden` on the veiled copy, so it is
+          out of reach of the mouse, the keyboard and the screen reader alike —
+          a blurred list you can still tab into is a trap. The panel over it is
+          the only thing in the region that answers.
+        */}
+        <div className="relative min-h-0 flex-1 px-4 pb-4 pt-3">
+          <div
+            aria-hidden={onCreateWeek ? true : undefined}
+            className={cn(
+              'h-full',
+              onCreateWeek && 'pointer-events-none select-none blur-[3px] saturate-50',
+            )}
+          >
+            <DishCatalog catalog={catalog} usage={usage} slot={slot} editable={editable} />
+          </div>
+
+          {onCreateWeek && <NeedsPlan onCreateWeek={onCreateWeek} />}
         </div>
       </SheetContent>
     </Sheet>
+  );
+}
+
+/**
+ * Why the catalog cannot be used yet, and the one control that changes it.
+ *
+ * Centred over the blurred list rather than pinned to the top of it: the panel
+ * is the only thing in this region that can be acted on, so it goes where the
+ * eye lands, and the veiled list stays legible as *context* above and below it.
+ *
+ * `bg-card` and a real shadow — not a translucent scrim. A frosted panel over a
+ * blurred list is two blurs stacked, and the words come out of it soft.
+ */
+function NeedsPlan({ onCreateWeek }: { onCreateWeek: () => void }) {
+  const t = useTranslations('weeklyPlans');
+
+  return (
+    <div className="absolute inset-0 grid place-items-center px-6">
+      <div className="max-w-72 rounded-lg border border-border bg-card p-5 text-center shadow-overlay">
+        <span className="mx-auto grid size-11 place-items-center rounded-full bg-primary-subtle text-primary">
+          <Icon name="weeklyPlans" className="size-5" />
+        </span>
+
+        <h3 className="mt-3 font-heading text-heading-sm font-medium">{t('catalogNeedsPlan')}</h3>
+        <p className="mt-1.5 text-body-sm leading-relaxed text-muted-foreground">
+          {t('catalogNeedsPlanHint')}
+        </p>
+
+        <Button type="button" size="sm" className="mt-4 w-full max-w-none" onClick={onCreateWeek}>
+          <Icon name="add" />
+          {t('createWeek')}
+        </Button>
+      </div>
+    </div>
   );
 }

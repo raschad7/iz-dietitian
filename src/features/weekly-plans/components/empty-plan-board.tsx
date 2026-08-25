@@ -38,6 +38,13 @@ export function EmptyPlanBoard({
 }: EmptyPlanBoardProps) {
   const t = useTranslations('weeklyPlans');
   const [catalogOpen, setCatalogOpen] = useState(false);
+  /*
+    Bumped to ask the new-week dialog to open — see `openRequest` there. The
+    catalog's "no plan yet" panel is what bumps it, and it closes the drawer on
+    the way so the dialog does not open behind a sheet the reader has to
+    dismiss afterwards.
+  */
+  const [newWeekRequest, setNewWeekRequest] = useState(0);
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
@@ -82,6 +89,7 @@ export function EmptyPlanBoard({
               newWeek={newWeek}
               triggerLabel={t('createWeek')}
               triggerVariant="default"
+              openRequest={newWeekRequest}
             />
 
             <Popover>
@@ -115,6 +123,12 @@ export function EmptyPlanBoard({
         </div>
       </section>
 
+      {/*
+        `onCreateWeek` is what puts the catalog behind glass. It is passed from
+        here and nowhere else: this is the one screen where the list has nothing
+        to be dragged onto, and it is also the screen with the button that
+        changes that.
+      */}
       <DishCatalogDrawer
         open={catalogOpen}
         onOpenChange={setCatalogOpen}
@@ -123,6 +137,10 @@ export function EmptyPlanBoard({
         slot={null}
         editable={false}
         locale={locale}
+        onCreateWeek={() => {
+          setCatalogOpen(false);
+          setNewWeekRequest((request) => request + 1);
+        }}
       />
     </div>
   );

@@ -84,6 +84,7 @@ export function NewWeekDialog({
   triggerLabel,
   triggerVariant = 'ghost',
   compactTrigger = false,
+  openRequest = 0,
 }: {
   clientId: string;
   /** The plan on screen, which decides whether generating replaces it. */
@@ -94,6 +95,20 @@ export function NewWeekDialog({
   triggerVariant?: 'default' | 'ghost' | 'neutral';
   /** Keeps the icon-only form on narrow phones while preserving its name. */
   compactTrigger?: boolean;
+  /**
+   * A counter another control increments to open this dialog from somewhere
+   * other than its own trigger — the dish catalog's "there is no plan yet"
+   * panel is the one caller.
+   *
+   * A counter rather than a boolean, and deliberately *not* full controlled
+   * open/close. This dialog closes itself for reasons the parent cannot see:
+   * a finished generation, an escape, a click outside — and a parent holding
+   * `open` would have to be told about every one of them or leave the dialog
+   * unable to shut. What the caller actually wants to say is "open, now",
+   * which is an event; a number that only ever goes up is how you spell an
+   * event in props. Zero is the resting value and never opens anything.
+   */
+  openRequest?: number;
 }) {
   const t = useTranslations('weeklyPlans');
   const tCommon = useTranslations('common');
@@ -112,6 +127,26 @@ export function NewWeekDialog({
     setGenerating(false);
     setOpen(false);
   }, []);
+
+  /*
+    Opening from the outside runs the same reset the trigger does — no stale
+    "generating" screen, and the week the parent last computed rather than the
+    one left over from a dialog that was open ten minutes ago.
+
+    Adjusting state during render rather than in an effect, on the React-endorsed
+    "derive state from props" shape: the dialog has to render *open* in the same
+    pass the request arrives, and an effect would give it a frame of nothing
+    first. `seenRequest` is what keeps this from looping — it changes only when
+    the number does.
+  */
+  const [seenRequest, setSeenRequest] = useState(openRequest);
+
+  if (openRequest !== seenRequest) {
+    setSeenRequest(openRequest);
+    setGenerating(false);
+    setWeekStartDate(newWeek.weekStartDate);
+    setOpen(true);
+  }
 
   // A plan cannot be copied into itself, and offering it would be the one row
   // in the list that quietly does nothing.
