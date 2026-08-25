@@ -6,7 +6,7 @@ import { MARK_LEAF_PATH, MARK_SEED_CX, SEED_CY, SEED_RX, SEED_RY, SEED_ROTATION 
 import { energyEyePose, getEnergyMessageKey, getEnergyTier } from '@/features/portal/mascot/energy-progress';
 
 /**
- * The Qiwam mark itself, filling with a soft green "energy" wave as a
+ * The brand mark itself, filling with a soft green "energy" wave as a
  * fraction rises to 1 — the character `TodayEnergyMascot` draws on the home
  * screen's commitment card, extracted so `TodayMascotFigure` (the progress
  * tab's own card) can draw the exact same filling character beside its own

@@ -20,13 +20,13 @@ import type { MascotState } from './states';
  * The character itself, drawn from the same geometry `BrandMark` and the app
  * icon routes already share — `MARK_LEAF_PATH`/`MARK_SEED_CX` in
  * `@/features/brand/logo`, not a copy of it. §1–2 of the brief: this is the
- * existing Qiwam logo, reactive, not a redesign of it, and a second copy of
+ * existing Enzyme logo, reactive, not a redesign of it, and a second copy of
  * its path data here is exactly how the two would drift apart. Nothing is
  * added to it; the two `<ellipse>`s ("the seeds") are the only elements that
  * ever move independently of the whole mark.
  *
  * Fills are `var(--brand-leaf)`/`var(--brand-seed)`, the CSS side of the same
- * two constants — `qiwam/no-raw-hex` keeps a literal hex out of every `.tsx`
+ * two constants — `enzyme/no-raw-hex` keeps a literal hex out of every `.tsx`
  * that is not `logo.ts` itself, and there is no reason for this file to be
  * the second exception.
  */

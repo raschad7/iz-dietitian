@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 /**
  * A 44×24 track with a 20px disc — shadcn/ui's switch, drawn in this palette.
  *
- * **It used to be the Qiwam switch (§9.3): 52×30, with a 24px knob carrying a
+ * **It used to be the old Qiwam switch (§9.3): 52×30, with a 24px knob carrying a
  * 9px corner sweep that rotated −45° into the leaf angle as it landed.** That
  * drawing is gone, everywhere, by decision — see §"Controls built from §9.3" in
  * `docs/design-system.md`, which has been rewritten to match. The `knob` prop

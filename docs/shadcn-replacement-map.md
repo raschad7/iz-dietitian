@@ -1,5 +1,10 @@
 # shadcn replacement map
 
+> **Historical working note.** The checklist for the `shadcn-revamp` branch,
+> kept as a record of what was swapped and why. It is not a to-do list, and it
+> predates the rename from **Qiwam / قوام** to **Enzyme / إنزيم**. The current
+> UI contract is [`design-system.md`](design-system.md).
+
 The working checklist for the `shadcn-revamp` branch. Strategy and root-cause
 analysis live in [`shadcn-migration.md`](./shadcn-migration.md).
 

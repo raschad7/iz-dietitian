@@ -54,7 +54,7 @@
 @custom-variant shorter (@media (max-height: 700px));
 
 /*
- * Qiwam / قوام design system.
+ * Enzyme / إنزيم design system.
  *
  * Primitives below are the raw palette. They are never referenced directly
  * from a component — components consume the semantic tokens in the second
@@ -302,10 +302,10 @@
   --script-display-font: var(--font-readex-pro);
 
   /* ── Radius — 8 / 12 / 16 / 24, never 0 ── */
-  --qiwam-radius-sm: 8px;
-  --qiwam-radius-md: 12px;
-  --qiwam-radius-lg: 16px;
-  --qiwam-radius-xl: 24px;
+  --enzyme-radius-sm: 8px;
+  --enzyme-radius-md: 12px;
+  --enzyme-radius-lg: 16px;
+  --enzyme-radius-xl: 24px;
 
   /*
    * Every corner of a surface takes the same radius. There is no swept or
@@ -315,9 +315,9 @@
   --radius-control: 10px;       /* button, field — all four corners */
 
   /* ── Elevation — green-tinted, never neutral black ── */
-  --qiwam-shadow-1: 0 1px 2px rgba(34, 52, 20, .06), 0 1px 3px rgba(34, 52, 20, .05);
-  --qiwam-shadow-2: 0 2px 6px rgba(34, 52, 20, .07), 0 8px 20px rgba(34, 52, 20, .06);
-  --qiwam-shadow-3: 0 12px 32px rgba(34, 52, 20, .12);
+  --enzyme-shadow-1: 0 1px 2px rgba(34, 52, 20, .06), 0 1px 3px rgba(34, 52, 20, .05);
+  --enzyme-shadow-2: 0 2px 6px rgba(34, 52, 20, .07), 0 8px 20px rgba(34, 52, 20, .06);
+  --enzyme-shadow-3: 0 12px 32px rgba(34, 52, 20, .12);
 
   /*
    * ── Motion ──
@@ -355,7 +355,7 @@
 
   /*
    * ── Third-party brand marks ──
-   * Fixed by the brand's own guidelines, not the Qiwam palette — same in light
+   * Fixed by the brand's own guidelines, not the Enzyme palette — same in light
    * and dark, never swapped for a semantic token. Currently only Google's "G".
    */
   --brand-google-yellow: #FFC107;
@@ -640,15 +640,15 @@
   --color-scrim: var(--scrim);
 
   /* radius.* — sm 8 / md 12 / lg 16 / xl 24. Pill is rounded-full. Never 0. */
-  --radius-sm: var(--qiwam-radius-sm);
-  --radius-md: var(--qiwam-radius-md);
-  --radius-lg: var(--qiwam-radius-lg);
-  --radius-xl: var(--qiwam-radius-xl);
+  --radius-sm: var(--enzyme-radius-sm);
+  --radius-md: var(--enzyme-radius-md);
+  --radius-lg: var(--enzyme-radius-lg);
+  --radius-xl: var(--enzyme-radius-xl);
 
   /* elevation.* — green-tinted shadows, never neutral black. */
-  --shadow-card: var(--qiwam-shadow-1);
-  --shadow-elevated: var(--qiwam-shadow-2);
-  --shadow-overlay: var(--qiwam-shadow-3);
+  --shadow-card: var(--enzyme-shadow-1);
+  --shadow-elevated: var(--enzyme-shadow-2);
+  --shadow-overlay: var(--enzyme-shadow-3);
 
   /* motion.* — exposed so components use `ease-sweep` / `duration-arc`. */
   --ease-sweep: var(--ease-sweep);
@@ -1214,7 +1214,7 @@
    * other semantic token. Nothing outside `brand-logo.tsx` may use them.
    *
    * They live here rather than as hexes in the component because that is the
-   * rule (`qiwam/no-raw-hex`) — and because one of them has to flip for dark,
+   * rule (`enzyme/no-raw-hex`) — and because one of them has to flip for dark,
    * which a literal could not do.
    *
    * - `leaf` is the mark's body. Fixed: it reads on a light rail and a dark one.
@@ -2514,7 +2514,7 @@
     position: relative;
     overflow: hidden;
     background: var(--accent);
-    border-radius: var(--qiwam-radius-sm);
+    border-radius: var(--enzyme-radius-sm);
   }
 
   .q-skeleton::after {
@@ -3029,8 +3029,8 @@
       Risen from the edge, so only the block-start corners exist — the same
       language `Dialog`'s sheet placement speaks, and the same radius.
     */
-    border-start-start-radius: var(--qiwam-radius-lg);
-    border-start-end-radius: var(--qiwam-radius-lg);
+    border-start-start-radius: var(--enzyme-radius-lg);
+    border-start-end-radius: var(--enzyme-radius-lg);
     border-end-start-radius: 0;
     border-end-end-radius: 0;
     /*
@@ -4721,19 +4721,19 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
 
 @keyframes q-dialog-seam-in {
   from {
-    clip-path: inset(50% 0 50% 0 round var(--qiwam-radius-lg, 0.75rem));
+    clip-path: inset(50% 0 50% 0 round var(--enzyme-radius-lg, 0.75rem));
     opacity: 0.4;
   }
 
   to {
-    clip-path: inset(0 0 0 0 round var(--qiwam-radius-lg, 0.75rem));
+    clip-path: inset(0 0 0 0 round var(--enzyme-radius-lg, 0.75rem));
     opacity: 1;
   }
 }
 
 @keyframes q-dialog-seam-out {
   to {
-    clip-path: inset(50% 0 50% 0 round var(--qiwam-radius-lg, 0.75rem));
+    clip-path: inset(50% 0 50% 0 round var(--enzyme-radius-lg, 0.75rem));
     opacity: 0.2;
   }
 }

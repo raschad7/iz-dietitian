@@ -39,13 +39,14 @@ const config = [
   },
 
   {
-    // §STEP 4 of the Qiwam rollout: hex literals belong only in globals.css.
+    // Hex literals belong only in globals.css; a hex in a component is a token
+    // that skipped the design system. See docs/design-system.md.
     files: ['**/*.{tsx,jsx}'],
     plugins: {
-      qiwam: noRawHex,
+      enzyme: noRawHex,
     },
     rules: {
-      'qiwam/no-raw-hex': 'error',
+      'enzyme/no-raw-hex': 'error',
     },
   },
 
@@ -54,7 +55,7 @@ const config = [
     files: ['eslint-rules/**'],
     rules: {
       'rtl/no-physical-properties': 'off',
-      'qiwam/no-raw-hex': 'off',
+      'enzyme/no-raw-hex': 'off',
     },
   },
 ];

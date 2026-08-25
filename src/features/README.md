@@ -1,10 +1,17 @@
 # Features
 
-One folder per feature. The current areas are `auth`, `booking`, `clients`,
-`dashboard`, `portal`, `weekly-plans`, and `whatsapp`. See
+One folder per feature. The current areas are `app-pwa`, `auth`, `booking`,
+`brand`, `clients`, `clinic-profile`, `dashboard`, `notifications`, `portal`,
+`pwa`, `requests`, `settings`, `user-guide`, `weekly-plans`, and `whatsapp`. See
 [`docs/architecture.md`](../../docs/architecture.md#major-feature-areas) for
 their responsibilities and [`docs/product-scope.md`](../../docs/product-scope.md)
 before adding another product area.
+
+Not every folder matches the `actions.ts` / `queries.ts` / `schema.ts` shape
+below. `brand` is path data and a splash screen, `pwa` and `app-pwa` are
+service-worker and install-prompt plumbing, `settings` is composition over other
+features' panels, and `user-guide` is client-side tour state. A feature that
+owns no data does not need a data layer invented for it.
 
 Each feature owns its slice end to end:
 
