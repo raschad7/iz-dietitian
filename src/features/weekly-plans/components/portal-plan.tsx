@@ -36,16 +36,14 @@ import { dayStanding, type PlanDaySummary } from '../week';
  * no meals; nothing is invented to fill the space.
  *
  * **No completion provider of its own.** The home screen already wraps the
- * picker, today's progress ring and the meal list in one
- * `PlanDayCompletionProvider` keyed to today — see `plan-day-completion.tsx`
- * and the home page's own doc comment. Mounting a second, independent
- * provider here whenever the selected day is today would let a tick inside
- * `PortalPlan`'s meal list and the ring above it drift out of sync, each
- * holding its own copy of "which meals are done". So neither component
- * mounts one itself: `MealCheck`, rendered only when `standing === 'today'`,
- * reaches straight up to that ambient provider, which is only ever mounted
- * for today's own day — the one day `PortalPlan` can also legally be showing
- * `MealCheck` for.
+ * picker, the ring and the meal list in one `PlanDayCompletionProvider` keyed
+ * to the *open* day — see `plan-day-completion.tsx` and the home page's own
+ * doc comment. Mounting a second, independent provider here would let a tick
+ * inside `PortalPlan`'s meal list and the ring above it drift out of sync,
+ * each holding its own copy of "which meals are done". So neither component
+ * mounts one itself: `MealCheck`, rendered whenever `standing` is `'today'`
+ * or `'past'`, reaches straight up to that ambient provider, which always
+ * carries the same day this component resolves `standing` against.
  */
 /**
  * The week picker, on its own: `PlanDayStrip`, unlabelled. Split out of
@@ -67,14 +65,11 @@ export function PortalPlan({
   board,
   days,
   selectedDay,
-  completedMealIds,
   today,
 }: {
   board: Board;
   days: readonly PlanDaySummary[];
   selectedDay: number;
-  /** Which of the selected day's meals are already ticked — see `loadPlanPage`. */
-  completedMealIds: readonly string[];
   /** The clinic's own `YYYY-MM-DD`, read once per request — see `loadPlanPage`. */
   today: string;
 }) {
@@ -102,8 +97,6 @@ export function PortalPlan({
     days.find((summary) => summary.dayOfWeek === selectedDay)?.date ?? null,
     today,
   );
-
-  const completed = new Set(completedMealIds);
 
   return (
     /*
@@ -162,7 +155,7 @@ export function PortalPlan({
         <ul className="space-y-2">
           {meals.map((meal) => (
             <li key={meal.id}>
-              <PortalMealCard meal={meal} standing={standing} completed={completed.has(meal.id)} />
+              <PortalMealCard meal={meal} standing={standing} />
             </li>
           ))}
         </ul>

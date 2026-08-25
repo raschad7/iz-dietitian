@@ -483,6 +483,14 @@ function NotificationInboxPopover<T extends string>({
       <PopoverContent
         align={align}
         /*
+          Always anchored, never redrawn as a sheet by the `(pointer: coarse)`
+          rule in `globals.css` — correct whether this branch was chosen
+          because the pointer is fine (that rule would not apply anyway) or
+          because a caller passed `sheetOnTouch={false}` specifically to keep
+          this popover anchored on touch too. See `PopoverContent`'s own prop.
+        */
+        forceAnchored
+        /*
           `overflow-x-hidden overflow-y-auto`, not `overflow-hidden`, and the
           difference is load-bearing.
 

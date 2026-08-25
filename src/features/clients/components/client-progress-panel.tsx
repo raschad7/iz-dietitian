@@ -7,6 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { StatGrid, StatTile } from '@/components/ui/stat-tile';
 import { formatMediumDate, formatWeekday } from '@/features/booking/format';
 import { type ClientDayMeal, type ClientWeekProgress } from '@/features/clients/progress';
+import { type AdherenceDayState } from '@/features/portal/adherence';
 import { MEAL_ICONS } from '@/features/weekly-plans/components/portal-meal-card';
 import { type PlanListEntry } from '@/features/weekly-plans/queries';
 import { mealTypeForSlot } from '@/features/weekly-plans/schema';
@@ -149,6 +150,7 @@ export async function ClientProgressPanel({
                   key={day.date}
                   date={day.date}
                   locale={locale}
+                  state={day.state}
                   fraction={day.fraction}
                   completedMeals={day.completedMeals}
                   totalMeals={day.totalMeals}
@@ -166,6 +168,7 @@ export async function ClientProgressPanel({
 async function DayRow({
   date,
   locale,
+  state,
   fraction,
   completedMeals,
   totalMeals,
@@ -173,6 +176,7 @@ async function DayRow({
 }: {
   date: IsoDate;
   locale: Locale;
+  state: AdherenceDayState;
   fraction: number | null;
   completedMeals: number;
   totalMeals: number;
@@ -181,6 +185,19 @@ async function DayRow({
 }) {
   const t = await getTranslations('clients.progress');
   const hasMeals = meals.length > 0;
+
+  /*
+    A day that has not happened yet is not a `missed` one, even though
+    `client_plan_adherence` already holds a zero-completion row for it —
+    publishing a plan seeds every day of the week at once, future ones
+    included (`recomputeDayAdherence`, called from `createPlanFromGeneration`).
+    `state` is what already carries that distinction everywhere else this data
+    is drawn (`DayFlame`'s `burnOf`, the portal's own meal card hiding its
+    tick for a future day) — this row is read on `fraction`/`totalMeals`
+    alone, so without this check a week not yet lived through drew as a week
+    of 0% days already failed.
+  */
+  const isFuture = state === 'future';
 
   const summary = (
     <>
@@ -192,16 +209,24 @@ async function DayRow({
       </div>
 
       <div className="flex min-w-0 flex-1 items-center gap-3">
-        <Progress value={fraction === null ? 0 : Math.round(fraction * 100)} className="flex-1" />
-        <span className="w-12 shrink-0 text-end text-body-sm font-medium tabular-nums text-foreground">
-          {fraction === null ? '—' : formatPercent(locale, fraction)}
-        </span>
+        {isFuture ? (
+          <span className="text-body-sm text-muted-foreground">{t('days.state.future')}</span>
+        ) : (
+          <>
+            <Progress value={fraction === null ? 0 : Math.round(fraction * 100)} className="flex-1" />
+            <span className="w-12 shrink-0 text-end text-body-sm font-medium tabular-nums text-foreground">
+              {fraction === null ? '—' : formatPercent(locale, fraction)}
+            </span>
+          </>
+        )}
       </div>
 
       <div className="flex shrink-0 items-center gap-2 sm:w-56 sm:justify-end">
-        <span className="text-caption text-muted-foreground">
-          {totalMeals > 0 ? t('days.meals', { completed: completedMeals, total: totalMeals }) : t('days.noMeals')}
-        </span>
+        {isFuture ? null : (
+          <span className="text-caption text-muted-foreground">
+            {totalMeals > 0 ? t('days.meals', { completed: completedMeals, total: totalMeals }) : t('days.noMeals')}
+          </span>
+        )}
         {hasMeals ? (
           <Icon
             name="chevronDown"
@@ -254,7 +279,9 @@ async function DayRow({
               </p>
             </div>
 
-            <MealRecordMark completed={meal.completed} label={meal.completed ? t('days.mealEaten') : t('days.mealNotEaten')} />
+            {isFuture ? null : (
+              <MealRecordMark completed={meal.completed} label={meal.completed ? t('days.mealEaten') : t('days.mealNotEaten')} />
+            )}
           </div>
         ))}
       </div>
@@ -263,11 +290,12 @@ async function DayRow({
 }
 
 /**
- * Whether a meal was eaten, stated rather than offered — the dashboard's own
- * version of `SettledMealCheck` (`weekly-plans/components/meal-check-mark.tsx`).
- * Same reasoning: `role="img"` and no hover, cursor or focus ring, because
- * this is a dietitian reading a past week's record, not a control anyone
- * here can tick.
+ * Whether a meal was eaten, stated rather than offered: `role="img"` and no
+ * hover, cursor or focus ring, because this is a dietitian reading a past
+ * week's record, not a control anyone here can tick — unlike the client's
+ * own portal, where a past day's meal stays live (`MealCheck`,
+ * `weekly-plans/components/meal-check.tsx`) so they can correct it
+ * themselves. The dietitian's record of it is read-only regardless.
  *
  * A small outline ring rather than a filled disc: a solid green/red pair
  * reads as an alert pair, and a missed meal is not an error (§Design
