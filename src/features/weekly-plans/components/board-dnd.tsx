@@ -6,11 +6,12 @@ import {
   DndContext,
   DragOverlay,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
   TouchSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragPendingEvent,
   type DragStartEvent,
 } from '@dnd-kit/core';
 
@@ -85,6 +86,32 @@ type SavedSlotRemoval = {
   meals: readonly { dayOfWeek: number; meal: BoardMeal }[];
   toastId: string;
 };
+
+/**
+ * How long a finger has to rest on a card before it picks it up.
+ *
+ * A touch surface cannot spend a gesture on dragging the way a mouse can. Every
+ * swipe across this board is a scroll — the week pans sideways, the columns run
+ * off the bottom — so "moved a few pixels" cannot mean "began a drag" without
+ * taking scrolling away from the finger. A hold can mean it, because nothing
+ * else on a touch screen is a hold.
+ *
+ * 320ms is long enough that a flick past a card never trips it and short enough
+ * that a deliberate press does not feel like waiting. It is also the length of
+ * the card's arming animation, which is why the number is in
+ * `--duration-hold` in `globals.css` as well — the two have to agree, or the
+ * card finishes charging before or after the drag it is charging towards.
+ */
+export const HOLD_TO_DRAG_MS = 320;
+
+/**
+ * How far the finger may drift during the hold before it counts as a scroll.
+ *
+ * Small on purpose. A finger resting on glass wanders a pixel or two; a finger
+ * that has travelled 8px is on its way somewhere, and the surface under it
+ * belongs to the scroller.
+ */
+const HOLD_TOLERANCE_PX = 8;
 
 const EditorContext = createContext<EditorValue | null>(null);
 
@@ -164,6 +191,20 @@ export function BoardEditor({
    */
   const [dragSize, setDragSize] = useState<{ width: number; height: number } | null>(null);
   const [settledMealId, setSettledMealId] = useState<string | null>(null);
+  /**
+   * The draggable a finger is currently resting on, while the hold counts down.
+   *
+   * A press-and-hold that gives nothing back until it fires is a gesture nobody
+   * believes in: the finger is down, the screen is still, and there is no way to
+   * know whether anything is happening or whether the card simply does not do
+   * this. So the card arms visibly for the length of the hold — see
+   * `.planner-holding` — and that is also how the gesture teaches itself, since
+   * a tablet has no grip to point at any more.
+   *
+   * Set from dnd-kit's pending phase, which is fired the moment a constraint
+   * starts counting and again on every move until it resolves.
+   */
+  const [holdingId, setHoldingId] = useState<string | null>(null);
   const moveToastSequence = useRef(0);
 
   useEffect(() => {
@@ -172,12 +213,31 @@ export function BoardEditor({
     return () => window.clearTimeout(timeout);
   }, [settledMealId]);
 
-  // Pointer covers mouse and pen; Touch is what makes the board work on a tablet;
-  // Keyboard is not optional, because every card is a real button today and an
-  // editor reachable only by mouse would be a regression.
+  /*
+   * ── Mouse and touch are two different gestures, so they are two sensors ──
+   *
+   * This was one `PointerSensor` with `{ distance: 6 }`, and a single sensor is
+   * exactly what could not work here: `pointerdown` fires *before* `touchstart`,
+   * so on a tablet the pointer sensor captured every gesture and the touch
+   * sensor beside it never ran. A finger therefore got the mouse's rule — start
+   * dragging after 6px of travel — which is indistinguishable from the first 6px
+   * of a scroll. The board survived it only because the grip claimed
+   * `touch-action: none`; the catalog rows did not, so a finger on a dish
+   * scrolled the list and the dish could not be dragged out at all.
+   *
+   * `MouseSensor` activates on `mousedown` and `TouchSensor` on `touchstart`, so
+   * each input gets its own constraint and neither can swallow the other's
+   * gesture. Pen keeps working through the compatibility mouse events it already
+   * fires.
+   *
+   * The mouse rule is unchanged, deliberately: 6px of travel, from the grip. The
+   * finger's rule is a press and hold — see `HOLD_TO_DRAG_MS`.
+   */
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 8 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: HOLD_TO_DRAG_MS, tolerance: HOLD_TOLERANCE_PX },
+    }),
     useSensor(KeyboardSensor),
   );
 
@@ -282,7 +342,25 @@ export function BoardEditor({
     });
   }
 
+  /**
+   * A constraint has started counting.
+   *
+   * Only the hold is drawn. The mouse's constraint is a distance and fires this
+   * on every pixel of a gesture that has already visibly begun — arming a card
+   * under a pointer that is mid-drag would be chrome describing the past.
+   */
+  function onDragPending(event: DragPendingEvent): void {
+    if (!('delay' in event.constraint)) return;
+    setHoldingId(String(event.id));
+  }
+
+  /** The hold was abandoned — the finger left, or travelled far enough to scroll. */
+  function onDragAbort(): void {
+    setHoldingId(null);
+  }
+
   function onDragStart(event: DragStartEvent): void {
+    setHoldingId(null);
     setSettledMealId(null);
     const payload = (event.active.data.current as DragPayload | undefined) ?? null;
     setDragging(payload);
@@ -314,6 +392,7 @@ export function BoardEditor({
   function endDrag(): void {
     setDragging(null);
     setDragSize(null);
+    setHoldingId(null);
   }
 
   function onDragEnd(event: DragEndEvent): void {
@@ -382,6 +461,8 @@ export function BoardEditor({
       <DndContext
         id="weekly-plan-board"
         sensors={sensors}
+        onDragPending={onDragPending}
+        onDragAbort={onDragAbort}
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
         onDragCancel={endDrag}
@@ -481,6 +562,7 @@ export function BoardEditor({
             },
             dragging,
             settledMealId,
+            holdingId,
           }}
         >
           {children}
@@ -610,6 +692,11 @@ export type EditorActions = {
   dragging: DragPayload | null;
   /** The slot that just received a drop, for one bounded settle animation. */
   settledMealId: string | null;
+  /**
+   * The draggable id — `meal:…` or `dish:…` — a finger is holding down on, for
+   * the length of the press that is about to become a drag. Null on a mouse.
+   */
+  holdingId: string | null;
 };
 
 /**

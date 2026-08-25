@@ -240,6 +240,7 @@ export function MealsHarness({ locale }: { locale: string }) {
     removeWeek: () => {},
     dragging: null,
     settledMealId: null,
+    holdingId: null,
   };
 
   return (

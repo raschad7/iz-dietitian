@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useContext, useMemo, useState } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { useLocale, useTranslations } from 'next-intl';
 
@@ -33,6 +33,8 @@ import {
 import { localizedName } from '../food-display';
 import type { CatalogEntry } from '../queries';
 import { ALLERGENS, DISH_TAGS, mealTypeForSlot, type DishTag } from '../schema';
+
+import { EditorActionsContext } from './board-dnd';
 
 /**
  * The computed nutrition categories offered as filters. Only "high protein" for
@@ -527,6 +529,15 @@ function CatalogRow({
 }) {
   const t = useTranslations('weeklyPlans');
   const locale = useLocale();
+  /*
+    Read rather than required. This row is also the body of the catalog inside
+    the meal inspector and of the drawer on a client with no plan yet, and
+    neither of those is inside a `BoardEditor` — so `useEditorActions` would
+    throw on two screens that never drag anything. Both are `onPick` lists, and
+    a list that cannot be dragged has no hold to draw.
+  */
+  const editorActions = useContext(EditorActionsContext);
+  const holding = editorActions?.holdingId === `dish:${dish.id}`;
 
   const kcal = roundForDisplay('kcal', dish.baseKcal * servings);
 
@@ -551,10 +562,13 @@ function CatalogRow({
   // it promises is what changed.
   const shape = cn(
     'my-1 grid min-h-[4.5rem] w-full grid-cols-[1.25rem_minmax(0,1fr)_auto] items-center gap-2 rounded-md px-2 py-2.5 text-start transition-colors',
-    draggable && 'cursor-grab hover:bg-accent/50',
+    draggable && 'planner-catalog-row cursor-grab hover:bg-accent/50',
     onPick && !blocked && 'cursor-pointer hover:bg-accent/50',
     blocked && 'bg-muted/50 opacity-70',
     isDragging && 'opacity-40',
+    // The same arming the board's cards do, so a hold means one thing in the
+    // planner rather than two. See `.planner-holding`.
+    holding && 'planner-holding',
   );
 
   const body = (
@@ -651,6 +665,22 @@ function CatalogRow({
   }
 
   return (
+    /*
+      Every listener on the row itself, unlike the board's cards.
+
+      There the mouse's activator has to stay on a separate grip, because the
+      card is a button and a drag beginning on it would compete with the click
+      that opens the meal. A catalog row in the drawer is not a button — it has
+      exactly one gesture and every pointer performs it — so the row is the
+      handle for all of them, and only the *rule* differs: 6px of travel on a
+      mouse, a press and hold on glass.
+
+      Which is what fixes dragging a dish out on a tablet. The row carries
+      `role="button"` from dnd-kit, so `touch-action: manipulation` applies to
+      it and the finger can still scroll this list — and under the old single
+      pointer sensor that was fatal, because "moved 6px" *was* the scroll. A
+      hold takes nothing from the scroller and so needs nothing taken from it.
+    */
     <div
       ref={setNodeRef}
       {...(draggable ? listeners : {})}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, type TouchEventHandler } from 'react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { useLocale, useTranslations } from 'next-intl';
 
@@ -29,9 +29,16 @@ export type GhostMeal = { nameAr: string; nameEn: string; isRepeat: boolean };
  * Still both a drop target and a drag source: a dish arrives from the catalog,
  * or a dish already on the board moves here from another slot. The card is a
  * button, because opening the detail panel is an action and has to be reachable
- * from the keyboard. The drag handle stays separate so dragging never steals
- * that click, and fades in on hover because dragging is a pointer gesture and a
- * handle nobody can use is chrome.
+ * from the keyboard.
+ *
+ * **How it is picked up depends on what is picking it up.** A mouse grabs the
+ * grip in the leading corner, which stays separate so a drag can never steal the
+ * click that opens the card, and stays hidden until the card is hovered because
+ * a handle nobody can use is chrome. A finger holds the card itself for a
+ * moment — there is no grip on a touch screen, because a hold cannot be confused
+ * with the tap beneath it or the scroll around it, and a strip down the leading
+ * edge was 2rem taken off the dish name on the one size that could least afford
+ * it. See the listener split below.
  */
 export function MealCard({
   meal,
@@ -51,7 +58,7 @@ export function MealCard({
 }) {
   const t = useTranslations('weeklyPlans');
   const locale = useLocale();
-  const { dragging, settledMealId } = useEditorActions();
+  const { dragging, settledMealId, holdingId } = useEditorActions();
 
   const kcal = roundForDisplay('kcal', meal.totals.kcal.value);
   const drift = meal.dish === null ? null : driftState(kcal, meal.budgetKcal, MEAL_TOLERANCE);
@@ -86,6 +93,29 @@ export function MealCard({
         : undefined,
     },
   });
+
+  /*
+   * ── The mouse grabs the grip; the finger holds the card ──
+   *
+   * dnd-kit hands back one listener per sensor — `onMouseDown`, `onTouchStart`,
+   * `onKeyDown` — and they do not have to live on the same element. That is the
+   * whole of the tablet change: the two pointer listeners stay on the grip,
+   * where a mouse has always found them and where the keyboard sensor requires
+   * them (it refuses any key press whose target is not the activator node), and
+   * `onTouchStart` moves out to the card.
+   *
+   * So on a mouse nothing moved: the grip is still the only place a drag can
+   * begin, and a click anywhere else still opens the detail panel. On glass the
+   * whole card is the handle, held rather than grabbed — which is why the grip
+   * stops being drawn there at all (see `globals.css`) and gives the dish name
+   * back the 2rem strip it was renting.
+   *
+   * The tap survives the change. dnd-kit swallows the click that follows a
+   * gesture it activated, so a hold that lifts the card cannot also open the
+   * panel underneath it — and a hold too short to activate never suppresses
+   * anything, so it stays an ordinary tap.
+   */
+  const { onTouchStart, ...pointerListeners } = listeners ?? {};
 
   // Only light up for a drop that would actually land — a drag over its own
   // source slot changes nothing, and saying otherwise is a lie the pointer can
@@ -137,6 +167,16 @@ export function MealCard({
       ref={setCardRef}
       // What `onDragStart` measures the lifted card against — see `board-dnd.tsx`.
       data-meal-card=""
+      /*
+        The touch activator, on the card rather than on the grip.
+
+        No `touch-action: none` goes with it, and that is the point: the column
+        under this card scrolls and the week beside it pans, so the finger has to
+        keep both. A hold is the one gesture that costs the scroller nothing,
+        because a finger that has not moved is not scrolling yet — see
+        `HOLD_TO_DRAG_MS`.
+      */
+      onTouchStart={onTouchStart as TouchEventHandler<HTMLDivElement> | undefined}
       className={cn(
         'planner-meal-card group relative min-h-0 overflow-hidden rounded-lg border bg-card transition-[border-color,background-color,transform,opacity,box-shadow] duration-(--duration-sweep) ease-(--ease-sweep)',
         selected ? 'border-primary ring-1 ring-primary' : 'border-border',
@@ -144,6 +184,7 @@ export function MealCard({
         wouldLand && 'scale-[1.01] border-primary bg-secondary shadow-elevated',
         isDragging && 'border-dashed bg-muted',
         settledMealId === meal.id && 'planner-drop-settled',
+        holdingId === `meal:${meal.id}` && 'planner-holding',
       )}
     >
       <button
@@ -253,11 +294,16 @@ export function MealCard({
       {/* A separate handle, so dragging never competes with the click that opens
           the card. dnd-kit's `attributes` carry `role="button"` and `tabIndex`,
           so this span is focusable and the keyboard sensor can reach it — which
-          is why it has to reappear on focus as well as on hover. */}
+          is why it has to reappear on focus as well as on hover.
+
+          It carries the mouse and keyboard activators only; the finger's is on
+          the card itself. On a coarse pointer the grip is not drawn and cannot
+          be touched — it stays in the DOM, and in the tab order, because a
+          tablet with a keyboard attached is still a keyboard. */}
       {editable && meal.dish && (
         <span
           ref={setActivatorNodeRef}
-          {...listeners}
+          {...pointerListeners}
           {...attributes}
           aria-label={localizedName(meal.dish, locale)}
           /*
@@ -270,7 +316,14 @@ export function MealCard({
             so the grip is always the first thing in the card rather than always
             on one physical side.
           */
-          className="planner-drag-handle absolute start-0.5 top-0.5 z-30 cursor-grab rounded-full p-1.5 text-muted-foreground opacity-0 transition-[opacity,background-color,color] hover:bg-secondary hover:text-primary active:cursor-grabbing group-hover:opacity-100 focus-visible:bg-secondary focus-visible:text-primary focus-visible:opacity-100 max-md:opacity-100"
+          /*
+            `max-md:opacity-100` is gone with the coarse-pointer strip it was
+            half of. It made the grip permanent on every narrow screen, which is
+            the case that no longer has a grip: below `md` the pointer is a
+            finger and the gesture is a hold. What is left is the mouse's rule —
+            invisible until the card is hovered or the grip itself is focused.
+          */
+          className="planner-drag-handle absolute start-0.5 top-0.5 z-30 cursor-grab rounded-full p-1.5 text-muted-foreground opacity-0 transition-[opacity,background-color,color] hover:bg-secondary hover:text-primary active:cursor-grabbing group-hover:opacity-100 focus-visible:bg-secondary focus-visible:text-primary focus-visible:opacity-100"
         >
           <Icon name="dragHandle" className="size-5" />
         </span>

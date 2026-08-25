@@ -339,6 +339,21 @@
   --duration-travel: 420ms;
 
   /*
+   * How long a finger rests on something before it picks it up.
+   *
+   * Not a reaction like the four durations above — it is a *requirement*, the
+   * length of the press the planner asks for before a meal card or a catalog row
+   * leaves the surface on a touch screen. It is spent on the card's arming
+   * animation, so the charge finishes at the instant the drag begins.
+   *
+   * ⚠ The same number lives in `HOLD_TO_DRAG_MS` in
+   * `src/features/weekly-plans/components/board-dnd.tsx`, which is what actually
+   * arms dnd-kit. Change one and change the other, or the card finishes charging
+   * before or after the thing it is charging towards.
+   */
+  --duration-hold: 320ms;
+
+  /*
    * ── Third-party brand marks ──
    * Fixed by the brand's own guidelines, not the Qiwam palette — same in light
    * and dark, never swapped for a semantic token. Currently only Google's "G".
@@ -5304,44 +5319,99 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
 }
 
 /*
- * ── On glass the grip is an edge, not a badge ──
+ * ── On glass there is no grip; the card itself is held ──
  *
- * A finger cannot hover, so the grip that a mouse only sees when it is wanted
- * is on screen permanently here — and it was a 44px opaque disc dropped on the
- * leading corner of a 78px card, directly over the dish name that is the only
- * thing the card is for. Every card on a tablet was reading "‎⋯‎ـنة مع جوز وعسل".
- * The touch floor and the card's one piece of content were being asked to share
- * the same 44 square pixels, and the content lost.
+ * A finger cannot hover, so the grip a mouse only sees when it is wanted had to
+ * be permanent here — first a 44px disc dropped on the leading corner of a 78px
+ * card, then a 2rem strip down its leading edge with the card's content padded
+ * clear of it. Both were the same bargain: the touch floor and the card's one
+ * piece of content sharing a box only big enough for one of them, and every
+ * card on a tablet reading "‎⋯‎ـنة مع جوز وعسل".
  *
- * So the grip stops floating over the card and becomes part of it: a 2rem strip
- * down the leading edge, full height, with the card's own content padded clear
- * of it. 2rem × 78px is a larger target than the disc it replaces — a finger
- * that misses vertically has nowhere to miss to — and it reads the way a
- * physical pull does, which is a truer promise than a badge in a corner. The
- * name gets its whole box back.
+ * The bargain is off, because the gesture changed. A press and hold anywhere on
+ * the card picks it up (`HOLD_TO_DRAG_MS` in `board-dnd.tsx`), so the whole card
+ * is the handle and there is nothing left for a strip to promise. The dish name
+ * gets its full width back on the one screen size where it was short of it.
  *
- * `inset-block: 0` rather than a height: the card is a subgrid row and its
- * height is the row's, so anything the strip states for itself would be a
- * second opinion. The radius is the card's, softened only on the two corners it
- * actually meets.
+ * The grip stays in the markup and in the tab order: a tablet with a keyboard
+ * attached is a coarse pointer *and* a keyboard, and the keyboard sensor can
+ * only start a drag from the activator node. So it is untouchable rather than
+ * removed — `pointer-events: none` keeps a finger from landing on a thing it
+ * cannot see, and focus hands it back, at which point the base rule has already
+ * made it visible.
  */
 @media (pointer: coarse) {
   .planner-drag-handle {
-    display: grid;
-    place-items: center;
-    inset-block: 0;
-    inset-inline-start: 0;
-    inline-size: 2rem;
-    padding: 0;
-    opacity: 1;
-    border-radius: 0;
-    border-inline-end: 1px solid var(--border);
-    background-color: var(--muted);
-    color: var(--muted-foreground);
+    pointer-events: none;
   }
 
-  .planner-meal-card > button {
-    padding-inline-start: 2rem;
+  .planner-drag-handle:focus-visible {
+    pointer-events: auto;
+  }
+
+  /*
+   * The two opt-outs a hold needs from the platform, on the surfaces that now
+   * answer one.
+   *
+   * A long press is also how a touch OS starts selecting text, and on iOS how
+   * it raises the callout and the magnifier — and the instant either appears
+   * WebKit takes the pointer and fires `pointercancel`, which every drag
+   * implementation here reads as "abandoned". Which is to say the platform's
+   * own long-press would kill ours at roughly the moment it fired. See the
+   * `-webkit-touch-callout` note above the grips; this is the same fact,
+   * arriving now for the card and the catalog row because they are what a
+   * finger holds.
+   *
+   * `touch-action` is deliberately *not* touched. The column under a meal card
+   * scrolls, the week beside it pans, and the catalog is the longest list in
+   * the planner — claiming the gesture here would trade a scroll for a drag.
+   * A hold needs no such trade: a finger that has not moved is not scrolling,
+   * and dnd-kit only starts calling `preventDefault` once the hold has been
+   * met.
+   */
+  .planner-meal-card,
+  .planner-catalog-row {
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+}
+
+/*
+ * ── The press, made visible ──
+ *
+ * A hold that gives nothing back until it fires is a gesture nobody discovers
+ * and nobody trusts: the finger is down, the screen is still, and there is no
+ * way to tell whether something is happening or whether this card simply does
+ * not do that. So the surface under the finger settles — a small, slow press
+ * inwards over exactly the length of the hold, ending at the instant the card
+ * lifts, so the two read as one movement rather than as a pause and a jump.
+ *
+ * Scale and a ring, nothing else. This runs under a fingertip that is covering
+ * most of the card, so the signal has to be carried by the card's outline,
+ * which is the part still visible around the finger.
+ *
+ * The class is applied from React (`holdingId`), not from `:active`. `:active`
+ * has no memory of *how long* — it would fire on every tap, including the taps
+ * that open the meal detail panel, and announce a drag that is not coming.
+ */
+.planner-holding {
+  transform: scale(0.96);
+  transition:
+    transform var(--duration-hold) var(--ease-sweep),
+    box-shadow var(--duration-hold) var(--ease-sweep);
+  box-shadow: 0 0 0 2px var(--primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /*
+    The ring alone. The press is the part that is motion; the outline is the
+    part that is information, and a reader who has asked for less movement has
+    not asked to be told less.
+  */
+  .planner-holding {
+    transform: none;
+    transition: box-shadow var(--duration-hold) var(--ease-sweep);
   }
 }
 
