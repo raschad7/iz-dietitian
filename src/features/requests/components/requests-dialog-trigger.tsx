@@ -160,8 +160,17 @@ export function RequestsDialogTrigger({
                   that bar, and a card starting flush against it read as part of
                   the heading rather than as the first of a stack. */}
               <ScrollWindow
+                /*
+                  Named as the dialog's body, so the responsive frame in
+                  `globals.css` is what states this surface's geometry — the
+                  header pinned, this box growing into what is left and clipping
+                  the dialog around it. It was previously an anonymous `div`
+                  carrying `min-h-0 flex-1`, which describes the same shape to a
+                  reader and a different one to WebKit; see `ScrollWindow`.
+                */
+                data-slot="dialog-body"
                 visible={VISIBLE_REQUESTS}
-                className="min-h-0 flex-1 px-4 pt-4 pb-4 sm:px-5 sm:pb-5"
+                className="px-4 pt-4 pb-4 sm:px-5 sm:pb-5"
               >
                 {inbox}
               </ScrollWindow>
