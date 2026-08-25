@@ -5,9 +5,9 @@ import { validateClinicProfile, validateEverySection } from './validation';
 
 const valid = {
   clinic: {
-    name: 'Qiwam Clinic',
+    name: 'Enzyme Clinic',
     phone: '0599123456',
-    contactEmail: 'clinic@qiwam.test',
+    contactEmail: 'clinic@enzyme.test',
     address: 'Ramallah',
   },
   schedule: {
@@ -111,7 +111,7 @@ describe('validateClinicProfile', () => {
     const result = validateClinicProfile(valid);
 
     expect(result.success).toBe(true);
-    if (result.success) expect(result.data.clinic?.contactEmail).toBe('clinic@qiwam.test');
+    if (result.success) expect(result.data.clinic?.contactEmail).toBe('clinic@enzyme.test');
   });
 
   test('reports an over-long clinic name as too long, not as missing', () => {

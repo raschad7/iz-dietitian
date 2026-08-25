@@ -46,6 +46,12 @@ import { cn } from '@/lib/utils';
  * warning callout is not worth taking the record down for.
  */
 
+/**
+ * The `qiwam.` prefix is the product's former name. It stays: this key names a
+ * record already sitting in real browsers, and renaming it would not migrate
+ * that record, it would abandon it. A rebrand is not a reason to silently
+ * discard state a user already has.
+ */
 const STORAGE_KEY = 'qiwam.dismissed-notices';
 
 /**

@@ -7,6 +7,8 @@ checks. For the code structure, see [Architecture](architecture.md).
 
 - [Bun](https://bun.sh/) 1.3.14 (the version pinned in `package.json`)
 - PostgreSQL running locally
+- Playwright browsers, only for the end-to-end suite:
+  `bunx playwright install`
 - Docker only if you want to run the optional OpenWA WhatsApp gateway
 
 ## First-time setup
@@ -96,7 +98,8 @@ in another committed `.env` file.
 | `bun run build` | Create a production build |
 | `bun run lint` | Run ESLint, including design-token and RTL rules |
 | `bun run typecheck` | Run TypeScript without emitting files |
-| `bun run test` | Run the test suite using `.env.test.local` |
+| `bun run test` | Run the unit and integration suite using `.env.test.local` |
+| `bun run test:e2e` | Run the Playwright end-to-end specs in `e2e/` |
 | `bun run db:setup` | Migrate, seed the catalogs, and verify — the one setup command |
 | `bun run db:check` | Report whether the database is in a servable state |
 | `bun run db:migrate` | Apply development database migrations |
@@ -106,8 +109,12 @@ in another committed `.env` file.
 | `bun run db:seed:catalog` | Seed the canonical food catalog; add `--apply` to write |
 | `bun run db:seed:dishes` | Seed the shipped dish catalog |
 | `bun run db:build-catalog` | Regenerate `data/catalog-foods.json` from the offline USDA source |
+| `bun run db:build-food-dataset` | Rebuild the offline USDA source file itself |
+| `bun run db:backfill:plan-snapshots` | Report unfrozen published plans; add `--apply` to repair |
 | `bun run db:reset` | Destructively rebuild the local development schema |
+| `bun run db:reset:test` | Destructively rebuild the test schema |
 | `bun run wa:reminders` | Process due WhatsApp reminders once |
+| `bun run brand:build` | Regenerate the brand SVGs in `public/brand/` from `src/features/brand/logo.ts` |
 
 `db:reset` is intentionally protected against production use. Still check the
 active database URL before running it.
@@ -202,6 +209,12 @@ bun run test
 
 Some tests require the PostgreSQL test database to exist and have current
 migrations. If needed, run `bun run db:migrate:test` first.
+
+`bun run test` deliberately ignores `e2e/**`. The Playwright specs are a
+separate suite: they drive a real browser against a running app, so run them
+with `bun run test:e2e` after `bunx playwright install`. Their setup lives in
+`e2e/global-setup.ts` and `e2e/fixtures.ts`, and they read the same test
+database as the rest of the suite.
 
 ## Optional integrations
 

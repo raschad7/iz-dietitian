@@ -16,6 +16,7 @@ src/components/    Shared UI and application layout components
 src/db/            Database client and Drizzle schemas
 src/i18n/          Locale routing and Arabic/English messages
 src/lib/           Cross-feature infrastructure
+src/proxy.ts       Optimistic session and portal-locale redirects
 ```
 
 ## Routes and features
@@ -211,14 +212,27 @@ lint rule. See [Design system](design-system.md) for the complete UI contract.
 
 - `auth`: staff and client authentication, password policy, passkeys, and rate
   limiting
-- `booking`: calendar, appointments, and appointment requests
+- `booking`: calendar, appointments, clinic hours, and appointment scheduling
+- `brand`: the logo as path data plus the splash screen; the single source the
+  in-app lockup, the PWA icon, the Open Graph card, and `public/brand/*.svg`
+  are all drawn from
 - `clients`: clinic roster, client details, the nutrition intake, and portal
   credential issuing
+- `clinic-profile`: clinic onboarding, clinic details, and the default schedule
 - `dashboard`: staff overview and attention items
-- `portal`: client dashboard, appointments, profile, and published plan access
+- `notifications`: the in-app notification feed and browser notification state
+- `portal`: client dashboard, appointments, profile, settings, published plan
+  access, and the portal's own PWA install flow
+- `requests`: the staff-side inbox for client-raised appointment and profile
+  requests, kept free of database imports so its cards stay client components
+- `settings`: the staff settings workspace that composes the other features'
+  panels
+- `user-guide`: the guided in-app tour, its anchors, and its step definitions
 - `weekly-plans`: dish-based generation, review, publish, and the shared
   nutrition arithmetic over the `catalog_foods` reference table
 - `whatsapp`: gateway configuration, messages, reminders, and inbound replies
+- `app-pwa` / `pwa`: service-worker registration and install-prompt capture for
+  the staff application
 
 ## External services
 

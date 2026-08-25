@@ -1,3 +1,11 @@
+<!--
+  SUPERSEDED. These files under public/images/ are the originally supplied
+  artwork. Nothing in the application loads them any more — the live assets are
+  generated into public/brand/ by `bun run brand:build` from the single path
+  source in src/features/brand/logo.ts, and the in-app lockup is inline SVG so
+  its fills can read the theme's tokens. Kept only as the delivered originals;
+  edit src/features/brand/logo.ts instead.
+-->
 <svg width="1930" height="743" viewBox="0 0 1930 743" fill="none" xmlns="http://www.w3.org/2000/svg">
 <g clip-path="url(#clip0_1002_4169)">
 <path d="M1558.5 0C1608.8 0 1656.76 9.99605 1700.51 28.1089C1707.47 30.9895 1709.55 39.7041 1705.55 46.0856C1691.92 67.848 1684.04 93.5815 1684.04 121.156C1684.04 199.356 1747.43 262.749 1825.63 262.749C1849.92 262.749 1872.78 256.63 1892.76 245.851C1899.39 242.273 1907.96 244.92 1910.38 252.054C1923.1 289.54 1930 329.714 1930 371.5C1930 576.674 1763.67 743 1558.5 743C1353.33 743 1187 576.674 1187 371.5C1187 166.326 1353.33 0 1558.5 0Z" fill="#75CF48"/>

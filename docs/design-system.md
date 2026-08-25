@@ -1,21 +1,28 @@
-# Qiwam design system / نظام تصميم قوام
+# Enzyme design system / نظام تصميم إنزيم
 
-This file is the concise, authoritative UI contract for Qiwam. It describes the
+This file is the concise, authoritative UI contract for Enzyme. It describes the
 design system that is implemented now: a bilingual, RTL-first application built
-primarily from reusable shadcn components adapted to Qiwam's visual language.
+primarily from reusable shadcn components adapted to Enzyme's visual language.
+
+> The product was previously called **Qiwam / قوام**. Dated design records under
+> `docs/superpowers/` and `.impeccable/` still use that name and describe older
+> states of this system — including the olive-and-lime palette and the Q-shaped
+> Arc, both of which are gone. When one of them disagrees with this file, this
+> file wins.
 
 Use the following sources in this order when they disagree:
 
 1. Reusable component behavior and variants in [`src/components/ui/`](../src/components/ui/).
 2. Semantic tokens and global utilities in [`src/app/globals.css`](../src/app/globals.css).
 3. The rules in this file.
-4. Existing feature screens and prototypes.
-5. [`design-guide.html`](design-guide.html) and images in
-   [`design-images/`](design-images/) as detailed visual references only.
+4. Existing feature screens.
+5. The standalone studies in [`design-prototypes/`](../design-prototypes/) as
+   visual references only.
 
-The HTML guide and reference images include historical states. They can clarify
-the intended character of the product, but they never override current shared
-components, tokens, accessibility behavior, or this contract.
+The prototypes are colour and layout studies, not production code, and several
+predate the current brand. They can clarify the intended character of the
+product, but they never override current shared components, tokens,
+accessibility behavior, or this contract.
 
 ## Required UI workflow
 
@@ -39,16 +46,16 @@ already contains the component. Import from `@/components/ui/*`.
 
 [`components.json`](../components.json) configures shadcn with the `base-nova`
 style, Base UI primitives, React Server Components, Tailwind CSS variables, and
-RTL support. Qiwam depends heavily on that component model:
+RTL support. Enzyme depends heavily on that component model:
 
 - shadcn/Base UI supplies tested primitive behavior and composition patterns;
 - `src/components/ui/` owns the repository's installed and adapted versions;
-- semantic tokens give those components Qiwam's appearance;
+- semantic tokens give those components Enzyme's appearance;
 - feature code composes them into product workflows.
 
 An upstream shadcn component is a starting point, not permission to bypass the
 local system. When adding or updating one, review the generated diff carefully:
-preserve Qiwam tokens, sizes, focus behavior, RTL logic, popup behavior, and
+preserve Enzyme tokens, sizes, focus behavior, RTL logic, popup behavior, and
 existing variants. Never overwrite a customized shared component blindly.
 
 Feature code should not import `@base-ui/react` or another primitive library

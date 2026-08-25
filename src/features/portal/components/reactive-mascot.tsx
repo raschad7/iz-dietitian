@@ -11,7 +11,7 @@ import { usePlanDayCompletion } from '@/features/weekly-plans/components/plan-da
 import { cn } from '@/lib/utils';
 
 /**
- * The reactive layer over the Qiwam mark: one `MascotFace`, driven by
+ * The reactive layer over the brand mark: one `MascotFace`, driven by
  * whichever screen's own state is handed in. See the module doc in
  * `use-reactive-mascot.ts` for how those signals turn into one emotion, and
  * `emotion.ts` for the priority they are resolved in.
