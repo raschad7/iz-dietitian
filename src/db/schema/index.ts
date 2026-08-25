@@ -23,4 +23,5 @@ export * from './client-check-ins';
 export * from './client-plan-adherence';
 export * from './weekly-plans';
 export * from './weekly-plan-meal-completions';
+export * from './billing';
 export * from './whatsapp';

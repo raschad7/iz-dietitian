@@ -6,6 +6,8 @@ import {
   ArrowUpDown,
   ArrowUpRight,
   Beef,
+  Banknote,
+  BanknoteArrowUp,
   Bell,
   Building2,
   Calendar,
@@ -30,6 +32,7 @@ import {
   Compass,
   Cookie,
   Copy,
+  CreditCard,
   CupSoda,
   DoorClosed,
   DoorOpen,
@@ -72,6 +75,8 @@ import {
   Phone,
   Pill,
   Plus,
+  Printer,
+  ReceiptText,
   RefreshCw,
   Repeat,
   Ruler,
@@ -96,6 +101,7 @@ import {
   User,
   UserPlus,
   Users,
+  WalletMinimal,
   Utensils,
   UtensilsCrossed,
   Venus,
@@ -130,6 +136,14 @@ export const APP_ICONS = {
   /* Navigation and sections */
   dashboard: LayoutDashboard,
   clients: Users,
+  /*
+    The two halves of the Subscriber group in the rail. `clients` is the group's
+    own glyph — the people — and these two are the things you can read about
+    them: the record, and the money. They are deliberately different pictures
+    from `clients` rather than tints of it, because a submenu whose parent and
+    children share one glyph is three of the same mark stacked in a column.
+  */
+  bills: ReceiptText,
   calendar: Calendar,
   weeklyPlans: CalendarRange,
   mealPlans: ClipboardList,
@@ -173,6 +187,45 @@ export const APP_ICONS = {
   refresh: RefreshCw,
   archive: Archive,
   restore: ArchiveRestore,
+  /*
+    Recording money received from a subscriber — the wallet on every Bills row.
+
+    `WalletMinimal` rather than `Wallet` or `WalletCards`: at the 20px a table
+    action is drawn at, the fuller glyphs lose their card slot to the stroke
+    weight and read as an anonymous rounded rectangle. The minimal one keeps one
+    clasp and stays legible.
+  */
+  recordPayment: WalletMinimal,
+  /*
+    Adding a charge to a subscriber's account — the banknote beside the wallet.
+
+    The two sit together on every Bills row and have to be told apart at 20px,
+    which is why they are different *shapes* rather than two wallets: the wallet
+    is money going into the drawer, the banknote's arrow is a line going up onto
+    the account.
+  */
+  recordCharge: BanknoteArrowUp,
+  /*
+    Printing a bill — the same glyph whether it is one operation or the whole
+    account, because printing is one verb. What differs is where it sits: the
+    printer on the row prints the statement, and each one inside the menu
+    prints the single bill it sits beside.
+  */
+  printBill: Printer,
+  /*
+    Paying by card — the second of the two ways money is taken, beside cash.
+
+    A card *machine the clinic already owns*, not a gateway: this app takes no
+    card details and contacts no bank. See the header of `src/db/schema/billing.ts`.
+  */
+  /*
+    Paying in cash — the plain banknote, and deliberately not `recordCharge`'s.
+    That one carries an arrow because it means *adding* money to an account;
+    this one names a method, and an arrow on it would say the method moves
+    money in a direction of its own.
+  */
+  paymentCash: Banknote,
+  paymentCard: CreditCard,
   filter: ListFilter,
   sort: ArrowUpDown,
   moreActions: MoreVertical,

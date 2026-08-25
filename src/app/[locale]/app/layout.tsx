@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 import { DesktopScrollbars } from '@/components/layout/desktop-scrollbars';
-import { AppShell } from '@/components/layout/sidebar';
+import { AppShell, type NavItem } from '@/components/layout/sidebar';
 import { type IconName } from '@/components/ui/icon';
 import { APP_THEME_COLOR_DARK, APP_THEME_COLOR_LIGHT } from '@/features/app-pwa/brand';
 import { ServiceWorkerRegister } from '@/features/app-pwa/service-worker-register';
@@ -20,7 +20,7 @@ type AppLayoutProps = {
 };
 
 /**
- * The five places a dietitian works.
+ * The six places a dietitian works.
  *
  * Profile, WhatsApp and security used to sit here too, which made a third of
  * the rail settings. They are behind the profile menu at its foot now — see
@@ -36,11 +36,28 @@ type AppLayoutProps = {
  */
 const NAV_ITEMS = [
   { href: '/app', labelKey: 'dashboard' },
-  { href: '/app/clients', labelKey: 'clients' },
+  /**
+   * The register (`/app/clients`) under the name the clinic uses for the people
+   * in it.
+   *
+   * It was briefly a "Subscriber" group holding Details and Bills. The group
+   * bought one word of grouping and charged a click for it: every trip to the
+   * register — the screen most of a day is spent on — went through a disclosure
+   * first, and on a phone, where the rail is locked to its icon column, through
+   * a dropdown. The two screens are flat rows now, siblings in one list, each
+   * one click from anywhere.
+   *
+   * The route did not move. Every link, bookmark and redirect still works; only
+   * the word in the rail is different.
+   */
+  { href: '/app/clients', labelKey: 'subscriber' },
+  /* The money half of the same people. A sibling rather than a child, so it is
+     reached in one click and reads as its own screen, which it is. */
+  { href: '/app/clients/bills', labelKey: 'bills' },
   { href: '/app/calendar?view=week', labelKey: 'calendar' },
   { href: '/app/weekly-plans', labelKey: 'weeklyPlans' },
   { href: '/app/dishes', labelKey: 'dishes' },
-] as const;
+] as const satisfies readonly NavItem[];
 
 /**
  * One glyph per destination. Text-only rows are hard to scan at a glance; the
@@ -51,7 +68,8 @@ const NAV_ITEMS = [
  */
 const NAV_ICONS = {
   dashboard: 'dashboard',
-  clients: 'clients',
+  subscriber: 'clients',
+  bills: 'bills',
   calendar: 'calendar',
   weeklyPlans: 'weeklyPlans',
   dishes: 'dishes',

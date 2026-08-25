@@ -48,9 +48,12 @@ export default async function DevShellPage({ params }: DevShellPageProps) {
     */
     <GuideProvider routed={false}>
       <AppShell
+        /* The staff rail's own list, flat — the harness is only worth looking at
+           if it is showing the real thing. */
         items={[
           { href: '/app', labelKey: 'dashboard' },
-          { href: '/app/clients', labelKey: 'clients' },
+          { href: '/app/clients', labelKey: 'subscriber' },
+          { href: '/app/clients/bills', labelKey: 'bills' },
           { href: '/app/calendar', labelKey: 'calendar' },
           { href: '/app/weekly-plans', labelKey: 'weeklyPlans' },
           { href: '/app/dishes', labelKey: 'dishes' },
@@ -63,7 +66,8 @@ export default async function DevShellPage({ params }: DevShellPageProps) {
         user={{ name: 'Rani Shweiki', email: 'rani@example.com', locale }}
         icons={{
           dashboard: 'dashboard',
-          clients: 'clients',
+          subscriber: 'clients',
+          bills: 'bills',
           calendar: 'calendar',
           weeklyPlans: 'weeklyPlans',
           dishes: 'dishes',

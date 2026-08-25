@@ -39,6 +39,8 @@
   "nav": {
     "dashboard": "Dashboard",
     "clients": "Clients",
+    "subscriber": "Subscriber",
+    "bills": "Bills",
     "calendar": "Calendar",
     "plans": "Nutrition plans",
     "appointments": "Appointments",
@@ -550,7 +552,8 @@
         "nutrition": "Nutrition",
         "progress": "Progress",
         "security": "The Gate",
-        "billing": "Plans"
+        "billing": "Plans",
+        "expenses": "Expenses"
       }
     },
     "progress": {
@@ -938,6 +941,142 @@
         "upcoming": "Upcoming",
         "past": "Previous"
       }
+    }
+  },
+  "billing": {
+    "title": "Bills",
+    "subtitle": "What each subscriber has been billed, paid, and still owes.",
+    "empty": "No subscribers yet.",
+    "emptyFiltered": "No subscriber matches this search.",
+    "clearFilters": "Clear filters",
+    "fields": {
+      "name": "Full name",
+      "totalPrice": "Total price",
+      "phone": "Phone number",
+      "remaining": "Remaining",
+      "balance": "Balance",
+      "totalPayment": "Total payment",
+      "status": "Payment status",
+      "actions": "Actions"
+    },
+    "status": {
+      "none": "No charges",
+      "unpaid": "Unpaid",
+      "partial": "Partly paid",
+      "paid": "Paid",
+      "credit": "In credit"
+    },
+    "prices": {
+      "title": "Services and prices",
+      "description": "What this clinic charges for each service. Changing a price here does not change a bill that has already been recorded.",
+      "unpriced": "No price yet",
+      "save": "Save changes",
+      "saving": "Saving…",
+      "saved": "Prices saved"
+    },
+    "services": {
+      "monthly": "One month subscription",
+      "quarterly": "Three month subscription",
+      "consultation": "Consultation"
+    },
+    "methods": {
+      "cash": "Cash",
+      "transfer": "Bank transfer",
+      "card": "Card",
+      "other": "Other"
+    },
+    "recordPayment": {
+      "title": "Record a payment",
+      "open": "Record a payment",
+      "openFor": "Record a payment for {name}",
+      "forSubscriber": "Money received from {name}.",
+      "amount": "Amount",
+      "amountHint": "In shekels. Enter a negative amount to record a refund.",
+      "method": "Method",
+      "paidOn": "Bills date",
+      "datePlaceholder": "YYYY-MM-DD",
+      "openDatePicker": "Open the date picker",
+      "note": "Note",
+      "submit": "Record payment",
+      "saving": "Recording…",
+      "cancel": "Cancel",
+      "close": "Close",
+      "addedBalance": "Added to balance",
+      "details": "Date and note",
+      "saved": "Payment recorded"
+    },
+    "recordCharge": {
+      "title": "Add a charge",
+      "open": "Add a charge",
+      "openFor": "Add a charge for {name}",
+      "forSubscriber": "What {name} is being billed for.",
+      "chargedOn": "Date of service",
+      "service": "Service",
+      "datePlaceholder": "YYYY-MM-DD",
+      "openDatePicker": "Open the date picker",
+      "saving": "Adding…",
+      "close": "Close",
+      "submit": "Add charge",
+      "addedTotal": "Added to total price",
+      "noPrice": "This service has no price yet. Set one in Settings → Clinic.",
+      "firstFree": "The first consultation is free.",
+      "saved": "Charge added"
+    },
+    "errors": {
+      "genericError": "That could not be saved. Try again.",
+      "amountRequired": "Enter an amount.",
+      "invalidAmount": "Enter an amount like 270 or 270.50.",
+      "amountZero": "A payment cannot be zero.",
+      "amountNegative": "A charge cannot be negative. Record a refund as a payment instead.",
+      "amountTooLarge": "That amount is too large.",
+      "invalidDate": "Choose a valid date.",
+      "noteTooLong": "The note is too long.",
+      "descriptionRequired": "Say what the charge is for.",
+      "descriptionTooLong": "That description is too long.",
+      "invalidClient": "That subscriber is not on this clinic's register.",
+      "invalidService": "That service is not one this clinic offers."
+    },
+    "print": {
+      "statement": "Print all bills",
+      "statementFor": "Print all bills for {name}",
+      "bills": "Bills",
+      "billsFor": "Bills for {name}",
+      "billNumbered": "Print bill {number}",
+      "noBills": "No bills yet",
+      "bill": "Print this bill",
+      "print": "Print",
+      "close": "Close",
+      "failed": "That bill could not be printed. Try again.",
+      "exportBills": "Export bills"
+    },
+    "bills": {
+      "billTitle": "Bill",
+      "statementTitle": "Account statement",
+      "billNo": "Bill no.",
+      "issuedOn": "Issued",
+      "subscriber": "Subscriber",
+      "date": "Date",
+      "description": "Description",
+      "amount": "Amount",
+      "charge": "Charge",
+      "payment": "Payment",
+      "emptyLedger": "Nothing has been billed on this account.",
+      "footer": "A record of what this clinic billed and received. Not a tax invoice."
+    },
+    "ledger": {
+      "billNo": "Bill no.",
+      "date": "Date",
+      "amount": "Amount",
+      "method": "Method",
+      "note": "Note",
+      "actions": "Actions",
+      "chargeKind": "Charge",
+      "batchNo": "Batch no.",
+      "resetColumns": "Reset column order"
+    },
+    "expenses": {
+      "title": "Expenses and bills",
+      "empty": "Nothing on this account yet. Add a charge or record a payment to start the ledger."
     }
   },
   "portal": {

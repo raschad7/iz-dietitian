@@ -96,6 +96,57 @@ export function joinPhone(dial: string, national: string): string {
 }
 
 /**
+ * A stored number as a person reads it — `+970 59-705-8996`.
+ *
+ * The calling code, a space, then the national digits grouped from the right in
+ * fours and threes. On the nine-digit mobile numbers this roster is almost
+ * entirely made of, that lands on 2-3-4, which is how the number is written on
+ * a card and said out loud.
+ *
+ * ## Why grouped from the right
+ *
+ * A fixed 2-3-4 would be right for `+970` mobiles and wrong for everything
+ * else, and this column does hold the occasional landline and foreign number.
+ * Taking the last four, then the next three, then whatever is left as the head
+ * degrades sensibly instead: a seven-digit number comes out `123-4567` with no
+ * stray leading group, and a ten-digit one `123-456-7890`.
+ *
+ * ## What it will not do
+ *
+ * It never invents or drops a digit. `splitPhone` is what decides where the
+ * calling code ends — including the case where the stored value carried no code
+ * at all and the clinic's own is assumed — and everything it hands back in
+ * `national` is printed. A value with no digits in it at all comes back as the
+ * empty string, so a caller can fall back to its own placeholder rather than
+ * drawing a bare `+970`.
+ *
+ * Display only. Nothing here is written back to `clients.phone`, which stays
+ * free text holding exactly what was typed — see that column's comment.
+ */
+export function formatPhoneDisplay(stored: string | null | undefined): string {
+  const { dial, national } = splitPhone(stored);
+  if (!national) return '';
+
+  return `+${dial} ${groupFromRight(national)}`;
+}
+
+/**
+ * `597058996` → `59-705-8996`.
+ *
+ * Short numbers are left whole: a four-digit extension is not improved by a
+ * hyphen, and an empty head group would print a leading `-`.
+ */
+function groupFromRight(digits: string): string {
+  if (digits.length <= 4) return digits;
+
+  const last = digits.slice(-4);
+  const middle = digits.slice(-7, -4);
+  const head = digits.slice(0, -7);
+
+  return [head, middle, last].filter(Boolean).join('-');
+}
+
+/**
  * Which country to show when several share one calling code.
  *
  * Only the label is at stake — the code is what gets stored, and it is the same

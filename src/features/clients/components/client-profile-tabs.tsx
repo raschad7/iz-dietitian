@@ -87,6 +87,8 @@ const TAB_ICONS: Record<ProfileTab, IconName> = {
   // "The Gate" — the client's portal sign-in, not the app's own security.
   security: 'portalHome',
   billing: 'mealPlans',
+  // "Expenses" — what this subscriber has been billed and has paid.
+  expenses: 'bills',
 };
 
 export function ClientProfileTabs({

@@ -24,30 +24,50 @@ import type { Locale } from '@/i18n/routing';
 import { BrandLogo } from './brand-logo';
 import { SidebarProfile } from './sidebar-profile';
 
+/** Every address the rail is allowed to point at, in either area. */
+export type NavHref =
+  | '/app'
+  | '/app/clients'
+  | '/app/clients/bills'
+  | '/app/calendar'
+  | '/app/calendar?view=week'
+  | '/app/weekly-plans'
+  | '/app/dishes'
+  | '/portal'
+  | '/portal/appointments'
+  | '/portal/meal-plan'
+  | '/portal/profile'
+  | '/portal/progress';
+
+/** Keys into the `nav` message namespace. */
+export type NavLabelKey =
+  | 'dashboard'
+  | 'clients'
+  | 'subscriber'
+  | 'bills'
+  | 'calendar'
+  | 'weeklyPlans'
+  | 'dishes'
+  | 'portalHome'
+  | 'myAppointments'
+  | 'myPlan'
+  | 'profile'
+  | 'progress';
+
+/**
+ * One destination in the rail.
+ *
+ * Flat, one level, no children. Subscribers and Bills were briefly a
+ * "Subscriber" group that opened onto the two of them — a disclosure when the
+ * rail was expanded and, because there is no room to indent under a 40px
+ * button, a dropdown when it was collapsed. It put a click in front of the
+ * register, which is the screen most of a day is spent on, and on a phone —
+ * where the staff rail is locked to its icon column, see `railOnly` — that
+ * click was the only way to reach either screen. They are siblings now.
+ */
 export type NavItem = {
-  href:
-    | '/app'
-    | '/app/clients'
-    | '/app/calendar'
-    | '/app/calendar?view=week'
-    | '/app/weekly-plans'
-    | '/app/dishes'
-    | '/portal'
-    | '/portal/appointments'
-    | '/portal/meal-plan'
-    | '/portal/profile'
-    | '/portal/progress';
-  labelKey:
-    | 'dashboard'
-    | 'clients'
-    | 'calendar'
-    | 'weeklyPlans'
-    | 'dishes'
-    | 'portalHome'
-    | 'myAppointments'
-    | 'myPlan'
-    | 'profile'
-    | 'progress';
+  href: NavHref;
+  labelKey: NavLabelKey;
 };
 
 type ShellProps = {
@@ -244,7 +264,7 @@ function AppSidebar({
    * other staff route, so a `startsWith` test would light the dashboard up on
    * every page in the app.
    */
-  function isActive(href: NavItem['href']): boolean {
+  function isActive(href: NavHref): boolean {
     if (href === '/app' || href === '/portal') return pathname === href;
     /*
      * The calendar row points straight at a view (`/app/calendar/week`) rather
@@ -253,6 +273,16 @@ function AppSidebar({
      * though — day and month have to light the row up too.
      */
     const section = href.startsWith('/app/calendar') ? '/app/calendar' : href;
+
+    /*
+     * Bills lives *inside* the register (`/app/clients/bills`), so the prefix
+     * test below would light Subscriber up while standing on Bills — two rows
+     * of the rail marked current, which is the rail telling the reader
+     * nothing. Subscriber claims its section minus the addresses its sibling
+     * owns.
+     */
+    if (section === '/app/clients' && pathname.startsWith('/app/clients/bills')) return false;
+
     return pathname === section || pathname.startsWith(`${section}/`);
   }
 
@@ -371,7 +401,7 @@ function AppSidebar({
 
                         The glyph does not change while the row is loading. It
                         was swapped for a spinner via `useLinkStatus` for one
-                        release: the rail is five fixed marks a reader navigates
+                        release: the rail is a set of fixed marks a reader navigates
                         by shape, and replacing one of them mid-navigation took
                         away the landmark at the moment it was being used. The
                         progress bar reports the wait instead — see

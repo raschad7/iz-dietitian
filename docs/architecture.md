@@ -57,6 +57,12 @@ UI. HTTP route handlers are reserved for callers that cannot use server actions:
 - Better Auth under `src/app/api/auth/`
 - OpenWA webhook delivery under `src/app/api/whatsapp/webhook/`
 - Authenticated reminder ticks under `src/app/api/whatsapp/reminders/`
+- Printable bills under `src/app/[locale]/app/clients/bills/[clientId]/print/`,
+  which answer with a PDF rather than a page. A server action cannot return a
+  file for the browser to open, and rendering HTML that then fetches the bytes
+  would be the same endpoint with a page in front of it. They are staff routes,
+  guarded by `requireStaffClinic` like the screen they are reached from, and a
+  subscriber outside the caller's clinic is a 404
 
 A new HTTP endpoint needs an external caller or another clear boundary reason.
 
@@ -175,6 +181,9 @@ lint rule. See [Design system](design-system.md) for the complete UI contract.
 
 - `auth`: staff and client authentication, password policy, passkeys, and rate
   limiting
+- `billing`: the subscriber ledger — `client_charges` and `client_payments`,
+  the shekel arithmetic over them, and the Bills screen. Amounts are integer
+  minor units everywhere; see `src/features/billing/money.ts`
 - `booking`: calendar, appointments, and appointment requests
 - `clients`: clinic roster, client details, the nutrition intake, and portal
   credential issuing

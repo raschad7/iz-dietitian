@@ -39,6 +39,8 @@
   "nav": {
     "dashboard": "لوحة التحكم",
     "clients": "المشتركون",
+    "subscriber": "المشترك",
+    "bills": "الفواتير",
     "calendar": "التقويم",
     "plans": "الخطط الغذائية",
     "appointments": "المواعيد",
@@ -550,7 +552,8 @@
         "nutrition": "التغذية",
         "progress": "التقدم",
         "security": "البوابة",
-        "billing": "الخطط"
+        "billing": "الخطط",
+        "expenses": "المصاريف"
       }
     },
     "progress": {
@@ -938,6 +941,142 @@
         "upcoming": "القادمة",
         "past": "السابقة"
       }
+    }
+  },
+  "billing": {
+    "title": "الفواتير",
+    "subtitle": "ما استُحق على كل مشترك، وما دفعه، وما بقي عليه.",
+    "empty": "لا يوجد مشتركون بعد.",
+    "emptyFiltered": "لا يوجد مشترك يطابق هذا البحث.",
+    "clearFilters": "مسح عوامل التصفية",
+    "fields": {
+      "name": "الاسم الكامل",
+      "totalPrice": "إجمالي المبلغ",
+      "phone": "رقم الهاتف",
+      "remaining": "المتبقي",
+      "balance": "الرصيد",
+      "totalPayment": "إجمالي المدفوع",
+      "status": "حالة الدفع",
+      "actions": "إجراءات"
+    },
+    "status": {
+      "none": "لا توجد فواتير",
+      "unpaid": "غير مدفوع",
+      "partial": "مدفوع جزئيًا",
+      "paid": "مدفوع",
+      "credit": "له رصيد"
+    },
+    "prices": {
+      "title": "الخدمات والأسعار",
+      "description": "ما تتقاضاه العيادة مقابل كل خدمة. تغيير السعر هنا لا يغيّر فاتورة سُجّلت من قبل.",
+      "unpriced": "لا يوجد سعر بعد",
+      "save": "حفظ التغييرات",
+      "saving": "جارٍ الحفظ…",
+      "saved": "حُفظت الأسعار"
+    },
+    "services": {
+      "monthly": "اشتراك شهر واحد",
+      "quarterly": "اشتراك ثلاثة أشهر",
+      "consultation": "استشارة"
+    },
+    "methods": {
+      "cash": "نقدًا",
+      "transfer": "حوالة بنكية",
+      "card": "بطاقة",
+      "other": "أخرى"
+    },
+    "recordPayment": {
+      "title": "تسجيل دفعة",
+      "open": "تسجيل دفعة",
+      "openFor": "تسجيل دفعة لـ {name}",
+      "forSubscriber": "مبلغ مستلم من {name}.",
+      "amount": "المبلغ",
+      "amountHint": "بالشيكل. أدخل مبلغًا سالبًا لتسجيل مبلغ مُعاد.",
+      "method": "طريقة الدفع",
+      "paidOn": "تاريخ الفاتورة",
+      "datePlaceholder": "YYYY-MM-DD",
+      "openDatePicker": "فتح منتقي التاريخ",
+      "note": "ملاحظة",
+      "submit": "تسجيل الدفعة",
+      "saving": "جارٍ التسجيل…",
+      "cancel": "إلغاء",
+      "close": "إغلاق",
+      "addedBalance": "الرصيد المضاف",
+      "details": "التاريخ وملاحظة",
+      "saved": "سُجّلت الدفعة"
+    },
+    "recordCharge": {
+      "title": "إضافة فاتورة",
+      "open": "إضافة فاتورة",
+      "openFor": "إضافة فاتورة لـ {name}",
+      "forSubscriber": "ما سيُحتسب على {name}.",
+      "chargedOn": "تاريخ الخدمة",
+      "service": "الخدمة",
+      "datePlaceholder": "YYYY-MM-DD",
+      "openDatePicker": "فتح منتقي التاريخ",
+      "saving": "جارٍ الإضافة…",
+      "close": "إغلاق",
+      "submit": "إضافة الفاتورة",
+      "addedTotal": "يُضاف إلى إجمالي المبلغ",
+      "noPrice": "لا يوجد سعر لهذه الخدمة بعد. حدّديه في الإعدادات ← العيادة.",
+      "firstFree": "الاستشارة الأولى مجانية.",
+      "saved": "أُضيفت الفاتورة"
+    },
+    "errors": {
+      "genericError": "تعذّر الحفظ. حاول مرة أخرى.",
+      "amountRequired": "أدخل المبلغ.",
+      "invalidAmount": "أدخل مبلغًا مثل ٢٧٠ أو ٢٧٠٫٥٠.",
+      "amountZero": "لا يمكن أن تكون الدفعة صفرًا.",
+      "amountNegative": "لا يمكن أن يكون مبلغ الفاتورة سالبًا. سجّل المبلغ المُعاد كدفعة.",
+      "amountTooLarge": "المبلغ كبير جدًا.",
+      "invalidDate": "اختر تاريخًا صحيحًا.",
+      "noteTooLong": "الملاحظة طويلة جدًا.",
+      "descriptionRequired": "اذكر بند الفاتورة.",
+      "descriptionTooLong": "البند طويل جدًا.",
+      "invalidClient": "هذا المشترك ليس ضمن قائمة العيادة.",
+      "invalidService": "هذه الخدمة ليست من الخدمات المتاحة في العيادة."
+    },
+    "print": {
+      "statement": "طباعة كل الفواتير",
+      "statementFor": "طباعة كل فواتير {name}",
+      "bills": "الفواتير",
+      "billsFor": "فواتير {name}",
+      "billNumbered": "طباعة الفاتورة {number}",
+      "noBills": "لا توجد فواتير بعد",
+      "bill": "طباعة هذه الفاتورة",
+      "print": "طباعة",
+      "close": "إغلاق",
+      "failed": "تعذّرت طباعة الفاتورة. حاول مرة أخرى.",
+      "exportBills": "تصدير الفواتير"
+    },
+    "bills": {
+      "billTitle": "فاتورة",
+      "statementTitle": "كشف حساب",
+      "billNo": "رقم الفاتورة",
+      "issuedOn": "تاريخ الإصدار",
+      "subscriber": "المشترك",
+      "date": "التاريخ",
+      "description": "البيان",
+      "amount": "المبلغ",
+      "charge": "مبلغ مستحق",
+      "payment": "دفعة",
+      "emptyLedger": "لم يُسجَّل أي مبلغ على هذا الحساب.",
+      "footer": "سجل لما طالبت به العيادة وما استلمته. ليست فاتورة ضريبية."
+    },
+    "ledger": {
+      "billNo": "رقم الفاتورة",
+      "date": "التاريخ",
+      "amount": "المبلغ",
+      "method": "طريقة الدفع",
+      "note": "ملاحظة",
+      "actions": "إجراءات",
+      "chargeKind": "مبلغ مستحق",
+      "batchNo": "رقم الدفعة",
+      "resetColumns": "إعادة ترتيب الأعمدة"
+    },
+    "expenses": {
+      "title": "المصاريف والفواتير",
+      "empty": "لا يوجد شيء على هذا الحساب بعد. أضيفي فاتورة أو سجّلي دفعة لبدء السجل."
     }
   },
   "portal": {

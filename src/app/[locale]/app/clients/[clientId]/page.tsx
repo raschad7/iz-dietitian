@@ -8,6 +8,7 @@ import { PROFILE_TABS, type ProfileTab } from '@/features/clients/components/pro
 import { getPortalUsername } from '@/features/clients/portal-credentials';
 import { getClientWeekMeals, getClientWeekProgress } from '@/features/clients/progress';
 import { getClient, getClientIntake } from '@/features/clients/queries';
+import { clinicServicePrices, consultedClients, ledgerByClient } from '@/features/billing/queries';
 import { suggestUsername } from '@/features/clients/transliterate';
 import { currentSunday } from '@/features/weekly-plans/week';
 import { listPlans } from '@/features/weekly-plans/queries';
@@ -62,8 +63,17 @@ export default async function ClientInfoPage({ params, searchParams }: ClientInf
 
   const today = toIsoDate(new Date());
 
-  const [visitSummary, visitEntries, plans, intake, whatsapp, portalUsername] =
-    await Promise.all([
+  const [
+    visitSummary,
+    visitEntries,
+    plans,
+    intake,
+    whatsapp,
+    portalUsername,
+    ledgers,
+    prices,
+    consulted,
+  ] = await Promise.all([
       getClientVisitSummary(clinicId, client.id, today),
       listClientVisits(clinicId, client.id),
       listPlans(clinicId, client.id),
@@ -74,6 +84,16 @@ export default async function ClientInfoPage({ params, searchParams }: ClientInf
       // client over WhatsApp, or only over the desk.
       getSettings(clinicId),
       client.hasPortalAccess ? getPortalUsername(clinicId, client.id) : Promise.resolve(null),
+      /*
+        The Expenses view: this subscriber's ledger, what the clinic charges,
+        and whether a consultation is already on the account — the free-first
+        rule the charge card applies. Read here with everything else rather
+        than inside the panel, so a record opens with one round of reads
+        however many views it has.
+      */
+      ledgerByClient(clinicId, [client.id]),
+      clinicServicePrices(clinicId),
+      consultedClients(clinicId, [client.id]),
     ]);
 
   // An unknown `?tab=` opens on the first view — Nutrition — rather than 404ing: the param is
@@ -144,6 +164,11 @@ export default async function ClientInfoPage({ params, searchParams }: ClientInf
       progress={progress}
       progressWeeks={progressWeeks}
       mealsByDay={mealsByDay}
+      billing={{
+        entries: ledgers.get(client.id) ?? [],
+        prices,
+        consulted: consulted.has(client.id),
+      }}
       portal={{
         username: portalUsername,
         suggestedUsername: suggestUsername(client.fullName),

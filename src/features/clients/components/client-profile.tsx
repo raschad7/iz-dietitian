@@ -16,6 +16,9 @@ import { type ClientDetail } from '@/features/clients/queries';
 import { type ClientDayMeal, type ClientWeekProgress } from '@/features/clients/progress';
 import { type ClientIntakeValues } from '@/features/clients/types';
 import { ClientPlansCard } from '@/features/weekly-plans/components/client-plans-card';
+import type { BillEntry } from '@/features/billing/bill';
+import { ClientExpensesPanel } from '@/features/billing/components/client-expenses-panel';
+import type { ServicePrices } from '@/features/billing/services';
 import { type PlanListEntry } from '@/features/weekly-plans/queries';
 import { PLAN_STATUSES } from '@/features/weekly-plans/schema';
 import { Link } from '@/i18n/navigation';
@@ -106,6 +109,18 @@ export type ClientProfileProps = {
   progressWeeks: PlanListEntry[];
   /** The selected week's plan meals by day of week, for the Progress view's per-meal detail. */
   mealsByDay: Map<number, ClientDayMeal[]>;
+  /**
+   * The money, for the Expenses view: this subscriber's ledger, the clinic's
+   * current price list, and whether a consultation is already on the account.
+   *
+   * Read on the page beside everything else rather than inside the panel, so a
+   * record opens with one round of reads however many views it has.
+   */
+  billing: {
+    entries: BillEntry[];
+    prices: ServicePrices;
+    consulted: boolean;
+  };
   portal: {
     /** What they already sign in with, or null when there is no account. */
     username: string | null;
@@ -130,6 +145,7 @@ export async function ClientProfile({
   progress,
   progressWeeks,
   mealsByDay,
+  billing,
   portal,
   canSendWhatsapp,
 }: ClientProfileProps) {
@@ -141,6 +157,7 @@ export async function ClientProfile({
     progress: t('profile.tabs.progress'),
     security: t('profile.tabs.security'),
     billing: t('profile.tabs.billing'),
+    expenses: t('profile.tabs.expenses'),
   };
 
   return (
@@ -226,6 +243,17 @@ export async function ClientProfile({
               plans={plans}
               slotsPerDay={intake.mealSchedule.length}
               locale={locale}
+            />
+          ),
+          expenses: (
+            <ClientExpensesPanel
+              locale={locale}
+              clientId={client.id}
+              clientName={client.fullName}
+              today={today}
+              entries={billing.entries}
+              prices={billing.prices}
+              consulted={billing.consulted}
             />
           ),
         }}
