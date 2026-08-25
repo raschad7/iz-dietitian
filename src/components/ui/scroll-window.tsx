@@ -1,6 +1,6 @@
 'use client';
 
-import { type ReactNode, useLayoutEffect, useRef } from 'react';
+import { type ComponentProps, useLayoutEffect, useRef } from 'react';
 
 import { cn } from '@/lib/utils';
 
@@ -33,16 +33,35 @@ import { cn } from '@/lib/utils';
  * With N rows or fewer it sets no height at all, so whatever bounds the surface
  * — a dialog's `max-h`, a card's grid track — is the only ceiling, and there is
  * nothing to scroll to.
+ *
+ * ## Why it owns its flex sizing instead of leaving it to the call site
+ *
+ * Both call sites are the scrolling middle of a `<dialog>`, and both used to
+ * write `min-h-0 flex-1` themselves. `flex-1` is `flex: 1 1 0%`, and a zero
+ * basis beside an explicit `min-block-size: 0` tells the flex algorithm this box
+ * contributes *nothing* to its parent's height. That is harmless while the
+ * parent's height is definite — and a modal `<dialog>` is `height: fit-content`
+ * from the UA stylesheet, which is the opposite. Blink resolves that fit from
+ * the item's content anyway; **WebKit takes the declaration at its word**, so on
+ * iPad Safari the notifications and requests dialogs opened as their header bar
+ * and nothing else: full width, one line tall, the list and its rows sized to
+ * zero.
+ *
+ * `grow shrink basis-auto` is `flex: 1 1 auto` — the same growth, but with a
+ * content-derived basis, so the box contributes its rows to the dialog's height
+ * in both engines. It is spelled as three utilities rather than one shorthand so
+ * a call site's `basis-*` cannot end up racing the `flex` shorthand in the
+ * cascade; `min-h-0` stays because the scroll still needs a floor of zero once
+ * the height *is* resolved.
  */
 export function ScrollWindow({
   visible,
   className,
   children,
-}: {
+  ...props
+}: ComponentProps<'div'> & {
   /** How many rows fit before the box starts scrolling. */
   visible: number;
-  className?: string;
-  children: ReactNode;
 }) {
   const box = useRef<HTMLDivElement>(null);
 
@@ -64,6 +83,24 @@ export function ScrollWindow({
       if (!last) return;
 
       /*
+       * Nothing to read from a box that has not been laid out yet.
+       *
+       * This runs in a layout effect, and layout effects run child-first — so
+       * inside a dialog it fires *before* the parent's own effect calls
+       * `showModal()`, while the `<dialog>` is still `display: none` and every
+       * rectangle in it is zero. Left to compute, the window came out as the
+       * box's bottom padding — a 16px scrollport holding five rows — and stayed
+       * that way until the `ResizeObserver` below happened to correct it.
+       *
+       * Bailing hands the surface back to whatever else bounds it (the dialog
+       * frame's own ceiling) until there is a real layout to measure, which the
+       * frame scheduled below then delivers. A window that is briefly too tall
+       * is a list; a window that is briefly 16px tall is a bug.
+       */
+      const rect = last.getBoundingClientRect();
+      if (rect.height === 0 && rect.width === 0) return;
+
+      /*
        * Measured from the box's own top and against its unscrolled position:
        * `scrollTop` is 0 on a surface that has just opened, but a re-measure
        * after the reader has scrolled is not, and the rect would then be short
@@ -76,20 +113,44 @@ export function ScrollWindow({
       // as a rendering fault instead of as "there is more below".
       const padding = parseFloat(getComputedStyle(container).paddingBottom) || 0;
 
-      container.style.maxHeight = `${last.getBoundingClientRect().bottom - top + padding}px`;
+      container.style.maxHeight = `${rect.bottom - top + padding}px`;
     }
 
     measure();
+
+    /*
+     * And once more on the next frame, for the pass that had nothing to read.
+     *
+     * The observer below would eventually deliver the same number, and relying
+     * on it to is what left the window unset for as long as it took: a
+     * `ResizeObserver` only speaks when a box *changes* size, so a surface that
+     * opens at its final size — or one whose frames are not being produced at
+     * all — never gets a second look. This is the deterministic one. It is a
+     * frame late by construction, which is why it is a fallback and not the
+     * primary reading: everything already laid out is measured above, before
+     * paint, and settles with no movement at all.
+     */
+    const frame = window.requestAnimationFrame(measure);
 
     const observer = new ResizeObserver(measure);
     observer.observe(container);
     for (const row of container.querySelectorAll('[data-window-row]')) observer.observe(row);
 
-    return () => observer.disconnect();
+    return () => {
+      window.cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
   }, [visible, children]);
 
   return (
-    <div ref={box} className={cn('overflow-y-auto overscroll-contain', className)}>
+    <div
+      ref={box}
+      className={cn(
+        'min-h-0 grow shrink basis-auto overflow-y-auto overscroll-contain',
+        className,
+      )}
+      {...props}
+    >
       {children}
     </div>
   );
