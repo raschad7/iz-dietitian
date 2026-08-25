@@ -46,45 +46,53 @@ export function MealIngredientAmounts({
 /**
  * One line: the food on the reading side, its amount on the other.
  *
- * `trailing` is where the editable list hangs its `−/+`. Sharing the row rather
- * than writing a second one is what keeps the staff panel and the patient portal
- * from drifting into two different renderings of the same fact — the amount is
- * formatted here, once, for both.
+ * A read-only row, and only that. It used to take a `trailing` slot and an
+ * `emphasis` flag so the editable list could hang its `−/+` off the end of one —
+ * which is how the stepper ended up two elements away from the number it moves.
+ * The editable list draws its own row now and shares `IngredientAmount` instead,
+ * so the two surfaces still cannot disagree about how a quantity is spelled
+ * without either one pretending to be the other's layout.
  */
-export function IngredientRow({
-  line,
-  locale,
-  trailing,
-  emphasis = false,
-}: {
-  line: MealIngredientLine;
-  locale: string;
-  trailing?: React.ReactNode;
-  /** Marks a line the dietitian adjusts, so the eye finds the controls' rows first. */
-  emphasis?: boolean;
-}) {
-  const t = useTranslations('weeklyPlans');
-  const amount = ingredientAmount(line, locale);
-
+function IngredientRow({ line, locale }: { line: MealIngredientLine; locale: string }) {
   return (
     <li className="flex items-center justify-between gap-3">
-      <span
-        className={cn(
-          'min-w-0 flex-1 [overflow-wrap:anywhere]',
-          emphasis ? 'font-medium text-foreground' : 'text-muted-foreground',
-        )}
-        dir="auto"
-      >
+      <span className="min-w-0 flex-1 text-muted-foreground [overflow-wrap:anywhere]" dir="auto">
         {localizedName(line.food, locale)}
       </span>
 
       {/* `shrink-0` and no wrapping: the amount is short in both languages and is
           what the eye runs down the column for. */}
-      <span className="shrink-0 text-end font-medium tabular-nums" dir="auto">
-        {amount.kind === 'grams' ? t('gramsShort', { value: amount.grams }) : amount.text}
-      </span>
-
-      {trailing}
+      <IngredientAmount line={line} locale={locale} className="shrink-0 text-end font-medium" />
     </li>
+  );
+}
+
+/**
+ * The amount itself — "150 غ", "6 ملاعق", "1 رغيف" — and nothing around it.
+ *
+ * Split out of the row so the editable list can set it *between* its two
+ * buttons rather than off at the end of the line, without either surface
+ * formatting a quantity of its own. There is one place that decides how an
+ * amount is spelled, and it is here.
+ *
+ * `dir="auto"`: the unit can be Arabic on an English plan and the other way
+ * round, and the first strong character is what knows which way it runs.
+ */
+export function IngredientAmount({
+  line,
+  locale,
+  className,
+}: {
+  line: MealIngredientLine;
+  locale: string;
+  className?: string;
+}) {
+  const t = useTranslations('weeklyPlans');
+  const amount = ingredientAmount(line, locale);
+
+  return (
+    <span className={cn('tabular-nums', className)} dir="auto">
+      {amount.kind === 'grams' ? t('gramsShort', { value: amount.grams }) : amount.text}
+    </span>
   );
 }

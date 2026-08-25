@@ -74,6 +74,7 @@ import {
   Plus,
   RefreshCw,
   Repeat,
+  RotateCcw,
   Ruler,
   Sandwich,
   Search,
@@ -195,6 +196,18 @@ export const APP_ICONS = {
   eyeOff: EyeOff,
   check: Check,
   back: ArrowLeft,
+  /*
+    Sparkles, which is what "generated" looks like across every product a
+    dietitian has ever used. It shares the glyph with `encouragement` in the
+    portal and that is fine — the names describe two different jobs, and either
+    one can be re-pointed without touching the other.
+
+    It replaced `refresh` on the planner's generate door, where a circular arrow
+    said "do that again" on a button that had never been pressed.
+  */
+  ai: Sparkles,
+  /* A counter-clockwise arrow: put back what it was, not fetch it again. */
+  undo: RotateCcw,
 
   /* Identity and access */
   email: Mail,

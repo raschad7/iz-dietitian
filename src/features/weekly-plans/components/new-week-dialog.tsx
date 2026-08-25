@@ -304,7 +304,7 @@ function GenerateDoor({
   return (
     <Door
       featured
-      icon="refresh"
+      icon="ai"
       title={t(`newWeekGenerate.${mode}`)}
       hint={t(`newWeekGenerateHint.${mode}`)}
     >
@@ -474,12 +474,29 @@ function Door({
         featured && 'ring-primary',
       )}
     >
+      {/*
+        The head reads down the middle: mark, name, one sentence.
+
+        The featured door's mark takes the brand's subtle fill and an olive
+        glyph while the other two stay neutral — the same distinction the card's
+        olive edge is already making, said a second time in the one place the
+        eye lands first. It is a tint and not a solid: this card holds the
+        dialog's primary button, and two olive fills stacked in one column makes
+        the button compete with a badge.
+      */}
       <div
         className={cn(
           'flex shrink-0 flex-col items-center gap-1.5 px-5 pb-3 pt-4 text-center',
         )}
       >
-        <span className="grid size-10 place-items-center rounded-md border border-border bg-card text-foreground">
+        <span
+          className={cn(
+            'grid size-10 place-items-center rounded-md border',
+            featured
+              ? 'border-transparent bg-primary-subtle text-primary'
+              : 'border-border bg-card text-foreground',
+          )}
+        >
           {iconContent ?? (icon ? <Icon name={icon} className="size-5" /> : null)}
         </span>
         <h3 className="font-heading text-heading-sm font-medium" dir="auto">

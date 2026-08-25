@@ -3,7 +3,9 @@
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
 
+import { localizedName } from '../food-display';
 import {
   MAX_INGREDIENT_GRAMS,
   nextIngredientAmount,
@@ -12,7 +14,7 @@ import {
 } from '../meal-ingredients';
 
 import { useEditorActions } from './board-dnd';
-import { IngredientRow, MealIngredientAmounts } from './meal-ingredient-amounts';
+import { IngredientAmount, MealIngredientAmounts } from './meal-ingredient-amounts';
 
 /**
  * The meal's ingredients, with a `−/+` on the ones a dietitian actually moves.
@@ -59,30 +61,57 @@ export function MealIngredientEditor({
 
   return (
     <div className="flex flex-col gap-3">
-      <ul className="flex flex-col gap-2 text-body-sm">
+      {/*
+        Each adjustable line is its own row, and the amount sits *between* the
+        two buttons rather than off at the end of the line.
+
+        It used to borrow the read-only row: a 14px name, a 14px amount, and two
+        32px ghost buttons carrying a typographic `−` and `+` at 16px. Three
+        problems in one control. The buttons read as text rather than as
+        targets, since a ghost button has no box until it is hovered and these
+        never sat still long enough to be hovered; the glyphs were smaller than
+        the labels around them, on the one control in the panel a dietitian
+        presses over and over; and the number they changed was two elements away
+        from them, so nothing said which figure a press would move.
+
+        A stepper says it in one shape: `[−] 150 غ [+]`, the buttons white on a
+        tinted well so they are visibly pressable at rest, the figure between
+        them at body size with `min-w` enough for "13 ملعقة كبيرة" so the
+        buttons do not shuffle sideways as it changes.
+      */}
+      <ul className="flex flex-col gap-2">
         {primary.map((line) => (
-          <IngredientRow
+          <li
             key={line.food.id}
-            line={line}
-            locale={locale}
-            emphasis
-            trailing={
-              <span className="flex shrink-0 items-center gap-1">
-                <Step
-                  direction={-1}
-                  label={t('lessIngredient')}
-                  line={line}
-                  onPress={(amount) => setIngredient(mealId, amount)}
-                />
-                <Step
-                  direction={1}
-                  label={t('moreIngredient')}
-                  line={line}
-                  onPress={(amount) => setIngredient(mealId, amount)}
-                />
-              </span>
-            }
-          />
+            className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2"
+          >
+            <span
+              className="min-w-0 flex-1 text-body-md font-medium [overflow-wrap:anywhere]"
+              dir="auto"
+            >
+              {localizedName(line.food, locale)}
+            </span>
+
+            <span className="flex shrink-0 items-center gap-1 rounded-[12px] bg-muted p-1">
+              <Step
+                direction={-1}
+                label={t('lessIngredient')}
+                line={line}
+                onPress={(amount) => setIngredient(mealId, amount)}
+              />
+              <IngredientAmount
+                line={line}
+                locale={locale}
+                className="min-w-24 px-1 text-center text-body-md font-semibold"
+              />
+              <Step
+                direction={1}
+                label={t('moreIngredient')}
+                line={line}
+                onPress={(amount) => setIngredient(mealId, amount)}
+              />
+            </span>
+          </li>
         ))}
       </ul>
 
@@ -93,14 +122,26 @@ export function MealIngredientEditor({
         </div>
       )}
 
+      {/*
+        A button that looks like one, in the middle.
+
+        This was `neutralGhost` — no box, no icon, black text — pinned to the
+        inline start, which is to say it was a sentence sitting under a list of
+        sentences and there was nothing to tell you it could be pressed. It is
+        the undo for every press above it, so it takes a real edge, the
+        counter-clockwise arrow that means "put it back", and the centre of the
+        card, where an action that belongs to the whole list rather than to any
+        one row goes.
+      */}
       {hasOwnAmounts && (
         <Button
           type="button"
-          variant="neutralGhost"
+          variant="neutral"
           size="sm"
-          className="self-start"
+          className="self-center"
           onClick={() => resetIngredients(mealId)}
         >
+          <Icon name="undo" />
           {t('backToRecipe')}
         </Button>
       )}
@@ -138,16 +179,17 @@ function Step({
   return (
     <Button
       type="button"
-      variant="neutralGhost"
+      variant="neutral"
       size="icon-sm"
-      className="rounded-md"
       aria-label={label}
       disabled={disabled}
       onClick={() => onPress(next)}
     >
-      <span aria-hidden className="text-body font-normal leading-none">
-        {direction === 1 ? '+' : '−'}
-      </span>
+      {/* The registry's glyphs rather than a `+` and a `−` set in the body
+          font: a typographic minus is a hyphen's width at whatever size the row
+          happens to be, and these two are the most-pressed controls in the
+          panel. */}
+      <Icon name={direction === 1 ? 'add' : 'minus'} className="size-5" />
     </Button>
   );
 }

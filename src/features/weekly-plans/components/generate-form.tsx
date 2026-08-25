@@ -6,9 +6,7 @@ import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { SelectField } from '@/components/ui/select-field';
 import { Textarea } from '@/components/ui/textarea';
-import { CLIENT_GOALS } from '@/features/clients/schema';
 
 import { generateWeekAction } from '../actions';
 import { initialGenerateState, type GenerateState } from '../form-state';
@@ -55,7 +53,35 @@ export function GenerateForm({
   const [state, formAction] = useActionState(generateWeekAction, initialGenerateState);
 
   return (
-    <form action={formAction} className="flex h-full min-h-0 flex-col gap-1.5">
+    /*
+      Two named questions that scroll, and a button that does not.
+
+      It used to be one undifferentiated run of controls — a bordered fieldset,
+      a bare label, a textarea, a submit — each spaced 6px from the next, so the
+      card read as a form with no shape and the eye had to parse every row to
+      find out what it was being asked. There are only two questions here, and
+      each one now says which it is: **what this week aims at**, which the
+      profile answers unless you say otherwise, and **what to keep in mind**,
+      which is free text.
+
+      ── Why the button is a sibling of the fields ──
+
+      The card is one of three columns in a dialog whose height is fixed from
+      `sm` up, so its body is a box of a known size and the form either fits it
+      or does not. On a 1280×720 laptop it does not — the two blocks come to
+      ~300px in a ~346px box, and the moment an error line or the "this takes a
+      minute" note appears the submit is pushed under the fold of a scroller
+      nobody can see the bottom of. Putting the fields in their own scrollport
+      and the button outside it makes the overflow land on the part that can
+      afford it: the fields move, and the one control that closes the decision
+      is nailed to the foot of the card where the other two doors' buttons are.
+
+      `h-full` on the form is what makes that work — the door's body is a flex
+      column of definite height, so the form matches it exactly, the outer
+      scroller it sits in never has anything to scroll, and `min-h-0` inside
+      keeps the field column from refusing to shrink.
+    */
+    <form action={formAction} className="flex h-full min-h-0 flex-col">
       <GenerationLifecycle
         state={state}
         onPendingChange={onPendingChange}
@@ -66,32 +92,69 @@ export function GenerateForm({
       <input type="hidden" name="clientId" value={clientId} />
       <input type="hidden" name="weekStartDate" value={weekStartDate} />
 
-      <WeekTargets context={context} />
+      <div className="no-scrollbar flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto">
+        <WeekTargets context={context} />
 
-      <label htmlFor="instruction" className="text-label">
-        {t('weekInstructions')}
-      </label>
+        <Block label={t('weekInstructions')} hint={t('weekInstructionsHint')}>
+          {/*
+            Two rows, and a ceiling. A box that grows as you type would push the
+            fields it shares the scrollport with around under the pointer, and
+            600 characters of instruction is a paragraph either way.
+          */}
+          <Textarea
+            id="instruction"
+            name="instruction"
+            rows={2}
+            className="min-h-16 max-h-20 text-body-sm"
+            maxLength={600}
+            defaultValue={defaultInstruction ?? ''}
+            placeholder={t('instructionPlaceholder')}
+          />
+        </Block>
+      </div>
 
-      <Textarea
-        id="instruction"
-        name="instruction"
-        rows={2}
-        className="min-h-16 max-h-16"
-        maxLength={600}
-        defaultValue={defaultInstruction ?? ''}
-        placeholder={t('instructionPlaceholder')}
-      />
+      <div className="flex shrink-0 flex-col gap-1.5 pt-3">
+        {blocked ? (
+          <p className="rounded-md bg-muted px-2.5 py-2 text-caption text-muted-foreground">
+            {t(blocked === 'not_configured' ? 'errors.notConfigured' : 'errors.profileIncomplete')}
+          </p>
+        ) : (
+          <Submit mode={mode} />
+        )}
 
-      {blocked ? (
-        <p className="rounded-md bg-muted px-2.5 py-2 text-caption text-muted-foreground">
-          {t(blocked === 'not_configured' ? 'errors.notConfigured' : 'errors.profileIncomplete')}
-        </p>
-      ) : (
-        <Submit mode={mode} />
-      )}
-
-      <Result state={state} />
+        <Result state={state} />
+      </div>
     </form>
+  );
+}
+
+/**
+ * One titled question inside the card.
+ *
+ * A `<fieldset>` with a floating `<legend>` was the wrong shape for this: it
+ * draws a box around every group, and two boxes stacked inside a card that is
+ * itself a box is three edges deep before any control. A heading over a tinted
+ * well says the same thing with one edge, and the well is what tells the eye
+ * where one question stops and the next begins.
+ *
+ * `label` is a heading rather than a `<label>` element — it names a group, and
+ * each control inside carries its own name.
+ */
+function Block({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-lg bg-muted/60 px-3 py-2.5">
+      <h4 className="pb-1.5 text-label font-semibold text-foreground">{label}</h4>
+      {children}
+      {hint && <p className="pt-1 text-caption leading-relaxed text-muted-foreground">{hint}</p>}
+    </section>
   );
 }
 
@@ -130,15 +193,22 @@ function GenerationLifecycle({
  * every generation, so the plan could never distinguish "1,850 because that is her
  * target" from "1,850 because someone chose it for this week" — and the point of
  * these columns is exactly that distinction.
+ *
+ * **The goal used to be a third control here and is gone.** Two of the three
+ * were numbers you type; the goal was a select whose default read "use the
+ * profile" — the same thing the two blank fields already said, spelled out in
+ * a row of its own and needing to be read to find out it was saying nothing.
+ * The goal is a property of the client, set on the profile where the rest of
+ * the client is; overriding it for one week and leaving the profile disagreeing
+ * with the plan is a state nobody asked for and one this form no longer offers.
+ * The action still accepts a `goal` field — nothing here sends one, so the
+ * server falls back to the profile's, which was always the answer.
  */
 function WeekTargets({ context }: { context: ClientContext }) {
   const t = useTranslations('weeklyPlans');
-  const tGoals = useTranslations('clients.goal');
 
   return (
-    <fieldset className="flex flex-col gap-1 rounded-md border border-border p-2">
-      <legend className="px-1 text-label">{t('weekTargets')}</legend>
-
+    <Block label={t('weekTargets')} hint={t('targetsHint')}>
       <div className="grid grid-cols-2 gap-2">
         <label className="flex flex-col gap-1 text-label">
           <span className="text-muted-foreground">{t('kcalTargetLabel')}</span>
@@ -148,7 +218,7 @@ function WeekTargets({ context }: { context: ClientContext }) {
             min={800}
             max={6000}
             inputMode="numeric"
-            className="h-10 px-3"
+            className="h-10 bg-card px-3 text-body-md tabular-nums"
             placeholder={context.effectiveKcal === null ? '' : String(context.effectiveKcal)}
           />
         </label>
@@ -161,29 +231,14 @@ function WeekTargets({ context }: { context: ClientContext }) {
             min={20}
             max={400}
             inputMode="numeric"
-            className="h-10 px-3"
+            className="h-10 bg-card px-3 text-body-md tabular-nums"
             placeholder={
               context.effectiveProteinGrams === null ? '' : String(context.effectiveProteinGrams)
             }
           />
         </label>
       </div>
-
-      <label className="flex flex-col gap-1 text-label">
-        <span className="text-muted-foreground">{t('goalLabel')}</span>
-        <SelectField
-          name="goal"
-          defaultValue=""
-          size="sm"
-          options={[
-            { value: '', label: t('useProfile') },
-            ...CLIENT_GOALS.map((goal) => ({ value: goal as string, label: tGoals(goal) })),
-          ]}
-        />
-      </label>
-
-      <p className="text-caption text-muted-foreground">{t('targetsHint')}</p>
-    </fieldset>
+    </Block>
   );
 }
 

@@ -103,7 +103,20 @@ export function dayKey(dayOfWeek: number): DayKey {
 
 export const dayOfWeekSchema = z.coerce.number().int().min(0).max(6);
 
+/**
+ * An absent or empty form field, as `undefined`.
+ *
+ * `null` as well as `''`: `FormData.get` returns `null` for a field the form
+ * does not render at all, and every schema downstream of this spells "not
+ * given" as `.optional()`, which accepts `undefined` and rejects `null`. So a
+ * control that is removed from a form — the generate door's goal select, for
+ * one — would fail the whole parse rather than falling back to its default,
+ * and the caller would see "unexpected error" for a field it deliberately
+ * stopped sending.
+ */
 function blankToUndefined(value: unknown): unknown {
+  if (value === null) return undefined;
+
   return typeof value === 'string' && value.trim() === '' ? undefined : value;
 }
 

@@ -156,7 +156,11 @@ function boardMeal(dayOfWeek: number, slot: SlotFixture, index: number): BoardMe
     timeOfDay: slot.timeOfDay,
     dish: chosen,
     lines: [...lines],
-    hasOwnAmounts: false,
+    // Sunday's meals are hand-set, so the meal panel's "reset to the recipe
+    // amounts" button — a control that only exists once an amount has been
+    // moved — has somewhere to be looked at. Every other day keeps the recipe's
+    // own quantities, which is the state the rest of the board is showing.
+    hasOwnAmounts: dayOfWeek === 0,
     rationaleAr: null,
     totals: dishTotals(lines, 1),
     grams: dishGrams(lines, 1),

@@ -187,67 +187,47 @@ export function DishCatalog({
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
-      <div className="relative shrink-0 border-b border-border pb-4">
-        <Input
-          type="search"
-          icon="search"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder={t('searchDishes')}
-        />
-
+      <div className="relative shrink-0 border-b border-border pb-3">
         {/*
-          What is filtering the list stays *on* the panel, not behind the
-          popover that set it. A closed popover with a filter still applied is
-          a list that has quietly stopped showing you things, with the reason
-          one click out of sight — and that is what made this feel broken.
-          Every active filter is a chip here, and pressing a chip removes it.
+          Search and the filter trigger share a line.
+
+          They are one question — "which dishes" — asked two ways, and stacking
+          them spent a whole band of the panel on a single button sitting alone
+          under a full-width field. Side by side the field still takes
+          everything left over (`min-w-0` + `flex-1`, so a long placeholder
+          cannot push the button off the end), and the row below is free to hold
+          nothing at all when no filter is on.
         */}
-        <div className="mt-2 flex flex-wrap items-center gap-1.5">
-          {mealType && (
-            <FilterChip
-              active={!allMealTypes}
-              onClick={() => setAllMealTypes((value) => !value)}
-              title={allMealTypes ? undefined : t('allMealTypes')}
-            >
-              {t(`mealTypes.${mealType}`)}
-              {!allMealTypes && <Icon name="close" className="size-3.5" />}
-            </FilterChip>
-          )}
-
-          {nutrition.map((entry) => (
-            <FilterChip key={entry} active onClick={() => toggleNutrition(entry)}>
-              <span aria-hidden className={highProteinDotClasses()} />
-              {t(`nutritionFilters.${entry}`)}
-              <Icon name="close" className="size-3.5" />
-            </FilterChip>
-          ))}
-
-          {tags.map((entry) => (
-            <FilterChip
-              key={entry}
-              active
-              onClick={() => setTags((current) => current.filter((value) => value !== entry))}
-            >
-              <span aria-hidden className={dishTagDotClasses(entry)} />
-              {t(`tags.${entry}`)}
-              <Icon name="close" className="size-3.5" />
-            </FilterChip>
-          ))}
-
-          {options.map((entry) => (
-            <FilterChip key={entry} active onClick={() => toggleOption(entry)}>
-              {t(`dishOptions.${entry}`)}
-              <Icon name="close" className="size-3.5" />
-            </FilterChip>
-          ))}
+        <div className="flex items-center gap-2">
+          <Input
+            type="search"
+            icon="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={t('searchDishes')}
+            className="min-w-0 flex-1"
+          />
 
           <Popover>
             <PopoverTrigger
-              className={buttonVariants({ variant: 'neutral', size: 'sm', className: 'px-3 text-label' })}
+              className={buttonVariants({
+                variant: 'neutral',
+                className: 'shrink-0 gap-1.5 px-4 text-label',
+              })}
             >
               <Icon name="filter" />
               {t('dishFilters')}
+              {/* The count rides the trigger as well as the chip row, because
+                  the chips scroll away with the list on a short panel and this
+                  row never moves. */}
+              {activeCount > 0 && (
+                <span
+                  dir="ltr"
+                  className="grid size-5 shrink-0 place-items-center rounded-full bg-primary text-caption font-semibold tabular-nums text-primary-foreground-white"
+                >
+                  {activeCount}
+                </span>
+              )}
             </PopoverTrigger>
             <PopoverContent
               side="bottom"
@@ -340,6 +320,61 @@ export function DishCatalog({
                   </FilterGroup>
             </PopoverContent>
           </Popover>
+        </div>
+
+        {/*
+          What is filtering the list stays *on* the panel, not behind the
+          popover that set it. A closed popover with a filter still applied is
+          a list that has quietly stopped showing you things, with the reason
+          one click out of sight — and that is what made this feel broken.
+          Every active filter is a chip here, and pressing a chip removes it.
+
+          The row is rendered only when it has something to say. Empty, it was a
+          margin above nothing, on the one panel in the app that would rather
+          spend the space on another dish. `mealType` counts as something to
+          say even when it is switched off: that chip is the only way back to
+          filtering by meal type, so it stays on the row rather than becoming a
+          filter you can turn off once and never find again.
+        */}
+        {(activeCount > 0 || mealType) && (
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          {mealType && (
+            <FilterChip
+              active={!allMealTypes}
+              onClick={() => setAllMealTypes((value) => !value)}
+              title={allMealTypes ? undefined : t('allMealTypes')}
+            >
+              {t(`mealTypes.${mealType}`)}
+              {!allMealTypes && <Icon name="close" className="size-3.5" />}
+            </FilterChip>
+          )}
+
+          {nutrition.map((entry) => (
+            <FilterChip key={entry} active onClick={() => toggleNutrition(entry)}>
+              <span aria-hidden className={highProteinDotClasses()} />
+              {t(`nutritionFilters.${entry}`)}
+              <Icon name="close" className="size-3.5" />
+            </FilterChip>
+          ))}
+
+          {tags.map((entry) => (
+            <FilterChip
+              key={entry}
+              active
+              onClick={() => setTags((current) => current.filter((value) => value !== entry))}
+            >
+              <span aria-hidden className={dishTagDotClasses(entry)} />
+              {t(`tags.${entry}`)}
+              <Icon name="close" className="size-3.5" />
+            </FilterChip>
+          ))}
+
+          {options.map((entry) => (
+            <FilterChip key={entry} active onClick={() => toggleOption(entry)}>
+              {t(`dishOptions.${entry}`)}
+              <Icon name="close" className="size-3.5" />
+            </FilterChip>
+          ))}
 
           {activeCount > 0 && (
             <Button type="button" variant="ghost" size="sm" onClick={clearFilters}>
@@ -347,6 +382,7 @@ export function DishCatalog({
             </Button>
           )}
         </div>
+        )}
 
         {slot && slot.budgetKcal > 0 && (
           <div className="mt-3 flex items-center justify-between gap-2 rounded-md bg-secondary/70 px-3 py-2 text-caption">

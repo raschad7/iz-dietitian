@@ -281,28 +281,33 @@ export function ContextPanel({
   /*
     ── The week's numbers, where there is a line to spare for them ──
 
-    Five short answers — a target, a target, a ratio, a word, and a word — read
-    once when the screen opens and glanced at while planning. They are reference,
-    not work: the daily target is printed under every day name on the board
-    below, and the other four settle nothing that happens on this screen.
+    Three short answers — a target, a target, and a warning — read once when the
+    screen opens and glanced at while planning. They are reference, not work:
+    the daily target is printed under every day name on the board below, and the
+    allergy line is the one that can stop a plan going out.
 
-    The rule is one line: **they are on screen when they can share a line with
-    the client, and nowhere else.** From `xl` they take a column of their own
-    beside the name and cost the board nothing — spread `justify-between` across
-    the whole of it rather than crowding one end, with every value truncating
-    rather than growing, so a client with a long allergy list shortens their own
-    fact instead of pushing the other four off the line. The tip carries the
-    full text.
+    **BMI and the goal used to be here and are not any more.** Neither is a
+    figure anyone acts on while placing meals: the goal already decided the
+    calorie target that *is* on the line, and BMI decided nothing on this screen
+    at all. They were two of five values competing for a line that only ever had
+    room for a few, and dropping them gives the remaining three their full width
+    instead of three truncated pairs. Both still live in the notes popover,
+    beside the rest of the profile they belong to.
+
+    The rule is otherwise unchanged: **they are on screen when they can share a
+    line with the client, and nowhere else.** From `xl` they take a column of
+    their own beside the name and cost the board nothing — spread
+    `justify-between` across the whole of it, with every value truncating rather
+    than growing, so a client with a long allergy list shortens their own fact
+    instead of pushing the others off the line. The tip carries the full text.
 
     Below that they would need a row, and a row is 42px of a board that is
     pinned to the frame and cannot grow. On a tablet they are gone: the notes
-    panel is one press away, holds all five, and is where the rest of the
+    panel is one press away, holds all of them, and is where the rest of the
     profile already lives.
 
     A phone is the exception, and only because the page scrolls there — the row
-    costs nothing anyone can see. It wraps to as many lines as it needs, since
-    five pairs on 357px held to one line would be five values all cut off, and
-    half of "2178 kcal" is not a number.
+    costs nothing anyone can see.
   */
   const summary = (
     <section
@@ -318,18 +323,6 @@ export function ContextPanel({
         {context.effectiveProteinGrams === null
           ? t('unset')
           : t('grams', { value: context.effectiveProteinGrams })}
-      </SummaryFact>
-      <SummaryFact label={t('bmi')} numeric>
-        {targets.bmi === null ? t('unset') : targets.bmi.toFixed(1)}
-      </SummaryFact>
-      {/* A hint on this one for the same reason the allergy fact has one: it is
-          a phrase rather than a figure, so it is one of the two that gives up
-          width when the line is tight. */}
-      <SummaryFact
-        label={t('goal')}
-        hint={isMember(CLIENT_GOALS, context.goal) ? tGoals(context.goal) : t('unset')}
-      >
-        {isMember(CLIENT_GOALS, context.goal) ? tGoals(context.goal) : t('unset')}
       </SummaryFact>
       {/*
         **The short form on the line, the sentence in the tip.**
