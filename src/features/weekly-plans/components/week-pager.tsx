@@ -56,8 +56,21 @@ export function WeekPager({
     const travelled = Math.abs(scroll.scrollLeft);
     const total = scroll.scrollWidth - scroll.clientWidth;
 
-    frame.dataset.atStart = travelled <= 1 ? 'true' : 'false';
-    frame.dataset.atEnd = total - travelled <= 1 ? 'true' : 'false';
+    /*
+      2px of slack at each end, not 1.
+
+      Every width on this board is fractional — the day columns divide what is
+      left of the frame after the rail and six gutters, and the browser rounds
+      each of the seven to the device pixel grid. The rounding does not cancel:
+      on a display whose ratio is not a whole number the sum of the columns and
+      the scrollport's own `scrollWidth` can disagree by more than a pixel, and
+      a scroll that has visibly reached the last day reports itself a pixel and
+      a half short of the end. With a 1px tolerance that is a chevron pointing
+      at a week that will not move any further — the state this control exists
+      to *not* be in. Two pixels is still far too small to swallow a real day.
+    */
+    frame.dataset.atStart = travelled <= 2 ? 'true' : 'false';
+    frame.dataset.atEnd = total - travelled <= 2 ? 'true' : 'false';
   }, [frameRef, scrollRef]);
 
   useEffect(() => {
@@ -66,6 +79,17 @@ export function WeekPager({
 
     sync();
     scroll.addEventListener('scroll', sync, { passive: true });
+    /*
+      `scrollend` as well as `scroll`, for the last frame of a smooth scroll.
+
+      A press on a chevron animates the scrollport, and the final `scroll` event
+      of that animation can be dispatched before the position settles on its
+      resting value — so the run that decides whether this was the last group
+      reads a figure a pixel or two short of where the board actually stopped.
+      `scrollend` fires once, after it has stopped, and is the only event that
+      is guaranteed to see the number a reader is looking at.
+    */
+    scroll.addEventListener('scrollend', sync, { passive: true });
 
     /*
       The frame's width decides how many days are on screen, so a resize can
@@ -82,6 +106,7 @@ export function WeekPager({
 
     return () => {
       scroll.removeEventListener('scroll', sync);
+      scroll.removeEventListener('scrollend', sync);
       observer.disconnect();
     };
   }, [scrollRef, sync]);

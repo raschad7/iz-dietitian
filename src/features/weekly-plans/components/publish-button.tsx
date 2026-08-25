@@ -66,12 +66,20 @@ export function PublishButton({
         <form action={unpublish}>
           <input type="hidden" name="locale" value={locale} />
           <input type="hidden" name="planId" value={planId} />
+          {/*
+            The tip the board's read-only banner used to be. It is on this
+            button because this button is the way out of the state it describes
+            — and because a header control that has visibly changed shape is
+            already saying "something is different", so what is left to explain
+            is only *what to do about it*.
+          */}
           <Submit
             label={t('unpublish')}
             pendingLabel={t('unpublishing')}
             labels={labels}
             icon="eyeOff"
             variant="outline"
+            title={t('publishedReadOnly')}
             confirmed={publishState.status === 'done'}
           />
         </form>
@@ -93,7 +101,15 @@ export function PublishButton({
           labels={labels}
           icon="eye"
           disabled={unfilled > 0}
-          title={unfilled > 0 ? t('errors.unfilled') : undefined}
+          /*
+            The count, not the flat "cannot publish while meals are unfilled".
+            This tip replaced a banner that said how many were left, and the
+            number is the half of it worth keeping: "three still empty" tells
+            you roughly how much work is in front of you, and "cannot publish"
+            tells you only what you already found out by hovering a disabled
+            button.
+          */
+          title={unfilled > 0 ? t('unfilledWarning', { count: unfilled }) : undefined}
         />
       </form>
       <Message state={publishState} />

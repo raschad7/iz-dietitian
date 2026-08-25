@@ -78,6 +78,15 @@ export function ContextPanel({
     { key: 'medicalNotes', label: t('medicalNotes'), body: context.medicalNotes },
   ] as const;
 
+  /*
+    Split rather than rendered uniformly — see the note in the popover. `trim()`
+    because a field someone opened, spaced and saved is empty in every sense the
+    reader cares about, and a heading over a blank line is the worst of both
+    renderings.
+  */
+  const written = notes.filter((note) => Boolean(note.body?.trim()));
+  const blank = notes.filter((note) => !note.body?.trim());
+
   const measurements = [
     profile?.weightKg !== null && profile?.weightKg !== undefined
       ? t('kg', { value: profile.weightKg })
@@ -173,12 +182,18 @@ export function ContextPanel({
             className="max-h-[min(34rem,72dvh)] w-[min(22rem,calc(100vw-2rem))] overflow-y-auto p-0"
           >
             <div className="sticky top-0 z-10 border-b border-border bg-popover px-4 py-3">
+              {/*
+                The title, and nothing under it.
+
+                The client's name was a second line here, 40px from their own
+                name in the header and 20px from the avatar the popover opens
+                off — three printings of one word inside a hand's width. A
+                popover is understood to belong to the control it grew out of;
+                it does not have to say whose it is.
+              */}
               <PopoverTitle className="font-heading text-body-md font-semibold">
                 {t('planningNotes')}
               </PopoverTitle>
-              <p className="mt-0.5 truncate text-caption text-muted-foreground" dir="auto">
-                {context.fullName}
-              </p>
             </div>
 
             <div className="space-y-4 p-4">
@@ -190,62 +205,131 @@ export function ContextPanel({
                 </p>
               )}
 
-              {/* The sunken fill the header's own line of figures uses, so the
-                  popover reads as the same object opened up rather than as a
-                  second design of the same information. */}
-              <dl className="divide-y divide-border rounded-lg bg-muted/70 px-3">
-                {/* The week's five figures, which the header only prints on a
-                    phone and on a desk — see the note on `summary`. This is
-                    where a tablet reads them, so they lead the list rather than
-                    following the two derived facts. */}
-                <SpecRow label={t('dailyTarget')}>
-                  {context.effectiveKcal === null
-                    ? t('unset')
-                    : t('kcalValue', { value: context.effectiveKcal })}
-                </SpecRow>
-                <SpecRow label={t('fields.proteinTargetGrams')}>
-                  {context.effectiveProteinGrams === null
-                    ? t('unset')
-                    : t('grams', { value: context.effectiveProteinGrams })}
-                </SpecRow>
-                <SpecRow label={t('bmi')}>
-                  {targets.bmi === null ? t('unset') : targets.bmi.toFixed(1)}
-                </SpecRow>
-                <SpecRow label={t('goal')}>
-                  {isMember(CLIENT_GOALS, context.goal) ? tGoals(context.goal) : t('unset')}
-                </SpecRow>
-                <SpecRow
-                  label={t('allergies')}
-                  tone={allergyText ? 'medical' : 'attention'}
-                >
-                  {allergyText || t('allergiesMissing')}
-                </SpecRow>
-                <SpecRow label={t('activityLevel')}>
-                  {isMember(CLIENT_ACTIVITY_LEVELS, context.activityLevel)
-                    ? tActivity(context.activityLevel)
-                    : t('unset')}
-                </SpecRow>
-                <SpecRow label={t('measurements')}>
-                  {measurements.length ? measurements.join(' · ') : t('unset')}
-                </SpecRow>
-              </dl>
+              {/*
+                ── The allergies first, and as a warning rather than a row ──
 
-              <div className="space-y-3">
-                {notes.map((note) => (
-                  <div key={note.key}>
-                    <p className="text-caption font-medium text-muted-foreground">{note.label}</p>
-                    <p
-                      className={cn(
-                        'mt-1 text-body-sm leading-relaxed [overflow-wrap:anywhere]',
-                        !note.body && 'text-muted-foreground',
-                      )}
-                      dir="auto"
-                    >
-                      {note.body || t('unset')}
-                    </p>
+                It was the fifth of seven rows in a list of figures, in the same
+                type as the activity level, differing only in colour. But it is
+                the one fact here that can stop a plan going out, and it is a
+                *sentence* rather than a value — it never fitted the
+                label-left/value-right shape the other six are built for, so it
+                wrapped where they did not and dragged the whole list out of
+                rhythm. On its own, at the top, in the medical tone, it is both
+                shorter and the first thing read.
+              */}
+              <p
+                className={cn(
+                  'rounded-lg px-3 py-2.5 text-body-sm leading-relaxed',
+                  allergyText
+                    ? 'bg-status-medical-bg text-status-medical-fg'
+                    : 'bg-status-attention-bg text-status-attention-fg',
+                )}
+                dir="auto"
+              >
+                <span className="font-semibold">{t('allergies')}</span>
+                {' · '}
+                {allergyText || t('allergiesMissing')}
+              </p>
+
+              {/*
+                ── Two figures as tiles, five as rows ──
+
+                The seven facts were one undivided run of `dt`/`dd` pairs, which
+                is why this panel read as a printout: the calorie target and the
+                protein target — the two numbers the whole week is built to hit
+                — sat in the same 14px grey as the activity level, and the eye
+                had to read all seven to find the two.
+
+                They are tiles now, side by side and set at heading size, and the
+                rest keep the list. Two groups with a heading each, so what is a
+                *target* and what is a *measurement* is answered by the layout
+                rather than by reading the labels.
+              */}
+              <section>
+                <SpecHeading>{t('notesTargets')}</SpecHeading>
+                <div className="grid grid-cols-2 gap-2">
+                  <Figure label={t('dailyTarget')}>
+                    {context.effectiveKcal === null
+                      ? t('unset')
+                      : t('kcalValue', { value: context.effectiveKcal })}
+                  </Figure>
+                  <Figure label={t('fields.proteinTargetGrams')}>
+                    {context.effectiveProteinGrams === null
+                      ? t('unset')
+                      : t('grams', { value: context.effectiveProteinGrams })}
+                  </Figure>
+                </div>
+              </section>
+
+              <section>
+                <SpecHeading>{t('notesBody')}</SpecHeading>
+                {/* The sunken fill the header's own line of figures uses, so the
+                    popover reads as the same object opened up rather than as a
+                    second design of the same information. */}
+                <dl className="divide-y divide-border rounded-lg bg-muted/70 px-3">
+                  <SpecRow label={t('goal')}>
+                    {isMember(CLIENT_GOALS, context.goal) ? tGoals(context.goal) : t('unset')}
+                  </SpecRow>
+                  <SpecRow label={t('bmi')}>
+                    {targets.bmi === null ? t('unset') : targets.bmi.toFixed(1)}
+                  </SpecRow>
+                  <SpecRow label={t('activityLevel')}>
+                    {isMember(CLIENT_ACTIVITY_LEVELS, context.activityLevel)
+                      ? tActivity(context.activityLevel)
+                      : t('unset')}
+                  </SpecRow>
+                  <SpecRow label={t('measurements')}>
+                    {measurements.length ? measurements.join(' · ') : t('unset')}
+                  </SpecRow>
+                </dl>
+              </section>
+
+              {/*
+                ── Four "not recorded" blocks become one line ──
+
+                Every one of the four written notes was drawn as a label and a
+                body whether or not anything had been written, so the common
+                case — a client with permanent instructions and nothing else —
+                spent about 120px of a scrolling panel on three headings above
+                three copies of the word "unset". Which is not information: it
+                is the same absence, restated once per field, in the weight and
+                spacing a real answer would have had.
+
+                What is written gets its heading and its paragraph. What is not
+                is named once, in a muted run at the foot, where it can be
+                checked in a glance without being read.
+              */}
+              <section>
+                <SpecHeading>{t('notesWritten')}</SpecHeading>
+
+                {written.length === 0 ? (
+                  <p className="text-body-sm text-muted-foreground">{t('notesNothingWritten')}</p>
+                ) : (
+                  <div className="space-y-3">
+                    {written.map((note) => (
+                      <div key={note.key}>
+                        <p className="text-caption font-medium text-muted-foreground">
+                          {note.label}
+                        </p>
+                        <p
+                          className="mt-1 text-body-sm leading-relaxed [overflow-wrap:anywhere]"
+                          dir="auto"
+                        >
+                          {note.body}
+                        </p>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                )}
+
+                {blank.length > 0 && (
+                  <p className="mt-3 text-caption leading-relaxed text-muted-foreground">
+                    {t('notesUnwritten', {
+                      fields: blank.map((note) => note.label).join('، '),
+                    })}
+                  </p>
+                )}
+              </section>
             </div>
           </PopoverContent>
         </Popover>
@@ -455,6 +539,29 @@ function SummaryFact({
  * one wraps while the first leaves half its cell empty. Given the row, the long
  * one has the width it needs and the short one costs nothing.
  */
+/** The heading over one group of facts. */
+function SpecHeading({ children }: { children: React.ReactNode }) {
+  return <h4 className="pb-1.5 text-caption font-semibold text-muted-foreground">{children}</h4>;
+}
+
+/**
+ * One of the two numbers the week is built against, at a size that says so.
+ *
+ * `tabular-nums` and `dir="ltr"` on the value: it is a figure with a unit
+ * attached, and "2178 kcal" reads left to right in Arabic exactly as it does in
+ * English — the label above it is what carries the direction of the panel.
+ */
+function Figure({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-lg bg-muted/70 px-3 py-2">
+      <p className="text-caption text-muted-foreground">{label}</p>
+      <p className="mt-0.5 font-heading text-body-lg font-medium tabular-nums" dir="auto">
+        {children}
+      </p>
+    </div>
+  );
+}
+
 function SpecRow({
   label,
   tone,

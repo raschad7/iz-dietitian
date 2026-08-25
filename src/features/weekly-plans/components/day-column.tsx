@@ -8,9 +8,9 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/dialog';
 import { Field } from '@/components/ui/field';
 import { Icon } from '@/components/ui/icon';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SelectField } from '@/components/ui/select-field';
+import { TimeInput } from '@/components/ui/time-input';
 import { TooltipHint } from '@/components/ui/tooltip-hint';
 import { getLocaleDirection, type Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
@@ -25,13 +25,6 @@ import { dayKey } from '../schema';
 
 import { useEditorActions } from './board-dnd';
 import { MealCard, type GhostMeal } from './meal-card';
-
-/**
- * The value `choice` holds when the reader wants to name the row themselves —
- * see `AddSlot`. A sentinel rather than an empty string, because empty is what
- * `SelectField` shows a placeholder for and this is a row that was chosen.
- */
-const CUSTOM_MEAL_NAME = 'custom';
 
 /**
  * One day of the week, as a column of meal cards.
@@ -297,20 +290,47 @@ function SkippedSlot({
  * ── One question, not three ──
  *
  * The form asked for a name, an hour and a glyph, and the name was a free-text
- * box. Nearly every row anyone adds is one of eight things, and each of those
- * eight answers the other two questions on its own — nobody puts "before
- * training" at 07:30, and nobody draws it with a dinner plate. So the name is a
- * list now, and picking from it fills the hour and the glyph in behind you;
- * both stay editable, because a client who trains at six in the morning exists.
+ * box. Nearly every row anyone adds is one of thirteen things, and each of those
+ * answers the other two questions on its own — nobody puts "before training" at
+ * 07:30, and nobody draws it with a dinner plate. So the name is a list now, and
+ * picking from it fills the hour and the glyph in behind you; both stay
+ * editable, because a client who trains at six in the morning exists.
  *
- * Names already on the board are struck from the list rather than left there to
- * be chosen twice — the slot key would be new but the rail would read the same
- * word twice down the column.
+ * ── Names already on the board are shown, disabled ──
  *
- * The free-text box survives as the last entry, for the clinic that calls its
- * rows something else. It is where the whole control used to be, which is the
- * right place for the case that is now the exception.
+ * They used to be filtered out. Which is defensible — the slot key would be new
+ * but the rail would read the same word twice — and it produced a list whose
+ * contents changed every time a row was added, so the reader had to work out
+ * whether "غداء" was missing because it is already there or because this app
+ * does not have it. A greyed row with the reason beside it answers that without
+ * being choosable, and the list is the same list every time it opens.
+ *
+ * ── The free-text box is gone ──
+ *
+ * It was the last entry, for the clinic that calls its rows something else. At
+ * eight names that was a reasonable escape hatch; at thirteen it is a second
+ * question ("is my name in the list, or do I type it?") asked of everyone in
+ * order to serve almost no one, and the typed name was the one answer that
+ * still left the hour and the glyph to set by hand. A clinic needing a name
+ * this list does not carry should have it *added to the list*, where it arrives
+ * with an hour, a glyph and a translation.
  */
+/**
+ * The label a chosen suggestion carries, or `''` when nothing is chosen.
+ *
+ * Read from the message catalogue rather than from the rendered options, which
+ * now decorate a taken row with the reason it cannot be picked — and the row's
+ * *name* is what goes on the board.
+ */
+function nameOf(
+  choice: string | null,
+  t: ReturnType<typeof useTranslations<'weeklyPlans'>>,
+): string {
+  const suggestion = MEAL_NAME_SUGGESTIONS.find((entry) => entry.id === choice);
+
+  return suggestion ? t(`mealNameSuggestions.${suggestion.id}`) : '';
+}
+
 export function AddSlot({ rows }: { rows: readonly BoardRow[] }) {
   const t = useTranslations('weeklyPlans');
   const activeLocale = useLocale();
@@ -321,21 +341,25 @@ export function AddSlot({ rows }: { rows: readonly BoardRow[] }) {
   // picked; pre-selecting one would let a distracted press add "سناك مسائي" to
   // all seven days.
   const [choice, setChoice] = useState<string | null>(null);
-  const [label, setLabel] = useState('');
   const [time, setTime] = useState('17:00');
   const [mealIconId, setMealIconId] = useState<(typeof MEAL_ICON_OPTIONS)[number]['id']>('snack');
 
   const taken = new Set(rows.map((row) => row.label.trim()));
-  const options = [
-    ...MEAL_NAME_SUGGESTIONS.map((suggestion) => ({
-      value: suggestion.id,
-      label: t(`mealNameSuggestions.${suggestion.id}`),
-    })).filter((option) => !taken.has(option.label)),
-    { value: CUSTOM_MEAL_NAME, label: t('addMealCustom') },
-  ];
+  const options = MEAL_NAME_SUGGESTIONS.map((suggestion) => {
+    const label = t(`mealNameSuggestions.${suggestion.id}`);
+    const already = taken.has(label);
 
-  const custom = choice === CUSTOM_MEAL_NAME;
-  const name = custom ? label.trim() : (options.find((o) => o.value === choice)?.label ?? '');
+    return {
+      value: suggestion.id,
+      // The reason on the row itself, not a tooltip: a disabled option in a
+      // listbox cannot be hovered on a touch screen and cannot be focused by
+      // keyboard, so a tip attached to it is a tip nobody can summon.
+      label: already ? `${label} — ${t('addMealTaken')}` : label,
+      disabled: already,
+    };
+  });
+
+  const name = taken.has(nameOf(choice, t)) ? '' : nameOf(choice, t);
 
   function pick(value: string): void {
     setChoice(value);
@@ -361,7 +385,6 @@ export function AddSlot({ rows }: { rows: readonly BoardRow[] }) {
       time,
     );
     setChoice(null);
-    setLabel('');
     setTime('17:00');
     setMealIconId('snack');
     setOpen(false);
@@ -428,26 +451,23 @@ export function AddSlot({ rows }: { rows: readonly BoardRow[] }) {
               />
             </Field>
 
-            {custom && (
-              <Field>
-                <Label htmlFor="add-slot-label">{t('addMealCustom')}</Label>
-                <Input
-                  id="add-slot-label"
-                  value={label}
-                  onChange={(event) => setLabel(event.target.value)}
-                  placeholder={t('addMealPlaceholder')}
-                  maxLength={60}
-                  autoFocus
-                  required
-                />
-              </Field>
-            )}
-
             <Field>
               <Label htmlFor="add-slot-time">{t('addMealTime')}</Label>
-              <Input
+              {/*
+                The app's one time control, the same one the client record's
+                meal schedule uses — a segmented field with a clock leading it
+                and the OS spinner suppressed. This was a bare `<input
+                type="time">`, which is the same element underneath and none of
+                the treatment: it drew the browser's own picker button, in the
+                operating system's type, on a dialog that is otherwise entirely
+                the app's. Two forms that ask a client's meal times should not
+                ask them with two different controls.
+
+                No `step`: any whole minute is a real answer here, exactly as it
+                is on the intake form.
+              */}
+              <TimeInput
                 id="add-slot-time"
-                type="time"
                 value={time}
                 onChange={(event) => setTime(event.target.value)}
                 required

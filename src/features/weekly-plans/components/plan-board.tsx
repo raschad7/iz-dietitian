@@ -106,15 +106,6 @@ export function PlanBoard(props: BoardProps) {
  * The glyph takes no `label`, which is what makes `Icon` mark it `aria-hidden`.
  * The sentence beside it already names the condition.
  */
-function BoardNotice({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="flex items-center gap-2 rounded-md bg-status-attention-bg px-3 py-2 text-body-sm text-status-attention-fg md:py-1 md:text-caption">
-      <Icon name="attention" className="size-4 shrink-0" />
-      <span className="min-w-0">{children}</span>
-    </p>
-  );
-}
-
 function BoardBody({
   candidates,
   catalog,
@@ -469,16 +460,34 @@ function BoardBody({
         </div>
       </header>
 
-      {/* A published plan is a record, not a working copy: its nutrition is frozen
-          and its composition is locked. Said here rather than left to a control
-          that would only fail — the route back to editing is Unpublish, which the
-          header already offers. */}
-      {board.status === 'published' && <BoardNotice>{t('publishedReadOnly')}</BoardNotice>}
+      {/*
+        ── Two banners used to live here, and neither said anything new ──
 
-      {board.unfilled > 0 && (
-        <BoardNotice>{t('unfilledWarning', { count: board.unfilled })}</BoardNotice>
-      )}
+        One announced that a published plan is read-only; the other counted the
+        empty slots left before it could be published. Both were full-width
+        amber bars between the header and the board, which is the worst place in
+        this layout for anything conditional: the board is pinned to the frame
+        and cannot grow, so each bar took ~34px off the week *and* shoved the
+        whole grid down the moment it appeared. Filling the last empty slot —
+        the one action that ought to feel like finishing — made the board jump.
 
+        Both facts already had a home, and it is the same control:
+
+        - Read-only. The publish button is an eye that fills green to publish
+          and a struck-through outlined eye to take it back. A published plan is
+          therefore already announced by the only control in the header that
+          changed, and the sentence explaining what to do about it now hangs off
+          that button as its tip. The place a reader actually meets the wall is
+          the meal panel, and that is where the sentence is repeated — see
+          `meal-detail-panel.tsx`.
+
+        - Unfilled slots. Publishing is *disabled* while any slot is empty, and
+          a disabled control has always carried the reason in its tip. The tip
+          now carries the count as well, which is everything the banner said.
+
+        Nothing conditional is rendered between the header and the board any
+        more, and the grid's block start never moves.
+      */}
       <BoardDayStrip days={orderedDays} selectedDay={selectedDay} onSelect={setSelectedDay} />
 
       {/* `planner-week-frame` is the board's size container. Every question

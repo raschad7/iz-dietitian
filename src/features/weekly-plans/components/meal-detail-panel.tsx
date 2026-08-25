@@ -215,6 +215,23 @@ export function MealDetailPanel({
        * without it a long ingredient list would compress the footer rather than
        * scroll under it.
        */}
+      {/*
+        Why nothing here can be changed, said where the question is asked.
+
+        The board used to carry this as a banner under its header, which cost
+        ~34px of a grid that cannot grow and shoved the week down the moment a
+        plan went live. It belongs here instead: a published plan's panel is the
+        surface a dietitian opens *expecting* a stepper and a swap list, finds
+        neither, and needs a sentence. On the board, the header's struck-through
+        eye has already said the same thing to anyone looking at the controls.
+      */}
+      {!editable && meal.dish && (
+        <p className="flex shrink-0 items-center gap-2 border-t border-border bg-muted/45 px-5 py-3 text-caption leading-relaxed text-muted-foreground">
+          <Icon name="eyeOff" className="size-4 shrink-0" />
+          <span className="min-w-0">{t('publishedReadOnly')}</span>
+        </p>
+      )}
+
       {editable && (
         <section className="flex shrink-0 gap-2 border-t border-border bg-muted/45 px-5 py-3">
           {meal.dish && (
