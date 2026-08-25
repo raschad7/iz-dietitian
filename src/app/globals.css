@@ -228,7 +228,7 @@
    * decorative fill, not a step in a scale, and no other surface may reach
    * for it. See `.portal-home-glow` in `@layer components`.
    */
-  --portal-home-glow: #73AE35;
+  --portal-home-glow: #76CF4A;
 
   /*
    * ── Home hero progress ring ──
@@ -243,9 +243,9 @@
    * (an ambient blur vs. a solid, shadowed disc) and the glow's own comment
    * reserves it for that one use.
    */
-  --portal-progress-fill: #72AE34;
+  --portal-progress-fill: #76CF4A;
   /* The dashed arc drawn to the completed fraction — see `TodayRing`. */
-  --portal-progress-track: #76CB26;
+  --portal-progress-track: #76CF4A;
   /* The full background track behind it, standing for what's not yet complete. */
   --portal-progress-track-soft: rgba(92, 150, 38, .16);
   --portal-progress-figure: #F3FFE5;
@@ -258,7 +258,7 @@
    * to equal `--green-600` today, but stays its own pinned literal rather
    * than a reach for that token, matching the other two above it.
    */
-  --meal-check-fill: #72AE34;
+  --meal-check-fill: #76CF4A;
 
   /*
    * ── Leading, per script ──
@@ -1315,8 +1315,14 @@
  * oversight.
  */
 [data-theme='light'] {
-  --primary: #73ae35;
+  --primary: #76CF4A;
   --primary-foreground: var(--n-0);
+  --primary-hover: #76CF4A;
+  --secondary-foreground: #76CF4A;
+  --ring: #76CF4A;
+  --input-hover: #76CF4A;
+  /* n-50 (#F7F5EF) reads warm/cream against the portal's own cooler surfaces — c-100 matches `--muted` instead. */
+  --icon-chip: var(--c-100);
 }
 
 .dark,
@@ -2629,24 +2635,21 @@
   /*
    * ── The day-complete claim card ──
    * `TodayFlameCell`'s dialog, the moment a client finishes every meal of the
-   * day. Two more layers on top of the trio above: a wide, gentle wash behind
-   * the whole card (green and flame both, faded, so the card reads as one
-   * warm surface rather than a white rectangle with icons on it) and a
-   * handful of sparkles that twinkle on their own independent delays.
+   * day. `.q-claim-glow` is a plain `--card` fill behind the character and
+   * sparkles — it used to be a warm green/flame wash, deliberately flattened
+   * to white so the card reads as a clean surface rather than a tinted one.
+   * The sparkles still twinkle on their own independent delays on top of it.
    *
-   * Both loop for as long as the card is open, unlike every other one-shot
-   * celebration in this file — the difference is deliberate: this card
-   * blocks (`dismissible={false}`) until the client presses its own button,
-   * so it is never open for more than a few seconds, and a wash or a
-   * sparkle that finished mid-read would leave the card looking unfinished
-   * for whatever time was left. `prefers-reduced-motion` still collapses
-   * both to their resting frame, same as everywhere else in this file.
+   * The sparkles loop for as long as the card is open, unlike every other
+   * one-shot celebration in this file — the difference is deliberate: this
+   * card blocks (`dismissible={false}`) until the client presses its own
+   * button, so it is never open for more than a few seconds, and a sparkle
+   * that finished mid-read would leave the card looking unfinished for
+   * whatever time was left. `prefers-reduced-motion` still collapses it to
+   * its resting frame, same as everywhere else in this file.
    */
   .q-claim-glow {
-    background:
-      radial-gradient(120% 65% at 50% 0%, color-mix(in srgb, var(--flame-300) 38%, transparent) 0%, transparent 65%),
-      radial-gradient(90% 55% at 50% 58%, color-mix(in srgb, var(--primary) 26%, transparent) 0%, transparent 70%);
-    animation: q-claim-glow-pulse 3200ms ease-in-out infinite;
+    background: var(--card);
   }
 
   .q-claim-sparkle {
@@ -2862,6 +2865,16 @@
   .q-mascot[data-energy-bump='true'] .q-mascot-float {
     animation: q-energy-bump 640ms var(--ease-sweep);
   }
+
+  /*
+   * The three "Z"s at 100% — see `ZZZ_LETTERS` in `today-energy-mascot.tsx`.
+   * Each rises and fades on its own delay so the cascade reads as one
+   * continuous drift rather than three letters blinking in unison.
+   */
+  .q-mascot-zzz {
+    line-height: 1;
+    animation: q-mascot-zzz-float 2400ms ease-in-out infinite;
+  }
 }
 
 /*
@@ -2931,13 +2944,40 @@
  *
  * Full-bleed is the only width a phone in portrait has, so unlike the coarse
  * version this block once had, it needs no companion query capping the measure
- * on a larger screen — there is no larger screen inside it.
+ * on a larger screen — a tablet never matches `width < 40rem` at all, so it
+ * never reaches this block in the first place.
+ *
+ * ## What this no longer covers, and why that is the direction of travel
+ *
+ * The notifications inbox used to be the loudest customer of the
+ * `popover-positioner` line below. It is not any more: `NotificationInboxPopover`
+ * asks `useIsSheetSurface()` — the same width question this query asks — and
+ * renders a real `Sheet` on a phone instead of a popover that gets redrawn as
+ * one here. That is the better arrangement wherever a surface can afford it,
+ * because a `Sheet` is a dialog: it brings a focus trap, a scrim, a close
+ * control and an entrance of its own, and above all the *component* knows
+ * which surface it is, so anything that has to measure or animate it can ask.
+ * A popover reshaped by a stylesheet leaves the component believing it is
+ * still anchored to its trigger.
+ *
+ * This block stays for the surfaces where that trade does not pay: `select`,
+ * `combobox` and `dropdown-menu` are list pickers whose whole content is rows,
+ * with nothing to focus-trap and no header to close, and swapping each of them
+ * for a dialog would be a large change to buy very little. `popover-positioner`
+ * stays too — the date pickers, the client filter and the planner's panels all
+ * still hang off a trigger and still want this on a phone.
+ *
+ * `[data-force-anchored]` is the one escape from it, and it is opt-in per
+ * instance rather than a second `data-slot` — see `PopoverContent`'s own prop
+ * of the same name. The portal's notification bell is the one caller: it wants
+ * to read as a small popup anchored to its icon on a phone too, rather than as
+ * another bottom sheet on a screen that already opens the full feed as a page.
  */
 @media (width < 40rem) {
   [data-slot='select-positioner'],
   [data-slot='combobox-positioner'],
   [data-slot='dropdown-menu-positioner'],
-  [data-slot='popover-positioner'] {
+  [data-slot='popover-positioner']:not([data-force-anchored]) {
     position: fixed !important;
     inset-inline: 0 !important;
     /*
@@ -2964,7 +3004,7 @@
   [data-slot='select-content'],
   [data-slot='combobox-content'],
   [data-slot='dropdown-menu-content'],
-  [data-slot='popover-content'] {
+  [data-slot='popover-content']:not([data-force-anchored]) {
     width: 100% !important;
     min-width: 0 !important;
     /*
@@ -3015,14 +3055,14 @@
   [data-slot='select-content'][data-open],
   [data-slot='combobox-content'][data-open],
   [data-slot='dropdown-menu-content'][data-open],
-  [data-slot='popover-content'][data-open] {
+  [data-slot='popover-content'][data-open]:not([data-force-anchored]) {
     animation: q-popup-sheet-in 220ms var(--ease-sweep) !important;
   }
 
   [data-slot='select-content'][data-closed],
   [data-slot='combobox-content'][data-closed],
   [data-slot='dropdown-menu-content'][data-closed],
-  [data-slot='popover-content'][data-closed] {
+  [data-slot='popover-content'][data-closed]:not([data-force-anchored]) {
     animation: q-popup-sheet-out 160ms ease-in both !important;
   }
 
@@ -5623,6 +5663,26 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
   }
 }
 
+/* One "Z" of the 100% sleep cascade — see `.q-mascot-zzz`. */
+@keyframes q-mascot-zzz-float {
+  0% {
+    opacity: 0;
+    transform: translateY(4px) scale(0.85);
+  }
+  25% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1);
+  }
+  75% {
+    opacity: 1;
+    transform: translateY(-10px) scale(1.05);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-18px) scale(1.1);
+  }
+}
+
 @keyframes q-energy-bump {
   0%,
   100% {
@@ -5630,17 +5690,6 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
   }
   40% {
     transform: scale(1.08);
-  }
-}
-
-/* A slow breathing wash behind the day-complete claim card — see `.q-claim-glow`. */
-@keyframes q-claim-glow-pulse {
-  0%,
-  100% {
-    opacity: 0.6;
-  }
-  50% {
-    opacity: 1;
   }
 }
 
@@ -6760,3 +6809,5 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
     animation: q-splash-out 240ms var(--ease-sweep) 760ms forwards;
   }
 }
+
+

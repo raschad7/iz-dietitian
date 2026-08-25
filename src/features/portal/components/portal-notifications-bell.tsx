@@ -128,6 +128,14 @@ export function PortalNotificationsBell({
         would open across the screen and collide with the far edge on a phone.
       */
       align="start"
+      /*
+        A popup anchored to the bell on every device, phone included — not the
+        shared component's own default of a bottom sheet on touch. "See all"
+        already leads to `/portal/notifications`, a page of its own with a
+        back control, so the panel here only ever needs to be a glance rather
+        than a surface worth the weight of a sheet.
+      */
+      sheetOnTouch={false}
       onOpenChange={(open) => {
         if (open) onOpen();
       }}

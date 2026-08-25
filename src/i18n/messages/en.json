@@ -1072,8 +1072,6 @@
       "emptyDayHint": "Your dietitian left this day open. Pick another day above.",
       "kcalValue": "{value} kcal",
       "markEaten": "Mark {meal} as eaten",
-      "wasEaten": "{meal} — eaten",
-      "wasNotEaten": "{meal} — not marked as eaten",
       "totalGrams": "≈ {value} g",
       "mealQuantity": "Meal quantity",
       "orInstead": "You can eat this instead:",
@@ -1137,7 +1135,7 @@
       "outsideWindow": "You can only ask for a time within the next month.",
       "alreadyRequested": "You have already asked about this. Your dietitian will answer soon.",
       "pastAppointment": "That appointment has already happened.",
-      "dayLocked": "You can only tick meals for today.",
+      "dayLocked": "You can't tick meals for a day that hasn't happened yet.",
       "unexpected": "Something went wrong. Please try again."
     },
     "emptyToday": "Nothing planned yet.",

@@ -474,19 +474,21 @@ export async function toggleMealCompletion(
     if (!date) return { ok: false, error: 'errors.unexpected' };
 
     /*
-      Only today may be reported on, and this is where that rule is actually
-      enforced — the portal hides the control on every other day, but a server
-      action is a public endpoint (see the header of `actions.ts`) and a hidden
-      button is a courtesy, not a guard.
+      Today, or a day already behind it — never one still ahead — and this is
+      where that rule is actually enforced: the portal hides the control on a
+      future day (`MealCard`), but a server action is a public endpoint (see
+      the header of `actions.ts`) and a hidden button is a courtesy, not a
+      guard. A client corrects yesterday's log the same way they set it in the
+      first place; nothing here can be reported on before it happens.
 
       The date compared is the one derived from the meal itself two lines above,
-      never a date the caller sent, so a crafted post cannot claim yesterday's
+      never a date the caller sent, so a crafted post cannot claim tomorrow's
       breakfast belongs to today. Both sides are zero-padded ISO calendar dates
       and `today` is the clinic's wall clock, so the comparison is date-only and
       does not shift with the hour — the same contract `dayStanding` documents
       for the screen that draws it.
     */
-    if (date !== today) return { ok: false, error: 'errors.dayLocked' };
+    if (date > today) return { ok: false, error: 'errors.dayLocked' };
 
     const level = await db.transaction(async (tx) => {
       if (completed) {

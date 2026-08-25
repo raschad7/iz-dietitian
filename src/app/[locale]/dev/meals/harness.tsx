@@ -6,6 +6,7 @@ import {
   EditorActionsContext,
   type EditorActions,
 } from '@/features/weekly-plans/components/board-dnd';
+import { PlanDayCompletionProvider } from '@/features/weekly-plans/components/plan-day-completion';
 import { MealDetailPanel } from '@/features/weekly-plans/components/meal-detail-panel';
 import { PortalMealCard } from '@/features/weekly-plans/components/portal-meal-card';
 import {
@@ -302,10 +303,14 @@ export function MealsHarness({ locale }: { locale: string }) {
 
           <section data-testid="portal" className="rounded-lg border border-border p-2">
             <p className="px-2 pb-2 text-caption text-muted-foreground">client portal</p>
-            {/* `past`, not `today`: today's card renders the live tick, which
-                needs the portal's completion provider. The quantities under it
-                are identical, and this harness is about the quantities. */}
-            <PortalMealCard meal={current} standing="past" completed={false} />
+            {/* `past`, not `future`: a future day renders no tick at all, and
+                this harness is about the quantities under it. `past` and
+                `today` both render the live `MealCheck`, which needs the
+                portal's completion provider — supplied here with a single
+                fixture meal rather than a real plan. */}
+            <PlanDayCompletionProvider dayOfWeek={0} mealIds={[current.id]} initialCompletedMealIds={[]}>
+              <PortalMealCard meal={current} standing="past" />
+            </PlanDayCompletionProvider>
           </section>
         </div>
       </div>

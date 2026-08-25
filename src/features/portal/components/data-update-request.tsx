@@ -288,8 +288,8 @@ function RequestDialogTrigger({
 
         {/*
           `min-h-0` so the body is what scrolls on a short phone in landscape,
-          rather than the dialog growing past the frame's own ceiling and taking
-          its footer off screen with it.
+          rather than the dialog growing past the responsive frame's own
+          ceiling in `globals.css` and taking its own footer off screen with it.
         */}
         <form ref={formRef} action={formAction} className="flex min-h-0 flex-1 flex-col">
           <input type="hidden" name="locale" value={locale} />
