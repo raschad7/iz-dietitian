@@ -250,6 +250,7 @@ export async function ClientProfile({
               locale={locale}
               clientId={client.id}
               clientName={client.fullName}
+              phone={client.phone}
               today={today}
               entries={billing.entries}
               prices={billing.prices}

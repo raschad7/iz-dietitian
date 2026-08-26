@@ -18,6 +18,8 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from '@/components/ui/sidebar';
+import { useSearchParams } from 'next/navigation';
+
 import { Link, usePathname } from '@/i18n/navigation';
 import type { Locale } from '@/i18n/routing';
 
@@ -260,12 +262,40 @@ function AppSidebar({
   const pathname = usePathname();
 
   /*
+    A client's record belongs to whichever list it was opened from.
+
+    The record lives at `/app/clients/{id}` whether it was reached from the
+    register or from Bills, so the address alone marks Subscribers current —
+    and a dietitian who walked in from Bills is then told by the rail that they
+    are somewhere they did not go. The rail is the answer to "where am I", and
+    on the one screen with two ways in it was answering from the URL's shape
+    rather than from the reader's route through the app.
+
+    `?from=bills` is the same parameter the record's own breadcrumb reads to
+    decide where "back" goes (see `RecordBackLink`), so the rail and the way
+    out cannot disagree about which list this record belongs to. It arrives with
+    the link and survives a reload, which is what makes it something to render
+    from rather than a guess.
+  */
+  const fromBills = useSearchParams().get('from') === 'bills';
+
+  /*
+    The address the rail is read against, which is the record's own except when
+    it was opened from Bills — then it is Bills, and every test below follows
+    without a second branch: the Bills row matches its section exactly, and the
+    Subscribers row is excluded by the rule it already has for standing on
+    Bills.
+  */
+  const current =
+    fromBills && pathname.startsWith('/app/clients/') ? '/app/clients/bills' : pathname;
+
+  /*
    * The two index routes have to match exactly. `/app` is a prefix of every
    * other staff route, so a `startsWith` test would light the dashboard up on
    * every page in the app.
    */
   function isActive(href: NavHref): boolean {
-    if (href === '/app' || href === '/portal') return pathname === href;
+    if (href === '/app' || href === '/portal') return current === href;
     /*
      * The calendar row points straight at a view (`/app/calendar/week`) rather
      * than at the redirect stub, so a click is one client navigation instead of
@@ -281,9 +311,9 @@ function AppSidebar({
      * nothing. Subscriber claims its section minus the addresses its sibling
      * owns.
      */
-    if (section === '/app/clients' && pathname.startsWith('/app/clients/bills')) return false;
+    if (section === '/app/clients' && current.startsWith('/app/clients/bills')) return false;
 
-    return pathname === section || pathname.startsWith(`${section}/`);
+    return current === section || current.startsWith(`${section}/`);
   }
 
   return (
