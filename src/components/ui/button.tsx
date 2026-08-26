@@ -164,17 +164,17 @@ const buttonVariants = cva(
         accent: "border-transparent bg-accent-green text-on-accent hover:bg-[var(--green-400)]",
 
         /**
-         * Destructive — clay outline, never a solid red block. A delete is a
-         * deliberate act, so it is legible rather than loud. 6.84:1 at rest,
-         * 5.81:1 on the clay-100 hover fill.
+         * Destructive — a red outline, never a solid red block. A delete is a
+         * deliberate act, so it is legible rather than loud. 6.24:1 at rest,
+         * 5.38:1 on the --red-tint hover fill.
          */
         destructive:
           "border-destructive bg-card text-destructive hover:bg-destructive-subtle focus-visible:ring-destructive",
 
         /**
          * Destructive, tertiary — `ghost`'s shape with `destructive`'s colour.
-         * No box until you touch it, then the clay-100 fill; the label and glyph
-         * are clay the whole time, so the control never hides what it does.
+         * No box until you touch it, then the --red-tint fill; the label and
+         * glyph are red the whole time, so the control never hides what it does.
          *
          * For a destructive action sitting *among* other controls rather than
          * closing a decision: the rail's sign-out is stacked under a language
