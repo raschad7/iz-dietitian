@@ -40,6 +40,21 @@ export type SendRequest = {
   phone: string | null | undefined;
   body: string;
   /**
+   * A file to send instead of a plain message — the bill, as the PDF the
+   * printer produces.
+   *
+   * An option on the same request rather than a second funnel, because every
+   * rule above it applies unchanged: a document still must not throw into a
+   * booking, still must be claimed before the network call, still must not go
+   * into an unpaired session. Only the last line differs — `sendFile` rather
+   * than `sendText`.
+   *
+   * `body` travels with it as the caption and is what the ledger records, so
+   * a dietitian reading the message log sees what the subscriber was told and
+   * not an opaque "a file was sent".
+   */
+  document?: { base64: string; fileName: string; mimeType: string };
+  /**
    * The idempotency anchor. Deterministic for an automation
    * (`reminder:<appointmentId>:<date>`), random for a manual send, where
    * repeating the same text is a legitimate thing to want.
@@ -109,7 +124,14 @@ export async function sendWhatsappMessage(request: SendRequest, deps: SendDeps =
   if (!claimed) return { status: 'skipped', reason: 'duplicate' };
 
   try {
-    const sent = await gateway.sendText(settings.sessionId, target.chatId, body);
+    /* The one line a document changes. Everything above — the claim, the
+       number check, the settings read — is the same either way. */
+    const sent = request.document
+      ? await gateway.sendFile(settings.sessionId, target.chatId, {
+          ...request.document,
+          caption: body,
+        })
+      : await gateway.sendText(settings.sessionId, target.chatId, body);
 
     await markMessageSent(claimed.id, sent.messageId);
 

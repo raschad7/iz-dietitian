@@ -90,6 +90,26 @@ export interface WhatsappGateway {
   deleteSession(sessionId: string): Promise<void>;
 
   sendText(sessionId: string, chatId: string, text: string): Promise<GatewaySentMessage>;
+  /**
+   * Sends a document — a bill, as a PDF the subscriber keeps.
+   *
+   * The file travels as base64 in the request body rather than as a URL for the
+   * gateway to fetch. A bill is behind the staff session: any address the
+   * gateway could reach would either be public or would need a signed one-off
+   * URL, and a signed URL for a document that is being handed to WhatsApp
+   * anyway is a second way in to the same file. Base64 costs a third more bytes
+   * over a loopback connection and owes nothing to anybody afterwards.
+   *
+   * The endpoint is `send-document` and the body is OpenWA's
+   * `SendMediaMessageDto` — `base64` and `mimetype` at the top level, not a
+   * nested file object. `filename` is what WhatsApp shows under the document;
+   * omit it and the gateway calls it "file".
+   */
+  sendFile(
+    sessionId: string,
+    chatId: string,
+    file: { base64: string; fileName: string; mimeType: string; caption?: string },
+  ): Promise<GatewaySentMessage>;
   /** Whether a number is registered on WhatsApp. A send cannot tell you this. */
   checkNumber(sessionId: string, phone: string): Promise<boolean>;
 
@@ -307,6 +327,26 @@ export function createHttpGateway(config: WhatsappConfig): WhatsappGateway {
         // A send that hangs blocks the reminder run behind it, and WhatsApp
         // either accepts a text quickly or not at all.
         timeoutMs: Math.min(config.requestTimeoutMs, 15_000),
+      });
+    },
+
+    sendFile(sessionId, chatId, file) {
+      return requireRequest(`${sessionPath(sessionId)}/messages/send-document`, sentMessageSchema, {
+        method: 'POST',
+        body: {
+          chatId,
+          base64: file.base64,
+          mimetype: file.mimeType,
+          filename: file.fileName,
+          caption: file.caption,
+        },
+        /*
+          Longer than a text's 15s: the gateway has to accept the bytes, hand
+          them to Chromium and wait for WhatsApp to accept the upload. Still
+          capped, because a send that hangs holds a dietitian's button in its
+          pending state with nothing to show for it.
+        */
+        timeoutMs: Math.min(config.requestTimeoutMs, 60_000),
       });
     },
 

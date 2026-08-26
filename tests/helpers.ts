@@ -93,12 +93,16 @@ export async function readWhatsappSettings(clinicId: string): Promise<WhatsappSe
  */
 export type FakeGateway = WhatsappGateway & {
   sent: { sessionId: string; chatId: string; text: string }[];
+  /** Documents handed to the gateway — the bill sends. Recorded apart from
+      `sent` so a test asserting on texts is not disturbed by one. */
+  files: { sessionId: string; chatId: string; fileName: string; mimeType: string; caption?: string }[];
   /** Set to make the next and every later send fail, as a dead gateway would. */
   failWith: Error | null;
 };
 
 export function createFakeGateway(): FakeGateway {
   const sent: FakeGateway['sent'] = [];
+  const files: FakeGateway['files'] = [];
 
   const unexpected = (method: string) => (): never => {
     throw new Error(`FakeGateway.${method} was called but no test configured it.`);
@@ -106,6 +110,7 @@ export function createFakeGateway(): FakeGateway {
 
   const gateway: FakeGateway = {
     sent,
+    files,
     failWith: null,
 
     async sendText(sessionId, chatId, text): Promise<GatewaySentMessage> {
@@ -114,6 +119,17 @@ export function createFakeGateway(): FakeGateway {
       sent.push({ sessionId, chatId, text });
 
       return { messageId: `wamid-${sent.length}`, timestamp: 1_700_000_000 };
+    },
+
+    async sendFile(sessionId, chatId, file): Promise<GatewaySentMessage> {
+      if (gateway.failWith) throw gateway.failWith;
+
+      /* The bytes themselves are not kept: a test asserts that the right
+         document went to the right chat, and a base64 PDF in an assertion
+         failure is a screenful of noise. */
+      files.push({ sessionId, chatId, fileName: file.fileName, mimeType: file.mimeType, caption: file.caption });
+
+      return { messageId: `wamid-file-${files.length}`, timestamp: 1_700_000_000 };
     },
 
     isReachable: async () => true,
