@@ -66,7 +66,6 @@ import {
   Mars,
   Menu,
   MessageCircle,
-  MessageCircleReply,
   MessageSquare,
   Minus,
   Moon,
@@ -113,6 +112,17 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 
+import { WhatsappMark } from '@/components/ui/whatsapp-mark';
+
+/**
+ * A glyph drawn here rather than taken from lucide.
+ *
+ * It has to accept the props `Icon` hands every entry in the registry — the
+ * className that sizes it, the aria attributes that hide or name it — so that
+ * a call site cannot tell which of the two it asked for.
+ */
+type AppGlyph = (props: React.ComponentProps<'svg'>) => React.ReactElement;
+
 /**
  * Every icon in the app, by the name the app calls it.
  *
@@ -152,11 +162,23 @@ export const APP_ICONS = {
   dishes: UtensilsCrossed,
   foods: Apple,
   whatsapp: MessageCircle,
-  /* The Bills row's send control: a bill going back to the person it is for.
-     A reply rather than a plain bubble, because the clinic is answering an
-     account the subscriber already has — and it keeps the row's own
-     `whatsapp` mark free for the channel itself. */
-  sendBill: MessageCircleReply,
+  /*
+    The Bills row’s send control, and the one glyph here that is not lucide’s.
+
+    It was `MessageCircleReply`, on the reasoning that the clinic is answering
+    an account the subscriber already has. A reply arrow is the wrong half of
+    that to draw: what a dietitian needs to know before pressing it is *where
+    the bill is about to go*, because this is the only control on the page
+    that reaches somebody outside the clinic and WhatsApp has no unsend. The
+    channel is the fact worth a glyph; the direction is not.
+
+    `whatsapp` above it is still lucide’s plain bubble and is a different job:
+    it labels sections and callouts *about* the integration — Settings, the
+    portal’s contact row — where a filled brand mark would sit heavier than
+    the stroked icons beside it. This one is a send, and the mark is the
+    point. See `WhatsappMark`.
+  */
+  sendBill: WhatsappMark,
   security: ShieldCheck,
   settings: Settings,
   language: Languages,
@@ -393,6 +415,12 @@ export const APP_ICONS = {
   settingsAccount: CircleUser,
   settingsPreferences: SlidersHorizontal,
   settingsSupport: LifeBuoy,
-} as const satisfies Record<string, LucideIcon>;
+  /*
+   * `LucideIcon | AppGlyph`: one entry is WhatsApp’s own mark, which no icon
+   * set ships. Anything drawn by hand still has to take the props `Icon`
+   * hands every glyph, which is what the second half of this union holds it
+   * to.
+   */
+} as const satisfies Record<string, LucideIcon | AppGlyph>;
 
 export type IconName = keyof typeof APP_ICONS;
