@@ -29,12 +29,16 @@ import type { IconName } from '@/components/ui/icon';
  * they differed in kind. What tells them apart is the icon and the words —
  * `repeat` against `calendar` — and the tint is freed to mark the split that
  * actually changes what the ledger does with the row: a term, or a single
- * visit. The consultation takes the neutral grey, which is the one tone here
- * that claims nothing about the service at all.
+ * visit. A term is blue and a single visit is the neutral grey.
+ *
+ * Blue rather than the on-track green they used to share: green is what the
+ * paid figure and the on-track chip are drawn in, so a subscription wearing
+ * it said something about money on a control that only names what was sold.
+ * Grey claims nothing at all, which is what a consultation should claim.
  */
 export const BILLING_SERVICES = [
-  { value: 'monthly', icon: 'repeat', className: 'bg-status-on-track-bg text-status-on-track-fg' },
-  { value: 'quarterly', icon: 'calendar', className: 'bg-status-on-track-bg text-status-on-track-fg' },
+  { value: 'monthly', icon: 'repeat', className: 'bg-blue-tint text-blue' },
+  { value: 'quarterly', icon: 'calendar', className: 'bg-blue-tint text-blue' },
   { value: 'consultation', icon: 'medical', className: 'bg-status-incomplete-bg text-status-incomplete-fg' },
 ] as const satisfies readonly { value: string; icon: IconName; className: string }[];
 

@@ -177,6 +177,28 @@
   --red-light: color-mix(in oklab, var(--red) 45%, var(--n-0));
 
   /*
+   * ── Blue: what a subscription is bought as ──
+   *
+   * The billing card tints its options by what kind of thing was bought, and
+   * a term needed a colour of its own. Green was wrong the moment it had to
+   * mean "a subscription" rather than "on track" — the same green the paid
+   * figure and the on-track chip already wear, saying something about money on
+   * a control that is not about money at all.
+   *
+   * Set at `--red`’s lightness so the two read as peers in a row of options:
+   * neither outranks the other, which is right, because a subscription and a
+   * consultation are two things a clinic sells and not a good one and a bad
+   * one. 5.69:1 on white, and 4.94:1 on its own tint.
+   *
+   * ⚠ **It sits close to `--indigo-500`** (#2F5FA8), which is a meal-tag
+   * identity mark. They never share a screen — one is a billing pill, the
+   * other a 10px dot on a meal card — but anything that would bring them
+   * together should move one of them first.
+   */
+  --blue: oklch(0.5148 0.145 256); /* #2566B8 */
+  --blue-tint: color-mix(in oklab, var(--blue) 10%, var(--n-0));
+
+  /*
    * ── Flame: a day the client completed ──
    *
    * Not amber. Amber already means "needs follow-up", and a finished day
@@ -593,6 +615,9 @@
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-destructive-subtle: var(--destructive-subtle);
+
+  --color-blue: var(--blue);
+  --color-blue-tint: var(--blue-tint);
 
   --color-status-on-track-fg: var(--status-on-track-fg);
   --color-status-on-track-bg: var(--status-on-track-bg);
