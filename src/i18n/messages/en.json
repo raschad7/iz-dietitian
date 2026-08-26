@@ -1120,6 +1120,46 @@
       "sent": "Reminder sent on WhatsApp.",
       "printAll": "Print all bills",
       "printAllFor": "Print every bill on {name}'s account"
+    },
+    "export": {
+      "action": "Export",
+      "title": "Export bills",
+      "description": "Every subscriber on the system, for the period you choose.",
+      "fileName": "Bills",
+      "sheetName": "Bills",
+      "empty": "No bills in this period.",
+      "submit": "Download",
+      "kindCharge": "Charge",
+      "kindPayment": "Payment",
+      "columns": {
+        "client": "Patient",
+        "phone": "Phone",
+        "kind": "Type",
+        "description": "Details",
+        "date": "Date",
+        "amount": "Amount",
+        "entries": "Bills"
+      },
+      "level": {
+        "label": "Detail level",
+        "detailed": "Detailed",
+        "detailedHint": "Every bill on its own line, so a patient with several appears several times.",
+        "summary": "Not detailed",
+        "summaryHint": "One line a patient, with their totals for the period."
+      },
+      "format": {
+        "label": "File format"
+      },
+      "duration": {
+        "label": "Duration",
+        "thisMonth": "This month",
+        "last3": "Last 3 months",
+        "thisYear": "This year",
+        "all": "All time",
+        "custom": "Custom",
+        "from": "From",
+        "to": "To"
+      }
     }
   },
   "portal": {

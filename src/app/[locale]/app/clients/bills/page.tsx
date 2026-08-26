@@ -110,7 +110,7 @@ export default async function BillsPage({ params, searchParams }: BillsPageProps
         clinicId={clinicId}
       />
 
-      <ClientSearch input={input} locale={locale} />
+      <ClientSearch input={input} locale={locale} variant="bills" />
 
       <BillsTable
         result={result}

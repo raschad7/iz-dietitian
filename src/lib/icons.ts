@@ -1,5 +1,7 @@
 import {
   Apple,
+  FileDown,
+  FileSpreadsheet,
   Archive,
   ArchiveRestore,
   ArrowLeft,
@@ -43,6 +45,7 @@ import {
   EyeOff,
   FileLock,
   FileText,
+  FileType,
   Flame,
   Footprints,
   GripHorizontal,
@@ -161,6 +164,13 @@ export const APP_ICONS = {
   mealPlans: ClipboardList,
   dishes: UtensilsCrossed,
   foods: Apple,
+  /* The export control on Bills, and the three files it can produce. Lucide
+     draws all four as a page with a mark on it, so they read as one family
+     rather than as four unrelated glyphs in a row of choices. */
+  fileDown: FileDown,
+  formatCsv: FileText,
+  formatXlsx: FileSpreadsheet,
+  formatPdf: FileType,
   whatsapp: MessageCircle,
   /*
     The Bills row’s send control, and the one glyph here that is not lucide’s.

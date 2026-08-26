@@ -61,12 +61,7 @@ export type BillHeader = {
 */
 const plain = stripBidiMarks;
 
-const palette = {
-  ink: '#1b1b1b',
-  muted: '#6b6b6b',
-  rule: '#d9d9d9',
-  band: '#f4f4f4',
-};
+import { PDF_PALETTE as palette } from './palette';
 
 const styles = StyleSheet.create({
   page: { paddingVertical: 44, paddingHorizontal: 48, fontSize: 10, color: palette.ink, lineHeight: 1.5 },
