@@ -110,7 +110,7 @@ export async function ClientExpensesPanel({
   return (
     /*
       Fills the column rather than sizing to its rows, so it ends level with the
-      identity panel beside it. The bill list is capped at eight, so what fills
+      identity panel beside it. The bill list is capped at seven, so what fills
       the card is a known quantity rather than however long the account happens
       to be.
     */
@@ -243,12 +243,12 @@ export async function ClientExpensesPanel({
         of pushing the card past the column, and **no `overflow`** — the card
         never scrolls.
         
-        That is a decision with a cost, and it is the intended one: eight rows
+        That is a decision with a cost, and it is the intended one: seven rows
         fit the record shell at ordinary window heights, and on a window short
         enough that they do not, the last bill is clipped rather than reachable
         by scrolling. The pager is what keeps the list short enough for this to
         hold; dropping the page size is the lever if a clinic screen turns out
-        to be shorter than eight rows.
+        to be shorter than seven rows.
       */}
       <CardContent className="lg:min-h-0 lg:flex-1">
         {entries.length === 0 ? (
@@ -264,7 +264,7 @@ export async function ClientExpensesPanel({
           /*
             The rows are built here — on the server, with `describeEntry` and
             the server's own translations — and handed over finished. The list
-            below only decides which eight of them are on screen. See
+            below only decides which seven of them are on screen. See
             `ExpensesBillList` for why the page is state rather than a `?page=`.
           */
           <ExpensesBillList

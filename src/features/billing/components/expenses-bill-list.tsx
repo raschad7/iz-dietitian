@@ -14,10 +14,10 @@ import {
 import { pageWindow } from '@/lib/pagination';
 
 /** How many bills the account shows before it asks you to turn a page. */
-export const EXPENSES_PAGE_SIZE = 8;
+export const EXPENSES_PAGE_SIZE = 7;
 
 /**
- * The bill list on a client's Expenses tab, eight at a time.
+ * The bill list on a client's Expenses tab, seven at a time.
  *
  * ## Why the rows arrive already rendered
  *
@@ -37,7 +37,7 @@ export const EXPENSES_PAGE_SIZE = 8;
  * standing beside it, and a year of bills for one subscriber is a short list
  * however it is read. A `?bills=2` would spend a server round trip on rows the
  * browser is already holding, and would reload the whole record — the identity
- * panel, the tabs, the rest of it — to move eight rows.
+ * panel, the tabs, the rest of it — to move seven rows.
  *
  * It is also not a place worth returning to. A shared link to page 3 of one
  * subscriber's ledger answers no question anybody asks; a link to the
@@ -68,7 +68,7 @@ export function ExpensesBillList({
       {rows.slice(start, start + EXPENSES_PAGE_SIZE)}
 
       {/*
-        The pager sits *in the list*, on the row the ninth bill would have
+        The pager sits *in the list*, on the row the eighth bill would have
         occupied — same `<li>`, same rule above it, same height. It reads as the
         list continuing rather than as a control parked underneath it, and the
         card does not change height between a full page and a short last one.
