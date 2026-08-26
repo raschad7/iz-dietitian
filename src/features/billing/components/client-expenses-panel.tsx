@@ -128,7 +128,14 @@ export async function ClientExpensesPanel({
           space rather than by colour, which is doing other work here.
         */}
         <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
-          <div>
+          {/*
+            Label and figure on one line, baseline-aligned: the debt is a
+            two-word label and a short number, and stacking them left the
+            label stranded over a figure half its width. Baseline rather
+            than centre so the small label sits on the same line the
+            display-size number stands on.
+          */}
+          <div className="flex items-baseline gap-3">
             <p className="text-body-sm text-muted-foreground">{t('fields.remaining')}</p>
             <p
               dir="ltr"
