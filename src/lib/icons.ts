@@ -66,6 +66,7 @@ import {
   Mars,
   Menu,
   MessageCircle,
+  MessageCircleReply,
   MessageSquare,
   Minus,
   Moon,
@@ -151,6 +152,11 @@ export const APP_ICONS = {
   dishes: UtensilsCrossed,
   foods: Apple,
   whatsapp: MessageCircle,
+  /* The Bills row's send control: a bill going back to the person it is for.
+     A reply rather than a plain bubble, because the clinic is answering an
+     account the subscriber already has — and it keeps the row's own
+     `whatsapp` mark free for the channel itself. */
+  sendBill: MessageCircleReply,
   security: ShieldCheck,
   settings: Settings,
   language: Languages,

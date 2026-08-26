@@ -10,6 +10,7 @@ import { Icon, type IconName } from '@/components/ui/icon';
 import { Spinner } from '@/components/ui/spinner';
 import { TooltipHint } from '@/components/ui/tooltip-hint';
 import { type Locale } from '@/i18n/routing';
+import { cn } from '@/lib/utils';
 
 type ConfirmSubmitButtonProps = {
   label: string;
@@ -31,6 +32,17 @@ type ConfirmSubmitButtonProps = {
    */
   icon?: IconName;
   className?: string;
+  /**
+   * The glyph's own size on an icon-only button, when `size-5` is wrong for
+   * where it sits — a control in a dense list matching the marks beside it.
+   */
+  iconClassName?: string;
+  /**
+   * Held closed for a reason of the caller's own — a row with nothing to act
+   * on. Combined with the form's pending state rather than replacing it, so a
+   * caller cannot accidentally re-enable a button mid-submit.
+   */
+  disabled?: boolean;
 };
 
 /**
@@ -61,6 +73,8 @@ export function ConfirmSubmitButton({
   size = 'default',
   icon,
   className,
+  iconClassName,
+  disabled = false,
 }: ConfirmSubmitButtonProps) {
   const tCommon = useTranslations('common');
   // From the active document rather than a prop: every caller already renders
@@ -81,7 +95,7 @@ export function ConfirmSubmitButton({
       type="submit"
       variant={variant}
       size={size}
-      disabled={pending}
+      disabled={pending || disabled}
       aria-label={iconOnly ? label : undefined}
       className={className}
       onClick={(event) => {
@@ -101,7 +115,7 @@ export function ConfirmSubmitButton({
         // the base 16px is sized to sit next to a label. It has to be stated
         // here rather than on a wrapper — the button only auto-sizes glyphs
         // that carry no `size-` class, at a specificity a parent cannot beat.
-        <Icon name={icon} className="size-5" />
+        <Icon name={icon} className={cn('size-5', iconClassName)} />
       ) : (
         <>
           {/*

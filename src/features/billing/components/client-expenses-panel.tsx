@@ -5,6 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
 import { batchNumbers, billNumber, describeEntry, type BillEntry } from '@/features/billing/bill';
 import { PrintBillButton } from '@/features/billing/components/print-bill-button';
+import { ExpensesBillList } from '@/features/billing/components/expenses-bill-list';
+import { SendBillButton } from '@/features/billing/components/send-bill-button';
+import { PANEL_ACTION_CLASS } from '@/features/billing/components/row-action';
 import { RecordChargeDialog } from '@/features/billing/components/record-charge-dialog';
 import { subscriptionStanding } from '@/features/billing/subscription';
 import { RecordPaymentDialog } from '@/features/billing/components/record-payment-dialog';
@@ -61,6 +64,7 @@ export async function ClientExpensesPanel({
   locale,
   clientId,
   clientName,
+  phone,
   today,
   entries,
   prices,
@@ -69,6 +73,13 @@ export async function ClientExpensesPanel({
   locale: Locale;
   clientId: string;
   clientName: string;
+  /**
+   * The subscriber's number as the record holds it — what the WhatsApp sends
+   * go to. Passed down rather than queried here: the record above has already
+   * loaded this person, and a second read for one column would be this panel
+   * asking the database something its own caller already knows.
+   */
+  phone: string | null;
   /** Today, in the clinic's zone, resolved on the server. */
   today: string;
   /** Every charge and payment on this account, newest first. */
@@ -97,7 +108,13 @@ export async function ClientExpensesPanel({
   const batches = batchNumbers(entries);
 
   return (
-    <Card>
+    /*
+      Fills the column rather than sizing to its rows, so it ends level with the
+      identity panel beside it. The bill list is capped at eight, so what fills
+      the card is a known quantity rather than however long the account happens
+      to be.
+    */
+    <Card className="lg:flex lg:h-full lg:min-h-0 lg:flex-col">
       <CardHeader className="gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <CardTitle>{t('expenses.title')}</CardTitle>
@@ -181,17 +198,52 @@ export async function ClientExpensesPanel({
                panel is already drawing. */
             subscription={subscriptionStanding(entries, today)}
             trigger="button"
+            triggerClassName={PANEL_ACTION_CLASS}
           />
           <PrintBillButton
             href={`/${locale}/app/clients/bills/${clientId}/print`}
             label={t('print.statementFor', { name: clientName })}
             hint={t('print.statement')}
             text={t('print.exportBills')}
+            className={PANEL_ACTION_CLASS}
+          />
+          {/*
+            The same statement, sent instead of printed — every bill on the
+            account in one document, which is what makes it the twin of Export
+            bills rather than a bulk send of many messages. One document is also
+            one thing for the subscriber to keep and one thing for WhatsApp to
+            carry; a message per bill would be a notification storm on the
+            phone of somebody who has been coming for a year.
+          */}
+          <SendBillButton
+            locale={locale}
+            clientId={clientId}
+            phone={phone}
+            text
+            className={PANEL_ACTION_CLASS}
+            labels={{
+              action: t('sendBill.title'),
+              confirmTitle: t('sendBill.confirmAllTitle'),
+              confirmBody: t('sendBill.confirmAllBody', { name: clientName }),
+              sent: t('sendBill.sent'),
+            }}
           />
         </div>
       </CardHeader>
 
-      <CardContent>
+      {/*
+        `min-h-0` so the list can be shorter than its content asks for instead
+        of pushing the card past the column, and **no `overflow`** — the card
+        never scrolls.
+        
+        That is a decision with a cost, and it is the intended one: eight rows
+        fit the record shell at ordinary window heights, and on a window short
+        enough that they do not, the last bill is clipped rather than reachable
+        by scrolling. The pager is what keeps the list short enough for this to
+        hold; dropping the page size is the lever if a clinic screen turns out
+        to be shorter than eight rows.
+      */}
+      <CardContent className="lg:min-h-0 lg:flex-1">
         {entries.length === 0 ? (
           /*
             An account with nothing on it is the normal state of a subscriber who
@@ -202,8 +254,14 @@ export async function ClientExpensesPanel({
             {t('expenses.empty')}
           </p>
         ) : (
-          <ul className="divide-y divide-border">
-            {entries.map((entry) => {
+          /*
+            The rows are built here — on the server, with `describeEntry` and
+            the server's own translations — and handed over finished. The list
+            below only decides which eight of them are on screen. See
+            `ExpensesBillList` for why the page is state rather than a `?page=`.
+          */
+          <ExpensesBillList
+            rows={entries.map((entry) => {
               const described = describeEntry(entry, locale, t);
               const charge = entry.kind === 'charge';
 
@@ -244,10 +302,29 @@ export async function ClientExpensesPanel({
                     hint={t('print.bill')}
                     iconClassName="size-4"
                   />
+
+                  {/* And the same bill on WhatsApp. `size-4` so the pair are
+                      the same weight in a dense list. */}
+                  <SendBillButton
+                    locale={locale}
+                    clientId={clientId}
+                    entryId={entry.id}
+                    phone={phone}
+                    iconClassName="size-4"
+                    labels={{
+                      action: t('sendBill.bill'),
+                      confirmTitle: t('sendBill.confirmOneTitle'),
+                      confirmBody: t('sendBill.confirmOneBody', {
+                        name: clientName,
+                        number: billNumber(entry),
+                      }),
+                      sent: t('sendBill.sentBill'),
+                    }}
+                  />
                 </li>
               );
             })}
-          </ul>
+          />
         )}
       </CardContent>
     </Card>

@@ -7,7 +7,6 @@ import { BillingKeypadDialog } from '@/features/billing/components/billing-keypa
 import { BILLING_SERVICES, CONSULTATION, type ServicePrices } from '@/features/billing/services';
 import {
   isSubscriptionService,
-  subscriptionCountdown,
   type Subscription,
 } from '@/features/billing/subscription';
 import type { Locale } from '@/i18n/routing';
@@ -86,6 +85,7 @@ export function RecordChargeDialog({
   today,
   /** `button` for a panel with room for words; `icon` for a register row. */
   trigger,
+  triggerClassName,
   /** What the clinic charges, from Settings. `null` for a service with no price. */
   prices,
   /** Whether this subscriber's ledger already holds a consultation. */
@@ -98,6 +98,7 @@ export function RecordChargeDialog({
   clientName: string;
   today: string;
   trigger?: 'icon' | 'button';
+  triggerClassName?: string;
   prices: ServicePrices;
   consulted: boolean;
   subscription: Subscription;
@@ -105,12 +106,13 @@ export function RecordChargeDialog({
   const t = useTranslations('billing');
 
   /*
-    The term in the way, and how much of it is left. Read once: both
-    subscription options ask the same question and would otherwise each answer
-    it. Days rather than the end date, for the reason the Bills column gives.
+    Whether a term already covers today — the whole of what the card needs to
+    know. It used to read the countdown too, to say **91 days remaining** under
+    a greyed row; the row is greyed, which is the same fact in the form the eye
+    already has. A sentence under it spends a line explaining a state the
+    control is in, on a card that is open for one decision.
   */
-  const running =
-    subscription.state === 'active' ? subscriptionCountdown(subscription, today) : null;
+  const covered = subscription.state === 'active';
 
   return (
     <BillingKeypadDialog
@@ -118,6 +120,7 @@ export function RecordChargeDialog({
       clientId={clientId}
       today={today}
       trigger={trigger}
+      triggerClassName={triggerClassName}
       icon="recordCharge"
       action={recordChargeAction}
       /*
@@ -144,7 +147,7 @@ export function RecordChargeDialog({
         const free = service.value === CONSULTATION && !consulted;
 
         /* A term already covers today, and this row is another one. */
-        const blocked = running !== null && isSubscriptionService(service.value);
+        const blocked = covered && isSubscriptionService(service.value);
 
         return {
           ...service,
@@ -155,15 +158,11 @@ export function RecordChargeDialog({
           posts: { service: service.value },
           disabled: blocked,
           /*
-            One line, and which one depends on why it is there: a greyed row
-            says when it comes back, an offered one says why it is free. They
-            cannot both apply — a subscription is never the free consultation.
+            The one line a row can carry, and it is only ever the free
+            consultation's. A blocked subscription says what it is by being
+            unselectable.
           */
-          note: blocked
-            ? t('recordCharge.subscriptionRuns', { days: running.days })
-            : free
-              ? t('recordCharge.firstFree')
-              : undefined,
+          note: free ? t('recordCharge.firstFree') : undefined,
         };
       })}
       optionName="description"

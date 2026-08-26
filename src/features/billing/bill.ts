@@ -242,3 +242,61 @@ export function describeEntry(
     amount: stripBidiMarks(formatAmount(locale, entry.amountMinor)),
   };
 }
+
+/**
+ * What a bill is called when it is **sent** rather than downloaded.
+ *
+ * The two names differ on purpose, and the reason is the channel rather than
+ * taste. {@link billFileName} and {@link statementFileName} go out in a
+ * `Content-Disposition` header, where an Arabic name has to be RFC 5987
+ * encoded to survive and gets mangled by half the tools that later touch the
+ * file — so they are ASCII references. A name sent to WhatsApp travels as JSON
+ * in a request body: it arrives as typed, and it lands in a chat where the
+ * person reading it knows their own name and not a hex reference.
+ *
+ * So this is the human name — "سارة خالد - دفعة 3" — for the one channel that
+ * can carry one.
+ *
+ * **Arabic, whatever language the dietitian is working in.** The file is read
+ * by the patient, not by the person who pressed the button, and it lands in a
+ * chat beside a message that is already Arabic by the same rule — see
+ * `PATIENT_MESSAGE_LOCALE`. A staff member in the English UI sending an
+ * Arabic-speaking subscriber a file called "payment 3" would be the one part of
+ * that exchange written for the wrong reader.
+ *
+ * The digits stay Latin, which is the project's rule everywhere a number is
+ * written (`nu-latn` in `src/lib/format.ts`) and is what keeps a folder of
+ * these sorting in the order they were sent.
+ *
+ * The number is the subscriber's own running count from {@link batchNumbers},
+ * not the hex reference: it is what makes a folder of these sort and read as a
+ * sequence, which is the whole reason a file has a name.
+ *
+ * ⚠ It says **دفعة** whatever the operation was, because that is what the
+ * clinic calls these. A charge sent on its own will also arrive as "دفعة N";
+ * the document itself says which it is.
+ */
+export function sentBillFileName(clientName: string, number: number): string {
+  return `${sanitizeFileName(clientName)} - دفعة ${number}.pdf`;
+}
+
+/** The whole account, sent — "سارة خالد - سجل الدفعات". */
+export function sentStatementFileName(clientName: string): string {
+  return `${sanitizeFileName(clientName)} - سجل الدفعات.pdf`;
+}
+
+/**
+ * Strips what a file system will not take, and nothing else.
+ *
+ * A name is a person's name: the Arabic stays, the spaces stay. What goes is
+ * the set Windows and POSIX refuse — a slash in a name would read as a folder
+ * on the receiving phone — plus the runs of whitespace that a trimmed-down name
+ * can leave behind.
+ */
+function sanitizeFileName(name: string): string {
+  const cleaned = name.replace(/[\\/:*?"<>|\x00-\x1f]/g, ' ').replace(/\s+/g, ' ').trim();
+
+  /* A record with no usable name still has to produce a file, and it is read
+     by the same person as the rest of the name. */
+  return cleaned || 'فاتورة';
+}

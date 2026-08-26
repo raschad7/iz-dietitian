@@ -45,7 +45,33 @@ export type BillingFormState =
          * More money was received than the account owes — see
          * `PaymentExceedsBalanceError`.
          */
-        | 'paymentExceedsBalance';
+        | 'paymentExceedsBalance'
+        /**
+         * The bill could not be sent on WhatsApp. One key for every reason —
+         * no number on the record, a number with no WhatsApp account, a
+         * session nobody has paired, a gateway that refused — because the
+         * dietitian's next move is the same in all of them: send it another
+         * way, and tell whoever looks after the connection. The specific
+         * reason is in the message log, where it can be acted on.
+         */
+        | 'billNotSent'
+        /**
+         * A payment reminder was asked for on an account that owes nothing.
+         * The menu greys the item out, so reaching this means the form was
+         * posted around it or the debt was settled in between.
+         */
+        | 'nothingOutstanding'
+        /**
+         * WhatsApp is not usable right now — never configured, or configured
+         * and not paired with a phone. One key for both, because the dietitian
+         * cannot tell them apart and does not act on the difference: somebody
+         * has to go to Settings → WhatsApp and connect it.
+         */
+        | 'whatsappNotConnected'
+        /** The record has no phone number, so there is nowhere to send. */
+        | 'clientHasNoPhone'
+        /** The number is real, and WhatsApp says nobody is registered on it. */
+        | 'clientNotOnWhatsapp';
     };
 
 export type BillingErrorKey = Extract<BillingFormState, { status: 'error' }>['messageKey'];

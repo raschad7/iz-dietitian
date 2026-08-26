@@ -144,6 +144,13 @@ export type BillingKeypadDialogProps = {
    * alternatives they are.
    */
   trigger?: 'icon' | 'button';
+  /**
+   * Extra classes for the labelled trigger. The icon trigger keeps
+   * `ROW_ACTION_CLASS` regardless — a mark in a register row looks the same
+   * wherever it is opened from, and a caller dressing one of four identical
+   * marks differently is how a row stops reading as a set.
+   */
+  triggerClassName?: string;
   emphasis?: 'primary' | 'secondary';
   /**
    * Whether the card collects an amount.
@@ -216,6 +223,7 @@ export function BillingKeypadDialog({
   maxMinor,
   amount = true,
   trigger = 'icon',
+  triggerClassName,
   emphasis = 'secondary',
   labels,
 }: BillingKeypadDialogProps) {
@@ -387,7 +395,7 @@ export function BillingKeypadDialog({
       type="button"
       variant={trigger === 'icon' ? 'ghost' : emphasis === 'primary' ? 'default' : 'outline'}
       size={trigger === 'icon' ? 'icon' : 'default'}
-      className={trigger === 'icon' ? ROW_ACTION_CLASS : undefined}
+      className={trigger === 'icon' ? ROW_ACTION_CLASS : triggerClassName}
       onClick={() => setOpen(true)}
       aria-label={labels.openFor}
     >

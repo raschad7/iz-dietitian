@@ -523,6 +523,7 @@
     "notFound": "Client not found",
     "notFoundDescription": "This client may have been removed, or the link is incorrect.",
     "backToList": "Back to clients",
+    "backToBills": "Return to the bills page",
     "notProvided": "Not provided",
     "yearsOld": "{count, number, integer} years",
     "openPlanner": "Plan board",
@@ -1025,7 +1026,6 @@
       "addedTotal": "Added to total price",
       "noPrice": "This service has no price yet. Set one in Settings → Clinic.",
       "firstFree": "The first consultation is free.",
-      "subscriptionRuns": "Still running — {days, plural, one {# day} other {# days}}.",
       "saved": "Charge added"
     },
     "errors": {
@@ -1042,7 +1042,12 @@
       "invalidClient": "That subscriber is not on this clinic's register.",
       "invalidService": "That service is not one this clinic offers.",
       "subscriptionActive": "This subscriber is already on a subscription. Record the next one when the current one ends.",
-      "paymentExceedsBalance": "That is more than this subscriber still owes."
+      "paymentExceedsBalance": "That is more than this subscriber still owes.",
+      "billNotSent": "Could not send on WhatsApp. Nothing was sent — send it another way, and check Settings → WhatsApp.",
+      "nothingOutstanding": "This subscriber owes nothing, so there is nothing to remind them about.",
+      "whatsappNotConnected": "WhatsApp is not connected. Nothing was sent — connect the clinic number in Settings → WhatsApp.",
+      "clientHasNoPhone": "This subscriber has no phone number on their record, so there is nowhere to send.",
+      "clientNotOnWhatsapp": "That number is not on WhatsApp. Nothing was sent — check the number on their record."
     },
     "print": {
       "statement": "Print all bills",
@@ -1085,6 +1090,33 @@
     "expenses": {
       "title": "Expenses and bills",
       "empty": "Nothing on this account yet. Add a charge or record a payment to start the ledger."
+    },
+    "sendBill": {
+      "title": "Send by WhatsApp",
+      "bill": "Send this bill by WhatsApp",
+      "confirmTitle": "Send this statement?",
+      "confirmBody": "{name} will receive their account statement on WhatsApp. A sent message cannot be taken back.",
+      "confirmAllTitle": "Send every bill?",
+      "confirmAllBody": "{name} will receive one document holding every bill on their account. A sent message cannot be taken back.",
+      "confirmOneTitle": "Send this bill?",
+      "confirmOneBody": "{name} will receive bill #{number} on WhatsApp. A sent message cannot be taken back.",
+      "sent": "Statement sent on WhatsApp.",
+      "sentBill": "Bill sent on WhatsApp."
+    },
+    "pagination": {
+      "previous": "Previous",
+      "next": "Next",
+      "page": "Page {page, number, integer}"
+    },
+    "rowMenu": {
+      "more": "More services",
+      "reminder": "WhatsApp reminder",
+      "reminderNothing": "Nothing outstanding",
+      "confirmTitle": "Send a payment reminder?",
+      "confirmBody": "{name} will be reminded on WhatsApp of the {amount} outstanding on their account. A sent message cannot be taken back.",
+      "sent": "Reminder sent on WhatsApp.",
+      "printAll": "Print all bills",
+      "printAllFor": "Print every bill on {name}'s account"
     }
   },
   "portal": {

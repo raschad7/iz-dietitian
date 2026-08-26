@@ -47,6 +47,20 @@ export function BillsCell({
 }) {
   switch (column) {
     case 'name':
+      /*
+      The one column that is **not** centred, and the exception is the
+      point of it: a centred name is centred *as a pair with its disc*, so
+      two rows whose names run to different lengths start their discs at
+      different places and their names at different places. A column of
+      names is read by running down its edge — centring takes that edge
+      away and leaves every row landing somewhere slightly different.
+
+      The figures are centred because a figure is a block the eye compares
+      with the block above it. A name is a run of words the eye tracks down
+      the front of. `text-start` puts that front on the right in Arabic
+      and the left in English, which is the side each script starts from,
+      so the discs line up in one column in both.
+      */
       return (
         <TableCell>
           <div className="flex items-center gap-3">
@@ -75,9 +89,13 @@ export function BillsCell({
               — to the person.
             */}
             <Link
-              href={`/app/clients/${client.id}`}
+              href={`/app/clients/${client.id}?tab=expenses&from=bills`}
               className={cn(
-                'min-w-0 rounded-sm font-medium underline-offset-4 after:absolute after:inset-0 after:content-[""]',
+                /* `truncate` because the column no longer grows to fit: the
+                   table is fixed to even shares, so a long name has to end in
+                   an ellipsis rather than push the figures beside it out of
+                   line. The whole name is still on the record the link opens. */
+                'min-w-0 truncate rounded-sm font-medium underline-offset-4 after:absolute after:inset-0 after:content-[""]',
                 'focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-2',
               )}
             >
@@ -114,7 +132,7 @@ export function BillsCell({
     case 'subscription': {
       if (subscription.state === 'none') {
         return (
-          <TableCell>
+          <TableCell className="text-center">
             <Missing />
           </TableCell>
         );
@@ -123,7 +141,7 @@ export function BillsCell({
       const countdown = subscriptionCountdown(subscription, today);
 
       return (
-        <TableCell>
+        <TableCell className="text-center">
           <Badge variant={SUBSCRIPTION_VARIANTS[subscription.state]} className="whitespace-nowrap">
             {t(`subscription.${countdown.kind}`, { days: countdown.days })}
           </Badge>
@@ -133,7 +151,11 @@ export function BillsCell({
 
     /* Total price — everything this subscriber has been billed. */
     case 'totalPrice':
-      return <TableCell numeric>{formatAmountCompact(locale, money.chargedMinor)}</TableCell>;
+      return (
+        <TableCell numeric className="text-center">
+          {formatAmountCompact(locale, money.chargedMinor)}
+        </TableCell>
+      );
 
     /*
       Remaining — what there is left to collect, never negative, and the only
@@ -160,10 +182,11 @@ export function BillsCell({
     case 'remaining':
       return (
         <TableCell
+         
           numeric
           /* No weight of its own — the colour is what marks this column, and a
              figure that is both red and bold shouts twice for one fact. */
-          className={cn(money.remainingMinor > 0 ? 'text-destructive' : 'text-foreground')}
+          className={cn('text-center', money.remainingMinor > 0 ? 'text-destructive' : 'text-foreground')}
         >
           {formatAmountCompact(locale, money.remainingMinor)}
         </TableCell>
@@ -185,8 +208,9 @@ export function BillsCell({
     case 'totalPayment':
       return (
         <TableCell
+         
           numeric
-          className={cn(money.paidMinor > 0 ? 'text-status-on-track-fg' : 'text-foreground')}
+          className={cn('text-center', money.paidMinor > 0 ? 'text-status-on-track-fg' : 'text-foreground')}
         >
           {formatAmountCompact(locale, money.paidMinor)}
         </TableCell>
@@ -203,7 +227,7 @@ export function BillsCell({
     */
     case 'status':
       return (
-        <TableCell>
+        <TableCell className="text-center">
           <Badge variant={STATUS_VARIANTS[status]}>{t(`status.${status}`)}</Badge>
         </TableCell>
       );

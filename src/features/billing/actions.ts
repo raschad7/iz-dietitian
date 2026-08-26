@@ -5,6 +5,14 @@ import { z } from 'zod';
 
 import { locales } from '@/i18n/routing';
 import { requireStaffClinic } from '@/lib/session';
+import { getClient } from '@/features/clients/queries';
+import { formatAmount } from '@/features/billing/money';
+import { subscriberTotalsByClient } from '@/features/billing/queries';
+import { renderBill } from '@/features/billing/pdf/render';
+import { manualDedupeKey, sendWhatsappMessage } from '@/features/whatsapp/send';
+import type { SendResult } from '@/features/whatsapp/types';
+import { PATIENT_MESSAGE_LOCALE, renderWhatsappMessage } from '@/features/whatsapp/templates';
+import { billingClinicHeader } from '@/features/billing/pdf/clinic';
 
 import { type BillingErrorKey, type BillingFormState } from './form-state';
 import {
@@ -213,5 +221,189 @@ export async function saveServicePricesAction(
   }
 
   revalidatePath(`/${locale}/app/settings`);
+  return { status: 'success' };
+}
+
+/**
+ * Sends a subscriber their own statement on WhatsApp — the same PDF the row's
+ * printer produces, as a document they keep.
+ *
+ * **The same bytes, not a second rendering of the same idea.** `renderBill` is
+ * what the print route calls, so what arrives on the subscriber's phone is the
+ * document the dietitian would have handed them across the desk. A separate
+ * "WhatsApp version" would be a second bill to keep in step with the first, and
+ * the two would disagree the week somebody changed one of them.
+ *
+ * **It goes through the ordinary funnel.** `sendWhatsappMessage` owns the
+ * rules that make an outgoing message safe — the row written before the network
+ * call, the connection checked once, the number checked against WhatsApp, the
+ * failure recorded rather than thrown — and a bill is not special enough to
+ * deserve its own copy of any of them. See `send.ts`.
+ *
+ * **A random dedupe key, like any other hand-pressed send.** Sending a statement
+ * twice is a legitimate thing to want: the first one arrived while the
+ * subscriber was mid-conversation about it, or they asked for it again a month
+ * later. Deduping would silently swallow the second press and leave the
+ * dietitian looking at a button that did nothing.
+ *
+ * The caption is Arabic whatever language the dietitian is working in — see
+ * `PATIENT_MESSAGE_LOCALE`; the message is read by the patient, not by the
+ * person who pressed the button.
+ */
+export async function sendBillWhatsappAction(
+  _previous: BillingFormState,
+  formData: FormData,
+): Promise<BillingFormState> {
+  const locale = localeSchema.safeParse(formData.get('locale'));
+  if (!locale.success) return { status: 'error', messageKey: 'genericError' };
+
+  const { clinicId } = await requireStaffClinic(locale.data);
+
+  const clientId = String(formData.get('clientId') ?? '');
+
+  /* The clinic's own subscriber or nobody's. `getClient` is scoped to the
+     clinic `requireStaffClinic` returned, so an id typed into the form cannot
+     reach another clinic's record — the same guard the print route relies on. */
+  const [client, clinic] = await Promise.all([
+    getClient(clinicId, clientId),
+    billingClinicHeader(clinicId),
+  ]);
+
+  if (!client || !clinic) return { status: 'error', messageKey: 'invalidClient' };
+
+  /*
+    One operation, or the whole account. `entryId` is what the Expenses tab's
+    per-bill mark posts; the Bills row posts nothing and gets the statement.
+    Empty string is treated as absent — a hidden input with no value is how a
+    form says "the statement", not a request for a bill with no id.
+  */
+  const entryId = String(formData.get('entryId') ?? '') || undefined;
+
+  const bill = await renderBill({ clinicId, clientId, entryId, locale: locale.data });
+  if (!bill) return { status: 'error', messageKey: 'genericError' };
+
+  const result = await sendWhatsappMessage({
+    clinicId,
+    clientId,
+    kind: 'manual',
+    phone: client.phone,
+    /* The caption names which document is attached — one bill, or the account.
+       `renderBill` has already refused an entry that is not on this
+       subscriber's ledger, so by here the two cases are only wording. */
+    body: renderWhatsappMessage(entryId ? 'billDocument' : 'billStatement', PATIENT_MESSAGE_LOCALE, {
+      clientName: client.fullName,
+      clinicName: clinic.name,
+    }),
+    document: {
+      /* `renderBill` hands back a `Uint8Array`; base64 is how the gateway takes
+         bytes. `Buffer.from` wraps the same memory rather than copying it. */
+      base64: Buffer.from(bill.body).toString('base64'),
+      /* The readable one, not the header reference — see `sentBillFileName`.
+         This is a file that lands in a chat and is kept. */
+      fileName: bill.sentFileName,
+      mimeType: 'application/pdf',
+    },
+    dedupeKey: manualDedupeKey(),
+  });
+
+  /* Named rather than collapsed — see `sendFailureKey`. */
+  if (result.status !== 'sent') return { status: 'error', messageKey: sendFailureKey(result) };
+
+  return { status: 'success' };
+}
+
+/**
+ * Why a WhatsApp send did not happen, as something the dialog can say.
+ *
+ * The send funnel never throws — it reports (see `sendWhatsappMessage`) — and
+ * the reasons it reports are operational: a gateway nobody connected, a record
+ * with no number, a number nobody uses for WhatsApp. Each of those is a
+ * different thing for the person at the desk to do next, which is why they are
+ * not one key any more: "it did not send" left a dietitian pressing the button
+ * again on a clinic whose WhatsApp had never been paired.
+ *
+ * `duplicate` and `empty_body` fall to the generic key deliberately. Neither
+ * can happen from these buttons — the dedupe key is random and the body comes
+ * from a template — so a message explaining them would be copy nobody ever
+ * reads, kept in two languages.
+ */
+function sendFailureKey(result: SendResult): BillingErrorKey {
+  if (result.status === 'skipped') {
+    switch (result.reason) {
+      case 'not_configured':
+      case 'not_connected':
+        return 'whatsappNotConnected';
+      case 'no_phone':
+        return 'clientHasNoPhone';
+      case 'not_on_whatsapp':
+        return 'clientNotOnWhatsapp';
+      default:
+        return 'billNotSent';
+    }
+  }
+
+  return 'billNotSent';
+}
+
+/**
+ * Nudges a subscriber about what they still owe, on WhatsApp.
+ *
+ * **The figure is read here, not posted.** The row that opened the menu already
+ * knows what is outstanding and could have sent it along, and it must not: a
+ * form carries whatever somebody puts in it, and an amount a client supplied is
+ * an amount a client chose. The message says what the ledger says, summed on
+ * the server from the same query the Bills column draws.
+ *
+ * That read is also the guard. A subscriber who owes nothing is not reminded
+ * even if the button somehow reached this — the menu greys the item out, and
+ * this is where that is true. Chasing somebody for a balance they settled this
+ * morning is the one failure this feature has that a person cannot undo.
+ *
+ * No document. What is owed is a single number, and a PDF to open before you
+ * can read it is a worse way to say it — see the `paymentReminder` template.
+ * The statement is one press away in the same menu when they ask for detail.
+ */
+export async function sendPaymentReminderAction(
+  _previous: BillingFormState,
+  formData: FormData,
+): Promise<BillingFormState> {
+  const locale = localeSchema.safeParse(formData.get('locale'));
+  if (!locale.success) return { status: 'error', messageKey: 'genericError' };
+
+  const { clinicId } = await requireStaffClinic(locale.data);
+
+  const clientId = String(formData.get('clientId') ?? '');
+
+  const [client, clinic] = await Promise.all([
+    getClient(clinicId, clientId),
+    billingClinicHeader(clinicId),
+  ]);
+
+  if (!client || !clinic) return { status: 'error', messageKey: 'invalidClient' };
+
+  const totals = await subscriberTotalsByClient(clinicId, [clientId]);
+  const remainingMinor = totals.get(clientId)?.remainingMinor ?? 0;
+
+  /* Nothing owed, nothing to chase. Its own key, because this is not a failure
+     to send — it is a message that should not exist. */
+  if (remainingMinor <= 0) return { status: 'error', messageKey: 'nothingOutstanding' };
+
+  const result = await sendWhatsappMessage({
+    clinicId,
+    clientId,
+    kind: 'manual',
+    phone: client.phone,
+    body: renderWhatsappMessage('paymentReminder', PATIENT_MESSAGE_LOCALE, {
+      clientName: client.fullName,
+      clinicName: clinic.name,
+      /* Formatted in the language the message is written in, not the one the
+         dietitian is reading the screen in. */
+      amount: formatAmount(PATIENT_MESSAGE_LOCALE, remainingMinor),
+    }),
+    dedupeKey: manualDedupeKey(),
+  });
+
+  if (result.status !== 'sent') return { status: 'error', messageKey: sendFailureKey(result) };
+
   return { status: 'success' };
 }

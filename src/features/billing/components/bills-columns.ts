@@ -59,10 +59,10 @@ export type BillsColumnKey = BillsColumn['key'];
 /**
  * The actions column is not in the list above and cannot be dragged.
  *
- * It holds the row's charge, payment, print and disclosure controls, it has no
+ * It holds the row's charge, payment and print controls, it has no
  * heading to grab, and a reader who dropped it into the middle of the figures
  * would have made the table worse in a way that is hard to undo. It stays at
- * the end. This count is also what a full-width row — the empty state, and the
- * opened ledger panel — has to span.
+ * the end. This count is also what a full-width row — the empty state — has to
+ * span.
  */
 export const COLUMN_COUNT = BILLS_COLUMNS.length + 1;

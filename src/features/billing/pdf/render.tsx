@@ -1,7 +1,14 @@
 import { renderToBuffer } from '@react-pdf/renderer';
 import { getTranslations } from 'next-intl/server';
 
-import { billFileName, statementFileName, type BillEntry } from '@/features/billing/bill';
+import {
+  batchNumbers,
+  billFileName,
+  sentBillFileName,
+  sentStatementFileName,
+  statementFileName,
+  type BillEntry,
+} from '@/features/billing/bill';
 import { clientBillingRecord } from '@/features/billing/queries';
 import { wallClockIn } from '@/features/booking/completed';
 import { DISPLAY_TIME_ZONE } from '@/lib/format';
@@ -22,8 +29,15 @@ import { registerFonts } from './fonts';
  * things that matter, which are the tenant check and the headers.
  */
 
-/** What a route hands back: the bytes, and what to call the file. */
-export type RenderedBill = { body: Uint8Array; fileName: string };
+/**
+ * What a route hands back: the bytes, and what to call the file — twice.
+ *
+ * `fileName` is the ASCII reference a `Content-Disposition` header can carry.
+ * `sentFileName` is the name a person reads in a chat. Both are derived here,
+ * where the subscriber and the entry's own number are already in hand; deriving
+ * either at a call site would mean loading the ledger a second time to count.
+ */
+export type RenderedBill = { body: Uint8Array; fileName: string; sentFileName: string };
 
 /**
  * Renders one subscriber's bills.
@@ -87,9 +101,18 @@ export async function renderBill({
 
   const single = entryId ? entries[0] : undefined;
 
+  /* The subscriber's own running count, from the *whole* ledger rather than
+     the one entry being printed — a bill is "payment 3" because it is the
+     third thing on this account, and slicing the list first would make every
+     single-bill send "payment 1". */
+  const number = single ? (batchNumbers(record.entries).get(single.id) ?? 1) : 0;
+
   return {
     body,
     fileName: single ? billFileName(single) : statementFileName(clientId, today),
+    sentFileName: single
+      ? sentBillFileName(record.client.fullName, number)
+      : sentStatementFileName(record.client.fullName),
   };
 }
 

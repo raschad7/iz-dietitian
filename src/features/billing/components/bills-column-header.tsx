@@ -39,7 +39,7 @@ import { useFinePointer } from './use-fine-pointer';
  */
 export function BillsColumnHeader({
   columnKey,
-  /** Where it currently sits, which is what a drop is measured against. */
+  /** Where it currently sits, which is what a move is measured against. */
   index,
   label,
   numeric,
@@ -55,14 +55,39 @@ export function BillsColumnHeader({
 }) {
   const draggable = useFinePointer();
   const [dragging, setDragging] = useState(false);
-  const [over, setOver] = useState(false);
 
-  const drop = (event: DragEvent<HTMLTableCellElement>) => {
+  /*
+    The move happens as the heading is crossed, not when it is let go of.
+
+    Dragging Debt onto Remaining swaps the two there and then — `onMove`
+    writes the new order and the table redraws from it. What the reader is
+    dragging over is therefore always the table they will get, so the drop
+    confirms an arrangement they have already seen rather than promising one
+    they have to wait for.
+
+    This is why there is no insertion line. A thin rule between two headings is
+    a *description* of where the column would land, and it was describing
+    something the table can simply show.
+  */
+  const crossed = (event: DragEvent<HTMLTableCellElement>) => {
+    /* Without `preventDefault` the browser refuses the drop and shows a
+       "no entry" cursor over a target that would have accepted it. */
     event.preventDefault();
-    setOver(false);
+    event.dataTransfer.dropEffect = 'move';
 
-    const moved = event.dataTransfer.getData(DRAG_TYPE);
-    if (moved && moved !== columnKey) onMove(moved as BillsColumnKey, index);
+    /*
+      `dataTransfer.getData` is deliberately empty during a drag — only `drop`
+      may read the payload, so that a page cannot snoop on what is being dragged
+      across it. The key is therefore kept beside the drag instead. It is a
+      module-level value rather than state because nothing renders from it: it
+      is read by whichever heading the pointer is over, which is never the one
+      holding it.
+    */
+    if (!carried || carried === columnKey) return;
+
+    /* `move` already returns early when the column is where it is being sent,
+       so crossing the same heading twice costs nothing. */
+    onMove(carried, index);
   };
 
   return (
@@ -85,24 +110,27 @@ export function BillsColumnHeader({
               */
               event.dataTransfer.setData(DRAG_TYPE, columnKey);
               event.dataTransfer.effectAllowed = 'move';
+              carried = columnKey;
               setDragging(true);
             }
           : undefined
       }
-      onDragEnd={draggable ? () => setDragging(false) : undefined}
-      onDragOver={
+      onDragEnd={
         draggable
-          ? (event) => {
-              /* Without `preventDefault` the browser refuses the drop and shows
-                 a "no entry" cursor over a target that would have accepted it. */
-              event.preventDefault();
-              event.dataTransfer.dropEffect = 'move';
-              setOver(true);
+          ? () => {
+              setDragging(false);
+              carried = null;
             }
           : undefined
       }
-      onDragLeave={draggable ? () => setOver(false) : undefined}
-      onDrop={draggable ? drop : undefined}
+      onDragOver={draggable ? crossed : undefined}
+      /*
+        The column is already where it was dragged to, so a drop has nothing
+        left to do but accept the gesture — without this the browser animates
+        the heading flying back to where it started, over a table that has
+        already moved on.
+      */
+      onDrop={draggable ? (event) => event.preventDefault() : undefined}
       onKeyDown={
         draggable
           ? (event) => {
@@ -122,12 +150,21 @@ export function BillsColumnHeader({
           : undefined
       }
       className={cn(
+        /*
+           Centred, because the table is laid out on equal fixed shares: a
+           heading anchored to the start edge of a column wider than the word
+           in it drifts away from the figures it names.
+
+           Full name is the exception, and it follows its column rather than
+           the rule: the names under it are aligned to the start so they read
+           as one edge, and a heading centred over a start-aligned column is a
+           label floating away from the thing it labels.
+         */        columnKey === 'name' ? 'text-start' : 'text-center',
         draggable && 'cursor-grab select-none',
         draggable && 'focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring',
-        /* The heading being carried recedes; the one under the cursor shows the
-           edge its neighbour would land against. */
+        /* The heading being carried recedes, the way something lifted off a
+           surface does. */
         dragging && 'cursor-grabbing opacity-50',
-        over && !dragging && 'border-s-2 border-s-primary',
       )}
       title={draggable ? label : undefined}
     >
@@ -138,3 +175,17 @@ export function BillsColumnHeader({
 
 /** The drag payload's type, shared by the handle and its drop targets. */
 const DRAG_TYPE = 'text/x-bills-column';
+
+/**
+ * The column currently being dragged, for as long as it is in the air.
+ *
+ * A module-level value, because `dataTransfer` cannot be read until the drop
+ * and this has to be known on every `dragover` before then. Nothing renders
+ * from it, so it is not state: the heading being crossed reads it to ask "what
+ * is being brought to me", and the answer changing does not change how anything
+ * looks — the reorder that follows is driven by the order, not by this.
+ *
+ * One drag exists at a time in a browser, so one value is enough. It is cleared
+ * on `dragend`, which fires whether the drag was dropped or abandoned.
+ */
+let carried: BillsColumnKey | null = null;

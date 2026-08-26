@@ -63,3 +63,29 @@
  */
 export const ROW_ACTION_CLASS =
   'rounded-sm text-muted-foreground hover:bg-primary/5 hover:text-primary aria-expanded:bg-primary/5 aria-expanded:text-primary focus-visible:bg-primary/5 focus-visible:text-primary';
+
+/**
+ * How the secondary buttons on the record's Expenses tab behave under the
+ * pointer: a light green fill with white words.
+ *
+ * `--accent-green` is the app's own light green — `#9BE076` — and is the same
+ * fill the outline variant already flips to. What this class changes is the
+ * ink on it: the variant writes `--on-accent`, a near-black green, where this
+ * writes white.
+ *
+ * ⚠ **White on it is about 1.7:1, far under the 4.5:1 the rest of this app
+ * holds to** — and it is why the variant writes near-black on this very fill.
+ * These buttons carry their only label in those words, so a reader who does not
+ * already know what they say will struggle to read them while the pointer is on
+ * them. Recorded here rather than argued again: it was asked for deliberately,
+ * and it is the clinic's screen. Swapping `text-white` for `text-on-accent`
+ * is the one-word fix if it ever grates.
+ *
+ * **The radius is pinned, not left alone.** `rounded-[10px]` is the same
+ * control radius the button already carries, restated on hover so that nothing
+ * — a variant, a future utility, tailwind-merge picking a different winner —
+ * can change the shape of these under the pointer. A control that changes
+ * shape when you reach for it is a control that moves as you aim.
+ */
+export const PANEL_ACTION_CLASS =
+  'hover:rounded-[10px] hover:border-accent-green hover:bg-accent-green hover:text-white aria-expanded:rounded-[10px] aria-expanded:border-accent-green aria-expanded:bg-accent-green aria-expanded:text-white';

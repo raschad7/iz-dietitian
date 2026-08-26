@@ -67,9 +67,12 @@ export function BillsTable({
   /** Keyed by client id — see `subscriberTotalsByClient`. */
   totals: Map<string, SubscriberTotals>;
   /**
-   * Each subscriber's own bills, keyed by client id and newest first — what the
-   * row's print menu lists. Loaded with the page for the same reason the totals
-   * are: see `ledgerByClient`.
+   * Each subscriber's own bills, keyed by client id and newest first.
+   *
+   * Not drawn as rows any more — the fold-out ledger is gone — but still read:
+   * the Subscription column asks them where a term stands, and the charge card
+   * asks them whether a subscription is already running. Loaded with the page
+   * for the same reason the totals are: see `ledgerByClient`.
    */
   ledgers: Map<string, BillEntry[]>;
   filtered: boolean;
@@ -91,7 +94,30 @@ export function BillsTable({
 
   return (
     <TableRoot>
-      <Table>
+      {/*
+        `table-fixed` with a column group of equal shares: every column on this
+        screen is an equal share of the width — `COLUMN_COUNT` of them,
+        actions included — and none widens to fit what happens to be in it.
+
+        Auto layout was measuring each column against its own content, so the
+        grid moved as the register did — a long name or a five-figure total
+        pushed its neighbours narrow, and the money columns stopped lining up
+        down the page between one filter and the next. A column of figures is
+        read by scanning it, and a scan wants the same edge on every row.
+
+        `min-w` keeps the even shares honest on a narrow screen: a seventh of a
+        phone is not a column, so the table holds its width and the scroll
+        container around it does what it is there for.
+      */}
+      <Table className="min-w-[64rem] table-fixed">
+        <colgroup>
+          {Array.from({ length: COLUMN_COUNT }, (_, index) => (
+            /* The share is derived from the count, so adding a column keeps
+               the table even instead of leaving a stale fraction behind. */
+            <col key={index} style={{ width: `${100 / COLUMN_COUNT}%` }} />
+          ))}
+        </colgroup>
+
         {/*
           The header is its own client component: the columns can be dragged
           into another order, that order lives in this browser, and the header

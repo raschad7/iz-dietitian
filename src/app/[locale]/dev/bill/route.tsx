@@ -103,5 +103,12 @@ export async function GET(
 
   /* The real routes' own response, headers included — a fixture that is
      served differently from the document it stands in for is not a fixture. */
-  return billResponse({ body, fileName: single ? 'BILL-FIXTURE.pdf' : 'STATEMENT-FIXTURE.pdf' });
+  return billResponse({
+    body,
+    fileName: single ? 'BILL-FIXTURE.pdf' : 'STATEMENT-FIXTURE.pdf',
+    /* Never sent — the fixture exists to be looked at. Named anyway, because
+       `RenderedBill` is one shape and a fixture that fills half of it is a
+       fixture that stops compiling the next time the real one grows. */
+    sentFileName: single ? 'fixture - دفعة 1.pdf' : 'fixture - سجل الدفعات.pdf',
+  });
 }

@@ -1,48 +1,47 @@
 'use client';
 
-import { useId, useState } from 'react';
 import { useTranslations } from 'next-intl';
 
 import { TableBody, TableCell, TableRow } from '@/components/ui/table';
 import type { BillEntry } from '@/features/billing/bill';
-import { BillLedgerPanel } from '@/features/billing/components/bill-ledger-panel';
-import { BillRowActions } from '@/features/billing/components/bill-row-actions';
+import { BillRowMenu } from '@/features/billing/components/bill-row-menu';
+import { SendBillButton } from '@/features/billing/components/send-bill-button';
 import { RecordChargeDialog } from '@/features/billing/components/record-charge-dialog';
 import { RecordPaymentDialog } from '@/features/billing/components/record-payment-dialog';
 import type { ServicePrices } from '@/features/billing/services';
-import { paymentStatus, type SubscriberTotals } from '@/features/billing/money';
+import { formatAmountCompact, paymentStatus, type SubscriberTotals } from '@/features/billing/money';
 import { subscriptionStanding } from '@/features/billing/subscription';
 import type { ClientListItem } from '@/features/clients/queries';
 import type { Locale } from '@/i18n/routing';
 
 import { BillsCell } from './bills-cell';
-import { COLUMN_COUNT } from './bills-columns';
 import { useBillsColumns } from './use-bills-columns';
 
 /**
- * One subscriber on the Bills screen: the row of figures, and the bills folded
- * under it.
+ * One subscriber on the Bills screen: the row of figures, and the controls that
+ * act on them.
  *
  * ## Why the record is a client component and the table is not
-
- * The chevron at the end of the row opens a second `<tr>` beneath it, and the
- * two are siblings — neither can hold state the other reads, so the state lives
- * in the smallest thing that contains both, which is this. The table around it
- * stays on the server: its header, its empty state and its column list have
- * nothing to react to.
  *
- * ## Why the pair sits in a `<tbody>` of its own
+ * The columns can be dragged into another order, and that order lives in this
+ * browser — so the row has to read it to know which cell to draw where. The
+ * table around it stays on the server: its header, its empty state and its
+ * column list have nothing to react to.
+ *
+ * ## Why the row sits in a `<tbody>` of its own
  *
  * A table may have several bodies, and that is the table model's own way of
- * saying "these rows are one record" — the prop is `linked` on `TableBody`, and
- * the dashboard's register already hangs a second line under a row this way.
- * The alternative, a nested `<table>` inside one cell, lines its columns up
- * with nothing and is announced as a table inside a table.
+ * saying "these rows are one record" — the prop is `linked` on `TableBody`,
+ * and the dashboard's register already groups rows this way.
  *
- * `linked` stays on the `<TableRow>` rather than moving up to the body,
- * deliberately: it is what stretches the name's link over the row, and on the
- * body that overlay would cover the opened panel and swallow every print button
- * in it.
+ * **The bills used to fold out underneath.** A chevron at the end of the row
+ * opened a second `<tr>` listing every operation on the account, each with a
+ * printer of its own. It is gone, and the printer that remains prints the whole
+ * account in one press — which is what the panel was mostly opened to do. What
+ * the panel could say that the statement cannot, it said inside a row of a
+ * table nobody could scan; the record's own Expenses tab is where a
+ * subscriber's ledger is read, and the name in this row now opens straight
+ * onto it.
  */
 export function BillsRow({
   client,
@@ -65,27 +64,6 @@ export function BillsRow({
 }) {
   const t = useTranslations('billing');
   const { columns } = useBillsColumns();
-  const [open, setOpen] = useState(false);
-
-  /*
-    **The close is instant, and that is the fix rather than a shortcut.**
-
-    This panel used to be held on screen for the length of a closing animation,
-    which is by definition a delay: however short and however smooth, the space
-    it occupies is not given back until the last frame, and the rows below do
-    not move until then. Three attempts at tuning that — shorter, longer,
-    without the fade, with layout containment — all made a smoother version of
-    the same wait, because the wait was the animation.
-
-    Opening keeps its travel. Arriving is where an animation earns its cost:
-    there is nothing on screen yet, so nothing is being withheld, and growing to
-    height is what stops the table from jumping. Leaving is the opposite —
-    what the reader asked for is the space back.
-  */
-  /* Ties the chevron to the panel for a screen reader. `useId`, because the
-     same row is rendered for every subscriber on the page. */
-  const panelId = useId();
-
   const status = paymentStatus(money);
   /*
     Read once for the row: the Subscription column draws it, and the charge card
@@ -127,7 +105,7 @@ export function BillsRow({
           every cell, and an action inside it is otherwise unclickable.
           This is the same construction the register's action cell uses.
         */}
-        <TableCell className="relative text-end">
+        <TableCell className="relative text-center">
           {/*
             Charge first, payment second — the order the money moves in.
             A subscriber is billed and then pays, and putting the wallet
@@ -139,7 +117,7 @@ export function BillsRow({
             scripts; `whitespace-nowrap` stops the four wrapping onto two
             lines and doubling the row height on a narrow window.
           */}
-          <div className="flex items-center justify-end gap-1 whitespace-nowrap">
+          <div className="flex items-center justify-center gap-1 whitespace-nowrap">
             <RecordChargeDialog
               locale={locale}
               clientId={client.id}
@@ -161,40 +139,60 @@ export function BillsRow({
             />
 
             {/*
-              Printing closes the group, after the two controls that
-              make the thing being printed. A subscriber with no ledger
-              still gets both: the statement of an empty account is a
-              real document — it says nothing has been billed — and the
-              menu says so in as many words.
+              Printing left the row for the menu — it is labelled "Print all
+              bills" in there, which is what the mark could never say. See
+              `BillRowMenu`.
             */}
-            <BillRowActions
+
+            {/*
+              And the same statement on WhatsApp, which is how most of this
+              clinic's subscribers will actually receive it — the printer is for
+              the copy handed across the desk. It closes the row because it is
+              the one control here that reaches somebody outside the clinic; see
+              `SendBillButton` for why it is the only one with a hover card.
+            */}
+            <SendBillButton
               locale={locale}
               clientId={client.id}
-              clientName={client.fullName}
-              open={open}
-              onToggle={() => setOpen((was) => !was)}
-              panelId={panelId}
-              t={t}
+              phone={client.phone}
+              labels={{
+                action: t('sendBill.title'),
+                confirmTitle: t('sendBill.confirmTitle'),
+                confirmBody: t('sendBill.confirmBody', { name: client.fullName }),
+                sent: t('sendBill.sent'),
+              }}
+            />
+
+            {/*
+              Everything else this account can be sent through: a reminder about
+              what is owed, and the whole ledger on paper. Last in the row,
+              because a menu is where you look when the marks beside it are not
+              what you wanted.
+            */}
+            <BillRowMenu
+              locale={locale}
+              clientId={client.id}
+              /* The card's half of the rule that greys the reminder out —
+                 `sendPaymentReminderAction` re-reads it on the server. */
+              remainingMinor={money.remainingMinor}
+              labels={{
+                more: t('rowMenu.more'),
+                reminder: t('rowMenu.reminder'),
+                reminderNothing: t('rowMenu.reminderNothing'),
+                confirmTitle: t('rowMenu.confirmTitle'),
+                confirmBody: t('rowMenu.confirmBody', {
+                  name: client.fullName,
+                  amount: formatAmountCompact(locale, money.remainingMinor),
+                }),
+                sent: t('rowMenu.sent'),
+                printAll: t('rowMenu.printAll'),
+                printAllFor: t('rowMenu.printAllFor', { name: client.fullName }),
+              }}
             />
           </div>
         </TableCell>
       </TableRow>
 
-      {/*
-        Mounted only while it is open. A panel that is always in the DOM and
-        merely hidden puts every bill of every subscriber on the page into the
-        accessibility tree and the tab order at once — on a full page of the
-        register that is hundreds of rows nobody asked for.
-      */}
-      {open ? (
-        <BillLedgerPanel
-          id={panelId}
-          locale={locale}
-          clientId={client.id}
-          entries={entries}
-          colSpan={COLUMN_COUNT}
-        />
-      ) : null}
     </TableBody>
   );
 }
