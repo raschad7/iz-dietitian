@@ -350,8 +350,8 @@ function PendingRequest({ request, locale }: { request: ClientRequestSummary; lo
   const t = useTranslations('portal.profile.update');
 
   return (
-    <div className="space-y-2 rounded-md rounded-ee-xl bg-card p-3 ring-1 ring-border">
-      <p className="text-sm font-medium text-secondary-foreground">{t('pending')}</p>
+    <div className="space-y-2 rounded-md rounded-ee-xl bg-status-rest-bg p-3 ring-1 ring-border">
+      <p className="text-sm font-medium text-muted-foreground">{t('pending')}</p>
 
       <p className="text-xs text-muted-foreground">
         {t('pendingSince', { date: formatDate(locale, request.createdAt, { dateStyle: 'long' }) })}

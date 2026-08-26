@@ -394,6 +394,16 @@ export function AdherenceStreakCard({
               is a zero-width centring box placed with `inset-inline-start`,
               which mirrors for Arabic on its own — matching the mirrored `x`
               the curve was plotted at.
+
+              Only today's dot stays on the page — the rest are a hover
+              reveal (`group`/`group-hover` on the inner dot), so the curve's
+              shape is what reads at a glance and a past day's exact value is
+              a deliberate look rather than six digits sitting on the line all
+              the time. `q-chart-point` is sized to a full `size-8` hit area
+              rather than the dot's own few pixels — centred by the same
+              zero-width trick, so growing it does not shift it off the point
+              — because a target that small is not one a cursor lands on
+              without hunting for it.
             */}
             {continuity.map((day, index) => {
               const point = points[index];
@@ -405,7 +415,7 @@ export function AdherenceStreakCard({
                 <span
                   key={day.date}
                   aria-hidden="true"
-                  className="absolute flex w-0 -translate-y-1/2 justify-center"
+                  className="group absolute flex w-0 -translate-y-1/2 justify-center"
                   style={{
                     insetInlineStart: `${columnFraction(index, continuity.length) * 100}%`,
                     top: `${point.y}%`,
@@ -434,7 +444,7 @@ export function AdherenceStreakCard({
                     `TodayFlameCell`'s particles set theirs inline.
                   */}
                   <span
-                    className="q-chart-point grid place-items-center"
+                    className="q-chart-point grid size-8 place-items-center"
                     style={{
                       animationDelay: `${Math.round(columnFraction(index, continuity.length) * DRAW_MS)}ms`,
                     }}
@@ -446,8 +456,8 @@ export function AdherenceStreakCard({
 
                     <span
                       className={cn(
-                        'col-start-1 row-start-1 rounded-full bg-card ring-primary',
-                        isLatest ? 'size-3 ring-[3px]' : 'size-2 ring-2',
+                        'col-start-1 row-start-1 rounded-full bg-card ring-primary transition-opacity duration-150',
+                        isLatest ? 'size-3 ring-[3px] opacity-100' : 'size-2 ring-2 opacity-0 group-hover:opacity-100',
                       )}
                     />
                   </span>
