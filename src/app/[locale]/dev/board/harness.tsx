@@ -20,6 +20,7 @@ import type {
   Board,
   BoardDay,
   BoardMeal,
+  BoardOption,
   CatalogEntry,
   ClientContext,
   PlannableClient,
@@ -168,8 +169,32 @@ function boardMeal(dayOfWeek: number, slot: SlotFixture, index: number): BoardMe
     grams: dishGrams(lines, 1),
     nutritionFrozen: false,
     budgetKcal: slot.budgetKcal,
-    options: [],
+    /*
+      Two alternatives on every filled meal, so the printed handout's "or
+      instead" line and the meal panel's swap list both have something to draw.
+      Taken from the dish table by offset, which keeps them different from the
+      dish in the slot without needing a second fixture.
+    */
+    options: unfilled ? [] : alternativesFor(dayOfWeek, index),
   };
+}
+
+/** Two dishes that are not the one in this slot, as stored AI alternatives. */
+function alternativesFor(dayOfWeek: number, index: number): BoardOption[] {
+  return [1, 2].map((offset) => {
+    const [slug, nameAr, nameEn] = DISHES[(dayOfWeek + index + offset) % DISHES.length]!;
+
+    return {
+      id: `${dayOfWeek}-${index}-${slug}`,
+      dishId: slug,
+      slug,
+      nameAr,
+      nameEn,
+      servings: 1,
+      kcal: 180 + offset * 90,
+      isSimilar: true,
+    };
+  });
 }
 
 function sumTotals(all: readonly NutrientTotals[]): NutrientTotals {
@@ -381,6 +406,7 @@ export function BoardHarness({ locale }: { locale: Locale }) {
             usage={{}}
             previous={null}
             locale={locale}
+            clinicName="عيادة إنزيم"
             history={<p className="text-body-sm text-muted-foreground">—</p>}
             newWeek={NEW_WEEK(context)}
           >

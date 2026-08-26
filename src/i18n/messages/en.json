@@ -1545,6 +1545,17 @@
     "previousDays": "Earlier days of the week",
     "nextDays": "Later days of the week",
     "moreActions": "More plan actions",
+    "export": {
+      "title": "Download this week",
+      "pdf": "PDF",
+      "word": "Word",
+      "hint": "The whole week on one page, ready to print or hand over.",
+      "failed": "That file could not be prepared. Try again."
+    },
+    "print": {
+      "alternatives": "Or instead:",
+      "draftNote": "Draft plan — the client cannot see this week yet."
+    },
     "deletePlan": "Delete this plan",
     "deletePlanConfirmTitle": "Delete this plan?",
     "deletePlanConfirmMessage": "The week of {date} and every meal in it are removed for good. This cannot be undone.",

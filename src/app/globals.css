@@ -6810,4 +6810,333 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
   }
 }
 
+/*
+ * ==========================================================================
+ *  Printing a week
+ * ==========================================================================
+ *
+ * The one way a plan leaves this app on paper. `PlanPrintDocument` renders the
+ * open week into `<body>` as `.plan-print`, and everything below decides what a
+ * printer does with it. The Word export reads the same element and brings its
+ * own port of these rules, because Word is not a browser; see `plan-word.ts`.
+ *
+ * ## Who the page is for
+ *
+ * The client, not the dietitian — the dietitian has the board. This is read at
+ * a kitchen counter by someone deciding what to put on a plate, so it is set as
+ * a document: portrait, generous leading, a size that survives a fridge door.
+ *
+ * An earlier version compressed the week onto one landscape sheet as a grid. It
+ * fit, and it could carry neither the portions nor the alternatives, because a
+ * cell 30mm wide cannot hold a recipe. Those two are the whole value of the
+ * handout, so the page count gives way to them rather than the other way round.
+ *
+ * ## Why the app is hidden by a single rule
+ *
+ * `body > *:not(.plan-print)` is deliberately the whole of it. The alternative
+ * is a list of the things not to print — the rail, the header, the toolbar, the
+ * drawer, the toaster, the tooltip layer, the splash — and that list is wrong
+ * the first time a surface is added and nobody remembers this file exists. So
+ * the document is the allowlist and the app is the default, which is also why
+ * `PlanPrintDocument` portals itself out to `<body>`: the rule only holds for a
+ * direct child.
+ *
+ * ## Structure survives without the fills
+ *
+ * Every browser print dialog has a "background graphics" checkbox and it is off
+ * by default. So nothing here depends on a fill: the hierarchy is carried by
+ * size, weight and rules, all of which print from any dialog and cost a
+ * fraction of the ink. The two tinted surfaces are enhancements that the page
+ * reads correctly without.
+ *
+ * Colours are the raw `--n-*` and `--green-*` primitives rather than the
+ * semantic tokens. The semantic set flips with the theme, and a dietitian
+ * working in dark mode should not print a black page.
+ */
+.plan-print {
+  display: none;
+}
 
+@media print {
+  /*
+   * Portrait. This is prose with a table in it, not a timetable — and the
+   * margin is on the page rather than on the document so it repeats on every
+   * sheet, which padding on `.plan-print` would not.
+   */
+  @page {
+    size: A4 portrait;
+    margin: 16mm 14mm;
+  }
+
+  body > *:not(.plan-print) {
+    display: none !important;
+  }
+
+  /*
+   * The app shell pins itself to the viewport and hides its own overflow, and
+   * `html:has(dialog[open])` adds another `overflow: hidden` at the root. Either
+   * one clips the printed document to one screen worth of it.
+   */
+  html,
+  body {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+    background: var(--n-0);
+  }
+
+  .plan-print {
+    display: block;
+    color: var(--n-900);
+    background: var(--n-0);
+    /* Points, not rem: this box is measured against paper, and the root font
+       size a browser hands a print stylesheet is not the one on screen. */
+    font-size: 10.5pt;
+    line-height: 1.5;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* ── The masthead ── */
+
+  /*
+   * The client's name is the largest thing on the page, because the page is
+   * theirs. The clinic sits above it at letterhead size, and the week and the
+   * target close the band on the far edge.
+   */
+  .plan-print-masthead {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 6mm;
+    border-block-end: 0.7mm solid var(--n-900);
+    padding-block-end: 3mm;
+    margin-block-end: 6mm;
+  }
+
+  .plan-print-clinic {
+    font-size: 9.5pt;
+    color: var(--n-600);
+    margin-block-end: 0.5mm;
+  }
+
+  /* No `uppercase` and no tracking anywhere on this page — see
+     docs/design-system.md § Typography. Arabic has neither. */
+  .plan-print-client {
+    font-size: 24pt;
+    font-weight: 700;
+    line-height: 1.15;
+  }
+
+  .plan-print-facts {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    text-align: end;
+    font-size: 10pt;
+    color: var(--n-700);
+    /* The name is 24pt and these two lines are 10pt; without this they sit on
+       the name's baseline and the band looks like it slipped. */
+    padding-block-end: 1mm;
+  }
+
+  .plan-print-target {
+    font-weight: 600;
+    color: var(--n-900);
+  }
+
+  /*
+   * The two things that change what the sheet is — a draft, or a week with
+   * empty slots. Ruled rather than coloured: an amber warning on a monochrome
+   * office printer is a grey sentence indistinguishable from the rest.
+   */
+  .plan-print-caveat {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1mm 8mm;
+    border-block: 0.3mm solid var(--n-400);
+    padding-block: 2mm;
+    margin-block-end: 6mm;
+    font-size: 9.5pt;
+    color: var(--n-700);
+  }
+
+  /* ── One day ── */
+
+  .plan-print-day {
+    margin-block-end: 7mm;
+  }
+
+  /*
+   * The day heading, and the one place the brand green appears.
+   *
+   * A rule, not text and not an icon — which is the distinction
+   * docs/design-system.md draws when it says the accent green is a fill. A
+   * 0.8mm line at `green-700` gives seven identical sections an edge a reader
+   * can find at a glance, and it is dark enough to survive a grayscale printer
+   * as a legible dark line rather than a pale one.
+   */
+  .plan-print-day-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 3mm;
+    border-block-end: 0.8mm solid var(--green-700);
+    padding-block-end: 1.5mm;
+    margin-block-end: 2mm;
+    /* A heading stranded at the foot of a page is a heading for nothing. */
+    break-after: avoid;
+  }
+
+  .plan-print-day-name {
+    font-size: 14pt;
+    font-weight: 700;
+  }
+
+  .plan-print-day-date {
+    font-size: 10pt;
+    color: var(--n-600);
+  }
+
+  /* The day's own numbers, on the far edge whichever edge that is. */
+  .plan-print-day-total {
+    margin-inline-start: auto;
+    display: flex;
+    align-items: baseline;
+    gap: 0 3mm;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .plan-print-day-kcal {
+    font-size: 11pt;
+    font-weight: 700;
+  }
+
+  .plan-print-day-macro {
+    font-size: 9.5pt;
+    color: var(--n-600);
+  }
+
+  /* ── One meal ── */
+
+  /*
+   * A table for the two-column meal, and no gridlines anywhere it would read as
+   * one. `fixed` so the hour column and the calorie column keep their widths
+   * down the whole page rather than being sized by whichever meal has the
+   * longest name.
+   */
+  .plan-print-meals {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+  }
+
+  .plan-print-meal {
+    /* A meal split across a page break puts a dish on one sheet and its amounts
+       on the next, which is the one break this document must not make. */
+    break-inside: avoid;
+  }
+
+  .plan-print-meals th,
+  .plan-print-meals td {
+    /* A hairline between meals and nothing else. No verticals: three columns
+       boxed in would turn a handout into a spreadsheet. */
+    border-block-start: 0.2mm solid var(--n-200);
+    padding-block: 2.5mm;
+    vertical-align: top;
+    text-align: start;
+  }
+
+  .plan-print-meals tr:first-child th,
+  .plan-print-meals tr:first-child td {
+    border-block-start: 0;
+    padding-block-start: 1mm;
+  }
+
+  /* When. */
+  .plan-print-meal-when {
+    width: 26mm;
+    padding-inline-end: 4mm;
+  }
+
+  .plan-print-meal-slot {
+    display: block;
+    font-size: 10.5pt;
+    font-weight: 700;
+  }
+
+  .plan-print-meal-time {
+    display: block;
+    font-size: 9.5pt;
+    font-weight: 400;
+    color: var(--n-600);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* What. */
+  .plan-print-dish {
+    font-size: 12pt;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  /*
+   * The amounts — the reason this document exists.
+   *
+   * Set along the line rather than stacked: three to five short pairs read
+   * perfectly well in a sentence, and a list of them would triple the height of
+   * every meal on a page that also carries the alternatives.
+   */
+  .plan-print-portions {
+    margin-block-start: 1mm;
+    font-size: 10pt;
+    color: var(--n-700);
+    line-height: 1.55;
+  }
+
+  /* The emphasised half of each pair. It is what the reader is scanning for. */
+  .plan-print-amount {
+    font-weight: 700;
+    color: var(--n-900);
+    font-variant-numeric: tabular-nums;
+    /* A quantity must never be split from its unit across a line ending. */
+    white-space: nowrap;
+  }
+
+  .plan-print-sep {
+    color: var(--n-400);
+  }
+
+  /* What to eat instead. Quieter than the meal it replaces, and set off by a
+     rule on the reading edge so it does not read as more of the recipe. */
+  .plan-print-alts {
+    margin-block-start: 1.5mm;
+    border-inline-start: 0.6mm solid var(--n-300);
+    padding-inline-start: 2.5mm;
+    font-size: 9.5pt;
+    color: var(--n-600);
+    line-height: 1.5;
+  }
+
+  .plan-print-alts-label {
+    font-weight: 700;
+    color: var(--n-700);
+    /* The label and the first name are one line; this is the gap between them. */
+    margin-inline-end: 2mm;
+  }
+
+  .plan-print-alt-kcal {
+    font-variant-numeric: tabular-nums;
+    color: var(--n-500);
+  }
+
+  /* How much. */
+  .plan-print-meal-kcal {
+    width: 20mm;
+    text-align: end;
+    font-size: 10.5pt;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+}

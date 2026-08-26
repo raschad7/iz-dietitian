@@ -28,6 +28,7 @@ import type {
   SwapCandidate,
 } from '../queries';
 import { boardRows } from '../board-rows';
+import { printPlan } from '../plan-print';
 import { dayKey } from '../schema';
 import { slotFillKey } from '../skeleton';
 import type { RecentUse } from '../usage';
@@ -35,6 +36,8 @@ import { dayOfWeekForDate, orderedWeekdays, planColumnDates } from '../week';
 
 import { BoardEditor, useEditor } from './board-dnd';
 import { DayColumn } from './day-column';
+import { PlanExport } from './plan-export';
+import { PlanPrintDocument } from './plan-print-document';
 import { SlotRail } from './slot-rail';
 import { DishCatalogDrawer } from './dish-catalog-drawer';
 import type { GhostMeal } from './meal-card';
@@ -52,6 +55,8 @@ type BoardProps = {
   /** The plan immediately before this one, for the compare overlay. */
   previous: ComparisonPlan | null;
   locale: Locale;
+  /** The clinic this plan belongs to, printed at the head of the PDF. Null when it has no name. */
+  clinicName: string | null;
   /** The client's earlier weeks, rendered on the server. */
   history: React.ReactNode;
   newWeek: NewWeekProps;
@@ -112,6 +117,7 @@ function BoardBody({
   usage,
   previous,
   locale,
+  clinicName,
   history,
   newWeek,
   children,
@@ -161,6 +167,17 @@ function BoardBody({
   const mealsById = useMemo(
     () => new Map(board.days.flatMap((day) => day.meals).map((meal) => [meal.id, meal])),
     [board.days],
+  );
+
+  /* The same week in the shape paper reads it. Derived from the *optimistic*
+     board, so a plan printed a second after an edit carries the edit — see
+     `PlanPrintDocument` for why this is not a page of its own.
+
+     `candidates` rides along so a meal the AI gave no alternatives for can still
+     offer the deterministic swaps, exactly as the meal panel does on screen. */
+  const printable = useMemo(
+    () => printPlan(board, locale, candidates),
+    [board, locale, candidates],
   );
   const selectedMeal = selectedMealId ? mealsById.get(selectedMealId) : undefined;
   const catalogContextMeal = catalogContextMealId
@@ -359,6 +376,19 @@ function BoardBody({
               </PopoverTitle>
 
               <div className="space-y-1">
+                {/* First in the menu, and the only block in it that is not a
+                    row: it is the one thing here that hands the dietitian a
+                    file, and it is available on every plan. The rule under it
+                    separates "take this away with you" from the two toggles
+                    that only change what is on screen. */}
+                <div className="border-b border-border pb-2">
+                  <PlanExport
+                    clinicName={clinicName}
+                    clientName={board.clientName}
+                    weekStartDate={board.weekStartDate}
+                  />
+                </div>
+
                 {previous && (
                   <Button
                     type="button"
@@ -649,6 +679,11 @@ function BoardBody({
         editable={editable}
         locale={locale}
       />
+
+      {/* Drawn only on paper. It portals itself to `<body>` and is `display:
+          none` until the print media query, so it costs the board nothing on
+          screen — see `PlanPrintDocument`. */}
+      <PlanPrintDocument plan={printable} clinicName={clinicName} locale={locale} />
 
       {confirmingDelete && (
         <ConfirmDialog
