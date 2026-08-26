@@ -17,18 +17,25 @@ import type { IconName } from '@/components/ui/icon';
  * against the message catalogue. A service added here without its strings is a
  * compile error, not a `services.massage` printed on a bill.
  *
- * A tint each, from the app's own status ramps rather than raw colour, so the
+ * Tints from the app's own status ramps rather than raw colour, so the
  * pill says which service was chosen from across the card — the way the
  * wallet's pill says cash or card without being read. They are told apart, not
  * graded: unlike the wallet's green and amber, none of these says anything
  * about money. A service is not on track or outstanding; it is simply the one
- * that was given. Clay goes to the consultation because that is the ramp the
- * app already spends on clinical things.
+ * that was given.
+ *
+ * **The two subscriptions share a tint on purpose.** Monthly and quarterly are
+ * the same thing bought for a different length, and colouring them apart said
+ * they differed in kind. What tells them apart is the icon and the words —
+ * `repeat` against `calendar` — and the tint is freed to mark the split that
+ * actually changes what the ledger does with the row: a term, or a single
+ * visit. The consultation takes the neutral grey, which is the one tone here
+ * that claims nothing about the service at all.
  */
 export const BILLING_SERVICES = [
   { value: 'monthly', icon: 'repeat', className: 'bg-status-on-track-bg text-status-on-track-fg' },
-  { value: 'quarterly', icon: 'calendar', className: 'bg-status-complete-bg text-status-complete-fg' },
-  { value: 'consultation', icon: 'medical', className: 'bg-status-medical-bg text-status-medical-fg' },
+  { value: 'quarterly', icon: 'calendar', className: 'bg-status-on-track-bg text-status-on-track-fg' },
+  { value: 'consultation', icon: 'medical', className: 'bg-status-incomplete-bg text-status-incomplete-fg' },
 ] as const satisfies readonly { value: string; icon: IconName; className: string }[];
 
 /**
