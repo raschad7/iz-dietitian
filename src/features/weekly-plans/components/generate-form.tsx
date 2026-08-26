@@ -48,8 +48,15 @@ export function GenerateForm({
   defaultInstruction?: string | null;
   /** Lets the containing dialog replace its choices with a protected wait state. */
   onPendingChange?: (pending: boolean) => void;
-  /** A generated plan is now on the board, so the containing choice can close. */
-  onSuccess?: () => void;
+  /**
+   * A generated plan is now on the board.
+   *
+   * It carries the count of slots the model could not fill, because `partial`
+   * is a success and the dialog closes on it: without the number here the
+   * warning is rendered into a form that is already on its way off the screen,
+   * which is exactly where it used to go.
+   */
+  onSuccess?: (result: { unfilled: number }) => void;
 }) {
   const t = useTranslations('weeklyPlans');
   const [state, formAction] = useActionState(generateWeekAction, initialGenerateState);
@@ -107,16 +114,24 @@ function GenerationLifecycle({
 }: {
   state: GenerateState;
   onPendingChange?: (pending: boolean) => void;
-  onSuccess?: () => void;
+  onSuccess?: (result: { unfilled: number }) => void;
 }) {
   const { pending } = useFormStatus();
 
+  /*
+    Both of these fire in the same commit when the action resolves, and in this
+    order: `pending` drops to false, then the state carries the result. The
+    dialog depends on that order — see `handlePendingChange` there, where the
+    "the wait is over" and "the wait succeeded" signals are folded into one
+    piece of state so the second can overrule the first.
+  */
   useEffect(() => {
     onPendingChange?.(pending);
   }, [onPendingChange, pending]);
 
   useEffect(() => {
-    if (state.status === 'done' || state.status === 'partial') onSuccess?.();
+    if (state.status === 'done') onSuccess?.({ unfilled: 0 });
+    if (state.status === 'partial') onSuccess?.({ unfilled: state.unfilled });
   }, [onSuccess, state]);
 
   return null;

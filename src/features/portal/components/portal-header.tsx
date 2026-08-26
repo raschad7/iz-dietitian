@@ -175,27 +175,28 @@ function useSeen() {
  * back to `set-password`, so this slot signs the client out directly instead
  * — the one thing they still need a way to do from a screen they cannot
  * leave any other way.
+ *
+ * **With `showNav` false the bell is not drawn at all**, and sign-out is the
+ * whole of the header. It used to render as an inert `<span>`: a bell that
+ * looked exactly like the working one, carried no badge, and did nothing when
+ * pressed. On the one screen where a client is stuck until they succeed, a
+ * control that ignores them is worse than no control — so the row now holds
+ * only the door.
  */
 function Destination({
   href,
-  enabled,
   className,
   label,
   onClick,
   children,
 }: {
   href: '/portal/notifications' | '/portal/settings';
-  enabled: boolean;
   className: string;
   label: string;
   /** Fired on the way out — the bell marks its feed read with it. */
   onClick?: () => void;
   children: React.ReactNode;
 }) {
-  if (!enabled) {
-    return <span className={className}>{children}</span>;
-  }
-
   return (
     <Link href={href} aria-label={label} onClick={onClick} className={className}>
       {children}
@@ -261,8 +262,8 @@ export function PortalHeader({
   /**
    * False while the client still owes us a password change. `(secured)/layout`
    * explains the rule: every portal route redirects back to `set-password`
-   * until then, so the bell and settings link stay off and sign-out takes
-   * their slot instead.
+   * until then — so neither the bell nor the settings link is rendered, and
+   * sign-out is the only control in the row.
    */
   showNav: boolean;
 }) {
@@ -352,77 +353,84 @@ export function PortalHeader({
       )}
     >
       <div className={PORTAL_COLUMN}>
-        <div className="flex items-center justify-between">
-          <Destination
-            href="/portal/notifications"
-            enabled={showNav}
-            label={
-              unreadCount > 0
-                ? t('notificationsWaiting', { count: unreadCount })
-                : t('notifications')
-            }
-            /*
-              Opening it is reading it. The mark is written on the way out
-              rather than by the screen it navigates to, for two reasons: this
-              is where the id list already is, and the badge should go quiet
-              under the thumb rather than a route transition later.
-
-              Everything currently on the feed is marked, not only what was
-              unread — the client is about to look at the whole list, and a
-              badge that survived being read is the thing being fixed here.
-            */
-            onClick={() => markSeen(notificationIds)}
-            className={cn(
-              'relative flex size-11 items-center justify-center rounded-full transition-colors',
-              iconTone,
-            )}
-          >
-            <Icon name="notifications" className="size-5.5" />
-
-            {unreadCount > 0 ? (
-              /*
-                **The count, not a disc.**
-
-                It was a 10px dot, which answered "is there anything?" and
-                nothing else — and because it was drawn straight off a server
-                count of unanswered requests, it could not go out until the
-                clinic acted. Reading the screen did nothing to it. A client
-                with one request pending saw the same red mark for a week.
-
-                A number says how much is waiting *and* is a thing that can be
-                cleared, which is the whole point of the seen mark behind it.
-
-                `9+` above nine: the badge is 18px on a 44px target, and three
-                digits either shrink the type under the floor or push the pill
-                off the bell. Past nine the exact figure is not what the client
-                needs from a glyph in a corner — the screen behind it has the
-                list.
-
-                `ring-card` on every tab including home, where the header is
-                unfilled over the glow: the ring is what separates the pill from
-                the bell under it, and against the green wash a white-ish ring
-                still reads as a gap rather than as part of the badge. The fill
-                is the same complete-mark green the dot used, which is already
-                the portal's "something for you" colour.
-              */
-              <span
-                aria-hidden
-                className="absolute top-1.5 end-1.5 grid h-4.5 min-w-4.5 place-items-center rounded-full bg-status-complete-mark px-1 text-[0.625rem] leading-none font-semibold text-white ring-2 ring-card tabular-nums"
-              >
-                {unreadCount > 9 ? '9+' : unreadCount}
-              </span>
-            ) : null}
-          </Destination>
-
+        {/*
+          `justify-end` with the bell gone, so the one remaining control stays
+          at the inline-end where it has always been. `justify-between` on a
+          single child would push sign-out to the inline-start — the door
+          jumping to the other side of the screen on the one screen a client
+          cannot leave any other way.
+        */}
+        <div className={cn('flex items-center', showNav ? 'justify-between' : 'justify-end')}>
           {showNav ? (
-            <Destination
-              href="/portal/settings"
-              enabled
-              label={tMenu('settings')}
-              className={cn('flex size-11 items-center justify-center rounded-full transition-colors', iconTone)}
-            >
-              <Icon name="settings" className="size-5.5" />
-            </Destination>
+            <>
+              <Destination
+                href="/portal/notifications"
+                label={
+                  unreadCount > 0
+                    ? t('notificationsWaiting', { count: unreadCount })
+                    : t('notifications')
+                }
+                /*
+                  Opening it is reading it. The mark is written on the way out
+                  rather than by the screen it navigates to, for two reasons: this
+                  is where the id list already is, and the badge should go quiet
+                  under the thumb rather than a route transition later.
+
+                  Everything currently on the feed is marked, not only what was
+                  unread — the client is about to look at the whole list, and a
+                  badge that survived being read is the thing being fixed here.
+                */
+                onClick={() => markSeen(notificationIds)}
+                className={cn(
+                  'relative flex size-11 items-center justify-center rounded-full transition-colors',
+                  iconTone,
+                )}
+              >
+                <Icon name="notifications" className="size-5.5" />
+
+                {unreadCount > 0 ? (
+                  /*
+                    **The count, not a disc.**
+
+                    It was a 10px dot, which answered "is there anything?" and
+                    nothing else — and because it was drawn straight off a server
+                    count of unanswered requests, it could not go out until the
+                    clinic acted. Reading the screen did nothing to it. A client
+                    with one request pending saw the same red mark for a week.
+
+                    A number says how much is waiting *and* is a thing that can be
+                    cleared, which is the whole point of the seen mark behind it.
+
+                    `9+` above nine: the badge is 18px on a 44px target, and three
+                    digits either shrink the type under the floor or push the pill
+                    off the bell. Past nine the exact figure is not what the client
+                    needs from a glyph in a corner — the screen behind it has the
+                    list.
+
+                    `ring-card` on every tab including home, where the header is
+                    unfilled over the glow: the ring is what separates the pill from
+                    the bell under it, and against the green wash a white-ish ring
+                    still reads as a gap rather than as part of the badge. The fill
+                    is the same complete-mark green the dot used, which is already
+                    the portal's "something for you" colour.
+                  */
+                  <span
+                    aria-hidden
+                    className="absolute top-1.5 end-1.5 grid h-4.5 min-w-4.5 place-items-center rounded-full bg-status-complete-mark px-1 text-[0.625rem] leading-none font-semibold text-white ring-2 ring-card tabular-nums"
+                  >
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                ) : null}
+              </Destination>
+
+              <Destination
+                href="/portal/settings"
+                label={tMenu('settings')}
+                className={cn('flex size-11 items-center justify-center rounded-full transition-colors', iconTone)}
+              >
+                <Icon name="settings" className="size-5.5" />
+              </Destination>
+            </>
           ) : (
             <HeaderSignOut locale={locale} />
           )}

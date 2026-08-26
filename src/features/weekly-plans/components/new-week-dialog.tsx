@@ -9,6 +9,7 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { Icon } from '@/components/ui/icon';
 import { Dialog, DialogBody, DialogHeader } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { toast } from '@/components/ui/toast';
 import { getLocaleDirection, type Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 
@@ -76,7 +77,16 @@ export function NewWeekDialog({
   const tCommon = useTranslations('common');
   const activeLocale = useLocale();
   const [open, setOpen] = useState(false);
-  const [generating, setGenerating] = useState(false);
+  /*
+    Three states, not two.
+
+    `running` is the server action in flight; `landing` is the action resolved
+    and the wait screen still on stage, running its bar up to a true 100%. The
+    dialog cannot close on the response any more — it closes when the screen
+    says it has finished answering it.
+  */
+  const [phase, setPhase] = useState<'idle' | 'running' | 'landing'>('idle');
+  const generating = phase !== 'idle';
   const [weekStartDate, setWeekStartDate] = useState(newWeek.weekStartDate);
 
   const mode = newWeekMode(board);
@@ -85,8 +95,61 @@ export function NewWeekDialog({
     if (!generating) setOpen(false);
   }, [generating]);
 
+  /*
+    The response has landed, whether it succeeded or not.
+
+    This runs *before* `handleSuccess` in the same commit — `GenerationLifecycle`
+    reports `pending` from one effect and the result from the next — so it
+    cannot know yet which of the two happened. It queues the failure answer, and
+    `handleSuccess` overrules it with the later update in the same batch when
+    there is a plan. React renders once, with whichever was queued last.
+
+    Folding both into a single piece of state is the whole point: as two
+    booleans, `pending → false` would unmount the wait screen a frame before
+    `success` could ask it to stay, and the bar would vanish mid-run.
+  */
+  const handlePendingChange = useCallback((pending: boolean) => {
+    setPhase((current) => (pending ? 'running' : current === 'landing' ? 'landing' : 'idle'));
+  }, []);
+
+  /*
+    The plan exists. Two things happen here, and the order they happen in is the
+    whole reason this component cannot be trusted to do either of them later.
+
+    **The toast is raised now, not when the bar finishes.** The action ends with
+    `revalidateBoard`, so the response carries a refreshed tree — and the page
+    renders `<PlanBoard key={board.id}>`, with a brand new id, or swaps
+    `EmptyPlanBoard` for it outright. Either way React unmounts this dialog, the
+    wait screen inside it and its frame loop, a few hundred milliseconds after
+    the response. Anything still waiting on a timer at that point simply never
+    runs, which is exactly what happened to the toast when it lived in
+    `finishGeneration`: the bar landed, the board swapped, and the callback that
+    was going to announce the plan died with the component.
+
+    So success is announced on the one signal that is certain — the response
+    itself — and the landing below is left as what it is: an animation, which
+    the reader may or may not see the end of.
+  */
+  const handleSuccess = useCallback(
+    ({ unfilled }: { unfilled: number }) => {
+      setPhase('landing');
+
+      toast.success(t(mode === 'regenerate' ? 'planRegenerated' : 'planGenerated'), {
+        /*
+          `partial` is a success — the plan exists — but some slots came back
+          empty, and this is the last chance to say so: the form that renders
+          the warning goes with the dialog.
+        */
+        description: unfilled > 0 ? t('unfilledWarning', { count: unfilled }) : undefined,
+      });
+    },
+    [mode, t],
+  );
+
+  /* The bar has reached 100%. All that is left is to get out of the way — if
+     the revalidated tree has not already done it for us. */
   const finishGeneration = useCallback(() => {
-    setGenerating(false);
+    setPhase('idle');
     setOpen(false);
   }, []);
 
@@ -106,7 +169,7 @@ export function NewWeekDialog({
         // action bar is one set of controls and they share the base radius.
         className={compactTrigger ? 'px-3 2xl:size-10 2xl:px-0' : undefined}
         onClick={() => {
-          setGenerating(false);
+          setPhase('idle');
           setWeekStartDate(newWeek.weekStartDate);
           setOpen(true);
         }}
@@ -217,8 +280,8 @@ export function NewWeekDialog({
                 blocked={newWeek.generateBlocked}
                 context={newWeek.context}
                 defaultInstruction={newWeek.defaultInstruction}
-                onPendingChange={setGenerating}
-                onSuccess={finishGeneration}
+                onPendingChange={handlePendingChange}
+                onSuccess={handleSuccess}
               />
 
               <CopyDoor
@@ -239,7 +302,13 @@ export function NewWeekDialog({
           </DialogBody>
         </div>
 
-        {generating && <GenerationLoadingScreen mode={mode} />}
+        {generating && (
+          <GenerationLoadingScreen
+            mode={mode}
+            complete={phase === 'landing'}
+            onComplete={finishGeneration}
+          />
+        )}
       </Dialog>
     </>
   );
@@ -271,7 +340,7 @@ function GenerateDoor({
   context: ClientContext;
   defaultInstruction: string | null;
   onPendingChange: (pending: boolean) => void;
-  onSuccess: () => void;
+  onSuccess: (result: { unfilled: number }) => void;
 }) {
   const t = useTranslations('weeklyPlans');
 

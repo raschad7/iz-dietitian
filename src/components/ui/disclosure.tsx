@@ -117,13 +117,46 @@ export function Disclosure({
         screen reader can jump between.
       */}
       <h3 className="flex">
-        <CollapsibleTrigger className="group/disclosure flex w-full min-w-0 cursor-pointer items-center gap-3 rounded-lg px-(--card-spacing) py-4 text-start outline-none transition-colors duration-(--duration-label) ease-(--ease-sweep) hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset motion-reduce:transition-none">
+        {/*
+          `py-6` and a 20px icon. The row was 56px with a 16px glyph, which is
+          the size a *dense* list wants — and a spine of six is not a dense
+          list, it is the whole screen when everything is closed. At ~72px the
+          rows have the presence of the cards they open into, and the glyph is
+          the same 20px the card headers beside them use.
+
+          A fixed `py-6` rather than `py-(--card-spacing)`, which is what the
+          panel below uses. `--card-spacing` steps 16px → 20px at `sm`, and
+          matching it would make the closed rows *shorter* on a phone — where
+          the spine is the whole screen and every row is a touch target. The one
+          value holds at both widths.
+
+          ⚠ **The row takes no fill on hover at all.** It was `bg-muted/60`, the
+          app's ambient hover tint, and that tint is sized for a menu item: on a
+          72px row spanning the whole record, any wash — grey, or the green that
+          replaced it — stops reading as a hover and becomes a second surface
+          colour, which on a card is the one thing a hover must not look like.
+
+          The feedback is carried by the two glyphs instead, which is enough on a
+          row the pointer already turns into a hand: the section icon warms to
+          `primary` and the chevron darkens to `foreground`. Both are small,
+          both are at the ends of the row the eye is on, and neither repaints an
+          area the size of a card to say "you are here".
+        */}
+        <CollapsibleTrigger className="group/disclosure flex w-full min-w-0 cursor-pointer items-center gap-3 rounded-lg px-(--card-spacing) py-6 text-start outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset">
           <Icon
             name={icon}
-            className="size-4 shrink-0 text-muted-foreground transition-colors group-hover/disclosure:text-primary"
+            className="size-5 shrink-0 text-muted-foreground transition-colors duration-(--duration-label) ease-(--ease-sweep) group-hover/disclosure:text-primary motion-reduce:transition-none"
           />
 
-          <span className="min-w-0 flex-1 truncate font-heading text-body-md font-semibold">
+          {/*
+            `font-medium`, not `font-semibold`. Six rows of 600-weight headings
+            stacked with nothing between them read as six shouts — the weight
+            was carrying a distinction that does not exist here, since every row
+            on the spine is the same rank as every other. 500 is enough to say
+            "heading" against the summary beside it, and the row's size is what
+            actually gives it presence now.
+          */}
+          <span className="min-w-0 flex-1 truncate font-heading text-body-md font-medium">
             {title}
           </span>
 
@@ -140,7 +173,7 @@ export function Disclosure({
 
           <Icon
             name="chevronDown"
-            className="size-4 shrink-0 text-muted-foreground transition-transform duration-(--duration-label) ease-(--ease-sweep) group-data-[panel-open]/disclosure:rotate-180 motion-reduce:transition-none"
+            className="size-4 shrink-0 text-muted-foreground transition-[transform,color] duration-(--duration-label) ease-(--ease-sweep) group-hover/disclosure:text-foreground group-data-[panel-open]/disclosure:rotate-180 motion-reduce:transition-none"
           />
         </CollapsibleTrigger>
       </h3>
