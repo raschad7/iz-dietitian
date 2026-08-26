@@ -1,3 +1,5 @@
+import type { CalendarView } from '../schema';
+
 import type { CalendarProps } from './calendar';
 
 /**
@@ -28,14 +30,28 @@ export type CalendarFrame = Pick<
  * does — surviving a reload would mean drawing a calendar from before the
  * reload as though it were current.
  */
-let frame: CalendarFrame | null = null;
+const frames = new Map<CalendarView, CalendarFrame>();
 
-/** Records what the calendar just drew. Called by `Calendar` after it commits. */
+/**
+ * Records what the calendar just drew, under the view it drew. Called by
+ * `Calendar` after it commits.
+ */
 export function rememberCalendar(next: CalendarFrame): void {
-  frame = next;
+  frames.set(next.view, next);
 }
 
-/** The last frame, for the loading boundary to redraw. */
-export function takeCalendarFrame(): CalendarFrame | null {
-  return frame;
+/**
+ * The last frame *for this view*, for the loading boundary to redraw.
+ *
+ * One entry per view rather than one for the calendar. There was a single
+ * frame here, and the three views share a route — so pressing Month redrew
+ * the week the reader was leaving, held it for the length of the fetch, and
+ * swapped it for a month. The wrong grid, confidently, every time the switch
+ * was pressed.
+ *
+ * Keyed, each view redraws itself: the skeleton shows once per view per
+ * session — the first time there is nothing to redraw — and never again.
+ */
+export function takeCalendarFrame(view: CalendarView): CalendarFrame | null {
+  return frames.get(view) ?? null;
 }

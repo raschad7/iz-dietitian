@@ -2,8 +2,32 @@
 
 import { useState, type ReactNode } from 'react';
 
+import { CALENDAR_VIEWS, type CalendarView } from '../schema';
 import { Calendar } from './calendar';
 import { takeCalendarFrame } from './calendar-snapshot-store';
+
+/**
+ * Which view is arriving, read off the address being navigated to.
+ *
+ * The boundary is not handed props by the page it stands in for, and the three
+ * views are one route told apart by `?view=` — so the URL is the only thing
+ * here that knows which grid is coming. Anything unrecognised is the week,
+ * matching `resolveView` on the page itself; the two have to agree, or the
+ * redraw is of a view the page will not render.
+ *
+ * `window` rather than `useSearchParams`, which would put a prerender
+ * constraint on a component whose whole job is to be a Suspense fallback. It
+ * costs nothing to do without: the snapshot store is a module-level value in
+ * one tab, so on the server there is never a frame to find and the answer here
+ * would not be used.
+ */
+function arrivingView(): CalendarView {
+  if (typeof window === 'undefined') return 'week';
+
+  const asked = new URLSearchParams(window.location.search).get('view');
+
+  return CALENDAR_VIEWS.find((view) => view === asked) ?? 'week';
+}
 
 /**
  * The calendar the reader last looked at, drawn again while the real one loads.
@@ -40,7 +64,7 @@ import { takeCalendarFrame } from './calendar-snapshot-store';
  * instead, a snapshot could change under a reader mid-wait.
  */
 export function CalendarSnapshot({ fallback }: { fallback: ReactNode }) {
-  const [frame] = useState(takeCalendarFrame);
+  const [frame] = useState(() => takeCalendarFrame(arrivingView()));
 
   if (!frame) return fallback;
 
