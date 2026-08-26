@@ -4933,8 +4933,9 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
     Opaque. It carried a 0.6 alpha briefly so the hour rules would show through,
     and that was reverted — the cards stopped reading as cards.
 
-    Measured across the ten and the mixes between them: n-900 holds 7.20:1 or
-    better on the resting fill and 6.09:1 on the hover. Hover moves on lightness
+    Measured across the ten and the mixes between them: n-900 holds 6.66:1 or
+    better on the resting fill and 5.65:1 on the hover. Both fell a little
+    when the palette was muted and both clear AA with room. Hover moves on lightness
     alone, so the deeper step cannot drift into a different colour from the card
     it belongs to.
   */

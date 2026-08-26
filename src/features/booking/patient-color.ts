@@ -125,8 +125,13 @@ type PaletteEntry = { h: number; light: [l: number, c: number]; dark: [l: number
  * - **≥ 30° apart in hue.** Distance alone would happily return a pale red and a
  *   deep red — far apart in OKLab, and still two reds. The hue floor is what
  *   makes these ten *families* rather than ten points.
- * - **chroma ≥ 0.075 light / 0.05 dark.** A near-neutral is easy to place far
- *   from everything else and reads as grey, not as somebody's colour.
+ * - **chroma ≥ 0.045 light / 0.038 dark.** A near-neutral is easy to place far
+ *   from everything else and reads as grey, not as somebody’s colour. This
+ *   floor was 0.075 / 0.05 before the palette was muted, and it was lowered
+ *   deliberately rather than discovered: muting is exactly the move that walks
+ *   a colour towards grey, so the bound had to come down with it or refuse the
+ *   change. What still guarantees these are ten colours and not ten greys is
+ *   the distance floor above it, which was not touched.
  *
  * They must stay ten and stay ascending: the mixing subdivides the arcs between
  * consecutive entries, so an unsorted list would send one arc backwards across
@@ -134,17 +139,30 @@ type PaletteEntry = { h: number; light: [l: number, c: number]; dark: [l: number
  * `patient-color.test.ts` re-derives the distances and the gamut rather than
  * trusting this note. Editing this list repaints the clinic.
  */
+/*
+  Muted, at the clinic’s request: the cards read too strong against a page
+  that is mostly white. Every chroma is the one it was, scaled — light by
+  0.6, dark by 0.75 — and every lightness is untouched, so the grid gets
+  quieter without any card moving up or down against the text on it.
+
+  **The two scales differ because the two bands have different room.** The
+  floor below is on the *distance* between the ten, and the dark band starts
+  closer together than the light one does: 0.6 there lands at 0.055 and fails.
+  0.7 is the least that clears the floor and 0.75 is what it takes, for the
+  margin. Re-measure before changing either — the test derives both rather
+  than trusting this note.
+*/
 const PATIENT_PALETTE: readonly PaletteEntry[] = [
-  { h: 21, light: [0.755, 0.14], dark: [0.285, 0.055] }, // red
-  { h: 53, light: [0.87, 0.075], dark: [0.415, 0.09] }, // amber
-  { h: 92, light: [0.755, 0.095], dark: [0.345, 0.06] }, // olive
-  { h: 142, light: [0.835, 0.16], dark: [0.455, 0.14] }, // green
-  { h: 173, light: [0.92, 0.075], dark: [0.42, 0.075] }, // mint
-  { h: 203, light: [0.835, 0.13], dark: [0.34, 0.05] }, // cyan
-  { h: 236, light: [0.755, 0.14], dark: [0.445, 0.09] }, // blue
-  { h: 273, light: [0.835, 0.075], dark: [0.285, 0.07] }, // violet
-  { h: 305, light: [0.755, 0.135], dark: [0.305, 0.145] }, // purple
-  { h: 339, light: [0.755, 0.195], dark: [0.385, 0.145] }, // magenta
+  { h: 21, light: [0.755, 0.084], dark: [0.285, 0.041] }, // red
+  { h: 53, light: [0.87, 0.045], dark: [0.415, 0.068] }, // amber
+  { h: 92, light: [0.755, 0.057], dark: [0.345, 0.045] }, // olive
+  { h: 142, light: [0.835, 0.096], dark: [0.455, 0.105] }, // green
+  { h: 173, light: [0.92, 0.045], dark: [0.42, 0.056] }, // mint
+  { h: 203, light: [0.835, 0.078], dark: [0.34, 0.038] }, // cyan
+  { h: 236, light: [0.755, 0.084], dark: [0.445, 0.068] }, // blue
+  { h: 273, light: [0.835, 0.045], dark: [0.285, 0.053] }, // violet
+  { h: 305, light: [0.755, 0.081], dark: [0.305, 0.109] }, // purple
+  { h: 339, light: [0.755, 0.117], dark: [0.385, 0.109] }, // magenta
 ];
 
 /** The palette as plain tones, per theme — what the distinctness check reads. */
@@ -165,7 +183,8 @@ const PALETTE_STRIDE = 3;
  * colour code has to clear rather than the bar it should aim at: two cards on
  * one day want to be obviously different, not barely different. 0.06 is roughly
  * three JNDs and is the line the test holds; the palette clears it with room, at
- * 0.111 light and 0.090 dark.
+ * 0.067 light and 0.069 dark — both narrower than before the palette was
+ * muted, and both still clear.
  *
  * It is a bound on the *ten*, not on every client. Mixes fill the gaps between
  * them by design, so the fortieth client is necessarily closer to their nearest
