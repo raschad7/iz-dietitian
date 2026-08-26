@@ -64,21 +64,35 @@ export function ExpensesBillList({
   const atEnd = current === pageCount;
 
   return (
-    <ul className="divide-y divide-border">
-      {rows.slice(start, start + EXPENSES_PAGE_SIZE)}
+    /*
+      A column that fills the card, which is what gives the pager below it a
+      gap to be pushed into. Under `lg` the card is sized by its own rows and
+      there is no spare height to distribute, so the pager simply follows the
+      list — the same arrangement arrived at by another route.
+    */
+    <div className="flex flex-col lg:h-full">
+      <ul className="divide-y divide-border">{rows.slice(start, start + EXPENSES_PAGE_SIZE)}</ul>
 
       {/*
-        The pager sits *in the list*, on the row the eighth bill would have
-        occupied — same `<li>`, same rule above it, same height. It reads as the
-        list continuing rather than as a control parked underneath it, and the
-        card does not change height between a full page and a short last one.
+        Held at the foot of the card by `mt-auto` rather than left to follow
+        the last row.
+
+        A last page holding two bills would otherwise pull the pager half a
+        card upwards, and a control that moves depending on which page you are
+        on is one you have to find again after every step. The register’s pager
+        is pinned for that reason and the note there applies unchanged.
+
+        Outside the `<ul>` now, so it carries its own rule where `divide-y`
+        used to draw one for it. That is the honest markup either way: it is a
+        control *about* the list, and as an `<li>` it was being counted to a
+        screen reader as one more bill on the account.
 
         Drawn only when there is somewhere to go. A single page of six bills is
         all of them, and a pager saying `1` under it would be a control for
         moving through nothing.
       */}
       {pageCount > 1 ? (
-        <li className="flex items-center justify-center py-3">
+        <div className="mt-auto flex items-center justify-center border-t border-border py-3">
           <Pagination>
             <PaginationContent>
               <PaginationItem>
@@ -134,8 +148,8 @@ export function ExpensesBillList({
               </PaginationItem>
             </PaginationContent>
           </Pagination>
-        </li>
+        </div>
       ) : null}
-    </ul>
+    </div>
   );
 }
