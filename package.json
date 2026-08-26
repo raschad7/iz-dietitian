@@ -25,6 +25,7 @@
     "db:build-food-dataset": "bun run scripts/build-food-dataset.ts",
     "db:reset": "bun run scripts/db-reset.ts",
     "db:backfill:plan-snapshots": "bun run scripts/backfill-plan-nutrition-snapshots.ts",
+    "db:backfill:charge-services": "bun run scripts/backfill-charge-services.ts",
     "wa:reminders": "bun run scripts/whatsapp-reminders.ts",
     "brand:build": "bun run scripts/build-brand-assets.tsx"
   },
