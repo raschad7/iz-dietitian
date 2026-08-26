@@ -29,6 +29,7 @@ function entry(over: Partial<BillEntry> = {}): BillEntry {
     amountMinor: 27000,
     description: 'Follow-up visit',
     method: null,
+    service: null,
     note: null,
     createdAt: new Date('2026-08-24T09:00:00Z'),
     ...over,

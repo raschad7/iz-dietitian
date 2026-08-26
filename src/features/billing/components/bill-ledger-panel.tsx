@@ -204,7 +204,7 @@ export function BillLedgerPanel({
                       <PrintBillButton
                         href={`/${locale}/app/clients/bills/${clientId}/print/${entry.id}`}
                         label={t('print.billNumbered', { number: billNumber(entry) })}
-                        title={t('print.bill')}
+                        hint={t('print.bill')}
                         iconClassName="size-4"
                       />
                     </td>

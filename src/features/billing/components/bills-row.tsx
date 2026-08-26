@@ -11,6 +11,7 @@ import { RecordChargeDialog } from '@/features/billing/components/record-charge-
 import { RecordPaymentDialog } from '@/features/billing/components/record-payment-dialog';
 import type { ServicePrices } from '@/features/billing/services';
 import { paymentStatus, type SubscriberTotals } from '@/features/billing/money';
+import { subscriptionStanding } from '@/features/billing/subscription';
 import type { ClientListItem } from '@/features/clients/queries';
 import type { Locale } from '@/i18n/routing';
 
@@ -86,6 +87,12 @@ export function BillsRow({
   const panelId = useId();
 
   const status = paymentStatus(money);
+  /*
+    Read once for the row: the Subscription column draws it, and the charge card
+    greys its subscription options out on the same answer. Two reads of the same
+    bills could not disagree, but they could drift apart in what they mean.
+  */
+  const subscription = subscriptionStanding(entries, today);
 
   return (
     <TableBody>
@@ -105,6 +112,10 @@ export function BillsRow({
             client={client}
             money={money}
             status={status}
+            /* Read from the bills already in hand, against the clinic's own
+               today — no query of its own. See `subscriptionStanding`. */
+            subscription={subscription}
+            today={today}
             locale={locale}
             t={t}
           />
@@ -136,12 +147,17 @@ export function BillsRow({
               today={today}
               prices={prices}
               consulted={consulted}
+              /* Greys out a second subscription while this one runs. The rule
+                 itself is in `recordCharge`. */
+              subscription={subscription}
             />
             <RecordPaymentDialog
               locale={locale}
               clientId={client.id}
               clientName={client.fullName}
               today={today}
+              /* The ceiling on the card. `recordPayment` enforces it. */
+              remainingMinor={money.remainingMinor}
             />
 
             {/*

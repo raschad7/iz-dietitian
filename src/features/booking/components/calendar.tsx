@@ -39,6 +39,7 @@ import { isWorkingDay, type ClinicHours, type ExistingAppointment } from '../val
 import { AppointmentDialog } from './appointment-dialog';
 import { CalendarToolbar } from './calendar-toolbar';
 import { CalendarViewGuard } from './calendar-view-guard';
+import { rememberCalendar } from './calendar-snapshot-store';
 import { ClientPicker, type PendingBooking } from './client-picker';
 import { DayColumn } from './day-column';
 import { MonthView } from './month-view';
@@ -211,6 +212,9 @@ const FULL_BLEED = '-mx-3 h-full md:-mx-5';
  */
 const TOOLBAR_INSET = 'px-3 md:px-5';
 
+/** The clinic-wide calendar's own address — `basePath`'s default. */
+const CLINIC_CALENDAR_PATH = '/app/calendar';
+
 export type CalendarProps = {
   locale: Locale;
   view: CalendarView;
@@ -247,6 +251,18 @@ export type CalendarProps = {
    * several levels up and is not its to reclaim.
    */
   fullBleed?: boolean;
+  /**
+   * Whether this is a redraw of a calendar that is on its way out, rather than
+   * the calendar itself — see `CalendarSnapshot`.
+   *
+   * Frozen, the component draws and does nothing else: it does not record
+   * itself as the frame to redraw next time (it *is* that frame), and it leaves
+   * `CalendarViewGuard` off, because a guard that answers a too-narrow screen
+   * with `router.replace` would be a placeholder navigating on the reader's
+   * behalf while they wait. The snapshot is `inert` as well, so nothing inside
+   * it can be reached; this is about the effects it would run unasked.
+   */
+  frozen?: boolean;
 };
 
 type OptimisticAction =
@@ -264,10 +280,11 @@ export function Calendar({
   hours,
   appointments,
   clients,
-  basePath = '/app/calendar',
+  basePath = CLINIC_CALENDAR_PATH,
   allowNewClient: allowNewClientProp,
   hideSearch = false,
   fullBleed = true,
+  frozen = false,
 }: CalendarProps) {
   const t = useTranslations('booking');
   const router = useRouter();
@@ -924,6 +941,24 @@ export function Calendar({
     scheduleRead.current();
   });
 
+  /**
+   * Hands the frame to `calendar-snapshot-store`, so the next arrival on this
+   * route redraws the calendar instead of a grey grid. See `CalendarSnapshot`.
+   *
+   * The server's `appointments` rather than `optimisticAppointments`: an
+   * optimistic block is a write that has not been confirmed, and a redraw is
+   * the last thing that should be showing one as though it had been.
+   *
+   * Only the clinic-wide calendar is remembered. The same component is mounted
+   * inside a client's Visit History tab under its own `basePath`, and that
+   * calendar holds one person's appointments — redrawn on `/app/calendar` it
+   * would be a clinic's day with almost everybody missing from it.
+   */
+  useEffect(() => {
+    if (frozen || basePath !== CLINIC_CALENDAR_PATH) return;
+    rememberCalendar({ locale, view, anchorDate, hours, appointments, clients });
+  }, [frozen, basePath, locale, view, anchorDate, hours, appointments, clients]);
+
   const belowFold = useMemo(
     () => new Map(datesBelowFold.map((entry) => [entry.date, entry.count])),
     [datesBelowFold],
@@ -1263,7 +1298,7 @@ export function Calendar({
         `replaceView` rather than `navigate`, so a view the screen cannot show
         never becomes a history entry the Back button bounces off.
       */}
-      <CalendarViewGuard view={view} onFallback={replaceView} />
+      {frozen ? null : <CalendarViewGuard view={view} onFallback={replaceView} />}
 
       <div data-guide="calendar-toolbar" className={cn('pt-4 md:pt-6', contentInset)}>
         <CalendarToolbar

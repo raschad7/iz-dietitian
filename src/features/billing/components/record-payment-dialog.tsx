@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import type { IconName } from '@/components/ui/icon';
 import { recordPaymentAction } from '@/features/billing/actions';
 import { BillingKeypadDialog } from '@/features/billing/components/billing-keypad-dialog';
+import { formatAmountCompact } from '@/features/billing/money';
 import type { PaymentMethod } from '@/features/billing/schema';
 import type { Locale } from '@/i18n/routing';
 
@@ -19,6 +20,19 @@ import type { Locale } from '@/i18n/routing';
  * The card itself is `BillingKeypadDialog`, which the charge beside it uses too.
  * What belongs to payments specifically is this file: the ways money is taken,
  * the field they post under, and the words.
+ *
+ * ## Never more than the account owes
+ *
+ * The card carries what is still outstanding — under the keypad while a figure
+ * is being typed, and in place of that line once the figure is past it — and
+ * the button will not commit one that is. A subscriber billed ₪1,000 cannot be
+ * recorded as paying ₪1,200, and one who has paid ₪400 of it cannot be recorded
+ * as paying more than the ₪600 left.
+ *
+ * `recordPayment` refuses the same write, which is what covers a form posted
+ * without this card and two people recording one payment at once. A refund — a
+ * negative figure — is capped by neither: it moves the account away from
+ * settled, never past it.
  */
 
 /**
@@ -57,6 +71,8 @@ export function RecordPaymentDialog({
   trigger,
   /** `primary` fills the button; the rest of a row should not. */
   emphasis,
+  /** What this subscriber still owes, in minor units — the ceiling on the card. */
+  remainingMinor,
 }: {
   locale: Locale;
   clientId: string;
@@ -64,6 +80,7 @@ export function RecordPaymentDialog({
   today: string;
   trigger?: 'icon' | 'button';
   emphasis?: 'primary' | 'secondary';
+  remainingMinor: number;
 }) {
   const t = useTranslations('billing');
 
@@ -79,6 +96,7 @@ export function RecordPaymentDialog({
       options={METHODS.map((method) => ({ ...method, label: t(`methods.${method.value}`) }))}
       optionName="method"
       dateName="paidOn"
+      maxMinor={remainingMinor}
       labels={{
         title: t('recordPayment.title'),
         open: t('recordPayment.open'),
@@ -86,6 +104,12 @@ export function RecordPaymentDialog({
         close: t('recordPayment.close'),
         amount: t('recordPayment.amount'),
         amountHint: t('recordPayment.amountHint'),
+        /* The figure, formatted here rather than in the shared card: the card
+           takes words, and what is owed is this screen's own fact. */
+        owed: t('recordPayment.owed', { amount: formatAmountCompact(locale, remainingMinor) }),
+        overMax: t('recordPayment.overOwed', {
+          amount: formatAmountCompact(locale, remainingMinor),
+        }),
         option: t('recordPayment.method'),
         answer: t('recordPayment.addedBalance'),
         date: t('recordPayment.paidOn'),

@@ -5,7 +5,13 @@ import { db } from '@/db';
 import { clientCharges, clientPayments } from '@/db/schema';
 
 import { createTestClient, createTestClinic, resetDatabase } from '../../../tests/helpers';
-import { ClientNotInClinicError, recordCharge, recordPayment } from './mutations';
+import {
+  ClientNotInClinicError,
+  PaymentExceedsBalanceError,
+  recordCharge,
+  recordPayment,
+  SubscriptionActiveError,
+} from './mutations';
 import { subscriberTotalsByClient } from './queries';
 import { recordChargeSchema, recordPaymentSchema } from './schema';
 
@@ -17,6 +23,25 @@ beforeEach(async () => {
   clinicId = await createTestClinic();
   clientId = await createTestClient(clinicId, 'هبة عوض');
 });
+
+/**
+ * Something on the account to pay against.
+ *
+ * `recordPayment` refuses money an account does not owe, so a test about how a
+ * payment is *stored* has to bill for it first — otherwise it is a test of the
+ * cap wearing another test's name. Inserted straight rather than through
+ * `recordCharge`, which has rules of its own that are not what is being
+ * exercised here.
+ */
+async function billed(amountMinor: number, client = clientId, clinic = clinicId): Promise<void> {
+  await db.insert(clientCharges).values({
+    clinicId: clinic,
+    clientId: client,
+    description: 'اشتراك شهري',
+    amountMinor,
+    chargedOn: '2026-08-01',
+  });
+}
 
 /** The shape the action hands the mutation, already validated. */
 function payment(overrides: Partial<{ amount: string; method: string; paidOn: string; note: string }> = {}) {
@@ -31,6 +56,8 @@ function payment(overrides: Partial<{ amount: string; method: string; paidOn: st
 
 describe('recordPayment', () => {
   test('stores the amount in agorot, not shekels', async () => {
+    await billed(100_000);
+
     const { id } = await recordPayment(clinicId, payment({ amount: '270.50' }));
     const [row] = await db.select().from(clientPayments).where(eq(clientPayments.id, id));
 
@@ -41,6 +68,8 @@ describe('recordPayment', () => {
   });
 
   test('records who entered it, and leaves it null when nobody is named', async () => {
+    await billed(100_000);
+
     const { id } = await recordPayment(clinicId, payment());
     const [row] = await db.select().from(clientPayments).where(eq(clientPayments.id, id));
 
@@ -48,10 +77,51 @@ describe('recordPayment', () => {
   });
 
   test('an empty note is stored as null rather than an empty string', async () => {
+    await billed(100_000);
+
     const { id } = await recordPayment(clinicId, payment({ note: '   ' }));
     const [row] = await db.select().from(clientPayments).where(eq(clientPayments.id, id));
 
     expect(row?.note).toBeNull();
+  });
+
+  /*
+    Nobody pays more than they owe. The figures are the ones in the rule's own
+    example: an account billed ₪1,000 refuses ₪1,200, takes ₪1,000, and after
+    ₪400 has gone in will not take more than the ₪600 left.
+  */
+  test('refuses a payment larger than the account owes', async () => {
+    await billed(100_000);
+
+    expect(recordPayment(clinicId, payment({ amount: '1200' }))).rejects.toThrow(
+      PaymentExceedsBalanceError,
+    );
+    expect(await db.select().from(clientPayments)).toHaveLength(0);
+  });
+
+  test('takes a payment that settles the account exactly', async () => {
+    await billed(100_000);
+    await recordPayment(clinicId, payment({ amount: '1000' }));
+
+    expect(await db.select().from(clientPayments)).toHaveLength(1);
+  });
+
+  test('measures against what is left, not against what was billed', async () => {
+    await billed(100_000);
+    await recordPayment(clinicId, payment({ amount: '400' }));
+
+    expect(recordPayment(clinicId, payment({ amount: '700' }))).rejects.toThrow(
+      PaymentExceedsBalanceError,
+    );
+
+    await recordPayment(clinicId, payment({ amount: '600' }));
+    expect(await db.select().from(clientPayments)).toHaveLength(2);
+  });
+
+  test('refuses money on an account with nothing billed on it', async () => {
+    expect(recordPayment(clinicId, payment({ amount: '100' }))).rejects.toThrow(
+      PaymentExceedsBalanceError,
+    );
   });
 
   /*
@@ -78,7 +148,7 @@ describe('recordPayment', () => {
   });
 
   /* A refund is a negative payment — see the schema note and the table's check. */
-  test('accepts a negative amount as a refund', async () => {
+  test('accepts a negative amount as a refund, on an account that owes nothing', async () => {
     const { id } = await recordPayment(clinicId, payment({ amount: '-150' }));
     const [row] = await db.select().from(clientPayments).where(eq(clientPayments.id, id));
 
@@ -124,6 +194,8 @@ describe('recordPayment, read back through the bills query', () => {
     integers this is exact; summed as shekel floats it is not.
   */
   test('sums payments without losing an agora', async () => {
+    await billed(100_000);
+
     await recordPayment(clinicId, payment({ amount: '19.99' }));
     await recordPayment(clinicId, payment({ amount: '0.01' }));
 
@@ -134,6 +206,7 @@ describe('recordPayment, read back through the bills query', () => {
   test('does not count another clinics payments', async () => {
     const otherClinicId = await createTestClinic('Other Clinic');
     const outsiderId = await createTestClient(otherClinicId, 'Someone Else');
+    await billed(100_000, outsiderId, otherClinicId);
 
     await recordPayment(
       otherClinicId,
@@ -153,10 +226,13 @@ describe('recordPayment, read back through the bills query', () => {
 });
 
 describe('recordCharge', () => {
-  function charge(overrides: Partial<{ amount: string; description: string; chargedOn: string }> = {}) {
+  function charge(
+    overrides: Partial<{ amount: string; description: string; chargedOn: string; service: string }> = {},
+  ) {
     return recordChargeSchema.parse({
       clientId,
       description: overrides.description ?? 'اشتراك شهري',
+      service: overrides.service,
       amountMinor: overrides.amount ?? '600',
       chargedOn: overrides.chargedOn ?? '2026-08-01',
     });
@@ -218,6 +294,45 @@ describe('recordCharge', () => {
 
     expect(result.success).toBe(false);
     expect(result.error?.issues[0]?.message).toBe('invalidDate');
+  });
+
+  /*
+    One subscription at a time. A term already covering the day a second one is
+    charged for refuses it; the day after that term ends is free; and a
+    consultation is not a term, so it goes through either way.
+  */
+  test('refuses a second subscription while the first is still running', async () => {
+    await recordCharge(clinicId, charge({ service: 'monthly', chargedOn: '2026-08-10' }));
+
+    expect(
+      recordCharge(clinicId, charge({ service: 'monthly', chargedOn: '2026-08-24' })),
+    ).rejects.toThrow(SubscriptionActiveError);
+    expect(await db.select().from(clientCharges)).toHaveLength(1);
+  });
+
+  test('refuses one back-dated into a term that has already run', async () => {
+    await recordCharge(clinicId, charge({ service: 'monthly', chargedOn: '2026-08-10' }));
+
+    expect(
+      recordCharge(clinicId, charge({ service: 'quarterly', chargedOn: '2026-08-11' })),
+    ).rejects.toThrow(SubscriptionActiveError);
+  });
+
+  test('takes the next subscription the day after the last one ends', async () => {
+    await recordCharge(clinicId, charge({ service: 'monthly', chargedOn: '2026-08-10' }));
+    await recordCharge(clinicId, charge({ service: 'monthly', chargedOn: '2026-09-10' }));
+
+    expect(await db.select().from(clientCharges)).toHaveLength(2);
+  });
+
+  test('still takes a consultation mid-subscription — a visit is not a term', async () => {
+    await recordCharge(clinicId, charge({ service: 'monthly', chargedOn: '2026-08-10' }));
+    await recordCharge(
+      clinicId,
+      charge({ service: 'consultation', description: 'استشارة', chargedOn: '2026-08-24' }),
+    );
+
+    expect(await db.select().from(clientCharges)).toHaveLength(2);
   });
 
   test('refuses a subscriber belonging to another clinic', async () => {

@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { buttonVariants } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Spinner } from '@/components/ui/spinner';
+import { TooltipHint } from '@/components/ui/tooltip-hint';
 import { cn } from '@/lib/utils';
 
 import { ROW_ACTION_CLASS } from './row-action';
@@ -66,7 +67,7 @@ import { ROW_ACTION_CLASS } from './row-action';
 export function PrintBillButton({
   href,
   label,
-  title,
+  hint,
   /** Drawn beside the mark. Given, this is a labelled button; omitted, a mark. */
   text,
   className,
@@ -75,8 +76,12 @@ export function PrintBillButton({
   href: string;
   /** The accessible name — says *which* bill, or whose account. */
   label: string;
-  /** The short hover label, without the name. */
-  title: string;
+  /**
+   * The short hover label, without the name — shown in a `TooltipHint`, and
+   * only on the icon-only rendering: beside `text`, it would be the words
+   * already on the button arriving a second time.
+   */
+  hint: string;
   text?: string;
   className?: string;
   iconClassName?: string;
@@ -179,7 +184,7 @@ export function PrintBillButton({
     frame.src = href;
   };
 
-  return (
+  const control = (
     <a
       href={href}
       className={cn(
@@ -189,7 +194,6 @@ export function PrintBillButton({
         className,
       )}
       aria-label={label}
-      title={title}
       aria-busy={pending || undefined}
       onClick={(event) => {
         /*
@@ -211,5 +215,19 @@ export function PrintBillButton({
       )}
       {text}
     </a>
+  );
+
+  /*
+    The hint is a real tooltip rather than the browser's `title`: that one
+    waits a second, draws itself in the system's own font at the pointer, and
+    on a touch screen never appears at all. `TooltipHint` is the app's own
+    surface, positioned against the trigger and flipped when there is no room.
+
+    A labelled button keeps its label and nothing else. See `hint`.
+  */
+  return text ? control : (
+    <TooltipHint label={hint} className="shrink-0">
+      {control}
+    </TooltipHint>
   );
 }

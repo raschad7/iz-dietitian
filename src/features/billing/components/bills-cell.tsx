@@ -6,14 +6,14 @@ import { TableCell } from '@/components/ui/table';
 import { patientToneStyle } from '@/features/booking/patient-color';
 import type { BillTranslator } from '@/features/billing/bill';
 import { formatAmountCompact, type PaymentStatus, type SubscriberTotals } from '@/features/billing/money';
+import { subscriptionCountdown, type Subscription } from '@/features/billing/subscription';
 import type { ClientListItem } from '@/features/clients/queries';
 import { Link } from '@/i18n/navigation';
 import type { Locale } from '@/i18n/routing';
-import { formatPhoneDisplay } from '@/lib/phone-format';
 import { cn } from '@/lib/utils';
 
 import type { BillsColumnKey } from './bills-columns';
-import { STATUS_VARIANTS } from './bills-status';
+import { STATUS_VARIANTS, SUBSCRIPTION_VARIANTS } from './bills-status';
 
 /**
  * One cell of a Bills row, by column.
@@ -29,6 +29,8 @@ export function BillsCell({
   client,
   money,
   status,
+  subscription,
+  today,
   locale,
   t,
 }: {
@@ -36,6 +38,10 @@ export function BillsCell({
   client: ClientListItem;
   money: SubscriberTotals;
   status: PaymentStatus;
+  /** Where this subscriber's term stands today — see `subscriptionStanding`. */
+  subscription: Subscription;
+  /** The clinic's own today, which is what the countdown counts from. */
+  today: string;
   locale: Locale;
   t: BillTranslator;
 }) {
@@ -81,22 +87,53 @@ export function BillsCell({
         </TableCell>
       );
 
+    /*
+      Subscription — how long this person has left on their term, or how long
+      they have been off it.
+
+      **A countdown, not a date.** This column is scanned for one thing: who
+      needs asking about a renewal, and how soon. "20 days" is that answer;
+      `09/09/2026` is the raw material a reader would have to do the arithmetic
+      on, once per row, against a today they also have to remember. The exact
+      days a term covers are still on the printed statement, where a document
+      has to be precise rather than quick to read.
+
+      **Short, because it is a chip in a column of figures.** A number and the
+      word "days" — not a sentence: this is read at a glance down a page, and a
+      phrase that has to be *read* costs more than the day it saves looking up.
+      "Left" and "remaining" are gone from the chip because the heading over it
+      already says so, and the state word with them: the chip's own colour is
+      what tells a running term from a finished one, and "Expired" in front of
+      "Ended 3 days" would be one fact twice.
+
+      No `numeric`: this is a sentence with a number in it, so it follows the
+      page's direction like the name does. Someone who has never been on a
+      subscription draws the register's em-dash — a chip saying "none" on every
+      consultation-only row would be a column of noise.
+    */
+    case 'subscription': {
+      if (subscription.state === 'none') {
+        return (
+          <TableCell>
+            <Missing />
+          </TableCell>
+        );
+      }
+
+      const countdown = subscriptionCountdown(subscription, today);
+
+      return (
+        <TableCell>
+          <Badge variant={SUBSCRIPTION_VARIANTS[subscription.state]} className="whitespace-nowrap">
+            {t(`subscription.${countdown.kind}`, { days: countdown.days })}
+          </Badge>
+        </TableCell>
+      );
+    }
+
     /* Total price — everything this subscriber has been billed. */
     case 'totalPrice':
       return <TableCell numeric>{formatAmountCompact(locale, money.chargedMinor)}</TableCell>;
-
-    /*
-      Formatted rather than printed raw. The column holds whatever was typed —
-      `0597058996` on one record, `+970597058996` on another — and a column of
-      the same numbers in three shapes is one nobody can scan.
-      `formatPhoneDisplay` resolves all of them to `+970 59-705-8996`; the
-      stored value is untouched.
-
-      `numeric` on the cell is what keeps it LTR and on tabular figures inside
-      Arabic — without it the leading `+` jumps to the wrong end of the number.
-    */
-    case 'phone':
-      return <TableCell numeric>{formatPhoneDisplay(client.phone) || <Missing />}</TableCell>;
 
     /*
       Remaining — what there is left to collect, never negative, and the only

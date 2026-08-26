@@ -19,6 +19,7 @@ import { Icon, type IconName } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/toast';
+import { TooltipHint } from '@/components/ui/tooltip-hint';
 import { ROW_ACTION_CLASS } from '@/features/billing/components/row-action';
 import { initialBillingFormState, type BillingFormState } from '@/features/billing/form-state';
 import { formatAmountCompact, keypadReadout, parseAmount, toAmountInput, toKeypadDigits } from '@/features/billing/money';
@@ -87,9 +88,29 @@ export type KeypadOption = {
    */
   posts?: Record<string, string>;
   /**
+   * Whether this option cannot be picked at all — a subscription for somebody
+   * who is already inside a term.
+   *
+   * The row stays in the list rather than being filtered out of it: a service
+   * that vanishes reads as a service the clinic stopped offering, and the
+   * reader has no way to find out why. Greyed, with {@link KeypadOption.note}
+   * under it saying when it comes back, the list still says what this clinic
+   * sells and what is available today.
+   *
+   * The card will not open on a disabled option and will not submit one, but
+   * the rule itself lives in `recordCharge` — see the note there on why a
+   * card cannot be the only place a rule is enforced.
+   */
+  disabled?: boolean;
+  /**
    * A line under the answer, when this option needs one — "the first
    * consultation is free". Shown only while the option is chosen, because it is
    * a fact about the entry being made and not about the list.
+   *
+   * On a {@link KeypadOption.disabled} option it is the reason instead, and it
+   * is drawn in the menu row rather than under the answer — the reader needs it
+   * while they are looking at the greyed-out row, not after choosing something
+   * else.
    */
   note?: string;
 };
@@ -136,6 +157,19 @@ export type BillingKeypadDialogProps = {
    * billed, which is a different fact from never having been written down.
    */
   amount?: boolean;
+  /**
+   * The most this card may record, in minor units — what the subscriber still
+   * owes, for the payment card. `undefined` on a card with no ceiling.
+   *
+   * Nobody pays more than they owe: the button will not commit a figure above
+   * this, and `labels.overMax` says so while it is being typed rather than
+   * after it is sent. The rule is enforced in `recordPayment`, which is where
+   * it is true — this is where it is visible.
+   *
+   * A refund is a negative figure and is never capped: money going back out
+   * cannot take an account past settled.
+   */
+  maxMinor?: number;
   labels: {
     title: string;
     open: string;
@@ -144,6 +178,10 @@ export type BillingKeypadDialogProps = {
     /** Only read when `amount` is on; a card without a keypad has no use for them. */
     amount?: string;
     amountHint?: string;
+    /** What is still outstanding, drawn under the keypad while it is being typed. */
+    owed?: string;
+    /** Shown in its place once the figure is past {@link BillingKeypadDialogProps.maxMinor}. */
+    overMax?: string;
     /** The pill's accessible name: "Method", "Service".  */
     option: string;
     /** The answer line under the rule — what this entry does to the account. */
@@ -175,6 +213,7 @@ export function BillingKeypadDialog({
   options,
   optionName,
   dateName,
+  maxMinor,
   amount = true,
   trigger = 'icon',
   emphasis = 'secondary',
@@ -188,7 +227,7 @@ export function BillingKeypadDialog({
   const [state, formAction, pending] = useActionState(action, initialBillingFormState);
   const present = useDialogPresence(open);
 
-  const [chosenValue, setChosenValue] = useState<string>(options[0]!.value);
+  const [chosenValue, setChosenValue] = useState<string>(firstChoice(options));
   /*
     The keypad's digits, not the string on screen. Whole shekels, no separators
     and no point — the readout is derived from them by `keypadReadout`, so the
@@ -282,7 +321,7 @@ export function BillingKeypadDialog({
 
       /* The next entry starts from an empty keypad, not from this one. */
       setDigits('');
-      setChosenValue(options[0]!.value);
+      setChosenValue(firstChoice(options));
       setPaidOn(today as IsoDate);
       setDateText(today);
     }
@@ -326,30 +365,55 @@ export function BillingKeypadDialog({
     `null` is a charge, where the price is the clinic's own and the option is
     what picks it.
   */
+  /*
+    Past what the account owes. Judged on the parsed figure rather than the
+    digits, so it is the number the server would store that is being tested.
+    A refund — a negative figure — is never over anything.
+  */
+  const over = maxMinor !== undefined && parsed !== null && parsed > maxMinor;
+
   const priced = !amount && chosen.amountMinor !== undefined;
   const unpriced = priced && chosen.amountMinor === null;
+
+  /*
+    One trigger, drawn two ways. The accessible name is `openFor` either way —
+    "Record a payment for Sara" — because a screen reader hears the control out
+    of its row, where "Record a payment" alone leaves four identical
+    announcements down a register.
+  */
+  const control = (
+    <Button
+      ref={triggerRef}
+      type="button"
+      variant={trigger === 'icon' ? 'ghost' : emphasis === 'primary' ? 'default' : 'outline'}
+      size={trigger === 'icon' ? 'icon' : 'default'}
+      className={trigger === 'icon' ? ROW_ACTION_CLASS : undefined}
+      onClick={() => setOpen(true)}
+      aria-label={labels.openFor}
+    >
+      <Icon name={icon} className={trigger === 'icon' ? 'size-5' : 'size-4'} />
+      {trigger === 'button' ? labels.open : null}
+    </Button>
+  );
 
   return (
     <>
       {/*
-        One trigger, drawn two ways. The accessible name is `openFor` either
-        way — "Record a payment for Sara" — because a screen reader hears the
-        control out of its row, where "Record a payment" alone leaves four
-        identical announcements down a register.
+        Hovering the mark says what it does, in the app's own tooltip rather
+        than the browser's `title` — which waits a second, draws itself in the
+        system's font at the pointer, and on a touch screen never appears at
+        all. Only the mark is wrapped: the labelled rendering has the same words
+        printed on its face, and a tooltip repeating them is the button talking
+        over itself. `shrink-0` because the wrapper is the flex item now, and
+        the row it sits in is a tight one.
       */}
-      <Button
-        ref={triggerRef}
-        type="button"
-        variant={trigger === 'icon' ? 'ghost' : emphasis === 'primary' ? 'default' : 'outline'}
-        size={trigger === 'icon' ? 'icon' : 'default'}
-        className={trigger === 'icon' ? ROW_ACTION_CLASS : undefined}
-        onClick={() => setOpen(true)}
-        aria-label={labels.openFor}
-        title={labels.open}
-      >
-        <Icon name={icon} className={trigger === 'icon' ? 'size-5' : 'size-4'} />
-        {trigger === 'button' ? labels.open : null}
-      </Button>
+      {trigger === 'icon' ? (
+        <TooltipHint label={labels.open} className="shrink-0">
+          {control}
+        </TooltipHint>
+      ) : (
+        control
+      )}
 
       {present ? (
         <Dialog
@@ -595,6 +659,7 @@ export function BillingKeypadDialog({
                                 setTint({ top: row.offsetTop, height: row.offsetHeight });
                               }
                             }}
+                            disabled={entry.disabled}
                             onClick={() => setChosenValue(entry.value)}
                             /*
                               Base UI highlights by moving real focus, so the
@@ -651,7 +716,17 @@ export function BillingKeypadDialog({
                               colour the app uses for a settled thing.
                             */}
                             <Icon name={entry.icon} className="size-4" />
-                            <span className="flex-1">{entry.label}</span>
+                            {/* A column, so a service that cannot be picked can
+                                say why on a second line without the row's mark
+                                and check moving. */}
+                            <span className="flex min-w-0 flex-1 flex-col">
+                              <span className="truncate">{entry.label}</span>
+                              {entry.disabled && entry.note ? (
+                                <span className="text-body-sm text-muted-foreground">
+                                  {entry.note}
+                                </span>
+                              ) : null}
+                            </span>
 
                             <span aria-hidden className="grid size-4 shrink-0 place-items-center text-primary">
                               {entry.value === chosen.value ? <Icon name="check" className="size-4" /> : null}
@@ -749,6 +824,7 @@ export function BillingKeypadDialog({
                                 setTint({ top: row.offsetTop, height: row.offsetHeight });
                               }
                             }}
+                            disabled={entry.disabled}
                             onClick={() => setChosenValue(entry.value)}
                             /*
                               Base UI highlights by moving real focus, so the
@@ -805,7 +881,17 @@ export function BillingKeypadDialog({
                               colour the app uses for a settled thing.
                             */}
                             <Icon name={entry.icon} className="size-4" />
-                            <span className="flex-1">{entry.label}</span>
+                            {/* A column, so a service that cannot be picked can
+                                say why on a second line without the row's mark
+                                and check moving. */}
+                            <span className="flex min-w-0 flex-1 flex-col">
+                              <span className="truncate">{entry.label}</span>
+                              {entry.disabled && entry.note ? (
+                                <span className="text-body-sm text-muted-foreground">
+                                  {entry.note}
+                                </span>
+                              ) : null}
+                            </span>
 
                             <span aria-hidden className="grid size-4 shrink-0 place-items-center text-primary">
                               {entry.value === chosen.value ? <Icon name="check" className="size-4" /> : null}
@@ -960,6 +1046,19 @@ export function BillingKeypadDialog({
               {unpriced ? <FieldHint className="text-center">{labels.noPrice}</FieldHint> : null}
 
               {/*
+                What is left to collect, and — once the figure typed is past it
+                — that it is. One line in both states rather than a hint that
+                appears only on the refusal: a reader deciding what to type is
+                the one who needs the figure, and telling them after they have
+                typed it is a correction rather than a help.
+              */}
+              {labels.owed && !unpriced ? (
+                <FieldHint className={cn('text-center', over && 'text-destructive')}>
+                  {over ? labels.overMax : labels.owed}
+                </FieldHint>
+              ) : null}
+
+              {/*
                 The option's own note — why this entry is what it is. It sits
                 under the answer line because that is what it explains: a figure
                 of zero beside "Added to total price" is a question until
@@ -1008,7 +1107,11 @@ export function BillingKeypadDialog({
                 and without this the two sat at 320px and 400px, half a step out
                 of line in a card whose whole column is otherwise flush.
               */}
-              <Button type="submit" className="w-full max-w-none" disabled={pending || unpriced}>
+              <Button
+                type="submit"
+                className="w-full max-w-none"
+                disabled={pending || unpriced || over || Boolean(chosen.disabled)}
+              >
                 {pending ? labels.saving : labels.submit}
               </Button>
             </DialogFooter>
@@ -1017,4 +1120,19 @@ export function BillingKeypadDialog({
       ) : null}
     </>
   );
+}
+
+/**
+ * The option a card opens on: the first that can actually be picked.
+ *
+ * `options[0]` for every card whose list is fully available, which is all of
+ * them until a rule takes a row out — the charge card greys out subscriptions
+ * for somebody already inside a term, and opening on a greyed row would hand
+ * the reader a card whose button was dead before they touched it.
+ *
+ * Falls back to the first option when every one of them is disabled, so the
+ * card still has something chosen and the readout still has something to read.
+ */
+function firstChoice(options: readonly KeypadOption[]): string {
+  return (options.find((entry) => !entry.disabled) ?? options[0]!).value;
 }

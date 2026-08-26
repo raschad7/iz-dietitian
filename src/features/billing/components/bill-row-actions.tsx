@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
+import { TooltipHint } from '@/components/ui/tooltip-hint';
 import type { BillTranslator } from '@/features/billing/bill';
 import { PrintBillButton } from '@/features/billing/components/print-bill-button';
 import { ROW_ACTION_CLASS } from '@/features/billing/components/row-action';
@@ -54,7 +55,7 @@ export function BillRowActions({
       <PrintBillButton
         href={`/${locale}/app/clients/bills/${clientId}/print`}
         label={t('print.statementFor', { name: clientName })}
-        title={t('print.statement')}
+        hint={t('print.statement')}
       />
 
       {/*
@@ -65,25 +66,26 @@ export function BillRowActions({
         `type="button"` because the page contains the search `<form>`, and an
         unqualified button inside one submits it.
       */}
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        className={ROW_ACTION_CLASS}
-        onClick={onToggle}
-        aria-expanded={open}
-        aria-controls={panelId}
-        aria-label={t('print.billsFor', { name: clientName })}
-        title={t('print.bills')}
-      >
-        <Icon
-          name="chevronEnd"
-          className={cn(
-            'size-5 transition-transform duration-(--duration-arc) ease-(--ease-sweep) motion-reduce:transition-none',
-            open && 'rotate-90 rtl:-rotate-90',
-          )}
-        />
-      </Button>
+      <TooltipHint label={t('print.bills')} className="shrink-0">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className={ROW_ACTION_CLASS}
+          onClick={onToggle}
+          aria-expanded={open}
+          aria-controls={panelId}
+          aria-label={t('print.billsFor', { name: clientName })}
+        >
+          <Icon
+            name="chevronEnd"
+            className={cn(
+              'size-5 transition-transform duration-(--duration-arc) ease-(--ease-sweep) motion-reduce:transition-none',
+              open && 'rotate-90 rtl:-rotate-90',
+            )}
+          />
+        </Button>
+      </TooltipHint>
     </>
   );
 }

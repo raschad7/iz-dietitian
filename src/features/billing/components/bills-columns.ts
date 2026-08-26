@@ -12,12 +12,31 @@
  *
  * `numeric` means `dir="ltr"` and tabular figures, so a shekel amount reads
  * left-to-right and the digits line up down the column inside Arabic text.
- * Phone is one for the same reason the register isolates it: letting a number
- * inherit the Arabic direction moves a leading `+` to the wrong end.
  *
  * The order here is the default one, and it is the order the columns were asked
- * for: `name` leads, the money block runs together, and `status` closes the row
- * as the summary you land on rather than one of the figures being summarised.
+ * for: `name` leads, `subscription` says what they are on, the money block runs
+ * together, and `status` closes the row as the summary you land on rather than
+ * one of the figures being summarised.
+ *
+ * `subscription` is the key; the heading over it reads **Remaining**, and the
+ * cells under it are a count of days — see `BillsCell`.
+ *
+ * The money column two along answers to **Debt** ("الدين"), which is what
+ * keeps the two apart: this one counts days, that one counts shekels, and for
+ * one release they were both headed "Remaining".
+ *
+ * It sits beside the name rather than among the figures because it is not one: it is who this person currently is to the clinic — inside a term,
+ * out of one, or never on a subscription at all — read from their newest
+ * subscription charge by `subscriptionStanding`. A reader chasing renewals can
+ * still drag it wherever they want it.
+ *
+ * **There is no `phone` column either.** It was here, formatted to one shape
+ * down the page, and it answered a question this screen is not asked: Bills is
+ * read to find out who owes what, and a number to ring them on is one click
+ * away behind their name — where the rest of their record is. It also sat in
+ * the middle of the money, a column of digits that are not an amount among
+ * three that are, which made the figures harder to scan — the one thing this
+ * screen is for.
  *
  * There is no `balance` column. The signed account position and `remaining`
  * differ in exactly one case — a subscriber who has paid ahead — and carrying
@@ -27,8 +46,8 @@
  */
 export const BILLS_COLUMNS = [
   { key: 'name', numeric: false },
+  { key: 'subscription', numeric: false },
   { key: 'totalPrice', numeric: true },
-  { key: 'phone', numeric: true },
   { key: 'remaining', numeric: true },
   { key: 'totalPayment', numeric: true },
   { key: 'status', numeric: false },

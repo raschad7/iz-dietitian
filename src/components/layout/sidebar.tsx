@@ -385,9 +385,22 @@ function AppSidebar({
                             Clicking the row you are already standing on used to
                             push the same URL again, which re-runs the page for
                             no change on screen. The click is swallowed instead.
+
+                            The query string counts. The calendar's row carries
+                            one (`?view=week`), so a pathname-only test never
+                            matched it and every press of Calendar *while on the
+                            calendar* re-ran the route — the one navigation that
+                            can change nothing at all. Compared against
+                            `location.search` rather than `useSearchParams`
+                            because this runs on a click, in the browser, where
+                            the URL is simply there to be read: the hook would
+                            put a `Suspense` requirement on the shell that
+                            renders this rail for every screen in both apps.
                           */
                           onClick={(event) => {
-                            if (pathname === item.href) event.preventDefault();
+                            if (item.href === `${pathname}${window.location.search}`) {
+                              event.preventDefault();
+                            }
                           }}
                         />
                       }

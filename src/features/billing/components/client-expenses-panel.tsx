@@ -6,6 +6,7 @@ import { Icon } from '@/components/ui/icon';
 import { batchNumbers, billNumber, describeEntry, type BillEntry } from '@/features/billing/bill';
 import { PrintBillButton } from '@/features/billing/components/print-bill-button';
 import { RecordChargeDialog } from '@/features/billing/components/record-charge-dialog';
+import { subscriptionStanding } from '@/features/billing/subscription';
 import { RecordPaymentDialog } from '@/features/billing/components/record-payment-dialog';
 import { STATUS_VARIANTS } from '@/features/billing/components/bills-status';
 import { formatAmountCompact, paymentStatus, subscriberTotals } from '@/features/billing/money';
@@ -165,6 +166,9 @@ export async function ClientExpensesPanel({
             today={today}
             trigger="button"
             emphasis="primary"
+            /* The same ceiling the register puts on a payment, from the totals
+               this panel has already summed. */
+            remainingMinor={totals.remainingMinor}
           />
           <RecordChargeDialog
             locale={locale}
@@ -173,12 +177,15 @@ export async function ClientExpensesPanel({
             today={today}
             prices={prices}
             consulted={consulted}
+            /* The same rule the register enforces, read from the entries this
+               panel is already drawing. */
+            subscription={subscriptionStanding(entries, today)}
             trigger="button"
           />
           <PrintBillButton
             href={`/${locale}/app/clients/bills/${clientId}/print`}
             label={t('print.statementFor', { name: clientName })}
-            title={t('print.statement')}
+            hint={t('print.statement')}
             text={t('print.exportBills')}
           />
         </div>
@@ -234,7 +241,7 @@ export async function ClientExpensesPanel({
                   <PrintBillButton
                     href={`/${locale}/app/clients/bills/${clientId}/print/${entry.id}`}
                     label={t('print.billNumbered', { number: billNumber(entry) })}
-                    title={t('print.bill')}
+                    hint={t('print.bill')}
                     iconClassName="size-4"
                   />
                 </li>

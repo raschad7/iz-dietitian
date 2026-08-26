@@ -7,7 +7,14 @@ import { locales } from '@/i18n/routing';
 import { requireStaffClinic } from '@/lib/session';
 
 import { type BillingErrorKey, type BillingFormState } from './form-state';
-import { ClientNotInClinicError, recordCharge, recordPayment, setServicePrices } from './mutations';
+import {
+  ClientNotInClinicError,
+  PaymentExceedsBalanceError,
+  recordCharge,
+  recordPayment,
+  setServicePrices,
+  SubscriptionActiveError,
+} from './mutations';
 import { recordChargeSchema, recordPaymentSchema, servicePriceSchema } from './schema';
 import { BILLING_SERVICES } from './services';
 
@@ -99,7 +106,9 @@ function revalidateLedger(locale: string, clientId: string): void {
 /**
  * One thrown error, as something the dialog can say.
  *
- * Only the tenant refusal is named. Anything else — a dropped connection, a
+ * Three refusals are named: the tenant boundary, a subscription sold over a
+ * running one, and a payment larger than the account owes — all three are
+ * things the person at the keyboard can act on. Anything else — a dropped connection, a
  * check constraint the schema and the database disagree about — is a fault
  * rather than something the person at the keyboard can fix, so it reads as the
  * generic message and is left to the server log.
@@ -107,6 +116,22 @@ function revalidateLedger(locale: string, clientId: string): void {
 function failure(error: unknown, what: string): BillingFormState {
   if (error instanceof ClientNotInClinicError) {
     return { status: 'error', messageKey: 'invalidClient' };
+  }
+
+  /*
+    Without the date. The state carries a key and no values — see
+    `BillingFormState` — and the card already prints the day the term ends under
+    the greyed-out option, which is where somebody reads it before submitting
+    rather than after being refused.
+  */
+  if (error instanceof SubscriptionActiveError) {
+    return { status: 'error', messageKey: 'subscriptionActive' };
+  }
+
+  /* Without the figure, for the reason above: the card prints what is left
+     under the keypad, where it is read before the button rather than after. */
+  if (error instanceof PaymentExceedsBalanceError) {
+    return { status: 'error', messageKey: 'paymentExceedsBalance' };
   }
 
   console.error(`[billing] ${what} failed`, error);

@@ -951,13 +951,17 @@
     "clearFilters": "Clear filters",
     "fields": {
       "name": "Full name",
+      "subscription": "Remaining",
       "totalPrice": "Total price",
-      "phone": "Phone number",
-      "remaining": "Remaining",
+      "remaining": "Debt",
       "balance": "Balance",
       "totalPayment": "Total payment",
       "status": "Payment status",
       "actions": "Actions"
+    },
+    "subscription": {
+      "remaining": "{days, plural, one {# day} other {# days}}",
+      "finished": "{days, plural, one {Ended # day} other {Ended # days}}"
     },
     "status": {
       "none": "No charges",
@@ -992,6 +996,8 @@
       "forSubscriber": "Money received from {name}.",
       "amount": "Amount",
       "amountHint": "In shekels. Enter a negative amount to record a refund.",
+      "owed": "{amount} still owed.",
+      "overOwed": "That is more than the {amount} still owed.",
       "method": "Method",
       "paidOn": "Bills date",
       "datePlaceholder": "YYYY-MM-DD",
@@ -1020,6 +1026,7 @@
       "addedTotal": "Added to total price",
       "noPrice": "This service has no price yet. Set one in Settings → Clinic.",
       "firstFree": "The first consultation is free.",
+      "subscriptionRuns": "Still running — {days, plural, one {# day} other {# days}}.",
       "saved": "Charge added"
     },
     "errors": {
@@ -1034,7 +1041,9 @@
       "descriptionRequired": "Say what the charge is for.",
       "descriptionTooLong": "That description is too long.",
       "invalidClient": "That subscriber is not on this clinic's register.",
-      "invalidService": "That service is not one this clinic offers."
+      "invalidService": "That service is not one this clinic offers.",
+      "subscriptionActive": "This subscriber is already on a subscription. Record the next one when the current one ends.",
+      "paymentExceedsBalance": "That is more than this subscriber still owes."
     },
     "print": {
       "statement": "Print all bills",

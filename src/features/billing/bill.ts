@@ -58,6 +58,21 @@ export type BillEntry = {
   description: string | null;
   /** `cash` | `transfer` | `card` | `other` on a payment, `null` on a charge. */
   method: string | null;
+  /**
+   * Which of the clinic's services a charge was for — `monthly`, `quarterly`,
+   * `consultation` — and `null` on a payment, or on a charge typed in freehand
+   * before the services existed.
+   *
+   * `string` rather than `BillingService`, following the column it comes from:
+   * the list of services grows, and a row naming one this build has never heard
+   * of is a fact about the past, not a parse error. Read it through
+   * `isBillingService` or `isSubscriptionService`.
+   *
+   * It is what `subscriptionStanding` reads to say whether a subscriber is
+   * inside a term — see `subscription.ts` — which is why the Bills screen needs
+   * no second query to draw that column.
+   */
+  service: string | null;
   note: string | null;
   /** When the row was entered, which is not when the money moved. */
   createdAt: Date;

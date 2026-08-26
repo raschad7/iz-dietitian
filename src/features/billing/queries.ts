@@ -131,6 +131,7 @@ export async function ledgerByClient(
         occurredOn: clientCharges.chargedOn,
         amountMinor: clientCharges.amountMinor,
         description: clientCharges.description,
+        service: clientCharges.service,
         note: clientCharges.note,
         createdAt: clientCharges.createdAt,
       })
@@ -158,6 +159,7 @@ export async function ledgerByClient(
       amountMinor: row.amountMinor,
       description: row.description,
       method: null,
+      service: row.service,
       note: row.note,
       createdAt: row.createdAt,
     });
@@ -171,6 +173,7 @@ export async function ledgerByClient(
       amountMinor: row.amountMinor,
       description: null,
       method: row.method,
+      service: null,
       note: row.note,
       createdAt: row.createdAt,
     });

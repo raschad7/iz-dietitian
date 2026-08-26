@@ -8,6 +8,7 @@ import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/
 import { useDialogPresence } from '@/components/ui/dialog-motion';
 import { FieldError } from '@/components/ui/field';
 import { Icon, type IconName } from '@/components/ui/icon';
+import { TooltipHint } from '@/components/ui/tooltip-hint';
 import { ROW_ACTION_CLASS } from '@/features/billing/components/row-action';
 import { type BillingFormState, initialBillingFormState } from '@/features/billing/form-state';
 import { getLocaleDirection, type Locale } from '@/i18n/routing';
@@ -116,18 +117,23 @@ export function BillingEntryDialog({
         `type="button"` because the page contains the search `<form>`, and an
         unqualified button inside it would submit that.
       */}
-      <Button
-        ref={trigger}
-        type="button"
-        variant="ghost"
-        size="icon"
-        className={ROW_ACTION_CLASS}
-        onClick={() => setOpen(true)}
-        aria-label={openLabelFor}
-        title={openLabel}
-      >
-        <Icon name={icon} className="size-5" />
-      </Button>
+      {/* The app's own tooltip, not the browser's `title` — see the note on
+          `PrintBillButton`'s `hint`. The short label hovers; the one carrying
+          the subscriber's name stays in `aria-label`, where a screen reader
+          needs it. */}
+      <TooltipHint label={openLabel} className="shrink-0">
+        <Button
+          ref={trigger}
+          type="button"
+          variant="ghost"
+          size="icon"
+          className={ROW_ACTION_CLASS}
+          onClick={() => setOpen(true)}
+          aria-label={openLabelFor}
+        >
+          <Icon name={icon} className="size-5" />
+        </Button>
+      </TooltipHint>
 
       {present ? (
         <Dialog

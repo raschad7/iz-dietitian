@@ -5,6 +5,11 @@ import { useTranslations } from 'next-intl';
 import { recordChargeAction } from '@/features/billing/actions';
 import { BillingKeypadDialog } from '@/features/billing/components/billing-keypad-dialog';
 import { BILLING_SERVICES, CONSULTATION, type ServicePrices } from '@/features/billing/services';
+import {
+  isSubscriptionService,
+  subscriptionCountdown,
+  type Subscription,
+} from '@/features/billing/subscription';
 import type { Locale } from '@/i18n/routing';
 
 /**
@@ -46,6 +51,26 @@ import type { Locale } from '@/i18n/routing';
  * has to be able to state, and it is also what makes the *second* consultation
  * chargeable — the row is how the next card knows.
  *
+ * ## One subscription at a time
+ *
+ * A subscriber inside a term cannot be sold another one until it has run — the
+ * clinic would be charging twice for the same days. Both subscription options
+ * are greyed out while that is true, each saying the day the current term ends,
+ * and the card opens on the consultation instead: a visit is not a term, and
+ * somebody mid-subscription can still be charged for one.
+ *
+ * **The card is not where the rule is true.** `recordCharge` refuses the write
+ * as well, which is what covers a back-dated entry, a second dietitian on the
+ * same subscriber, and a posted form that never met this card. Here it is only
+ * shown early, which is the difference between a rule and an error message.
+ *
+ * What is greyed is judged against *today*. The card lets the date be changed,
+ * so a reader can move a charge into a week the term does not cover and the
+ * server will accept it — the options are the common answer, the write path is
+ * the correct one.
+ *
+ * ## The first consultation
+ *
  * The rule is applied here rather than in the action, and that is a real
  * limitation worth naming: two dietitians recording a first consultation for
  * the same subscriber at the same moment would both see a free one. The ledger
@@ -65,6 +90,8 @@ export function RecordChargeDialog({
   prices,
   /** Whether this subscriber's ledger already holds a consultation. */
   consulted,
+  /** Where their subscription stands today — see `subscriptionStanding`. */
+  subscription,
 }: {
   locale: Locale;
   clientId: string;
@@ -73,8 +100,17 @@ export function RecordChargeDialog({
   trigger?: 'icon' | 'button';
   prices: ServicePrices;
   consulted: boolean;
+  subscription: Subscription;
 }) {
   const t = useTranslations('billing');
+
+  /*
+    The term in the way, and how much of it is left. Read once: both
+    subscription options ask the same question and would otherwise each answer
+    it. Days rather than the end date, for the reason the Bills column gives.
+  */
+  const running =
+    subscription.state === 'active' ? subscriptionCountdown(subscription, today) : null;
 
   return (
     <BillingKeypadDialog
@@ -107,6 +143,9 @@ export function RecordChargeDialog({
         */
         const free = service.value === CONSULTATION && !consulted;
 
+        /* A term already covers today, and this row is another one. */
+        const blocked = running !== null && isSubscriptionService(service.value);
+
         return {
           ...service,
           value: label,
@@ -114,7 +153,17 @@ export function RecordChargeDialog({
           amountMinor: free ? 0 : prices[service.value],
           /* The key beside the words: what the rule above will read next time. */
           posts: { service: service.value },
-          note: free ? t('recordCharge.firstFree') : undefined,
+          disabled: blocked,
+          /*
+            One line, and which one depends on why it is there: a greyed row
+            says when it comes back, an offered one says why it is free. They
+            cannot both apply — a subscription is never the free consultation.
+          */
+          note: blocked
+            ? t('recordCharge.subscriptionRuns', { days: running.days })
+            : free
+              ? t('recordCharge.firstFree')
+              : undefined,
         };
       })}
       optionName="description"

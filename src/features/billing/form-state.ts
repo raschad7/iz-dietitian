@@ -35,7 +35,17 @@ export type BillingFormState =
         /** The subscriber is not this clinic's — see `ClientNotInClinicError`. */
         | 'invalidClient'
         /** A price was submitted for a service the app does not offer. */
-        | 'invalidService';
+        | 'invalidService'
+        /**
+         * A subscription was charged over one that is still running — see
+         * `SubscriptionActiveError`.
+         */
+        | 'subscriptionActive'
+        /**
+         * More money was received than the account owes — see
+         * `PaymentExceedsBalanceError`.
+         */
+        | 'paymentExceedsBalance';
     };
 
 export type BillingErrorKey = Extract<BillingFormState, { status: 'error' }>['messageKey'];
