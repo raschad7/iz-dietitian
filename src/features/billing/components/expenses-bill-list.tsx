@@ -82,17 +82,23 @@ export function ExpensesBillList({
         on is one you have to find again after every step. The register’s pager
         is pinned for that reason and the note there applies unchanged.
 
-        Outside the `<ul>` now, so it carries its own rule where `divide-y`
-        used to draw one for it. That is the honest markup either way: it is a
-        control *about* the list, and as an `<li>` it was being counted to a
-        screen reader as one more bill on the account.
+        No rule above it, and that is deliberate. A border here sat tight
+        under the last bill on a full page and hung in open space on a short
+        one, a hand’s width below the final row — the same control drawn two
+        ways depending on how many bills the page happened to hold. Without
+        it the pager reads the same on every page, and its own `py-3` over
+        the last row’s keeps it clear of the ledger without a line.
+
+        Outside the `<ul>` either way. It is a control *about* the list, and
+        as an `<li>` it was being counted to a screen reader as one more bill
+        on the account.
 
         Drawn only when there is somewhere to go. A single page of six bills is
         all of them, and a pager saying `1` under it would be a control for
         moving through nothing.
       */}
       {pageCount > 1 ? (
-        <div className="mt-auto flex items-center justify-center border-t border-border py-3">
+        <div className="mt-auto flex items-center justify-center py-3">
           <Pagination>
             <PaginationContent>
               <PaginationItem>
