@@ -227,6 +227,34 @@ export async function replacePortalPassword(userId: string, newPassword: string)
 }
 
 /**
+ * Whether the *database* still says this client owes a password change.
+ *
+ * The same fact rides on the session object, and reading it there is free — so
+ * that is what the portal guard checks first, and for all but one moment of a
+ * client's life the two agree. The moment they do not is the one that matters:
+ * the session is served from a signed cookie copy for up to
+ * `SESSION_COOKIE_CACHE_SECONDS` (see `session.cookieCache` in `lib/auth.ts`),
+ * and `replacePortalPassword` above writes to `users`, which that copy knows
+ * nothing about. For the next minute the cookie keeps saying the client still
+ * owes a password they have already chosen.
+ *
+ * Believing it costs a lockout: the guard bounces them back to `set-password`,
+ * where they set a password that saves correctly and bounces them back again —
+ * a form that appears to do nothing at all. So the guard asks here before it
+ * turns anybody away, and only a client the cookie already accuses pays for the
+ * read. Everyone else never reaches it.
+ */
+export async function isPortalPasswordChangePending(userId: string): Promise<boolean> {
+  const [row] = await db
+    .select({ mustChangePassword: user.mustChangePassword })
+    .from(user)
+    .where(eq(user.id, userId))
+    .limit(1);
+
+  return row?.mustChangePassword ?? false;
+}
+
+/**
  * Removes portal access. Deleting the `users` row cascades to sessions and
  * accounts, and `clients.user_id` returns to null via `on delete set null`, so
  * the clinical record survives untouched.
