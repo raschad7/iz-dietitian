@@ -7,6 +7,8 @@ checks. For the code structure, see [Architecture](architecture.md).
 
 - [Bun](https://bun.sh/) 1.3.14 (the version pinned in `package.json`)
 - PostgreSQL running locally
+- Playwright browsers, only for the end-to-end suite:
+  `bunx playwright install`
 - Docker only if you want to run the optional OpenWA WhatsApp gateway
 
 ## First-time setup
@@ -96,7 +98,8 @@ in another committed `.env` file.
 | `bun run build` | Create a production build |
 | `bun run lint` | Run ESLint, including design-token and RTL rules |
 | `bun run typecheck` | Run TypeScript without emitting files |
-| `bun run test` | Run the test suite using `.env.test.local` |
+| `bun run test` | Run the unit and integration suite using `.env.test.local` |
+| `bun run test:e2e` | Run the Playwright end-to-end specs in `e2e/` |
 | `bun run db:setup` | Migrate, seed the catalogs, and verify — the one setup command |
 | `bun run db:check` | Report whether the database is in a servable state |
 | `bun run db:migrate` | Apply development database migrations |
@@ -106,8 +109,12 @@ in another committed `.env` file.
 | `bun run db:seed:catalog` | Seed the canonical food catalog; add `--apply` to write |
 | `bun run db:seed:dishes` | Seed the shipped dish catalog |
 | `bun run db:build-catalog` | Regenerate `data/catalog-foods.json` from the offline USDA source |
+| `bun run db:build-food-dataset` | Rebuild the offline USDA source file itself |
+| `bun run db:backfill:plan-snapshots` | Report unfrozen published plans; add `--apply` to repair |
 | `bun run db:reset` | Destructively rebuild the local development schema |
+| `bun run db:reset:test` | Destructively rebuild the test schema |
 | `bun run wa:reminders` | Process due WhatsApp reminders once |
+| `bun run brand:build` | Regenerate the brand SVGs in `public/brand/` from `src/features/brand/logo.ts` |
 
 `db:reset` is intentionally protected against production use. Still check the
 active database URL before running it.
@@ -142,6 +149,27 @@ regenerate the derived half and the checksum, then `bun run db:seed:catalog
 --apply`. The seed refuses to run on a checksum mismatch or a validation
 failure, and `bun run db:check` compares the database against the committed
 files rather than against a hard-coded number.
+
+### Recipes: adjustable lines and household units
+
+Each line of `data/dishes.json` may carry three optional fields:
+
+| Field | Meaning |
+| --- | --- |
+| `primary` | This line gets a `−/+` on the board. At most three per dish. |
+| `unit` | The English portion label the amount is counted in (`Loaf`, `Piece`). |
+| `count` | How many of `unit`. Required with it, meaningless without it. |
+
+`grams` stays required and authoritative. Where `unit` and `count` are given,
+`bun run db:seed:dishes` checks that `count × portion.grams` matches `grams` and
+**aborts the whole seed** if they disagree — a unit and a weight are two
+statements of one amount, and a drift between them would put one number in the
+nutrition and a different one on the card.
+
+A staple is recorded in the state it is eaten in: recipes carry cooked rice, not
+raw, because a dietitian counts spoons of cooked rice and no household unit can
+be attached to a food nobody eats dry. `bun run db:check` verifies that the
+marking and the units survived the seed.
 
 ## Deploying this release: a clean database
 
@@ -181,6 +209,12 @@ bun run test
 
 Some tests require the PostgreSQL test database to exist and have current
 migrations. If needed, run `bun run db:migrate:test` first.
+
+`bun run test` deliberately ignores `e2e/**`. The Playwright specs are a
+separate suite: they drive a real browser against a running app, so run them
+with `bun run test:e2e` after `bunx playwright install`. Their setup lives in
+`e2e/global-setup.ts` and `e2e/fixtures.ts`, and they read the same test
+database as the rest of the suite.
 
 ## Optional integrations
 

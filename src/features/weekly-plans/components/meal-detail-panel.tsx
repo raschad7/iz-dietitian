@@ -18,8 +18,6 @@ import {
   type NutrientKey,
 } from '@/features/weekly-plans/nutrition';
 import { localizedName, secondaryName } from '../food-display';
-import { MAX_SERVINGS, MIN_SERVINGS, snapServings } from '../similar';
-import { servingGuideFor, servingGuideLines, servingStepFor } from '../serving-guide';
 import { dishTagAccentClass } from '../meal-tag-tone';
 
 import { swapMealAction } from '../actions';
@@ -30,7 +28,7 @@ import type { RecentUse } from '../usage';
 import { useEditorActions } from './board-dnd';
 import { DishCatalog } from './dish-catalog';
 import { MealIngredientAmounts } from './meal-ingredient-amounts';
-import { ServingGuideList } from './serving-guide-list';
+import { MealIngredientEditor } from './meal-ingredient-editor';
 
 /**
  * Everything about one meal: what it is, what it contains, why it was chosen, and
@@ -184,16 +182,10 @@ export function MealDetailPanel({
 
         {meal.dish && (
           <div className="mt-5 border-t border-border">
-            {/* The recipe, unchanged, one level down: this is what the nutrition
-                is built from and what a dietitian checks the numbers against — but
-                it is not the serving instruction, so it is not the card above. */}
-            <Disclosure label={t('ingredients')}>
-              <MealIngredientAmounts
-                ingredients={meal.dish.ingredients}
-                servings={meal.dish.servings}
-                locale={locale}
-              />
-            </Disclosure>
+            {/* No "ingredients" disclosure any more. The card above IS the
+                ingredient list now — every line of it, at the amount prescribed —
+                so a second copy down here would be the same facts twice, and the
+                two would read as though they might differ. */}
             <Disclosure label={t('nutrition')}>
               <Nutrients meal={meal} />
             </Disclosure>
@@ -223,6 +215,23 @@ export function MealDetailPanel({
        * without it a long ingredient list would compress the footer rather than
        * scroll under it.
        */}
+      {/*
+        Why nothing here can be changed, said where the question is asked.
+
+        The board used to carry this as a banner under its header, which cost
+        ~34px of a grid that cannot grow and shoved the week down the moment a
+        plan went live. It belongs here instead: a published plan's panel is the
+        surface a dietitian opens *expecting* a stepper and a swap list, finds
+        neither, and needs a sentence. On the board, the header's struck-through
+        eye has already said the same thing to anyone looking at the controls.
+      */}
+      {!editable && meal.dish && (
+        <p className="flex shrink-0 items-center gap-2 border-t border-border bg-muted/45 px-5 py-3 text-caption leading-relaxed text-muted-foreground">
+          <Icon name="eyeOff" className="size-4 shrink-0" />
+          <span className="min-w-0">{t('publishedReadOnly')}</span>
+        </p>
+      )}
+
       {editable && (
         <section className="flex shrink-0 gap-2 border-t border-border bg-muted/45 px-5 py-3">
           {meal.dish && (
@@ -266,25 +275,23 @@ function Disclosure({ label, children }: { label: string; children: React.ReactN
 }
 
 /**
- * How much of this meal to eat — as a serving instruction, not as a recipe and not
- * as a multiplier.
+ * What this meal is, as a list of amounts a person can act on.
  *
- * Two wrong answers preceded this one. The first was `×2.25`, the raw `servings`
- * value: correct arithmetic, and meaningless to anyone who is not holding the base
- * recipe in their head. The second was the recipe itself, every line of it —
+ * Three wrong answers preceded this one. The first was `×2.25`, the raw
+ * `servings` value: correct arithmetic, and meaningless to anyone not holding the
+ * base recipe in their head. The second was the recipe itself, every line of it —
  * onion, oil, tomato paste, 2 g of cumin — which is a production list, not
- * something a person plates, and which buried the two numbers that matter under
- * nine that do not.
+ * something a person plates. The third was a hand-written serving guide per dish,
+ * two lines of editorial text that could not move when the meal did.
  *
- * What it states now is the dish's serving guide: **at most two lines**, written
- * per dish in `serving-guide.ts`. A dish with no guide states its weight and its
- * own serving label instead, because a guessed instruction is worse than a plain
- * one. The full recipe is still one disclosure below, for staff, where it is what
- * the arithmetic is checked against.
+ * What it states now is the meal's own ingredients, at the amounts prescribed,
+ * with a `−/+` on the two or three a dietitian actually adjusts. The list and the
+ * control are the same object: pressing `+` on the chicken changes the line you
+ * are reading, and nothing else on the plate moves.
  *
- * The stepper is **not rendered at all** when the panel is read-only. It used to
- * render disabled, on the argument that a control which vanishes teaches nothing;
- * but on a published plan every quantity below it is a statement of what was
+ * The controls are **not rendered at all** when the panel is read-only. They used
+ * to render disabled, on the argument that a control which vanishes teaches
+ * nothing; but on a published plan every quantity here is a statement of what was
  * prescribed, and a greyed −/+ sitting on top of that reads as a thing that is
  * broken rather than a thing that is settled.
  */
@@ -298,82 +305,30 @@ function MealQuantity({
   editable: boolean;
 }) {
   const t = useTranslations('weeklyPlans');
-  const { setServings } = useEditorActions();
-  const dish = meal.dish!;
 
   const kcal = roundForDisplay('kcal', meal.totals.kcal.value);
   const drift = driftState(kcal, meal.budgetKcal, MEAL_TOLERANCE);
   const totalGrams = t('totalGrams', { value: roundGrams(meal.grams, 5) });
 
-  const guide = servingGuideFor(dish.slug);
-  // The dish's own step where it has one — whole eggs step by one, a stew by half
-  // — still snapped onto the global quarter grid so the stored value stays legal.
-  const step = servingStepFor(guide);
-  const lines = guide ? servingGuideLines(guide, dish.servings, locale) : [];
-
   return (
     <section className="rounded-lg border border-border bg-card p-4 shadow-card">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 pb-3">
         <h4 className="text-label font-semibold text-foreground">{t('mealQuantity')}</h4>
-        {/* The whole meal's weight. On a read-only panel it is the only summary
-            figure here, so it is stated rather than tucked beside a control. */}
-        {!editable && (
-          <span className="text-body-sm text-muted-foreground tabular-nums">{totalGrams}</span>
-        )}
+        {/* The plate's weight, stated once. It is a summary of the list below
+            rather than something to set, so it sits with the heading and not
+            beside a control. */}
+        <span className="text-body-sm text-muted-foreground tabular-nums">{totalGrams}</span>
       </div>
 
-      {editable && (
-        <div className="flex items-center gap-3 pb-3">
-          <Button
-            type="button"
-            variant="neutralGhost"
-            size="icon-sm"
-            className="rounded-md"
-            aria-label={t('lessPortion')}
-            disabled={dish.servings - step < MIN_SERVINGS}
-            onClick={() => setServings(meal.id, snapServings(dish.servings - step))}
-          >
-            <span aria-hidden className="text-display-sm font-normal leading-none">−</span>
-          </Button>
-
-          {/*
-            The stepper's readout is the meal's real weight, not the multiplier it
-            is technically stepping. Both move together and only one of them is a
-            quantity — and the guide underneath says what that weight looks like on
-            a plate.
-          */}
-          <span className="min-w-24 text-center text-body-sm text-muted-foreground tabular-nums">
-            {totalGrams}
-          </span>
-
-          <Button
-            type="button"
-            variant="neutralGhost"
-            size="icon-sm"
-            className="rounded-md"
-            aria-label={t('morePortion')}
-            disabled={dish.servings + step > MAX_SERVINGS}
-            onClick={() => setServings(meal.id, snapServings(dish.servings + step))}
-          >
-            <span aria-hidden className="text-display-sm font-normal leading-none">+</span>
-          </Button>
-        </div>
-      )}
-
-      {lines.length > 0 ? (
-        <ServingGuideList lines={lines} />
+      {editable ? (
+        <MealIngredientEditor
+          mealId={meal.id}
+          lines={meal.lines}
+          locale={locale}
+          hasOwnAmounts={meal.hasOwnAmounts}
+        />
       ) : (
-        /*
-          No guide: the weight and the dish's own serving label, and nothing else.
-          Not the recipe — "45 g onion, 10 g oil, 15 g tomato paste" is what the
-          kitchen does, not what the patient is being told to eat, and printing it
-          here is the mistake this card was corrected for.
-        */
-        <p className="text-body-sm text-muted-foreground" dir="auto">
-          {/* The weight is already beside the stepper when there is one, so the
-              fallback adds the serving label rather than repeating itself. */}
-          {editable ? dish.baseServingLabel : `${totalGrams} · ${dish.baseServingLabel}`}
-        </p>
+        <MealIngredientAmounts lines={meal.lines} locale={locale} />
       )}
 
       <p className={cn('mt-3 rounded-md bg-muted/70 px-3 py-2 text-body-sm', drift ? 'text-status-attention-fg' : 'text-muted-foreground')}>

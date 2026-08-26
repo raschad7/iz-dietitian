@@ -15,7 +15,7 @@
  *
  * Keeping the path data in one `.ts` module means a corrected curve is
  * corrected everywhere. The literal hexes are allowed here for the same reason
- * they are allowed in `src/features/portal/pwa/brand.ts`: `qiwam/no-raw-hex`
+ * they are allowed in `src/features/portal/pwa/brand.ts`: `enzyme/no-raw-hex`
  * covers `.tsx`/`.jsx`, where a hex is a token that skipped the system — an
  * image generated for the OS has no stylesheet to read a token from, so the
  * literal has to live somewhere, and it lives here rather than at each call

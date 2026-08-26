@@ -1,8 +1,16 @@
 <!--
+  SUPERSEDED. These files under public/images/ are the originally supplied
+  artwork. Nothing in the application loads them any more — the live assets are
+  generated into public/brand/ by `bun run brand:build` from the single path
+  source in src/features/brand/logo.ts, and the in-app lockup is inline SVG so
+  its fills can read the theme's tokens. Kept only as the delivered originals;
+  edit src/features/brand/logo.ts instead.
+-->
+<!--
   The brand lockup for dark surfaces.
 
   Identical to logo-full.svg except for the wordmark's fill: the supplied artwork
-  draws "قوام" in #266805, which is olive-950-dark against the app's dark
+  draws "إنزيم" in #266805, which is very dark green against the app's dark
   surfaces (--card resolves to olive-900 there) and disappears into them. The
   wordmark is repainted in #FCFBF7 — the same n-25 the rest of the dark theme
   uses for text — while the green disc and the two dark leaves inside it are

@@ -5,7 +5,7 @@ import type { IconName } from '@/lib/icons';
  *
  * ## What this is
  *
- * A dietitian opening Qiwam for the first time has five sections in the rail and
+ * A dietitian opening Enzyme for the first time has five sections in the rail and
  * no way of knowing that a patient is added from a dialog over the register, that
  * a booking is dragged out of the calendar grid rather than typed into a form, or
  * that the dish catalog is what the planner draws from. None of that is *hidden*

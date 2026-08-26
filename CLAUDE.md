@@ -3,6 +3,11 @@
 Repository instructions for Claude Code. Keep this file short; detailed rules
 live in focused documents so they are loaded only when relevant.
 
+The product is **Enzyme / إنزيم**. It was previously called **Qiwam / قوام** —
+dated records under `docs/superpowers/` and `.impeccable/` still use that name
+and describe older states of the system, including a palette and a shape
+language that no longer exist. The documents listed below are the current ones.
+
 ## Start here
 
 - Read [`docs/product-scope.md`](docs/product-scope.md) before changing product
@@ -26,6 +31,8 @@ live in focused documents so they are loaded only when relevant.
 - Never commit secrets or edit real `.env.local`, `.env.test.local`, or
   `infra/openwa/.env` values as part of a change.
 - Do not hand-edit generated Drizzle migration snapshots.
+- Take a step of `--green-*` for anything green; raw hex and `oklch()` in
+  `.tsx`/`.jsx` are a lint error.
 
 ## UI workflow
 

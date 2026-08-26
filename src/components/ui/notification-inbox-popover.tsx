@@ -459,11 +459,24 @@ function NotificationInboxPopover<T extends string>({
         >
           {header(SheetTitle, 'pe-12')}
 
+          {/*
+            Named as the sheet's body rather than described as one.
+
+            `min-h-0 flex-1` said the same thing in utilities and said it wrong:
+            `flex-1` is a *zero* basis, and `SheetContent` gives a bottom sheet
+            `h-auto`, so the box was telling an auto-height column that its rows
+            contribute nothing to the column's height. Blink sizes the column
+            from the content anyway; WebKit does not, and the sheet opened as its
+            header and footer with the list pinched out between them.
+
+            The `sheet-body` frame in `globals.css` states `flex: 1 1 auto` with
+            the same floor of zero, and clips `SheetContent` around it — the
+            contract `SheetBody` already carries, reached here without its
+            padding.
+          */}
           <div
-            className={cn(
-              'min-h-0 flex-1 overflow-y-auto overscroll-contain',
-              !footer && 'pb-[env(safe-area-inset-bottom)]',
-            )}
+            data-slot="sheet-body"
+            className={cn(!footer && 'pb-[env(safe-area-inset-bottom)]')}
           >
             {list}
           </div>

@@ -54,6 +54,12 @@ function writeStorage(storage: Storage, key: string, value: unknown): void {
   }
 }
 
+/**
+ * The `qiwam.` prefix is the product's former name. It stays: this key names a
+ * record already sitting in real browsers, and renaming it would not migrate
+ * that record, it would abandon it. A rebrand is not a reason to silently
+ * discard state a user already has.
+ */
 function progressionStorageKey(scope: string): string {
   return `qiwam.portal.mascot.progression.${scope}`;
 }

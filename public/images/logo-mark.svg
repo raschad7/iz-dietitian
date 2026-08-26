@@ -1,11 +1,18 @@
 <!--
+  SUPERSEDED. These files under public/images/ are the originally supplied
+  artwork. Nothing in the application loads them any more — the live assets are
+  generated into public/brand/ by `bun run brand:build` from the single path
+  source in src/features/brand/logo.ts, and the in-app lockup is inline SVG so
+  its fills can read the theme's tokens. Kept only as the delivered originals;
+  edit src/features/brand/logo.ts instead.
+-->
+<!--
   The mark on its own, without the wordmark.
 
-  Nothing renders it yet — the auth screen uses the full lockup, the way v5.html
-  does. It is here because it is the half of the identity that survives being
-  made small: a favicon, an app icon, an avatar fallback, or the collapsed rail
-  where the wordmark has no room. Reach for this one there rather than scaling
-  the lockup down until "قوام" stops being legible.
+  It is the half of the identity that survives being made small: a favicon, an
+  app icon, an avatar fallback, or the collapsed rail where the wordmark has no
+  room. Reach for this one there rather than scaling the lockup down until
+  "إنزيم" stops being legible.
 
   Both fills read on light and dark alike — the disc is its own background — so
   unlike logo-full.svg this file needs no dark twin.

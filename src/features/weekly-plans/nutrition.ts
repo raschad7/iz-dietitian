@@ -230,6 +230,16 @@ export type DishIngredientDetail = {
    */
   portion?: IngredientPortion | null;
   portionQuantity?: number | null;
+  /**
+   * Whether a dietitian adjusts this line by hand when planning a meal — the
+   * chicken and the rice in a maqluba, not the pine nuts. See
+   * `dish_ingredients.is_primary`; only these lines get a `−/+` control.
+   *
+   * Never an input to any total. It decides what is offered, not what is counted.
+   */
+  isPrimary: boolean;
+  /** The recipe's own order, so a meal reads the way it was written. */
+  sortOrder: number;
 };
 
 export type DishDetail = {
@@ -249,7 +259,11 @@ export type DishDetail = {
 };
 
 /**
- * Scales a recipe to `servings` and sums it.
+ * Scales a set of amounts by `servings` and sums them.
+ *
+ * Takes `NutrientSource`, not a whole recipe line: the arithmetic reads the weight
+ * and the food and nothing else, and typing it any wider would make the dish
+ * editor's live preview invent a `sortOrder` and an `isPrimary` it has no use for.
  *
  * The multiplier is applied to the grams, not to the totals: multiplying a total
  * would give the same answer for the macros but would also multiply
@@ -257,7 +271,7 @@ export type DishDetail = {
  * ingredients' fibre is unknown".
  */
 export function dishTotals(
-  ingredients: readonly DishIngredientDetail[],
+  ingredients: readonly NutrientSource[],
   servings: number,
 ): NutrientTotals {
   const sources: NutrientSource[] = ingredients.map((ingredient) => ({
@@ -302,7 +316,7 @@ export function roundGrams(value: number, step: 1 | 5 = 1): number {
  * `similar.ts` ranks candidates and how the prompt tells the model what it is
  * choosing between.
  */
-export function baseServingKcal(ingredients: readonly DishIngredientDetail[]): number {
+export function baseServingKcal(ingredients: readonly NutrientSource[]): number {
   return dishTotals(ingredients, 1).kcal.value;
 }
 

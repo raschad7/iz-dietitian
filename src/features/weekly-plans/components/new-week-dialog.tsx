@@ -10,6 +10,7 @@ import { Icon } from '@/components/ui/icon';
 import { Dialog, DialogBody, DialogHeader } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/toast';
+import { TooltipHint } from '@/components/ui/tooltip-hint';
 import { getLocaleDirection, type Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 
@@ -21,6 +22,28 @@ import type { ClientContext } from '../queries';
 import { GenerateForm } from './generate-form';
 import { GenerationLoadingScreen } from './generation-loading-screen';
 import type { PlanSummary } from './plan-history';
+
+/**
+ * Says out loud what a control's own caption stopped saying.
+ *
+ * The planner's action bar collapses its buttons to icons once it moves up
+ * beside the client summary, and an icon with no words on it needs somewhere to
+ * put them. Below that width the caption is right there on the button and a tip
+ * repeating it is noise, so this passes the child straight through.
+ */
+function ShowLabelWhenHidden({
+  hidden,
+  label,
+  children,
+}: {
+  hidden: boolean;
+  label: string;
+  children: React.ReactNode;
+}) {
+  if (!hidden) return children;
+
+  return <TooltipHint label={label}>{children}</TooltipHint>;
+}
 
 /** Everything the three doors need that the board itself does not carry. */
 export type NewWeekProps = {
@@ -62,6 +85,7 @@ export function NewWeekDialog({
   triggerLabel,
   triggerVariant = 'ghost',
   compactTrigger = false,
+  openRequest = 0,
 }: {
   clientId: string;
   /** The plan on screen, which decides whether generating replaces it. */
@@ -72,6 +96,20 @@ export function NewWeekDialog({
   triggerVariant?: 'default' | 'ghost' | 'neutral';
   /** Keeps the icon-only form on narrow phones while preserving its name. */
   compactTrigger?: boolean;
+  /**
+   * A counter another control increments to open this dialog from somewhere
+   * other than its own trigger — the dish catalog's "there is no plan yet"
+   * panel is the one caller.
+   *
+   * A counter rather than a boolean, and deliberately *not* full controlled
+   * open/close. This dialog closes itself for reasons the parent cannot see:
+   * a finished generation, an escape, a click outside — and a parent holding
+   * `open` would have to be told about every one of them or leave the dialog
+   * unable to shut. What the caller actually wants to say is "open, now",
+   * which is an event; a number that only ever goes up is how you spell an
+   * event in props. Zero is the resting value and never opens anything.
+   */
+  openRequest?: number;
 }) {
   const t = useTranslations('weeklyPlans');
   const tCommon = useTranslations('common');
@@ -153,32 +191,55 @@ export function NewWeekDialog({
     setOpen(false);
   }, []);
 
+  /*
+    Opening from the outside runs the same reset the trigger does — no stale
+    "generating" screen, and the week the parent last computed rather than the
+    one left over from a dialog that was open ten minutes ago.
+
+    Adjusting state during render rather than in an effect, on the React-endorsed
+    "derive state from props" shape: the dialog has to render *open* in the same
+    pass the request arrives, and an effect would give it a frame of nothing
+    first. `seenRequest` is what keeps this from looping — it changes only when
+    the number does.
+  */
+  const [seenRequest, setSeenRequest] = useState(openRequest);
+
+  if (openRequest !== seenRequest) {
+    setSeenRequest(openRequest);
+    setPhase('idle');
+    setWeekStartDate(newWeek.weekStartDate);
+    setOpen(true);
+  }
+
   // A plan cannot be copied into itself, and offering it would be the one row
   // in the list that quietly does nothing.
   const copyable = newWeek.plans.filter((plan) => plan.id !== board?.id);
 
   return (
     <>
-      <Button
-        type="button"
-        size="sm"
-        variant={triggerVariant}
-        aria-label={compactTrigger ? (triggerLabel ?? t('newWeek')) : undefined}
-        title={compactTrigger ? (triggerLabel ?? t('newWeek')) : undefined}
-        // Square-shouldered even when it collapses to an icon: the planner's
-        // action bar is one set of controls and they share the base radius.
-        className={compactTrigger ? 'px-3 2xl:size-10 2xl:px-0' : undefined}
-        onClick={() => {
-          setPhase('idle');
-          setWeekStartDate(newWeek.weekStartDate);
-          setOpen(true);
-        }}
-      >
-        <Icon name="add" />
-        <span className={compactTrigger ? '2xl:sr-only' : undefined}>
-          {triggerLabel ?? t('newWeek')}
-        </span>
-      </Button>
+      {/* The tip only exists in the compact state, because that is the only
+          state where the label is not already printed on the control. */}
+      <ShowLabelWhenHidden hidden={compactTrigger} label={triggerLabel ?? t('newWeek')}>
+        <Button
+          type="button"
+          size="sm"
+          variant={triggerVariant}
+          aria-label={compactTrigger ? (triggerLabel ?? t('newWeek')) : undefined}
+          // Square-shouldered even when it collapses to an icon: the planner's
+          // action bar is one set of controls and they share the base radius.
+          className={compactTrigger ? 'px-3 md:size-10 md:px-0' : undefined}
+          onClick={() => {
+            setPhase('idle');
+            setWeekStartDate(newWeek.weekStartDate);
+            setOpen(true);
+          }}
+        >
+          <Icon name="add" />
+          <span className={compactTrigger ? 'md:sr-only' : undefined}>
+            {triggerLabel ?? t('newWeek')}
+          </span>
+        </Button>
+      </ShowLabelWhenHidden>
 
       <Dialog
         open={open}
@@ -347,7 +408,7 @@ function GenerateDoor({
   return (
     <Door
       featured
-      icon="refresh"
+      icon="ai"
       title={t(`newWeekGenerate.${mode}`)}
       hint={t(`newWeekGenerateHint.${mode}`)}
     >
@@ -517,12 +578,29 @@ function Door({
         featured && 'ring-primary',
       )}
     >
+      {/*
+        The head reads down the middle: mark, name, one sentence.
+
+        The featured door's mark takes the brand's subtle fill and an olive
+        glyph while the other two stay neutral — the same distinction the card's
+        olive edge is already making, said a second time in the one place the
+        eye lands first. It is a tint and not a solid: this card holds the
+        dialog's primary button, and two olive fills stacked in one column makes
+        the button compete with a badge.
+      */}
       <div
         className={cn(
           'flex shrink-0 flex-col items-center gap-1.5 px-5 pb-3 pt-4 text-center',
         )}
       >
-        <span className="grid size-10 place-items-center rounded-md border border-border bg-card text-foreground">
+        <span
+          className={cn(
+            'grid size-10 place-items-center rounded-md border',
+            featured
+              ? 'border-transparent bg-primary-subtle text-primary'
+              : 'border-border bg-card text-foreground',
+          )}
+        >
           {iconContent ?? (icon ? <Icon name={icon} className="size-5" /> : null)}
         </span>
         <h3 className="font-heading text-heading-sm font-medium" dir="auto">

@@ -185,12 +185,33 @@ function dataRows(files: Map<string, Buffer>, name: string): string[][] {
 // build
 // ---------------------------------------------------------------------------
 
+/** One measured household portion, as USDA publishes it. */
+type PortionRecord = { grams: number; label: string };
+
 type FoodRecord = {
   fdcId: number;
   description: string;
   category: string;
+  /**
+   * The representative portion — `food_portion.csv` is ordered by `seq_num` and
+   * the first row is the one USDA leads with.
+   *
+   * Kept as its own pair, unchanged, so every reader written against the previous
+   * shape keeps working and the field means exactly what it always did.
+   */
   portionGrams?: number;
   portionLabel?: string;
+  /**
+   * **Every** measured portion, in `seq_num` order, including the representative
+   * one above.
+   *
+   * The extract used to keep only the first, and that one decision is why the
+   * catalog reads "1 cup, quartered or chopped" for an apple and has no way to say
+   * "1 medium". USDA publishes the medium apple; it was being thrown away here.
+   * Keeping the list lets `portion-derivation.ts` choose the measure a person
+   * actually serves in rather than whichever one happened to be first.
+   */
+  portions?: PortionRecord[];
 } & Partial<Record<(typeof NUTRIENTS)[keyof typeof NUTRIENTS], number>>;
 
 /** Two decimals is finer than the source's own precision; it just avoids float noise. */
@@ -246,13 +267,14 @@ async function build(): Promise<void> {
   }
 
   /**
-   * One household measure per food — "1 large", "1 cup", "1 fillet" — so the UI
-   * can offer something better than "type a number of grams". `food_portion.csv`
-   * is ordered by `seq_num`, and the first portion is the representative one.
+   * Every household measure per food — "1 large", "1 cup", "1 fillet" — so the
+   * catalog can offer the one a person serves in rather than the one that
+   * happened to come first. `food_portion.csv` is ordered by `seq_num`, and that
+   * order is preserved: the first row stays the representative portion.
    */
   for (const row of dataRows(files, 'food_portion.csv')) {
     const food = foods.get(row[1] ?? '');
-    if (!food || food.portionGrams !== undefined) continue;
+    if (!food) continue;
 
     const grams = Number(row[7]);
     if (!Number.isFinite(grams) || grams <= 0) continue;
@@ -273,8 +295,17 @@ async function build(): Promise<void> {
       .filter(Boolean)
       .join(' ');
 
-    food.portionGrams = round(grams, 1);
-    food.portionLabel = label;
+    const portion = { grams: round(grams, 1), label };
+
+    food.portions ??= [];
+    food.portions.push(portion);
+
+    // The first one is also the representative pair, which is the shape every
+    // existing reader was written against.
+    if (food.portionGrams === undefined) {
+      food.portionGrams = portion.grams;
+      food.portionLabel = portion.label;
+    }
   }
 
   // Energy is the one field the UI cannot render a row without. Every SR Legacy
