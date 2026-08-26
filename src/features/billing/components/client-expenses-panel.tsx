@@ -13,7 +13,7 @@ import { subscriptionStanding } from '@/features/billing/subscription';
 import { RecordPaymentDialog } from '@/features/billing/components/record-payment-dialog';
 import { STATUS_VARIANTS } from '@/features/billing/components/bills-status';
 import { formatAmountCompact, paymentStatus, subscriberTotals } from '@/features/billing/money';
-import type { ServicePrices } from '@/features/billing/services';
+import { serviceTone, type ServicePrices } from '@/features/billing/services';
 import type { Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 
@@ -283,8 +283,24 @@ export async function ClientExpensesPanel({
                     aria-hidden
                     className={cn(
                       'grid size-9 shrink-0 place-items-center rounded-full',
+                      /*
+                        A charge is tinted by *what was sold*, from the same
+                        list the charge card colours its options with — see
+                        `serviceTone`. A subscription recorded from a blue
+                        option would otherwise arrive here as a red row: the
+                        same fact drawn two ways on two screens a dietitian
+                        moves between.
+
+                        Which side of the ledger a row is on is carried by the
+                        glyph, which was always the half doing that work — a
+                        charge and a payment are different marks, not one mark
+                        in two colours.
+
+                        A freehand charge keeps the old red: it names no
+                        service, so there is nothing to colour it by.
+                      */
                       charge
-                        ? 'bg-status-medical-bg text-status-medical-fg'
+                        ? (serviceTone(entry.service) ?? 'bg-status-medical-bg text-status-medical-fg')
                         : 'bg-status-on-track-bg text-status-on-track-fg',
                     )}
                   >

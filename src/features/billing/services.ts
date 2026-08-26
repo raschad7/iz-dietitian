@@ -51,6 +51,20 @@ export const BILLING_SERVICES = [
  */
 export const CONSULTATION = 'consultation';
 
+/**
+ * The tint a service is drawn in, or `null` for a charge that names none.
+ *
+ * The ledger row and the charge card ask the same question of the same list,
+ * so a subscription cannot be blue on the card it was recorded from and
+ * something else on the row it produced. A charge typed in freehand before
+ * the services existed answers `null` and keeps the caller’s own fallback:
+ * there is no service to colour it by, and inventing one would say the row
+ * was something it never claimed to be.
+ */
+export function serviceTone(service: string | null | undefined): string | null {
+  return BILLING_SERVICES.find((entry) => entry.value === service)?.className ?? null;
+}
+
 /** A service's key — `monthly`, `quarterly`, `consultation`. */
 export type BillingService = (typeof BILLING_SERVICES)[number]['value'];
 
