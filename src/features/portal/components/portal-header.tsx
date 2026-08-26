@@ -349,7 +349,16 @@ export function PortalHeader({
         // screen. The other four tabs have no glow to reveal, so an unfilled
         // bar there would only be a header that lost its separation from the
         // content underneath.
-        isHome ? 'bg-transparent' : 'bg-card',
+        //
+        // Those same four tabs also pin this bar in place while their content
+        // scrolls underneath it — `sticky`, not `fixed`, so it costs no
+        // compensating padding on `main`: it simply keeps its place in the
+        // column's flow until the page scrolls past it, then holds at the top
+        // of the viewport. Home is excluded because it is the one tab with the
+        // glow behind this bar (`HomeGlow`) rather than a solid `bg-card`, and
+        // pinning a transparent bar over scrolling content would let whatever
+        // is underneath show through it.
+        isHome ? 'bg-transparent' : 'sticky top-0 z-20 bg-card',
       )}
     >
       <div className={PORTAL_COLUMN}>
