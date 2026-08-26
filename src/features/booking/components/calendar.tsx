@@ -600,7 +600,18 @@ export function Calendar({
 
   function navigate(next: { view?: CalendarView; date?: string }): void {
     const href = viewHref(next);
-    if (next.view && next.view !== view) {
+
+    /*
+      A request expires when `view` moves off the one it was made from — see
+      `pendingRequest`. A covered switch no longer moves `view` at all, so the
+      press back to the view the page was served with has to clear the request
+      itself. Without this it never expires: the guard below reads
+      `next.view !== view`, which is false for exactly that press, and the
+      stale request kept drawing the view the reader was trying to leave.
+    */
+    if (next.view === view) {
+      setRequestedView(null);
+    } else if (next.view) {
       setRequestedView({ target: next.view, from: view, date: next.date ?? shownAnchorDate });
     }
 
