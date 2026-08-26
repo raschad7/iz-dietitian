@@ -5,10 +5,9 @@ import type { Metadata } from 'next';
 import { getClientVisitSummary, listClientVisits } from '@/features/booking/queries';
 import { ClientProfile } from '@/features/clients/components/client-profile';
 import { PROFILE_TABS, type ProfileTab } from '@/features/clients/components/profile-tab';
-import { getPortalUsername } from '@/features/clients/portal-credentials';
+import { getPortalUsername, suggestPortalUsername } from '@/features/clients/portal-credentials';
 import { getClientWeekMeals, getClientWeekProgress } from '@/features/clients/progress';
 import { getClient, getClientIntake } from '@/features/clients/queries';
-import { suggestUsername } from '@/features/clients/transliterate';
 import { currentSunday } from '@/features/weekly-plans/week';
 import { listPlans } from '@/features/weekly-plans/queries';
 import { getSettings } from '@/features/whatsapp/queries';
@@ -62,7 +61,7 @@ export default async function ClientInfoPage({ params, searchParams }: ClientInf
 
   const today = toIsoDate(new Date());
 
-  const [visitSummary, visitEntries, plans, intake, whatsapp, portalUsername] =
+  const [visitSummary, visitEntries, plans, intake, whatsapp, portalUsername, suggestedUsername] =
     await Promise.all([
       getClientVisitSummary(clinicId, client.id, today),
       listClientVisits(clinicId, client.id),
@@ -74,6 +73,10 @@ export default async function ClientInfoPage({ params, searchParams }: ClientInf
       // client over WhatsApp, or only over the desk.
       getSettings(clinicId),
       client.hasPortalAccess ? getPortalUsername(clinicId, client.id) : Promise.resolve(null),
+      // The name the issue form opens with, reserved against the usernames
+      // already in use. Only that form reads it, so a client who can already
+      // sign in does not pay for the lookup.
+      client.hasPortalAccess ? Promise.resolve('') : suggestPortalUsername(client.fullName),
     ]);
 
   // An unknown `?tab=` opens on the first view — Nutrition — rather than 404ing: the param is
@@ -146,7 +149,7 @@ export default async function ClientInfoPage({ params, searchParams }: ClientInf
       mealsByDay={mealsByDay}
       portal={{
         username: portalUsername,
-        suggestedUsername: suggestUsername(client.fullName),
+        suggestedUsername,
       }}
       canSendWhatsapp={whatsapp?.status === 'ready' && Boolean(client.phone)}
     />

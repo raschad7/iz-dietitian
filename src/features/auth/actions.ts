@@ -20,6 +20,11 @@ import {
   type AttemptKind,
 } from './rate-limit';
 import { resolveSafeRedirect } from './redirect';
+import {
+  firstSetPasswordMessage,
+  readSetPasswordForm,
+  setPasswordFieldErrors,
+} from './set-password-validation';
 import { firstSignUpMessage, readSignUpForm, signUpFieldErrors } from './signup-validation';
 import {
   changePasswordSchema,
@@ -286,15 +291,15 @@ export async function signInToPortal(
  * Which of the client password rules a value tripped.
  *
  * `clientPasswordSchema` puts the message key on the issue itself — too short,
- * too common, or long enough but a single character class — so the three keep
- * their own advice instead of collapsing into "too short", which is what a
- * client typing `aaaaaa` used to be told.
+ * too common, or long enough without both required character classes — so the
+ * three keep their own advice instead of collapsing into "too short", which is
+ * what a client typing `aaaaaa` used to be told.
  */
 function passwordIssueKey(
   issues: readonly string[] | undefined,
-): 'passwordTooShort' | 'passwordTooCommon' | 'passwordTooWeak' {
+): 'passwordTooShort' | 'passwordTooCommon' | 'clientPasswordTooWeak' {
   const issue = issues?.[0];
-  if (issue === 'passwordTooCommon' || issue === 'passwordTooWeak') return issue;
+  if (issue === 'passwordTooCommon' || issue === 'clientPasswordTooWeak') return issue;
   return 'passwordTooShort';
 }
 
@@ -302,18 +307,18 @@ export async function setPortalPassword(
   _previousState: AuthFormState,
   formData: FormData,
 ): Promise<AuthFormState> {
-  const parsed = setPasswordSchema.safeParse({
-    password: formData.get('password'),
-    confirmPassword: formData.get('confirmPassword'),
-    locale: formData.get('locale'),
-  });
+  const input = readSetPasswordForm(formData);
+  const parsed = setPasswordSchema.safeParse(input);
 
   if (!parsed.success) {
-    const fieldErrors = z.flattenError(parsed.error).fieldErrors;
-    if (fieldErrors.confirmPassword) return { status: 'error', messageKey: 'passwordMismatch' };
-    // Whichever rule the value tripped: too short, or long enough but a single
-    // character class — `clientPasswordSchema` carries the key on the issue.
-    return { status: 'error', messageKey: passwordIssueKey(fieldErrors.password) };
+    /*
+      The same reader the form itself uses, so a value that slipped past the
+      client's check is answered with the identical sentence rather than a
+      second opinion. `set-password-validation.ts` is where the priority between
+      the two fields is decided, and deciding it in one place is the point.
+    */
+    const messageKey = firstSetPasswordMessage(setPasswordFieldErrors(input));
+    return { status: 'error', messageKey: messageKey ?? 'genericError' };
   }
 
   const { password, locale } = parsed.data;

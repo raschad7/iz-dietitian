@@ -1,0 +1,1888 @@
+<!doctype html>
+<!--
+  Qiwam / إنزيم — Finance & subscriptions prototype (single file).
+  Standalone: no external CSS, JS, fonts or images. Nothing in the production
+  app is touched. Colours, radii, shadows and the type scale are lifted from
+  src/app/globals.css so this composition maps straight onto the shared shadcn
+  primitives (Card, Table, Badge, Button, Progress, StatTile, Dialog…).
+-->
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>إنزيم — الأمور المالية</title>
+<style>
+/* ── Primitives (from globals.css) ───────────────────────────────────── */
+:root {
+  --green-50:#F1FBEA; --green-100:#DFF6D1; --green-200:#C2EDA9; --green-300:#9BE076;
+  --green-400:#75CF48; --green-500:#58B52D; --green-600:#419020; --green-700:#346E1D;
+  --green-800:#2C581C; --green-900:#284B1C; --green-950:#11290A;
+
+  --n-0:#FFFFFF; --n-25:#FCFBF7; --n-50:#F7F5EF; --n-100:#EFEDE4; --n-200:#E2DFD3;
+  --n-300:#CDC9B9; --n-400:#A8A493; --n-500:#837F6E; --n-600:#605D50; --n-700:#46443B;
+  --n-800:#2F2E28; --n-900:#1C1B17;
+
+  --c-50:#F9FAFB; --c-100:#F3F4F6; --c-200:#E5E7EB; --c-300:#D1D5DB; --c-600:#4B5563;
+
+  --amber-100:#FBF0D8; --amber-300:#E8C46A; --amber-600:#9B6A0C; --amber-700:#7A5209;
+  --clay-100:#FAE9E4;  --clay-300:#E8A08F;  --clay-600:#A33422;  --clay-700:#82291B;
+  --flame-100:#FBEBD9; --flame-300:#F2A03D; --flame-700:#93490D;
+
+  /* ── Semantic ── */
+  --background:var(--n-0); --foreground:var(--n-900); --card:var(--n-0);
+  --muted:var(--c-50); --muted-strong:var(--c-100); --muted-foreground:var(--c-600);
+  --border:var(--c-200); --input:var(--n-500);
+  --primary:var(--green-400); --primary-hover:var(--green-600);
+  --primary-foreground:var(--n-900); --primary-foreground-white:#FFFFFF;
+  --accent-green:var(--green-300); --on-accent:var(--green-950);
+  --ring:var(--green-600); --destructive:var(--clay-600);
+
+  --status-ontrack-fg:var(--green-800);   --status-ontrack-bg:var(--green-100);
+  --status-attention-fg:var(--amber-700); --status-attention-bg:var(--amber-100);
+  --status-medical-fg:var(--clay-700);    --status-medical-bg:var(--clay-100);
+
+  --sidebar:var(--c-50); --sidebar-foreground:var(--green-800); --sidebar-icon:var(--n-700);
+  --sidebar-accent:var(--green-100); --sidebar-accent-foreground:var(--green-900);
+  --sidebar-hover:var(--green-50); --sidebar-border:var(--c-300); --sidebar-ring:var(--green-950);
+
+  --radius-control:10px; --radius-lg:12px; --radius-xl:16px;
+  --shadow-card:0 1px 2px rgba(34,52,20,.06), 0 1px 3px rgba(34,52,20,.05);
+  --shadow-elevated:0 2px 6px rgba(34,52,20,.07), 0 8px 20px rgba(34,52,20,.06);
+  --shadow-overlay:0 12px 40px rgba(34,52,20,.16);
+  --overlay:rgba(17,41,10,.42);
+
+  --ease-sweep:cubic-bezier(.32,.72,0,1); --duration-sweep:320ms; --duration-label:160ms;
+
+  /* System stacks: the file must work with no network. */
+  --font-ui:'Segoe UI','Noto Sans Arabic','IBM Plex Sans Arabic',Tahoma,system-ui,sans-serif;
+  --font-display:'Segoe UI','Noto Kufi Arabic','Almarai',Tahoma,system-ui,sans-serif;
+  --font-mono:'Cascadia Mono',Consolas,'IBM Plex Mono',ui-monospace,monospace;
+}
+html[lang='en'] {
+  --font-ui:'Segoe UI','IBM Plex Sans',system-ui,sans-serif;
+  --font-display:'Segoe UI','Readex Pro',system-ui,sans-serif;
+}
+.dark {
+  --background:var(--green-950); --foreground:var(--n-25); --card:var(--green-900);
+  --muted:#1B3A14; --muted-strong:#21451A; --muted-foreground:var(--green-200);
+  --border:var(--green-700); --input:var(--n-400);
+  --primary:var(--green-400); --primary-hover:var(--green-300);
+  --primary-foreground:var(--green-950); --ring:var(--green-300); --destructive:var(--clay-300);
+  --status-ontrack-fg:var(--green-100); --status-ontrack-bg:#24521A;
+  --sidebar:var(--green-900); --sidebar-foreground:var(--green-100); --sidebar-icon:var(--green-200);
+  --sidebar-accent:#2C581C; --sidebar-accent-foreground:var(--n-25); --sidebar-hover:#23481A;
+  --sidebar-border:var(--green-700); --sidebar-ring:var(--green-300);
+  --overlay:rgba(4,14,2,.62);
+  --shadow-card:0 1px 2px rgba(0,0,0,.3); --shadow-elevated:0 8px 24px rgba(0,0,0,.36);
+}
+
+/* ── Reset ───────────────────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box}
+*{margin:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:var(--font-ui);background:var(--background);color:var(--foreground);
+  font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:none}
+a{color:inherit;text-decoration:none}
+svg{display:block}
+table{border-collapse:separate;border-spacing:0;width:100%}
+:focus-visible{outline:2px solid var(--ring);outline-offset:2px;border-radius:6px}
+::-webkit-scrollbar{width:0;height:0}
+*{scrollbar-width:none}
+
+/* ── Type scale ──────────────────────────────────────────────────────── */
+.t-display{font-family:var(--font-display);font-size:32px;font-weight:600;line-height:1.28;letter-spacing:-.01em}
+.t-h-lg{font-family:var(--font-display);font-size:24px;font-weight:700;line-height:1.35}
+.t-h-sm{font-family:var(--font-display);font-size:20px;font-weight:700;line-height:1.4}
+.t-body-lg{font-size:18px}
+.t-body-sm{font-size:14px}
+.t-label{font-size:13px;font-weight:600;line-height:1.5}
+.t-caption{font-size:12px;color:var(--muted-foreground)}
+.muted{color:var(--muted-foreground)}
+.num{font-variant-numeric:tabular-nums}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+
+/* ── Shell ───────────────────────────────────────────────────────────── */
+.shell{display:flex;min-height:100dvh}
+.rail{inline-size:248px;flex:0 0 248px;background:var(--sidebar);
+  border-inline-end:1px solid var(--sidebar-border);display:flex;flex-direction:column;
+  position:sticky;inset-block-start:0;block-size:100dvh}
+.rail-head{display:flex;align-items:center;gap:8px;block-size:60px;padding-inline:14px}
+.rail-mark{inline-size:30px;block-size:30px;flex:0 0 30px}
+.rail-word{font-family:var(--font-display);font-size:19px;font-weight:800;color:var(--sidebar-accent-foreground)}
+.dark .rail-word{color:var(--green-100)}
+.rail-nav{padding:6px 10px;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
+.rail-item{display:flex;align-items:center;gap:10px;padding:0 10px;block-size:42px;
+  border-radius:var(--radius-control);color:var(--sidebar-foreground);font-size:14.5px;
+  font-weight:500;transition:background var(--duration-label) var(--ease-sweep)}
+.rail-item svg{inline-size:20px;block-size:20px;flex:0 0 20px;color:var(--sidebar-icon)}
+.rail-item:hover{background:var(--sidebar-hover)}
+.rail-item[aria-current='page']{background:var(--sidebar-accent);color:var(--sidebar-accent-foreground);font-weight:600}
+.rail-item[aria-current='page'] svg{color:var(--sidebar-accent-foreground)}
+.rail-item:focus-visible{outline-color:var(--sidebar-ring)}
+.rail-count{margin-inline-start:auto;font-size:12px;font-weight:700;
+  background:var(--status-medical-bg);color:var(--status-medical-fg);
+  min-inline-size:20px;text-align:center;border-radius:999px;padding:1px 6px}
+.rail-foot{margin-block-start:auto;border-block-start:1px solid var(--sidebar-border);padding:10px}
+.rail-user{display:flex;align-items:center;gap:10px;padding:6px;border-radius:var(--radius-control)}
+.rail-user:hover{background:var(--sidebar-hover)}
+
+.main{flex:1 1 auto;min-inline-size:0;display:flex;flex-direction:column}
+.topbar{display:flex;align-items:center;gap:10px;padding:12px 28px;
+  border-block-end:1px solid var(--border);position:sticky;inset-block-start:0;
+  background:var(--background);z-index:20}
+.tabs{display:flex;gap:2px;padding-inline:28px;border-block-end:1px solid var(--border);
+  overflow-x:auto;position:sticky;inset-block-start:69px;background:var(--background);z-index:19}
+.tab{padding:12px 14px;font-size:15px;font-weight:600;color:var(--muted-foreground);
+  border-block-end:2px solid transparent;margin-block-end:-1px;white-space:nowrap;
+  transition:color var(--duration-label) var(--ease-sweep)}
+.tab:hover{color:var(--foreground)}
+.tab[aria-selected='true']{color:var(--green-700);border-block-end-color:var(--primary)}
+.dark .tab[aria-selected='true']{color:var(--green-200)}
+[data-view]{display:none}
+[data-view].is-active{display:block;animation:view-in var(--duration-sweep) var(--ease-sweep)}
+@keyframes view-in{from{opacity:0;transform:translateY(6px)}}
+
+.page{padding:24px 28px 64px;max-inline-size:1180px;margin-inline-end:auto;width:100%}
+.page-head{display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-block-end:22px}
+.page-head .grow{flex:1 1 320px;min-inline-size:0}
+.page-actions{display:flex;gap:8px;flex-wrap:wrap}
+.section{margin-block-start:28px}
+.section-head{display:flex;align-items:baseline;gap:12px;margin-block-end:12px;flex-wrap:wrap}
+.section-head .grow{flex:1 1 auto}
+
+/* ── Buttons ─────────────────────────────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;block-size:48px;
+  padding-inline:18px;border-radius:var(--radius-control);font-size:15px;font-weight:600;
+  white-space:nowrap;border:1px solid transparent;
+  transition:background var(--duration-label) var(--ease-sweep),
+             border-color var(--duration-label) var(--ease-sweep),
+             color var(--duration-label) var(--ease-sweep)}
+.btn svg{inline-size:18px;block-size:18px;flex:0 0 18px}
+.btn--sm{block-size:40px;padding-inline:14px;font-size:14px}
+.btn--icon{inline-size:48px;padding-inline:0}
+.btn--icon.btn--sm{inline-size:40px}
+.btn--default{background:var(--primary);color:var(--primary-foreground-white)}
+.btn--default:hover{background:var(--primary-hover)}
+.dark .btn--default{color:var(--primary-foreground)}
+.btn--soft{background:var(--green-100);color:var(--green-800)}
+.btn--soft:hover{background:var(--green-200)}
+.dark .btn--soft{background:#24521A;color:var(--green-100)}
+.btn--outline{border-color:var(--primary);color:var(--green-700)}
+.btn--outline:hover{background:var(--green-50)}
+.dark .btn--outline{color:var(--green-200)}
+.dark .btn--outline:hover{background:#1F4416}
+.btn--neutral{border-color:var(--border);background:var(--card);color:var(--foreground)}
+.btn--neutral:hover{background:var(--muted)}
+.btn--ghost{color:var(--green-700)}
+.btn--ghost:hover{background:var(--green-50)}
+.dark .btn--ghost{color:var(--green-200)}
+.dark .btn--ghost:hover{background:#1F4416}
+.btn--neutral-ghost{color:var(--muted-foreground)}
+.btn--neutral-ghost:hover{background:var(--muted-strong);color:var(--foreground)}
+.btn--destructive-ghost{color:var(--destructive)}
+.btn--destructive-ghost:hover{background:var(--clay-100)}
+.dark .btn--destructive-ghost:hover{background:#4A1A12}
+.btn[disabled]{opacity:.5;pointer-events:none}
+
+/* ── Badges ──────────────────────────────────────────────────────────── */
+.badge{display:inline-flex;align-items:center;gap:6px;padding:3px 11px;border-radius:999px;
+  font-size:13px;font-weight:600;white-space:nowrap}
+.badge--onTrack{background:var(--status-ontrack-bg);color:var(--status-ontrack-fg)}
+.badge--attention{background:var(--status-attention-bg);color:var(--status-attention-fg)}
+.badge--medical{background:var(--status-medical-bg);color:var(--status-medical-fg)}
+.badge--rest{background:var(--muted-strong);color:var(--muted-foreground)}
+.badge--free{background:var(--green-50);color:var(--green-700);border:1px solid var(--green-200)}
+.dark .badge--free{background:transparent;color:var(--green-200);border-color:var(--green-700)}
+.badge svg{inline-size:14px;block-size:14px}
+.dot{inline-size:8px;block-size:8px;border-radius:999px;flex:0 0 8px}
+
+/* ── Cards ───────────────────────────────────────────────────────────── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-xl);
+  box-shadow:var(--shadow-card)}
+.card-head{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;padding:18px 20px 0}
+.card-head .grow{flex:1 1 auto;min-inline-size:0}
+.card-body{padding:16px 20px 20px}
+.card-foot{padding:14px 20px;border-block-start:1px solid var(--border);display:flex;gap:8px;
+  flex-wrap:wrap;align-items:center}
+.card--tinted{background:var(--muted);box-shadow:none}
+.card--tile{border-radius:var(--radius-lg);box-shadow:none;background:var(--muted);border-color:transparent}
+
+/* ── Stat tiles ──────────────────────────────────────────────────────── */
+.stat-grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-xl);
+  padding:16px 18px;box-shadow:var(--shadow-card);display:flex;flex-direction:column;gap:2px;
+  min-inline-size:0}
+.stat-label{font-size:13px;font-weight:600;color:var(--muted-foreground);display:flex;
+  align-items:center;gap:7px}
+.stat-label svg{inline-size:16px;block-size:16px;flex:0 0 16px}
+.stat-value{font-family:var(--font-display);font-size:30px;font-weight:700;line-height:1.2;
+  font-variant-numeric:tabular-nums}
+.stat-value .unit{font-size:17px;font-weight:500;color:var(--muted-foreground);margin-inline-start:3px}
+.stat-note{font-size:12.5px;color:var(--muted-foreground)}
+.stat--accent{background:linear-gradient(160deg,var(--green-50),var(--card) 62%);border-color:var(--green-200)}
+.dark .stat--accent{background:linear-gradient(160deg,#1F4416,var(--card) 62%);border-color:var(--green-700)}
+.stat--alarm .stat-value{color:var(--status-medical-fg)}
+
+/* ── Progress & pips ─────────────────────────────────────────────────── */
+.progress{block-size:8px;border-radius:999px;background:var(--muted-strong);overflow:hidden}
+.progress>i{display:block;block-size:100%;border-radius:999px;background:var(--primary);
+  transition:inline-size var(--duration-sweep) var(--ease-sweep)}
+.progress--attention>i{background:var(--amber-300)}
+.pips{display:flex;gap:5px;flex-wrap:wrap}
+.pip{inline-size:22px;block-size:6px;border-radius:999px;background:var(--muted-strong)}
+.pip.used{background:var(--primary)}
+.pip.next{background:var(--accent-green)}
+
+/* ── Table ───────────────────────────────────────────────────────────── */
+.table-root{overflow-x:auto;padding:2px}
+.table th,.table td{text-align:start;padding:12px 14px;font-size:14.5px;vertical-align:middle}
+.table thead th{background:var(--muted);color:var(--muted-foreground);font-size:13px;
+  font-weight:700;white-space:nowrap;border-block:1px solid var(--border)}
+.table thead th:first-child{border-inline-start:1px solid var(--border);
+  border-start-start-radius:var(--radius-lg);border-end-start-radius:var(--radius-lg)}
+.table thead th:last-child{border-inline-end:1px solid var(--border);
+  border-start-end-radius:var(--radius-lg);border-end-end-radius:var(--radius-lg)}
+.table tbody td{border-block-end:1px solid var(--border)}
+.table tbody tr:hover td{background:var(--muted)}
+.table td.num,.table th.num{font-variant-numeric:tabular-nums}
+.table .row-actions{display:flex;gap:4px;justify-content:flex-end}
+.person{display:flex;align-items:center;gap:10px;min-inline-size:0}
+.avatar{inline-size:36px;block-size:36px;flex:0 0 36px;border-radius:999px;display:grid;
+  place-items:center;font-size:13px;font-weight:700;background:var(--green-100);color:var(--green-800)}
+.avatar--lg{inline-size:56px;block-size:56px;flex-basis:56px;font-size:19px}
+.person-name{font-weight:600;font-size:14.5px}
+
+/* ── Fields ──────────────────────────────────────────────────────────── */
+.field{display:flex;flex-direction:column;gap:6px;min-inline-size:0}
+.field>label{font-size:13px;font-weight:600}
+.input,.select,.textarea{block-size:48px;padding-inline:16px;inline-size:100%;
+  border:1px solid var(--input);border-radius:var(--radius-control);background:var(--card);
+  color:var(--foreground);font-size:15px}
+.textarea{block-size:auto;padding-block:12px;resize:vertical;line-height:1.8}
+.input:focus,.select:focus,.textarea:focus{outline:none;border-color:var(--primary);
+  box-shadow:0 0 0 3px var(--green-100)}
+.dark .input:focus,.dark .select:focus,.dark .textarea:focus{box-shadow:0 0 0 3px rgba(117,207,72,.24)}
+.hint{font-size:12.5px;color:var(--muted-foreground)}
+.field-row{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+.check{inline-size:20px;block-size:20px;accent-color:var(--primary);flex:0 0 20px}
+
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border:1px solid var(--border);
+  border-radius:var(--radius-control);font-size:14px;font-weight:500;background:var(--card)}
+.chip:hover{background:var(--muted)}
+.chip[aria-pressed='true']{border-color:var(--primary);background:var(--green-50);
+  color:var(--green-800);font-weight:600}
+.dark .chip[aria-pressed='true']{background:#1F4416;color:var(--green-100)}
+
+.segmented{display:inline-flex;background:var(--muted-strong);border-radius:var(--radius-control);
+  padding:3px;gap:2px}
+.segmented>button{padding:7px 14px;border-radius:8px;font-size:14px;font-weight:600;
+  color:var(--muted-foreground)}
+.segmented>button[aria-selected='true']{background:var(--card);color:var(--foreground);
+  box-shadow:var(--shadow-card)}
+
+/* ── Callout ─────────────────────────────────────────────────────────── */
+.callout{display:flex;gap:12px;padding:14px 16px;border-radius:var(--radius-lg);
+  border:1px solid var(--border);background:var(--muted);font-size:14.5px}
+.callout svg{inline-size:20px;block-size:20px;flex:0 0 20px;margin-block-start:2px}
+.callout--attention{background:var(--status-attention-bg);border-color:var(--amber-300);
+  color:var(--status-attention-fg)}
+
+/* ── Timeline ────────────────────────────────────────────────────────── */
+.timeline{display:flex;flex-direction:column}
+.tl-item{display:flex;gap:14px;padding-block:4px}
+.tl-rail{display:flex;flex-direction:column;align-items:center;flex:0 0 32px}
+.tl-mark{inline-size:32px;block-size:32px;border-radius:999px;display:grid;place-items:center;
+  background:var(--muted-strong);color:var(--muted-foreground);flex:0 0 32px}
+.tl-mark svg{inline-size:16px;block-size:16px}
+.tl-mark--pay{background:var(--status-ontrack-bg);color:var(--status-ontrack-fg)}
+.tl-mark--wa{background:var(--green-50);color:var(--green-700)}
+.dark .tl-mark--wa{background:#1F4416;color:var(--green-200)}
+.tl-line{inline-size:2px;flex:1 1 auto;background:var(--border);min-block-size:12px}
+.tl-body{padding-block:3px 18px;flex:1 1 auto;min-inline-size:0}
+.tl-item:last-child .tl-line{display:none}
+.tl-item:last-child .tl-body{padding-block-end:0}
+
+/* ── Chart ───────────────────────────────────────────────────────────── */
+.chart{display:flex;align-items:flex-end;gap:10px;block-size:190px;padding-block-start:12px}
+.chart-col{flex:1 1 0;display:flex;flex-direction:column;align-items:center;gap:8px;min-inline-size:0}
+.chart-stack{inline-size:100%;display:flex;flex-direction:column;justify-content:flex-end;
+  flex:1 1 auto;gap:3px}
+.chart-bar{inline-size:100%;border-radius:6px 6px 0 0;background:var(--primary)}
+.chart-bar--due{inline-size:100%;border-radius:6px 6px 0 0;background:var(--amber-300)}
+.chart-val{font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums}
+.chart-x{font-size:12px;color:var(--muted-foreground)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--muted-foreground)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{inline-size:12px;block-size:12px;border-radius:4px;display:block}
+
+/* ── Dialog ──────────────────────────────────────────────────────────── */
+dialog{border:1px solid var(--border);border-radius:var(--radius-xl);padding:0;
+  background:var(--card);color:var(--foreground);inline-size:min(560px,calc(100vw - 32px));
+  max-block-size:min(88dvh,720px);box-shadow:var(--shadow-overlay)}
+dialog::backdrop{background:var(--overlay)}
+dialog[open]{animation:seam var(--duration-sweep) var(--ease-sweep)}
+@keyframes seam{from{opacity:0;transform:scaleX(.86) translateY(6px)}}
+.dlg{display:flex;flex-direction:column;max-block-size:inherit}
+.dlg-head{padding:20px 22px 4px;display:flex;align-items:flex-start;gap:12px}
+.dlg-head .grow{flex:1 1 auto}
+.dlg-body{padding:14px 22px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:16px}
+.dlg-foot{padding:14px 22px;border-block-start:1px solid var(--border);display:flex;gap:8px;
+  justify-content:flex-end;flex-wrap:wrap}
+.wa-preview{background:var(--green-50);border:1px solid var(--green-200);border-radius:14px;
+  border-start-start-radius:4px;padding:14px 16px;font-size:14.5px;line-height:1.9;white-space:pre-wrap}
+.dark .wa-preview{background:#1F4416;border-color:var(--green-700)}
+
+/* ── Utilities ───────────────────────────────────────────────────────── */
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.row-between{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.stack{display:flex;flex-direction:column}
+.gap-2{gap:8px}.gap-3{gap:12px}.gap-4{gap:16px}
+.grow{flex:1 1 auto}
+.mt-1{margin-block-start:4px}.mt-2{margin-block-start:8px}.mt-3{margin-block-start:12px}
+.mt-4{margin-block-start:16px}.mt-6{margin-block-start:24px}
+.divider{block-size:1px;background:var(--border);margin-block:16px}
+.cols-2{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));align-items:start}
+.split{display:grid;gap:18px;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);align-items:start}
+.sr-only{position:absolute;inline-size:1px;block-size:1px;padding:0;margin:-1px;overflow:hidden;
+  clip-path:inset(50%);white-space:nowrap}
+.kv{display:flex;justify-content:space-between;gap:12px;padding-block:7px;font-size:14.5px}
+.kv+.kv{border-block-start:1px solid var(--border)}
+.kv dt{color:var(--muted-foreground)}
+.kv dd{font-weight:600;font-variant-numeric:tabular-nums}
+
+/* ── Toast ───────────────────────────────────────────────────────────── */
+.toast-host{position:fixed;inset-block-end:20px;inset-inline-start:20px;z-index:90;
+  display:flex;flex-direction:column;gap:8px}
+.toast{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius-lg);box-shadow:var(--shadow-elevated);padding:12px 16px;
+  font-size:14.5px;font-weight:500;animation:toast-in var(--duration-sweep) var(--ease-sweep)}
+.toast svg{inline-size:18px;block-size:18px;color:var(--green-600);flex:0 0 18px}
+@keyframes toast-in{from{opacity:0;transform:translateY(10px)}}
+
+/* ── Responsive ──────────────────────────────────────────────────────── */
+@media (max-width:1080px){.split{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:860px){
+  .rail{inline-size:56px;flex-basis:56px}
+  .rail-word,.rail-item span,.rail-user .stack,.rail-count{display:none}
+  .rail-item{justify-content:center;padding-inline:0}
+  .rail-head{justify-content:center;padding-inline:0}
+  .page,.topbar,.tabs{padding-inline:16px}
+  .t-display{font-size:26px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important}
+}
+@media print{
+  .rail,.topbar,.tabs,.page-actions,.card-foot,.toast-host{display:none !important}
+  [data-view]{display:block !important}
+  .page{max-inline-size:none;padding:0}
+  .card{break-inside:avoid;box-shadow:none}
+}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <g id="i-dash" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></g>
+  <g id="i-users" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></g>
+  <g id="i-calendar" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></g>
+  <g id="i-plans" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H9a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1Z"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M8 12h8M8 16h5"/></g>
+  <g id="i-dish" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h1a2 2 0 0 0 2-2V2M6 2v20"/><path d="M18 2v20M18 12c2 0 3-1.5 3-4V2"/></g>
+  <g id="i-wallet" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0 0 4h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5"/><path d="M17 13h.01"/></g>
+  <g id="i-settings" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.14.35.4.65.73.85"/></g>
+  <g id="i-trend" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m22 7-8.5 8.5-5-5L2 17"/><path d="M16 7h6v6"/></g>
+  <g id="i-clock" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></g>
+  <g id="i-alert" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></g>
+  <g id="i-wa" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.5 8.5 0 0 1-3.9-.9L3 20.5l1.5-4.5A8.4 8.4 0 0 1 3.6 11.5a8.4 8.4 0 0 1 8.4-8.4 8.4 8.4 0 0 1 9 8.4Z"/></g>
+  <g id="i-plus" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></g>
+  <g id="i-check" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></g>
+  <g id="i-moon" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></g>
+  <g id="i-cash" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/></g>
+  <g id="i-chev" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></g>
+  <g id="i-back" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></g>
+  <g id="i-info" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></g>
+  <g id="i-visit" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></g>
+  <g id="i-file" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></g>
+  <g id="i-print" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></g>
+  <g id="i-edit" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4Z"/></g>
+  <g id="i-gift" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C10 3 12 8 12 8s2-5 4.5-5a2.5 2.5 0 0 1 0 5"/></g>
+  <g id="i-download" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5M12 15V3"/></g>
+</defs></svg>
+
+<div class="shell">
+
+  <!-- ══ Sidebar rail ══════════════════════════════════════════════ -->
+  <nav class="rail" aria-label="التنقل الرئيسي">
+    <div class="rail-head">
+      <svg class="rail-mark" viewBox="0 0 32 32" aria-hidden="true">
+        <path d="M16 3c7 0 13 5.6 13 12.5S23 28 16 28 3 22.4 3 15.5 9 3 16 3Z" fill="#75CF48"/>
+        <circle cx="12" cy="14" r="2.1" fill="#266805"/><circle cx="19" cy="18" r="2.1" fill="#266805"/>
+      </svg>
+      <span class="rail-word">إنزيم</span>
+    </div>
+    <div class="rail-nav">
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-dash"/></svg><span data-en="Dashboard">لوحة التحكم</span></a>
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-users"/></svg><span data-en="Subscribers">المشتركون</span></a>
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-calendar"/></svg><span data-en="Calendar">التقويم</span></a>
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-plans"/></svg><span data-en="Weekly plans">الخطط الأسبوعية</span></a>
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-dish"/></svg><span data-en="Dish catalog">كتالوج الأطباق</span></a>
+
+      <!-- ⬇ the new destination -->
+      <a class="rail-item" href="#overview" aria-current="page" data-goto="overview">
+        <svg viewBox="0 0 24 24"><use href="#i-wallet"/></svg>
+        <span data-en="Payments">المدفوعات</span>
+        <span class="rail-count num" title="مشتركون عليهم متأخرات">3</span>
+      </a>
+
+      <a class="rail-item" href="#"><svg viewBox="0 0 24 24"><use href="#i-settings"/></svg><span data-en="Settings">الإعدادات</span></a>
+    </div>
+    <div class="rail-foot">
+      <a class="rail-user" href="#">
+        <span class="avatar">د</span>
+        <span class="stack">
+          <span class="t-label" data-en="Dr. Dua'a Marei">د. دعاء مرعي</span>
+          <span class="t-caption" data-en="Dietitian">أخصائية تغذية</span>
+        </span>
+      </a>
+    </div>
+  </nav>
+
+  <div class="main">
+
+    <!-- ══ Top bar ═════════════════════════════════════════════════ -->
+    <div class="topbar">
+      <span class="t-label muted" data-en="Payments">المدفوعات</span>
+      <div class="grow"></div>
+      <button type="button" class="btn btn--neutral btn--sm" id="save-file">
+        <svg viewBox="0 0 24 24"><use href="#i-download"/></svg>
+        <span data-en="Save this page">حفظ هذه الصفحة</span>
+      </button>
+      <div class="segmented" role="group" aria-label="اللغة">
+        <button type="button" data-locale-btn="ar" aria-selected="true">ع</button>
+        <button type="button" data-locale-btn="en" aria-selected="false">EN</button>
+      </div>
+      <button type="button" class="btn btn--neutral btn--icon btn--sm" data-theme-toggle aria-label="تبديل الوضع الداكن" data-en-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24"><use href="#i-moon"/></svg>
+      </button>
+    </div>
+
+    <!-- ══ View tabs ═══════════════════════════════════════════════ -->
+    <div class="tabs" role="tablist" aria-label="أقسام الأمور المالية">
+      <button type="button" class="tab" role="tab" aria-selected="true" data-goto="overview"><span data-en="Overview">نظرة عامة</span></button>
+      <button type="button" class="tab" role="tab" aria-selected="false" data-goto="subscriber"><span data-en="Subscriber file">ملف مشترك</span></button>
+      <button type="button" class="tab" role="tab" aria-selected="false" data-goto="packages"><span data-en="Packages & reminders">الباقات والتذكيرات</span></button>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         VIEW 1 — Overview
+    ══════════════════════════════════════════════════════════════ -->
+    <section data-view="overview" class="is-active" role="tabpanel">
+      <main class="page">
+
+        <header class="page-head">
+          <div class="grow">
+            <h1 class="t-display" data-en="Finance">الأمور المالية</h1>
+            <p class="muted t-body-sm mt-1" data-en="Subscriptions, balances and payments across the clinic — August 2026.">الاشتراكات والذمم والدفعات في العيادة — آب ٢٠٢٦.</p>
+          </div>
+          <div class="page-actions">
+            <button type="button" class="btn btn--neutral btn--sm" data-goto="packages">
+              <svg viewBox="0 0 24 24"><use href="#i-settings"/></svg><span data-en="Packages">الباقات</span>
+            </button>
+            <button type="button" class="btn btn--default btn--sm" data-open="dlg-payment">
+              <svg viewBox="0 0 24 24"><use href="#i-plus"/></svg><span data-en="Record a payment">تسجيل دفعة</span>
+            </button>
+          </div>
+        </header>
+
+        <section class="stat-grid" aria-label="ملخص الشهر">
+          <div class="stat stat--accent">
+            <span class="stat-label"><svg viewBox="0 0 24 24"><use href="#i-trend"/></svg><span data-en="Collected this month">محصَّل هذا الشهر</span></span>
+            <span class="stat-value">4,320<span class="unit">₪</span></span>
+            <span class="stat-note" data-en="From 19 payments · 11% above July">من ١٩ دفعة · أعلى من تموز بـ ١١٪</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg><span data-en="Outstanding balance">ذمم مستحقة</span></span>
+            <span class="stat-value">1,140<span class="unit">₪</span></span>
+            <span class="stat-note" data-en="Across 7 subscribers">موزّعة على ٧ مشتركين</span>
+          </div>
+          <div class="stat stat--alarm">
+            <span class="stat-label"><svg viewBox="0 0 24 24"><use href="#i-alert"/></svg><span data-en="Overdue past 14 days">متأخر أكثر من ١٤ يوماً</span></span>
+            <span class="stat-value">680<span class="unit">₪</span></span>
+            <span class="stat-note" data-en="3 subscribers · last reminded 19 Aug">٣ مشتركين · آخر تذكير ١٩ آب</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label"><svg viewBox="0 0 24 24"><use href="#i-users"/></svg><span data-en="Active subscriptions">اشتراكات نشطة</span></span>
+            <span class="stat-value">26</span>
+            <span class="stat-note" data-en="18 monthly · 8 quarterly · 4 renew this week">١٨ شهري · ٨ ربع سنوي · ٤ تجديدات هذا الأسبوع</span>
+          </div>
+        </section>
+
+        <div class="split mt-6">
+          <section class="card">
+            <div class="card-head">
+              <div class="grow">
+                <h2 class="t-h-sm" data-en="Last six months">آخر ستة أشهر</h2>
+                <p class="t-caption" data-en="Collected against what was still owed at month end">المحصَّل مقابل ما بقي مستحقاً في نهاية الشهر</p>
+              </div>
+              <div class="legend">
+                <span><i style="background:var(--primary)"></i><span data-en="Collected">محصَّل</span></span>
+                <span><i style="background:var(--amber-300)"></i><span data-en="Outstanding">مستحق</span></span>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="chart" role="img" aria-label="أعمدة الإيراد لآخر ستة أشهر">
+                <div class="chart-col"><span class="chart-val num">3,150</span><div class="chart-stack"><div class="chart-bar--due" style="height:9px"></div><div class="chart-bar" style="height:88px"></div></div><span class="chart-x" data-en="Mar">آذار</span></div>
+                <div class="chart-col"><span class="chart-val num">3,690</span><div class="chart-stack"><div class="chart-bar--due" style="height:14px"></div><div class="chart-bar" style="height:103px"></div></div><span class="chart-x" data-en="Apr">نيسان</span></div>
+                <div class="chart-col"><span class="chart-val num">4,010</span><div class="chart-stack"><div class="chart-bar--due" style="height:11px"></div><div class="chart-bar" style="height:112px"></div></div><span class="chart-x" data-en="May">أيار</span></div>
+                <div class="chart-col"><span class="chart-val num">3,480</span><div class="chart-stack"><div class="chart-bar--due" style="height:22px"></div><div class="chart-bar" style="height:97px"></div></div><span class="chart-x" data-en="Jun">حزيران</span></div>
+                <div class="chart-col"><span class="chart-val num">4,860</span><div class="chart-stack"><div class="chart-bar--due" style="height:16px"></div><div class="chart-bar" style="height:136px"></div></div><span class="chart-x" data-en="Jul">تموز</span></div>
+                <div class="chart-col"><span class="chart-val num">4,320</span><div class="chart-stack"><div class="chart-bar--due" style="height:32px"></div><div class="chart-bar" style="height:121px"></div></div><span class="chart-x" data-en="Aug">آب</span></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="card">
+            <div class="card-head">
+              <div class="grow">
+                <h2 class="t-h-sm" data-en="Package mix">توزيع الباقات</h2>
+                <p class="t-caption" data-en="Active subscriptions this month">الاشتراكات النشطة هذا الشهر</p>
+              </div>
+            </div>
+            <div class="card-body stack gap-4">
+              <div>
+                <div class="row-between"><span class="t-label" data-en="Monthly · 180 ₪">شهري · ١٨٠ ₪</span><span class="t-label num">18</span></div>
+                <div class="progress mt-2"><i style="inline-size:69%"></i></div>
+                <p class="t-caption mt-1" data-en="4 visits · 4 plans">٤ زيارات · ٤ خطط</p>
+              </div>
+              <div>
+                <div class="row-between"><span class="t-label" data-en="Three months · 500 ₪">ثلاثة أشهر · ٥٠٠ ₪</span><span class="t-label num">8</span></div>
+                <div class="progress mt-2"><i style="inline-size:31%"></i></div>
+                <p class="t-caption mt-1" data-en="12 visits · 12 plans · saves 40 ₪">١٢ زيارة · ١٢ خطة · توفير ٤٠ ₪</p>
+              </div>
+              <div class="divider"></div>
+              <div class="row-between">
+                <div class="stack">
+                  <span class="t-label" data-en="First consultation">الاستشارة الأولى</span>
+                  <span class="t-caption" data-en="5 held this month">٥ استشارات هذا الشهر</span>
+                </div>
+                <span class="badge badge--free" data-en="Free">مجاناً</span>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- ── Register ────────────────────────────────────────────── -->
+        <section class="section">
+          <div class="section-head">
+            <div class="grow">
+              <h2 class="t-h-lg" data-en="Financial register">السجل المالي للمشتركين</h2>
+              <p class="t-caption" data-en="One row per active subscription. The balance is calculated, never typed.">صف لكل اشتراك نشط. المتبقي محسوب دائماً، ولا يُكتب يدوياً.</p>
+            </div>
+            <div class="segmented" role="group" aria-label="تصفية" data-filter-group>
+              <button type="button" data-filter="all" aria-selected="true"><span data-en="All">الكل</span></button>
+              <button type="button" data-filter="due"><span data-en="Due">مستحق</span></button>
+              <button type="button" data-filter="late"><span data-en="Overdue">متأخر</span></button>
+              <button type="button" data-filter="paid"><span data-en="Settled">مسدَّد</span></button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="table-root">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th scope="col"><span data-en="Subscriber">المشترك</span></th>
+                    <th scope="col"><span data-en="Package">الباقة</span></th>
+                    <th scope="col"><span data-en="Visits">الزيارات</span></th>
+                    <th scope="col" class="num"><span data-en="Price">السعر</span></th>
+                    <th scope="col" class="num"><span data-en="Paid">المدفوع</span></th>
+                    <th scope="col" class="num"><span data-en="Balance">المتبقي</span></th>
+                    <th scope="col"><span data-en="Status">الحالة</span></th>
+                    <th scope="col"><span class="sr-only" data-en="Actions">إجراءات</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+
+                  <tr data-status="due" data-subscriber='{"name":"منى عبد الله","package":"باقة ثلاثة أشهر","price":500,"paid":300,"due":200,"dueDate":"٢٥ آب ٢٠٢٦","phone":"+970 59 812 4477"}'>
+                    <td>
+                      <span class="person" data-goto="subscriber" style="cursor:pointer">
+                        <span class="avatar">م</span>
+                        <span class="stack"><span class="person-name" data-en="Muna Abdullah">منى عبد الله</span><span class="t-caption mono" dir="ltr">+970 59 812 4477</span></span>
+                      </span>
+                    </td>
+                    <td><span data-en="Three months">ثلاثة أشهر</span></td>
+                    <td>
+                      <span class="stack gap-2">
+                        <span class="t-body-sm num">5 / 12</span>
+                        <span class="pips" aria-hidden="true"><i class="pip used"></i><i class="pip used"></i><i class="pip used"></i><i class="pip used"></i><i class="pip used"></i><i class="pip next"></i><i class="pip"></i><i class="pip"></i></span>
+                      </span>
+                    </td>
+                    <td class="num">500</td>
+                    <td class="num">300</td>
+                    <td class="num" style="font-weight:700;color:var(--status-attention-fg)">200</td>
+                    <td><span class="badge badge--attention"><span class="dot" style="background:currentColor"></span><span data-en="Due 6 days">مستحق منذ ٦ أيام</span></span></td>
+                    <td>
+                      <div class="row-actions">
+                        <button type="button" class="btn btn--soft btn--sm" data-open="dlg-payment"><svg viewBox="0 0 24 24"><use href="#i-cash"/></svg><span data-en="Payment">دفعة</span></button>
+                        <button type="button" class="btn btn--neutral-ghost btn--icon btn--sm" data-open="dlg-remind" aria-label="تذكير عبر واتساب" data-en-label="Remind on WhatsApp"><svg viewBox="0 0 24 24"><use href="#i-wa"/></svg></button>
+                      </div>
+                    </td>
+                  </tr>
+
+                  <tr data-status="late" data-subscriber='{"name":"رنا زيدان","package":"الباقة الشهرية","price":180,"paid":0,"due":180,"dueDate":"٥ آب ٢٠٢٦","phone":"+970 56 330 1902"}'>
+                    <td>
+                      <span class="person" data-goto="subscriber" style="cursor:pointer">
+                        <span class="avatar" style="background:var(--clay-100);color:var(--clay-700)">ر</span>
+                        <span class="stack"><span class="person-name" data-en="Rana Zeidan">رنا زيدان</span><span class="t-caption mono" dir="ltr">+970 56 330 1902</span></span>
+                      </span>
+                    </td>
+                    <td><span data-en="Monthly">شهري</span></td>
+                    <td>
+                      <span class="stack gap-2">
+                        <span class="t-body-sm num">1 / 4</span>
+                        <span class="pips" aria-hidden="true"><i class="pip used"></i><i class="pip next"></i><i class="pip"></i><i class="pip"></i></span>
+                      </span>
+                    </td>
+                    <td class="num">180</td>
+                    <td class="num muted">0</td>
+                    <td class="num" style="font-weight:700;color:var(--status-medical-fg)">180</td>
+                    <td><span class="badge badge--medical"><span class="dot" style="background:currentColor"></span><span data-en="Overdue 18 days">متأخر ١٨ يوماً</span></span></td>
+                    <td>
+                      <div class="row-actions">
+                        <button type="button" class="btn btn--soft btn--sm" data-open="dlg-payment"><svg viewBox="0 0 24 24"><use href="#i-cash"/></svg><span data-en="Payment">دفعة</span></button>
+                        <button type="button" class="btn btn--neutral-ghost btn--icon btn--sm" data-open="dlg-remind" aria-label="تذكير عبر واتساب" data-en-label="Remind on WhatsApp"><svg viewBox="0 0 24 24"><use href="#i-wa"/></svg></button>
+                      </div>
+                    </td>
+                  </tr>
+
+                  <tr data-status="late" data-subscriber='{"name":"دعاء مرعي","package":"باقة ثلاثة أشهر","price":500,"paid":200,"due":300,"dueDate":"٢٩ تموز ٢٠٢٦","phone":"+970 59 440 7781"}'>
+                    <td>
+                      <span class="person" data-goto="subscriber" style="cursor:pointer">
+                        <span class="avatar" style="background:var(--clay-100);color:var(--clay-700)">د</span>
+                        <span class="stack"><span class="person-name" data-en="Dua'a Marei">دعاء مرعي</span><span class="t-caption mono" dir="ltr">+970 59 440 7781</span></span>
+                      </span>
+                    </td>
+                    <td><span data-en="Three months">ثلاثة أشهر</span></td>
+                    <td>
+                      <span class="stack gap-2">
+                        <span class="t-body-sm num">2 / 12</span>
+                        <span class="pips" aria-hidden="true"><i class="pip used"></i><i class="pip used"></i><i class="pip next"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i></span>
+                      </span>
+                    </td>
+                    <td class="num">500</td>
+                    <td class="num">200</td>
+                    <td class="num" style="font-weight:700;color:var(--status-medical-fg)">300</td>
+                    <td><span class="badge badge--medical"><span class="dot" style="background:currentColor"></span><span data-en="Overdue 25 days">متأخر ٢٥ يوماً</span></span></td>
+                    <td>
+                      <div class="row-actions">
+                        <button type="button" class="btn btn--soft btn--sm" data-open="dlg-payment"><svg viewBox="0 0 24 24"><use href="#i-cash"/></svg><span data-en="Payment">دفعة</span></button>
+                        <button type="button" class="btn btn--neutral-ghost btn--icon btn--sm" data-open="dlg-remind" aria-label="تذكير عبر واتساب" data-en-label="Remind on WhatsApp"><svg viewBox="0 0 24 24"><use href="#i-wa"/></svg></button>
+                      </div>
+                    </td>
+                  </tr>
+
+                  <tr data-status="due" data-subscriber='{"name":"ليان قاسم","package":"الباقة الشهرية","price":180,"paid":90,"due":90,"dueDate":"٢٨ آب ٢٠٢٦","phone":"+970 59 221 6650"}'>
+                    <td>
+                      <span class="person" data-goto="subscriber" style="cursor:pointer">
+                        <span class="avatar" style="background:var(--amber-100);color:var(--amber-700)">ل</span>
+                        <span class="stack"><span class="person-name" data-en="Layan Qasem">ليان قاسم</span><span class="t-caption mono" dir="ltr">+970 59 221 6650</span></span>
+                      </span>
+                    </td>
+                    <td><span data-en="Monthly">شهري</span></td>
+                    <td>
+                      <span class="stack gap-2">
+                        <span class="t-body-sm num">3 / 4</span>
+                        <span class="pips" aria-hidden="true"><i class="pip used"></i><i class="pip used"></i><i class="pip used"></i><i class="pip next"></i></span>
+                      </span>
+                    </td>
+                    <td class="num">180</td>
+                    <td class="num">90</td>
+                    <td class="num" style="font-weight:700;color:var(--status-attention-fg)">90</td>
+                    <td><span class="badge badge--attention"><span class="dot" style="background:currentColor"></span><span data-en="Instalment due">قسط مستحق</span></span></td>
+                    <td>
+                      <div class="row-actions">
+                        <button type="button" class="btn btn--soft btn--sm" data-open="dlg-payment"><svg viewBox="0 0 24 24"><use href="#i-cash"/></svg><span data-en="Payment">دفعة</span></button>
+                        <button type="button" class="btn btn--neutral-ghost btn--icon btn--sm" data-open="dlg-remind" aria-label="تذكير عبر واتساب" data-en-label="Remind on WhatsApp"><svg viewBox="0 0 24 24"><use href="#i-wa"/></svg></button>
+                      </div>
+                    </td>
+                  </tr>
+
+                  <tr data-status="paid" data-subscriber='{"name":"سارة الحاج","package":"الباقة الشهرية","price":180,"paid":180,"due":0,"dueDate":"—","phone":"+970 59 118 2043"}'>
+                    <td>
+                      <span class="person" data-goto="subscriber" style="cursor:pointer">
+                        <span class="avatar">س</span>
+                        <span class="stack"><span class="person-name" data-en="Sara Al-Hajj">سارة الحاج</span><span class="t-caption mono" dir="ltr">+970 59 118 2043</span></span>
+                      </span>
+                    </td>
+                    <td><span data-en="Monthly">شهري</span></td>
+                    <td>
+                      <span class="stack gap-2">
+                        <span class="t-body-sm num">2 / 4</span>
+                        <span class="pips" aria-hidden="true"><i class="pip used"></i><i class="pip used"></i><i class="pip next"></i><i class="pip"></i></span>
+                      </span>
+                    </td>
+                    <td class="num">180</td>
+                    <td class="num">180</td>
+                    <td class="num muted">0</td>
+                    <td><span class="badge badge--onTrack"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg><span data-en="Settled">مسدَّد</span></span></td>
+                    <td><div class="row-actions"><button type="button" class="btn btn--neutral-ghost btn--sm" data-open="dlg-payment"><span data-en="Payment">دفعة</span></button></div></td>
+                  </tr>
+
+                  <tr data-status="paid" data-subscriber='{"name":"هبة درويش","package":"باقة ثلاثة أشهر","price":500,"paid":500,"due":0,"dueDate":"—","phone":"+970 56 907 3312"}'>
+                    <td>
+                      <span class="person" data-goto="subscriber" style="cursor:pointer">
+                        <span class="avatar">ه</span>
+                        <span class="stack"><span class="person-name" data-en="Hiba Darwish">هبة درويش</span><span class="t-caption mono" dir="ltr">+970 56 907 3312</span></span>
+                      </span>
+                    </td>
+                    <td><span data-en="Three months">ثلاثة أشهر</span></td>
+                    <td>
+                      <span class="stack gap-2">
+                        <span class="t-body-sm num">9 / 12</span>
+                        <span class="pips" aria-hidden="true"><i class="pip used"></i><i class="pip used"></i><i class="pip used"></i><i class="pip used"></i><i class="pip used"></i><i class="pip used"></i><i class="pip next"></i><i class="pip"></i></span>
+                      </span>
+                    </td>
+                    <td class="num">500</td>
+                    <td class="num">500</td>
+                    <td class="num muted">0</td>
+                    <td><span class="badge badge--onTrack"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg><span data-en="Settled">مسدَّد</span></span></td>
+                    <td><div class="row-actions"><button type="button" class="btn btn--neutral-ghost btn--sm" data-open="dlg-payment"><span data-en="Payment">دفعة</span></button></div></td>
+                  </tr>
+
+                  <tr data-status="paid" data-subscriber='{"name":"أحمد سلامة","package":"استشارة أولى","price":0,"paid":0,"due":0,"dueDate":"—","phone":"+970 59 664 2210"}'>
+                    <td>
+                      <span class="person">
+                        <span class="avatar" style="background:var(--muted-strong);color:var(--muted-foreground)">أ</span>
+                        <span class="stack"><span class="person-name" data-en="Ahmad Salama">أحمد سلامة</span><span class="t-caption" data-en="Joined 20 Aug">انضم في ٢٠ آب</span></span>
+                      </span>
+                    </td>
+                    <td><span data-en="First consultation">استشارة أولى</span></td>
+                    <td><span class="t-body-sm muted" data-en="Not counted">لا تُحتسب</span></td>
+                    <td class="num muted">—</td>
+                    <td class="num muted">—</td>
+                    <td class="num muted">—</td>
+                    <td><span class="badge badge--free" data-en="Free consultation">استشارة مجانية</span></td>
+                    <td><div class="row-actions"><button type="button" class="btn btn--outline btn--sm" data-open="dlg-subscribe"><span data-en="Start subscription">بدء اشتراك</span></button></div></td>
+                  </tr>
+
+                  <tr data-status="paid" data-subscriber='{"name":"نور الدين حمدان","package":"الباقة الشهرية","price":180,"paid":180,"due":0,"dueDate":"—","phone":"+970 56 771 4408"}'>
+                    <td>
+                      <span class="person">
+                        <span class="avatar" style="background:var(--muted-strong);color:var(--muted-foreground)">ن</span>
+                        <span class="stack"><span class="person-name" data-en="Nour Hamdan">نور الدين حمدان</span><span class="t-caption" data-en="Ended 18 Aug">انتهى في ١٨ آب</span></span>
+                      </span>
+                    </td>
+                    <td><span data-en="Monthly">شهري</span></td>
+                    <td>
+                      <span class="stack gap-2">
+                        <span class="t-body-sm num">4 / 4</span>
+                        <span class="pips" aria-hidden="true"><i class="pip used"></i><i class="pip used"></i><i class="pip used"></i><i class="pip used"></i></span>
+                      </span>
+                    </td>
+                    <td class="num">180</td>
+                    <td class="num">180</td>
+                    <td class="num muted">0</td>
+                    <td><span class="badge badge--rest" data-en="Ended · needs renewal">منتهٍ · يحتاج تجديد</span></td>
+                    <td><div class="row-actions"><button type="button" class="btn btn--outline btn--sm" data-open="dlg-subscribe"><span data-en="Renew">تجديد</span></button></div></td>
+                  </tr>
+
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── Recent payments + reminder queue ────────────────────── -->
+        <div class="split mt-6">
+          <section class="card">
+            <div class="card-head"><div class="grow"><h2 class="t-h-sm" data-en="Latest payments">آخر الدفعات</h2></div></div>
+            <div class="card-body">
+              <div class="timeline">
+                <div class="tl-item">
+                  <div class="tl-rail"><span class="tl-mark tl-mark--pay"><svg viewBox="0 0 24 24"><use href="#i-cash"/></svg></span><span class="tl-line"></span></div>
+                  <div class="tl-body">
+                    <div class="row-between"><span class="t-label" data-en="Hiba Darwish — three months">هبة درويش — ثلاثة أشهر</span><span class="t-label num">+250 ₪</span></div>
+                    <p class="t-caption" data-en="Today 11:20 · bank transfer · ref 4471 · balance now 0 ₪">اليوم ١١:٢٠ · تحويل بنكي · مرجع ٤٤٧١ · المتبقي صار ٠ ₪</p>
+                  </div>
+                </div>
+                <div class="tl-item">
+                  <div class="tl-rail"><span class="tl-mark tl-mark--pay"><svg viewBox="0 0 24 24"><use href="#i-cash"/></svg></span><span class="tl-line"></span></div>
+                  <div class="tl-body">
+                    <div class="row-between"><span class="t-label" data-en="Layan Qasem — monthly">ليان قاسم — شهري</span><span class="t-label num">+90 ₪</span></div>
+                    <p class="t-caption" data-en="Yesterday 16:05 · cash · balance now 90 ₪">أمس ١٦:٠٥ · نقداً · المتبقي صار ٩٠ ₪</p>
+                  </div>
+                </div>
+                <div class="tl-item">
+                  <div class="tl-rail"><span class="tl-mark tl-mark--pay"><svg viewBox="0 0 24 24"><use href="#i-cash"/></svg></span><span class="tl-line"></span></div>
+                  <div class="tl-body">
+                    <div class="row-between"><span class="t-label" data-en="Sara Al-Hajj — monthly">سارة الحاج — شهري</span><span class="t-label num">+180 ₪</span></div>
+                    <p class="t-caption" data-en="21 Aug · cash · settled in full">٢١ آب · نقداً · سُدّد بالكامل</p>
+                  </div>
+                </div>
+                <div class="tl-item">
+                  <div class="tl-rail"><span class="tl-mark tl-mark--wa"><svg viewBox="0 0 24 24"><use href="#i-wa"/></svg></span><span class="tl-line"></span></div>
+                  <div class="tl-body">
+                    <div class="row-between"><span class="t-label" data-en="Reminder sent — Muna Abdullah">تذكير مُرسل — منى عبد الله</span><span class="badge badge--onTrack" data-en="Read">قُرئت</span></div>
+                    <p class="t-caption" data-en="19 Aug 09:30 · 200 ₪ outstanding">١٩ آب ٠٩:٣٠ · متبقٍ ٢٠٠ ₪</p>
+                  </div>
+                </div>
+                <div class="tl-item">
+                  <div class="tl-rail"><span class="tl-mark tl-mark--pay"><svg viewBox="0 0 24 24"><use href="#i-cash"/></svg></span></div>
+                  <div class="tl-body">
+                    <div class="row-between"><span class="t-label" data-en="Muna Abdullah — three months">منى عبد الله — ثلاثة أشهر</span><span class="t-label num">+100 ₪</span></div>
+                    <p class="t-caption" data-en="14 Jul · bank transfer · balance now 200 ₪">١٤ تموز · تحويل بنكي · المتبقي صار ٢٠٠ ₪</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="card">
+            <div class="card-head">
+              <div class="grow">
+                <h2 class="t-h-sm" data-en="Needs a reminder">بحاجة إلى تذكير</h2>
+                <p class="t-caption" data-en="Not reminded in the last 7 days">لم يُرسل لهم تذكير خلال آخر ٧ أيام</p>
+              </div>
+            </div>
+            <div class="card-body stack gap-3">
+              <div class="callout callout--attention">
+                <svg viewBox="0 0 24 24"><use href="#i-info"/></svg>
+                <p class="t-body-sm" data-en="Nothing is sent automatically. Every reminder is previewed and sent by you.">لا شيء يُرسل تلقائياً. كل تذكير تراجعينه وترسلينه بنفسك.</p>
+              </div>
+
+              <div class="card card--tile" data-subscriber='{"name":"رنا زيدان","package":"الباقة الشهرية","price":180,"paid":0,"due":180,"dueDate":"٥ آب ٢٠٢٦","phone":"+970 56 330 1902"}'>
+                <div class="card-body">
+                  <div class="row-between">
+                    <div class="person"><span class="avatar" style="background:var(--clay-100);color:var(--clay-700)">ر</span>
+                      <span class="stack"><span class="person-name" data-en="Rana Zeidan">رنا زيدان</span><span class="t-caption" data-en="180 ₪ · overdue 18 days">١٨٠ ₪ · متأخر ١٨ يوماً</span></span>
+                    </div>
+                    <button type="button" class="btn btn--soft btn--sm" data-open="dlg-remind"><svg viewBox="0 0 24 24"><use href="#i-wa"/></svg><span data-en="Remind">تذكير</span></button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card card--tile" data-subscriber='{"name":"دعاء مرعي","package":"باقة ثلاثة أشهر","price":500,"paid":200,"due":300,"dueDate":"٢٩ تموز ٢٠٢٦","phone":"+970 59 440 7781"}'>
+                <div class="card-body">
+                  <div class="row-between">
+                    <div class="person"><span class="avatar" style="background:var(--clay-100);color:var(--clay-700)">د</span>
+                      <span class="stack"><span class="person-name" data-en="Dua'a Marei">دعاء مرعي</span><span class="t-caption" data-en="300 ₪ · overdue 25 days">٣٠٠ ₪ · متأخر ٢٥ يوماً</span></span>
+                    </div>
+                    <button type="button" class="btn btn--soft btn--sm" data-open="dlg-remind"><svg viewBox="0 0 24 24"><use href="#i-wa"/></svg><span data-en="Remind">تذكير</span></button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card card--tile" data-subscriber='{"name":"ليان قاسم","package":"الباقة الشهرية","price":180,"paid":90,"due":90,"dueDate":"٢٨ آب ٢٠٢٦","phone":"+970 59 221 6650"}'>
+                <div class="card-body">
+                  <div class="row-between">
+                    <div class="person"><span class="avatar" style="background:var(--amber-100);color:var(--amber-700)">ل</span>
+                      <span class="stack"><span class="person-name" data-en="Layan Qasem">ليان قاسم</span><span class="t-caption" data-en="90 ₪ · due in 5 days">٩٠ ₪ · تستحق بعد ٥ أيام</span></span>
+                    </div>
+                    <button type="button" class="btn btn--neutral btn--sm" data-open="dlg-remind"><svg viewBox="0 0 24 24"><use href="#i-wa"/></svg><span data-en="Remind">تذكير</span></button>
+                  </div>
+                </div>
+              </div>
+
+              <button type="button" class="btn btn--neutral" style="width:100%" data-open="dlg-remind-bulk">
+                <svg viewBox="0 0 24 24"><use href="#i-wa"/></svg>
+                <span data-en="Review 3 reminders together">مراجعة التذكيرات الثلاثة معاً</span>
+              </button>
+            </div>
+          </section>
+        </div>
+
+      </main>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         VIEW 2 — Subscriber file
+    ══════════════════════════════════════════════════════════════ -->
+    <section data-view="subscriber" role="tabpanel">
+      <main class="page">
+
+        <button type="button" class="btn btn--neutral-ghost btn--sm" data-goto="overview" style="margin-block-end:12px">
+          <svg viewBox="0 0 24 24"><use href="#i-back"/></svg><span data-en="Back to the register">رجوع إلى السجل</span>
+        </button>
+
+        <header class="page-head">
+          <div class="person grow">
+            <span class="avatar avatar--lg">م</span>
+            <div class="stack">
+              <h1 class="t-h-lg" data-en="Muna Abdullah">منى عبد الله</h1>
+              <p class="t-caption"><span data-en="Three months · started 12 Jun 2026 · ends 10 Sep 2026">ثلاثة أشهر · بدأ ١٢ حزيران ٢٠٢٦ · ينتهي ١٠ أيلول ٢٠٢٦</span> · <span dir="ltr" class="mono">+970 59 812 4477</span></p>
+            </div>
+          </div>
+          <div class="page-actions">
+            <button type="button" class="btn btn--neutral btn--sm" onclick="window.print()"><svg viewBox="0 0 24 24"><use href="#i-print"/></svg><span data-en="Statement">كشف حساب</span></button>
+            <button type="button" class="btn btn--neutral btn--sm" data-open="dlg-remind"><svg viewBox="0 0 24 24"><use href="#i-wa"/></svg><span data-en="Remind">تذكير</span></button>
+            <button type="button" class="btn btn--default btn--sm" data-open="dlg-payment"><svg viewBox="0 0 24 24"><use href="#i-plus"/></svg><span data-en="Record a payment">تسجيل دفعة</span></button>
+          </div>
+        </header>
+
+        <div class="callout callout--attention">
+          <svg viewBox="0 0 24 24"><use href="#i-alert"/></svg>
+          <div>
+            <p class="t-body-sm" style="font-weight:600" data-en="200 ₪ outstanding — due 6 days ago.">متبقٍ ٢٠٠ ₪ — مستحقة منذ ٦ أيام.</p>
+            <p class="t-caption" style="color:inherit;opacity:.85" data-en="Last reminder sent 19 Aug and read. Seven visits remain in this package.">آخر تذكير أُرسل في ١٩ آب وقُرئ. بقيت سبع زيارات في هذه الباقة.</p>
+          </div>
+        </div>
+
+        <div class="split mt-4">
+          <div class="stack gap-4">
+
+            <section class="card">
+              <div class="card-head">
+                <div class="grow"><h2 class="t-h-sm" data-en="Current subscription">الاشتراك الحالي</h2></div>
+                <span class="badge badge--attention" data-en="Payment due">دفعة مستحقة</span>
+              </div>
+              <div class="card-body stack gap-4">
+                <div>
+                  <div class="row-between">
+                    <span class="t-label" data-en="Payment">السداد</span>
+                    <span class="t-body-sm"><b class="num">300</b> <span data-en="of">من</span> <b class="num">500</b> ₪</span>
+                  </div>
+                  <div class="progress progress--attention mt-2"><i style="inline-size:60%"></i></div>
+                  <p class="t-caption mt-1"><span data-en="Outstanding">المتبقي</span> <b style="color:var(--status-attention-fg)">200 ₪</b> · <span data-en="due 25 Aug 2026">يستحق ٢٥ آب ٢٠٢٦</span></p>
+                </div>
+
+                <div>
+                  <div class="row-between">
+                    <span class="t-label" data-en="Visits used">الزيارات المستهلكة</span>
+                    <span class="t-body-sm num">5 / 12</span>
+                  </div>
+                  <div class="pips mt-2" aria-hidden="true">
+                    <i class="pip used"></i><i class="pip used"></i><i class="pip used"></i><i class="pip used"></i><i class="pip used"></i>
+                    <i class="pip next"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i>
+                  </div>
+                  <p class="t-caption mt-1" data-en="5 plans delivered · next visit 27 Aug">٥ خطط مُسلَّمة · الزيارة القادمة ٢٧ آب</p>
+                </div>
+
+                <div class="divider" style="margin:4px 0"></div>
+
+                <dl style="margin:0">
+                  <div class="kv"><dt data-en="Package">الباقة</dt><dd data-en="Three months — 12 visits, 12 plans">ثلاثة أشهر — ١٢ زيارة، ١٢ خطة</dd></div>
+                  <div class="kv"><dt data-en="List price">سعر القائمة</dt><dd>500 ₪</dd></div>
+                  <div class="kv"><dt data-en="Agreed price">السعر المتفق عليه</dt><dd>500 ₪</dd></div>
+                  <div class="kv"><dt data-en="Period">المدة</dt><dd data-en="12 Jun – 10 Sep 2026">١٢ حزيران – ١٠ أيلول ٢٠٢٦</dd></div>
+                  <div class="kv"><dt data-en="First consultation">الاستشارة الأولى</dt><dd><span class="badge badge--free" data-en="Free · 5 Jun">مجانية · ٥ حزيران</span></dd></div>
+                </dl>
+              </div>
+              <div class="card-foot">
+                <button type="button" class="btn btn--neutral btn--sm"><span data-en="Edit subscription">تعديل الاشتراك</span></button>
+                <button type="button" class="btn btn--neutral-ghost btn--sm"><span data-en="Apply a discount">تسجيل خصم</span></button>
+                <div class="grow"></div>
+                <button type="button" class="btn btn--destructive-ghost btn--sm"><span data-en="Cancel subscription">إلغاء الاشتراك</span></button>
+              </div>
+            </section>
+
+            <section class="card">
+              <div class="card-head">
+                <div class="grow">
+                  <h2 class="t-h-sm" data-en="Ledger">سجل الحساب</h2>
+                  <p class="t-caption" data-en="Every entry is permanent. A mistake is corrected by a reversing entry.">كل قيد دائم. الخطأ يُصحَّح بقيد عكسي.</p>
+                </div>
+              </div>
+              <div class="table-root">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th scope="col"><span data-en="Date">التاريخ</span></th>
+                      <th scope="col"><span data-en="Entry">القيد</span></th>
+                      <th scope="col"><span data-en="Method">الطريقة</span></th>
+                      <th scope="col" class="num"><span data-en="Amount">المبلغ</span></th>
+                      <th scope="col" class="num"><span data-en="Balance">المتبقي</span></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="mono" dir="ltr">14/07/2026</td>
+                      <td><span data-en="Payment">دفعة</span></td>
+                      <td><span data-en="Bank transfer · ref 3390">تحويل بنكي · مرجع ٣٣٩٠</span></td>
+                      <td class="num" style="color:var(--green-700);font-weight:600">−100</td>
+                      <td class="num">200</td>
+                    </tr>
+                    <tr>
+                      <td class="mono" dir="ltr">12/06/2026</td>
+                      <td><span data-en="Payment">دفعة</span></td>
+                      <td><span data-en="Cash · at the visit">نقداً · في الزيارة</span></td>
+                      <td class="num" style="color:var(--green-700);font-weight:600">−200</td>
+                      <td class="num">300</td>
+                    </tr>
+                    <tr>
+                      <td class="mono" dir="ltr">12/06/2026</td>
+                      <td><span data-en="Subscription — three months">اشتراك — ثلاثة أشهر</span></td>
+                      <td class="muted">—</td>
+                      <td class="num" style="font-weight:600">+500</td>
+                      <td class="num">500</td>
+                    </tr>
+                    <tr>
+                      <td class="mono" dir="ltr">05/06/2026</td>
+                      <td><span data-en="First consultation">استشارة أولى</span></td>
+                      <td><span class="badge badge--free" data-en="Free">مجاناً</span></td>
+                      <td class="num muted">0</td>
+                      <td class="num muted">0</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="card-foot">
+                <div class="grow"></div>
+                <span class="t-label"><span data-en="Outstanding today">المتبقي اليوم</span>: <b class="num" style="color:var(--status-attention-fg)">200 ₪</b></span>
+              </div>
+            </section>
+          </div>
+
+          <div class="stack gap-4">
+            <section class="card">
+              <div class="card-head"><div class="grow"><h2 class="t-h-sm" data-en="Reminders">التذكيرات</h2></div></div>
+              <div class="card-body stack gap-3">
+                <div class="row-between">
+                  <div class="stack">
+                    <span class="t-label" data-en="19 Aug 09:30 · friendly">١٩ آب ٠٩:٣٠ · ودّي</span>
+                    <span class="t-caption" data-en="200 ₪ outstanding at the time">كان المتبقي ٢٠٠ ₪</span>
+                  </div>
+                  <span class="badge badge--onTrack" data-en="Read">قُرئت</span>
+                </div>
+                <div class="divider" style="margin:0"></div>
+                <div class="row-between">
+                  <div class="stack">
+                    <span class="t-label" data-en="5 Aug 10:15 · friendly">٥ آب ١٠:١٥ · ودّي</span>
+                    <span class="t-caption" data-en="200 ₪ outstanding at the time">كان المتبقي ٢٠٠ ₪</span>
+                  </div>
+                  <span class="badge badge--rest" data-en="Delivered">وصلت</span>
+                </div>
+                <button type="button" class="btn btn--soft btn--sm mt-2" style="width:100%" data-open="dlg-remind">
+                  <svg viewBox="0 0 24 24"><use href="#i-wa"/></svg><span data-en="Send a reminder">إرسال تذكير</span>
+                </button>
+                <p class="hint" data-en="Sending is blocked for 24 hours after the last reminder.">الإرسال متوقّف ٢٤ ساعة بعد آخر تذكير.</p>
+              </div>
+            </section>
+
+            <section class="card">
+              <div class="card-head"><div class="grow"><h2 class="t-h-sm" data-en="Visits and plans">الزيارات والخطط</h2></div></div>
+              <div class="card-body">
+                <div class="timeline">
+                  <div class="tl-item">
+                    <div class="tl-rail"><span class="tl-mark"><svg viewBox="0 0 24 24"><use href="#i-visit"/></svg></span><span class="tl-line"></span></div>
+                    <div class="tl-body">
+                      <span class="t-label" data-en="Visit 5 — 13 Aug">الزيارة ٥ — ١٣ آب</span>
+                      <p class="t-caption" data-en="Week of 14 Aug published">خطة أسبوع ١٤ آب مُنشورة</p>
+                    </div>
+                  </div>
+                  <div class="tl-item">
+                    <div class="tl-rail"><span class="tl-mark"><svg viewBox="0 0 24 24"><use href="#i-visit"/></svg></span><span class="tl-line"></span></div>
+                    <div class="tl-body">
+                      <span class="t-label" data-en="Visit 4 — 30 Jul">الزيارة ٤ — ٣٠ تموز</span>
+                      <p class="t-caption" data-en="Week of 31 Jul published">خطة أسبوع ٣١ تموز مُنشورة</p>
+                    </div>
+                  </div>
+                  <div class="tl-item">
+                    <div class="tl-rail"><span class="tl-mark tl-mark--pay"><svg viewBox="0 0 24 24"><use href="#i-cash"/></svg></span><span class="tl-line"></span></div>
+                    <div class="tl-body">
+                      <span class="t-label" data-en="Payment 100 ₪ — 14 Jul">دفعة ١٠٠ ₪ — ١٤ تموز</span>
+                      <p class="t-caption" data-en="Bank transfer · balance became 200 ₪">تحويل بنكي · صار المتبقي ٢٠٠ ₪</p>
+                    </div>
+                  </div>
+                  <div class="tl-item">
+                    <div class="tl-rail"><span class="tl-mark"><svg viewBox="0 0 24 24"><use href="#i-visit"/></svg></span><span class="tl-line"></span></div>
+                    <div class="tl-body">
+                      <span class="t-label" data-en="Visit 3 — 9 Jul">الزيارة ٣ — ٩ تموز</span>
+                      <p class="t-caption" data-en="Week of 10 Jul published">خطة أسبوع ١٠ تموز مُنشورة</p>
+                    </div>
+                  </div>
+                  <div class="tl-item">
+                    <div class="tl-rail"><span class="tl-mark tl-mark--pay"><svg viewBox="0 0 24 24"><use href="#i-cash"/></svg></span><span class="tl-line"></span></div>
+                    <div class="tl-body">
+                      <span class="t-label" data-en="Subscription started — 12 Jun">بدء الاشتراك — ١٢ حزيران</span>
+                      <p class="t-caption" data-en="Three months · 200 ₪ paid in cash">ثلاثة أشهر · دُفع ٢٠٠ ₪ نقداً</p>
+                    </div>
+                  </div>
+                  <div class="tl-item">
+                    <div class="tl-rail"><span class="tl-mark"><svg viewBox="0 0 24 24"><use href="#i-file"/></svg></span></div>
+                    <div class="tl-body">
+                      <span class="t-label" data-en="First consultation — 5 Jun">الاستشارة الأولى — ٥ حزيران</span>
+                      <p class="t-caption" data-en="Free · no visit consumed">مجانية · لم تستهلك زيارة</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </main>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         VIEW 3 — Packages & reminders
+    ══════════════════════════════════════════════════════════════ -->
+    <section data-view="packages" role="tabpanel">
+      <main class="page">
+
+        <header class="page-head">
+          <div class="grow">
+            <h1 class="t-display" data-en="Packages and reminders">الباقات والتذكيرات</h1>
+            <p class="muted t-body-sm mt-1" data-en="What a subscription costs, what it contains, and what the clinic says when a payment is late.">ما الذي يتضمّنه الاشتراك وكم يكلّف، وماذا تقول العيادة حين تتأخر الدفعة.</p>
+          </div>
+          <div class="page-actions">
+            <button type="button" class="btn btn--neutral btn--sm" data-open="dlg-package">
+              <svg viewBox="0 0 24 24"><use href="#i-plus"/></svg><span data-en="New package">باقة جديدة</span>
+            </button>
+          </div>
+        </header>
+
+        <section class="section" style="margin-block-start:0">
+          <div class="section-head">
+            <div class="grow">
+              <h2 class="t-h-lg" data-en="Packages">الباقات</h2>
+              <p class="t-caption" data-en="Changing a price affects new subscriptions only. Existing ones keep the price they were sold at.">تغيير السعر يسري على الاشتراكات الجديدة فقط. القائمة تحتفظ بالسعر الذي بيعت به.</p>
+            </div>
+          </div>
+
+          <div class="cols-2">
+            <article class="card">
+              <div class="card-head">
+                <div class="grow">
+                  <h3 class="t-h-sm" data-en="Monthly">الباقة الشهرية</h3>
+                  <p class="t-caption" data-en="The default for a new subscriber">الافتراضية لمشترك جديد</p>
+                </div>
+                <span class="badge badge--onTrack" data-en="Active · 18">فعّالة · ١٨</span>
+              </div>
+              <div class="card-body">
+                <p class="t-display" style="font-size:34px">180 <span style="font-size:18px;color:var(--muted-foreground)">₪</span></p>
+                <dl style="margin:12px 0 0">
+                  <div class="kv"><dt data-en="Duration">المدة</dt><dd data-en="30 days">٣٠ يوماً</dd></div>
+                  <div class="kv"><dt data-en="Visits">الزيارات</dt><dd>4</dd></div>
+                  <div class="kv"><dt data-en="Plans">الخطط</dt><dd data-en="4 — one per visit">٤ — خطة لكل زيارة</dd></div>
+                  <div class="kv"><dt data-en="Price per visit">تكلفة الزيارة</dt><dd>45 ₪</dd></div>
+                </dl>
+              </div>
+              <div class="card-foot">
+                <button type="button" class="btn btn--neutral btn--sm" data-open="dlg-package"><svg viewBox="0 0 24 24"><use href="#i-edit"/></svg><span data-en="Edit">تعديل</span></button>
+              </div>
+            </article>
+
+            <article class="card" style="border-color:var(--primary)">
+              <div class="card-head">
+                <div class="grow">
+                  <h3 class="t-h-sm" data-en="Three months">باقة الثلاثة أشهر</h3>
+                  <p class="t-caption" data-en="Saves 40 ₪ against three monthly ones">توفّر ٤٠ ₪ مقارنة بثلاث باقات شهرية</p>
+                </div>
+                <span class="badge badge--onTrack" data-en="Active · 8">فعّالة · ٨</span>
+              </div>
+              <div class="card-body">
+                <p class="t-display" style="font-size:34px">500 <span style="font-size:18px;color:var(--muted-foreground)">₪</span></p>
+                <dl style="margin:12px 0 0">
+                  <div class="kv"><dt data-en="Duration">المدة</dt><dd data-en="90 days">٩٠ يوماً</dd></div>
+                  <div class="kv"><dt data-en="Visits">الزيارات</dt><dd>12</dd></div>
+                  <div class="kv"><dt data-en="Plans">الخطط</dt><dd data-en="12 — one per visit">١٢ — خطة لكل زيارة</dd></div>
+                  <div class="kv"><dt data-en="Price per visit">تكلفة الزيارة</dt><dd>41.7 ₪</dd></div>
+                </dl>
+              </div>
+              <div class="card-foot">
+                <button type="button" class="btn btn--neutral btn--sm" data-open="dlg-package"><svg viewBox="0 0 24 24"><use href="#i-edit"/></svg><span data-en="Edit">تعديل</span></button>
+              </div>
+            </article>
+
+            <article class="card card--tinted">
+              <div class="card-head">
+                <div class="grow">
+                  <h3 class="t-h-sm" data-en="First consultation">الاستشارة الأولى</h3>
+                  <p class="t-caption" data-en="Once per subscriber, ever">مرة واحدة لكل مشترك، ولا تتكرر</p>
+                </div>
+                <span class="badge badge--free" data-en="Free">مجاناً</span>
+              </div>
+              <div class="card-body">
+                <dl style="margin:0">
+                  <div class="kv"><dt data-en="Price">السعر</dt><dd data-en="0 ₪">٠ ₪</dd></div>
+                  <div class="kv"><dt data-en="Consumes a visit">تستهلك زيارة</dt><dd data-en="No">لا</dd></div>
+                  <div class="kv"><dt data-en="Includes a plan">تشمل خطة</dt><dd data-en="No — assessment only">لا — تقييم فقط</dd></div>
+                  <div class="kv"><dt data-en="Appears in the ledger">تظهر في السجل</dt><dd data-en="Yes, at 0 ₪">نعم، بقيمة ٠ ₪</dd></div>
+                </dl>
+                <div class="callout mt-4">
+                  <svg viewBox="0 0 24 24"><use href="#i-gift"/></svg>
+                  <p class="t-body-sm" data-en="Recorded rather than hidden, so a subscriber who never converted is still visible in the register.">تُسجَّل ولا تُخفى، ليبقى المشترك الذي لم يكمل ظاهراً في السجل.</p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-head">
+            <div class="grow">
+              <h2 class="t-h-lg" data-en="Payment rules">قواعد السداد</h2>
+              <p class="t-caption" data-en="These decide which badge a subscriber wears and when a reminder is offered.">هذه القواعد تحدّد الحالة التي تظهر أمام المشترك ومتى يُقترح إرسال تذكير.</p>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-body stack gap-4">
+              <div class="row-between">
+                <div class="stack grow" style="min-inline-size:240px">
+                  <span class="t-label" data-en="Payment is due">تُعتبر الدفعة مستحقة</span>
+                  <span class="t-caption" data-en="Counted from the day the subscription starts.">تُحتسب من يوم بدء الاشتراك.</span>
+                </div>
+                <div class="row gap-2">
+                  <input class="input num" type="number" value="7" style="inline-size:88px" aria-label="عدد الأيام" />
+                  <span class="t-body-sm" data-en="days after the start">أيام بعد البدء</span>
+                </div>
+              </div>
+              <div class="divider" style="margin:0"></div>
+
+              <div class="row-between">
+                <div class="stack grow" style="min-inline-size:240px">
+                  <span class="t-label" data-en="Counted as overdue">يُعتبر متأخراً</span>
+                  <span class="t-caption" data-en="The badge turns clay and the row is offered for a reminder.">تتحوّل العلامة إلى اللون الطيني ويُقترح الصف للتذكير.</span>
+                </div>
+                <div class="row gap-2">
+                  <input class="input num" type="number" value="14" style="inline-size:88px" aria-label="عدد الأيام" />
+                  <span class="t-body-sm" data-en="days after the due date">يوماً بعد الاستحقاق</span>
+                </div>
+              </div>
+              <div class="divider" style="margin:0"></div>
+
+              <div class="row-between">
+                <div class="stack grow" style="min-inline-size:240px">
+                  <span class="t-label" data-en="Allow instalments">السماح بالتقسيط</span>
+                  <span class="t-caption" data-en="A subscription can be paid across several payments.">يمكن سداد الاشتراك على أكثر من دفعة.</span>
+                </div>
+                <label class="row gap-2" style="cursor:pointer">
+                  <input type="checkbox" class="check" checked />
+                  <span class="t-body-sm" data-en="Enabled">مفعّل</span>
+                </label>
+              </div>
+              <div class="divider" style="margin:0"></div>
+
+              <div class="row-between">
+                <div class="stack grow" style="min-inline-size:240px">
+                  <span class="t-label" data-en="Block a visit when overdue">منع الزيارة عند التأخر</span>
+                  <span class="t-caption" data-en="A warning is shown when booking, but the appointment is never blocked automatically.">يظهر تنبيه عند الحجز، ولا يُمنع الموعد تلقائياً أبداً.</span>
+                </div>
+                <label class="row gap-2" style="cursor:pointer">
+                  <input type="checkbox" class="check" />
+                  <span class="t-body-sm" data-en="Warn only">تنبيه فقط</span>
+                </label>
+              </div>
+              <div class="divider" style="margin:0"></div>
+
+              <div class="row-between">
+                <div class="stack grow" style="min-inline-size:240px">
+                  <span class="t-label" data-en="Minimum gap between reminders">أقل فاصل بين تذكيرين</span>
+                  <span class="t-caption" data-en="The send button stays disabled until the gap has passed.">يبقى زر الإرسال معطّلاً حتى يمرّ الفاصل.</span>
+                </div>
+                <div class="row gap-2">
+                  <input class="input num" type="number" value="24" style="inline-size:88px" aria-label="عدد الساعات" />
+                  <span class="t-body-sm" data-en="hours">ساعة</span>
+                </div>
+              </div>
+            </div>
+            <div class="card-foot">
+              <div class="grow"></div>
+              <button type="button" class="btn btn--default btn--sm" id="rules-save"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg><span data-en="Save rules">حفظ القواعد</span></button>
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-head">
+            <div class="grow">
+              <h2 class="t-h-lg" data-en="WhatsApp templates">قوالب رسائل واتساب</h2>
+              <p class="t-caption" data-en="Placeholders are filled from the subscription. Nothing is ever sent without you seeing it first.">الحقول بين قوسين تُملأ من الاشتراك. لا شيء يُرسل قبل أن تريه.</p>
+            </div>
+          </div>
+
+          <div class="cols-2">
+            <article class="card">
+              <div class="card-head">
+                <div class="grow"><h3 class="t-h-sm" data-en="Friendly reminder">تذكير ودّي</h3></div>
+                <span class="badge badge--rest" data-en="First reminder">التذكير الأول</span>
+              </div>
+              <div class="card-body stack gap-3">
+                <textarea class="textarea" rows="8" aria-label="نص القالب الودّي">مرحباً {الاسم} 🌿
+تذكير ودّي من عيادة إنزيم للتغذية.
+
+الاشتراك: {الباقة}
+المتبقي عليكِ: {المتبقي} ₪
+تاريخ الاستحقاق: {تاريخ الاستحقاق}
+
+يسعدنا استلام الدفعة في زيارتك القادمة، أو عبر التحويل البنكي.
+شكراً لكِ 💚</textarea>
+                <p class="hint" data-en="Available: {name} {package} {balance} {due date} {next visit} {clinic}">المتاح: ‏{الاسم} {الباقة} {المتبقي} {تاريخ الاستحقاق} {الزيارة القادمة} {العيادة}</p>
+              </div>
+            </article>
+
+            <article class="card">
+              <div class="card-head">
+                <div class="grow"><h3 class="t-h-sm" data-en="Firm reminder">تذكير حازم</h3></div>
+                <span class="badge badge--attention" data-en="After 14 days">بعد ١٤ يوماً</span>
+              </div>
+              <div class="card-body stack gap-3">
+                <textarea class="textarea" rows="8" aria-label="نص القالب الحازم">السيد/ة {الاسم}،
+
+نودّ تذكيركم بأن المبلغ المستحق على اشتراككم في عيادة إنزيم للتغذية هو {المتبقي} ₪، وقد تجاوز موعد استحقاقه بـ {أيام التأخر} يوماً.
+
+نرجو تسوية المبلغ قبل الزيارة القادمة حتى نتمكّن من متابعة خطتكم دون انقطاع.
+
+مع التقدير — {العيادة}</textarea>
+                <p class="hint" data-en="Adds {overdue days} to the available placeholders.">يضيف ‏{أيام التأخر} إلى الحقول المتاحة.</p>
+              </div>
+            </article>
+
+            <article class="card">
+              <div class="card-head">
+                <div class="grow"><h3 class="t-h-sm" data-en="Renewal">تذكير بالتجديد</h3></div>
+                <span class="badge badge--rest" data-en="One visit left">تبقّت زيارة واحدة</span>
+              </div>
+              <div class="card-body stack gap-3">
+                <textarea class="textarea" rows="8" aria-label="نص قالب التجديد">مرحباً {الاسم} 🌿
+
+بقيت لديكِ {الزيارات المتبقية} زيارة في {الباقة}، وتنتهي في {تاريخ الانتهاء}.
+
+عند التجديد: الباقة الشهرية ١٨٠ ₪ (٤ زيارات)، أو باقة الثلاثة أشهر ٥٠٠ ₪ (١٢ زيارة).
+
+يسعدنا استمرارك معنا 💚</textarea>
+                <p class="hint" data-en="Offered when one visit remains, or seven days before the end.">يُقترح عند تبقّي زيارة واحدة، أو قبل الانتهاء بسبعة أيام.</p>
+              </div>
+            </article>
+
+            <article class="card">
+              <div class="card-head">
+                <div class="grow"><h3 class="t-h-sm" data-en="Payment receipt">إيصال دفعة</h3></div>
+                <span class="badge badge--onTrack" data-en="On save">عند الحفظ</span>
+              </div>
+              <div class="card-body stack gap-3">
+                <textarea class="textarea" rows="8" aria-label="نص قالب الإيصال">وصلنا مبلغ {مبلغ الدفعة} ₪ — شكراً لكِ {الاسم} 💚
+
+الاشتراك: {الباقة}
+المدفوع: {المدفوع} ₪ من {السعر} ₪
+المتبقي: {المتبقي} ₪
+
+عيادة إنزيم للتغذية</textarea>
+                <p class="hint" data-en="Sent only when the receipt box is ticked while recording a payment.">يُرسل فقط عند تحديد خانة الإيصال أثناء تسجيل الدفعة.</p>
+              </div>
+            </article>
+          </div>
+
+          <div class="callout mt-4">
+            <svg viewBox="0 0 24 24"><use href="#i-info"/></svg>
+            <p class="t-body-sm" data-en="Messages go through the clinic's own OpenWA gateway. If the gateway is down, the reminder button says so and nothing is queued silently.">تُرسل الرسائل عبر بوابة OpenWA الخاصة بالعيادة. إذا كانت البوابة متوقفة يقول زر التذكير ذلك، ولا يُخزَّن شيء بصمت.</p>
+          </div>
+        </section>
+
+      </main>
+    </section>
+
+  </div>
+</div>
+
+<!-- ══ Dialog: record a payment ═══════════════════════════════════ -->
+<dialog id="dlg-payment" aria-labelledby="dlg-payment-title">
+  <form method="dialog" class="dlg" id="payment-form">
+    <div class="dlg-head">
+      <span class="avatar" data-bind-initials>م</span>
+      <div class="grow">
+        <h2 class="t-h-sm" id="dlg-payment-title" data-en="Record a payment">تسجيل دفعة</h2>
+        <p class="t-caption"><span data-bind="name">منى عبد الله</span> · <span data-bind="package">باقة ثلاثة أشهر</span></p>
+      </div>
+    </div>
+    <div class="dlg-body">
+      <div class="card card--tile">
+        <div class="card-body">
+          <dl style="margin:0">
+            <div class="kv"><dt data-en="Subscription price">سعر الاشتراك</dt><dd><span data-bind="price">500</span> ₪</dd></div>
+            <div class="kv"><dt data-en="Paid so far">المدفوع حتى الآن</dt><dd><span data-bind="paid">300</span> ₪</dd></div>
+            <div class="kv"><dt data-en="Outstanding">المتبقي</dt><dd style="color:var(--status-attention-fg)"><span data-bind="due">200</span> ₪</dd></div>
+          </dl>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="pay-amount" data-en="Amount received">المبلغ المستلَم</label>
+        <input class="input num" id="pay-amount" type="number" inputmode="numeric" min="1" value="200" data-bind="due" />
+        <div class="chips mt-1" id="pay-quick">
+          <button type="button" class="chip" data-amount="50">50 ₪</button>
+          <button type="button" class="chip" data-amount="100">100 ₪</button>
+          <button type="button" class="chip" data-amount="180">180 ₪</button>
+          <button type="button" class="chip" id="pay-all"><span data-en="Full balance">كامل المتبقي</span></button>
+        </div>
+        <p class="hint" id="pay-after"></p>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="pay-method" data-en="Method">طريقة الدفع</label>
+          <select class="select" id="pay-method">
+            <option data-en="Cash">نقداً</option>
+            <option data-en="Bank transfer">تحويل بنكي</option>
+            <option data-en="E-wallet">محفظة إلكترونية</option>
+            <option data-en="Cheque">شيك</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="pay-date" data-en="Date">التاريخ</label>
+          <input class="input" id="pay-date" type="date" value="2026-08-23" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="pay-note" data-en="Note (optional)">ملاحظة (اختياري)</label>
+        <textarea class="textarea" id="pay-note" rows="2" placeholder="رقم مرجعي، أو اتفاق على تقسيط…"></textarea>
+      </div>
+
+      <label class="row gap-3" style="cursor:pointer">
+        <input type="checkbox" class="check" checked />
+        <span class="t-body-sm" data-en="Send a WhatsApp receipt to the subscriber">إرسال إيصال عبر واتساب للمشترك</span>
+      </label>
+
+      <div class="callout">
+        <svg viewBox="0 0 24 24"><use href="#i-info"/></svg>
+        <p class="t-body-sm" data-en="Saving subtracts this amount from the balance and appends it to the subscriber's ledger. Payments are corrected by a reversing entry, never edited.">الحفظ يخصم المبلغ من المتبقي ويضيفه إلى سجل المشترك. تصحيح الدفعة يتم بقيد عكسي، لا بتعديلها.</p>
+      </div>
+    </div>
+    <div class="dlg-foot">
+      <button type="button" class="btn btn--neutral btn--sm" data-close><span data-en="Cancel">إلغاء</span></button>
+      <button type="submit" class="btn btn--default btn--sm"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg><span data-en="Save payment">حفظ الدفعة</span></button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ══ Dialog: WhatsApp reminder ══════════════════════════════════ -->
+<dialog id="dlg-remind" aria-labelledby="dlg-remind-title">
+  <form method="dialog" class="dlg" id="remind-form">
+    <div class="dlg-head">
+      <span class="avatar" style="background:var(--green-50);color:var(--green-700)"><svg viewBox="0 0 24 24" style="width:18px;height:18px"><use href="#i-wa"/></svg></span>
+      <div class="grow">
+        <h2 class="t-h-sm" id="dlg-remind-title" data-en="Payment reminder on WhatsApp">تذكير بالدفع عبر واتساب</h2>
+        <p class="t-caption"><span data-bind="name">منى عبد الله</span> · <span dir="ltr" class="mono" data-bind="phone">+970 59 812 4477</span></p>
+      </div>
+    </div>
+    <div class="dlg-body">
+      <div class="field">
+        <label data-en="Template">القالب</label>
+        <div class="chips" data-chipgroup id="remind-tone">
+          <button type="button" class="chip" aria-pressed="true" data-value="friendly"><span data-en="Friendly">ودّي</span></button>
+          <button type="button" class="chip" aria-pressed="false" data-value="firm"><span data-en="Firm">حازم</span></button>
+          <button type="button" class="chip" aria-pressed="false" data-value="renewal"><span data-en="Renewal">تجديد</span></button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label data-en="Message — edit before sending">الرسالة — يمكن تعديلها قبل الإرسال</label>
+        <div class="wa-preview" id="remind-preview" contenteditable="true" role="textbox" aria-multiline="true"></div>
+        <p class="hint" data-en="Placeholders are filled from the subscription: name, package, balance, due date.">الحقول تُملأ من الاشتراك: الاسم، الباقة، المتبقي، تاريخ الاستحقاق.</p>
+      </div>
+
+      <div class="card card--tile">
+        <div class="card-body stack gap-2">
+          <span class="t-label" data-en="Reminder history">سجل التذكيرات</span>
+          <div class="row-between t-body-sm"><span data-en="19 Aug 09:30 · friendly">١٩ آب ٠٩:٣٠ · ودّي</span><span class="badge badge--onTrack" data-en="Read">قُرئت</span></div>
+          <div class="row-between t-body-sm"><span data-en="5 Aug 10:15 · friendly">٥ آب ١٠:١٥ · ودّي</span><span class="badge badge--rest" data-en="Delivered">وصلت</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="dlg-foot">
+      <button type="button" class="btn btn--neutral btn--sm" data-close><span data-en="Cancel">إلغاء</span></button>
+      <button type="submit" class="btn btn--default btn--sm"><svg viewBox="0 0 24 24"><use href="#i-wa"/></svg><span data-en="Send now">إرسال الآن</span></button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ══ Dialog: bulk reminders ═════════════════════════════════════ -->
+<dialog id="dlg-remind-bulk" aria-labelledby="dlg-bulk-title">
+  <form method="dialog" class="dlg" id="bulk-form">
+    <div class="dlg-head">
+      <div class="grow">
+        <h2 class="t-h-sm" id="dlg-bulk-title" data-en="Review 3 reminders">مراجعة ٣ تذكيرات</h2>
+        <p class="t-caption" data-en="Each message is shown in full. Uncheck anyone you would rather call.">كل رسالة معروضة كاملة. أزيلي التحديد عن أي شخص تفضّلين الاتصال به.</p>
+      </div>
+    </div>
+    <div class="dlg-body">
+      <label class="card card--tile" style="display:block;cursor:pointer">
+        <div class="card-body"><div class="row gap-3">
+          <input type="checkbox" class="check" checked />
+          <span class="grow stack">
+            <span class="t-label" data-en="Rana Zeidan · 180 ₪ · overdue 18 days">رنا زيدان · ١٨٠ ₪ · متأخر ١٨ يوماً</span>
+            <span class="t-caption" data-en="Firm template — third reminder">قالب حازم — التذكير الثالث</span>
+          </span>
+        </div></div>
+      </label>
+      <label class="card card--tile" style="display:block;cursor:pointer">
+        <div class="card-body"><div class="row gap-3">
+          <input type="checkbox" class="check" checked />
+          <span class="grow stack">
+            <span class="t-label" data-en="Dua'a Marei · 300 ₪ · overdue 25 days">دعاء مرعي · ٣٠٠ ₪ · متأخر ٢٥ يوماً</span>
+            <span class="t-caption" data-en="Firm template — second reminder">قالب حازم — التذكير الثاني</span>
+          </span>
+        </div></div>
+      </label>
+      <label class="card card--tile" style="display:block;cursor:pointer">
+        <div class="card-body"><div class="row gap-3">
+          <input type="checkbox" class="check" checked />
+          <span class="grow stack">
+            <span class="t-label" data-en="Layan Qasem · 90 ₪ · due in 5 days">ليان قاسم · ٩٠ ₪ · تستحق بعد ٥ أيام</span>
+            <span class="t-caption" data-en="Friendly template — first reminder">قالب ودّي — التذكير الأول</span>
+          </span>
+        </div></div>
+      </label>
+      <div class="callout">
+        <svg viewBox="0 0 24 24"><use href="#i-info"/></svg>
+        <p class="t-body-sm" data-en="Messages go out one at a time through the clinic's own gateway, spaced a few seconds apart.">تُرسل الرسائل واحدة تلو الأخرى عبر بوابة العيادة، بفاصل ثوانٍ قليلة.</p>
+      </div>
+    </div>
+    <div class="dlg-foot">
+      <button type="button" class="btn btn--neutral btn--sm" data-close><span data-en="Cancel">إلغاء</span></button>
+      <button type="submit" class="btn btn--default btn--sm"><svg viewBox="0 0 24 24"><use href="#i-wa"/></svg><span data-en="Send 3 reminders">إرسال ٣ تذكيرات</span></button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ══ Dialog: start / renew a subscription ═══════════════════════ -->
+<dialog id="dlg-subscribe" aria-labelledby="dlg-sub-title">
+  <form method="dialog" class="dlg" id="sub-form">
+    <div class="dlg-head">
+      <div class="grow">
+        <h2 class="t-h-sm" id="dlg-sub-title" data-en="Start a subscription">بدء اشتراك</h2>
+        <p class="t-caption"><span data-bind="name">أحمد سلامة</span></p>
+      </div>
+    </div>
+    <div class="dlg-body">
+      <div class="field">
+        <label data-en="Package">الباقة</label>
+        <div class="chips" data-chipgroup id="sub-package" style="flex-direction:column;align-items:stretch">
+          <button type="button" class="chip" aria-pressed="true" data-value="monthly" data-price="180" style="justify-content:space-between;padding:14px 16px">
+            <span class="stack" style="align-items:flex-start">
+              <span class="t-label" data-en="Monthly">شهري</span>
+              <span class="t-caption" data-en="4 visits · 4 plans · 30 days">٤ زيارات · ٤ خطط · ٣٠ يوماً</span>
+            </span>
+            <span class="t-h-sm num">180 ₪</span>
+          </button>
+          <button type="button" class="chip" aria-pressed="false" data-value="quarterly" data-price="500" style="justify-content:space-between;padding:14px 16px">
+            <span class="stack" style="align-items:flex-start">
+              <span class="t-label" data-en="Three months">ثلاثة أشهر</span>
+              <span class="t-caption" data-en="12 visits · 12 plans · 90 days · saves 40 ₪">١٢ زيارة · ١٢ خطة · ٩٠ يوماً · توفير ٤٠ ₪</span>
+            </span>
+            <span class="t-h-sm num">500 ₪</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="sub-start" data-en="Starts">يبدأ في</label>
+          <input class="input" id="sub-start" type="date" value="2026-08-23" />
+        </div>
+        <div class="field">
+          <label for="sub-price" data-en="Agreed price">السعر المتفق عليه</label>
+          <input class="input num" id="sub-price" type="number" value="180" />
+          <p class="hint" data-en="Lower it to record a discount. The difference is kept as a discount, not a debt.">خفّضيه لتسجيل خصم. الفرق يُسجَّل خصماً لا ديناً.</p>
+        </div>
+      </div>
+
+      <div class="field">
+        <label data-en="First payment now?">دفعة أولى الآن؟</label>
+        <div class="chips" data-chipgroup>
+          <button type="button" class="chip" aria-pressed="true" data-value="none"><span data-en="Not yet">لاحقاً</span></button>
+          <button type="button" class="chip" aria-pressed="false" data-value="part"><span data-en="Part of it">جزء منه</span></button>
+          <button type="button" class="chip" aria-pressed="false" data-value="full"><span data-en="Paid in full">دفع كامل</span></button>
+        </div>
+      </div>
+
+      <div class="callout">
+        <svg viewBox="0 0 24 24"><use href="#i-info"/></svg>
+        <p class="t-body-sm" data-en="The free first consultation is not part of the package and does not consume a visit.">الاستشارة الأولى المجانية ليست جزءاً من الباقة ولا تستهلك زيارة.</p>
+      </div>
+    </div>
+    <div class="dlg-foot">
+      <button type="button" class="btn btn--neutral btn--sm" data-close><span data-en="Cancel">إلغاء</span></button>
+      <button type="submit" class="btn btn--default btn--sm"><span data-en="Create subscription">إنشاء الاشتراك</span></button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ══ Dialog: edit / create a package ════════════════════════════ -->
+<dialog id="dlg-package" aria-labelledby="dlg-pkg-title">
+  <form method="dialog" class="dlg" id="pkg-form">
+    <div class="dlg-head">
+      <div class="grow">
+        <h2 class="t-h-sm" id="dlg-pkg-title" data-en="Package">الباقة</h2>
+        <p class="t-caption" data-en="Existing subscriptions keep the price they were sold at.">الاشتراكات القائمة تحتفظ بالسعر الذي بيعت به.</p>
+      </div>
+    </div>
+    <div class="dlg-body">
+      <div class="field-row">
+        <div class="field">
+          <label for="pkg-ar" data-en="Arabic name">الاسم بالعربية</label>
+          <input class="input" id="pkg-ar" value="الباقة الشهرية" />
+        </div>
+        <div class="field">
+          <label for="pkg-en" data-en="English name">الاسم بالإنجليزية</label>
+          <input class="input" id="pkg-en" value="Monthly" dir="ltr" />
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="pkg-price" data-en="Price (₪)">السعر (₪)</label>
+          <input class="input num" id="pkg-price" type="number" value="180" />
+        </div>
+        <div class="field">
+          <label for="pkg-days" data-en="Duration (days)">المدة (أيام)</label>
+          <input class="input num" id="pkg-days" type="number" value="30" />
+        </div>
+        <div class="field">
+          <label for="pkg-visits" data-en="Visits">الزيارات</label>
+          <input class="input num" id="pkg-visits" type="number" value="4" />
+        </div>
+      </div>
+      <label class="row gap-3" style="cursor:pointer">
+        <input type="checkbox" class="check" checked />
+        <span class="t-body-sm" data-en="One weekly plan per visit">خطة أسبوعية واحدة لكل زيارة</span>
+      </label>
+      <p class="hint" id="pkg-derived"></p>
+    </div>
+    <div class="dlg-foot">
+      <button type="button" class="btn btn--neutral btn--sm" data-close><span data-en="Cancel">إلغاء</span></button>
+      <button type="submit" class="btn btn--default btn--sm"><span data-en="Save package">حفظ الباقة</span></button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+/* ─────────────────────────────────────────────────────────────────────
+   Prototype behaviour only. Production does all of this server-side
+   through a feature action; nothing here is a suggested implementation.
+   ───────────────────────────────────────────────────────────────────── */
+
+const money = (n) => new Intl.NumberFormat('en-US').format(Math.round(n));
+
+/* ── Language ────────────────────────────────────────────────────── */
+function applyLocale(locale) {
+  const html = document.documentElement;
+  html.lang = locale;
+  html.dir = locale === 'ar' ? 'rtl' : 'ltr';
+  document.querySelectorAll('[data-en]').forEach((el) => {
+    if (el.dataset.ar === undefined) el.dataset.ar = el.textContent;
+    el.textContent = locale === 'ar' ? el.dataset.ar : el.dataset.en;
+  });
+  document.querySelectorAll('[data-en-label]').forEach((el) => {
+    if (el.dataset.arLabel === undefined) el.dataset.arLabel = el.getAttribute('aria-label') || '';
+    el.setAttribute('aria-label', locale === 'ar' ? el.dataset.arLabel : el.dataset.enLabel);
+  });
+  document.querySelectorAll('[data-locale-btn]').forEach((b) =>
+    b.setAttribute('aria-selected', String(b.dataset.localeBtn === locale)));
+  try { localStorage.setItem('qiwam-proto-locale', locale); } catch (e) { /* file:// */ }
+}
+
+/* ── Theme ───────────────────────────────────────────────────────── */
+function applyTheme(theme) {
+  document.documentElement.classList.toggle('dark', theme === 'dark');
+  try { localStorage.setItem('qiwam-proto-theme', theme); } catch (e) { /* file:// */ }
+}
+
+/* ── Views ───────────────────────────────────────────────────────── */
+function showView(name) {
+  document.querySelectorAll('[data-view]').forEach((v) =>
+    v.classList.toggle('is-active', v.dataset.view === name));
+  document.querySelectorAll('.tab').forEach((t) =>
+    t.setAttribute('aria-selected', String(t.dataset.goto === name)));
+  window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
+}
+
+/* ── Toast ───────────────────────────────────────────────────────── */
+function toast(ar, en) {
+  let host = document.querySelector('.toast-host');
+  if (!host) {
+    host = document.createElement('div');
+    host.className = 'toast-host';
+    document.body.append(host);
+  }
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.setAttribute('role', 'status');
+  el.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+  const span = document.createElement('span');
+  span.dataset.ar = ar; span.dataset.en = en;
+  span.textContent = document.documentElement.lang === 'ar' ? ar : en;
+  el.append(span);
+  host.append(el);
+  setTimeout(() => el.remove(), 4200);
+}
+
+/* ── Reminder templates ──────────────────────────────────────────── */
+function reminderText(tone, s) {
+  if (tone === 'firm') {
+    return 'السيد/ة ' + s.name + '،\n\nنودّ تذكيركم بأن المبلغ المستحق على اشتراككم في عيادة إنزيم للتغذية هو '
+      + money(s.due) + ' ₪، وقد تجاوز موعد استحقاقه.\n\nنرجو تسوية المبلغ قبل الزيارة القادمة حتى نتمكّن من متابعة خطتكم دون انقطاع.\n\nمع التقدير — عيادة إنزيم';
+  }
+  if (tone === 'renewal') {
+    return 'مرحباً ' + s.name + ' 🌿\n\nاقترب انتهاء ' + s.package + '، وبقيت لديكِ زيارات قليلة.\n\n'
+      + 'عند التجديد: الباقة الشهرية ١٨٠ ₪ (٤ زيارات)، أو باقة الثلاثة أشهر ٥٠٠ ₪ (١٢ زيارة).\n\nيسعدنا استمرارك معنا 💚';
+  }
+  return 'مرحباً ' + s.name + ' 🌿\nتذكير ودّي من عيادة إنزيم للتغذية.\n\nالاشتراك: ' + s.package
+    + '\nالمتبقي عليكِ: ' + money(s.due) + ' ₪\nتاريخ الاستحقاق: ' + s.dueDate
+    + '\n\nيسعدنا استلام الدفعة في زيارتك القادمة، أو عبر التحويل البنكي.\nشكراً لكِ 💚';
+}
+
+/* The subscriber the dialogs are currently about. */
+let current = {
+  name: 'منى عبد الله', package: 'باقة ثلاثة أشهر',
+  price: 500, paid: 300, due: 200, dueDate: '٢٥ آب ٢٠٢٦', phone: '+970 59 812 4477',
+};
+
+function seedDialog(dlg, s) {
+  dlg.querySelectorAll('[data-bind]').forEach((el) => {
+    const key = el.dataset.bind;
+    const numeric = key === 'due' || key === 'price' || key === 'paid';
+    const value = numeric ? money(s[key]) : s[key];
+    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') el.value = value;
+    else el.textContent = value;
+  });
+  const initials = dlg.querySelector('[data-bind-initials]');
+  if (initials) initials.textContent = s.name.trim().charAt(0);
+}
+
+function refreshPaymentMath() {
+  const amount = document.getElementById('pay-amount');
+  const after = document.getElementById('pay-after');
+  const left = Math.max(0, current.due - (Number(amount.value) || 0));
+  after.dataset.ar = 'المتبقي بعد هذه الدفعة: ' + money(left) + ' ₪';
+  after.dataset.en = 'Balance after this payment: ' + money(left) + ' ₪';
+  after.textContent = document.documentElement.lang === 'ar' ? after.dataset.ar : after.dataset.en;
+  after.style.color = left === 0 ? 'var(--green-700)' : 'var(--muted-foreground)';
+}
+
+/* ── Boot ────────────────────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', () => {
+  let locale = 'ar', theme = 'light';
+  try {
+    locale = localStorage.getItem('qiwam-proto-locale') || 'ar';
+    theme = localStorage.getItem('qiwam-proto-theme') || 'light';
+  } catch (e) { /* file:// */ }
+  applyLocale(locale);
+  applyTheme(theme);
+
+  document.querySelectorAll('[data-locale-btn]').forEach((b) =>
+    b.addEventListener('click', () => { applyLocale(b.dataset.localeBtn); refreshPaymentMath(); refreshPackageMath(); }));
+  document.querySelectorAll('[data-theme-toggle]').forEach((b) =>
+    b.addEventListener('click', () =>
+      applyTheme(document.documentElement.classList.contains('dark') ? 'light' : 'dark')));
+
+  /* View routing. */
+  document.querySelectorAll('[data-goto]').forEach((el) =>
+    el.addEventListener('click', (event) => {
+      event.preventDefault();
+      showView(el.dataset.goto);
+    }));
+
+  /* Dialogs. */
+  document.querySelectorAll('[data-open]').forEach((trigger) => {
+    trigger.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const dlg = document.getElementById(trigger.dataset.open);
+      if (!dlg) return;
+      const host = trigger.closest('[data-subscriber]');
+      if (host) current = JSON.parse(host.dataset.subscriber);
+      seedDialog(dlg, current);
+      if (dlg.id === 'dlg-payment') refreshPaymentMath();
+      if (dlg.id === 'dlg-remind') {
+        document.querySelectorAll('#remind-tone .chip').forEach((c, i) =>
+          c.setAttribute('aria-pressed', String(i === 0)));
+        document.getElementById('remind-preview').textContent = reminderText('friendly', current);
+      }
+      dlg.showModal();
+    });
+  });
+  document.querySelectorAll('[data-close]').forEach((b) =>
+    b.addEventListener('click', () => b.closest('dialog').close()));
+
+  /* Chip groups behave like a radio set. */
+  document.querySelectorAll('[data-chipgroup]').forEach((group) => {
+    group.addEventListener('click', (event) => {
+      const chip = event.target.closest('.chip');
+      if (!chip || !group.contains(chip)) return;
+      group.querySelectorAll('.chip').forEach((c) => c.setAttribute('aria-pressed', String(c === chip)));
+      group.dispatchEvent(new CustomEvent('chipchange', { detail: chip.dataset.value }));
+    });
+  });
+
+  /* Register filters. */
+  document.querySelectorAll('[data-filter-group]').forEach((group) => {
+    group.addEventListener('click', (event) => {
+      const btn = event.target.closest('button');
+      if (!btn) return;
+      group.querySelectorAll('button').forEach((b) => b.setAttribute('aria-selected', String(b === btn)));
+      const want = btn.dataset.filter;
+      document.querySelectorAll('tr[data-status]').forEach((row) => {
+        row.hidden = want !== 'all' && row.dataset.status !== want;
+      });
+    });
+  });
+
+  /* Payment arithmetic. */
+  const amount = document.getElementById('pay-amount');
+  amount.addEventListener('input', refreshPaymentMath);
+  document.querySelectorAll('#pay-quick [data-amount]').forEach((b) =>
+    b.addEventListener('click', () => { amount.value = b.dataset.amount; refreshPaymentMath(); }));
+  document.getElementById('pay-all').addEventListener('click', () => {
+    amount.value = current.due; refreshPaymentMath();
+  });
+  refreshPaymentMath();
+
+  /* Reminder tone. */
+  document.getElementById('remind-tone').addEventListener('chipchange', (e) => {
+    document.getElementById('remind-preview').textContent = reminderText(e.detail, current);
+  });
+
+  /* Subscription package drives the agreed price. */
+  document.getElementById('sub-package').addEventListener('chipchange', (e) => {
+    const chip = document.querySelector('#sub-package [data-value="' + e.detail + '"]');
+    document.getElementById('sub-price').value = chip.dataset.price;
+  });
+
+  /* Package editor derived figure. */
+  document.getElementById('pkg-price').addEventListener('input', refreshPackageMath);
+  document.getElementById('pkg-visits').addEventListener('input', refreshPackageMath);
+  refreshPackageMath();
+
+  /* Submissions. */
+  document.getElementById('payment-form').addEventListener('submit', () =>
+    toast('تم تسجيل الدفعة وتحديث المتبقي', 'Payment recorded, balance updated'));
+  document.getElementById('remind-form').addEventListener('submit', () =>
+    toast('أُرسل التذكير عبر واتساب', 'Reminder sent on WhatsApp'));
+  document.getElementById('bulk-form').addEventListener('submit', () =>
+    toast('أُرسلت ٣ تذكيرات', '3 reminders sent'));
+  document.getElementById('sub-form').addEventListener('submit', () =>
+    toast('أُنشئ الاشتراك', 'Subscription created'));
+  document.getElementById('pkg-form').addEventListener('submit', () =>
+    toast('حُفظت الباقة', 'Package saved'));
+  document.getElementById('rules-save').addEventListener('click', () =>
+    toast('حُفظت القواعد', 'Rules saved'));
+
+  /* Save a copy of this file. */
+  document.getElementById('save-file').addEventListener('click', () => {
+    const html = '<!doctype html>\n' + document.documentElement.outerHTML;
+    const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'qiwam-finance.html';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    toast('نُزّلت نسخة من الصفحة', 'A copy of the page was downloaded');
+  });
+});
+
+function refreshPackageMath() {
+  const price = document.getElementById('pkg-price');
+  const visits = document.getElementById('pkg-visits');
+  const derived = document.getElementById('pkg-derived');
+  if (!price || !derived) return;
+  const per = ((Number(price.value) || 0) / (Number(visits.value) || 1)).toFixed(1).replace(/\.0$/, '');
+  derived.dataset.ar = 'تكلفة الزيارة الواحدة: ' + per + ' ₪';
+  derived.dataset.en = 'Price per visit: ' + per + ' ₪';
+  derived.textContent = document.documentElement.lang === 'ar' ? derived.dataset.ar : derived.dataset.en;
+}
+</script>
+</body>
+</html>

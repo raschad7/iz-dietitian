@@ -63,7 +63,7 @@ const IS_DEV = new URL(self.location.href).searchParams.get('dev') === '1';
 const CACHE_PREFIX = 'staff-';
 
 const STATIC_CACHE = `${CACHE_PREFIX}static-v3`;
-const SHELL_CACHE = `${CACHE_PREFIX}shell-v3`;
+const SHELL_CACHE = `${CACHE_PREFIX}shell-v6`;
 
 const CURRENT_CACHES = [STATIC_CACHE, SHELL_CACHE];
 

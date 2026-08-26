@@ -231,6 +231,14 @@ Add icons to `APP_ICONS` in `src/lib/icons.ts`. Use role-based names such as
 glyphs. The allowlist in `icon.tsx` owns RTL mirroring. Do not import Lucide
 directly in feature UI or introduce a second icon style.
 
+**One documented exception to inherited color:** the fourteen glyphs on نمط
+الحياة والعادات in the client record, tinted through `--intake-icon-*`. That
+card is a 4×4 lattice of `text-label` rows, and the tint is what lets a reader
+find one answer without reading the thirteen beside it. The tint marks the
+*subject* of a question, never the client's answer to it, and it reuses existing
+palette stops — no new hue was added for it. Nothing outside that card may reach
+for these tokens; new icon color is a change to this section, not a call site.
+
 **Two names may share a glyph; two rows of one screen may not.** Sharing is fine
 across the app — `dish` and `mealDinner` are both `Utensils` and never meet. It
 stops being fine when the duplicates land in the same list, where the glyph is

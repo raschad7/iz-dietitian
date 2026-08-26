@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   ArrowUpDown,
   ArrowUpRight,
+  Ban,
   Beef,
   Bell,
   Building2,
@@ -14,6 +15,8 @@ import {
   CalendarRange,
   CalendarSync,
   CalendarX,
+  Candy,
+  Carrot,
   ChartLine,
   Check,
   ChefHat,
@@ -21,6 +24,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronUp,
+  Cigarette,
   Circle,
   CircleCheck,
   CircleUser,
@@ -35,11 +39,13 @@ import {
   DoorOpen,
   Download,
   Droplet,
+  Drumstick,
   Eraser,
   Eye,
   EyeOff,
   FileLock,
   FileText,
+  Fish,
   Flame,
   Footprints,
   GripHorizontal,
@@ -64,6 +70,7 @@ import {
   Menu,
   MessageCircle,
   MessageSquare,
+  Milk,
   Minus,
   Moon,
   MoreVertical,
@@ -71,6 +78,7 @@ import {
   Pencil,
   Phone,
   Pill,
+  Pizza,
   Plus,
   RefreshCw,
   Repeat,
@@ -329,6 +337,29 @@ export const APP_ICONS = {
   /* The intake’s measurement and target fields */
   calories: Flame,
   protein: Beef,
+
+  /*
+   * نمط الحياة والعادات — one glyph per answer on the lifestyle card.
+   *
+   * Fourteen labels in a four-column lattice read as an undifferentiated wall
+   * of grey text; a picture at the head of each label is what lets the eye land
+   * on "الأسماك" without reading the three labels beside it. They are named for
+   * the *question* they mark, not the food, so re-pointing one is an edit here.
+   */
+  habitActivity: Footprints,
+  habitBarrier: Ban,
+  habitSleep: Moon,
+  habitSmoking: Cigarette,
+  foodCaffeine: Coffee,
+  foodSweetDrinks: CupSoda,
+  foodFastFood: Pizza,
+  foodVegetables: Carrot,
+  foodFruit: Apple,
+  foodDairy: Milk,
+  foodRedMeat: Beef,
+  foodChicken: Drumstick,
+  foodFish: Fish,
+  foodSweets: Candy,
 
   /* Settings groups */
   settingsAccount: CircleUser,

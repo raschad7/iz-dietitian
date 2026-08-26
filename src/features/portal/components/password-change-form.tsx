@@ -49,7 +49,14 @@ export function PasswordChangeForm({ locale }: { locale: Locale }) {
         label={tSecurity('newPasswordLabel')}
         autoComplete="new-password"
         minLength={CLIENT_MIN_PASSWORD_LENGTH}
-        hint={t('passwordStrengthHint', { count: CLIENT_MIN_PASSWORD_LENGTH })}
+        /*
+          `clientPasswordHint`, not `passwordStrengthHint`. The second is the
+          staff sentence — "letters with numbers or symbols" — and staff really
+          do take any two of the three classes. A client takes a letter and a
+          digit, both required, so the staff wording here would be offering a
+          symbol that `clientPasswordSchema` then refuses.
+        */
+        hint={t('clientPasswordHint', { count: CLIENT_MIN_PASSWORD_LENGTH })}
       />
 
       <PasswordInput
