@@ -566,11 +566,57 @@ export function Calendar({
     return `${basePath}?${params.toString()}`;
   }
 
+  /**
+   * A view switch the appointments in hand already cover, done without asking
+   * the server anything.
+   *
+   * `canDrawPending` establishes that the grid for *any* of the three at this
+   * anchor is already drawable — the loader reads the month around it, and a
+   * month holds every day and week inside itself. So a view-only press has
+   * nothing to fetch, and the `router.push` behind it was spending a round
+   * trip, a `loading.tsx` and a re-render of the whole page to arrive at the
+   * screen the reader was already looking at. Pressed twice, it did it twice.
+   *
+   * The address still has to move, or a reload lands on the wrong view and
+   * the link in the URL bar is a lie. `history.replaceState` moves it without
+   * a navigation, which is what Next supports it for.
+   *
+   * Built from `window.location` rather than from `viewHref`, which returns a
+   * path with no locale on it — the i18n router adds that. Editing the two
+   * params on the address that is actually shown cannot get the prefix wrong.
+   *
+   * **What this gives up.** The push also refreshed the data and let
+   * `generateMetadata` retitle the tab. Neither is worth a re-render here:
+   * the appointments are already loaded for the whole month, and every write
+   * in the app ends in `revalidatePath`, so nothing goes stale by not asking
+   * again while somebody toggles between two views of one day.
+   */
+  function replaceViewInAddress(target: CalendarView): void {
+    const url = new URL(window.location.href);
+    url.searchParams.set('date', shownAnchorDate);
+    url.searchParams.set('view', target);
+    window.history.replaceState(null, '', url);
+  }
+
   function navigate(next: { view?: CalendarView; date?: string }): void {
     const href = viewHref(next);
     if (next.view && next.view !== view) {
       setRequestedView({ target: next.view, from: view, date: next.date ?? shownAnchorDate });
     }
+
+    /* Only a view change, and only when the data for it is in hand. A date
+       change moves outside what was loaded and is a real question for the
+       server; so is a view whose span the loaded range does not cover, which
+       is the same check `canDrawPending` makes before drawing one. */
+    if (
+      next.view !== undefined &&
+      next.date === undefined &&
+      covers(loadedRange, rangeFor(next.view, shownAnchorDate))
+    ) {
+      replaceViewInAddress(next.view);
+      return;
+    }
+
     router.push(href);
   }
 
@@ -1298,7 +1344,10 @@ export function Calendar({
         `replaceView` rather than `navigate`, so a view the screen cannot show
         never becomes a history entry the Back button bounces off.
       */}
-      {frozen ? null : <CalendarViewGuard view={view} onFallback={replaceView} />}
+      {/* `shownView`, not `view`: a covered switch moves the address without a
+          navigation, so the server prop no longer tracks what is on screen. The
+          guard corrects the grid a reader is *looking at*. */}
+      {frozen ? null : <CalendarViewGuard view={shownView} onFallback={replaceView} />}
 
       <div data-guide="calendar-toolbar" className={cn('pt-4 md:pt-6', contentInset)}>
         <CalendarToolbar
