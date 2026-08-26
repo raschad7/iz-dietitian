@@ -53,6 +53,7 @@ export function SendBillButton({
   locale,
   clientId,
   entryId,
+  latest = false,
   /** As it is stored. Absent, there is nowhere to send and the button is held. */
   phone,
   labels,
@@ -64,6 +65,16 @@ export function SendBillButton({
   clientId: string;
   /** One bill. Omitted, the whole account goes — see `renderBill`. */
   entryId?: string;
+  /**
+   * Send the subscriber’s most recent bill, without this having to know
+   * which one that is.
+   *
+   * For the Bills row, which holds a subscriber and no ledger. The action
+   * resolves it against the account it is already reading — see the `latest`
+   * argument on `renderBill`. `entryId` wins if both arrive, being the more
+   * specific request.
+   */
+  latest?: boolean;
   phone: string | null;
   /**
    * Set on the labelled shape. The words themselves are `labels.action` —
@@ -123,6 +134,10 @@ export function SendBillButton({
       {/* Absent for the statement. An empty value would be a request for a bill
           with no id; the action reads one as the other. */}
       {entryId ? <input type="hidden" name="entryId" value={entryId} /> : null}
+      {/* Named, rather than implied by the absence of an id: "the account"
+          and "the newest bill on it" are two different documents, and a form
+          that said neither would be asking the action to guess. */}
+      {latest ? <input type="hidden" name="scope" value="latest" /> : null}
 
       <ConfirmSubmitButton
         label={labels.action}

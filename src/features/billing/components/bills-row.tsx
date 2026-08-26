@@ -145,21 +145,31 @@ export function BillsRow({
             */}
 
             {/*
-              And the same statement on WhatsApp, which is how most of this
-              clinic's subscribers will actually receive it — the printer is for
-              the copy handed across the desk. It closes the row because it is
-              the one control here that reaches somebody outside the clinic; see
+              The last bill on WhatsApp, which is how most of this clinic’s
+              subscribers actually receive one — the printer is for the copy
+              handed across the desk. It closes the row because it is the one
+              control here that reaches somebody outside the clinic; see
               `SendBillButton` for why it is the only one with a hover card.
+
+              **The last bill, not the statement.** A row is where a dietitian
+              stands after recording a charge, and what they want to send is
+              the thing they just recorded. The whole account is a different
+              request, and it is one press away in the menu beside this and on
+              the record itself — both places with room to say which they are.
+
+              Which bill that is, is resolved on the server: a row holds a
+              subscriber and no ledger. See `renderBill`’s `latest`.
             */}
             <SendBillButton
               locale={locale}
               clientId={client.id}
+              latest
               phone={client.phone}
               labels={{
-                action: t('sendBill.title'),
-                confirmTitle: t('sendBill.confirmTitle'),
-                confirmBody: t('sendBill.confirmBody', { name: client.fullName }),
-                sent: t('sendBill.sent'),
+                action: t('sendBill.lastBill'),
+                confirmTitle: t('sendBill.confirmLastTitle'),
+                confirmBody: t('sendBill.confirmLastBody', { name: client.fullName }),
+                sent: t('sendBill.sentBill'),
               }}
             />
 

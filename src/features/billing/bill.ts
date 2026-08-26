@@ -142,6 +142,28 @@ export function compareEntries(a: BillEntry, b: BillEntry): number {
 }
 
 /**
+ * The most recent charge on a ledger, or `null` on an account that has only
+ * ever taken payments.
+ *
+ * A *charge*, not simply the newest entry: "the last bill" is the last thing
+ * the subscriber was billed for, and a payment recorded this morning against
+ * a subscription sold last week does not change which bill that is.
+ *
+ * Sorted here rather than trusting the caller. `clientBillingRecord` already
+ * hands its ledgers back newest-first, but a function that answers "the last
+ * one" by reading index 0 is one refactor away from answering confidently and
+ * wrongly — and it would be wrong on a document somebody sends to a patient.
+ */
+export function latestCharge(entries: BillEntry[]): BillEntry | null {
+  const charges = entries.filter((entry) => entry.kind === 'charge');
+  if (charges.length === 0) return null;
+
+  const [newest] = [...charges].sort(compareEntries);
+
+  return newest ?? null;
+}
+
+/**
  * Each bill's place in the subscriber's own ledger — 1 for the first one they
  * were ever billed or paid, counting up.
  *

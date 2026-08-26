@@ -1101,7 +1101,10 @@
       "confirmOneTitle": "Send this bill?",
       "confirmOneBody": "{name} will receive bill #{number} on WhatsApp. A sent message cannot be taken back.",
       "sent": "Statement sent on WhatsApp.",
-      "sentBill": "Bill sent on WhatsApp."
+      "sentBill": "Bill sent on WhatsApp.",
+      "lastBill": "Send last bill",
+      "confirmLastTitle": "Send the last bill?",
+      "confirmLastBody": "{name} will receive their most recent bill on WhatsApp. A sent message cannot be taken back."
     },
     "pagination": {
       "previous": "Previous",

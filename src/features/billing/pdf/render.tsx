@@ -4,6 +4,7 @@ import { getTranslations } from 'next-intl/server';
 import {
   batchNumbers,
   billFileName,
+  latestCharge,
   sentBillFileName,
   sentStatementFileName,
   statementFileName,
@@ -53,11 +54,27 @@ export async function renderBill({
   clinicId,
   clientId,
   entryId,
+  latest = false,
   locale,
 }: {
   clinicId: string;
   clientId: string;
   entryId?: string;
+  /**
+   * Render the most recent charge instead of the whole account, without the
+   * caller having to know which one that is.
+   *
+   * The Bills row has a subscriber and nothing else — no ledger, no entry
+   * ids — so a row that wanted to send "the last bill" would otherwise have
+   * to load one account’s history per row just to name it. The ledger is
+   * already being read here; this picks from it.
+   *
+   * Ignored when `entryId` names one, which is the more specific request.
+   * An account with no charge at all renders nothing rather than falling
+   * back to the statement: a press that silently sent something other than
+   * what the button offered is worse than one that reports it could not.
+   */
+  latest?: boolean;
   locale: Locale;
 }): Promise<RenderedBill | null> {
   const [record, clinic, t] = await Promise.all([
@@ -69,12 +86,22 @@ export async function renderBill({
   if (!record || !clinic) return null;
 
   let entries: BillEntry[] = record.entries;
+  /* What the document is: one bill, or the account. Tracked rather than
+     re-derived from `entryId` below, which stopped being the only way to ask
+     for a single bill the moment `latest` existed. */
+  let only: BillEntry | undefined;
 
   if (entryId) {
     const found = record.entries.find((entry) => entry.id === entryId);
     if (!found) return null;
-    entries = [found];
+    only = found;
+  } else if (latest) {
+    const last = latestCharge(record.entries);
+    if (!last) return null;
+    only = last;
   }
+
+  if (only) entries = [only];
 
   /* Idempotent, and called here rather than at import so nothing depends on
      module evaluation order. See `fonts.ts`. */
@@ -85,7 +112,7 @@ export async function renderBill({
   const body = await renderToBuffer(
     <BillDocument
       locale={locale}
-      variant={entryId ? 'single' : 'statement'}
+      variant={only ? 'single' : 'statement'}
       entries={entries}
       t={t}
       header={{
@@ -99,18 +126,17 @@ export async function renderBill({
     />,
   );
 
-  const single = entryId ? entries[0] : undefined;
 
   /* The subscriber's own running count, from the *whole* ledger rather than
      the one entry being printed — a bill is "payment 3" because it is the
      third thing on this account, and slicing the list first would make every
      single-bill send "payment 1". */
-  const number = single ? (batchNumbers(record.entries).get(single.id) ?? 1) : 0;
+  const number = only ? (batchNumbers(record.entries).get(only.id) ?? 1) : 0;
 
   return {
     body,
-    fileName: single ? billFileName(single) : statementFileName(clientId, today),
-    sentFileName: single
+    fileName: only ? billFileName(only) : statementFileName(clientId, today),
+    sentFileName: only
       ? sentBillFileName(record.client.fullName, number)
       : sentStatementFileName(record.client.fullName),
   };

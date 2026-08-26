@@ -279,7 +279,16 @@ export async function sendBillWhatsappAction(
   */
   const entryId = String(formData.get('entryId') ?? '') || undefined;
 
-  const bill = await renderBill({ clinicId, clientId, entryId, locale: locale.data });
+  /*
+    The Bills row asks for the last bill without knowing which one that is.
+    It holds a subscriber and nothing else, and reading one account’s history
+    per row just to name an entry id is a query a row cannot afford — so the
+    scope travels instead, and `renderBill` picks from the ledger it is
+    already reading.
+  */
+  const latest = formData.get('scope') === 'latest';
+
+  const bill = await renderBill({ clinicId, clientId, entryId, latest, locale: locale.data });
   if (!bill) return { status: 'error', messageKey: 'genericError' };
 
   const result = await sendWhatsappMessage({
@@ -290,7 +299,7 @@ export async function sendBillWhatsappAction(
     /* The caption names which document is attached — one bill, or the account.
        `renderBill` has already refused an entry that is not on this
        subscriber's ledger, so by here the two cases are only wording. */
-    body: renderWhatsappMessage(entryId ? 'billDocument' : 'billStatement', PATIENT_MESSAGE_LOCALE, {
+    body: renderWhatsappMessage(entryId || latest ? 'billDocument' : 'billStatement', PATIENT_MESSAGE_LOCALE, {
       clientName: client.fullName,
       clinicName: clinic.name,
     }),
