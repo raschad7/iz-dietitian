@@ -27,7 +27,7 @@ import {
   formatMinute,
   formatWeekday,
 } from '../format';
-import { hasEnded, isCompleted, localWallClock } from '../completed';
+import { hasEnded, localWallClock, type WallClock } from '../completed';
 import { PX_PER_SLOT, minuteToY } from '../geometry';
 import { covers, loadedRangeFor, rangeFor } from '../range';
 import { type CalendarView, type NewClientInput } from '../schema';
@@ -218,6 +218,26 @@ const CLINIC_CALENDAR_PATH = '/app/calendar';
 export type CalendarProps = {
   locale: Locale;
   view: CalendarView;
+  /**
+   * The clinic’s wall clock at the moment the page was rendered.
+   *
+   * What makes a finished appointment arrive finished. The shared clock
+   * cannot: it reports `null` until the browser has hydrated and subscribed,
+   * so every block drew itself live on the first paint and a morning’s worth
+   * of them then went grey at once — the reader saw a calendar assert
+   * something and take it back.
+   *
+   * A `WallClock` and not a `Date`, and that is the whole reason this is safe
+   * to render on the server. `{ date, minute }` means the same thing wherever
+   * it is read; a `Date` would be turned into hours by `localWallClock` using
+   * whichever zone the reader is sitting in, which is not the zone the clinic
+   * books in and not the one the server used — two different answers from one
+   * instant, which is a hydration mismatch.
+   *
+   * It is a starting point, not the clock. The moment the real one ticks it
+   * takes over — see `completedIds`.
+   */
+  serverClock: WallClock;
   /** The date the view is built around, `YYYY-MM-DD`. */
   anchorDate: string;
   hours: ClinicHours;
@@ -276,6 +296,7 @@ type PendingMove = { appointment: CalendarAppointment; next: BookingRequest };
 export function Calendar({
   locale,
   view,
+  serverClock,
   anchorDate,
   hours,
   appointments,
@@ -523,10 +544,19 @@ export function Calendar({
 
   const existingByDate = useCallback((date: string) => existing.filter((row) => row.date === date), [existing]);
 
-  /** Derived every render from the one shared clock — never stored. */
+  /**
+   * Derived every render — never stored.
+   *
+   * The browser’s clock once it is running, and the clinic’s wall clock as
+   * the page was served until then. Both are a `WallClock`, so the first
+   * paint and the first tick answer the same question the same way and the
+   * only thing that changes between them is the passage of time.
+   */
+  const completedClock = nowClock ?? serverClock;
+
   const completedIds = useMemo(
-    () => new Set(optimisticAppointments.filter((row) => isCompleted(row, now)).map((row) => row.id)),
-    [now, optimisticAppointments],
+    () => new Set(optimisticAppointments.filter((row) => hasEnded(row, completedClock)).map((row) => row.id)),
+    [completedClock, optimisticAppointments],
   );
 
   /** Search dims rather than hides, so the day's shape stays recognisable. */
@@ -1013,8 +1043,8 @@ export function Calendar({
    */
   useEffect(() => {
     if (frozen || basePath !== CLINIC_CALENDAR_PATH) return;
-    rememberCalendar({ locale, view, anchorDate, hours, appointments, clients });
-  }, [frozen, basePath, locale, view, anchorDate, hours, appointments, clients]);
+    rememberCalendar({ locale, view, serverClock, anchorDate, hours, appointments, clients });
+  }, [frozen, basePath, locale, view, serverClock, anchorDate, hours, appointments, clients]);
 
   const belowFold = useMemo(
     () => new Map(datesBelowFold.map((entry) => [entry.date, entry.count])),

@@ -12,7 +12,7 @@ import type { CalendarProps } from './calendar';
  */
 export type CalendarFrame = Pick<
   CalendarProps,
-  'locale' | 'view' | 'anchorDate' | 'hours' | 'appointments' | 'clients'
+  'locale' | 'view' | 'serverClock' | 'anchorDate' | 'hours' | 'appointments' | 'clients'
 >;
 
 /**

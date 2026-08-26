@@ -3,8 +3,10 @@ import type { Metadata } from 'next';
 
 import { PageHeader } from '@/components/layout/page-header';
 import { Calendar } from '@/features/booking/components/calendar';
+import { wallClockIn } from '@/features/booking/completed';
 import { loadCalendarPage } from '@/features/booking/page-data';
 import { CALENDAR_VIEWS, type CalendarView } from '@/features/booking/schema';
+import { DISPLAY_TIME_ZONE } from '@/lib/format';
 import { resolveLocale } from '@/i18n/params';
 import { requireStaffClinic } from '@/lib/session';
 
@@ -62,6 +64,7 @@ export default async function CalendarPage({ params, searchParams }: CalendarPag
         <Calendar
           locale={locale}
           view={view}
+          serverClock={wallClockIn(DISPLAY_TIME_ZONE)}
           anchorDate={data.anchorDate}
           hours={data.hours}
           appointments={data.appointments}

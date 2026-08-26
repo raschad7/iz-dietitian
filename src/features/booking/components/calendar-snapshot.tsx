@@ -75,6 +75,7 @@ export function CalendarSnapshot({ fallback }: { fallback: ReactNode }) {
       <Calendar
         locale={frame.locale}
         view={frame.view}
+        serverClock={frame.serverClock}
         anchorDate={frame.anchorDate}
         hours={frame.hours}
         appointments={frame.appointments}
