@@ -14,10 +14,10 @@ import {
 import { pageWindow } from '@/lib/pagination';
 
 /** How many bills the account shows before it asks you to turn a page. */
-export const EXPENSES_PAGE_SIZE = 7;
+export const EXPENSES_PAGE_SIZE = 6;
 
 /**
- * The bill list on a client's Expenses tab, seven at a time.
+ * The bill list on a client's Expenses tab, six at a time.
  *
  * ## Why the rows arrive already rendered
  *
@@ -37,7 +37,7 @@ export const EXPENSES_PAGE_SIZE = 7;
  * standing beside it, and a year of bills for one subscriber is a short list
  * however it is read. A `?bills=2` would spend a server round trip on rows the
  * browser is already holding, and would reload the whole record — the identity
- * panel, the tabs, the rest of it — to move seven rows.
+ * panel, the tabs, the rest of it — to move six rows.
  *
  * It is also not a place worth returning to. A shared link to page 3 of one
  * subscriber's ledger answers no question anybody asks; a link to the
@@ -93,7 +93,7 @@ export function ExpensesBillList({
         as an `<li>` it was being counted to a screen reader as one more bill
         on the account.
 
-        Drawn only when there is somewhere to go. A single page of six bills is
+        Drawn only when there is somewhere to go. A single page of four bills is
         all of them, and a pager saying `1` under it would be a control for
         moving through nothing.
       */}
