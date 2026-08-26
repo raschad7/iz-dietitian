@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 
-import { catalogChecksum, readUsdaReference } from '../../../scripts/build-catalog-dataset';
+import { catalogChecksum, readUsdaReference, withExtras } from '../../../scripts/build-catalog-dataset';
 import { readCatalogDataset, validateCuratedFoods } from '../../../scripts/seed-catalog-foods';
 
 import { normalizeArabic } from './arabic-normalize';
@@ -186,20 +186,56 @@ describe('portions', () => {
       'Cup',
       'Half cup',
       'Quarter cup',
+      // Curated, not derived: USDA publishes no spoon for cooked rice.
+      'Tablespoon',
     ]);
-    expect(rice.portions.map((portion) => portion.labelAr)).toEqual(['كوب', 'نصف كوب', 'ربع كوب']);
+    expect(rice.portions.map((portion) => portion.labelAr)).toEqual([
+      'كوب',
+      'نصف كوب',
+      'ربع كوب',
+      'ملعقة كبيرة',
+    ]);
 
     for (const portion of rice.portions) {
       expect(portion.grams).toBeGreaterThan(0);
     }
   });
 
+  /**
+   * The spoon a dietitian actually writes in.
+   *
+   * USDA has no tablespoon for cooked rice, and where it has one for a cooked
+   * grain — bulgur at 8.4 g, lentils at 12.3 g — it is a level measuring spoon.
+   * The clinic's spoon is a heaped eating spoon at roughly three times that. They
+   * are different objects and no arithmetic turns one into the other, so this
+   * weight is curated with a `sourceRef` naming whose decision it is.
+   */
+  test('the clinic spoon for cooked rice is curated and says so', () => {
+    const spoon = bySlug
+      .get('rice-white-cooked')!
+      .portions.find((portion) => portion.labelEn === 'Tablespoon')!;
+
+    expect(spoon.grams).toBe(25);
+    expect(spoon.isDefault).toBe(false);
+    expect(spoon.sourceRef).toContain('clinic practice');
+  });
+
   /** The three worked examples from the brief, each backed by real source data. */
   test('match the measured source values', () => {
-    expect(bySlug.get('egg-raw')!.portions).toEqual([
-      { labelAr: 'حبة', labelEn: 'Piece', grams: 50, isDefault: true, sortOrder: 0 },
-    ]);
+    // A large egg, not a medium one: eggs are graded, and 50 g is the reference
+    // unit — the same weight the boiled egg carries, so one حبة cannot mean two
+    // different things depending on whether it was cooked.
+    expect(bySlug.get('egg-raw')!.portions[0]).toEqual({
+      labelAr: 'حبة',
+      labelEn: 'Piece',
+      grams: 50,
+      isDefault: true,
+      sortOrder: 0,
+    });
+    expect(bySlug.get('egg-boiled')!.portions[0]!.grams).toBe(50);
 
+    // Oil is written in spoons and in nothing else. USDA publishes a 216 g cup;
+    // it is a bottle measure, not a serving.
     expect(bySlug.get('olive-oil')!.portions).toEqual([
       { labelAr: 'ملعقة كبيرة', labelEn: 'Tablespoon', grams: 13.5, isDefault: true, sortOrder: 0 },
       { labelAr: 'ملعقة صغيرة', labelEn: 'Teaspoon', grams: 4.5, isDefault: false, sortOrder: 1 },
@@ -212,6 +248,32 @@ describe('portions', () => {
       isDefault: true,
       sortOrder: 0,
     });
+  });
+
+  /**
+   * The fix that this whole pass exists for.
+   *
+   * The extract used to keep only the first portion USDA published per food, and
+   * for most produce that is a cup. So an apple was offered as "1 cup, quartered
+   * or chopped" and had no way to say "1 medium" — which is the only way anybody
+   * writes it. USDA had the medium apple all along.
+   */
+  test('fruit is counted in pieces, not in cups', () => {
+    const expected: Record<string, number> = {
+      'apple-raw': 182,
+      'banana-raw': 118,
+      'orange-raw': 131,
+      'pear-raw': 178,
+    };
+
+    for (const [slug, grams] of Object.entries(expected)) {
+      const first = bySlug.get(slug)!.portions[0]!;
+
+      expect(first.labelEn).toBe('Piece');
+      expect(first.labelAr).toBe('حبة');
+      expect(first.isDefault).toBe(true);
+      expect(first.grams).toBe(grams);
+    }
   });
 
   test('exactly one portion per food is the default', () => {
@@ -242,13 +304,15 @@ describe('portions', () => {
       const source = usda.get(Number(food.sourceRef));
       expect(source).toBeDefined();
 
-      const rederived = derivePortions({
-        category: food.category,
-        portionGrams: source!.portionGrams ?? null,
-        portionLabel: source!.portionLabel ?? null,
-      });
+      // `withExtras` is part of the build, so it is part of the reproduction: a
+      // curated portion is data a person wrote, and the check is that the derived
+      // rows beside it are still exactly what the source produces.
+      const rebuilt = withExtras(
+        derivePortions({ category: food.category, portions: source!.portions ?? [] }),
+        food.extraPortions,
+      );
 
-      expect(food.portions).toEqual(rederived);
+      expect(food.portions).toEqual(rebuilt);
     }
   });
 

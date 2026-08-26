@@ -1,6 +1,5 @@
 /**
- * Turns one *measured* household portion into the set of portions the catalog
- * offers for that food.
+ * Turns a food's *measured* household portions into the set the catalog offers.
  *
  * This is the rule that used to run at render time in `ingredient-units.ts`,
  * against a USDA label parsed on every keystroke. It runs **once, at dataset build
@@ -9,11 +8,23 @@
  * arithmetic, same conservatism — but a portion is data a dietitian could correct,
  * not a string the UI re-derives and can only get wrong in the same way forever.
  *
- * **Nothing here invents a weight.** Every portion is either the food's own
- * measured portion or a plain fraction of it: half a cup is half of *that* cup, a
- * teaspoon is a third of *that* tablespoon. A food whose only measured portion is
- * a weight ("3 oz", "1 oz") or an unrecognised unit yields no portions at all and
- * is measured in grams, which is the honest answer rather than a friendly guess.
+ * **Nothing here invents a weight.** Every portion is either one USDA measured
+ * or a plain fraction of one: half a cup is half of *that* cup, a teaspoon is a
+ * third of *that* tablespoon. A food whose measures are all weights ("3 oz") or
+ * unrecognised units yields no portions at all and is measured in grams, which is
+ * the honest answer rather than a friendly guess.
+ *
+ * ## Why it reads the whole list
+ *
+ * It used to read one portion - whichever `food_portion.csv` happened to put
+ * first - because that is all the extract kept. For 66 of 91 catalog foods that
+ * first row is a cup, which is how the catalog came to offer "1 cup, quartered or
+ * chopped" for an apple and had no way to say "1 medium". USDA publishes the
+ * medium apple; it was being discarded upstream.
+ *
+ * So the extract keeps every measure now, and this picks: **the unit a person
+ * serves in first**, then one more to fall back on. A dietitian writes `1 تفاحة`
+ * and `7 ملاعق أرز`, not `1.2 cups of apple`.
  */
 
 /** A portion as the dataset stores it, before it becomes a `catalog_food_portions` row. */
@@ -25,6 +36,14 @@ export type PortionSeed = {
   /** The one a freshly picked food starts in. Exactly one per food, when any exist. */
   isDefault: boolean;
   sortOrder: number;
+  /**
+   * Where this weight came from, when it is not the food's own USDA measure.
+   *
+   * Carried only by a curated portion - a unit a dietitian uses that USDA does not
+   * publish. Every such weight is a clinical decision rather than a derivation, and
+   * a row that cannot say where it came from should not be in a prescription.
+   */
+  sourceRef?: string;
 };
 
 /**
@@ -41,7 +60,7 @@ export const GRAMS_ONLY_CATEGORIES = new Set(['meat', 'poultry', 'fish']);
 type Family = 'cup' | 'tbsp' | 'tsp' | 'slice' | 'piece' | 'loaf' | 'leaf' | 'container' | 'none';
 
 /** Unit words meaning "one countable item" — an egg, a fillet, a date. */
-const PIECE_WORDS = new Set([
+export const PIECE_WORDS = new Set([
   'large', 'medium', 'small', 'extra', 'unit', 'piece', 'each', 'whole', 'fillet',
   'link', 'patty', 'stick', 'wedge', 'clove', 'ear', 'fruit', 'pod', 'strip',
   'ball', 'bar', 'cookie', 'cracker', 'chip', 'date',
@@ -172,35 +191,193 @@ const FAMILY_ROWS: Record<Exclude<Family, 'none'>, readonly (readonly [string, s
  * non-positive weight, a label with no leading count, or a unit that names a weight
  * rather than a household measure.
  */
+/** One measured portion as the USDA extract records it. */
+export type MeasuredPortion = { grams: number; label: string };
+
+/**
+ * Which unit a food should lead with, best first.
+ *
+ * A countable thing beats a volume: nobody asks for a cup of apple. Bread leads
+ * over everything because a رغيف is the only unit anyone states it in. Spoons come
+ * last because a food measured in spoons is a condiment, and its cup - if it has
+ * one - is the more useful default.
+ */
+const FAMILY_PRIORITY: readonly Exclude<Family, 'none'>[] = [
+  'loaf',
+  'piece',
+  'container',
+  'slice',
+  'cup',
+  'tbsp',
+  'tsp',
+  'leaf',
+];
+
+/**
+ * How many unit families one food offers.
+ *
+ * Two. The one it is served in and one to fall back on - an apple in حبة and in
+ * كوب. A longer menu is a menu the dietitian has to read before she can use it,
+ * and every extra row is another way to record the same amount differently.
+ */
+const MAX_FAMILIES = 2;
+
+/** Size words that make a label a countable item even when the unit word is the food's own name. */
+const SIZE_WORDS = ['medium', 'large', 'small'];
+
+/**
+ * Categories a person is served by the spoon and by nothing else.
+ *
+ * A cup of olive oil is 216 g and about 1,900 kcal. It is a bottle measure, not a
+ * serving, and offering it at all invites a recipe to be written in one. USDA also
+ * lists honey by the 14 g packet, which is a sachet rather than an amount anyone
+ * prescribes. Both are written in spoons and always were - this keeps them there
+ * now that a food can offer more than one family.
+ */
+const SPOON_ONLY_CATEGORIES = new Set(['fats_oils', 'sweets']);
+
+/** The only families those categories may offer. */
+const SPOON_FAMILIES = new Set<Family>(['tbsp', 'tsp']);
+
+/**
+ * The graded size a category counts in, where it is not "medium".
+ *
+ * Eggs are sold by grade, and the reference unit everywhere - including USDA's own
+ * "1 cup (4.86 large eggs)" - is the LARGE egg at 50 g. Preferring the medium
+ * would make one حبة mean 44 g of a raw egg and 50 g of a boiled one: the same egg
+ * weighing two different amounts depending on whether it had been cooked.
+ */
+const PREFERRED_SIZE: Record<string, string> = { dairy_eggs: 'large' };
+
+/** Nothing a person is served in one sitting weighs this much. */
+const MAX_SERVABLE_GRAMS = 1000;
+
+/**
+ * Portions that measure something other than one ordinary serving.
+ *
+ * `NLEA serving` is a labelling construct, not a household count. A whole melon or
+ * a whole pint is a purchase, not a portion. Both would otherwise win a family and
+ * become the unit a dietitian is offered.
+ */
+function isServable(label: string, grams: number): boolean {
+  const lower = label.toLowerCase();
+  if (lower.includes('nlea')) return false;
+  if (lower.includes('as purchased')) return false;
+  return grams <= MAX_SERVABLE_GRAMS;
+}
+
+/**
+ * The family a measured label belongs to.
+ *
+ * Falls back to scanning the label's words when the leading unit is unrecognised,
+ * which is what `1 Potato medium (2-1/4 to 3-1/4 dia)` needs: the unit word is the
+ * food's own name, and `medium` is the part that says it is a countable item.
+ */
+export function classifyPortion(label: string, unit: string): Family {
+  const direct = classifyUnit(unit);
+  if (direct !== 'none') return direct;
+
+  const words = label.toLowerCase().split(/[\s,()]+/);
+  if (words.some((word) => SIZE_WORDS.includes(word))) return 'piece';
+  if (words.some((word) => PIECE_WORDS.has(word))) return 'piece';
+
+  return 'none';
+}
+
+/**
+ * How good a candidate is for its family, lower being better.
+ *
+ * Within `piece` this is what picks the 182 g medium apple over the 101 g extra
+ * small and the 223 g large. Within `cup` it prefers the plain "1 cup" to "1 cup,
+ * mashed" - the same volume described three ways is one unit, and the plainest
+ * label is the one that reads as that unit rather than as a preparation.
+ */
+function candidateRank(label: string, category: string): number {
+  const lower = label.toLowerCase();
+  const preferred = PREFERRED_SIZE[category];
+
+  if (preferred && lower.includes(preferred)) return 0;
+  if (lower.includes('medium')) return 1;
+  // "1 fruit", "1 apricot", "1 pomegranate" - a bare count of the thing itself.
+  if (!lower.includes(',') && !lower.includes('large') && !lower.includes('small')) return 2;
+  if (lower.includes('large')) return 3;
+  if (lower.includes('small')) return 4;
+
+  return 5;
+}
+
+/**
+ * The portions a food offers, from every household measure USDA published for it.
+ *
+ * Returns `[]` - meaning "grams only" - for a suppressed category, and for a food
+ * whose every measure names a weight rather than a household unit.
+ */
 export function derivePortions(source: {
   category: string;
-  portionGrams: number | null | undefined;
-  portionLabel: string | null | undefined;
+  portions: readonly MeasuredPortion[] | null | undefined;
 }): PortionSeed[] {
   if (GRAMS_ONLY_CATEGORIES.has(source.category)) return [];
-  if (source.portionGrams == null || source.portionGrams <= 0 || !source.portionLabel) return [];
+  if (!source.portions?.length) return [];
 
-  const parsed = parsePortionLabel(source.portionLabel);
-  if (!parsed) return [];
+  /** The best measured base for one of each family. */
+  const best = new Map<Exclude<Family, 'none'>, { base: number; rank: number }>();
 
-  // "0.5 cup, diced = 75 g" means a whole cup is 150 g. The label's own count is
-  // what makes the base recoverable.
-  const base = source.portionGrams / parsed.amount;
-  if (!Number.isFinite(base) || base <= 0) return [];
+  for (const portion of source.portions) {
+    if (!(portion.grams > 0) || !isServable(portion.label, portion.grams)) continue;
 
-  const family = classifyUnit(parsed.unit);
-  if (family === 'none') return [];
+    const parsed = parsePortionLabel(portion.label);
+    if (!parsed) continue;
 
-  return FAMILY_ROWS[family]
-    .map(([labelAr, labelEn, factor], index) => ({
-      labelAr,
-      labelEn,
-      grams: g(base * factor),
-      isDefault: index === 0,
-      sortOrder: index,
-    }))
-    // A fraction that rounds away to nothing is not a portion. Only reachable for
-    // a food measured in fractions of a gram, and dropping it beats offering
-    // "quarter cup = 0 g".
-    .filter((portion) => portion.grams > 0);
+    const family = classifyPortion(portion.label, parsed.unit);
+    if (family === 'none') continue;
+    if (SPOON_ONLY_CATEGORIES.has(source.category) && !SPOON_FAMILIES.has(family)) continue;
+
+    // "0.5 cup, diced = 75 g" means a whole cup is 150 g. The label's own count is
+    // what makes the base recoverable.
+    const base = portion.grams / parsed.amount;
+    if (!Number.isFinite(base) || base <= 0) continue;
+
+    const rank = candidateRank(portion.label, source.category);
+    const held = best.get(family);
+
+    if (!held || rank < held.rank) best.set(family, { base, rank });
+  }
+
+  const families = FAMILY_PRIORITY.filter((family) => best.has(family)).slice(0, MAX_FAMILIES);
+
+  const rows: PortionSeed[] = [];
+  /*
+   * Two families can name the same unit: a tablespoon family derives its own
+   * teaspoon, and a food that measured both would emit "Teaspoon" twice. The seed
+   * upserts portions on `(food_id, label_en)`, so a duplicate is not an error - it
+   * is one row silently taking whichever weight was written last. The first
+   * family wins, because families are walked in priority order.
+   */
+  const taken = new Set<string>();
+
+  for (const family of families) {
+    const { base } = best.get(family)!;
+
+    for (const [labelAr, labelEn, factor] of FAMILY_ROWS[family]) {
+      if (taken.has(labelEn)) continue;
+
+      const grams = g(base * factor);
+      // A fraction that rounds away to nothing is not a portion. Only reachable
+      // for a food measured in fractions of a gram, and dropping it beats
+      // offering "quarter cup = 0 g".
+      if (grams <= 0) continue;
+
+      taken.add(labelEn);
+
+      rows.push({
+        labelAr,
+        labelEn,
+        grams,
+        isDefault: rows.length === 0,
+        sortOrder: rows.length,
+      });
+    }
+  }
+
+  return rows;
 }

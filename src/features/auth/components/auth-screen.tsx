@@ -201,7 +201,7 @@ export function AuthScreen({
      * could see.
      *
      * `q-route-stage` stays absent from this route. Its enter animation starts
-     * from `clip-path: inset(0 1rem 0 0 round var(--qiwam-radius-lg))`, which
+     * from `clip-path: inset(0 1rem 0 0 round var(--enzyme-radius-lg))`, which
      * clips against the element's own box — and this element's box is the full
      * viewport, not the card, so the strip it opens from is bare document
      * background down the edge of the screen rather than a surface sliding in.

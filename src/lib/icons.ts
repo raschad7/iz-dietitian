@@ -45,7 +45,7 @@ import {
   FileText,
   Flame,
   Footprints,
-  GripVertical,
+  GripHorizontal,
   Heart,
   HelpCircle,
   History,
@@ -79,6 +79,7 @@ import {
   ReceiptText,
   RefreshCw,
   Repeat,
+  RotateCcw,
   Ruler,
   Sandwich,
   Search,
@@ -229,7 +230,17 @@ export const APP_ICONS = {
   filter: ListFilter,
   sort: ArrowUpDown,
   moreActions: MoreVertical,
-  dragHandle: GripVertical,
+  /*
+    Horizontal grip, not vertical.
+
+    The vertical grip is the mark for a row in a list you reorder up and down —
+    a settings list, a queue. A meal card moves in two dimensions here: to
+    another slot in its own day, and to the same slot on another day. The
+    horizontal bars read as "pick this up" rather than as "drag me up or down",
+    and the glyph is wider than it is tall, which is the shape of the corner it
+    sits in.
+  */
+  dragHandle: GripHorizontal,
   clearSlot: Eraser,
   repeat: Repeat,
   history: History,
@@ -238,6 +249,18 @@ export const APP_ICONS = {
   eyeOff: EyeOff,
   check: Check,
   back: ArrowLeft,
+  /*
+    Sparkles, which is what "generated" looks like across every product a
+    dietitian has ever used. It shares the glyph with `encouragement` in the
+    portal and that is fine — the names describe two different jobs, and either
+    one can be re-pointed without touching the other.
+
+    It replaced `refresh` on the planner's generate door, where a circular arrow
+    said "do that again" on a button that had never been pressed.
+  */
+  ai: Sparkles,
+  /* A counter-clockwise arrow: put back what it was, not fetch it again. */
+  undo: RotateCcw,
 
   /* Identity and access */
   email: Mail,

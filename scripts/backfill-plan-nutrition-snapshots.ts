@@ -47,7 +47,8 @@ import {
   buildMealSnapshot,
   readMealSnapshot,
 } from '@/features/weekly-plans/nutrition-snapshot';
-import { loadDishesByIds } from '@/features/weekly-plans/queries';
+import { mealIngredientLines } from '@/features/weekly-plans/meal-ingredients';
+import { loadDishesByIds, ownAmountsByMeal } from '@/features/weekly-plans/queries';
 
 type Unresolved = {
   clinicId: string;
@@ -199,12 +200,24 @@ export async function backfillPlanNutritionSnapshots(
   if (!apply) return report;
 
   await db.transaction(async (tx) => {
-    for (const meal of needsSnapshot) {
-      const dish = dishById.get(meal.dishId!)!;
+    // The hand-set amounts for every meal about to be frozen. A meal a dietitian
+    // adjusted must be backfilled at the amounts she set, not at the dish's.
+    const ownAmounts = await ownAmountsByMeal(
+      [...needsSnapshot, ...needsRepair].map((meal) => meal.id),
+      tx,
+    );
 
+    const linesFor = (meal: (typeof needsSnapshot)[number]) =>
+      mealIngredientLines({
+        recipe: dishById.get(meal.dishId!)!.ingredients,
+        servings: meal.servings,
+        stored: ownAmounts.get(meal.id),
+      });
+
+    for (const meal of needsSnapshot) {
       await tx
         .update(weeklyPlanMeals)
-        .set({ nutritionSnapshot: buildMealSnapshot(dish.ingredients, meal.servings) })
+        .set({ nutritionSnapshot: buildMealSnapshot(linesFor(meal)) })
         // `is null` in the predicate as well as in the scan above: it makes the
         // write itself idempotent, so a concurrent publish that froze this meal
         // between the read and the write is not overwritten.
@@ -217,11 +230,9 @@ export async function backfillPlanNutritionSnapshots(
     // `is null` guard. There is nothing to protect here anyway: what is being
     // replaced is a blob no reader can use.
     for (const meal of needsRepair) {
-      const dish = dishById.get(meal.dishId!)!;
-
       await tx
         .update(weeklyPlanMeals)
-        .set({ nutritionSnapshot: buildMealSnapshot(dish.ingredients, meal.servings) })
+        .set({ nutritionSnapshot: buildMealSnapshot(linesFor(meal)) })
         .where(eq(weeklyPlanMeals.id, meal.id));
 
       report.snapshotsRepaired += 1;

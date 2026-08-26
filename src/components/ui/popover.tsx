@@ -22,13 +22,29 @@ function PopoverContent({
   sideOffset = 4,
   container,
   positionMethod,
+  forceAnchored,
   ...props
 }: PopoverPrimitive.Popup.Props &
   Pick<
     PopoverPrimitive.Positioner.Props,
     "align" | "alignOffset" | "side" | "sideOffset" | "positionMethod"
   > &
-  Pick<PopoverPrimitive.Portal.Props, "container">) {
+  Pick<PopoverPrimitive.Portal.Props, "container"> & {
+    /**
+     * Keeps this one popover anchored to its trigger even on a coarse
+     * pointer, opting it out of the `(pointer: coarse)` rule in
+     * `globals.css` that otherwise turns every popover into a bottom sheet
+     * on touch hardware.
+     *
+     * Off by default — that rule is the right call for a list of options a
+     * thumb has to reach, and stays the default for exactly that reason (see
+     * the rule's own comment). This exists for the rare surface that has to
+     * read as a small popup anchored to its icon on every input device, not
+     * as a sheet on a phone — `NotificationInboxPopover`'s own escape hatch,
+     * `sheetOnTouch={false}`, is built on it.
+     */
+    forceAnchored?: boolean
+  }) {
   /*
    * `container` is this file's one addition to the shadcn component, and it
    * exists for the native `<dialog>`.
@@ -68,10 +84,12 @@ function PopoverContent({
         sideOffset={sideOffset}
         positionMethod={positionMethod ?? (resolvedContainer ? "fixed" : undefined)}
         data-slot="popover-positioner"
+        data-force-anchored={forceAnchored ? "" : undefined}
         className="isolate z-50"
       >
         <PopoverPrimitive.Popup
           data-slot="popover-content"
+          data-force-anchored={forceAnchored ? "" : undefined}
           className={cn(
             "z-50 flex w-72 origin-(--transform-origin) flex-col gap-2.5 rounded-lg bg-popover p-2.5 text-sm text-popover-foreground shadow-md ring-1 ring-foreground/10 outline-hidden duration-100 data-[side=bottom]:slide-in-from-top-2 data-[side=inline-end]:slide-in-from-start-2 data-[side=inline-start]:slide-in-from-end-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
             /*
@@ -152,8 +170,26 @@ function PopoverDescription({
   )
 }
 
+/**
+ * A control inside the popup that dismisses it.
+ *
+ * Reach for this rather than driving `Popover`'s `open` from a `useState` when
+ * all a call site wants is "this entry finishes the menu". A controlled popup
+ * closed by setting state leaves the popup mounted and fully opaque — Base UI's
+ * exit animation never runs, so it never sees `animationend` and never
+ * unmounts, and the menu stays on screen for good. Going through Base UI's own
+ * close path does not have that problem.
+ *
+ * `render` takes the real control, so a menu row stays a `Button` with its own
+ * variant and handler; this only adds the dismissal.
+ */
+function PopoverClose({ ...props }: PopoverPrimitive.Close.Props) {
+  return <PopoverPrimitive.Close data-slot="popover-close" {...props} />
+}
+
 export {
   Popover,
+  PopoverClose,
   PopoverContent,
   PopoverDescription,
   PopoverHeader,

@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import { Icon, type IconName } from '@/components/ui/icon';
+import { TooltipHint } from '@/components/ui/tooltip-hint';
 import { cn } from '@/lib/utils';
 
 import { publishPlanAction, unpublishPlanAction } from '../actions';
@@ -65,12 +66,20 @@ export function PublishButton({
         <form action={unpublish}>
           <input type="hidden" name="locale" value={locale} />
           <input type="hidden" name="planId" value={planId} />
+          {/*
+            The tip the board's read-only banner used to be. It is on this
+            button because this button is the way out of the state it describes
+            — and because a header control that has visibly changed shape is
+            already saying "something is different", so what is left to explain
+            is only *what to do about it*.
+          */}
           <Submit
             label={t('unpublish')}
             pendingLabel={t('unpublishing')}
             labels={labels}
             icon="eyeOff"
             variant="outline"
+            title={t('publishedReadOnly')}
             confirmed={publishState.status === 'done'}
           />
         </form>
@@ -92,7 +101,15 @@ export function PublishButton({
           labels={labels}
           icon="eye"
           disabled={unfilled > 0}
-          title={unfilled > 0 ? t('errors.unfilled') : undefined}
+          /*
+            The count, not the flat "cannot publish while meals are unfilled".
+            This tip replaced a banner that said how many were left, and the
+            number is the half of it worth keeping: "three still empty" tells
+            you roughly how much work is in front of you, and "cannot publish"
+            tells you only what you already found out by hovering a disabled
+            button.
+          */
+          title={unfilled > 0 ? t('unfilledWarning', { count: unfilled }) : undefined}
         />
       </form>
       <Message state={publishState} />
@@ -122,13 +139,12 @@ function Submit({
 }) {
   const { pending } = useFormStatus();
 
-  return (
+  const button = (
     <Button
       type="submit"
       size="sm"
       variant={variant}
       disabled={pending || disabled}
-      title={title}
       aria-busy={pending}
       data-pending={pending}
       data-confirmed={confirmed || undefined}
@@ -159,6 +175,21 @@ function Submit({
       </span>
     </Button>
   );
+
+  if (!title) return button;
+
+  /*
+    The reason it is disabled, in this app's tooltip rather than the browser's
+    `title`.
+
+    A disabled button swallows its own pointer events, which is exactly why the
+    native tip was chosen here and exactly why it was the wrong choice: it works
+    only for a mouse, waits a second, and is drawn by the OS. `TooltipHint`
+    wraps the button in a span, and the span is what the pointer hovers — so the
+    explanation arrives on the one control whose whole problem is that it cannot
+    be pressed.
+  */
+  return <TooltipHint label={title}>{button}</TooltipHint>;
 }
 
 function Message({ state }: { state: PlanActionState }) {

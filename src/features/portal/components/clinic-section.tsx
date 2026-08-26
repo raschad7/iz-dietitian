@@ -128,7 +128,10 @@ export function ClinicSection({
             announced louder than the client's own record, in a card that is
             one of four equal facts. At 16px it is a fact, stated plainly.
           */}
-          <p className="font-heading text-base leading-snug font-semibold text-balance">
+          {/* `ps-14`: the same disc gutter (`size-11` + `gap-3`) `FactTile`'s
+              own value clears below it, so the name starts where the label's
+              text starts rather than under the disc beside it. */}
+          <p className="ps-14 font-heading text-base leading-snug font-semibold text-balance">
             {clinic.name}
           </p>
         </CardContent>
@@ -351,10 +354,19 @@ function FactTile({
       <CardContent className="flex flex-col items-start gap-2 sm:items-center sm:text-center">
         <FactLabel icon={icon} label={label} className="sm:flex-col sm:gap-2" />
 
+        {/*
+          **Below `sm`, the value starts where the label's text starts, not
+          where the disc does.** Same gutter `InfoRow` clears for its own
+          stacked value — the disc is `size-11` and its gap is `gap-3`, 56px
+          together, written as `ps-14`/`ms-14` for the arithmetic to stay
+          visible (spacing(14) is 3.5rem, the sum of the two). `sm:ps-0`/
+          `sm:ms-0` drop it once the layout centres both under the disc
+          instead of hanging them off it.
+        */}
         {empty ? (
-          <Badge variant="unrecorded">{t('notRecorded')}</Badge>
+          <Badge variant="unrecorded" className="ms-14 sm:ms-0">{t('notRecorded')}</Badge>
         ) : (
-          <p className="text-base leading-relaxed font-semibold text-balance">
+          <p className="ps-14 text-base leading-relaxed font-semibold text-balance sm:ps-0">
             {/*
               `<bdi>` and not `dir`: `dir` would also re-resolve this card's
               `text-center` against the value instead of the page, and the

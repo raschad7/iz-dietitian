@@ -459,11 +459,24 @@ function NotificationInboxPopover<T extends string>({
         >
           {header(SheetTitle, 'pe-12')}
 
+          {/*
+            Named as the sheet's body rather than described as one.
+
+            `min-h-0 flex-1` said the same thing in utilities and said it wrong:
+            `flex-1` is a *zero* basis, and `SheetContent` gives a bottom sheet
+            `h-auto`, so the box was telling an auto-height column that its rows
+            contribute nothing to the column's height. Blink sizes the column
+            from the content anyway; WebKit does not, and the sheet opened as its
+            header and footer with the list pinched out between them.
+
+            The `sheet-body` frame in `globals.css` states `flex: 1 1 auto` with
+            the same floor of zero, and clips `SheetContent` around it — the
+            contract `SheetBody` already carries, reached here without its
+            padding.
+          */}
           <div
-            className={cn(
-              'min-h-0 flex-1 overflow-y-auto overscroll-contain',
-              !footer && 'pb-[env(safe-area-inset-bottom)]',
-            )}
+            data-slot="sheet-body"
+            className={cn(!footer && 'pb-[env(safe-area-inset-bottom)]')}
           >
             {list}
           </div>
@@ -482,6 +495,14 @@ function NotificationInboxPopover<T extends string>({
 
       <PopoverContent
         align={align}
+        /*
+          Always anchored, never redrawn as a sheet by the `(pointer: coarse)`
+          rule in `globals.css` — correct whether this branch was chosen
+          because the pointer is fine (that rule would not apply anyway) or
+          because a caller passed `sheetOnTouch={false}` specifically to keep
+          this popover anchored on touch too. See `PopoverContent`'s own prop.
+        */
+        forceAnchored
         /*
           `overflow-x-hidden overflow-y-auto`, not `overflow-hidden`, and the
           difference is load-bearing.

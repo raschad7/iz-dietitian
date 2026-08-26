@@ -1,7 +1,7 @@
 import type { SVGProps } from 'react';
 
 /**
- * Brand icons drawn for Qiwam rather than taken from lucide.
+ * Brand icons drawn for Enzyme rather than taken from lucide.
  *
  * They exist here because the design supplies them as artwork: the menu's bars
  * are deliberately unequal and offset — a stroked icon set cannot express that.

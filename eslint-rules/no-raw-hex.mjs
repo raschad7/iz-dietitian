@@ -2,7 +2,7 @@
  * ESLint plugin: bans raw hex colour literals in .tsx/.jsx.
  *
  * This app has exactly one place hex colours are allowed to live:
- * src/app/globals.css, where the Qiwam primitives and semantic tokens are
+ * src/app/globals.css, where the Enzyme primitives and semantic tokens are
  * defined (see design-system.md). Everywhere else — component classNames,
  * inline style objects, SVG fill/stroke props — a hex literal is a value
  * that skipped the token system, and it will drift the first time the

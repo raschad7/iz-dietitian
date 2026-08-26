@@ -1,6 +1,6 @@
 # MVP product scope
 
-Qiwam is a bilingual, RTL-first clinic management application for dietitians
+Enzyme is a bilingual, RTL-first clinic management application for dietitians
 and their clients. “MVP” means the first useful releasable product. It does not
 mean the repository has only one small feature.
 
@@ -12,6 +12,7 @@ The current repository includes:
 - A clinic client roster and client profiles
 - Appointment booking and calendar views
 - A staff dashboard
+<<<<<<< HEAD
 - Nutrition profiles and AI-assisted weekly plans based on a controlled dish
   catalog
 - A manual subscriber ledger: what each subscriber was billed, what they paid,
@@ -24,6 +25,14 @@ The current repository includes:
   zero and every one after it at the price above; the zero row is what makes
   the second chargeable, so a free visit is written down rather than skipped
 - A client portal for appointments, profile details, and published plans
+=======
+- Nutrition profiles and AI-assisted weekly plans built from a canonical food
+  catalog and an editable dish catalog
+- A client portal for appointments, profile details, and published plans,
+  installable as a PWA
+- Clinic onboarding, clinic and account settings, and in-app notifications
+- A guided in-app user tour
+>>>>>>> 2fc96edfef517fccc430d17ca971bb46fc56007a
 - Optional WhatsApp reminders, confirmations, replies, and portal credentials
 - Arabic and English interfaces with RTL support
 

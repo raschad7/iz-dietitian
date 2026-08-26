@@ -218,16 +218,16 @@ describe('toggleMealCompletion', () => {
   });
 
   /*
-    Only today can be reported on. The portal draws no control on any other day
-    — see `MealCard` — but this is the rule itself: a server action is a public
-    endpoint, so the guard has to hold against a post that never went near the
-    screen.
+    Today, or a day already behind it, can be reported on — never one still
+    ahead. The portal draws no control on a future day — see `MealCard` — but
+    this is the rule itself: a server action is a public endpoint, so the
+    guard has to hold against a post that never went near the screen.
 
-    The date is taken from the meal, never from the caller, so these two cases
-    are the whole surface: a meal whose day has ended, and one whose day has not
-    arrived.
+    The date is taken from the meal, never from the caller, so a day already
+    ended and a day not yet arrived are the whole surface this guard has to
+    tell apart.
   */
-  test('refuses a meal on a day that has already ended', async () => {
+  test('allows a meal on a day that has already ended, so a client can log it after the fact', async () => {
     const { dayZero } = await insertMeals(planId);
     const [first] = dayZero;
     if (!first) throw new Error('fixture failed: no meal on day 0');
@@ -239,9 +239,9 @@ describe('toggleMealCompletion', () => {
       true,
     );
 
-    expect(result).toEqual({ ok: false, error: 'errors.dayLocked' });
-    expect(await completionExists(clientId, first)).toBe(false);
-    expect(await adherenceLevel(clientId, WEEK_START)).toBeNull();
+    expect(result).toEqual({ ok: true, data: { date: WEEK_START, level: 'partial' } });
+    expect(await completionExists(clientId, first)).toBe(true);
+    expect(await adherenceLevel(clientId, WEEK_START)).toBe('partial');
   });
 
   test('refuses a meal on a day that has not arrived', async () => {
@@ -260,7 +260,7 @@ describe('toggleMealCompletion', () => {
     expect(await completionExists(clientId, monday)).toBe(false);
   });
 
-  test('unticking is refused on a settled day too, so a record cannot be erased', async () => {
+  test('unticking is allowed on a settled day too, so a client can correct their own record', async () => {
     const { dayZero } = await insertMeals(planId);
     const [first] = dayZero;
     if (!first) throw new Error('fixture failed: no meal on day 0');
@@ -274,8 +274,8 @@ describe('toggleMealCompletion', () => {
       false,
     );
 
-    expect(result).toEqual({ ok: false, error: 'errors.dayLocked' });
-    expect(await completionExists(clientId, first)).toBe(true);
-    expect(await adherenceLevel(clientId, WEEK_START)).toBe('partial');
+    expect(result).toEqual({ ok: true, data: { date: WEEK_START, level: 'missed' } });
+    expect(await completionExists(clientId, first)).toBe(false);
+    expect(await adherenceLevel(clientId, WEEK_START)).toBe('missed');
   });
 });

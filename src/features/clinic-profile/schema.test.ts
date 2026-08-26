@@ -26,21 +26,21 @@ describe('clinicInformationSchema', () => {
   test('normalizes required clinic contact information', () => {
     expect(
       clinicInformationSchema.parse({
-        name: '  Qiwam Clinic  ',
+        name: '  Enzyme Clinic  ',
         phone: '  0599123456  ',
-        contactEmail: '  TEAM@QIWAM.TEST ',
+        contactEmail: '  TEAM@ENZYME.TEST ',
         address: '  Ramallah, Main Street  ',
       }),
     ).toEqual({
-      name: 'Qiwam Clinic',
+      name: 'Enzyme Clinic',
       phone: '0599123456',
-      contactEmail: 'team@qiwam.test',
+      contactEmail: 'team@enzyme.test',
       address: 'Ramallah, Main Street',
     });
   });
 
   test('requires the phone to be exactly ten digits', () => {
-    const base = { name: 'Qiwam Clinic', contactEmail: 'team@qiwam.test', address: 'Ramallah' };
+    const base = { name: 'Enzyme Clinic', contactEmail: 'team@enzyme.test', address: 'Ramallah' };
     const accepts = (phone: string) => clinicInformationSchema.safeParse({ ...base, phone }).success;
 
     expect(accepts('0599123456')).toBe(true);
@@ -58,9 +58,9 @@ describe('clinicInformationSchema', () => {
   test('rejects a missing required clinic field', () => {
     expect(
       clinicInformationSchema.safeParse({
-        name: 'Qiwam Clinic',
+        name: 'Enzyme Clinic',
         phone: '',
-        contactEmail: 'team@qiwam.test',
+        contactEmail: 'team@enzyme.test',
         address: 'Ramallah',
       }).success,
     ).toBe(false);

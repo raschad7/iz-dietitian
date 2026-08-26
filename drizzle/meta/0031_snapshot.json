@@ -1,5 +1,9 @@
 {
+<<<<<<< HEAD
   "id": "eb11bee2-5b58-45b5-bb1d-ffb445fbd48e",
+=======
+  "id": "1caafd4d-2932-4b6c-8801-f87d44b45226",
+>>>>>>> 2fc96edfef517fccc430d17ca971bb46fc56007a
   "prevId": "4dbd9197-da06-4a2b-ac3b-f0579b8166d3",
   "version": "7",
   "dialect": "postgresql",
@@ -2617,6 +2621,16 @@
           "primaryKey": false,
           "notNull": false
         },
+<<<<<<< HEAD
+=======
+        "is_primary": {
+          "name": "is_primary",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+>>>>>>> 2fc96edfef517fccc430d17ca971bb46fc56007a
         "sort_order": {
           "name": "sort_order",
           "type": "integer",
@@ -3629,6 +3643,170 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+<<<<<<< HEAD
+=======
+    "public.weekly_plan_meal_ingredients": {
+      "name": "weekly_plan_meal_ingredients",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "meal_id": {
+          "name": "meal_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "catalog_food_id": {
+          "name": "catalog_food_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quantity_grams": {
+          "name": "quantity_grams",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "portion_id": {
+          "name": "portion_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "portion_quantity": {
+          "name": "portion_quantity",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_primary": {
+          "name": "is_primary",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "sort_order": {
+          "name": "sort_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "weekly_plan_meal_ingredients_meal_id_idx": {
+          "name": "weekly_plan_meal_ingredients_meal_id_idx",
+          "columns": [
+            {
+              "expression": "meal_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "sort_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "weekly_plan_meal_ingredients_food_idx": {
+          "name": "weekly_plan_meal_ingredients_food_idx",
+          "columns": [
+            {
+              "expression": "meal_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "catalog_food_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "weekly_plan_meal_ingredients_meal_id_weekly_plan_meals_id_fk": {
+          "name": "weekly_plan_meal_ingredients_meal_id_weekly_plan_meals_id_fk",
+          "tableFrom": "weekly_plan_meal_ingredients",
+          "tableTo": "weekly_plan_meals",
+          "columnsFrom": [
+            "meal_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "weekly_plan_meal_ingredients_catalog_food_id_catalog_foods_id_fk": {
+          "name": "weekly_plan_meal_ingredients_catalog_food_id_catalog_foods_id_fk",
+          "tableFrom": "weekly_plan_meal_ingredients",
+          "tableTo": "catalog_foods",
+          "columnsFrom": [
+            "catalog_food_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "weekly_plan_meal_ingredients_portion_id_catalog_food_portions_id_fk": {
+          "name": "weekly_plan_meal_ingredients_portion_id_catalog_food_portions_id_fk",
+          "tableFrom": "weekly_plan_meal_ingredients",
+          "tableTo": "catalog_food_portions",
+          "columnsFrom": [
+            "portion_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+>>>>>>> 2fc96edfef517fccc430d17ca971bb46fc56007a
     "public.weekly_plan_meal_options": {
       "name": "weekly_plan_meal_options",
       "schema": "",
@@ -4260,6 +4438,7 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+<<<<<<< HEAD
     "public.client_charges": {
       "name": "client_charges",
       "schema": "",
@@ -4547,6 +4726,8 @@
       },
       "isRLSEnabled": false
     },
+=======
+>>>>>>> 2fc96edfef517fccc430d17ca971bb46fc56007a
     "public.whatsapp_messages": {
       "name": "whatsapp_messages",
       "schema": "",

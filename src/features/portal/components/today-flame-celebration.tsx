@@ -12,6 +12,7 @@ import { FINAL_MASCOT_STATE } from '@/features/portal/mascot/states';
 import { usePlanDayCompletion } from '@/features/weekly-plans/components/plan-day-completion';
 import { getLocaleDirection, type Locale } from '@/i18n/routing';
 import { playCelebrationChime } from '@/lib/celebration-chime';
+import { playFlameClaimSound } from '@/lib/flame-claim-sound';
 import { cn } from '@/lib/utils';
 
 import { DayFlame } from './day-flame';
@@ -208,6 +209,7 @@ export function TodayFlameCell({ day }: { day: AdherenceDay }) {
     // only runs once `<Dialog>`'s own effect sees `open` flip below.
     startRectRef.current = heroRef.current?.getBoundingClientRect() ?? null;
     setPhase('claiming');
+    playFlameClaimSound();
   }
 
   useLayoutEffect(() => {

@@ -40,7 +40,7 @@ import {
   nutritionCategory,
   NUTRIENT_UNITS,
   roundForDisplay,
-  type DishIngredientDetail,
+  type NutrientSource,
 } from '../nutrition';
 import { dishTagDotClasses } from '../meal-tag-tone';
 import type { RefinedFood } from '../ingredient-refine';
@@ -259,7 +259,7 @@ export function DishEditor({
     [preparedRows],
   );
 
-  const nutritionDetails: DishIngredientDetail[] = useMemo(
+  const nutritionDetails: NutrientSource[] = useMemo(
     () => completeRows.map((prepared) => ({ quantityGrams: prepared.grams, food: prepared.row.food })),
     [completeRows],
   );

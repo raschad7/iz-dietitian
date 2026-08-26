@@ -112,9 +112,41 @@ export function ClientPicker({
           // The header's copy is the client's name — the subject of the screen,
           // in the display face. `font-medium`, not semibold: it needs no help
           // being read, and at semibold it competed with the figures beside it.
-          bar && '[&_input]:text-center [&_input]:font-heading [&_input]:text-heading-sm [&_input]:font-medium',
+          //
+          // Start-aligned, where this used to centre. The control is a wide box
+          // beside a 44px avatar disc, and a centred name sat in the middle of
+          // that box rather than next to the face it belongs to — with the
+          // chevron stranded at the far end and a hand's width of nothing
+          // between them. A name reads as the disc's caption when it starts
+          // where the disc ends.
+          bar && '[&_input]:text-start [&_input]:font-heading [&_input]:text-heading-sm [&_input]:font-medium',
           pending && 'pointer-events-none opacity-60',
         )}
+        /*
+          **The same three declarations again, on the text layer.**
+
+          On an Arabic page `Input` paints the value in an ordinary span over a
+          transparent native input, because Chromium clips Almarai's descenders
+          inside a real `<input>` (see `unclippedText` there). So the line above
+          restyles the half nobody sees, and the half everybody sees stayed
+          14px, in the UI face, aligned to the start.
+
+          That was invisible until the native text painted again — and it does,
+          the instant it is selected, which is the first thing clicking a
+          combobox does. Chromium draws selected text through
+          `-webkit-text-fill-color: transparent`, so the name appeared twice at
+          once: centred and 20px under the caret, and start-aligned and 14px
+          where the mirror had it. Typing then filtered the list from a caret
+          that was nowhere near the letters.
+
+          Only the face and the size now that both halves are start-aligned. The
+          alignment override and the padding that went with it are gone with the
+          centring: centred text is centred *in its box*, so the two layers'
+          unequal end padding put the two names 7px apart and both had to be
+          forced symmetric. Text that starts at the start edge starts in the
+          same place whatever the padding after it is.
+        */
+        unclippedTextClassName={bar ? 'font-heading text-heading-sm font-medium' : undefined}
       />
 
       <ComboboxContent className={cn(PLANNER_THEME, 'min-w-72')}>

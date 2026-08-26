@@ -225,19 +225,19 @@
 
 @keyframes harness-seam {
   from {
-    clip-path: inset(50% 0 50% 0 round var(--qiwam-radius-lg, 0.75rem));
+    clip-path: inset(50% 0 50% 0 round var(--enzyme-radius-lg, 0.75rem));
     opacity: 0.4;
   }
 
   to {
-    clip-path: inset(0 0 0 0 round var(--qiwam-radius-lg, 0.75rem));
+    clip-path: inset(0 0 0 0 round var(--enzyme-radius-lg, 0.75rem));
     opacity: 1;
   }
 }
 
 @keyframes harness-seam-out {
   to {
-    clip-path: inset(50% 0 50% 0 round var(--qiwam-radius-lg, 0.75rem));
+    clip-path: inset(50% 0 50% 0 round var(--enzyme-radius-lg, 0.75rem));
     opacity: 0.2;
   }
 }

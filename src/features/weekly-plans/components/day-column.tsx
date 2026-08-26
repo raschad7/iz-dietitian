@@ -4,35 +4,27 @@ import { useState } from 'react';
 import { useFormatter, useLocale, useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/dialog';
 import { Field } from '@/components/ui/field';
 import { Icon } from '@/components/ui/icon';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { getLocaleDirection } from '@/i18n/routing';
+import { SelectField } from '@/components/ui/select-field';
+import { TimeInput } from '@/components/ui/time-input';
+import { TooltipHint } from '@/components/ui/tooltip-hint';
+import { getLocaleDirection, type Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 
 import { roundForDisplay } from '@/features/weekly-plans/nutrition';
 import { bandGeometry } from '../band';
 import type { BoardRow } from '../board-rows';
 import { nextSlotKey } from '../editor-state';
-import { MEAL_ICON_OPTIONS } from '../meal-icons';
+import { MEAL_ICON_OPTIONS, MEAL_NAME_SUGGESTIONS } from '../meal-icons';
 import type { BoardDay } from '../queries';
 import { dayKey } from '../schema';
 
 import { useEditorActions } from './board-dnd';
 import { MealCard, type GhostMeal } from './meal-card';
-
-/**
- * Pins the add control to the last row of the week's grid.
- *
- * Everything else in the column is auto-placed, which is right for the header and
- * the cards. The add control is not: a day holding fewer meals than the week's
- * longest would place it one row early and end out of line with its neighbours.
- * `-2 / -1` is the last row of whatever template the column inherited, so it does
- * not need to know the slot count.
- */
-const LAST_ROW = { gridRow: '-2 / -1' } as const;
 
 /**
  * One day of the week, as a column of meal cards.
@@ -114,42 +106,53 @@ export function DayColumn({
           name and every meal label share one inline-start edge down the
           column — at `px-2` they were 4px out of line. */}
       <div className="sticky top-0 z-10 bg-background px-3 pb-1 pt-0">
-        <div className="flex items-center justify-center gap-1.5">
-          {/* A step above the total under it. Both were within 1px and both
-              semibold, so the week had nothing to be scanned by.
+        {/*
+          **Two lines, not three.** The name, the date and the total each had a
+          line of their own, and seven columns of that is a 70px band across the
+          top of the board that says twenty-one short things. The date is an
+          adjunct to the day — "الأحد ٣٠ أغسطس" is how anyone would say it out
+          loud — so it joins the name on its line and the band loses a third of
+          its height. That is a whole extra meal card's worth of board on a
+          laptop, which is the point of the change.
 
-              Centred over its column: the day name is the column's title now
-              that the cards under it no longer carry any of their own.
+          `flex-wrap` with the name allowed to take the full width: at the
+          narrowest the board goes (a phone showing one day, or the tablet's
+          three-across), a long weekday and its date will not both fit, and the
+          date wrapping under the name is the graceful version of that — the old
+          layout, reached only where it is actually needed.
 
-              16px at 500, where this was 14px at 700. A column heading is read
+          `baseline`, not `center`: the date is smaller, and aligning the boxes
+          would leave it floating above the name's baseline rather than sitting
+          on it.
+        */}
+        <div className="flex flex-wrap items-baseline justify-center gap-x-1.5">
+          {/* 16px at 500, where this was 14px at 700. A column heading is read
               at a glance from across seven columns, and bold-at-14 was doing
               that job by weight rather than by size — which makes a row of seven
               headings look heavy without making any one of them easier to pick
               out. Size carries it now, and the lighter weight leaves the day
               name clearly ahead of the figures under it without shouting. */}
-          <span className="min-w-0 flex-1 truncate text-center text-body-md font-medium">
-            {dayName}
-          </span>
+          <span className="truncate text-body-md font-medium leading-tight">{dayName}</span>
+
+          {/*
+            The calendar date, beside the day name.
+
+            `namesMonth` is the whole idea: printing "أغسطس" over all seven columns
+            says the same word seven times and adds nothing, but never printing it
+            leaves a week that ends on the 2nd unreadable. So the month appears at
+            the start of the week and again wherever the week crosses into the next
+            one — exactly the places a bare day number could be misread — and the
+            other five columns carry the number alone. See `planColumnDates`.
+          */}
+          {date && (
+            <span className="text-caption leading-tight text-muted-foreground" dir="auto">
+              {format.dateTime(new Date(`${date}T00:00:00`), {
+                day: 'numeric',
+                ...(namesMonth ? { month: 'short' } : {}),
+              })}
+            </span>
+          )}
         </div>
-
-        {/*
-          The calendar date, under the day name.
-
-          `namesMonth` is the whole idea: printing "أغسطس" over all seven columns
-          says the same word seven times and adds nothing, but never printing it
-          leaves a week that ends on the 2nd unreadable. So the month appears at
-          the start of the week and again wherever the week crosses into the next
-          one — exactly the places a bare day number could be misread — and the
-          other five columns carry the number alone. See `planColumnDates`.
-        */}
-        {date && (
-          <span className="mt-0.5 block text-center text-caption text-muted-foreground" dir="auto">
-            {format.dateTime(new Date(`${date}T00:00:00`), {
-              day: 'numeric',
-              ...(namesMonth ? { month: 'short' } : {}),
-            })}
-          </span>
-        )}
 
         {/* The total, and — when the day misses the target — an arrow and the
             attention colour. The arrow is decorative; the amber figure beside
@@ -159,10 +162,15 @@ export function DayColumn({
             There is no band under it any more. Seven of them across the top of
             the board was seven six-pixel graphics competing with the seven
             figures they restated, in the one strip that has to stay scannable.
-            The drift state they were drawn to show is on the figure itself. */}
+            The drift state they were drawn to show is on the figure itself.
+
+            The day with nothing in it prints its target here instead of adding
+            a fourth line under the total — the dietitian looking at an
+            unplanned column is the one who most needs the figure, and an empty
+            column has no total to print in its place. */}
         <span
           className={cn(
-            'mt-0.5 flex items-baseline justify-center gap-1 text-label font-medium',
+            'mt-0.5 flex items-baseline justify-center gap-1 text-label font-medium leading-tight',
             band?.state ? 'font-bold text-status-attention-fg' : 'text-muted-foreground',
           )}
         >
@@ -172,17 +180,10 @@ export function DayColumn({
               className="size-3.5 self-center"
             />
           )}
-          {t('kcalValue', { value: kcal })}
+          {band || dailyTarget <= 0
+            ? t('kcalValue', { value: kcal })
+            : t('dailyTargetShort', { value: dailyTarget })}
         </span>
-
-        {/* A day with nothing in it has no total worth printing, so it prints
-            the target instead — the dietitian looking at an unplanned column is
-            the one who most needs to know what it has to add up to. */}
-        {!band && dailyTarget > 0 && (
-          <span className="mt-1 block text-center text-caption text-muted-foreground">
-            {t('dailyTargetShort', { value: dailyTarget })}
-          </span>
-        )}
       </div>
 
       {/* One cell per row of the week, in the week's order — not this day's own
@@ -247,25 +248,34 @@ function SkippedSlot({
   }
 
   return (
-    <button
-      type="button"
-      onClick={() => add(dayOfWeek, row.slotKey, row.label, row.timeOfDay)}
-      // Named for what it restores, not "add" — there are seven of these in a
-      // column and a screen reader hearing "add" seven times learns nothing.
-      aria-label={t('restoreSlot', { slot: row.label })}
-      title={t('restoreSlot', { slot: row.label })}
-      className="group/skip grid place-items-center rounded-lg border border-dashed border-border/60 text-muted-foreground transition-colors hover:border-primary hover:bg-secondary hover:text-primary"
+    // The hint is this app's tooltip, not the browser's `title`. A native tip
+    // waits a second, cannot be reached from a keyboard or a finger, and is
+    // drawn by the OS in a font and a colour that belong to no part of this
+    // product — on a board whose every other transient panel is a themed
+    // popover, it reads as something leaking through from underneath.
+    <TooltipHint
+      label={t('restoreSlot', { slot: row.label })}
+      className="size-full"
     >
-      <Icon
-        name="add"
-        // `pointer-coarse:` for the same reason as `RemoveSlot` below: the
-        // resting visibility has to answer "can this pointer hover", not "how
-        // wide is the window". On a tablet the width test said yes and the
-        // hover never came, so the one mark saying this empty cell can be
-        // filled back in was invisible.
-        className="size-4 opacity-0 transition-opacity group-hover/skip:opacity-100 group-focus-visible/skip:opacity-100 pointer-coarse:opacity-60"
-      />
-    </button>
+      <button
+        type="button"
+        onClick={() => add(dayOfWeek, row.slotKey, row.label, row.timeOfDay)}
+        // Named for what it restores, not "add" — there are seven of these in a
+        // column and a screen reader hearing "add" seven times learns nothing.
+        aria-label={t('restoreSlot', { slot: row.label })}
+        className="group/skip grid size-full place-items-center rounded-lg border border-dashed border-border/60 text-muted-foreground transition-colors hover:border-primary hover:bg-secondary hover:text-primary"
+      >
+        <Icon
+          name="add"
+          // `pointer-coarse:` for the same reason as `RemoveSlot` below: the
+          // resting visibility has to answer "can this pointer hover", not "how
+          // wide is the window". On a tablet the width test said yes and the
+          // hover never came, so the one mark saying this empty cell can be
+          // filled back in was invisible.
+          className="size-4 opacity-0 transition-opacity group-hover/skip:opacity-100 group-focus-visible/skip:opacity-100 pointer-coarse:opacity-60"
+        />
+      </button>
+    </TooltipHint>
   );
 }
 
@@ -277,32 +287,104 @@ function SkippedSlot({
  * need it loses it individually afterwards, which leaves a `SkippedSlot` above
  * rather than a ragged column.
  *
- * Label and time are asked for rather than defaulted: the dietitian is
- * inventing a meal that is not in the client's schedule, and a row reading
- * "Meal 6" at 00:00 would be worse than one more small form.
+ * ── One question, not three ──
+ *
+ * The form asked for a name, an hour and a glyph, and the name was a free-text
+ * box. Nearly every row anyone adds is one of thirteen things, and each of those
+ * answers the other two questions on its own — nobody puts "before training" at
+ * 07:30, and nobody draws it with a dinner plate. So the name is a list now, and
+ * picking from it fills the hour and the glyph in behind you; both stay
+ * editable, because a client who trains at six in the morning exists.
+ *
+ * ── Names already on the board are shown, disabled ──
+ *
+ * They used to be filtered out. Which is defensible — the slot key would be new
+ * but the rail would read the same word twice — and it produced a list whose
+ * contents changed every time a row was added, so the reader had to work out
+ * whether "غداء" was missing because it is already there or because this app
+ * does not have it. A greyed row with the reason beside it answers that without
+ * being choosable, and the list is the same list every time it opens.
+ *
+ * ── The free-text box is gone ──
+ *
+ * It was the last entry, for the clinic that calls its rows something else. At
+ * eight names that was a reasonable escape hatch; at thirteen it is a second
+ * question ("is my name in the list, or do I type it?") asked of everyone in
+ * order to serve almost no one, and the typed name was the one answer that
+ * still left the hour and the glyph to set by hand. A clinic needing a name
+ * this list does not carry should have it *added to the list*, where it arrives
+ * with an hour, a glyph and a translation.
  */
+/**
+ * The label a chosen suggestion carries, or `''` when nothing is chosen.
+ *
+ * Read from the message catalogue rather than from the rendered options, which
+ * now decorate a taken row with the reason it cannot be picked — and the row's
+ * *name* is what goes on the board.
+ */
+function nameOf(
+  choice: string | null,
+  t: ReturnType<typeof useTranslations<'weeklyPlans'>>,
+): string {
+  const suggestion = MEAL_NAME_SUGGESTIONS.find((entry) => entry.id === choice);
+
+  return suggestion ? t(`mealNameSuggestions.${suggestion.id}`) : '';
+}
+
 export function AddSlot({ rows }: { rows: readonly BoardRow[] }) {
   const t = useTranslations('weeklyPlans');
   const activeLocale = useLocale();
   const { addWeek } = useEditorActions();
   const [open, setOpen] = useState(false);
-  const [label, setLabel] = useState('');
+  // `null` rather than a first suggestion, so the dialog opens asking the
+  // question instead of answering it. Save stays disabled until a row is
+  // picked; pre-selecting one would let a distracted press add "سناك مسائي" to
+  // all seven days.
+  const [choice, setChoice] = useState<string | null>(null);
   const [time, setTime] = useState('17:00');
   const [mealIconId, setMealIconId] = useState<(typeof MEAL_ICON_OPTIONS)[number]['id']>('snack');
 
+  const taken = new Set(rows.map((row) => row.label.trim()));
+  const options = MEAL_NAME_SUGGESTIONS.map((suggestion) => {
+    const label = t(`mealNameSuggestions.${suggestion.id}`);
+    const already = taken.has(label);
+
+    return {
+      value: suggestion.id,
+      // The reason on the row itself, not a tooltip: a disabled option in a
+      // listbox cannot be hovered on a touch screen and cannot be focused by
+      // keyboard, so a tip attached to it is a tip nobody can summon.
+      label: already ? `${label} — ${t('addMealTaken')}` : label,
+      disabled: already,
+    };
+  });
+
+  const name = taken.has(nameOf(choice, t)) ? '' : nameOf(choice, t);
+
+  function pick(value: string): void {
+    setChoice(value);
+
+    const suggestion = MEAL_NAME_SUGGESTIONS.find((entry) => entry.id === value);
+    if (!suggestion) return;
+
+    // The hour and the glyph follow the name, and go on following it while the
+    // reader keeps changing their mind — until they touch either one directly.
+    setTime(suggestion.time);
+    setMealIconId(suggestion.icon);
+  }
+
   function submit(): void {
-    const trimmed = label.trim();
-    if (!trimmed) return;
+    if (!name) return;
 
     const iconChoice =
       MEAL_ICON_OPTIONS.find((option) => option.id === mealIconId) ?? MEAL_ICON_OPTIONS[2];
 
     addWeek(
       nextSlotKey(rows.map((row) => row.slotKey), iconChoice.type, iconChoice.slotPrefix),
-      trimmed,
+      name,
       time,
     );
-    setLabel('');
+    setChoice(null);
     setTime('17:00');
     setMealIconId('snack');
     setOpen(false);
@@ -310,15 +392,27 @@ export function AddSlot({ rows }: { rows: readonly BoardRow[] }) {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        style={LAST_ROW}
-        className="mx-1 mb-1 grid place-items-center rounded-lg border border-dashed border-border py-1 text-caption text-muted-foreground transition-colors hover:border-primary hover:bg-secondary hover:text-secondary-foreground"
-      >
-        <Icon name="add" className="size-4" />
-        {t('addMeal')}
-      </button>
+      {/*
+        In the rail's corner cell, which the header row was drawing blank — see
+        `SlotRail`. The cell is 96px of a 42px row, so the label rides with the
+        glyph and truncates rather than wrapping; the tip carries it in full at
+        the width where it cannot.
+
+        A phone's rail is 80px, which is 14px short of the same label, and
+        "Add a m…" names nothing. There the glyph stands on its own, with the
+        name still in `aria-label` for anyone reading the page aloud.
+      */}
+      <TooltipHint label={t('addMeal')} className="w-full min-w-0">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-label={t('addMeal')}
+          className="flex w-full min-w-0 items-center justify-center gap-1 rounded-lg border border-dashed border-border px-1.5 py-1.5 text-caption text-muted-foreground transition-colors hover:border-primary hover:bg-secondary hover:text-secondary-foreground"
+        >
+          <Icon name="add" className="size-4" />
+          <span className="hidden min-w-0 truncate md:inline">{t('addMeal')}</span>
+        </button>
+      </TooltipHint>
 
       {/*
        * A dialog, not an inline form.
@@ -346,23 +440,34 @@ export function AddSlot({ rows }: { rows: readonly BoardRow[] }) {
 
           <DialogBody className="flex flex-col gap-4">
             <Field>
-              <Label htmlFor="add-slot-label">{t('addMealLabel')}</Label>
-              <Input
-                id="add-slot-label"
-                value={label}
-                onChange={(event) => setLabel(event.target.value)}
-                placeholder={t('addMealPlaceholder')}
-                maxLength={60}
-                autoFocus
-                required
+              <Label htmlFor="add-slot-name">{t('addMealLabel')}</Label>
+              <SelectField
+                id="add-slot-name"
+                value={choice}
+                onValueChange={pick}
+                options={options}
+                placeholder={t('addMealNamePlaceholder')}
+                aria-label={t('addMealLabel')}
               />
             </Field>
 
             <Field>
               <Label htmlFor="add-slot-time">{t('addMealTime')}</Label>
-              <Input
+              {/*
+                The app's one time control, the same one the client record's
+                meal schedule uses — a segmented field with a clock leading it
+                and the OS spinner suppressed. This was a bare `<input
+                type="time">`, which is the same element underneath and none of
+                the treatment: it drew the browser's own picker button, in the
+                operating system's type, on a dialog that is otherwise entirely
+                the app's. Two forms that ask a client's meal times should not
+                ask them with two different controls.
+
+                No `step`: any whole minute is a real answer here, exactly as it
+                is on the intake form.
+              */}
+              <TimeInput
                 id="add-slot-time"
-                type="time"
                 value={time}
                 onChange={(event) => setTime(event.target.value)}
                 required
@@ -400,7 +505,7 @@ export function AddSlot({ rows }: { rows: readonly BoardRow[] }) {
           <DialogFooter>
             {/* Source order, so the primary sits at the inline-start of the
                 group in both locales — see docs/design-system.md § Buttons. */}
-            <Button type="submit" disabled={label.trim().length === 0}>
+            <Button type="submit" disabled={name.length === 0}>
               {t('save')}
             </Button>
             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
@@ -427,16 +532,23 @@ export function AddSlot({ rows }: { rows: readonly BoardRow[] }) {
  */
 function RemoveSlot({ row }: { row: BoardRow }) {
   const t = useTranslations('weeklyPlans');
+  const tCommon = useTranslations('common');
+  const activeLocale = useLocale() as Locale;
   const { removeWeek } = useEditorActions();
+  const [confirming, setConfirming] = useState(false);
 
   return (
+    <>
+    <TooltipHint
+      label={t('removeSlot', { slot: row.label })}
+      // The wrapper takes the corner placement so the button can stay the
+      // containing block for its own coarse-pointer hit area below.
+      className="absolute end-0.5 top-0.5"
+    >
     <button
       type="button"
-      onClick={() => {
-        if (window.confirm(t('removeSlotConfirm', { slot: row.label }))) removeWeek(row.slotKey);
-      }}
+      onClick={() => setConfirming(true)}
       aria-label={t('removeSlot', { slot: row.label })}
-      title={t('removeSlot', { slot: row.label })}
       /*
         `pointer-coarse:` rather than `max-md:` for the resting visibility, and a
         hit area that a finger can find.
@@ -452,11 +564,46 @@ function RemoveSlot({ row }: { row: BoardRow }) {
         `before:` widens the hit area to ~40px on touch without moving the 22px
         mark, which has to stay small: it sits in the corner of a slot label and
         a larger visible control would crowd the label it belongs to.
+
+        `-inset-3` and not `-inset-2`: the glyph's own box is 22px, so the
+        smaller reach came to 38px — close enough to look solved and still
+        under the 44px floor a finger actually needs.
       */
-      className="absolute end-0.5 top-0.5 rounded-full p-1 text-muted-foreground opacity-0 transition-[opacity,color,background-color] hover:bg-destructive-subtle hover:text-destructive focus-visible:opacity-100 group-hover/slot:opacity-100 pointer-coarse:opacity-60 pointer-coarse:before:absolute pointer-coarse:before:-inset-2 pointer-coarse:before:content-['']"
+      className="relative rounded-full p-1 text-muted-foreground opacity-0 transition-[opacity,color,background-color] hover:bg-destructive-subtle hover:text-destructive focus-visible:opacity-100 group-hover/slot:opacity-100 pointer-coarse:opacity-60 pointer-coarse:before:absolute pointer-coarse:before:-inset-3 pointer-coarse:before:content-['']"
     >
       <Icon name="trash" className="size-3.5" />
     </button>
+    </TooltipHint>
+
+    {/*
+      `ConfirmDialog`, not `window.confirm`.
+
+      The browser's confirm is the same seam the board's native tooltips were:
+      an OS panel, in an OS font, over a product that draws every other question
+      itself — and it was the only modal in this app that is not themed,
+      dismissible by swipe, or set in Arabic at the right weight.
+
+      The receipt afterwards is not here. `removeWeek` raises it, because the
+      toast carries an Undo and undoing needs the seven meals this row was
+      holding — which only `BoardEditor` still has once the rows are gone. See
+      `undoSlotRemoval` in `board-dnd.tsx`.
+    */}
+    {confirming && (
+      <ConfirmDialog
+        locale={activeLocale}
+        title={t('removeSlot', { slot: row.label })}
+        description={t('removeSlotConfirm', { slot: row.label })}
+        confirmLabel={tCommon('delete')}
+        cancelLabel={tCommon('cancel')}
+        tone="destructive"
+        onConfirm={() => {
+          setConfirming(false);
+          removeWeek(row.slotKey);
+        }}
+        onCancel={() => setConfirming(false)}
+      />
+    )}
+    </>
   );
 }
 

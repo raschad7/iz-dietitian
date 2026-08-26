@@ -6,7 +6,9 @@ import { useTranslations } from 'next-intl';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from '@/components/ui/popover';
+import { TooltipHint } from '@/components/ui/tooltip-hint';
 import type { Locale } from '@/i18n/routing';
+import { cn } from '@/lib/utils';
 
 import type { CatalogEntry } from '../queries';
 import type { RecentUse } from '../usage';
@@ -36,6 +38,13 @@ export function EmptyPlanBoard({
 }: EmptyPlanBoardProps) {
   const t = useTranslations('weeklyPlans');
   const [catalogOpen, setCatalogOpen] = useState(false);
+  /*
+    Bumped to ask the new-week dialog to open — see `openRequest` there. The
+    catalog's "no plan yet" panel is what bumps it, and it closes the drawer on
+    the way so the dialog does not open behind a sheet the reader has to
+    dismiss afterwards.
+  */
+  const [newWeekRequest, setNewWeekRequest] = useState(0);
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
@@ -55,22 +64,23 @@ export function EmptyPlanBoard({
         nothing to publish and the first week is the only reason to be on this
         screen, so that button keeps the solid fill.
       */}
-      <header className="grid overflow-hidden rounded-lg border border-border bg-card 2xl:grid-cols-[minmax(0,1fr)_auto]">
-        <div className="min-w-0">{profile}</div>
+      <header className="planner-board-header overflow-hidden rounded-lg border border-border bg-card p-2">
+        {profile}
 
-        <div className="planner-action-bar mx-2 mb-2 flex max-w-full flex-wrap items-center justify-end gap-1.5 rounded-lg bg-muted/70 p-1.5 2xl:my-2 2xl:me-2 2xl:ms-0 2xl:w-auto 2xl:self-center 2xl:flex-nowrap 2xl:justify-center">
-            <Button
-              type="button"
-              size="sm"
-              variant="neutral"
-              className="px-3 2xl:size-10 2xl:rounded-full 2xl:px-0"
-              aria-label={t('tabs.dishes')}
-              title={t('tabs.dishes')}
-              onClick={() => setCatalogOpen(true)}
-            >
-              <Icon name="dishes" />
-              <span className="2xl:sr-only">{t('tabs.dishes')}</span>
-            </Button>
+        <div className="planner-action-bar flex max-w-full flex-wrap items-center justify-end gap-1.5 rounded-lg bg-muted/70 p-1 md:col-start-2 md:row-start-1 md:w-auto md:flex-nowrap md:justify-center md:self-center xl:col-start-3">
+            <TooltipHint label={t('tabs.dishes')}>
+              <Button
+                type="button"
+                size="sm"
+                variant="neutral"
+                className="px-3 md:size-10 md:px-0"
+                aria-label={t('tabs.dishes')}
+                onClick={() => setCatalogOpen(true)}
+              >
+                <Icon name="dishes" />
+                <span className="md:sr-only">{t('tabs.dishes')}</span>
+              </Button>
+            </TooltipHint>
 
             <NewWeekDialog
               clientId={clientId}
@@ -79,17 +89,25 @@ export function EmptyPlanBoard({
               newWeek={newWeek}
               triggerLabel={t('createWeek')}
               triggerVariant="default"
+              openRequest={newWeekRequest}
             />
 
             <Popover>
-              <PopoverTrigger
-                aria-label={t('moreActions')}
-                title={t('moreActions')}
-                className={buttonVariants({ variant: 'neutral', size: 'icon-sm' })}
-              >
-                <Icon name="moreActions" />
-                <span className="sr-only">{t('moreActions')}</span>
-              </PopoverTrigger>
+              <TooltipHint label={t('moreActions')}>
+                <PopoverTrigger
+                  aria-label={t('moreActions')}
+                  // The same square the rest of this bar wears — see the note in
+                  // `plan-board.tsx`. `icon-sm` is a disc, and one disc among
+                  // three squares reads as a control that got left behind.
+                  className={cn(
+                    buttonVariants({ variant: 'neutral', size: 'sm' }),
+                    'size-10 px-0',
+                  )}
+                >
+                  <Icon name="moreActions" />
+                  <span className="sr-only">{t('moreActions')}</span>
+                </PopoverTrigger>
+              </TooltipHint>
               <PopoverContent align="end" side="bottom" className="max-h-[min(32rem,70dvh)] w-80 overflow-y-auto p-3">
                 <PopoverTitle className="pb-1 text-label font-semibold">{t('history')}</PopoverTitle>
                 {history}
@@ -105,6 +123,12 @@ export function EmptyPlanBoard({
         </div>
       </section>
 
+      {/*
+        `onCreateWeek` is what puts the catalog behind glass. It is passed from
+        here and nowhere else: this is the one screen where the list has nothing
+        to be dragged onto, and it is also the screen with the button that
+        changes that.
+      */}
       <DishCatalogDrawer
         open={catalogOpen}
         onOpenChange={setCatalogOpen}
@@ -113,6 +137,10 @@ export function EmptyPlanBoard({
         slot={null}
         editable={false}
         locale={locale}
+        onCreateWeek={() => {
+          setCatalogOpen(false);
+          setNewWeekRequest((request) => request + 1);
+        }}
       />
     </div>
   );

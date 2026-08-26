@@ -7,11 +7,10 @@ import { roundForDisplay, roundGrams } from '@/features/weekly-plans/nutrition';
 import { cn } from '@/lib/utils';
 
 import { localizedName } from '../food-display';
-import { servingGuideFor, servingGuideLines } from '../serving-guide';
 
+import { AnimatedDisclosure } from './animated-disclosure';
 import { MealCheck } from './meal-check';
-import { ServingGuideList } from './serving-guide-list';
-import { SettledMealCheck } from './meal-check-mark';
+import { MealIngredientAmounts } from './meal-ingredient-amounts';
 import type { BoardMeal } from '../queries';
 import { mealTypeForSlot, type MealType } from '../schema';
 import type { DayStanding } from '../week';
@@ -51,16 +50,6 @@ export const MEAL_ICONS = {
 const MEAL_SHELL = 'bg-meal-bg text-meal-fg';
 
 /**
- * The tick's colour on a day this component does not let you edit — past or
- * future's empty ring. The same `--meal-check-fill` green `MealCheck` wears
- * on the live button — see that token's comment in `globals.css` for why it
- * replaced green-500 here. A meal ticked today must not look like a
- * different kind of tick tomorrow, so this stays in lockstep with
- * `MealCheck`'s own colour rather than drifting back to `text-primary`.
- */
-const TICK_TONE = 'text-meal-check-fill';
-
-/**
  * One meal: a closed card that opens.
  *
  * A day is five meals, and each one fully expanded is a screen and a half of
@@ -74,12 +63,12 @@ const TICK_TONE = 'text-meal-check-fill';
  * week's dishes and ingredients are never shipped to the browser; and the
  * keyboard, the screen reader and find-in-page all work without being wired up.
  *
- * **The tick has three states, and only one of them is a control.**
+ * **The tick has two states, and it is a control on both.**
  *
- * - **Today** — the live `MealCheck`. The only day whose meals can be reported
- *   on, and the only day that ships any JavaScript for it.
- * - **A day that has ended** — `SettledMealCheck`: the same mark, stated rather
- *   than offered.
+ * - **Today, or a day already behind it** — the live `MealCheck`. A client
+ *   corrects yesterday's log the same way they set it in the first place;
+ *   `toggleMealCompletion` enforces the same rule server-side, so this is a
+ *   courtesy rather than the only guard.
  * - **A day that has not arrived** — nothing at all. Not a disabled circle: an
  *   empty ring on tomorrow's breakfast is a question ("have you eaten this?")
  *   whose only honest answer is "not yet, and you couldn't have", and five of
@@ -87,20 +76,16 @@ const TICK_TONE = 'text-meal-check-fill';
  *   The meal itself is unchanged — a future day is exactly what this screen is
  *   for reading.
  *
- * The row's shape survives all three. The tick's 44px footprint is kept on a
- * settled day and given up entirely on a future one, where nothing else is
- * competing for the inline-start edge.
+ * The row's shape survives both. The tick's 44px footprint is given up
+ * entirely on a future day, where nothing else is competing for the
+ * inline-start edge.
  */
 export function PortalMealCard({
   meal,
   standing,
-  completed,
 }: {
   meal: BoardMeal;
   standing: DayStanding;
-  /**
-   *  Server-known and fixed on a settled day; on today `MealCheck` owns it instead. */
-  completed: boolean;
 }) {
   const t = useTranslations('portal.plan');
   // The client's own locale, from next-intl — the same mechanism the staff board
@@ -111,11 +96,10 @@ export function PortalMealCard({
   const mealIcon = MEAL_ICONS[mealType];
   const dish = meal.dish;
 
-  // Empty for a dish with no guide, which is the safe default — see
-  // `serving-guide.ts`. The portal never falls back to the recipe; the weight and
-  // the dish's own serving label are what it says instead.
-  const guide = dish ? servingGuideFor(dish.slug) : null;
-  const servingLines = guide && dish ? servingGuideLines(guide, dish.servings, locale) : [];
+  // The same lines the dietitian set, in the same units. There is deliberately no
+  // second rendering for the patient: what she adjusted on the board is what they
+  // read here, or the two screens would be describing the same meal differently.
+  const servingLines = meal.lines;
 
   return (
     /*
@@ -157,22 +141,15 @@ export function PortalMealCard({
             lands on the left, from the same source order.
 
             It stores nothing itself — see `meal-check.tsx`. Its label names the
-            meal, because five identical "mark as eaten" buttons on one screen give
-            a screen reader no way to tell which is which — and the settled
-            labels name it too, for the same reason.
+            meal, because five identical "mark as eaten" buttons on one screen
+            give a screen reader no way to tell which is which.
 
-            A future day renders neither, which is why this is a three-way and
+            A future day renders neither, which is why this is a two-way and
             not a `disabled` prop.
           */}
-          {standing === 'today' ? (
+          {standing === 'future' ? null : (
             <MealCheck mealId={meal.id} label={t('markEaten', { meal: meal.label })} />
-          ) : standing === 'past' ? (
-            <SettledMealCheck
-              checked={completed}
-              label={t(completed ? 'wasEaten' : 'wasNotEaten', { meal: meal.label })}
-              className={TICK_TONE}
-            />
-          ) : null}
+          )}
 
           {/*
             `span`, not `p`: a <summary> takes phrasing content, so a paragraph
@@ -228,6 +205,7 @@ export function PortalMealCard({
           opens inside of, not as a second, whiter surface floating on top.
         */}
         <div className="mt-1.5 rounded-lg bg-meal-bg p-4">
+          <AnimatedDisclosure />
           {dish ? (
             <div className="space-y-4">
               {/*
@@ -349,7 +327,7 @@ export function PortalMealCard({
               {servingLines.length > 0 ? (
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-muted-foreground">{t('mealQuantity')}</p>
-                  <ServingGuideList lines={servingLines} />
+                  <MealIngredientAmounts lines={servingLines} locale={locale} />
                 </div>
               ) : null}
             </div>

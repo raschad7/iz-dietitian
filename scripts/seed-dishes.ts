@@ -23,13 +23,28 @@ import { fileURLToPath } from 'node:url';
 import { inArray, isNull, sql } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { catalogFoods, dishIngredients, dishes, type NewDish } from '@/db/schema';
+import {
+  catalogFoodPortions,
+  catalogFoods,
+  dishIngredients,
+  dishes,
+  type NewDish,
+} from '@/db/schema';
 import { DISH_TAGS, MEAL_TYPES } from '@/features/weekly-plans/schema';
 import { isMember } from '@/lib/enum';
 
 import { readCatalogDataset } from './seed-catalog-foods';
 
 const DATASET_PATH = join(dirname(fileURLToPath(import.meta.url)), '../data/dishes.json');
+
+/**
+ * How many lines of one dish may carry a control.
+ *
+ * Three, because the point of marking is contrast. A dish with a control on every
+ * line has recreated the problem the marking exists to solve — the two amounts a
+ * dietitian actually sets, buried among nine she never touches.
+ */
+export const MAX_PRIMARY_INGREDIENTS = 3;
 
 /** `excluded.<column>` — the row PostgreSQL could not insert, inside an upsert. */
 function sqlExcluded(column: string) {
@@ -41,6 +56,26 @@ type IngredientRecord = {
   grams: number;
   /** The USDA description this fdcId had when the file was written. Asserted, not trusted. */
   note: string;
+  /**
+   * Whether a dietitian adjusts this line by hand when planning a meal.
+   *
+   * Two or three per dish — the chicken and the rice in a maqluba, not the pine
+   * nuts. Only these get a `−/+` on the board. Absent means false, so a dish
+   * nobody has marked behaves exactly as every dish did before the field existed.
+   */
+  primary?: boolean;
+  /**
+   * The household unit this amount is counted in, by its English portion label
+   * (`Loaf`, `Piece`, `Cup`).
+   *
+   * Optional, and absent for most lines: the catalog is authored in grams, and
+   * grams are what nutrition is built from either way. It matters on a primary
+   * line, because it is the unit the `−/+` steps in — bread by the loaf, eggs by
+   * the piece, meat by weight because that is how meat is prescribed.
+   */
+  unit?: string;
+  /** How many of `unit`. Required with it, meaningless without it. */
+  count?: number;
 };
 
 export type DishRecord = {
@@ -95,6 +130,28 @@ export function validateDishRecords(records: DishRecord[]): string[] {
       if (!(ingredient.grams > 0)) {
         problems.push(`${dish.slug}: non-positive grams for fdcId ${ingredient.fdcId}`);
       }
+
+      // A unit without a count states nothing, and a count without a unit counts
+      // nothing. Either is a half-written line rather than a smaller one.
+      if ((ingredient.unit === undefined) !== (ingredient.count === undefined)) {
+        problems.push(
+          `${dish.slug}: fdcId ${ingredient.fdcId} gives a unit without a count, or the reverse`,
+        );
+      }
+
+      if (ingredient.count !== undefined && !(ingredient.count > 0)) {
+        problems.push(`${dish.slug}: non-positive count for fdcId ${ingredient.fdcId}`);
+      }
+    }
+
+    // A dish where everything is adjustable has answered the question with
+    // "all of it", which is the same as not answering it: the point of marking is
+    // that the two or three lines that carry the meal stand out from the rest.
+    const primary = dish.ingredients.filter((ingredient) => ingredient.primary).length;
+    if (primary > MAX_PRIMARY_INGREDIENTS) {
+      problems.push(
+        `${dish.slug}: ${primary} primary ingredients, at most ${MAX_PRIMARY_INGREDIENTS} are useful`,
+      );
     }
   }
 
@@ -182,6 +239,55 @@ export async function seedDishes(): Promise<{ dishes: number; ingredients: numbe
     }
   }
 
+  /**
+   * Every portion of every referenced food, keyed by `foodId:labelEn`.
+   *
+   * Loaded before anything is written so a unit the food does not offer aborts the
+   * seed rather than silently landing as `portion_id = null` — which would look
+   * like "authored in grams" and quietly cost the line its −/+ step.
+   */
+  const portionRows = await db
+    .select({
+      id: catalogFoodPortions.id,
+      foodId: catalogFoodPortions.foodId,
+      labelEn: catalogFoodPortions.labelEn,
+      grams: catalogFoodPortions.grams,
+    })
+    .from(catalogFoodPortions);
+
+  const portionByKey = new Map(portionRows.map((row) => [`${row.foodId}:${row.labelEn}`, row]));
+  const portionIdFor = (foodId: string, unit: string) =>
+    portionByKey.get(`${foodId}:${unit}`)?.id ?? null;
+
+  for (const dish of records) {
+    for (const ingredient of dish.ingredients) {
+      if (!ingredient.unit) continue;
+
+      const row = catalogBySourceRef.get(String(ingredient.fdcId));
+      if (!row) continue;
+
+      const portion = portionByKey.get(`${row.id}:${ingredient.unit}`);
+
+      if (!portion) {
+        mismatches.push(
+          `${dish.slug}: fdcId ${ingredient.fdcId} is counted in "${ingredient.unit}", which that food does not offer`,
+        );
+        continue;
+      }
+
+      // The unit and the grams are two statements of one amount. A drift between
+      // them would put one number in the nutrition and a different one on the
+      // card, so it fails the seed rather than picking a winner.
+      const implied = (ingredient.count ?? 0) * portion.grams;
+
+      if (Math.abs(implied - ingredient.grams) > 0.5) {
+        mismatches.push(
+          `${dish.slug}: fdcId ${ingredient.fdcId} says ${ingredient.count} × ${ingredient.unit} (${implied} g) but records ${ingredient.grams} g`,
+        );
+      }
+    }
+  }
+
   if (mismatches.length) {
     throw new Error(
       `data/dishes.json does not match the canonical catalog. Nothing was written.\n  ${mismatches.join('\n  ')}\n\nSeed the catalog first: bun run db:seed:catalog --apply\nIf the food is genuinely missing, add it to data/catalog-foods.json and run: bun run db:build-catalog`,
@@ -238,17 +344,22 @@ export async function seedDishes(): Promise<{ dishes: number; ingredients: numbe
       // writing a recipe onto the wrong dish.
       if (!dishId) throw new Error(`dish ${dish.slug} was not written`);
 
-      return dish.ingredients.map((ingredient, index) => ({
-        dishId,
-        catalogFoodId: catalogBySourceRef.get(String(ingredient.fdcId))!.id,
-        quantityGrams: ingredient.grams,
-        // The shipped catalog is authored in grams, so no portion was chosen.
-        // Nutrition reads `quantity_grams` regardless — a portion only ever records
-        // how a person typed an amount.
-        portionId: null,
-        portionQuantity: null,
-        sortOrder: index,
-      }));
+      return dish.ingredients.map((ingredient, index) => {
+        const foodId = catalogBySourceRef.get(String(ingredient.fdcId))!.id;
+
+        return {
+          dishId,
+          catalogFoodId: foodId,
+          // Grams stay authoritative even where a unit was given: the unit was
+          // checked against them above, so the two cannot disagree by the time
+          // either is written.
+          quantityGrams: ingredient.grams,
+          portionId: ingredient.unit ? portionIdFor(foodId, ingredient.unit) : null,
+          portionQuantity: ingredient.unit ? (ingredient.count ?? null) : null,
+          isPrimary: ingredient.primary ?? false,
+          sortOrder: index,
+        };
+      });
     });
 
     await tx.insert(dishIngredients).values(ingredientValues);
