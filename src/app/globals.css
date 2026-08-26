@@ -2047,6 +2047,34 @@
     touch-action: manipulation;
   }
 
+  /*
+   * ── The page is held at scale 1 on phones and tablets ──
+   *
+   * `ZoomLock` puts this class on `<html>` for as long as the staff app or
+   * the client portal is mounted, and only where `(pointer: coarse)` matches.
+   * It is the CSS third of the lock; the other two are that component's
+   * capture-phase `gesture*` handlers with the scale watchdog under them, and
+   * the `maximumScale` / `userScalable` fields in the two `generateViewport()`
+   * exports. See the component for why all three are needed and why none of
+   * them reach a desktop browser.
+   *
+   * `pan-x pan-y` is the block above narrowed and widened at once: narrowed
+   * from `manipulation`, which still permits pinch-zoom, to panning alone —
+   * and widened from the controls that rule names to every element in the
+   * document, including the empty space between cards and the body copy inside
+   * them, where a stray double tap used to leave a client staring at a
+   * magnified fragment of a meal plan with no obvious way back.
+   *
+   * What it does not touch is scrolling: panning on both axes is exactly what
+   * is kept, so every scroller in the product behaves as it did. Descendants
+   * that claim `touch-action: none` (the planner drag handle, the calendar
+   * grips) are unaffected too — the browser intersects an element's value with
+   * its ancestors', and `none` is the narrower of the two.
+   */
+  html.q-zoom-locked {
+    touch-action: pan-x pan-y;
+  }
+
   body {
     @apply bg-background text-foreground;
     font-size: var(--text-body-md);

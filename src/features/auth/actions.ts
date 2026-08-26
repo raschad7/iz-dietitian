@@ -332,6 +332,29 @@ export async function setPortalPassword(
     return { status: 'error', messageKey: 'genericError' };
   }
 
+  /*
+    The flag is clear in `users` now, and the signed session copy in the cookie
+    has not heard about it — see `session.cookieCache` in `lib/auth.ts`. Reading
+    the session with the cache disabled forces the row to be read again and
+    rewrites that copy, so the very next request already knows this client owes
+    nothing. Without it the copy keeps accusing them for up to
+    `SESSION_COOKIE_CACHE_SECONDS`.
+
+    The result is deliberately discarded: this is called for the cookie it
+    sets, not the session it returns. `nextCookies()` is what lets a server
+    action set that cookie at all.
+
+    The guard in `portal/(secured)/layout.tsx` no longer depends on this — it
+    confirms an accusing session against the database itself, which is what
+    makes the flow correct whatever the cookie says. This is what keeps it
+    cheap, by making the accusation stop immediately rather than a minute from
+    now.
+  */
+  await auth.api.getSession({
+    headers: await headers(),
+    query: { disableCookieCache: true },
+  });
+
   // Outside the try/catch — `redirect` signals by throwing.
   redirect(`/${locale}/portal`);
 }
