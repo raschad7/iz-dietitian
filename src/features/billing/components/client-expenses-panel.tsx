@@ -13,6 +13,7 @@ import { subscriptionStanding } from '@/features/billing/subscription';
 import { RecordPaymentDialog } from '@/features/billing/components/record-payment-dialog';
 import { STATUS_VARIANTS } from '@/features/billing/components/bills-status';
 import { formatAmountCompact, paymentStatus, subscriberTotals } from '@/features/billing/money';
+import { methodTone } from '@/features/billing/payment-methods';
 import { serviceTone, type ServicePrices } from '@/features/billing/services';
 import type { Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
@@ -296,12 +297,19 @@ export async function ClientExpensesPanel({
                         charge and a payment are different marks, not one mark
                         in two colours.
 
-                        A freehand charge keeps the old red: it names no
-                        service, so there is nothing to colour it by.
+                        A payment is tinted the same way, by how the money
+                        came in — cash green, card amber, from the very list
+                        the wallet card offers them from.
+
+                        A freehand charge keeps the old red and a `transfer`
+                        or `other` payment keeps the settled green: neither
+                        names something the cards still offer, so there is no
+                        colour to agree with and the fallback is the row’s own
+                        side of the ledger.
                       */
                       charge
                         ? (serviceTone(entry.service) ?? 'bg-status-medical-bg text-status-medical-fg')
-                        : 'bg-status-on-track-bg text-status-on-track-fg',
+                        : (methodTone(entry.method) ?? 'bg-status-on-track-bg text-status-on-track-fg'),
                     )}
                   >
                     <Icon name={charge ? 'recordCharge' : 'recordPayment'} className="size-4" />
