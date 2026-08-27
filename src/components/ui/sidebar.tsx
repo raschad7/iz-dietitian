@@ -408,13 +408,18 @@ function SidebarTrigger({
         moment the colour has no business changing.
 
         The colour is not chosen for this button: it is character for character
-        what every destination row below it takes on hover (see
+        what the *current page's* row takes below it (see
         `sidebarMenuButtonVariants`), so the head of the column matches the
-        column. `--sidebar-hover` is `--green-50`, one step lighter than the
-        active row's `--green-100`, under `--sidebar-accent-foreground`
-        (green-900) — and it is defined for the dark rail too, where the pair
-        inverts to green-800 under green-200. A hand-written fill would not have
-        been.
+        column. `--sidebar-accent` under `--sidebar-accent-foreground` —
+        green-50 under green-700 in light, green-800 under green-300 on the dark
+        rail. A hand-written fill would not have been.
+
+        It used to take `--sidebar-hover` instead, back when hover and active
+        were one tint a step apart. They are two different families now — hover
+        is the warm neutral, active is the brand — and a *standing* fill that
+        never responds to the pointer has to be the second of those: a permanent
+        hover state is a control that looks like it is being pointed at when
+        nothing is.
 
         `rounded-md` overrides `icon-sm`'s `rounded-full`: a disc is the shape of
         a floating control, and this one is a row in a column of rows.
@@ -423,7 +428,7 @@ function SidebarTrigger({
         "rounded-md aria-expanded:bg-transparent aria-expanded:text-secondary-foreground",
         expanded
           ? "hover:bg-transparent hover:text-secondary-foreground"
-          : "bg-sidebar-hover text-sidebar-accent-foreground hover:bg-sidebar-hover hover:text-sidebar-accent-foreground",
+          : "bg-sidebar-accent text-sidebar-accent-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
         className
       )}
       /*
@@ -703,21 +708,33 @@ function SidebarMenuItem({ className, ...props }: React.ComponentProps<"li">) {
 }
 
 /*
-  Three departures from the registry defaults, all from docs/design-system.md.
+  Four departures from the registry defaults, all from docs/design-system.md.
 
-  **Hover is `--sidebar-hover` plus an ink change**, not `--sidebar-accent`.
+  **Hover is a fill and nothing else — `--sidebar-hover`, the warm neutral.**
   The registry fills a hovered row in the same colour as the active one, which
-  made the rail look like it had changed page under the pointer — so hover
-  takes the lighter token, and the label and glyph move to
-  `--sidebar-accent-foreground` with it. The fill says "this row is a target";
-  the ink says which one.
+  made the rail look like it had changed page under the pointer. Here the two
+  states are not even in the same colour family: hover is n-100 with *no* ink
+  change at all, so the label and glyph stay their idle n-700 and a pass of the
+  pointer cannot be mistaken for a navigation. The fill says "this row is a
+  target"; only the brand tint says "this row is where you are".
 
-  **The active row is exempt from all of it.** `data-active:hover:` re-asserts
-  its own fill, so passing over the page you are already on changes nothing:
-  its ink is already that green and its background does not move. Hover answers
-  "what would I get if I clicked this", and on the current row the honest answer
-  is nothing. Without that override the one-variant `hover:` rule would repaint
-  the active row in the hover tint and lose the state entirely.
+  Hover used to move the ink to `--sidebar-accent-foreground` alongside the
+  fill. That was one repaint too many once the rail nested: with three levels of
+  rows and categories opening under the pointer, a green label appearing on
+  whatever the mouse crossed made the rail flicker between "states" on the way
+  to a click.
+
+  **The active row is `--sidebar-accent` (green-50) under
+  `--sidebar-accent-foreground` (green-700).** A very light surface, carrying
+  the state in the ink rather than in the fill — 5.93:1, and `font-semibold`
+  plus `aria-current` alongside it. It was green-900 on green-100, a heavier
+  block that was the darkest thing on a rail of otherwise quiet rows.
+
+  **The active row is exempt from hover.** `data-active:hover:` re-asserts its
+  own fill, so passing over the page you are already on changes nothing. Hover
+  answers "what would I get if I clicked this", and on the current row the
+  honest answer is nothing. Without that override the one-variant `hover:` rule
+  would repaint the active row in the neutral tint and lose the state entirely.
 
   `:active` (the pressed frame) carries no background of its own. The pointer is
   by definition over the row while it is pressed, so the hover fill is already
@@ -726,24 +743,17 @@ function SidebarMenuItem({ className, ...props }: React.ComponentProps<"li">) {
   **Idle label and idle glyph are one colour**, both `--sidebar-icon`. They used
   to differ — a green-800 label beside a warm-neutral glyph — which made each row
   read as two things rather than one target. The rail's brand green is now spent
-  entirely on the active row and on hover, where it carries meaning.
+  entirely on the active row, where it carries meaning.
 
-  **The active row takes `--sidebar-hover`, the same tint a hovered row takes
-  and the same one the collapsed trigger stands in.** One green in the rail
-  rather than two: collapsed, the strip is a stack of small squares, and two
-  green fills a step apart in it read as an inconsistency rather than as two
-  meanings. What separates the active row from its neighbours is that they have
-  no fill at all, plus `font-semibold` and `aria-current` — none of which a
-  second shade was carrying.
-
-  ⚠ Active and hovered are consequently the *same* colour. `data-active:hover:`
-  still pins the active row so it does not move under the pointer, but a
-  hovered neighbour now looks like the active row for as long as the pointer is
-  on it. Restore the distinction by putting these two back to
-  `bg-sidebar-accent` (green-100), which is what they were.
+  **The colour transition is explicit.** The registry only transitions
+  `width,height,padding`, so every fill and ink change in the rail snapped. On a
+  rail whose rows are crossed constantly that reads as a flicker; `--duration-label`
+  on the sweep curve is the same pairing the rest of the app uses for a colour
+  shift, and it is short enough that the row still feels immediate under the
+  pointer.
 */
 const sidebarMenuButtonVariants = cva(
-  "peer/menu-button group/menu-button flex w-full items-center gap-3 overflow-hidden rounded-md px-3 py-2 text-start text-sm text-sidebar-icon ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pe-8 group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:px-2.5! group-data-[collapsible=icon]:py-0! hover:bg-sidebar-hover hover:text-sidebar-accent-foreground hover:[&_svg]:text-sidebar-accent-foreground focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-active:bg-sidebar-hover data-active:hover:bg-sidebar-hover data-active:font-semibold data-active:text-sidebar-accent-foreground [&_svg]:shrink-0 [&_svg]:text-sidebar-icon [&_svg:not([class*='size-'])]:size-5 data-active:[&_svg]:text-sidebar-accent-foreground [&>span:last-child]:truncate",
+  "peer/menu-button group/menu-button flex w-full items-center gap-3 overflow-hidden rounded-md px-3 py-2 text-start text-sm text-sidebar-icon ring-sidebar-ring outline-hidden transition-[width,height,padding,background-color,color] duration-(--duration-label) ease-(--ease-sweep) group-has-data-[sidebar=menu-action]/menu-item:pe-8 group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:px-2.5! group-data-[collapsible=icon]:py-0! hover:bg-sidebar-hover focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-active:bg-sidebar-accent data-active:hover:bg-sidebar-accent data-active:font-semibold data-active:text-sidebar-accent-foreground [&_svg]:shrink-0 [&_svg]:text-current [&_svg:not([class*='size-'])]:size-5 [&>span:last-child]:truncate",
   {
     variants: {
       variant: {
@@ -907,13 +917,34 @@ function SidebarMenuSkeleton({
   )
 }
 
+/**
+ * A submenu, one level in.
+ *
+ * **The indentation is a single `ms-5`, and it compounds.** A third level is
+ * literally this component inside a `SidebarMenuSubItem` of the second, so the
+ * step is stated once and every depth gets it for free — there is no
+ * `level` prop and no per-depth padding table to keep in sync with the tree.
+ * 20px lands the guide rail just short of the centre of the parent row's glyph,
+ * which is what makes the column read as hanging off its category rather than
+ * as a second list that happens to be narrower.
+ *
+ * Every part of that is logical: `ms-` and `border-s` flip with the document,
+ * so the rail sits on the right of the column in Arabic and the left in
+ * English with no `[dir]` rule anywhere. The registry's `translate-x-px` /
+ * `rtl:-translate-x-px` hairline nudge is gone with the physical axis it was
+ * written on.
+ *
+ * It hides entirely when the rail folds to icons. At 56px there is no room to
+ * indent anything, which is why `AppSidebar` draws a flat list of destinations
+ * in that state instead of the tree — see the note there.
+ */
 function SidebarMenuSub({ className, ...props }: React.ComponentProps<"ul">) {
   return (
     <ul
       data-slot="sidebar-menu-sub"
       data-sidebar="menu-sub"
       className={cn(
-        "mx-3.5 flex min-w-0 translate-x-px rtl:-translate-x-px flex-col gap-1 border-s border-sidebar-border px-2.5 py-0.5 group-data-[collapsible=icon]:hidden",
+        "ms-5 flex min-w-0 flex-col gap-0.5 border-s border-sidebar-border py-0.5 ps-2 group-data-[collapsible=icon]:hidden",
         className
       )}
       {...props}
@@ -951,7 +982,22 @@ function SidebarMenuSubButton({
     props: mergeProps<"a">(
       {
         className: cn(
-          "flex h-7 min-w-0 -translate-x-px rtl:translate-x-px items-center gap-2 overflow-hidden rounded-md px-2 text-sidebar-foreground ring-sidebar-ring outline-hidden group-data-[collapsible=icon]:hidden hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[size=md]:text-sm data-[size=sm]:text-xs data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:text-sidebar-accent-foreground",
+          // The same two states as the top-level row, one size down: hover is
+          // the neutral fill with the ink left alone, active is the brand tint
+          // with green ink and `font-semibold`. A submenu that painted its own
+          // hover green — which the registry does — would have made the deeper
+          // rows louder than the categories above them.
+          //
+          // `w-full` is not decoration. An anchor fills its line box, but a
+          // <button> — which a *category* row is, and only a category row —
+          // shrinks to its own content, so التقويم's fill stopped halfway across
+          // the rail while every row around it ran the full width.
+          //
+          // 32px rather than the registry's 28px. These are real destinations,
+          // and three of them (day / week / month) are the *only* way to reach
+          // a view from the rail; 28px is below the floor for a row anyone is
+          // expected to hit repeatedly.
+          "flex h-8 w-full min-w-0 items-center gap-2.5 overflow-hidden rounded-md px-2.5 text-sidebar-icon ring-sidebar-ring outline-hidden transition-[background-color,color] duration-(--duration-label) ease-(--ease-sweep) group-data-[collapsible=icon]:hidden hover:bg-sidebar-hover focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[size=md]:text-sm data-[size=sm]:h-7 data-[size=sm]:text-xs data-active:bg-sidebar-accent data-active:font-semibold data-active:text-sidebar-accent-foreground data-active:hover:bg-sidebar-accent [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:text-current",
           className
         ),
       },

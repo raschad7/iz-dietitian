@@ -8,6 +8,7 @@ import {
   Ban,
   Beef,
   Bell,
+  Briefcase,
   Building2,
   Calendar,
   CalendarCheck,
@@ -146,6 +147,19 @@ export const APP_ICONS = {
   weeklyPlans: CalendarRange,
   mealPlans: ClipboardList,
   dishes: UtensilsCrossed,
+  /*
+    The two nav *categories* the staff rail grew — rows that open a group
+    rather than go anywhere. They are named for the section, not for the
+    picture, like everything else here.
+
+    `appointments` shares its glyph with the portal's `myAppointments`: it is
+    the same idea seen from either side of the clinic. It deliberately does not
+    share with `calendar` (a plain `Calendar`), because the two sit one above
+    the other in the rail — the section and the grid inside it — and a category
+    that repeats its own child's mark reads as a duplicated row.
+  */
+  management: Briefcase,
+  appointments: CalendarCheck,
   foods: Apple,
   whatsapp: MessageCircle,
   security: ShieldCheck,

@@ -1267,24 +1267,43 @@
    * band rather than as a wall.
    *
    * **The active item is the only olive thing on the rail, and it is marked by
-   * tint rather than by weight.** green-50 surface, green-500 label and glyph.
+   * tint rather than by weight.** green-50 surface, green-700 label and glyph.
    * That inverts the pale-olive rail again, where the active item was the
    * *darkest* thing on it; here the rail has no colour of its own, so a tint
    * is enough to single an item out without a dark block interrupting a column
    * of quiet rows.
    *
-   * The active row is green-900 on green-100, about **12.9:1** — it used to be
-   * green-500 on green-50 at 2.95:1, the one row on the rail that failed
-   * contrast. `font-semibold` and `aria-current` still carry the state for
-   * anyone the colour fails, but now the colour does not.
+   * ── Hover and active are two different colours again, and two different
+   * *families* ──
    *
-   * `--sidebar-hover` is the fill a hovered row takes, and it is now a tint of
-   * the brand ramp rather than the cool grey it used to be, so no green
-   * anywhere in the rail comes from outside the palette. It sits one step
-   * lighter than `--sidebar-accent`, which is enough separation on a rail this
-   * quiet and keeps a hovered row from being mistaken for the active one. The
-   * active row overrides it and does not respond to hover at all — see the note
-   * on `sidebarMenuButtonVariants` in `components/ui/sidebar.tsx`.
+   * They were briefly the same tint (green-50 for both, with the active row
+   * pinned so it did not move under the pointer), which meant a hovered
+   * neighbour looked exactly like the current page for as long as the pointer
+   * sat on it. On a rail that now nests three levels deep, that was one
+   * ambiguity too many: with categories opening and closing under the pointer,
+   * "which row am I on" and "which page am I on" have to be answerable at the
+   * same glance.
+   *
+   * So the two states are split by hue, not by one step of the same ramp:
+   *
+   * - **Hover — `--sidebar-hover`, n-100.** The warm neutral, no brand colour
+   *   at all. It says "this row is a target", and it says nothing about the
+   *   app's state. The ink does not move with it: a hovered row keeps its idle
+   *   n-700 label (8.08:1 on the fill), because the fill alone is the whole
+   *   affordance and repainting the text made a pass of the pointer look like
+   *   a navigation.
+   * - **Active — `--sidebar-accent`, green-50, under `--sidebar-accent-foreground`,
+   *   green-700.** A very light surface — lighter than the green-100 it used
+   *   to be, deliberately, because the rail's current-page marker should be the
+   *   quietest fill on screen and let the *ink* carry the state. green-700 on
+   *   green-50 measures **5.93:1**, comfortably over the 4.5:1 floor, and
+   *   `font-semibold` plus `aria-current` still carry it for anyone the colour
+   *   fails.
+   *
+   * The hierarchy reads hover → neutral, active → brand, and neither can be
+   * mistaken for the other because they are not on the same ramp. The active
+   * row still overrides hover and does not respond to the pointer at all — see
+   * the note on `sidebarMenuButtonVariants` in `components/ui/sidebar.tsx`.
    *
    * `--sidebar-icon` is now the idle ink for the **label as well as the
    * glyph** — n-700 warm grey, 9.35:1 on the rail. The label used to be
@@ -1323,9 +1342,9 @@
   --sidebar-icon: var(--n-700);             /* idle glyph — #46443B, 9.35:1 */
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: var(--green-900); /* the wordmark, on a light rail */
-  --sidebar-accent: var(--green-100);        /* the active surface */
-  --sidebar-accent-foreground: var(--green-900); /* on it — ~12.9:1, see above */
-  --sidebar-hover: var(--green-50);         /* one step lighter than active */
+  --sidebar-accent: var(--green-50);        /* the active surface — the lightest tint on the ramp */
+  --sidebar-accent-foreground: var(--green-700); /* on it — 5.93:1, see above */
+  --sidebar-hover: var(--n-100);            /* hover is warm neutral, never green */
   /*
    * The divider is the darkest of the rail's three greys, and it is the whole
    * separation: #F9FAFB against the white canvas measures 1.02:1, so the two
@@ -1585,9 +1604,41 @@
   --sidebar-icon: var(--green-200);
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: var(--n-25);
-  --sidebar-accent: var(--green-600);
-  --sidebar-accent-foreground: var(--n-0);
-  --sidebar-hover: var(--green-800);
+  /*
+   * The same split the light rail makes, in the direction a dark surface can
+   * make it: active lifts *toward* the brand, hover lifts toward neutral.
+   *
+   * green-800 is one quiet step above the green-900 rail — the dark equivalent
+   * of "very light and understated" — and green-300 on it measures 5.36:1, so
+   * the ink is what singles the row out here too. It used to be white on
+   * green-600, a filled block that was the loudest thing on the rail.
+   *
+   * Hover is n-600, the warm grey — the same "no brand colour on hover" rule
+   * the light rail follows, off the same neutral ramp. It is a bigger step than
+   * the light rail's (about 10 points of L* against that one's 4), and it has
+   * to be: the eye reads a fixed luminance difference as a much smaller change
+   * down here than it does at the top of the scale, and n-700 — which measures
+   * almost identically to green-900 — is invisible on this rail.
+   *
+   * ⚠ Not `color-mix`. Mixing the grey into the rail's own colour gives a
+   * better tint, and Lightning CSS cannot resolve a mix of two custom
+   * properties at build time, so it emits the *first operand* as the
+   * no-`color-mix` fallback: n-300, a near-white slab, on a dark green rail. A
+   * plain ramp step has no fallback to get wrong.
+   *
+   * ⚠ The consequence is that on the dark rail the hover fill is a little
+   * *heavier* than the active one, which is the reverse of the light rail's
+   * balance. The ramp has no step between n-700 (indistinguishable from the
+   * rail) and n-600, so this is the closer of two wrong answers — and the
+   * active row is still the only one carrying green ink, which is what the
+   * state is actually read from. The dark staff rail is not reachable in the
+   * product today either: there is no theme control outside `/dev/ui`, and the
+   * portal is pinned to light. Fix it by adding an n-650 rather than by
+   * reaching for `color-mix` here.
+   */
+  --sidebar-accent: var(--green-800);
+  --sidebar-accent-foreground: var(--green-300);
+  --sidebar-hover: var(--n-600);
   --sidebar-border: var(--green-800);
   --sidebar-ring: var(--ring);
 }
@@ -1689,8 +1740,10 @@
     --sidebar-foreground: var(--green-200);
     --sidebar-primary: var(--primary);
     --sidebar-primary-foreground: var(--n-0);
+    /* Mirrors the `.dark` rail above — see the note there. */
     --sidebar-accent: var(--green-800);
-    --sidebar-accent-foreground: var(--n-25);
+    --sidebar-accent-foreground: var(--green-300);
+    --sidebar-hover: var(--n-600);
     --sidebar-border: var(--green-700);
     --sidebar-ring: var(--ring);
   }
@@ -2735,6 +2788,82 @@
 
   .q-disclosure[open]::details-content {
     block-size: auto;
+  }
+
+  /*
+   * ── The sidebar's nav categories: a submenu that grows rather than appears ──
+   *
+   * Applied to the wrapper `AppSidebar` puts around every `SidebarMenuSub`.
+   * `data-open` is the whole switch; the React side does nothing but set it,
+   * so opening and closing is one attribute flip and the browser owns the
+   * animation.
+   *
+   * **Why a grid track and not `.q-disclosure`'s `interpolate-size`.** The
+   * disclosure above animates `block-size: auto` directly, which is by far the
+   * nicer way to write this — and is Chromium-only today. A rail category that
+   * expands smoothly in Chrome and snaps open in Safari and Firefox is a
+   * different control on each, and unlike a one-off disclosure on a settings
+   * page this one is worked several times a minute, on every screen in the app.
+   * A `0fr`→`1fr` grid track interpolates everywhere, has done for years, and
+   * measures nothing in JavaScript either: the row is sized by its own content,
+   * so a submenu can gain or lose an item without a single number changing here.
+   *
+   * The three parts, and why each is a separate element:
+   *
+   * 1. The **track** (`.q-nav-collapse`) animates. It is the only thing that
+   *    knows about time.
+   * 2. The **clip** (its child) is `overflow: hidden` with `min-block-size: 0`
+   *    — the `min-content` floor a grid item carries by default is what
+   *    otherwise pins the row open at the height of its first row of text.
+   * 3. The **body** (the `ul` inside) carries the fade and the 4px slide.
+   *    It has to be a third element: the slide has to happen *inside* the mask,
+   *    and translating the clip would move the mask with it.
+   *
+   * The fade is `--duration-label` against the track's `--duration-arc`, so the
+   * items are legible slightly before the row finishes growing rather than
+   * arriving at the same instant the movement stops — the difference between a
+   * panel that opens and a panel that is revealed.
+   *
+   * `translate` is on the block axis only, so this is direction-agnostic: the
+   * same rule runs unchanged in Arabic and English, and there is no `[dir]`
+   * variant of it anywhere. The indentation and the chevron are the RTL-aware
+   * parts, and both are logical properties in the components.
+   *
+   * Nested categories nest literally — التقويم's track is inside المواعيد's
+   * clip. The outer track sits at `1fr` while it is open, which is content
+   * sized, so the inner one growing simply re-sizes it; the two animations are
+   * independent and neither has to know the other exists.
+   *
+   * `prefers-reduced-motion` is handled by the global block further down this
+   * file — it flattens every transition in the app, this one included, and the
+   * category still opens and closes correctly with the time taken out.
+   */
+  .q-nav-collapse {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows var(--duration-arc) var(--ease-sweep);
+  }
+
+  .q-nav-collapse[data-open] {
+    grid-template-rows: 1fr;
+  }
+
+  .q-nav-collapse > * {
+    min-block-size: 0;
+    overflow: hidden;
+  }
+
+  .q-nav-collapse > * > * {
+    opacity: 0;
+    translate: 0 -0.25rem;
+    transition:
+      opacity var(--duration-label) var(--ease-sweep),
+      translate var(--duration-arc) var(--ease-sweep);
+  }
+
+  .q-nav-collapse[data-open] > * > * {
+    opacity: 1;
+    translate: 0 0;
   }
 
   /*
