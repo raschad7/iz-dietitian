@@ -1931,14 +1931,13 @@
     "emptyFilteredHint": "جرّب اسماً آخر، أو وقت وجبة مختلفاً.",
     "searchPlaceholder": "ابحث باسم الطبق",
     "clearFilters": "مسح الفلاتر",
-    "filters": "الفلاتر",
     "filtersReset": "إعادة تعيين",
     "allMealTypes": "الكل",
     "count": "{count, plural, =0 {لا أطباق} one {طبق واحد} two {طبقان} few {# أطباق} many {# طبقاً} other {# طبق}}",
     "moreTags": "+{count, number, integer}",
     "notFoundPrompt": "لم تجد الطبق الذي تبحث عنه؟",
     "ownerFilter": {
-      "label": "عرض الأطباق",
+      "label": "المصدر",
       "all": "الكل",
       "system": "مشتركة",
       "clinic": "أطباقي"
@@ -1968,8 +1967,10 @@
       "ingredients": "المكوّنات",
       "actions": "إجراءات"
     },
-    "hiddenBadge": "مخفي",
-    "showHidden": "إظهار المخفية",
+    "showHidden": "المخفية فقط",
+    "showHiddenHint": "اعرض ما أخفيته وحده لتتمكن من إعادته",
+    "tagSearchPlaceholder": "ابحث عن خاصية",
+    "noTagMatches": "لا توجد خاصية بهذا الاسم",
     "ownership": {
       "system": "مشترك",
       "clinic": "أضيف بواسطتي"

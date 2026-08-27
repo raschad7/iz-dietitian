@@ -53,7 +53,7 @@ export default async function DishesPage({ params, searchParams }: PageProps) {
   const currentPage = Number.isInteger(parsedPage) && parsedPage >= 1 ? parsedPage : 1;
 
   const [result, t] = await Promise.all([
-    listDishes({ clinicId, q, mealType, tags, highProtein, owner, page: currentPage, includeHidden: showHidden }),
+    listDishes({ clinicId, q, mealType, tags, highProtein, owner, page: currentPage, hiddenOnly: showHidden }),
     getTranslations('dishes'),
   ]);
 
@@ -74,8 +74,12 @@ export default async function DishesPage({ params, searchParams }: PageProps) {
     hidden: dish.hidden,
   }));
 
+  // `showHidden` counts. It is the one switch that can empty this page on its
+  // own — a clinic that has hidden nothing turns it on and gets no rows — and
+  // the empty state has to say "nothing matched" rather than "your catalog is
+  // empty", which is what an unfiltered empty list means.
   const filtered =
-    Boolean(q) || Boolean(mealType) || tags.length > 0 || highProtein || Boolean(owner);
+    Boolean(q) || Boolean(mealType) || tags.length > 0 || highProtein || Boolean(owner) || showHidden;
 
   return (
     /*
