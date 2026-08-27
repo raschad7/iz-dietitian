@@ -88,6 +88,17 @@ export function requestPushKey(requestId: string, status: string): string {
   return `request:${requestId}:${status}`;
 }
 
+/**
+ * The booking confirmation, keyed on the appointment alone — never on the
+ * date. A move rekeys `reminderPushKey`'s own reminder onto the new date, but
+ * this message is about the *booking itself*, so re-saving the same
+ * appointment without moving it (see `updateAppointmentAction`'s `moved`
+ * check) must not send a second "your appointment is booked".
+ */
+export function bookedPushKey(appointmentId: string): string {
+  return `booked:${appointmentId}`;
+}
+
 /** An appointment is close enough to be worth a reminder. */
 export function notifyAppointmentReminder(
   clientId: string,
@@ -100,6 +111,39 @@ export function notifyAppointmentReminder(
       dedupeKey: reminderPushKey(appointment.id, appointment.date),
       message: {
         kind: 'appointment_reminder',
+        date: appointment.date,
+        startMinute: appointment.startMinute,
+      },
+    },
+    deps,
+  );
+}
+
+/**
+ * A new appointment was just booked for the client — sent immediately, from
+ * the same action that wrote the row, rather than waiting for the day-before
+ * reminder.
+ *
+ * **This is additional to `notifyAppointmentReminder`, never a replacement for
+ * it.** The two run off different dedupe keys (`booked:*` here,
+ * `reminder:*:*` there), so this send can never claim the reminder's row —
+ * the client still gets the close-to-the-visit nudge on top of this
+ * confirmation, exactly as if this function did not exist. Silent when the
+ * booking is part of a repeat series; see `notifyBooked`'s own doc comment in
+ * `booking/actions.ts` for why the create stays quiet there and the series
+ * carries its own message instead.
+ */
+export function notifyAppointmentBooked(
+  clientId: string,
+  appointment: { id: string; date: IsoDate; startMinute: number },
+  deps?: SendWebPushDeps,
+): Promise<PushSendResult> {
+  return sendWebPush(
+    {
+      clientId,
+      dedupeKey: bookedPushKey(appointment.id),
+      message: {
+        kind: 'appointment_booked',
         date: appointment.date,
         startMinute: appointment.startMinute,
       },

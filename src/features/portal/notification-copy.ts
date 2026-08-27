@@ -18,6 +18,7 @@ import { type PortalNotification } from './notifications';
 export const NOTIFICATION_ICON: Record<PortalNotification['kind'], IconName> = {
   adherenceReminder: 'progress',
   appointmentReminder: 'calendar',
+  appointmentBooked: 'calendar',
   planUpdate: 'myPlan',
   clinicMessage: 'chat',
 };
@@ -43,6 +44,15 @@ export function useNotificationCopy(item: PortalNotification): { title: string; 
       return {
         title: t('appointmentReminder.title'),
         body: t('appointmentReminder.body', {
+          date: formatLongDate(locale, item.date),
+          time: formatMinute(locale, item.date, item.startMinute),
+        }),
+      };
+
+    case 'appointmentBooked':
+      return {
+        title: t('appointmentBooked.title'),
+        body: t('appointmentBooked.body', {
           date: formatLongDate(locale, item.date),
           time: formatMinute(locale, item.date, item.startMinute),
         }),

@@ -60,6 +60,7 @@ describe('renderPushPayload', () => {
       APPOINTMENT,
       { kind: 'appointment_changed', change: 'cancelled', date: '2026-09-01' as IsoDate, startMinute: 570 },
       { kind: 'appointment_changed', change: 'moved', date: '2026-09-01' as IsoDate, startMinute: 570 },
+      { kind: 'appointment_booked', date: '2026-09-01' as IsoDate, startMinute: 570 },
       { kind: 'check_in_reminder' },
       { kind: 'plan_update' },
       { kind: 'clinic_message', outcome: 'approved' },
@@ -144,5 +145,41 @@ describe('appointment changes', () => {
     expect(pushConsentKind(CANCELLED)).toBe('clinic_message');
     expect(pushConsentKind(MOVED)).toBe('clinic_message');
     expect(pushConsentKind(APPOINTMENT)).toBe('appointment_reminder');
+  });
+});
+
+describe('a new booking', () => {
+  const BOOKED: PushMessage = {
+    kind: 'appointment_booked',
+    date: '2026-09-01' as IsoDate,
+    startMinute: 10 * 60,
+  };
+
+  test('is a different sentence from the day-before reminder', () => {
+    const booked = renderPushPayload(BOOKED, 'ar', { dedupeKey: 'booked:a' });
+    const reminder = renderPushPayload(APPOINTMENT, 'ar', { dedupeKey: 'reminder:a:2026-09-01' });
+
+    expect(booked.title).not.toBe(reminder.title);
+  });
+
+  test('opens the appointments screen, names the slot, and answers to clinic-message', () => {
+    // Same reasoning `MESSAGE_CONSENT` gives for a move or a cancellation: a
+    // new booking is news to act on, not a pre-visit nudge, so a client who
+    // switched off reminders must still be told a visit was scheduled.
+    const en = renderPushPayload(BOOKED, 'en', { dedupeKey: 'booked:a' });
+
+    expect(en.url).toBe('/en/portal/appointments');
+    expect(en.body).toContain('10:00');
+    expect(pushConsentKind(BOOKED)).toBe('clinic_message');
+  });
+
+  test('its dedupe key is keyed on the appointment alone, unlike the reminder', () => {
+    // `bookedPushKey` (push/notify.ts) is `booked:<id>` — no date component,
+    // so re-saving the same appointment without moving it cannot send this
+    // twice. This just asserts the tag carries whatever key it is given.
+    const first = renderPushPayload(BOOKED, 'ar', { dedupeKey: 'booked:a' });
+    const again = renderPushPayload({ ...BOOKED, startMinute: 9 * 60 }, 'ar', { dedupeKey: 'booked:a' });
+
+    expect(first.tag).toBe(again.tag);
   });
 });

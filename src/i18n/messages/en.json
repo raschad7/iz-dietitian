@@ -1338,6 +1338,10 @@
           "title": "Appointment reminder",
           "body": "Your appointment is on {date} at {time}."
         },
+        "appointmentBooked": {
+          "title": "Appointment booked",
+          "body": "Your appointment is on {date} at {time}."
+        },
         "planUpdate": {
           "title": "This week's plan is ready",
           "body": "The plan for the week of {date} is ready for you."

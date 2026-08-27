@@ -1338,6 +1338,10 @@
           "title": "تذكير بموعدك",
           "body": "موعدك يوم {date} الساعة {time}."
         },
+        "appointmentBooked": {
+          "title": "تم حجز موعدك",
+          "body": "موعدك يوم {date} الساعة {time}."
+        },
         "planUpdate": {
           "title": "خطتك الأسبوعية جاهزة",
           "body": "خطة أسبوع {date} بانتظارك."

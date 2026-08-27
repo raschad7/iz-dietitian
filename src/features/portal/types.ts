@@ -31,6 +31,15 @@ export type PortalAppointment = {
   reason: string | null;
   /** True once a request about this appointment is waiting on the dietitian. */
   hasOpenRequest: boolean;
+  /**
+   * `YYYY-MM-DD`, clinic-local — the calendar day the row was written, not
+   * when it takes place. Read by `buildNotifications` to say "your
+   * appointment is booked" for a day or two after a dietitian creates one,
+   * the same way `date` itself says when the visit is. Converted from the
+   * database's `timestamptz` at the query, so this module stays free of a
+   * timezone dependency — see `listPortalAppointments`.
+   */
+  bookedDate: string;
 };
 
 /** Something the client has asked for, in whatever state it is in. */
