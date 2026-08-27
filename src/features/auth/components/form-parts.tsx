@@ -38,12 +38,12 @@ export function AuthSubmitButton({
   /**
    * Held shut by the form itself, on top of the pending state below.
    *
-   * Only the set-password screen passes it, and only because that screen puts
-   * the reason on the page: its rule track says which requirement is still
-   * missing, so the button going live is the answer to something the reader can
-   * already see. A disabled button with nothing explaining it is worse than a
-   * button that submits and reports the problem — do not pass this without the
-   * explanation beside it.
+   * The set-password and staff sign-up screens pass it, and only because both
+   * put the reason on the page: their rule track says which requirement is
+   * still missing, so the button going live is the answer to something the
+   * reader can already see. A disabled button with nothing explaining it is
+   * worse than a button that submits and reports the problem — do not pass this
+   * without the explanation beside it.
    */
   disabled?: boolean;
 }) {

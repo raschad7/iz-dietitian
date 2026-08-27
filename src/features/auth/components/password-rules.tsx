@@ -6,8 +6,14 @@ import { CLIENT_MIN_PASSWORD_LENGTH, clientPasswordChecks } from '@/features/aut
 import { cn } from '@/lib/utils';
 
 /**
- * The three client password rules, as three bars across one row that go green
- * as they are met.
+ * The three password rules, as three bars across one row that go green as they
+ * are met.
+ *
+ * Drawn on the portal's forced set-password screen and on staff sign-up. It was
+ * the client's control alone until staff took the client rule — see the note on
+ * `staffPasswordSchema` — which is what made one checklist able to serve both:
+ * three independent rules can be three bars, where the staff rule it replaced
+ * ("any two of three classes") could not.
  *
  * ## Why this is here at all
  *

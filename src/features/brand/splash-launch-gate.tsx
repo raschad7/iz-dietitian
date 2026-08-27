@@ -48,6 +48,12 @@ import { SplashScreen } from './splash-screen';
  * they cannot play the tile — and a locale switch, which does re-render it,
  * is caught by `playedInThisDocument` inside `SplashScreen`.
  *
+ * ⚠ This used to say that *only* document loads reach here. They do not: the
+ * root layout is re-rendered for the router's own fetches too, and reading the
+ * cache headers of one of those is how the tile came to play over a page
+ * nobody had reloaded. The first guard in the body is what makes the sentence
+ * above true; do not remove it.
+ *
  * ## Coverage
  *
  * Chrome, Edge and Firefox all send `max-age=0` for a quick reload and
@@ -57,6 +63,39 @@ import { SplashScreen } from './splash-screen';
  */
 export async function SplashLaunchGate({ locale }: { locale: string }) {
   const requestHeaders = await headers();
+
+  /*
+    ⚠ **First: is this a document request at all?**
+
+    The cache-header rule below only means anything for a navigation the browser
+    made. This layout is also re-rendered for requests the App Router's own
+    client makes — a route prefetch, a `router.refresh()`, and the tree that
+    comes back when a Server Action calls `revalidatePath` — and *none of those
+    carry a `Cache-Control` header*. Read without this guard they all look like
+    `isFreshVisit`, so the gate answered "the app is starting" and put a tile
+    into an RSC payload, which React then mounted over a running page.
+
+    That is what played the launch screen on top of a client's record after
+    "issue a new password": one `revalidatePath` in the action, a re-render of
+    the tree from the root, and the splash arrived as data. `playedInThisDocument`
+    was no defence — it is only armed by a tile that has actually played, and on
+    a document that came up through a quick reload nothing ever had.
+
+    Three signals, because one alone leaves a gap:
+
+    - `RSC` is set on every router fetch — prefetch and navigation alike.
+    - `Next-Action` is set on the Server Action POST, which is where a
+      revalidating action re-renders the tree.
+    - `Sec-Fetch-Dest` is the browser's own word for what it is fetching, and it
+      says `document` for exactly the case this component exists for. Safari
+      before 16.4 omits the `Sec-Fetch-*` family entirely, so an absent value is
+      read as `document` and left to the two headers above — the same direction
+      the coverage note errs in.
+  */
+  const isRouterFetch = requestHeaders.has('rsc') || requestHeaders.has('next-action');
+  const fetchDest = requestHeaders.get('sec-fetch-dest') ?? 'document';
+
+  if (isRouterFetch || fetchDest !== 'document') return null;
 
   const cacheControl = requestHeaders.get('cache-control') ?? '';
   const pragma = requestHeaders.get('pragma') ?? '';

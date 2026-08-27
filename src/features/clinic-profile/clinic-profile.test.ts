@@ -22,7 +22,7 @@ import type { ClinicInformationInput, ProfessionalProfileInput, WeeklyScheduleIn
 
 const CLINIC: ClinicInformationInput = {
   name: 'Enzyme Clinic',
-  phone: '0599123456',
+  phone: '+970599123456',
   contactEmail: 'clinic@enzyme.test',
   address: 'Ramallah, Main Street',
 };

@@ -1,13 +1,11 @@
 import { z } from 'zod';
 
 import { defaultLocale, locales } from '@/i18n/routing';
-import { MIN_PASSWORD_LENGTH } from '@/lib/auth-constants';
 
 import {
   CLIENT_MIN_PASSWORD_LENGTH,
   isCommonPassword,
   isStrongClientPassword,
-  isStrongStaffPassword,
 } from './password-policy';
 
 export const localeSchema = z.enum(locales).catch(defaultLocale);
@@ -34,20 +32,19 @@ export const portalSignInSchema = z.object({
 });
 
 /**
- * The client password rule, in one place — the counterpart of
- * `staffPasswordSchema` below, and no longer merely a shorter version of it.
+ * The password rule — for clients, and now for staff too, through
+ * `staffPasswordSchema` below.
  *
  * Length was the whole rule here once, which meant `aaaaaa` could replace a
  * ten-character random temporary password and the account came out weaker for
  * the change. Each failure carries its own message key because the advice
  * differs, and the actions read the key straight off the issue.
  *
- * ⚠ `clientPasswordTooWeak`, not `passwordTooWeak`. The two rules diverged when
- * the client minimum went to eight characters with a letter and a digit: staff
- * still take any two of the three character classes, so the staff sentence
- * ("letters with numbers or symbols") describes a rule this schema does not
- * enforce. One key per rule is what keeps a screen from advertising a symbol
- * that will then be rejected.
+ * ⚠ `clientPasswordTooWeak`, not `passwordTooWeak`. The name is historical —
+ * the two rules were apart when staff took any two of the three character
+ * classes — but the sentence it maps to ("use letters and numbers together")
+ * is the one this schema actually enforces, for everybody. `passwordTooWeak`,
+ * which offers a symbol as an alternative to a digit, is now raised by nothing.
  */
 const clientPasswordSchema = z
   .string()
@@ -66,15 +63,26 @@ export const setPasswordSchema = z
   .refine((values) => values.password === values.confirmPassword, { path: ['confirmPassword'] });
 
 /**
- * The staff password rule, in one place: long enough, and not a password in
- * name only. The two failures carry their own message keys because the advice
- * differs — one says "longer", the other says "mix in a digit or a symbol" —
- * and `signup-validation.ts` reads the key straight off the issue.
+ * The staff password rule.
+ *
+ * ⚠ **It is the client rule now — the same object, not a copy.** Staff used to
+ * be ten characters with any two of the three character classes; they are eight
+ * characters with a letter and a digit, exactly like a client. This was asked
+ * for so that the staff sign-up screen could carry the portal's live rule
+ * checklist (`PasswordRules`) unchanged — a checklist is only honest if it
+ * draws the rule the server actually enforces, and three bars cannot express
+ * "any two of three".
+ *
+ * It lowers the staff floor from ten characters to eight. The note on
+ * `CLIENT_MIN_PASSWORD_LENGTH` explains why the two were ever apart: a staff
+ * account reads every client's medical notes. Restoring the asymmetry means
+ * bringing back the `staffPasswordSchema` that stood here, and giving the
+ * sign-up screen a checklist shaped to it.
+ *
+ * An alias rather than `clientPasswordSchema` at both call sites, so the two
+ * rules can be pulled apart again by editing this one declaration.
  */
-const staffPasswordSchema = z
-  .string()
-  .min(MIN_PASSWORD_LENGTH, { message: 'passwordTooShort' })
-  .refine(isStrongStaffPassword, { message: 'passwordTooWeak' });
+const staffPasswordSchema = clientPasswordSchema;
 
 /**
  * One half of a practitioner's name.
