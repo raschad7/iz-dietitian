@@ -6212,8 +6212,19 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
 /*
  * ══ The splash screen ══
  *
- * `src/features/brand/splash-screen.tsx`, mounted by both app shells and by
- * neither public screen. All of the motion is here; the component draws two
+ * `src/features/brand/splash-screen.tsx`, mounted once from `[locale]/
+ * layout.tsx` through `SplashLaunchGate`.
+ *
+ * ⚠ This used to say "by both app shells and by neither public screen", and it
+ * was wrong in the half that matters: the gate is in the *locale* layout, which
+ * wraps the public screens too, so the tile plays over `/login`, `/signup` and
+ * the landing page on any load that is not a quick reload. That sentence is why
+ * the sign-in screen's entrance was first built to start at first paint, where
+ * it ran to completion underneath this tile and was never seen. Anything given
+ * an entrance has to be checked against this one — see "The sign-in screen's
+ * entrance" at the foot of this file for the shape of the fix.
+ *
+ * All of the motion is here; the component draws two
  * SVGs, plays three blips, and takes the element out of the DOM once the exit
  * below has finished. That split is a safety property rather than a preference
  * — the tile clears itself with no script at all — and the note in the
@@ -7614,5 +7625,280 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
 @media (height < 34rem) {
   .q-plan-lists {
     display: none;
+  }
+}
+
+/*
+ * ══ The sign-in screen's entrance ══
+ *
+ * `src/features/auth/components/auth-split-card.tsx`. The screen opens in two
+ * beats and in one direction: the illustration widens out of a strip standing
+ * against the outer edge of the window, and once it is most of the way open the
+ * form column walks up beside it, a row at a time. It reads as the picture
+ * making room for the form rather than as two things arriving at once.
+ *
+ * Like the 404 page and the splash, this is the page introducing itself rather
+ * than answering anybody, so the numbers sit above the app's `--duration-*`
+ * scale — those measure reactions and are tens of milliseconds because somebody
+ * is waiting on the other end of them. Nothing here is waited on: the whole
+ * introduction is over inside 2s, and the form is legible and hittable well
+ * before that.
+ *
+ * The timeline, in milliseconds from first paint:
+ *
+ *     0    the strip starts to open                ⎫ q-auth-reveal on the panel,
+ *          the picture inside it slides toward     ⎬ q-auth-hero on the image,
+ *          the closing edge and settles            ⎭ both over 1500ms
+ *   820    the picture is ~85% open                  (0.5485 of the curve below)
+ *   820    the brand bar rises under it             ⎫ q-auth-enter, 720ms each,
+ *   930    the heading and its tagline follow      ⎬ one row every 110ms, so
+ *  1040    the role switch                         ⎪ they overlap and the column
+ *  1150    the fields                              ⎪ ripples rather than
+ *  1260    the footer, last                        ⎭ arriving five times
+ *  1500    the picture is whole
+ *  1980    the screen is settled
+ *
+ * ## Which way it opens, and why that is not a `:dir()` rule
+ *
+ * `AuthSplitCard` mirrors with the language: the picture is at the inline-end,
+ * which is the *left* of the screen in Arabic and the *right* in English. The
+ * strip stands at the picture's outer edge — the one against the window — and
+ * the panel opens inward, toward the form. So the opening edge travels right in
+ * Arabic and left in English, and the picture inside travels the other way,
+ * against it.
+ *
+ * `clip-path: inset()` and `translate` are both physical and have no logical
+ * form, so the direction has to be stated. It is keyed off `[dir='rtl']` /
+ * `[dir='ltr']`, set on `<html>` by the locale layout, and deliberately NOT off
+ * `:dir()`: Lightning CSS drops every `:dir()` rule from the production build,
+ * which is written up at greater length beside `.q-skeleton`. What is stated is
+ * a pair of custom properties rather than a second keyframe set — the keyframes
+ * read the properties, so there is one description of the gesture and only its
+ * sign changes.
+ *
+ * ## The picture is pinned by its outer edge while it opens
+ *
+ * `q-auth-hero` starts the image 6% along and 12% oversized. Those two numbers
+ * are one number: a 12% scale hangs exactly 6% of the panel's width off each
+ * side, so a 6% shift lands the leading edge flush against the panel's outer
+ * edge — and because both decay under the same curve they stay flush for every
+ * frame in between. That is what stops a wedge of `bg-muted` showing along the
+ * edge the reader is looking straight at, and it is why neither figure may be
+ * changed without the other.
+ *
+ * What it buys is that the strip shows the same crop it will end on rather than
+ * a slice of a picture that then jumps, while the body of the image still has
+ * somewhere to travel from.
+ *
+ * `backwards` on all three, never `both` — the rule the route stage, the
+ * dialogs and the 404 all follow: a forwards fill leaves the animated
+ * properties applied for as long as the element is mounted, which makes the
+ * element the containing block for any `position: fixed` descendant it has, and
+ * the form column has a dropdown in it.
+ */
+
+/*
+ * The stage. It holds nothing but the numbers, so the two halves are timed
+ * against one source and the 85% hand-off cannot drift.
+ *
+ * ⚠ `--q-auth-rise-delay` is **derived**, not chosen: it is the point at which
+ * `--q-auth-reveal-ease` has covered 85% of its distance, which for
+ * `cubic-bezier(0.4, 0, 0.15, 1)` is 0.5485 of the duration — 823ms of 1500ms,
+ * rounded to 820. Change the duration or the curve and this has to be
+ * recomputed, or the form starts rising against a picture that is not open yet.
+ *
+ * The whole thing was half this length in its first revision and read as hurried
+ * — the panel snapped rather than opened. These are the slowed numbers; the
+ * shape of the gesture did not change, only how long it is given.
+ */
+.q-auth-stage {
+  --q-auth-reveal-ms: 1500ms;
+  --q-auth-reveal-ease: cubic-bezier(0.4, 0, 0.15, 1);
+  --q-auth-rise-delay: 820ms;
+  --q-auth-rise-ms: 720ms;
+  --q-auth-rise-step: 110ms;
+  --q-auth-rise-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/*
+ * Below `lg` the picture is not rendered at all — the panel is `hidden lg:flex`
+ * — so there is nothing for the form to wait on, and holding it back the better
+ * part of a second would be dead time in front of a blank white screen. On a
+ * phone the column simply rises, promptly, and its five parts follow each other
+ * a little closer together: there is no picture beside them setting the pace,
+ * and the rows are stacked tighter on a narrow screen, so the same step reads as
+ * a longer wait.
+ */
+@media (width < 64rem) {
+  .q-auth-stage {
+    --q-auth-rise-delay: 80ms;
+    --q-auth-rise-ms: 620ms;
+    --q-auth-rise-step: 85ms;
+  }
+}
+
+/*
+ * The panel opening. Arabic is the default locale and is written into the class
+ * itself: the picture is on the left, so the strip stands at the left edge and
+ * it is the *right* inset that closes. English is the override.
+ *
+ * The radius is `--enzyme-radius-xl`, which is what `rounded-xl` on the same
+ * element resolves to — the strip has to be the same shape as the panel it
+ * grows into, or the corners pop at the end of the animation. On a narrow panel
+ * the strip is thinner than two radii and the browser scales them down to fit,
+ * which is the right answer: it reads as a rounded end rather than a clipped
+ * corner.
+ */
+.q-auth-reveal {
+  --q-auth-clip-l: 0%;
+  --q-auth-clip-r: 90%;
+  animation: q-auth-reveal var(--q-auth-reveal-ms) var(--q-auth-reveal-ease) backwards;
+}
+
+[dir='ltr'] .q-auth-reveal {
+  --q-auth-clip-l: 90%;
+  --q-auth-clip-r: 0%;
+}
+
+@keyframes q-auth-reveal {
+  from {
+    clip-path: inset(0 var(--q-auth-clip-r) 0 var(--q-auth-clip-l) round var(--enzyme-radius-xl));
+  }
+
+  to {
+    clip-path: inset(0 0 0 0 round var(--enzyme-radius-xl));
+  }
+}
+
+/*
+ * The picture's own travel, against the opening edge — right to left in Arabic,
+ * left to right in English. See the note above for why the 6% and the 12% are
+ * a single decision.
+ */
+.q-auth-hero {
+  --q-auth-hero-x: 6%;
+  animation: q-auth-hero var(--q-auth-reveal-ms) var(--q-auth-reveal-ease) backwards;
+}
+
+[dir='ltr'] .q-auth-hero {
+  --q-auth-hero-x: -6%;
+}
+
+@keyframes q-auth-hero {
+  from {
+    translate: var(--q-auth-hero-x) 0;
+    scale: 1.12;
+  }
+}
+
+/*
+ * The form column, rising a part at a time: the brand bar, then the heading and
+ * its tagline, the role switch, the fields, and the footer last.
+ *
+ * ⚠ **This was one block for exactly one revision and it was wrong.** Moving the
+ * column as a single slab makes the whole right-hand side read as one flat card
+ * sliding up, which is the least interesting thing five rows of content can do —
+ * and it wastes the picture's own hand-off, because there is nothing for the
+ * reveal to hand *to* except a rectangle. Walking the rows gives the column an
+ * order to be read in, and it is the order somebody actually reads it in.
+ *
+ * The step is small on purpose. `--q-auth-rise-step` is a fraction of a row's
+ * own duration, so consecutive rows overlap heavily and the column reads as one
+ * gesture rippling down rather than as five separate arrivals — a stagger wide
+ * enough to see each row land is a performance, and the reader came here to type
+ * a password.
+ *
+ * The delays are classes rather than a timeline, matching `.q-404-enter-2` /
+ * `-3` further up: five positions is few enough that naming them costs less than
+ * a keyframe each, and a call site reads as "this one is third" instead of as a
+ * number. They set `animation-delay` alone, after the shorthand in
+ * `.q-auth-enter` has already set one — same specificity, later in the file, so
+ * the step wins. **Both classes go on the element**; a position class on its own
+ * animates nothing.
+ *
+ * `translate` rather than `transform`, matching the 404 and the rest of the
+ * file. 1.25rem of travel and no more: these are the elements the page's height
+ * is measured from, and a taller rise would leave the document briefly
+ * scrollable past its own footer on a viewport the screen otherwise fits
+ * exactly.
+ */
+.q-auth-enter {
+  animation: q-auth-enter var(--q-auth-rise-ms) var(--q-auth-rise-ease) var(--q-auth-rise-delay)
+    backwards;
+}
+
+.q-auth-enter-2 {
+  animation-delay: calc(var(--q-auth-rise-delay) + var(--q-auth-rise-step));
+}
+
+.q-auth-enter-3 {
+  animation-delay: calc(var(--q-auth-rise-delay) + 2 * var(--q-auth-rise-step));
+}
+
+.q-auth-enter-4 {
+  animation-delay: calc(var(--q-auth-rise-delay) + 3 * var(--q-auth-rise-step));
+}
+
+.q-auth-enter-5 {
+  animation-delay: calc(var(--q-auth-rise-delay) + 4 * var(--q-auth-rise-step));
+}
+
+@keyframes q-auth-enter {
+  from {
+    opacity: 0;
+    translate: 0 1.25rem;
+  }
+}
+
+/*
+ * ── It waits for the launch screen ──
+ *
+ * ⚠ **`/login` is a route the splash plays over, and this was very nearly built
+ * without knowing that.** `SplashLaunchGate` is mounted from `[locale]/
+ * layout.tsx`, which wraps the public screens as well as the two shells, and it
+ * plays on any load that is not a quick reload — a typed URL, a link, a server
+ * redirect out of `proxy.ts`. That is most of the ways anybody arrives here.
+ *
+ * The tile is a full-screen `position: fixed` surface for its first 2.26s, so
+ * an entrance timed from first paint runs to completion *underneath* it and is
+ * simply never seen. Measured before this rule existed: the picture was already
+ * open and the form already settled by the time the white cleared.
+ *
+ * So the entrance is held at its first frame for as long as the tile is in the
+ * document, and released when the tile takes itself out — see the end of
+ * `SplashScreen`'s timeline above, 2260ms. `animation-play-state` and not a
+ * delay, and that is the whole point: a delay would have to be *changed* when
+ * the tile leaves, and changing `animation-delay` on a running animation moves
+ * it to a different point on its own timeline, which is a jump. Pausing freezes
+ * time; unpausing resumes it from where it stopped, so the gesture plays once,
+ * whole, from its beginning.
+ *
+ * What the reader sees is one introduction rather than two: the mark lands, the
+ * white floods and then thins, and what it thins onto is the strip standing at
+ * the edge of the window — which then opens, and the form rises. The splash's
+ * own fade-out (1980–2260ms) is what reveals the held frame, so the two are
+ * joined rather than merely adjacent.
+ *
+ * `:has()` on `body`, matching `body:has(dialog[open])` further up the file.
+ * `.q-splash` is mounted above the app tree, so this is the one place both are
+ * in scope.
+ */
+body:has(.q-splash) .q-auth-reveal,
+body:has(.q-splash) .q-auth-hero,
+body:has(.q-splash) .q-auth-enter {
+  animation-play-state: paused;
+}
+
+/*
+ * Reduced motion keeps the whole screen and drops all of it moving. There is
+ * nothing here that carries information — the picture is decorative and the
+ * form is the same form either way — so the entrance simply does not happen and
+ * the screen is drawn finished.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .q-auth-reveal,
+  .q-auth-hero,
+  .q-auth-enter {
+    animation: none;
   }
 }
