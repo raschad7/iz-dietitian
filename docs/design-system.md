@@ -327,6 +327,16 @@ or colour that is not here, add it to the generator.
   `--duration-sweep`, `--duration-label`, `--duration-reverse`, and
   `--duration-travel`.
 - `--duration-travel` is reserved for an entire surface crossing the screen.
+- Page **entrances** are the one exception and carry their own numbers, written
+  beside their keyframes in `globals.css`: the launch screen, the 404 screen,
+  and the sign-in screen. The `--duration-*` tokens measure a reaction to
+  somebody, and an introduction is not one — so do not stretch a token to cover
+  one, and do not reach for an entrance where a reaction is what is wanted.
+- Before adding an entrance, check whether the launch screen plays over the same
+  route. `SplashLaunchGate` is mounted from `[locale]/layout.tsx`, so it covers
+  the public screens too, and an entrance timed from first paint will run to
+  completion underneath a full-screen tile and never be seen. `.q-auth-*` holds
+  itself at its first frame while `.q-splash` is in the document; copy that.
 - Reduced-motion preferences must leave state changes intact while removing
   unnecessary travel.
 
