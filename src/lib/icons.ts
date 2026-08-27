@@ -205,6 +205,14 @@ export const APP_ICONS = {
     Neither is the bare tray `install` uses: that glyph means "put this app on
     your device" everywhere else in the product.
   */
+  /*
+    The plain tray, for the control that opens the export menu.
+
+    Same glyph as `install`, and that is right: both mean "this hands you a
+    file". The pair below stay page marks because they answer *which* file,
+    inside a menu whose own trigger already carries the arrow.
+  */
+  download: Download,
   downloadPdf: FileText,
   downloadWord: FileType,
   share: Share2,

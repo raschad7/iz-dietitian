@@ -108,9 +108,20 @@ export function EmptyPlanBoard({
                   <span className="sr-only">{t('moreActions')}</span>
                 </PopoverTrigger>
               </TooltipHint>
-              <PopoverContent align="end" side="bottom" className="max-h-[min(32rem,70dvh)] w-80 overflow-y-auto p-3">
-                <PopoverTitle className="pb-1 text-label font-semibold">{t('history')}</PopoverTitle>
-                {history}
+              {/* The same panel the board's overflow wears — a header band, and
+                  a recessed body for the thing being read. There are no actions
+                  to put between them on a client with no plan yet, so the two
+                  bands meet directly. See `plan-board.tsx` for the whole of the
+                  reasoning. */}
+              <PopoverContent
+                align="end"
+                side="bottom"
+                className="max-h-[min(32rem,70dvh)] w-80 gap-0 overflow-hidden p-0"
+              >
+                <PopoverTitle className="shrink-0 border-b border-border px-3 py-2.5 text-label font-semibold">
+                  {t('history')}
+                </PopoverTitle>
+                <div className="min-h-0 flex-1 overflow-y-auto bg-muted/40 py-2">{history}</div>
               </PopoverContent>
             </Popover>
         </div>
