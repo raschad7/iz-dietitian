@@ -655,16 +655,26 @@ export async function listDishes(input: {
   owner?: OwnerFilter;
   page: number;
   /**
-   * Also list the shared dishes this clinic has hidden, flagged `hidden`, so they
-   * can be un-hidden from the same catalog. Off by default: hidden is hidden.
+   * List the shared dishes this clinic has hidden — and *only* those, flagged
+   * `hidden`, so they can be brought back.
+   *
+   * A separate view rather than a wider one. It used to mean "also include the
+   * hidden ones", which mixed them into the normal catalog: a dietitian who
+   * turned it on to find one dish she had put away got her whole catalog back
+   * with a handful of dimmed rows scattered through it, and had to hunt for the
+   * grey ones. The question being asked is "what have I hidden", and the answer
+   * to that question is a list of hidden dishes.
+   *
+   * Every other filter still composes with it, because the hidden set is a
+   * catalog like any other — it can be searched, and narrowed by meal or tag.
    */
-  includeHidden?: boolean;
+  hiddenOnly?: boolean;
 }): Promise<DishListResult> {
-  const visible = (await loadCatalog(input.clinicId)).map((dish) => ({ ...dish, hidden: false }));
-  const hidden = input.includeHidden
+  // One load or the other, never both: the two sets are disjoint views of the
+  // same shelf and nothing here has to merge them any more.
+  const catalog = input.hiddenOnly
     ? (await loadHiddenSharedDishes(input.clinicId)).map((dish) => ({ ...dish, hidden: true }))
-    : [];
-  const catalog = [...visible, ...hidden];
+    : (await loadCatalog(input.clinicId)).map((dish) => ({ ...dish, hidden: false }));
 
   const term = input.q?.trim() ? normalizeArabic(input.q) : null;
   const tags = input.tags ?? [];

@@ -21,33 +21,49 @@ function Toaster({ className, ...props }: ComponentProps<typeof SonnerToaster>) 
       visibleToasts={3}
       gap={10}
       /*
-        Wider than Sonner's 356px default.
+        ## Why the font is an inline style and not a class
 
-        The toasts this app raises are a sentence and a button on one line —
-        "Moved labneh with walnuts and honey" plus Undo — and at the stock width
-        the sentence wrapped to two lines while the button squeezed against it,
-        so the most-seen surface in the planner looked cramped every single
-        time. `min()` rather than a flat width so a phone still gets the full
-        column minus its gutters.
+        Sonner ships `[data-sonner-toaster] { font-family: ui-sans-serif,
+        system-ui, …, Segoe UI, … }` in a stylesheet it injects itself, and that
+        stylesheet is **unlayered**. Every Tailwind utility in this app lives in
+        `@layer utilities`, and in the cascade an unlayered declaration beats a
+        layered one outright — specificity never gets a say. So `.toaster` on
+        this element lost to `[data-sonner-toaster]` no matter what was in it,
+        and the toast viewport sat in the operating system's font.
+
+        That was not cosmetic in Arabic. Measured at 16px, "تم إخفاء الطبق من
+        قائمتك" is 128px in Almarai's bold and 170px in the face Segoe UI hands
+        Arabic off to — and that fallback has **no bold at all**: 400 and 600
+        render identically, byte for byte. So the most-seen surface in the app
+        rendered its Arabic wide, in the wrong face, and with the weight
+        hierarchy silently flattened. It read as thin, because it was.
+
+        An inline style is the one declaration that beats an unlayered rule
+        without `!important`, and `--font-sans` is already locale-aware — Almarai
+        under `:lang(ar)`, the Latin UI face otherwise — so this follows the page
+        rather than pinning a face.
+
+        `width` is here for the plainer reason: it is wider than Sonner's 356px
+        default. The toasts this app raises are a sentence and a button on one
+        line — "Moved labneh with walnuts and honey" plus Undo — and at the stock
+        width the sentence wrapped while the button squeezed against it. `min()`
+        so a phone still gets the full column minus its gutters.
       */
-      style={{ width: 'min(28rem, calc(100vw - 2rem))' }}
+      style={{ width: 'min(28rem, calc(100vw - 2rem))', fontFamily: 'var(--font-sans)' }}
       className={cn('toaster group', className)}
       toastOptions={{
         unstyled: true,
         classNames: {
           /*
-            `font-sans`, declared — not inherited.
+            `font-sans` here too, and it is not redundant with the inline style
+            on the viewport above.
 
-            Sonner ships a `font-family: ui-sans-serif, system-ui, …` on its own
-            container, which is a real declaration and therefore beats whatever
-            the page was inheriting. So the one surface that appears unbidden,
-            over whatever you were reading, was the one surface drawn in the
-            operating system's font: Segoe UI on Windows, and for Arabic
-            whatever fallback that stack happened to land on. Restating the
-            token here puts the toast back in the app's own face — Almarai under
-            `:lang(ar)`, the Latin UI face otherwise — and every child inherits
-            it from this element, so the title, the description and the buttons
-            are all one typeface.
+            That one fixes the inheritance; this one survives a *portalled*
+            toast. Sonner renders the `<ol>` only while there is something in it
+            and re-parents nothing, but anything rendered through `toast.custom`
+            lands inside this element, and a caller that sets its own container
+            would otherwise be back to the OS font. One declaration on the panel
+            costs nothing and closes that door.
 
             `p-4` and a 16px gap: this is a panel that interrupts, not a chip.
           */

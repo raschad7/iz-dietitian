@@ -207,7 +207,7 @@ async function seed(): Promise<void> {
   const [, second] = created;
   const secondInput = SEED_CLIENTS[1]?.client;
   if (second && secondInput) {
-    const username = await suggestPortalUsername(secondInput.fullName);
+    const username = await suggestPortalUsername(secondInput);
     const result = await issuePortalCredentials(clinicId, second.id, username);
     if (result.ok) {
       console.info(`portal credentials: ${result.username} / ${result.temporaryPassword}`);
