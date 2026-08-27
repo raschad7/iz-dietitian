@@ -6,6 +6,8 @@ import { z } from 'zod';
 import { locales } from '@/i18n/routing';
 import { requireStaffClinic } from '@/lib/session';
 import { getClient } from '@/features/clients/queries';
+import { clinicMessageBody } from '@/features/forms/queries';
+import { getSettings } from '@/features/whatsapp/queries';
 import { formatAmount } from '@/features/billing/money';
 import { subscriberTotalsByClient } from '@/features/billing/queries';
 import { renderBill } from '@/features/billing/pdf/render';
@@ -390,6 +392,16 @@ export async function sendPaymentReminderAction(
 
   if (!client || !clinic) return { status: 'error', messageKey: 'invalidClient' };
 
+  /* The clinic's own switch for this message — see `payment_reminders_enabled`.
+     Checked here and not only in the menu, because an action is reachable
+     without one. */
+  const settings = await getSettings(clinicId);
+  if (settings && !settings.paymentRemindersEnabled) {
+    return { status: 'error', messageKey: 'paymentRemindersOff' };
+  }
+
+  const override = await clinicMessageBody(clinicId, 'paymentReminder');
+
   const totals = await subscriberTotalsByClient(clinicId, [clientId]);
   const remainingMinor = totals.get(clientId)?.remainingMinor ?? 0;
 
@@ -402,13 +414,22 @@ export async function sendPaymentReminderAction(
     clientId,
     kind: 'manual',
     phone: client.phone,
-    body: renderWhatsappMessage('paymentReminder', PATIENT_MESSAGE_LOCALE, {
-      clientName: client.fullName,
-      clinicName: clinic.name,
-      /* Formatted in the language the message is written in, not the one the
-         dietitian is reading the screen in. */
-      amount: formatAmount(PATIENT_MESSAGE_LOCALE, remainingMinor),
-    }),
+    body: renderWhatsappMessage(
+      'paymentReminder',
+      PATIENT_MESSAGE_LOCALE,
+      {
+        clientName: client.fullName,
+        clinicName: clinic.name,
+        /* Formatted in the language the message is written in, not the one the
+           dietitian is reading the screen in. */
+        amount: formatAmount(PATIENT_MESSAGE_LOCALE, remainingMinor),
+      },
+      /* This clinic's own wording, if it has written one on the Forms tab.
+         Read here rather than inside `sendWhatsappMessage` because this path
+         hands that function a finished body — it is the one message the app
+         composes outside `sendWhatsappTemplate`, which does its own lookup. */
+      override,
+    ),
     dedupeKey: manualDedupeKey(),
   });
 

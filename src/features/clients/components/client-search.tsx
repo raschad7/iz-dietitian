@@ -473,7 +473,7 @@ export function ClientSearch({
         </Link>
         )}
 
-        <ClientFilterMenu input={input} />
+        <ClientFilterMenu input={input} variant={variant} />
 
         {/* Opens the client card over the list, matching the empty state's copy
             of this button. */}

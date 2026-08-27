@@ -65,27 +65,77 @@ export const ROW_ACTION_CLASS =
   'rounded-sm text-muted-foreground hover:bg-primary/5 hover:text-primary aria-expanded:bg-primary/5 aria-expanded:text-primary focus-visible:bg-primary/5 focus-visible:text-primary';
 
 /**
- * How the secondary buttons on the record's Expenses tab behave under the
- * pointer: a light green fill with white words.
+ * How the three secondary buttons on the record's Expenses tab are drawn — Add
+ * a bill, Export bills, Send by WhatsApp.
  *
- * `--accent-green` is the app's own light green — `#9BE076` — and is the same
- * fill the outline variant already flips to. What this class changes is the
- * ink on it: the variant writes `--on-accent`, a near-black green, where this
- * writes white.
+ * A grey outline, black words, and a grey fill under the pointer. One string
+ * for all three, so the row cannot end up with one button dressed differently
+ * from its neighbours.
  *
- * ⚠ **White on it is about 1.7:1, far under the 4.5:1 the rest of this app
- * holds to** — and it is why the variant writes near-black on this very fill.
- * These buttons carry their only label in those words, so a reader who does not
- * already know what they say will struggle to read them while the pointer is on
- * them. Recorded here rather than argued again: it was asked for deliberately,
- * and it is the clinic's screen. Swapping `text-white` for `text-on-accent`
- * is the one-word fix if it ever grates.
+ * ## Why they are neutral
+ *
+ * They used to flip to `--accent-green` with white words on hover. That fill
+ * was the loudest thing in the panel and it sat on the *secondary* row: the
+ * primary action here is Record a payment, one button to its left, and three
+ * green fills beside it left the reader with four things shouting equally. Grey
+ * is what a secondary control looks like — the panel's figures stay the
+ * brightest thing on the card, which is what the card is read for.
+ *
+ * It also drops a contrast problem rather than documenting one. White on that
+ * green was about 1.7:1; `--foreground` on `--muted` is the app's ordinary text
+ * pairing, legible at rest and under the pointer alike.
+ *
+ * ## The three tokens
+ *
+ * - `border-border` — `--n-200`, the divider grey. Present at rest and pinned
+ *   on hover, so the outline does not change colour as the fill arrives; the
+ *   fill alone is the feedback.
+ * - `text-foreground` — the app's near-black body ink rather than the button
+ *   variant's own. These carry their only label in those words.
+ * - `bg-muted` — the sunken-surface grey. A token rather than a literal, so
+ *   dark mode gets its own answer instead of a light swatch burned into a
+ *   hover state.
  *
  * **The radius is pinned, not left alone.** `rounded-[10px]` is the same
  * control radius the button already carries, restated on hover so that nothing
  * — a variant, a future utility, tailwind-merge picking a different winner —
  * can change the shape of these under the pointer. A control that changes
  * shape when you reach for it is a control that moves as you aim.
+ *
+ * `aria-expanded` takes the hover treatment too: Add a bill carries that
+ * attribute while its dialog is open, and it should not shed the fill the
+ * moment the pointer leaves to use the thing it opened.
  */
 export const PANEL_ACTION_CLASS =
-  'hover:rounded-[10px] hover:border-accent-green hover:bg-accent-green hover:text-white aria-expanded:rounded-[10px] aria-expanded:border-accent-green aria-expanded:bg-accent-green aria-expanded:text-white';
+  'border-border text-foreground hover:rounded-[10px] hover:border-border hover:bg-muted hover:text-foreground aria-expanded:rounded-[10px] aria-expanded:border-border aria-expanded:bg-muted aria-expanded:text-foreground';
+
+/**
+ * How a row inside a billing popover menu answers the pointer: a step darker
+ * than the `ghost` variant's own hover.
+ *
+ * Shared by the Bills row's overflow menu and the Expenses panel's — two menus
+ * with an item in common (the statement), so one string keeps them from
+ * drifting into two shapes of the same list.
+ *
+ * Ghost flips to `--accent` — `#E5E7EB` — which is the right weight for a
+ * control sitting on a page, and too light inside a popover: the panel is
+ * already a raised surface, so a near-white fill on a near-white card is a
+ * state you have to look for rather than one you notice.
+ *
+ * An alpha over whatever is beneath it rather than a darker swatch, so it works
+ * in both themes without a second rule — black at 15% in the light theme, and
+ * in the dark one `--foreground` is the pale ink, so the same class lightens
+ * instead of darkening. That is the same "more contrast with the panel" either
+ * way, which is what the state is for.
+ *
+ * **The edge is pinned transparent in every state, and that is not belt and
+ * braces.** The statement item is a `PrintBillButton`, and its labelled shape
+ * is the `outline` variant — which carries a hover border of its own. Handing
+ * it the `ghost` variant afterwards replaces `border-primary` but not the hover
+ * rule beside it: tailwind-merge treats `border` and `hover:border` as
+ * different groups, so the edge survived a class that looks like it should have
+ * removed it, and only that one row in the menu grew a border under the
+ * pointer. Naming the hover state explicitly is what actually wins.
+ */
+export const MENU_ITEM_CLASS =
+  'w-full max-w-none justify-start border-transparent hover:border-transparent hover:bg-foreground/15 aria-expanded:border-transparent aria-expanded:bg-foreground/15';

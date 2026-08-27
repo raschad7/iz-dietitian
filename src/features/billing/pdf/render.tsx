@@ -12,6 +12,10 @@ import {
 } from '@/features/billing/bill';
 import { clientBillingRecord } from '@/features/billing/queries';
 import { wallClockIn } from '@/features/booking/completed';
+import { billTranslatorWith } from '@/features/forms/bill-translator';
+import { CLINIC_NAME_FIELD, PLACEMENTS_FIELD } from '@/features/forms/fields';
+import { placementsFrom, totalsAlignmentFrom } from '@/features/forms/zones';
+import { clinicFormOverrides } from '@/features/forms/queries';
 import { DISPLAY_TIME_ZONE } from '@/lib/format';
 import { formatPhoneDisplay } from '@/lib/phone-format';
 import type { Locale } from '@/i18n/routing';
@@ -77,11 +81,17 @@ export async function renderBill({
   latest?: boolean;
   locale: Locale;
 }): Promise<RenderedBill | null> {
-  const [record, clinic, t] = await Promise.all([
+  const [record, clinic, catalogue, forms] = await Promise.all([
     clientBillingRecord(clinicId, clientId),
     billingClinicHeader(clinicId),
     getTranslations({ locale, namespace: 'billing' }),
+    clinicFormOverrides(clinicId),
   ]);
+
+  /* The clinic's own labels in front of the catalogue's, so a bill prints the
+     words this clinic uses — see `billTranslatorWith`. A clinic that has
+     rewritten nothing gets the catalogue unchanged. */
+  const t = billTranslatorWith(catalogue, forms);
 
   if (!record || !clinic) return null;
 
@@ -115,10 +125,16 @@ export async function renderBill({
       variant={only ? 'single' : 'statement'}
       entries={entries}
       t={t}
+      placements={placementsFrom(forms[PLACEMENTS_FIELD], Boolean(clinic.logo))}
+      totalsAlignment={totalsAlignmentFrom(forms, locale === 'ar')}
       header={{
-        clinicName: clinic.name,
+        /* The name this clinic prints, which is not always the name the app
+           knows it by — see `CLINIC_NAME_FIELD`. */
+        clinicName: forms[CLINIC_NAME_FIELD] || clinic.name,
+        logo: clinic.logo,
         clinicPhone: formatPhoneDisplay(clinic.phone) || null,
         clinicAddress: clinic.address,
+        doctorName: clinic.doctorName,
         clientName: record.client.fullName,
         clientPhone: formatPhoneDisplay(record.client.phone) || null,
         issuedOn: today,

@@ -4,7 +4,12 @@ import { db } from '@/db';
 import { clientCharges, clientPayments, clients, clinicServicePrices as servicePrices } from '@/db/schema';
 
 import { compareEntries, type BillEntry } from './bill';
-import { subscriberTotals, type SubscriberTotals } from './money';
+import { paymentStatus, subscriberTotals, type PaymentStatus, type SubscriberTotals } from './money';
+import {
+  SUBSCRIPTION_TERMS,
+  subscriptionStanding,
+  type SubscriptionState,
+} from './subscription';
 import { BILLING_SERVICES, CONSULTATION, isBillingService, type ServicePrices } from './services';
 
 /**
@@ -276,4 +281,117 @@ export async function consultedClients(
     );
 
   return new Set(rows.map((row) => row.clientId));
+}
+
+/**
+ * Every subscriber in the clinic whose ledger says something, and what it says.
+ *
+ * The Bills filter's `paymentStatus` column, answered for the whole clinic in
+ * one pair of reads — the same shape as {@link subscriberTotalsByClient} above,
+ * without the id list. It has to be the whole clinic rather than the page:
+ * a filter decides *which* subscribers are on the page, so it cannot be
+ * computed from the page it is choosing.
+ *
+ * ⚠ **A subscriber with no ledger at all is absent from the map**, and that is
+ * the point rather than an omission: `paymentStatus` calls that state `none`,
+ * and "nothing has happened yet" is exactly "no rows". The caller filtering for
+ * `none` selects the complement of these keys — see `billingCondition` in the
+ * clients queries — which is one fewer read than materialising every client id
+ * to say the same thing.
+ */
+export async function paymentStatusByClient(clinicId: string): Promise<Map<string, PaymentStatus>> {
+  const [charged, paid] = await Promise.all([
+    db
+      .select({ clientId: clientCharges.clientId, total: sum(clientCharges.amountMinor) })
+      .from(clientCharges)
+      .where(eq(clientCharges.clinicId, clinicId))
+      .groupBy(clientCharges.clientId),
+    db
+      .select({ clientId: clientPayments.clientId, total: sum(clientPayments.amountMinor) })
+      .from(clientPayments)
+      .where(eq(clientPayments.clinicId, clinicId))
+      .groupBy(clientPayments.clientId),
+  ]);
+
+  const chargedByClient = new Map(charged.map((row) => [row.clientId, Number(row.total ?? 0)]));
+  const paidByClient = new Map(paid.map((row) => [row.clientId, Number(row.total ?? 0)]));
+
+  const statuses = new Map<string, PaymentStatus>();
+
+  for (const id of new Set([...chargedByClient.keys(), ...paidByClient.keys()])) {
+    statuses.set(
+      id,
+      paymentStatus(subscriberTotals(chargedByClient.get(id) ?? 0, paidByClient.get(id) ?? 0)),
+    );
+  }
+
+  return statuses;
+}
+
+/**
+ * Where every subscriber in the clinic stands on their newest term.
+ *
+ * The Bills filter's `subscription` column. Only the subscription charges are
+ * read — two of the clinic's three services — and only the four fields the
+ * standing is decided from, so this is a narrow read over the one table even on
+ * a clinic with years of ledger behind it.
+ *
+ * The verdict itself is {@link subscriptionStanding}'s, given the same shape of
+ * entry the Bills row hands it, so a filter can never disagree with the chip it
+ * is filtering on. `none` — never on a subscription — is again the complement
+ * of these keys rather than an entry, for the reason given above.
+ */
+export async function subscriptionStateByClient(
+  clinicId: string,
+  today: string,
+): Promise<Map<string, Exclude<SubscriptionState, 'none'>>> {
+  const rows = await db
+    .select({
+      clientId: clientCharges.clientId,
+      service: clientCharges.service,
+      occurredOn: clientCharges.chargedOn,
+      createdAt: clientCharges.createdAt,
+    })
+    .from(clientCharges)
+    .where(
+      and(
+        eq(clientCharges.clinicId, clinicId),
+        inArray(clientCharges.service, Object.keys(SUBSCRIPTION_TERMS)),
+      ),
+    );
+
+  const byClient = new Map<string, BillEntry[]>();
+
+  for (const row of rows) {
+    const entries = byClient.get(row.clientId) ?? [];
+
+    /*
+      `subscriptionStanding` reads a ledger entry, and only four of its fields
+      matter to it: the kind, the service, the day and the row's own age. The
+      rest are filled with the empty values a charge with nothing recorded on it
+      would carry, rather than being selected and thrown away.
+    */
+    entries.push({
+      id: '',
+      kind: 'charge',
+      occurredOn: row.occurredOn,
+      amountMinor: 0,
+      description: null,
+      method: null,
+      service: row.service,
+      note: null,
+      createdAt: row.createdAt,
+    });
+
+    byClient.set(row.clientId, entries);
+  }
+
+  const states = new Map<string, Exclude<SubscriptionState, 'none'>>();
+
+  for (const [clientId, entries] of byClient) {
+    const standing = subscriptionStanding(entries, today);
+    if (standing.state !== 'none') states.set(clientId, standing.state);
+  }
+
+  return states;
 }

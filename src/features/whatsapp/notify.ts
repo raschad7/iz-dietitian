@@ -243,8 +243,9 @@ export async function notifyAppointmentSeriesBooked(
  * the only place it still exists — so the caller passes it in rather than this
  * trying to reconstruct it.
  *
- * Gated on `confirmations_enabled`, like the confirmation: a clinic that has
- * turned appointment messages off has turned this off too.
+ * Gated on `reschedules_enabled`, its own switch: a clinic that rearranges its
+ * diary after agreeing the new time by phone can leave bookings confirmed and
+ * still not send a second, colder copy of that conversation.
  */
 export async function notifyAppointmentRescheduled(
   clinicId: string,
@@ -253,7 +254,7 @@ export async function notifyAppointmentRescheduled(
 ): Promise<SendResult> {
   const settings = await getSettings(clinicId);
 
-  if (!settings?.confirmationsEnabled) return { status: 'skipped', reason: 'not_configured' };
+  if (!settings?.reschedulesEnabled) return { status: 'skipped', reason: 'not_configured' };
 
   const target = await getAppointmentTarget(clinicId, appointmentId);
 
@@ -303,6 +304,13 @@ export async function notifyAppointmentRescheduled(
  * `whatsapp_messages.appointment_id` is a foreign key, and it would point at a
  * row that is gone. The id lives in the dedupe key instead, which is plain text.
  *
+ * **The clinic can turn this one off on its own.** It answers to
+ * `cancellations_enabled` rather than to `confirmations_enabled` like the three
+ * messages above it: a booking and a move are news the patient asked for, and a
+ * deletion is sometimes the clinic tidying its own diary — see the column's note
+ * for the case that made it a switch of its own. Everything else about this
+ * message is unchanged, including the rule below, which is not a preference.
+ *
  * **A deletion for a slot already past sends nothing.** This reverses an earlier
  * decision recorded here, which was that every deletion should notify because
  * suppressing one silently would be worse than an occasional odd message. The
@@ -318,7 +326,7 @@ export async function notifyAppointmentCancelled(
 ): Promise<SendResult> {
   const settings = await getSettings(clinicId);
 
-  if (!settings?.confirmationsEnabled) return { status: 'skipped', reason: 'not_configured' };
+  if (!settings?.cancellationsEnabled) return { status: 'skipped', reason: 'not_configured' };
 
   // Read off the deleted row the caller passed in — there is no appointment left
   // to look up, which is the same reason the details arrive as an argument.

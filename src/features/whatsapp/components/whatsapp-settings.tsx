@@ -21,6 +21,7 @@ import type { Locale } from '@/i18n/routing';
 
 import { connectWhatsappAction, disconnectWhatsappAction, refreshWhatsappStatusAction, saveAutomationSettingsAction } from '../actions';
 import { initialAutomationState, initialConnectionState, type AutomationActionState, type ConnectionActionState } from '../form-state';
+import type { AutomationSettingsInput } from '../schema';
 import type { ConnectionView } from '../types';
 
 const PENDING_STATUSES = new Set(['created', 'initializing', 'qr_ready', 'authenticating']);
@@ -163,7 +164,53 @@ function QrPanel({ qrCode }: { qrCode: string | null }) {
 }
 
 /**
- * The two automations, as switches that save themselves.
+ * Every automatic message the clinic can turn on or off, in the order the
+ * appointment they follow happens: the one that goes out before it, the one
+ * that goes out when it is made or moved, and the one that goes out when it is
+ * deleted.
+ *
+ * One table rather than three hand-written rows. It is what the section maps
+ * over and what each switch reads to know which *other* values it has to carry
+ * — see `AutomationToggle` — so adding a fourth message is an entry here and a
+ * pair of strings in the catalogues.
+ *
+ * ⚠ The names are the form field names *and* the columns behind them: they are
+ * what `automationSettingsSchema` parses and what `updateAutomationSettings`
+ * writes. A typo here is a switch that posts a value nothing reads, which shows
+ * up as a toggle that silently springs back.
+ */
+const AUTOMATIONS = [
+  { name: 'remindersEnabled', label: 'automation.reminders', help: 'automation.remindersHelp' },
+  {
+    name: 'confirmationsEnabled',
+    label: 'automation.confirmations',
+    help: 'automation.confirmationsHelp',
+  },
+  {
+    name: 'reschedulesEnabled',
+    label: 'automation.reschedules',
+    help: 'automation.reschedulesHelp',
+  },
+  {
+    name: 'cancellationsEnabled',
+    label: 'automation.cancellations',
+    help: 'automation.cancellationsHelp',
+  },
+  {
+    name: 'paymentRemindersEnabled',
+    label: 'automation.paymentReminders',
+    help: 'automation.paymentRemindersHelp',
+  },
+] as const satisfies readonly {
+  name: keyof AutomationSettingsInput;
+  label: string;
+  help: string;
+}[];
+
+type AutomationName = (typeof AUTOMATIONS)[number]['name'];
+
+/**
+ * The three automations, as switches that save themselves.
  *
  * They were `Checkbox`es behind a Save button, while the clinic's weekly
  * schedule expressed the same on/off meaning with `Switch` two tabs away. One
@@ -181,26 +228,28 @@ function AutomationSection({ locale, connection }: { locale: Locale; connection:
 
   return (
     <SettingsSection title={t('automation.title')} description={connection.linked ? t('automation.remindersHelp') : t('connection.notLinked')} icon="notifications">
-      <AutomationToggle
-        locale={locale}
-        formAction={formAction}
-        name="remindersEnabled"
-        label={t('automation.reminders')}
-        help={t('automation.remindersHelp')}
-        checked={connection.remindersEnabled}
-        siblingName="confirmationsEnabled"
-        siblingChecked={connection.confirmationsEnabled}
-      />
-      <AutomationToggle
-        locale={locale}
-        formAction={formAction}
-        name="confirmationsEnabled"
-        label={t('automation.confirmations')}
-        help={t('automation.confirmationsHelp')}
-        checked={connection.confirmationsEnabled}
-        siblingName="remindersEnabled"
-        siblingChecked={connection.remindersEnabled}
-      />
+      {/*
+        The stored state of all three, so each switch can post the two it did
+        not move — see `AutomationToggle`. Built once here rather than spelled
+        out per row, which is what stopped scaling the day there were three.
+      */}
+      {AUTOMATIONS.map(({ name, label, help }) => (
+        <AutomationToggle
+          key={name}
+          locale={locale}
+          formAction={formAction}
+          name={name}
+          label={t(label)}
+          help={t(help)}
+          values={{
+            remindersEnabled: connection.remindersEnabled,
+            confirmationsEnabled: connection.confirmationsEnabled,
+            reschedulesEnabled: connection.reschedulesEnabled,
+            cancellationsEnabled: connection.cancellationsEnabled,
+            paymentRemindersEnabled: connection.paymentRemindersEnabled,
+          }}
+        />
+      ))}
       <div className="flex flex-col gap-2 py-4">
         <p className="text-caption text-muted-foreground">{t('automation.leadFixed')}</p>
         <AutomationNotice state={state} />
@@ -210,30 +259,43 @@ function AutomationSection({ locale, connection }: { locale: Locale; connection:
 }
 
 /**
- * One switch, posting both values.
+ * One switch, posting every value.
  *
  * The action writes the whole automation record, so a form carrying only the
- * switch that moved would clear the other one. The sibling rides along as a
- * hidden input — which is also why the switch's own value is hidden rather than
+ * switch that moved would clear the others. They all ride along as hidden
+ * inputs — which is also why this switch's own value is hidden rather than
  * named on the control: `Switch` renders a `<button>`, and a button posts
  * nothing unless it is the control that submitted the form.
+ *
+ * It takes the whole set rather than a named sibling, which is what the second
+ * switch could get away with and the third could not: with three, "the other
+ * one" is two, and a row that has to be told which is a row that goes stale the
+ * next time one is added.
  */
-function AutomationToggle({ locale, formAction, name, label, help, checked, siblingName, siblingChecked }: {
+function AutomationToggle({ locale, formAction, name, label, help, values }: {
   locale: Locale;
   formAction: (data: FormData) => void;
-  name: string;
+  name: AutomationName;
   label: string;
   help: string;
-  checked: boolean;
-  siblingName: string;
-  siblingChecked: boolean;
+  /** What is stored for every switch, this one included. */
+  values: Record<AutomationName, boolean>;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
+  const checked = values[name];
 
   return (
     <form ref={formRef} action={formAction}>
       <input type="hidden" name="locale" value={locale} />
-      <input type="hidden" name={siblingName} value={siblingChecked ? 'on' : 'off'} />
+      {/* Every switch but this one, at its stored value. */}
+      {AUTOMATIONS.filter((automation) => automation.name !== name).map((automation) => (
+        <input
+          key={automation.name}
+          type="hidden"
+          name={automation.name}
+          value={values[automation.name] ? 'on' : 'off'}
+        />
+      ))}
       {/* The value this press is asking for — the opposite of what is stored. */}
       <input type="hidden" name={name} value={checked ? 'off' : 'on'} />
 

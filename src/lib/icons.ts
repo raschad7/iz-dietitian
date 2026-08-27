@@ -1,6 +1,7 @@
 import {
   Apple,
   FileDown,
+  FilePenLine,
   FileSpreadsheet,
   Archive,
   ArchiveRestore,
@@ -159,6 +160,13 @@ export const APP_ICONS = {
     children share one glyph is three of the same mark stacked in a column.
   */
   bills: ReceiptText,
+  /*
+    The Forms tab in Settings — the clinic's own wording for its bills and its
+    automatic messages. A page with a pen on it, because what is edited there is
+    the words a document is printed with rather than the document itself:
+    `bills` is the ledger, and this is what the ledger says.
+  */
+  forms: FilePenLine,
   calendar: Calendar,
   weeklyPlans: CalendarRange,
   mealPlans: ClipboardList,

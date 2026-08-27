@@ -75,10 +75,12 @@ type DialogProps = {
   flat?: boolean;
   /**
    * `wide` is for a dialog whose content is a row of choices rather than a
-   * form — the default 28rem forces three columns into one. It stays a full
-   * bottom sheet on a phone like every other dialog.
+   * form — the default 28rem forces three columns into one. `page` is between
+   * them, for content with a width of its own: the bill editor draws an A4
+   * sheet, and a card wider than the sheet is empty either side of it. Both
+   * stay a full bottom sheet on a phone like every other dialog.
    */
-  size?: 'default' | 'wide';
+  size?: 'default' | 'page' | 'wide';
   /**
    * Where the surface sits on a phone. From `sm` up both are the same centred
    * card, so this only decides what happens below that.
@@ -266,7 +268,9 @@ function Dialog({
               'q-dialog-centered m-auto rounded-lg',
               size === 'wide'
                 ? 'w-[min(64rem,calc(100vw-4rem))]'
-                : 'w-[min(28rem,calc(100vw-2rem))]',
+                : size === 'page'
+                  ? 'w-[min(46rem,calc(100vw-3rem))]'
+                  : 'w-[min(28rem,calc(100vw-2rem))]',
             ]
           : [
               // The sheet: full width, pinned to the block-end edge, only its
@@ -275,7 +279,9 @@ function Dialog({
               'sm:m-auto sm:rounded-lg',
               size === 'wide'
                 ? 'sm:w-[min(64rem,calc(100vw-4rem))]'
-                : 'sm:w-[min(28rem,calc(100vw-2rem))]',
+                : size === 'page'
+                  ? 'sm:w-[min(46rem,calc(100vw-3rem))]'
+                  : 'sm:w-[min(28rem,calc(100vw-2rem))]',
             ],
 
         'bg-popover text-popover-foreground ring-1',

@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, type CSSProperties } from 'react';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
@@ -30,7 +30,9 @@ import { cn } from '@/lib/utils';
  */
 
 const LOGO_PIXELS = 256;
-const ACCEPTED = 'image/png,image/jpeg,image/webp';
+/** The formats the resizer can read and the schema will store. */
+export const ACCEPTED_LOGO_TYPES = 'image/png,image/jpeg,image/webp';
+const ACCEPTED = ACCEPTED_LOGO_TYPES;
 
 /**
  * ⚠ **WebP is not universal, and the fallback matters.**
@@ -39,7 +41,7 @@ const ACCEPTED = 'image/png,image/jpeg,image/webp';
  * rather than assumed. Both are accepted by `clinicLogoSchema`; what would
  * break is code downstream trusting the extension.
  */
-async function resizeToDataUrl(file: File): Promise<string> {
+export async function resizeToDataUrl(file: File): Promise<string> {
   const bitmap = await createImageBitmap(file);
   try {
     const canvas = document.createElement('canvas');
@@ -77,9 +79,22 @@ async function resizeToDataUrl(file: File): Promise<string> {
  * this system gives a *person*, and a clinic is not one. The muted fill gives a
  * transparent PNG something to sit on, so a white wordmark stays visible.
  */
-export function ClinicLogo({ src, alt, className }: { src: string | null; alt: string; className?: string }) {
+export function ClinicLogo({
+  src,
+  alt,
+  className,
+  /** For a caller that sizes the mark itself — the bill editor scales it to the
+      share of the band it will print at. */
+  style,
+}: {
+  src: string | null;
+  alt: string;
+  className?: string;
+  style?: CSSProperties;
+}) {
   return (
     <span
+      style={style}
       className={cn(
         'grid shrink-0 place-items-center overflow-hidden rounded-lg bg-muted ring-1 ring-border',
         className,

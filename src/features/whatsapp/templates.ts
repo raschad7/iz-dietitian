@@ -455,11 +455,22 @@ export function renderWhatsappMessage(
   kind: WhatsappTemplateKind,
   locale: Locale,
   variables: WhatsappTemplateVariables,
+  /**
+   * The clinic's own wording for this message, from the Forms tab — see
+   * `src/features/forms/`. Undefined for a clinic that has not rewritten it,
+   * which is the ordinary case and the one the copy in this file is for.
+   *
+   * Substituted for that copy and treated identically afterwards: the same
+   * placeholder pass, the same bidi isolation, the same length clamp. A clinic
+   * that leaves a placeholder out simply gets a message without it; one that
+   * names a placeholder this message cannot fill still throws below, though the
+   * editor refuses to save that in the first place.
+   */
+  override?: string,
 ): string {
   const rtl = locale === 'ar';
 
-  const body = COPY[kind][locale]
-    .join('\n')
+  const body = (override ?? COPY[kind][locale].join('\n'))
     .replace(PLACEHOLDER, (_match, name: string) => {
       const value = variables[name as keyof WhatsappTemplateVariables];
 
@@ -473,6 +484,21 @@ export function renderWhatsappMessage(
     });
 
   return body.length > MAX_BODY_LENGTH ? `${body.slice(0, MAX_BODY_LENGTH - 1)}…` : body;
+}
+
+/**
+ * The app's own body for a message, before any clinic has rewritten it.
+ *
+ * Exported for the Forms tab, which prefills its editor with it — see
+ * `src/features/forms/`. It is the *unrendered* template, placeholders and all,
+ * because what a clinic edits is the template rather than one filled-in copy of
+ * it.
+ *
+ * Reads the same `COPY` the sender does, so the words in the editor cannot
+ * drift from the words that go out.
+ */
+export function defaultMessageBody(kind: WhatsappTemplateKind, locale: Locale): string {
+  return COPY[kind][locale].join('\n');
 }
 
 /** Trims a hand-typed message to what the gateway will accept. */

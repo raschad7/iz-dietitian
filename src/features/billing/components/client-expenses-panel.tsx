@@ -1,13 +1,15 @@
 import { getTranslations } from 'next-intl/server';
 
 import { Badge } from '@/components/ui/badge';
+import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
 import { batchNumbers, billNumber, describeEntry, type BillEntry } from '@/features/billing/bill';
+import { ExpensesActionsMenu } from '@/features/billing/components/expenses-actions-menu';
 import { PrintBillButton } from '@/features/billing/components/print-bill-button';
 import { ExpensesBillList } from '@/features/billing/components/expenses-bill-list';
 import { SendBillButton } from '@/features/billing/components/send-bill-button';
-import { PANEL_ACTION_CLASS } from '@/features/billing/components/row-action';
+import { MENU_ITEM_CLASS, PANEL_ACTION_CLASS } from '@/features/billing/components/row-action';
 import { RecordChargeDialog } from '@/features/billing/components/record-charge-dialog';
 import { subscriptionStanding } from '@/features/billing/subscription';
 import { RecordPaymentDialog } from '@/features/billing/components/record-payment-dialog';
@@ -39,12 +41,15 @@ import { cn } from '@/lib/utils';
  *
  * Three parts, in the order the question is asked:
  *
- * 1. **What it comes to** — billed, paid, and what is left, with the status
- *    chip. The outstanding figure is the one the eye should land on, so it is
- *    the largest thing on the panel and the other two are stated beside it.
- * 2. **What to do about it** — record a payment, add a charge, print the
- *    statement. One primary action: money coming in is the common case at a
- *    counter, and the other two are visibly secondary.
+ * 1. **What it comes to** — what is left, at display size on its own line at
+ *    the card's reading edge, because it is the one figure the eye should land
+ *    on. Billed and paid are tiles up in the title row beside the status chip:
+ *    the three things that describe the account, together and away from the
+ *    controls.
+ * 2. **What to do about it** — record a payment, add a charge, and a menu
+ *    holding the two that produce a document. On the debt's own line, at the
+ *    far edge. One primary action: money coming in is the common case at a
+ *    counter, and the rest are visibly secondary.
  * 3. **What has happened** — every operation, newest first.
  *
  * ## Notes on the drawing
@@ -111,7 +116,7 @@ export async function ClientExpensesPanel({
   return (
     /*
       Fills the column rather than sizing to its rows, so it ends level with the
-      identity panel beside it. The bill list is capped at six, so what fills
+      identity panel beside it. The bill list is capped at seven, so what fills
       the card is a known quantity rather than however long the account happens
       to be.
     */
@@ -119,22 +124,144 @@ export async function ClientExpensesPanel({
       <CardHeader className="gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <CardTitle>{t('expenses.title')}</CardTitle>
-          <Badge variant={STATUS_VARIANTS[status]}>{t(`status.${status}`)}</Badge>
+
+          {/*
+            The parts and the standing, together at the far end of the title
+            row. Both answer "where is this account" rather than "what should I
+            do", so they belong beside each other and beside the heading they
+            qualify — and the row below is left to the debt and the controls,
+            which is one question and one set of answers.
+          */}
+          <div className="flex flex-wrap items-center gap-2">
+            {/*
+              The two figures the debt comes from, each on a tile of its own, at
+              the top of the card beside the status chip.
+
+              **Why up here.** They have been under the debt and then between it
+              and the buttons; both put them on the line the reader is working —
+              the debt is what that line is for, and a press lands on it. Up
+              beside the chip they sit with the other thing that describes the
+              account rather than acts on it, at the end of the title row: in
+              Arabic the top left corner, in English the top right. The line
+              below is then one figure and one set of controls, which is as much
+              as a working row should hold.
+
+              **Why they are drawn at all rather than just stated.** As plain text
+              beside a display-size number they read as a caption on it. A pair of
+              matched tiles says something the type sizes alone could not: that
+              these are two of a kind, of equal standing, and that the figure
+              beside them is neither of them.
+
+              **A tile, not a `Card`.** `Card` is the record's own surface — the
+              thing this panel *is* — and nesting one inside another says a
+              section has begun. What these need is the shallowest surface the
+              system has: the sunken grey `bg-muted/40` behind the divider border,
+              one step in from the card it sits on. The same tile the planner
+              draws its own read-only figures on.
+
+              **A glyph on each, and the two that are already the clinic's words
+              for these.** `recordCharge` — the banknote with the arrow going up —
+              is what Add a bill wears, and `recordPayment` is the wallet on
+              Record a payment. So the tile showing what has been charged carries
+              the mark of the button that charges, and the one showing what has
+              come in carries the mark of the button that takes it. A picture
+              invented for a summary tile would be a third thing to learn; these
+              are ones the reader has already pressed.
+
+              Decorative, so no `label` — the `<dt>` beside each is the name of
+              the figure, and an icon that repeated it would have a screen reader
+              say the row twice.
+
+              **Centred, all three parts together**, and the label and figure on
+              one line: each tile is one statement — "Total price 300" — read in a
+              glance. `whitespace-nowrap` on the whole entry, because on one line
+              the only break available falls between a label and its own number,
+              which is the one place it must not.
+
+              **Built to the chip's own measurements, because they sit beside
+              it.** `rounded-full`, `px-2.5 py-0.5`, `text-label` and a `size-3`
+              glyph — the same numbers `badgeVariants` uses, restated here
+              rather than borrowed by rendering a `Badge`: a badge is a *state*,
+              one word the system colours, and these are a name with a figure
+              after it. Same shape, different thing, so they match by
+              construction and not by inheritance.
+
+              ⚠ Those four values are the ones to change together. If the badge
+              is ever resized, this row grows a step it does not take, and the
+              three marks stop reading as one set.
+
+              Each is as wide as what is in it and no wider — they were `flex-1`
+              for a while, sharing a row's slack, which drew two long boxes with
+              their contents marooned in the middle. Below the wrap point they
+              stack, which is the right shape on a phone.
+            */}
+            <dl className="flex flex-wrap items-center justify-center gap-2 text-label">
+              <div className="flex items-center gap-1 whitespace-nowrap rounded-full border border-border bg-muted/40 px-2.5 py-0.5">
+                <Icon name="recordCharge" className="size-3 text-muted-foreground" />
+                <dt className="text-muted-foreground">{t('fields.totalPrice')}</dt>
+                <dd dir="ltr" className="font-medium tabular-nums">
+                  {formatAmountCompact(locale, totals.chargedMinor)}
+                </dd>
+              </div>
+              <div className="flex items-center gap-1 whitespace-nowrap rounded-full border border-border bg-muted/40 px-2.5 py-0.5">
+                <Icon name="recordPayment" className="size-3 text-muted-foreground" />
+                <dt className="text-muted-foreground">{t('fields.totalPayment')}</dt>
+                <dd
+                  dir="ltr"
+                  className={cn(
+                    'font-medium tabular-nums',
+                    totals.paidMinor > 0 ? 'text-status-on-track-fg' : 'text-foreground',
+                  )}
+                >
+                  {formatAmountCompact(locale, totals.paidMinor)}
+                </dd>
+              </div>
+            </dl>
+            <Badge variant={STATUS_VARIANTS[status]}>{t(`status.${status}`)}</Badge>
+          </div>
         </div>
 
         {/*
-          The answer, then its parts. `remaining` is what somebody opens this
-          panel to find out, so it is the figure at display size and the two it
-          is derived from sit beside it in body type — hierarchy by size and
-          space rather than by colour, which is doing other work here.
+          The working line: what is owed, and what you can do about it. The two
+          figures behind the debt are up in the title row with the status chip —
+          see the note there for why.
+
+          **Reading edge first, actions at the far edge.** The debt starts where
+          the eye already is — the same edge the title above it starts on — and
+          the controls sit at the opposite end of the line, which in Arabic puts
+          them on the left and in English on the right. The same place either
+          way: as far from the figure as the card is wide, so a press lands
+          nowhere near the thing being read.
+
+          They were stacked before, figures then buttons, and the row is worth
+          the change on this card in particular: it is the header of a panel
+          that has a bill list under it, and two stacked bands pushed that list
+          down for no reading gained. Side by side, the answer and the actions
+          fit on one line and the ledger starts higher.
+
+          It wraps rather than squeezing: below the header's own breakpoint the
+          buttons drop under the figures, which is the stack this replaced and
+          the right shape at that width.
+
+          `items-end` sits the buttons on the bottom of the row rather than the
+          top. A display-size figure and a row of controls are two different
+          heights, and hung from the top edge the buttons line up with the
+          number's cap where nothing else does. On the bottom they share the
+          baseline the line ends on.
         */}
         <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
           {/*
+            The answer, at the reading edge and alone on its line. `remaining`
+            is what somebody opens this panel to find out, so it is the figure
+            at display size and the two it is derived from are a row away, up
+            with the chip — hierarchy by size and by distance, not by colour,
+            which is doing other work here.
+
             Label and figure on one line, baseline-aligned: the debt is a
-            two-word label and a short number, and stacking them left the
-            label stranded over a figure half its width. Baseline rather
-            than centre so the small label sits on the same line the
-            display-size number stands on.
+            two-word label and a short number, and stacking them left the label
+            stranded over a figure half its width. Baseline rather than centre
+            so the small label sits on the same line the display-size number
+            stands on.
           */}
           <div className="flex items-baseline gap-3">
             <p className="text-body-sm text-muted-foreground">{t('fields.remaining')}</p>
@@ -149,93 +276,100 @@ export async function ClientExpensesPanel({
             </p>
           </div>
 
-          <dl className="flex gap-8 text-body-sm">
-            <div>
-              <dt className="text-muted-foreground">{t('fields.totalPrice')}</dt>
-              <dd dir="ltr" className="font-medium tabular-nums">
-                {formatAmountCompact(locale, totals.chargedMinor)}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">{t('fields.totalPayment')}</dt>
-              <dd
-                dir="ltr"
-                className={cn(
-                  'font-medium tabular-nums',
-                  totals.paidMinor > 0 ? 'text-status-on-track-fg' : 'text-foreground',
-                )}
-              >
-                {formatAmountCompact(locale, totals.paidMinor)}
-              </dd>
-            </div>
-          </dl>
-        </div>
-
-        {/*
-          The operations: the same two dialogs the Bills screen opens, given the
-          same subscriber. Labelled here and icon-only there — a register row has
-          no width for words, a panel does, and a control that has to be pressed
-          to find out what it does is one nobody presses first.
-
-          One primary action. Money coming in is what happens at a counter, so
-          the wallet is filled and the other two are outlined — the printer
-          included, because a mark between two labelled buttons reads as a
-          control that was left unfinished. It stays outlined rather than
-          filled: it opens a document, it does not change the ledger.
-        */}
-        <div className="flex flex-wrap items-center gap-2">
-          <RecordPaymentDialog
-            locale={locale}
-            clientId={clientId}
-            clientName={clientName}
-            today={today}
-            trigger="button"
-            emphasis="primary"
-            /* The same ceiling the register puts on a payment, from the totals
-               this panel has already summed. */
-            remainingMinor={totals.remainingMinor}
-          />
-          <RecordChargeDialog
-            locale={locale}
-            clientId={clientId}
-            clientName={clientName}
-            today={today}
-            prices={prices}
-            consulted={consulted}
-            /* The same rule the register enforces, read from the entries this
-               panel is already drawing. */
-            subscription={subscriptionStanding(entries, today)}
-            trigger="button"
-            triggerClassName={PANEL_ACTION_CLASS}
-          />
-          <PrintBillButton
-            href={`/${locale}/app/clients/bills/${clientId}/print`}
-            label={t('print.statementFor', { name: clientName })}
-            hint={t('print.statement')}
-            text={t('print.exportBills')}
-            className={PANEL_ACTION_CLASS}
-          />
           {/*
-            The same statement, sent instead of printed — every bill on the
-            account in one document, which is what makes it the twin of Export
-            bills rather than a bulk send of many messages. One document is also
-            one thing for the subscriber to keep and one thing for WhatsApp to
-            carry; a message per bill would be a notification storm on the
-            phone of somebody who has been coming for a year.
+            The same two dialogs the Bills screen opens, given the same
+            subscriber. Labelled here and icon-only there — a register row has
+            no width for words, a panel does, and a control that has to be
+            pressed to find out what it does is one nobody presses first.
+
+            One primary action. Money coming in is what happens at a counter,
+            so the wallet is filled and Add a bill beside it is outlined. The
+            two that produce a document rather than a ledger entry are behind
+            the menu at the end — see `ExpensesActionsMenu` for why they are no
+            longer peers of these two.
           */}
-          <SendBillButton
-            locale={locale}
-            clientId={clientId}
-            phone={phone}
-            text
-            className={PANEL_ACTION_CLASS}
-            labels={{
-              action: t('sendBill.title'),
-              confirmTitle: t('sendBill.confirmAllTitle'),
-              confirmBody: t('sendBill.confirmAllBody', { name: clientName }),
-              sent: t('sendBill.sent'),
-            }}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <RecordPaymentDialog
+              locale={locale}
+              clientId={clientId}
+              clientName={clientName}
+              today={today}
+              trigger="button"
+              emphasis="primary"
+              /* The same ceiling the register puts on a payment, from the totals
+                 this panel has already summed. */
+              remainingMinor={totals.remainingMinor}
+            />
+            <RecordChargeDialog
+              locale={locale}
+              clientId={clientId}
+              clientName={clientName}
+              today={today}
+              prices={prices}
+              consulted={consulted}
+              /* The same rule the register enforces, read from the entries this
+                 panel is already drawing. */
+              subscription={subscriptionStanding(entries, today)}
+              trigger="button"
+              triggerClassName={PANEL_ACTION_CLASS}
+            />
+            {/*
+              Next to Add a bill, and after it in the flow — so it sits on that
+              button's left in Arabic and on its right in English, which is the
+              same place either way: the end of the row, furthest from the
+              primary action.
+
+              Both items keep the `ghost`/`sm` menu shape rather than the panel's
+              outlined one. Inside a popover the outline is a box drawn around a
+              list row, and two of them read as two more buttons rather than as a
+              menu.
+            */}
+            <ExpensesActionsMenu label={t('rowMenu.more')}>
+              <PrintBillButton
+                href={`/${locale}/app/clients/bills/${clientId}/print`}
+                label={t('print.statementFor', { name: clientName })}
+                hint={t('print.statement')}
+                text={t('print.exportBills')}
+                className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), MENU_ITEM_CLASS)}
+                iconClassName="size-4"
+              />
+              {/*
+                The same statement, sent instead of printed — every bill on the
+                account in one document, which is what makes it the twin of Export
+                bills rather than a bulk send of many messages. One document is
+                also one thing for the subscriber to keep and one thing for
+                WhatsApp to carry; a message per bill would be a notification
+                storm on the phone of somebody who has been coming for a year.
+
+                The pair being twins is most of why they share a menu: what is
+                behind this mark is one document and the two ways out of the
+                clinic with it.
+
+                "Send all bills" rather than "Send by WhatsApp": inside a menu
+                of two items, what the reader is choosing between is *what goes
+                out*, not which app carries it. It also names the scope, which
+                is the thing worth being sure of before pressing something that
+                cannot be unsent — and it pairs with Export bills above it,
+                where the two now differ in the one word that actually differs.
+              */}
+              <SendBillButton
+                locale={locale}
+                clientId={clientId}
+                phone={phone}
+                text
+                className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), MENU_ITEM_CLASS)}
+                iconClassName="size-4"
+                labels={{
+                  action: t('sendBill.sendAll'),
+                  confirmTitle: t('sendBill.confirmAllTitle'),
+                  confirmBody: t('sendBill.confirmAllBody', {
+                    name: clientName,
+                  }),
+                  sent: t('sendBill.sent'),
+                }}
+              />
+            </ExpensesActionsMenu>
+          </div>
         </div>
       </CardHeader>
 
@@ -243,13 +377,13 @@ export async function ClientExpensesPanel({
         `min-h-0` so the list can be shorter than its content asks for instead
         of pushing the card past the column, and **no `overflow`** — the card
         never scrolls.
-        
-        That is a decision with a cost, and it is the intended one: six rows
+
+        That is a decision with a cost, and it is the intended one: seven rows
         fit the record shell at ordinary window heights, and on a window short
         enough that they do not, the last bill is clipped rather than reachable
         by scrolling. The pager is what keeps the list short enough for this to
         hold; dropping the page size is the lever if a clinic screen turns out
-        to be shorter than six rows.
+        to be shorter than seven rows.
       */}
       <CardContent className="lg:min-h-0 lg:flex-1">
         {entries.length === 0 ? (
@@ -265,7 +399,7 @@ export async function ClientExpensesPanel({
           /*
             The rows are built here — on the server, with `describeEntry` and
             the server's own translations — and handed over finished. The list
-            below only decides which six of them are on screen. See
+            below only decides which seven of them are on screen. See
             `ExpensesBillList` for why the page is state rather than a `?page=`.
           */
           <ExpensesBillList
@@ -308,8 +442,10 @@ export async function ClientExpensesPanel({
                         side of the ledger.
                       */
                       charge
-                        ? (serviceTone(entry.service) ?? 'bg-status-medical-bg text-status-medical-fg')
-                        : (methodTone(entry.method) ?? 'bg-status-on-track-bg text-status-on-track-fg'),
+                        ? (serviceTone(entry.service) ??
+                            'bg-status-medical-bg text-status-medical-fg')
+                        : (methodTone(entry.method) ??
+                            'bg-status-on-track-bg text-status-on-track-fg'),
                     )}
                   >
                     <Icon name={charge ? 'recordCharge' : 'recordPayment'} className="size-4" />
@@ -329,7 +465,9 @@ export async function ClientExpensesPanel({
 
                   <PrintBillButton
                     href={`/${locale}/app/clients/bills/${clientId}/print/${entry.id}`}
-                    label={t('print.billNumbered', { number: billNumber(entry) })}
+                    label={t('print.billNumbered', {
+                      number: billNumber(entry),
+                    })}
                     hint={t('print.bill')}
                     iconClassName="size-4"
                   />

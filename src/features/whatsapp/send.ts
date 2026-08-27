@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto';
 
 import { type WhatsappMessageKind, type WhatsappSettings } from '@/db/schema';
+/* The clinic's own wording, when it has any — see `sendWhatsappTemplate`. */
+import { clinicMessageBody } from '@/features/forms/queries';
 import { type Locale } from '@/i18n/routing';
 
 import { getWhatsappConfig } from './config';
@@ -164,8 +166,30 @@ export async function sendWhatsappTemplate(
 ): Promise<SendResult> {
   let body: string;
 
+  /*
+    The clinic's own wording for this message, if it has rewritten it in the
+    Forms tab.
+
+    Read here rather than in each `notify*` function, because this is the one
+    place every templated message passes through — a lookup per caller would be
+    three chances to forget it, and the fourth message added later would be a
+    fourth. It is one indexed read per send, on a path that is already talking
+    to a gateway over the network.
+
+    A failure to read is not a failure to send: the app's own copy is a correct
+    message, and a patient going untold because a settings table was briefly
+    unavailable would be the worse outcome by far.
+  */
+  let override: string | undefined;
+
   try {
-    body = renderWhatsappMessage(template.kind, template.locale, template.variables);
+    override = await clinicMessageBody(request.clinicId, template.kind);
+  } catch (error) {
+    console.error('[whatsapp] reading the clinic wording failed', error);
+  }
+
+  try {
+    body = renderWhatsappMessage(template.kind, template.locale, template.variables, override);
   } catch (error) {
     // A template with a missing variable is a programming error, but it must not
     // take down the booking that triggered it.

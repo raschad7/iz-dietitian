@@ -138,6 +138,7 @@ export async function saveAutomationSettingsAction(
   const parsed = automationSettingsSchema.safeParse({
     remindersEnabled: formData.get('remindersEnabled'),
     confirmationsEnabled: formData.get('confirmationsEnabled'),
+    cancellationsEnabled: formData.get('cancellationsEnabled'),
   });
 
   if (!parsed.success) return { status: 'error', messageKey: 'errors.invalid' };

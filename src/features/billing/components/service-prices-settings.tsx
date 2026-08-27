@@ -1,45 +1,60 @@
 'use client';
 
-import { useActionState, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 
-import { Button } from '@/components/ui/button';
 import { FieldError } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { toast } from '@/components/ui/toast';
 import { saveServicePricesAction } from '@/features/billing/actions';
 import { initialBillingFormState } from '@/features/billing/form-state';
 import { toPriceInput, toPriceValue } from '@/features/billing/money';
 import { BILLING_SERVICES, type BillingService, type ServicePrices } from '@/features/billing/services';
-import { SettingsSection } from '@/features/settings/components/settings-section';
+import { SettingsEditDialog } from '@/features/settings/components/settings-edit-dialog';
+import { SettingsRow, SettingsSection } from '@/features/settings/components/settings-section';
 import { currencySymbol } from '@/lib/format';
 import type { Locale } from '@/i18n/routing';
 
 /**
- * What the clinic charges, one line per service.
+ * What the clinic charges: one row naming the prices, and one control that
+ * opens them.
  *
  * The dietitian sets these; nothing else does. There is no default price and no
  * suggested one — a clinic's rates are its own, and a figure this app invented
  * would be a figure somebody eventually charged a subscriber by not noticing.
  *
- * ## The button is not there until there is something to save
+ * ## Why the fields moved into a dialog, behind one control
  *
- * A Save control on an untouched form is a button that does nothing, sitting
- * under three fields nobody has changed — and once a reader has seen it do
- * nothing, it stops reading as the thing that commits their work. It appears on
- * the first edited digit and goes when the write lands, so its presence *is*
- * the message "you have unsaved prices".
+ * They were three live inputs sitting open on the tab, with a Save button that
+ * appeared on the first edited digit. That is a form on a page nobody came to
+ * fill in: a settings tab is opened far more often to *check* what the clinic
+ * charges than to change it, and a page of open inputs makes every visit look
+ * like unfinished work — and gives a stray keystroke somewhere to hide.
  *
- * This is also why the fields no longer save themselves on blur. Auto-save is
- * right where the value is the reader's own note; a price is what a subscriber
- * will be charged, and committing that on the way past a field is a decision
- * nobody made.
+ * So it reads like every other row on this page now: a row that says what it
+ * is, and one control that opens it. Reading is the default and writing is
+ * deliberate. The control sits in the row's action slot, which puts it at the
+ * far end of the line — the left in Arabic, the right in English — where every
+ * other Change on this page already is.
+ *
+ * `SettingsEditDialog` brings the rest with it: the open state, the pending
+ * state, the close on success, and the re-keyed form that makes every opening
+ * start from what is stored. The old component owned all four, plus a
+ * `changed` comparison and a toast, to say what a dialog says by closing.
+ *
+ * ## One dialog, three fields
+ *
+ * The rest of this page edits one field per dialog, because its rows are one
+ * fact each. These three are one decision — what the clinic charges — and are
+ * read against each other: a consultation priced above a month's subscription
+ * is a mistake you see by looking at the three together, and never by opening
+ * them one at a time.
  *
  * ## An empty field is "no price"
  *
- * Not zero. Clearing one takes the price back off the service; zero stays a real
- * answer for a service the clinic gives away.
+ * Not zero. Clearing one takes the price back off the service; zero stays a
+ * real answer for a service the clinic gives away — a field left blank and a
+ * field holding `0` mean different things and are stored differently.
  *
  * ## Changing a price does not change a bill
  *
@@ -57,141 +72,138 @@ export function ServicePricesSettings({
   prices: ServicePrices;
 }) {
   const t = useTranslations('billing');
-  const [state, formAction, pending] = useActionState(saveServicePricesAction, initialBillingFormState);
-
-  /**
-   * What is stored, as the fields draw it.
-   *
-   * Read from the props on every render rather than kept as a second copy in
-   * state. `revalidatePath` re-renders this section with the row the write just
-   * made, so the baseline the button is measured against is the database's own
-   * answer — and it is right again after the *second* save as much as the
-   * first. A remembered baseline was not: the action returns `success` both
-   * times, so nothing in the state changed to react to, and the button sat
-   * there after every save but the first.
-   */
-  const stored = Object.fromEntries(
-    BILLING_SERVICES.map((service) => {
-      const price = prices[service.value];
-      return [service.value, price === null ? '' : toPriceValue(price)];
-    }),
-  ) as Record<BillingService, string>;
-
-  /* What is on screen. Controlled, so `toPriceInput` can drop anything that is
-     not part of an amount as the key lands. */
-  const [values, setValues] = useState(stored);
-
-  /*
-    The save's own moment, taken from the edge of `pending` rather than from the
-    status. Two saves in a row both end in `success`, so a status that has not
-    changed is not the same as a submission that has not happened — watching the
-    transition close is what fires once per press.
-
-    It also re-reads the fields from what was stored. A rate typed `270.00` and
-    stored as `27000` comes back as `270`; without this the field would keep the
-    reader's spelling, disagree with the baseline, and leave the button up over
-    a form with nothing left to save.
-  */
-  const wasPending = useRef(false);
-
-  useEffect(() => {
-    if (wasPending.current && !pending && state.status === 'success') {
-      setValues(stored);
-      toast.success(t('prices.saved'));
-    }
-
-    wasPending.current = pending;
-    /* `stored` is derived from `prices` and `t` is stable per locale; neither is
-       a reason to re-run a one-shot on the end of a submission. */
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pending, state.status]);
-
-  const changed = BILLING_SERVICES.some(
-    (service) => values[service.value].trim() !== stored[service.value].trim(),
-  );
 
   return (
-    <SettingsSection title={t('prices.title')} description={t('prices.description')} icon="recordCharge">
-      <form action={formAction}>
-        <input type="hidden" name="locale" value={locale} />
+    <SettingsSection
+      title={t('prices.title')}
+      description={t('prices.description')}
+      icon="recordCharge"
+    >
+      {/*
+        One row, and it names the subject rather than listing it: the three
+        services and their rates are what the dialog is for, and a row that
+        recited them would be the editor's contents written out twice — once as
+        text nobody can change and once as fields.
 
-        {BILLING_SERVICES.map((service) => {
-          const id = `price-${service.value}`;
-
-          return (
-            <div key={service.value} className="flex items-center justify-between gap-4 py-3">
-              <Label htmlFor={id} className="min-w-0 flex-1 font-normal">
-                {t(`services.${service.value}`)}
-              </Label>
-
-              {/*
-                `dir="ltr"` on the box, so the logical edges inside it resolve
-                the way the figure reads rather than the way the page does. The
-                symbol then sits at the physical left and the digits flush right
-                in Arabic as in English — without a single physical property,
-                which this repo rules out for good reason: see
-                `docs/design-system.md`.
-              */}
-              <div dir="ltr" className="relative">
-                <span
-                  aria-hidden
-                  className="pointer-events-none absolute inset-y-0 start-0 grid w-6 place-items-center text-body-sm text-muted-foreground"
-                >
-                  {currencySymbol(locale)}
-                </span>
-
-                {/*
-                  Sized to what it holds: four digits and the symbol, and no
-                  more. `w-20` is that sum — a 24px symbol slot, four tabular
-                  figures, and the padding either side — which is why both
-                  paddings are named here rather than left to the input scale's
-                  `px-5`. Width is the *box*, not the content: an earlier
-                  `w-[8ch]` set the box to the width the digits alone need, left
-                  about two characters of room once the symbol and the end
-                  padding came out of it, and showed `9999` as `99`.
-
-                  A text input and not `type="number"`, for the reason every
-                  amount in this feature is one: a spinner changes money on a
-                  scroll of the wheel over the field, `1e3` is accepted, and the
-                  browser's per-locale decimals silently disagree with what the
-                  server parses. `parseAmount` reads this — the same function the
-                  schema runs.
-                */}
-                <PriceInput
-                  id={id}
-                  value={values[service.value]}
-                  invalid={state.status === 'error'}
-                  onValueChange={(next) =>
-                    setValues((was) => ({ ...was, [service.value]: next }))
-                  }
-                />
-              </div>
-            </div>
-          );
-        })}
-
-        {/*
-          One line for the whole form — the action reports a single message key,
-          and the first field that does not parse stops the write, so there is
-          never more than one thing to say.
-        */}
-        {state.status === 'error' ? <FieldError>{t(`errors.${state.messageKey}`)}</FieldError> : null}
-
-        {/*
-          The button holds its own row rather than appearing between the fields
-          and pushing them, and the row is only in the layout while there is
-          something to commit — an empty reserved strip under three fields is a
-          gap the eye keeps checking.
-        */}
-        {changed ? (
-          <div className="flex justify-end pt-3">
-            <Button type="submit" disabled={pending}>
-              {pending ? t('prices.saving') : t('prices.save')}
-            </Button>
-          </div>
-        ) : null}
-      </form>
+        So there is a single control, where there were three that all opened the
+        same editor. Three Changes down a column read as three separate
+        decisions; the prices are one.
+      */}
+      <SettingsRow
+        label={t('prices.rowLabel')}
+        /* Nothing to state. The section's own description says what these are
+           and the dialog holds the figures. */
+        value={null}
+        action={<PricesDialog locale={locale} prices={prices} />}
+      />
     </SettingsSection>
+  );
+}
+
+/** The editor: every rate at once, behind one Change. */
+function PricesDialog({ locale, prices }: { locale: Locale; prices: ServicePrices }) {
+  const t = useTranslations('billing');
+
+  return (
+    <SettingsEditDialog
+      locale={locale}
+      title={t('prices.title')}
+      triggerLabel={t('prices.edit')}
+      /* "Change" alone is enough here — it is the only control in the section
+         and its row names what it changes. */
+      action={saveServicePricesAction}
+      initialState={initialBillingFormState}
+    >
+      {(state) => (
+        <>
+          {BILLING_SERVICES.map((service) => (
+            <PriceField
+              key={service.value}
+              locale={locale}
+              service={service.value}
+              label={t(`services.${service.value}`)}
+              stored={prices[service.value]}
+              invalid={state.status === 'error'}
+            />
+          ))}
+
+          {/*
+            One line for the whole form — the action reports a single message
+            key, and the first field that does not parse stops the write, so
+            there is never more than one thing to say. The dialog's own
+            catch-all sits under this and says nothing more specific.
+          */}
+          {state.status === 'error' ? <FieldError>{t(`errors.${state.messageKey}`)}</FieldError> : null}
+        </>
+      )}
+    </SettingsEditDialog>
+  );
+}
+
+/**
+ * One service's label and its field.
+ *
+ * Holds its own value in state rather than reading up: the dialog is re-keyed
+ * on every opening — see `SettingsEditDialog` — so mounting with the stored
+ * price is the same thing as resetting to it, and nothing here has to remember
+ * that a dismissed edit must be forgotten.
+ */
+function PriceField({
+  locale,
+  service,
+  label,
+  stored,
+  invalid,
+}: {
+  locale: Locale;
+  service: BillingService;
+  label: string;
+  /** What is stored, in minor units. `null` for a service with no price. */
+  stored: number | null;
+  invalid: boolean;
+}) {
+  const id = `price-${service}`;
+  const [value, setValue] = useState(stored === null ? '' : toPriceValue(stored));
+
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <Label htmlFor={id} className="min-w-0 flex-1 font-normal">
+        {label}
+      </Label>
+
+      {/*
+        `dir="ltr"` on the box, so the logical edges inside it resolve the way
+        the figure reads rather than the way the page does. The symbol then sits
+        at the physical left and the digits flush right in Arabic as in English
+        — without a single physical property, which this repo rules out for good
+        reason: see `docs/design-system.md`.
+      */}
+      <div dir="ltr" className="relative">
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 start-0 grid w-6 place-items-center text-body-sm text-muted-foreground"
+        >
+          {currencySymbol(locale)}
+        </span>
+
+        {/*
+          Sized to what it holds: four digits and the symbol, and no more.
+          `w-20` is that sum — a 24px symbol slot, four tabular figures, and the
+          padding either side — which is why both paddings are named here rather
+          than left to the input scale's `px-5`. Width is the *box*, not the
+          content: an earlier `w-[8ch]` set the box to the width the digits
+          alone need, left about two characters of room once the symbol and the
+          end padding came out of it, and showed `9999` as `99`.
+
+          A text input and not `type="number"`, for the reason every amount in
+          this feature is one: a spinner changes money on a scroll of the wheel
+          over the field, `1e3` is accepted, and the browser's per-locale
+          decimals silently disagree with what the server parses. `parseAmount`
+          reads this — the same function the schema runs.
+        */}
+        <PriceInput id={id} value={value} invalid={invalid} onValueChange={setValue} />
+      </div>
+    </div>
   );
 }
 

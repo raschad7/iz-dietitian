@@ -11,37 +11,10 @@ import { toast } from '@/components/ui/toast';
 import { TooltipHint } from '@/components/ui/tooltip-hint';
 import { sendPaymentReminderAction } from '@/features/billing/actions';
 import { PrintBillButton } from '@/features/billing/components/print-bill-button';
-import { ROW_ACTION_CLASS } from '@/features/billing/components/row-action';
+import { MENU_ITEM_CLASS, ROW_ACTION_CLASS } from '@/features/billing/components/row-action';
 import { initialBillingFormState } from '@/features/billing/form-state';
 import type { Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
-
-/**
- * How a row in this menu answers the pointer: a step darker than the `ghost`
- * variant's own hover.
- *
- * Ghost flips to `--accent` — `#E5E7EB` — which is the right weight for a
- * control sitting on a page, and too light inside a popover: the panel is
- * already a raised surface, so a near-white fill on a near-white card is a
- * state you have to look for rather than one you notice.
- *
- * An alpha over whatever is beneath it rather than a darker swatch, so it works
- * in both themes without a second rule — black at 15% in the light theme, and
- * in the dark one `--foreground` is the pale ink, so the same class lightens
- * instead of darkening. That is the same "more contrast with the panel"
- * either way, which is what the state is for.
- *
- * **The edge is pinned transparent in every state, and that is not belt and
- * braces.** Print all bills is a `PrintBillButton`, and its labelled shape is
- * the `outline` variant — which carries `hover:border-accent-green`. Handing
- * it the `ghost` variant afterwards replaces `border-primary` but not the
- * hover rule beside it: tailwind-merge treats `border` and `hover:border` as
- * different groups, so the green edge survived a class that looks like it
- * should have removed it, and only that one row in the menu grew a border
- * under the pointer. Naming the hover state explicitly is what actually wins.
- */
-const MENU_ITEM_CLASS =
-  'w-full max-w-none justify-start border-transparent hover:border-transparent hover:bg-foreground/15 aria-expanded:border-transparent aria-expanded:bg-foreground/15';
 
 /**
  * The Bills row's overflow menu — the things that are done *about* an account

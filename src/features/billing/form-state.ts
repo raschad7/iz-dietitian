@@ -61,6 +61,7 @@ export type BillingFormState =
          * posted around it or the debt was settled in between.
          */
         | 'nothingOutstanding'
+        | 'paymentRemindersOff'
         /**
          * WhatsApp is not usable right now — never configured, or configured
          * and not paired with a phone. One key for both, because the dietitian

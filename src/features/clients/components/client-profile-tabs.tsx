@@ -258,11 +258,11 @@ export function ClientProfileTabs({
           'lg:-mx-1 lg:px-1 lg:pt-1',
           /*
             Expenses joins the account view in filling rather than scrolling.
-            Its list is capped at eight bills with a pager on the ninth row —
-            see `ExpensesBillList` — so the card has a bounded height now and
-            can stand the same height as the identity panel beside it. A panel
-            that scrolled would make the two columns end in different places and
-            put a second scrollbar next to the record's own.
+            Its list is capped at seven bills with a pager under them — see
+            `ExpensesBillList` — so the card has a bounded height and can stand
+            the same height as the identity panel beside it. A panel that
+            scrolled would make the two columns end in different places and put
+            a second scrollbar next to the record's own.
           */
           shown === 'account' || shown === 'expenses'
             ? 'lg:overflow-hidden lg:pb-1'

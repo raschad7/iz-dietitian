@@ -67,6 +67,7 @@
     "tabs": {
       "profile": "Personal profile",
       "clinic": "Clinic",
+      "forms": "Forms",
       "whatsapp": "WhatsApp",
       "security": "Security"
     },
@@ -517,6 +518,24 @@
         "reported": "Reported this week",
         "notReported": "Nothing reported yet",
         "noPlan": "No plan running"
+      },
+      "plan": {
+        "label": "Nutrition plan",
+        "has": "Has a plan",
+        "none": "No plan"
+      },
+      "paymentStatus": {
+        "label": "Payment status",
+        "unpaid": "Unpaid",
+        "partial": "Partly paid",
+        "paid": "Paid",
+        "none": "Nothing billed"
+      },
+      "subscription": {
+        "label": "Subscription",
+        "active": "Running",
+        "expired": "Ended",
+        "none": "Never subscribed"
       }
     },
     "resultCount": "{total, number, integer} clients",
@@ -943,6 +962,70 @@
       }
     }
   },
+  "forms": {
+    "edit": "Change",
+    "custom": "Custom",
+    "default": "App default",
+    "bill": {
+      "title": "Bill wording",
+      "description": "Edit the bill form that reaches the patient — its layout and every word on it.",
+      "edit": "Edit bill form",
+      "reset": "Restore the app's bill",
+      "clinicName": "Name printed on the bill",
+      "addHere": "Add a line here",
+      "hiddenHere": "Taken off:",
+      "customItem": "Your own line",
+      "removeItem": "Take off the bill",
+      "moveItem": "Drag it anywhere, or use the arrow keys",
+      "resize": "Resize from the corner, or use the up and down arrows",
+      "sampleAddress": "Clinic address",
+      "zone": {
+        "header": "Head of the page",
+        "details": "Subscriber and date"
+      },
+      "item": {
+        "logo": "Logo",
+        "clinicName": "Clinic name",
+        "doctorName": "Practitioner name",
+        "clinicPhone": "Clinic phone",
+        "clinicAddress": "Clinic address",
+        "docTitle": "Document title",
+        "billNo": "Bill number",
+        "subscriberLabel": "Subscriber label",
+        "subscriberValue": "Subscriber name",
+        "issuedLabel": "Issued label",
+        "issuedValue": "Issue date"
+      },
+      "logo": "Logo",
+      "totals": "Totals",
+      "totalsMove": "Drag left, middle or right",
+      "sampleDoctor": "Practitioner name",
+      "sampleSubscriber": "Subscriber name",
+      "sampleCharge": "Follow-up visit",
+      "samplePayment": "Payment — cash"
+    },
+    "messages": {
+      "reset": "Restore the app's message",
+      "title": "Automatic messages",
+      "description": "What a patient receives when an appointment is booked, before it comes round, when it is moved or deleted, and when a balance is chased. A saved message is used from the next one sent onwards.",
+      "appointmentConfirmation": "Appointment booked",
+      "appointmentConfirmationHelp": "Sent when an appointment is booked.",
+      "appointmentReminder": "Appointment reminder",
+      "appointmentReminderHelp": "Sent before an appointment, on the schedule set on the WhatsApp tab.",
+      "appointmentRescheduled": "Appointment moved",
+      "appointmentRescheduledHelp": "Sent when an appointment changes to another day or time.",
+      "appointmentCancelled": "Appointment deleted",
+      "appointmentCancelledHelp": "Sent when a booking is deleted. Never for a visit that has already happened.",
+      "paymentReminder": "Payment reminder",
+      "paymentReminderHelp": "Sent when staff choose to remind a subscriber of what is outstanding."
+    },
+    "errors": {
+      "invalid": "Nothing to save.",
+      "tooLong": "That is longer than WhatsApp will send. Shorten it and try again.",
+      "unknownPlaceholder": "This message cannot fill {placeholder}. Use one of the words listed under the box.",
+      "unexpected": "Something went wrong. Try again."
+    }
+  },
   "billing": {
     "title": "Bills",
     "subtitle": "What each subscriber has been billed, paid, and still owes.",
@@ -974,6 +1057,8 @@
       "title": "Services and prices",
       "description": "What this clinic charges for each service. Changing a price here does not change a bill that has already been recorded.",
       "unpriced": "No price yet",
+      "rowLabel": "Service prices",
+      "edit": "Change",
       "save": "Save changes",
       "saving": "Saving…",
       "saved": "Prices saved"
@@ -1045,6 +1130,7 @@
       "paymentExceedsBalance": "That is more than this subscriber still owes.",
       "billNotSent": "Could not send on WhatsApp. Nothing was sent — send it another way, and check Settings → WhatsApp.",
       "nothingOutstanding": "This subscriber owes nothing, so there is nothing to remind them about.",
+      "paymentRemindersOff": "Payment reminders are switched off for this clinic. Turn them on under Settings › WhatsApp.",
       "whatsappNotConnected": "WhatsApp is not connected. Nothing was sent — connect the clinic number in Settings → WhatsApp.",
       "clientHasNoPhone": "This subscriber has no phone number on their record, so there is nowhere to send.",
       "clientNotOnWhatsapp": "That number is not on WhatsApp. Nothing was sent — check the number on their record."
@@ -1074,7 +1160,7 @@
       "charge": "Charge",
       "payment": "Payment",
       "emptyLedger": "Nothing has been billed on this account.",
-      "footer": "A record of what this clinic billed and received. Not a tax invoice."
+      "footer": "A record of what this clinic billed and received."
     },
     "ledger": {
       "billNo": "Bill no.",
@@ -1092,7 +1178,7 @@
       "empty": "Nothing on this account yet. Add a charge or record a payment to start the ledger."
     },
     "sendBill": {
-      "title": "Send by WhatsApp",
+      "sendAll": "Send all bills",
       "bill": "Send this bill by WhatsApp",
       "confirmTitle": "Send this statement?",
       "confirmBody": "{name} will receive their account statement on WhatsApp. A sent message cannot be taken back.",
@@ -1155,7 +1241,7 @@
         "thisMonth": "This month",
         "last3": "Last 3 months",
         "thisYear": "This year",
-        "all": "All time",
+        "all": "All the duration",
         "custom": "Custom",
         "from": "From",
         "to": "To"
@@ -2334,7 +2420,13 @@
       "reminders": "Appointment reminders",
       "remindersHelp": "One message per appointment, sent a day before and exactly once.",
       "confirmations": "Confirmation when an appointment is booked",
-      "confirmationsHelp": "Sent on booking, and again if the appointment moves.",
+      "confirmationsHelp": "Sent the moment a booking is made.",
+      "reschedules": "Notice when an appointment is moved",
+      "reschedulesHelp": "Sent when a booking changes to another day or time.",
+      "cancellations": "Notice when an appointment is deleted",
+      "cancellationsHelp": "Sent when a booking is deleted. Never for a visit that has already happened.",
+      "paymentReminders": "Payment reminder",
+      "paymentRemindersHelp": "Lets staff remind a subscriber of what is outstanding, from the Bills page.",
       "leadFixed": "The reminder goes out one day before the appointment.",
       "save": "Save",
       "saved": "Settings saved."
@@ -2477,9 +2569,9 @@
     },
     "logo": "Clinic logo",
     "logoUpload": "Choose an image",
+    "logoHint": "PNG, JPG or WebP. Resized to 256×256 automatically.",
     "logoReplace": "Replace image",
     "logoRemove": "Remove logo",
-    "logoHint": "PNG, JPG or WebP. Resized to 256×256 automatically.",
     "logoPreviewAlt": "Clinic logo",
     "closed": "Closed"
   },

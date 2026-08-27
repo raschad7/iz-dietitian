@@ -29,8 +29,20 @@ import {
  */
 export const CLIENT_STATUSES = ['active', 'archived'] as const;
 export const CLIENT_SEXES = ['female', 'male'] as const;
-export const CLIENT_GOALS = ['weight_loss', 'weight_gain', 'maintenance', 'medical', 'sports'] as const;
-export const CLIENT_ACTIVITY_LEVELS = ['sedentary', 'light', 'moderate', 'active', 'very_active'] as const;
+export const CLIENT_GOALS = [
+  'weight_loss',
+  'weight_gain',
+  'maintenance',
+  'medical',
+  'sports',
+] as const;
+export const CLIENT_ACTIVITY_LEVELS = [
+  'sedentary',
+  'light',
+  'moderate',
+  'active',
+  'very_active',
+] as const;
 
 export type ClientStatus = (typeof CLIENT_STATUSES)[number];
 export type ClientSex = (typeof CLIENT_SEXES)[number];
@@ -289,10 +301,7 @@ export const intakeSchema = z.object({
       .max(HEIGHT_CM_RANGE.max, 'heightOutOfRange'),
   ),
   goal: z.preprocess(blankToEmpty, z.enum(CLIENT_GOALS, { error: 'required' })),
-  activityLevel: z.preprocess(
-    blankToEmpty,
-    z.enum(CLIENT_ACTIVITY_LEVELS, { error: 'required' }),
-  ),
+  activityLevel: z.preprocess(blankToEmpty, z.enum(CLIENT_ACTIVITY_LEVELS, { error: 'required' })),
 
   /**
    * Current weight, from `client_nutrition_profiles`.
@@ -316,7 +325,8 @@ export const intakeSchema = z.object({
    * is why this coerces before parsing.
    */
   allergenTags: z.preprocess(
-    (value) => (value === undefined || value === null ? [] : Array.isArray(value) ? value : [value]),
+    (value) =>
+      value === undefined || value === null ? [] : Array.isArray(value) ? value : [value],
     z.array(z.enum(ALLERGENS)),
   ),
   /**
@@ -330,7 +340,8 @@ export const intakeSchema = z.object({
    */
   customAllergens: z.preprocess(
     (value) => {
-      const list = value === undefined || value === null ? [] : Array.isArray(value) ? value : [value];
+      const list =
+        value === undefined || value === null ? [] : Array.isArray(value) ? value : [value];
 
       const seen = new Set<string>();
 
@@ -474,11 +485,11 @@ export type ClientSort = (typeof CLIENT_SORTS)[number];
  * to carry a text input for them and a chooser for the fixed-choice one, and the
  * two branches were most of the control.
  *
- * What is left is two columns, and both answer a question a name cannot: who
- * has a portal login, and where each client stands in the plan period they are
- * currently on. The chooser the popover dropped when this was down to one column
- * is back for exactly the reason it was kept as an array — see
- * `ClientFilterMenu`.
+ * What is left are columns that answer a question a name cannot: who has a
+ * portal login, whether a client has a nutrition plan at all, and where each
+ * client stands in the plan period they are currently on. The chooser the
+ * popover dropped when this was down to one column is back for exactly the
+ * reason it was kept as an array — see `ClientFilterMenu`.
  *
  * ⚠ **One column at a time, still.** The second filter is a second *answer* to
  * "which question am I asking", not a second row stacked under the first. A pair
@@ -489,7 +500,50 @@ export type ClientSort = (typeof CLIENT_SORTS)[number];
  * An old link carrying `filterBy=phone` fails the enum and `.catch()` drops it,
  * which shows the register unfiltered rather than erroring.
  */
-export const CLIENT_FILTERS = ['portalAccess', 'weeklyProgress'] as const;
+/**
+ * The register's own columns — who this person is to the clinic.
+ *
+ * Neither of them is a question about money, which is why Bills does not offer
+ * them: see {@link BILLS_FILTERS}.
+ */
+export const REGISTER_FILTERS = ['portalAccess', 'weeklyProgress', 'plan'] as const;
+
+/**
+ * The Bills screen's columns, and only its columns.
+ *
+ * Bills lists the same people as the register and is read for a different
+ * reason, so it filters on different things. Portal access and weekly progress
+ * are not questions anyone asks of a ledger, and the two columns on that table
+ * a reader *does* narrow by are the two non-numeric ones:
+ *
+ * - `paymentStatus` — the chip closing every row: paid, part-paid, unpaid, or
+ *   nothing billed yet. The screen's whole question is who owes
+ *   what, and this is the column that answers it.
+ * - `subscription` — where their term stands, which is the other column on that
+ *   table carrying a state rather than a figure, and the one a renewal chase
+ *   starts from.
+ *
+ * The three money columns are deliberately absent. A filter over an amount is a
+ * *range* — "owing more than", "between" — which is a second control, a number
+ * to type and a unit to get wrong, and the table already sorts by every one of
+ * them: a reader after the largest debts sorts on Debt and reads down the page.
+ * `paymentStatus` is the useful part of that question with nothing to type.
+ *
+ * The name is not here either, for the reason it never is: it is the search
+ * field beside this control.
+ */
+export const BILLS_FILTERS = ['paymentStatus', 'subscription'] as const;
+
+/**
+ * Every column any register-shaped screen can filter on.
+ *
+ * One enum, because one URL: both screens are `listClients` with the same
+ * parameters, and a link carrying a Bills filter should fail the same way a
+ * link carrying a dead one does — `.catch()` drops it and the list shows
+ * unfiltered — rather than throwing on the screen that does not offer it.
+ * Which subset each screen *shows* is the popover's business, not the schema's.
+ */
+export const CLIENT_FILTERS = [...REGISTER_FILTERS, ...BILLS_FILTERS] as const;
 export type ClientFilter = (typeof CLIENT_FILTERS)[number];
 
 /** What `portalAccess` filters on: the client has a portal login, or has not. */
@@ -521,10 +575,67 @@ export const PORTAL_ACCESS_VALUES = ['yes', 'no'] as const;
 export const WEEKLY_PROGRESS_VALUES = ['reported', 'notReported', 'noPlan'] as const;
 export type WeeklyProgressFilterValue = (typeof WEEKLY_PROGRESS_VALUES)[number];
 
+/**
+ * What `paymentStatus` filters on — the chip the Bills row ends with.
+ *
+ * Four of the five values `paymentStatus` in `features/billing/money.ts`
+ * produces, in the order a reader wants them rather than the order that module
+ * declares them: the two that are owed money lead, because that is what the
+ * screen is opened for, and `none` — nothing billed yet — comes last as the
+ * absence it is.
+ *
+ * ⚠ `credit` — paid past what was charged — is the fifth, and this filter does
+ * not offer it. The chip still draws it, because a row in credit has to say so;
+ * what the select loses is an answer nobody opens this screen to ask. The
+ * ledger is read for who owes. A URL naming `credit` filters nothing, the same
+ * way any other unknown value does.
+ *
+ * ⚠ Spelled out here rather than imported from `money.ts` so the register's
+ * schema does not depend on the billing feature; `filter.paymentStatus.*` in
+ * the catalogues has to cover every one of them, and `BILLS_FILTER_VALUES`
+ * below is checked against the union that module exports at the one place that
+ * reads both.
+ */
+export const PAYMENT_STATUS_VALUES = ['unpaid', 'partial', 'paid', 'none'] as const;
+export type PaymentStatusFilterValue = (typeof PAYMENT_STATUS_VALUES)[number];
+
+/**
+ * What `subscription` filters on: inside a term, past one, or never on one.
+ *
+ * The Bills column's own three states — see `SubscriptionState` — and `none` is
+ * offered here even though the table draws it as an em-dash rather than a chip.
+ * "Who has never been on a subscription" is a list worth asking for; that it is
+ * drawn as a blank is a reason to give the reader another way to find it, not a
+ * reason to leave it out.
+ */
+export const SUBSCRIPTION_FILTER_VALUES = ['active', 'expired', 'none'] as const;
+export type SubscriptionFilterValue = (typeof SUBSCRIPTION_FILTER_VALUES)[number];
+
+/**
+ * What `plan` filters on: the client has a nutrition plan on file, or has none.
+ *
+ * **This is not `weeklyProgress` asked twice.** That column is about *now* — the
+ * plan period covering today and what has been logged inside it — so its
+ * `noPlan` answer also returns everyone whose plan ran out last month. This one
+ * is about whether the work has ever been done: a client with no plan at all is
+ * someone the clinic has taken on and not yet written for, and that is the list
+ * a dietitian clears down. A plan that ended is not on it.
+ *
+ * A draft counts as having one. The question is whether a plan exists for this
+ * client, and a plan being written is a plan; an archived one does not, which is
+ * what archiving means and matches the plan status the register's own cell
+ * reads.
+ */
+export const PLAN_FILTER_VALUES = ['has', 'none'] as const;
+export type PlanFilterValue = (typeof PLAN_FILTER_VALUES)[number];
+
 /** The answers each filter column offers, in the order the popover lists them. */
 export const CLIENT_FILTER_VALUES = {
   portalAccess: PORTAL_ACCESS_VALUES,
   weeklyProgress: WEEKLY_PROGRESS_VALUES,
+  plan: PLAN_FILTER_VALUES,
+  paymentStatus: PAYMENT_STATUS_VALUES,
+  subscription: SUBSCRIPTION_FILTER_VALUES,
 } as const satisfies Record<ClientFilter, readonly [string, ...string[]]>;
 
 /**
@@ -549,7 +660,10 @@ export const listClientsSchema = z.object({
    */
   status: z.enum(CLIENT_STATUSES).catch('active'),
   filterBy: z.preprocess(blankToUndefined, z.enum(CLIENT_FILTERS).optional().catch(undefined)),
-  filterValue: z.preprocess(blankToUndefined, z.string().trim().max(120).optional().catch(undefined)),
+  filterValue: z.preprocess(
+    blankToUndefined,
+    z.string().trim().max(120).optional().catch(undefined),
+  ),
   sort: z.enum(CLIENT_SORTS).catch('createdAt'),
   dir: z.enum(['asc', 'desc']).catch('desc'),
   page: z.coerce.number().int().min(1).max(10_000).catch(1),
