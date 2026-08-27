@@ -73,10 +73,10 @@ export default async function ClientInfoPage({ params, searchParams }: ClientInf
       // client over WhatsApp, or only over the desk.
       getSettings(clinicId),
       client.hasPortalAccess ? getPortalUsername(clinicId, client.id) : Promise.resolve(null),
-      // The name the issue form opens with, reserved against the usernames
-      // already in use. Only that form reads it, so a client who can already
-      // sign in does not pay for the lookup.
-      client.hasPortalAccess ? Promise.resolve('') : suggestPortalUsername(client.fullName),
+      // The name the issue form opens with — this client's phone number,
+      // reserved against the usernames already in use. Only that form reads it,
+      // so a client who can already sign in does not pay for the lookup.
+      client.hasPortalAccess ? Promise.resolve('') : suggestPortalUsername(client),
     ]);
 
   // An unknown `?tab=` opens on the first view — Nutrition — rather than 404ing: the param is
