@@ -34,13 +34,20 @@ export const portalSignInSchema = z.object({
 });
 
 /**
- * The client password rule, in one place — the mirror of `staffPasswordSchema`
- * below, at the client's shorter minimum.
+ * The client password rule, in one place — the counterpart of
+ * `staffPasswordSchema` below, and no longer merely a shorter version of it.
  *
- * Length was the whole rule here until now, which meant `aaaaaa` replaced a
+ * Length was the whole rule here once, which meant `aaaaaa` could replace a
  * ten-character random temporary password and the account came out weaker for
- * the change. Both failures carry their own message key because the advice
+ * the change. Each failure carries its own message key because the advice
  * differs, and the actions read the key straight off the issue.
+ *
+ * ⚠ `clientPasswordTooWeak`, not `passwordTooWeak`. The two rules diverged when
+ * the client minimum went to eight characters with a letter and a digit: staff
+ * still take any two of the three character classes, so the staff sentence
+ * ("letters with numbers or symbols") describes a rule this schema does not
+ * enforce. One key per rule is what keeps a screen from advertising a symbol
+ * that will then be rejected.
  */
 const clientPasswordSchema = z
   .string()
@@ -48,7 +55,7 @@ const clientPasswordSchema = z
   // Before the general strength rule, so `password1` — which fails both — is
   // answered with the specific sentence rather than the generic one.
   .refine((value) => !isCommonPassword(value), { message: 'passwordTooCommon' })
-  .refine(isStrongClientPassword, { message: 'passwordTooWeak' });
+  .refine(isStrongClientPassword, { message: 'clientPasswordTooWeak' });
 
 export const setPasswordSchema = z
   .object({

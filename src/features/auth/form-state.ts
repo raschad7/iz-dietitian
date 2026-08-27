@@ -18,12 +18,16 @@ export type AuthFormState =
         | 'passwordTooShort'
         /** Long enough, but still `aaaaaaaaaa` — see `isStrongStaffPassword`. */
         | 'passwordTooWeak'
+        /** The client's narrower rule: a letter and a digit, both required. */
+        | 'clientPasswordTooWeak'
         | 'firstNameRequired'
         | 'lastNameRequired'
         /** Either half of a name over `MAX_NAME_PART_LENGTH`. */
         | 'nameTooLong'
         | 'emailRequired'
         | 'passwordRequired'
+        /** The confirm box left empty — its own sentence, not "they disagree". */
+        | 'confirmPasswordRequired'
         | 'invalidEmail'
         | 'verifyEmailFirst'
         | 'accountNotLinked'
@@ -33,7 +37,7 @@ export type AuthFormState =
         | 'lastSignInMethod'
         /** Vague on purpose — never reveals whether a portal username exists. */
         | 'wrongCredentials'
-        /** The six-character client minimum is only defensible with this check. */
+        /** The client minimum is only defensible alongside this check. */
         | 'passwordTooCommon'
         /** `changePassword`'s own proof of ownership failed. */
         | 'currentPasswordIncorrect'

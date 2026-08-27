@@ -627,6 +627,20 @@
   --color-planner-tag-easy-prep: var(--planner-tag-easy-prep);
   --color-planner-tag-no-cook: var(--planner-tag-no-cook);
   --color-planner-tag-high-protein: var(--planner-tag-high-protein);
+  --color-intake-icon-activity: var(--intake-icon-activity);
+  --color-intake-icon-barrier: var(--intake-icon-barrier);
+  --color-intake-icon-sleep: var(--intake-icon-sleep);
+  --color-intake-icon-smoking: var(--intake-icon-smoking);
+  --color-intake-icon-caffeine: var(--intake-icon-caffeine);
+  --color-intake-icon-sweet-drinks: var(--intake-icon-sweet-drinks);
+  --color-intake-icon-fast-food: var(--intake-icon-fast-food);
+  --color-intake-icon-vegetables: var(--intake-icon-vegetables);
+  --color-intake-icon-fruit: var(--intake-icon-fruit);
+  --color-intake-icon-dairy: var(--intake-icon-dairy);
+  --color-intake-icon-red-meat: var(--intake-icon-red-meat);
+  --color-intake-icon-chicken: var(--intake-icon-chicken);
+  --color-intake-icon-fish: var(--intake-icon-fish);
+  --color-intake-icon-sweets: var(--intake-icon-sweets);
   --color-progress-track: var(--progress-track);
   --color-progress-card-border: var(--progress-card-border);
 
@@ -1048,6 +1062,48 @@
   --planner-tag-easy-prep: var(--plum-500);
   --planner-tag-no-cook: var(--teal-500);
   --planner-tag-high-protein: var(--indigo-500);
+
+  /*
+   * ── The lifestyle record's icon tints ──
+   *
+   * Fourteen glyphs on one card — نمط الحياة والعادات in the client record —
+   * and the only place in the app where an icon carries a hue of its own.
+   *
+   * ⚠ **This is a documented exception to "an icon inherits its colour."** The
+   * card is a 4×4 lattice of thirteen-pixel labels; drawn in one muted grey it
+   * is a wall of text a dietitian re-reads top to bottom to find the one answer
+   * they came for. Colour is what lets the eye land on الأسماك without reading
+   * الدجاج first. It is **recognition, not status**: the tint says what the
+   * question is about, never how the answer scores, so nothing here changes
+   * when the client's answer does.
+   *
+   * **No new primitives.** Every stop below is one the palette already carries,
+   * and the mid-dark identity stops (teal/plum/indigo) are the same three the
+   * dish tags use — matched in lightness so no single glyph shouts.
+   *
+   * **Repeats are deliberate.** Fresh produce is one green, sugar is one plum:
+   * fourteen unique hues would be a legend nobody can hold, and the groupings
+   * are the part that is actually readable at a glance.
+   *
+   * Declared once at `:root` with no dark counterpart, exactly as the
+   * `--planner-tag-*` stops above are. The staff app has no dark mode — `.dark`
+   * is set by nothing, and `[data-theme]` is the client portal's, which never
+   * draws this card. A dark assignment here would be an untested promise.
+   */
+  --intake-icon-activity: var(--green-600);
+  --intake-icon-barrier: var(--amber-600);
+  --intake-icon-sleep: var(--indigo-500);
+  --intake-icon-smoking: var(--clay-600);
+  --intake-icon-caffeine: var(--flame-700);
+  --intake-icon-sweet-drinks: var(--plum-500);
+  --intake-icon-fast-food: var(--flame-300);
+  --intake-icon-vegetables: var(--green-600);
+  --intake-icon-fruit: var(--green-500);
+  --intake-icon-dairy: var(--indigo-500);
+  --intake-icon-red-meat: var(--clay-600);
+  --intake-icon-chicken: var(--amber-600);
+  --intake-icon-fish: var(--teal-500);
+  --intake-icon-sweets: var(--plum-500);
 
   /*
    * The Q-arc's unfilled track (§9.6) — the dots the week has not reached yet.
@@ -2021,6 +2077,34 @@
   [role='radio'],
   [role='combobox'] {
     touch-action: manipulation;
+  }
+
+  /*
+   * ── The page is held at scale 1 on phones and tablets ──
+   *
+   * `ZoomLock` puts this class on `<html>` for as long as the staff app or
+   * the client portal is mounted, and only where `(pointer: coarse)` matches.
+   * It is the CSS third of the lock; the other two are that component's
+   * capture-phase `gesture*` handlers with the scale watchdog under them, and
+   * the `maximumScale` / `userScalable` fields in the two `generateViewport()`
+   * exports. See the component for why all three are needed and why none of
+   * them reach a desktop browser.
+   *
+   * `pan-x pan-y` is the block above narrowed and widened at once: narrowed
+   * from `manipulation`, which still permits pinch-zoom, to panning alone —
+   * and widened from the controls that rule names to every element in the
+   * document, including the empty space between cards and the body copy inside
+   * them, where a stray double tap used to leave a client staring at a
+   * magnified fragment of a meal plan with no obvious way back.
+   *
+   * What it does not touch is scrolling: panning on both axes is exactly what
+   * is kept, so every scroller in the product behaves as it did. Descendants
+   * that claim `touch-action: none` (the planner drag handle, the calendar
+   * grips) are unaffected too — the browser intersects an element's value with
+   * its ancestors', and `none` is the narrower of the two.
+   */
+  html.q-zoom-locked {
+    touch-action: pan-x pan-y;
   }
 
   body {
@@ -7170,5 +7254,365 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
     font-weight: 600;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
+  }
+}
+
+/*
+ * ══ The password rule track ══
+ *
+ * `src/features/auth/components/password-rules.tsx` — three rows under the
+ * set-password field, one per client password rule, each a short bar that goes
+ * from grey to green when its rule is met. Only the timings live here; the
+ * layout is Tailwind at the call site, because none of it is reused.
+ *
+ * ## Why the durations are tokens and not utilities
+ *
+ * §Shape names five motion tokens and this needs none of them. `--duration-arc`
+ * (220ms) is the right speed for a control answering a press — a switch knob, a
+ * field arc — and at that speed a bar filling across is a flicker rather than
+ * something you watch happen. `--duration-travel` is the other end and is
+ * reserved for a whole surface crossing the screen, which a 64px bar is not.
+ *
+ * So the track carries its own two, defined on the element rather than in
+ * :root: they are inherited by every row, they are visible in one place when
+ * the feel needs adjusting, and nothing outside this component can pick them up
+ * by accident.
+ */
+.q-rule-track {
+  /* A bar filling across as its rule is met. Deliberately unhurried — this is
+     the one moment the screen has something to say. */
+  --q-rule-sweep: 560ms;
+  /* The label catching up to it. Shorter, so the words settle while the bar is
+     still travelling rather than after it has stopped. */
+  --q-rule-fade: 420ms;
+}
+
+/*
+ * ══ The set-password medallion ══
+ *
+ * The lock in the circle at the top of `SetPasswordForm`. The disc keeps
+ * `bg-secondary`; only the glyph inside it is stated here.
+ *
+ * ## Why it is a hex and not a token
+ *
+ * It is not one. Nothing in the warm scale is this colour — `--n-400`
+ * (#A8A493) is the nearest step and reads distinctly more olive at this size,
+ * and `--muted-foreground` (`--n-500`) is two stops darker. The value was
+ * chosen for this one mark, so it is named for this one mark rather than
+ * pushed into the neutral ramp, where the next person to reach for a grey
+ * would find a step that belongs to nothing.
+ *
+ * The hex lives here because §Tokens allows hex in this file and forbids it in
+ * a component — `eslint-rules/no-raw-hex.mjs` enforces the second half.
+ *
+ * ⚠ **It is one fixed value in both themes**, which is deliberate but narrow:
+ * the glyph is `aria-hidden` decoration inside a tinted disc, and the heading
+ * beside it carries the meaning, so it is not doing contrast work. Anything
+ * that has to be *read* needs a token with a dark-mode assignment instead.
+ */
+.q-set-password-mark {
+  --q-set-password-mark: #ACABA5;
+  color: var(--q-set-password-mark);
+}
+
+/*
+ * ══ The plan generation stage bar ══
+ *
+ * `src/features/weekly-plans/components/generation-loading-screen.tsx` — the
+ * screen the dialog shows for the thirty to sixty seconds a week takes to
+ * generate. Four blocks across the block-end edge, one per stage, each eaten
+ * from its inline-start edge by the strong green as its stage runs.
+ *
+ * ## Why any of it is here rather than in the class list
+ *
+ * The bar is driven from `requestAnimationFrame`, not from React state: a
+ * percentage that re-rendered sixty times a second would re-render the dialog
+ * with it. So the running values are written straight onto the nodes —
+ * `transform` on the fill, `data-state` / `data-reached` on the rest — and a
+ * `data-*` attribute can only select a rule that exists in a stylesheet. The
+ * layout around them stays Tailwind at the call site, exactly as
+ * `.q-rule-track` splits the same way.
+ *
+ * ## The three states are three stops of the one ramp
+ *
+ * §Tokens: there is one green family and a call site does not pin a hex, it
+ * takes a step. Upcoming is the warm neutral the app already uses for a resting
+ * fill, live is green-300, complete is green-600.
+ *
+ * **green-600 and not green-500**, which is the nearer neighbour: the stage's
+ * own name sits inside the block and has to survive the fill passing under it.
+ * White clears 4.9:1 on green-600 and 2.6:1 on green-500 — under the 4.5:1
+ * floor, and this is body-weight text carrying meaning, not the `default`
+ * Button's documented exception.
+ *
+ * ## No dark assignment, deliberately
+ *
+ * Same reason `--planner-tag-*` and `--intake-icon-*` have none. This bar is
+ * drawn inside the practitioner app, where `.dark` is set by nothing and
+ * `[data-theme]` belongs to the client portal, which never opens this dialog.
+ * A dark block here would be an untested promise. The neutral and the two
+ * greens are all ramp steps, so whoever turns dark mode on has one place to
+ * add the counterpart.
+ */
+.q-plan-stages {
+  /* One rhythm for both rows. The checkpoint columns and the blocks under them
+     have to share a gap and an inset or the lists drift off their blocks. */
+  --q-plan-gap: 4px;
+  --q-plan-pad: 20px;
+
+  --q-plan-upcoming-bg: var(--n-100);
+  --q-plan-upcoming-ink: var(--n-600);
+  --q-plan-live-bg: var(--green-300);
+  --q-plan-live-ink: var(--green-900);
+  --q-plan-done-bg: var(--green-600);
+  --q-plan-done-ink: var(--n-0);
+
+  /* §Shape's five motion tokens are all shorter than this needs: they are the
+     speed of a control answering a press, and nothing here is answering one.
+     A block changing state over a fifth of a second reads as a jump on a
+     screen whose whole job is to look unhurried, so the two durations are the
+     bar's own — declared on the element, inherited by every part of it, and
+     invisible to anything outside. `--duration-label` *is* reused for the
+     stage name's colour flip, because that one is a label catching up. */
+  --q-plan-settle: 640ms;
+  --q-plan-reveal: 480ms;
+}
+
+@media (width < 40rem) {
+  .q-plan-stages {
+    --q-plan-pad: 12px;
+  }
+}
+
+/*
+ * The mark, pinned to the block-start inline-start corner.
+ *
+ * Logical rather than physical, so it sits at the reading-start corner in both
+ * scripts the way every other piece of chrome in this app does. It is the only
+ * absolutely positioned thing on the screen; the dialog's own header is hidden
+ * while this is mounted, so nothing shares the corner with it.
+ */
+.q-plan-mark {
+  position: absolute;
+  inset-block-start: 1rem;
+  inset-inline-start: 1rem;
+  inline-size: 3.625rem;
+  block-size: 3.625rem;
+  z-index: 4;
+}
+
+@media (width >= 40rem) {
+  .q-plan-mark {
+    inset-block-start: 1.375rem;
+    inset-inline-start: 1.625rem;
+    inline-size: 4.625rem;
+    block-size: 4.625rem;
+  }
+}
+
+/*
+ * Only the heading changes, never the drawing. The whole mark takes a few
+ * degrees of lean and the seed pair slides inside the leaf; both are written
+ * frame by frame from the component and both return to a true zero, so nothing
+ * here can leave the artwork somewhere it was not drawn.
+ */
+.q-plan-mark svg {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  overflow: visible;
+  transform-origin: center;
+}
+
+.q-plan-mark [data-slot='brand-seeds'] {
+  transform-box: fill-box;
+  transform-origin: center;
+  will-change: transform;
+}
+
+/* ── The checkpoints, standing on top of their blocks ── */
+
+.q-plan-column {
+  flex: 1 1 0;
+  min-inline-size: 0;
+  display: flex;
+  flex-direction: column;
+  /* Bottom-aligned, so every list finishes level with the block it belongs to
+     however many checkpoints it holds. */
+  justify-content: flex-end;
+  gap: 2px;
+  padding-inline-start: var(--q-plan-pad);
+  padding-inline-end: 8px;
+}
+
+/*
+ * Every checkpoint is in its final position from the first frame, at low
+ * opacity. Reaching one raises the opacity and greens the dot — it does not
+ * rise, slide, pop or flash. There is no keyframe anywhere on this screen; the
+ * only things that move are the fill and the mark's heading.
+ */
+.q-plan-point {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  min-inline-size: 0;
+  color: var(--n-400);
+  opacity: 0.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition:
+    opacity var(--q-plan-reveal) var(--ease-sweep),
+    color var(--q-plan-reveal) ease-out;
+}
+
+.q-plan-point[data-reached='true'] {
+  color: var(--foreground);
+  opacity: 1;
+}
+
+/* After its stage has closed. Source order is the whole of the cascade here —
+   same specificity as the rule above, and a past checkpoint is always also a
+   reached one. */
+.q-plan-point[data-past='true'] {
+  color: var(--n-600);
+  opacity: 0.72;
+}
+
+.q-plan-dot {
+  flex: none;
+  inline-size: 5px;
+  block-size: 5px;
+  border-radius: 50%;
+  background: currentcolor;
+  /* Optical, not geometric: the row is baseline-aligned so the text sits on a
+     line the dot has no business sitting on. */
+  transform: translateY(-3px);
+  transition: background-color var(--q-plan-reveal) ease-out;
+}
+
+.q-plan-point[data-reached='true'] .q-plan-dot {
+  background: var(--green-400);
+}
+
+.q-plan-point[data-past='true'] .q-plan-dot {
+  background: var(--green-600);
+}
+
+/* ── The bar ── */
+
+.q-plan-block {
+  position: relative;
+  flex: 1 1 0;
+  min-inline-size: 0;
+  overflow: hidden;
+  background: var(--q-plan-upcoming-bg);
+  transition: background-color var(--q-plan-settle) var(--ease-sweep);
+}
+
+.q-plan-block[data-state='live'] {
+  background: var(--q-plan-live-bg);
+}
+
+.q-plan-block[data-state='done'] {
+  background: var(--q-plan-done-bg);
+}
+
+/*
+ * `scaleX` and not an inline size: this is the one thing on the screen written
+ * every frame, and a transform is the only way to do that without laying the
+ * block out sixty times a second. The origin is the inline-start edge, which is
+ * physically opposite in the two scripts — hence the `[dir='rtl']` pair rather
+ * than a keyword, since `transform-origin` has no logical one.
+ *
+ * No transition on the transform. The component owns the easing curve, and a
+ * CSS transition on top of a value that changes every frame would only lag it.
+ */
+.q-plan-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--q-plan-done-bg);
+  transform: scaleX(0);
+  transform-origin: left center;
+  will-change: transform;
+}
+
+[dir='rtl'] .q-plan-fill {
+  transform-origin: right center;
+}
+
+.q-plan-label {
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline-start: 0;
+  max-inline-size: 100%;
+  z-index: 2;
+  display: flex;
+  align-items: baseline;
+  gap: 1px;
+  padding-inline: var(--q-plan-pad);
+  padding-block-end: 13px;
+  color: var(--q-plan-upcoming-ink);
+  transition: color var(--duration-label) ease-out;
+}
+
+.q-plan-block[data-state='live'] .q-plan-label {
+  color: var(--q-plan-live-ink);
+}
+
+/*
+ * The flip. The name starts dark on the light green and turns white the moment
+ * the fill actually passes its far edge — the component measures the label and
+ * compares, rather than guessing a fraction of the stage, so a long Arabic name
+ * and a short English one both flip at the right instant instead of one of them
+ * dissolving into the fill for a second on the way past.
+ */
+.q-plan-block[data-state='live'][data-covered='true'] .q-plan-label,
+.q-plan-block[data-state='done'] .q-plan-label {
+  color: var(--q-plan-done-ink);
+}
+
+/*
+ * On a phone there is not room for four columns of checkpoints side by side,
+ * nor for four stage names inside four ~94px blocks. Rather than a second
+ * markup path for the narrow case, the same four columns stay mounted and only
+ * the running one is shown — it is already `flex: 1` in a flex row, so it takes
+ * the full width on its own, and the nodes the frame loop writes to are the
+ * same ones at every size.
+ */
+@media (width < 40rem) {
+  .q-plan-column {
+    display: none;
+    padding-inline: 1rem;
+  }
+
+  .q-plan-column[data-live='true'] {
+    display: flex;
+  }
+}
+
+/*
+ * The row the four columns stand in. Its floor leaves headroom above the
+ * tallest of them, so the bar keeps one line as the stages change instead of
+ * rising and falling with the length of each list.
+ */
+.q-plan-lists {
+  display: flex;
+  align-items: stretch;
+  gap: var(--q-plan-gap);
+  min-block-size: 124px;
+  padding-block-end: 1.25rem;
+}
+
+/*
+ * A landscape phone is about 390px tall and the dialog is capped three rem
+ * under that. The checkpoints are what gives: the counter still names the
+ * running stage and the bar still shows how far it has gone, so what is lost
+ * is the detail of the work rather than the state of it — and losing it is
+ * better than a status screen the reader has to scroll to see the bottom of.
+ */
+@media (height < 34rem) {
+  .q-plan-lists {
+    display: none;
   }
 }

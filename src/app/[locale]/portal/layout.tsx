@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 
+import { ZoomLock } from '@/components/layout/zoom-lock';
 import { PortalTheme } from '@/features/portal/components/portal-theme';
 import { PORTAL_THEME_COLOR } from '@/features/portal/pwa/brand';
 import { ServiceWorkerRegister } from '@/features/portal/pwa/service-worker-register';
@@ -56,12 +57,23 @@ export async function generateMetadata({ params }: Omit<PortalLayoutProps, 'chil
  * of the reasoning, and `--q-safe-b` in `globals.css` for the inset every
  * block-end surface now carries.
  *
- * Only `themeColor` is declared here, and only because it is portal-specific:
- * Next merges a nested viewport export over its parent field by field, so
- * naming a field here would silently replace the app-wide one.
+ * Next merges a nested viewport export over its parent field by field, so the
+ * app-wide fields stay whole as long as nothing here restates them, and nothing
+ * here may restate them.
+ *
+ * `themeColor` is here because it is portal-specific. The three scale fields
+ * are the meta-tag half of the zoom lock: a client is on a phone almost by
+ * definition, and the portal is the surface where a stray pinch used to leave
+ * a meal plan magnified with no way back. They hold the scale on every mobile
+ * browser that honours them; Safari does not, so `ZoomLock` below is the other
+ * half and carries the reasoning for the pair. Desktop browsers ignore the
+ * viewport meta tag outright, so nothing in this export reaches one.
  */
 export function generateViewport(): Viewport {
   return {
+    minimumScale: 1,
+    maximumScale: 1,
+    userScalable: false,
     themeColor: PORTAL_THEME_COLOR,
   };
 }
@@ -134,6 +146,14 @@ export default async function PortalLayout({ children, params }: PortalLayoutPro
         result rather than depending on it.
       */}
       <ServiceWorkerRegister locale={locale} />
+
+      {/*
+        Pins the scale for the whole client area, `set-password` included: no
+        pinch and no double-tap zoom on a phone or a tablet. See the component
+        for why the viewport meta tag above is not enough on iOS, and why a
+        desktop browser keeps its zoom untouched.
+      */}
+      <ZoomLock />
 
       {/*
         No `SplashScreen` here. It is mounted once from `[locale]/layout.tsx`

@@ -30,11 +30,27 @@ export function AuthFormMessage({ state }: { state: AuthFormState }) {
   );
 }
 
-export function AuthSubmitButton({ label }: { label: string }) {
+export function AuthSubmitButton({
+  label,
+  disabled = false,
+}: {
+  label: string;
+  /**
+   * Held shut by the form itself, on top of the pending state below.
+   *
+   * Only the set-password screen passes it, and only because that screen puts
+   * the reason on the page: its rule track says which requirement is still
+   * missing, so the button going live is the answer to something the reader can
+   * already see. A disabled button with nothing explaining it is worse than a
+   * button that submits and reports the problem — do not pass this without the
+   * explanation beside it.
+   */
+  disabled?: boolean;
+}) {
   const { pending } = useFormStatus();
 
   return (
-    <Button type="submit" className="w-full max-w-none" disabled={pending}>
+    <Button type="submit" className="w-full max-w-none" disabled={pending || disabled}>
       {/*
         The label stays put and a spinner joins it, rather than the label being
         replaced by the word "loading". Swapping the text changes the width of

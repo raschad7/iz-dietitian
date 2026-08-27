@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
+import { isPortalPasswordChangePending } from '@/features/clients/portal-credentials';
 import { resolveLocale } from '@/i18n/params';
 import { requireClientSession } from '@/lib/session';
 
@@ -25,7 +26,17 @@ type SecuredPortalLayoutProps = {
  * itself forever, locking every client out with no way back.
  *
  * The flag rides on the session object (declared in `user.additionalFields`), so
- * this costs no extra query.
+ * the common answer — no, this client owes nothing — costs no query at all.
+ *
+ * ⚠ **A session that says the flag is set is confirmed against the database
+ * before anybody is turned away.** The session is served from a signed cookie
+ * copy for up to `SESSION_COOKIE_CACHE_SECONDS`, and clearing the flag writes
+ * to `users` — which that copy cannot see. Trusting it alone is a lockout: the
+ * client chooses a password, it saves, they are sent to `/portal`, the stale
+ * copy still accuses them, and they land back on the form they just completed.
+ * From the outside the button does nothing. Only a client the cookie accuses
+ * pays for the extra read, and only until the copy expires, so the fast path is
+ * unchanged for everyone who owes nothing.
  *
  * ## Why the shell is not here
  *
@@ -40,7 +51,7 @@ export default async function SecuredPortalLayout({ children, params }: SecuredP
 
   const session = await requireClientSession(locale);
 
-  if (session.user.mustChangePassword) {
+  if (session.user.mustChangePassword && (await isPortalPasswordChangePending(session.user.id))) {
     redirect(`/${locale}/portal/set-password`);
   }
 

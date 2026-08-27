@@ -155,7 +155,16 @@
     "setPasswordHeading": "Choose a new password",
     "setPasswordDescription": "The password you were given is temporary. Choose your own to continue.",
     "setPasswordSubmit": "Save and continue",
-    "clientPasswordHint": "At least {count, number, integer} characters.",
+    "ruleLength": "At least {count, number, integer} characters",
+    "ruleLetter": "At least one letter",
+    "ruleDigit": "At least one number",
+    "ruleChecklistLabel": "Password requirements",
+    "ruleMet": "Met",
+    "ruleUnmet": "Not met yet",
+    "passwordsMatch": "Both passwords match",
+    "confirmPasswordRequired": "Type the password a second time.",
+    "clientPasswordHint": "At least {count, number, integer} characters, with letters and numbers.",
+    "clientPasswordTooWeak": "Use letters and numbers together.",
     "genericError": "Could not sign you in. Check your details and try again.",
     "emailTaken": "That email address is already registered.",
     "passwordMismatch": "The two passwords do not match.",
@@ -1626,18 +1635,49 @@
     "generate": "Generate the week's plan",
     "generating": "Generating…",
     "generatingHint": "A whole week takes about a minute. Do not close the page.",
+    "planGenerated": "Plan created successfully",
+    "planRegenerated": "Plan rebuilt successfully",
     "generationLoading": {
       "title": "Building the new week",
       "regenerateTitle": "Rebuilding this week",
-      "description": "AI is matching the client's targets and instructions to dishes in the approved catalog.",
-      "elapsed": "{seconds, plural, one {# second elapsed} other {# seconds elapsed}}",
-      "activity": {
-        "targets": "Reading the client's targets and week instructions…",
-        "catalog": "Matching suitable dishes from the approved catalog…",
-        "balance": "Balancing meals across all seven days…",
-        "draft": "Preparing a draft for your review…"
-      },
-      "review": "The result stays a draft until you review and publish it."
+      "announce": "Stage {current} of {total}: {stage}",
+      "stages": {
+        "gather": {
+          "name": "Gathering information",
+          "description": "Reading the client's profile, goals and recorded limits.",
+          "points": {
+            "profile": "Health profile",
+            "goals": "Goals and target weight",
+            "limits": "Allergies and restrictions"
+          }
+        },
+        "analyse": {
+          "name": "Analysing the need",
+          "description": "Working out daily calories and how nutrients split across meals.",
+          "points": {
+            "calories": "Daily calories",
+            "macros": "Nutrient split",
+            "meals": "Meal count and pattern"
+          }
+        },
+        "build": {
+          "name": "Building the plan",
+          "points": {
+            "dishes": "Choosing dishes",
+            "days": "Spreading the seven days",
+            "portions": "Setting portion sizes"
+          }
+        },
+        "review": {
+          "name": "Review and sign-off",
+          "description": "Checking the balance and preparing a draft for your review.",
+          "points": {
+            "balance": "Nutrient balance check",
+            "restrictions": "Restrictions match",
+            "draft": "Preparing the draft"
+          }
+        }
+      }
     },
     "regenerate": "Regenerate",
     "regenerateDay": "Regenerate this day",
