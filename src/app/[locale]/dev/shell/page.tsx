@@ -50,10 +50,10 @@ export default async function DevShellPage({ params }: DevShellPageProps) {
     */
     <GuideProvider routed={false}>
       <AppShell
-        /* The real navigation, not a copy of it. The harness exists to show
-           the rail as it ships, and a hand-written list here would have been a
-           second tree to keep in step with the first — which is exactly the
-           kind of drift a harness is supposed to catch. */
+        /* The real navigation, not a copy of it. Both sides of the merge were
+           reaching for this: `dev` kept a hand-written list here and called it
+           "the staff rail's own list", which is a second list to keep in step
+           with the first — exactly the drift a harness exists to catch. */
         items={STAFF_NAV}
         title="Enzyme"
         /* The staff configuration, which is the one that has a brand — without it

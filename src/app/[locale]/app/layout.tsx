@@ -25,8 +25,12 @@ type AppLayoutProps = {
  * The rail's destinations and their glyphs live in
  * `components/layout/staff-nav.ts` — they are a tree now rather than a flat
  * list, and `/dev/shell` renders the same two constants so the harness cannot
- * drift from the real thing. See the note there for the shape and for why the
- * dashboard stays a top-level row.
+ * drift from the real thing.
+ *
+ * Everything the flat list here used to say is said there, billing included:
+ * الفواتير is a child of إدارة beside the register, and the note on `STAFF_NAV`
+ * covers why that does not cost a phone the extra tap the flat list was
+ * protecting.
  */
 
 /**

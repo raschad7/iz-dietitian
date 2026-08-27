@@ -118,6 +118,10 @@ export type ConnectionView = {
   connectedAt: Date | null;
   remindersEnabled: boolean;
   confirmationsEnabled: boolean;
+  reschedulesEnabled: boolean;
+  /** Whether a deleted appointment tells the patient. Its own switch. */
+  cancellationsEnabled: boolean;
+  paymentRemindersEnabled: boolean;
   /**
    * The stored lead time. Displayed nowhere as a choice — the settings page states
    * the rule instead — but carried here so a row holding a hand-set value is

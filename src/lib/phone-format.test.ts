@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import { COUNTRIES, COUNTRY_ORDER, DEFAULT_COUNTRY, type CountryCode } from './phone-countries';
-import { countryForDial, joinPhone, splitPhone } from './phone-format';
+import { countryForDial, formatPhoneDisplay, joinPhone, splitPhone } from './phone-format';
 
 /** Palestine, `+970` — the clinic's own country and the field's default. */
 const HOME = COUNTRIES[DEFAULT_COUNTRY].dial;
@@ -147,6 +147,65 @@ describe('the country table', () => {
       expect(country.dial).toMatch(/^\d{1,4}$/);
       expect(country.ar.length, `${iso} Arabic name`).toBeGreaterThan(0);
       expect(country.en.length, `${iso} English name`).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe('formatPhoneDisplay', () => {
+  test('writes a stored international number the way it is read aloud', () => {
+    expect(formatPhoneDisplay('+970597058996')).toBe('+970 59-705-8996');
+  });
+
+  /*
+    Most of this roster is stored as a local number with a trunk zero and no
+    calling code. `splitPhone` drops the zero and assumes the clinic's country,
+    so the column shows one shape for every subscriber rather than two.
+  */
+  test('gives a local number the clinic country and drops the trunk zero', () => {
+    expect(formatPhoneDisplay('0597058996')).toBe('+970 59-705-8996');
+  });
+
+  test('reads the 00 prefix as a calling code', () => {
+    expect(formatPhoneDisplay('00970597058996')).toBe('+970 59-705-8996');
+  });
+
+  test('keeps a foreign number under its own code', () => {
+    expect(formatPhoneDisplay('+972541234567')).toBe('+972 54-123-4567');
+  });
+
+  test('ignores punctuation that was typed into the stored value', () => {
+    expect(formatPhoneDisplay('+970 59 705 8996')).toBe('+970 59-705-8996');
+    expect(formatPhoneDisplay('(059) 705-8996')).toBe('+970 59-705-8996');
+  });
+
+  /*
+    Grouped from the right, so a number that is not a nine-digit mobile still
+    comes out readable instead of forced into 2-3-4.
+  */
+  test('groups other lengths from the right without a stray head group', () => {
+    // Seven national digits: two groups, no empty head.
+    expect(formatPhoneDisplay('+9701234567')).toBe('+970 123-4567');
+    // Ten: the head takes the remainder.
+    expect(formatPhoneDisplay('+9701234567890')).toBe('+970 123-456-7890');
+  });
+
+  test('leaves a very short number whole rather than hyphenating it', () => {
+    expect(formatPhoneDisplay('+9701234')).toBe('+970 1234');
+  });
+
+  test('returns nothing for a value with no digits, so a caller can show its own placeholder', () => {
+    expect(formatPhoneDisplay(null)).toBe('');
+    expect(formatPhoneDisplay(undefined)).toBe('');
+    expect(formatPhoneDisplay('')).toBe('');
+    expect(formatPhoneDisplay('   ')).toBe('');
+    expect(formatPhoneDisplay('no number')).toBe('');
+  });
+
+  test('never loses a digit', () => {
+    for (const stored of ['+970597058996', '0597058996', '+972541234567', '+9701234']) {
+      const drawn = formatPhoneDisplay(stored);
+      const { dial, national } = splitPhone(stored);
+      expect(drawn.replace(/\D/g, '')).toBe(`${dial}${national}`);
     }
   });
 });

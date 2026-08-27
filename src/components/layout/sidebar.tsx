@@ -37,10 +37,15 @@ import { SidebarProfile } from './sidebar-profile';
  * are the calendar's day, week and month: those were three path segments once
  * and are one route with a query now (see `app/calendar/page.tsx`), so the rail
  * has to be able to spell the query.
+ *
+ * `/app/clients/bills` is a *sibling* screen that happens to live under the
+ * register's path. Nothing in the tree may assume the URL shape matches the
+ * nesting — see the exclusion in `isItemActive`.
  */
 export type NavHref =
   | '/app'
   | '/app/clients'
+  | '/app/clients/bills'
   | '/app/calendar'
   | '/app/calendar?view=day'
   | '/app/calendar?view=week'
@@ -58,6 +63,8 @@ export type NavLabelKey =
   | 'dashboard'
   | 'management'
   | 'clients'
+  | 'subscriber'
+  | 'bills'
   | 'appointments'
   | 'calendar'
   | 'day'
@@ -72,7 +79,15 @@ export type NavLabelKey =
   | 'profile'
   | 'progress';
 
-/** A destination: one row, one address. */
+/**
+ * A destination: one row, one address.
+ *
+ * ⚠ **A destination's place in the tree says nothing about its URL, and the
+ * reverse.** Bills sits beside the register under إدارة and its address is
+ * `/app/clients/bills`, *inside* the register's path; the calendar's three
+ * views are one route with a query. Every test in this file works off the list,
+ * never off the shape of the path.
+ */
 export type NavItem = {
   href: NavHref;
   labelKey: NavLabelKey;
@@ -126,13 +141,52 @@ const CALENDAR_PATH = '/app/calendar';
  */
 const DEFAULT_CALENDAR_VIEW = 'week';
 
-/** Where the reader is: the path, plus the calendar's view when there is one. */
-type Location = { pathname: string; view: string | null };
+const CLIENTS_PATH = '/app/clients';
+const BILLS_PATH = '/app/clients/bills';
+
+/**
+ * Where the reader is.
+ *
+ * **Two paths, deliberately.** `address` is what the rail is *read* against and
+ * `pathname` is what is actually in the URL, and they differ on exactly one
+ * screen — see `resolveAddress`. Lighting a row up and swallowing a click on
+ * the row you are standing on are different questions, and they need different
+ * answers there: the rail says "you came from Bills", the link still has to be
+ * able to take you to the Bills list.
+ */
+type Location = {
+  /** The address the rail is read against. Never build an href from this. */
+  address: string;
+  /** The real path in the URL. */
+  pathname: string;
+  /** The calendar's view, from `?view=`. */
+  view: string | null;
+};
+
+/**
+ * A client's record belongs to whichever list it was opened from.
+ *
+ * The record lives at `/app/clients/{id}` whether it was reached from the
+ * register or from Bills, so the address alone marks المشتركون current — and a
+ * dietitian who walked in from Bills is then told by the rail that they are
+ * somewhere they did not go. The rail is the answer to "where am I", and on the
+ * one screen with two ways in it was answering from the URL's shape rather than
+ * from the reader's route through the app.
+ *
+ * `?from=bills` is the same parameter the record's own breadcrumb reads to
+ * decide where "back" goes (see `RecordBackLink`), so the rail and the way out
+ * cannot disagree about which list this record belongs to. It arrives with the
+ * link and survives a reload, which is what makes it something to render from
+ * rather than a guess.
+ */
+function resolveAddress(pathname: string, from: string | null): string {
+  return from === 'bills' && pathname.startsWith(`${CLIENTS_PATH}/`) ? BILLS_PATH : pathname;
+}
 
 /**
  * Whether a row points at the screen currently on display.
  *
- * Three cases, and each of them is a case because of a real route:
+ * Four cases, and each of them is a case because of a real route:
  *
  * 1. **The two index routes match exactly.** `/app` is a prefix of every other
  *    staff route, so a `startsWith` test would light the dashboard up on every
@@ -142,23 +196,53 @@ type Location = { pathname: string; view: string | null };
  *    the URL counts as the default, because that is what the page renders.
  * 3. **A calendar row without one** is the whole section — the icon rail's
  *    single folded row — and any of the three views lights it.
+ * 4. **المشتركون gives up the addresses الفواتير owns.** Bills lives *inside*
+ *    the register's path, so the subtree rule below would light both rows at
+ *    once while standing on Bills — and a rail with two current rows is a rail
+ *    telling the reader nothing. The two are siblings in the tree; only the URL
+ *    nests, and it does not get a say.
  *
  * Everything else owns its subtree: `/app/clients` stays lit on a client's own
  * record at `/app/clients/<id>`.
  */
-function isItemActive(href: NavHref, { pathname, view }: Location): boolean {
-  if (href === '/app' || href === '/portal') return pathname === href;
+function isItemActive(href: NavHref, { address, view }: Location): boolean {
+  if (href === '/app' || href === '/portal') return address === href;
 
   const [path, query] = href.split('?');
 
   if (path === CALENDAR_PATH) {
-    const inSection = pathname === CALENDAR_PATH || pathname.startsWith(`${CALENDAR_PATH}/`);
+    const inSection = address === CALENDAR_PATH || address.startsWith(`${CALENDAR_PATH}/`);
     if (!inSection) return false;
     const wanted = query ? new URLSearchParams(query).get('view') : null;
     return wanted === null || wanted === (view ?? DEFAULT_CALENDAR_VIEW);
   }
 
-  return pathname === path || pathname.startsWith(`${path}/`);
+  if (path === CLIENTS_PATH && address.startsWith(BILLS_PATH)) return false;
+
+  return address === path || address.startsWith(`${path}/`);
+}
+
+/**
+ * Whether a row points at *precisely* the screen on display — the test for
+ * whether pressing it would do anything at all.
+ *
+ * Not the same question as `isItemActive`, and the difference is not academic:
+ * المشتركون is active on a client's record, and a press there has to take the
+ * reader back to the register rather than being swallowed. So this one is an
+ * exact match, and it reads the real `pathname` rather than the address —
+ * pressing الفواتير while standing on a record opened *from* Bills is a real
+ * navigation to the Bills list, however the rail is drawing it.
+ *
+ * The query counts. The calendar's rows carry one, so a pathname-only test
+ * never matched them and every press of a view *while on that view* re-ran the
+ * route — the one navigation that can change nothing at all. A URL with no
+ * `view` at all counts as the default, because that is the view being rendered.
+ */
+function isItemExact(href: NavHref, { pathname, view }: Location): boolean {
+  const [path, query] = href.split('?');
+  if (path !== pathname) return false;
+  if (!query) return true;
+  return new URLSearchParams(query).get('view') === (view ?? DEFAULT_CALENDAR_VIEW);
 }
 
 /**
@@ -442,6 +526,7 @@ function AppSidebar({
 }: Omit<ShellProps, 'children'>) {
   const t = useTranslations('nav');
 
+
   /*
    * Where the logo at the head of the rail goes: the section's own index — the
    * dashboard for staff, the portal home for a client. Derived from the items
@@ -594,8 +679,15 @@ function AppSidebar({
               rail reads the session, so it renders dynamically and the search
               params are known at render time; this is the build-time valve, not
               a loading state.
+
+              It is also what makes `useSearchParams` usable here at all. This
+              shell renders for every screen in both apps, so reading the query
+              *unboundaried* would put a `Suspense` requirement on all of them;
+              the boundary is local, and the two things the rail reads from the
+              query — the calendar's view and a record's `?from` — cost nothing
+              outside it.
             */}
-            <Suspense fallback={<NavTree items={items} icons={icons} view={null} />}>
+            <Suspense fallback={<NavTree items={items} icons={icons} view={null} from={null} />}>
               <RoutedNavTree items={items} icons={icons} />
             </Suspense>
           </SidebarGroupContent>
@@ -638,10 +730,17 @@ type TreeProps = {
   icons: Partial<Record<NavLabelKey, IconName>> | undefined;
 };
 
-/** `NavTree` with the calendar's view read off the URL. See the `Suspense` above. */
+/**
+ * `NavTree` with the two things it needs from the query string.
+ *
+ * `view` tells day from week from month; `from` is how a client's record says
+ * which list it was opened from (see `resolveAddress`). Both are read in one
+ * place, inside the `Suspense` above, so the rest of the tree stays a function
+ * of its props.
+ */
 function RoutedNavTree(props: TreeProps) {
-  const view = useSearchParams().get('view');
-  return <NavTree {...props} view={view} />;
+  const search = useSearchParams();
+  return <NavTree {...props} view={search.get('view')} from={search.get('from')} />;
 }
 
 /**
@@ -661,9 +760,17 @@ function RoutedNavTree(props: TreeProps) {
  * matches there and the tree is what shows. That is right: the drawer is
  * 18rem wide with labels.
  */
-function NavTree({ items, icons, view }: TreeProps & { view: string | null }) {
+function NavTree({
+  items,
+  icons,
+  view,
+  from,
+}: TreeProps & { view: string | null; from: string | null }) {
   const pathname = usePathname();
-  const at = useMemo<Location>(() => ({ pathname, view }), [pathname, view]);
+  const at = useMemo<Location>(
+    () => ({ address: resolveAddress(pathname, from), pathname, view }),
+    [pathname, from, view],
+  );
 
   /*
    * The categories the current screen sits inside. Recomputed on every
@@ -1027,13 +1134,14 @@ function NavLink({ href, at, ...props }: { href: NavHref; at: Location } & React
         again, which re-runs the page for no change on screen. The click is
         swallowed instead.
 
-        The test is `isItemActive` rather than a string comparison because half
-        these addresses carry a query: `/app/calendar?view=day` is never equal to
-        the pathname, and a plain `===` quietly stopped swallowing anything the
-        moment the calendar's views moved into the query string.
+        `isItemExact`, **not** `isItemActive`. A row is active over its whole
+        subtree — المشتركون stays lit on a client's record — and swallowing the
+        press there would strand the reader on the record with the one control
+        that goes back to the register doing nothing. Only an exact match is a
+        press that would change nothing. See `isItemExact` for the query.
       */
       onClick={(event) => {
-        if (isItemActive(href, at)) event.preventDefault();
+        if (isItemExact(href, at)) event.preventDefault();
       }}
       {...props}
     />

@@ -95,6 +95,9 @@ export async function updateAutomationSettings(
     .set({
       remindersEnabled: input.remindersEnabled,
       confirmationsEnabled: input.confirmationsEnabled,
+      reschedulesEnabled: input.reschedulesEnabled,
+      cancellationsEnabled: input.cancellationsEnabled,
+      paymentRemindersEnabled: input.paymentRemindersEnabled,
       updatedAt: new Date(),
     })
     .where(eq(whatsappSettings.clinicId, clinicId))

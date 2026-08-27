@@ -116,8 +116,58 @@ export const whatsappSettings = pgTable(
      */
     reminderLeadMinutes: integer('reminder_lead_minutes').notNull().default(24 * 60),
 
-    /** Send a confirmation the moment an appointment is booked. */
+    /**
+     * Send a confirmation the moment an appointment is booked.
+     *
+     * A move is **not** this switch — see {@link reschedulesEnabled} — and
+     * neither is a cancellation; see {@link cancellationsEnabled}.
+     */
     confirmationsEnabled: boolean('confirmations_enabled').notNull().default(true),
+
+    /**
+     * Tell the patient when their appointment moves to another day or time.
+     *
+     * Split out of `confirmations_enabled`, which used to mean both. They are
+     * one message to the code and two decisions to a clinic: a booking is news
+     * the patient asked for, and a move is often the clinic rearranging its own
+     * diary after agreeing the new time by phone — at which point the automatic
+     * notice arrives as a second, colder copy of a conversation already had.
+     *
+     * Defaults to on, so a clinic that had confirmations on keeps being told
+     * about moves exactly as it was.
+     */
+    reschedulesEnabled: boolean('reschedules_enabled').notNull().default(true),
+
+    /**
+     * Tell the patient when their appointment is deleted.
+     *
+     * Its own column rather than a third meaning for `confirmations_enabled`,
+     * because it is the one automatic message a clinic may reasonably want off
+     * while keeping the others: a booking and a move are news the patient asked
+     * for, and a cancellation is sometimes the clinic tidying its own diary. A
+     * clinic that deletes and rebooks by phone does not want the patient told
+     * twice, by a machine, in the wrong order.
+     *
+     * Defaults to on, so an existing row keeps behaving exactly as it did
+     * before this column existed.
+     *
+     * ⚠ A slot already in the past sends nothing whatever this says. That rule
+     * is about truthfulness rather than preference and lives in
+     * `notifyAppointmentCancelled`.
+     */
+    cancellationsEnabled: boolean('cancellations_enabled').notNull().default(true),
+
+    /**
+     * Let staff send a patient a reminder of what is outstanding on their
+     * account.
+     *
+     * ⚠ Not automatic, unlike everything else on this switchboard: nothing sends
+     * it on a schedule or in response to a booking — somebody chooses it, on a
+     * subscriber's own row in Bills. The switch is what decides whether that
+     * choice is offered at all, which is the question a clinic that does not
+     * chase money by message wants to answer once rather than every month.
+     */
+    paymentRemindersEnabled: boolean('payment_reminders_enabled').notNull().default(true),
 
     /** When the gateway last reported `ready` for this session. */
     connectedAt: timestamp('connected_at', { withTimezone: true }),

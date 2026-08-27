@@ -12,7 +12,7 @@ import { type IconName } from '@/components/ui/icon';
  *
  * ```text
  * لوحة التحكم
- * إدارة ▾            المشتركون
+ * إدارة ▾            المشتركون · الفواتير
  * المواعيد ▾         التقويم ▾    يوم · أسبوع · شهر
  * الخطط الغذائية ▾   الخطط الأسبوعية · كتالوج الأطباق
  * ```
@@ -20,6 +20,23 @@ import { type IconName } from '@/components/ui/icon';
  * **The dashboard stays a top-level row.** It is not a section, it is the
  * place you land, and burying the app's own front door one press deep would
  * have been the one regression a hierarchy can cause.
+ *
+ * **الفواتير sits beside المشتركون, under إدارة.** Billing arrived on `dev` as
+ * a sixth flat row, having tried and dropped a "Subscriber" group holding the
+ * register and the bills — the objection being that a group put a click in
+ * front of the register, the screen most of a day is spent on, and that on a
+ * phone (where the rail is locked to its icon column) that click was a dropdown
+ * and the *only* way to either screen.
+ *
+ * That objection is answered rather than overruled: folded, this rail does not
+ * draw categories at all. `flatten()` walks إدارة through to its children, so
+ * the 56px strip a phone gets is six flat glyphs — the register and the bills
+ * among them, each one tap from anywhere, exactly what `dev` was protecting.
+ * The grouping is what the expanded column shows, and only there.
+ *
+ * The routes did not move: `/app/clients` and `/app/clients/bills` are what
+ * they were, and `isItemActive` in `sidebar.tsx` is what stops the URL's
+ * nesting from lighting both rows at once.
  *
  * **التقويم is a category and a destination at once.** Its three children are
  * views of one screen rather than three screens, which is why it carries
@@ -43,7 +60,16 @@ export const STAFF_NAV = [
   {
     id: 'management',
     labelKey: 'management',
-    children: [{ href: '/app/clients', labelKey: 'clients' }],
+    children: [
+      /* The register, under the plural the clinic uses for the people in it.
+         `dev`'s flat rail said `subscriber` ("المشترك") because the row stood
+         next to Bills with nothing above the two to name them; here إدارة is
+         that name, so the row goes back to naming the list. Both keys exist in
+         the `nav` namespace. */
+      { href: '/app/clients', labelKey: 'clients' },
+      /* The money half of the same people. */
+      { href: '/app/clients/bills', labelKey: 'bills' },
+    ],
   },
   {
     id: 'appointments',
@@ -88,6 +114,7 @@ export const STAFF_NAV_ICONS = {
   dashboard: 'dashboard',
   management: 'management',
   clients: 'clients',
+  bills: 'bills',
   appointments: 'appointments',
   calendar: 'calendar',
   plans: 'mealPlans',

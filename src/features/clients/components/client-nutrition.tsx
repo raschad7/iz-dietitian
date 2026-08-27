@@ -807,7 +807,7 @@ export function ClientNutrition({
  * obese span.
  *
  * The two obesity bands are coloured apart because `BMI_CATEGORIES` splits them
- * apart: clay-100 for `obese`, the solid clay for `severely_obese`. Clay is the
+ * apart: --red-tint for `obese`, the solid red for `severely_obese`. Red is the
  * system's only alarm colour and a clinical finding is what it is for.
  */
 const BMI_TONES = {

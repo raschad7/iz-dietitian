@@ -53,6 +53,23 @@ export function formatCurrency(
   });
 }
 
+/**
+ * The currency's symbol on its own — `₪`.
+ *
+ * Read out of `Intl` rather than written down, so a clinic that is ever given
+ * a second currency gets its symbol from the same place its amounts come from,
+ * and nobody has to remember a literal in a template somewhere.
+ */
+export function currencySymbol(locale: Locale, currency: string = DEFAULT_CURRENCY): string {
+  const parts = new Intl.NumberFormat(toIntlLocale(locale), {
+    style: 'currency',
+    currency,
+    ...NUMBER_DEFAULTS,
+  }).formatToParts(0);
+
+  return parts.find((part) => part.type === 'currency')?.value ?? currency;
+}
+
 export function formatPercent(locale: Locale, value: number, options?: Intl.NumberFormatOptions): string {
   return formatNumber(locale, value, { style: 'percent', maximumFractionDigits: 1, ...options });
 }
@@ -82,6 +99,60 @@ export function formatDateTime(
     ...options,
     ...DATE_DEFAULTS,
   }).format(toDate(value));
+}
+
+/**
+ * The invisible direction marks `Intl` puts inside Arabic dates and amounts.
+ *
+ * `24‏/08‏/2026` carries a U+200F between each part and a shekel amount starts
+ * with one. They tell a bidirectional text engine which way the run goes, and
+ * in ordinary flowing text they are exactly right.
+ *
+ * They are wrong in two places, and both are places this app has: inside an
+ * element that has already declared `dir="ltr"`, where the marks fight the
+ * declaration and reorder the parts — `24/08/2026 3:22` comes out as
+ * `2026 3:22/08/` — and inside a PDF, which has no bidi engine at all and no
+ * glyph for the mark.
+ */
+const BIDI_MARKS = /[‎‏؜⁦-⁩]/g;
+
+/**
+ * Drops those marks. Use at the point a formatted value becomes visible inside
+ * something whose direction is already fixed — never on flowing text, where the
+ * marks are what make mixed scripts read correctly.
+ */
+export function stripBidiMarks(text: string): string {
+  return text.replaceAll(BIDI_MARKS, '');
+}
+
+/**
+ * A date as `24/08/2026` — day first, Latin digits, no direction marks, and the
+ * same shape in both languages.
+ *
+ * **Assembled from parts rather than formatted.** `Intl` gives Arabic
+ * `24/08/2026` and English `08/24/2026` for the same instant, and a ledger read
+ * by the same staff in two languages must not swap the day and the month:
+ * `08/09` and `09/08` are both real dates, and nothing in the row says which
+ * reading was meant. Building the string from `formatToParts` fixes the order
+ * for both, and the clinic's own convention is day first.
+ *
+ * It also arrives free of the marks {@link stripBidiMarks} exists to remove,
+ * because nothing between the parts was written by `Intl`.
+ *
+ * For a date a reader meets in a sentence, use {@link formatDate} — a spelled
+ * month is easier to read and cannot be misread as the day.
+ */
+export function formatDayMonthYear(locale: Locale, value: Date | string | number): string {
+  const parts = new Intl.DateTimeFormat(toIntlLocale(locale), {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    ...DATE_DEFAULTS,
+  }).formatToParts(toDate(value));
+
+  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((entry) => entry.type === type)?.value ?? '';
+
+  return `${part('day')}/${part('month')}/${part('year')}`;
 }
 
 /** Renders a UTC instant as a time of day in {@link DISPLAY_TIME_ZONE}. */

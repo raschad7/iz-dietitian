@@ -17,6 +17,19 @@
  * into a `'use client'` file to get it — this module is what both sides
  * import from instead.
  */
-export const PROFILE_TABS = ['nutrition', 'progress', 'account', 'security', 'billing'] as const;
+export const PROFILE_TABS = [
+  'nutrition',
+  'progress',
+  'account',
+  'security',
+  'billing',
+  /*
+    The money. Last, because it is the view a record is opened for least often —
+    and separate from `billing`, which is this template's key for the *plans*
+    view and has nothing to do with what a subscriber owes. Renaming that one
+    would break the `?tab=billing` links that already point at it.
+  */
+  'expenses',
+] as const;
 
 export type ProfileTab = (typeof PROFILE_TABS)[number];

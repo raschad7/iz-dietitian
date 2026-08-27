@@ -51,6 +51,20 @@ const config = [
   },
 
   {
+    /*
+      The PDF bill is drawn by @react-pdf/renderer, which is not a browser: it
+      has no stylesheet, no custom properties and no Tailwind, and resolves a
+      colour to ink at render time. A semantic token cannot reach it, so the
+      page's four greys are literals — the one place in the app where that is
+      the only option rather than a shortcut.
+    */
+    files: ['src/features/billing/pdf/**'],
+    rules: {
+      'qiwam/no-raw-hex': 'off',
+    },
+  },
+
+  {
     // The rule definitions themselves contain the banned strings by necessity.
     files: ['eslint-rules/**'],
     rules: {

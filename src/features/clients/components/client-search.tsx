@@ -13,6 +13,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
+import { ExportBillsDialog } from '@/features/billing/components/export-bills-dialog';
 import { ClientFilterMenu } from '@/features/clients/components/client-filter';
 import { ClientFormTrigger } from '@/features/clients/components/client-form-trigger';
 import { type ListClientsInput } from '@/features/clients/schema';
@@ -73,7 +74,29 @@ const SEARCH_DEBOUNCE_MS = 300;
  * splits by width: the page is server-rendered, and reading the viewport on the
  * client would flash the wrong toolbar on first paint.
  */
-export function ClientSearch({ input, locale }: { input: ListClientsInput; locale: Locale }) {
+/**
+ * Which register this toolbar is standing over.
+ *
+ * The two screens list the same people and want different things done to
+ * them. On the register you reach for the archive and for a new patient; on
+ * Bills you reach for the money, and neither of those belongs in that row — an
+ * archive toggle on a billing screen swaps the table under a reader who came
+ * to export it, and "New patient" is the register's own action, offered there.
+ *
+ * A prop rather than a pathname read, so the screens are told apart by the one
+ * that knows which it is.
+ */
+export type ClientSearchVariant = 'register' | 'bills';
+
+export function ClientSearch({
+  input,
+  locale,
+  variant = 'register',
+}: {
+  input: ListClientsInput;
+  locale: Locale;
+  variant?: ClientSearchVariant;
+}) {
   const t = useTranslations('clients');
   const router = useRouter();
   const pathname = usePathname();
@@ -418,6 +441,12 @@ export function ClientSearch({ input, locale }: { input: ListClientsInput; local
           gone — the default size is `h-12 px-5`, which without text is a 48px
           control with 40px of empty padding in it.
         */}
+        {/* Bills takes the export in the archive's place: same slot, same
+            width, and the one control on that screen acting on every
+            subscriber at once rather than on the row under the pointer. */}
+        {variant === 'bills' ? (
+          <ExportBillsDialog locale={locale} />
+        ) : (
         <Link
           href={statusHref(archived ? 'active' : 'archived')}
           /*
@@ -442,11 +471,15 @@ export function ClientSearch({ input, locale }: { input: ListClientsInput; local
           <Icon name="archive" />
           <span className="sr-only sm:not-sr-only">{t('archive.title')}</span>
         </Link>
+        )}
 
-        <ClientFilterMenu input={input} />
+        <ClientFilterMenu input={input} variant={variant} />
 
         {/* Opens the client card over the list, matching the empty state's copy
             of this button. */}
+        {/* Register only: adding a patient is not what a billing screen is
+            for, and the register is one press away. */}
+        {variant === 'register' && (
         <ClientFormTrigger
           locale={locale}
           /* The guided tour's "how to add a new client" step points here. */
@@ -459,6 +492,7 @@ export function ClientSearch({ input, locale }: { input: ListClientsInput; local
           <Icon name="addClient" />
           <span className="sr-only sm:not-sr-only">{t('new')}</span>
         </ClientFormTrigger>
+        )}
       </div>
     </div>
   );

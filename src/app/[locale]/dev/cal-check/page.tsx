@@ -27,6 +27,15 @@ const APPOINTMENTS = [
  * `overflow: hidden`, the inset is `min-block-size: 0`, and `main` is the one
  * scroller. Measuring the calendar outside this would measure nothing.
  */
+/**
+ * Midnight on the fixture day, so nothing reads as completed.
+ *
+ * A probe compares screenshots, and the real clock would grey a different
+ * number of blocks every hour it ran. Fixed, this page draws the same picture
+ * today as it did the day it was written — which is the only thing it is for.
+ */
+const PROBE_CLOCK = { date: '2026-08-12', minute: 0 };
+
 export default async function CalCheckPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
 
@@ -40,6 +49,8 @@ export default async function CalCheckPage({ params }: { params: Promise<{ local
                 <Calendar
                   locale={locale as 'en' | 'ar'}
                   view="week"
+
+                  serverClock={PROBE_CLOCK}
                   anchorDate="2026-08-12"
                   hours={HOURS}
                   appointments={APPOINTMENTS}
@@ -52,6 +63,8 @@ export default async function CalCheckPage({ params }: { params: Promise<{ local
                 <Calendar
                   locale={locale as 'en' | 'ar'}
                   view="week"
+
+                  serverClock={PROBE_CLOCK}
                   anchorDate="2026-08-12"
                   hours={HOURS}
                   appointments={APPOINTMENTS}

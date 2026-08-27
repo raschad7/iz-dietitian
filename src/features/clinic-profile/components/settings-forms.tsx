@@ -361,6 +361,19 @@ function ValueRow({ locale, scope, field, label, value, isolate, type, optional 
                 {optional ? <span className="font-normal text-muted-foreground"> ({tc('optional')})</span> : null}
               </Label>
               <Input
+                /*
+                  Keyed on the stored value, so a save that changes it mounts a
+                  fresh field rather than handing a new `defaultValue` to a live
+                  uncontrolled one — which Base UI warns about, and rightly: an
+                  uncontrolled field reads its default once, so the second value
+                  would be a prop that changed and did nothing.
+
+                  The dialog's own `key={String(open)}` does not cover this. That
+                  key is the same string on every opening, so the field survives
+                  from one edit to the next while the row behind it revalidates
+                  with the value that was just written.
+                */
+                key={value}
                 id={id}
                 name="value"
                 type={type ?? 'text'}

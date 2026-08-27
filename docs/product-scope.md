@@ -12,6 +12,20 @@ The current repository includes:
 - A clinic client roster and client profiles
 - Appointment booking and calendar views
 - A staff dashboard
+<<<<<<< HEAD
+- Nutrition profiles and AI-assisted weekly plans based on a controlled dish
+  catalog
+- A manual subscriber ledger: what each subscriber was billed, what they paid,
+  and the balance between the two
+- A per-clinic price list for the services on offer, set by the dietitian in
+  settings. It prices a new charge and is never a key the ledger reads back: a
+  recorded charge keeps the words and the amount it was entered with, so
+  changing a price cannot rewrite an existing bill
+- A free first consultation for every subscriber. The first one is recorded at
+  zero and every one after it at the price above; the zero row is what makes
+  the second chargeable, so a free visit is written down rather than skipped
+- A client portal for appointments, profile details, and published plans
+=======
 - Nutrition profiles and AI-assisted weekly plans built from a canonical food
   catalog and an editable dish catalog, downloadable from the plan board as a
   client handout in PDF or Word, carrying each meal's portions and its
@@ -20,6 +34,7 @@ The current repository includes:
   installable as a PWA
 - Clinic onboarding, clinic and account settings, and in-app notifications
 - A guided in-app user tour
+>>>>>>> 2fc96edfef517fccc430d17ca971bb46fc56007a
 - Optional WhatsApp reminders, confirmations, replies, and portal credentials
 - Arabic and English interfaces with RTL support
 
@@ -31,7 +46,13 @@ dietitian workflow and the matching client experience.
 
 The repository does not currently provide:
 
-- Billing or payment processing
+- Payment processing. The subscriber ledger above records money the clinic
+  already collected in the room; nothing in this app takes a card, contacts a
+  bank, or moves funds. There is no gateway, and adding one is a separate
+  decision from recording what was paid.
+- Tax invoicing. A printed bill states what this clinic recorded billing and
+  receiving; it carries no VAT number and no fiscal sequence, and it is not a
+  substitute for whatever the clinic's accountant issues.
 - Insurance or claims workflows
 - A public third-party API
 - Native mobile applications

@@ -37,6 +37,7 @@ function scriptedGateway(initial: Partial<GatewaySession> = {}): ScriptedGateway
 
     isReachable: async () => true,
 
+
     async ensureSession(name) {
       gateway.calls.push('ensureSession');
       gateway.session = {
@@ -82,6 +83,10 @@ function scriptedGateway(initial: Partial<GatewaySession> = {}): ScriptedGateway
     },
 
     async sendText() {
+      throw new Error('not used in these tests');
+    },
+
+    async sendFile() {
       throw new Error('not used in these tests');
     },
 

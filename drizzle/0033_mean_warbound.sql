@@ -1,0 +1,1 @@
+ALTER TABLE "client_charges" ADD COLUMN "service" text;

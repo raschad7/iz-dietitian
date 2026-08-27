@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto';
 
 import { type WhatsappMessageKind, type WhatsappSettings } from '@/db/schema';
+/* The clinic's own wording, when it has any — see `sendWhatsappTemplate`. */
+import { clinicMessageBody } from '@/features/forms/queries';
 import { type Locale } from '@/i18n/routing';
 
 import { getWhatsappConfig } from './config';
@@ -39,6 +41,21 @@ export type SendRequest = {
   /** As stored on the client — anything a human might have typed. */
   phone: string | null | undefined;
   body: string;
+  /**
+   * A file to send instead of a plain message — the bill, as the PDF the
+   * printer produces.
+   *
+   * An option on the same request rather than a second funnel, because every
+   * rule above it applies unchanged: a document still must not throw into a
+   * booking, still must be claimed before the network call, still must not go
+   * into an unpaired session. Only the last line differs — `sendFile` rather
+   * than `sendText`.
+   *
+   * `body` travels with it as the caption and is what the ledger records, so
+   * a dietitian reading the message log sees what the subscriber was told and
+   * not an opaque "a file was sent".
+   */
+  document?: { base64: string; fileName: string; mimeType: string };
   /**
    * The idempotency anchor. Deterministic for an automation
    * (`reminder:<appointmentId>:<date>`), random for a manual send, where
@@ -109,7 +126,14 @@ export async function sendWhatsappMessage(request: SendRequest, deps: SendDeps =
   if (!claimed) return { status: 'skipped', reason: 'duplicate' };
 
   try {
-    const sent = await gateway.sendText(settings.sessionId, target.chatId, body);
+    /* The one line a document changes. Everything above — the claim, the
+       number check, the settings read — is the same either way. */
+    const sent = request.document
+      ? await gateway.sendFile(settings.sessionId, target.chatId, {
+          ...request.document,
+          caption: body,
+        })
+      : await gateway.sendText(settings.sessionId, target.chatId, body);
 
     await markMessageSent(claimed.id, sent.messageId);
 
@@ -142,8 +166,30 @@ export async function sendWhatsappTemplate(
 ): Promise<SendResult> {
   let body: string;
 
+  /*
+    The clinic's own wording for this message, if it has rewritten it in the
+    Forms tab.
+
+    Read here rather than in each `notify*` function, because this is the one
+    place every templated message passes through — a lookup per caller would be
+    three chances to forget it, and the fourth message added later would be a
+    fourth. It is one indexed read per send, on a path that is already talking
+    to a gateway over the network.
+
+    A failure to read is not a failure to send: the app's own copy is a correct
+    message, and a patient going untold because a settings table was briefly
+    unavailable would be the worse outcome by far.
+  */
+  let override: string | undefined;
+
   try {
-    body = renderWhatsappMessage(template.kind, template.locale, template.variables);
+    override = await clinicMessageBody(request.clinicId, template.kind);
+  } catch (error) {
+    console.error('[whatsapp] reading the clinic wording failed', error);
+  }
+
+  try {
+    body = renderWhatsappMessage(template.kind, template.locale, template.variables, override);
   } catch (error) {
     // A template with a missing variable is a programming error, but it must not
     // take down the booking that triggered it.

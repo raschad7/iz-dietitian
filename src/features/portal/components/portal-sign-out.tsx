@@ -17,15 +17,15 @@ import { type Locale } from '@/i18n/routing';
  * dashboard's chrome. The behaviour — a real form posting to the same server
  * action — is deliberately identical; only the surface differs.
  *
- * **Clay, in the `destructiveGhost` register.** Clay label and glyph at rest,
- * clay-100 fill on hover, and no box at any point — which is exactly what
+ * **Red, in the `destructiveGhost` register.** Red label and glyph at rest,
+ * a --red-tint fill on hover, and no box at any point — which is exactly what
  * §Buttons specifies for a destructive action that sits *among* other controls
  * rather than closing a decision, and exactly what the practitioner rail's own
  * sign-out already wears. It is a tint on a label, not a red block: signing out
  * is still an everyday, reversible act, and the row beneath it — deleting an
  * account — is the one that would earn an outlined `destructive`.
  *
- * clay-600 is 6.84:1 on the card and 5.81:1 on its own hover fill, so the pair
+ * --red is 6.24:1 on the card and 5.38:1 on its own hover fill, so the pair
  * holds in both states.
  *
  * **Centred, because it is the only thing in its card.** It used to be

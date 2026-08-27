@@ -1,5 +1,8 @@
 import {
   Apple,
+  FileDown,
+  FilePenLine,
+  FileSpreadsheet,
   Archive,
   ArchiveRestore,
   ArrowLeft,
@@ -7,6 +10,8 @@ import {
   ArrowUpRight,
   Ban,
   Beef,
+  Banknote,
+  BanknoteArrowUp,
   Bell,
   Briefcase,
   Building2,
@@ -37,6 +42,7 @@ import {
   Compass,
   Cookie,
   Copy,
+  CreditCard,
   CupSoda,
   DoorClosed,
   DoorOpen,
@@ -84,6 +90,8 @@ import {
   Pill,
   Pizza,
   Plus,
+  Printer,
+  ReceiptText,
   RefreshCw,
   Repeat,
   RotateCcw,
@@ -109,6 +117,7 @@ import {
   User,
   UserPlus,
   Users,
+  WalletMinimal,
   Utensils,
   UtensilsCrossed,
   Venus,
@@ -117,6 +126,17 @@ import {
   Zap,
   type LucideIcon,
 } from 'lucide-react';
+
+import { WhatsappMark } from '@/components/ui/whatsapp-mark';
+
+/**
+ * A glyph drawn here rather than taken from lucide.
+ *
+ * It has to accept the props `Icon` hands every entry in the registry — the
+ * className that sizes it, the aria attributes that hide or name it — so that
+ * a call site cannot tell which of the two it asked for.
+ */
+type AppGlyph = (props: React.ComponentProps<'svg'>) => React.ReactElement;
 
 /**
  * Every icon in the app, by the name the app calls it.
@@ -143,6 +163,21 @@ export const APP_ICONS = {
   /* Navigation and sections */
   dashboard: LayoutDashboard,
   clients: Users,
+  /*
+    The two halves of the Subscriber group in the rail. `clients` is the group's
+    own glyph — the people — and these two are the things you can read about
+    them: the record, and the money. They are deliberately different pictures
+    from `clients` rather than tints of it, because a submenu whose parent and
+    children share one glyph is three of the same mark stacked in a column.
+  */
+  bills: ReceiptText,
+  /*
+    The Forms tab in Settings — the clinic's own wording for its bills and its
+    automatic messages. A page with a pen on it, because what is edited there is
+    the words a document is printed with rather than the document itself:
+    `bills` is the ledger, and this is what the ledger says.
+  */
+  forms: FilePenLine,
   calendar: Calendar,
   weeklyPlans: CalendarRange,
   mealPlans: ClipboardList,
@@ -161,7 +196,31 @@ export const APP_ICONS = {
   management: Briefcase,
   appointments: CalendarCheck,
   foods: Apple,
+  /* The export control on Bills, and the three files it can produce. Lucide
+     draws all four as a page with a mark on it, so they read as one family
+     rather than as four unrelated glyphs in a row of choices. */
+  fileDown: FileDown,
+  formatCsv: FileText,
+  formatXlsx: FileSpreadsheet,
+  formatPdf: FileType,
   whatsapp: MessageCircle,
+  /*
+    The Bills row’s send control, and the one glyph here that is not lucide’s.
+
+    It was `MessageCircleReply`, on the reasoning that the clinic is answering
+    an account the subscriber already has. A reply arrow is the wrong half of
+    that to draw: what a dietitian needs to know before pressing it is *where
+    the bill is about to go*, because this is the only control on the page
+    that reaches somebody outside the clinic and WhatsApp has no unsend. The
+    channel is the fact worth a glyph; the direction is not.
+
+    `whatsapp` above it is still lucide’s plain bubble and is a different job:
+    it labels sections and callouts *about* the integration — Settings, the
+    portal’s contact row — where a filled brand mark would sit heavier than
+    the stroked icons beside it. This one is a send, and the mark is the
+    point. See `WhatsappMark`.
+  */
+  sendBill: WhatsappMark,
   security: ShieldCheck,
   settings: Settings,
   language: Languages,
@@ -219,12 +278,59 @@ export const APP_ICONS = {
     Neither is the bare tray `install` uses: that glyph means "put this app on
     your device" everywhere else in the product.
   */
+  /*
+    The plain tray, for the control that opens the export menu.
+
+    Same glyph as `install`, and that is right: both mean "this hands you a
+    file". The pair below stay page marks because they answer *which* file,
+    inside a menu whose own trigger already carries the arrow.
+  */
+  download: Download,
   downloadPdf: FileText,
   downloadWord: FileType,
   share: Share2,
   refresh: RefreshCw,
   archive: Archive,
   restore: ArchiveRestore,
+  /*
+    Recording money received from a subscriber — the wallet on every Bills row.
+
+    `WalletMinimal` rather than `Wallet` or `WalletCards`: at the 20px a table
+    action is drawn at, the fuller glyphs lose their card slot to the stroke
+    weight and read as an anonymous rounded rectangle. The minimal one keeps one
+    clasp and stays legible.
+  */
+  recordPayment: WalletMinimal,
+  /*
+    Adding a charge to a subscriber's account — the banknote beside the wallet.
+
+    The two sit together on every Bills row and have to be told apart at 20px,
+    which is why they are different *shapes* rather than two wallets: the wallet
+    is money going into the drawer, the banknote's arrow is a line going up onto
+    the account.
+  */
+  recordCharge: BanknoteArrowUp,
+  /*
+    Printing a bill — the same glyph whether it is one operation or the whole
+    account, because printing is one verb. What differs is where it sits: the
+    printer on the row prints the statement, and each one inside the menu
+    prints the single bill it sits beside.
+  */
+  printBill: Printer,
+  /*
+    Paying by card — the second of the two ways money is taken, beside cash.
+
+    A card *machine the clinic already owns*, not a gateway: this app takes no
+    card details and contacts no bank. See the header of `src/db/schema/billing.ts`.
+  */
+  /*
+    Paying in cash — the plain banknote, and deliberately not `recordCharge`'s.
+    That one carries an arrow because it means *adding* money to an account;
+    this one names a method, and an arrow on it would say the method moves
+    money in a direction of its own.
+  */
+  paymentCash: Banknote,
+  paymentCard: CreditCard,
   filter: ListFilter,
   sort: ArrowUpDown,
   moreActions: MoreVertical,
@@ -408,6 +514,12 @@ export const APP_ICONS = {
   settingsAccount: CircleUser,
   settingsPreferences: SlidersHorizontal,
   settingsSupport: LifeBuoy,
-} as const satisfies Record<string, LucideIcon>;
+  /*
+   * `LucideIcon | AppGlyph`: one entry is WhatsApp’s own mark, which no icon
+   * set ships. Anything drawn by hand still has to take the props `Icon`
+   * hands every glyph, which is what the second half of this union holds it
+   * to.
+   */
+} as const satisfies Record<string, LucideIcon | AppGlyph>;
 
 export type IconName = keyof typeof APP_ICONS;

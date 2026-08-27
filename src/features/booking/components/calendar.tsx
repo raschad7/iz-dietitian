@@ -27,7 +27,7 @@ import {
   formatMinute,
   formatWeekday,
 } from '../format';
-import { hasEnded, isCompleted, localWallClock } from '../completed';
+import { hasEnded, localWallClock, type WallClock } from '../completed';
 import { PX_PER_SLOT, minuteToY } from '../geometry';
 import { covers, loadedRangeFor, rangeFor } from '../range';
 import { type CalendarView, type NewClientInput } from '../schema';
@@ -39,6 +39,7 @@ import { isWorkingDay, type ClinicHours, type ExistingAppointment } from '../val
 import { AppointmentDialog } from './appointment-dialog';
 import { CalendarToolbar } from './calendar-toolbar';
 import { CalendarViewGuard } from './calendar-view-guard';
+import { rememberCalendar } from './calendar-snapshot-store';
 import { ClientPicker, type PendingBooking } from './client-picker';
 import { DayColumn } from './day-column';
 import { MonthView } from './month-view';
@@ -211,9 +212,32 @@ const FULL_BLEED = '-mx-3 h-full md:-mx-5';
  */
 const TOOLBAR_INSET = 'px-3 md:px-5';
 
+/** The clinic-wide calendar's own address — `basePath`'s default. */
+const CLINIC_CALENDAR_PATH = '/app/calendar';
+
 export type CalendarProps = {
   locale: Locale;
   view: CalendarView;
+  /**
+   * The clinic’s wall clock at the moment the page was rendered.
+   *
+   * What makes a finished appointment arrive finished. The shared clock
+   * cannot: it reports `null` until the browser has hydrated and subscribed,
+   * so every block drew itself live on the first paint and a morning’s worth
+   * of them then went grey at once — the reader saw a calendar assert
+   * something and take it back.
+   *
+   * A `WallClock` and not a `Date`, and that is the whole reason this is safe
+   * to render on the server. `{ date, minute }` means the same thing wherever
+   * it is read; a `Date` would be turned into hours by `localWallClock` using
+   * whichever zone the reader is sitting in, which is not the zone the clinic
+   * books in and not the one the server used — two different answers from one
+   * instant, which is a hydration mismatch.
+   *
+   * It is a starting point, not the clock. The moment the real one ticks it
+   * takes over — see `completedIds`.
+   */
+  serverClock: WallClock;
   /** The date the view is built around, `YYYY-MM-DD`. */
   anchorDate: string;
   hours: ClinicHours;
@@ -247,6 +271,18 @@ export type CalendarProps = {
    * several levels up and is not its to reclaim.
    */
   fullBleed?: boolean;
+  /**
+   * Whether this is a redraw of a calendar that is on its way out, rather than
+   * the calendar itself — see `CalendarSnapshot`.
+   *
+   * Frozen, the component draws and does nothing else: it does not record
+   * itself as the frame to redraw next time (it *is* that frame), and it leaves
+   * `CalendarViewGuard` off, because a guard that answers a too-narrow screen
+   * with `router.replace` would be a placeholder navigating on the reader's
+   * behalf while they wait. The snapshot is `inert` as well, so nothing inside
+   * it can be reached; this is about the effects it would run unasked.
+   */
+  frozen?: boolean;
 };
 
 type OptimisticAction =
@@ -260,14 +296,16 @@ type PendingMove = { appointment: CalendarAppointment; next: BookingRequest };
 export function Calendar({
   locale,
   view,
+  serverClock,
   anchorDate,
   hours,
   appointments,
   clients,
-  basePath = '/app/calendar',
+  basePath = CLINIC_CALENDAR_PATH,
   allowNewClient: allowNewClientProp,
   hideSearch = false,
   fullBleed = true,
+  frozen = false,
 }: CalendarProps) {
   const t = useTranslations('booking');
   const router = useRouter();
@@ -506,10 +544,19 @@ export function Calendar({
 
   const existingByDate = useCallback((date: string) => existing.filter((row) => row.date === date), [existing]);
 
-  /** Derived every render from the one shared clock — never stored. */
+  /**
+   * Derived every render — never stored.
+   *
+   * The browser’s clock once it is running, and the clinic’s wall clock as
+   * the page was served until then. Both are a `WallClock`, so the first
+   * paint and the first tick answer the same question the same way and the
+   * only thing that changes between them is the passage of time.
+   */
+  const completedClock = nowClock ?? serverClock;
+
   const completedIds = useMemo(
-    () => new Set(optimisticAppointments.filter((row) => isCompleted(row, now)).map((row) => row.id)),
-    [now, optimisticAppointments],
+    () => new Set(optimisticAppointments.filter((row) => hasEnded(row, completedClock)).map((row) => row.id)),
+    [completedClock, optimisticAppointments],
   );
 
   /** Search dims rather than hides, so the day's shape stays recognisable. */
@@ -549,11 +596,68 @@ export function Calendar({
     return `${basePath}?${params.toString()}`;
   }
 
+  /**
+   * A view switch the appointments in hand already cover, done without asking
+   * the server anything.
+   *
+   * `canDrawPending` establishes that the grid for *any* of the three at this
+   * anchor is already drawable — the loader reads the month around it, and a
+   * month holds every day and week inside itself. So a view-only press has
+   * nothing to fetch, and the `router.push` behind it was spending a round
+   * trip, a `loading.tsx` and a re-render of the whole page to arrive at the
+   * screen the reader was already looking at. Pressed twice, it did it twice.
+   *
+   * The address still has to move, or a reload lands on the wrong view and
+   * the link in the URL bar is a lie. `history.replaceState` moves it without
+   * a navigation, which is what Next supports it for.
+   *
+   * Built from `window.location` rather than from `viewHref`, which returns a
+   * path with no locale on it — the i18n router adds that. Editing the two
+   * params on the address that is actually shown cannot get the prefix wrong.
+   *
+   * **What this gives up.** The push also refreshed the data and let
+   * `generateMetadata` retitle the tab. Neither is worth a re-render here:
+   * the appointments are already loaded for the whole month, and every write
+   * in the app ends in `revalidatePath`, so nothing goes stale by not asking
+   * again while somebody toggles between two views of one day.
+   */
+  function replaceViewInAddress(target: CalendarView): void {
+    const url = new URL(window.location.href);
+    url.searchParams.set('date', shownAnchorDate);
+    url.searchParams.set('view', target);
+    window.history.replaceState(null, '', url);
+  }
+
   function navigate(next: { view?: CalendarView; date?: string }): void {
     const href = viewHref(next);
-    if (next.view && next.view !== view) {
+
+    /*
+      A request expires when `view` moves off the one it was made from — see
+      `pendingRequest`. A covered switch no longer moves `view` at all, so the
+      press back to the view the page was served with has to clear the request
+      itself. Without this it never expires: the guard below reads
+      `next.view !== view`, which is false for exactly that press, and the
+      stale request kept drawing the view the reader was trying to leave.
+    */
+    if (next.view === view) {
+      setRequestedView(null);
+    } else if (next.view) {
       setRequestedView({ target: next.view, from: view, date: next.date ?? shownAnchorDate });
     }
+
+    /* Only a view change, and only when the data for it is in hand. A date
+       change moves outside what was loaded and is a real question for the
+       server; so is a view whose span the loaded range does not cover, which
+       is the same check `canDrawPending` makes before drawing one. */
+    if (
+      next.view !== undefined &&
+      next.date === undefined &&
+      covers(loadedRange, rangeFor(next.view, shownAnchorDate))
+    ) {
+      replaceViewInAddress(next.view);
+      return;
+    }
+
     router.push(href);
   }
 
@@ -924,6 +1028,24 @@ export function Calendar({
     scheduleRead.current();
   });
 
+  /**
+   * Hands the frame to `calendar-snapshot-store`, so the next arrival on this
+   * route redraws the calendar instead of a grey grid. See `CalendarSnapshot`.
+   *
+   * The server's `appointments` rather than `optimisticAppointments`: an
+   * optimistic block is a write that has not been confirmed, and a redraw is
+   * the last thing that should be showing one as though it had been.
+   *
+   * Only the clinic-wide calendar is remembered. The same component is mounted
+   * inside a client's Visit History tab under its own `basePath`, and that
+   * calendar holds one person's appointments — redrawn on `/app/calendar` it
+   * would be a clinic's day with almost everybody missing from it.
+   */
+  useEffect(() => {
+    if (frozen || basePath !== CLINIC_CALENDAR_PATH) return;
+    rememberCalendar({ locale, view, serverClock, anchorDate, hours, appointments, clients });
+  }, [frozen, basePath, locale, view, serverClock, anchorDate, hours, appointments, clients]);
+
   const belowFold = useMemo(
     () => new Map(datesBelowFold.map((entry) => [entry.date, entry.count])),
     [datesBelowFold],
@@ -1263,7 +1385,10 @@ export function Calendar({
         `replaceView` rather than `navigate`, so a view the screen cannot show
         never becomes a history entry the Back button bounces off.
       */}
-      <CalendarViewGuard view={view} onFallback={replaceView} />
+      {/* `shownView`, not `view`: a covered switch moves the address without a
+          navigation, so the server prop no longer tracks what is on screen. The
+          guard corrects the grid a reader is *looking at*. */}
+      {frozen ? null : <CalendarViewGuard view={shownView} onFallback={replaceView} />}
 
       <div data-guide="calendar-toolbar" className={cn('pt-4 md:pt-6', contentInset)}>
         <CalendarToolbar

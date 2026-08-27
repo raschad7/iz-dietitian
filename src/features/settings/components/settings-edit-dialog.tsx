@@ -70,6 +70,7 @@ export function SettingsEditDialog<State extends FieldDialogState>({
   initialState,
   /** Renders the field(s). Receives the validation key when the server rejected the value. */
   children,
+  footerStart,
   disabled,
 }: {
   locale: Locale;
@@ -84,11 +85,20 @@ export function SettingsEditDialog<State extends FieldDialogState>({
    * times wrapped under the day name, so a seven-row table became a
    * twenty-one-row scroll.
    */
-  size?: 'default' | 'wide';
+  size?: 'default' | 'page' | 'wide';
   action: (state: Awaited<State>, data: FormData) => Promise<State>;
   initialState: Awaited<State>;
   /** Renders the field(s). Receives the action's own state, so the caller decides what an error looks like. */
   children: (state: Awaited<State>) => ReactNode;
+  /**
+   * A control at the footer's inline-start, away from Cancel and Save.
+   *
+   * For an editor whose "put it back" belongs with the other two decisions
+   * about the whole dialog rather than inside the thing being edited — the
+   * bill editor's reset. It is held apart from the pair by the gap, because it
+   * is not one of the two ways out.
+   */
+  footerStart?: ReactNode;
   disabled?: boolean;
 }) {
   const t = useTranslations('settingsWorkspace');
@@ -163,13 +173,18 @@ export function SettingsEditDialog<State extends FieldDialogState>({
             it and Escape is not the only way out. The primary still reads first
             in both scripts because the footer orders logically.
           */}
-          <DialogFooter className="justify-end">
-            <Button type="button" variant="neutral" onClick={() => setOpen(false)}>
-              {t('cancel')}
-            </Button>
-            <Button type="submit" disabled={pending}>
-              {pending ? t('saving') : t('save')}
-            </Button>
+          <DialogFooter className={footerStart ? 'justify-between' : 'justify-end'}>
+            {footerStart}
+
+            {/* The two ways out, kept together whatever else the footer holds. */}
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button type="button" variant="neutral" onClick={() => setOpen(false)}>
+                {t('cancel')}
+              </Button>
+              <Button type="submit" disabled={pending}>
+                {pending ? t('saving') : t('save')}
+              </Button>
+            </div>
           </DialogFooter>
         </form>
       </Dialog>
