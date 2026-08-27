@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { after } from 'next/server';
 
 import {
+  notifyAppointmentBooked as pushAppointmentBooked,
   notifyAppointmentCancelled as pushAppointmentCancelled,
   notifyAppointmentRescheduled as pushAppointmentRescheduled,
 } from '@/features/portal/push/notify';
@@ -102,6 +103,25 @@ function notifyBooked(clinicId: string, appointmentId: string): void {
 }
 
 /**
+ * The same booking, immediately, over Web Push — this is a distinct dedupe
+ * key (`bookedPushKey`) from the day-before reminder's, so sending this never
+ * claims that row: the reminder still fires on its own schedule regardless of
+ * whether this send goes out, is skipped, or fails. See
+ * `notifyAppointmentBooked` in `push/notify.ts`.
+ *
+ * Same "stay quiet on a repeat" rule as {@link notifyBooked}: `repeatWeeklyAction`
+ * sends its own course-wide WhatsApp message, but has no push counterpart yet —
+ * a client repeating a booking gets this one push for the anchor appointment
+ * and nothing for the weeks added after it.
+ */
+function pushBooked(
+  clientId: string,
+  appointment: { id: string; date: string; startMinute: number },
+): void {
+  pushScheduleChange(() => pushAppointmentBooked(clientId, appointment));
+}
+
+/**
  * Tells the client about a whole course of appointments at once.
  *
  * The repeat's counterpart to {@link notifyBooked}, and deliberately not a loop
@@ -142,7 +162,7 @@ function notifyRescheduled(
 }
 
 /**
- * The same two facts on the client's own phone, over Web Push.
+ * The same facts on the client's own phone, over Web Push.
  *
  * A second `after()` rather than a branch inside the WhatsApp helpers above,
  * and separate on purpose: the two channels fail independently, and a clinic
@@ -201,7 +221,14 @@ export async function createAppointmentAction(
     // Silent when a repeat was chosen: `repeatWeeklyAction` is about to send one
     // message naming this appointment and every other one in the course. See
     // `repeatsSchema`.
-    if (!parsed.data.repeats) notifyBooked(context.clinicId, result.data.id);
+    if (!parsed.data.repeats) {
+      notifyBooked(context.clinicId, result.data.id);
+      pushBooked(parsed.data.clientId, {
+        id: result.data.id,
+        date: parsed.data.date,
+        startMinute: parsed.data.startMinute,
+      });
+    }
   }
 
   return result;
@@ -349,7 +376,14 @@ export async function createClientAndBookAction(
     // The register gained a client, so its list is stale too.
     revalidatePath(`/${locale}/app/clients`);
     // Silent when a repeat follows, exactly as `createAppointmentAction` is.
-    if (!parsed.data.repeats) notifyBooked(context.clinicId, result.data.id);
+    if (!parsed.data.repeats) {
+      notifyBooked(context.clinicId, result.data.id);
+      pushBooked(result.data.clientId, {
+        id: result.data.id,
+        date: parsed.data.booking.date,
+        startMinute: parsed.data.booking.startMinute,
+      });
+    }
   }
 
   return result;
