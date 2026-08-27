@@ -45,6 +45,7 @@ import {
   EyeOff,
   FileLock,
   FileText,
+  FileType,
   Fish,
   Flame,
   Footprints,
@@ -178,6 +179,20 @@ export const APP_ICONS = {
   copy: Copy,
   upload: Upload,
   install: Download,
+  /*
+    The two export formats, as a matched pair.
+
+    Both are pages, differing only in the mark on them — a laid-out sheet for
+    the PDF, a letterform for the editable Word file — because they sit side by
+    side as two answers to one question (see `PlanExport`). Giving one of them
+    a download arrow and the other a letter would make the arrowed one read as
+    "the download" and the other as something else.
+
+    Neither is the bare tray `install` uses: that glyph means "put this app on
+    your device" everywhere else in the product.
+  */
+  downloadPdf: FileText,
+  downloadWord: FileType,
   share: Share2,
   refresh: RefreshCw,
   archive: Archive,

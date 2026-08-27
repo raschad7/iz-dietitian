@@ -1554,6 +1554,17 @@
     "previousDays": "Earlier days of the week",
     "nextDays": "Later days of the week",
     "moreActions": "More plan actions",
+    "export": {
+      "title": "Download this week",
+      "pdf": "PDF",
+      "word": "Word",
+      "hint": "The whole week on one page, ready to print or hand over.",
+      "failed": "That file could not be prepared. Try again."
+    },
+    "print": {
+      "alternatives": "Or instead:",
+      "draftNote": "Draft plan — the client cannot see this week yet."
+    },
     "deletePlan": "Delete this plan",
     "deletePlanConfirmTitle": "Delete this plan?",
     "deletePlanConfirmMessage": "The week of {date} and every meal in it are removed for good. This cannot be undone.",
@@ -1913,7 +1924,6 @@
   },
   "dishes": {
     "title": "Dish catalog",
-    "subtitle": "{count} approved dishes — the only thing the AI may choose from",
     "addDish": "Add dish",
     "empty": "No dishes in the catalog yet",
     "emptyHint": "Approved dishes appear here once they are added.",
@@ -2004,13 +2014,8 @@
     "foodPicker": {
       "label": "Search for an ingredient",
       "placeholder": "Search for an ingredient…",
-      "searching": "Searching…",
       "kcalPer100g": "{kcal} kcal / 100g",
-      "startSearching": "Search for an ingredient, or add your own",
       "noResults": "We couldn't find \"{name}\".",
-      "noResultTitle": "No matching ingredient",
-      "addNew": "Add a new ingredient",
-      "addNewShort": "Can't find it? Add a new ingredient",
       "addCustom": "Add a custom ingredient",
       "addNamed": "Add \"{name}\" as a new ingredient",
       "moreResults": "Show more",
@@ -2048,35 +2053,27 @@
     },
     "editor": {
       "pageTitle": "Add dish",
-      "pageSubtitle": "Add a dish to the clinic's approved catalog",
-      "nameAr": "Dish name",
-      "nameArPlaceholder": "e.g. Chicken Maqluba",
+      "nameAr": "Arabic name",
+      "nameArPlaceholder": "مقلوبة دجاج",
       "nameEn": "English name",
       "nameEnPlaceholder": "e.g. Chicken Maqluba",
-      "additionalDetails": "Additional details",
-      "checkingExisting": "Checking existing dishes…",
       "existingMatchesTitle": "Existing dishes starting with this name",
-      "existingMatchesHint": "Review them before adding a new dish to avoid duplicates.",
       "exactMatchTitle": "This name is already in use",
-      "exactMatchHint": "Review the existing dish before creating another copy.",
       "exactMatch": "Exact match",
-      "existingSearchError": "Couldn't check existing dishes. You can continue creating this dish.",
       "mealTypesLegend": "Meal time",
       "labelsLegend": "Dish properties",
-      "labelsHint": "Each colour follows the dish into the catalog and the weekly plan.",
       "allergensLegend": "Allergens",
-      "allergensHint": "These exclude the dish from clients with a matching allergy.",
+      "labelGroups": {
+        "preparation": "Preparation",
+        "cost": "Cost & portability",
+        "nature": "Dish character"
+      },
       "ingredientsHeading": "Ingredients",
-      "addIngredient": "Add ingredient",
       "removeIngredient": "Remove ingredient",
-      "noIngredientsYet": "Search above to add the dish's ingredients.",
       "ingredientCount": "{count, plural, =0 {No ingredients} one {# ingredient} other {# ingredients}}",
-      "pickFoodHint": "Search for a food to add it to this ingredient",
-      "changeFood": "Change food",
       "amount": "Amount",
       "unitAria": "Unit",
-      "rowKcal": "{kcal} kcal",
-      "rowGrams": "= {grams} g",
+      "rowGrams": "{grams} g",
       "units": {
         "g": "g",
         "piece": "piece",
@@ -2086,11 +2083,8 @@
         "tbsp": "tbsp",
         "tsp": "tsp"
       },
-      "liveNutrition": "Nutrition per base serving",
       "nutritionTitle": "Nutrition",
       "nutritionEmpty": "Add ingredients to see the nutrition.",
-      "perServing": "per {unit}",
-      "energyShare": "Bars show each macro's share of the calories.",
       "categories": {
         "high_protein": "High protein",
         "high_carb": "High carbohydrate",
@@ -2098,7 +2092,8 @@
         "balanced": "Balanced"
       },
       "errors": {
-        "nameRequired": "Dish name is required",
+        "nameRequired": "Arabic name is required",
+        "nameEnRequired": "English name is required",
         "mealTypeRequired": "Select at least one meal time",
         "ingredientRequired": "Add at least one ingredient with a food and a positive amount"
       },
@@ -2106,11 +2101,27 @@
       "saveChanges": "Save changes",
       "submitting": "Saving…",
       "editTitle": "Edit dish",
-      "editSubtitle": "Update this dish in your clinic's catalog",
       "unsavedTitle": "Discard changes?",
       "unsavedMessage": "You have unsaved changes that will be lost if you close.",
       "discard": "Discard",
-      "keepEditing": "Keep editing"
+      "keepEditing": "Keep editing",
+      "next": "Next",
+      "back": "Back",
+      "steps": {
+        "define": "Details",
+        "ingredients": "Ingredients",
+        "review": "Review"
+      },
+      "recipeEmptyTitle": "No ingredients yet",
+      "columnIngredient": "Ingredient",
+      "columnGrams": "Grams",
+      "columnKcal": "kcal",
+      "awaitingAmount": "Amount?",
+      "perServingShort": "Per serving",
+      "gramsPerServing": "{grams} g per serving",
+      "kcalPer100g": "{kcal} kcal / 100 g",
+      "suggested": "Proposed",
+      "saveAndAddAnother": "Save and add another"
     }
   },
   "whatsapp": {
