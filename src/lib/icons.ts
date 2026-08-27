@@ -23,6 +23,8 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   ChevronUp,
   Cigarette,
   Circle,
@@ -168,6 +170,18 @@ export const APP_ICONS = {
   chevronUp: ChevronUp,
   chevronStart: ChevronLeft,
   chevronEnd: ChevronRight,
+  /*
+    The doubled pair, for a control that moves a whole surface rather than
+    stepping through items. `SidebarTrigger` is the one caller: the rail folding
+    away is not the same gesture as a carousel advancing by one, and the second
+    chevron is what says so.
+
+    Named for the reading edge like their singular siblings, and on `DIRECTIONAL`
+    in `icon.tsx` with them — a chevron that keeps pointing left in Arabic points
+    away from the rail it belongs to.
+  */
+  chevronsStart: ChevronsLeft,
+  chevronsEnd: ChevronsRight,
   navigationMenu: Menu,
   signOut: LogOut,
   search: Search,

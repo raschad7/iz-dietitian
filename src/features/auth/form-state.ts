@@ -16,9 +16,13 @@ export type AuthFormState =
         | 'emailTaken'
         | 'passwordMismatch'
         | 'passwordTooShort'
-        /** Long enough, but still `aaaaaaaaaa` — see `isStrongStaffPassword`. */
+        /**
+         * ⚠ Raised by nothing since staff took the client rule — it offers a
+         * symbol as an alternative to a digit, which no schema accepts any
+         * more. Kept for the revert; see the note on `staffPasswordSchema`.
+         */
         | 'passwordTooWeak'
-        /** The client's narrower rule: a letter and a digit, both required. */
+        /** A letter and a digit, both required — of clients and staff alike. */
         | 'clientPasswordTooWeak'
         | 'firstNameRequired'
         | 'lastNameRequired'

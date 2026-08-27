@@ -58,6 +58,11 @@ export function generateTemporaryPassword(): string {
 /**
  * Whether a staff password is more than merely long enough.
  *
+ * ⚠ **No schema calls this any more.** Staff took the client rule — see the
+ * note on `staffPasswordSchema` — so `isStrongClientPassword` is what a staff
+ * password is judged by now. Kept, with its tests, because it is the rule to
+ * put back if the staff floor is ever restored.
+ *
  * Length alone is satisfied by `aaaaaaaaaa` and by `dietitian1`, and a staff
  * account reads every client's medical notes — so the staff minimum asks for
  * two of the three character classes on top of its ten characters, and refuses

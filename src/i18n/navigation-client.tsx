@@ -1,10 +1,49 @@
 'use client';
 
+import { useLocale } from 'next-intl';
 import { useMemo, type ComponentProps } from 'react';
 
 import { startNavigationProgress } from '@/components/layout/navigation-progress';
 
-import { IntlLink, useIntlRouter } from './navigation-base';
+import { getPathname, IntlLink, useIntlRouter } from './navigation-base';
+
+type PathnameArgs = Parameters<typeof getPathname>[0];
+
+/**
+ * Is this navigation going to the address the reader is already at?
+ *
+ * A link to where you already are is still a navigation as far as Next is
+ * concerned — the route re-runs in place — but it never moves the address bar,
+ * and the address bar is the only thing `NavigationProgressWatcher` watches. So
+ * a bar armed for one is a bar nothing is left to finish: it draws after
+ * `APPEAR_AFTER_MS` and then trickles out the full ten seconds of the give-up
+ * timer. That is how the mark at the head of the rail came to lay a progress
+ * bar across the dashboard when you were already on the dashboard, and it is
+ * the same bar the active row of the sidebar, or a filter re-applied at the
+ * value it already had, has always drawn.
+ *
+ * This is the rule `refresh` is left out of `useRouter` for, applied one step
+ * earlier: don't arm for a navigation that goes nowhere.
+ *
+ * The comparison ignores the hash deliberately. A hash-only change asks the
+ * server for nothing and leaves `pathname` and `search` exactly where they
+ * were, so it has the same problem and wants the same answer.
+ *
+ * `locale` is the locale being navigated *to*, never simply the page's own:
+ * switching language replaces the current path under a different prefix, so it
+ * arrives here as an unchanged locale-less pathname and a genuinely different
+ * address. Reading the active locale instead would take the bar off the
+ * slowest navigation in the app.
+ */
+function leadsNowhere(href: PathnameArgs['href'], locale: PathnameArgs['locale']): boolean {
+  const target = new URL(getPathname({ href, locale }), window.location.origin);
+
+  return (
+    target.origin === window.location.origin &&
+    target.pathname === window.location.pathname &&
+    target.search === window.location.search
+  );
+}
 
 /**
  * `Link`, with the progress bar armed on the way out.
@@ -44,6 +83,8 @@ export type LinkProps = ComponentProps<typeof IntlLink> & {
 };
 
 export function Link({ onNavigate, ...props }: LinkProps) {
+  const activeLocale = useLocale();
+
   return (
     <IntlLink
       {...(props as ComponentProps<typeof IntlLink>)}
@@ -57,7 +98,12 @@ export function Link({ onNavigate, ...props }: LinkProps) {
           },
         });
 
-        if (!cancelled) startNavigationProgress();
+        if (cancelled) return;
+        // `props.locale` first: a link that changes language is going somewhere
+        // even when its href is the path already on screen. See `leadsNowhere`.
+        if (leadsNowhere(props.href as PathnameArgs['href'], props.locale ?? activeLocale)) return;
+
+        startNavigationProgress();
       }}
     />
   );
@@ -79,19 +125,30 @@ export function Link({ onNavigate, ...props }: LinkProps) {
  */
 export function useRouter() {
   const router = useIntlRouter();
+  const activeLocale = useLocale();
 
   return useMemo(
     () => ({
       ...router,
+      /*
+        The navigation still happens either way — only the bar is withheld when
+        the destination is the address already on screen. `options.locale` is
+        what the language switcher passes, and it is the difference between
+        "the same path" and "the same address"; see `leadsNowhere`.
+      */
       push: ((href, options) => {
-        startNavigationProgress();
+        if (!leadsNowhere(href as PathnameArgs['href'], options?.locale ?? activeLocale)) {
+          startNavigationProgress();
+        }
         router.push(href, options);
       }) as typeof router.push,
       replace: ((href, options) => {
-        startNavigationProgress();
+        if (!leadsNowhere(href as PathnameArgs['href'], options?.locale ?? activeLocale)) {
+          startNavigationProgress();
+        }
         router.replace(href, options);
       }) as typeof router.replace,
     }),
-    [router],
+    [router, activeLocale],
   );
 }

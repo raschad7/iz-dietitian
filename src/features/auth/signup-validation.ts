@@ -42,9 +42,12 @@ export type SignUpMessageKey =
   | 'nameTooLong'
   | 'emailRequired'
   | 'passwordRequired'
+  | 'confirmPasswordRequired'
   | 'invalidEmail'
   | 'passwordTooShort'
-  | 'passwordTooWeak'
+  /** A letter or a digit missing — the client rule staff now share. */
+  | 'clientPasswordTooWeak'
+  | 'passwordTooCommon'
   | 'passwordMismatch';
 
 export type SignUpFieldErrors = Partial<Record<SignUpField, SignUpMessageKey>>;
@@ -92,6 +95,22 @@ const REQUIRED_MESSAGE = {
   password: 'passwordRequired',
 } as const satisfies Partial<Record<SignUpField, SignUpMessageKey>>;
 
+/**
+ * The keys `staffPasswordSchema` puts on its own issues, which are already
+ * message keys. Anything else it might raise falls back to the length message.
+ *
+ * The same set `set-password-validation.ts` keeps, because since the staff rule
+ * became the client rule the two screens parse the identical password schema —
+ * see the note on `staffPasswordSchema`. `passwordTooWeak`, the old staff
+ * sentence about symbols, is deliberately absent: nothing raises it any more,
+ * and it describes a rule that is no longer enforced.
+ */
+const PASSWORD_ISSUE_KEYS = new Set<string>([
+  'passwordTooShort',
+  'clientPasswordTooWeak',
+  'passwordTooCommon',
+]);
+
 export function readSignUpForm(formData: FormData) {
   return {
     firstName: formData.get('firstName'),
@@ -108,8 +127,10 @@ export function readSignUpForm(formData: FormData) {
  *
  * Two fields do not simply map to one sentence. An empty box gets the
  * "required" wording rather than advice about its contents, and the password
- * has two ways to be wrong — too short and too weak — which call for different
- * advice, so its message is read off the issue `staffPasswordSchema` raised.
+ * has three ways to be wrong — too short, missing a letter or a digit, or one
+ * of the handful of values everybody picks — which call for three different
+ * sentences, so its message is read straight off the issue
+ * `staffPasswordSchema` raised rather than guessed at here.
  */
 function messageFor(
   field: SignUpField,
@@ -119,7 +140,10 @@ function messageFor(
   const required = field in REQUIRED_MESSAGE ? REQUIRED_MESSAGE[field as keyof typeof REQUIRED_MESSAGE] : undefined;
   if (required && isBlank(input, field)) return required;
 
-  if (field === 'password' && issues?.[0] === 'passwordTooWeak') return 'passwordTooWeak';
+  if (field === 'password') {
+    const issue = issues?.[0];
+    if (issue && PASSWORD_ISSUE_KEYS.has(issue)) return issue as SignUpMessageKey;
+  }
 
   if ((field === 'firstName' || field === 'lastName') && !isBlank(input, field)) {
     return 'nameTooLong';
@@ -145,6 +169,20 @@ export function signUpFieldErrors(input: unknown): SignUpFieldErrors {
     if (!flattened[field]?.length) continue;
 
     errors[field] = messageFor(field, input, flattened[field]);
+  }
+
+  /*
+    An empty confirm box that Zod never complained about — the same gap
+    `setPasswordFieldErrors` closes, and for the same reason.
+
+    `signUpSchema` compares the two values and puts its issue on
+    `confirmPassword`, so "" against a password of "" is not a mismatch and
+    raises nothing at all: the form would report only that the password is too
+    short and leave the second box unmarked. The comparison cannot say "you have
+    not filled this in"; only this can.
+  */
+  if (!errors.confirmPassword && isBlank(input, 'confirmPassword')) {
+    errors.confirmPassword = 'confirmPasswordRequired';
   }
 
   return errors;

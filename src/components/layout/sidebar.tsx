@@ -256,6 +256,19 @@ function AppSidebar({
     return pathname === section || pathname.startsWith(`${section}/`);
   }
 
+  /*
+   * Where the logo at the head of the rail goes: the section's own index — the
+   * dashboard for staff, the portal home for a client. Derived from the items
+   * rather than written as `/app`, because this shell is the portal's too and a
+   * hard-coded staff route in shared chrome is a bug waiting for the day the
+   * portal grows a mark of its own.
+   *
+   * The same two index routes `isActive` singles out above, and for the same
+   * reason they are special: they are the only hrefs that are a whole section
+   * rather than a page inside one.
+   */
+  const homeHref = items.find((item) => item.href === '/app' || item.href === '/portal')?.href;
+
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="gap-0 pb-1">
@@ -282,7 +295,45 @@ function AppSidebar({
               screen that captures it still works, it simply has nowhere here to
               appear.
             */}
-            {brand ? <BrandLogo className="h-9 shrink-0" /> : null}
+            {brand ? (
+              homeHref ? (
+                /*
+                  The mark is the way back to the dashboard — the one thing a
+                  logo in the corner of an app is universally expected to do,
+                  and the rail's own dashboard row is the only thing that did it
+                  before.
+
+                  `aria-label` rather than the name beside it: `BrandLogo` is
+                  `aria-hidden` and the `sr-only` span stays *outside* the link,
+                  because that span is the rail's accessible name and must not
+                  become a link's label. Left unnamed, this would announce as a
+                  bare link.
+
+                  **No hover state.** The logo is the one mark on screen that
+                  has to look the same wherever it appears, and dimming it under
+                  the pointer made the brand flicker on the way past the head of
+                  the rail. It would not be much of an affordance either: a
+                  touch screen has no hover to give, so a fill only a mouse can
+                  see teaches nothing to half the people using this.
+
+                  `focus-visible` stays, and is a different thing — keyboard
+                  reachability, not decoration. Without the ring the mark is a
+                  tab stop that never says it has focus.
+
+                  `-m-1`/`p-1` widen the target past the mark's own bounds
+                  without growing the row.
+                */
+                <Link
+                  href={homeHref}
+                  aria-label={t('dashboard')}
+                  className="-m-1 rounded-md p-1 ring-sidebar-ring outline-hidden focus-visible:ring-2"
+                >
+                  <BrandLogo className="h-9 shrink-0" />
+                </Link>
+              ) : (
+                <BrandLogo className="h-9 shrink-0" />
+              )
+            ) : null}
             {/*
               `sr-only` rather than absent when hidden: the string is the rail's
               accessible name, and the mobile drawer needs one whether or not
@@ -301,7 +352,17 @@ function AppSidebar({
               {brand?.name ?? title}
             </span>
           </div>
-          <SidebarTrigger className="shrink-0" />
+          {/*
+            The two labels the trigger names itself with, one per state. They
+            travel from here for the same reason the destination rows' tooltips
+            do: `ui/sidebar.tsx` is registry code with no locale of its own, and
+            this component already holds the `nav` namespace.
+          */}
+          <SidebarTrigger
+            className="shrink-0"
+            expandLabel={t('expandSidebar')}
+            collapseLabel={t('collapseSidebar')}
+          />
         </div>
       </SidebarHeader>
 
