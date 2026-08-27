@@ -1,6 +1,8 @@
 import { notFound } from 'next/navigation';
 
 import { AppShell } from '@/components/layout/sidebar';
+import { STAFF_NAV, STAFF_NAV_ICONS } from '@/components/layout/staff-nav';
+import { NewClientRailButton } from '@/features/clients/components/new-client-rail-button';
 import { GuideLauncher } from '@/features/user-guide/guide-launcher';
 import { GuideProvider } from '@/features/user-guide/guide-provider';
 import { resolveLocale } from '@/i18n/params';
@@ -48,30 +50,19 @@ export default async function DevShellPage({ params }: DevShellPageProps) {
     */
     <GuideProvider routed={false}>
       <AppShell
-        /* The staff rail's own list, flat — the harness is only worth looking at
-           if it is showing the real thing. */
-        items={[
-          { href: '/app', labelKey: 'dashboard' },
-          { href: '/app/clients', labelKey: 'subscriber' },
-          { href: '/app/clients/bills', labelKey: 'bills' },
-          { href: '/app/calendar', labelKey: 'calendar' },
-          { href: '/app/weekly-plans', labelKey: 'weeklyPlans' },
-          { href: '/app/dishes', labelKey: 'dishes' },
-        ]}
+        /* The real navigation, not a copy of it. Both sides of the merge were
+           reaching for this: `dev` kept a hand-written list here and called it
+           "the staff rail's own list", which is a second list to keep in step
+           with the first — exactly the drift a harness exists to catch. */
+        items={STAFF_NAV}
         title="Enzyme"
         /* The staff configuration, which is the one that has a brand — without it
            the head falls back to the plain title and the product logo never
            renders, so the harness could not show the thing it exists to show. */
         brand={{ logoUrl: null, name: 'عيادة مهيب' }}
         user={{ name: 'Rani Shweiki', email: 'rani@example.com', locale }}
-        icons={{
-          dashboard: 'dashboard',
-          subscriber: 'clients',
-          bills: 'bills',
-          calendar: 'calendar',
-          weeklyPlans: 'weeklyPlans',
-          dishes: 'dishes',
-        }}
+        icons={STAFF_NAV_ICONS}
+        primary={<NewClientRailButton locale={locale} />}
         secondary={<GuideLauncher />}
       >
         {/* `shell-scroll` for the same reason the staff layout carries it: the
@@ -81,7 +72,9 @@ export default async function DevShellPage({ params }: DevShellPageProps) {
           <h1 className="text-heading-lg font-semibold">Shell</h1>
           <p className="mt-2 text-body-sm text-muted-foreground">
             Collapse the sidebar with the trigger in its header, or the rail on its edge. Collapsed,
-            each row shows its label as a tooltip. Check both against <code>/ar/dev/shell</code>.
+            the tree flattens to one row per destination and each shows its label as a tooltip.
+            Expanded, open إدارة, المواعيد and التقويم inside it — the nested disclosure animates
+            independently of its parent. Check all of it against <code>/ar/dev/shell</code>.
           </p>
         </main>
       </AppShell>

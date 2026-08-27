@@ -4,13 +4,13 @@ import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 import { DesktopScrollbars } from '@/components/layout/desktop-scrollbars';
-import { AppShell, type NavItem } from '@/components/layout/sidebar';
 import { AppShell } from '@/components/layout/sidebar';
+import { STAFF_NAV, STAFF_NAV_ICONS } from '@/components/layout/staff-nav';
 import { ZoomLock } from '@/components/layout/zoom-lock';
-import { type IconName } from '@/components/ui/icon';
 import { APP_THEME_COLOR_DARK, APP_THEME_COLOR_LIGHT } from '@/features/app-pwa/brand';
 import { ServiceWorkerRegister } from '@/features/app-pwa/service-worker-register';
 import { getClinicBrand, isClinicOnboardingComplete } from '@/features/clinic-profile/queries';
+import { NewClientRailButton } from '@/features/clients/components/new-client-rail-button';
 import { GuideLauncher } from '@/features/user-guide/guide-launcher';
 import { GuideProvider } from '@/features/user-guide/guide-provider';
 import { resolveLocale } from '@/i18n/params';
@@ -21,61 +21,17 @@ type AppLayoutProps = {
   params: Promise<{ locale: string }>;
 };
 
-/**
- * The six places a dietitian works.
+/*
+ * The rail's destinations and their glyphs live in
+ * `components/layout/staff-nav.ts` — they are a tree now rather than a flat
+ * list, and `/dev/shell` renders the same two constants so the harness cannot
+ * drift from the real thing.
  *
- * Profile, WhatsApp and security used to sit here too, which made a third of
- * the rail settings. They are behind the profile menu at its foot now — see
- * `SidebarProfile` — so this list is only the screens a working day is spent
- * on, and none of them are duplicated there.
- *
- * **Requests is deliberately not a destination.** The inbox is reached from the
- * dashboard's requests card and from the notifications feed, both of which
- * appear only when something is actually pending. A permanent rail row for it
- * was a row that said "nothing" on most days, in the one list where every item
- * is somewhere a working day is spent; the card that does have something to
- * say is the way in. See `PendingRequestsCard`.
+ * Everything the flat list here used to say is said there, billing included:
+ * الفواتير is a child of إدارة beside the register, and the note on `STAFF_NAV`
+ * covers why that does not cost a phone the extra tap the flat list was
+ * protecting.
  */
-const NAV_ITEMS = [
-  { href: '/app', labelKey: 'dashboard' },
-  /**
-   * The register (`/app/clients`) under the name the clinic uses for the people
-   * in it.
-   *
-   * It was briefly a "Subscriber" group holding Details and Bills. The group
-   * bought one word of grouping and charged a click for it: every trip to the
-   * register — the screen most of a day is spent on — went through a disclosure
-   * first, and on a phone, where the rail is locked to its icon column, through
-   * a dropdown. The two screens are flat rows now, siblings in one list, each
-   * one click from anywhere.
-   *
-   * The route did not move. Every link, bookmark and redirect still works; only
-   * the word in the rail is different.
-   */
-  { href: '/app/clients', labelKey: 'subscriber' },
-  /* The money half of the same people. A sibling rather than a child, so it is
-     reached in one click and reads as its own screen, which it is. */
-  { href: '/app/clients/bills', labelKey: 'bills' },
-  { href: '/app/calendar?view=week', labelKey: 'calendar' },
-  { href: '/app/weekly-plans', labelKey: 'weeklyPlans' },
-  { href: '/app/dishes', labelKey: 'dishes' },
-] as const satisfies readonly NavItem[];
-
-/**
- * One glyph per destination. Text-only rows are hard to scan at a glance; the
- * icon is what lets someone find "Dishes" without reading the whole rail.
- *
- * `satisfies` ties this to the nav list, so adding a destination without an
- * icon is a compile error rather than a row that quietly sits misaligned.
- */
-const NAV_ICONS = {
-  dashboard: 'dashboard',
-  subscriber: 'clients',
-  bills: 'bills',
-  calendar: 'calendar',
-  weeklyPlans: 'weeklyPlans',
-  dishes: 'dishes',
-} as const satisfies Record<(typeof NAV_ITEMS)[number]['labelKey'], IconName>;
 
 /**
  * PWA metadata for the staff app only — never the client portal, which has its
@@ -257,11 +213,19 @@ export default async function AppLayout({ children, params }: AppLayoutProps) {
       <ZoomLock />
 
       <AppShell
-        items={NAV_ITEMS}
+        items={STAFF_NAV}
         title={t('shortName')}
         brand={brand ?? undefined}
         user={{ name: session.user.name, email: session.user.email, locale }}
-        icons={NAV_ICONS}
+        icons={STAFF_NAV_ICONS}
+        /*
+          The rail's one action, under the logo. It is the register's own "New
+          client" trigger — the same component, the same card — so a dietitian
+          can start a record from any screen in the app instead of navigating to
+          the register first. See `NewClientRailButton` for what changes about
+          it and what does not.
+        */
+        primary={<NewClientRailButton locale={locale} />}
         secondary={<GuideLauncher key="guide-launcher" />}
       >
       {/*

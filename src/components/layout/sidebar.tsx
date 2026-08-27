@@ -1,6 +1,8 @@
 'use client';
 
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { Suspense, useCallback, useId, useMemo, useState } from 'react';
 
 import { cn } from '@/lib/utils';
 import { Icon, type IconName } from '@/components/ui/icon';
@@ -15,24 +17,39 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarProvider,
   SidebarTrigger,
 } from '@/components/ui/sidebar';
-import { useSearchParams } from 'next/navigation';
-
 import { Link, usePathname } from '@/i18n/navigation';
 import type { Locale } from '@/i18n/routing';
 
 import { BrandLogo } from './brand-logo';
 import { SidebarProfile } from './sidebar-profile';
 
-/** Every address the rail is allowed to point at, in either area. */
+/**
+ * Every address the rail is allowed to point at.
+ *
+ * A hand-written union rather than a route type, so a destination that does not
+ * exist is a compile error at the list that names it. The three `?view=` entries
+ * are the calendar's day, week and month: those were three path segments once
+ * and are one route with a query now (see `app/calendar/page.tsx`), so the rail
+ * has to be able to spell the query.
+ *
+ * `/app/clients/bills` is a *sibling* screen that happens to live under the
+ * register's path. Nothing in the tree may assume the URL shape matches the
+ * nesting — see the exclusion in `isItemActive`.
+ */
 export type NavHref =
   | '/app'
   | '/app/clients'
   | '/app/clients/bills'
   | '/app/calendar'
+  | '/app/calendar?view=day'
   | '/app/calendar?view=week'
+  | '/app/calendar?view=month'
   | '/app/weekly-plans'
   | '/app/dishes'
   | '/portal'
@@ -41,13 +58,19 @@ export type NavHref =
   | '/portal/profile'
   | '/portal/progress';
 
-/** Keys into the `nav` message namespace. */
+/** A key in the `nav` message namespace. Rows and categories both take one. */
 export type NavLabelKey =
   | 'dashboard'
+  | 'management'
   | 'clients'
   | 'subscriber'
   | 'bills'
+  | 'appointments'
   | 'calendar'
+  | 'day'
+  | 'week'
+  | 'month'
+  | 'plans'
   | 'weeklyPlans'
   | 'dishes'
   | 'portalHome'
@@ -57,23 +80,249 @@ export type NavLabelKey =
   | 'progress';
 
 /**
- * One destination in the rail.
+ * A destination: one row, one address.
  *
- * Flat, one level, no children. Subscribers and Bills were briefly a
- * "Subscriber" group that opened onto the two of them — a disclosure when the
- * rail was expanded and, because there is no room to indent under a 40px
- * button, a dropdown when it was collapsed. It put a click in front of the
- * register, which is the screen most of a day is spent on, and on a phone —
- * where the staff rail is locked to its icon column, see `railOnly` — that
- * click was the only way to reach either screen. They are siblings now.
+ * ⚠ **A destination's place in the tree says nothing about its URL, and the
+ * reverse.** Bills sits beside the register under إدارة and its address is
+ * `/app/clients/bills`, *inside* the register's path; the calendar's three
+ * views are one route with a query. Every test in this file works off the list,
+ * never off the shape of the path.
  */
 export type NavItem = {
   href: NavHref;
   labelKey: NavLabelKey;
 };
 
+/**
+ * A category: a row that opens a list rather than going anywhere.
+ *
+ * Categories nest — `المواعيد` holds `التقويم`, which holds day, week and month
+ * — so `children` takes `NavNode` and not just `NavItem`. There is no depth
+ * limit in the type because there is none in the rendering either; the
+ * indentation is one compounding step (see `SidebarMenuSub`).
+ */
+export type NavGroup = {
+  /** Stable across renders — it keys the open/closed state and the panel's id. */
+  id: string;
+  labelKey: NavLabelKey;
+  /**
+   * The single destination this whole category stands for on the **icon rail**.
+   *
+   * Folded to 56px there is no room to indent anything, so the rail draws a flat
+   * list of destinations instead of the tree (see `flatten` below). A category
+   * with this set contributes one row — this address, under this category's own
+   * label and glyph — and its children are not walked. A category without it is
+   * transparent: its children are flattened in its place.
+   *
+   * `التقويم` is the one that needs it. Day, week and month are three views of
+   * one screen, and three calendar glyphs stacked in a 56px strip would be
+   * three marks nobody can tell apart; folded, the section is one row pointing
+   * at the week.
+   */
+  collapsedHref?: NavHref;
+  children: readonly NavNode[];
+};
+
+export type NavNode = NavItem | NavGroup;
+
+function isGroup(node: NavNode): node is NavGroup {
+  return 'children' in node;
+}
+
+/* ────────────────────────────────────────────────────────────────────────── */
+
+const CALENDAR_PATH = '/app/calendar';
+
+/**
+ * What `/app/calendar` opens on when the query says nothing. It has to agree
+ * with `resolveView` in the calendar's own page — the rail lighting "week" up
+ * on a URL that carries no view at all is only correct because that is the view
+ * the page actually renders.
+ */
+const DEFAULT_CALENDAR_VIEW = 'week';
+
+const CLIENTS_PATH = '/app/clients';
+const BILLS_PATH = '/app/clients/bills';
+
+/**
+ * Where the reader is.
+ *
+ * **Two paths, deliberately.** `address` is what the rail is *read* against and
+ * `pathname` is what is actually in the URL, and they differ on exactly one
+ * screen — see `resolveAddress`. Lighting a row up and swallowing a click on
+ * the row you are standing on are different questions, and they need different
+ * answers there: the rail says "you came from Bills", the link still has to be
+ * able to take you to the Bills list.
+ */
+type Location = {
+  /** The address the rail is read against. Never build an href from this. */
+  address: string;
+  /** The real path in the URL. */
+  pathname: string;
+  /** The calendar's view, from `?view=`. */
+  view: string | null;
+};
+
+/**
+ * A client's record belongs to whichever list it was opened from.
+ *
+ * The record lives at `/app/clients/{id}` whether it was reached from the
+ * register or from Bills, so the address alone marks المشتركون current — and a
+ * dietitian who walked in from Bills is then told by the rail that they are
+ * somewhere they did not go. The rail is the answer to "where am I", and on the
+ * one screen with two ways in it was answering from the URL's shape rather than
+ * from the reader's route through the app.
+ *
+ * `?from=bills` is the same parameter the record's own breadcrumb reads to
+ * decide where "back" goes (see `RecordBackLink`), so the rail and the way out
+ * cannot disagree about which list this record belongs to. It arrives with the
+ * link and survives a reload, which is what makes it something to render from
+ * rather than a guess.
+ */
+function resolveAddress(pathname: string, from: string | null): string {
+  return from === 'bills' && pathname.startsWith(`${CLIENTS_PATH}/`) ? BILLS_PATH : pathname;
+}
+
+/**
+ * Whether a row points at the screen currently on display.
+ *
+ * Four cases, and each of them is a case because of a real route:
+ *
+ * 1. **The two index routes match exactly.** `/app` is a prefix of every other
+ *    staff route, so a `startsWith` test would light the dashboard up on every
+ *    page in the app. Same for `/portal`.
+ * 2. **A calendar row with a `?view=`** is the day, week or month row, and it is
+ *    active only while the calendar is showing that view. A missing `view` in
+ *    the URL counts as the default, because that is what the page renders.
+ * 3. **A calendar row without one** is the whole section — the icon rail's
+ *    single folded row — and any of the three views lights it.
+ * 4. **المشتركون gives up the addresses الفواتير owns.** Bills lives *inside*
+ *    the register's path, so the subtree rule below would light both rows at
+ *    once while standing on Bills — and a rail with two current rows is a rail
+ *    telling the reader nothing. The two are siblings in the tree; only the URL
+ *    nests, and it does not get a say.
+ *
+ * Everything else owns its subtree: `/app/clients` stays lit on a client's own
+ * record at `/app/clients/<id>`.
+ */
+function isItemActive(href: NavHref, { address, view }: Location): boolean {
+  if (href === '/app' || href === '/portal') return address === href;
+
+  const [path, query] = href.split('?');
+
+  if (path === CALENDAR_PATH) {
+    const inSection = address === CALENDAR_PATH || address.startsWith(`${CALENDAR_PATH}/`);
+    if (!inSection) return false;
+    const wanted = query ? new URLSearchParams(query).get('view') : null;
+    return wanted === null || wanted === (view ?? DEFAULT_CALENDAR_VIEW);
+  }
+
+  if (path === CLIENTS_PATH && address.startsWith(BILLS_PATH)) return false;
+
+  return address === path || address.startsWith(`${path}/`);
+}
+
+/**
+ * Whether a row points at *precisely* the screen on display — the test for
+ * whether pressing it would do anything at all.
+ *
+ * Not the same question as `isItemActive`, and the difference is not academic:
+ * المشتركون is active on a client's record, and a press there has to take the
+ * reader back to the register rather than being swallowed. So this one is an
+ * exact match, and it reads the real `pathname` rather than the address —
+ * pressing الفواتير while standing on a record opened *from* Bills is a real
+ * navigation to the Bills list, however the rail is drawing it.
+ *
+ * The query counts. The calendar's rows carry one, so a pathname-only test
+ * never matched them and every press of a view *while on that view* re-ran the
+ * route — the one navigation that can change nothing at all. A URL with no
+ * `view` at all counts as the default, because that is the view being rendered.
+ */
+function isItemExact(href: NavHref, { pathname, view }: Location): boolean {
+  const [path, query] = href.split('?');
+  if (path !== pathname) return false;
+  if (!query) return true;
+  return new URLSearchParams(query).get('view') === (view ?? DEFAULT_CALENDAR_VIEW);
+}
+
+/**
+ * The ids of the categories the active row sits inside, outermost first — or
+ * `null` when nothing in the tree is active.
+ *
+ * This is what decides which categories are open when a screen loads: you
+ * should never arrive somewhere and have to find your own position in a
+ * collapsed rail.
+ */
+function activeTrail(nodes: readonly NavNode[], at: Location, above: string[] = []): string[] | null {
+  for (const node of nodes) {
+    if (isGroup(node)) {
+      const found = activeTrail(node.children, at, [...above, node.id]);
+      if (found) return found;
+    } else if (isItemActive(node.href, at)) {
+      return above;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * The key for the top of the rail in the accordion's state.
+ *
+ * Every other level is keyed by the id of the category that holds it. The root
+ * has no such category, and the empty string is the one key no `NavGroup.id`
+ * can collide with.
+ */
+const ROOT_LEVEL = '';
+
+/**
+ * The levels a trail passes through, as accordion keys — outermost first.
+ *
+ * A trail of `['appointments', 'calendar']` runs through two levels: the root,
+ * where `appointments` is the open category, and `appointments`, where
+ * `calendar` is. So the keys are the root plus every id but the last: the last
+ * id names a category that is *open*, not a level that has anything open
+ * inside it.
+ *
+ * An empty trail yields no levels at all, which is what keeps navigating to a
+ * top-level destination — the dashboard — from slamming every category shut.
+ */
+function levelsAlong(trailKey: string): string[] {
+  if (!trailKey) return [];
+  const ids = trailKey.split('/');
+  return [ROOT_LEVEL, ...ids.slice(0, -1)];
+}
+
+/** A row of the folded icon rail. See `NavGroup.collapsedHref`. */
+type FlatItem = NavItem & { id: string };
+
+/**
+ * The tree, flattened to the destinations the 56px rail draws.
+ *
+ * The staff rail folds to exactly the five glyphs it had before this file grew
+ * a hierarchy — dashboard, clients, calendar, weekly plans, dishes — because a
+ * category is a thing you *open*, and at 56px there is nothing to open into.
+ * The portal passes a flat list already and comes through here unchanged.
+ *
+ * ⚠ This is not a nicety. On a phone the staff rail is **locked** to its icon
+ * column: no drawer, no way to expand it (see `railOnly` on `AppShell`). If the
+ * folded rail drew categories, every screen but the dashboard would be
+ * unreachable on a phone.
+ */
+function flatten(nodes: readonly NavNode[]): FlatItem[] {
+  return nodes.flatMap((node) => {
+    if (!isGroup(node)) return [{ ...node, id: node.href }];
+    if (node.collapsedHref) {
+      return [{ id: node.id, href: node.collapsedHref, labelKey: node.labelKey }];
+    }
+    return flatten(node.children);
+  });
+}
+
+/* ────────────────────────────────────────────────────────────────────────── */
+
 type ShellProps = {
-  items: readonly NavItem[];
+  items: readonly NavNode[];
   title: string;
   /**
    * Whether the title is *drawn*. It stays the rail's accessible name either
@@ -104,7 +353,21 @@ type ShellProps = {
    */
   brand?: { logoUrl: string | null; name: string };
   user?: { name: string; email?: string | null; locale: Locale };
-  icons?: Partial<Record<NavItem['labelKey'], IconName>>;
+  icons?: Partial<Record<NavLabelKey, IconName>>;
+  /**
+   * The one action the rail carries, drawn directly under the logo and above
+   * the destinations.
+   *
+   * A slot rather than a component, for the same reason `secondary` is one: the
+   * staff shell puts "New client" there — the clients feature's own trigger,
+   * wearing rail dimensions — and this component has no business knowing what a
+   * client is. The portal passes nothing.
+   *
+   * Whatever is passed has to survive the rail folding to 56px. The wrapper
+   * below gives it an 8px gutter and nothing else; hiding its own label at that
+   * width is the slotted control's job.
+   */
+  primary?: React.ReactNode;
   /**
    * Classes for the shell's outer box — in practice, whether it is a fixed
    * frame or a growing page.
@@ -171,6 +434,7 @@ export function AppShell({
   brand,
   user,
   icons,
+  primary,
   className,
   secondary,
   children,
@@ -215,6 +479,7 @@ export function AppShell({
         brand={brand}
         user={user}
         icons={icons}
+        primary={primary}
         secondary={secondary}
       />
       <SidebarInset>
@@ -256,65 +521,11 @@ function AppSidebar({
   brand,
   user,
   icons,
+  primary,
   secondary,
 }: Omit<ShellProps, 'children'>) {
   const t = useTranslations('nav');
-  const pathname = usePathname();
 
-  /*
-    A client's record belongs to whichever list it was opened from.
-
-    The record lives at `/app/clients/{id}` whether it was reached from the
-    register or from Bills, so the address alone marks Subscribers current —
-    and a dietitian who walked in from Bills is then told by the rail that they
-    are somewhere they did not go. The rail is the answer to "where am I", and
-    on the one screen with two ways in it was answering from the URL's shape
-    rather than from the reader's route through the app.
-
-    `?from=bills` is the same parameter the record's own breadcrumb reads to
-    decide where "back" goes (see `RecordBackLink`), so the rail and the way
-    out cannot disagree about which list this record belongs to. It arrives with
-    the link and survives a reload, which is what makes it something to render
-    from rather than a guess.
-  */
-  const fromBills = useSearchParams().get('from') === 'bills';
-
-  /*
-    The address the rail is read against, which is the record's own except when
-    it was opened from Bills — then it is Bills, and every test below follows
-    without a second branch: the Bills row matches its section exactly, and the
-    Subscribers row is excluded by the rule it already has for standing on
-    Bills.
-  */
-  const current =
-    fromBills && pathname.startsWith('/app/clients/') ? '/app/clients/bills' : pathname;
-
-  /*
-   * The two index routes have to match exactly. `/app` is a prefix of every
-   * other staff route, so a `startsWith` test would light the dashboard up on
-   * every page in the app.
-   */
-  function isActive(href: NavHref): boolean {
-    if (href === '/app' || href === '/portal') return current === href;
-    /*
-     * The calendar row points straight at a view (`/app/calendar/week`) rather
-     * than at the redirect stub, so a click is one client navigation instead of
-     * a request that bounces. Its section is still the whole of `/app/calendar`
-     * though — day and month have to light the row up too.
-     */
-    const section = href.startsWith('/app/calendar') ? '/app/calendar' : href;
-
-    /*
-     * Bills lives *inside* the register (`/app/clients/bills`), so the prefix
-     * test below would light Subscriber up while standing on Bills — two rows
-     * of the rail marked current, which is the rail telling the reader
-     * nothing. Subscriber claims its section minus the addresses its sibling
-     * owns.
-     */
-    if (section === '/app/clients' && current.startsWith('/app/clients/bills')) return false;
-
-    return current === section || current.startsWith(`${section}/`);
-  }
 
   /*
    * Where the logo at the head of the rail goes: the section's own index — the
@@ -323,11 +534,11 @@ function AppSidebar({
    * hard-coded staff route in shared chrome is a bug waiting for the day the
    * portal grows a mark of its own.
    *
-   * The same two index routes `isActive` singles out above, and for the same
-   * reason they are special: they are the only hrefs that are a whole section
-   * rather than a page inside one.
+   * Read off the *flattened* tree so it still finds `/app` now that the staff
+   * list is a hierarchy — the dashboard happens to be a top-level row, but
+   * nothing about this should depend on that staying true.
    */
-  const homeHref = items.find((item) => item.href === '/app' || item.href === '/portal')?.href;
+  const homeHref = flatten(items).find((item) => item.href === '/app' || item.href === '/portal')?.href;
 
   return (
     <Sidebar collapsible="icon">
@@ -424,100 +635,61 @@ function AppSidebar({
             collapseLabel={t('collapseSidebar')}
           />
         </div>
+
+        {/*
+          The rail's one action, between the logo and the destinations — see
+          `primary` on `ShellProps`.
+
+          It sits in the header rather than at the top of the menu on purpose.
+          Everything below is somewhere you *go*; this is something you *do*, and
+          putting it in the same column as the destinations made it read as a
+          sixth place to visit.
+
+          No horizontal padding of its own. `SidebarHeader` is `p-2` and
+          `SidebarGroup` — which holds the destinations — is `p-2` as well, so
+          the button already stands in the same 8px gutter as every row below
+          it, and its own `px-3` puts its glyph in the same column as theirs.
+          Adding `px-2` here indented it by 8px against the whole rail.
+        */}
+        {primary ? <div className="pt-1">{primary}</div> : null}
       </SidebarHeader>
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupContent>
-            {/* The guided tour's first anchor: the whole list, not a row of it.
-                Its opening step is about the rail as a thing — see
-                `features/user-guide/steps.ts`. */}
-            <SidebarMenu data-guide="nav">
-              {items.map((item) => {
-                const icon = icons?.[item.labelKey];
-                const label = t(item.labelKey);
+          {/*
+            The guided tour's first anchor: the navigation as a whole, not a row
+            of it — its opening step is about the rail as a thing, see
+            `features/user-guide/steps.ts`.
 
-                return (
-                  <SidebarMenuItem key={item.href}>
-                    {/*
-                      `tooltip` only shows while the sidebar is collapsed — the
-                      registry hides it otherwise — so the label is never
-                      announced twice to a pointer that can already read it.
-                    */}
-                    <SidebarMenuButton
-                      tooltip={label}
-                      isActive={isActive(item.href)}
-                      render={
-                        <Link
-                          href={item.href}
-                          /*
-                            Prefetch the shell on sight, the whole page on hover.
+            It has to be this wrapper rather than the menu inside, because
+            `NavTree` renders *two* menus and hides one of them: on a phone,
+            where the rail is locked to icons, the expanded tree is
+            `display: none` and an anchor on it would measure to nothing. This
+            div is the one box that is on screen in both shapes.
+          */}
+          <SidebarGroupContent data-guide="nav">
+            {/*
+              `useSearchParams` — which `NavTree` needs to tell day from week
+              from month — suspends during a static prerender, so it gets a
+              boundary of its own rather than making the whole document wait on
+              it. The fallback is the same tree with no view resolved: every row
+              in place, nothing under التقويم marked current.
 
-                            Every screen behind this rail is dynamic — they all
-                            read the session — and Next will only fetch a
-                            dynamic route ahead as far as its `loading.tsx`. So
-                            the default gets the skeleton ready and leaves the
-                            data to the click, which is most of what is left of
-                            the wait now that the navigation itself is instant.
-                            This asks for the rest the moment the pointer lands
-                            on the row, which on a desktop is a beat or two
-                            before the click: the page is usually already in the
-                            router cache by the time it happens, and the
-                            skeleton never appears at all.
+              In practice the fallback is never seen. Every screen behind this
+              rail reads the session, so it renders dynamically and the search
+              params are known at render time; this is the build-time valve, not
+              a loading state.
 
-                            **Scoped to this list on purpose.** Hovering renders
-                            a whole route on the server, so this belongs on a
-                            fixed set of five deliberate destinations and
-                            nowhere near a table of a hundred client rows. It
-                            costs nothing on a phone, where there is no hover.
-                          */
-                          unstable_dynamicOnHover
-                          /*
-                            Clicking the row you are already standing on used to
-                            push the same URL again, which re-runs the page for
-                            no change on screen. The click is swallowed instead.
-
-                            The query string counts. The calendar's row carries
-                            one (`?view=week`), so a pathname-only test never
-                            matched it and every press of Calendar *while on the
-                            calendar* re-ran the route — the one navigation that
-                            can change nothing at all. Compared against
-                            `location.search` rather than `useSearchParams`
-                            because this runs on a click, in the browser, where
-                            the URL is simply there to be read: the hook would
-                            put a `Suspense` requirement on the shell that
-                            renders this rail for every screen in both apps.
-                          */
-                          onClick={(event) => {
-                            if (item.href === `${pathname}${window.location.search}`) {
-                              event.preventDefault();
-                            }
-                          }}
-                        />
-                      }
-                    >
-                      {/*
-                        20px, explicitly. `Icon` ships `size-4` in its own class
-                        list, so the button's `[&_svg:not([class*='size-'])]`
-                        default never reaches it — the glyph has to ask. This is
-                        the rail's one job at 56px wide, and 16px of it was too
-                        little to aim at or to tell apart at a glance.
-
-                        The glyph does not change while the row is loading. It
-                        was swapped for a spinner via `useLinkStatus` for one
-                        release: the rail is a set of fixed marks a reader navigates
-                        by shape, and replacing one of them mid-navigation took
-                        away the landmark at the moment it was being used. The
-                        progress bar reports the wait instead — see
-                        `navigation-progress.tsx`.
-                      */}
-                      {icon ? <Icon name={icon} className="size-5" /> : null}
-                      <span>{label}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
+              It is also what makes `useSearchParams` usable here at all. This
+              shell renders for every screen in both apps, so reading the query
+              *unboundaried* would put a `Suspense` requirement on all of them;
+              the boundary is local, and the two things the rail reads from the
+              query — the calendar's view and a record's `?from` — cost nothing
+              outside it.
+            */}
+            <Suspense fallback={<NavTree items={items} icons={icons} view={null} from={null} />}>
+              <RoutedNavTree items={items} icons={icons} />
+            </Suspense>
           </SidebarGroupContent>
         </SidebarGroup>
 
@@ -548,5 +720,430 @@ function AppSidebar({
         </SidebarFooter>
       ) : null}
     </Sidebar>
+  );
+}
+
+/* ────────────────────────────────────────────────────────────────────────── */
+
+type TreeProps = {
+  items: readonly NavNode[];
+  icons: Partial<Record<NavLabelKey, IconName>> | undefined;
+};
+
+/**
+ * `NavTree` with the two things it needs from the query string.
+ *
+ * `view` tells day from week from month; `from` is how a client's record says
+ * which list it was opened from (see `resolveAddress`). Both are read in one
+ * place, inside the `Suspense` above, so the rest of the tree stays a function
+ * of its props.
+ */
+function RoutedNavTree(props: TreeProps) {
+  const search = useSearchParams();
+  return <NavTree {...props} view={search.get('view')} from={search.get('from')} />;
+}
+
+/**
+ * The rail's navigation, in both of its shapes.
+ *
+ * **Two lists are rendered, and CSS picks between them.** The tree is what the
+ * 16rem column shows; the flat list is what the 56px strip shows (and why it
+ * has to exist at all is on `flatten`). Swapping them in JavaScript on
+ * `useSidebar().state` would remount one list into the other in the middle of
+ * the rail's own 200ms width transition, which reads as a flicker at exactly
+ * the moment the eye is following the movement. Two lists and a
+ * `group-data-[collapsible=icon]` toggle cost a few dozen hidden nodes and
+ * nothing else.
+ *
+ * The mobile *drawer* — which the portal keeps and the staff app does not —
+ * renders inside a `Sheet` that has no `group` ancestor, so neither variant
+ * matches there and the tree is what shows. That is right: the drawer is
+ * 18rem wide with labels.
+ */
+function NavTree({
+  items,
+  icons,
+  view,
+  from,
+}: TreeProps & { view: string | null; from: string | null }) {
+  const pathname = usePathname();
+  const at = useMemo<Location>(
+    () => ({ address: resolveAddress(pathname, from), pathname, view }),
+    [pathname, from, view],
+  );
+
+  /*
+   * The categories the current screen sits inside. Recomputed on every
+   * navigation, and joined into a string so the reset below can compare the
+   * *value* rather than a fresh array identity each render.
+   */
+  const trail = useMemo(() => activeTrail(items, at) ?? [], [items, at]);
+  const trailKey = trail.join('/');
+
+  /**
+   * **The accordion, and the whole of it: at most one category open per level.**
+   *
+   * One entry per *level*, not per category — the key is the id of the parent
+   * category (`ROOT_LEVEL` for the top of the rail), and the value is the id of
+   * the one child of that parent that is open, or `null` for "the reader shut
+   * this level". A level with no entry at all has not been touched, and falls
+   * back to `trail`.
+   *
+   * Keying by level rather than by category is what makes the accordion a
+   * property of the *shape of the state* instead of a rule enforced on the way
+   * in. There is no "close the others" step to forget: opening المواعيد writes
+   * `{'': 'appointments'}`, and إدارة is shut for the same reason it was shut
+   * before — it is not the value at its level. A `Record<id, boolean>` would
+   * have needed a sweep on every press and would have had a representable
+   * illegal state (two `true`s) for a bug to live in.
+   *
+   * Levels are independent, so التقويم inside المواعيد accordions among its own
+   * siblings — it happens to be an only child today — without knowing anything
+   * about the level above it. Its entry also survives its parent closing and
+   * reopening, which is deliberate: reopening المواعيد puts the reader back
+   * where they left it rather than making them find their place again.
+   */
+  const [openAt, setOpenAt] = useState<Record<string, string | null>>({});
+  const [seenTrail, setSeenTrail] = useState(trailKey);
+
+  /*
+   * Navigating *into* a category re-opens it, even if it was closed by hand.
+   *
+   * Without this, closing إدارة and then reaching a client record from the
+   * dashboard leaves the rail claiming you are nowhere: the row that would say
+   * where you are is inside a category that is shut. Only the *levels along the
+   * new trail* are dropped — every one of them falls back to the trail, which
+   * both opens the branch and, being one id per level, closes whatever else was
+   * open on the way. A level the reader touched somewhere off the trail keeps
+   * its entry, because they did not ask for it back.
+   *
+   * Adjusted **during render** rather than in an effect. This is state derived
+   * from where the reader is, not a system outside React to synchronise with:
+   * done in an effect it would paint the rail once with the stale branch shut
+   * and again with it open, which is a flash of "you are nowhere" on every
+   * navigation. React re-runs this component immediately on the set below,
+   * before anything reaches the screen. See
+   * https://react.dev/learn/you-might-not-need-an-effect.
+   */
+  if (seenTrail !== trailKey) {
+    setSeenTrail(trailKey);
+
+    const levels = levelsAlong(trailKey);
+    if (levels.some((key) => key in openAt)) {
+      const next = { ...openAt };
+      for (const key of levels) delete next[key];
+      setOpenAt(next);
+    }
+  }
+
+  /**
+   * Which category is open at one level: the reader's own answer if they have
+   * given one, otherwise the trail's.
+   *
+   * `depth` is the level's own depth, which is also its index in the trail —
+   * `trail[0]` is the open top-level category, `trail[1]` the open one inside
+   * it. A group row is always at the same depth as the level it belongs to, so
+   * the two indices cannot drift.
+   */
+  const openIdAt = useCallback(
+    (levelKey: string, depth: number) =>
+      levelKey in openAt ? (openAt[levelKey] ?? null) : (trail[depth] ?? null),
+    [openAt, trail],
+  );
+
+  /*
+   * A press sets its level to this category, or to `null` if it was already the
+   * open one. Nothing else is touched, and nothing else has to be: the sibling
+   * that was open stops being the value at this level in the same set, so it
+   * closes on the same render the new one opens on.
+   *
+   * That is what keeps the two animations synchronised. Both panels are
+   * `.q-nav-collapse` tracks on the same duration and the same curve, and they
+   * start in the same frame, so the outgoing category collapses at exactly the
+   * rate the incoming one grows. A close-then-open sequenced in JavaScript
+   * would have made the rail jump twice.
+   */
+  const toggle = useCallback(
+    (levelKey: string, depth: number, id: string) => {
+      setOpenAt((current) => {
+        const open = levelKey in current ? (current[levelKey] ?? null) : (trail[depth] ?? null);
+        return { ...current, [levelKey]: open === id ? null : id };
+      });
+    },
+    [trail],
+  );
+
+  const flat = useMemo(() => flatten(items), [items]);
+
+  return (
+    <>
+      {/* The tree. Hidden at 56px, where the flat list below stands in for it —
+          see `flatten`. */}
+      <SidebarMenu className="group-data-[collapsible=icon]:hidden">
+        {items.map((node) => (
+          <NavRow
+            key={isGroup(node) ? node.id : node.href}
+            node={node}
+            depth={0}
+            levelKey={ROOT_LEVEL}
+            icons={icons}
+            at={at}
+            openIdAt={openIdAt}
+            onToggle={toggle}
+          />
+        ))}
+      </SidebarMenu>
+
+      {/* The folded rail. Hidden at every width but 56px — see `flatten`. */}
+      <SidebarMenu className="hidden group-data-[collapsible=icon]:flex">
+        {flat.map((item) => (
+          <NavLeafRow key={item.id} item={item} icons={icons} at={at} />
+        ))}
+      </SidebarMenu>
+    </>
+  );
+}
+
+type RowProps = {
+  node: NavNode;
+  /** 0 is a top-level row; anything deeper is drawn as a submenu row. */
+  depth: number;
+  /**
+   * The accordion level this row is a sibling within — `ROOT_LEVEL` at the top
+   * of the rail, the holding category's id anywhere below. Rows at one level
+   * take turns being open; see `openAt` in `NavTree`.
+   */
+  levelKey: string;
+  icons: Partial<Record<NavLabelKey, IconName>> | undefined;
+  at: Location;
+  openIdAt: (levelKey: string, depth: number) => string | null;
+  onToggle: (levelKey: string, depth: number, id: string) => void;
+};
+
+/** One row of the tree — a destination or a category — and whatever hangs off it. */
+function NavRow({ node, depth, levelKey, icons, at, openIdAt, onToggle }: RowProps) {
+  const t = useTranslations('nav');
+  const panelId = useId();
+
+  const icon = icons?.[node.labelKey];
+  const label = t(node.labelKey);
+  const top = depth === 0;
+
+  if (!isGroup(node)) {
+    return top ? (
+      <NavLeafRow item={{ ...node, id: node.href }} icons={icons} at={at} />
+    ) : (
+      <SidebarMenuSubItem>
+        <SidebarMenuSubButton
+          isActive={isItemActive(node.href, at)}
+          render={<NavLink href={node.href} at={at} />}
+        >
+          {icon ? <Icon name={icon} className="size-4" /> : null}
+          <span>{label}</span>
+        </SidebarMenuSubButton>
+      </SidebarMenuSubItem>
+    );
+  }
+
+  /*
+    Open if this category is the one its level is currently showing. That test
+    *is* the accordion: a sibling opening makes this expression false here on
+    the very same render, with no message passed between the two rows.
+  */
+  const open = openIdAt(levelKey, depth) === node.id;
+  const holdsActive = activeTrail(node.children, at) !== null;
+
+  /*
+    The disclosure itself. `data-open` is the whole switch — `.q-nav-collapse`
+    in globals.css owns the animation, and this component owns nothing about
+    time. See that rule for why it is a grid track and not a height.
+
+    `inert` on the panel while it is shut is what keeps three collapsed
+    categories' worth of links out of the tab order. `overflow: hidden` alone
+    hides them from the eye and from nothing else: tabbing into a zero-height
+    row scrolls the clip and strands the focus ring somewhere invisible.
+  */
+  const panel = (
+    <div className="q-nav-collapse" data-open={open ? '' : undefined}>
+      <div>
+        <SidebarMenuSub id={panelId} inert={!open}>
+          {/* This category *is* the level its children accordion within, so it
+              hands them its own id as their `levelKey`. */}
+          {node.children.map((child) => (
+            <NavRow
+              key={isGroup(child) ? child.id : child.href}
+              node={child}
+              depth={depth + 1}
+              levelKey={node.id}
+              icons={icons}
+              at={at}
+              openIdAt={openIdAt}
+              onToggle={onToggle}
+            />
+          ))}
+        </SidebarMenuSub>
+      </div>
+    </div>
+  );
+
+  /*
+    A category that is *shut* while the current screen is inside it takes the
+    brand ink and no fill. Open, the lit row below already says where you are
+    and a second green thing above it would be saying it twice; shut, this is
+    the only trace of your position left on the rail.
+  */
+  const trace = holdsActive && !open ? 'text-sidebar-accent-foreground' : undefined;
+
+  const chevron = (
+    <Icon
+      name="chevronDown"
+      /*
+        One glyph, rotated, rather than a pair swapped on state — a swap has
+        nothing to animate between, and this is the movement the whole
+        disclosure is timed against.
+
+        Shut, it points along the reading direction: `-rotate-90` turns the "v"
+        into a ">" for English, and the `rtl:` variant turns it into a "<" for
+        Arabic. Open, it is upright in both. The rotation shares
+        `--duration-arc` with the panel below it, so the arrow and the reveal
+        are the same gesture rather than two that happen to overlap.
+      */
+      className={cn(
+        'ms-auto size-4 transition-transform duration-(--duration-arc) ease-(--ease-sweep)',
+        open ? 'rotate-0' : '-rotate-90 rtl:rotate-90',
+      )}
+    />
+  );
+
+  const trigger = {
+    'aria-expanded': open,
+    'aria-controls': panelId,
+    onClick: () => onToggle(levelKey, depth, node.id),
+  } as const;
+
+  return top ? (
+    <SidebarMenuItem>
+      <SidebarMenuButton {...trigger} className={trace}>
+        {icon ? <Icon name={icon} className="size-5" /> : null}
+        {/* The button’s own [&>span:last-child]:truncate does not reach this one:
+            the chevron is the last child on a category row, not the label. */}
+        <span className="truncate">{label}</span>
+        {chevron}
+      </SidebarMenuButton>
+      {panel}
+    </SidebarMenuItem>
+  ) : (
+    <SidebarMenuSubItem>
+      {/* `render` overrides the sub-button's default `<a>`: this one opens a
+          list rather than going anywhere, and an anchor with no href is not a
+          control. */}
+      <SidebarMenuSubButton {...trigger} className={trace} render={<button type="button" />}>
+        {icon ? <Icon name={icon} className="size-4" /> : null}
+        <span className="truncate">{label}</span>
+        {chevron}
+      </SidebarMenuSubButton>
+      {panel}
+    </SidebarMenuSubItem>
+  );
+}
+
+/**
+ * A top-level destination row, in either shape of the rail.
+ *
+ * Shared by the tree and the flat list so that a destination looks and behaves
+ * identically whichever of the two is on screen — including the tooltip, which
+ * the registry only shows while the rail is folded.
+ */
+function NavLeafRow({
+  item,
+  icons,
+  at,
+}: {
+  item: FlatItem;
+  icons: Partial<Record<NavLabelKey, IconName>> | undefined;
+  at: Location;
+}) {
+  const t = useTranslations('nav');
+  const icon = icons?.[item.labelKey];
+  const label = t(item.labelKey);
+
+  return (
+    <SidebarMenuItem>
+      {/*
+        `tooltip` only shows while the sidebar is collapsed — the registry hides
+        it otherwise — so the label is never announced twice to a pointer that
+        can already read it.
+      */}
+      <SidebarMenuButton
+        tooltip={label}
+        isActive={isItemActive(item.href, at)}
+        render={<NavLink href={item.href} at={at} />}
+      >
+        {/*
+          20px, explicitly. `Icon` ships `size-4` in its own class list, so the
+          button's `[&_svg:not([class*='size-'])]` default never reaches it —
+          the glyph has to ask. This is the rail's one job at 56px wide, and
+          16px of it was too little to aim at or to tell apart at a glance.
+
+          The glyph does not change while the row is loading. It was swapped for
+          a spinner via `useLinkStatus` for one release: the rail is a handful of
+          fixed marks a reader navigates by shape, and replacing one of them
+          mid-navigation took away the landmark at the moment it was being used.
+          The progress bar reports the wait instead — see
+          `navigation-progress.tsx`.
+        */}
+        {icon ? <Icon name={icon} className="size-5" /> : null}
+        <span>{label}</span>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
+}
+
+/**
+ * The anchor every destination in the rail is rendered through.
+ *
+ * One component rather than the same four props written at three call sites —
+ * the prefetch policy and the "already here" guard are decisions about the rail
+ * as a whole, and they were drifting apart the moment there was more than one
+ * kind of row.
+ */
+function NavLink({ href, at, ...props }: { href: NavHref; at: Location } & React.ComponentProps<'a'>) {
+  return (
+    <Link
+      href={href}
+      /*
+        Prefetch the shell on sight, the whole page on hover.
+
+        Every screen behind this rail is dynamic — they all read the session —
+        and Next will only fetch a dynamic route ahead as far as its
+        `loading.tsx`. So the default gets the skeleton ready and leaves the data
+        to the click, which is most of what is left of the wait now that the
+        navigation itself is instant. This asks for the rest the moment the
+        pointer lands on the row, which on a desktop is a beat or two before the
+        click: the page is usually already in the router cache by the time it
+        happens, and the skeleton never appears at all.
+
+        **Scoped to this list on purpose.** Hovering renders a whole route on
+        the server, so this belongs on a fixed set of deliberate destinations and
+        nowhere near a table of a hundred client rows. It costs nothing on a
+        phone, where there is no hover.
+      */
+      unstable_dynamicOnHover
+      /*
+        Clicking the row you are already standing on used to push the same URL
+        again, which re-runs the page for no change on screen. The click is
+        swallowed instead.
+
+        `isItemExact`, **not** `isItemActive`. A row is active over its whole
+        subtree — المشتركون stays lit on a client's record — and swallowing the
+        press there would strand the reader on the record with the one control
+        that goes back to the register doing nothing. Only an exact match is a
+        press that would change nothing. See `isItemExact` for the query.
+      */
+      onClick={(event) => {
+        if (isItemExact(href, at)) event.preventDefault();
+      }}
+      {...props}
+    />
   );
 }
