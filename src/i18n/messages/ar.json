@@ -1884,7 +1884,6 @@
   },
   "dishes": {
     "title": "كتالوج الأطباق",
-    "subtitle": "{count} طبقاً معتمداً — هذه وحدها ما يختار منه الذكاء الاصطناعي",
     "addDish": "إضافة طبق",
     "empty": "لا توجد أطباق في الكتالوج بعد",
     "emptyHint": "تظهر هنا الأطباق المعتمدة بعد إضافتها.",
@@ -1975,13 +1974,8 @@
     "foodPicker": {
       "label": "ابحث عن مكوّن",
       "placeholder": "ابحث عن مكوّن…",
-      "searching": "جارٍ البحث…",
       "kcalPer100g": "{kcal} سعرة / 100غ",
-      "startSearching": "ابحث عن مكوّن، أو أضف مكوّناً خاصاً",
       "noResults": "لم نجد \"{name}\".",
-      "noResultTitle": "لم نجد مكوّناً مطابقاً",
-      "addNew": "إضافة مكوّن جديد",
-      "addNewShort": "لم تجده؟ أضف مكوّناً جديداً",
       "addCustom": "إضافة مكوّن خاص",
       "addNamed": "إضافة \"{name}\" كمكوّن جديد",
       "moreResults": "عرض المزيد",
@@ -2019,35 +2013,27 @@
     },
     "editor": {
       "pageTitle": "إضافة طبق",
-      "pageSubtitle": "أضف طبقاً إلى قائمة العيادة المعتمدة",
-      "nameAr": "اسم الطبق",
+      "nameAr": "الاسم بالعربية",
       "nameArPlaceholder": "مثال: مقلوبة دجاج",
       "nameEn": "الاسم بالإنجليزية",
-      "nameEnPlaceholder": "مثال: Chicken Maqluba",
-      "additionalDetails": "تفاصيل إضافية",
-      "checkingExisting": "جارٍ التحقق من الأطباق الموجودة…",
+      "nameEnPlaceholder": "Chicken Maqluba",
       "existingMatchesTitle": "أطباق موجودة تبدأ بهذا الاسم",
-      "existingMatchesHint": "راجعها قبل إضافة طبق جديد لتفادي التكرار.",
       "exactMatchTitle": "هذا الاسم مستخدم بالفعل",
-      "exactMatchHint": "راجع الطبق الموجود قبل إنشاء نسخة أخرى.",
       "exactMatch": "مطابقة تامة",
-      "existingSearchError": "تعذّر التحقق من الأطباق الموجودة. يمكنك متابعة إنشاء الطبق.",
       "mealTypesLegend": "وقت الوجبة",
       "labelsLegend": "خصائص الطبق",
-      "labelsHint": "لون كل خاصية يرافق الطبق في الكتالوج وفي الخطة الأسبوعية.",
       "allergensLegend": "مسببات الحساسية",
-      "allergensHint": "يستثنى هذا الطبق من خطط المشتركين الذين لديهم حساسية مطابقة.",
+      "labelGroups": {
+        "preparation": "التحضير",
+        "cost": "التكلفة والتنقّل",
+        "nature": "طبيعة الطبق"
+      },
       "ingredientsHeading": "المكوّنات",
-      "addIngredient": "إضافة مكوّن",
       "removeIngredient": "إزالة المكوّن",
-      "noIngredientsYet": "ابحث بالأعلى لإضافة مكوّنات الطبق.",
       "ingredientCount": "{count, plural, =0 {لا مكوّنات} one {مكوّن واحد} two {مكوّنان} few {# مكوّنات} many {# مكوّناً} other {# مكوّن}}",
-      "pickFoodHint": "ابحث عن طعام لإضافته إلى هذا المكوّن",
-      "changeFood": "تغيير الطعام",
       "amount": "الكمية",
       "unitAria": "الوحدة",
-      "rowKcal": "{kcal} سعرة",
-      "rowGrams": "= {grams} غرام",
+      "rowGrams": "{grams} غرام",
       "units": {
         "g": "غرام",
         "piece": "حبة",
@@ -2057,11 +2043,8 @@
         "tbsp": "ملعقة كبيرة",
         "tsp": "ملعقة صغيرة"
       },
-      "liveNutrition": "القيم الغذائية لكل حصة أساسية",
       "nutritionTitle": "القيم الغذائية",
       "nutritionEmpty": "أضف مكوّنات لعرض القيم الغذائية.",
-      "perServing": "لكل {unit}",
-      "energyShare": "الأشرطة تُظهر نسبة كل عنصر من سعرات الطبق.",
       "categories": {
         "high_protein": "غني بالبروتين",
         "high_carb": "غني بالكربوهيدرات",
@@ -2069,7 +2052,8 @@
         "balanced": "متوازن"
       },
       "errors": {
-        "nameRequired": "اسم الطبق مطلوب",
+        "nameRequired": "الاسم بالعربية مطلوب",
+        "nameEnRequired": "الاسم بالإنجليزية مطلوب",
         "mealTypeRequired": "اختر وقت وجبة واحداً على الأقل",
         "ingredientRequired": "أضف مكوّناً واحداً على الأقل بطعام وكمية موجبة"
       },
@@ -2077,11 +2061,27 @@
       "saveChanges": "حفظ التعديلات",
       "submitting": "جارٍ الحفظ…",
       "editTitle": "تعديل الطبق",
-      "editSubtitle": "تحديث هذا الطبق في قائمة عيادتك",
       "unsavedTitle": "تجاهل التغييرات؟",
       "unsavedMessage": "لديك تغييرات غير محفوظة ستُفقد إذا أغلقت.",
       "discard": "تجاهل",
-      "keepEditing": "متابعة التعديل"
+      "keepEditing": "متابعة التعديل",
+      "next": "التالي",
+      "back": "رجوع",
+      "steps": {
+        "define": "التعريف",
+        "ingredients": "المكوّنات",
+        "review": "المراجعة"
+      },
+      "recipeEmptyTitle": "لا مكوّنات بعد",
+      "columnIngredient": "المكوّن",
+      "columnGrams": "بالغرام",
+      "columnKcal": "سعرة",
+      "awaitingAmount": "الكمية؟",
+      "perServingShort": "للحصة",
+      "gramsPerServing": "{grams} غرام للحصة",
+      "kcalPer100g": "{kcal} سعرة / 100غ",
+      "suggested": "مقترح",
+      "saveAndAddAnother": "حفظ وإضافة آخر"
     }
   },
   "whatsapp": {

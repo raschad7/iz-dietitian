@@ -200,6 +200,18 @@
   --indigo-500: #2F5FA8;
 
   /*
+   * The same three identities, one step light.
+   *
+   * The 500 stops above are *marks*: an 8px dot, a 3px rule — small things that
+   * have to survive being small, so they are mid-dark. A macro arc is the
+   * opposite kind of shape: a 16px band and a filled bar, areas rather than
+   * marks, and an area painted at mark strength turns a nutrition label into
+   * three shouting blocks. These are for areas only (see `--macro-*` below).
+   */
+  --indigo-300: #8FB2E0;
+  --plum-300: #BE9BD8;
+
+  /*
    * ── Gold: the adherence meter's fill ──
    *
    * Not amber, and for the same reason flame is not amber: amber means "needs
@@ -481,6 +493,26 @@
   --color-chart-3: var(--amber-600);
   --color-chart-4: var(--clay-600);
   --color-chart-5: var(--n-600);
+
+  /*
+   * ── The three macros ──
+   *
+   * Protein blue, carbohydrate gold, fat lavender — one token each, so the ring
+   * on the dish editor, the bars beneath it and anything that charts a macro
+   * later all say the same colour without a second table to keep in step.
+   *
+   * **They are light on purpose, and they avoid every hue at mark strength.**
+   * A dish's own properties are already a row of dots — economical amber,
+   * quick flame, local clay, vegetarian green, `no_cook` teal — all of them
+   * mid-dark 500/600 stops, and macro arcs drawn in that same register read as
+   * more of those properties rather than as a different kind of fact. Sitting
+   * the macros a full lightness step above the whole tag palette separates the
+   * two without asking for a hue nothing else uses, which this system has run
+   * out of.
+   */
+  --color-macro-protein: var(--indigo-300);
+  --color-macro-carbs: var(--amber-300);
+  --color-macro-fat: var(--plum-300);
 
   --color-viz-band-range: var(--viz-band-range);
   --color-viz-band-edge: var(--viz-band-edge);

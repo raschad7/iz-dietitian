@@ -85,12 +85,12 @@ export default async function DishesPage({ params, searchParams }: PageProps) {
     */
     <div className="flex flex-col gap-4 text-start md:h-full md:min-h-0">
       <div className="flex shrink-0 flex-col gap-4">
-        <PageHeader
-          locale={locale}
-          title={t('title')}
-          subtitle={t('subtitle', { count: result.total })}
-          clinicId={clinicId}
-        />
+        {/* No subtitle. It counted the catalog and then explained, every time
+            the page was opened, that this is what the generator draws from —
+            a sentence that is true once and furniture from then on. The count
+            is already at the foot of the list, beside the pager, where it
+            belongs. */}
+        <PageHeader locale={locale} title={t('title')} clinicId={clinicId} />
 
         {/* Add sits *in* the toolbar rather than up beside the title: everything
             you do to this catalog — search it, narrow it, add to it — is now one
@@ -107,17 +107,28 @@ export default async function DishesPage({ params, searchParams }: PageProps) {
         </DishFilters>
       </div>
 
-      <DishList locale={locale} items={items} filtered={filtered} />
+      {/*
+        The list and its pager are one block, with no gap between them.
 
-      <DishPagination
-        result={result}
-        q={q}
-        mealType={mealType}
-        tags={tagsParam}
-        hp={hp}
-        owner={ownerParam}
-        hidden={hidden}
-      />
+        The pager already draws its own rule across the top, and that rule is
+        what closes the list: a row clipped by the scroll port then runs into a
+        line, the way the last row of any paged table does. With the page's
+        `gap-4` between them it ran into a band of white instead, which read as
+        the screen having stopped early rather than as a list with more in it.
+      */}
+      <div className="flex flex-col md:min-h-0 md:flex-1">
+        <DishList locale={locale} items={items} filtered={filtered} />
+
+        <DishPagination
+          result={result}
+          q={q}
+          mealType={mealType}
+          tags={tagsParam}
+          hp={hp}
+          owner={ownerParam}
+          hidden={hidden}
+        />
+      </div>
     </div>
   );
 }
