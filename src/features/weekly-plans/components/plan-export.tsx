@@ -3,10 +3,19 @@
 import { useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
-import { PopoverClose } from '@/components/ui/popover';
+import {
+  Popover,
+  PopoverClose,
+  PopoverContent,
+  PopoverTitle,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { TooltipHint } from '@/components/ui/tooltip-hint';
 import { toast } from '@/components/ui/toast';
+
+import { cn } from '@/lib/utils';
 
 import { printFileName } from '../plan-print';
 import { downloadPlanAsWord } from '../plan-word';
@@ -46,16 +55,58 @@ function usePrintPlan(fileName: string): () => void {
 }
 
 /**
+ * The download control in the board's action bar, and the two formats under it.
+ *
+ * ## Why this is its own button and not a row in the overflow menu
+ *
+ * Handing the week to the client is one of the two things a dietitian comes to
+ * this screen to finish — the other is publishing it, which already leads the
+ * bar. Burying it behind a three-dot glyph put the most-used act of the week in
+ * the same drawer as a colour key and a list of old plans, and a menu labelled
+ * "more actions" promises nothing in particular. A tray glyph promises a file.
+ *
+ * It sits between "new week" and the overflow, so the bar reads left to right
+ * as publish, dishes, new week, take it away, everything else.
+ */
+export function PlanExportMenu(props: {
+  clinicName: string | null;
+  clientName: string;
+  weekStartDate: string;
+}) {
+  const t = useTranslations('weeklyPlans.export');
+
+  return (
+    <Popover>
+      <TooltipHint label={t('title')}>
+        <PopoverTrigger
+          aria-label={t('title')}
+          // The same 40px square the rest of the bar wears — see the note in
+          // `plan-board.tsx`.
+          className={cn(buttonVariants({ variant: 'neutral', size: 'sm' }), 'size-10 px-0')}
+        >
+          <Icon name="download" />
+          <span className="sr-only">{t('title')}</span>
+        </PopoverTrigger>
+      </TooltipHint>
+
+      <PopoverContent align="end" side="bottom" className="w-72 p-3">
+        <PopoverTitle className="text-label font-semibold">{t('title')}</PopoverTitle>
+        <PlanExport {...props} />
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+/**
  * The two ways a week leaves this app, as two choices rather than two rows.
  *
- * ## Why this is a labelled pair and not two menu entries
+ * ## Why this is a labelled pair and not two rows
  *
  * It started as one ghost row saying "Download as PDF", and adding Word beside
- * it would have made two — two lines of text in a list that also holds "compare
- * with last week" and "delete this plan". Nothing in that list tells you the
- * first two are the *same act in two formats*, or that they are the only rows
- * that hand you a file. A heading and a pair of equal buttons says both without
- * a word of explanation: same size, same shape, side by side, under one label.
+ * it would have made two — two lines of text one under the other, with nothing
+ * saying they are the *same act in two formats*. A pair of equal buttons says
+ * it without a word of explanation: same size, same shape, side by side, under
+ * one heading.
  *
  * The caption under them is doing the other half of the work. "PDF" and "Word"
  * name file types, not outcomes — and the outcome is the thing worth knowing,
@@ -68,7 +119,7 @@ function usePrintPlan(fileName: string): () => void {
  * print dialog is a menu you have to dismiss after cancelling a save, and one
  * left standing after a download is a menu nobody asked to keep.
  */
-export function PlanExport({
+function PlanExport({
   clinicName,
   clientName,
   weekStartDate,
@@ -99,8 +150,6 @@ export function PlanExport({
 
   return (
     <div className="space-y-2">
-      <p className="text-label font-semibold">{t('title')}</p>
-
       {/* Two equal columns, so neither format reads as the real one and the
           other as an afterthought. `h-auto` with stacked content because a
           40px row cannot hold a glyph above a word. */}
