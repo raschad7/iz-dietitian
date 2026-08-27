@@ -7,11 +7,10 @@ import { roundForDisplay, roundGrams } from '@/features/weekly-plans/nutrition';
 import { cn } from '@/lib/utils';
 
 import { localizedName } from '../food-display';
-import { servingGuideFor, servingGuideLines } from '../serving-guide';
 
 import { AnimatedDisclosure } from './animated-disclosure';
 import { MealCheck } from './meal-check';
-import { ServingGuideList } from './serving-guide-list';
+import { MealIngredientAmounts } from './meal-ingredient-amounts';
 import type { BoardMeal } from '../queries';
 import { mealTypeForSlot, type MealType } from '../schema';
 import type { DayStanding } from '../week';
@@ -97,11 +96,10 @@ export function PortalMealCard({
   const mealIcon = MEAL_ICONS[mealType];
   const dish = meal.dish;
 
-  // Empty for a dish with no guide, which is the safe default — see
-  // `serving-guide.ts`. The portal never falls back to the recipe; the weight and
-  // the dish's own serving label are what it says instead.
-  const guide = dish ? servingGuideFor(dish.slug) : null;
-  const servingLines = guide && dish ? servingGuideLines(guide, dish.servings, locale) : [];
+  // The same lines the dietitian set, in the same units. There is deliberately no
+  // second rendering for the patient: what she adjusted on the board is what they
+  // read here, or the two screens would be describing the same meal differently.
+  const servingLines = meal.lines;
 
   return (
     /*
@@ -329,7 +327,7 @@ export function PortalMealCard({
               {servingLines.length > 0 ? (
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-muted-foreground">{t('mealQuantity')}</p>
-                  <ServingGuideList lines={servingLines} />
+                  <MealIngredientAmounts lines={servingLines} locale={locale} />
                 </div>
               ) : null}
             </div>

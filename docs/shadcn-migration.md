@@ -1,5 +1,12 @@
 # shadcn revamp — inventory and migration plan
 
+> **Historical working note.** This document was written for the `shadcn-revamp`
+> branch and records how the component layer reached its current shape. It is
+> not a to-do list, and it predates the rename from **Qiwam / قوام** to
+> **Enzyme / إنزيم**. For the current UI contract, read
+> [`design-system.md`](design-system.md); for the current shared inventory, read
+> [`src/components/ui/`](../src/components/ui/) itself.
+
 Working document for the `shadcn-revamp` branch.
 
 ## Ground truth

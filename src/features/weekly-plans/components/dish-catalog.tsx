@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useContext, useMemo, useState } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { useLocale, useTranslations } from 'next-intl';
 
@@ -33,6 +33,8 @@ import {
 import { localizedName } from '../food-display';
 import type { CatalogEntry } from '../queries';
 import { ALLERGENS, DISH_TAGS, mealTypeForSlot, type DishTag } from '../schema';
+
+import { EditorActionsContext } from './board-dnd';
 
 /**
  * The computed nutrition categories offered as filters. Only "high protein" for
@@ -187,67 +189,47 @@ export function DishCatalog({
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
-      <div className="relative shrink-0 border-b border-border pb-4">
-        <Input
-          type="search"
-          icon="search"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder={t('searchDishes')}
-        />
-
+      <div className="relative shrink-0 border-b border-border pb-3">
         {/*
-          What is filtering the list stays *on* the panel, not behind the
-          popover that set it. A closed popover with a filter still applied is
-          a list that has quietly stopped showing you things, with the reason
-          one click out of sight — and that is what made this feel broken.
-          Every active filter is a chip here, and pressing a chip removes it.
+          Search and the filter trigger share a line.
+
+          They are one question — "which dishes" — asked two ways, and stacking
+          them spent a whole band of the panel on a single button sitting alone
+          under a full-width field. Side by side the field still takes
+          everything left over (`min-w-0` + `flex-1`, so a long placeholder
+          cannot push the button off the end), and the row below is free to hold
+          nothing at all when no filter is on.
         */}
-        <div className="mt-2 flex flex-wrap items-center gap-1.5">
-          {mealType && (
-            <FilterChip
-              active={!allMealTypes}
-              onClick={() => setAllMealTypes((value) => !value)}
-              title={allMealTypes ? undefined : t('allMealTypes')}
-            >
-              {t(`mealTypes.${mealType}`)}
-              {!allMealTypes && <Icon name="close" className="size-3.5" />}
-            </FilterChip>
-          )}
-
-          {nutrition.map((entry) => (
-            <FilterChip key={entry} active onClick={() => toggleNutrition(entry)}>
-              <span aria-hidden className={highProteinDotClasses()} />
-              {t(`nutritionFilters.${entry}`)}
-              <Icon name="close" className="size-3.5" />
-            </FilterChip>
-          ))}
-
-          {tags.map((entry) => (
-            <FilterChip
-              key={entry}
-              active
-              onClick={() => setTags((current) => current.filter((value) => value !== entry))}
-            >
-              <span aria-hidden className={dishTagDotClasses(entry)} />
-              {t(`tags.${entry}`)}
-              <Icon name="close" className="size-3.5" />
-            </FilterChip>
-          ))}
-
-          {options.map((entry) => (
-            <FilterChip key={entry} active onClick={() => toggleOption(entry)}>
-              {t(`dishOptions.${entry}`)}
-              <Icon name="close" className="size-3.5" />
-            </FilterChip>
-          ))}
+        <div className="flex items-center gap-2">
+          <Input
+            type="search"
+            icon="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={t('searchDishes')}
+            className="min-w-0 flex-1"
+          />
 
           <Popover>
             <PopoverTrigger
-              className={buttonVariants({ variant: 'neutral', size: 'sm', className: 'px-3 text-label' })}
+              className={buttonVariants({
+                variant: 'neutral',
+                className: 'shrink-0 gap-1.5 px-4 text-label',
+              })}
             >
               <Icon name="filter" />
               {t('dishFilters')}
+              {/* The count rides the trigger as well as the chip row, because
+                  the chips scroll away with the list on a short panel and this
+                  row never moves. */}
+              {activeCount > 0 && (
+                <span
+                  dir="ltr"
+                  className="grid size-5 shrink-0 place-items-center rounded-full bg-primary text-caption font-semibold tabular-nums text-primary-foreground-white"
+                >
+                  {activeCount}
+                </span>
+              )}
             </PopoverTrigger>
             <PopoverContent
               side="bottom"
@@ -340,6 +322,61 @@ export function DishCatalog({
                   </FilterGroup>
             </PopoverContent>
           </Popover>
+        </div>
+
+        {/*
+          What is filtering the list stays *on* the panel, not behind the
+          popover that set it. A closed popover with a filter still applied is
+          a list that has quietly stopped showing you things, with the reason
+          one click out of sight — and that is what made this feel broken.
+          Every active filter is a chip here, and pressing a chip removes it.
+
+          The row is rendered only when it has something to say. Empty, it was a
+          margin above nothing, on the one panel in the app that would rather
+          spend the space on another dish. `mealType` counts as something to
+          say even when it is switched off: that chip is the only way back to
+          filtering by meal type, so it stays on the row rather than becoming a
+          filter you can turn off once and never find again.
+        */}
+        {(activeCount > 0 || mealType) && (
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          {mealType && (
+            <FilterChip
+              active={!allMealTypes}
+              onClick={() => setAllMealTypes((value) => !value)}
+              title={allMealTypes ? undefined : t('allMealTypes')}
+            >
+              {t(`mealTypes.${mealType}`)}
+              {!allMealTypes && <Icon name="close" className="size-3.5" />}
+            </FilterChip>
+          )}
+
+          {nutrition.map((entry) => (
+            <FilterChip key={entry} active onClick={() => toggleNutrition(entry)}>
+              <span aria-hidden className={highProteinDotClasses()} />
+              {t(`nutritionFilters.${entry}`)}
+              <Icon name="close" className="size-3.5" />
+            </FilterChip>
+          ))}
+
+          {tags.map((entry) => (
+            <FilterChip
+              key={entry}
+              active
+              onClick={() => setTags((current) => current.filter((value) => value !== entry))}
+            >
+              <span aria-hidden className={dishTagDotClasses(entry)} />
+              {t(`tags.${entry}`)}
+              <Icon name="close" className="size-3.5" />
+            </FilterChip>
+          ))}
+
+          {options.map((entry) => (
+            <FilterChip key={entry} active onClick={() => toggleOption(entry)}>
+              {t(`dishOptions.${entry}`)}
+              <Icon name="close" className="size-3.5" />
+            </FilterChip>
+          ))}
 
           {activeCount > 0 && (
             <Button type="button" variant="ghost" size="sm" onClick={clearFilters}>
@@ -347,6 +384,7 @@ export function DishCatalog({
             </Button>
           )}
         </div>
+        )}
 
         {slot && slot.budgetKcal > 0 && (
           <div className="mt-3 flex items-center justify-between gap-2 rounded-md bg-secondary/70 px-3 py-2 text-caption">
@@ -491,18 +529,30 @@ function CatalogRow({
 }) {
   const t = useTranslations('weeklyPlans');
   const locale = useLocale();
+  /*
+    Read rather than required. This row is also the body of the catalog inside
+    the meal inspector and of the drawer on a client with no plan yet, and
+    neither of those is inside a `BoardEditor` — so `useEditorActions` would
+    throw on two screens that never drag anything. Both are `onPick` lists, and
+    a list that cannot be dragged has no hold to draw.
+  */
+  const editorActions = useContext(EditorActionsContext);
+  const holding = editorActions?.holdingId === `dish:${dish.id}`;
 
+  const kcal = roundForDisplay('kcal', dish.baseKcal * servings);
+
+  // Declared before the hook because the payload carries `kcal` — the lifted
+  // card shows the same figure this row does rather than deriving its own.
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `dish:${dish.id}`,
     disabled: !draggable,
-    data: { kind: 'dish', dish, servings },
+    data: { kind: 'dish', dish, servings, kcal },
   });
 
   const blocked = dish.blockedBy.length > 0;
   // Catalog order, so the leading dot is the same tag the meal card will paint —
   // see `primaryDishTag`, which resolves through `DISH_TAGS` for this reason.
   const dishTags = membersOf(DISH_TAGS, dish.tags).slice(0, DOT_LIMIT);
-  const kcal = roundForDisplay('kcal', dish.baseKcal * servings);
   const delta = budgetKcal === null ? null : kcal - budgetKcal;
   const deltaLabel = delta === null ? null : `${delta > 0 ? '+' : ''}${delta}`;
 
@@ -512,10 +562,13 @@ function CatalogRow({
   // it promises is what changed.
   const shape = cn(
     'my-1 grid min-h-[4.5rem] w-full grid-cols-[1.25rem_minmax(0,1fr)_auto] items-center gap-2 rounded-md px-2 py-2.5 text-start transition-colors',
-    draggable && 'cursor-grab hover:bg-accent/50',
+    draggable && 'planner-catalog-row cursor-grab hover:bg-accent/50',
     onPick && !blocked && 'cursor-pointer hover:bg-accent/50',
     blocked && 'bg-muted/50 opacity-70',
     isDragging && 'opacity-40',
+    // The same arming the board's cards do, so a hold means one thing in the
+    // planner rather than two. See `.planner-holding`.
+    holding && 'planner-holding',
   );
 
   const body = (
@@ -612,6 +665,22 @@ function CatalogRow({
   }
 
   return (
+    /*
+      Every listener on the row itself, unlike the board's cards.
+
+      There the mouse's activator has to stay on a separate grip, because the
+      card is a button and a drag beginning on it would compete with the click
+      that opens the meal. A catalog row in the drawer is not a button — it has
+      exactly one gesture and every pointer performs it — so the row is the
+      handle for all of them, and only the *rule* differs: 6px of travel on a
+      mouse, a press and hold on glass.
+
+      Which is what fixes dragging a dish out on a tablet. The row carries
+      `role="button"` from dnd-kit, so `touch-action: manipulation` applies to
+      it and the finger can still scroll this list — and under the old single
+      pointer sensor that was fatal, because "moved 6px" *was* the scroll. A
+      hold takes nothing from the scroller and so needs nothing taken from it.
+    */
     <div
       ref={setNodeRef}
       {...(draggable ? listeners : {})}

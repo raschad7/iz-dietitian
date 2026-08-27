@@ -106,10 +106,21 @@ export function BrandMark({ className, ...props }: React.ComponentProps<'svg'>) 
 /**
  * The two seeds. Identical ellipses at two horizontal positions, so the pair is
  * written once and the only thing either lockup supplies is where they sit.
+ *
+ * ## The group around them
+ *
+ * A `<g>` with no attributes but its slot name draws exactly what the two bare
+ * ellipses drew, so every existing caller is unaffected. It exists because the
+ * pair reads as a pair of eyes and one screen moves them as one: the plan
+ * generation wait screen slides them inside the leaf to follow the pointer (see
+ * `.q-plan-mark` in `globals.css`). Transforming a group keeps that a single
+ * write against the shape the designer drew, rather than two ellipses a caller
+ * has to keep in step — and keeps the geometry itself here, where it is stated
+ * once for the whole app.
  */
 function Seeds({ centres }: { centres: readonly number[] }) {
   return (
-    <>
+    <g data-slot="brand-seeds">
       {centres.map((cx) => (
         <ellipse
           key={cx}
@@ -121,6 +132,6 @@ function Seeds({ centres }: { centres: readonly number[] }) {
           fill="var(--brand-seed)"
         />
       ))}
-    </>
+    </g>
   );
 }

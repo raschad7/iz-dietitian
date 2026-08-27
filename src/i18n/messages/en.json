@@ -55,7 +55,11 @@
     "whatsapp": "WhatsApp",
     "notifications": "Notifications",
     "openNavigation": "Open navigation",
-    "closeNavigation": "Close navigation"
+    "closeNavigation": "Close navigation",
+
+    "expandSidebar": "Expand sidebar",
+
+    "collapseSidebar": "Collapse sidebar"
   },
   "settingsWorkspace": {
     "title": "Settings",
@@ -155,7 +159,16 @@
     "setPasswordHeading": "Choose a new password",
     "setPasswordDescription": "The password you were given is temporary. Choose your own to continue.",
     "setPasswordSubmit": "Save and continue",
-    "clientPasswordHint": "At least {count, number, integer} characters.",
+    "ruleLength": "At least {count, number, integer} characters",
+    "ruleLetter": "At least one letter",
+    "ruleDigit": "At least one number",
+    "ruleChecklistLabel": "Password requirements",
+    "ruleMet": "Met",
+    "ruleUnmet": "Not met yet",
+    "passwordsMatch": "Both passwords match",
+    "confirmPasswordRequired": "Type the password a second time.",
+    "clientPasswordHint": "At least {count, number, integer} characters, with letters and numbers.",
+    "clientPasswordTooWeak": "Use letters and numbers together.",
     "genericError": "Could not sign you in. Check your details and try again.",
     "emailTaken": "That email address is already registered.",
     "passwordMismatch": "The two passwords do not match.",
@@ -826,7 +839,7 @@
       "bmi": "BMI",
       "bmiScale": "Where it falls on the scale",
       "dismissWarning": "Dismiss this warning",
-      "sectionEmpty": "Not recorded yet",
+      "sectionEmpty": "Nothing recorded yet.",
       "fillSection": "Add this section",
       "foodFrequency": "Food frequency",
       "sectionsLabel": "Intake sections",
@@ -858,7 +871,6 @@
       "complete": "Everything is filled in",
       "completeness": "Record completeness",
       "filledOf": "{filled} of {total} fields filled in",
-      "sectionEmpty": "Nothing recorded yet.",
       "kcalMismatch": "The manual target is far from the computed one",
       "kcalMismatchDetail": "{manual} kcal was entered by hand, but the measurements and goal give {computed} kcal. Check the number, or clear it to compute it automatically.",
       "bmiValueText": "{value} — {category}",
@@ -1550,7 +1562,24 @@
       "updated": "Last edited"
     },
     "history": "Earlier plans",
+    "previousDays": "Earlier days of the week",
+    "nextDays": "Later days of the week",
     "moreActions": "More plan actions",
+    "export": {
+      "title": "Download this week",
+      "pdf": "PDF",
+      "word": "Word",
+      "hint": "The whole week on one page, ready to print or hand over.",
+      "failed": "That file could not be prepared. Try again."
+    },
+    "print": {
+      "alternatives": "Or instead:",
+      "draftNote": "Draft plan — the client cannot see this week yet."
+    },
+    "deletePlan": "Delete this plan",
+    "deletePlanConfirmTitle": "Delete this plan?",
+    "deletePlanConfirmMessage": "The week of {date} and every meal in it are removed for good. This cannot be undone.",
+    "deletePlanPublishedNote": "This plan is published, so the client is reading it now. Deleting it takes their copy too.",
     "weekOf": "Week of {date}",
     "generatedBy": "Model used",
     "kcalValue": "{value} kcal",
@@ -1572,7 +1601,7 @@
     "saving": "Saving…",
     "saved": "Saved",
     "emptySlot": "Not filled",
-    "unfilledWarning": "{count} meals could not be filled — fill them before publishing",
+    "unfilledWarning": "{count, plural, one {One meal is still empty — fill it before publishing} other {# meals are still empty — fill them before publishing}}",
     "dailyTarget": "Daily target",
     "proteinTarget": "Protein {value} g",
     "goal": "Goal",
@@ -1593,9 +1622,17 @@
     "profileSubtitle": "The data {name}'s plan is built from",
     "planningSnapshot": "Planning snapshot",
     "planningNotes": "Planning notes",
+    "notesTargets": "Daily targets",
+    "notesBody": "Body",
+    "notesWritten": "Written notes",
+    "notesNothingWritten": "No written notes.",
+    "notesUnwritten": "Not recorded: {fields}",
     "dishCatalog": "Dish catalog",
     "dishCatalogHint": "Drag a dish onto a meal. The catalog closes when the drag begins.",
+    "catalogNeedsPlan": "Create a week first",
+    "catalogNeedsPlanHint": "This client has no plan yet, so there is nowhere to put a dish. Create a week, then drag from here.",
     "allergiesMissing": "Allergy information has not been recorded. Confirm it before publishing.",
+    "allergiesMissingShort": "Not recorded",
     "suggested": "Suggested: {value}",
     "shareTotal": "Shares total {value}%",
     "addSlot": "Add a meal",
@@ -1603,23 +1640,55 @@
     "allergenHint": "These filter the catalog before it reaches the AI, so a dish containing them cannot be suggested.",
     "permanentInstructionsHint": "Sent with every generation, e.g. type 2 diabetes — avoid added sugar.",
     "scheduleHint": "The share is this meal's portion of the day's calories. It does not have to total exactly 100.",
-    "weekInstructions": "Instructions for this week",
+    "weekInstructions": "Notes for this week",
+    "weekInstructionsHint": "Optional. The AI takes it into account.",
     "instructionPlaceholder": "Easier preparation, lower cost, portable meals…",
-    "generate": "Generate plan with AI",
+    "generate": "Generate the week's plan",
     "generating": "Generating…",
     "generatingHint": "A whole week takes about a minute. Do not close the page.",
+    "planGenerated": "Plan created successfully",
+    "planRegenerated": "Plan rebuilt successfully",
     "generationLoading": {
       "title": "Building the new week",
       "regenerateTitle": "Rebuilding this week",
-      "description": "AI is matching the client's targets and instructions to dishes in the approved catalog.",
-      "elapsed": "{seconds, plural, one {# second elapsed} other {# seconds elapsed}}",
-      "activity": {
-        "targets": "Reading the client's targets and week instructions…",
-        "catalog": "Matching suitable dishes from the approved catalog…",
-        "balance": "Balancing meals across all seven days…",
-        "draft": "Preparing a draft for your review…"
-      },
-      "review": "The result stays a draft until you review and publish it."
+      "announce": "Stage {current} of {total}: {stage}",
+      "stages": {
+        "gather": {
+          "name": "Gathering information",
+          "description": "Reading the client's profile, goals and recorded limits.",
+          "points": {
+            "profile": "Health profile",
+            "goals": "Goals and target weight",
+            "limits": "Allergies and restrictions"
+          }
+        },
+        "analyse": {
+          "name": "Analysing the need",
+          "description": "Working out daily calories and how nutrients split across meals.",
+          "points": {
+            "calories": "Daily calories",
+            "macros": "Nutrient split",
+            "meals": "Meal count and pattern"
+          }
+        },
+        "build": {
+          "name": "Building the plan",
+          "points": {
+            "dishes": "Choosing dishes",
+            "days": "Spreading the seven days",
+            "portions": "Setting portion sizes"
+          }
+        },
+        "review": {
+          "name": "Review and sign-off",
+          "description": "Checking the balance and preparing a draft for your review.",
+          "points": {
+            "balance": "Nutrient balance check",
+            "restrictions": "Restrictions match",
+            "draft": "Preparing the draft"
+          }
+        }
+      }
     },
     "regenerate": "Regenerate",
     "regenerateDay": "Regenerate this day",
@@ -1715,7 +1784,7 @@
     "newWeek": "New week",
     "createWeek": "Create week",
     "newWeekTitle": "Start a new week",
-    "newWeekSubtitle": "Choose how to start planning this week's meals.",
+    "newWeekSubtitle": "Choose how to start this week's plan.",
     "weekStartLabel": "Week start date",
     "weekStartHint": "The planner begins on this day and continues for seven days.",
     "newWeekGenerate": {
@@ -1723,13 +1792,13 @@
       "regenerate": "Regenerate with AI"
     },
     "newWeekGenerateHint": {
-      "create": "Builds a new week from this client's targets and the approved dish catalog.",
-      "regenerate": "Replaces the draft on screen. Nobody has seen it, so nothing is lost."
+      "create": "Picks the week's meals from your approved dishes, to suit the client's targets.",
+      "regenerate": "Replaces the draft on screen. The client has not seen it, so nothing is lost."
     },
     "regenerateWeek": "Regenerate this week",
     "newWeekCopy": "Copy a previous plan",
     "newWeekFrom": "Start from {date}",
-    "newWeekFromHint": "Copies that week's dishes into the client's current meal schedule.",
+    "newWeekFromHint": "Moves that week's dishes into the client's current meal schedule.",
     "newWeekEmpty": "Empty week",
     "newWeekEmptyHint": "One empty slot per meal in the client's schedule.",
     "newWeekEmptyAction": "Start an empty week",
@@ -1782,9 +1851,25 @@
     "addMeal": "Add a meal",
     "addMealHint": "The meal is added to all seven days. You can remove it from a single day afterwards.",
     "addMealLabel": "Meal name",
-    "addMealPlaceholder": "Evening snack",
     "addMealTime": "Time",
     "addMealIcon": "Choose a food icon",
+    "addMealTaken": "already added",
+    "mealNameSuggestions": {
+      "suhoor": "Suhoor",
+      "breakfast": "Breakfast",
+      "secondBreakfast": "Second breakfast",
+      "morningSnack": "Morning snack",
+      "brunch": "Brunch",
+      "lunch": "Lunch",
+      "preWorkout": "Before training",
+      "afternoonSnack": "Afternoon snack",
+      "iftar": "Iftar",
+      "postWorkout": "After training",
+      "dinner": "Dinner",
+      "eveningSnack": "Evening snack",
+      "beforeSleep": "Before bed"
+    },
+    "addMealNamePlaceholder": "Pick a meal",
     "mealIconChoices": {
       "tea": "Tea cup",
       "hotDrink": "Hot drink",
@@ -1795,12 +1880,16 @@
       "plate": "Dinner plate",
       "chefMinimal": "Chef choice"
     },
+    "slotRemoved": "Removed {slot}",
+    "slotRemovedHint": "The slot is gone from all seven days.",
     "removeSlotConfirm": "Remove {slot} from all seven days? Any dishes placed in it are removed too.",
     "restoreSlot": "Add {slot} back to this day",
     "removeMeal": "Remove meal",
     "clearMeal": "Empty slot",
-    "morePortion": "Larger meal quantity",
-    "lessPortion": "Smaller meal quantity",
+    "moreIngredient": "More of this ingredient",
+    "lessIngredient": "Less of this ingredient",
+    "alsoContains": "Also in this meal",
+    "backToRecipe": "Reset to the recipe amounts",
     "budgetHint": "This meal's budget is {value} kcal",
     "overBudget": "Over budget",
     "underBudget": "Under budget",
@@ -1818,9 +1907,7 @@
     "weekTargets": "This week's targets",
     "kcalTargetLabel": "Daily calories",
     "proteinTargetLabel": "Daily protein (g)",
-    "goalLabel": "Goal for this week",
-    "targetsHint": "Applies to this plan only. The client's nutrition profile is not changed.",
-    "useProfile": "Use the profile",
+    "targetsHint": "Leave blank to follow the profile. This plan only.",
     "days": {
       "sunday": "Sunday",
       "monday": "Monday",
@@ -1848,7 +1935,6 @@
   },
   "dishes": {
     "title": "Dish catalog",
-    "subtitle": "{count} approved dishes — the only thing the AI may choose from",
     "addDish": "Add dish",
     "empty": "No dishes in the catalog yet",
     "emptyHint": "Approved dishes appear here once they are added.",
@@ -1939,13 +2025,8 @@
     "foodPicker": {
       "label": "Search for an ingredient",
       "placeholder": "Search for an ingredient…",
-      "searching": "Searching…",
       "kcalPer100g": "{kcal} kcal / 100g",
-      "startSearching": "Search for an ingredient, or add your own",
       "noResults": "We couldn't find \"{name}\".",
-      "noResultTitle": "No matching ingredient",
-      "addNew": "Add a new ingredient",
-      "addNewShort": "Can't find it? Add a new ingredient",
       "addCustom": "Add a custom ingredient",
       "addNamed": "Add \"{name}\" as a new ingredient",
       "moreResults": "Show more",
@@ -1983,35 +2064,27 @@
     },
     "editor": {
       "pageTitle": "Add dish",
-      "pageSubtitle": "Add a dish to the clinic's approved catalog",
-      "nameAr": "Dish name",
-      "nameArPlaceholder": "e.g. Chicken Maqluba",
+      "nameAr": "Arabic name",
+      "nameArPlaceholder": "مقلوبة دجاج",
       "nameEn": "English name",
       "nameEnPlaceholder": "e.g. Chicken Maqluba",
-      "additionalDetails": "Additional details",
-      "checkingExisting": "Checking existing dishes…",
       "existingMatchesTitle": "Existing dishes starting with this name",
-      "existingMatchesHint": "Review them before adding a new dish to avoid duplicates.",
       "exactMatchTitle": "This name is already in use",
-      "exactMatchHint": "Review the existing dish before creating another copy.",
       "exactMatch": "Exact match",
-      "existingSearchError": "Couldn't check existing dishes. You can continue creating this dish.",
       "mealTypesLegend": "Meal time",
       "labelsLegend": "Dish properties",
-      "labelsHint": "Each colour follows the dish into the catalog and the weekly plan.",
       "allergensLegend": "Allergens",
-      "allergensHint": "These exclude the dish from clients with a matching allergy.",
+      "labelGroups": {
+        "preparation": "Preparation",
+        "cost": "Cost & portability",
+        "nature": "Dish character"
+      },
       "ingredientsHeading": "Ingredients",
-      "addIngredient": "Add ingredient",
       "removeIngredient": "Remove ingredient",
-      "noIngredientsYet": "Search above to add the dish's ingredients.",
       "ingredientCount": "{count, plural, =0 {No ingredients} one {# ingredient} other {# ingredients}}",
-      "pickFoodHint": "Search for a food to add it to this ingredient",
-      "changeFood": "Change food",
       "amount": "Amount",
       "unitAria": "Unit",
-      "rowKcal": "{kcal} kcal",
-      "rowGrams": "= {grams} g",
+      "rowGrams": "{grams} g",
       "units": {
         "g": "g",
         "piece": "piece",
@@ -2021,11 +2094,8 @@
         "tbsp": "tbsp",
         "tsp": "tsp"
       },
-      "liveNutrition": "Nutrition per base serving",
       "nutritionTitle": "Nutrition",
       "nutritionEmpty": "Add ingredients to see the nutrition.",
-      "perServing": "per {unit}",
-      "energyShare": "Bars show each macro's share of the calories.",
       "categories": {
         "high_protein": "High protein",
         "high_carb": "High carbohydrate",
@@ -2033,7 +2103,8 @@
         "balanced": "Balanced"
       },
       "errors": {
-        "nameRequired": "Dish name is required",
+        "nameRequired": "Arabic name is required",
+        "nameEnRequired": "English name is required",
         "mealTypeRequired": "Select at least one meal time",
         "ingredientRequired": "Add at least one ingredient with a food and a positive amount"
       },
@@ -2041,11 +2112,27 @@
       "saveChanges": "Save changes",
       "submitting": "Saving…",
       "editTitle": "Edit dish",
-      "editSubtitle": "Update this dish in your clinic's catalog",
       "unsavedTitle": "Discard changes?",
       "unsavedMessage": "You have unsaved changes that will be lost if you close.",
       "discard": "Discard",
-      "keepEditing": "Keep editing"
+      "keepEditing": "Keep editing",
+      "next": "Next",
+      "back": "Back",
+      "steps": {
+        "define": "Details",
+        "ingredients": "Ingredients",
+        "review": "Review"
+      },
+      "recipeEmptyTitle": "No ingredients yet",
+      "columnIngredient": "Ingredient",
+      "columnGrams": "Grams",
+      "columnKcal": "kcal",
+      "awaitingAmount": "Amount?",
+      "perServingShort": "Per serving",
+      "gramsPerServing": "{grams} g per serving",
+      "kcalPer100g": "{kcal} kcal / 100 g",
+      "suggested": "Proposed",
+      "saveAndAddAnother": "Save and add another"
     }
   },
   "whatsapp": {
@@ -2156,6 +2243,8 @@
     },
     "clinicName": "Clinic name",
     "clinicPhone": "Clinic phone",
+    "phoneCountry": "Country code",
+    "phonePlaceholder": "Number without the country code",
     "email": "Contact email",
     "address": "Clinic address",
     "fullName": "Full name",
@@ -2215,6 +2304,7 @@
       "tooLong": "Keep this to {max} characters or fewer.",
       "invalidEmail": "Enter a valid email address, such as name@clinic.com.",
       "invalidPhone": "Enter a valid phone number.",
+      "phoneDigitCount": "Enter {min, number, integer} or {max, number, integer} digits, without the country code.",
       "invalidTime": "Choose a valid time in 15-minute increments.",
       "closingAfterOpening": "Closing time must be later than opening time.",
       "workingDayRequired": "Choose at least one working day.",
@@ -2253,67 +2343,67 @@
     "steps": {
       "welcome": {
         "title": "A quick tour of your clinic",
-        "body": "This walks through the five sections in the sidebar, from the dashboard to the dish catalog, and points out where each day’s work starts. Nothing here changes your data — the guide only shows you around. Press “Skip guide” at any time to leave."
+        "body": "A quick pass over the five sections in the sidebar. Nothing here changes your data, and you can leave at any time."
       },
       "navigation": {
         "title": "The sidebar is how you move around",
-        "body": "Dashboard, Clients, Calendar, Weekly Plans and Dish catalog, in the order a working day usually uses them. On a phone or a tablet the labels drop away and the icons stay."
+        "body": "The five sections, in the order a working day uses them. On a phone the labels drop away and the icons stay."
       },
       "dashboardStats": {
         "title": "The band you read first",
-        "body": "New clients this month and today’s appointments, each with its own trend beneath it, and beside them anything a client is waiting on. Three cards of the same height, so the row never changes shape."
+        "body": "New clients this month and today’s appointments, each with its own trend, and beside them anything waiting on your reply."
       },
       "dashboardRequests": {
         "title": "Client requests arrive here",
-        "body": "This is the client requests card. Anything a client asks for through their portal — a new appointment, a reschedule, a cancellation, a change to their record — waits here, and you can accept or decline it without leaving the dashboard. “All requests” opens the full inbox in a dialog over this page, including everything you have already answered."
+        "body": "Anything a client asks for through their portal — a booking, a reschedule, a cancellation, a change to their record — waits here to be accepted or declined. “All requests” opens the full inbox."
       },
       "dashboardAgenda": {
         "title": "This week’s appointments",
-        "body": "The diary for the days around today, with the appointment in progress marked and the next one pointed at. Open a row to reach that client’s record."
+        "body": "The diary for the days around today, with the appointment in progress marked. Open a row to reach that client’s record."
       },
       "clientsRegister": {
         "title": "Every client you have",
-        "body": "The register: name, age, contact and status, sortable by any column. Open a row for the client’s full record — their measurements, their plans and their history."
+        "body": "Name, age, contact and status, sortable by any column. Open a row for the client’s full record."
       },
       "clientsSearch": {
         "title": "Find, filter and archive",
-        "body": "Search by name or phone, narrow the list by status or another field, and reach the archive of clients who are no longer active. The archive is where a client goes when they stop coming; nothing is deleted."
+        "body": "Search by name or phone, narrow the list by status, and reach the archive of inactive clients from here. Nothing is deleted."
       },
       "clientsNew": {
         "title": "How to add a new client",
-        "body": "Press “New client” here. A card opens over the register with the client’s details, measurements and goals — fill it in and save, and they appear in the list straight away. The same card is how you edit anyone later, so adding or correcting someone never costs you your place in the register."
+        "body": "Press “New client” and a card opens with their details, measurements and goals. The same card is how you edit anyone later."
       },
       "calendarToolbar": {
         "title": "Choosing what you are looking at",
-        "body": "Step through days or weeks with the arrows, jump to a date with the date button, and switch between the day, week and month views. Search finds an appointment by the client’s name."
+        "body": "Step through days or weeks with the arrows, jump to a date with the date button, and switch between the day, week and month views."
       },
       "calendarBooking": {
         "title": "How to book an appointment",
-        "body": "Drag down the grid across the time you want, on the day you want. Let go and a picker opens: choose the client, set how long the appointment runs, and repeat it weekly if it is a standing slot. If the person is not on your list yet, you can add them without leaving the picker. To move a booking afterwards, drag the block to its new time."
+        "body": "Drag down the grid across the time you want and a picker opens: choose the client, set the length, repeat it weekly if it is a standing slot. To move a booking, drag the block."
       },
       "plannerPicker": {
         "title": "How to build a weekly plan",
-        "body": "Start by choosing whose week you are planning. Search here, or pick one of the suggested clients below — the ones whose plans are running out soonest."
+        "body": "Start by choosing whose week you are planning. Search here, or pick one of the suggested clients below — their plans run out soonest."
       },
       "plannerBoard": {
         "title": "The week, meal by meal",
-        "body": "Once a client is chosen you get their board: seven days across, their meals down each one. Fill a slot from the dish catalog beside it, or generate the week and edit what comes back. Each day shows how its calories and protein compare to the client’s target, and publishing sends the plan to their portal."
+        "body": "Seven days across, their meals down each one. Fill the slots from the dish catalog beside it, or generate the week and edit it. Publishing sends the plan to their portal."
       },
       "dishesCatalog": {
         "title": "What the plans draw from",
-        "body": "Every dish available to your weekly plans, with its calories, carbohydrates and protein on the card. Dishes marked as system dishes come with the app; the rest are your clinic’s own."
+        "body": "Every dish your weekly plans can draw on, with its calories and macros on the card. The ones marked as system dishes come with the app."
       },
       "dishesFilters": {
         "title": "Narrowing the catalog",
-        "body": "Search by name, or filter by meal type, tag and nutrition. You can also switch between your clinic’s own dishes and the ones that came with the app."
+        "body": "Search by name, or filter by meal type, tag and nutrition — or switch between your clinic’s own dishes and the app’s."
       },
       "dishesAdd": {
         "title": "How to add a new dish",
-        "body": "Press “Add dish”. The builder opens beside the catalog: name the dish in both languages, add its ingredients and their amounts, and the calories and macros are worked out as you go. Save it and it is available in every weekly plan from then on."
+        "body": "The builder opens beside the catalog: name the dish in both languages and add its ingredients, and the nutrition is worked out as you go."
       },
       "finish": {
         "title": "That is the whole tour",
-        "body": "You can start it again from “User guide” at the foot of the sidebar whenever you want. Each section also carries its own hints and empty states, which appear when there is something to explain."
+        "body": "You can start it again from “User guide” at the foot of the sidebar whenever you want."
       }
     }
   }

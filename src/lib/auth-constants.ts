@@ -8,9 +8,15 @@ const MINUTE_IN_SECONDS = 60;
 const DAY_IN_SECONDS = 24 * 60 * MINUTE_IN_SECONDS;
 
 /**
- * Minimum staff password length. Shared so the sign-up form, its server-side
- * validation and the Better Auth config cannot drift apart — a form that
- * accepts a password the server then rejects is a maddening bug to report.
+ * Minimum staff password length.
+ *
+ * ⚠ **Nothing reads this any more.** Staff took the client rule — eight
+ * characters with a letter and a digit — so `staffPasswordSchema` is now an
+ * alias of the client one and `CLIENT_MIN_PASSWORD_LENGTH` is the only minimum
+ * in the product. See the note on that schema for why, and for what restoring
+ * the ten-character staff floor would involve.
+ *
+ * Kept rather than deleted because it is the number to put back.
  */
 export const MIN_PASSWORD_LENGTH = 10;
 

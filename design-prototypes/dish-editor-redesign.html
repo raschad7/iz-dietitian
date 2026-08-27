@@ -1,0 +1,1028 @@
+<!doctype html>
+<!--
+  Standalone prototype — the redesigned "add a dish" dialog.
+
+  A clickable study, not production code. Search for عدس / أرز / دجاج / خبز /
+  بيض / لبن / زيت / بصل / طماطم / طحينة / برغل / جبنة, use ↑ ↓ Enter, change
+  quantities, remove a row and undo it, press "إنشاء الطبق" while something is
+  missing. Production maps this composition onto the shared shadcn primitives in
+  src/components/ui/ and the tokens in src/app/globals.css.
+-->
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>إنزيم — إعادة تصميم نافذة إضافة طبق</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Readex+Pro:wght@500;600&display=swap" rel="stylesheet" />
+<style>
+/* ── Enzyme tokens (light) ─────────────────────────────────────────────── */
+:root{
+  --n-0:#FFFFFF; --n-25:#FCFBF7; --n-50:#F7F5EF; --n-100:#EFEDE4; --n-200:#E2DFD3;
+  --n-300:#CDC9B9; --n-400:#A8A493; --n-500:#837F6E; --n-600:#605D50; --n-700:#46443B;
+  --n-800:#2F2E28; --n-900:#1C1B17;
+  --c-50:#F9FAFB; --c-100:#F3F4F6; --c-200:#E5E7EB; --c-300:#D1D5DB;
+  --green-50:#F1FBEA; --green-100:#DFF6D1; --green-200:#C2EDA9; --green-300:#9BE076;
+  --green-400:#75CF48; --green-500:#58B52D; --green-600:#419020; --green-700:#346E1D;
+  --amber-100:#FBF0D8; --amber-600:#9B6A0C; --amber-700:#7A5209;
+  --clay-100:#FAE9E4; --clay-600:#A33422; --clay-700:#82291B;
+
+  --background:var(--n-0); --foreground:var(--n-900);
+  --muted:var(--c-100); --muted-foreground:var(--n-600); --faint:var(--n-500);
+  --border:var(--n-200); --input:var(--c-300); --input-hover:var(--green-500);
+  --primary:var(--green-400); --primary-hover:var(--green-600); --primary-foreground:var(--n-900);
+  --secondary:var(--green-50); --secondary-foreground:var(--green-700);
+  --ring:var(--green-600);
+  --medical-fg:var(--clay-700); --medical-bg:var(--clay-100);
+  --attention-fg:var(--amber-700); --attention-bg:var(--amber-100);
+  --macro-protein:var(--green-600); --macro-carbs:var(--amber-600); --macro-fat:var(--n-600);
+  --overlay:rgba(22,34,13,.45);
+
+  --r-control:10px; --r-sm:8px; --r-md:12px; --r-lg:16px; --r-xl:24px;
+  --shadow-1:0 1px 2px rgba(34,52,20,.06),0 1px 3px rgba(34,52,20,.05);
+  --shadow-3:0 12px 32px rgba(34,52,20,.12);
+  --ease:cubic-bezier(.2,.6,.2,1);
+
+  --font-ui:"IBM Plex Sans Arabic","Segoe UI",Arial,sans-serif;
+  --font-heading:"Readex Pro","IBM Plex Sans Arabic","Segoe UI",Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  font-family:var(--font-ui); font-size:15px; line-height:1.6; color:var(--foreground);
+  background:
+    radial-gradient(1200px 600px at 80% -10%, var(--green-50), transparent 60%),
+    var(--n-50);
+}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+svg{display:block}
+:focus-visible{outline:2px solid var(--ring); outline-offset:2px; border-radius:4px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+
+/* ── Page chrome (prototype only, not part of the design) ──────────────── */
+.chrome{
+  position:fixed; inset-block-start:0; inset-inline:0; z-index:40;
+  display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  padding:10px clamp(12px,3vw,28px);
+  background:rgba(255,255,255,.86); backdrop-filter:blur(10px);
+  border-block-end:1px solid var(--border);
+}
+.chrome h1{margin:0;font-family:var(--font-heading);font-size:15px;font-weight:600}
+.chrome .spacer{flex:1}
+.seg{display:inline-flex;gap:2px;padding:3px;border-radius:var(--r-control);background:var(--muted)}
+.seg button{border:0;background:transparent;border-radius:7px;padding:5px 12px;font-size:13px;font-weight:600;color:var(--muted-foreground)}
+.seg button[aria-pressed="true"]{background:var(--n-0);color:var(--secondary-foreground);box-shadow:var(--shadow-1)}
+.link-btn{border:1px solid var(--input);background:var(--n-0);border-radius:var(--r-control);padding:6px 13px;font-size:13px;font-weight:600;color:var(--secondary-foreground)}
+.link-btn:hover{background:var(--secondary);border-color:var(--green-200)}
+
+/* ── The scrim + stage the dialog sits on ──────────────────────────────── */
+.scrim{
+  position:fixed; inset:0; padding:66px 16px 16px;
+  display:grid; place-items:center; background:var(--overlay); overflow:auto;
+}
+.stage{container-type:inline-size; width:min(76rem,100%); }
+.stage.phone{width:390px}
+
+/* ── Dialog frame ──────────────────────────────────────────────────────── */
+.dialog{
+  display:flex; flex-direction:column; overflow:hidden;
+  max-height:min(88dvh,880px); border-radius:var(--r-lg);
+  background:var(--background); box-shadow:var(--shadow-3);
+}
+.stage.phone .dialog{max-height:calc(100dvh - 96px);height:780px;border-radius:var(--r-md)}
+
+.d-head{
+  display:flex; align-items:flex-start; gap:16px;
+  padding:18px 24px 16px; border-block-end:1px solid var(--border);
+}
+.d-head .title{flex:1;min-width:0}
+.d-head h2{margin:0;font-family:var(--font-heading);font-size:20px;font-weight:600;line-height:1.4}
+.d-head p{margin:2px 0 0;color:var(--muted-foreground);font-size:13px}
+.icon-btn{
+  display:grid;place-items:center;width:36px;height:36px;flex:0 0 auto;
+  border:0;border-radius:var(--r-sm);background:transparent;color:var(--muted-foreground);
+  transition:background 160ms var(--ease),color 160ms var(--ease);
+}
+.icon-btn:hover{background:var(--muted);color:var(--foreground)}
+.icon-btn svg{width:18px;height:18px}
+
+/* ── Two-column workbench ──────────────────────────────────────────────── */
+.d-body{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);min-height:0;flex:1}
+.col-main{min-width:0;overflow-y:auto;padding:22px 24px 28px;scrollbar-width:thin}
+.col-side{
+  min-width:0;overflow-y:auto;padding:22px 24px 28px;scrollbar-width:thin;
+  border-inline-start:1px solid var(--border);background:var(--n-25);
+}
+@container (max-width:900px){
+  .d-body{grid-template-columns:1fr;overflow-y:auto}
+  .col-main,.col-side{overflow:visible;padding:18px 16px}
+  .col-side{border-inline-start:0;border-block-start:1px solid var(--border)}
+  .d-head{padding:14px 16px 12px}
+}
+
+/* ── Field basics ──────────────────────────────────────────────────────── */
+.field{display:flex;flex-direction:column;gap:6px}
+.label{font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px}
+.req{color:var(--clay-600);font-size:15px;line-height:1}
+.opt{color:var(--faint);font-weight:400;font-size:12px}
+.input{
+  width:100%;height:44px;border:1px solid var(--input);border-radius:var(--r-control);
+  background:var(--n-0);padding:0 13px;text-align:start;
+  transition:border-color 160ms var(--ease),box-shadow 160ms var(--ease);
+}
+.input::placeholder{color:var(--n-500)}
+.input:hover{border-color:var(--input-hover)}
+.input:focus{outline:0;border-color:var(--ring);box-shadow:0 0 0 3px rgba(65,144,32,.16)}
+.input.big{height:52px;font-size:18px;font-weight:600}
+.input.invalid{border-color:var(--clay-600);box-shadow:0 0 0 3px rgba(163,52,34,.13)}
+.hint{color:var(--faint);font-size:12px;margin:0}
+
+/* ── Buttons ───────────────────────────────────────────────────────────── */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  min-height:42px;padding:0 16px;border:1px solid transparent;border-radius:var(--r-control);
+  background:transparent;font-size:14px;font-weight:600;
+  transition:background 160ms var(--ease),border-color 160ms var(--ease),color 160ms var(--ease);
+}
+.btn svg{width:17px;height:17px}
+.btn.primary{background:var(--primary);color:var(--primary-foreground)}
+.btn.primary:hover{background:var(--primary-hover);color:var(--n-0)}
+.btn.outline{border-color:var(--input);background:var(--n-0)}
+.btn.outline:hover{border-color:var(--input-hover);background:var(--secondary)}
+.btn.ghost{color:var(--muted-foreground)}
+.btn.ghost:hover{background:var(--muted);color:var(--foreground)}
+.btn.sm{min-height:34px;padding:0 11px;font-size:13px}
+
+/* ── Name block + duplicate check ──────────────────────────────────────── */
+.name-block{margin-block-end:20px}
+.dupe{
+  display:flex;align-items:center;gap:10px;margin-block-start:8px;
+  border:1px solid var(--amber-300,#E8C46A);border-radius:var(--r-sm);
+  background:var(--attention-bg);padding:8px 11px;font-size:13px;color:var(--attention-fg);
+}
+.dupe svg{width:16px;height:16px;flex:0 0 auto}
+.dupe strong{font-weight:600}
+.dupe .spacer{flex:1}
+.dupe button{
+  border:1px solid rgba(122,82,9,.28);background:rgba(255,255,255,.6);
+  border-radius:7px;padding:3px 10px;font-size:12px;font-weight:600;color:var(--attention-fg);
+}
+.dupe button:hover{background:#fff}
+
+/* ── Section heads ─────────────────────────────────────────────────────── */
+.sec-head{display:flex;align-items:baseline;gap:10px;margin-block-end:10px}
+.sec-head h3{margin:0;font-family:var(--font-heading);font-size:17px;font-weight:600}
+.sec-head .count{color:var(--faint);font-size:12px}
+.sec-head .spacer{flex:1}
+.side-sec{margin-block-end:22px}
+.side-sec > .sec-head h3{font-size:14px;font-family:var(--font-ui);font-weight:600}
+
+/* ── Ingredient search + results popover ───────────────────────────────── */
+.search-wrap{position:relative}
+.search-field{position:relative}
+.search-field .glyph{
+  position:absolute;inset-block:0;inset-inline-start:13px;display:flex;align-items:center;
+  color:var(--faint);pointer-events:none;
+}
+.search-field .glyph svg{width:18px;height:18px}
+.search-field .input{padding-inline-start:40px}
+.kbd-hint{
+  position:absolute;inset-block:0;inset-inline-end:12px;display:flex;align-items:center;gap:5px;
+  color:var(--faint);font-size:11px;pointer-events:none;
+}
+kbd{
+  border:1px solid var(--border);border-block-end-width:2px;border-radius:5px;
+  background:var(--n-0);padding:1px 5px;font-family:var(--font-ui);font-size:10px;line-height:1.5;
+}
+.results{
+  position:absolute;inset-inline:0;inset-block-start:calc(100% + 6px);z-index:20;
+  max-height:340px;overflow:auto;border:1px solid var(--border);border-radius:var(--r-md);
+  background:var(--n-0);box-shadow:var(--shadow-3);padding:5px;
+}
+.results[hidden]{display:none}
+.res{
+  display:flex;align-items:center;gap:12px;width:100%;
+  border:0;border-radius:var(--r-sm);background:transparent;padding:9px 11px;text-align:start;
+}
+.res:hover,.res.active{background:var(--secondary)}
+.res.active{box-shadow:inset 0 0 0 1px var(--green-200)}
+.res .nm{flex:1;min-width:0}
+.res .nm b{display:block;font-weight:600;font-size:14px}
+.res .nm span{display:block;color:var(--faint);font-size:12px;direction:ltr;text-align:start}
+.res .kc{color:var(--muted-foreground);font-size:12px;font-variant-numeric:tabular-nums;direction:ltr;white-space:nowrap}
+.res .unit-chip{
+  border:1px solid var(--border);border-radius:999px;padding:1px 8px;
+  font-size:11px;color:var(--muted-foreground);white-space:nowrap;
+}
+.res-foot{display:flex;align-items:center;gap:8px;border-block-start:1px solid var(--border);margin-block-start:4px;padding:8px 8px 4px}
+.res-foot button{border:0;background:transparent;color:var(--secondary-foreground);font-size:13px;font-weight:600;border-radius:6px;padding:4px 8px}
+.res-foot button:hover{background:var(--secondary)}
+.res-empty{padding:14px 12px;text-align:center;color:var(--muted-foreground);font-size:13px}
+
+/* ── Ingredient table ──────────────────────────────────────────────────── */
+.recipe{margin-block-start:16px;border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden;background:var(--n-0)}
+.r-head,.r-row{
+  display:grid;grid-template-columns:minmax(0,1fr) 74px 116px 66px 62px 36px;
+  align-items:center;gap:10px;padding:0 12px;
+}
+.r-head{
+  height:34px;background:var(--n-25);border-block-end:1px solid var(--border);
+  color:var(--faint);font-size:11px;font-weight:600;
+}
+.r-head span:nth-child(n+4){text-align:end}
+.r-row{min-height:56px;border-block-end:1px solid var(--border)}
+.r-row:last-child{border-block-end:0}
+.r-row:hover{background:var(--n-25)}
+.r-row.fresh{animation:pop 900ms var(--ease)}
+@keyframes pop{0%{background:var(--green-100)}100%{background:transparent}}
+.r-name{min-width:0;font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.r-name small{display:block;font-weight:400;color:var(--faint);font-size:11px;direction:ltr;text-align:start}
+.qty{height:36px;width:100%;border:1px solid var(--input);border-radius:var(--r-sm);background:var(--n-0);padding:0 8px;text-align:center;font-variant-numeric:tabular-nums}
+.qty:hover{border-color:var(--input-hover)}
+.qty:focus{outline:0;border-color:var(--ring);box-shadow:0 0 0 3px rgba(65,144,32,.16)}
+.qty.blank{border-color:var(--amber-300,#E8C46A);background:var(--attention-bg)}
+.unit{height:36px;width:100%;border:1px solid var(--input);border-radius:var(--r-sm);background:var(--n-0);padding:0 8px}
+.unit:hover{border-color:var(--input-hover)}
+.num{text-align:end;font-variant-numeric:tabular-nums;font-size:13px;color:var(--muted-foreground);direction:ltr;white-space:nowrap}
+.num.strong{color:var(--foreground);font-weight:600}
+.num.pending{color:var(--attention-fg)}
+.r-del{display:grid;place-items:center;width:30px;height:30px;border:0;border-radius:var(--r-sm);background:transparent;color:var(--n-400);justify-self:end}
+.r-del:hover{background:var(--medical-bg);color:var(--medical-fg)}
+.r-del svg{width:15px;height:15px}
+.r-foot{
+  display:flex;align-items:center;gap:10px;
+  border-block-start:1px solid var(--border);background:var(--n-25);
+  padding:9px 12px;font-size:12px;color:var(--muted-foreground);
+}
+.r-foot .spacer{flex:1}
+.r-foot b{color:var(--foreground);font-variant-numeric:tabular-nums}
+
+.empty-recipe{
+  margin-block-start:16px;border:1px dashed var(--input);border-radius:var(--r-md);
+  padding:28px 20px;text-align:center;background:var(--n-25);
+}
+.empty-recipe .plate{
+  width:46px;height:46px;margin:0 auto 10px;border-radius:50%;
+  display:grid;place-items:center;background:var(--secondary);color:var(--secondary-foreground);
+}
+.empty-recipe .plate svg{width:22px;height:22px}
+.empty-recipe b{display:block;font-size:14px}
+.empty-recipe p{margin:4px 0 0;color:var(--faint);font-size:13px}
+
+.undo{
+  display:flex;align-items:center;gap:10px;margin-block-start:10px;
+  border:1px solid var(--border);border-radius:var(--r-sm);background:var(--n-800);
+  padding:8px 12px;color:var(--n-25);font-size:13px;animation:rise 200ms var(--ease);
+}
+@keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.undo .spacer{flex:1}
+.undo button{border:0;background:transparent;color:var(--green-300);font-weight:600;font-size:13px;border-radius:6px;padding:3px 8px}
+.undo button:hover{background:rgba(255,255,255,.12)}
+
+/* ── Nutrition card ────────────────────────────────────────────────────── */
+.nutri{border:1px solid var(--border);border-radius:var(--r-md);background:var(--n-0);overflow:hidden}
+.nutri-top{display:flex;align-items:center;gap:8px;padding:12px 14px 0}
+.nutri-top .spacer{flex:1}
+.mini-seg{display:inline-flex;gap:2px;padding:2px;border-radius:8px;background:var(--muted)}
+.mini-seg button{border:0;background:transparent;border-radius:6px;padding:3px 9px;font-size:11.5px;font-weight:600;color:var(--muted-foreground)}
+.mini-seg button[aria-pressed="true"]{background:var(--n-0);color:var(--secondary-foreground);box-shadow:var(--shadow-1)}
+.kcal{display:flex;align-items:baseline;gap:8px;padding:6px 14px 2px}
+.kcal b{font-family:var(--font-heading);font-size:38px;font-weight:600;line-height:1.1;font-variant-numeric:tabular-nums;direction:ltr}
+.kcal span{color:var(--muted-foreground);font-size:13px}
+.cat{
+  display:inline-flex;align-items:center;gap:6px;margin:2px 14px 12px;
+  border-radius:999px;background:var(--secondary);padding:3px 10px;
+  color:var(--secondary-foreground);font-size:12px;font-weight:600;
+}
+.cat.quiet{background:var(--muted);color:var(--muted-foreground)}
+.macros{border-block-start:1px solid var(--border);padding:12px 14px;display:grid;gap:11px}
+.macro .top{display:flex;align-items:baseline;gap:8px;font-size:12.5px;margin-block-end:5px}
+.macro .top .spacer{flex:1}
+.macro .g{font-weight:600;font-variant-numeric:tabular-nums;direction:ltr}
+.macro .pc{color:var(--faint);font-variant-numeric:tabular-nums;direction:ltr;min-width:34px;text-align:end}
+.bar{height:7px;border-radius:999px;background:var(--c-200);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:999px;transition:inline-size 320ms var(--ease)}
+.dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+.servings{
+  display:flex;align-items:center;gap:10px;border-block-start:1px solid var(--border);
+  background:var(--n-25);padding:10px 14px;font-size:13px;
+}
+.servings .spacer{flex:1}
+.stepper{display:inline-flex;align-items:center;border:1px solid var(--input);border-radius:var(--r-sm);background:var(--n-0);overflow:hidden}
+.stepper button{width:30px;height:32px;border:0;background:transparent;color:var(--muted-foreground);font-size:16px;line-height:1}
+.stepper button:hover{background:var(--muted);color:var(--foreground)}
+.stepper span{min-width:32px;text-align:center;font-weight:600;font-variant-numeric:tabular-nums}
+.nutri-empty{border-block-start:1px solid var(--border);padding:20px 14px;text-align:center;color:var(--faint);font-size:13px}
+
+/* ── Pills ─────────────────────────────────────────────────────────────── */
+.pills{display:flex;flex-wrap:wrap;gap:7px}
+.pill{
+  display:inline-flex;align-items:center;gap:6px;min-height:36px;
+  border:1px solid var(--input);border-radius:999px;background:var(--n-0);padding:0 13px;
+  font-size:13px;font-weight:500;
+  transition:background 160ms var(--ease),border-color 160ms var(--ease),color 160ms var(--ease);
+}
+.pill:hover{border-color:var(--input-hover);background:var(--n-25)}
+.pill[aria-pressed="true"]{border-color:transparent;background:var(--secondary);color:var(--secondary-foreground);font-weight:600}
+.pill.med[aria-pressed="true"]{background:var(--medical-bg);color:var(--medical-fg)}
+.pill svg{width:15px;height:15px}
+.pill .tag-dot{width:8px;height:8px;border-radius:50%}
+.group.missing .pills{
+  border-radius:var(--r-md);
+  box-shadow:0 0 0 2px rgba(163,52,34,.35);
+  padding:6px;margin:-6px;
+}
+.group-err{display:flex;align-items:center;gap:6px;margin-block-start:7px;color:var(--medical-fg);font-size:12.5px}
+.group-err svg{width:14px;height:14px}
+
+/* ── Allergen suggestion ───────────────────────────────────────────────── */
+.suggest{
+  display:flex;align-items:flex-start;gap:9px;margin-block-end:9px;
+  border:1px solid var(--border);border-radius:var(--r-sm);background:var(--n-0);padding:9px 11px;
+}
+.suggest svg{width:16px;height:16px;flex:0 0 auto;margin-block-start:3px;color:var(--muted-foreground)}
+.suggest .body{flex:1;min-width:0}
+.suggest p{margin:0 0 6px;font-size:12.5px;color:var(--muted-foreground)}
+.suggest p b{color:var(--foreground);font-weight:600}
+.suggest .row{display:flex;flex-wrap:wrap;gap:6px}
+.chip{
+  display:inline-flex;align-items:center;gap:5px;border:1px dashed var(--clay-300,#E8A08F);
+  border-radius:999px;background:var(--medical-bg);padding:3px 10px;
+  color:var(--medical-fg);font-size:12px;font-weight:600;
+}
+.chip svg{width:12px;height:12px;margin:0;color:currentColor}
+.chip:hover{border-style:solid}
+
+/* ── Footer ────────────────────────────────────────────────────────────── */
+.d-foot{
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  border-block-start:1px solid var(--border);background:var(--n-0);padding:12px 24px;
+}
+.status{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;min-width:0}
+.status .lead{color:var(--muted-foreground)}
+.status.ready .lead{display:flex;align-items:center;gap:6px;color:var(--secondary-foreground);font-weight:600}
+.status .lead svg{width:16px;height:16px}
+.miss{
+  border:1px solid rgba(163,52,34,.3);border-radius:999px;background:var(--medical-bg);
+  padding:3px 11px;color:var(--medical-fg);font-size:12.5px;font-weight:600;
+}
+.miss:hover{background:#F6DED7}
+.d-foot .spacer{flex:1}
+.shake{animation:shake 380ms var(--ease)}
+@keyframes shake{10%,90%{transform:translateX(-1px)}30%,70%{transform:translateX(3px)}50%{transform:translateX(-3px)}}
+@container (max-width:900px){
+  .d-foot{padding:10px 16px}
+  .d-foot .actions{width:100%;display:flex;gap:8px}
+  .d-foot .actions .btn{flex:1}
+  /* Two lines on a phone: the name and its delete, then the controls strip. */
+  .r-head{display:none}
+  .r-row{grid-template-columns:74px minmax(0,1fr) auto auto;gap:8px 10px;padding:10px 12px}
+  .r-name{grid-column:1/4;grid-row:1}
+  .r-del{grid-column:4;grid-row:1}
+  .qty{grid-column:1;grid-row:2}
+  .unit{grid-column:2;grid-row:2}
+  .g-cell{grid-column:3;grid-row:2}
+  .k-cell{grid-column:4;grid-row:2}
+}
+
+/* ── Notes sheet (prototype commentary) ────────────────────────────────── */
+.notes{
+  position:fixed;inset-block:0;inset-inline-end:0;z-index:50;width:min(400px,92vw);
+  overflow-y:auto;background:var(--n-0);box-shadow:var(--shadow-3);padding:22px 22px 40px;
+  transform:translateX(-100%);transition:transform 260ms var(--ease);
+}
+.notes[data-open="true"]{transform:none}
+.notes h2{margin:0 0 4px;font-family:var(--font-heading);font-size:18px}
+.notes > p{margin:0 0 16px;color:var(--muted-foreground);font-size:13px}
+.notes ol{margin:0;padding-inline-start:18px;display:grid;gap:13px}
+.notes li{font-size:13.5px}
+.notes li b{display:block;font-weight:600;margin-block-end:2px}
+.notes li span{color:var(--muted-foreground)}
+.notes .close{position:absolute;inset-block-start:16px;inset-inline-start:16px}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" aria-hidden="true" style="position:absolute">
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="m16 16 4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4.5 4.5L19 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4.5 21 20H3l9-15.5Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 10v4.2M12 17.2h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 11v6M12 7.6h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-bowl" viewBox="0 0 24 24"><path d="M3 11h18a9 9 0 0 1-9 9 9 9 0 0 1-9-9Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 8c0-1.5 1-2 1-3M12 7.5c0-1.5 1-2 1-3M16 8c0-1.5 1-2 1-3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 3v2m0 14v2M3 12h2m14 0h2M5.6 5.6 7 7m10 10 1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-plate" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+  <symbol id="i-apple" viewBox="0 0 24 24"><path d="M12 8c-3.5-2.5-8 0-8 5 0 4 3 8 5 8 1 0 2-.7 3-.7s2 .7 3 .7c2 0 5-4 5-8 0-5-4.5-7.5-8-5Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M12 8V5c0-1 .8-2 2-2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 8H5V4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 8a8 8 0 1 1-1.5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+</svg>
+
+<!-- prototype chrome, not part of the design -->
+<header class="chrome">
+  <h1>إنزيم · نافذة إضافة طبق — إعادة التصميم</h1>
+  <div class="spacer"></div>
+  <div class="seg" role="group" aria-label="عرض">
+    <button type="button" data-size="desktop" aria-pressed="true">سطح المكتب</button>
+    <button type="button" data-size="phone" aria-pressed="false">جوال</button>
+  </div>
+  <button type="button" class="link-btn" id="notes-open">ما الذي تغيّر؟</button>
+</header>
+
+<div class="scrim">
+  <div class="stage" id="stage">
+    <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-title">
+
+      <div class="d-head">
+        <div class="title">
+          <h2 id="dlg-title">طبق جديد</h2>
+          <p>ابنِ الوصفة، وتُحسب القيم الغذائية وحدها.</p>
+        </div>
+        <button type="button" class="icon-btn" aria-label="إغلاق"><svg><use href="#i-close"/></svg></button>
+      </div>
+
+      <div class="d-body">
+
+        <!-- ── LEFT: the work ─────────────────────────────────────────── -->
+        <div class="col-main">
+
+          <div class="name-block">
+            <div class="field">
+              <label class="label" for="dish-name">اسم الطبق <span class="req" aria-hidden="true">*</span></label>
+              <input class="input big" id="dish-name" placeholder="مثال: مقلوبة دجاج" maxlength="120" autocomplete="off" />
+            </div>
+            <div id="dupe" hidden></div>
+          </div>
+
+          <div class="sec-head">
+            <h3>المكوّنات</h3>
+            <span class="count" id="ing-count">لم تُضف مكوّنات بعد</span>
+          </div>
+
+          <div class="search-wrap">
+            <div class="search-field">
+              <span class="glyph"><svg><use href="#i-search"/></svg></span>
+              <input class="input" id="ing-search" placeholder="ابحث عن مكوّن… عدس، أرز، دجاج، خبز"
+                     autocomplete="off" role="combobox" aria-expanded="false" aria-controls="results" />
+              <span class="kbd-hint" id="kbd-hint" hidden><kbd>↑</kbd><kbd>↓</kbd> تنقّل <kbd>Enter</kbd> إضافة</span>
+            </div>
+            <div class="results" id="results" role="listbox" aria-label="نتائج البحث" hidden></div>
+          </div>
+
+          <div id="recipe-slot"></div>
+          <div id="undo-slot"></div>
+        </div>
+
+        <!-- ── RIGHT: the result and the labels ───────────────────────── -->
+        <div class="col-side">
+
+          <div class="side-sec">
+            <div class="sec-head"><h3>القيم الغذائية</h3></div>
+            <div class="nutri" id="nutri"></div>
+          </div>
+
+          <div class="side-sec group" id="grp-meals">
+            <div class="sec-head"><h3>وقت الوجبة <span class="req" aria-hidden="true">*</span></h3></div>
+            <div class="pills" id="meals"></div>
+            <div class="group-err" id="meals-err" hidden><svg><use href="#i-alert"/></svg> اختر وقتاً واحداً على الأقل.</div>
+          </div>
+
+          <div class="side-sec">
+            <div class="sec-head"><h3>خصائص الطبق <span class="opt">اختياري</span></h3></div>
+            <div class="pills" id="tags"></div>
+          </div>
+
+          <div class="side-sec">
+            <div class="sec-head"><h3>مسبّبات الحساسية</h3></div>
+            <div id="allergy-suggest"></div>
+            <div class="pills" id="allergens"></div>
+          </div>
+
+          <div class="side-sec">
+            <div class="field">
+              <label class="label" for="name-en">الاسم بالإنجليزية <span class="opt">اختياري</span></label>
+              <input class="input" id="name-en" dir="ltr" placeholder="Chicken maqlouba" />
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="d-foot">
+        <div class="status" id="status"></div>
+        <div class="spacer"></div>
+        <div class="actions">
+          <button type="button" class="btn ghost" id="btn-cancel">إلغاء</button>
+          <button type="button" class="btn outline" id="btn-again">حفظ وإضافة آخر</button>
+          <button type="button" class="btn primary" id="btn-save">إنشاء الطبق</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<aside class="notes" id="notes" data-open="false" aria-label="ملاحظات التصميم">
+  <button type="button" class="icon-btn close" id="notes-close" aria-label="إغلاق"><svg><use href="#i-close"/></svg></button>
+  <h2>ما الذي تغيّر</h2>
+  <p>عشرة فروق بين النافذة الحالية وهذه.</p>
+  <ol>
+    <li><b>عمودان بدل شريط طويل</b><span>اليسار للعمل: الاسم والوصفة. اليمين ثابت: القيم الغذائية ووقت الوجبة والخصائص. لم يعد شيء مطلوب مخفياً تحت الشاشة.</span></li>
+    <li><b>البحث بلوحة المفاتيح</b><span>النتائج تنزل في قائمة عائمة لا تدفع الصفحة، وتتنقّل بالأسهم وتضيف بـ Enter. لا حاجة للفأرة بين المكوّنات.</span></li>
+    <li><b>صف مكوّن بأعمدة مصطفّة</b><span>كل صف يعرض الاسم والكمية والوحدة والغرام والسعرات في أعمدة تُقرأ عمودياً. الوزن يظهر دائماً، لا فقط عند الوحدات المنزلية.</span></li>
+    <li><b>حذف قابل للتراجع</b><span>شريط «تراجع» يبقى بعد الحذف بدل الاختفاء النهائي بنقرة واحدة.</span></li>
+    <li><b>الحقول المطلوبة معلَّمة</b><span>نجمة على المطلوب، و«اختياري» على غيره، قبل الضغط على الحفظ لا بعده.</span></li>
+    <li><b>الشريط السفلي يقول ما الناقص</b><span>«ناقص: وقت الوجبة» كزرّ يأخذك إليه ويبرزه، بدل رسالة خطأ في مكان لا تراه.</span></li>
+    <li><b>الحساسية ظاهرة ومقترَحة</b><span>خرجت من القسم المطوي، والتطبيق يقترحها من المكوّنات نفسها، وأنت تؤكّد فقط.</span></li>
+    <li><b>عدد الحصص</b><span>تقول إن الوصفة تكفي ٤ حصص فتُقسَم القيم تلقائياً. لا قسمة يدوية عند إدخال الغرامات.</span></li>
+    <li><b>ألوان مميّزة للماكرو</b><span>بروتين وكربوهيدرات ودهون بثلاثة ألوان مختلفة بدل لون رمادي واحد للثلاثة.</span></li>
+    <li><b>حفظ وإضافة آخر</b><span>عند بناء الكتالوج تحفظ وتبقى في النافذة للطبق التالي.</span></li>
+  </ol>
+</aside>
+
+<script>
+(() => {
+  'use strict';
+
+  /* ── mock food library ──────────────────────────────────────────────── */
+  const G = { label: 'غرام', grams: 1, isGram: true };
+  const F = (ar, en, kcal, p, c, f, units, allergens) => ({
+    ar, en, kcal, p, c, f, units: [...units, G], allergens: allergens || []
+  });
+
+  const FOODS = [
+    F('عدس مطبوخ', 'Lentils, cooked', 116, 9, 20, 0.4, [{label:'كوب',grams:198},{label:'نصف كوب',grams:99}]),
+    F('أرز أبيض مطبوخ', 'White rice, cooked', 130, 2.7, 28, 0.3, [{label:'كوب',grams:158},{label:'نصف كوب',grams:79}]),
+    F('أرز أبيض ناشف', 'White rice, dry', 365, 7.1, 80, 0.7, [{label:'كوب',grams:185}]),
+    F('صدر دجاج مشوي', 'Chicken breast, grilled', 165, 31, 0, 3.6, [{label:'قطعة',grams:120}]),
+    F('زيت زيتون', 'Olive oil', 884, 0, 0, 100, [{label:'ملعقة كبيرة',grams:13.5},{label:'ملعقة صغيرة',grams:4.5}]),
+    F('بصل', 'Onion, raw', 40, 1.1, 9.3, 0.1, [{label:'حبة متوسطة',grams:110}]),
+    F('خبز عربي', 'Arabic bread', 275, 9, 55, 1.2, [{label:'رغيف',grams:60},{label:'نصف رغيف',grams:30}], ['قمح']),
+    F('بيض مسلوق', 'Egg, boiled', 155, 13, 1.1, 11, [{label:'حبة',grams:50}], ['بيض']),
+    F('طماطم', 'Tomato', 18, 0.9, 3.9, 0.2, [{label:'حبة متوسطة',grams:123}]),
+    F('لبن زبادي', 'Yogurt, plain', 61, 3.5, 4.7, 3.3, [{label:'كوب',grams:245}], ['حليب']),
+    F('طحينة', 'Tahini', 595, 17, 21, 54, [{label:'ملعقة كبيرة',grams:15}], ['سمسم']),
+    F('برغل مطبوخ', 'Bulgur, cooked', 83, 3, 19, 0.2, [{label:'كوب',grams:182}], ['قمح']),
+    F('جبنة بيضاء', 'White cheese', 264, 14, 4, 21, [{label:'شريحة',grams:28}], ['حليب']),
+    F('لوز', 'Almonds', 579, 21, 22, 50, [{label:'حفنة',grams:28}], ['مكسرات']),
+    F('سمك سلمون', 'Salmon', 208, 20, 0, 13, [{label:'قطعة',grams:150}], ['سمك']),
+  ];
+  FOODS.forEach((f, i) => { f.id = 'f' + i; });
+
+  const MEALS = [
+    { v:'breakfast', label:'فطور', icon:'#i-sun' },
+    { v:'lunch',     label:'غداء', icon:'#i-plate' },
+    { v:'dinner',    label:'عشاء', icon:'#i-moon' },
+    { v:'snack',     label:'سناك', icon:'#i-apple' },
+  ];
+  const TAGS = [
+    { v:'economical', label:'اقتصادي', color:'#419020' },
+    { v:'quick',      label:'سريع',    color:'#9B6A0C' },
+    { v:'easy',       label:'سهل التحضير', color:'#58B52D' },
+    { v:'nocook',     label:'بدون طهي', color:'#605D50' },
+    { v:'portable',   label:'قابل للنقل', color:'#A8A493' },
+    { v:'filling',    label:'مُشبِع',  color:'#346E1D' },
+    { v:'local',      label:'محلي',    color:'#A33422' },
+    { v:'vegetarian', label:'نباتي',   color:'#75CF48' },
+  ];
+  const ALLERGENS = ['قمح','حليب','بيض','مكسرات','سمسم','سمك','فول صويا','قشريات'];
+
+  /* ── state ──────────────────────────────────────────────────────────── */
+  let rows = [];            // { key, food, qty, unitIndex }
+  let seq = 0;
+  const meals = new Set(), tags = new Set(), allergens = new Set();
+  let servings = 1;
+  let view = 'serving';     // 'serving' | 'total'
+  let attempted = false;
+  let dismissedSuggestions = new Set();
+  let lastRemoved = null, undoTimer = null;
+
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, cls, html) => {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (html != null) n.innerHTML = html;
+    return n;
+  };
+  const norm = (s) => s.replace(/[إأآا]/g,'ا').replace(/ة/g,'ه').replace(/[ىي]/g,'ي').replace(/[ًٌٍَُِّْ]/g,'').toLowerCase();
+  const icon = (id, cls) => `<svg class="${cls||''}"><use href="${id}"/></svg>`;
+
+  /* ── ingredient search ──────────────────────────────────────────────── */
+  const search = $('ing-search'), results = $('results'), kbdHint = $('kbd-hint');
+  let matches = [], active = -1;
+
+  function openResults(list) {
+    matches = list; active = list.length ? 0 : -1;
+    results.innerHTML = '';
+    if (!list.length) {
+      results.appendChild(el('div','res-empty',
+        `لا نتائج لـ «${search.value.trim()}».`));
+    } else {
+      list.forEach((food, i) => {
+        const unit = food.units[0];
+        const b = el('button','res' + (i===0?' active':''));
+        b.type = 'button'; b.setAttribute('role','option'); b.dataset.i = i;
+        b.innerHTML =
+          `<span class="nm"><b>${food.ar}</b><span>${food.en}</span></span>` +
+          (unit.isGram ? '' : `<span class="unit-chip">${unit.label} · ${unit.grams} غ</span>`) +
+          `<span class="kc">${Math.round(food.kcal)} kcal / 100g</span>`;
+        b.addEventListener('click', () => addFood(food));
+        results.appendChild(b);
+      });
+    }
+    const foot = el('div','res-foot');
+    const add = el('button', null, `${icon('#i-plus')}<span>إضافة «${search.value.trim() || 'مكوّن'}» كمكوّن خاص</span>`);
+    add.type = 'button';
+    add.style.display = 'inline-flex'; add.style.alignItems = 'center'; add.style.gap = '6px';
+    add.addEventListener('click', () => { flash('في التصميم النهائي: نموذج مصغّر داخل نفس النافذة، بلا نافذة فوق نافذة.'); });
+    foot.appendChild(add);
+    results.appendChild(foot);
+    results.hidden = false;
+    search.setAttribute('aria-expanded','true');
+    kbdHint.hidden = !list.length;
+  }
+  function closeResults() {
+    results.hidden = true; search.setAttribute('aria-expanded','false');
+    kbdHint.hidden = true; matches = []; active = -1;
+  }
+  function highlight(next) {
+    const items = [...results.querySelectorAll('.res')];
+    if (!items.length) return;
+    active = (next + items.length) % items.length;
+    items.forEach((n,i) => n.classList.toggle('active', i === active));
+    items[active].scrollIntoView({ block:'nearest' });
+  }
+
+  search.addEventListener('input', () => {
+    const q = norm(search.value.trim());
+    if (!q) return closeResults();
+    openResults(FOODS.filter(f => norm(f.ar).includes(q) || norm(f.en).includes(q)).slice(0, 8));
+  });
+  search.addEventListener('keydown', (e) => {
+    if (results.hidden) return;
+    if (e.key === 'ArrowDown') { e.preventDefault(); highlight(active + 1); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); highlight(active - 1); }
+    else if (e.key === 'Enter') { e.preventDefault(); if (matches[active]) addFood(matches[active]); }
+    else if (e.key === 'Escape') { e.preventDefault(); closeResults(); }
+  });
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.search-wrap')) closeResults();
+  });
+
+  /* ── rows ───────────────────────────────────────────────────────────── */
+  function addFood(food) {
+    seq += 1;
+    const unitIndex = 0;
+    const isGram = food.units[0].isGram;
+    rows.push({ key:'r'+seq, food, qty: isGram ? '' : '1', unitIndex, fresh:true });
+    search.value = ''; closeResults(); render();
+    const input = document.querySelector(`[data-qty="r${seq}"]`);
+    if (input) { input.scrollIntoView({block:'nearest'}); if (isGram) input.focus(); }
+    search.focus({ preventScroll:true });
+    if (isGram && input) input.focus();
+  }
+  function removeRow(key) {
+    const i = rows.findIndex(r => r.key === key);
+    if (i < 0) return;
+    lastRemoved = { row: rows[i], index: i };
+    rows.splice(i,1); render();
+    clearTimeout(undoTimer);
+    undoTimer = setTimeout(() => { lastRemoved = null; render(); }, 7000);
+  }
+  const gramsOf = (row) => {
+    const q = parseFloat(row.qty);
+    if (!isFinite(q) || q <= 0) return 0;
+    return q * row.food.units[row.unitIndex].grams;
+  };
+
+  function renderRecipe() {
+    const slot = $('recipe-slot');
+    slot.innerHTML = '';
+    $('ing-count').textContent = rows.length
+      ? `${rows.length} مكوّن`
+      : 'لم تُضف مكوّنات بعد';
+
+    if (!rows.length) {
+      const e = el('div','empty-recipe',
+        `<div class="plate">${icon('#i-bowl')}</div>
+         <b>ابدأ بأول مكوّن</b>
+         <p>ابحث بالأعلى، أو اضغط Enter على أول نتيجة. تُحسب القيم الغذائية فور الإضافة.</p>`);
+      slot.appendChild(e);
+      return;
+    }
+
+    const box = el('div','recipe');
+    box.appendChild(el('div','r-head',
+      `<span>المكوّن</span><span style="text-align:center">الكمية</span><span style="text-align:center">الوحدة</span><span>بالغرام</span><span>سعرة</span><span></span>`));
+
+    let totalG = 0;
+    rows.forEach(row => {
+      const g = gramsOf(row); totalG += g;
+      const kc = g ? Math.round(g / 100 * row.food.kcal) : null;
+      const r = el('div','r-row' + (row.fresh ? ' fresh' : ''));
+      row.fresh = false;
+
+      r.appendChild(el('div','r-name', `${row.food.ar}<small>${row.food.en}</small>`));
+
+      const qty = el('input','qty' + (row.qty === '' ? ' blank' : ''));
+      qty.type='number'; qty.min='0'; qty.step='any'; qty.value = row.qty;
+      qty.dataset.qty = row.key; qty.setAttribute('aria-label','الكمية');
+      qty.placeholder = '—';
+      qty.addEventListener('input', () => { row.qty = qty.value; render(true); });
+      r.appendChild(qty);
+
+      const unit = el('select','unit');
+      unit.setAttribute('aria-label','الوحدة');
+      row.food.units.forEach((u,i) => {
+        const o = el('option', null, u.isGram ? 'غرام' : `${u.label} (${u.grams} غ)`);
+        o.value = i; if (i === row.unitIndex) o.selected = true;
+        unit.appendChild(o);
+      });
+      unit.addEventListener('change', () => { row.unitIndex = +unit.value; render(); });
+      r.appendChild(unit);
+
+      r.appendChild(el('div','num g-cell' + (g ? '' : ' pending'), g ? `${Math.round(g)} غ` : 'بانتظار الكمية'));
+      r.appendChild(el('div','num strong k-cell', kc != null ? String(kc) : '—'));
+
+      const del = el('button','r-del', icon('#i-close'));
+      del.type='button'; del.setAttribute('aria-label', `حذف ${row.food.ar}`);
+      del.addEventListener('click', () => removeRow(row.key));
+      r.appendChild(del);
+
+      box.appendChild(r);
+    });
+
+    const counted = rows.filter(r => gramsOf(r) > 0).length;
+    box.appendChild(el('div','r-foot',
+      `<span>وزن الوصفة <b>${Math.round(totalG)} غ</b></span>
+       <span class="spacer"></span>
+       <span>${counted < rows.length ? `${rows.length - counted} صف بانتظار الكمية` : 'كل الصفوف مكتملة'}</span>`));
+    slot.appendChild(box);
+  }
+
+  function renderUndo() {
+    const slot = $('undo-slot'); slot.innerHTML = '';
+    if (!lastRemoved) return;
+    const bar = el('div','undo',
+      `<span>حُذف «${lastRemoved.row.food.ar}».</span><span class="spacer"></span>`);
+    const b = el('button', null, 'تراجع');
+    b.type = 'button';
+    b.addEventListener('click', () => {
+      rows.splice(lastRemoved.index, 0, lastRemoved.row);
+      lastRemoved = null; clearTimeout(undoTimer); render();
+    });
+    bar.appendChild(b);
+    slot.appendChild(bar);
+  }
+
+  /* ── nutrition ──────────────────────────────────────────────────────── */
+  function totals() {
+    const t = { kcal:0, p:0, c:0, f:0 };
+    rows.forEach(r => {
+      const g = gramsOf(r); if (!g) return;
+      t.kcal += g/100 * r.food.kcal;
+      t.p    += g/100 * r.food.p;
+      t.c    += g/100 * r.food.c;
+      t.f    += g/100 * r.food.f;
+    });
+    return t;
+  }
+  function category(t) {
+    if (!t.kcal) return null;
+    const pp = t.p*4/t.kcal, cp = t.c*4/t.kcal, fp = t.f*9/t.kcal;
+    if (pp >= .30) return 'عالي البروتين';
+    if (cp >= .60) return 'عالي الكربوهيدرات';
+    if (fp >= .45) return 'عالي الدهون';
+    return 'متوازن';
+  }
+
+  function renderNutrition() {
+    const box = $('nutri'); box.innerHTML = '';
+    const raw = totals();
+    const div = view === 'serving' ? servings : 1;
+    const t = { kcal: raw.kcal/div, p: raw.p/div, c: raw.c/div, f: raw.f/div };
+    const empty = raw.kcal === 0;
+
+    const top = el('div','nutri-top');
+    top.appendChild(el('span','spacer'));
+    const seg = el('div','mini-seg');
+    [['serving','للحصة'],['total','للوصفة كاملة']].forEach(([v,label]) => {
+      const b = el('button', null, label); b.type='button';
+      b.setAttribute('aria-pressed', String(view === v));
+      b.addEventListener('click', () => { view = v; render(); });
+      seg.appendChild(b);
+    });
+    top.appendChild(seg);
+    box.appendChild(top);
+
+    box.appendChild(el('div','kcal',
+      `<b>${empty ? '—' : Math.round(t.kcal)}</b><span>سعرة حرارية ${view==='serving' ? 'للحصة' : 'للوصفة'}</span>`));
+
+    const cat = category(raw);
+    box.appendChild(el('div','cat' + (empty ? ' quiet' : ''), empty ? 'تُحسب من المكوّنات' : `${icon('#i-check')} ${cat}`));
+
+    if (empty) {
+      box.appendChild(el('div','nutri-empty','أضف مكوّناً واحداً لتظهر الأرقام هنا.'));
+    } else {
+      const macros = el('div','macros');
+      const kcalTotal = t.p*4 + t.c*4 + t.f*9 || 1;
+      [['بروتين', t.p, t.p*4, 'var(--macro-protein)'],
+       ['كربوهيدرات', t.c, t.c*4, 'var(--macro-carbs)'],
+       ['دهون', t.f, t.f*9, 'var(--macro-fat)']].forEach(([label, grams, energy, color]) => {
+        const pct = Math.round(energy / kcalTotal * 100);
+        const m = el('div','macro',
+          `<div class="top">
+             <span class="dot" style="background:${color}"></span>
+             <span>${label}</span><span class="spacer"></span>
+             <span class="g">${grams.toFixed(1)} غ</span>
+             <span class="pc">${pct}%</span>
+           </div>
+           <div class="bar"><i style="inline-size:${pct}%;background:${color}"></i></div>`);
+        macros.appendChild(m);
+      });
+      box.appendChild(macros);
+    }
+
+    const s = el('div','servings', `<span>الوصفة تكفي</span><span class="spacer"></span>`);
+    const st = el('div','stepper');
+    const minus = el('button', null, '−'); minus.type='button'; minus.setAttribute('aria-label','أقل');
+    const val = el('span', null, String(servings));
+    const plus = el('button', null, '+'); plus.type='button'; plus.setAttribute('aria-label','أكثر');
+    minus.addEventListener('click', () => { servings = Math.max(1, servings-1); render(); });
+    plus.addEventListener('click', () => { servings = Math.min(20, servings+1); render(); });
+    st.append(minus, val, plus);
+    s.appendChild(st);
+    s.appendChild(el('span', null, 'حصة'));
+    box.appendChild(s);
+  }
+
+  /* ── pill groups ────────────────────────────────────────────────────── */
+  function renderPills(container, items, set, opts) {
+    container.innerHTML = '';
+    items.forEach(it => {
+      const on = set.has(it.v);
+      const b = el('button','pill' + (opts && opts.medical ? ' med' : ''));
+      b.type = 'button'; b.setAttribute('aria-pressed', String(on));
+      b.innerHTML =
+        (it.icon ? icon(it.icon) : '') +
+        (it.color ? `<span class="tag-dot" style="background:${it.color}"></span>` : '') +
+        `<span>${it.label}</span>`;
+      b.addEventListener('click', () => { on ? set.delete(it.v) : set.add(it.v); render(); });
+      container.appendChild(b);
+    });
+  }
+
+  function renderAllergens() {
+    renderPills($('allergens'), ALLERGENS.map(v => ({ v, label:v })), allergens, { medical:true });
+
+    const found = new Map();
+    rows.forEach(r => r.food.allergens.forEach(a => {
+      if (allergens.has(a) || dismissedSuggestions.has(a)) return;
+      if (!found.has(a)) found.set(a, []);
+      found.get(a).push(r.food.ar);
+    }));
+
+    const slot = $('allergy-suggest'); slot.innerHTML = '';
+    if (!found.size) return;
+    const wrap = el('div','suggest',
+      `${icon('#i-info')}<div class="body"><p>من المكوّنات التي أضفتها، قد يحتوي الطبق على <b>${[...found.keys()].join('، ')}</b>. أضفها بنقرة.</p><div class="row"></div></div>`);
+    const row = wrap.querySelector('.row');
+    found.forEach((sources, a) => {
+      const c = el('button','chip', `${icon('#i-plus')}<span>${a}</span>`);
+      c.type = 'button'; c.title = `من: ${sources.join('، ')}`;
+      c.addEventListener('click', () => { allergens.add(a); render(); });
+      row.appendChild(c);
+    });
+    slot.appendChild(wrap);
+  }
+
+  /* ── duplicate-name check ───────────────────────────────────────────── */
+  const EXISTING = ['مقلوبة دجاج','مجدرة','سلطة دجاج','شوربة عدس','بيض مقلي'];
+  function renderDupe() {
+    const q = norm($('dish-name').value.trim());
+    const slot = $('dupe');
+    if (q.length < 2) { slot.hidden = true; slot.innerHTML=''; return; }
+    const hit = EXISTING.find(n => norm(n).startsWith(q));
+    if (!hit) { slot.hidden = true; slot.innerHTML=''; return; }
+    const exact = norm(hit) === q;
+    slot.hidden = false;
+    slot.innerHTML =
+      `<div class="dupe">${icon('#i-alert')}
+        <span>${exact ? 'يوجد طبق بنفس الاسم:' : 'اسم قريب موجود:'} <strong>${hit}</strong></span>
+        <span class="spacer"></span>
+        <button type="button">فتحه</button>
+       </div>`;
+    slot.querySelector('button').addEventListener('click', () =>
+      flash('في التصميم النهائي: يفتح الطبق الموجود للتعديل بدل إنشاء نسخة ثانية.'));
+  }
+  $('dish-name').addEventListener('input', () => { renderDupe(); renderStatus(); });
+
+  /* ── footer status ──────────────────────────────────────────────────── */
+  function missing() {
+    const m = [];
+    if (!$('dish-name').value.trim()) m.push({ key:'name', label:'اسم الطبق' });
+    if (!rows.some(r => gramsOf(r) > 0)) m.push({ key:'ing', label:'مكوّن واحد على الأقل' });
+    if (!meals.size) m.push({ key:'meal', label:'وقت الوجبة' });
+    return m;
+  }
+  function renderStatus() {
+    const s = $('status'); s.innerHTML = ''; s.className = 'status';
+    const m = missing();
+    if (!m.length) {
+      s.classList.add('ready');
+      s.appendChild(el('span','lead', `${icon('#i-check')} جاهز للحفظ`));
+      return;
+    }
+    s.appendChild(el('span','lead','ناقص:'));
+    m.forEach(item => {
+      const b = el('button','miss', item.label); b.type='button';
+      b.addEventListener('click', () => jumpTo(item.key));
+      s.appendChild(b);
+    });
+    $('meals-err').hidden = !(attempted && !meals.size);
+    $('grp-meals').classList.toggle('missing', attempted && !meals.size);
+    $('dish-name').classList.toggle('invalid', attempted && !$('dish-name').value.trim());
+  }
+  function jumpTo(key) {
+    if (key === 'name') { $('dish-name').scrollIntoView({block:'center',behavior:'smooth'}); $('dish-name').focus(); }
+    if (key === 'ing')  { search.scrollIntoView({block:'center',behavior:'smooth'}); search.focus(); }
+    if (key === 'meal') {
+      $('grp-meals').scrollIntoView({block:'center',behavior:'smooth'});
+      $('grp-meals').classList.add('missing');
+      $('meals').querySelector('.pill').focus();
+    }
+  }
+
+  /* ── save ───────────────────────────────────────────────────────────── */
+  function attemptSave(again) {
+    const m = missing();
+    if (m.length) {
+      attempted = true; render();
+      $('status').classList.add('shake');
+      setTimeout(() => $('status').classList.remove('shake'), 400);
+      jumpTo(m[0].key);
+      return;
+    }
+    if (again) {
+      flash('حُفظ الطبق. النافذة بقيت مفتوحة وفارغة للطبق التالي.');
+      rows = []; meals.clear(); tags.clear(); allergens.clear();
+      dismissedSuggestions = new Set(); servings = 1; attempted = false;
+      $('dish-name').value = ''; $('name-en').value = '';
+      renderDupe(); render(); $('dish-name').focus();
+    } else {
+      flash('حُفظ الطبق وأُغلقت النافذة.');
+    }
+  }
+  $('btn-save').addEventListener('click', () => attemptSave(false));
+  $('btn-again').addEventListener('click', () => attemptSave(true));
+  $('btn-cancel').addEventListener('click', () =>
+    flash('في التصميم النهائي: يسأل عن التأكيد إن كان هناك تعديل غير محفوظ.'));
+
+  /* ── tiny toast, prototype only ─────────────────────────────────────── */
+  let toast;
+  function flash(text) {
+    if (!toast) {
+      toast = el('div');
+      Object.assign(toast.style, {
+        position:'fixed', insetBlockEnd:'22px', insetInlineStart:'50%', transform:'translateX(50%)',
+        zIndex:'60', background:'var(--n-800)', color:'var(--n-25)', padding:'11px 18px',
+        borderRadius:'12px', fontSize:'13.5px', boxShadow:'var(--shadow-3)', maxWidth:'min(560px,92vw)',
+        textAlign:'center', transition:'opacity 200ms', opacity:'0'
+      });
+      document.body.appendChild(toast);
+    }
+    toast.textContent = text; toast.style.opacity = '1';
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => { toast.style.opacity = '0'; }, 3200);
+  }
+
+  /* ── render ─────────────────────────────────────────────────────────── */
+  function render(skipRecipe) {
+    if (!skipRecipe) renderRecipe();
+    renderUndo();
+    renderNutrition();
+    renderPills($('meals'), MEALS, meals);
+    renderPills($('tags'), TAGS, tags);
+    renderAllergens();
+    renderStatus();
+  }
+
+  /* ── prototype chrome ───────────────────────────────────────────────── */
+  document.querySelectorAll('.seg [data-size]').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('.seg [data-size]').forEach(o => o.setAttribute('aria-pressed', String(o === b)));
+      $('stage').classList.toggle('phone', b.dataset.size === 'phone');
+    });
+  });
+  $('notes-open').addEventListener('click', () => $('notes').dataset.open = 'true');
+  $('notes-close').addEventListener('click', () => $('notes').dataset.open = 'false');
+
+  render();
+  search.focus();
+})();
+</script>
+</body>
+</html>

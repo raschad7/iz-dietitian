@@ -54,7 +54,7 @@
 @custom-variant shorter (@media (max-height: 700px));
 
 /*
- * Qiwam / قوام design system.
+ * Enzyme / إنزيم design system.
  *
  * Primitives below are the raw palette. They are never referenced directly
  * from a component — components consume the semantic tokens in the second
@@ -200,6 +200,18 @@
   --indigo-500: #2F5FA8;
 
   /*
+   * The same three identities, one step light.
+   *
+   * The 500 stops above are *marks*: an 8px dot, a 3px rule — small things that
+   * have to survive being small, so they are mid-dark. A macro arc is the
+   * opposite kind of shape: a 16px band and a filled bar, areas rather than
+   * marks, and an area painted at mark strength turns a nutrition label into
+   * three shouting blocks. These are for areas only (see `--macro-*` below).
+   */
+  --indigo-300: #8FB2E0;
+  --plum-300: #BE9BD8;
+
+  /*
    * ── Gold: the adherence meter's fill ──
    *
    * Not amber, and for the same reason flame is not amber: amber means "needs
@@ -302,10 +314,10 @@
   --script-display-font: var(--font-readex-pro);
 
   /* ── Radius — 8 / 12 / 16 / 24, never 0 ── */
-  --qiwam-radius-sm: 8px;
-  --qiwam-radius-md: 12px;
-  --qiwam-radius-lg: 16px;
-  --qiwam-radius-xl: 24px;
+  --enzyme-radius-sm: 8px;
+  --enzyme-radius-md: 12px;
+  --enzyme-radius-lg: 16px;
+  --enzyme-radius-xl: 24px;
 
   /*
    * Every corner of a surface takes the same radius. There is no swept or
@@ -315,9 +327,9 @@
   --radius-control: 10px;       /* button, field — all four corners */
 
   /* ── Elevation — green-tinted, never neutral black ── */
-  --qiwam-shadow-1: 0 1px 2px rgba(34, 52, 20, .06), 0 1px 3px rgba(34, 52, 20, .05);
-  --qiwam-shadow-2: 0 2px 6px rgba(34, 52, 20, .07), 0 8px 20px rgba(34, 52, 20, .06);
-  --qiwam-shadow-3: 0 12px 32px rgba(34, 52, 20, .12);
+  --enzyme-shadow-1: 0 1px 2px rgba(34, 52, 20, .06), 0 1px 3px rgba(34, 52, 20, .05);
+  --enzyme-shadow-2: 0 2px 6px rgba(34, 52, 20, .07), 0 8px 20px rgba(34, 52, 20, .06);
+  --enzyme-shadow-3: 0 12px 32px rgba(34, 52, 20, .12);
 
   /*
    * ── Motion ──
@@ -339,8 +351,23 @@
   --duration-travel: 420ms;
 
   /*
+   * How long a finger rests on something before it picks it up.
+   *
+   * Not a reaction like the four durations above — it is a *requirement*, the
+   * length of the press the planner asks for before a meal card or a catalog row
+   * leaves the surface on a touch screen. It is spent on the card's arming
+   * animation, so the charge finishes at the instant the drag begins.
+   *
+   * ⚠ The same number lives in `HOLD_TO_DRAG_MS` in
+   * `src/features/weekly-plans/components/board-dnd.tsx`, which is what actually
+   * arms dnd-kit. Change one and change the other, or the card finishes charging
+   * before or after the thing it is charging towards.
+   */
+  --duration-hold: 320ms;
+
+  /*
    * ── Third-party brand marks ──
-   * Fixed by the brand's own guidelines, not the Qiwam palette — same in light
+   * Fixed by the brand's own guidelines, not the Enzyme palette — same in light
    * and dark, never swapped for a semantic token. Currently only Google's "G".
    */
   --brand-google-yellow: #FFC107;
@@ -467,6 +494,26 @@
   --color-chart-4: var(--clay-600);
   --color-chart-5: var(--n-600);
 
+  /*
+   * ── The three macros ──
+   *
+   * Protein blue, carbohydrate gold, fat lavender — one token each, so the ring
+   * on the dish editor, the bars beneath it and anything that charts a macro
+   * later all say the same colour without a second table to keep in step.
+   *
+   * **They are light on purpose, and they avoid every hue at mark strength.**
+   * A dish's own properties are already a row of dots — economical amber,
+   * quick flame, local clay, vegetarian green, `no_cook` teal — all of them
+   * mid-dark 500/600 stops, and macro arcs drawn in that same register read as
+   * more of those properties rather than as a different kind of fact. Sitting
+   * the macros a full lightness step above the whole tag palette separates the
+   * two without asking for a hue nothing else uses, which this system has run
+   * out of.
+   */
+  --color-macro-protein: var(--indigo-300);
+  --color-macro-carbs: var(--amber-300);
+  --color-macro-fat: var(--plum-300);
+
   --color-viz-band-range: var(--viz-band-range);
   --color-viz-band-edge: var(--viz-band-edge);
   --color-viz-band-marker: var(--viz-band-marker);
@@ -580,6 +627,20 @@
   --color-planner-tag-easy-prep: var(--planner-tag-easy-prep);
   --color-planner-tag-no-cook: var(--planner-tag-no-cook);
   --color-planner-tag-high-protein: var(--planner-tag-high-protein);
+  --color-intake-icon-activity: var(--intake-icon-activity);
+  --color-intake-icon-barrier: var(--intake-icon-barrier);
+  --color-intake-icon-sleep: var(--intake-icon-sleep);
+  --color-intake-icon-smoking: var(--intake-icon-smoking);
+  --color-intake-icon-caffeine: var(--intake-icon-caffeine);
+  --color-intake-icon-sweet-drinks: var(--intake-icon-sweet-drinks);
+  --color-intake-icon-fast-food: var(--intake-icon-fast-food);
+  --color-intake-icon-vegetables: var(--intake-icon-vegetables);
+  --color-intake-icon-fruit: var(--intake-icon-fruit);
+  --color-intake-icon-dairy: var(--intake-icon-dairy);
+  --color-intake-icon-red-meat: var(--intake-icon-red-meat);
+  --color-intake-icon-chicken: var(--intake-icon-chicken);
+  --color-intake-icon-fish: var(--intake-icon-fish);
+  --color-intake-icon-sweets: var(--intake-icon-sweets);
   --color-progress-track: var(--progress-track);
   --color-progress-card-border: var(--progress-card-border);
 
@@ -625,15 +686,15 @@
   --color-scrim: var(--scrim);
 
   /* radius.* — sm 8 / md 12 / lg 16 / xl 24. Pill is rounded-full. Never 0. */
-  --radius-sm: var(--qiwam-radius-sm);
-  --radius-md: var(--qiwam-radius-md);
-  --radius-lg: var(--qiwam-radius-lg);
-  --radius-xl: var(--qiwam-radius-xl);
+  --radius-sm: var(--enzyme-radius-sm);
+  --radius-md: var(--enzyme-radius-md);
+  --radius-lg: var(--enzyme-radius-lg);
+  --radius-xl: var(--enzyme-radius-xl);
 
   /* elevation.* — green-tinted shadows, never neutral black. */
-  --shadow-card: var(--qiwam-shadow-1);
-  --shadow-elevated: var(--qiwam-shadow-2);
-  --shadow-overlay: var(--qiwam-shadow-3);
+  --shadow-card: var(--enzyme-shadow-1);
+  --shadow-elevated: var(--enzyme-shadow-2);
+  --shadow-overlay: var(--enzyme-shadow-3);
 
   /* motion.* — exposed so components use `ease-sweep` / `duration-arc`. */
   --ease-sweep: var(--ease-sweep);
@@ -1003,6 +1064,48 @@
   --planner-tag-high-protein: var(--indigo-500);
 
   /*
+   * ── The lifestyle record's icon tints ──
+   *
+   * Fourteen glyphs on one card — نمط الحياة والعادات in the client record —
+   * and the only place in the app where an icon carries a hue of its own.
+   *
+   * ⚠ **This is a documented exception to "an icon inherits its colour."** The
+   * card is a 4×4 lattice of thirteen-pixel labels; drawn in one muted grey it
+   * is a wall of text a dietitian re-reads top to bottom to find the one answer
+   * they came for. Colour is what lets the eye land on الأسماك without reading
+   * الدجاج first. It is **recognition, not status**: the tint says what the
+   * question is about, never how the answer scores, so nothing here changes
+   * when the client's answer does.
+   *
+   * **No new primitives.** Every stop below is one the palette already carries,
+   * and the mid-dark identity stops (teal/plum/indigo) are the same three the
+   * dish tags use — matched in lightness so no single glyph shouts.
+   *
+   * **Repeats are deliberate.** Fresh produce is one green, sugar is one plum:
+   * fourteen unique hues would be a legend nobody can hold, and the groupings
+   * are the part that is actually readable at a glance.
+   *
+   * Declared once at `:root` with no dark counterpart, exactly as the
+   * `--planner-tag-*` stops above are. The staff app has no dark mode — `.dark`
+   * is set by nothing, and `[data-theme]` is the client portal's, which never
+   * draws this card. A dark assignment here would be an untested promise.
+   */
+  --intake-icon-activity: var(--green-600);
+  --intake-icon-barrier: var(--amber-600);
+  --intake-icon-sleep: var(--indigo-500);
+  --intake-icon-smoking: var(--clay-600);
+  --intake-icon-caffeine: var(--flame-700);
+  --intake-icon-sweet-drinks: var(--plum-500);
+  --intake-icon-fast-food: var(--flame-300);
+  --intake-icon-vegetables: var(--green-600);
+  --intake-icon-fruit: var(--green-500);
+  --intake-icon-dairy: var(--indigo-500);
+  --intake-icon-red-meat: var(--clay-600);
+  --intake-icon-chicken: var(--amber-600);
+  --intake-icon-fish: var(--teal-500);
+  --intake-icon-sweets: var(--plum-500);
+
+  /*
    * The Q-arc's unfilled track (§9.6) — the dots the week has not reached yet.
    *
    * A stop of its own rather than status-on-track-bg, which is what it started
@@ -1199,7 +1302,7 @@
    * other semantic token. Nothing outside `brand-logo.tsx` may use them.
    *
    * They live here rather than as hexes in the component because that is the
-   * rule (`qiwam/no-raw-hex`) — and because one of them has to flip for dark,
+   * rule (`enzyme/no-raw-hex`) — and because one of them has to flip for dark,
    * which a literal could not do.
    *
    * - `leaf` is the mark's body. Fixed: it reads on a light rail and a dark one.
@@ -1677,7 +1780,14 @@
 }
 
 /* Each row cell paints one segment of a continuous rule, reaching halfway
-   across the responsive column gutter without becoming the card's own edge. */
+   across the gutter without becoming the card's own edge.
+
+   Halfway is read off the gutters themselves rather than restated. It used to
+   be three hard-coded reaches under two breakpoints, kept in step with the
+   column gap by hand, and they drifted the moment the gap moved: a rule reaching
+   0.5rem into a 0.375rem half-gutter crosses the midline and starts drawing
+   inside the next column. Both tokens are declared once, on `.planner-week-frame`
+   with the rest of the board's arithmetic. */
 .planner-row-cell {
   position: relative;
   min-width: 0;
@@ -1686,8 +1796,8 @@
 .planner-row-cell::before {
   position: absolute;
   z-index: 0;
-  inset-block-start: -0.5rem;
-  inset-inline: -0.375rem;
+  inset-block-start: calc(var(--planner-row-gap, 1rem) / -2);
+  inset-inline: calc(var(--planner-col-gap, 0.75rem) / -2);
   border-block-start: 2px solid var(--border);
   content: '';
 }
@@ -1700,18 +1810,6 @@
   position: relative;
   z-index: 1;
   height: 100%;
-}
-
-@media (min-width: 80rem) {
-  .planner-row-cell::before {
-    inset-inline: -0.5rem;
-  }
-}
-
-@media (min-width: 96rem) {
-  .planner-row-cell::before {
-    inset-inline: -0.75rem;
-  }
 }
 
 /*
@@ -1979,6 +2077,34 @@
   [role='radio'],
   [role='combobox'] {
     touch-action: manipulation;
+  }
+
+  /*
+   * ── The page is held at scale 1 on phones and tablets ──
+   *
+   * `ZoomLock` puts this class on `<html>` for as long as the staff app or
+   * the client portal is mounted, and only where `(pointer: coarse)` matches.
+   * It is the CSS third of the lock; the other two are that component's
+   * capture-phase `gesture*` handlers with the scale watchdog under them, and
+   * the `maximumScale` / `userScalable` fields in the two `generateViewport()`
+   * exports. See the component for why all three are needed and why none of
+   * them reach a desktop browser.
+   *
+   * `pan-x pan-y` is the block above narrowed and widened at once: narrowed
+   * from `manipulation`, which still permits pinch-zoom, to panning alone —
+   * and widened from the controls that rule names to every element in the
+   * document, including the empty space between cards and the body copy inside
+   * them, where a stray double tap used to leave a client staring at a
+   * magnified fragment of a meal plan with no obvious way back.
+   *
+   * What it does not touch is scrolling: panning on both axes is exactly what
+   * is kept, so every scroller in the product behaves as it did. Descendants
+   * that claim `touch-action: none` (the planner drag handle, the calendar
+   * grips) are unaffected too — the browser intersects an element's value with
+   * its ancestors', and `none` is the narrower of the two.
+   */
+  html.q-zoom-locked {
+    touch-action: pan-x pan-y;
   }
 
   body {
@@ -2504,7 +2630,7 @@
     position: relative;
     overflow: hidden;
     background: var(--accent);
-    border-radius: var(--qiwam-radius-sm);
+    border-radius: var(--enzyme-radius-sm);
   }
 
   .q-skeleton::after {
@@ -3019,8 +3145,8 @@
       Risen from the edge, so only the block-start corners exist — the same
       language `Dialog`'s sheet placement speaks, and the same radius.
     */
-    border-start-start-radius: var(--qiwam-radius-lg);
-    border-start-end-radius: var(--qiwam-radius-lg);
+    border-start-start-radius: var(--enzyme-radius-lg);
+    border-start-end-radius: var(--enzyme-radius-lg);
     border-end-start-radius: 0;
     border-end-end-radius: 0;
     /*
@@ -4711,19 +4837,19 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
 
 @keyframes q-dialog-seam-in {
   from {
-    clip-path: inset(50% 0 50% 0 round var(--qiwam-radius-lg, 0.75rem));
+    clip-path: inset(50% 0 50% 0 round var(--enzyme-radius-lg, 0.75rem));
     opacity: 0.4;
   }
 
   to {
-    clip-path: inset(0 0 0 0 round var(--qiwam-radius-lg, 0.75rem));
+    clip-path: inset(0 0 0 0 round var(--enzyme-radius-lg, 0.75rem));
     opacity: 1;
   }
 }
 
 @keyframes q-dialog-seam-out {
   to {
-    clip-path: inset(50% 0 50% 0 round var(--qiwam-radius-lg, 0.75rem));
+    clip-path: inset(50% 0 50% 0 round var(--enzyme-radius-lg, 0.75rem));
     opacity: 0.2;
   }
 }
@@ -4974,22 +5100,326 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
 }
 
 
-/* Tablet is a three-day-wide work surface, not a compressed seven-column
- * desktop. The rest of the week stays one touch swipe away, with the frozen
- * meal rail preserving row context and no scrollbar consuming canvas space. */
-@media (min-width: 48rem) and (max-width: 79.999rem) {
-  .planner-week-scroll {
-    scroll-snap-type: inline proximity;
+/*
+ * ── How many days the board shows, and why it is the frame that decides ──
+ *
+ * The board is a seven-day grid that is usually wider than the space it has, so
+ * the question every width has to answer is "how many whole days fit at a width
+ * a dish name can still be read at". The floor is about 13.5rem a column —
+ * under it a two-word Arabic dish name wraps to a third line and takes all
+ * thirty-five cards' height with it — and the answer is the largest `n` whose
+ * columns clear it.
+ *
+ * **The container, not the viewport.** This was a `@media` query, and it was
+ * asking the wrong box. The board is not the window: it is the window less the
+ * 56px staff rail, less the page's gutters, less whatever the drawer is
+ * holding. On a landscape iPad the window says 1024px and the frame is nearer
+ * 900px — so a viewport rule confident that four days fit was cutting each one
+ * to 196px, under the very floor it had been written to protect. `@container`
+ * asks the frame, which is the only box that knows.
+ *
+ * The `@media` wrapped around them all is a different question and stays a
+ * viewport one: whether the week is on screen at all. Below `md` the board
+ * renders one chosen day and the day strip appears above it — decided in React,
+ * against the viewport — and these rules must not fire underneath that, or six
+ * `display: none` columns would still be reserving tracks.
+ *
+ * ── The arithmetic ──
+ *
+ * `n` days have to add up to *exactly* the frame, so a swipe lands the next day
+ * flush against the rail rather than half under it. Reading across the frame
+ * from its start edge at rest: the sticky rail, then `n` days each preceded by
+ * a column gap. So
+ *
+ *     R + n×G + n×D = W    ⟹    D = (W − R − n×G) / n
+ *
+ * where `W` is `100cqi`. Two things have to agree with that sum or it is
+ * fiction, and both are stated below: the grid has no start padding, and the
+ * scroll snapport starts at `R + G`, which is where a day sits once the rail is
+ * frozen over the start of the frame.
+ *
+ * ── Why the start padding had to go ──
+ *
+ * The rail is `sticky start-0`, which pins it to the scrollport's start edge —
+ * so with 0.5rem of grid padding in front of it, its resting position and its
+ * stuck position were 8px apart and it slid sideways on the first pixel of
+ * scroll. Sticking it at the padding instead fixed the slide and opened
+ * something worse: an 8px window at the very edge of the frame that the rail no
+ * longer covered, with the week sliding past behind it. Slivers of dish names
+ * and calories, in a strip too narrow to read and too visible to ignore.
+ *
+ * Neither position is wrong; having a gutter in front of a frozen column is.
+ * The grid keeps its padding on the block axis and at the inline end, and the
+ * rail starts where the board starts.
+ *
+ * The constants live on the frame rather than on the grid, because the
+ * scrollport needs two of them as well — its `scroll-padding` is the rail plus
+ * the gap — and a custom property set on the grid is a property the scrollport,
+ * its parent, cannot see. `--planner-day-w` has to stay on the grid: container
+ * query units resolve against an element's nearest *ancestor* container, so
+ * `100cqi` written on `.planner-week-frame` would measure the wrong box.
+ */
+/*
+ * ── The board header's three shapes ──
+ *
+ * Stated here rather than as an arbitrary `grid-cols-[…]` utility because it is
+ * arithmetic, and the arithmetic has to hold against the two other things this
+ * file already sizes: the client column's floor is built out of the 44px disc,
+ * the 10rem name and the 94px control pill it holds, and what is left over is
+ * what the five figures beside it have to fit in.
+ *
+ * One column on a phone — client, figures, actions, stacked, on a page that
+ * scrolls. Two from `md`, where the client and the four controls share the
+ * first line and nothing else is drawn. Three from `xl`, where the figures come
+ * back in a column of their own; `ContextPanel` and the action bar name their
+ * own cells with ordinary placement utilities.
+ *
+ * `minmax(20rem, 1fr)` and not `1fr` on the client column, because a plain `1fr`
+ * will hand it less than its contents at exactly 1280px and the control pill
+ * spills over the figures beside it.
+ */
+.planner-board-header {
+  display: grid;
+  gap: 0.5rem;
+}
+
+@media (width >= 48rem) {
+  .planner-board-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+}
+
+@media (width >= 80rem) {
+  .planner-board-header {
+    grid-template-columns: minmax(20rem, 1fr) minmax(0, 2fr) auto;
+  }
+}
+
+.planner-week-frame {
+  container: planner-board / inline-size;
+  position: relative;
+
+  --planner-rail-w: 6rem;
+  --planner-col-gap: 0.75rem;
+  --planner-row-gap: 1rem;
+}
+
+/*
+ * The fade over the trailing edge — see `PlanBoard` for what it is for.
+ *
+ * Off by default and switched on by the bands below, so it exists at exactly
+ * the widths where a day is hidden past the edge and nowhere else. The gradient
+ * needs a physical direction, which is the one thing in this block that cannot
+ * be written logically; both are stated rather than one plus an override, so
+ * neither script is the exception.
+ */
+.planner-week-fade {
+  display: none;
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  inline-size: 2.5rem;
+  pointer-events: none;
+}
+
+[dir='ltr'] .planner-week-fade {
+  background-image: linear-gradient(to right, transparent, var(--background));
+}
+
+[dir='rtl'] .planner-week-fade {
+  background-image: linear-gradient(to left, transparent, var(--background));
+}
+
+/*
+ * The two pagers — a chevron on each edge of the board, each one a day-group
+ * forward or back.
+ *
+ * The fade alone said the week continued and gave nobody a way to go there
+ * except a swipe, which is a gesture a trackpad does badly and a mouse does not
+ * do at all. These are the same affordance a carousel has always had, and they
+ * are the only controls on this screen that a keyboard could not otherwise
+ * reach — the board's own `tabIndex` scrolls it by arrow key, but there is
+ * nothing to tab *to* that says the week is longer than the frame.
+ *
+ * `display: none` by default and switched on by the band above, so they exist
+ * only where the board actually overflows, and only on the side that has
+ * somewhere to go.
+ *
+ * Vertically centred against the *cards* rather than the whole frame: the day
+ * names and the total sit in a sticky 42px header at the top, and a chevron
+ * halfway down the frame reads as belonging to the row it happens to land on.
+ * Off the block-start by that header's height and centred in what is left.
+ */
+.planner-week-pager {
+  display: none;
+  position: absolute;
+  z-index: 1;
+  inset-block-start: calc(50% + 1.25rem);
+  translate: 0 -50%;
+  place-items: center;
+
+  inline-size: 2.25rem;
+  block-size: 2.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full, 9999px);
+  background-color: var(--card);
+  color: var(--muted-foreground);
+  box-shadow: var(--shadow-elevated);
+  transition: color 150ms, background-color 150ms;
+}
+
+.planner-week-pager:hover {
+  background-color: var(--secondary);
+  color: var(--primary);
+}
+
+.planner-week-pager[data-towards='start'] {
+  inset-inline-start: 0.25rem;
+}
+
+.planner-week-pager[data-towards='end'] {
+  inset-inline-end: 0.25rem;
+}
+
+.planner-week-grid {
+  --planner-days: 7;
+  --planner-day-w: calc(
+    (100cqi - var(--planner-rail-w) - var(--planner-col-gap) * var(--planner-days)) /
+      var(--planner-days)
+  );
+
+  column-gap: var(--planner-col-gap);
+  row-gap: var(--planner-row-gap);
+}
+
+@media (width >= 48rem) {
+  /*
+   * A tighter row gutter from the tablet up.
+   *
+   * 1rem between rows is right on a phone, where one day column is the whole
+   * board and the space between meals is what gives it rhythm. On a landscape
+   * tablet the same gutter appears six times down a 768px-tall screen, and 24px
+   * of it is most of a sixth meal row. 0.75rem still reads as a separation —
+   * the rule drawn across the middle of it is doing that work anyway.
+   */
+  .planner-week-frame {
+    --planner-row-gap: 0.75rem;
   }
 
-  .planner-week-grid {
-    inline-size: calc(233.333% - 8rem);
-    grid-template-columns: 6rem repeat(7, minmax(0, 1fr));
+  /*
+   * `scroll-padding-inline-start` is the half of the frozen rail nobody wrote,
+   * and it is the bug in the screenshot this pass started from.
+   * `scroll-snap-align: start` parks a day column at the *scrollport's* start
+   * edge — which is the 6rem the rail is stuck over. So every swipe ended with
+   * the leading day's name, its total and the top of its first card underneath
+   * the slot labels, and the board looked like two things printed on top of
+   * each other. Insetting the snapport past the rail and the gap after it puts
+   * the day where the eye already expects it.
+   *
+   * `proximity` rather than `mandatory`: someone dragging a card towards the
+   * edge is scrolling on purpose, and a mandatory snap fights that. It is
+   * enough that a flick comes to rest on a day boundary.
+   */
+  .planner-week-scroll {
+    scroll-snap-type: inline proximity;
+    scroll-padding-inline-start: calc(var(--planner-rail-w) + var(--planner-col-gap));
   }
 
   .planner-day-column {
     scroll-snap-align: start;
   }
+
+  /*
+   * No gutter in front of the frozen column — see the block comment above for
+   * the sliver of scrolling week that one leaves behind. The rail's resting
+   * place and its stuck place are both the frame's start edge now, so it does
+   * not move and nothing passes beside it.
+   */
+  .planner-week-grid {
+    grid-template-columns: var(--planner-rail-w) repeat(7, var(--planner-day-w));
+    inline-size: max-content;
+    padding-inline-start: 0;
+  }
+
+  /*
+   * ── Two bands, and then the whole week ──
+   *
+   * A desk gets all seven days at once. That is what this screen is for: a
+   * dietitian looks across the week to see where the heavy days are, and the
+   * moment Saturday is behind a swipe they are comparing from memory. So the
+   * swipe surface is the tablet's answer to not having the room, not a
+   * readability floor applied everywhere — at 72rem of frame the seven columns
+   * come to about 8.5rem each, which is tight for a dish name and still the
+   * right trade against losing three days.
+   *
+   * 72rem is where a 1280px window lands once the staff rail and the page's
+   * gutters are taken off it, which is the width this board has always shown
+   * the whole week at.
+   */
+  @container planner-board (width < 64rem) {
+    .planner-week-grid {
+      --planner-days: 3;
+    }
+  }
+
+  @container planner-board (64rem <= width < 72rem) {
+    .planner-week-grid {
+      --planner-days: 4;
+    }
+  }
+
+  /* `1fr` and an `auto` width rather than the measured track, because this is
+     the band with nothing left to swipe to. The sum above distributes the whole
+     frame and takes no account of the grid's end padding, which is right while
+     the grid runs off the edge and leaves an 8px scroll behind once it stops. A
+     board that fits is an ordinary grid again, and `1fr` divides what is
+     actually there. */
+  @container planner-board (width >= 72rem) {
+    .planner-week-grid {
+      grid-template-columns: var(--planner-rail-w) repeat(7, minmax(0, 1fr));
+      inline-size: auto;
+    }
+  }
+
+  /*
+   * The fade and the two pagers, at the widths where a day is hidden past an
+   * edge and no other. Each also answers to `data-at-start` / `data-at-end`,
+   * which `WeekPager` keeps on the frame: there is no reason to offer a way
+   * forward, or to veil the last column, once the week has run out.
+   *
+   * The two read those attributes in opposite directions on purpose. The fade
+   * takes `:not([data-at-end='true'])`, so it is right before the attribute
+   * exists — a board opens at the start of the week, where there is always more
+   * to the end of it. The chevrons take `='false'`, so they wait for the
+   * measurement rather than guessing: `data-at-start` is missing on a server
+   * pass too, and a "back" chevron on a board that has not moved is an offer to
+   * go nowhere.
+   */
+  @container planner-board (width < 72rem) {
+    .planner-week-frame:not([data-at-end='true']) .planner-week-fade,
+    .planner-week-frame[data-at-end='false'] .planner-week-pager[data-towards='end'],
+    .planner-week-frame[data-at-start='false'] .planner-week-pager[data-towards='start'] {
+      display: grid;
+    }
+  }
+}
+
+/*
+ * The card under the pointer, promoted to its own compositor layer.
+ *
+ * dnd-kit writes a `transform` on this element on every pointer move. Without a
+ * promotion hint the browser is free to repaint the card's text, border and
+ * shadow into the page layer each frame — which on a board carrying
+ * thirty-five other cards is exactly where the dragging felt like it was
+ * catching. `will-change` costs one layer for the length of a gesture and
+ * gives the whole drag back to the compositor.
+ *
+ * `backface-visibility` is the other half on WebKit, where a transformed layer
+ * carrying text is otherwise rasterised at the pre-transform size and resampled.
+ */
+.planner-drag-preview {
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 /*
@@ -5044,14 +5474,100 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
   -webkit-touch-callout: none;
 }
 
+/*
+ * ── On glass there is no grip; the card itself is held ──
+ *
+ * A finger cannot hover, so the grip a mouse only sees when it is wanted had to
+ * be permanent here — first a 44px disc dropped on the leading corner of a 78px
+ * card, then a 2rem strip down its leading edge with the card's content padded
+ * clear of it. Both were the same bargain: the touch floor and the card's one
+ * piece of content sharing a box only big enough for one of them, and every
+ * card on a tablet reading "‎⋯‎ـنة مع جوز وعسل".
+ *
+ * The bargain is off, because the gesture changed. A press and hold anywhere on
+ * the card picks it up (`HOLD_TO_DRAG_MS` in `board-dnd.tsx`), so the whole card
+ * is the handle and there is nothing left for a strip to promise. The dish name
+ * gets its full width back on the one screen size where it was short of it.
+ *
+ * The grip stays in the markup and in the tab order: a tablet with a keyboard
+ * attached is a coarse pointer *and* a keyboard, and the keyboard sensor can
+ * only start a drag from the activator node. So it is untouchable rather than
+ * removed — `pointer-events: none` keeps a finger from landing on a thing it
+ * cannot see, and focus hands it back, at which point the base rule has already
+ * made it visible.
+ */
 @media (pointer: coarse) {
   .planner-drag-handle {
-    display: grid;
-    inline-size: 44px;
-    block-size: 44px;
-    place-items: center;
-    padding: 0;
-    opacity: 1;
+    pointer-events: none;
+  }
+
+  .planner-drag-handle:focus-visible {
+    pointer-events: auto;
+  }
+
+  /*
+   * The two opt-outs a hold needs from the platform, on the surfaces that now
+   * answer one.
+   *
+   * A long press is also how a touch OS starts selecting text, and on iOS how
+   * it raises the callout and the magnifier — and the instant either appears
+   * WebKit takes the pointer and fires `pointercancel`, which every drag
+   * implementation here reads as "abandoned". Which is to say the platform's
+   * own long-press would kill ours at roughly the moment it fired. See the
+   * `-webkit-touch-callout` note above the grips; this is the same fact,
+   * arriving now for the card and the catalog row because they are what a
+   * finger holds.
+   *
+   * `touch-action` is deliberately *not* touched. The column under a meal card
+   * scrolls, the week beside it pans, and the catalog is the longest list in
+   * the planner — claiming the gesture here would trade a scroll for a drag.
+   * A hold needs no such trade: a finger that has not moved is not scrolling,
+   * and dnd-kit only starts calling `preventDefault` once the hold has been
+   * met.
+   */
+  .planner-meal-card,
+  .planner-catalog-row {
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+}
+
+/*
+ * ── The press, made visible ──
+ *
+ * A hold that gives nothing back until it fires is a gesture nobody discovers
+ * and nobody trusts: the finger is down, the screen is still, and there is no
+ * way to tell whether something is happening or whether this card simply does
+ * not do that. So the surface under the finger settles — a small, slow press
+ * inwards over exactly the length of the hold, ending at the instant the card
+ * lifts, so the two read as one movement rather than as a pause and a jump.
+ *
+ * Scale and a ring, nothing else. This runs under a fingertip that is covering
+ * most of the card, so the signal has to be carried by the card's outline,
+ * which is the part still visible around the finger.
+ *
+ * The class is applied from React (`holdingId`), not from `:active`. `:active`
+ * has no memory of *how long* — it would fire on every tap, including the taps
+ * that open the meal detail panel, and announce a drag that is not coming.
+ */
+.planner-holding {
+  transform: scale(0.96);
+  transition:
+    transform var(--duration-hold) var(--ease-sweep),
+    box-shadow var(--duration-hold) var(--ease-sweep);
+  box-shadow: 0 0 0 2px var(--primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /*
+    The ring alone. The press is the part that is motion; the outline is the
+    part that is information, and a reader who has asked for less movement has
+    not asked to be told less.
+  */
+  .planner-holding {
+    transform: none;
+    transition: box-shadow var(--duration-hold) var(--ease-sweep);
   }
 }
 
@@ -6410,4 +6926,693 @@ body:has(dialog[open]) .q-app-shell [data-slot='shell-scroll'] {
   }
 }
 
+/*
+ * ==========================================================================
+ *  Printing a week
+ * ==========================================================================
+ *
+ * The one way a plan leaves this app on paper. `PlanPrintDocument` renders the
+ * open week into `<body>` as `.plan-print`, and everything below decides what a
+ * printer does with it. The Word export reads the same element and brings its
+ * own port of these rules, because Word is not a browser; see `plan-word.ts`.
+ *
+ * ## Who the page is for
+ *
+ * The client, not the dietitian — the dietitian has the board. This is read at
+ * a kitchen counter by someone deciding what to put on a plate, so it is set as
+ * a document: portrait, generous leading, a size that survives a fridge door.
+ *
+ * An earlier version compressed the week onto one landscape sheet as a grid. It
+ * fit, and it could carry neither the portions nor the alternatives, because a
+ * cell 30mm wide cannot hold a recipe. Those two are the whole value of the
+ * handout, so the page count gives way to them rather than the other way round.
+ *
+ * ## Why the app is hidden by a single rule
+ *
+ * `body > *:not(.plan-print)` is deliberately the whole of it. The alternative
+ * is a list of the things not to print — the rail, the header, the toolbar, the
+ * drawer, the toaster, the tooltip layer, the splash — and that list is wrong
+ * the first time a surface is added and nobody remembers this file exists. So
+ * the document is the allowlist and the app is the default, which is also why
+ * `PlanPrintDocument` portals itself out to `<body>`: the rule only holds for a
+ * direct child.
+ *
+ * ## Structure survives without the fills
+ *
+ * Every browser print dialog has a "background graphics" checkbox and it is off
+ * by default. So nothing here depends on a fill: the hierarchy is carried by
+ * size, weight and rules, all of which print from any dialog and cost a
+ * fraction of the ink. The two tinted surfaces are enhancements that the page
+ * reads correctly without.
+ *
+ * Colours are the raw `--n-*` and `--green-*` primitives rather than the
+ * semantic tokens. The semantic set flips with the theme, and a dietitian
+ * working in dark mode should not print a black page.
+ */
+.plan-print {
+  display: none;
+}
 
+@media print {
+  /*
+   * Portrait. This is prose with a table in it, not a timetable — and the
+   * margin is on the page rather than on the document so it repeats on every
+   * sheet, which padding on `.plan-print` would not.
+   */
+  @page {
+    size: A4 portrait;
+    margin: 16mm 14mm;
+  }
+
+  body > *:not(.plan-print) {
+    display: none !important;
+  }
+
+  /*
+   * The app shell pins itself to the viewport and hides its own overflow, and
+   * `html:has(dialog[open])` adds another `overflow: hidden` at the root. Either
+   * one clips the printed document to one screen worth of it.
+   */
+  html,
+  body {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+    background: var(--n-0);
+  }
+
+  .plan-print {
+    display: block;
+    color: var(--n-900);
+    background: var(--n-0);
+    /* Points, not rem: this box is measured against paper, and the root font
+       size a browser hands a print stylesheet is not the one on screen. */
+    font-size: 10.5pt;
+    line-height: 1.5;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* ── The masthead ── */
+
+  /*
+   * The client's name is the largest thing on the page, because the page is
+   * theirs. The clinic sits above it at letterhead size, and the week and the
+   * target close the band on the far edge.
+   */
+  .plan-print-masthead {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 6mm;
+    border-block-end: 0.7mm solid var(--n-900);
+    padding-block-end: 3mm;
+    margin-block-end: 6mm;
+  }
+
+  .plan-print-clinic {
+    font-size: 9.5pt;
+    color: var(--n-600);
+    margin-block-end: 0.5mm;
+  }
+
+  /* No `uppercase` and no tracking anywhere on this page — see
+     docs/design-system.md § Typography. Arabic has neither. */
+  .plan-print-client {
+    font-size: 24pt;
+    font-weight: 700;
+    line-height: 1.15;
+  }
+
+  .plan-print-facts {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    text-align: end;
+    font-size: 10pt;
+    color: var(--n-700);
+    /* The name is 24pt and these two lines are 10pt; without this they sit on
+       the name's baseline and the band looks like it slipped. */
+    padding-block-end: 1mm;
+  }
+
+  .plan-print-target {
+    font-weight: 600;
+    color: var(--n-900);
+  }
+
+  /*
+   * The two things that change what the sheet is — a draft, or a week with
+   * empty slots. Ruled rather than coloured: an amber warning on a monochrome
+   * office printer is a grey sentence indistinguishable from the rest.
+   */
+  .plan-print-caveat {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1mm 8mm;
+    border-block: 0.3mm solid var(--n-400);
+    padding-block: 2mm;
+    margin-block-end: 6mm;
+    font-size: 9.5pt;
+    color: var(--n-700);
+  }
+
+  /* ── One day ── */
+
+  .plan-print-day {
+    margin-block-end: 7mm;
+  }
+
+  /*
+   * The day heading, and the one place the brand green appears.
+   *
+   * A rule, not text and not an icon — which is the distinction
+   * docs/design-system.md draws when it says the accent green is a fill. A
+   * 0.8mm line at `green-700` gives seven identical sections an edge a reader
+   * can find at a glance, and it is dark enough to survive a grayscale printer
+   * as a legible dark line rather than a pale one.
+   */
+  .plan-print-day-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 3mm;
+    border-block-end: 0.8mm solid var(--green-700);
+    padding-block-end: 1.5mm;
+    margin-block-end: 2mm;
+    /* A heading stranded at the foot of a page is a heading for nothing. */
+    break-after: avoid;
+  }
+
+  .plan-print-day-name {
+    font-size: 14pt;
+    font-weight: 700;
+  }
+
+  .plan-print-day-date {
+    font-size: 10pt;
+    color: var(--n-600);
+  }
+
+  /* The day's own numbers, on the far edge whichever edge that is. */
+  .plan-print-day-total {
+    margin-inline-start: auto;
+    display: flex;
+    align-items: baseline;
+    gap: 0 3mm;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .plan-print-day-kcal {
+    font-size: 11pt;
+    font-weight: 700;
+  }
+
+  .plan-print-day-macro {
+    font-size: 9.5pt;
+    color: var(--n-600);
+  }
+
+  /* ── One meal ── */
+
+  /*
+   * A table for the two-column meal, and no gridlines anywhere it would read as
+   * one. `fixed` so the hour column and the calorie column keep their widths
+   * down the whole page rather than being sized by whichever meal has the
+   * longest name.
+   */
+  .plan-print-meals {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+  }
+
+  .plan-print-meal {
+    /* A meal split across a page break puts a dish on one sheet and its amounts
+       on the next, which is the one break this document must not make. */
+    break-inside: avoid;
+  }
+
+  .plan-print-meals th,
+  .plan-print-meals td {
+    /* A hairline between meals and nothing else. No verticals: three columns
+       boxed in would turn a handout into a spreadsheet. */
+    border-block-start: 0.2mm solid var(--n-200);
+    padding-block: 2.5mm;
+    vertical-align: top;
+    text-align: start;
+  }
+
+  .plan-print-meals tr:first-child th,
+  .plan-print-meals tr:first-child td {
+    border-block-start: 0;
+    padding-block-start: 1mm;
+  }
+
+  /* When. */
+  .plan-print-meal-when {
+    width: 26mm;
+    padding-inline-end: 4mm;
+  }
+
+  .plan-print-meal-slot {
+    display: block;
+    font-size: 10.5pt;
+    font-weight: 700;
+  }
+
+  .plan-print-meal-time {
+    display: block;
+    font-size: 9.5pt;
+    font-weight: 400;
+    color: var(--n-600);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* What. */
+  .plan-print-dish {
+    font-size: 12pt;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  /*
+   * The amounts — the reason this document exists.
+   *
+   * Set along the line rather than stacked: three to five short pairs read
+   * perfectly well in a sentence, and a list of them would triple the height of
+   * every meal on a page that also carries the alternatives.
+   */
+  .plan-print-portions {
+    margin-block-start: 1mm;
+    font-size: 10pt;
+    color: var(--n-700);
+    line-height: 1.55;
+  }
+
+  /* The emphasised half of each pair. It is what the reader is scanning for. */
+  .plan-print-amount {
+    font-weight: 700;
+    color: var(--n-900);
+    font-variant-numeric: tabular-nums;
+    /* A quantity must never be split from its unit across a line ending. */
+    white-space: nowrap;
+  }
+
+  .plan-print-sep {
+    color: var(--n-400);
+  }
+
+  /* What to eat instead. Quieter than the meal it replaces, and set off by a
+     rule on the reading edge so it does not read as more of the recipe. */
+  .plan-print-alts {
+    margin-block-start: 1.5mm;
+    border-inline-start: 0.6mm solid var(--n-300);
+    padding-inline-start: 2.5mm;
+    font-size: 9.5pt;
+    color: var(--n-600);
+    line-height: 1.5;
+  }
+
+  .plan-print-alts-label {
+    font-weight: 700;
+    color: var(--n-700);
+    /* The label and the first name are one line; this is the gap between them. */
+    margin-inline-end: 2mm;
+  }
+
+  .plan-print-alt-kcal {
+    font-variant-numeric: tabular-nums;
+    color: var(--n-500);
+  }
+
+  /* How much. */
+  .plan-print-meal-kcal {
+    width: 20mm;
+    text-align: end;
+    font-size: 10.5pt;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+}
+
+/*
+ * ══ The password rule track ══
+ *
+ * `src/features/auth/components/password-rules.tsx` — three rows under the
+ * set-password field, one per client password rule, each a short bar that goes
+ * from grey to green when its rule is met. Only the timings live here; the
+ * layout is Tailwind at the call site, because none of it is reused.
+ *
+ * ## Why the durations are tokens and not utilities
+ *
+ * §Shape names five motion tokens and this needs none of them. `--duration-arc`
+ * (220ms) is the right speed for a control answering a press — a switch knob, a
+ * field arc — and at that speed a bar filling across is a flicker rather than
+ * something you watch happen. `--duration-travel` is the other end and is
+ * reserved for a whole surface crossing the screen, which a 64px bar is not.
+ *
+ * So the track carries its own two, defined on the element rather than in
+ * :root: they are inherited by every row, they are visible in one place when
+ * the feel needs adjusting, and nothing outside this component can pick them up
+ * by accident.
+ */
+.q-rule-track {
+  /* A bar filling across as its rule is met. Deliberately unhurried — this is
+     the one moment the screen has something to say. */
+  --q-rule-sweep: 560ms;
+  /* The label catching up to it. Shorter, so the words settle while the bar is
+     still travelling rather than after it has stopped. */
+  --q-rule-fade: 420ms;
+}
+
+/*
+ * ══ The set-password medallion ══
+ *
+ * The lock in the circle at the top of `SetPasswordForm`. The disc keeps
+ * `bg-secondary`; only the glyph inside it is stated here.
+ *
+ * ## Why it is a hex and not a token
+ *
+ * It is not one. Nothing in the warm scale is this colour — `--n-400`
+ * (#A8A493) is the nearest step and reads distinctly more olive at this size,
+ * and `--muted-foreground` (`--n-500`) is two stops darker. The value was
+ * chosen for this one mark, so it is named for this one mark rather than
+ * pushed into the neutral ramp, where the next person to reach for a grey
+ * would find a step that belongs to nothing.
+ *
+ * The hex lives here because §Tokens allows hex in this file and forbids it in
+ * a component — `eslint-rules/no-raw-hex.mjs` enforces the second half.
+ *
+ * ⚠ **It is one fixed value in both themes**, which is deliberate but narrow:
+ * the glyph is `aria-hidden` decoration inside a tinted disc, and the heading
+ * beside it carries the meaning, so it is not doing contrast work. Anything
+ * that has to be *read* needs a token with a dark-mode assignment instead.
+ */
+.q-set-password-mark {
+  --q-set-password-mark: #ACABA5;
+  color: var(--q-set-password-mark);
+}
+
+/*
+ * ══ The plan generation stage bar ══
+ *
+ * `src/features/weekly-plans/components/generation-loading-screen.tsx` — the
+ * screen the dialog shows for the thirty to sixty seconds a week takes to
+ * generate. Four blocks across the block-end edge, one per stage, each eaten
+ * from its inline-start edge by the strong green as its stage runs.
+ *
+ * ## Why any of it is here rather than in the class list
+ *
+ * The bar is driven from `requestAnimationFrame`, not from React state: a
+ * percentage that re-rendered sixty times a second would re-render the dialog
+ * with it. So the running values are written straight onto the nodes —
+ * `transform` on the fill, `data-state` / `data-reached` on the rest — and a
+ * `data-*` attribute can only select a rule that exists in a stylesheet. The
+ * layout around them stays Tailwind at the call site, exactly as
+ * `.q-rule-track` splits the same way.
+ *
+ * ## The three states are three stops of the one ramp
+ *
+ * §Tokens: there is one green family and a call site does not pin a hex, it
+ * takes a step. Upcoming is the warm neutral the app already uses for a resting
+ * fill, live is green-300, complete is green-600.
+ *
+ * **green-600 and not green-500**, which is the nearer neighbour: the stage's
+ * own name sits inside the block and has to survive the fill passing under it.
+ * White clears 4.9:1 on green-600 and 2.6:1 on green-500 — under the 4.5:1
+ * floor, and this is body-weight text carrying meaning, not the `default`
+ * Button's documented exception.
+ *
+ * ## No dark assignment, deliberately
+ *
+ * Same reason `--planner-tag-*` and `--intake-icon-*` have none. This bar is
+ * drawn inside the practitioner app, where `.dark` is set by nothing and
+ * `[data-theme]` belongs to the client portal, which never opens this dialog.
+ * A dark block here would be an untested promise. The neutral and the two
+ * greens are all ramp steps, so whoever turns dark mode on has one place to
+ * add the counterpart.
+ */
+.q-plan-stages {
+  /* One rhythm for both rows. The checkpoint columns and the blocks under them
+     have to share a gap and an inset or the lists drift off their blocks. */
+  --q-plan-gap: 4px;
+  --q-plan-pad: 20px;
+
+  --q-plan-upcoming-bg: var(--n-100);
+  --q-plan-upcoming-ink: var(--n-600);
+  --q-plan-live-bg: var(--green-300);
+  --q-plan-live-ink: var(--green-900);
+  --q-plan-done-bg: var(--green-600);
+  --q-plan-done-ink: var(--n-0);
+
+  /* §Shape's five motion tokens are all shorter than this needs: they are the
+     speed of a control answering a press, and nothing here is answering one.
+     A block changing state over a fifth of a second reads as a jump on a
+     screen whose whole job is to look unhurried, so the two durations are the
+     bar's own — declared on the element, inherited by every part of it, and
+     invisible to anything outside. `--duration-label` *is* reused for the
+     stage name's colour flip, because that one is a label catching up. */
+  --q-plan-settle: 640ms;
+  --q-plan-reveal: 480ms;
+}
+
+@media (width < 40rem) {
+  .q-plan-stages {
+    --q-plan-pad: 12px;
+  }
+}
+
+/*
+ * The mark, pinned to the block-start inline-start corner.
+ *
+ * Logical rather than physical, so it sits at the reading-start corner in both
+ * scripts the way every other piece of chrome in this app does. It is the only
+ * absolutely positioned thing on the screen; the dialog's own header is hidden
+ * while this is mounted, so nothing shares the corner with it.
+ */
+.q-plan-mark {
+  position: absolute;
+  inset-block-start: 1rem;
+  inset-inline-start: 1rem;
+  inline-size: 3.625rem;
+  block-size: 3.625rem;
+  z-index: 4;
+}
+
+@media (width >= 40rem) {
+  .q-plan-mark {
+    inset-block-start: 1.375rem;
+    inset-inline-start: 1.625rem;
+    inline-size: 4.625rem;
+    block-size: 4.625rem;
+  }
+}
+
+/*
+ * Only the heading changes, never the drawing. The whole mark takes a few
+ * degrees of lean and the seed pair slides inside the leaf; both are written
+ * frame by frame from the component and both return to a true zero, so nothing
+ * here can leave the artwork somewhere it was not drawn.
+ */
+.q-plan-mark svg {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  overflow: visible;
+  transform-origin: center;
+}
+
+.q-plan-mark [data-slot='brand-seeds'] {
+  transform-box: fill-box;
+  transform-origin: center;
+  will-change: transform;
+}
+
+/* ── The checkpoints, standing on top of their blocks ── */
+
+.q-plan-column {
+  flex: 1 1 0;
+  min-inline-size: 0;
+  display: flex;
+  flex-direction: column;
+  /* Bottom-aligned, so every list finishes level with the block it belongs to
+     however many checkpoints it holds. */
+  justify-content: flex-end;
+  gap: 2px;
+  padding-inline-start: var(--q-plan-pad);
+  padding-inline-end: 8px;
+}
+
+/*
+ * Every checkpoint is in its final position from the first frame, at low
+ * opacity. Reaching one raises the opacity and greens the dot — it does not
+ * rise, slide, pop or flash. There is no keyframe anywhere on this screen; the
+ * only things that move are the fill and the mark's heading.
+ */
+.q-plan-point {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  min-inline-size: 0;
+  color: var(--n-400);
+  opacity: 0.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition:
+    opacity var(--q-plan-reveal) var(--ease-sweep),
+    color var(--q-plan-reveal) ease-out;
+}
+
+.q-plan-point[data-reached='true'] {
+  color: var(--foreground);
+  opacity: 1;
+}
+
+/* After its stage has closed. Source order is the whole of the cascade here —
+   same specificity as the rule above, and a past checkpoint is always also a
+   reached one. */
+.q-plan-point[data-past='true'] {
+  color: var(--n-600);
+  opacity: 0.72;
+}
+
+.q-plan-dot {
+  flex: none;
+  inline-size: 5px;
+  block-size: 5px;
+  border-radius: 50%;
+  background: currentcolor;
+  /* Optical, not geometric: the row is baseline-aligned so the text sits on a
+     line the dot has no business sitting on. */
+  transform: translateY(-3px);
+  transition: background-color var(--q-plan-reveal) ease-out;
+}
+
+.q-plan-point[data-reached='true'] .q-plan-dot {
+  background: var(--green-400);
+}
+
+.q-plan-point[data-past='true'] .q-plan-dot {
+  background: var(--green-600);
+}
+
+/* ── The bar ── */
+
+.q-plan-block {
+  position: relative;
+  flex: 1 1 0;
+  min-inline-size: 0;
+  overflow: hidden;
+  background: var(--q-plan-upcoming-bg);
+  transition: background-color var(--q-plan-settle) var(--ease-sweep);
+}
+
+.q-plan-block[data-state='live'] {
+  background: var(--q-plan-live-bg);
+}
+
+.q-plan-block[data-state='done'] {
+  background: var(--q-plan-done-bg);
+}
+
+/*
+ * `scaleX` and not an inline size: this is the one thing on the screen written
+ * every frame, and a transform is the only way to do that without laying the
+ * block out sixty times a second. The origin is the inline-start edge, which is
+ * physically opposite in the two scripts — hence the `[dir='rtl']` pair rather
+ * than a keyword, since `transform-origin` has no logical one.
+ *
+ * No transition on the transform. The component owns the easing curve, and a
+ * CSS transition on top of a value that changes every frame would only lag it.
+ */
+.q-plan-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--q-plan-done-bg);
+  transform: scaleX(0);
+  transform-origin: left center;
+  will-change: transform;
+}
+
+[dir='rtl'] .q-plan-fill {
+  transform-origin: right center;
+}
+
+.q-plan-label {
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline-start: 0;
+  max-inline-size: 100%;
+  z-index: 2;
+  display: flex;
+  align-items: baseline;
+  gap: 1px;
+  padding-inline: var(--q-plan-pad);
+  padding-block-end: 13px;
+  color: var(--q-plan-upcoming-ink);
+  transition: color var(--duration-label) ease-out;
+}
+
+.q-plan-block[data-state='live'] .q-plan-label {
+  color: var(--q-plan-live-ink);
+}
+
+/*
+ * The flip. The name starts dark on the light green and turns white the moment
+ * the fill actually passes its far edge — the component measures the label and
+ * compares, rather than guessing a fraction of the stage, so a long Arabic name
+ * and a short English one both flip at the right instant instead of one of them
+ * dissolving into the fill for a second on the way past.
+ */
+.q-plan-block[data-state='live'][data-covered='true'] .q-plan-label,
+.q-plan-block[data-state='done'] .q-plan-label {
+  color: var(--q-plan-done-ink);
+}
+
+/*
+ * On a phone there is not room for four columns of checkpoints side by side,
+ * nor for four stage names inside four ~94px blocks. Rather than a second
+ * markup path for the narrow case, the same four columns stay mounted and only
+ * the running one is shown — it is already `flex: 1` in a flex row, so it takes
+ * the full width on its own, and the nodes the frame loop writes to are the
+ * same ones at every size.
+ */
+@media (width < 40rem) {
+  .q-plan-column {
+    display: none;
+    padding-inline: 1rem;
+  }
+
+  .q-plan-column[data-live='true'] {
+    display: flex;
+  }
+}
+
+/*
+ * The row the four columns stand in. Its floor leaves headroom above the
+ * tallest of them, so the bar keeps one line as the stages change instead of
+ * rising and falling with the length of each list.
+ */
+.q-plan-lists {
+  display: flex;
+  align-items: stretch;
+  gap: var(--q-plan-gap);
+  min-block-size: 124px;
+  padding-block-end: 1.25rem;
+}
+
+/*
+ * A landscape phone is about 390px tall and the dialog is capped three rem
+ * under that. The checkpoints are what gives: the counter still names the
+ * running stage and the bar still shows how far it has gone, so what is lost
+ * is the detail of the work rather than the state of it — and losing it is
+ * better than a status screen the reader has to scroll to see the bottom of.
+ */
+@media (height < 34rem) {
+  .q-plan-lists {
+    display: none;
+  }
+}

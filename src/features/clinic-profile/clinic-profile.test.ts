@@ -21,9 +21,9 @@ import {
 import type { ClinicInformationInput, ProfessionalProfileInput, WeeklyScheduleInput } from './schema';
 
 const CLINIC: ClinicInformationInput = {
-  name: 'Qiwam Clinic',
-  phone: '0599123456',
-  contactEmail: 'clinic@qiwam.test',
+  name: 'Enzyme Clinic',
+  phone: '+970599123456',
+  contactEmail: 'clinic@enzyme.test',
   address: 'Ramallah, Main Street',
 };
 
@@ -53,7 +53,7 @@ async function createStaff(clinic: string, suffix: string): Promise<string> {
   await db.insert(user).values({
     id,
     name: 'Original Name',
-    email: `${suffix}@qiwam.test`,
+    email: `${suffix}@enzyme.test`,
     role: 'staff',
     clinicId: clinic,
   });
@@ -74,7 +74,7 @@ describe('clinic-scoped profile writes', () => {
 
     const [mine] = await db.select().from(clinics).where(eq(clinics.id, clinicId));
     const [other] = await db.select().from(clinics).where(eq(clinics.id, otherClinicId));
-    expect(mine?.contactEmail).toBe('clinic@qiwam.test');
+    expect(mine?.contactEmail).toBe('clinic@enzyme.test');
     expect(other?.contactEmail).toBeNull();
   });
 
@@ -225,7 +225,7 @@ describe('the clinic logo', () => {
     await updateClinicField(clinicId, 'logoUrl', LOGO);
 
     const [row] = await db.select().from(clinics).where(eq(clinics.id, clinicId));
-    expect(row?.contactEmail).toBe('clinic@qiwam.test');
+    expect(row?.contactEmail).toBe('clinic@enzyme.test');
     expect(row?.address).toBe('Ramallah, Main Street');
   });
 

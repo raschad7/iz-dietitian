@@ -1,21 +1,28 @@
-# Qiwam design system / نظام تصميم قوام
+# Enzyme design system / نظام تصميم إنزيم
 
-This file is the concise, authoritative UI contract for Qiwam. It describes the
+This file is the concise, authoritative UI contract for Enzyme. It describes the
 design system that is implemented now: a bilingual, RTL-first application built
-primarily from reusable shadcn components adapted to Qiwam's visual language.
+primarily from reusable shadcn components adapted to Enzyme's visual language.
+
+> The product was previously called **Qiwam / قوام**. Dated design records under
+> `docs/superpowers/` and `.impeccable/` still use that name and describe older
+> states of this system — including the olive-and-lime palette and the Q-shaped
+> Arc, both of which are gone. When one of them disagrees with this file, this
+> file wins.
 
 Use the following sources in this order when they disagree:
 
 1. Reusable component behavior and variants in [`src/components/ui/`](../src/components/ui/).
 2. Semantic tokens and global utilities in [`src/app/globals.css`](../src/app/globals.css).
 3. The rules in this file.
-4. Existing feature screens and prototypes.
-5. [`design-guide.html`](design-guide.html) and images in
-   [`design-images/`](design-images/) as detailed visual references only.
+4. Existing feature screens.
+5. The standalone studies in [`design-prototypes/`](../design-prototypes/) as
+   visual references only.
 
-The HTML guide and reference images include historical states. They can clarify
-the intended character of the product, but they never override current shared
-components, tokens, accessibility behavior, or this contract.
+The prototypes are colour and layout studies, not production code, and several
+predate the current brand. They can clarify the intended character of the
+product, but they never override current shared components, tokens,
+accessibility behavior, or this contract.
 
 ## Required UI workflow
 
@@ -39,16 +46,16 @@ already contains the component. Import from `@/components/ui/*`.
 
 [`components.json`](../components.json) configures shadcn with the `base-nova`
 style, Base UI primitives, React Server Components, Tailwind CSS variables, and
-RTL support. Qiwam depends heavily on that component model:
+RTL support. Enzyme depends heavily on that component model:
 
 - shadcn/Base UI supplies tested primitive behavior and composition patterns;
 - `src/components/ui/` owns the repository's installed and adapted versions;
-- semantic tokens give those components Qiwam's appearance;
+- semantic tokens give those components Enzyme's appearance;
 - feature code composes them into product workflows.
 
 An upstream shadcn component is a starting point, not permission to bypass the
 local system. When adding or updating one, review the generated diff carefully:
-preserve Qiwam tokens, sizes, focus behavior, RTL logic, popup behavior, and
+preserve Enzyme tokens, sizes, focus behavior, RTL logic, popup behavior, and
 existing variants. Never overwrite a customized shared component blindly.
 
 Feature code should not import `@base-ui/react` or another primitive library
@@ -223,6 +230,14 @@ Add icons to `APP_ICONS` in `src/lib/icons.ts`. Use role-based names such as
 `myPlan`, inherit color with `currentColor`, and mirror only direction-bearing
 glyphs. The allowlist in `icon.tsx` owns RTL mirroring. Do not import Lucide
 directly in feature UI or introduce a second icon style.
+
+**One documented exception to inherited color:** the fourteen glyphs on نمط
+الحياة والعادات in the client record, tinted through `--intake-icon-*`. That
+card is a 4×4 lattice of `text-label` rows, and the tint is what lets a reader
+find one answer without reading the thirteen beside it. The tint marks the
+*subject* of a question, never the client's answer to it, and it reuses existing
+palette stops — no new hue was added for it. Nothing outside that card may reach
+for these tokens; new icon color is a change to this section, not a call site.
 
 **Two names may share a glyph; two rows of one screen may not.** Sharing is fine
 across the app — `dish` and `mealDinner` are both `Utensils` and never meet. It

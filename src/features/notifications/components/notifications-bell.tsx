@@ -229,8 +229,11 @@ export function NotificationsBell({ attention }: { attention: StaffAttentionNoti
                   `pt-4` so the first row clears the header rather than starting
                   flush under its baseline. */}
               <ScrollWindow
+                /* The dialog's body, declared — same reasoning as the requests
+                   dialog beside it, and the same frame answers both. */
+                data-slot="dialog-body"
                 visible={VISIBLE_NOTIFICATIONS}
-                className="min-h-0 flex-1 px-4 pt-4 pb-4 sm:px-5 sm:pb-5"
+                className="px-4 pt-4 pb-4 sm:px-5 sm:pb-5"
               >
                 <NotificationsList data={{ attention }} />
               </ScrollWindow>

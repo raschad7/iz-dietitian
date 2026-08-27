@@ -27,6 +27,7 @@ import {
   clinicHiddenDishes,
   dishIngredients,
   dishes,
+  weeklyPlanMealIngredients,
   weeklyPlanMealOptions,
   weeklyPlanMeals,
   weeklyPlans,
@@ -41,6 +42,11 @@ import { normalizeArabic } from './arabic-normalize';
 import { matchesOwner, type OwnerFilter } from './catalog-ownership';
 import type { CatalogDish } from './generate';
 import type { FoodPortion } from './ingredient-units';
+import {
+  hasOwnAmounts,
+  mealIngredientLines,
+  type MealIngredientLine,
+} from './meal-ingredients';
 import {
   baseServingKcal,
   combineTotals,
@@ -84,7 +90,7 @@ import { weekDates } from './week';
  * own callback parameter rather than imported, which is the idiom already used in
  * `editor-mutations.ts`.
  */
-type DbExecutor = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+export type DbExecutor = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 /**
  * A `text[]` literal with each element bound as a parameter.
@@ -184,6 +190,8 @@ const recipeColumns = {
   dishId: dishIngredients.dishId,
   quantityGrams: dishIngredients.quantityGrams,
   portionQuantity: dishIngredients.portionQuantity,
+  isPrimary: dishIngredients.isPrimary,
+  sortOrder: dishIngredients.sortOrder,
   portion: portionColumns,
   food: foodColumns,
 } as const;
@@ -192,6 +200,9 @@ type RecipeRow = {
   dishId: string;
   quantityGrams: number;
   portionQuantity: number | null;
+  /** Whether this line carries a `−/+` control on the board. */
+  isPrimary: boolean;
+  sortOrder: number;
   /**
    * Null when the line was entered in grams, or when the portion it was entered in
    * has since been retired — `dish_ingredients.portion_id` is `on delete set null`,
@@ -201,6 +212,49 @@ type RecipeRow = {
   portion: { id: string; labelAr: string; labelEn: string; grams: number } | null;
   food: Omit<FoodSearchResult, 'portions'>;
 };
+
+/**
+ * The amounts a dietitian set by hand, for a set of meals, grouped by meal.
+ *
+ * Absent for almost every meal, and that absence is the normal case: a meal has
+ * rows here only once someone has moved one of its ingredients. `mealIngredientLines`
+ * treats an empty bucket and a missing one identically, so no caller has to.
+ *
+ * Read through the same `foodColumns` / `portionColumns` the recipe readers use, so
+ * a hand-set line and a scaled recipe line arrive in the same shape and the code
+ * downstream cannot tell — or need to tell — which it is holding.
+ */
+export async function ownAmountsByMeal(
+  mealIds: readonly string[],
+  executor: DbExecutor = db,
+): Promise<Map<string, MealIngredientLine[]>> {
+  const byMeal = new Map<string, MealIngredientLine[]>();
+  if (!mealIds.length) return byMeal;
+
+  const rows = await executor
+    .select({
+      mealId: weeklyPlanMealIngredients.mealId,
+      quantityGrams: weeklyPlanMealIngredients.quantityGrams,
+      portionQuantity: weeklyPlanMealIngredients.portionQuantity,
+      isPrimary: weeklyPlanMealIngredients.isPrimary,
+      sortOrder: weeklyPlanMealIngredients.sortOrder,
+      portion: portionColumns,
+      food: foodColumns,
+    })
+    .from(weeklyPlanMealIngredients)
+    .innerJoin(catalogFoods, eq(catalogFoods.id, weeklyPlanMealIngredients.catalogFoodId))
+    .leftJoin(catalogFoodPortions, eq(catalogFoodPortions.id, weeklyPlanMealIngredients.portionId))
+    .where(inArray(weeklyPlanMealIngredients.mealId, [...mealIds]))
+    .orderBy(asc(weeklyPlanMealIngredients.sortOrder));
+
+  for (const { mealId, ...line } of rows) {
+    const bucket = byMeal.get(mealId);
+    if (bucket) bucket.push(line);
+    else byMeal.set(mealId, [line]);
+  }
+
+  return byMeal;
+}
 
 /** Folds recipe rows onto their dishes, preserving the query's ordering. */
 function attachRecipes<D extends { id: string }>(
@@ -215,6 +269,8 @@ function attachRecipes<D extends { id: string }>(
       food: row.food,
       portion: row.portion,
       portionQuantity: row.portionQuantity,
+      isPrimary: row.isPrimary,
+      sortOrder: row.sortOrder,
     };
 
     const bucket = byDish.get(row.dishId);
@@ -1250,6 +1306,16 @@ export type BoardMeal = {
   timeOfDay: string;
   /** Null for an unfilled slot. */
   dish: (DishDetail & { servings: number }) | null;
+  /**
+   * What this meal actually contains, already resolved and already scaled.
+   *
+   * The meal's own hand-set amounts when it has any, the dish's recipe at
+   * `servings` otherwise — decided once by `mealIngredientLines`, so every surface
+   * reading this array is reading the same meal. Empty for an unfilled slot.
+   */
+  lines: MealIngredientLine[];
+  /** True once the dietitian has set amounts by hand and the dish multiplier no longer applies. */
+  hasOwnAmounts: boolean;
   rationaleAr: string | null;
   /** Frozen when the plan was published, computed live for a draft. */
   totals: NutrientTotals;
@@ -1633,6 +1699,9 @@ async function assembleBoard(plan: PlanRow): Promise<Board> {
 
   const dishById = new Map((await loadDishesByIds([...referenced])).map((dish) => [dish.id, dish]));
 
+  // The hand-set amounts, for the meals that have any. One query for the week.
+  const ownAmounts = await ownAmountsByMeal(mealIds);
+
   // Each meal carries the budget it was generated against, so the board shows the
   // same figure the model was given even after the client's profile has moved on.
   const budgetByMeal = new Map(mealRows.map((meal) => [meal.id, meal.budgetKcal]));
@@ -1671,6 +1740,15 @@ async function assembleBoard(plan: PlanRow): Promise<Board> {
 
   for (const meal of mealRows) {
     const dish = meal.dishId ? dishById.get(meal.dishId) : undefined;
+    const stored = ownAmounts.get(meal.id);
+
+    // What this meal contains, decided once. Everything below — the calories, the
+    // weight, the ingredient list the dietitian and the patient both read — is
+    // built from this one array, so the numbers and the list cannot describe two
+    // different meals.
+    const lines = dish
+      ? mealIngredientLines({ recipe: dish.ingredients, servings: meal.servings, stored })
+      : [];
 
     // The one branch between a frozen record and a live calculation. Keyed on the
     // snapshot rather than on `plan.status`, so the rule is stated once and the
@@ -1682,8 +1760,7 @@ async function assembleBoard(plan: PlanRow): Promise<Board> {
       // recalculates; a published plan with nothing readable to show throws rather
       // than quietly producing today's numbers under yesterday's prescription.
       requiresSnapshot: requiresFrozenNutrition(plan.status),
-      ingredients: dish ? dish.ingredients : null,
-      servings: meal.servings,
+      lines: dish ? lines : null,
     });
 
     days[meal.dayOfWeek]?.meals.push({
@@ -1692,6 +1769,8 @@ async function assembleBoard(plan: PlanRow): Promise<Board> {
       label: meal.label,
       timeOfDay: toTimeInput(meal.timeOfDay),
       dish: dish ? { ...dish, servings: meal.servings } : null,
+      lines,
+      hasOwnAmounts: hasOwnAmounts(stored),
       rationaleAr: meal.rationaleAr,
       totals: nutrition.totals,
       grams: nutrition.grams,

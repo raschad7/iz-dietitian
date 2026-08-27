@@ -64,6 +64,12 @@ type SeenProgression = {
  * a client exactly once in their life; a key per render would congratulate them
  * constantly.
  */
+/**
+ * The `qiwam.` prefix is the product's former name. It stays: this key names a
+ * record already sitting in real browsers, and renaming it would not migrate
+ * that record, it would abandon it. A rebrand is not a reason to silently
+ * discard state a user already has.
+ */
 function storageKeyFor(scope: string): string {
   return `qiwam.portal.mascot.${scope}`;
 }

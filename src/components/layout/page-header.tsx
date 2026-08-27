@@ -78,7 +78,18 @@ export async function PageHeader({
       )}
     >
       <div className="min-w-0">
-        <h1 className="font-heading text-heading-lg font-semibold tracking-tight" dir="auto">
+        {/*
+          24px at regular weight, not semibold.
+
+          A page title is the name of the room, not an announcement: it is the
+          largest thing on the screen already, and size alone is enough to place
+          it. At 600 it competed with the toolbar under it and, in Arabic — where
+          the UI face has no true bold and the browser synthesises one — it
+          thickened the letterforms rather than darkening them. `tracking-tight`
+          went with it: negative letter-spacing on Arabic works against the
+          cursive join, and a lighter weight had no need of it.
+        */}
+        <h1 className="font-heading text-heading-lg font-normal" dir="auto">
           {title}
         </h1>
         {subtitle ? <p className="text-body-sm text-muted-foreground">{subtitle}</p> : null}

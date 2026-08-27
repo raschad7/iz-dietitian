@@ -5,7 +5,6 @@ import { getFormatter, getTranslations } from 'next-intl/server';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Icon } from '@/components/ui/icon';
 import { Separator } from '@/components/ui/separator';
 import { patientToneStyle } from '@/features/booking/patient-color';
 import { ClientRecordActions } from '@/features/clients/components/client-record-actions';
@@ -180,31 +179,35 @@ export async function ClientProfilePanel({
           rounded muted fill, its own padding, no elevation. See
           docs/design-system.md on nesting.
 
-          The glyph is bare on that fill rather than on a disc, and it is a
-          neutral: olive marks what you can act on, and the only thing in this
-          panel you can press is the button at its foot.
+          **Label over figure, and no glyph.** Each tile carried a calendar or a
+          meal-plan mark above its number; two tiles that differ only in a 18px
+          neutral outline are told apart by reading the caption anyway, so the
+          glyph was decoration paid for in height. Dropping it leaves the tile
+          saying the two things it is for, and putting the caption first means
+          the eye meets the question before the answer — a bare `0` under an
+          icon is a number with nothing attached to it until you look further
+          down.
         */}
         <div className="flex gap-3">
           {[
-            { icon: 'calendar' as const, label: t('profile.visitsSoFar'), value: visitCount },
-            { icon: 'mealPlans' as const, label: t('profile.plansWritten'), value: planCount },
+            { label: t('profile.visitsSoFar'), value: visitCount },
+            { label: t('profile.plansWritten'), value: planCount },
           ].map((figure) => (
             <Card
               key={figure.label}
               variant="tile"
               className="min-w-0 flex-1 items-center gap-0.5 p-2.5 text-center"
             >
-              <Icon name={figure.icon} className="size-[1.125rem] text-muted-foreground" />
+              <span className="max-w-full truncate text-caption text-muted-foreground">
+                {figure.label}
+              </span>
               {/* The figure is isolated LTR so digits keep their order inside
-                  Arabic, while the label under it stays in the page's direction. */}
+                  Arabic, while the label over it stays in the page's direction. */}
               <span
                 dir="ltr"
                 className="font-heading text-heading-sm font-semibold tabular-nums"
               >
                 {figure.value}
-              </span>
-              <span className="max-w-full truncate text-caption text-muted-foreground">
-                {figure.label}
               </span>
             </Card>
           ))}

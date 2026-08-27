@@ -5,9 +5,9 @@ import { OTHER_OPTION } from './professional-options';
 
 function baseForm(): FormData {
   const form = new FormData();
-  form.set('clinicName', 'Qiwam Clinic');
+  form.set('clinicName', 'Enzyme Clinic');
   form.set('clinicPhone', '+970 59 000 0000');
-  form.set('contactEmail', 'hello@qiwam.test');
+  form.set('contactEmail', 'hello@enzyme.test');
   form.set('address', 'Ramallah');
   form.set('name', 'Dr Rima');
   form.set('professionalTitle', 'أخصائي تغذية سريرية');
@@ -26,7 +26,7 @@ describe('readClinicProfileForm', () => {
 
     expect(value.schedule.days[0]).toEqual({ weekday: 0, isWorking: true, openMinute: 555, closeMinute: 1050 });
     expect(value.schedule.days[1]).toEqual({ weekday: 1, isWorking: false, openMinute: null, closeMinute: null });
-    expect(value.clinic.name).toBe('Qiwam Clinic');
+    expect(value.clinic.name).toBe('Enzyme Clinic');
   });
 
   test('takes the selected title and specialty straight from the lists', () => {

@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import {
+  boolean,
   date,
   index,
   integer,
@@ -15,6 +16,7 @@ import {
 
 import type { MealNutritionSnapshot } from '@/features/weekly-plans/nutrition-snapshot';
 
+import { catalogFoodPortions, catalogFoods } from './catalog-foods';
 import { clients } from './clients';
 import { clinics } from './clinics';
 import { dishes } from './dishes';
@@ -207,6 +209,99 @@ export const weeklyPlanMeals = pgTable(
 );
 
 /**
+ * What one planned meal actually contains, once a dietitian has said so.
+ *
+ * A meal is normally `dish_id + servings`: the recipe, scaled. That is one number
+ * for the whole plate, so raising the chicken raises the eggplant, the oil and the
+ * pine nuts with it. A dietitian does not prescribe that way — she moves the
+ * chicken and the rice and leaves the rest alone — and no single multiplier can
+ * express it.
+ *
+ * So these rows are the answer to "what is in this meal" whenever they exist, and
+ * `servings` is the answer whenever they do not. Exactly one of the two is
+ * consulted, decided in one place ({@link
+ * src/features/weekly-plans/meal-ingredients.ts}), so a meal can never be half
+ * described by each.
+ *
+ * ## They are written all at once, or not at all
+ *
+ * The first time a dietitian touches an ingredient control, the meal's ENTIRE
+ * recipe is copied here at the amounts it currently has, and `servings` is set
+ * to 1. Storing only the line she moved would leave the other lines still scaling
+ * with a multiplier she can no longer see, and "I pinned the chicken, then pressed
+ * the dish's +, what happened to my chicken?" has no answer a person would accept.
+ * A whole-meal copy has one: after the first adjustment there is no dish
+ * multiplier, only ingredients.
+ *
+ * ## They are self-contained on purpose
+ *
+ * A row names a `catalog_food`, not a `dish_ingredients` line. `db:seed:dishes`
+ * replaces every recipe wholesale, so a reference to a recipe line would be
+ * dangling after the next seed — and a prescribed meal should not change because
+ * the dish it came from was edited afterwards. The food, the weight, the unit and
+ * the order are all here, which is what makes a planned meal readable without the
+ * dish it was built from.
+ */
+export const weeklyPlanMealIngredients = pgTable(
+  'weekly_plan_meal_ingredients',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+
+    mealId: uuid('meal_id')
+      .notNull()
+      .references(() => weeklyPlanMeals.id, { onDelete: 'cascade' }),
+
+    /**
+     * The food this line is, and the one live nutrition reference.
+     *
+     * `restrict`, exactly as `dish_ingredients.catalog_food_id`: deleting a food a
+     * patient has been prescribed must fail loudly, not empty their meal.
+     */
+    catalogFoodId: uuid('catalog_food_id')
+      .notNull()
+      .references(() => catalogFoods.id, { onDelete: 'restrict' }),
+
+    /**
+     * Grams in this meal, and the **authoritative** quantity — the whole amount,
+     * not a per-serving one. Nothing multiplies it.
+     *
+     * The two columns below record the unit it was counted in; neither is ever an
+     * input to a calculation, which is the same rule `dish_ingredients` follows.
+     */
+    quantityGrams: real('quantity_grams').notNull(),
+
+    /** The unit the count is in — رغيف, حبة, ملعقة. Null when this line is grams. */
+    portionId: uuid('portion_id').references(() => catalogFoodPortions.id, {
+      onDelete: 'set null',
+    }),
+
+    /** How many of `portion_id`. Null exactly when `portion_id` is. */
+    portionQuantity: real('portion_quantity'),
+
+    /**
+     * Whether this line carried a control when the meal was copied here.
+     *
+     * Copied from `dish_ingredients.is_primary` rather than joined back to it, for
+     * the same reason the food is: re-starring a dish must not add or remove
+     * controls on meals that were already prescribed.
+     */
+    isPrimary: boolean('is_primary').notNull().default(false),
+
+    /** The recipe's own order, preserved so the meal reads as it was written. */
+    sortOrder: integer('sort_order').notNull().default(0),
+
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('weekly_plan_meal_ingredients_meal_id_idx').on(table.mealId, table.sortOrder),
+    // One line per food per meal. Two rows for the same food would render as two
+    // identical names with different amounts and no way to tell which is meant.
+    uniqueIndex('weekly_plan_meal_ingredients_food_idx').on(table.mealId, table.catalogFoodId),
+  ],
+);
+
+/**
  * A ranked alternative for one meal — what the client may eat instead.
  *
  * A separate table rather than an array column on the meal: an option carries its
@@ -285,6 +380,8 @@ export type WeeklyPlan = typeof weeklyPlans.$inferSelect;
 export type NewWeeklyPlan = typeof weeklyPlans.$inferInsert;
 export type WeeklyPlanMeal = typeof weeklyPlanMeals.$inferSelect;
 export type NewWeeklyPlanMeal = typeof weeklyPlanMeals.$inferInsert;
+export type WeeklyPlanMealIngredient = typeof weeklyPlanMealIngredients.$inferSelect;
+export type NewWeeklyPlanMealIngredient = typeof weeklyPlanMealIngredients.$inferInsert;
 export type WeeklyPlanMealOption = typeof weeklyPlanMealOptions.$inferSelect;
 export type NewWeeklyPlanMealOption = typeof weeklyPlanMealOptions.$inferInsert;
 export type WeeklyPlanGeneration = typeof weeklyPlanGenerations.$inferSelect;

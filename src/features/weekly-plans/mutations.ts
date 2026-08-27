@@ -11,8 +11,9 @@ import {
 import { recomputeDayAdherence } from '@/features/portal/mutations';
 
 import type { GenerationOutcome, ReconciledMeal } from './generate';
+import { mealIngredientLines } from './meal-ingredients';
 import { buildMealSnapshot } from './nutrition-snapshot';
-import { loadDishesByIds } from './queries';
+import { loadDishesByIds, ownAmountsByMeal } from './queries';
 import type { GenerationScope } from './schema';
 import { planWeekDays, weekDateForDay } from './week';
 
@@ -390,10 +391,11 @@ export class SnapshotFailedError extends Error {
 /**
  * Freezes the nutrition of every populated meal in a plan.
  *
- * Reads the recipes on the caller's transaction and runs the same
- * `dishTotals`/`dishGrams` path `assembleBoard` uses, so a snapshot is by
- * construction the number the dietitian was looking at when they published. There
- * is no second formula anywhere — see `nutrition-snapshot.ts`.
+ * Reads the recipes AND any hand-set amounts on the caller's transaction, resolves
+ * them through the same `mealIngredientLines` → `dishTotals`/`dishGrams` path
+ * `assembleBoard` uses, so a snapshot is by construction the number the dietitian
+ * was looking at when they published. There is no second formula anywhere — see
+ * `nutrition-snapshot.ts`.
  *
  * Empty slots are left null: there is nothing to freeze, and a fabricated zero
  * would be indistinguishable from a meal that really contains nothing.
@@ -423,13 +425,26 @@ async function snapshotPlanMeals(
   const dishes = await loadDishesByIds([...new Set(populated.map((meal) => meal.dishId))], tx);
   const dishById = new Map(dishes.map((dish) => [dish.id, dish]));
 
+  // Read on the same transaction as the recipes: a meal whose amounts were set by
+  // hand must be frozen at those amounts, not at the dish's.
+  const ownAmounts = await ownAmountsByMeal(
+    populated.map((meal) => meal.id),
+    tx,
+  );
+
   for (const meal of populated) {
     const dish = dishById.get(meal.dishId);
     if (!dish) throw new SnapshotFailedError(planId, meal.id, meal.dishId);
 
+    const lines = mealIngredientLines({
+      recipe: dish.ingredients,
+      servings: meal.servings,
+      stored: ownAmounts.get(meal.id),
+    });
+
     await tx
       .update(weeklyPlanMeals)
-      .set({ nutritionSnapshot: buildMealSnapshot(dish.ingredients, meal.servings) })
+      .set({ nutritionSnapshot: buildMealSnapshot(lines) })
       .where(eq(weeklyPlanMeals.id, meal.id));
   }
 

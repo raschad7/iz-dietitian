@@ -227,7 +227,11 @@ function CatalogDemo({ locale }: { locale: string }) {
         owner={owner}
         showHidden={searchParams.get('hidden') === '1'}
       >
-        <AddDishButton locale={locale} search={mockSearch} searchDishNames={mockDishNameSearch} />
+        <AddDishButton
+          locale={locale}
+          search={mockSearch}
+          searchDishNames={mockDishNameSearch}
+        />
       </DishFilters>
       <DishList locale={locale} items={items} filtered={filtered} />
     </section>
@@ -251,7 +255,11 @@ export function DishesHarness({ locale }: { locale: string }) {
 
       <section className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4">
         <h2 className="text-label font-semibold">Ingredient search</h2>
-        <IngredientSearch locale={locale} onPick={(food) => setPicked((prev) => [...prev, food])} search={mockSearch} />
+        <IngredientSearch
+          locale={locale}
+          onPick={(food) => setPicked((prev) => [...prev, food])}
+          search={mockSearch}
+        />
         {picked.length > 0 && (
           <ul className="mt-2 flex flex-col gap-1 border-t border-border pt-2 text-body-sm">
             {picked.map((food, index) => (

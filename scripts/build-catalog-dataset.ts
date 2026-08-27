@@ -10,8 +10,8 @@
  * ## The two halves of the file
  *
  * **Curated** — `slug`, `nameAr`, `nameEn`, `state`, `category`, `sourceType`,
- * `sourceRef`, `aliasesAr`, `aliasesEn`. Written by a person, read here, copied
- * through untouched. This script never edits curation.
+ * `sourceRef`, `aliasesAr`, `aliasesEn`, `extraPortions`. Written by a person,
+ * read here, copied through untouched. This script never edits curation.
  *
  * **Derived** — `note`, `nutrition`, `portions`, and the file's `checksum`. Read
  * out of `data/usda-sr-legacy.ndjson` by `sourceRef`, and rewritten on every run.
@@ -49,6 +49,8 @@ type UsdaRecord = {
   category: string;
   portionGrams?: number;
   portionLabel?: string;
+  /** Every measured household portion, in `seq_num` order. */
+  portions?: { grams: number; label: string }[];
 } & Partial<Record<(typeof NUTRIENT_KEYS)[number], number>>;
 
 type CuratedFood = {
@@ -62,6 +64,18 @@ type CuratedFood = {
   note: string;
   nutrition: Record<string, number | null>;
   portions: PortionSeed[];
+  /**
+   * Units a dietitian uses that USDA does not publish, written by hand.
+   *
+   * The one case that needs this is the spoon: a dietitian writes "7 spoons of
+   * rice" and means a heaped eating spoon, while USDA's tablespoon - where it has
+   * one at all - is a level measuring spoon at a third of the weight. They are two
+   * different objects and no arithmetic turns one into the other, so the clinic's
+   * number is recorded as data with a `sourceRef` saying whose it is.
+   *
+   * Curated: read here, appended after the derived rows, never rewritten.
+   */
+  extraPortions?: PortionSeed[];
   aliasesAr: string[];
   aliasesEn: string[];
 };
@@ -89,6 +103,42 @@ export function readUsdaReference(path = USDA_PATH): Map<number, UsdaRecord> {
  */
 export function catalogChecksum(foods: readonly unknown[]): string {
   return createHash('sha256').update(JSON.stringify(foods)).digest('hex').slice(0, 16);
+}
+
+/**
+ * Appends the hand-written portions after the derived ones.
+ *
+ * After, not before: the derived rows come from the food's own measures and are
+ * what it should start in, so appending leaves `isDefault` where the derivation
+ * put it. A curated row only ever adds a unit the dietitian can choose.
+ *
+ * A curated label that collides with a derived one is dropped rather than
+ * overwriting it - the seed upserts portions on `(food_id, label_en)`, so two rows
+ * claiming the same label would be one row with whichever weight was written last.
+ */
+export function withExtras(
+  derived: readonly PortionSeed[],
+  extras: readonly PortionSeed[] | undefined,
+): PortionSeed[] {
+  if (!extras?.length) return [...derived];
+
+  const taken = new Set(derived.map((portion) => portion.labelEn));
+  const rows = [...derived];
+
+  for (const extra of extras) {
+    if (taken.has(extra.labelEn) || !(extra.grams > 0)) continue;
+    taken.add(extra.labelEn);
+
+    rows.push({
+      ...extra,
+      // The derivation owns which unit a food starts in; a curated row is an
+      // addition to the menu, never a replacement for its default.
+      isDefault: rows.length === 0,
+      sortOrder: rows.length,
+    });
+  }
+
+  return rows;
 }
 
 function build(): void {
@@ -130,11 +180,10 @@ function build(): void {
       // different food is caught before any nutrition is trusted.
       note: source.description,
       nutrition,
-      portions: derivePortions({
-        category: curated.category,
-        portionGrams: source.portionGrams ?? null,
-        portionLabel: source.portionLabel ?? null,
-      }),
+      portions: withExtras(
+        derivePortions({ category: curated.category, portions: source.portions ?? [] }),
+        curated.extraPortions,
+      ),
     };
   });
 

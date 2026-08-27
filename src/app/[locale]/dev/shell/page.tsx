@@ -55,7 +55,7 @@ export default async function DevShellPage({ params }: DevShellPageProps) {
           { href: '/app/weekly-plans', labelKey: 'weeklyPlans' },
           { href: '/app/dishes', labelKey: 'dishes' },
         ]}
-        title="Qiwam"
+        title="Enzyme"
         /* The staff configuration, which is the one that has a brand — without it
            the head falls back to the plain title and the product logo never
            renders, so the harness could not show the thing it exists to show. */

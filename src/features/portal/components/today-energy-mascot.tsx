@@ -11,7 +11,7 @@ import { toIntlLocale } from '@/lib/format';
 
 /**
  * The home screen's daily commitment card, replacing `TodayRing`'s dashed
- * disc with the Qiwam mark itself as the progress indicator — every meal
+ * disc with the brand mark itself as the progress indicator — every meal
  * ticked rises a soft green "energy" fill inside the same leaf silhouette,
  * and the mark's two eyes read tired at empty and proud at full.
  *

@@ -17,7 +17,7 @@ export default function DishesLoading() {
   return (
     <div className="flex flex-col gap-4 text-start md:h-full md:min-h-0" aria-busy>
       <div className="flex shrink-0 flex-col gap-4">
-        <PageHeaderSkeleton subtitle />
+        <PageHeaderSkeleton />
 
         {/* Search, the filter chips and "New dish", all one row — see
             `DishFilters`, which sets this row's 40px height. */}

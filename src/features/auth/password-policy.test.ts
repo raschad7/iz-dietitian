@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 
 import {
   CLIENT_MIN_PASSWORD_LENGTH,
+  clientPasswordChecks,
   isStrongClientPassword,
   isStrongStaffPassword,
   generateTemporaryPassword,
@@ -46,8 +47,12 @@ describe('generateTemporaryPassword', () => {
 });
 
 describe('CLIENT_MIN_PASSWORD_LENGTH', () => {
-  test('is six, matching the Better Auth global floor', () => {
-    expect(CLIENT_MIN_PASSWORD_LENGTH).toBe(6);
+  test('is eight, matching the Better Auth global floor', () => {
+    expect(CLIENT_MIN_PASSWORD_LENGTH).toBe(8);
+  });
+
+  test('is under the staff minimum, which is the whole reason both exist', () => {
+    expect(CLIENT_MIN_PASSWORD_LENGTH).toBeLessThan(10);
   });
 });
 
@@ -69,9 +74,35 @@ describe('isStrongStaffPassword', () => {
   });
 });
 
+describe('clientPasswordChecks', () => {
+  test('answers the three rules separately', () => {
+    expect(clientPasswordChecks('tuffah24')).toEqual({ length: true, letter: true, digit: true });
+  });
+
+  test('reports the short value as short without calling it letterless', () => {
+    expect(clientPasswordChecks('tuf4')).toEqual({ length: false, letter: true, digit: true });
+  });
+
+  test('counts Arabic letters as letters', () => {
+    expect(clientPasswordChecks('تفاحة2024').letter).toBe(true);
+  });
+
+  test('counts Arabic-Indic numerals as digits', () => {
+    expect(clientPasswordChecks('tuffah٢٤').digit).toBe(true);
+  });
+
+  test('a symbol is neither a letter nor a digit', () => {
+    expect(clientPasswordChecks('--------')).toEqual({
+      length: true,
+      letter: false,
+      digit: false,
+    });
+  });
+});
+
 describe('isStrongClientPassword', () => {
   test('rejects a single character class, however long', () => {
-    expect(isStrongClientPassword('aaaaaa')).toBe(false);
+    expect(isStrongClientPassword('aaaaaaaaaa')).toBe(false);
     expect(isStrongClientPassword('123456789012')).toBe(false);
   });
 
@@ -79,9 +110,20 @@ describe('isStrongClientPassword', () => {
     expect(isStrongClientPassword('qwerty')).toBe(false);
   });
 
-  test('accepts a mix at the client minimum length', () => {
-    expect(isStrongClientPassword('tuff4h')).toBe(true);
-    expect(isStrongClientPassword('tuffa-h')).toBe(true);
+  test('requires a digit — a symbol cannot stand in for one', () => {
+    expect(isStrongClientPassword('tuffah--')).toBe(false);
+  });
+
+  test('requires a letter — a symbol cannot stand in for one', () => {
+    expect(isStrongClientPassword('2024----')).toBe(false);
+  });
+
+  test('accepts letters mixed with digits', () => {
+    expect(isStrongClientPassword('tuffah24')).toBe(true);
+  });
+
+  test('accepts a symbol alongside the two required classes', () => {
+    expect(isStrongClientPassword('tuffah-2024')).toBe(true);
   });
 
   test('says nothing about length — that is the schema’s rule', () => {

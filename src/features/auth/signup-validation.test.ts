@@ -11,8 +11,11 @@ const form = (overrides: Record<string, string> = {}) => {
   data.set('firstName', 'Rania');
   data.set('lastName', 'Khalil');
   data.set('email', 'rania@clinic.ps');
-  data.set('password', 'a-long-enough-password');
-  data.set('confirmPassword', 'a-long-enough-password');
+  // A letter and a digit, which is the whole of the strength rule now — see the
+  // note on `staffPasswordSchema`. It used to be `a-long-enough-password`, which
+  // passed the old staff rule on letters and symbols and holds no digit at all.
+  data.set('password', 'rania-clinic-2024');
+  data.set('confirmPassword', 'rania-clinic-2024');
   data.set('locale', 'ar');
   for (const [key, value] of Object.entries(overrides)) data.set(key, value);
   return readSignUpForm(data);
@@ -39,6 +42,9 @@ describe('signUpFieldErrors', () => {
       lastName: 'lastNameRequired',
       email: 'emailRequired',
       password: 'passwordRequired',
+      // Not "they disagree" — two empty boxes agree perfectly, so the schema's
+      // comparison raises nothing and only the blank check can speak.
+      confirmPassword: 'confirmPasswordRequired',
     });
   });
 
@@ -54,9 +60,20 @@ describe('signUpFieldErrors', () => {
     });
   });
 
-  test('a long-enough password of one character class is still not a password', () => {
+  test('a long-enough password with no digit is still not a password', () => {
+    // Staff take the client rule now — a letter AND a digit, both required.
+    // This used to answer `passwordTooWeak`, the old "two of three classes"
+    // sentence about symbols, which no schema raises any more.
     expect(signUpFieldErrors(form({ password: 'aaaaaaaaaa', confirmPassword: 'aaaaaaaaaa' }))).toEqual({
-      password: 'passwordTooWeak',
+      password: 'clientPasswordTooWeak',
+    });
+  });
+
+  test('refuses one of the handful of passwords everybody picks', () => {
+    // Long enough and mixed, and still the first thing an attacker tries. It
+    // gets its own sentence rather than the generic strength one.
+    expect(signUpFieldErrors(form({ password: '123456789', confirmPassword: '123456789' }))).toEqual({
+      password: 'passwordTooCommon',
     });
   });
 
