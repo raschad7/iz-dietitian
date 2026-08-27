@@ -3,9 +3,10 @@ import { and, eq, like, or } from 'drizzle-orm';
 import { db } from '@/db';
 import { account, clients, session, user } from '@/db/schema';
 import { generateTemporaryPassword } from '@/features/auth/password-policy';
+import { defaultCountryCode } from '@/features/whatsapp/config';
 import { auth } from '@/lib/auth';
 
-import { pickUsername, usernameBase } from './transliterate';
+import { pickPortalUsername, portalUsernameBase } from './portal-username';
 
 /**
  * Portal credentials, issued by a dietitian.
@@ -33,36 +34,44 @@ export function syntheticEmail(username: string): string {
 }
 
 /**
- * The username the issue form opens with: the client's first name, plus a
- * four-character code checked against the names already in use.
+ * The username the issue form opens with: **the client's own phone number**,
+ * checked against the names already in use. See `./portal-username` for why a
+ * phone number and not a name.
  *
  * **Deliberately not scoped to a clinic.** `users.username` carries one unique
  * index across the whole table, so a name taken by another clinic's client — or
  * by a staff account — is taken here too, and a clinic-scoped read would
  * cheerfully suggest it. `issuePortalCredentials` below has always checked the
  * same column unscoped for the same reason. Nothing clinic-owned is read: the
- * query returns usernames already in use that begin with this one name, which
+ * query returns usernames already in use that begin with this one base, which
  * is precisely what the caller must not propose.
+ *
+ * A number belonging to another clinic's client therefore comes back as taken,
+ * and the suggestion moves to `-2`. That is the right outcome and not a leak —
+ * it says a username is unavailable, which the unique index would say anyway
+ * the moment the button was pressed.
  *
  * ⚠ **A suggestion, and still only a suggestion.** It is computed when the card
  * renders and issued whenever the dietitian presses the button, so another
  * clinic can take the name in between; the unique index stays the arbiter and
- * `username_taken` stays a reachable outcome. This narrows that window from
- * "one in ten thousand, every time" to "someone else claimed this exact name in
- * the last few minutes".
+ * `username_taken` stays a reachable outcome.
  */
-export async function suggestPortalUsername(fullName: string): Promise<string> {
-  const base = usernameBase(fullName);
+export async function suggestPortalUsername(client: {
+  fullName: string;
+  phone?: string | null;
+}): Promise<string> {
+  const base = portalUsernameBase(client, defaultCountryCode());
 
-  // `base` is `[a-z0-9-]` by construction, so it carries no LIKE wildcard of its
-  // own — there is no `%` or `_` here to escape.
+  // `base.value` is `[a-z0-9-]` by construction — digits for a phone number,
+  // a slug for a name — so it carries no LIKE wildcard of its own; there is no
+  // `%` or `_` here to escape.
   const rows = await db
     .select({ username: user.username })
     .from(user)
-    .where(or(eq(user.username, base), like(user.username, `${base}-%`)));
+    .where(or(eq(user.username, base.value), like(user.username, `${base.value}-%`)));
 
   const taken = new Set(rows.flatMap((row) => (row.username ? [row.username] : [])));
-  return pickUsername(base, taken);
+  return pickPortalUsername(base, taken);
 }
 
 export type IssueFailureCode = 'not_found' | 'already_issued' | 'username_taken';

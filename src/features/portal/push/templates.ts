@@ -41,6 +41,7 @@ import { type PushKind, type PushPayload } from './types';
 const DESTINATIONS = {
   appointment_reminder: 'appointments',
   appointment_changed: 'appointments',
+  appointment_booked: 'appointments',
   check_in_reminder: '',
   plan_update: '',
   clinic_message: 'notifications',
@@ -51,17 +52,21 @@ const DESTINATIONS = {
  *
  * **The two are not the same list, and that is the point of this map.** A
  * message is a thing to say; a {@link PushKind} is one of the four switches on
- * the client's notifications screen. `appointment_changed` — the clinic moved
- * or cancelled your visit — has no switch of its own, and it is deliberately
- * filed under `clinic_message` ("رسائل العيادة": what the clinic sends you)
- * rather than under `appointment_reminder`.
+ * the client's notifications screen. `appointment_changed` and
+ * `appointment_booked` — the clinic moved, cancelled or just made your visit —
+ * have no switch of their own, and both are deliberately filed under
+ * `clinic_message` ("رسائل العيادة": what the clinic sends you) rather than
+ * under `appointment_reminder`.
  *
  * That is a judgement, so here is the reasoning. The reminder switch turns off
  * *nudges before an appointment* — a client who does not want to be prodded the
- * day before. A cancellation is not a nudge: it is news the client has to act
- * on, and silently withholding it from someone who only opted out of reminders
- * would be the worse failure. Filing it under "what the clinic sends you" keeps
- * it with the other things a person at the clinic decided to tell them.
+ * day before. A new booking, a move or a cancellation are not nudges: each is
+ * news the client has to act on or plan around, and silently withholding it
+ * from someone who only opted out of reminders would be the worse failure.
+ * Filing them under "what the clinic sends you" keeps them with the other
+ * things a person at the clinic decided to tell them — and keeps this message
+ * independent of the reminder that is still coming closer to the visit itself
+ * (see `notifyAppointmentBooked` in `push/notify.ts`).
  *
  * Deriving the consent kind from the message — rather than having the caller
  * pass both — is what stops the two from ever disagreeing. A caller that named
@@ -71,6 +76,7 @@ const DESTINATIONS = {
 const MESSAGE_CONSENT = {
   appointment_reminder: 'appointment_reminder',
   appointment_changed: 'clinic_message',
+  appointment_booked: 'clinic_message',
   check_in_reminder: 'check_in_reminder',
   plan_update: 'plan_update',
   clinic_message: 'clinic_message',
@@ -118,6 +124,13 @@ export type PushMessage =
    * the slot the sentence names.
    */
   | { kind: 'appointment_changed'; change: 'cancelled' | 'moved'; date: IsoDate; startMinute: number }
+  /**
+   * A new appointment was just booked for the client. Sent immediately, on the
+   * booking write itself — see `notifyAppointmentBooked` in `push/notify.ts`
+   * for why this is a separate message and dedupe key from the day-before
+   * reminder rather than a replacement for it.
+   */
+  | { kind: 'appointment_booked'; date: IsoDate; startMinute: number }
   /** Today has not been logged yet, and the day is nearly over. */
   | { kind: 'check_in_reminder' }
   /** A plan covering this week has been published. */
@@ -142,6 +155,10 @@ const AR = {
   appointmentMoved: (date: string, time: string): Copy => ({
     title: 'تغيّر موعد زيارتك',
     body: `موعدك الآن ${date} الساعة ${time}.`,
+  }),
+  appointmentBooked: (date: string, time: string): Copy => ({
+    title: 'تم حجز موعدك',
+    body: `موعدك ${date} الساعة ${time}.`,
   }),
   checkInReminder: (): Copy => ({
     title: 'كيف كان يومك؟',
@@ -174,6 +191,10 @@ const EN = {
   appointmentMoved: (date: string, time: string): Copy => ({
     title: 'Appointment moved',
     body: `Your appointment is now on ${date} at ${time}.`,
+  }),
+  appointmentBooked: (date: string, time: string): Copy => ({
+    title: 'Appointment booked',
+    body: `Your appointment is on ${date} at ${time}.`,
   }),
   checkInReminder: (): Copy => ({
     title: 'How did today go?',
@@ -211,6 +232,11 @@ function copyFor(message: PushMessage, locale: Locale): Copy {
         ? set.appointmentCancelled(date, time)
         : set.appointmentMoved(date, time);
     }
+    case 'appointment_booked':
+      return set.appointmentBooked(
+        formatLongDate(locale, message.date),
+        formatMinute(locale, message.date, message.startMinute),
+      );
     case 'check_in_reminder':
       return set.checkInReminder();
     case 'plan_update':

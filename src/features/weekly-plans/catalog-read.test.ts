@@ -71,22 +71,34 @@ describe('listDishes ownership', () => {
   });
 });
 
-describe('listDishes includeHidden', () => {
-  test('hidden shared dishes are excluded by default and shown flagged when asked for', async () => {
+describe('listDishes hiddenOnly', () => {
+  test('hidden shared dishes are excluded by default and are the whole list when asked for', async () => {
     const [shared] = await seedSharedDish('to-hide');
     await db.insert(clinicHiddenDishes).values({ clinicId, dishId: shared!.id });
+    await createClinicDish(clinicId, dishInput());
 
     const def = await listDishes({ clinicId, page: 1 });
     expect(def.items.map((d) => d.id)).not.toContain(shared!.id);
+    // The normal catalog is never flagged hidden.
+    expect(def.items.every((d) => d.hidden === false)).toBe(true);
 
-    const withHidden = await listDishes({ clinicId, page: 1, includeHidden: true });
-    const hiddenRow = withHidden.items.find((d) => d.id === shared!.id);
-    expect(hiddenRow).toBeDefined();
-    expect(hiddenRow!.hidden).toBe(true);
-    // A visible dish is not flagged hidden.
-    await createClinicDish(clinicId, dishInput());
-    const again = await listDishes({ clinicId, page: 1, includeHidden: true });
-    expect(again.items.find((d) => d.nameEn === 'Grilled chicken')!.hidden).toBe(false);
+    const onlyHidden = await listDishes({ clinicId, page: 1, hiddenOnly: true });
+    expect(onlyHidden.items.map((d) => d.id)).toEqual([shared!.id]);
+    expect(onlyHidden.items[0]!.hidden).toBe(true);
+    // `hiddenOnly` is a different view, not a wider one: the visible catalog is
+    // absent from it entirely.
+    expect(onlyHidden.items.map((d) => d.nameEn)).not.toContain('Grilled chicken');
+  });
+
+  test('the other filters still narrow the hidden view', async () => {
+    const [a] = await seedSharedDish('hidden-lunch');
+    const [b] = await seedSharedDish('hidden-other');
+    await db
+      .insert(clinicHiddenDishes)
+      .values([{ clinicId, dishId: a!.id }, { clinicId, dishId: b!.id }]);
+
+    const searched = await listDishes({ clinicId, page: 1, hiddenOnly: true, q: 'hidden-lunch' });
+    expect(searched.items.map((d) => d.id)).toEqual([a!.id]);
   });
 });
 

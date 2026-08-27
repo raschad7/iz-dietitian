@@ -1,5 +1,6 @@
 'use client';
 
+import { vibrateTick } from '@/lib/haptics';
 import { playMealFillSound } from '@/lib/meal-fill-sound';
 
 import { MealCheckMark } from './meal-check-mark';
@@ -26,6 +27,12 @@ import { useMealCompletion } from './plan-day-completion';
  * enforces the same one in `toggleMealCompletion`: hiding a control is a
  * courtesy, not a guard.
  *
+ * **Three channels, one tap.** The mark redraws, `playMealFillSound` pours,
+ * and `vibrateTick` buzzes — so a client with the phone on silent, or one not
+ * looking straight at the control, still gets an answer that it landed. The
+ * haptic is a no-op on iOS, which implements no Vibration API; see
+ * `src/lib/haptics.ts`.
+ *
  * **The click is stopped from opening the card.** The button sits inside
  * `<summary>`, whose activation behaviour is what toggles a `<details>`, and a
  * click on any descendant carries that default with it as it bubbles. Ticking a
@@ -48,9 +55,15 @@ export function MealCheck({ mealId, label }: { mealId: string; label: string }) 
       onClick={(event) => {
         event.preventDefault();
         event.stopPropagation();
-        // Only marking a meal eaten pours — unchecking is a correction, not
-        // a second helping, so it stays silent.
-        if (!checked) playMealFillSound();
+        // Only marking a meal eaten pours and buzzes — unchecking is a
+        // correction, not a second helping, so it stays silent and still.
+        // Both fire from inside this handler because that is the one
+        // guarantee browsers make about unblocked audio and haptics alike.
+        if (!checked) {
+          playMealFillSound();
+          vibrateTick();
+        }
+
         toggle();
       }}
       // `text-meal-check-fill`, not `text-primary`: a design reference asked

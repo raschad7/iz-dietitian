@@ -131,7 +131,7 @@
     "namePlaceholder": "Your name",
     "firstNamePlaceholder": "Your first name",
     "lastNamePlaceholder": "Your last name",
-    "usernamePlaceholder": "Your username",
+    "usernamePlaceholder": "Phone number or username",
     "submit": "Sign in",
     "showPassword": "Show password",
     "hidePassword": "Hide password",
@@ -772,7 +772,7 @@
       "stateActive": "active",
       "stateNone": "not set up",
       "username": "Username",
-      "usernameHint": "What the client signs in with. Latin letters and numbers.",
+      "usernameHint": "What the client signs in with — their phone number, unless you change it.",
       "issue": "Create sign-in details",
       "reissue": "Issue a new password",
       "confirmReissueTitle": "Issue a new password?",
@@ -1336,6 +1336,10 @@
         },
         "appointmentReminder": {
           "title": "Appointment reminder",
+          "body": "Your appointment is on {date} at {time}."
+        },
+        "appointmentBooked": {
+          "title": "Appointment booked",
           "body": "Your appointment is on {date} at {time}."
         },
         "planUpdate": {
@@ -1942,14 +1946,13 @@
     "emptyFilteredHint": "Try another name, or a different meal time.",
     "searchPlaceholder": "Search by dish name",
     "clearFilters": "Clear filters",
-    "filters": "Filters",
     "filtersReset": "Reset",
     "allMealTypes": "All",
     "count": "{count, plural, =0 {No dishes} one {# dish} other {# dishes}}",
     "moreTags": "+{count, number, integer}",
     "notFoundPrompt": "Didn't find the dish you're looking for?",
     "ownerFilter": {
-      "label": "Show dishes",
+      "label": "Source",
       "all": "All",
       "system": "Shared",
       "clinic": "Mine"
@@ -1979,8 +1982,10 @@
       "ingredients": "Ingredients",
       "actions": "Actions"
     },
-    "hiddenBadge": "Hidden",
-    "showHidden": "Show hidden",
+    "showHidden": "Hidden dishes only",
+    "showHiddenHint": "Show what you put away, so you can bring it back",
+    "tagSearchPlaceholder": "Find a quality",
+    "noTagMatches": "No quality by that name",
     "ownership": {
       "system": "Shared",
       "clinic": "Added by me"

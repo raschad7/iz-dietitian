@@ -2626,6 +2626,48 @@
     background-attachment: local, local, scroll, scroll;
   }
 
+  /*
+    The block-axis twin of `.q-scroll-cue`, for a panel that scrolls *down*.
+    Same trick, rotated: two surface-coloured wedges pinned to the scroller's
+    own content box (`local`) and two shadows pinned to its frame (`scroll`).
+    Where there is content past an edge the wedge has scrolled away and the
+    shadow is left showing; where there is not, the wedge covers it and the cue
+    paints nothing at all. So a panel that fits says nothing and a panel with
+    more below says so without a scrollbar — which matters here because bars are
+    off inside every popup positioner (see the `q-scrollbar` block).
+
+    `--scroll-cue-surface` has to be whatever the scroller is sitting on — a
+    popover sets it to `--popover`. Unlike its horizontal twin, the fallback is
+    written into the `var()` rather than declared as a property of its own: this
+    class lives in `@layer components`, an arbitrary `[--scroll-cue-surface:…]`
+    at a call site is a *utility*, and a caller should not have to know which of
+    the two layers happens to win. With the default inside the `var()` there is
+    only ever one declaration to win.
+  */
+  .q-scroll-cue-y {
+    background-image:
+      linear-gradient(
+        to bottom,
+        var(--scroll-cue-surface, var(--background)) 30%,
+        transparent
+      ),
+      linear-gradient(to top, var(--scroll-cue-surface, var(--background)) 30%, transparent),
+      radial-gradient(farthest-side at 50% 0, rgb(0 0 0 / 0.1), transparent),
+      radial-gradient(farthest-side at 50% 100%, rgb(0 0 0 / 0.1), transparent);
+    background-position:
+      0 0,
+      0 100%,
+      0 0,
+      0 100%;
+    background-repeat: no-repeat;
+    background-size:
+      100% 1.75rem,
+      100% 1.75rem,
+      100% 0.625rem,
+      100% 0.625rem;
+    background-attachment: local, local, scroll, scroll;
+  }
+
   .q-skeleton {
     position: relative;
     overflow: hidden;

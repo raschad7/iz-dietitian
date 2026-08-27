@@ -28,13 +28,61 @@ export type PortalNotification =
   | { id: string; kind: 'adherenceReminder' }
   /** An appointment close enough to be worth a reminder. */
   | { id: string; kind: 'appointmentReminder'; date: IsoDate; startMinute: number }
+  /**
+   * An appointment the dietitian booked in the last day or two — see
+   * `PortalAppointment.bookedDate`. Independent of `appointmentReminder`: one
+   * says "this is coming up", the other says "this was just scheduled", and an
+   * appointment booked for tomorrow can honestly be both at once, the same way
+   * the Web Push side sends an `appointment_booked` message and a later
+   * `appointment_reminder` for the same visit without either replacing the
+   * other (see `push/notify.ts`).
+   */
+  | { id: string; kind: 'appointmentBooked'; date: IsoDate; startMinute: number }
   /** A published plan covers the week `now` falls in. */
   | { id: string; kind: 'planUpdate'; weekStartDate: IsoDate }
   /** The dietitian answered a request the client filed. */
   | { id: string; kind: 'clinicMessage'; requestKind: RequestKind; status: 'approved' | 'declined'; respondedAt: Date };
 
+/**
+ * Where tapping a notification lands, under `/portal`.
+ *
+ * Every kind here has a real screen behind it — an appointment reminder or an
+ * answered request is always about a booking, so both point at the
+ * appointments tab; a plan update or an unlogged day both read off the home
+ * screen. The map is total over {@link PortalNotification}'s kinds precisely
+ * so a new kind is a compile error here rather than a row that renders as a
+ * dead card. See `pushDestination` in `push/templates.ts` for the same
+ * mapping's twin on the Web Push side — the two channels are reporting the
+ * same events and are kept in step by hand rather than by sharing code, since
+ * a push kind and a `PortalNotification` kind are two different unions.
+ */
+const NOTIFICATION_DESTINATION = {
+  adherenceReminder: '/portal',
+  appointmentReminder: '/portal/appointments',
+  appointmentBooked: '/portal/appointments',
+  planUpdate: '/portal',
+  clinicMessage: '/portal/appointments',
+} as const satisfies Record<PortalNotification['kind'], string>;
+
+/** The screen a notification is about, as an app-relative path. */
+export function notificationHref(kind: PortalNotification['kind']): string {
+  return NOTIFICATION_DESTINATION[kind];
+}
+
 /** An appointment today, tomorrow or the day after is close enough to remind about. */
 const APPOINTMENT_REMINDER_WINDOW_DAYS = 2;
+
+/**
+ * An appointment booked today or yesterday, clinic-local, is still "just
+ * booked" news. Day-granular rather than a real elapsed-hours check, on
+ * purpose — `now` here is a `WallClock`, not an instant, the same reason
+ * {@link APPOINTMENT_REMINDER_WINDOW_DAYS} is a day count rather than a
+ * minute count.
+ */
+const RECENTLY_BOOKED_WINDOW_DAYS = 1;
+
+/** How many just-booked appointments the feed shows at once — a repeat series is the case this guards. */
+const RECENTLY_BOOKED_LIMIT = 5;
 
 /** How many answered requests the feed shows — a preview, not the full history. */
 const CLINIC_MESSAGE_LIMIT = 5;
@@ -61,8 +109,35 @@ export function buildNotifications({
   }
 
   const next = nextAppointment(appointments, now);
-  if (next && next.date <= addDays(now.date, APPOINTMENT_REMINDER_WINDOW_DAYS)) {
-    items.push({ id: `appointment-${next.id}`, kind: 'appointmentReminder', date: next.date, startMinute: next.startMinute });
+  const reminded = next && next.date <= addDays(now.date, APPOINTMENT_REMINDER_WINDOW_DAYS) ? next : null;
+  if (reminded) {
+    items.push({
+      id: `appointment-${reminded.id}`,
+      kind: 'appointmentReminder',
+      date: reminded.date,
+      startMinute: reminded.startMinute,
+    });
+  }
+
+  // Excludes whichever appointment just got the reminder card above, if any —
+  // a second card about the same visit would read as two systems agreeing by
+  // coincidence rather than one system stating it once. `next` alone is not
+  // enough to exclude: it is always the *closest* appointment, reminder
+  // window or not, so excluding it unconditionally would silently drop the
+  // booked card for a far-future appointment that happens to be the only one
+  // on file.
+  const bookedSince = addDays(now.date, -RECENTLY_BOOKED_WINDOW_DAYS);
+  const recentlyBooked = appointments
+    .filter((appointment) => appointment.id !== reminded?.id && appointment.bookedDate >= bookedSince)
+    .slice(0, RECENTLY_BOOKED_LIMIT);
+
+  for (const appointment of recentlyBooked) {
+    items.push({
+      id: `booked-${appointment.id}`,
+      kind: 'appointmentBooked',
+      date: appointment.date,
+      startMinute: appointment.startMinute,
+    });
   }
 
   const currentWeekStart = weekDates(now.date)[0];
