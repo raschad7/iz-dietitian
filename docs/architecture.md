@@ -221,8 +221,10 @@ lint rule. See [Design system](design-system.md) for the complete UI contract.
 - `clinic-profile`: clinic onboarding, clinic details, and the default schedule
 - `dashboard`: staff overview and attention items
 - `notifications`: the in-app notification feed and browser notification state
-- `portal`: client dashboard, appointments, profile, settings, published plan
-  access, and the portal's own PWA install flow
+- `portal`: client dashboard, appointments, profile, settings, and published
+  plan access. `portal/pwa/` is the installable app and its service worker;
+  `portal/push/` is Web Push — device subscriptions, the send funnel, and the
+  reminder tick
 - `requests`: the staff-side inbox for client-raised appointment and profile
   requests, kept free of database imports so its cards stay client components
 - `settings`: the staff settings workspace that composes the other features'
@@ -238,6 +240,10 @@ lint rule. See [Design system](design-system.md) for the complete UI contract.
 
 - PostgreSQL is required for the application and tests.
 - OpenWA is optional and self-hosted separately under `infra/openwa/`.
+- Web Push is optional: with no VAPID keypair set the portal hides its
+  "notifications on this device" switch and sends nothing. There is no third
+  party — the browser's own push service is the only endpoint, and no Firebase
+  or other SDK is involved.
 - Resend is optional; console mail is the local default.
 - OpenAI is optional; console generation is available for local work and tests.
 - Google OAuth is optional and hidden when its credentials are absent.

@@ -35,7 +35,14 @@ import { cn } from '@/lib/utils';
  * **not** add its own `rtl:-scale-x-100` — the two cancel out and the glyph
  * ends up pointing the wrong way in Arabic.
  */
-const DIRECTIONAL = new Set<IconName>(['chevronStart', 'chevronEnd', 'signOut', 'back']);
+const DIRECTIONAL = new Set<IconName>([
+  'chevronStart',
+  'chevronEnd',
+  'chevronsStart',
+  'chevronsEnd',
+  'signOut',
+  'back',
+]);
 
 type IconProps = Omit<ComponentProps<'svg'>, 'children' | 'dangerouslySetInnerHTML'> & {
   name: IconName;

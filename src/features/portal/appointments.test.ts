@@ -11,6 +11,7 @@ function appointment(overrides: Partial<PortalAppointment> = {}): PortalAppointm
     durationMinutes: 60,
     reason: null,
     hasOpenRequest: false,
+    bookedDate: '2026-07-01',
     ...overrides,
   };
 }

@@ -2,8 +2,11 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { after } from 'next/server';
 
+import { type IsoDate } from '@/features/booking/date';
 import { localeSchema } from '@/features/clients/schema';
+import { notifyPlanPublished } from '@/features/portal/push/notify';
 import { type Locale } from '@/i18n/routing';
 import { requireStaffClinic } from '@/lib/session';
 
@@ -25,6 +28,7 @@ import type { DishDetail } from './nutrition';
 import {
   getBoard,
   getClientContext,
+  getPlanNotificationTarget,
   loadCatalog,
   previousPlanSlugs,
   toPromptCatalog,
@@ -572,6 +576,34 @@ export async function publishPlanAction(
   }
 
   revalidateBoard(locale);
+
+  /*
+    Tell the client their plan is ready, on whatever device they registered.
+
+    `after()` rather than an inline `await`, and the same reasoning the booking
+    and requests features give for their WhatsApp notices: publishing must not
+    wait on a push service, and it is not less published for a notification
+    that did not go out. Everything inside is swallowed — `sendWebPush` already
+    promises never to throw, and the try/catch covers the read above it.
+
+    The plan is looked up rather than returned by `publishPlan`, which keeps
+    that mutation's contract — and its tests — exactly as they were: a
+    notification is not part of what publishing *is*.
+
+    Keyed on the week (`planPushKey`), so the swap-a-dish-and-republish cycle a
+    dietitian works through in a morning notifies once. Consent is checked by
+    `sendWebPush` against the client's own `notify_plan_update` switch, which is
+    the same flag the WhatsApp channel honours.
+  */
+  after(async () => {
+    try {
+      const target = await getPlanNotificationTarget(clinicId, parsed.data.planId);
+      if (target) await notifyPlanPublished(target.clientId, target.weekStartDate as IsoDate);
+    } catch (error) {
+      console.error('[weekly-plans] push notice failed', error);
+    }
+  });
+
   return { status: 'done' };
 }
 

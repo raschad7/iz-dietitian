@@ -392,17 +392,29 @@ function AccountAvatar({ name, className }: { name: string; className?: string }
  * Name over email. `min-w-0` on the stack and `truncate` on both lines is what
  * stops a long address from pushing the avatar off a 256px rail.
  *
- * The email is isolated as an inline LTR run under an Arabic name: an address
- * is Latin text and a bidi run would otherwise drag its dot-com to the wrong
- * end. The direction belongs on the run, not this full-width line; putting it
- * on the line also resolves `text-start` as LTR and sends the address to the
- * opposite edge from the name.
+ * Both lines isolate their text as an inline run and neither sets a direction
+ * on the line itself. That distinction is the whole point: `text-start` is
+ * inherited as the keyword and re-resolved against *each* element's own
+ * direction, so a line that declares itself LTR aligns left even inside an
+ * Arabic rail.
+ *
+ * ⚠ The name used to carry `dir="auto"` directly. A Latin name — and the staff
+ * account is as often "Rani Shweiki" as it is an Arabic one — resolved that
+ * span to LTR, which sent the name to the left edge while the email stayed
+ * right, and the two lines of one identity ended up on opposite sides of the
+ * block. `bdi` gives the same auto-detected isolation (it defaults to
+ * `dir="auto"`) without ever touching the line's direction, so the alignment
+ * stays the rail's in both scripts.
+ *
+ * The email is pinned `ltr` rather than left to detection: an address is Latin
+ * text, and a bidi run under an Arabic name would otherwise drag its dot-com to
+ * the wrong end.
  */
 function ProfileIdentity({ name, email }: { name: string; email?: string | null }) {
   return (
     <span className="flex min-w-0 flex-1 flex-col text-start leading-tight group-data-[collapsible=icon]:hidden">
-      <span className="truncate text-body-sm font-medium" dir="auto">
-        {name}
+      <span className="truncate text-body-sm font-medium">
+        <bdi>{name}</bdi>
       </span>
       {email ? (
         <span className="truncate text-caption text-muted-foreground">

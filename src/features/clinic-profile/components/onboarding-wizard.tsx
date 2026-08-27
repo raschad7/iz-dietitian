@@ -375,7 +375,13 @@ export function OnboardingWizard({ locale, profile }: { locale: Locale; profile:
               unconditionally clean.
             */}
             <div className={step === 0 ? 'block' : 'hidden'}>
-              <ClinicInformationFields profile={profile} fieldErrors={visibleErrors} />
+              {/* `onEdit` for the phone alone — its controls carry no `name`,
+                  so `clearCorrectedField` cannot see them. See the prop. */}
+              <ClinicInformationFields
+                profile={profile}
+                fieldErrors={visibleErrors}
+                onEdit={clearError}
+              />
             </div>
             <div className={step === 1 ? 'block' : 'hidden'}>
               <ScheduleFields profile={profile} fieldErrors={visibleErrors} onEdit={clearError} />

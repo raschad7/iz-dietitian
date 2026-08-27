@@ -55,7 +55,11 @@
     "whatsapp": "WhatsApp",
     "notifications": "Notifications",
     "openNavigation": "Open navigation",
-    "closeNavigation": "Close navigation"
+    "closeNavigation": "Close navigation",
+
+    "expandSidebar": "Expand sidebar",
+
+    "collapseSidebar": "Collapse sidebar"
   },
   "settingsWorkspace": {
     "title": "Settings",
@@ -1334,6 +1338,10 @@
           "title": "Appointment reminder",
           "body": "Your appointment is on {date} at {time}."
         },
+        "appointmentBooked": {
+          "title": "Appointment booked",
+          "body": "Your appointment is on {date} at {time}."
+        },
         "planUpdate": {
           "title": "This week's plan is ready",
           "body": "The plan for the week of {date} is ready for you."
@@ -1366,6 +1374,13 @@
       "notifications": {
         "title": "Notifications",
         "description": "Choose what you would like to hear about.",
+        "device": {
+          "label": "Notifications on this device",
+          "description": "Get alerts on this device, even when the app is closed.",
+          "blocked": "Notifications are blocked in your browser settings. Allow them for this site, then try again.",
+          "needsInstall": "Add the app to your Home Screen first to receive notifications. Tap here for the steps.",
+          "unsupported": "This browser does not support notifications."
+        },
         "appointmentReminder": {
           "label": "Appointment reminder",
           "description": "A message before your appointment at the clinic."
@@ -2233,6 +2248,8 @@
     },
     "clinicName": "Clinic name",
     "clinicPhone": "Clinic phone",
+    "phoneCountry": "Country code",
+    "phonePlaceholder": "Number without the country code",
     "email": "Contact email",
     "address": "Clinic address",
     "fullName": "Full name",
@@ -2292,6 +2309,7 @@
       "tooLong": "Keep this to {max} characters or fewer.",
       "invalidEmail": "Enter a valid email address, such as name@clinic.com.",
       "invalidPhone": "Enter a valid phone number.",
+      "phoneDigitCount": "Enter {min, number, integer} or {max, number, integer} digits, without the country code.",
       "invalidTime": "Choose a valid time in 15-minute increments.",
       "closingAfterOpening": "Closing time must be later than opening time.",
       "workingDayRequired": "Choose at least one working day.",
@@ -2330,67 +2348,67 @@
     "steps": {
       "welcome": {
         "title": "A quick tour of your clinic",
-        "body": "This walks through the five sections in the sidebar, from the dashboard to the dish catalog, and points out where each day’s work starts. Nothing here changes your data — the guide only shows you around. Press “Skip guide” at any time to leave."
+        "body": "A quick pass over the five sections in the sidebar. Nothing here changes your data, and you can leave at any time."
       },
       "navigation": {
         "title": "The sidebar is how you move around",
-        "body": "Dashboard, Clients, Calendar, Weekly Plans and Dish catalog, in the order a working day usually uses them. On a phone or a tablet the labels drop away and the icons stay."
+        "body": "The five sections, in the order a working day uses them. On a phone the labels drop away and the icons stay."
       },
       "dashboardStats": {
         "title": "The band you read first",
-        "body": "New clients this month and today’s appointments, each with its own trend beneath it, and beside them anything a client is waiting on. Three cards of the same height, so the row never changes shape."
+        "body": "New clients this month and today’s appointments, each with its own trend, and beside them anything waiting on your reply."
       },
       "dashboardRequests": {
         "title": "Client requests arrive here",
-        "body": "This is the client requests card. Anything a client asks for through their portal — a new appointment, a reschedule, a cancellation, a change to their record — waits here, and you can accept or decline it without leaving the dashboard. “All requests” opens the full inbox in a dialog over this page, including everything you have already answered."
+        "body": "Anything a client asks for through their portal — a booking, a reschedule, a cancellation, a change to their record — waits here to be accepted or declined. “All requests” opens the full inbox."
       },
       "dashboardAgenda": {
         "title": "This week’s appointments",
-        "body": "The diary for the days around today, with the appointment in progress marked and the next one pointed at. Open a row to reach that client’s record."
+        "body": "The diary for the days around today, with the appointment in progress marked. Open a row to reach that client’s record."
       },
       "clientsRegister": {
         "title": "Every client you have",
-        "body": "The register: name, age, contact and status, sortable by any column. Open a row for the client’s full record — their measurements, their plans and their history."
+        "body": "Name, age, contact and status, sortable by any column. Open a row for the client’s full record."
       },
       "clientsSearch": {
         "title": "Find, filter and archive",
-        "body": "Search by name or phone, narrow the list by status or another field, and reach the archive of clients who are no longer active. The archive is where a client goes when they stop coming; nothing is deleted."
+        "body": "Search by name or phone, narrow the list by status, and reach the archive of inactive clients from here. Nothing is deleted."
       },
       "clientsNew": {
         "title": "How to add a new client",
-        "body": "Press “New client” here. A card opens over the register with the client’s details, measurements and goals — fill it in and save, and they appear in the list straight away. The same card is how you edit anyone later, so adding or correcting someone never costs you your place in the register."
+        "body": "Press “New client” and a card opens with their details, measurements and goals. The same card is how you edit anyone later."
       },
       "calendarToolbar": {
         "title": "Choosing what you are looking at",
-        "body": "Step through days or weeks with the arrows, jump to a date with the date button, and switch between the day, week and month views. Search finds an appointment by the client’s name."
+        "body": "Step through days or weeks with the arrows, jump to a date with the date button, and switch between the day, week and month views."
       },
       "calendarBooking": {
         "title": "How to book an appointment",
-        "body": "Drag down the grid across the time you want, on the day you want. Let go and a picker opens: choose the client, set how long the appointment runs, and repeat it weekly if it is a standing slot. If the person is not on your list yet, you can add them without leaving the picker. To move a booking afterwards, drag the block to its new time."
+        "body": "Drag down the grid across the time you want and a picker opens: choose the client, set the length, repeat it weekly if it is a standing slot. To move a booking, drag the block."
       },
       "plannerPicker": {
         "title": "How to build a weekly plan",
-        "body": "Start by choosing whose week you are planning. Search here, or pick one of the suggested clients below — the ones whose plans are running out soonest."
+        "body": "Start by choosing whose week you are planning. Search here, or pick one of the suggested clients below — their plans run out soonest."
       },
       "plannerBoard": {
         "title": "The week, meal by meal",
-        "body": "Once a client is chosen you get their board: seven days across, their meals down each one. Fill a slot from the dish catalog beside it, or generate the week and edit what comes back. Each day shows how its calories and protein compare to the client’s target, and publishing sends the plan to their portal."
+        "body": "Seven days across, their meals down each one. Fill the slots from the dish catalog beside it, or generate the week and edit it. Publishing sends the plan to their portal."
       },
       "dishesCatalog": {
         "title": "What the plans draw from",
-        "body": "Every dish available to your weekly plans, with its calories, carbohydrates and protein on the card. Dishes marked as system dishes come with the app; the rest are your clinic’s own."
+        "body": "Every dish your weekly plans can draw on, with its calories and macros on the card. The ones marked as system dishes come with the app."
       },
       "dishesFilters": {
         "title": "Narrowing the catalog",
-        "body": "Search by name, or filter by meal type, tag and nutrition. You can also switch between your clinic’s own dishes and the ones that came with the app."
+        "body": "Search by name, or filter by meal type, tag and nutrition — or switch between your clinic’s own dishes and the app’s."
       },
       "dishesAdd": {
         "title": "How to add a new dish",
-        "body": "Press “Add dish”. The builder opens beside the catalog: name the dish in both languages, add its ingredients and their amounts, and the calories and macros are worked out as you go. Save it and it is available in every weekly plan from then on."
+        "body": "The builder opens beside the catalog: name the dish in both languages and add its ingredients, and the nutrition is worked out as you go."
       },
       "finish": {
         "title": "That is the whole tour",
-        "body": "You can start it again from “User guide” at the foot of the sidebar whenever you want. Each section also carries its own hints and empty states, which appear when there is something to explain."
+        "body": "You can start it again from “User guide” at the foot of the sidebar whenever you want."
       }
     }
   }

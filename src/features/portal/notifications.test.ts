@@ -1,12 +1,15 @@
 import { describe, expect, test } from 'bun:test';
 
-import { buildNotifications, type PortalNotification } from './notifications';
+import { buildNotifications, notificationHref, type PortalNotification } from './notifications';
 import { type PortalAppointment, type PortalRequest } from './types';
 
 /** Wednesday 5 August 2026. */
 const WEDNESDAY = '2026-08-05';
 const SUNDAY = '2026-08-02';
 const NOW = { date: WEDNESDAY, minute: 9 * 60 };
+
+/** Well outside {@link RECENTLY_BOOKED_WINDOW_DAYS}, so an ordinary fixture never triggers `appointmentBooked` by accident. */
+const LONG_AGO = '2026-07-01';
 
 function appointment(overrides: Partial<PortalAppointment> = {}): PortalAppointment {
   return {
@@ -16,6 +19,7 @@ function appointment(overrides: Partial<PortalAppointment> = {}): PortalAppointm
     durationMinutes: 30,
     reason: null,
     hasOpenRequest: false,
+    bookedDate: LONG_AGO,
     ...overrides,
   };
 }
@@ -157,5 +161,88 @@ describe('buildNotifications', () => {
     });
 
     expect(items).toEqual([]);
+  });
+
+  test('flags an appointment booked today or yesterday', () => {
+    const items = buildNotifications({
+      now: NOW,
+      todayAdherenceLevel: 'full',
+      appointments: [
+        appointment({ id: 'apt-today', date: '2026-09-10', bookedDate: WEDNESDAY }),
+        appointment({ id: 'apt-yesterday', date: '2026-09-11', bookedDate: '2026-08-04' }),
+        appointment({ id: 'apt-too-old', date: '2026-09-12', bookedDate: SUNDAY }),
+      ],
+      requests: [],
+      currentWeekPlanStartDate: null,
+    });
+
+    expect(items).toContainEqual(
+      expect.objectContaining({ kind: 'appointmentBooked', id: 'booked-apt-today' }),
+    );
+    expect(items).toContainEqual(
+      expect.objectContaining({ kind: 'appointmentBooked', id: 'booked-apt-yesterday' }),
+    );
+    expect(items.filter((item) => item.kind === 'appointmentBooked')).toHaveLength(2);
+  });
+
+  test('stays quiet about an appointment booked more than a day ago', () => {
+    const items = buildNotifications({
+      now: NOW,
+      todayAdherenceLevel: 'full',
+      appointments: [appointment({ bookedDate: LONG_AGO })],
+      requests: [],
+      currentWeekPlanStartDate: null,
+    });
+
+    expect(kindsOf(items)).not.toContain('appointmentBooked');
+  });
+
+  test('does not double up on the appointment already carrying the upcoming reminder', () => {
+    // Booked yesterday *and* close enough to remind about — both real facts,
+    // but one card each, not two about the same visit. See the exclusion in
+    // `buildNotifications`.
+    const items = buildNotifications({
+      now: NOW,
+      todayAdherenceLevel: 'full',
+      appointments: [appointment({ id: 'apt-1', date: WEDNESDAY, bookedDate: WEDNESDAY })],
+      requests: [],
+      currentWeekPlanStartDate: null,
+    });
+
+    expect(kindsOf(items)).toContain('appointmentReminder');
+    expect(kindsOf(items)).not.toContain('appointmentBooked');
+  });
+
+  test('a second, unrelated appointment booked yesterday still gets its own card', () => {
+    // Same setup as above, plus a second appointment far outside the reminder
+    // window that was also booked yesterday — it has no reminder card to
+    // collide with, so it gets a booked card of its own.
+    const items = buildNotifications({
+      now: NOW,
+      todayAdherenceLevel: 'full',
+      appointments: [
+        appointment({ id: 'apt-soon', date: WEDNESDAY, bookedDate: WEDNESDAY }),
+        appointment({ id: 'apt-later', date: '2026-09-20', bookedDate: WEDNESDAY }),
+      ],
+      requests: [],
+      currentWeekPlanStartDate: null,
+    });
+
+    expect(items).toContainEqual(
+      expect.objectContaining({ kind: 'appointmentBooked', id: 'booked-apt-later' }),
+    );
+  });
+});
+
+describe('notificationHref', () => {
+  test('every appointment-related kind opens the appointments tab', () => {
+    expect(notificationHref('appointmentReminder')).toBe('/portal/appointments');
+    expect(notificationHref('appointmentBooked')).toBe('/portal/appointments');
+    expect(notificationHref('clinicMessage')).toBe('/portal/appointments');
+  });
+
+  test('an adherence reminder and a plan update both open the home tab', () => {
+    expect(notificationHref('adherenceReminder')).toBe('/portal');
+    expect(notificationHref('planUpdate')).toBe('/portal');
   });
 });

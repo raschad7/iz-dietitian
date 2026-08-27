@@ -12,7 +12,9 @@ import {
 const completedForm = () => {
   const form = new FormData();
   form.set('clinicName', 'Rashad Atallah');
-  form.set('clinicPhone', '0232333322');
+  // As `PhoneField` writes it — a calling code and the national digits. The
+  // wizard used to post ten bare digits; see the note on `phoneSchema`.
+  form.set('clinicPhone', '+970232333322');
   form.set('contactEmail', 'rashad@example.com');
   form.set('address', 'Ramallah');
   form.set('name', 'Rashad Atallah');

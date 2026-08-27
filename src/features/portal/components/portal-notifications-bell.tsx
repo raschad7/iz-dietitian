@@ -6,10 +6,11 @@ import { buttonVariants } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import {
   NotificationInboxItem,
+  notificationInboxItemLinkVariants,
   NotificationInboxPopover,
 } from '@/components/ui/notification-inbox-popover';
 import { NOTIFICATION_ICON, useNotificationCopy } from '@/features/portal/notification-copy';
-import { type PortalNotification } from '@/features/portal/notifications';
+import { notificationHref, type PortalNotification } from '@/features/portal/notifications';
 import { Link } from '@/i18n/navigation';
 
 /**
@@ -56,12 +57,20 @@ function PortalNotificationRow({ item }: { item: PortalNotification }) {
   return (
     <li>
       {/*
-        No `tone`. The shared item's tones are the practitioner's triage —
-        attention for a client who needs chasing, incomplete for a record with a
-        hole in it — and nothing in this feed is a problem the reader owns.
-        Neutral is the honest answer for all four kinds.
+        `notificationHref` — the screen this row is about, the same
+        destination a push notification for the same event opens. The shared
+        component's own doc comment asks for exactly this: a `<Link>` wrapping
+        the presentational item, carrying `notificationInboxItemLinkVariants`.
       */}
-      <NotificationInboxItem icon={NOTIFICATION_ICON[item.kind]} title={title} description={body} />
+      <Link href={notificationHref(item.kind)} className={notificationInboxItemLinkVariants}>
+        {/*
+          No `tone`. The shared item's tones are the practitioner's triage —
+          attention for a client who needs chasing, incomplete for a record with a
+          hole in it — and nothing in this feed is a problem the reader owns.
+          Neutral is the honest answer for all four kinds.
+        */}
+        <NotificationInboxItem icon={NOTIFICATION_ICON[item.kind]} title={title} description={body} />
+      </Link>
     </li>
   );
 }

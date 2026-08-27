@@ -323,31 +323,171 @@ function Sidebar({
 function SidebarTrigger({
   className,
   onClick,
+  expandLabel,
+  collapseLabel,
   ...props
-}: React.ComponentProps<typeof Button>) {
-  const { toggleSidebar, locked } = useSidebar()
+}: React.ComponentProps<typeof Button> & {
+  /**
+   * What the press will do, in the reader's language, one string per state.
+   *
+   * Passed in rather than translated here for the reason every string in this
+   * file is: `ui/` is registry code and knows nothing about the app's locales.
+   * `SidebarMenuButton` takes its `tooltip` the same way, and `AppSidebar` —
+   * which already holds `useTranslations('nav')` — is the one caller of both.
+   *
+   * Each label serves twice: it is the button's accessible name in that state,
+   * and, collapsed, the text of the tooltip. Omitted, the control keeps the
+   * registry's English fallback and shows no tooltip at all, so an untranslated
+   * caller degrades to what this component did before rather than to a bubble
+   * of English on an Arabic rail.
+   */
+  expandLabel?: string
+  collapseLabel?: string
+}) {
+  const { toggleSidebar, locked, state, isMobile, openMobile } = useSidebar()
 
   // Nothing to toggle, so nothing to press. A control that is present and inert
   // is worse than an absent one: it invites the press and then says nothing
   // about why the rail did not move.
   if (locked) return null
 
-  return (
+  /*
+    Whether the rail is currently showing its labels, which is what the glyph
+    below reports. Two sources because there are two rails: a phone renders the
+    drawer, whose open-ness is `openMobile`, while `state` tracks the desktop
+    column and stays on whatever it was last set to underneath it.
+  */
+  const expanded = isMobile ? openMobile : state === "expanded"
+  const label = (expanded ? collapseLabel : expandLabel) ?? "Toggle Sidebar"
+
+  const trigger = (
     <Button
       data-sidebar="trigger"
       data-slot="sidebar-trigger"
       variant="ghost"
       size="icon-sm"
-      className={cn(className)}
+      /*
+        ## The fill belongs to the collapsed rail only
+
+        Expanded, the trigger sits beside the logo in a 48px head and its job is
+        already obvious from the column it is standing in; a disc under the
+        pointer there is one more thing moving in the busiest row of the rail.
+        Collapsed, it is the only control left in a 56px strip, so the fill is
+        what says the strip is pressable at all. Same reasoning the mark itself
+        follows in `layout/sidebar.tsx` — an affordance is worth drawing where
+        it teaches something.
+
+        ⚠ **The `aria-expanded:` reset is not optional.** `ghost` lights up on
+        `aria-expanded` (see `button.tsx`) because the variant was written for
+        menu and popover triggers, where the fill says "the thing I opened is
+        still on screen". This button is a *disclosure*, not a popup trigger, so
+        that assumption is wrong here and the state left a grey disc welded on
+        for as long as the rail stayed open. Neutralised rather than dropped:
+        the attribute is the correct semantics, only its default paint is not.
+
+        Stated unconditionally because it can only bite while `aria-expanded` is
+        true, which is exactly the state it is meant to cover. The `hover:`
+        half needs the guard.
+
+        `focus-visible` is untouched in both states — it comes from the base
+        layer, and it is keyboard reachability rather than decoration.
+
+        ## Collapsed, the fill is standing, not a hover
+
+        `bg-sidebar-hover` with no `hover:` prefix, so the tint is simply there
+        for as long as the rail is folded. Collapsed, this is one glyph alone in
+        a 56px strip with no label and nothing around it; a fill that only
+        appears under a pointer is a fill half the people using this — anyone on
+        a touch screen — never see, and the strip reads as decoration rather
+        than as the way back. Expanded, the trigger stands beside the logo with
+        a whole labelled column under it and needs none of that, so it goes flat.
+
+        **The `hover:` pair restates the same fill rather than omitting it.**
+        `ghost` still carries `hover:bg-accent`, which would otherwise fire over
+        the standing tint and turn the square grey on the way past — the one
+        moment the colour has no business changing.
+
+        The colour is not chosen for this button: it is character for character
+        what every destination row below it takes on hover (see
+        `sidebarMenuButtonVariants`), so the head of the column matches the
+        column. `--sidebar-hover` is `--green-50`, one step lighter than the
+        active row's `--green-100`, under `--sidebar-accent-foreground`
+        (green-900) — and it is defined for the dark rail too, where the pair
+        inverts to green-800 under green-200. A hand-written fill would not have
+        been.
+
+        `rounded-md` overrides `icon-sm`'s `rounded-full`: a disc is the shape of
+        a floating control, and this one is a row in a column of rows.
+      */
+      className={cn(
+        "rounded-md aria-expanded:bg-transparent aria-expanded:text-secondary-foreground",
+        expanded
+          ? "hover:bg-transparent hover:text-secondary-foreground"
+          : "bg-sidebar-hover text-sidebar-accent-foreground hover:bg-sidebar-hover hover:text-sidebar-accent-foreground",
+        className
+      )}
+      /*
+        The glyph carries the state visually; this is the same fact for anyone
+        who is not looking at it. Without it the button announces identically in
+        both positions and a screen reader user has no way to know which press
+        they are about to make.
+      */
+      aria-expanded={expanded}
       onClick={(event) => {
         onClick?.(event)
         toggleSidebar()
       }}
       {...props}
     >
-      <Icon name="navigationMenu" />
-      <span className="sr-only">Toggle Sidebar</span>
+      {/*
+        A doubled chevron pointing at what the press will do, replacing a
+        hamburger that looked the same open or shut.
+
+        **Open, it points at the rail's own edge** — the direction the column is
+        about to fold in — and closed it points back out at the page. `Icon`
+        mirrors both in Arabic (they are on `DIRECTIONAL`), so on an RTL screen,
+        where the rail is on the right, open reads `»` and closed reads `«`: the
+        arrow follows the wall it belongs to rather than a fixed side of the
+        screen.
+
+        Do not add `rtl:-scale-x-100` here. The mirroring is already automatic
+        and a second flip would cancel it — see the note on `DIRECTIONAL`.
+      */}
+      <Icon name={expanded ? "chevronsStart" : "chevronsEnd"} />
+      <span className="sr-only">{label}</span>
     </Button>
+  )
+
+  /*
+    No label, no tooltip. The bubble's text and the button's accessible name are
+    the same string, so a caller that passed nothing would get a hint reading
+    "Toggle Sidebar" in English over an Arabic rail — worse than the silence
+    this component shipped with.
+  */
+  if (!expandLabel) return trigger
+
+  return (
+    <Tooltip>
+      <TooltipTrigger render={trigger} />
+      <TooltipContent
+        // `inline-end`, not `right`: collapsed, the rail sits on the
+        // inline-start edge in both scripts, so its tooltips open away from it.
+        // Same side the destination rows below use — see `SidebarMenuButton`.
+        side="inline-end"
+        align="center"
+        /*
+          Expanded, the trigger is beside a logo and above five labelled rows;
+          the one control on screen whose purpose is least in doubt does not
+          need a bubble explaining it. Collapsed, the labels are gone and the
+          hint is the only text there is. Hidden on mobile for the reason the
+          rows are: a drawer is opened by touch, and a touch has no hover to
+          summon a tooltip with.
+        */
+        hidden={expanded || isMobile}
+      >
+        {label}
+      </TooltipContent>
+    </Tooltip>
   )
 }
 
@@ -587,9 +727,23 @@ function SidebarMenuItem({ className, ...props }: React.ComponentProps<"li">) {
   to differ — a green-800 label beside a warm-neutral glyph — which made each row
   read as two things rather than one target. The rail's brand green is now spent
   entirely on the active row and on hover, where it carries meaning.
+
+  **The active row takes `--sidebar-hover`, the same tint a hovered row takes
+  and the same one the collapsed trigger stands in.** One green in the rail
+  rather than two: collapsed, the strip is a stack of small squares, and two
+  green fills a step apart in it read as an inconsistency rather than as two
+  meanings. What separates the active row from its neighbours is that they have
+  no fill at all, plus `font-semibold` and `aria-current` — none of which a
+  second shade was carrying.
+
+  ⚠ Active and hovered are consequently the *same* colour. `data-active:hover:`
+  still pins the active row so it does not move under the pointer, but a
+  hovered neighbour now looks like the active row for as long as the pointer is
+  on it. Restore the distinction by putting these two back to
+  `bg-sidebar-accent` (green-100), which is what they were.
 */
 const sidebarMenuButtonVariants = cva(
-  "peer/menu-button group/menu-button flex w-full items-center gap-3 overflow-hidden rounded-md px-3 py-2 text-start text-sm text-sidebar-icon ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pe-8 group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:px-2.5! group-data-[collapsible=icon]:py-0! hover:bg-sidebar-hover hover:text-sidebar-accent-foreground hover:[&_svg]:text-sidebar-accent-foreground focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-active:bg-sidebar-accent data-active:hover:bg-sidebar-accent data-active:font-semibold data-active:text-sidebar-accent-foreground [&_svg]:shrink-0 [&_svg]:text-sidebar-icon [&_svg:not([class*='size-'])]:size-5 data-active:[&_svg]:text-sidebar-accent-foreground [&>span:last-child]:truncate",
+  "peer/menu-button group/menu-button flex w-full items-center gap-3 overflow-hidden rounded-md px-3 py-2 text-start text-sm text-sidebar-icon ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pe-8 group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:px-2.5! group-data-[collapsible=icon]:py-0! hover:bg-sidebar-hover hover:text-sidebar-accent-foreground hover:[&_svg]:text-sidebar-accent-foreground focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-active:bg-sidebar-hover data-active:hover:bg-sidebar-hover data-active:font-semibold data-active:text-sidebar-accent-foreground [&_svg]:shrink-0 [&_svg]:text-sidebar-icon [&_svg:not([class*='size-'])]:size-5 data-active:[&_svg]:text-sidebar-accent-foreground [&>span:last-child]:truncate",
   {
     variants: {
       variant: {

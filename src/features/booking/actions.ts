@@ -4,6 +4,11 @@ import { revalidatePath } from 'next/cache';
 import { after } from 'next/server';
 
 import {
+  notifyAppointmentBooked as pushAppointmentBooked,
+  notifyAppointmentCancelled as pushAppointmentCancelled,
+  notifyAppointmentRescheduled as pushAppointmentRescheduled,
+} from '@/features/portal/push/notify';
+import {
   notifyAppointmentBooked,
   notifyAppointmentCancelled,
   notifyAppointmentRescheduled,
@@ -98,6 +103,25 @@ function notifyBooked(clinicId: string, appointmentId: string): void {
 }
 
 /**
+ * The same booking, immediately, over Web Push — this is a distinct dedupe
+ * key (`bookedPushKey`) from the day-before reminder's, so sending this never
+ * claims that row: the reminder still fires on its own schedule regardless of
+ * whether this send goes out, is skipped, or fails. See
+ * `notifyAppointmentBooked` in `push/notify.ts`.
+ *
+ * Same "stay quiet on a repeat" rule as {@link notifyBooked}: `repeatWeeklyAction`
+ * sends its own course-wide WhatsApp message, but has no push counterpart yet —
+ * a client repeating a booking gets this one push for the anchor appointment
+ * and nothing for the weeks added after it.
+ */
+function pushBooked(
+  clientId: string,
+  appointment: { id: string; date: string; startMinute: number },
+): void {
+  pushScheduleChange(() => pushAppointmentBooked(clientId, appointment));
+}
+
+/**
  * Tells the client about a whole course of appointments at once.
  *
  * The repeat's counterpart to {@link notifyBooked}, and deliberately not a loop
@@ -137,6 +161,33 @@ function notifyRescheduled(
   });
 }
 
+/**
+ * The same facts on the client's own phone, over Web Push.
+ *
+ * A second `after()` rather than a branch inside the WhatsApp helpers above,
+ * and separate on purpose: the two channels fail independently, and a clinic
+ * whose WhatsApp session has dropped must still be able to tell a client their
+ * appointment moved. Neither can fail the write that triggered it.
+ *
+ * ⚠ **Only the staff-initiated paths are wired here.** When a *client* asks for
+ * a change and the dietitian approves it, `requests/actions.ts` already pushes
+ * "your request was approved" — adding these there too would buzz the same
+ * phone twice about one decision.
+ *
+ * `clientId` is passed in rather than read back: for a cancellation the row is
+ * already gone, and for a move it is what the request named. See
+ * `push/notify.ts`.
+ */
+function pushScheduleChange(send: () => Promise<unknown>): void {
+  after(async () => {
+    try {
+      await send();
+    } catch (error) {
+      console.error('[booking] push schedule notice failed', error);
+    }
+  });
+}
+
 /** Tells the client their appointment is cancelled, after the row is gone. */
 function notifyCancelled(clinicId: string, cancelled: DeletedAppointment): void {
   after(async () => {
@@ -170,7 +221,14 @@ export async function createAppointmentAction(
     // Silent when a repeat was chosen: `repeatWeeklyAction` is about to send one
     // message naming this appointment and every other one in the course. See
     // `repeatsSchema`.
-    if (!parsed.data.repeats) notifyBooked(context.clinicId, result.data.id);
+    if (!parsed.data.repeats) {
+      notifyBooked(context.clinicId, result.data.id);
+      pushBooked(parsed.data.clientId, {
+        id: result.data.id,
+        date: parsed.data.date,
+        startMinute: parsed.data.startMinute,
+      });
+    }
   }
 
   return result;
@@ -206,8 +264,20 @@ export async function updateAppointmentAction(rawLocale: string, input: unknown)
   // beside the send in `src/features/whatsapp/notify.ts`, where it covers all of
   // them and the next caller too; both branches below are refused there if this
   // slot has already started.
-  if (moved) notifyRescheduled(context.clinicId, parsed.data.id, previous);
-  else notifyBooked(context.clinicId, parsed.data.id);
+  if (moved) {
+    notifyRescheduled(context.clinicId, parsed.data.id, previous);
+    pushScheduleChange(() =>
+      pushAppointmentRescheduled(parsed.data.clientId, {
+        id: parsed.data.id,
+        date: parsed.data.date,
+        startMinute: parsed.data.startMinute,
+      }),
+    );
+  } else {
+    // An edit that left the slot alone. The client is told nothing new on
+    // either channel beyond the confirmation's own dedupe rules.
+    notifyBooked(context.clinicId, parsed.data.id);
+  }
 
   return { ok: true, data: undefined };
 }
@@ -227,6 +297,13 @@ export async function deleteAppointmentAction(rawLocale: string, input: unknown)
 
   revalidateCalendar(locale);
   notifyCancelled(context.clinicId, result.data);
+  pushScheduleChange(() =>
+    pushAppointmentCancelled(result.data.clientId, {
+      id: result.data.id,
+      date: result.data.date,
+      startMinute: result.data.startMinute,
+    }),
+  );
 
   return { ok: true, data: undefined };
 }
@@ -299,7 +376,14 @@ export async function createClientAndBookAction(
     // The register gained a client, so its list is stale too.
     revalidatePath(`/${locale}/app/clients`);
     // Silent when a repeat follows, exactly as `createAppointmentAction` is.
-    if (!parsed.data.repeats) notifyBooked(context.clinicId, result.data.id);
+    if (!parsed.data.repeats) {
+      notifyBooked(context.clinicId, result.data.id);
+      pushBooked(result.data.clientId, {
+        id: result.data.id,
+        date: parsed.data.booking.date,
+        startMinute: parsed.data.booking.startMinute,
+      });
+    }
   }
 
   return result;

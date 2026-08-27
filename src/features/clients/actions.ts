@@ -459,8 +459,26 @@ export async function reissuePortalPasswordAction(
 
     const whatsapp = await deliverCredentials(clinicId, id, result);
 
-    revalidatePath(`/${locale}/app/clients`);
-    revalidatePath(`/${locale}/app/clients/${id}`);
+    /*
+      ⚠ **No `revalidatePath` here, unlike issue and revoke.** Those two flip
+      `hasPortalAccess` — the value the register's rows and this card's own
+      branch are drawn from — so the server-rendered pages really are stale
+      once they land. A re-issue changes none of it: `reissuePortalPassword`
+      writes a password hash, sets `mustChangePassword` and deletes the
+      client's sessions, and no staff screen renders any of the three. The
+      username is the same username.
+
+      Revalidating anyway was not merely wasted work, it was *visible*. It
+      evicts this record from the client Router Cache, so the router has to
+      re-fetch the route it is already standing on — and a segment re-fetched
+      with nothing cached under it renders `[clientId]/loading.tsx` in the gap.
+      Pressing "issue a new password" flashed the record's skeleton over a page
+      whose contents had not changed.
+
+      The new password reaches the screen through the returned state, which is
+      the only place it could ever come from: nothing stores it in plaintext,
+      so no re-render of the page could show it.
+    */
 
     return {
       status: 'issued',

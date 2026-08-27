@@ -12,7 +12,13 @@ type PasswordInputProps = {
   name: string;
   label: string;
   autoComplete: 'current-password' | 'new-password';
-  /** Rendered under the field — used for the minimum-length rule on sign-up. */
+  /**
+   * Rendered under the field, and displaced by {@link error}.
+   *
+   * The reset screen states its rule this way. Sign-up and set-password draw
+   * the live checklist in {@link footer} instead, which a sentence cannot beat:
+   * it says *which* rule is still outstanding.
+   */
   hint?: string;
   minLength?: number;
   placeholder?: string;
@@ -64,7 +70,7 @@ type PasswordInputProps = {
  * A password field with a reveal toggle.
  *
  * Typing a long password blind is the main reason people give up on a sign-up
- * form, and it is worse here because the minimum is 10 characters. The toggle is
+ * form. The toggle is
  * a real <button> so it is reachable by keyboard, and it is positioned with
  * `end-*` rather than `right-*` so it lands on the correct side in Arabic —
  * opposite the lock, which `Input` draws at the inline-start.

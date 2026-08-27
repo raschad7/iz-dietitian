@@ -114,6 +114,7 @@ in another committed `.env` file.
 | `bun run db:reset` | Destructively rebuild the local development schema |
 | `bun run db:reset:test` | Destructively rebuild the test schema |
 | `bun run wa:reminders` | Process due WhatsApp reminders once |
+| `bun run push:reminders` | Send due portal push notifications once |
 | `bun run brand:build` | Regenerate the brand SVGs in `public/brand/` from `src/features/brand/logo.ts` |
 
 `db:reset` is intentionally protected against production use. Still check the
@@ -219,6 +220,14 @@ database as the rest of the suite.
 ## Optional integrations
 
 - WhatsApp/OpenWA: follow [`infra/openwa/README.md`](../infra/openwa/README.md).
+- Web Push (client portal notifications): generate a VAPID keypair once with
+  `bunx web-push generate-vapid-keys --json` and put it in `.env.local` as
+  `NEXT_PUBLIC_VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`. Leave both unset to
+  keep the feature off. Rotating the pair invalidates every stored
+  subscription. The scheduled half is `bun run push:reminders`, or
+  `POST /api/portal/push-reminders` behind `PUSH_CRON_SECRET`; run it every few
+  minutes. Testing on a phone needs HTTPS, and on iOS the portal must be
+  installed to the Home Screen (16.4+).
 - Email: the default `MAIL_TRANSPORT=console` prints development messages. Set
   Resend values only when testing real delivery.
 - AI weekly plans: `LLM_TRANSPORT=console` uses the local catalog without an API
